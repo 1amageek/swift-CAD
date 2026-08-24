@@ -1,0 +1,59 @@
+{
+  "columns": [
+    "Area",
+    "Observed result",
+    "Interpretation"
+  ],
+  "rows": [
+    [
+      "Public inventory",
+      "75/75 registered routes",
+      "Contract surface is present"
+    ],
+    [
+      "Product build",
+      "Passed",
+      "Production modules compile"
+    ],
+    [
+      "Full CADKernel suite",
+      "615/615 tests passed",
+      "Substantial kernel behavior exists"
+    ],
+    [
+      "Validated curve contract",
+      "3/3 tests passed",
+      "Success, invalid input, and closed-domain behavior pass"
+    ],
+    [
+      "Latest focused periodic-chart paths",
+      "46/46 tests passed",
+      "Derivative-bounded lift, cone-torus and torus-torus certificates, area/flux, and volume all pass"
+    ],
+    [
+      "SwiftCAD Release facade",
+      "181/181 tests passed across 69 suites in 244.344 seconds",
+      "The complete optimized public facade bundle passes after the periodic-chart ownership correction"
+    ],
+    [
+      "CADExchange tests",
+      "237/237 passed",
+      "Declared exchange subsets have current behavioral proof"
+    ],
+    [
+      "Formal release gates",
+      "0/8",
+      "Repository-defined completion not reached"
+    ],
+    [
+      "Evidence manifests",
+      "0",
+      "No reproducible gate evidence package"
+    ],
+    [
+      "Worktree",
+      "535 pre-commit porcelain entries",
+      "Results are not tied to a clean revision"
+    ]
+  ]
+}

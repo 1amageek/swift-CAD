@@ -2,15 +2,17 @@ import CADCore
 import CADGeometry
 import Foundation
 
-/// Certifies divergence-theorem volume for shells containing trimmed B-spline faces.
+/// Certifies divergence-theorem volume for shells containing trimmed parametric faces.
 ///
 /// Polynomial Bezier spans use exact Bernstein coefficient integration,
 /// axis-aligned planar straight-edge faces use an outward-rounded boundary
 /// Green integral, arbitrary polynomial Bezier loops use an exact Bernstein
 /// flux primitive, remaining rational rectangles use certified adaptive
 /// quadrature, and analytic faces are composed through their certified
-/// surface-flux integrator. Unsupported trims never enter an approximate
-/// success path.
+/// surface-flux integrator. Procedural surfaces first use an exact
+/// same-parameter canonical surface when one exists; remaining procedural
+/// trims use a certified boundary-flux enclosure with second-derivative error
+/// bounds. Unsupported trims never enter an approximate success path.
 struct TrimmedParametricSurfaceVolumeEvaluator {
     struct VolumeBounds: Sendable, Hashable {
         let lower: Double
@@ -28,29 +30,33 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     private let maximumCoefficientOperations: Int
     private let maximumRationalSubdivisionDepth: Int
     private let maximumRationalCellCount: Int
+    private let maximumProceduralSubdivisionDepth: Int
+    private let maximumProceduralCellCount: Int
 
     init(
         maximumCoefficientOperations: Int = 2_000_000,
         maximumRationalSubdivisionDepth: Int = 10,
-        maximumRationalCellCount: Int = 1_000_000
+        maximumRationalCellCount: Int = 1_000_000,
+        maximumProceduralSubdivisionDepth: Int = 32,
+        maximumProceduralCellCount: Int = 1_000_000
     ) {
         self.maximumCoefficientOperations = maximumCoefficientOperations
         self.maximumRationalSubdivisionDepth = maximumRationalSubdivisionDepth
         self.maximumRationalCellCount = maximumRationalCellCount
+        self.maximumProceduralSubdivisionDepth = maximumProceduralSubdivisionDepth
+        self.maximumProceduralCellCount = maximumProceduralCellCount
     }
 
     func volume(
         of shell: Shell,
         in model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> Double? {
-        guard let bounds = try volumeBounds(
+    ) throws -> Double {
+        let bounds = try volumeBounds(
             of: shell,
             in: model,
             tolerance: tolerance
-        ) else {
-            return nil
-        }
+        )
         let reference = try referencePoint(for: shell, in: model)
         let characteristicLength = try characteristicLength(
             of: shell,
@@ -68,7 +74,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
                 code: .resourceLimitExceeded,
                 residual: bounds.errorRadius,
                 tolerance: tolerance,
-                message: "Certified B-spline surface-flux volume exceeded the requested enclosure width."
+                message: "Certified parametric surface-flux volume exceeded the requested enclosure width."
             )
         }
         return bounds.midpoint
@@ -78,7 +84,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         of shell: Shell,
         in model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> VolumeBounds? {
+    ) throws -> VolumeBounds {
         try tolerance.validate()
         let reference = try referencePoint(for: shell, in: model)
         let characteristicLength = try characteristicLength(
@@ -93,11 +99,11 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         )
         let faceCount = shell.faceIDs.count
         guard faceCount > 0 else {
-            return nil
+            throw TopologyError.openShell(shell.id)
         }
         let totalCoedgeCount = try coedgeCount(of: shell, in: model)
         guard totalCoedgeCount > 0 else {
-            return nil
+            throw TopologyError.openShell(shell.id)
         }
         var budget = CoefficientBudget(limit: maximumCoefficientOperations)
         var total = OutwardInterval.exact(0.0)
@@ -111,104 +117,90 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
             var contribution: OutwardInterval
             switch surface {
             case let .bSpline(spline):
-                try spline.validate(tolerance: tolerance)
-                let trim = try ExactRectangularPcurveDomainResolver().resolve(
+                guard let bSplineContribution = try bSplineFaceContribution(
                     face: face,
+                    surface: spline,
                     model: model,
+                    reference: reference,
+                    requestedFaceError: requestedError * 0.99 / Double(faceCount),
+                    requestedCurveWidth: requestedError * 1.98 / Double(totalCoedgeCount),
+                    budget: &budget,
                     tolerance: tolerance
-                )
-                if let trim {
-                    if var patch = try PolynomialBezierPatch(
-                        surface: spline,
+                ) else {
+                    throw unhandledValidatedFace(
+                        surface: surface,
                         tolerance: tolerance
-                    ) {
-                        patch = try patch.trimmed(
-                            uLower: trim.uLower,
-                            uUpper: trim.uUpper,
-                            vLower: trim.vLower,
-                            vUpper: trim.vUpper,
-                            sourceUDomain: spline.uDomain,
-                            sourceVDomain: spline.vDomain,
-                            tolerance: tolerance
-                        )
-                        contribution = try patch.fluxIntegral(
+                    )
+                }
+                contribution = bSplineContribution
+            case let .procedural(procedural):
+                if let exactSurface = try procedural.exactSameParameterSurface(
+                    tolerance: tolerance
+                ) {
+                    switch exactSurface {
+                    case let .bSpline(spline):
+                        guard let exactContribution = try bSplineFaceContribution(
+                            face: face,
+                            surface: spline,
+                            model: model,
                             reference: reference,
+                            requestedFaceError: requestedError * 0.99 / Double(faceCount),
+                            requestedCurveWidth: requestedError * 1.98 / Double(totalCoedgeCount),
                             budget: &budget,
                             tolerance: tolerance
-                        )
-                    } else if let planarContribution = try axisAlignedPlanarContribution(
-                        face: face,
-                        surface: spline,
-                        model: model,
-                        reference: reference,
-                        tolerance: tolerance
-                    ) {
-                        contribution = planarContribution
-                    } else {
-                        let rationalBounds = try CertifiedRationalBezierSurfaceFluxIntegrator(
-                            maximumSubdivisionDepth: maximumRationalSubdivisionDepth,
-                            maximumCellCount: maximumRationalCellCount
-                        ).integrate(
-                            surface: spline,
-                            uLower: trim.uLower,
-                            uUpper: trim.uUpper,
-                            vLower: trim.vLower,
-                            vUpper: trim.vUpper,
-                            reference: reference,
-                            requestedError: requestedError * 0.99 / Double(faceCount),
-                            tolerance: tolerance
-                        )
-                        guard let rationalBounds else {
-                            return nil
+                        ) else {
+                            throw unhandledValidatedFace(
+                                surface: surface,
+                                tolerance: tolerance
+                            )
                         }
-                        contribution = OutwardInterval(
-                            lower: rationalBounds.lower,
-                            upper: rationalBounds.upper
+                        contribution = exactContribution
+                    case .procedural:
+                        throw KernelError(
+                            phase: .topology,
+                            code: .topologyFailure,
+                            tolerance: tolerance,
+                            message: "An exact procedural representation must be canonical."
                         )
+                    default:
+                        guard let exactContribution = try analyticFaceContribution(
+                            face: face,
+                            surface: exactSurface,
+                            model: model,
+                            reference: reference,
+                            requestedCurveWidth: requestedError * 1.98 / Double(totalCoedgeCount),
+                            tolerance: tolerance
+                        ) else {
+                            throw unhandledValidatedFace(
+                                surface: surface,
+                                tolerance: tolerance
+                            )
+                        }
+                        contribution = exactContribution
                     }
-                } else if let patch = try PolynomialBezierPatch(
-                    surface: spline,
-                    tolerance: tolerance
-                ), let polynomialContribution = try arbitraryPolynomialContribution(
+                } else if let proceduralContribution = try proceduralRectangularContribution(
                     face: face,
+                    surface: surface,
                     model: model,
-                    primitive: try patch.fluxPrimitive(
-                        reference: reference,
-                        uDomain: spline.uDomain,
-                        vDomain: spline.vDomain,
-                        budget: &budget,
-                        tolerance: tolerance
-                    ),
+                    reference: reference,
+                    requestedError: requestedError * 0.99 / Double(faceCount),
+                    tolerance: tolerance
+                ) {
+                    contribution = proceduralContribution
+                } else if let proceduralContribution = try arbitraryProceduralContribution(
+                    face: face,
+                    surface: surface,
+                    model: model,
+                    reference: reference,
                     requestedCurveWidth: requestedError * 1.98 / Double(totalCoedgeCount),
                     tolerance: tolerance
                 ) {
-                    contribution = polynomialContribution
-                } else if let planarContribution = try axisAlignedPlanarContribution(
-                    face: face,
-                    surface: spline,
-                    model: model,
-                    reference: reference,
-                    tolerance: tolerance
-                ) {
-                    contribution = planarContribution
-                } else if let field = try CertifiedRationalBezierSurfaceFluxIntegrator(
-                    maximumSubdivisionDepth: maximumRationalSubdivisionDepth,
-                    maximumCellCount: maximumRationalCellCount
-                ).preparedField(
-                    surface: spline,
-                    reference: reference,
-                    tolerance: tolerance
-                ), let rationalContribution = try arbitraryRationalContribution(
-                    face: face,
-                    surface: spline,
-                    model: model,
-                    field: field,
-                    requestedCurveWidth: requestedError * 1.98 / Double(totalCoedgeCount),
-                    tolerance: tolerance
-                ) {
-                    contribution = rationalContribution
+                    contribution = proceduralContribution
                 } else {
-                    return nil
+                    throw unhandledValidatedFace(
+                        surface: surface,
+                        tolerance: tolerance
+                    )
                 }
             default:
                 guard let analyticContribution = try analyticFaceContribution(
@@ -219,7 +211,10 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
                     requestedCurveWidth: requestedError * 1.98 / Double(totalCoedgeCount),
                     tolerance: tolerance
                 ) else {
-                    return nil
+                    throw unhandledValidatedFace(
+                        surface: surface,
+                        tolerance: tolerance
+                    )
                 }
                 contribution = analyticContribution
             }
@@ -234,10 +229,407 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
                 phase: .topology,
                 code: .resourceLimitExceeded,
                 tolerance: tolerance,
-                message: "Certified B-spline surface-flux volume exceeded finite arithmetic."
+                message: "Certified parametric surface-flux volume exceeded finite arithmetic."
             )
         }
         return VolumeBounds(lower: total.lower, upper: total.upper)
+    }
+
+    private func unhandledValidatedFace(
+        surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) -> KernelError {
+        KernelError(
+            phase: .topology,
+            code: .topologyFailure,
+            tolerance: tolerance,
+            message: "A validated \(surfaceKind(surface)) face has no certified surface-flux strategy."
+        )
+    }
+
+    private func surfaceKind(_ surface: Surface3D) -> String {
+        switch surface {
+        case .plane: "plane"
+        case .cylinder: "cylinder"
+        case .analytic: "analytic"
+        case .bSpline: "B-spline"
+        case .procedural(.offset): "offset"
+        case .procedural(.ruled): "ruled"
+        }
+    }
+
+    private func bSplineFaceContribution(
+        face: Face,
+        surface: BSplineSurface3D,
+        model: BRepModel,
+        reference: Point3D,
+        requestedFaceError: Double,
+        requestedCurveWidth: Double,
+        budget: inout CoefficientBudget,
+        tolerance: ModelingTolerance
+    ) throws -> OutwardInterval? {
+        try surface.validate(tolerance: tolerance)
+        let trim = try ExactRectangularPcurveDomainResolver().resolve(
+            face: face,
+            model: model,
+            tolerance: tolerance
+        )
+        if let trim {
+            if var patch = try PolynomialBezierPatch(
+                surface: surface,
+                tolerance: tolerance
+            ) {
+                patch = try patch.trimmed(
+                    uLower: trim.uLower,
+                    uUpper: trim.uUpper,
+                    vLower: trim.vLower,
+                    vUpper: trim.vUpper,
+                    sourceUDomain: surface.uDomain,
+                    sourceVDomain: surface.vDomain,
+                    tolerance: tolerance
+                )
+                return try patch.fluxIntegral(
+                    reference: reference,
+                    budget: &budget,
+                    tolerance: tolerance
+                )
+            }
+            if let planarContribution = try axisAlignedPlanarContribution(
+                face: face,
+                surface: surface,
+                model: model,
+                reference: reference,
+                tolerance: tolerance
+            ) {
+                return planarContribution
+            }
+            guard let rationalBounds = try CertifiedRationalBezierSurfaceFluxIntegrator(
+                maximumSubdivisionDepth: maximumRationalSubdivisionDepth,
+                maximumCellCount: maximumRationalCellCount
+            ).integrate(
+                surface: surface,
+                uLower: trim.uLower,
+                uUpper: trim.uUpper,
+                vLower: trim.vLower,
+                vUpper: trim.vUpper,
+                reference: reference,
+                requestedError: requestedFaceError,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            return OutwardInterval(
+                lower: rationalBounds.lower,
+                upper: rationalBounds.upper
+            )
+        }
+        if let patch = try PolynomialBezierPatch(
+            surface: surface,
+            tolerance: tolerance
+        ), let polynomialContribution = try arbitraryPolynomialContribution(
+            face: face,
+            model: model,
+            primitive: try patch.fluxPrimitive(
+                reference: reference,
+                uDomain: surface.uDomain,
+                vDomain: surface.vDomain,
+                budget: &budget,
+                tolerance: tolerance
+            ),
+            requestedCurveWidth: requestedCurveWidth,
+            tolerance: tolerance
+        ) {
+            return polynomialContribution
+        }
+        if let planarContribution = try axisAlignedPlanarContribution(
+            face: face,
+            surface: surface,
+            model: model,
+            reference: reference,
+            tolerance: tolerance
+        ) {
+            return planarContribution
+        }
+        guard let field = try CertifiedRationalBezierSurfaceFluxIntegrator(
+            maximumSubdivisionDepth: maximumRationalSubdivisionDepth,
+            maximumCellCount: maximumRationalCellCount
+        ).preparedField(
+            surface: surface,
+            reference: reference,
+            tolerance: tolerance
+        ) else {
+            return nil
+        }
+        return try arbitraryRationalContribution(
+            face: face,
+            surface: surface,
+            model: model,
+            field: field,
+            requestedCurveWidth: requestedCurveWidth,
+            tolerance: tolerance
+        )
+    }
+
+    private func arbitraryProceduralContribution(
+        face: Face,
+        surface: Surface3D,
+        model: BRepModel,
+        reference: Point3D,
+        requestedCurveWidth: Double,
+        tolerance: ModelingTolerance
+    ) throws -> OutwardInterval? {
+        var total = OutwardInterval.exact(0.0)
+        for loopID in face.loops {
+            guard let loop = model.loops[loopID],
+                  loop.coedges.isEmpty == false else {
+                throw TopologyError.missingReference(
+                    "Procedural volume references a missing or empty loop."
+                )
+            }
+            let curves = try loop.coedges.map { coedge in
+                guard let curve = coedge.surfaceParameterCurve else {
+                    throw TopologyError.invalidTrim(coedge.edgeID)
+                }
+                return curve
+            }
+            guard let contribution = try proceduralLoopContribution(
+                parameterCurves: curves,
+                role: loop.role,
+                surface: surface,
+                reference: reference,
+                requestedCurveWidth: requestedCurveWidth,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            total = total + contribution
+        }
+        return total
+    }
+
+    private func proceduralLoopContribution(
+        parameterCurves: [SurfaceParameterCurve],
+        role: LoopRole,
+        surface: Surface3D,
+        reference: Point3D,
+        requestedCurveWidth: Double,
+        tolerance: ModelingTolerance
+    ) throws -> OutwardInterval? {
+        guard let firstCurve = parameterCurves.first,
+              requestedCurveWidth.isFinite,
+              requestedCurveWidth > 0.0 else {
+            throw KernelError(
+                phase: .topology,
+                code: .invalidInput,
+                residual: requestedCurveWidth,
+                tolerance: tolerance,
+                message: "Procedural volume requires pcurves and a positive curve enclosure width."
+            )
+        }
+        let uBase = try firstCurve.startParameter(tolerance: tolerance).u
+        let integrator = CertifiedAnalyticPcurveFluxIntegrator()
+        var rawFlux = TrimmedAnalyticSurfaceVolumeEvaluator.Interval.exact(0.0)
+        var areaBounds = SurfaceParameterAreaBounds.zero
+        for curve in parameterCurves {
+            guard let contribution = try integrator.proceduralSurfaceBounds(
+                for: curve,
+                surface: surface,
+                reference: reference,
+                uBase: uBase,
+                requestedWidth: requestedCurveWidth,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            rawFlux = rawFlux + contribution
+            areaBounds = areaBounds.adding(
+                try SurfaceParameterCurveAreaIntegrator().bounds(
+                    for: curve,
+                    uShift: 0.0,
+                    requestedWidth: max(
+                        tolerance.relative,
+                        Double.ulpOfOne * 256.0
+                    ),
+                    tolerance: tolerance
+                )
+            )
+        }
+        let traversalNormalized: TrimmedAnalyticSurfaceVolumeEvaluator.Interval
+        if areaBounds.lower > 0.0 {
+            traversalNormalized = rawFlux
+        } else if areaBounds.upper < 0.0 {
+            traversalNormalized = -rawFlux
+        } else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                residual: areaBounds.minimumAbsoluteValue,
+                tolerance: tolerance,
+                message: "Procedural volume could not certify loop orientation."
+            )
+        }
+        let roleNormalized = role == .outer
+            ? traversalNormalized
+            : -traversalNormalized
+        return OutwardInterval(
+            lower: roleNormalized.lower,
+            upper: roleNormalized.upper
+        )
+    }
+
+    private func proceduralRectangularContribution(
+        face: Face,
+        surface: Surface3D,
+        model: BRepModel,
+        reference: Point3D,
+        requestedError: Double,
+        tolerance: ModelingTolerance
+    ) throws -> OutwardInterval? {
+        guard let trim = try ExactRectangularPcurveDomainResolver().resolve(
+            face: face,
+            model: model,
+            tolerance: tolerance
+        ) else {
+            return nil
+        }
+        guard requestedError.isFinite,
+              requestedError > 0.0,
+              maximumProceduralSubdivisionDepth >= 0,
+              maximumProceduralCellCount > 0 else {
+            throw KernelError(
+                phase: .topology,
+                code: .resourceLimitExceeded,
+                residual: requestedError,
+                tolerance: tolerance,
+                message: "Certified procedural volume requires a positive error and subdivision budget."
+            )
+        }
+        var pending = [ProceduralFluxWorkItem(
+            cell: ProceduralFluxCell(
+                uLower: trim.uLower,
+                uUpper: trim.uUpper,
+                vLower: trim.vLower,
+                vUpper: trim.vUpper
+            ),
+            errorBudget: requestedError,
+            depth: 0
+        )]
+        var accepted: [OutwardInterval] = []
+        var leafCount = 1
+        while let item = pending.popLast() {
+            let contribution = try proceduralFluxContribution(
+                cell: item.cell,
+                surface: surface,
+                reference: reference,
+                tolerance: tolerance
+            )
+            let truncationError = (
+                contribution.uErrorUpper + contribution.vErrorUpper
+            ).nextUp
+            if truncationError <= item.errorBudget {
+                accepted.append(contribution.interval)
+                continue
+            }
+            guard item.depth < maximumProceduralSubdivisionDepth,
+                  leafCount < maximumProceduralCellCount else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .resourceLimitExceeded,
+                    residual: contribution.interval.errorRadius,
+                    tolerance: tolerance,
+                    message: "Certified procedural surface-flux volume exhausted its adaptive subdivision budget."
+                )
+            }
+            let splitAlongU: Bool
+            if contribution.uErrorUpper == contribution.vErrorUpper {
+                splitAlongU = item.cell.uWidth >= item.cell.vWidth
+            } else {
+                splitAlongU = contribution.uErrorUpper > contribution.vErrorUpper
+            }
+            let children = item.cell.split(alongU: splitAlongU)
+            let childBudget = (item.errorBudget * 0.5).nextDown
+            pending.append(ProceduralFluxWorkItem(
+                cell: children.second,
+                errorBudget: childBudget,
+                depth: item.depth + 1
+            ))
+            pending.append(ProceduralFluxWorkItem(
+                cell: children.first,
+                errorBudget: childBudget,
+                depth: item.depth + 1
+            ))
+            leafCount += 1
+        }
+        let total = accepted.reduce(OutwardInterval.exact(0.0), +)
+        return total
+    }
+
+    private func proceduralFluxContribution(
+        cell: ProceduralFluxCell,
+        surface: Surface3D,
+        reference: Point3D,
+        tolerance: ModelingTolerance
+    ) throws -> ProceduralFluxContribution {
+        let parameterBox = try cell.parameterBox()
+        let encloser = SurfaceFluxDifferentialEncloser()
+        let differential = try encloser.enclosure(
+            of: surface,
+            over: parameterBox,
+            relativeTo: reference,
+            tolerance: tolerance
+        )
+        let center = try encloser.enclosure(
+            of: surface,
+            over: cell.midpointBox(
+                tolerance: tolerance,
+                relativeWidthMultiplier: midpointWidthMultiplier(for: surface)
+            ),
+            relativeTo: reference,
+            tolerance: tolerance
+        )
+        let uWidth = OutwardInterval.exact(cell.uUpper)
+            - OutwardInterval.exact(cell.uLower)
+        let vWidth = OutwardInterval.exact(cell.vUpper)
+            - OutwardInterval.exact(cell.vLower)
+        let area = uWidth * vWidth
+        let centerValue = OutwardInterval(
+            lower: center.value.lower,
+            upper: center.value.upper
+        )
+        let secondU = OutwardInterval.exact(
+            max(
+                abs(differential.secondDerivativeUU.lower),
+                abs(differential.secondDerivativeUU.upper)
+            ).nextUp
+        )
+        let secondV = OutwardInterval.exact(
+            max(
+                abs(differential.secondDerivativeVV.lower),
+                abs(differential.secondDerivativeVV.upper)
+            ).nextUp
+        )
+        let uError = area * secondU * uWidth * uWidth
+            / OutwardInterval.exact(24.0)
+        let vError = area * secondV * vWidth * vWidth
+            / OutwardInterval.exact(24.0)
+        let uErrorUpper = max(abs(uError.lower), abs(uError.upper)).nextUp
+        let vErrorUpper = max(abs(vError.lower), abs(vError.upper)).nextUp
+        let errorUpper = (uErrorUpper + vErrorUpper).nextUp
+        return ProceduralFluxContribution(
+            interval: centerValue * area + OutwardInterval(
+            lower: (-errorUpper).nextDown,
+            upper: errorUpper.nextUp
+            ),
+            uErrorUpper: uErrorUpper,
+            vErrorUpper: vErrorUpper
+        )
+    }
+
+    private func midpointWidthMultiplier(for surface: Surface3D) -> Double {
+        switch surface {
+        case .procedural(.ruled): 16.0
+        default: 1_024.0
+        }
     }
 
     private func analyticFaceContribution(
@@ -779,6 +1171,14 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
                         axis.coordinate(of: $0) == coordinate
                     }
             }
+        case let .rigidImage(image):
+            return curveIsCertifiedStraight(
+                image.source,
+                start: image.transform.inverted().applying(to: start),
+                end: image.transform.inverted().applying(to: end)
+            )
+        case .affineImage:
+            return curve.hasExactLinearParameterization
         case .circle, .analytic, .implicit, .surfaceLift,
              .certifiedIntersection:
             return false
@@ -874,30 +1274,11 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         for shell: Shell,
         in model: BRepModel
     ) throws -> Point3D {
-        for faceID in shell.faceIDs {
-            guard let face = model.faces[faceID] else {
-                throw TopologyError.missingReference(
-                    "Parametric volume references a missing face."
-                )
-            }
-            for loopID in face.loops {
-                guard let loop = model.loops[loopID] else {
-                    throw TopologyError.missingReference(
-                        "Parametric volume references a missing loop."
-                    )
-                }
-                for coedge in loop.coedges {
-                    guard let edge = model.edges[coedge.edgeID],
-                          let point = model.vertices[edge.startVertexID]?.point else {
-                        throw TopologyError.missingReference(
-                            "Parametric volume references a missing boundary vertex."
-                        )
-                    }
-                    return point
-                }
-            }
-        }
-        throw TopologyError.openShell(shell.id)
+        try BRepShellReferencePointResolver().referencePoint(
+            for: shell,
+            in: model,
+            context: "Parametric volume"
+        )
     }
 
     private func coedgeCount(
@@ -1542,6 +1923,131 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         }
     }
 
+    private struct ProceduralFluxCell: Sendable, Hashable {
+        let uLower: Double
+        let uUpper: Double
+        let vLower: Double
+        let vUpper: Double
+
+        var uWidth: Double { uUpper - uLower }
+        var vWidth: Double { vUpper - vLower }
+
+        func split(
+            alongU: Bool
+        ) -> (first: ProceduralFluxCell, second: ProceduralFluxCell) {
+            let uMidpoint = uLower + (uUpper - uLower) * 0.5
+            let vMidpoint = vLower + (vUpper - vLower) * 0.5
+            if alongU {
+                return (
+                    ProceduralFluxCell(
+                        uLower: uLower,
+                        uUpper: uMidpoint,
+                        vLower: vLower,
+                        vUpper: vUpper
+                    ),
+                    ProceduralFluxCell(
+                        uLower: uMidpoint,
+                        uUpper: uUpper,
+                        vLower: vLower,
+                        vUpper: vUpper
+                    )
+                )
+            }
+            return (
+                ProceduralFluxCell(
+                    uLower: uLower,
+                    uUpper: uUpper,
+                    vLower: vLower,
+                    vUpper: vMidpoint
+                ),
+                ProceduralFluxCell(
+                    uLower: uLower,
+                    uUpper: uUpper,
+                    vLower: vMidpoint,
+                    vUpper: vUpper
+                )
+            )
+        }
+
+        func parameterBox() throws -> SurfaceParameterBox {
+            SurfaceParameterBox(
+                u: try ScalarInterval(lower: uLower, upper: uUpper),
+                v: try ScalarInterval(lower: vLower, upper: vUpper)
+            )
+        }
+
+        func midpointBox(
+            tolerance: ModelingTolerance,
+            relativeWidthMultiplier: Double
+        ) throws -> SurfaceParameterBox {
+            SurfaceParameterBox(
+                u: try enclosingMidpoint(
+                    lower: uLower,
+                    upper: uUpper,
+                    tolerance: tolerance,
+                    relativeWidthMultiplier: relativeWidthMultiplier
+                ),
+                v: try enclosingMidpoint(
+                    lower: vLower,
+                    upper: vUpper,
+                    tolerance: tolerance,
+                    relativeWidthMultiplier: relativeWidthMultiplier
+                )
+            )
+        }
+
+        private func enclosingMidpoint(
+            lower: Double,
+            upper: Double,
+            tolerance: ModelingTolerance,
+            relativeWidthMultiplier: Double
+        ) throws -> ScalarInterval {
+            let midpoint = lower + (upper - lower) * 0.5
+            let scale = max(abs(lower), abs(upper), 1.0)
+            let preferredHalfWidth = max(
+                tolerance.relative * scale * relativeWidthMultiplier,
+                Double.ulpOfOne * scale * 4_096.0
+            ).nextUp
+            let halfWidth = min(
+                preferredHalfWidth,
+                ((upper - lower) * 0.25).nextDown
+            )
+            let enclosureLower = max(
+                lower,
+                (midpoint - halfWidth).nextDown
+            )
+            let enclosureUpper = min(
+                upper,
+                (midpoint + halfWidth).nextUp
+            )
+            guard enclosureUpper > enclosureLower else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .resourceLimitExceeded,
+                    residual: upper - lower,
+                    tolerance: nil,
+                    message: "Procedural volume midpoint subdivision exhausted representable parameter precision."
+                )
+            }
+            return try ScalarInterval(
+                lower: enclosureLower,
+                upper: enclosureUpper
+            )
+        }
+    }
+
+    private struct ProceduralFluxWorkItem: Sendable, Hashable {
+        let cell: ProceduralFluxCell
+        let errorBudget: Double
+        let depth: Int
+    }
+
+    private struct ProceduralFluxContribution: Sendable, Hashable {
+        let interval: OutwardInterval
+        let uErrorUpper: Double
+        let vErrorUpper: Double
+    }
+
     private struct OutwardInterval: Sendable, Hashable {
         let lower: Double
         let upper: Double
@@ -1553,6 +2059,10 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
 
         static func exact(_ value: Double) -> OutwardInterval {
             OutwardInterval(lower: value, upper: value)
+        }
+
+        var errorRadius: Double {
+            (upper - lower) * 0.5
         }
 
         func intersection(_ other: OutwardInterval) -> OutwardInterval? {

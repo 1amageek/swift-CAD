@@ -43,9 +43,89 @@ struct DefaultCurveSpatialDerivativeRangeResolver:
                 secondDerivativeBound: secondDerivativeBound,
                 tolerance: tolerance
             )
+        case let .rigidImage(image):
+            guard let source = try derivativeRange(
+                curve: image.source,
+                interval: interval,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            return try CurveSpatialDerivativeRange(
+                x: transformedComponent(
+                    source,
+                    x: image.transform.basisX.x,
+                    y: image.transform.basisY.x,
+                    z: image.transform.basisZ.x
+                ),
+                y: transformedComponent(
+                    source,
+                    x: image.transform.basisX.y,
+                    y: image.transform.basisY.y,
+                    z: image.transform.basisZ.y
+                ),
+                z: transformedComponent(
+                    source,
+                    x: image.transform.basisX.z,
+                    y: image.transform.basisY.z,
+                    z: image.transform.basisZ.z
+                )
+            )
+        case let .affineImage(image):
+            guard let source = try derivativeRange(
+                curve: image.source,
+                interval: interval,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            return try CurveSpatialDerivativeRange(
+                x: transformedComponent(
+                    source,
+                    x: image.transform.basisX.x,
+                    y: image.transform.basisY.x,
+                    z: image.transform.basisZ.x
+                ),
+                y: transformedComponent(
+                    source,
+                    x: image.transform.basisX.y,
+                    y: image.transform.basisY.y,
+                    z: image.transform.basisZ.y
+                ),
+                z: transformedComponent(
+                    source,
+                    x: image.transform.basisX.z,
+                    y: image.transform.basisY.z,
+                    z: image.transform.basisZ.z
+                )
+            )
         case .line, .circle, .analytic, .bSpline:
-            return nil
+            let enclosure = try DefaultCurveDifferentialEncloser().enclosure(
+                of: curve,
+                over: interval,
+                tolerance: tolerance
+            )
+            return CurveSpatialDerivativeRange(
+                x: enclosure.firstDerivative.x,
+                y: enclosure.firstDerivative.y,
+                z: enclosure.firstDerivative.z
+            )
         }
+    }
+
+    private func transformedComponent(
+        _ source: CurveSpatialDerivativeRange,
+        x: Double,
+        y: Double,
+        z: Double
+    ) throws -> ScalarInterval {
+        try added(
+            added(
+                scaled(source.x, by: x),
+                scaled(source.y, by: y)
+            ),
+            scaled(source.z, by: z)
+        )
     }
 
     private func derivativeRange(

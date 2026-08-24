@@ -74,10 +74,11 @@ public struct BRepSewingEdge: Sendable {
         }
         let exactStart = try curve.point(at: startParameter, tolerance: tolerance)
         let exactEnd = try curve.point(at: endParameter, tolerance: tolerance)
-        // Endpoints carry canonical junction points snapped onto source
-        // boundary geometry, up to eight tolerances from the exact curve.
-        guard exactStart.isApproximatelyEqual(to: startPoint, tolerance: tolerance.distance * 8.0),
-              exactEnd.isApproximatelyEqual(to: endPoint, tolerance: tolerance.distance * 8.0) else {
+        // Topological identity is supplied by loop adjacency and shared-span
+        // proof. Coordinates only validate that the realized vertex remains
+        // inside the caller's declared distance contract.
+        guard exactStart.isApproximatelyEqual(to: startPoint, tolerance: tolerance.distance),
+              exactEnd.isApproximatelyEqual(to: endPoint, tolerance: tolerance.distance) else {
             throw KernelError(
                 phase: .topology,
                 code: .topologyFailure,
@@ -98,8 +99,8 @@ public struct BRepSewingEdge: Sendable {
             v: parameterEnd.v,
             tolerance: tolerance
         )
-        guard surfaceStart.isApproximatelyEqual(to: startPoint, tolerance: tolerance.distance * 8.0),
-              surfaceEnd.isApproximatelyEqual(to: endPoint, tolerance: tolerance.distance * 8.0) else {
+        guard surfaceStart.isApproximatelyEqual(to: startPoint, tolerance: tolerance.distance),
+              surfaceEnd.isApproximatelyEqual(to: endPoint, tolerance: tolerance.distance) else {
             throw KernelError(
                 phase: .topology,
                 code: .topologyFailure,

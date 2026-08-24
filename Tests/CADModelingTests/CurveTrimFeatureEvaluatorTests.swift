@@ -158,6 +158,38 @@ struct CurveTrimFeatureEvaluatorTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func sampledSourceWithoutExactGeometryReturnsMissingReference() throws {
+        let sourceID = FeatureID()
+        let featureID = FeatureID()
+        let source = EvaluatedCurve(
+            sourceFeatureID: sourceID,
+            source: .generatedFeature,
+            kind: .line,
+            points: [.origin, Point3D(x: 1.0, y: 0.0, z: 0.0)]
+        )
+        let feature = FeatureNode(
+            id: featureID,
+            operation: .curveTrim(CurveTrimFeature(
+                source: CurveOutputReference(featureID: sourceID),
+                domain: .closed(0.0, 1.0)
+            )),
+            inputs: [FeatureInput(featureID: sourceID, role: .curve)],
+            outputs: [FeatureOutput(role: .curve)]
+        )
+
+        do {
+            _ = try CurveTrimFeatureEvaluator().evaluate(
+                feature: feature,
+                context: context(curves: [sourceID: [source]])
+            )
+            Issue.record("A sampled-only curve cannot satisfy an exact trim request.")
+        } catch let error as KernelError {
+            #expect(error.code == .missingReference)
+            #expect(error.featureID == featureID)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func requestUsesStrictCurrentSchema() throws {
         let feature = CurveTrimFeature(
             source: CurveOutputReference(featureID: FeatureID()),

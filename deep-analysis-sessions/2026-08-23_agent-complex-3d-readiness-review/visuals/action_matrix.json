@@ -1,0 +1,46 @@
+{
+  "columns": [
+    "Priority",
+    "Action",
+    "Completion condition",
+    "Unlocks"
+  ],
+  "rows": [
+    [
+      "P0",
+      "Bind the recovered facade baseline to gate evidence",
+      "The passing SwiftCAD facade and CADExchange baselines are reproduced from one clean revision with machine-readable timing and environment manifests",
+      "Trustworthy release-candidate public-path evidence"
+    ],
+    [
+      "P0",
+      "Close or demote GEO-INTERSECTION-002",
+      "Behavioral matrix passes for every validated Surface3D representation pair, or unsupported pairs are typed and the capability is partial",
+      "Honest geometry contract"
+    ],
+    [
+      "P1",
+      "Complete general intersection and Boolean materialization",
+      "Supported producer outputs compose through pcurve generation, face arrangements, region classification, and topology validation",
+      "Long exact feature histories"
+    ],
+    [
+      "P1",
+      "Certify Agent-facing queries and edit identity",
+      "Global projection, deterministic tie-breaking, lineage, cache, and stable selection pass adversarial edit-chain tests",
+      "Reliable autonomous selection/editing"
+    ],
+    [
+      "P2",
+      "Generalize sketch, blend, shell, sweep, pattern, and direct-edit algorithms",
+      "Capability envelopes no longer depend on special-case topology",
+      "Broad product vocabulary"
+    ],
+    [
+      "P2",
+      "Add external CAD oracles and same-revision gate manifests",
+      "STEP/IGES round trips, corpus tests, fuzzing, performance, and all G0-G7 evidence are green on one commit",
+      "Production/release readiness"
+    ]
+  ]
+}

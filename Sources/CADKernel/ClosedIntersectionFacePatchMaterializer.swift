@@ -447,13 +447,22 @@ struct ClosedIntersectionFacePatchMaterializer {
         let point = Point2D(x: parameter.u, y: parameter.v)
         let containers = try tree.nodes.values.filter {
             try $0.region.containsStrictly(point, tolerance: tolerance)
-        }.sorted {
-            if $0.region.absoluteArea != $1.region.absoluteArea {
-                return $0.region.absoluteArea < $1.region.absoluteArea
-            }
-            return $0.region.reference < $1.region.reference
         }
-        return containers.first?.region.reference
+        let ranked = try containers.map { node in
+            (
+                node: node,
+                depth: try tree.depth(
+                    of: node.region.reference,
+                    tolerance: tolerance
+                )
+            )
+        }.sorted { lhs, rhs in
+            if lhs.depth != rhs.depth {
+                return lhs.depth > rhs.depth
+            }
+            return lhs.node.region.reference < rhs.node.region.reference
+        }
+        return ranked.first?.node.region.reference
     }
 
     private func sameActionComponent(

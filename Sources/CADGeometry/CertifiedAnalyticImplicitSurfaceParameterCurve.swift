@@ -71,40 +71,11 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Codable, Hashable,
             tolerance: tolerance
         )
         let internalParameter = intersection.analyticIsFirst ? pair.first : pair.second
-        let projection = try intersection.analyticSurface.parameterProjection(
-            of: point,
+        let result = try AnalyticSurfaceRationalParameterMap(
+            surface: intersection.analyticSurface,
+            periodicSeamOffset: intersection.periodicSeamOffset,
             tolerance: tolerance
-        )
-        var result = SurfaceParameter(u: projection.u, v: projection.v)
-        let canonical = CanonicalAnalyticSurface(intersection.analyticSurface)
-        switch canonical {
-        case .cylinder, .cone, .sphere:
-            result.u = unwrapped(
-                result.u,
-                near: intersection.periodicSeamOffset + internalParameter.u * Double.pi * 0.5,
-                domain: intersection.analyticSurface.uDomain
-            )
-        case .torus:
-            result.u = unwrapped(
-                result.u,
-                near: intersection.periodicSeamOffset + internalParameter.u * Double.pi * 0.5,
-                domain: intersection.analyticSurface.uDomain
-            )
-            result.v = unwrapped(
-                result.v,
-                near: intersection.periodicSeamOffset + internalParameter.v * Double.pi * 0.5,
-                domain: intersection.analyticSurface.vDomain
-            )
-        case .plane:
-            break
-        case .unsupported:
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "A certified analytic implicit pcurve has an invalid analytic surface."
-            )
-        }
+        ).parameter(fromRational: internalParameter, tolerance: tolerance)
         let reconstructed = try intersection.analyticSurface.point(
             u: result.u,
             v: result.v,
@@ -121,6 +92,38 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Codable, Hashable,
             )
         }
         return result
+    }
+
+    package func parameterEnclosure(
+        for subcell: CertifiedImplicitIntersectionGraphSubcell,
+        tolerance: ModelingTolerance
+    ) throws -> AnalyticSurfaceRationalParameterMap.Enclosure {
+        let coordinateCount = SurfaceIntersectionParameterCoordinate.allCases.count
+        guard subcell.parameterDerivativeBounds.count == coordinateCount else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A certified analytic pcurve enclosure requires one derivative interval per intersection coordinate."
+            )
+        }
+        let analyticU: SurfaceIntersectionParameterCoordinate = intersection.analyticIsFirst
+            ? .firstU
+            : .secondU
+        let analyticV: SurfaceIntersectionParameterCoordinate = intersection.analyticIsFirst
+            ? .firstV
+            : .secondV
+        return try AnalyticSurfaceRationalParameterMap(
+            surface: intersection.analyticSurface,
+            periodicSeamOffset: intersection.periodicSeamOffset,
+            tolerance: tolerance
+        ).enclosure(
+            rationalU: subcell.parameterBox.interval(for: analyticU),
+            rationalV: subcell.parameterBox.interval(for: analyticV),
+            rationalUDerivative: subcell.parameterDerivativeBounds[analyticU.rawValue],
+            rationalVDerivative: subcell.parameterDerivativeBounds[analyticV.rawValue],
+            tolerance: tolerance
+        )
     }
 
     public func differential(
@@ -196,6 +199,36 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Codable, Hashable,
                 x: parameterSecondDerivative.x * scale * scale,
                 y: parameterSecondDerivative.y * scale * scale
             )
+        )
+    }
+
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Point2D {
+        let mapped = try mappedFraction(fraction, tolerance: tolerance)
+        let lower = try differential(
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        )
+        let scale = endFraction - startFraction
+        let spatialThird = try intersection.implicitCurve.thirdDerivative(
+            atNormalizedFraction: mapped,
+            tolerance: tolerance
+        ) * (scale * scale * scale)
+        let surface = try intersection.analyticSurface
+            .parameterDerivativesThroughThirdOrder(
+                atU: lower.parameter.u,
+                v: lower.parameter.v,
+                tolerance: tolerance
+            )
+        return try SurfaceParameterThirdDerivativeSolver().solve(
+            surface: surface,
+            firstParameterDerivative: lower.firstDerivative,
+            secondParameterDerivative: lower.secondDerivative,
+            spatialThirdDerivative: spatialThird,
+            tolerance: tolerance,
+            diagnosticContext: "Certified analytic pcurve"
         )
     }
 
@@ -287,15 +320,6 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Codable, Hashable,
             throw GeometryError.invalidDistance(parameter)
         }
         return (parameter - lower) / (upper - lower)
-    }
-
-    private func unwrapped(
-        _ value: Double,
-        near reference: Double,
-        domain: ParameterDomain
-    ) -> Double {
-        guard case let .periodic(period) = domain else { return value }
-        return value + ((reference - value) / period).rounded() * period
     }
 
     private func interpolate(

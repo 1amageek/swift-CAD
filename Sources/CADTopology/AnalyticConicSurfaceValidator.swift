@@ -127,6 +127,19 @@ private extension AnalyticConicSurfaceValidator {
                 }
             case .bSpline:
                 throw TopologyError.invalidFaceSurface(faceID)
+            case let .procedural(.offset(offset)):
+                guard let equivalent = try offset.exactSameParameterSurface(
+                    tolerance: tolerance
+                ) else {
+                    throw TopologyError.invalidFaceSurface(faceID)
+                }
+                self = try Support(
+                    surface: equivalent,
+                    faceID: faceID,
+                    tolerance: tolerance
+                )
+            case .procedural(.ruled):
+                throw TopologyError.invalidFaceSurface(faceID)
             }
         }
     }

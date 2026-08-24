@@ -45,11 +45,11 @@ package struct DefaultSurfaceOperationTargetResolver:
         guard body.kind == .sheet else {
             throw KernelError(
                 phase: .evaluation,
-                code: .unsupportedCapability,
+                code: .invalidInput,
                 featureID: featureID,
                 subshapeID: target.face.subshapeID,
                 tolerance: context.tolerance,
-                message: "Exact surface operations require a sheet body."
+                message: "A surface operation target must reference a sheet body."
             )
         }
         var owningShell: Shell?

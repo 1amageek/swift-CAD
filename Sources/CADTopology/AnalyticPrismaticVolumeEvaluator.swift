@@ -84,7 +84,11 @@ struct AnalyticPrismaticVolumeEvaluator {
                   let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference("Analytic volume references missing face geometry.")
             }
-            switch surface {
+            let classifiedSurface = try exactAnalyticReduction(
+                of: surface,
+                tolerance: tolerance
+            )
+            switch classifiedSurface {
             case let .cylinder(cylinder):
                 cylinders.append(CylinderFace(
                     face: face,
@@ -123,6 +127,8 @@ struct AnalyticPrismaticVolumeEvaluator {
             case let .bSpline(surface):
                 bSplineFaces.append(BSplineFace(face: face, surface: surface))
             case .analytic:
+                return nil
+            case .procedural:
                 return nil
             }
         }
@@ -391,12 +397,12 @@ struct AnalyticPrismaticVolumeEvaluator {
                 )
             }
             let normal: Vector3D
-            switch surface {
+            switch try exactAnalyticReduction(of: surface, tolerance: tolerance) {
             case let .plane(plane):
                 normal = plane.normal
             case let .analytic(.plane(_, planeNormal)):
                 normal = planeNormal
-            case .cylinder, .analytic, .bSpline:
+            case .cylinder, .analytic, .bSpline, .procedural:
                 continue
             }
             let normalizedNormal = try normal.normalized(tolerance: tolerance.distance)
@@ -540,6 +546,24 @@ struct AnalyticPrismaticVolumeEvaluator {
                     + transverseAxis.cross(parabola.axis)
                         * (parameterCubeDifference / (12.0 * parabola.focalLength))
             ).dot(axis)
+        case let .rigidImage(image):
+            let inverse = image.transform.inverted()
+            guard let source = try exactSignedDoubleAreaContribution(
+                curve: image.source,
+                startParameter: startParameter,
+                endParameter: endParameter,
+                reference: inverse.applying(to: reference),
+                axis: inverse.applying(to: axis),
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            return image.transform.reversesOrientation ? -source : source
+        case .affineImage:
+            guard curve.hasExactLinearParameterization else {
+                return nil
+            }
+            return (startPoint - reference).cross(endPoint - reference).dot(axis)
         case .analytic(.planeTorus), .bSpline, .implicit, .surfaceLift,
              .certifiedIntersection:
             return nil
@@ -883,12 +907,12 @@ struct AnalyticPrismaticVolumeEvaluator {
                 throw TopologyError.missingReference("Prismatic volume references missing face geometry.")
             }
             let normal: Vector3D
-            switch surface {
+            switch try exactAnalyticReduction(of: surface, tolerance: tolerance) {
             case let .plane(plane):
                 normal = plane.normal
             case let .analytic(.plane(_, planeNormal)):
                 normal = planeNormal
-            case .cylinder, .analytic, .bSpline:
+            case .cylinder, .analytic, .bSpline, .procedural:
                 continue
             }
             let normalized = try normal.normalized(tolerance: tolerance.distance)
@@ -1149,8 +1173,10 @@ struct AnalyticPrismaticVolumeEvaluator {
             switch curve {
             case .circle, .analytic(.circle), .analytic(.arc):
                 isCircular = true
+            case let .rigidImage(image):
+                isCircular = isCircularCurve(image.source)
             case .line, .analytic, .bSpline, .implicit, .surfaceLift,
-                 .certifiedIntersection:
+                 .certifiedIntersection, .affineImage:
                 isCircular = false
             }
             if isCircular {
@@ -1166,6 +1192,18 @@ struct AnalyticPrismaticVolumeEvaluator {
             return nil
         }
         return reference
+    }
+
+    private func isCircularCurve(_ curve: Curve3D) -> Bool {
+        switch curve {
+        case .circle, .analytic(.circle), .analytic(.arc):
+            return true
+        case let .rigidImage(image):
+            return isCircularCurve(image.source)
+        case .line, .analytic, .bSpline, .implicit, .surfaceLift,
+             .certifiedIntersection, .affineImage:
+            return false
+        }
     }
 
     private func shellPoints(
@@ -1200,6 +1238,17 @@ struct AnalyticPrismaticVolumeEvaluator {
 
     private func vector(_ point: Point3D) -> Vector3D {
         Vector3D(x: point.x, y: point.y, z: point.z)
+    }
+
+    private func exactAnalyticReduction(
+        of surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> Surface3D {
+        guard case let .procedural(.offset(offset)) = surface else {
+            return surface
+        }
+        return try offset.exactSameParameterSurface(tolerance: tolerance)
+            ?? surface
     }
 
     private struct CylinderFace {

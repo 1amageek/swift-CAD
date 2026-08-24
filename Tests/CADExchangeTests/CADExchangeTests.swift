@@ -6,6 +6,10 @@ import CADTopology
 import CADKernel
 @testable import CADExchange
 
+#if canImport(PDFKit)
+import PDFKit
+#endif
+
 #if os(macOS)
 import Darwin
 #endif
@@ -363,6 +367,97 @@ struct CADExchangeTests {
 
         #expect(text.contains("(A\\nB\\rC\\tD\\bE\\fF \\(G\\) \\\\ H) Tj"))
         #expect(!text.contains("(A\nB"))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func pdfExporterWritesEveryTriangleAsAFittedVectorPathWithAValidCrossReference() throws {
+        let mesh = Mesh(
+            positions: [
+                Point3D(x: 0.0, y: 0.0, z: 0.0),
+                Point3D(x: 0.0, y: 2.0, z: 0.0),
+                Point3D(x: 0.0, y: 0.0, z: 3.0),
+                Point3D(x: 0.0, y: 2.0, z: 3.0),
+            ],
+            normals: [],
+            indices: [0, 1, 2, 1, 3, 2]
+        )
+
+        let data = try PDFExporter(tolerance: .standard).export(meshes: [BodyID(): mesh])
+        let text = try #require(String(data: data, encoding: .utf8))
+
+        #expect(text.contains("% Swift-CAD projection YZ"))
+        #expect(text.components(separatedBy: " h S\n").count - 1 == 2)
+        try validatePDFCrossReference(data)
+        #if canImport(PDFKit)
+        let document = try #require(PDFDocument(data: data))
+        #expect(document.pageCount == 1)
+        #endif
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func pdfExporterIsDeterministicAcrossDictionaryInsertionOrder() throws {
+        let firstID = BodyID(try fixedUUID("00000000-0000-0000-0000-000000000001"))
+        let secondID = BodyID(try fixedUUID("00000000-0000-0000-0000-000000000002"))
+        let firstMesh = unitTriangleMesh(unit: .meter)
+        let secondMesh = Mesh(
+            positions: firstMesh.positions.map { Point3D(x: $0.x + 5.0, y: $0.y, z: $0.z) },
+            normals: [],
+            indices: firstMesh.indices
+        )
+        let exporter = PDFExporter(tolerance: .standard)
+
+        let forward = try exporter.export(meshes: Dictionary(uniqueKeysWithValues: [
+            (firstID, firstMesh),
+            (secondID, secondMesh),
+        ]))
+        let reverse = try exporter.export(meshes: Dictionary(uniqueKeysWithValues: [
+            (secondID, secondMesh),
+            (firstID, firstMesh),
+        ]))
+
+        #expect(forward == reverse)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func pdfExporterEncodesUnicodeTitleAsUTF16BETextString() throws {
+        let data = try PDFExporter(tolerance: .standard).export(
+            meshes: [BodyID(): unitTriangleMesh(unit: .meter)],
+            title: "CAD 設計"
+        )
+        let text = try #require(String(data: data, encoding: .utf8))
+
+        #expect(text.contains("<FEFF00430041004400208A2D8A08> Tj"))
+        #if canImport(PDFKit)
+        #expect(PDFDocument(data: data) != nil)
+        #endif
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func pdfExporterEnforcesEntityAndByteLimitsWithTypedFailures() throws {
+        let mesh = unitTriangleMesh(unit: .meter)
+        let entityLimited = PDFExporter(
+            tolerance: .standard,
+            resourceLimits: ExchangeResourceLimits(maximumEntities: 4)
+        )
+        let byteLimited = PDFExporter(
+            tolerance: .standard,
+            resourceLimits: ExchangeResourceLimits(maximumBytes: 128)
+        )
+
+        do {
+            _ = try entityLimited.export(meshes: [BodyID(): mesh])
+            Issue.record("Expected the PDF entity limit to reject the mesh.")
+        } catch let error as KernelError {
+            #expect(error.phase == .exchange)
+            #expect(error.code == .resourceLimitExceeded)
+        }
+        do {
+            _ = try byteLimited.export(meshes: [BodyID(): mesh])
+            Issue.record("Expected the PDF byte limit to reject the output.")
+        } catch let error as KernelError {
+            #expect(error.phase == .exchange)
+            #expect(error.code == .resourceLimitExceeded)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1822,6 +1917,97 @@ struct CADExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func svgImporterTriangulatesConcavePolygonAndPreservesArea() throws {
+        let svg = Data("""
+        <svg xmlns="http://www.w3.org/2000/svg" data-unit="meter">
+          <polygon points="0,0 2,0 2,2 1,1 0,2"/>
+        </svg>
+        """.utf8)
+
+        let imported = try SVGExchange(tolerance: .standard).import(svg)
+        let mesh = try #require(imported.meshes.values.first)
+
+        #expect(mesh.positions.count == 9)
+        #expect(mesh.indices == [0, 1, 2, 3, 4, 5, 6, 7, 8])
+        #expect(abs(triangleMeshArea(mesh) - 3.0) < 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func svgImporterRejectsSelfIntersectionAndUnsupportedXMLContent() {
+        let selfIntersecting = Data("""
+        <svg xmlns="http://www.w3.org/2000/svg" data-unit="meter">
+          <polygon points="0,0 2,2 0,2 2,0"/>
+        </svg>
+        """.utf8)
+        let entityDeclaration = Data("""
+        <!DOCTYPE svg [<!ENTITY payload "hidden">]>
+        <svg xmlns="http://www.w3.org/2000/svg" data-unit="meter">
+          <polygon points="0,0 1,0 0,1"/>
+        </svg>
+        """.utf8)
+        let nonWhitespaceCDATA = Data("""
+        <svg xmlns="http://www.w3.org/2000/svg" data-unit="meter"><![CDATA[hidden]]>
+          <polygon points="0,0 1,0 0,1"/>
+        </svg>
+        """.utf8)
+        let externalPaint = Data("""
+        <svg xmlns="http://www.w3.org/2000/svg" data-unit="meter">
+          <polygon points="0,0 1,0 0,1" fill="url(https://example.invalid/paint)"/>
+        </svg>
+        """.utf8)
+
+        for source in [selfIntersecting, entityDeclaration, nonWhitespaceCDATA, externalPaint] {
+            #expect(throws: ImportError.self) {
+                _ = try SVGExchange(tolerance: .standard).import(source)
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func svgExchangeEnforcesTypedByteEntityAndNestingLimits() throws {
+        let triangle = Data("""
+        <svg xmlns="http://www.w3.org/2000/svg" data-unit="meter">
+          <polygon points="0,0 1,0 0,1"/>
+        </svg>
+        """.utf8)
+        let nested = Data("""
+        <svg xmlns="http://www.w3.org/2000/svg" data-unit="meter">
+          <g><g><polygon points="0,0 1,0 0,1"/></g></g>
+        </svg>
+        """.utf8)
+        let byteLimited = SVGExchange(
+            tolerance: .standard,
+            resourceLimits: ExchangeResourceLimits(maximumBytes: 32)
+        )
+        let entityLimited = SVGExchange(
+            tolerance: .standard,
+            resourceLimits: ExchangeResourceLimits(maximumEntities: 4)
+        )
+        let nestingLimited = SVGExchange(
+            tolerance: .standard,
+            resourceLimits: ExchangeResourceLimits(maximumNesting: 2)
+        )
+
+        let operations: [() throws -> Void] = [
+            { _ = try byteLimited.import(triangle) },
+            { _ = try entityLimited.import(triangle) },
+            { _ = try nestingLimited.import(nested) },
+            { _ = try byteLimited.export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)]) },
+        ]
+        for operation in operations {
+            do {
+                _ = try operation()
+                Issue.record("Expected SVG resource accounting to reject the operation.")
+            } catch let error as KernelError {
+                #expect(error.phase == .exchange)
+                #expect(error.code == .resourceLimitExceeded)
+            } catch {
+                Issue.record("Expected a typed KernelError, received \(error).")
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func threeMFImporterRejectsCoreLookalikesInsideMetadata() throws {
         #expect(throws: ImportError.self) {
             _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithCoreModelInsideMetadata())
@@ -1993,6 +2179,99 @@ struct CADExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func threeMFImporterReadsDeflatedEntriesWithDescriptorsAndUTF8Flags() throws {
+        let package = try deflatedZipArchive(entries: [
+            StoredZipArchive.Entry(path: "[Content_Types].xml", data: Data(threeMFContentTypesXML.utf8)),
+            StoredZipArchive.Entry(path: "_rels/.rels", data: Data(threeMFRelationshipsXML.utf8)),
+            StoredZipArchive.Entry(path: "3D/3dmodel.model", data: Data(validThreeMFModelXML().utf8)),
+        ], usesDataDescriptors: true)
+
+        let imported = try ThreeMFExchange(tolerance: .standard).import(package)
+        let mesh = try #require(imported.meshes.values.first)
+
+        #expect(imported.units.length == .meter)
+        #expect(mesh.indices == [0, 1, 2])
+        #expect(abs(triangleMeshArea(mesh) - 0.5) < 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func threeMFExchangeEnforcesArchiveXMLAndOutputResourceLimits() throws {
+        let package = try threeMFPackage(modelXML: validThreeMFModelXML())
+        let exchanges = [
+            ThreeMFExchange(
+                tolerance: .standard,
+                resourceLimits: ExchangeResourceLimits(maximumBytes: 128)
+            ),
+            ThreeMFExchange(
+                tolerance: .standard,
+                resourceLimits: ExchangeResourceLimits(maximumEntities: 4)
+            ),
+            ThreeMFExchange(
+                tolerance: .standard,
+                resourceLimits: ExchangeResourceLimits(maximumNesting: 4)
+            ),
+            ThreeMFExchange(
+                tolerance: .standard,
+                resourceLimits: ExchangeResourceLimits(maximumIterations: 128)
+            ),
+        ]
+        let operations: [() throws -> Void] = [
+            { _ = try exchanges[0].import(package) },
+            { _ = try exchanges[1].import(package) },
+            { _ = try exchanges[2].import(package) },
+            { _ = try exchanges[3].import(package) },
+            {
+                _ = try exchanges[0].export(
+                    meshes: [BodyID(): unitTriangleMesh(unit: .meter)],
+                    unit: .meter
+                )
+            },
+        ]
+
+        for operation in operations {
+            do {
+                try operation()
+                Issue.record("Expected 3MF resource accounting to reject the operation.")
+            } catch let error as KernelError {
+                #expect(error.phase == .exchange)
+                #expect(error.code == .resourceLimitExceeded)
+            } catch {
+                Issue.record("Expected a typed KernelError, received \(error).")
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func threeMFImporterRejectsDTDCDATAAndProcessingInstructions() throws {
+        let model = validThreeMFModelXML()
+        let documents = [
+            model.replacingOccurrences(
+                of: "<model ",
+                with: "<!DOCTYPE model [<!ENTITY xxe SYSTEM 'file:///etc/passwd'>]>\n<model "
+            ).replacingOccurrences(
+                of: "<resources>",
+                with: "<metadata name='unsafe'>&xxe;</metadata><resources>"
+            ),
+            model.replacingOccurrences(
+                of: "<resources>",
+                with: "<metadata name='unsafe'><![CDATA[content]]></metadata><resources>"
+            ),
+            model.replacingOccurrences(
+                of: "<resources>",
+                with: "<?unsafe content?><resources>"
+            ),
+        ]
+
+        for document in documents {
+            #expect(throws: ImportError.self) {
+                _ = try ThreeMFExchange(tolerance: .standard).import(
+                    threeMFPackage(modelXML: document)
+                )
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func threeMFImporterRejectsUnsupportedBuildReferences() throws {
         #expect(throws: ImportError.self) {
             _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithBuildItemTransform())
@@ -2112,12 +2391,12 @@ struct CADExchangeTests {
         v 0 1 0
         f 2 3 4
         """.utf8)
-        let objWithUnreferencedNonUnitNormal = Data("""
+        let objWithUnreferencedZeroNormal = Data("""
         # unit millimeter
         v 0 0 0
         v 1 0 0
         v 0 1 0
-        vn 0 0 2
+        vn 0 0 0
         f 1 2 3
         """.utf8)
         let threeMF = try threeMFPackageWithUnreferencedNonFiniteVertex()
@@ -2131,7 +2410,7 @@ struct CADExchangeTests {
             _ = try OBJExchange(tolerance: .standard).import(obj)
         }
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange(tolerance: .standard).import(objWithUnreferencedNonUnitNormal)
+            _ = try OBJExchange(tolerance: .standard).import(objWithUnreferencedZeroNormal)
         }
         #expect(throws: ImportError.self) {
             _ = try ThreeMFExchange(tolerance: .standard).import(threeMF)
@@ -2237,6 +2516,139 @@ struct CADExchangeTests {
             mesh.positions.map(\.x).min()
         }.sorted()
         #expect(minimumXValues == [0.0, 10.0])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func objImporterTriangulatesConcavePolygonAndPreservesFaceVaryingAttributes() throws {
+        let obj = Data("""
+        # unit meter
+        v 0 0 0
+        v 2 0 0
+        v 2 2 0
+        v 1 1 0
+        v 0 2 0
+        vt 0 0
+        vt 1 0
+        vt 1 1
+        vt 0.5 0.5
+        vt 0 1
+        vn 0 0 1
+        f -5/1/1 -4/2/1 -3/3/1 -2/4/1 -1/5/1
+        """.utf8)
+
+        let imported = try OBJExchange(tolerance: .standard).import(obj)
+        let mesh = try #require(imported.meshes.values.first)
+
+        #expect(mesh.indices.count == 9)
+        #expect(mesh.positions.count == 9)
+        #expect(mesh.normals == Array(repeating: .unitZ, count: 9))
+        #expect(mesh.textureCoordinates.count == 9)
+        let twiceArea = stride(from: 0, to: mesh.indices.count, by: 3).reduce(0.0) { result, index in
+            let first = mesh.positions[Int(mesh.indices[index])]
+            let second = mesh.positions[Int(mesh.indices[index + 1])]
+            let third = mesh.positions[Int(mesh.indices[index + 2])]
+            return result + (second - first).cross(third - first).length
+        }
+        #expect(abs(twiceArea - 6.0) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func objImporterResolvesHomogeneousVerticesNormalizesNormalsAndIgnoresInlineComments() throws {
+        let obj = Data("""
+        # unit meter
+        v 0 0 0 2 # homogeneous origin
+        v 2 0 0 2
+        v 0 2 0 2
+        vn 0 0 4
+        f 1//1 2//1 3//1 # one triangle
+        """.utf8)
+
+        let imported = try OBJExchange(tolerance: .standard).import(obj)
+        let mesh = try #require(imported.meshes.values.first)
+
+        #expect(mesh.positions == [
+            .origin,
+            Point3D(x: 1.0, y: 0.0, z: 0.0),
+            Point3D(x: 0.0, y: 1.0, z: 0.0),
+        ])
+        #expect(mesh.normals == Array(repeating: .unitZ, count: 3))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func objRoundTripPreservesTextureCoordinates() throws {
+        let mesh = Mesh(
+            positions: [
+                Point3D(x: 0.0, y: 0.0, z: 0.0),
+                Point3D(x: 1.0, y: 0.0, z: 0.0),
+                Point3D(x: 0.0, y: 1.0, z: 0.0),
+            ],
+            normals: [.unitZ, .unitZ, .unitZ],
+            indices: [0, 1, 2],
+            textureCoordinates: [
+                Point2D(x: 0.0, y: 0.0),
+                Point2D(x: 1.0, y: 0.0),
+                Point2D(x: 0.0, y: 1.0),
+            ]
+        )
+
+        let exchange = OBJExchange(tolerance: .standard)
+        let data = try exchange.export(meshes: [BodyID(): mesh])
+        let imported = try exchange.import(data)
+        let roundTripped = try #require(imported.meshes.values.first)
+
+        #expect(roundTripped.positions == mesh.positions)
+        #expect(roundTripped.normals == mesh.normals)
+        #expect(roundTripped.textureCoordinates == mesh.textureCoordinates)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func objImporterPartitionsFacesWithDifferentAttributeLayouts() throws {
+        let obj = Data("""
+        # unit meter
+        v 0 0 0
+        v 1 0 0
+        v 1 1 0
+        v 0 1 0
+        vn 0 0 1
+        f 1//1 2//1 3//1
+        f 1 3 4
+        """.utf8)
+
+        let imported = try OBJExchange(tolerance: .standard).import(obj)
+        let meshes = Array(imported.meshes.values)
+
+        #expect(meshes.count == 2)
+        #expect(meshes.map(\.normals.count).sorted() == [0, 3])
+        #expect(meshes.allSatisfy { $0.indices.count == 3 })
+        #expect(abs(meshes.reduce(0.0) { $0 + triangleMeshArea($1) } - 1.0) < 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func objExchangeEnforcesTypedInputAndOutputResourceLimits() throws {
+        let mesh = unitTriangleMesh(unit: .meter)
+        let entityLimited = OBJExchange(
+            tolerance: .standard,
+            resourceLimits: ExchangeResourceLimits(maximumEntities: 4)
+        )
+        let byteLimited = OBJExchange(
+            tolerance: .standard,
+            resourceLimits: ExchangeResourceLimits(maximumBytes: 16)
+        )
+
+        do {
+            _ = try entityLimited.export(meshes: [BodyID(): mesh])
+            Issue.record("Expected OBJ entity accounting to reject the export.")
+        } catch let error as KernelError {
+            #expect(error.phase == .exchange)
+            #expect(error.code == .resourceLimitExceeded)
+        }
+        do {
+            _ = try byteLimited.import(Data("v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n".utf8))
+            Issue.record("Expected OBJ input byte accounting to reject the import.")
+        } catch let error as KernelError {
+            #expect(error.phase == .exchange)
+            #expect(error.code == .resourceLimitExceeded)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -2351,7 +2763,7 @@ struct CADExchangeTests {
         """.utf8)
         let objWithExtraVertexFields = Data("""
         # unit meter
-        v 0 0 0 1
+        v 0 0 0 1 2
         v 1 0 0
         v 0 1 0
         f 1 2 3
@@ -2370,6 +2782,14 @@ struct CADExchangeTests {
         v 1 0 0
         v 0 1 0
         f 1//bad 2//bad 3//bad
+        """.utf8)
+        let objWithUnsupportedTextureDepth = Data("""
+        # unit meter
+        v 0 0 0
+        v 1 0 0
+        v 0 1 0
+        vt 0 0 1
+        f 1/1 2/1 3/1
         """.utf8)
         let objWithMixedNormalReferences = Data("""
         # unit meter
@@ -2466,6 +2886,9 @@ struct CADExchangeTests {
             _ = try OBJExchange(tolerance: .standard).import(objWithMalformedFaceSubfield)
         }
         #expect(throws: ImportError.self) {
+            _ = try OBJExchange(tolerance: .standard).import(objWithUnsupportedTextureDepth)
+        }
+        #expect(throws: ImportError.self) {
             _ = try OBJExchange(tolerance: .standard).import(objWithMixedNormalReferences)
         }
         #expect(throws: ImportError.self) {
@@ -2480,7 +2903,7 @@ struct CADExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func polygonImportersRejectUnsupportedImplicitTriangulation() {
+    func polygonImportersTriangulateSupportedPolygonRecords() throws {
         let obj = Data("""
         # unit meter
         v 0 0 0
@@ -2496,15 +2919,16 @@ struct CADExchangeTests {
         """.utf8)
         let dxf = Data(dxfQuadrilateral3DFACE().utf8)
 
-        #expect(throws: ImportError.self) {
-            _ = try OBJExchange(tolerance: .standard).import(obj)
-        }
-        #expect(throws: ImportError.self) {
-            _ = try SVGExchange(tolerance: .standard).import(svg)
-        }
-        #expect(throws: ImportError.self) {
-            _ = try DXFExchange(tolerance: .standard).import(dxf)
-        }
+        let objMesh = try #require(OBJExchange(tolerance: .standard).import(obj).meshes.values.first)
+        let svgMesh = try #require(SVGExchange(tolerance: .standard).import(svg).meshes.values.first)
+        let dxfMesh = try #require(DXFExchange(tolerance: .standard).import(dxf).meshes.values.first)
+
+        #expect(objMesh.indices.count == 6)
+        #expect(svgMesh.indices.count == 9)
+        #expect(dxfMesh.indices.count == 6)
+        #expect(abs(triangleMeshArea(objMesh) - 1.0) < 1.0e-12)
+        #expect(abs(triangleMeshArea(svgMesh) - 3.0) < 1.0e-12)
+        #expect(abs(triangleMeshArea(dxfMesh) - 1.0) < 1.0e-12)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -2517,6 +2941,101 @@ struct CADExchangeTests {
 
         #expect(throws: ZipArchiveError.self) {
             _ = try StoredZipArchive.readEntries(from: corrupted)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rawDeflateDecoderHandlesFixedAndDynamicHuffmanBlocksWithBounds() throws {
+        let fixed = try data(hexEncoded: "cb48cdc9c957c8409000")
+        let fixedDecoded = try fixed.withUnsafeBytes {
+            try RawDeflateDecoder.decode($0, expectedByteCount: 17, maximumByteCount: 17)
+        }
+        #expect(fixedDecoded == Data("hello hello hello".utf8))
+
+        let dynamic = try data(hexEncoded: "edcbd10983301400c055de00a593b884c4200f8c9124eedf417af77f5b1fb5453ef36d71f4ab8f98b9626f757da2f47bd6b2ea7a47ec473e394bde67d42bd737365114455114455114455114455114455114455114455114455114455114455114ff35fe00")
+        let expected = Data(String(repeating: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ", count: 200).utf8)
+        let dynamicDecoded = try dynamic.withUnsafeBytes {
+            try RawDeflateDecoder.decode(
+                $0,
+                expectedByteCount: expected.count,
+                maximumByteCount: expected.count
+            )
+        }
+        #expect(dynamicDecoded == expected)
+
+        #expect(throws: RawDeflateError.self) {
+            _ = try dynamic.withUnsafeBytes {
+                try RawDeflateDecoder.decode(
+                    $0,
+                    expectedByteCount: expected.count,
+                    maximumByteCount: expected.count - 1
+                )
+            }
+        }
+        var trailing = fixed
+        trailing.append(0)
+        #expect(throws: RawDeflateError.self) {
+            _ = try trailing.withUnsafeBytes {
+                try RawDeflateDecoder.decode($0, expectedByteCount: 17, maximumByteCount: 17)
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func storedZipBoundsDeflatedExpansionAndRejectsCorruption() throws {
+        let uncompressed = Data(
+            String(repeating: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ", count: 200).utf8
+        )
+        let compressed = try data(hexEncoded: "edcbd10983301400c055de00a593b884c4200f8c9124eedf417af77f5b1fb5453ef36d71f4ab8f98b9626f757da2f47bd6b2ea7a47ec473e394bde67d42bd737365114455114455114455114455114455114455114455114455114455114455114ff35fe00")
+        let archive = try deflatedZipArchive(
+            entries: [StoredZipArchive.Entry(path: "model.xml", data: uncompressed)],
+            usesDataDescriptors: false,
+            compression: { _ in compressed }
+        )
+        let nameLength = Int(archive[26]) | (Int(archive[27]) << 8)
+        let extraLength = Int(archive[28]) | (Int(archive[29]) << 8)
+        let compressedStart = 30 + nameLength + extraLength
+        let compressedEnd = compressedStart + compressed.count
+        let archivedCompressedPayload = Data(archive[compressedStart..<compressedEnd])
+        #expect(archivedCompressedPayload == compressed)
+        let decodedPayload = try archivedCompressedPayload.withUnsafeBytes {
+            try RawDeflateDecoder.decode(
+                $0,
+                expectedByteCount: uncompressed.count,
+                maximumByteCount: Int(UInt32.max)
+            )
+        }
+        #expect(decodedPayload == uncompressed)
+
+        #expect(throws: ZipArchiveError.self) {
+            _ = try StoredZipArchive.withBorrowedEntries(
+                from: archive,
+                maximumEntryCount: 1,
+                maximumTotalUncompressedBytes: uncompressed.count - 1
+            ) { $0 }
+        }
+        let decoded = try StoredZipArchive.readEntries(from: archive)
+        #expect(decoded["model.xml"] == uncompressed)
+
+        var corrupted = archive
+        corrupted[compressedStart] ^= 0xff
+        #expect(throws: ZipArchiveError.self) {
+            _ = try StoredZipArchive.readEntries(from: corrupted)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func storedZipRejectsMismatchedDataDescriptors() throws {
+        var archive = try deflatedZipArchive(
+            entries: [StoredZipArchive.Entry(path: "a.txt", data: Data("content".utf8))],
+            usesDataDescriptors: true
+        )
+        let signature = Data([0x50, 0x4b, 0x07, 0x08])
+        let descriptorRange = try #require(archive.range(of: signature))
+        archive[descriptorRange.upperBound] ^= 0xff
+
+        #expect(throws: ZipArchiveError.self) {
+            _ = try StoredZipArchive.readEntries(from: archive)
         }
     }
 
@@ -2716,6 +3235,62 @@ struct CADExchangeTests {
         #expect(abs(extents.width - LengthUnit.centimeter.toInternal(2.0)) < 1.0e-9)
         #expect(abs(extents.height - LengthUnit.centimeter.toInternal(3.0)) < 1.0e-9)
         #expect(abs(extents.depth - LengthUnit.centimeter.toInternal(4.0)) < 1.0e-9)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func dxfImporterTriangulatesQuadrilateral3DFACEWithoutChangingArea() throws {
+        let imported = try DXFExchange(tolerance: .standard).import(Data(dxfQuadrilateral3DFACE().utf8))
+        let mesh = try #require(imported.meshes.values.first)
+
+        #expect(mesh.positions.count == 6)
+        #expect(mesh.indices == [0, 1, 2, 3, 4, 5])
+        #expect(abs(triangleMeshArea(mesh) - 1.0) < 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func dxfExchangeWritesAC1027AndRejectsAnotherDeclaredVersion() throws {
+        let exchange = DXFExchange(tolerance: .standard)
+        let exported = try exchange.export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)])
+        let text = try #require(String(data: exported, encoding: .ascii))
+        #expect(text.contains("$ACADVER\n1\nAC1027"))
+
+        let unsupported = Data(text.replacingOccurrences(of: "AC1027", with: "AC1032").utf8)
+        #expect(throws: ImportError.self) {
+            _ = try exchange.import(unsupported)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func dxfExchangeRejectsNonASCIIAndEnforcesTypedResourceLimits() throws {
+        let nonASCII = Data(dxfQuadrilateral3DFACE().replacingOccurrences(of: "SwiftCAD", with: "SwiftCAD設").utf8)
+        #expect(throws: ImportError.self) {
+            _ = try DXFExchange(tolerance: .standard).import(nonASCII)
+        }
+
+        let mesh = unitTriangleMesh(unit: .meter)
+        let entityLimited = DXFExchange(
+            tolerance: .standard,
+            resourceLimits: ExchangeResourceLimits(maximumEntities: 4)
+        )
+        let byteLimited = DXFExchange(
+            tolerance: .standard,
+            resourceLimits: ExchangeResourceLimits(maximumBytes: 16)
+        )
+
+        do {
+            _ = try entityLimited.export(meshes: [BodyID(): mesh])
+            Issue.record("Expected DXF entity accounting to reject the export.")
+        } catch let error as KernelError {
+            #expect(error.phase == .exchange)
+            #expect(error.code == .resourceLimitExceeded)
+        }
+        do {
+            _ = try byteLimited.import(Data(dxfQuadrilateral3DFACE().utf8))
+            Issue.record("Expected DXF input byte accounting to reject the import.")
+        } catch let error as KernelError {
+            #expect(error.phase == .exchange)
+            #expect(error.code == .resourceLimitExceeded)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -4013,6 +4588,69 @@ private func unitTriangleMesh(unit: LengthUnit) -> Mesh {
     )
 }
 
+private func triangleMeshArea(_ mesh: Mesh) -> Double {
+    stride(from: 0, to: mesh.indices.count, by: 3).reduce(0.0) { area, offset in
+        let first = mesh.positions[Int(mesh.indices[offset])]
+        let second = mesh.positions[Int(mesh.indices[offset + 1])]
+        let third = mesh.positions[Int(mesh.indices[offset + 2])]
+        return area + 0.5 * (second - first).cross(third - first).length
+    }
+}
+
+private func data(hexEncoded text: String) throws -> Data {
+    guard text.count.isMultiple(of: 2) else {
+        throw ImportError.invalidData("Hex fixture must contain complete bytes.")
+    }
+    var bytes: [UInt8] = []
+    bytes.reserveCapacity(text.count / 2)
+    var index = text.startIndex
+    while index < text.endIndex {
+        let next = text.index(index, offsetBy: 2)
+        guard let byte = UInt8(text[index..<next], radix: 16) else {
+            throw ImportError.invalidData("Hex fixture contains an invalid byte.")
+        }
+        bytes.append(byte)
+        index = next
+    }
+    return Data(bytes)
+}
+
+private func validatePDFCrossReference(_ data: Data) throws {
+    let bytes = [UInt8](data)
+    let marker = Array("startxref\n".utf8)
+    guard let markerStart = bytes.indices.reversed().first(where: { index in
+        index + marker.count <= bytes.count
+            && Array(bytes[index..<(index + marker.count)]) == marker
+    }) else {
+        throw ExportError.invalidMesh("PDF startxref marker is missing.")
+    }
+    let offsetStart = markerStart + marker.count
+    guard let offsetEnd = bytes[offsetStart...].firstIndex(of: 0x0a),
+          let offset = Int(String(decoding: bytes[offsetStart..<offsetEnd], as: UTF8.self)),
+          offset >= 0,
+          offset < bytes.count else {
+        throw ExportError.invalidMesh("PDF startxref offset is invalid.")
+    }
+    #expect(bytes[offset...].starts(with: Array("xref\n0 6\n".utf8)))
+
+    let xrefText = String(decoding: bytes[offset..<markerStart], as: UTF8.self)
+    let lines = xrefText.split(separator: "\n", omittingEmptySubsequences: false)
+    guard lines.count >= 8 else {
+        throw ExportError.invalidMesh("PDF cross-reference table is incomplete.")
+    }
+    for objectNumber in 1...5 {
+        let entry = lines[2 + objectNumber].split(separator: " ", omittingEmptySubsequences: true)
+        guard let encodedOffset = entry.first,
+              let objectOffset = Int(encodedOffset),
+              objectOffset >= 0,
+              objectOffset < bytes.count else {
+            throw ExportError.invalidMesh("PDF object offset is invalid.")
+        }
+        let expected = Array("\(objectNumber) 0 obj".utf8)
+        #expect(bytes[objectOffset...].starts(with: expected))
+    }
+}
+
 private func unitTriangleDimensions(unit: LengthUnit) -> (width: Double, height: Double, depth: Double) {
     let scale = max(1.0, 0.01 / unit.metersPerUnit)
     return (
@@ -4265,6 +4903,109 @@ private func storedZipLocalEntry(path: String, data entryData: Data) -> Data {
     return entry
 }
 
+private func deflatedZipArchive(
+    entries: [StoredZipArchive.Entry],
+    usesDataDescriptors: Bool,
+    compression: (Data) -> Data = rawStoredDeflate
+) throws -> Data {
+    guard entries.count <= Int(UInt16.max) else {
+        throw ZipArchiveError.tooManyEntries
+    }
+    let flags: UInt16 = 0x0800 | (usesDataDescriptors ? 0x0008 : 0)
+    var archive = Data()
+    var centralDirectory = Data()
+    for entry in entries {
+        let pathData = Data(entry.path.utf8)
+        let compressed = compression(entry.data)
+        let crc = CRC32.checksum(entry.data)
+        guard archive.count <= Int(UInt32.max),
+              compressed.count <= Int(UInt32.max),
+              entry.data.count <= Int(UInt32.max) else {
+            throw ZipArchiveError.entryTooLarge(entry.path)
+        }
+        let localOffset = UInt32(archive.count)
+        let compressedSize = UInt32(compressed.count)
+        let uncompressedSize = UInt32(entry.data.count)
+        let extra = zipTimestampExtraField()
+
+        archive.appendLittleEndian(UInt32(0x04034b50))
+        archive.appendLittleEndian(UInt16(20))
+        archive.appendLittleEndian(flags)
+        archive.appendLittleEndian(UInt16(8))
+        archive.appendLittleEndian(UInt16(0))
+        archive.appendLittleEndian(UInt16(0))
+        archive.appendLittleEndian(usesDataDescriptors ? UInt32(0) : crc)
+        archive.appendLittleEndian(usesDataDescriptors ? UInt32(0) : compressedSize)
+        archive.appendLittleEndian(usesDataDescriptors ? UInt32(0) : uncompressedSize)
+        archive.appendLittleEndian(UInt16(pathData.count))
+        archive.appendLittleEndian(UInt16(extra.count))
+        archive.append(pathData)
+        archive.append(extra)
+        archive.append(compressed)
+        if usesDataDescriptors {
+            archive.appendLittleEndian(UInt32(0x08074b50))
+            archive.appendLittleEndian(crc)
+            archive.appendLittleEndian(compressedSize)
+            archive.appendLittleEndian(uncompressedSize)
+        }
+
+        centralDirectory.append(storedZipCentralDirectoryRecord(
+            pathData: pathData,
+            crc: crc,
+            size: compressedSize,
+            uncompressedSize: uncompressedSize,
+            extra: extra,
+            localOffset: localOffset,
+            flags: flags,
+            method: 8
+        ))
+    }
+    guard archive.count <= Int(UInt32.max), centralDirectory.count <= Int(UInt32.max) else {
+        throw ZipArchiveError.entryTooLarge("archive")
+    }
+    let centralOffset = UInt32(archive.count)
+    archive.append(centralDirectory)
+    archive.appendLittleEndian(UInt32(0x06054b50))
+    archive.appendLittleEndian(UInt16(0))
+    archive.appendLittleEndian(UInt16(0))
+    archive.appendLittleEndian(UInt16(entries.count))
+    archive.appendLittleEndian(UInt16(entries.count))
+    archive.appendLittleEndian(UInt32(centralDirectory.count))
+    archive.appendLittleEndian(centralOffset)
+    archive.appendLittleEndian(UInt16(0))
+    return archive
+}
+
+private func rawStoredDeflate(_ data: Data) -> Data {
+    var result = Data()
+    if data.isEmpty {
+        result.append(0x01)
+        result.appendLittleEndian(UInt16(0))
+        result.appendLittleEndian(UInt16.max)
+        return result
+    }
+    var offset = 0
+    while offset < data.count {
+        let count = min(Int(UInt16.max), data.count - offset)
+        let isFinal = offset + count == data.count
+        result.append(isFinal ? 0x01 : 0x00)
+        let length = UInt16(count)
+        result.appendLittleEndian(length)
+        result.appendLittleEndian(~length)
+        result.append(data[offset..<(offset + count)])
+        offset += count
+    }
+    return result
+}
+
+private func zipTimestampExtraField() -> Data {
+    var extra = Data()
+    extra.appendLittleEndian(UInt16(0x5455))
+    extra.appendLittleEndian(UInt16(1))
+    extra.append(0)
+    return extra
+}
+
 private func storedZipArchive(
     path: String,
     data entryData: Data,
@@ -4341,14 +5082,15 @@ private func storedZipCentralDirectoryRecord(
     extra: Data = Data(),
     comment: Data = Data(),
     localOffset: UInt32,
-    flags: UInt16 = 0
+    flags: UInt16 = 0,
+    method: UInt16 = 0
 ) -> Data {
     var record = Data()
     record.appendLittleEndian(UInt32(0x02014b50))
     record.appendLittleEndian(UInt16(20))
     record.appendLittleEndian(UInt16(20))
     record.appendLittleEndian(flags)
-    record.appendLittleEndian(UInt16(0))
+    record.appendLittleEndian(method)
     record.appendLittleEndian(UInt16(0))
     record.appendLittleEndian(UInt16(0))
     record.appendLittleEndian(crc)

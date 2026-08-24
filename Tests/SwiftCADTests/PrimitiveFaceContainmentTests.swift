@@ -144,19 +144,25 @@ struct OffsetSphereOctantContainmentTests {
                     // boundary edge midpoint lies behind the section plane;
                     // corner vertices alone can all sit on x = 2 for the
                     // opposite octant.
-                    let midpoints = face.loops
-                        .compactMap { evaluated.brep.loops[$0] }
-                        .flatMap(\.edges)
-                        .compactMap { evaluated.brep.edges[$0.edgeID] }
-                        .compactMap { (edge: Edge) -> Point3D? in
-                            guard let curve = evaluated.brep.geometry.curves[edge.curveID],
-                                  let trim = edge.trim else { return nil }
-                            let middle = trim.startParameter + (trim.endParameter - trim.startParameter) * 0.5
-                            return try? curve.point(
+                    var midpoints: [Point3D] = []
+                    for loopID in face.loops {
+                        guard let loop = evaluated.brep.loops[loopID] else {
+                            continue
+                        }
+                        for coedge in loop.edges {
+                            guard let edge = evaluated.brep.edges[coedge.edgeID],
+                                  let curve = evaluated.brep.geometry.curves[edge.curveID],
+                                  let trim = edge.trim else {
+                                continue
+                            }
+                            let middle = trim.startParameter
+                                + (trim.endParameter - trim.startParameter) * 0.5
+                            midpoints.append(try curve.point(
                                 at: middle,
                                 tolerance: evaluated.configuration.tolerance
-                            )
+                            ))
                         }
+                    }
                     let allBehind = midpoints.isEmpty == false
                         && midpoints.allSatisfy { $0.x >= 2.0 - 1.0e-6 }
                     #expect(

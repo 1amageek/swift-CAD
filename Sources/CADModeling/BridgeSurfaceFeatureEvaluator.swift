@@ -39,8 +39,8 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
     ) throws -> EvaluationResult {
         guard case let .bridgeSurface(bridge) = feature.operation else {
             throw KernelError(
-                phase: .evaluation,
-                code: .unsupportedCapability,
+                phase: .validation,
+                code: .invalidInput,
                 featureID: feature.id,
                 tolerance: context.tolerance,
                 message: "BridgeSurfaceFeatureEvaluator requires a bridge surface feature."

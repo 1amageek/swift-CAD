@@ -221,6 +221,7 @@ private func isSupportedSTEPEntity(_ entity: String) -> Bool {
         "CONICAL_SURFACE(",
         "SPHERICAL_SURFACE(",
         "TOROIDAL_SURFACE(",
+        "OFFSET_SURFACE(",
         "ADVANCED_FACE(",
         "OPEN_SHELL(",
         "CLOSED_SHELL(",

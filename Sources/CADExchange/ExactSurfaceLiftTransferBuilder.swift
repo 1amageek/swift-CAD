@@ -43,31 +43,51 @@ struct ExactSurfaceLiftTransferBuilder {
             secondSurface: lift.surface,
             options: SurfaceSurfaceIntersectionOptions(),
             tolerance: tolerance
-        ).intersection(
+        ).representation(
             parameterRange: lower...upper,
             initialBreaks: breaks,
-            kind: .transverse,
             isClosed: isClosed,
+            firstParameterAt: { parameter in
+                try lift.parameterCurve.parameter(
+                    atNormalizedFraction: parameter,
+                    tolerance: tolerance
+                )
+            },
+            secondParameterAt: { parameter in
+                try lift.parameterCurve.parameter(
+                    atNormalizedFraction: parameter,
+                    tolerance: tolerance
+                )
+            },
+            firstParameterDifferentialAt: { parameter in
+                try lift.parameterCurve.differentialGeometry(
+                    atNormalizedFraction: parameter,
+                    tolerance: tolerance
+                )
+            },
+            secondParameterDifferentialAt: { parameter in
+                try lift.parameterCurve.differentialGeometry(
+                    atNormalizedFraction: parameter,
+                    tolerance: tolerance
+                )
+            },
+            pointFirstDerivativeAt: { parameter in
+                try lift.differentialGeometry(
+                    atNormalizedFraction: parameter,
+                    tolerance: tolerance
+                ).firstDerivative
+            },
             pointAt: { parameter in
                 try lift.point(atNormalizedFraction: parameter, tolerance: tolerance)
             }
         )
-        guard case let .curve(intersection) = transferred,
-              case let .bSpline(curve) = intersection.derivedRepresentation.curve else {
-            throw KernelError(
-                phase: .exchange,
-                code: .topologyFailure,
-                tolerance: tolerance,
-                message: "Surface-lift transfer did not produce a verified rational spline representation."
-            )
-        }
         let parameterCurve = try lift.parameterCurve.subcurve(
             fromNormalizedFraction: lower,
             toNormalizedFraction: upper,
             tolerance: tolerance
         )
         try DefaultCurveSurfaceCorrespondenceValidator().validate(
-            curve: .bSpline(curve),
+            curve: .bSpline(transferred.curve),
             from: lower,
             to: upper,
             surface: lift.surface,
@@ -79,9 +99,9 @@ struct ExactSurfaceLiftTransferBuilder {
             tolerance: tolerance
         )
         return Result(
-            curve: curve,
+            curve: transferred.curve,
             parameterCurve: parameterCurve,
-            maximumResidualUpperBound: intersection.maximumResidual
+            maximumResidualUpperBound: transferred.maximumResidual
         )
     }
 }

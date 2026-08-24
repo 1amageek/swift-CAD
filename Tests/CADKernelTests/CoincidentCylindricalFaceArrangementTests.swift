@@ -63,7 +63,10 @@ struct CoincidentCylindricalFaceArrangementTests {
         let targetBoundaries = arrangement.boundaries.filter {
             $0.faceID == targetFaceID
         }
-        #expect(targetBoundaries.count == 4)
+        // The overlap's right side is already owned by the target trim. The
+        // arrangement contributes only the other three partitioning sides.
+        #expect(targetBoundaries.count == 3)
+        #expect(targetBoundaries.allSatisfy { $0.isPartitioning })
 
         let result = try BooleanOpenFaceArrangementBuilder().build(
             faceID: targetFaceID,

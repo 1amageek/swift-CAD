@@ -178,6 +178,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             endCurveParameter: endCurveParameter,
             surface: surface,
             parameterCurve: parameterCurve,
+            options: options,
             tolerance: tolerance
         ) {
             return
@@ -203,15 +204,21 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         } else {
             curveDerivativeBoundsAreIntervalInvariant = false
         }
-        let liftSecondDerivative = try liftSecondDerivativeUpperBound(
-            surface: surface,
-            parameterBounds: parameterBounds,
-            tolerance: tolerance
-        )
         let parameterLift = SurfaceLiftCurve3D(
             surface: surface,
             parameterCurve: parameterCurve
         )
+        let completeLiftInterval = try ScalarInterval(lower: 0.0, upper: 1.0)
+        let liftSecondDerivative = try SurfaceLiftDifferentialBounder()
+            .secondDerivativeMagnitude(
+                lift: parameterLift,
+                interval: completeLiftInterval,
+                tolerance: tolerance
+            ) ?? liftSecondDerivativeUpperBound(
+                surface: surface,
+                parameterBounds: parameterBounds,
+                tolerance: tolerance
+            )
         let projectionOptions = CurveParameterProjectionOptions(
             parameterRange: parameterRange
         )
@@ -535,8 +542,20 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         endCurveParameter: Double,
         surface: Surface3D,
         parameterCurve: SurfaceParameterCurve,
+        options: CurveSurfaceCorrespondenceValidationOptions,
         tolerance: ModelingTolerance
     ) throws -> Bool {
+        if case let .procedural(.ruled(ruled)) = surface,
+           try validatesRuledSurfaceBoundary(
+               curve: curve,
+               startCurveParameter: startCurveParameter,
+               endCurveParameter: endCurveParameter,
+               ruled: ruled,
+               parameterCurve: parameterCurve,
+               tolerance: tolerance
+           ) {
+            return true
+        }
         if case let .surfaceLift(lift) = curve {
             let lowerParameter = min(startCurveParameter, endCurveParameter)
             let upperParameter = max(startCurveParameter, endCurveParameter)
@@ -626,6 +645,39 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 )
             }
             return true
+        case let .rigidImage(image):
+            guard case let .rigidImage(curveImage) = curve,
+                  curveImage.transform == image.transform,
+                  surface == image.targetSurface else {
+                throw correspondenceFailure(
+                    tolerance: tolerance,
+                    message: "A rigid-image pcurve changed its source transform, target surface, or 3D curve image."
+                )
+            }
+            let lower = min(image.startFraction, image.endFraction)
+            let upper = max(image.startFraction, image.endFraction)
+            let sourceSubcurve = try image.source.parameterCurve.subcurve(
+                fromNormalizedFraction: lower,
+                toNormalizedFraction: upper,
+                tolerance: tolerance
+            )
+            let orientedSource = if image.startFraction <= image.endFraction {
+                sourceSubcurve
+            } else {
+                try sourceSubcurve.reversed(tolerance: tolerance)
+            }
+            try validate(
+                curve: curveImage.source,
+                from: startCurveParameter,
+                to: endCurveParameter,
+                surface: image.source.surface,
+                parameterCurve: orientedSource,
+                options: options,
+                tolerance: tolerance
+            )
+            return true
+        case .sameParameterImage:
+            break
         case .affine, .constantU, .constantV, .harmonic, .sphericalGreatCircle, .polyline, .bSpline:
             break
         case .periodicTranslation:
@@ -818,9 +870,67 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             return true
         case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline,
              .certifiedImplicit, .certifiedAnalyticImplicit,
-             .certifiedAnalyticPair, .projectedAnalytic:
+             .certifiedAnalyticPair, .projectedAnalytic, .rigidImage,
+             .sameParameterImage:
             return false
         case .periodicTranslation:
+            return false
+        }
+    }
+
+    private func validatesRuledSurfaceBoundary(
+        curve: Curve3D,
+        startCurveParameter: Double,
+        endCurveParameter: Double,
+        ruled: RuledSurface3D,
+        parameterCurve: SurfaceParameterCurve,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        switch parameterCurve {
+        case let .constantV(v, uStart, uEnd):
+            let boundary: Curve3D
+            if abs(v) <= tolerance.relative {
+                boundary = ruled.startBoundary
+            } else if abs(v - 1.0) <= tolerance.relative {
+                boundary = ruled.endBoundary
+            } else {
+                return false
+            }
+            return curve == boundary
+                && abs(startCurveParameter - uStart) <= tolerance.relative
+                && abs(endCurveParameter - uEnd) <= tolerance.relative
+        case let .constantU(u, vStart, vEnd):
+            guard case .line = curve,
+                  abs(u) <= tolerance.relative
+                    || abs(u - 1.0) <= tolerance.relative else {
+                return false
+            }
+            let curveStart = try curve.point(
+                at: startCurveParameter,
+                tolerance: tolerance
+            )
+            let curveEnd = try curve.point(
+                at: endCurveParameter,
+                tolerance: tolerance
+            )
+            let surfaceStart = try ruled.point(
+                u: u,
+                v: vStart,
+                tolerance: tolerance
+            )
+            let surfaceEnd = try ruled.point(
+                u: u,
+                v: vEnd,
+                tolerance: tolerance
+            )
+            return curveStart.isApproximatelyEqual(
+                to: surfaceStart,
+                tolerance: tolerance.distance
+            ) && curveEnd.isApproximatelyEqual(
+                to: surfaceEnd,
+                tolerance: tolerance.distance
+            )
+        default:
             return false
         }
     }
@@ -925,6 +1035,26 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             return (line.origin, line.direction)
         case let .analytic(.line(origin, direction)):
             return (origin, direction)
+        case let .rigidImage(image):
+            guard let source = lineDefinition(image.source) else {
+                return nil
+            }
+            return (
+                image.transform.applying(to: source.origin),
+                image.transform.applying(to: source.direction)
+            )
+        case let .affineImage(image):
+            guard let source = lineDefinition(image.source) else {
+                return nil
+            }
+            let direction = image.transform.applying(to: source.direction)
+            guard direction.length > 0.0 else {
+                return nil
+            }
+            return (
+                image.transform.applying(to: source.origin),
+                direction
+            )
         case .circle, .analytic, .bSpline, .implicit, .surfaceLift,
              .certifiedIntersection:
             return nil
@@ -940,8 +1070,17 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         case let .analytic(.circle(center, normal, radius)),
              let .analytic(.arc(center, normal, radius, _, _)):
             return (center, normal, radius)
+        case let .rigidImage(image):
+            guard let source = circleDefinition(image.source) else {
+                return nil
+            }
+            return (
+                image.transform.applying(to: source.center),
+                image.transform.applying(to: source.normal),
+                source.radius
+            )
         case .line, .analytic, .bSpline, .implicit, .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection, .affineImage:
             return nil
         }
     }
@@ -991,14 +1130,21 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             return false
         }
         let definition: (center: Point3D, normal: Vector3D, radius: Double)
-        switch curve {
-        case let .circle(value):
-            definition = (value.center, value.normal, value.radius)
-        case let .analytic(.circle(curveCenter, normal, curveRadius)),
-             let .analytic(.arc(curveCenter, normal, curveRadius, _, _)):
-            definition = (curveCenter, normal, curveRadius)
-        case .line, .analytic, .bSpline, .implicit, .surfaceLift,
-             .certifiedIntersection:
+        if let exactCircle = circleDefinition(curve) {
+            definition = exactCircle
+        } else if case let .analytic(.ellipse(
+            curveCenter,
+            normal,
+            _,
+            majorRadius,
+            minorRadius
+        )) = curve,
+                  abs(majorRadius - minorRadius) <= tolerance.distance {
+            // An equal-radius ellipse carries an explicit parametric axis,
+            // allowing a rigid transform to preserve the source parameter
+            // exactly while remaining geometrically circular.
+            definition = (curveCenter, normal, majorRadius)
+        } else {
             throw correspondenceFailure(
                 tolerance: tolerance,
                 message: "A spherical great-circle pcurve requires an exact circular edge."
@@ -1318,7 +1464,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             parameterEnd = uEnd
         case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline,
              .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-             .projectedAnalytic:
+             .projectedAnalytic, .rigidImage, .sameParameterImage:
             return false
         case .periodicTranslation:
             return false
@@ -1340,10 +1486,12 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             orientedBoundary,
             tolerance: tolerance
         ) else {
-            throw correspondenceFailure(
-                tolerance: tolerance,
-                message: "A B-spline isoparametric edge does not match its exact surface boundary."
-            )
+            // Rational B-spline representations are not unique: multiplying
+            // numerator and denominator by the same positive polynomial keeps
+            // the exact curve but cannot be reduced by knot insertion and
+            // degree elevation alone. Let the general interval-certified path
+            // prove or reject that correspondence.
+            return false
         }
         return true
     }
@@ -2144,6 +2292,17 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 tolerance: tolerance,
                 message: "A certified pcurve failed its structural source-curve match."
             )
+        case .rigidImage:
+            throw correspondenceFailure(
+                tolerance: tolerance,
+                message: "A rigid-image pcurve failed its structural source-transform proof."
+            )
+        case let .sameParameterImage(image):
+            return try derivativeBounds(
+                for: image.source,
+                surface: image.sourceSurface,
+                tolerance: tolerance
+            )
         case let .periodicTranslation(base, _, vShift):
             let bounds = try derivativeBounds(
                 for: base,
@@ -2292,6 +2451,31 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 )
             }
             return result
+        case let .procedural(.offset(offset)):
+            if let equivalent = try offset.exactSameParameterSurface(
+                tolerance: tolerance
+            ) {
+                return try liftSecondDerivativeUpperBound(
+                    surface: equivalent,
+                    parameterBounds: parameterBounds,
+                    tolerance: tolerance
+                )
+            }
+            if try DefaultPlanarSurfaceResolver().exactPlane(
+                for: surface,
+                tolerance: tolerance
+            ) != nil {
+                return hypot(uSecond, vSecond).nextUp
+            }
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "General procedural surface-lift correspondence requires local parameter-cell differential bounds."
+            )
+        case .procedural(.ruled):
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "General ruled-surface lift correspondence requires local parameter-cell differential bounds."
+            )
         }
     }
 
@@ -2390,6 +2574,28 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 )
             }
             return bound
+        case let .rigidImage(image):
+            return try curveSecondDerivativeUpperBound(
+                image.source,
+                parameterRange: parameterRange,
+                tolerance: tolerance
+            )
+        case let .affineImage(image):
+            let sourceBound = try curveSecondDerivativeUpperBound(
+                image.source,
+                parameterRange: parameterRange,
+                tolerance: tolerance
+            )
+            let transformedBound = (
+                sourceBound * image.transform.linearMagnitudeUpperBound
+            ).nextUp
+            guard transformedBound.isFinite else {
+                throw resourceFailure(
+                    tolerance: tolerance,
+                    message: "Affine-image correspondence derivative certification exceeded finite arithmetic."
+                )
+            }
+            return transformedBound
         case .analytic(.planeTorus), .implicit, .certifiedIntersection:
             throw correspondenceFailure(
                 tolerance: tolerance,
@@ -2415,12 +2621,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
     }
 
     private func isPlane(_ surface: Surface3D) -> Bool {
-        switch surface {
-        case .plane, .analytic(.plane):
-            return true
-        case .cylinder, .analytic, .bSpline:
-            return false
-        }
+        DefaultPlanarSurfaceResolver().canonicalPlane(for: surface) != nil
     }
 
     private func upwardSum(_ lhs: Double, _ rhs: Double) -> Double {

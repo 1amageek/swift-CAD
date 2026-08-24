@@ -27,6 +27,8 @@ public extension KernelError {
             switch sketchError {
             case .unsupportedEntity, .unsupportedProfile:
                 code = .unsupportedCapability
+            case .disconnectedCurveChain:
+                code = .invalidInput
             case .invalidReference:
                 code = .missingReference
             case .openProfile,

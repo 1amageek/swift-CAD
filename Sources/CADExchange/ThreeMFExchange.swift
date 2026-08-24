@@ -4,9 +4,14 @@ import CADIR
 
 public struct ThreeMFExchange: Sendable {
     private let tolerance: ModelingTolerance
+    private let resourceLimits: ExchangeResourceLimits
 
-    public init(tolerance: ModelingTolerance) {
+    public init(
+        tolerance: ModelingTolerance,
+        resourceLimits: ExchangeResourceLimits = .standard
+    ) {
         self.tolerance = tolerance
+        self.resourceLimits = resourceLimits
     }
 
     public func write(meshes: [BodyID: Mesh], unit: LengthUnit = .meter, to sink: any ByteSink) throws {
@@ -16,9 +21,30 @@ public struct ThreeMFExchange: Sendable {
         guard !meshes.isEmpty else {
             throw ExportError.emptyMesh
         }
-        let modelMeasurement = try measureBytes {
+        let sortedMeshes = meshes.sorted(by: { $0.key.description < $1.key.description })
+        var resources = try ExchangeResourceAccountant(limits: resourceLimits, format: .threeMF)
+        for (_, mesh) in sortedMeshes {
+            try mesh.validate(tolerance: tolerance)
+            let triangleCount = mesh.indices.count / 3
+            try resources.recordEntities()
+            try resources.recordEntities(mesh.positions.count)
+            try resources.recordEntities(triangleCount)
+            try resources.recordIterations(mesh.positions.count)
+            try resources.recordIterations(triangleCount)
+            try resources.recordIterations(mesh.positions.count)
+            try resources.recordIterations(triangleCount)
+        }
+        try resources.recordEntities(sortedMeshes.count)
+        try resources.recordIterations(sortedMeshes.count)
+        try resources.recordIterations(sortedMeshes.count)
+        let modelMeasurement = try measureBytes(limits: resourceLimits, format: .threeMF) {
             try writeModelXML(meshes: meshes, unit: unit, to: $0)
         }
+        let output = try ExchangeBoundedByteSink(
+            downstream: sink,
+            limits: resourceLimits,
+            format: .threeMF
+        )
         try StoredZipArchive.write(streamedEntries: [
             streamedDataEntry(path: "[Content_Types].xml", data: Data(contentTypesXML.utf8)),
             streamedDataEntry(path: "_rels/.rels", data: Data(relationshipsXML.utf8)),
@@ -30,7 +56,7 @@ public struct ThreeMFExchange: Sendable {
                     try writeModelXML(meshes: meshes, unit: unit, to: sink)
                 }
             )
-        ], to: sink)
+        ], to: output)
     }
 
     public func `import`(_ bytes: BorrowedBytes, fallbackUnit: LengthUnit = .millimeter) throws -> ImportedExchangeModel {
@@ -38,11 +64,32 @@ public struct ThreeMFExchange: Sendable {
     }
 
     public func `import`(_ source: any ByteSource, fallbackUnit: LengthUnit = .millimeter) throws -> ImportedExchangeModel {
+        var resources = try ExchangeResourceAccountant(limits: resourceLimits, format: .threeMF)
+        try resources.validateInputByteCount(source.count)
+        try resources.recordIterations(source.count)
         do {
-            return try StoredZipArchive.withBorrowedEntries(from: source) { entries in
-                try importPackageEntries(entries, fallbackUnit: fallbackUnit)
+            return try StoredZipArchive.withBorrowedEntries(
+                from: source,
+                maximumEntryCount: min(resourceLimits.maximumEntities, Int(UInt16.max)),
+                maximumTotalUncompressedBytes: resourceLimits.maximumBytes
+            ) { entries in
+                try resources.recordEntities(entries.count)
+                return try importPackageEntries(
+                    entries,
+                    fallbackUnit: fallbackUnit,
+                    resources: &resources
+                )
             }
         } catch let error as ZipArchiveError {
+            switch error {
+            case .tooManyEntries, .entryTooLarge:
+                throw exchangeResourceLimitError(
+                    format: .threeMF,
+                    detail: "package exceeds the configured archive resource limit."
+                )
+            default:
+                break
+            }
             throw ImportError.invalidData("Invalid 3MF package: \(error).")
         } catch {
             throw error
@@ -51,7 +98,8 @@ public struct ThreeMFExchange: Sendable {
 
     private func importPackageEntries(
         _ entries: [String: Data],
-        fallbackUnit: LengthUnit
+        fallbackUnit: LengthUnit,
+        resources: inout ExchangeResourceAccountant
     ) throws -> ImportedExchangeModel {
         try validateThreeMFPackageEntries(entries)
         guard let contentTypesData = entries["[Content_Types].xml"],
@@ -60,7 +108,8 @@ public struct ThreeMFExchange: Sendable {
         }
         try ThreeMFPackageXMLValidator.validate(
             contentTypes: contentTypesData,
-            relationships: relationshipsData
+            relationships: relationshipsData,
+            resources: &resources
         )
         guard let modelData = entries["3D/3dmodel.model"] else {
             throw ImportError.missingRequiredEntity("3D/3dmodel.model")
@@ -68,7 +117,11 @@ public struct ThreeMFExchange: Sendable {
         guard String(data: modelData, encoding: .utf8) != nil else {
             throw ImportError.invalidData("3MF model XML is not UTF-8.")
         }
-        let model = try ThreeMFModelXMLReader.read(modelData, fallbackUnit: fallbackUnit)
+        let model = try ThreeMFModelXMLReader.read(
+            modelData,
+            fallbackUnit: fallbackUnit,
+            resources: &resources
+        )
         let unit = model.unit
 
         var meshes: [BodyID: Mesh] = [:]
@@ -79,6 +132,7 @@ public struct ThreeMFExchange: Sendable {
         guard !meshes.isEmpty else {
             throw ImportError.invalidData("3MF build contains no mesh objects.")
         }
+        try resources.checkTime()
         return ImportedExchangeModel(format: .threeMF, meshes: meshes, units: UnitSystem(length: unit, angle: .radian))
     }
 
@@ -92,7 +146,6 @@ public struct ThreeMFExchange: Sendable {
           <resources>
         """)
         for (_, mesh) in sortedMeshes {
-            try mesh.validate(tolerance: tolerance)
             try sink.writeUTF8("""
 
             <object id="\(objectID)" type="model">
@@ -189,9 +242,18 @@ private final class MeasuringByteSink: ByteSink {
     }
 }
 
-private func measureBytes(_ operation: (any ByteSink) throws -> Void) throws -> ByteMeasurement {
+private func measureBytes(
+    limits: ExchangeResourceLimits,
+    format: ExchangeFileFormat,
+    _ operation: (any ByteSink) throws -> Void
+) throws -> ByteMeasurement {
     let sink = MeasuringByteSink()
-    try operation(sink)
+    let boundedSink = try ExchangeBoundedByteSink(
+        downstream: sink,
+        limits: limits,
+        format: format
+    )
+    try operation(boundedSink)
     return sink.measurement
 }
 

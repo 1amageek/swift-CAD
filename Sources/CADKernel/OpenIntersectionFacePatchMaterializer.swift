@@ -81,16 +81,16 @@ struct OpenIntersectionFacePatchMaterializer {
                 && discardedFaceIDs.contains(pair.toolFaceID) == false
         }
         let groupedBoundaries = Dictionary(grouping: effectiveBoundaries, by: \.faceID)
-        // Faces sharing one intersection curve must segment it identically
-        // for solid sewing to pair twins, so every boundary endpoint is
-        // shared across all faces carrying the same curve.
-        // A registry ordinal is allocated only after exact Curve3D equality.
-        // This avoids both deep hash recursion and sample-signature collisions.
-        var curveIdentityRegistry = ExactCurveIdentityRegistry()
+        // Faces sharing one geometric curve support must segment it
+        // identically for solid sewing to pair twins. Independently authored
+        // analytic and B-spline lines can describe the same support, so exact
+        // representation equality is insufficient at this topology boundary.
+        var curveIdentityRegistry = CurveSupportIdentityRegistry()
         func curveKey(_ edge: BRepSewingEdge) -> ExactCurveIdentity {
-            curveIdentityRegistry.identity(for: edge.curve)
+            curveIdentityRegistry.identity(for: edge, tolerance: tolerance)
         }
         var sharedPointsByCurve: [ExactCurveIdentity: [Point3D]] = [:]
+        var previewEdgesByFaceID: [FaceID: [BRepSewingEdge]] = [:]
         for boundary in effectiveBoundaries {
             let key = curveKey(boundary.edge)
             sharedPointsByCurve[key, default: []]
@@ -120,19 +120,16 @@ struct OpenIntersectionFacePatchMaterializer {
                     tolerance: tolerance
                 )
             }
-            for patch in preview.patches {
-                for loop in patch.loops {
-                    for edge in loop.edges {
-                        guard edge.stableID.hasPrefix("face-intersection:") else {
-                            continue
-                        }
-                        let key = curveKey(edge)
-                        sharedPointsByCurve[key, default: []]
-                            .append(edge.startPoint)
-                        sharedPointsByCurve[key, default: []]
-                            .append(edge.endPoint)
-                    }
-                }
+            let previewEdges = preview.patches.flatMap {
+                $0.loops.flatMap(\.edges)
+            }
+            previewEdgesByFaceID[faceID] = previewEdges
+            for edge in previewEdges {
+                let key = curveKey(edge)
+                sharedPointsByCurve[key, default: []]
+                    .append(edge.startPoint)
+                sharedPointsByCurve[key, default: []]
+                    .append(edge.endPoint)
             }
         }
         // Independently computed copies of one split point differ by
@@ -162,6 +159,13 @@ struct OpenIntersectionFacePatchMaterializer {
                     sharedSubdivisionPoints.append(
                         contentsOf: sharedPointsByCurve[
                             curveKey(boundary.edge)
+                        ] ?? []
+                    )
+                }
+                for edge in previewEdgesByFaceID[faceID, default: []] {
+                    sharedSubdivisionPoints.append(
+                        contentsOf: sharedPointsByCurve[
+                            curveKey(edge)
                         ] ?? []
                     )
                 }

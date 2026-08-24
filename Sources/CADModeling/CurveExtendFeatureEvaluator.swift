@@ -203,6 +203,8 @@ public struct CurveExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
              .analytic(.parabola),
              .analytic(.planeTorus),
              .bSpline,
+             .rigidImage,
+             .affineImage,
              .implicit,
              .surfaceLift,
              .certifiedIntersection:

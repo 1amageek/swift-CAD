@@ -58,6 +58,7 @@ public enum Surface3D: Codable, Sendable, Hashable {
     case cylinder(Cylinder3D)
     case analytic(AnalyticSurface3D)
     case bSpline(BSplineSurface3D)
+    indirect case procedural(ProceduralSurface3D)
 
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
@@ -70,6 +71,8 @@ public enum Surface3D: Codable, Sendable, Hashable {
             try surface.validate(tolerance: tolerance)
         case let .bSpline(surface):
             try surface.validate(tolerance: tolerance)
+        case let .procedural(surface):
+            try surface.validate(tolerance: tolerance)
         }
     }
 
@@ -79,6 +82,14 @@ public enum Surface3D: Codable, Sendable, Hashable {
         tolerance: ModelingTolerance
     ) throws -> Point3D {
         try validate(tolerance: tolerance)
+        return try pointAssumingValid(u: u, v: v, tolerance: tolerance)
+    }
+
+    package func pointAssumingValid(
+        u: Double,
+        v: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Point3D {
         guard try uDomain.contains(u, tolerance: tolerance),
               try vDomain.contains(v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
@@ -94,6 +105,12 @@ public enum Surface3D: Codable, Sendable, Hashable {
         case let .analytic(surface):
             return try surface.point(u: u, v: v, tolerance: tolerance)
         case let .bSpline(surface):
+            return try surface.pointAssumingValid(
+                u: u,
+                v: v,
+                tolerance: tolerance
+            )
+        case let .procedural(surface):
             return try surface.point(u: u, v: v, tolerance: tolerance)
         }
     }
@@ -103,6 +120,31 @@ public enum Surface3D: Codable, Sendable, Hashable {
         options: SurfaceParameterProjectionOptions = .init(),
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterProjection {
+        switch try parameterProjectionResult(
+            of: point,
+            options: options,
+            tolerance: tolerance
+        ) {
+        case let .projected(projection):
+            return projection
+        case let .outsideTolerance(residual):
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: residual,
+                tolerance: tolerance,
+                message: "Point does not lie on the requested surface within tolerance."
+            )
+        }
+    }
+
+    /// Separates a verified geometric miss from failures that prevent the
+    /// projection algorithm from deciding membership.
+    public func parameterProjectionResult(
+        of point: Point3D,
+        options: SurfaceParameterProjectionOptions = .init(),
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterProjectionResult {
         try options.validate(tolerance: tolerance)
         try validate(tolerance: tolerance)
         try point.validate()
@@ -121,7 +163,13 @@ public enum Surface3D: Codable, Sendable, Hashable {
         case let .analytic(surface):
             parameters = try Self.analyticParameters(for: point, on: surface, tolerance: tolerance)
         case let .bSpline(surface):
-            return try surface.parameterProjection(
+            return try surface.parameterProjectionResult(
+                of: point,
+                options: options,
+                tolerance: tolerance
+            )
+        case let .procedural(surface):
+            return try surface.parameterProjectionResult(
                 of: point,
                 options: options,
                 tolerance: tolerance
@@ -130,20 +178,14 @@ public enum Surface3D: Codable, Sendable, Hashable {
         let projectedPoint = try self.point(u: parameters.u, v: parameters.v, tolerance: tolerance)
         let residual = (point - projectedPoint).length
         guard residual <= tolerance.distance else {
-            throw KernelError(
-                phase: .geometry,
-                code: .intersectionFailure,
-                residual: residual,
-                tolerance: tolerance,
-                message: "Point does not lie on the requested surface within tolerance."
-            )
+            return .outsideTolerance(residual: residual)
         }
-        return try SurfaceParameterProjection(
+        return .projected(try SurfaceParameterProjection(
             u: parameters.u,
             v: parameters.v,
             point: projectedPoint,
             residual: residual
-        )
+        ))
     }
 
     public func normal(
@@ -156,18 +198,14 @@ public enum Surface3D: Codable, Sendable, Hashable {
               try vDomain.contains(v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
         }
-        switch self {
-        case let .plane(plane):
-            return try plane.normal.normalized(tolerance: tolerance.distance)
-        case let .cylinder(cylinder):
-            let (radialU, radialV) = try cylinderBasis(for: cylinder, tolerance: tolerance)
-            let radial = radialU * cos(u) + radialV * sin(u)
-            return try radial.normalized(tolerance: tolerance.distance)
-        case let .analytic(surface):
-            return try surface.differentialGeometry(u: u, v: v, tolerance: tolerance).normal
-        case let .bSpline(surface):
-            return try surface.normal(u: u, v: v, tolerance: tolerance)
-        }
+        let point = try point(u: u, v: v, tolerance: tolerance)
+        return try DefaultSurfaceNormalResolver().normal(
+            at: point,
+            on: self,
+            u: u,
+            v: v,
+            tolerance: tolerance
+        )
     }
 
     public func differentialGeometry(
@@ -264,6 +302,16 @@ public enum Surface3D: Codable, Sendable, Hashable {
                 minimumPrincipalDirection: geometry.minimumPrincipalDirection,
                 maximumPrincipalDirection: geometry.maximumPrincipalDirection
             )
+        case let .procedural(surface):
+            let derivatives = try surface.parameterDerivatives(
+                atU: u,
+                v: v,
+                tolerance: tolerance
+            )
+            return try SurfaceDifferentialGeometryBuilder().differentialGeometry(
+                derivatives: derivatives,
+                tolerance: tolerance
+            )
         }
     }
 
@@ -295,6 +343,8 @@ public enum Surface3D: Codable, Sendable, Hashable {
             Self.parameterDomain(surface.uDomain)
         case .bSpline(let surface):
             surface.uDomain
+        case let .procedural(surface):
+            surface.uDomain
         }
     }
 
@@ -306,6 +356,8 @@ public enum Surface3D: Codable, Sendable, Hashable {
             Self.parameterDomain(surface.vDomain)
         case .bSpline(let surface):
             surface.vDomain
+        case let .procedural(surface):
+            surface.vDomain
         }
     }
 
@@ -315,6 +367,7 @@ public enum Surface3D: Codable, Sendable, Hashable {
         case cylinder
         case analytic
         case bSpline
+        case procedural
     }
 
     private enum Kind: String, Codable {
@@ -322,6 +375,7 @@ public enum Surface3D: Codable, Sendable, Hashable {
         case cylinder
         case analytic
         case bSpline
+        case procedural
     }
 
     public init(from decoder: Decoder) throws {
@@ -340,6 +394,11 @@ public enum Surface3D: Codable, Sendable, Hashable {
         case .bSpline:
             try container.validateOnlyExpectedKeys([.kind, .bSpline], in: decoder)
             self = .bSpline(try container.decode(BSplineSurface3D.self, forKey: .bSpline))
+        case .procedural:
+            try container.validateOnlyExpectedKeys([.kind, .procedural], in: decoder)
+            self = .procedural(
+                try container.decode(ProceduralSurface3D.self, forKey: .procedural)
+            )
         }
     }
 
@@ -358,6 +417,9 @@ public enum Surface3D: Codable, Sendable, Hashable {
         case let .bSpline(surface):
             try container.encode(Kind.bSpline, forKey: .kind)
             try container.encode(surface, forKey: .bSpline)
+        case let .procedural(surface):
+            try container.encode(Kind.procedural, forKey: .kind)
+            try container.encode(surface, forKey: .procedural)
         }
     }
 

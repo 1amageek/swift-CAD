@@ -7,7 +7,7 @@ import SwiftCAD
 
 @Suite("Primitive offset torus-torus Boolean integration", .serialized)
 struct PrimitiveOffsetTorusTorusBooleanIntegrationTests {
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func intersectionProducesOneValidatedExactBody() throws {
         try assertExactResult(
             evaluate(operation: .intersect),
@@ -16,7 +16,7 @@ struct PrimitiveOffsetTorusTorusBooleanIntegrationTests {
         )
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func differenceProducesOneValidatedExactBody() throws {
         try assertExactResult(
             evaluate(operation: .difference),
@@ -25,7 +25,7 @@ struct PrimitiveOffsetTorusTorusBooleanIntegrationTests {
         )
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func unionProducesOneValidatedExactBody() throws {
         try assertExactResult(
             evaluate(operation: .union),

@@ -78,10 +78,10 @@ public struct CurveMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         try curve.validate(tolerance: context.tolerance)
         guard curve.exactCurve != nil else {
             throw kernelError(
-                .unsupportedCapability,
+                .missingReference,
                 featureID: featureID,
                 tolerance: context.tolerance,
-                "Curve match \(owner) must be exact."
+                "Curve match \(owner) does not contain exact curve geometry."
             )
         }
         return curve

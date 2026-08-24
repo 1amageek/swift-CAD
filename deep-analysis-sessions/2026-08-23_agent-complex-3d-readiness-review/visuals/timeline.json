@@ -1,0 +1,69 @@
+{
+  "title": "Dependency-ordered ideal correction path",
+  "phases": [
+    {
+      "order": 1,
+      "name": "Facade performance baseline",
+      "duration": "1–3 days",
+      "dependsOn": [],
+      "exit": "All public test targets compile and complete within their execution allowances on one commit"
+    },
+    {
+      "order": 2,
+      "name": "Geometry contract closure",
+      "duration": "1–3 weeks",
+      "dependsOn": [
+        1
+      ],
+      "exit": "Validated surface representation-pair matrix is behaviorally complete or honestly partial"
+    },
+    {
+      "order": 3,
+      "name": "Topology/Boolean closure",
+      "duration": "3–8 weeks",
+      "dependsOn": [
+        2
+      ],
+      "exit": "General exact intersection outputs materialize into validated topology"
+    },
+    {
+      "order": 4,
+      "name": "Agent edit/query reliability",
+      "duration": "2–5 weeks",
+      "dependsOn": [
+        2,
+        3
+      ],
+      "exit": "Certified queries and stable edit identity pass adversarial histories"
+    },
+    {
+      "order": 5,
+      "name": "Feature breadth",
+      "duration": "multi-quarter",
+      "dependsOn": [
+        3,
+        4
+      ],
+      "exit": "Critical feature envelopes support general topology rather than fixture classes"
+    },
+    {
+      "order": 6,
+      "name": "Interoperability and release proof",
+      "duration": "2–6 weeks after closure",
+      "dependsOn": [
+        4,
+        5
+      ],
+      "exit": "External oracles and G0-G7 manifests pass on the release revision"
+    }
+  ],
+  "criticalPath": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "note": "Durations are planning estimates, not measured commitments."
+}

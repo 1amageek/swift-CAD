@@ -22,23 +22,47 @@ final class ThreeMFModelXMLReader: NSObject, XMLParserDelegate {
     private var buildObjectIDs: [Int] = []
     private var currentObjectID: Int?
     private var currentObject: ThreeMFMeshObject?
-    private var importError: ImportError?
+    private var failure: (any Error)?
     private var elementStack: [String] = []
+    private var resources: ExchangeResourceAccountant?
 
-    static func read(_ data: Data, fallbackUnit: LengthUnit) throws -> ThreeMFModelXML {
+    static func read(
+        _ data: Data,
+        fallbackUnit: LengthUnit,
+        resources: inout ExchangeResourceAccountant
+    ) throws -> ThreeMFModelXML {
+        try validateThreeMFXMLData(data, documentName: "model")
         let reader = ThreeMFModelXMLReader()
         reader.fallbackUnit = fallbackUnit
+        reader.resources = resources
         let parser = XMLParser(data: data)
         parser.shouldProcessNamespaces = true
         parser.shouldResolveExternalEntities = false
         parser.delegate = reader
         guard parser.parse() else {
-            if let importError = reader.importError {
-                throw importError
+            if let resolvedResources = reader.resources {
+                resources = resolvedResources
+            }
+            if let failure = reader.failure {
+                throw failure
             }
             throw ImportError.invalidData(parser.parserError?.localizedDescription ?? "Invalid 3MF XML.")
         }
-        return try reader.resolvedModel()
+        guard reader.elementStack.isEmpty else {
+            throw ImportError.invalidData("3MF model XML nesting is incomplete.")
+        }
+        do {
+            let model = try reader.resolvedModel()
+            if let resolvedResources = reader.resources {
+                resources = resolvedResources
+            }
+            return model
+        } catch {
+            if let resolvedResources = reader.resources {
+                resources = resolvedResources
+            }
+            throw error
+        }
     }
 
     func parser(
@@ -49,6 +73,9 @@ final class ThreeMFModelXMLReader: NSObject, XMLParserDelegate {
         attributes attributeDict: [String: String] = [:]
     ) {
         let name = localName(elementName)
+        guard accountStartElement(attributeCount: attributeDict.count, parser: parser) else {
+            return
+        }
         guard validateElementNamespace(name, namespaceURI: namespaceURI, parser: parser) else {
             return
         }
@@ -74,7 +101,7 @@ final class ThreeMFModelXMLReader: NSObject, XMLParserDelegate {
         }
         if elementStack.isEmpty {
             readModelUnit(attributeDict, parser: parser)
-            guard importError == nil else {
+            guard failure == nil else {
                 return
             }
         }
@@ -101,7 +128,7 @@ final class ThreeMFModelXMLReader: NSObject, XMLParserDelegate {
         default:
             break
         }
-        if importError == nil {
+        if failure == nil {
             elementStack.append(name)
         }
     }
@@ -121,6 +148,42 @@ final class ThreeMFModelXMLReader: NSObject, XMLParserDelegate {
             finishObject(parser: parser)
         }
         elementStack.removeLast()
+    }
+
+    func parser(_ parser: XMLParser, foundCharacters string: String) {
+        guard elementStack.contains("metadata") || string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            fail("3MF model XML contains unsupported character data.", parser: parser)
+            return
+        }
+    }
+
+    func parser(_ parser: XMLParser, foundCDATA CDATABlock: Data) {
+        fail("3MF model XML contains unsupported CDATA.", parser: parser)
+    }
+
+    func parser(
+        _ parser: XMLParser,
+        foundInternalEntityDeclarationWithName name: String,
+        value: String?
+    ) {
+        fail("3MF model XML entity declarations are not supported.", parser: parser)
+    }
+
+    func parser(
+        _ parser: XMLParser,
+        foundExternalEntityDeclarationWithName name: String,
+        publicID: String?,
+        systemID: String?
+    ) {
+        fail("3MF model XML external entities are not supported.", parser: parser)
+    }
+
+    func parser(
+        _ parser: XMLParser,
+        foundProcessingInstructionWithTarget target: String,
+        data: String?
+    ) {
+        fail("3MF model XML processing instructions are not supported.", parser: parser)
     }
 
     private func validateElementNamespace(_ name: String, namespaceURI: String?, parser: XMLParser) -> Bool {
@@ -178,6 +241,9 @@ final class ThreeMFModelXMLReader: NSObject, XMLParserDelegate {
     }
 
     private func resolvedModel() throws -> ThreeMFModelXML {
+        guard var resources else {
+            throw ImportError.invalidData("3MF model resource accounting is unavailable.")
+        }
         let resolvedUnit = unit ?? fallbackUnit
         guard !buildObjectIDs.isEmpty else {
             throw ImportError.invalidData("3MF build contains no items.")
@@ -189,6 +255,7 @@ final class ThreeMFModelXMLReader: NSObject, XMLParserDelegate {
 
         var meshes: [Mesh] = []
         for objectID in buildObjectIDs {
+            try resources.recordIterations()
             guard let object = objects[objectID] else {
                 throw ImportError.invalidData("3MF build item references a missing object.")
             }
@@ -201,8 +268,10 @@ final class ThreeMFModelXMLReader: NSObject, XMLParserDelegate {
             var positions: [Point3D] = []
             var indices: [UInt32] = []
             for triangle in object.triangles {
+                try resources.recordIterations()
                 let sourceIndices = [triangle.0, triangle.1, triangle.2]
                 for sourceIndex in sourceIndices {
+                    try resources.recordIterations()
                     guard object.vertices.indices.contains(sourceIndex) else {
                         throw ImportError.invalidData("3MF triangle index is out of range.")
                     }
@@ -213,9 +282,12 @@ final class ThreeMFModelXMLReader: NSObject, XMLParserDelegate {
                     indices.append(UInt32(positions.count - 1))
                 }
             }
+            try resources.recordEntities()
+            try resources.recordEntities(positions.count)
             meshes.append(Mesh(positions: positions, normals: [], indices: indices))
         }
 
+        self.resources = resources
         return ThreeMFModelXML(unit: resolvedUnit, meshes: meshes)
     }
 
@@ -329,8 +401,28 @@ final class ThreeMFModelXMLReader: NSObject, XMLParserDelegate {
     }
 
     private func fail(_ message: String, parser: XMLParser) {
-        importError = ImportError.invalidData(message)
+        fail(ImportError.invalidData(message), parser: parser)
+    }
+
+    private func fail(_ error: any Error, parser: XMLParser) {
+        failure = error
         parser.abortParsing()
+    }
+
+    private func accountStartElement(attributeCount: Int, parser: XMLParser) -> Bool {
+        do {
+            guard var resources else {
+                throw ImportError.invalidData("3MF model resource accounting is unavailable.")
+            }
+            try resources.validateNestingDepth(elementStack.count + 1)
+            try resources.recordEntities()
+            try resources.recordIterations(1 + attributeCount)
+            self.resources = resources
+            return true
+        } catch {
+            fail(error, parser: parser)
+            return false
+        }
     }
 
     private func validateSupportedAttributes(

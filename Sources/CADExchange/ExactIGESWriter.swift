@@ -280,10 +280,155 @@ struct ExactIGESWriter {
                 )
                 edgeSameSense[edgeID] = trim.endParameter > trim.startParameter
                 surfaceLiftEdges.insert(edgeID)
-            case .certifiedIntersection:
-                throw exchangeError(
-                    .unsupportedCapability,
-                    "IGES export of certified intersection curves requires an exact transfer representation."
+            case .certifiedIntersection, .rigidImage:
+                guard let trim = edge.trim else {
+                    throw exchangeError(
+                        .topologyFailure,
+                        "IGES certified transfer curves require an explicit normalized trim."
+                    )
+                }
+                let transfer = try ExactCertifiedCurveTransferBuilder().build(
+                    curve: curve,
+                    trim: trim,
+                    tolerance: tolerance
+                )
+                guard case let .closed(lower, upper) = transfer.curve.domain else {
+                    throw exchangeError(
+                        .topologyFailure,
+                        "IGES certified transfer produced an unbounded rational curve."
+                    )
+                }
+                let modelCurve = try table.add(
+                    type: 126,
+                    form: 0,
+                    label: transfer.representsSurfaceLift ? "LIFTMODEL" : "CERTCURVE",
+                    parameters: bSplineCurveParameters(
+                        transfer.curve,
+                        startParameter: lower,
+                        endParameter: upper,
+                        unit: units.length
+                    )
+                )
+                let firstSurface = try exactSurfaceEntity(
+                    transfer.firstSurface,
+                    unit: units.length,
+                    table: &table
+                )
+                let firstParameterCurve = try parameterCurveEntity(
+                    transfer.firstSurfaceParameterCurve,
+                    surface: transfer.firstSurface,
+                    unit: units.length,
+                    table: &table
+                )
+                if transfer.representsSurfaceLift {
+                    curvePointers[edgeID] = try table.add(
+                        type: 142,
+                        form: 0,
+                        label: "SURFLIFT",
+                        parameters: "142,1,\(firstSurface),\(firstParameterCurve),\(modelCurve),3;"
+                    )
+                    surfaceLiftEdges.insert(edgeID)
+                } else {
+                    let secondSurface = try exactSurfaceEntity(
+                        transfer.secondSurface,
+                        unit: units.length,
+                        table: &table
+                    )
+                    let secondParameterCurve = try parameterCurveEntity(
+                        transfer.secondSurfaceParameterCurve,
+                        surface: transfer.secondSurface,
+                        unit: units.length,
+                        table: &table
+                    )
+                    let secondCurveOnSurface = try table.add(
+                        type: 142,
+                        form: 0,
+                        label: "CERTSECO",
+                        parameters: "142,1,\(secondSurface),\(secondParameterCurve),\(modelCurve),3;"
+                    )
+                    curvePointers[edgeID] = try table.add(
+                        type: 142,
+                        form: 0,
+                        label: "CERTFIRS",
+                        parameters: "142,1,\(firstSurface),\(firstParameterCurve),\(secondCurveOnSurface),3;"
+                    )
+                }
+                edgeSameSense[edgeID] = trim.endParameter > trim.startParameter
+            case .affineImage:
+                if let line = curve.exactLinearLocus {
+                    let signedSpan = (end - start).dot(line.direction)
+                    guard abs(signedSpan) > tolerance.distance else {
+                        throw exchangeError(
+                            .singularGeometry,
+                            "IGES affine-image line geometry is inconsistent with its vertices."
+                        )
+                    }
+                    edgeSameSense[edgeID] = signedSpan > 0.0
+                    curvePointers[edgeID] = try table.add(
+                        type: 110,
+                        form: 0,
+                        label: "CURVE",
+                        parameters: lineParameters(start: start, end: end, unit: units.length)
+                    )
+                    continue
+                }
+                guard let trim = edge.trim else {
+                    throw exchangeError(
+                        .topologyFailure,
+                        "IGES affine-image curves require an explicit finite trim interval."
+                    )
+                }
+                try trim.validate(
+                    on: curve,
+                    edgeID: edgeID,
+                    tolerance: tolerance
+                )
+                let interval = try ScalarInterval(
+                    lower: min(trim.startParameter, trim.endParameter),
+                    upper: max(trim.startParameter, trim.endParameter)
+                )
+                guard let exactCurve = try AnalyticCurveBSplineBuilder().boundedCurve(
+                    curve: curve,
+                    interval: interval,
+                    maximumSpanCount: 4_096,
+                    tolerance: tolerance
+                ) else {
+                    throw exchangeError(
+                        .unsupportedCapability,
+                        "IGES has no exact rational representation for this affine-image curve."
+                    )
+                }
+                let expectedStart = try exactCurve.point(
+                    at: trim.startParameter,
+                    tolerance: tolerance
+                )
+                let expectedEnd = try exactCurve.point(
+                    at: trim.endParameter,
+                    tolerance: tolerance
+                )
+                guard expectedStart.isApproximatelyEqual(
+                    to: start,
+                    tolerance: tolerance.distance
+                ), expectedEnd.isApproximatelyEqual(
+                    to: end,
+                    tolerance: tolerance.distance
+                ) else {
+                    throw exchangeError(
+                        .topologyFailure,
+                        "IGES affine-image rational transfer disagrees with its edge vertices."
+                    )
+                }
+                edgeSameSense[edgeID] = true
+                curvePointers[edgeID] = try table.add(
+                    type: 126,
+                    form: 0,
+                    label: "NURBSCRV",
+                    parameters: bSplineCurveParameters(
+                        exactCurve,
+                        startParameter: trim.startParameter,
+                        endParameter: trim.endParameter,
+                        unit: units.length
+                    )
                 )
             }
         }
@@ -295,81 +440,11 @@ struct ExactIGESWriter {
                 throw exchangeError(.missingReference, "IGES face surface is missing.")
             }
             if surfacePointers[face.surfaceID] == nil {
-                switch surface {
-                case let .plane(plane):
-                    let point = try table.add(
-                        type: 116,
-                        form: 0,
-                        label: "ORIGIN",
-                        parameters: pointParameters(plane.origin, unit: units.length)
-                    )
-                    let normal = try table.add(
-                        type: 123,
-                        form: 0,
-                        label: "NORMAL",
-                        parameters: directionParameters(plane.normal)
-                    )
-                    let frame = try surface.differentialGeometry(
-                        atU: 0.0,
-                        v: 0.0,
-                        tolerance: tolerance
-                    )
-                    let reference = try table.add(
-                        type: 123,
-                        form: 0,
-                        label: "REFDIR",
-                        parameters: directionParameters(frame.tangentU)
-                    )
-                    surfacePointers[face.surfaceID] = try table.add(
-                        type: 190,
-                        form: 1,
-                        label: "PLANE",
-                        parameters: "190,\(point),\(normal),\(reference);"
-                    )
-                case let .bSpline(bSpline):
-                    surfacePointers[face.surfaceID] = try table.add(
-                        type: 128,
-                        form: 0,
-                        label: "NURBSSRF",
-                        parameters: bSplineSurfaceParameters(bSpline, unit: units.length)
-                    )
-                case let .cylinder(cylinder):
-                    let point = try table.add(
-                        type: 116,
-                        form: 0,
-                        label: "ORIGIN",
-                        parameters: pointParameters(cylinder.origin, unit: units.length)
-                    )
-                    let axis = try table.add(
-                        type: 123,
-                        form: 0,
-                        label: "AXIS",
-                        parameters: directionParameters(cylinder.axis)
-                    )
-                    let frame = try surface.differentialGeometry(
-                        atU: 0.0,
-                        v: 0.0,
-                        tolerance: tolerance
-                    )
-                    let reference = try table.add(
-                        type: 123,
-                        form: 0,
-                        label: "REFDIR",
-                        parameters: directionParameters(frame.normal)
-                    )
-                    surfacePointers[face.surfaceID] = try table.add(
-                        type: 192,
-                        form: 1,
-                        label: "CYLINDER",
-                        parameters: "192,\(point),\(axis),\(number(units.length.fromInternal(cylinder.radius))),\(reference);"
-                    )
-                case let .analytic(analytic):
-                    surfacePointers[face.surfaceID] = try analyticSurfaceEntity(
-                        analytic,
-                        unit: units.length,
-                        table: &table
-                    )
-                }
+                surfacePointers[face.surfaceID] = try exactSurfaceEntity(
+                    surface,
+                    unit: units.length,
+                    table: &table
+                )
             }
         }
 
@@ -629,10 +704,12 @@ struct ExactIGESWriter {
             curve.degree == 1 && curve.controlPointCount == 2
         case .harmonic, .sphericalGreatCircle, .certifiedImplicit,
              .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-             .projectedAnalytic:
+             .projectedAnalytic, .rigidImage:
             false
         case let .periodicTranslation(base, _, _):
             isLinear(base)
+        case let .sameParameterImage(image):
+            isLinear(image.source)
         }
     }
 
@@ -656,10 +733,17 @@ struct ExactIGESWriter {
             return surface == .bSpline(source)
         case let .certifiedAnalyticImplicit(certified):
             return certified.intersection.analyticSurface == surface
+        case let .rigidImage(image):
+            return image.targetSurface == surface
         case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline:
             return false
         case let .periodicTranslation(base, _, _):
             return usesModelCurveOnly(base, on: surface)
+        case let .sameParameterImage(image):
+            return usesModelCurveOnly(
+                image.source,
+                on: image.sourceSurface
+            )
         }
     }
 
@@ -765,6 +849,14 @@ struct ExactIGESWriter {
                 unit: unit,
                 table: &table
             )
+        case let .sameParameterImage(image):
+            try image.validate(on: surface, tolerance: tolerance)
+            return try parameterCurveEntity(
+                image.source,
+                surface: surface,
+                unit: unit,
+                table: &table
+            )
         case .affine, .constantU, .constantV:
             throw exchangeError(
                 .topologyFailure,
@@ -775,6 +867,11 @@ struct ExactIGESWriter {
             throw exchangeError(
                 .unsupportedCapability,
                 "IGES pcurve export requires an exact transferable line, polyline, ellipse, or rational B-spline."
+            )
+        case .rigidImage:
+            throw exchangeError(
+                .topologyFailure,
+                "IGES rigid-image p-curves must use their exact model-curve surface association."
             )
         }
     }
@@ -1447,7 +1544,68 @@ struct ExactIGESWriter {
             )
         case let .analytic(analytic):
             return try analyticSurfaceEntity(analytic, unit: unit, table: &table)
+        case let .procedural(.offset(offset)):
+            if abs(offset.distance) <= tolerance.distance {
+                return try exactSurfaceEntity(
+                    offset.source,
+                    unit: unit,
+                    table: &table
+                )
+            }
+            let basis = try exactSurfaceEntity(
+                offset.source,
+                unit: unit,
+                table: &table
+            )
+            let indicator = try offsetIndicator(
+                for: offset.source,
+                tolerance: tolerance
+            )
+            return try table.add(
+                type: 140,
+                form: 0,
+                label: "OFFSETSRF",
+                parameters: [
+                    "140",
+                    number(indicator.x),
+                    number(indicator.y),
+                    number(indicator.z),
+                    number(unit.fromInternal(offset.distance)),
+                    "\(basis)",
+                ].joined(separator: ",") + ";"
+            )
+        case .procedural(.ruled):
+            let representation = try ExactExchangeSurfaceRepresentationResolver()
+                .resolve(surface, tolerance: tolerance)
+            guard representation != surface else {
+                throw exchangeError(
+                    .topologyFailure,
+                    "IGES procedural surface resolution made no progress."
+                )
+            }
+            return try exactSurfaceEntity(
+                representation,
+                unit: unit,
+                table: &table
+            )
         }
+    }
+
+    private func offsetIndicator(
+        for surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        let u: Double
+        let v: Double
+        if case let .closed(lower, upper) = surface.uDomain,
+           case let .closed(vLower, vUpper) = surface.vDomain {
+            u = lower + (upper - lower) * 0.5
+            v = vLower + (vUpper - vLower) * 0.5
+        } else {
+            u = 0.0
+            v = 0.0
+        }
+        return try surface.normal(u: u, v: v, tolerance: tolerance)
     }
 
     private func pointParameters(_ point: Point3D, unit: LengthUnit) -> String {

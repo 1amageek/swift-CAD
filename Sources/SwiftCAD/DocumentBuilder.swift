@@ -246,7 +246,7 @@ public struct DocumentBuilder {
     }
 
     public func stableSubshape(_ subshapeID: SubshapeID) throws -> StableSubshapeReference {
-        let evaluated = try DocumentEvaluator(tolerance: tolerance).evaluate(documentSnapshot())
+        let evaluated = try DocumentEvaluator(tolerance: tolerance).evaluateExact(documentSnapshot())
         return try evaluated.stableSubshapeReference(for: subshapeID)
     }
 
@@ -262,7 +262,7 @@ public struct DocumentBuilder {
     ) throws -> SurfaceOperationTargetReference {
         let evaluated = try DocumentEvaluator(
             tolerance: tolerance
-        ).evaluate(documentSnapshot())
+        ).evaluateExact(documentSnapshot())
         let faceSubshapeIDs = evaluated.subshapes.entries.compactMap {
             entry -> SubshapeID? in
             let (subshapeID, topologyReference) = entry

@@ -1,7 +1,9 @@
 import CADCore
 
-struct DefaultPlanarSurfaceResolver: PlanarSurfaceResolving {
-    func canonicalPlane(
+package struct DefaultPlanarSurfaceResolver: PlanarSurfaceResolving {
+    package init() {}
+
+    package func canonicalPlane(
         for surface: Surface3D
     ) -> ResolvedPlaneGeometry? {
         switch surface {
@@ -17,10 +19,20 @@ struct DefaultPlanarSurfaceResolver: PlanarSurfaceResolving {
             )
         case .cylinder, .analytic, .bSpline:
             return nil
+        case let .procedural(.offset(offset)):
+            guard let sourcePlane = canonicalPlane(for: offset.source) else {
+                return nil
+            }
+            return ResolvedPlaneGeometry(
+                origin: sourcePlane.origin + sourcePlane.normal * offset.distance,
+                normal: sourcePlane.normal
+            )
+        case .procedural(.ruled):
+            return nil
         }
     }
 
-    func exactPlane(
+    package func exactPlane(
         for surface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> ResolvedPlaneGeometry? {
@@ -31,6 +43,16 @@ struct DefaultPlanarSurfaceResolver: PlanarSurfaceResolving {
             return try plane(
                 forControlPoints: surface.controlPoints.flatMap { $0 },
                 tolerance: tolerance
+            )
+        }
+        if case let .procedural(.offset(offset)) = surface,
+           let sourcePlane = try exactPlane(
+               for: offset.source,
+               tolerance: tolerance
+           ) {
+            return ResolvedPlaneGeometry(
+                origin: sourcePlane.origin + sourcePlane.normal * offset.distance,
+                normal: sourcePlane.normal
             )
         }
         return nil
@@ -47,7 +69,7 @@ struct DefaultPlanarSurfaceResolver: PlanarSurfaceResolving {
             return nil
         }
         let firstDirection = first - origin
-        var candidateNormal: Vector3D?
+        var candidateNormal: (vector: Vector3D, minimumArea: Double)?
         for point in points.dropFirst() {
             let candidateDirection = point - origin
             let cross = firstDirection.cross(candidateDirection)
@@ -56,13 +78,13 @@ struct DefaultPlanarSurfaceResolver: PlanarSurfaceResolving {
                 candidateDirection.length
             )
             if cross.length > minimumArea {
-                candidateNormal = cross
+                candidateNormal = (cross, minimumArea)
                 break
             }
         }
-        guard let normal = candidateNormal else { return nil }
-        let unitNormal = try normal.normalized(
-            tolerance: tolerance.distance
+        guard let candidateNormal else { return nil }
+        let unitNormal = try candidateNormal.vector.normalized(
+            tolerance: candidateNormal.minimumArea
         )
         let coordinateScale = points.reduce(1.0) { scale, point in
             max(

@@ -67,9 +67,17 @@ struct KernelCapabilityContractTests {
             "MODEL-SURFACEEXTEND-001",
             "MODEL-SURFACEMATCH-001",
             "API-PARITY-001",
+            "API-NATIVEPERSISTENCE-001",
             "EXCHANGE-STEP-001",
             "EXCHANGE-IGES-001",
             "EXCHANGE-USD-001",
+            "EXCHANGE-STL-001",
+            "EXCHANGE-3MF-001",
+            "EXCHANGE-OBJ-001",
+            "EXCHANGE-DXF-001",
+            "EXCHANGE-SVG-001",
+            "EXCHANGE-GLB-001",
+            "EXCHANGE-PDF-001",
         ]
         #expect(Set(catalog.capabilities.map(\.id)) == expectedIDs)
         #expect(Set(catalog.capabilities.map(\.operation)).count == catalog.capabilities.count)
@@ -81,11 +89,60 @@ struct KernelCapabilityContractTests {
     }
 
     @Test
+    func sharedCommandAndQueryCapabilityIsAvailableAsSupported() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "CADCommand"
+        )
+
+        #expect(capability.id == "API-PARITY-001")
+        #expect(capability.status == .supported)
+        #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
+        #expect(capability.exactOutputs.contains("strictCodableKernelQueryResults"))
+        #expect(capability.exactOutputs.contains(
+            "curveEdgeAndSurfaceProjectionResults"
+        ))
+    }
+
+    @Test
     func everyFeatureOperationHasADedicatedCapability() throws {
         for operation in FeatureOperationKind.allCases.map(\.rawValue) {
             let capability = try KernelCapabilities.current.requireRegistered(operation: operation)
             #expect(capability.operation == operation)
         }
+    }
+
+    @Test
+    func patternAndMirrorCapabilitiesAreExecutableAsPartial() throws {
+        let expected: [(operation: String, id: String)] = [
+            ("linearPattern", "MODEL-LINEARPATTERN-001"),
+            ("radialPattern", "MODEL-RADIALPATTERN-001"),
+            ("gridPattern", "MODEL-GRIDPATTERN-001"),
+            ("curveDrivenPattern", "MODEL-CURVEDRIVENPATTERN-001"),
+            ("mirror", "MODEL-MIRROR-001"),
+        ]
+
+        for entry in expected {
+            let capability = try partialCapability(operation: entry.operation)
+            #expect(capability.id == entry.id)
+            #expect(capability.status == .partial)
+        }
+    }
+
+    @Test
+    func joinBodiesCapabilityIsAvailableAsSupported() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "joinBodies"
+        )
+
+        #expect(capability.id == "MODEL-JOIN-001")
+        #expect(capability.status == .supported)
+        #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
+        #expect(capability.acceptedInputs.contains(
+            "twoOrMoreValidatedSolidBodies"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "fullIntersectionAndContainmentValidationWhenBoundsOverlap"
+        ))
     }
 
     @Test
@@ -99,13 +156,11 @@ struct KernelCapabilityContractTests {
     }
 
     @Test
-    func sketchCapabilityIsAvailableAsSupported() throws {
-        let capability = try KernelCapabilities.current.requireSupported(
-            operation: "sketch"
-        )
+    func sketchCapabilityIsExecutableAsPartial() throws {
+        let capability = try partialCapability(operation: "sketch")
 
         #expect(capability.id == "MODEL-SKETCH-001")
-        #expect(capability.status == .supported)
+        #expect(capability.status == .partial)
     }
 
     @Test
@@ -151,15 +206,21 @@ struct KernelCapabilityContractTests {
         )
 
         #expect(capability.id == "TOPO-BREP-001")
+        #expect(capability.status == .supported)
+        #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
         #expect(capability.exactOutputs.contains(
             "validatedBRepRetainedCertifiedVolume"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "totalCertifiedSurfaceFluxWithoutUnsupportedFallback"
         ))
     }
 
     @Test
     func sweepCapabilityBindsExactPointGuideVerticalSlice() throws {
-        let capability = try KernelCapabilities.current.requireRegistered(operation: "sweep")
+        let capability = try partialCapability(operation: "sweep")
 
+        #expect(capability.status == .partial)
         #expect(capability.acceptedInputs.contains(
             "zeroGuidesOrOneStraightPointGuideWithVerifiedSectionBoundaryContactAndPositiveSimilarityTransform"
         ))
@@ -172,6 +233,53 @@ struct KernelCapabilityContractTests {
         #expect(capability.testFixtures.contains(
             "ExactPointGuideSweepCommandParityTests"
         ))
+    }
+
+    @Test
+    func polySplineCapabilityIsExecutableAsPartial() throws {
+        let capability = try partialCapability(operation: "polySpline")
+
+        #expect(capability.id == "MODEL-POLYSPLINE-001")
+        #expect(capability.acceptedInputs.contains(
+            "intervalCertifiedRegularAndGloballyEmbeddedNaturalBicubicReconstruction"
+        ))
+        #expect(capability.exactOutputs.contains("exactNaturalBicubicPatchNetwork"))
+        #expect(capability.exactOutputs.contains("exactRationalRoundedCornerTrims"))
+        #expect(capability.failureCodes.contains(.singularGeometry))
+        #expect(capability.failureCodes.contains(.resourceLimitExceeded))
+    }
+
+    @Test
+    func curveEditCapabilityIsAvailableAsSupported() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "curveEdit"
+        )
+
+        #expect(capability.id == "MODEL-CURVEEDIT-001")
+        #expect(capability.status == .supported)
+        #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
+    }
+
+    @Test
+    func curveTrimCapabilityIsAvailableAsSupported() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "curveTrim"
+        )
+
+        #expect(capability.id == "MODEL-CURVETRIM-001")
+        #expect(capability.status == .supported)
+        #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
+    }
+
+    @Test
+    func bridgeCurveCapabilityIsAvailableAsSupported() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "bridgeCurve"
+        )
+
+        #expect(capability.id == "MODEL-BRIDGECURVE-001")
+        #expect(capability.status == .supported)
+        #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
     }
 
     @Test
@@ -512,13 +620,65 @@ struct KernelCapabilityContractTests {
 
     @Test
     func partialCapabilityIsExecutableButCannotBeUsedAsSupported() throws {
-        let capability = try KernelCapabilities.current.requireRegistered(operation: "sweep")
+        let partial = KernelCapability(
+            id: "PARTIAL-TEST",
+            operation: "partialOperation",
+            status: .partial,
+            topology: .solidBody,
+            acceptedInputs: ["partialInput"],
+            exactOutputs: ["partialOutput"],
+            failureCodes: [.unsupportedCapability],
+            tolerance: .standard,
+            publicAPIs: ["PartialOperation"],
+            testFixtures: ["PartialOperationTests"]
+        )
+        let catalog = KernelCapabilityCatalog(capabilities: [partial])
+
+        let capability = try catalog.requireRegistered(operation: partial.operation)
         #expect(capability.status == .partial)
-        #expect(try KernelCapabilities.current.requireExecutable(operation: "sweep")
-            == capability)
+        #expect(try catalog.requireExecutable(operation: partial.operation) == capability)
         #expect(throws: KernelError.self) {
-            _ = try KernelCapabilities.current.requireSupported(operation: "sweep")
+            _ = try catalog.requireSupported(operation: partial.operation)
         }
+    }
+
+    @Test
+    func supportedCapabilityCannotDeclareUnsupportedPublicInput() {
+        let inconsistent = KernelCapability(
+            id: "INCONSISTENT-TEST",
+            operation: "inconsistentOperation",
+            status: .supported,
+            topology: .solidBody,
+            acceptedInputs: ["publicInput"],
+            exactOutputs: ["exactOutput"],
+            failureCodes: [.invalidInput, .unsupportedCapability],
+            tolerance: .standard,
+            publicAPIs: ["InconsistentOperation"],
+            testFixtures: ["InconsistentOperationTests"]
+        )
+
+        #expect(throws: KernelError.self) {
+            try KernelCapabilityCatalog(capabilities: [inconsistent]).validate()
+        }
+    }
+
+    @Test
+    func exactAndUSDExchangeCapabilitiesAreExecutableAsPartial() throws {
+        let step = try partialCapability(operation: "STEP")
+        #expect(step.exactOutputs.contains("StandardOffsetSurfaceRoundTrip"))
+        #expect(step.testFixtures.contains(
+            "ExactSTEPExchangeTests.roundTripsGeneralOffsetSurfaceWithSameParameterChart"
+        ))
+
+        let iges = try partialCapability(operation: "IGES")
+        #expect(iges.exactOutputs.contains("Type140OffsetSurfaceRoundTrip"))
+        #expect(iges.testFixtures.contains(
+            "ExactIGESExchangeTests.roundTripsGeneralOffsetSurfaceWithType140Indicator"
+        ))
+
+        let usd = try partialCapability(operation: "USDMeshExchange")
+        #expect(usd.exactOutputs.contains("PureSwiftUSDAUSDCUSDZCodecs"))
+        #expect(usd.testFixtures.contains("USDExchangeResourceLimitTests"))
     }
 
     @Test
@@ -543,9 +703,8 @@ struct KernelCapabilityContractTests {
     }
 
     @Test
-    func boundedSurfaceOperationsAreSupportedWithinTheirExactInputContracts() throws {
+    func trimExtendAndMatchSurfaceCapabilitiesAreAvailableAsSupported() throws {
         for operation in [
-            "surfaceOffset",
             "surfaceTrim",
             "surfaceExtend",
             "surfaceMatch",
@@ -557,9 +716,9 @@ struct KernelCapabilityContractTests {
             #expect(capability.exactOutputs.contains(
                 "deterministicStableFaceResolutionWithoutImplicitFaceSelection"
             ))
-            #expect(capability.failureCodes.contains(.unsupportedCapability))
+            #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
         }
-        for operation in ["surfaceOffset", "surfaceTrim", "surfaceExtend"] {
+        for operation in ["surfaceTrim", "surfaceExtend"] {
             let capability = try KernelCapabilities.current.requireSupported(
                 operation: operation
             )
@@ -582,12 +741,33 @@ struct KernelCapabilityContractTests {
     }
 
     @Test
-    func boundedFaceLoopOffsetIsSupportedWithinItsExactInputContract() throws {
+    func surfaceOffsetCapabilityIsAvailableAsSupported() throws {
         let capability = try KernelCapabilities.current.requireSupported(
-            operation: "faceLoopOffset"
+            operation: "surfaceOffset"
         )
 
+        #expect(capability.id == "MODEL-SURFACEOFFSET-001")
         #expect(capability.status == .supported)
+        #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
+        #expect(capability.acceptedInputs.contains(
+            "everyValidatedSurface3DRepresentation"
+        ))
+        #expect(capability.acceptedInputs.contains(
+            "everyValidatedSurfaceParameterCurveRepresentation"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "sameParameterExactOffsetSurface"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "preservedOuterAndInnerLoopTopology"
+        ))
+    }
+
+    @Test
+    func boundedFaceLoopOffsetIsExecutableAsPartial() throws {
+        let capability = try partialCapability(operation: "faceLoopOffset")
+
+        #expect(capability.status == .partial)
         #expect(capability.acceptedInputs.contains(
             "oneStableSelectedStrictlyConvexLineOnlyPlanarFace"
         ))
@@ -597,12 +777,10 @@ struct KernelCapabilityContractTests {
     }
 
     @Test
-    func boundedEdgeOffsetIsSupportedWithinItsExactInputContract() throws {
-        let capability = try KernelCapabilities.current.requireSupported(
-            operation: "edgeOffset"
-        )
+    func boundedEdgeOffsetIsExecutableAsPartial() throws {
+        let capability = try partialCapability(operation: "edgeOffset")
 
-        #expect(capability.status == .supported)
+        #expect(capability.status == .partial)
         #expect(capability.topology == .solidBody)
         #expect(capability.acceptedInputs.contains(
             "optionalSymmetricSplitAcrossUniqueOppositeSupportFace"
@@ -613,12 +791,10 @@ struct KernelCapabilityContractTests {
     }
 
     @Test
-    func boundedFaceKnifeIsSupportedWithinItsExactInputContract() throws {
-        let capability = try KernelCapabilities.current.requireSupported(
-            operation: "faceKnife"
-        )
+    func boundedFaceKnifeIsExecutableAsPartial() throws {
+        let capability = try partialCapability(operation: "faceKnife")
 
-        #expect(capability.status == .supported)
+        #expect(capability.status == .partial)
         #expect(capability.acceptedInputs.contains(
             "oneCoplanarStrictlyInteriorSimpleLineKnifeLoopIncludingConcaveLoops"
         ))
@@ -631,7 +807,7 @@ struct KernelCapabilityContractTests {
     }
 
     @Test
-    func boundedFaceDeleteIsSupportedWithinItsExactInputContract() throws {
+    func faceDeleteCapabilityIsAvailableAsSupported() throws {
         let capability = try KernelCapabilities.current.requireSupported(
             operation: "faceDelete"
         )
@@ -645,16 +821,15 @@ struct KernelCapabilityContractTests {
             "deterministicEdgeConnectedShellPartition"
         ))
         #expect(capability.exactOutputs.contains("orphanFreeTopologyAndGeometry"))
-        #expect(capability.failureCodes.contains(.unsupportedCapability))
+        #expect(capability.failureCodes.contains(.invalidInput))
+        #expect(!capability.failureCodes.contains(.unsupportedCapability))
     }
 
     @Test
-    func boundedFaceDraftIsSupportedWithinItsExactInputContract() throws {
-        let capability = try KernelCapabilities.current.requireSupported(
-            operation: "faceDraft"
-        )
+    func boundedFaceDraftIsExecutableAsPartial() throws {
+        let capability = try partialCapability(operation: "faceDraft")
 
-        #expect(capability.status == .supported)
+        #expect(capability.status == .partial)
         #expect(capability.topology == .solidBody)
         #expect(capability.acceptedInputs.contains(
             "finiteNonzeroSignedIncrementalAngleBelowNinetyDegrees"
@@ -670,12 +845,10 @@ struct KernelCapabilityContractTests {
     }
 
     @Test
-    func boundedChamferIsSupportedWithinItsExactInputContract() throws {
-        let capability = try KernelCapabilities.current.requireSupported(
-            operation: "chamfer"
-        )
+    func boundedChamferIsExecutableAsPartial() throws {
+        let capability = try partialCapability(operation: "chamfer")
 
-        #expect(capability.status == .supported)
+        #expect(capability.status == .partial)
         #expect(capability.topology == .solidBody)
         #expect(capability.acceptedInputs.contains(
             "singleStraightEdgeOwnedByTargetBody"
@@ -690,12 +863,10 @@ struct KernelCapabilityContractTests {
     }
 
     @Test
-    func boundedEdgeBlendsAreSupportedWithinTheirExactInputContracts() throws {
+    func boundedEdgeBlendsAreExecutableAsPartial() throws {
         for operation in ["fillet", "g2Blend"] {
-            let capability = try KernelCapabilities.current.requireSupported(
-                operation: operation
-            )
-            #expect(capability.status == .supported)
+            let capability = try partialCapability(operation: operation)
+            #expect(capability.status == .partial)
             #expect(capability.topology == .solidBody)
             #expect(capability.acceptedInputs.contains(
                 "singleStraightConvexEdgeOwnedByTargetBody"
@@ -714,11 +885,9 @@ struct KernelCapabilityContractTests {
     }
 
     @Test
-    func boundedSetbackCornerIsSupportedWithinItsExactInputContract() throws {
-        let capability = try KernelCapabilities.current.requireSupported(
-            operation: "setbackCorner"
-        )
-        #expect(capability.status == .supported)
+    func boundedSetbackCornerIsExecutableAsPartial() throws {
+        let capability = try partialCapability(operation: "setbackCorner")
+        #expect(capability.status == .partial)
         #expect(capability.topology == .solidBody)
         #expect(capability.acceptedInputs.contains(
             "oneTargetBodyOwnedTrihedralConvexVertex"
@@ -737,11 +906,9 @@ struct KernelCapabilityContractTests {
     }
 
     @Test
-    func boundedShellIsSupportedWithinItsExactInputContract() throws {
-        let capability = try KernelCapabilities.current.requireSupported(
-            operation: "shell"
-        )
-        #expect(capability.status == .supported)
+    func boundedShellIsExecutableAsPartial() throws {
+        let capability = try partialCapability(operation: "shell")
+        #expect(capability.status == .partial)
         #expect(capability.topology == .solidBody)
         #expect(capability.acceptedInputs.contains(
             "oneTargetBodyOwnedRemovedPlanarFace"
@@ -761,11 +928,9 @@ struct KernelCapabilityContractTests {
     }
 
     @Test
-    func boundedDirectMovesAreSupportedWithinTheirExactInputContracts() throws {
-        let edgeMove = try KernelCapabilities.current.requireSupported(
-            operation: "edgeMove"
-        )
-        #expect(edgeMove.status == .supported)
+    func boundedDirectMovesAreExecutableAsPartial() throws {
+        let edgeMove = try partialCapability(operation: "edgeMove")
+        #expect(edgeMove.status == .partial)
         #expect(edgeMove.topology == .solidBody)
         #expect(edgeMove.acceptedInputs.contains("oneTargetBodyOwnedStraightEdge"))
         #expect(edgeMove.exactOutputs.contains("targetBodyScopedIdentityReplacement"))
@@ -775,10 +940,8 @@ struct KernelCapabilityContractTests {
         #expect(edgeMove.failureCodes.contains(.unsupportedCapability))
         #expect(edgeMove.failureCodes.contains(.topologyFailure))
 
-        let vertexMove = try KernelCapabilities.current.requireSupported(
-            operation: "vertexMove"
-        )
-        #expect(vertexMove.status == .supported)
+        let vertexMove = try partialCapability(operation: "vertexMove")
+        #expect(vertexMove.status == .partial)
         #expect(vertexMove.topology == .solidBody)
         #expect(vertexMove.acceptedInputs.contains("oneTargetBodyOwnedVertex"))
         #expect(vertexMove.exactOutputs.contains("targetBodyScopedIdentityReplacement"))
@@ -790,11 +953,9 @@ struct KernelCapabilityContractTests {
     }
 
     @Test
-    func boundedFaceDirectEditsAreSupportedWithinTheirExactInputContracts() throws {
-        let faceOffset = try KernelCapabilities.current.requireSupported(
-            operation: "faceOffset"
-        )
-        #expect(faceOffset.status == .supported)
+    func boundedFaceDirectEditsAreExecutableAsPartial() throws {
+        let faceOffset = try partialCapability(operation: "faceOffset")
+        #expect(faceOffset.status == .partial)
         #expect(faceOffset.topology == .solidBody)
         #expect(faceOffset.acceptedInputs.contains("oneTargetBodyOwnedPlanarFace"))
         #expect(faceOffset.exactOutputs.contains("targetBodyScopedIdentityReplacement"))
@@ -804,10 +965,8 @@ struct KernelCapabilityContractTests {
         #expect(faceOffset.failureCodes.contains(.unsupportedCapability))
         #expect(faceOffset.failureCodes.contains(.topologyFailure))
 
-        let faceMove = try KernelCapabilities.current.requireSupported(
-            operation: "faceMove"
-        )
-        #expect(faceMove.status == .supported)
+        let faceMove = try partialCapability(operation: "faceMove")
+        #expect(faceMove.status == .partial)
         #expect(faceMove.topology == .solidBody)
         #expect(faceMove.acceptedInputs.contains("oneTargetBodyOwnedPlanarFace"))
         #expect(faceMove.exactOutputs.contains("targetBodyScopedIdentityReplacement"))
@@ -816,5 +975,17 @@ struct KernelCapabilityContractTests {
         #expect(faceMove.failureCodes.contains(.missingReference))
         #expect(faceMove.failureCodes.contains(.unsupportedCapability))
         #expect(faceMove.failureCodes.contains(.topologyFailure))
+    }
+
+    private func partialCapability(operation: String) throws -> KernelCapability {
+        let capability = try KernelCapabilities.current.requireExecutable(
+            operation: operation
+        )
+        #expect(capability.status == .partial)
+        #expect(capability.failureCodes.contains(.unsupportedCapability))
+        #expect(throws: KernelError.self) {
+            _ = try KernelCapabilities.current.requireSupported(operation: operation)
+        }
+        return capability
     }
 }

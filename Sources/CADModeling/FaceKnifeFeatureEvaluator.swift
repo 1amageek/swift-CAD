@@ -51,7 +51,7 @@ public struct FaceKnifeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             try faceKnife.validate()
         }
         try FeatureEvaluationBoundary.validateExactInput(
-            context.brep,
+            context,
             featureID: feature.id,
             tolerance: context.tolerance
         )

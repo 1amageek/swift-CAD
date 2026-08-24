@@ -29,7 +29,7 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
             tolerance: context.tolerance
         )
         return try build(
-            sectionSpans: spanBuilder.profileSpans(from: profile),
+            sectionSpanLoops: spanBuilder.profileLoopSpans(from: profile),
             sectionIsClosed: true,
             profilePlane: profile.plane,
             pathSegments: pathSegments,
@@ -60,7 +60,7 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
             tolerance: context.tolerance
         )
         return try build(
-            sectionSpans: spanBuilder.sectionSpans(from: section),
+            sectionSpanLoops: [spanBuilder.sectionSpans(from: section)],
             sectionIsClosed: section.isClosed,
             profilePlane: profilePlane,
             pathSegments: pathSegments,
@@ -72,7 +72,7 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
     }
 
     private func build(
-        sectionSpans: [ExactBSplineCurveSpan],
+        sectionSpanLoops: [[ExactBSplineCurveSpan]],
         sectionIsClosed: Bool,
         profilePlane: SketchPlane,
         pathSegments: [EvaluatedCurvePathSegment],
@@ -88,7 +88,7 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
         let request = try ExactLinearSectionSweepFacePatchBuilder(
             tolerance: context.tolerance
         ).request(
-            profileSpans: sectionSpans,
+            profileSpanLoops: sectionSpanLoops,
             pathSpans: pathSpans,
             profilePlane: profilePlane,
             sectionIsClosed: sectionIsClosed,
@@ -106,7 +106,7 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
         ])
         let subshapes = try semanticSubshapes(
             sewn: sewn,
-            profileSpanCount: sectionSpans.count,
+            profileSpanCounts: sectionSpanLoops.map(\.count),
             pathSpanCount: pathSpans.count,
             includesCaps: resultKind == .solid
         )
@@ -122,7 +122,7 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
 
     private func semanticSubshapes(
         sewn: BRepSewingResult,
-        profileSpanCount: Int,
+        profileSpanCounts: [Int],
         pathSpanCount: Int,
         includesCaps: Bool
     ) throws -> [SubshapeID: TopologyReference] {
@@ -141,15 +141,20 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
         }
         var sideOrdinal = 0
         for pathIndex in 0..<pathSpanCount {
-            for profileIndex in 0..<profileSpanCount {
-                result[subshapeID(
-                    role: .sideFace,
-                    ordinal: sideOrdinal
-                )] = try reference(
-                    .face("sweep:side:path:\(pathIndex):profile:\(profileIndex)"),
-                    in: sewn
-                )
-                sideOrdinal += 1
+            for (loopIndex, profileSpanCount) in profileSpanCounts.enumerated() {
+                for profileIndex in 0..<profileSpanCount {
+                    let stableID = loopIndex == 0
+                        ? "sweep:side:path:\(pathIndex):profile:\(profileIndex)"
+                        : "sweep:side:path:\(pathIndex):inner:\(loopIndex - 1):profile:\(profileIndex)"
+                    result[subshapeID(
+                        role: .sideFace,
+                        ordinal: sideOrdinal
+                    )] = try reference(
+                        .face(stableID),
+                        in: sewn
+                    )
+                    sideOrdinal += 1
+                }
             }
         }
         for (ordinal, edgeID) in sewn.brep.edges.keys.sorted(by: {

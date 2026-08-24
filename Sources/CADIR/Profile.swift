@@ -32,10 +32,27 @@ public struct ProfileReference: Codable, Hashable, Sendable {
 public struct Profile: Sendable, Hashable {
     public var sourceFeatureID: FeatureID
     public var plane: SketchPlane
-    /// Tessellated boundary samples for area, preview, and fallback consumers.
-    public var vertices: [Point3D]
-    /// Exact ordered boundary segments. Consumers that create BRep topology should prefer this over vertices.
-    public var boundarySegments: [ProfileBoundarySegment]
+    /// The material region's outer boundary, oriented counterclockwise on the sketch plane.
+    public var outerLoop: ProfileLoop
+    /// Hole boundaries, oriented clockwise on the sketch plane.
+    public var innerLoops: [ProfileLoop]
+
+    /// All exact region boundaries in topological order: outer first, then holes.
+    public var boundaryLoops: [ProfileLoop] {
+        [outerLoop] + innerLoops
+    }
+
+    /// Compatibility view of the outer loop's tessellated samples.
+    public var vertices: [Point3D] {
+        get { outerLoop.vertices }
+        set { outerLoop.vertices = newValue }
+    }
+
+    /// Compatibility view of the outer loop's exact boundary segments.
+    public var boundarySegments: [ProfileBoundarySegment] {
+        get { outerLoop.boundarySegments }
+        set { outerLoop.boundarySegments = newValue }
+    }
 
     public init(
         sourceFeatureID: FeatureID,
@@ -45,21 +62,23 @@ public struct Profile: Sendable, Hashable {
     ) {
         self.sourceFeatureID = sourceFeatureID
         self.plane = plane
-        self.vertices = vertices
-        self.boundarySegments = boundarySegments ?? Self.lineBoundarySegments(for: vertices)
+        self.outerLoop = ProfileLoop(
+            vertices: vertices,
+            boundarySegments: boundarySegments
+        )
+        self.innerLoops = []
     }
 
-    private static func lineBoundarySegments(for vertices: [Point3D]) -> [ProfileBoundarySegment] {
-        guard vertices.count >= 2 else {
-            return []
-        }
-        return vertices.indices.map { index in
-            let nextIndex = (index + 1) % vertices.count
-            return .line(ProfileLineSegment(
-                start: vertices[index],
-                end: vertices[nextIndex]
-            ))
-        }
+    public init(
+        sourceFeatureID: FeatureID,
+        plane: SketchPlane,
+        outerLoop: ProfileLoop,
+        innerLoops: [ProfileLoop] = []
+    ) {
+        self.sourceFeatureID = sourceFeatureID
+        self.plane = plane
+        self.outerLoop = outerLoop
+        self.innerLoops = innerLoops
     }
 }
 

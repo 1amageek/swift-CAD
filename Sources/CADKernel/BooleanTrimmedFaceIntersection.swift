@@ -17,13 +17,11 @@ public struct BooleanTrimmedFaceIntersection: Codable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws {
         try tolerance.validate()
-        // Endpoints snap to canonical junction points on source boundary
-        // geometry, sitting up to eight tolerances from the exact curve.
         guard startParameter.isFinite,
               endParameter.isFinite,
               endParameter - startParameter > tolerance.angle,
-              start.residual <= tolerance.distance * 8.0,
-              end.residual <= tolerance.distance * 8.0 else {
+              start.residual <= tolerance.distance,
+              end.residual <= tolerance.distance else {
             throw KernelError(
                 phase: .topology,
                 code: .invalidInput,
@@ -38,7 +36,7 @@ public struct BooleanTrimmedFaceIntersection: Codable, Hashable, Sendable {
             (exactEnd - end.point).length,
             intersection.maximumResidual
         )
-        guard residual <= tolerance.distance * 8.0 else {
+        guard residual <= tolerance.distance else {
             throw KernelError(
                 phase: .topology,
                 code: .topologyFailure,

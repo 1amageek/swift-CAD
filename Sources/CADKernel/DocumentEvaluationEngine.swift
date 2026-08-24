@@ -165,11 +165,10 @@ struct DocumentEvaluationEngine {
 
         metrics.invalidatedFeatureCount = invalidatedFeatureIDs.count
         metrics.reusedFeatureCount = document.designGraph.order.count - metrics.rebuiltFeatureCount
-        let brep = brepBuffer.finalizedModel()
-        let validatedBRep = try ValidatedBRepModel(
-            composingValidatedFeatureResults: brep,
+        let validatedBRep = try brepBuffer.finalizedValidatedModel(
             tolerance: tolerance
         )
+        let brep = validatedBRep.model
         let meshResult: MeshEvaluationResult
         switch artifactPolicy {
         case .deferred:
@@ -245,6 +244,7 @@ struct DocumentEvaluationEngine {
                 curves: curves
             )
         }
+        evaluatedDocument.validatedBRep = validatedBRep
         try evaluatedDocument.validateLineage()
         try evaluatedDocument.validateCurveOutputs(tolerance: tolerance)
         return evaluatedDocument
@@ -341,12 +341,11 @@ struct DocumentEvaluationEngine {
                 )
                 let context = EvaluationContext(
                     parameters: parameters,
-                    brep: scope.brep,
+                    validatedBRep: scope.validatedBRep,
                     profiles: profiles,
                     curves: curves,
                     subshapes: SubshapeIndex(scope.subshapes),
-                    lineage: lineage.materializedDictionary(),
-                    tolerance: tolerance
+                    lineage: lineage.materializedDictionary()
                 )
                 let evaluation: ValidatedFeatureEvaluation
                 if let validatedEvaluator = featureEvaluator as? any ValidatedFeatureEvaluating {
@@ -372,7 +371,11 @@ struct DocumentEvaluationEngine {
                 }
                 if incrementalEvaluatorIdentity != nil {
                     brepDelta = BRepModelDelta(before: scope.brep, after: validatedResult.model)
-                    try brepBuffer.apply(brepDelta)
+                    try brepBuffer.apply(
+                        brepDelta,
+                        replacingBodyIDs: scope.bodyIDs,
+                        with: validatedResult
+                    )
                     affectedBodyIDs.formUnion(scope.bodyIDs)
                     affectedBodyIDs.formUnion(brepDelta.changedBodyIDs)
                     changedBodyIDs.formUnion(affectedBodyIDs)
@@ -383,7 +386,7 @@ struct DocumentEvaluationEngine {
                     )
                     metrics.topologyMutationCount += brepDelta.changeCount
                 } else {
-                    brepBuffer.replace(with: validatedResult.model)
+                    brepBuffer.replace(with: validatedResult)
                 }
                 let scopedCandidates = try applyingSubshapeMutation(
                     result,
@@ -473,7 +476,20 @@ struct DocumentEvaluationEngine {
                 !currentFeatureIDs.contains(featureID) || invalidatedFeatureIDs.contains(featureID)
             }
         }
-        let brepBuffer = BRepEditBuffer(model: previous.brep)
+        let previousValidatedBRep: ValidatedBRepModel
+        if let certificate = previous.validatedBRep,
+           certificate.model == previous.brep,
+           certificate.tolerance == tolerance,
+           certificate.validationLevel != .modeling {
+            previousValidatedBRep = certificate
+        } else {
+            previousValidatedBRep = try ValidatedBRepModel(
+                previous.brep,
+                tolerance: tolerance,
+                validationLevel: .exact
+            )
+        }
+        let brepBuffer = BRepEditBuffer(validatedModel: previousValidatedBRep)
         var subshapes = PersistentMap(previous.subshapes.entries)
         var rollbackMutationCount = 0
         var affectedBodyIDs = Set<BodyID>()
@@ -489,7 +505,10 @@ struct DocumentEvaluationEngine {
                 in: subshapes,
                 tableName: "subshapes"
             )
-            try brepBuffer.apply(brepDelta)
+            try brepBuffer.apply(
+                brepDelta,
+                invalidatingBodyIDs: entry.affectedBodyIDs
+            )
             try subshapesDelta.apply(
                 to: &subshapes,
                 tableName: "subshapes"
@@ -608,8 +627,12 @@ struct DocumentEvaluationEngine {
                 bodyIDs: bodyIDsToTessellate,
                 from: brep
             )
+            let certificates = Dictionary(uniqueKeysWithValues:
+                bodyIDsToTessellate.map { ($0, validatedBRep) }
+            )
             let validatedChangedModel = try ValidatedBRepModel(
-                composingValidatedFeatureResults: changedModel,
+                composingValidatedBodies: certificates,
+                as: changedModel,
                 tolerance: tolerance
             )
             let changedMeshes = try tessellator.tessellate(
@@ -696,17 +719,26 @@ struct DocumentEvaluationEngine {
         subshapes: PersistentMap<SubshapeID, TopologyReference>
     ) throws -> BRepEvaluationScope {
         guard incrementalEvaluatorIdentity != nil else {
+            let bodyIDs = Set(brepBuffer.fullModel().bodies.keys)
+            let validatedBRep = try brepBuffer.validatedScopedModel(
+                bodyIDs: bodyIDs,
+                tolerance: tolerance
+            )
             return BRepEvaluationScope(
-                brep: brepBuffer.fullModel(),
+                validatedBRep: validatedBRep,
                 subshapes: subshapes.materializedDictionary(),
-                bodyIDs: Set(brepBuffer.fullModel().bodies.keys),
+                bodyIDs: bodyIDs,
                 bodyCount: 0
             )
         }
         let bodyIDs = try inputBodyIDs(for: feature, subshapes: subshapes)
-        let brep = try brepBuffer.scopedModel(bodyIDs: bodyIDs)
+        let validatedBRep = try brepBuffer.validatedScopedModel(
+            bodyIDs: bodyIDs,
+            tolerance: tolerance
+        )
+        let brep = validatedBRep.model
         return BRepEvaluationScope(
-            brep: brep,
+            validatedBRep: validatedBRep,
             subshapes: scopedSubshapes(from: subshapes, in: brep),
             bodyIDs: bodyIDs,
             bodyCount: bodyIDs.count
@@ -818,7 +850,11 @@ struct DocumentEvaluationEngine {
 }
 
 private struct BRepEvaluationScope {
-    var brep: BRepModel
+    var validatedBRep: ValidatedBRepModel
+
+    var brep: BRepModel {
+        validatedBRep.model
+    }
     var subshapes: [SubshapeID: TopologyReference]
     var bodyIDs: Set<BodyID>
     var bodyCount: Int

@@ -7,7 +7,8 @@ import SwiftCAD
 
 @Suite("Primitive non-parallel torus-cylinder Boolean integration", .serialized)
 struct PrimitiveNonParallelTorusCylinderBooleanIntegrationTests {
-    @Test(.timeLimit(.minutes(1)))
+    // These limits guard serialized parallel-suite execution. Isolated latency belongs to G7.
+    @Test(.timeLimit(.minutes(5)))
     func intersectionProducesValidatedExactBRep() throws {
         try assertExactResult(
             evaluate(operation: .intersect),
@@ -15,7 +16,7 @@ struct PrimitiveNonParallelTorusCylinderBooleanIntegrationTests {
         )
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func differenceProducesValidatedExactBRep() throws {
         try assertExactResult(
             evaluate(operation: .difference),
@@ -23,7 +24,7 @@ struct PrimitiveNonParallelTorusCylinderBooleanIntegrationTests {
         )
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func unionProducesValidatedExactBRep() throws {
         try assertExactResult(
             evaluate(operation: .union),

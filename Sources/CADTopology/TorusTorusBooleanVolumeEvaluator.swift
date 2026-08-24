@@ -115,15 +115,6 @@ struct TorusTorusBooleanVolumeEvaluator {
             in: model,
             tolerance: tolerance
         )
-        guard componentCount == 1 || componentCount == 2 else {
-            throw KernelError(
-                phase: .topology,
-                code: .unsupportedCapability,
-                residual: Double(componentCount),
-                tolerance: tolerance,
-                message: "Four-branch offset torus-torus volume requires one symmetric component or one mirrored component pair."
-            )
-        }
         return totalRegionVolume / Double(componentCount)
     }
 
@@ -379,15 +370,7 @@ struct TorusTorusBooleanVolumeEvaluator {
     ) throws -> Double {
         let lower = max(-first.minorRadius, axialOffset - second.minorRadius)
         let upper = min(first.minorRadius, axialOffset + second.minorRadius)
-        guard upper - lower > tolerance.distance else {
-            throw KernelError(
-                phase: .topology,
-                code: .unsupportedCapability,
-                residual: max(upper - lower, 0.0),
-                tolerance: tolerance,
-                message: "Offset torus-torus volume requires a positive axial overlap."
-            )
-        }
+        guard upper - lower > tolerance.distance else { return 0.0 }
         var breakpoints = [lower, upper]
         for candidate in [0.0, axialOffset] where
             candidate > lower + tolerance.distance

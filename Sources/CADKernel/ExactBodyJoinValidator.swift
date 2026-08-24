@@ -7,6 +7,12 @@ import CADTopology
 /// Validates the semantic precondition of Join: every material region remains
 /// disconnected from every other material region.
 package struct ExactBodyJoinValidator: BodyJoinValidating {
+    private struct BoundedBody: Sendable {
+        let ordinal: Int
+        let bodyID: BodyID
+        let bounds: BoundingBox3D
+    }
+
     private let pointClassifier: any SolidPointClassifying
 
     package init(
@@ -20,6 +26,24 @@ package struct ExactBodyJoinValidator: BodyJoinValidating {
         in model: BRepModel,
         tolerance: ModelingTolerance
     ) throws {
+        let interactions = try materialInteractions(
+            bodyIDs: bodyIDs,
+            in: model,
+            tolerance: tolerance
+        )
+        guard interactions.isEmpty else {
+            throw joinError(
+                tolerance: tolerance,
+                "Join requires pairwise disjoint material regions and boundaries."
+            )
+        }
+    }
+
+    package func materialInteractions(
+        bodyIDs: [BodyID],
+        in model: BRepModel,
+        tolerance: ModelingTolerance
+    ) throws -> [BodyMaterialInteraction] {
         try tolerance.validate()
         guard bodyIDs.count >= 2, Set(bodyIDs).count == bodyIDs.count else {
             throw joinError(
@@ -38,44 +62,99 @@ package struct ExactBodyJoinValidator: BodyJoinValidating {
                 )
             }
         }
-        for firstIndex in bodyIDs.indices {
-            for secondIndex in bodyIDs.indices where secondIndex > firstIndex {
+        let boundedBodies = try boundedBodies(
+            bodyIDs,
+            in: model,
+            tolerance: tolerance
+        )
+        let candidates = candidatePairs(
+            in: boundedBodies,
+            tolerance: tolerance
+        )
+        guard candidates.isEmpty == false else {
+            return []
+        }
+        let classificationSessions = try SolidPointClassificationSessionSet(
+            bodyIDs: bodyIDs,
+            pointClassifier: pointClassifier,
+            model: model,
+            tolerance: tolerance
+        )
+        var interactions: [BodyMaterialInteraction] = []
+        for (first, second) in candidates {
+            do {
                 try validatePair(
-                    bodyIDs[firstIndex],
-                    bodyIDs[secondIndex],
+                    first.bodyID,
+                    second.bodyID,
+                    in: model,
+                    classificationSessions: classificationSessions,
+                    tolerance: tolerance
+                )
+            } catch let error as KernelError where error.code == .invalidInput {
+                interactions.append(BodyMaterialInteraction(
+                    firstBodyID: first.bodyID,
+                    secondBodyID: second.bodyID
+                ))
+            }
+        }
+        return interactions
+    }
+
+    private func boundedBodies(
+        _ bodyIDs: [BodyID],
+        in model: BRepModel,
+        tolerance: ModelingTolerance
+    ) throws -> [BoundedBody] {
+        let boundsBuilder = BRepBodyBoundingBoxBuilder()
+        return try bodyIDs.enumerated().map { ordinal, bodyID in
+            BoundedBody(
+                ordinal: ordinal,
+                bodyID: bodyID,
+                bounds: try boundsBuilder.bounds(
+                    for: bodyID,
                     in: model,
                     tolerance: tolerance
                 )
+            )
+        }
+    }
+
+    private func candidatePairs(
+        in boundedBodies: [BoundedBody],
+        tolerance: ModelingTolerance
+    ) -> [(BoundedBody, BoundedBody)] {
+        let sorted = boundedBodies.sorted { lhs, rhs in
+            if lhs.bounds.minimum.x != rhs.bounds.minimum.x {
+                return lhs.bounds.minimum.x < rhs.bounds.minimum.x
+            }
+            return lhs.ordinal < rhs.ordinal
+        }
+        var result: [(BoundedBody, BoundedBody)] = []
+        for firstIndex in sorted.indices {
+            let first = sorted[firstIndex]
+            for second in sorted[sorted.index(after: firstIndex)...] {
+                if second.bounds.minimum.x - tolerance.distance
+                    > first.bounds.maximum.x {
+                    break
+                }
+                if first.bounds.intersects(
+                    second.bounds,
+                    tolerance: tolerance.distance
+                ) {
+                    result.append((first, second))
+                }
             }
         }
+        return result
     }
 
     private func validatePair(
         _ firstBodyID: BodyID,
         _ secondBodyID: BodyID,
         in model: BRepModel,
+        classificationSessions: SolidPointClassificationSessionSet,
         tolerance: ModelingTolerance
     ) throws {
-        let boundsBuilder = BRepBodyBoundingBoxBuilder()
-        let firstBounds = try boundsBuilder.bounds(
-            for: firstBodyID,
-            in: model,
-            tolerance: tolerance
-        )
-        let secondBounds = try boundsBuilder.bounds(
-            for: secondBodyID,
-            in: model,
-            tolerance: tolerance
-        )
-        guard firstBounds.intersects(secondBounds, tolerance: tolerance.distance) else {
-            return
-        }
-        let classificationSessions = try SolidPointClassificationSessionSet(
-            bodyIDs: [firstBodyID, secondBodyID],
-            pointClassifier: pointClassifier,
-            model: model,
-            tolerance: tolerance
-        )
         let pipeline = BooleanPipeline(evaluator: ExactBRepBooleanEvaluator())
         let intersectionGraph = try pipeline.completeIntersectionGraph(
             targetBodyIDs: [firstBodyID],

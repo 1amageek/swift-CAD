@@ -51,7 +51,7 @@ public struct EdgeOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             try edgeOffset.validate()
         }
         try FeatureEvaluationBoundary.validateExactInput(
-            context.brep,
+            context,
             featureID: feature.id,
             tolerance: context.tolerance
         )

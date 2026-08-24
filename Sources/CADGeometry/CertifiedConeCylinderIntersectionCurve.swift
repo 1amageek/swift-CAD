@@ -17,6 +17,13 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         public let secondDerivative: Vector3D
     }
 
+    private struct ThirdOrderDifferentialGeometry {
+        let position: Point3D
+        let firstDerivative: Vector3D
+        let secondDerivative: Vector3D
+        let thirdDerivative: Vector3D
+    }
+
     private struct Cone {
         let apex: Point3D
         let axis: Vector3D
@@ -96,6 +103,15 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 abs(sine),
                 (32.0 * abs(cosineDouble)).nextUp,
                 (32.0 * abs(sineDouble)).nextUp,
+            ].reduce(0.0) { ($0 + $1).nextUp }
+        }
+
+        var sixthDerivativeAbsoluteUpperBound: Double {
+            [
+                abs(cosine),
+                abs(sine),
+                (64.0 * abs(cosineDouble)).nextUp,
+                (64.0 * abs(sineDouble)).nextUp,
             ].reduce(0.0) { ($0 + $1).nextUp }
         }
 
@@ -202,7 +218,7 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             value: Double,
             first: Double,
             second: Double,
-            third: Double = 0.0
+            third: Double
         ) {
             self.value = value
             self.first = first
@@ -211,14 +227,20 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         }
 
         static func constant(_ value: Double) -> ScalarDifferential {
-            ScalarDifferential(value: value, first: 0.0, second: 0.0)
+            ScalarDifferential(
+                value: value,
+                first: 0.0,
+                second: 0.0,
+                third: 0.0
+            )
         }
 
         func adding(_ other: ScalarDifferential) -> ScalarDifferential {
             ScalarDifferential(
                 value: value + other.value,
                 first: first + other.first,
-                second: second + other.second
+                second: second + other.second,
+                third: third + other.third
             )
         }
 
@@ -226,7 +248,8 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             ScalarDifferential(
                 value: value - other.value,
                 first: first - other.first,
-                second: second - other.second
+                second: second - other.second,
+                third: third - other.third
             )
         }
 
@@ -234,7 +257,8 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             ScalarDifferential(
                 value: value * scale,
                 first: first * scale,
-                second: second * scale
+                second: second * scale,
+                third: third * scale
             )
         }
     }
@@ -610,6 +634,31 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
+        let geometry = try derivativesThroughThirdOrder(
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        )
+        return DifferentialGeometry(
+            position: geometry.position,
+            firstDerivative: geometry.firstDerivative,
+            secondDerivative: geometry.secondDerivative
+        )
+    }
+
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        try derivativesThroughThirdOrder(
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        ).thirdDerivative
+    }
+
+    private func derivativesThroughThirdOrder(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> ThirdOrderDifferentialGeometry {
         try tolerance.validate()
         guard fraction.isFinite,
               fraction >= -tolerance.relative,
@@ -637,12 +686,14 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 ScalarDifferential(
                     value: -baseQuadratic.value,
                     first: -baseQuadratic.first,
-                    second: -baseQuadratic.second
+                    second: -baseQuadratic.second,
+                    third: -baseQuadratic.third
                 ),
                 by: ScalarDifferential(
                     value: 2.0 * halfLinear.value,
                     first: 2.0 * halfLinear.first,
-                    second: 2.0 * halfLinear.second
+                    second: 2.0 * halfLinear.second,
+                    third: 2.0 * halfLinear.third
                 ),
                 tolerance: tolerance
             )
@@ -661,7 +712,8 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             height = ScalarDifferential(
                 value: (-halfLinear.value + root.value) * inverseQuadratic,
                 first: (-halfLinear.first + root.first) * inverseQuadratic,
-                second: (-halfLinear.second + root.second) * inverseQuadratic
+                second: (-halfLinear.second + root.second) * inverseQuadratic,
+                third: (-halfLinear.third + root.third) * inverseQuadratic
             )
         }
         let geometry = try configuration.cylinder.surface.differentialGeometry(
@@ -679,6 +731,29 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 * (height.first * height.first)
             + geometry.tangentU * angle.second
             + geometry.tangentV * height.second
+        let thirdSurface = try configuration.cylinder.surface
+            .parameterDerivativesThroughThirdOrder(
+                atU: angle.value,
+                v: height.value,
+                tolerance: tolerance
+            )
+        let thirdDerivative = thirdSurface.thirdDerivativeUUU
+                * (angle.first * angle.first * angle.first)
+            + thirdSurface.thirdDerivativeUUV
+                * (3.0 * angle.first * angle.first * height.first)
+            + thirdSurface.thirdDerivativeUVV
+                * (3.0 * angle.first * height.first * height.first)
+            + thirdSurface.thirdDerivativeVVV
+                * (height.first * height.first * height.first)
+            + thirdSurface.secondDerivativeUU
+                * (3.0 * angle.first * angle.second)
+            + thirdSurface.secondDerivativeUV
+                * (3.0 * (angle.second * height.first
+                    + angle.first * height.second))
+            + thirdSurface.secondDerivativeVV
+                * (3.0 * height.first * height.second)
+            + thirdSurface.tangentU * angle.third
+            + thirdSurface.tangentV * height.third
         let apexResidual = (geometry.position - configuration.cone.apex).length
         guard componentKind == .apexLowerNodeInterval
                 || componentKind == .apexUpperNodeInterval
@@ -700,10 +775,11 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 message: "A certified cone-cylinder component has a singular differential."
             )
         }
-        return DifferentialGeometry(
+        return ThirdOrderDifferentialGeometry(
             position: geometry.position,
             firstDerivative: firstDerivative,
-            secondDerivative: secondDerivative
+            secondDerivative: secondDerivative,
+            thirdDerivative: thirdDerivative
         )
     }
 
@@ -850,6 +926,9 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         let discriminantSecond =
             configuration.discriminantPolynomial
                 .secondDerivativeAbsoluteUpperBound
+        let discriminantThird =
+            configuration.discriminantPolynomial
+                .thirdDerivativeAbsoluteUpperBound
         let rootFirst = try Self.upperQuotient(
             discriminantFirst,
             (2.0 * rootLower).nextDown,
@@ -870,6 +949,50 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                     tolerance: tolerance
                 ),
                 (4.0 * rootCubedLower).nextDown,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let rootFifthLower = (
+            rootCubedLower * rootSquaredLower
+        ).nextDown
+        let rootThird = try Self.upperSum(
+            Self.upperQuotient(
+                discriminantThird,
+                (2.0 * rootLower).nextDown,
+                tolerance: tolerance
+            ),
+            Self.upperSum(
+                Self.upperQuotient(
+                    Self.upperProduct(
+                        3.0,
+                        Self.upperProduct(
+                            discriminantFirst,
+                            discriminantSecond,
+                            tolerance: tolerance
+                        ),
+                        tolerance: tolerance
+                    ),
+                    (4.0 * rootCubedLower).nextDown,
+                    tolerance: tolerance
+                ),
+                Self.upperQuotient(
+                    Self.upperProduct(
+                        3.0,
+                        Self.upperProduct(
+                            discriminantFirst,
+                            Self.upperProduct(
+                                discriminantFirst,
+                                discriminantFirst,
+                                tolerance: tolerance
+                            ),
+                            tolerance: tolerance
+                        ),
+                        tolerance: tolerance
+                    ),
+                    (8.0 * rootFifthLower).nextDown,
+                    tolerance: tolerance
+                ),
                 tolerance: tolerance
             ),
             tolerance: tolerance
@@ -908,6 +1031,16 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             denominatorLower,
             tolerance: tolerance
         )
+        let heightThird = try Self.upperQuotient(
+            Self.upperSum(
+                configuration.halfLinearPolynomial
+                    .thirdDerivativeAbsoluteUpperBound,
+                rootThird,
+                tolerance: tolerance
+            ),
+            denominatorLower,
+            tolerance: tolerance
+        )
 
         let angularFirst = hypot(
             configuration.cylinder.radius,
@@ -917,9 +1050,18 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             configuration.cylinder.radius,
             heightSecond
         ).nextUp
+        let angularThird = hypot(
+            configuration.cylinder.radius,
+            heightThird
+        ).nextUp
         let period = (2.0 * Double.pi).nextUp
         let periodSquared = try Self.upperProduct(
             period,
+            period,
+            tolerance: tolerance
+        )
+        let periodCubed = try Self.upperProduct(
+            periodSquared,
             period,
             tolerance: tolerance
         )
@@ -932,6 +1074,11 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             second: try Self.upperProduct(
                 periodSquared,
                 angularSecond,
+                tolerance: tolerance
+            ),
+            third: try Self.upperProduct(
+                periodCubed,
+                angularThird,
                 tolerance: tolerance
             )
         )
@@ -984,6 +1131,8 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             .firstDerivativeAbsoluteUpperBound.nextUp
         let numeratorSecond = numerator
             .secondDerivativeAbsoluteUpperBound.nextUp
+        let numeratorThird = numerator
+            .thirdDerivativeAbsoluteUpperBound.nextUp
         let denominatorFirst = try Self.upperProduct(
             2.0,
             halfLinear.firstDerivativeAbsoluteUpperBound,
@@ -994,11 +1143,19 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             halfLinear.secondDerivativeAbsoluteUpperBound,
             tolerance: tolerance
         )
+        let denominatorThird = try Self.upperProduct(
+            2.0,
+            halfLinear.thirdDerivativeAbsoluteUpperBound,
+            tolerance: tolerance
+        )
         let denominatorSquaredLower = (
             denominatorLower * denominatorLower
         ).nextDown
         let denominatorCubedLower = (
             denominatorSquaredLower * denominatorLower
+        ).nextDown
+        let denominatorFourthLower = (
+            denominatorCubedLower * denominatorLower
         ).nextDown
         let heightFirst = try Self.upperSum(
             Self.upperQuotient(
@@ -1070,10 +1227,115 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             ),
             tolerance: tolerance
         )
+        let inverseFirst = try Self.upperQuotient(
+            denominatorFirst,
+            denominatorSquaredLower,
+            tolerance: tolerance
+        )
+        let inverseSecond = try Self.upperSum(
+            Self.upperQuotient(
+                denominatorSecond,
+                denominatorSquaredLower,
+                tolerance: tolerance
+            ),
+            Self.upperQuotient(
+                Self.upperProduct(
+                    2.0,
+                    Self.upperProduct(
+                        denominatorFirst,
+                        denominatorFirst,
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                ),
+                denominatorCubedLower,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let inverseThird = try Self.upperSum(
+            Self.upperQuotient(
+                denominatorThird,
+                denominatorSquaredLower,
+                tolerance: tolerance
+            ),
+            Self.upperSum(
+                Self.upperQuotient(
+                    Self.upperProduct(
+                        6.0,
+                        Self.upperProduct(
+                            denominatorFirst,
+                            denominatorSecond,
+                            tolerance: tolerance
+                        ),
+                        tolerance: tolerance
+                    ),
+                    denominatorCubedLower,
+                    tolerance: tolerance
+                ),
+                Self.upperQuotient(
+                    Self.upperProduct(
+                        6.0,
+                        Self.upperProduct(
+                            denominatorFirst,
+                            Self.upperProduct(
+                                denominatorFirst,
+                                denominatorFirst,
+                                tolerance: tolerance
+                            ),
+                            tolerance: tolerance
+                        ),
+                        tolerance: tolerance
+                    ),
+                    denominatorFourthLower,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let heightThird = try Self.upperSum(
+            Self.upperQuotient(
+                numeratorThird,
+                denominatorLower,
+                tolerance: tolerance
+            ),
+            Self.upperSum(
+                Self.upperProduct(
+                    3.0,
+                    Self.upperProduct(
+                        numeratorSecond,
+                        inverseFirst,
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                ),
+                Self.upperSum(
+                    Self.upperProduct(
+                        3.0,
+                        Self.upperProduct(
+                            numeratorFirst,
+                            inverseSecond,
+                            tolerance: tolerance
+                        ),
+                        tolerance: tolerance
+                    ),
+                    Self.upperProduct(
+                        numeratorMagnitude,
+                        inverseThird,
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
         return try Self.fullAngleCylinderSpatialBounds(
             radius: configuration.cylinder.radius,
             heightFirst: heightFirst,
             heightSecond: heightSecond,
+            heightThird: heightThird,
             tolerance: tolerance
         )
     }
@@ -1114,6 +1376,11 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             period,
             tolerance: tolerance
         )
+        let periodCubed = try Self.upperProduct(
+            periodSquared,
+            period,
+            tolerance: tolerance
+        )
         let phaseLower = period * lower
         let phaseUpper = period * upper
         let angleRange = Self.boundedAngleRange(
@@ -1137,6 +1404,8 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 discriminant.secondDerivativeAbsoluteUpperBound,
             thirdDerivativeMagnitudeUpperBound:
                 discriminant.thirdDerivativeAbsoluteUpperBound,
+            fourthDerivativeMagnitudeUpperBound:
+                discriminant.fourthDerivativeAbsoluteUpperBound,
             arithmeticEnvelope: arithmeticEnvelope,
             valueRange: { rangeLower, rangeUpper in
                 try Self.restrictedPolynomialRange(
@@ -1181,6 +1450,30 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             ),
             tolerance: tolerance
         )
+        let rootFifthLower = (
+            factor.lower * factor.lower * rootLower
+        ).nextDown
+        let rootThirdByAngle = try Self.upperSum(
+            Self.upperQuotient(
+                factor.third,
+                (2.0 * rootLower).nextDown,
+                tolerance: tolerance
+            ),
+            Self.upperSum(
+                Self.upperQuotient(
+                    3.0 * factor.first * factor.second,
+                    (4.0 * rootCubedLower).nextDown,
+                    tolerance: tolerance
+                ),
+                Self.upperQuotient(
+                    3.0 * factor.first * factor.first * factor.first,
+                    (8.0 * rootFifthLower).nextDown,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
         let halfSpan = ((upperAngle - lowerAngle) * 0.5).nextUp
         let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(
             lower: phaseLower,
@@ -1208,6 +1501,15 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 tolerance: tolerance
             ),
             cosineMagnitude,
+            tolerance: tolerance
+        )
+        let angleThird = try Self.upperProduct(
+            Self.upperProduct(
+                halfSpan,
+                periodCubed,
+                tolerance: tolerance
+            ),
+            sineMagnitude,
             tolerance: tolerance
         )
         let signedRootFirst = try Self.upperProduct(
@@ -1292,6 +1594,34 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             ),
             tolerance: tolerance
         )
+        let rootByFractionFirst = (
+            rootFirstByAngle * angleFirst
+        ).nextUp
+        let rootByFractionSecond = (
+            rootSecondByAngle * angleFirst * angleFirst
+                + rootFirstByAngle * angleSecond
+        ).nextUp
+        let rootByFractionThird = (
+            rootThirdByAngle * angleFirst * angleFirst * angleFirst
+                + 3.0 * rootSecondByAngle * angleFirst * angleSecond
+                + rootFirstByAngle * angleThird
+        ).nextUp
+        let prefixMagnitude = (halfSpan * sineMagnitude).nextUp
+        let prefixFirst = (
+            halfSpan * period * cosineMagnitude
+        ).nextUp
+        let prefixSecond = (
+            halfSpan * periodSquared * sineMagnitude
+        ).nextUp
+        let prefixThird = (
+            halfSpan * periodCubed * cosineMagnitude
+        ).nextUp
+        let signedRootThird = (
+            prefixThird * rootUpper
+                + 3.0 * prefixSecond * rootByFractionFirst
+                + 3.0 * prefixFirst * rootByFractionSecond
+                + prefixMagnitude * rootByFractionThird
+        ).nextUp
         let halfLinear = configuration.halfLinearPolynomial
         let halfLinearFirst = try Self.upperProduct(
             halfLinear.firstDerivativeAbsoluteUpperBound,
@@ -1315,6 +1645,14 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             ),
             tolerance: tolerance
         )
+        let halfLinearThird = (
+            halfLinear.thirdDerivativeAbsoluteUpperBound
+                * angleFirst * angleFirst * angleFirst
+                + 3.0 * halfLinear.secondDerivativeAbsoluteUpperBound
+                    * angleFirst * angleSecond
+                + halfLinear.firstDerivativeAbsoluteUpperBound
+                    * angleThird
+        ).nextUp
         let denominatorLower = (
             abs(configuration.generatorQuadratic)
                 - Self.generatorQuadraticTolerance(
@@ -1346,6 +1684,15 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             denominatorLower,
             tolerance: tolerance
         )
+        let heightThird = try Self.upperQuotient(
+            Self.upperSum(
+                halfLinearThird,
+                signedRootThird,
+                tolerance: tolerance
+            ),
+            denominatorLower,
+            tolerance: tolerance
+        )
         let radialFirst = try Self.upperProduct(
             configuration.cylinder.radius,
             angleFirst,
@@ -1364,9 +1711,17 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             ),
             tolerance: tolerance
         )
+        let radialThird = (
+            configuration.cylinder.radius * (
+                angleFirst * angleFirst * angleFirst
+                    + 3.0 * angleFirst * angleSecond
+                    + angleThird
+            )
+        ).nextUp
         return SpatialDifferentialMagnitudeBounds(
             first: hypot(radialFirst, heightFirst).nextUp,
-            second: hypot(radialSecond, heightSecond).nextUp
+            second: hypot(radialSecond, heightSecond).nextUp,
+            third: hypot(radialThird, heightThird).nextUp
         )
     }
 
@@ -1423,10 +1778,14 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                     discriminant.firstDerivativeAbsoluteUpperBound,
                 secondDerivativeMagnitudeUpperBound:
                     discriminant.secondDerivativeAbsoluteUpperBound,
+                thirdDerivativeMagnitudeUpperBound:
+                    discriminant.thirdDerivativeAbsoluteUpperBound,
                 fourthDerivativeMagnitudeUpperBound:
                     discriminant.fourthDerivativeAbsoluteUpperBound,
                 fifthDerivativeMagnitudeUpperBound:
                     discriminant.fifthDerivativeAbsoluteUpperBound,
+                sixthDerivativeMagnitudeUpperBound:
+                    discriminant.sixthDerivativeAbsoluteUpperBound,
                 arithmeticEnvelope: arithmeticEnvelope,
                 valueRange: { rangeLower, rangeUpper in
                     try Self.restrictedPolynomialRange(
@@ -1469,6 +1828,11 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             pi,
             tolerance: tolerance
         )
+        let piCubed = try Self.upperProduct(
+            piSquared,
+            pi,
+            tolerance: tolerance
+        )
         let coordinateFirst = try Self.upperProduct(
             Self.upperProduct(
                 span,
@@ -1485,6 +1849,15 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 tolerance: tolerance
             ),
             sineMagnitude,
+            tolerance: tolerance
+        )
+        let coordinateThird = try Self.upperProduct(
+            Self.upperProduct(
+                span,
+                piCubed,
+                tolerance: tolerance
+            ),
+            cosineMagnitude,
             tolerance: tolerance
         )
         let factorFirst = try Self.upperProduct(
@@ -1509,6 +1882,13 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             ),
             tolerance: tolerance
         )
+        let factorThird = (
+            factor.third * coordinateFirst * coordinateFirst
+                * coordinateFirst
+                + 3.0 * factor.second * coordinateFirst
+                    * coordinateSecond
+                + factor.first * coordinateThird
+        ).nextUp
         let inverseDenominatorFirst = try Self.upperProduct(
             pi,
             cosineMagnitude,
@@ -1531,6 +1911,9 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             ),
             tolerance: tolerance
         )
+        let inverseDenominatorThird = (
+            13.0 * piCubed
+        ).nextUp
         let normalizedLower = (factor.lower * 0.5).nextDown
         let normalizedUpper = factor.upper.nextUp
         let normalizedFirst = try Self.upperSum(
@@ -1563,6 +1946,12 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             ),
             tolerance: tolerance
         )
+        let normalizedThird = (
+            factorThird
+                + 3.0 * factorSecond * inverseDenominatorFirst
+                + 3.0 * factorFirst * inverseDenominatorSecond
+                + factor.upper * inverseDenominatorThird
+        ).nextUp
         let normalizedRootLower = sqrt(normalizedLower).nextDown
         let normalizedRootUpper = sqrt(normalizedUpper).nextUp
         guard normalizedRootLower > 0.0,
@@ -1597,6 +1986,17 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             ),
             tolerance: tolerance
         )
+        let normalizedRootFifthLower = (
+            normalizedLower * normalizedLower * normalizedRootLower
+        ).nextDown
+        let normalizedRootThird = (
+            normalizedThird / (2.0 * normalizedRootLower).nextDown
+                + 3.0 * normalizedFirst * normalizedSecond
+                    / (4.0 * normalizedRootCubedLower).nextDown
+                + 3.0 * normalizedFirst * normalizedFirst
+                    * normalizedFirst
+                    / (8.0 * normalizedRootFifthLower).nextDown
+        ).nextUp
         let spanScale = pow(span, 1.5).nextUp
         let distanceRootMagnitude = try Self.upperProduct(
             spanScale * 0.5,
@@ -1619,6 +2019,15 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 tolerance: tolerance
             ),
             doubledSineMagnitude,
+            tolerance: tolerance
+        )
+        let distanceRootThird = try Self.upperProduct(
+            Self.upperProduct(
+                4.0 * spanScale,
+                piCubed,
+                tolerance: tolerance
+            ),
+            doubledCosineMagnitude,
             tolerance: tolerance
         )
         let signedRootFirst = try Self.upperSum(
@@ -1659,6 +2068,12 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             ),
             tolerance: tolerance
         )
+        let signedRootThird = (
+            distanceRootThird * normalizedRootUpper
+                + 3.0 * distanceRootSecond * normalizedRootFirst
+                + 3.0 * distanceRootFirst * normalizedRootSecond
+                + distanceRootMagnitude * normalizedRootThird
+        ).nextUp
         let halfLinear = configuration.halfLinearPolynomial
         let halfLinearFirst = try Self.upperProduct(
             halfLinear.firstDerivativeAbsoluteUpperBound,
@@ -1682,6 +2097,14 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             ),
             tolerance: tolerance
         )
+        let halfLinearThird = (
+            halfLinear.thirdDerivativeAbsoluteUpperBound
+                * coordinateFirst * coordinateFirst * coordinateFirst
+                + 3.0 * halfLinear.secondDerivativeAbsoluteUpperBound
+                    * coordinateFirst * coordinateSecond
+                + halfLinear.firstDerivativeAbsoluteUpperBound
+                    * coordinateThird
+        ).nextUp
         let denominatorLower = (
             abs(configuration.generatorQuadratic)
                 - Self.generatorQuadraticTolerance(
@@ -1713,6 +2136,15 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             denominatorLower,
             tolerance: tolerance
         )
+        let heightThird = try Self.upperQuotient(
+            Self.upperSum(
+                halfLinearThird,
+                signedRootThird,
+                tolerance: tolerance
+            ),
+            denominatorLower,
+            tolerance: tolerance
+        )
         let radialFirst = try Self.upperProduct(
             configuration.cylinder.radius,
             coordinateFirst,
@@ -1731,9 +2163,17 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             ),
             tolerance: tolerance
         )
+        let radialThird = (
+            configuration.cylinder.radius * (
+                coordinateFirst * coordinateFirst * coordinateFirst
+                    + 3.0 * coordinateFirst * coordinateSecond
+                    + coordinateThird
+            )
+        ).nextUp
         return SpatialDifferentialMagnitudeBounds(
             first: hypot(radialFirst, heightFirst).nextUp,
-            second: hypot(radialSecond, heightSecond).nextUp
+            second: hypot(radialSecond, heightSecond).nextUp,
+            third: hypot(radialThird, heightThird).nextUp
         )
     }
 
@@ -1741,13 +2181,20 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         radius: Double,
         heightFirst: Double,
         heightSecond: Double,
+        heightThird: Double,
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
         let angularFirst = hypot(radius, heightFirst).nextUp
         let angularSecond = hypot(radius, heightSecond).nextUp
+        let angularThird = hypot(radius, heightThird).nextUp
         let period = (2.0 * Double.pi).nextUp
         let periodSquared = try upperProduct(
             period,
+            period,
+            tolerance: tolerance
+        )
+        let periodCubed = try upperProduct(
+            periodSquared,
             period,
             tolerance: tolerance
         )
@@ -1761,6 +2208,11 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 periodSquared,
                 angularSecond,
                 tolerance: tolerance
+            ),
+            third: try upperProduct(
+                periodCubed,
+                angularThird,
+                tolerance: tolerance
             )
         )
     }
@@ -1772,7 +2224,8 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             return ScalarDifferential(
                 value: period * fraction,
                 first: period,
-                second: 0.0
+                second: 0.0,
+                third: 0.0
             )
         case .boundedAngularInterval:
             let midpoint = lowerAngle + (upperAngle - lowerAngle) * 0.5
@@ -1781,7 +2234,8 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             return ScalarDifferential(
                 value: midpoint - halfSpan * cos(phase),
                 first: halfSpan * period * sin(phase),
-                second: halfSpan * period * period * cos(phase)
+                second: halfSpan * period * period * cos(phase),
+                third: -halfSpan * period * period * period * sin(phase)
             )
         case .apexLowerNodeInterval, .apexUpperNodeInterval:
             let span = upperAngle - lowerAngle
@@ -1841,10 +2295,26 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             - 2.0 * numerator.first * denominator.first * inverse * inverse
             + 2.0 * numerator.value * denominator.first * denominator.first
                 * inverse * inverse * inverse
+        let inverseThird = -6.0
+                * denominator.first * denominator.first * denominator.first
+                * pow(inverse, 4.0)
+            + 6.0 * denominator.first * denominator.second
+                * inverse * inverse * inverse
+            - denominator.third * inverse * inverse
+        let third = numerator.third * inverse
+            + 3.0 * numerator.second
+                * (-denominator.first * inverse * inverse)
+            + 3.0 * numerator.first * (
+                2.0 * denominator.first * denominator.first
+                    * inverse * inverse * inverse
+                    - denominator.second * inverse * inverse
+            )
+            + numerator.value * inverseThird
         return ScalarDifferential(
             value: value,
             first: first,
-            second: second
+            second: second,
+            third: third
         )
     }
 
@@ -1906,70 +2376,44 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 first: factor.first / (2.0 * root),
                 second: factor.second / (2.0 * root)
                     - factor.first * factor.first
-                        / (4.0 * root * root * root)
+                        / (4.0 * root * root * root),
+                third: factor.third / (2.0 * root)
+                    - 3.0 * factor.first * factor.second
+                        / (4.0 * pow(root, 3.0))
+                    + 3.0 * pow(factor.first, 3.0)
+                        / (8.0 * pow(root, 5.0))
             )
             let rootByFraction = ScalarDifferential(
                 value: rootByAngle.value,
                 first: rootByAngle.first * angle.first,
                 second: rootByAngle.second * angle.first * angle.first
-                    + rootByAngle.first * angle.second
+                    + rootByAngle.first * angle.second,
+                third: rootByAngle.third * pow(angle.first, 3.0)
+                    + 3.0 * rootByAngle.second
+                        * angle.first * angle.second
+                    + rootByAngle.first * angle.third
             )
             let period = 2.0 * Double.pi
             let phase = period * fraction
             let sine = ScalarDifferential(
                 value: sin(phase),
                 first: period * cos(phase),
-                second: -period * period * sin(phase)
+                second: -period * period * sin(phase),
+                third: -period * period * period * cos(phase)
             )
             let result = Self.product(sine, rootByFraction).scaled(
                 by: (upperAngle - lowerAngle) * 0.5
             )
             guard result.value.isFinite,
                   result.first.isFinite,
-                  result.second.isFinite else {
+                  result.second.isFinite,
+                  result.third.isFinite else {
                 throw Self.resourceFailure(
                     tolerance: tolerance,
                     message: "A bounded cone-cylinder regularized square-root differential exceeded finite arithmetic."
                 )
             }
             return result
-        }
-        let isApexNode = componentKind == .apexLowerNodeInterval
-            || componentKind == .apexUpperNodeInterval
-        let isCertifiedZero = isApexNode && (
-                fraction <= Self.endpointFractionTolerance(tolerance: tolerance)
-                    || fraction >= 1.0
-                        - Self.endpointFractionTolerance(tolerance: tolerance)
-                    || abs(fraction - 0.5)
-                        <= Self.endpointFractionTolerance(tolerance: tolerance)
-            )
-        if isCertifiedZero,
-           abs(discriminant.value) <= classificationTolerance * 32.0 {
-            let squaredSlope = discriminant.second * 0.5
-            guard squaredSlope > 0.0 else {
-                throw KernelError(
-                    phase: .geometry,
-                    code: .singularSystem,
-                    residual: squaredSlope,
-                    tolerance: tolerance,
-                    message: "A cone-cylinder discriminant endpoint has no regular square-root continuation."
-                )
-            }
-            let signedSlope: Double
-            if isApexNode {
-                signedSlope = abs(fraction - 0.5)
-                    <= Self.endpointFractionTolerance(tolerance: tolerance)
-                    ? -sqrt(squaredSlope)
-                    : sqrt(squaredSlope)
-            } else {
-                let isUpper = cos(2.0 * Double.pi * fraction) < 0.0
-                signedSlope = (isUpper ? -1.0 : 1.0) * sqrt(squaredSlope)
-            }
-            return ScalarDifferential(
-                value: 0.0,
-                first: signedSlope,
-                second: discriminant.third / (6.0 * signedSlope)
-            )
         }
         guard discriminant.value >= -classificationTolerance else {
             throw KernelError(
@@ -1991,12 +2435,16 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             )
         }
         let signedValue = branchSign * magnitude
+        let first = discriminant.first / (2.0 * signedValue)
+        let second = discriminant.second / (2.0 * signedValue)
+            - discriminant.first * discriminant.first
+                / (4.0 * signedValue * signedValue * signedValue)
         return ScalarDifferential(
             value: signedValue,
-            first: discriminant.first / (2.0 * signedValue),
-            second: discriminant.second / (2.0 * signedValue)
-                - discriminant.first * discriminant.first
-                    / (4.0 * signedValue * signedValue * signedValue)
+            first: first,
+            second: second,
+            third: (discriminant.third - 6.0 * first * second)
+                / (2.0 * signedValue)
         )
     }
 
@@ -2013,7 +2461,8 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         let coordinate = ScalarDifferential(
             value: direction * (angle.value - apexAngle),
             first: direction * angle.first,
-            second: direction * angle.second
+            second: direction * angle.second,
+            third: direction * angle.third
         )
         let factorByCoordinate = try mixedRegularizedDiscriminantFactorDifferential(
             coordinate: coordinate.value,
@@ -2027,13 +2476,18 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             first: factorByCoordinate.first * coordinate.first,
             second: factorByCoordinate.second
                     * coordinate.first * coordinate.first
-                + factorByCoordinate.first * coordinate.second
+                + factorByCoordinate.first * coordinate.second,
+            third: factorByCoordinate.third * pow(coordinate.first, 3.0)
+                + 3.0 * factorByCoordinate.second
+                    * coordinate.first * coordinate.second
+                + factorByCoordinate.first * coordinate.third
         )
         let phase = Double.pi * fraction
         let sine = ScalarDifferential(
             value: sin(phase),
             first: Double.pi * cos(phase),
-            second: -Double.pi * Double.pi * sin(phase)
+            second: -Double.pi * Double.pi * sin(phase),
+            third: -pow(Double.pi, 3.0) * cos(phase)
         )
         let normalizedFactor = try Self.differentialQuotient(
             factor,
@@ -2057,19 +2511,27 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             first: normalizedFactor.first / (2.0 * root),
             second: normalizedFactor.second / (2.0 * root)
                 - normalizedFactor.first * normalizedFactor.first
-                    / (4.0 * root * root * root)
+                    / (4.0 * root * root * root),
+            third: normalizedFactor.third / (2.0 * root)
+                - 3.0 * normalizedFactor.first * normalizedFactor.second
+                    / (4.0 * pow(root, 3.0))
+                + 3.0 * pow(normalizedFactor.first, 3.0)
+                    / (8.0 * pow(root, 5.0))
         )
         let spanScale = pow(upperAngle - lowerAngle, 1.5)
         let distanceRoot = ScalarDifferential(
             value: spanScale * sin(phase) * cos(phase),
             first: spanScale * Double.pi * cos(2.0 * phase),
             second: -2.0 * spanScale * Double.pi * Double.pi
-                * sin(2.0 * phase)
+                * sin(2.0 * phase),
+            third: -4.0 * spanScale * pow(Double.pi, 3.0)
+                * cos(2.0 * phase)
         )
         let result = Self.product(distanceRoot, rootDifferential)
         guard result.value.isFinite,
               result.first.isFinite,
-              result.second.isFinite else {
+              result.second.isFinite,
+              result.third.isFinite else {
             throw Self.resourceFailure(
                 tolerance: tolerance,
                 message: "A cone-cylinder apex-node regularized square-root differential exceeded finite arithmetic."
@@ -2122,7 +2584,8 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 ScalarDifferential(
                     value: span - boundedCoordinate,
                     first: -1.0,
-                    second: 0.0
+                    second: 0.0,
+                    third: 0.0
                 ),
                 tolerance: tolerance,
                 message: "A cone-cylinder mixed-root factor lost its simple-endpoint distance."
@@ -2136,20 +2599,23 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         let orientedDifference = ScalarDifferential(
             value: direction * dividedDifference.value,
             first: dividedDifference.first,
-            second: direction * dividedDifference.second
+            second: direction * dividedDifference.second,
+            third: dividedDifference.third
         )
         let numerator = ScalarDifferential(
             value: apexFirst
                 + correctionQuadratic * (boundedCoordinate + span),
             first: correctionQuadratic,
-            second: 0.0
+            second: 0.0,
+            third: 0.0
         ).subtracting(orientedDifference)
         return try Self.differentialQuotient(
             numerator,
             ScalarDifferential(
                 value: boundedCoordinate * boundedCoordinate,
                 first: 2.0 * boundedCoordinate,
-                second: 2.0
+                second: 2.0,
+                third: 0.0
             ),
             tolerance: tolerance,
             message: "A cone-cylinder mixed-root factor lost its double-endpoint distance."
@@ -2166,6 +2632,7 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             var value = 0.0
             var first = 0.0
             var second = 0.0
+            var third = 0.0
             var factorial = 1.0
             for order in 1...24 {
                 factorial *= Double(order)
@@ -2189,11 +2656,17 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                         * Double(exponent * (exponent - 1))
                         * pow(coordinate, Double(exponent - 2))
                 }
+                if exponent > 2 {
+                    third += coefficient
+                        * Double(exponent * (exponent - 1) * (exponent - 2))
+                        * pow(coordinate, Double(exponent - 3))
+                }
             }
             return ScalarDifferential(
                 value: value,
                 first: first,
-                second: second
+                second: second,
+                third: third
             )
         }
         let angle = apexAngle + direction * coordinate
@@ -2206,6 +2679,8 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 * polynomial.firstDerivative(at: angle)
             - apexFirst
         let numeratorSecond = polynomial.secondDerivative(at: angle)
+        let numeratorThird = direction
+            * polynomial.thirdDerivative(at: angle)
         let squared = coordinate * coordinate
         let cubed = squared * coordinate
         let fourth = squared * squared
@@ -2215,7 +2690,11 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 - 2.0 * numerator / cubed,
             second: numeratorSecond / squared
                 - 4.0 * numeratorFirst / cubed
-                + 6.0 * numerator / fourth
+                + 6.0 * numerator / fourth,
+            third: numeratorThird / squared
+                - 6.0 * numeratorSecond / cubed
+                + 18.0 * numeratorFirst / fourth
+                - 24.0 * numerator / (fourth * coordinate)
         )
     }
 
@@ -2257,12 +2736,14 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             ? ScalarDifferential(
                 value: upperAngle - angle,
                 first: -1.0,
-                second: 0.0
+                second: 0.0,
+                third: 0.0
             )
             : ScalarDifferential(
                 value: angle - lowerAngle,
                 first: 1.0,
-                second: 0.0
+                second: 0.0,
+                third: 0.0
             )
         return try Self.differentialQuotient(
             numerator,
@@ -2307,6 +2788,10 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 second: -halfOrder * halfOrder * (
                     -harmonic.cosine * sin(midpoint)
                         + harmonic.sine * cos(midpoint)
+                ),
+                third: pow(halfOrder, 3.0) * (
+                    harmonic.cosine * cos(midpoint)
+                        + harmonic.sine * sin(midpoint)
                 )
             )
             result = result.adding(
@@ -2323,10 +2808,12 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         let valueResult: Double
         let firstByValue: Double
         let secondByValue: Double
+        let thirdByValue: Double
         if abs(value) <= 0.25 {
             var accumulatedValue = 0.0
             var accumulatedFirst = 0.0
             var accumulatedSecond = 0.0
+            var accumulatedThird = 0.0
             var coefficient = 1.0
             for index in 0...12 {
                 let exponent = index * 2
@@ -2341,6 +2828,11 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                         * Double(exponent * (exponent - 1))
                         * pow(value, Double(exponent - 2))
                 }
+                if exponent > 2 {
+                    accumulatedThird += coefficient
+                        * Double(exponent * (exponent - 1) * (exponent - 2))
+                        * pow(value, Double(exponent - 3))
+                }
                 coefficient /= -Double(
                     (2 * index + 2) * (2 * index + 3)
                 )
@@ -2348,6 +2840,7 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             valueResult = accumulatedValue
             firstByValue = accumulatedFirst
             secondByValue = accumulatedSecond
+            thirdByValue = accumulatedThird
         } else {
             let sine = sin(value)
             let cosine = cos(value)
@@ -2357,11 +2850,16 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             secondByValue = -sine / value
                 - 2.0 * cosine / squared
                 + 2.0 * sine / (squared * value)
+            thirdByValue = -cosine / value
+                + 3.0 * sine / squared
+                + 6.0 * cosine / (squared * value)
+                - 6.0 * sine / (squared * squared)
         }
         return ScalarDifferential(
             value: valueResult,
             first: firstByValue * derivativeScale,
-            second: secondByValue * derivativeScale * derivativeScale
+            second: secondByValue * derivativeScale * derivativeScale,
+            third: thirdByValue * pow(derivativeScale, 3.0)
         )
     }
 
@@ -2375,7 +2873,11 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 + first.value * second.first,
             second: first.second * second.value
                 + 2.0 * first.first * second.first
-                + first.value * second.second
+                + first.value * second.second,
+            third: first.third * second.value
+                + 3.0 * first.second * second.first
+                + 3.0 * first.first * second.second
+                + first.value * second.third
         )
     }
 
@@ -2399,12 +2901,19 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         let inverseSecond = 2.0 * denominator.first * denominator.first
                 * inverse * inverse * inverse
             - denominator.second * inverse * inverse
+        let inverseThird = -6.0
+                * denominator.first * denominator.first * denominator.first
+                * pow(inverse, 4.0)
+            + 6.0 * denominator.first * denominator.second
+                * pow(inverse, 3.0)
+            - denominator.third * inverse * inverse
         return product(
             numerator,
             ScalarDifferential(
                 value: inverse,
                 first: inverseFirst,
-                second: inverseSecond
+                second: inverseSecond,
+                third: inverseThird
             )
         )
     }

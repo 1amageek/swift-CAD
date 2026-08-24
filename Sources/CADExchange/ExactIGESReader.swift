@@ -167,6 +167,7 @@ private extension ExactIGESReader {
         var vertices: [VertexID: Vertex] = [:]
 
         var surfaceCache: [Int: SurfaceID] = [:]
+        var surfacesBeingBuilt: Set<Int> = []
         var curveCache: [Int: CurveID] = [:]
         var curveTrimCache: [Int: CurveTrim] = [:]
         var exactTransferTrims: [CurveID: CurveTrim] = [:]
@@ -598,6 +599,29 @@ private extension ExactIGESReader {
                     reconstructed.firstSurface: reconstructed.firstSurfaceParameterCurve,
                     reconstructed.secondSurface: reconstructed.secondSurfaceParameterCurve,
                 ]
+            } else if let reconstructed = try associatedCertifiedIntersection(
+                curvePointer: curvePointer,
+                startPoint: vertices[startVertexID]?.point,
+                endPoint: vertices[endVertexID]?.point
+            ) {
+                guard let transferCurve = geometry.curves[curve.id],
+                      case .bSpline = transferCurve,
+                      let transferTrim = curve.trim else {
+                    throw invalid("IGES certified intersection has incomplete transfer geometry.")
+                }
+                exactTransferTrims[curve.id] = try ExactTransferTrimResolver(
+                    tolerance: tolerance
+                ).resolve(
+                    transferCurve: transferCurve,
+                    transferTrim: transferTrim,
+                    exactCurve: reconstructed.curve,
+                    convention: "IGES"
+                )
+                geometry.curves[curve.id] = reconstructed.curve
+                intersectionPcurves[curve.id] = [
+                    reconstructed.firstSurface: reconstructed.firstSurfaceParameterCurve,
+                    reconstructed.secondSurface: reconstructed.secondSurfaceParameterCurve,
+                ]
             } else if let reconstructed = try associatedSurfaceLift(
                 curvePointer: curvePointer,
                 curveID: curve.id,
@@ -804,7 +828,47 @@ private extension ExactIGESReader {
                     : CurveTrim(startParameter: 1.0, endParameter: 0.0)
                 sameSense = reconstructedSurfaceLiftSense
             case .certifiedIntersection:
-                throw invalid("IGES curve decoding produced an unsupported certified intersection runtime curve.")
+                guard let declaredTrim = exactTransferTrims[curve.id] else {
+                    throw invalid("IGES certified intersection edge has no derived transfer interval.")
+                }
+                let expectedStart = try curveGeometry.point(
+                    at: declaredTrim.startParameter,
+                    tolerance: tolerance
+                )
+                let expectedEnd = try curveGeometry.point(
+                    at: declaredTrim.endParameter,
+                    tolerance: tolerance
+                )
+                if startVertex.point.isApproximatelyEqual(
+                    to: expectedStart,
+                    tolerance: tolerance.distance
+                ), endVertex.point.isApproximatelyEqual(
+                    to: expectedEnd,
+                    tolerance: tolerance.distance
+                ) {
+                    trim = declaredTrim
+                    sameSense = true
+                } else if startVertex.point.isApproximatelyEqual(
+                    to: expectedEnd,
+                    tolerance: tolerance.distance
+                ), endVertex.point.isApproximatelyEqual(
+                    to: expectedStart,
+                    tolerance: tolerance.distance
+                ) {
+                    trim = CurveTrim(
+                        startParameter: declaredTrim.endParameter,
+                        endParameter: declaredTrim.startParameter
+                    )
+                    sameSense = false
+                } else {
+                    throw invalid(
+                        "IGES certified intersection edge vertices disagree with its derived transfer interval."
+                    )
+                }
+            case .rigidImage:
+                throw invalid("IGES curve decoding produced an unsupported rigid-image runtime curve.")
+            case .affineImage:
+                throw invalid("IGES curve decoding produced an unsupported affine-image runtime curve.")
             }
             edges[edgeID] = Edge(
                 id: edgeID,
@@ -840,7 +904,7 @@ private extension ExactIGESReader {
             let plane = surfaces.first(where: { surface in
                 switch surface {
                 case .plane, .analytic(.plane): return true
-                case .cylinder, .analytic, .bSpline: return false
+                case .cylinder, .analytic, .bSpline, .procedural: return false
                 }
             })
             let torus = surfaces.first(where: { surface in
@@ -962,6 +1026,90 @@ private extension ExactIGESReader {
                 surfaces[1],
                 match.firstSurfaceParameterCurve,
                 match.secondSurfaceParameterCurve
+            )
+        }
+
+        mutating func associatedCertifiedIntersection(
+            curvePointer: Int,
+            startPoint: Point3D?,
+            endPoint: Point3D?
+        ) throws -> (
+            curve: Curve3D,
+            firstSurface: Surface3D,
+            secondSurface: Surface3D,
+            firstSurfaceParameterCurve: SurfaceParameterCurve,
+            secondSurfaceParameterCurve: SurfaceParameterCurve
+        )? {
+            guard let entity = entities[curvePointer],
+                  entity.label.hasPrefix("CERTFIR") else {
+                return nil
+            }
+            guard let startPoint,
+                  let endPoint,
+                  let surfacePointers = curveSurfaceAssociations[curvePointer],
+                  surfacePointers.count == 2 else {
+                throw invalid("IGES certified curve-on-surface metadata is incomplete.")
+            }
+            var surfaces: [Surface3D] = []
+            for pointer in surfacePointers {
+                let surfaceID = try buildSurface(pointer)
+                guard let surface = geometry.surfaces[surfaceID] else {
+                    throw missing("IGES associated certified-intersection surface")
+                }
+                if surfaces.contains(surface) == false {
+                    surfaces.append(surface)
+                }
+            }
+            guard surfaces.count == 2 else {
+                throw invalid("IGES certified curve requires two distinct support surfaces.")
+            }
+            let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+                first: surfaces[0],
+                second: surfaces[1],
+                tolerance: tolerance
+            )
+            var matches: [SurfaceSurfaceIntersectionCurve] = []
+            for intersection in intersections {
+                guard case let .curve(candidate) = intersection,
+                      case .certifiedIntersection = candidate.curve else {
+                    continue
+                }
+                do {
+                    _ = try candidate.curve.parameterProjection(
+                        of: startPoint,
+                        tolerance: tolerance
+                    )
+                    _ = try candidate.curve.parameterProjection(
+                        of: endPoint,
+                        tolerance: tolerance
+                    )
+                    matches.append(candidate)
+                } catch let error as KernelError where
+                    error.code == .intersectionFailure || error.code == .invalidInput {
+                    continue
+                }
+            }
+            guard matches.count <= 1 else {
+                throw invalid(
+                    "IGES certified curve-on-surface chain matches multiple exact components."
+                )
+            }
+            guard let match = matches.first else {
+                throw invalid(
+                    "IGES certified curve-on-surface chain does not match its edge endpoints."
+                )
+            }
+            guard case let .analyticAnalytic(exact) = match.truth else {
+                throw invalid(
+                    "IGES certified curve-on-surface chain lost its analytic intersection certificate."
+                )
+            }
+            return (
+                match.curve,
+                surfaces[0],
+                surfaces[1],
+                exact.firstSurfaceParameterCurve,
+                exact.secondSurfaceParameterCurve
             )
         }
 
@@ -1405,11 +1553,56 @@ private extension ExactIGESReader {
 
         mutating func buildSurface(_ pointer: Int) throws -> SurfaceID {
             if let cached = surfaceCache[pointer] { return cached }
+            guard surfacesBeingBuilt.insert(pointer).inserted else {
+                throw invalid("IGES surface references contain a cycle at #\(pointer).")
+            }
+            defer { surfacesBeingBuilt.remove(pointer) }
             guard let entity = entities[pointer] else {
                 throw missing("IGES surface #\(pointer)")
             }
             let surface: Surface3D
             switch entity.type {
+            case 140:
+                guard entity.form == 0, entity.parameters.count == 6 else {
+                    throw invalid("IGES offset surface #\(pointer) is malformed.")
+                }
+                let indicator = Vector3D(
+                    x: try numberAt(entity.parameters, 1, label: "offset indicator X"),
+                    y: try numberAt(entity.parameters, 2, label: "offset indicator Y"),
+                    z: try numberAt(entity.parameters, 3, label: "offset indicator Z")
+                )
+                let unitIndicator = try indicator.normalized(
+                    tolerance: tolerance.distance
+                )
+                let encodedDistance = lengthUnit.toInternal(
+                    try numberAt(entity.parameters, 4, label: "offset distance")
+                )
+                guard abs(encodedDistance) > tolerance.distance else {
+                    throw unsupported("IGES offset surface #\(pointer) requires a nonzero distance.")
+                }
+                let basisPointer = try integerAt(
+                    entity.parameters,
+                    5,
+                    label: "offset basis surface pointer"
+                )
+                let basisSurfaceID = try buildSurface(basisPointer)
+                guard let basisSurface = geometry.surfaces[basisSurfaceID] else {
+                    throw missing("IGES offset basis surface #\(basisPointer)")
+                }
+                let basisIndicator = try offsetIndicator(
+                    for: basisSurface,
+                    tolerance: tolerance
+                )
+                let alignment = unitIndicator.dot(basisIndicator)
+                guard abs(abs(alignment) - 1.0) <= tolerance.angle else {
+                    throw invalid("IGES offset surface #\(pointer) has an inconsistent normal indicator.")
+                }
+                surface = .procedural(.offset(OffsetSurface3D(
+                    source: basisSurface,
+                    distance: alignment >= 0.0
+                        ? encodedDistance
+                        : -encodedDistance
+                )))
             case 190:
                 guard entity.form == 1, entity.parameters.count == 4 else {
                     throw unsupported("IGES plane surface #\(pointer) must use form 1.")
@@ -1547,6 +1740,23 @@ private extension ExactIGESReader {
             geometry.surfaces[surfaceID] = surface
             surfaceCache[pointer] = surfaceID
             return surfaceID
+        }
+
+        private func offsetIndicator(
+            for surface: Surface3D,
+            tolerance: ModelingTolerance
+        ) throws -> Vector3D {
+            let u: Double
+            let v: Double
+            if case let .closed(lower, upper) = surface.uDomain,
+               case let .closed(vLower, vUpper) = surface.vDomain {
+                u = lower + (upper - lower) * 0.5
+                v = vLower + (vUpper - vLower) * 0.5
+            } else {
+                u = 0.0
+                v = 0.0
+            }
+            return try surface.normal(u: u, v: v, tolerance: tolerance)
         }
 
         func bSplineCurve(

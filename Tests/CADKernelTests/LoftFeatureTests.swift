@@ -93,6 +93,212 @@ func loftCreatesRuledBSplineSideFacesForNonPlanarSections() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
+func loftPreservesExactCircularSectionsInRuledSolid() throws {
+    let document = ruledCircleLoftDocument()
+
+    let evaluated = try DocumentEvaluator(
+        tolerance: .standard,
+        artifactPolicy: .deferred
+    ).evaluate(document)
+    _ = try MeshTessellator(tolerance: .standard).tessellate(model: evaluated.brep)
+    let body = try #require(evaluated.brep.bodies.values.first)
+    let curves = evaluated.brep.geometry.curves.values.compactMap(\.bSplineCurve)
+    let circularBoundaries = curves.filter { $0.degree == 2 && $0.isRational }
+    let connectors = curves.filter { $0.degree == 1 }
+    let sideSurfaces = evaluated.brep.geometry.surfaces.values.compactMap(\.bSplineSurface)
+
+    #expect(body.kind == .solid)
+    #expect(evaluated.brep.faces.count == 6)
+    #expect(evaluated.brep.edges.count == 12)
+    #expect(evaluated.brep.vertices.count == 8)
+    #expect(curves.count == 12)
+    #expect(circularBoundaries.count == 8)
+    #expect(connectors.count == 4)
+    #expect(sideSurfaces.count == 4)
+    for surface in sideSurfaces {
+        #expect(surface.uDegree == 2)
+        #expect(surface.vDegree == 1)
+        #expect(surface.isRational)
+    }
+    #expect(evaluated.brep.loops.values.allSatisfy { loop in
+        loop.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
+    })
+    try evaluated.brep.validate(level: .exact, tolerance: .standard)
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftPreservesRectangularHoleAsOneWatertightSolid() throws {
+    let (document, _) = rectangularHoleLoftDocument(resultKind: .solid)
+
+    let evaluated = try DocumentEvaluator(
+        tolerance: .standard,
+        artifactPolicy: .deferred
+    ).evaluate(document)
+    let bodyID = try #require(evaluated.brep.bodies.keys.first)
+    let body = try #require(evaluated.brep.bodies[bodyID])
+
+    #expect(body.kind == .solid)
+    #expect(evaluated.brep.bodies.count == 1)
+    #expect(evaluated.brep.shells.count == 1)
+    #expect(evaluated.brep.faces.count == 10)
+    #expect(evaluated.brep.edges.count == 24)
+    #expect(evaluated.brep.vertices.count == 16)
+    #expect(evaluated.brep.loops.values.filter { $0.role == .inner }.count == 2)
+    let expectedVolume = (0.040 * 0.040 - 0.020 * 0.020) * 0.010
+    let actualVolume = try evaluated.brep.volume(tolerance: .standard)
+    #expect(
+        abs(actualVolume - expectedVolume) <= 1.0e-12,
+        "Expected hollow Loft volume \(expectedVolume), got \(actualVolume)."
+    )
+
+    let classifier = DefaultBRepSolidPointClassifier()
+    #expect(try classifier.classify(
+        Point3D(x: 0.0, y: 0.0, z: 0.005),
+        in: bodyID,
+        model: evaluated.brep,
+        tolerance: .standard
+    ) == .outside)
+    #expect(try classifier.classify(
+        Point3D(x: 0.015, y: 0.0, z: 0.005),
+        in: bodyID,
+        model: evaluated.brep,
+        tolerance: .standard
+    ) == .inside)
+    try evaluated.brep.validate(level: .exact, tolerance: .standard)
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftPreservesCircularHoleAsExactRationalBoundary() throws {
+    let document = circularHoleLoftDocument()
+
+    let evaluated = try DocumentEvaluator(
+        tolerance: .standard,
+        artifactPolicy: .deferred
+    ).evaluate(document)
+    let bodyID = try #require(evaluated.brep.bodies.keys.first)
+    let rationalBoundaryCurves = evaluated.brep.geometry.curves.values
+        .compactMap(\.bSplineCurve)
+        .filter { $0.degree == 2 && $0.isRational }
+    let rationalSideSurfaces = evaluated.brep.geometry.surfaces.values
+        .compactMap(\.bSplineSurface)
+        .filter(\.isRational)
+
+    #expect(evaluated.brep.faces.count == 10)
+    #expect(evaluated.brep.edges.count == 24)
+    #expect(evaluated.brep.vertices.count == 16)
+    #expect(rationalBoundaryCurves.count == 8)
+    #expect(rationalSideSurfaces.count == 4)
+    let expectedVolume = (0.040 * 0.040 - Double.pi * 0.010 * 0.010) * 0.010
+    let actualVolume = try evaluated.brep.volume(tolerance: .standard)
+    #expect(
+        abs(actualVolume - expectedVolume) <= 1.0e-12,
+        "Expected circular-hole Loft volume \(expectedVolume), got \(actualVolume)."
+    )
+
+    let classifier = DefaultBRepSolidPointClassifier()
+    #expect(try classifier.classify(
+        Point3D(x: 0.0, y: 0.0, z: 0.005),
+        in: bodyID,
+        model: evaluated.brep,
+        tolerance: .standard
+    ) == .outside)
+    #expect(try classifier.classify(
+        Point3D(x: 0.015, y: 0.0, z: 0.005),
+        in: bodyID,
+        model: evaluated.brep,
+        tolerance: .standard
+    ) == .inside)
+    try evaluated.brep.validate(level: .exact, tolerance: .standard)
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftHoleAwareSheetKeepsEachBoundaryAsAnOpenShell() throws {
+    let (document, _) = rectangularHoleLoftDocument(resultKind: .sheet)
+
+    let evaluated = try DocumentEvaluator(
+        tolerance: .standard,
+        artifactPolicy: .deferred
+    ).evaluate(document)
+    let body = try #require(evaluated.brep.bodies.values.first)
+
+    #expect(body.kind == .sheet)
+    #expect(evaluated.brep.bodies.count == 1)
+    #expect(evaluated.brep.shells.count == 2)
+    #expect(evaluated.brep.faces.count == 8)
+    #expect(evaluated.brep.edges.count == 24)
+    #expect(evaluated.brep.vertices.count == 16)
+    #expect(evaluated.brep.geometry.surfaces.values.filter(\.isBSplineSurface).count == 8)
+    try evaluated.brep.validate(level: .exact, tolerance: .standard)
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftSmoothSurfaceModePreservesHoleWallsAndVolume() throws {
+    let (document, _) = rectangularHoleLoftDocument(
+        resultKind: .solid,
+        surfaceMode: .smooth
+    )
+
+    let evaluated = try DocumentEvaluator(
+        tolerance: .standard,
+        artifactPolicy: .deferred
+    ).evaluate(document)
+    let bodyID = try #require(evaluated.brep.bodies.keys.first)
+    let sideSurfaces = evaluated.brep.geometry.surfaces.values
+        .compactMap(\.bSplineSurface)
+
+    #expect(sideSurfaces.count == 8)
+    #expect(sideSurfaces.allSatisfy { surface in
+        surface.vDegree == 3 && surface.vControlPointCount == 4
+    })
+    let expectedVolume = (0.040 * 0.040 - 0.020 * 0.020) * 0.010
+    let actualVolume = try evaluated.brep.volume(tolerance: .standard)
+    #expect(
+        abs(actualVolume - expectedVolume) <= 1.0e-12,
+        "Expected smooth hollow Loft volume \(expectedVolume), got \(actualVolume)."
+    )
+    let classifier = DefaultBRepSolidPointClassifier()
+    #expect(try classifier.classify(
+        Point3D(x: 0.0, y: 0.0, z: 0.005),
+        in: bodyID,
+        model: evaluated.brep,
+        tolerance: .standard
+    ) == .outside)
+    try evaluated.brep.validate(level: .exact, tolerance: .standard)
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftGuideCanConstrainAnInteriorHoleBoundary() throws {
+    let (document, _) = rectangularHoleLoftDocument(
+        resultKind: .solid,
+        guidesInnerBoundary: true
+    )
+
+    let evaluated = try DocumentEvaluator(
+        tolerance: .standard,
+        artifactPolicy: .deferred
+    ).evaluate(document)
+
+    #expect(evaluated.brep.bodies.count == 1)
+    #expect(evaluated.brep.shells.count == 1)
+    #expect(evaluated.brep.faces.count == 11)
+    #expect(evaluated.brep.edges.count == 27)
+    #expect(evaluated.brep.vertices.count == 18)
+    #expect(evaluated.brep.vertices.values.contains { vertex in
+        vertex.point.isApproximatelyEqual(
+            to: Point3D(x: 0.010, y: 0.0, z: 0.0),
+            tolerance: 1.0e-12
+        )
+    })
+    #expect(evaluated.brep.vertices.values.contains { vertex in
+        vertex.point.isApproximatelyEqual(
+            to: Point3D(x: 0.010, y: 0.0, z: 0.010),
+            tolerance: 1.0e-12
+        )
+    })
+    try evaluated.brep.validate(level: .exact, tolerance: .standard)
+}
+
+@Test(.timeLimit(.minutes(1)))
 func loftSmoothSurfaceModeCreatesCubicSideFacesAndConnectorEdges() throws {
     let (document, _) = smoothThreeSectionLoftDocument()
 
@@ -350,55 +556,157 @@ func loftGuideEndpointSetsSectionSeamForGeneratedVertexOrder() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
+func loftGuideContactInsideExactBoundarySegmentCreatesPartitionVertex() throws {
+    let (document, loftID) = guidedRectangleLoftDocument(
+        guideSketch: loftVerticalGuideSketch(
+            x: 0.0,
+            y: -1.0,
+            zStart: 0.0,
+            zEnd: 10.0
+        )
+    )
+
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+    let firstVertexReference = try #require(evaluated.subshapes[SubshapeID(
+        featureID: loftID,
+        role: GeneratedSubshapeRole.vertex.rawValue,
+        ordinal: 0
+    )])
+    guard case let .vertex(firstVertexID) = firstVertexReference else {
+        Issue.record("Loft generated vertex 0 must resolve to a vertex reference.")
+        return
+    }
+    let firstVertex = try #require(evaluated.brep.vertices[firstVertexID])
+
+    #expect(firstVertex.point.isApproximatelyEqual(
+        to: Point3D(x: 0.0, y: -0.001, z: 0.0),
+        tolerance: 1.0e-12
+    ))
+    #expect(evaluated.brep.vertices.count == 10)
+    #expect(evaluated.brep.edges.count == 15)
+    #expect(evaluated.brep.faces.count == 7)
+    try evaluated.brep.validate(level: .exact, tolerance: .standard)
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftGuideResolvesExactInteriorContactOnEveryIntermediateSection() throws {
+    let planes: [SketchPlane] = [
+        .xy,
+        .plane(Plane3D(
+            origin: Point3D(x: 0.0, y: 0.0, z: 0.005),
+            normal: .unitZ
+        )),
+        .plane(Plane3D(
+            origin: Point3D(x: 0.0, y: 0.0, z: 0.010),
+            normal: .unitZ
+        )),
+    ]
+    let (document, _) = multiSectionGuidedRectangleLoftDocument(
+        guideSketches: [loftVerticalGuideSketch(
+            x: 0.0,
+            y: -1.0,
+            zStart: 0.0,
+            zEnd: 10.0
+        )],
+        profilePlanes: planes
+    )
+
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+
+    #expect(evaluated.brep.vertices.count == 15)
+    #expect(evaluated.brep.edges.count == 25)
+    #expect(evaluated.brep.faces.count == 12)
+    #expect(evaluated.brep.vertices.values.contains { vertex in
+        vertex.point.isApproximatelyEqual(
+            to: Point3D(x: 0.0, y: -0.001, z: 0.005),
+            tolerance: 1.0e-12
+        )
+    })
+    try evaluated.brep.validate(level: .exact, tolerance: .standard)
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftMultipleInteriorGuideContactsShareExactSectionIndexes() throws {
+    let (document, _) = guidedRectangleLoftDocument(guideSketches: [
+        loftVerticalGuideSketch(x: 0.0, y: -1.0, zStart: 0.0, zEnd: 10.0),
+        loftVerticalGuideSketch(x: 0.0, y: 1.0, zStart: 0.0, zEnd: 10.0),
+    ])
+
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+
+    #expect(evaluated.brep.vertices.count == 12)
+    #expect(evaluated.brep.edges.count == 18)
+    #expect(evaluated.brep.faces.count == 8)
+    let points = evaluated.brep.vertices.values.map(\.point)
+    for expected in [
+        Point3D(x: 0.0, y: -0.001, z: 0.0),
+        Point3D(x: 0.0, y: 0.001, z: 0.0),
+        Point3D(x: 0.0, y: -0.001, z: 0.010),
+        Point3D(x: 0.0, y: 0.001, z: 0.010),
+    ] {
+        #expect(points.contains { point in
+            point.isApproximatelyEqual(to: expected, tolerance: 1.0e-12)
+        })
+    }
+    try evaluated.brep.validate(level: .exact, tolerance: .standard)
+}
+
+@Test(.timeLimit(.minutes(1)))
 func loftCurvedGuideCreatesRailFollowingIntermediateRings() throws {
-    let (document, _) = guidedRectangleLoftDocument(
+    let (document, loftID) = guidedRectangleLoftDocument(
         guideSketch: loftCurvedGuideSketch(x: 2.0, y: -1.0, zStart: 0.0, zEnd: 10.0)
     )
 
     let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     let body = try #require(evaluated.brep.bodies.values.first)
-    let railVertices = evaluated.brep.vertices.values.filter { vertex in
-        abs(vertex.point.y + 0.001) <= 1.0e-12
-            && vertex.point.z > 0.0
-            && vertex.point.z < 0.010
-            && vertex.point.x > 0.0025
-    }
+    let rail = try loftConnectorCurve(
+        ordinal: 8,
+        loftID: loftID,
+        in: evaluated
+    )
+    let railMiddle = try rail.point(at: 0.5, tolerance: .standard)
 
     #expect(body.kind == .solid)
-    #expect(evaluated.brep.vertices.count > 8)
-    #expect(evaluated.brep.faces.count > 6)
-    #expect(railVertices.isEmpty == false)
-    try evaluated.brep.validate(tolerance: .standard)
+    #expect(evaluated.brep.vertices.count == 8)
+    #expect(evaluated.brep.faces.count == 6)
+    #expect(rail.degree == 3)
+    #expect(railMiddle.x > 0.0025)
+    #expect(abs(railMiddle.y + 0.001) <= 1.0e-12)
+    #expect(railMiddle.z > 0.0 && railMiddle.z < 0.010)
+    #expect(evaluated.brep.loops.values.allSatisfy { loop in
+        loop.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
+    })
+    try evaluated.brep.validate(level: .exact, tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
 func loftMultipleCurvedGuidesCreateDistinctRailConstrainedVertices() throws {
-    let (document, _) = guidedRectangleLoftDocument(guideSketches: [
+    let (document, loftID) = guidedRectangleLoftDocument(guideSketches: [
         loftCurvedGuideSketch(x: 2.0, y: -1.0, zStart: 0.0, zEnd: 10.0, localXOffset: -0.003),
         loftCurvedGuideSketch(x: -2.0, y: 1.0, zStart: 0.0, zEnd: 10.0, localXOffset: 0.003),
     ])
 
     let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     let body = try #require(evaluated.brep.bodies.values.first)
-    let rightRailVertices = evaluated.brep.vertices.values.filter { vertex in
-        abs(vertex.point.y + 0.001) <= 1.0e-12
-            && vertex.point.z > 0.0
-            && vertex.point.z < 0.010
-            && vertex.point.x > 0.0025
+    let nonlinearRails = try (8..<12).compactMap { ordinal -> BSplineCurve3D? in
+        let curve = try loftConnectorCurve(
+            ordinal: ordinal,
+            loftID: loftID,
+            in: evaluated
+        )
+        return curve.degree > 1 ? curve : nil
     }
-    let leftRailVertices = evaluated.brep.vertices.values.filter { vertex in
-        abs(vertex.point.y - 0.001) <= 1.0e-12
-            && vertex.point.z > 0.0
-            && vertex.point.z < 0.010
-            && vertex.point.x < -0.0025
+    let railMiddlePoints = try nonlinearRails.map {
+        try $0.point(at: 0.5, tolerance: .standard)
     }
 
     #expect(body.kind == .solid)
-    #expect(evaluated.brep.vertices.count > 8)
-    #expect(evaluated.brep.faces.count > 6)
-    #expect(rightRailVertices.isEmpty == false)
-    #expect(leftRailVertices.isEmpty == false)
-    try evaluated.brep.validate(tolerance: .standard)
+    #expect(evaluated.brep.vertices.count == 8)
+    #expect(evaluated.brep.faces.count == 6)
+    #expect(nonlinearRails.count == 2)
+    #expect(railMiddlePoints.contains { $0.x > 0.0025 && abs($0.y + 0.001) <= 1.0e-12 })
+    #expect(railMiddlePoints.contains { $0.x < -0.0025 && abs($0.y - 0.001) <= 1.0e-12 })
+    try evaluated.brep.validate(level: .exact, tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
@@ -415,31 +723,28 @@ func loftRejectsMultipleGuidesSharingBoundarySamples() throws {
 
 @Test(.timeLimit(.minutes(1)))
 func loftCurvedGuideAddsRailRingsBetweenMultipleProfileSections() throws {
-    let (document, _) = multiSectionGuidedRectangleLoftDocument(guideSketches: [
+    let (document, loftID) = multiSectionGuidedRectangleLoftDocument(guideSketches: [
         loftCurvedGuideSketch(x: 2.0, y: -1.0, zStart: 0.0, zEnd: 10.0),
     ])
 
     let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     let body = try #require(evaluated.brep.bodies.values.first)
-    let railVertices = evaluated.brep.vertices.values.filter { vertex in
-        abs(vertex.point.y + 0.001) <= 1.0e-12
-            && vertex.point.z > 0.0
-            && vertex.point.z < 0.010
-            && abs(vertex.point.z - 0.005) > 1.0e-6
-            && vertex.point.x > 0.0025
-    }
-    let middleSectionVertices = evaluated.brep.vertices.values.filter { vertex in
-        abs(vertex.point.x - 0.002) <= 1.0e-12
-            && abs(vertex.point.y + 0.001) <= 1.0e-12
-            && abs(vertex.point.z - 0.005) <= 1.0e-12
-    }
+    let lowerRail = try loftConnectorCurve(ordinal: 12, loftID: loftID, in: evaluated)
+    let upperRail = try loftConnectorCurve(ordinal: 16, loftID: loftID, in: evaluated)
+    let lowerEnd = try lowerRail.point(at: 1.0, tolerance: .standard)
+    let upperStart = try upperRail.point(at: 0.0, tolerance: .standard)
 
     #expect(body.kind == .solid)
-    #expect(evaluated.brep.vertices.count > 12)
-    #expect(evaluated.brep.faces.count > 10)
-    #expect(railVertices.isEmpty == false)
-    #expect(middleSectionVertices.isEmpty == false)
-    try evaluated.brep.validate(tolerance: .standard)
+    #expect(evaluated.brep.vertices.count == 12)
+    #expect(evaluated.brep.faces.count == 10)
+    #expect(lowerRail.degree == 3)
+    #expect(upperRail.degree == 3)
+    #expect(lowerEnd.isApproximatelyEqual(to: upperStart, tolerance: 1.0e-12))
+    #expect(lowerEnd.isApproximatelyEqual(
+        to: Point3D(x: 0.00425, y: -0.001, z: 0.005),
+        tolerance: 1.0e-12
+    ))
+    try evaluated.brep.validate(level: .exact, tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
@@ -533,7 +838,7 @@ func loftRejectsMixedDirectionSolidSectionStack() throws {
         _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         Issue.record("Mixed-direction loft must be rejected.")
     } catch let error as KernelError {
-        #expect(error.code == .unsupportedCapability)
+        #expect(error.code == .nonManifoldResult)
     }
 }
 
@@ -826,6 +1131,169 @@ private func concaveNotchSketch(plane: SketchPlane) -> Sketch {
     )
 }
 
+private func rectangularHoleLoftDocument(
+    resultKind: LoftResultKind,
+    guidesInnerBoundary: Bool = false,
+    surfaceMode: LoftSurfaceMode = .ruled
+) -> (CADDocument, FeatureID) {
+    let firstProfileID = FeatureID()
+    let secondProfileID = FeatureID()
+    let guideID = guidesInnerBoundary ? FeatureID() : nil
+    let loftID = FeatureID()
+    let secondPlane = SketchPlane.plane(Plane3D(
+        origin: Point3D(x: 0.0, y: 0.0, z: 0.010),
+        normal: .unitZ
+    ))
+    let loft = LoftFeature(
+        sections: [
+            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
+        ],
+        guides: guideID.map { [LoftGuideReference(featureID: $0)] } ?? [],
+        options: LoftOptions(resultKind: resultKind, surfaceMode: surfaceMode)
+    )
+    var nodes: [FeatureID: FeatureNode] = [
+        firstProfileID: FeatureNode(
+            id: firstProfileID,
+            operation: .sketch(loftRectangularHoleSketch(plane: .xy)),
+            outputs: [FeatureOutput(role: .profile)]
+        ),
+        secondProfileID: FeatureNode(
+            id: secondProfileID,
+            operation: .sketch(loftRectangularHoleSketch(plane: secondPlane)),
+            outputs: [FeatureOutput(role: .profile)]
+        ),
+    ]
+    if let guideID {
+        nodes[guideID] = FeatureNode(
+            id: guideID,
+            operation: .sketch(loftVerticalGuideSketch(
+                x: 10.0,
+                y: 0.0,
+                zStart: 0.0,
+                zEnd: 10.0
+            )),
+            outputs: [FeatureOutput(role: .curve)]
+        )
+    }
+    nodes[loftID] = FeatureNode(
+        id: loftID,
+        operation: .loft(loft),
+        inputs: [
+            FeatureInput(featureID: firstProfileID, role: .profile),
+            FeatureInput(featureID: secondProfileID, role: .profile),
+        ] + (guideID.map { [FeatureInput(featureID: $0, role: .guide)] } ?? []),
+        outputs: [FeatureOutput(role: resultKind == .solid ? .body : .sheet)]
+    )
+    let orderedGuideIDs = guideID.map { [$0] } ?? []
+    return (
+        CADDocument(
+            units: .millimeters,
+            designGraph: DesignGraph(
+                nodes: nodes,
+                order: [firstProfileID, secondProfileID] + orderedGuideIDs + [loftID],
+                dependencies: [
+                    DependencyEdge(source: firstProfileID, target: loftID),
+                    DependencyEdge(source: secondProfileID, target: loftID),
+                ] + orderedGuideIDs.map { guideID in
+                    DependencyEdge(source: guideID, target: loftID)
+                },
+                revision: DocumentRevision(3 + orderedGuideIDs.count)
+            )
+        ),
+        loftID
+    )
+}
+
+private func circularHoleLoftDocument() -> CADDocument {
+    let firstProfileID = FeatureID()
+    let secondProfileID = FeatureID()
+    let loftID = FeatureID()
+    let secondPlane = SketchPlane.plane(Plane3D(
+        origin: Point3D(x: 0.0, y: 0.0, z: 0.010),
+        normal: .unitZ
+    ))
+    let loft = LoftFeature(
+        sections: [
+            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
+        ],
+        options: LoftOptions(resultKind: .solid, surfaceMode: .ruled)
+    )
+    return CADDocument(
+        units: .millimeters,
+        designGraph: DesignGraph(
+            nodes: [
+                firstProfileID: FeatureNode(
+                    id: firstProfileID,
+                    operation: .sketch(loftCircularHoleSketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                secondProfileID: FeatureNode(
+                    id: secondProfileID,
+                    operation: .sketch(loftCircularHoleSketch(plane: secondPlane)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                loftID: FeatureNode(
+                    id: loftID,
+                    operation: .loft(loft),
+                    inputs: [
+                        FeatureInput(featureID: firstProfileID, role: .profile),
+                        FeatureInput(featureID: secondProfileID, role: .profile),
+                    ],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+            ],
+            order: [firstProfileID, secondProfileID, loftID],
+            dependencies: [
+                DependencyEdge(source: firstProfileID, target: loftID),
+                DependencyEdge(source: secondProfileID, target: loftID),
+            ],
+            revision: DocumentRevision(3)
+        )
+    )
+}
+
+private func loftRectangularHoleSketch(plane: SketchPlane) -> Sketch {
+    let outerHalfExtent = 20.0
+    let innerHalfExtent = 10.0
+    let outer = [
+        loftPoint(x: -outerHalfExtent, y: -outerHalfExtent),
+        loftPoint(x: outerHalfExtent, y: -outerHalfExtent),
+        loftPoint(x: outerHalfExtent, y: outerHalfExtent),
+        loftPoint(x: -outerHalfExtent, y: outerHalfExtent),
+    ]
+    let inner = [
+        loftPoint(x: -innerHalfExtent, y: -innerHalfExtent),
+        loftPoint(x: innerHalfExtent, y: -innerHalfExtent),
+        loftPoint(x: innerHalfExtent, y: innerHalfExtent),
+        loftPoint(x: -innerHalfExtent, y: innerHalfExtent),
+    ]
+    var entities: [SketchEntityID: SketchEntity] = [:]
+    for points in [outer, inner] {
+        for index in points.indices {
+            entities[SketchEntityID()] = .line(SketchLine(
+                start: points[index],
+                end: points[(index + 1) % points.count]
+            ))
+        }
+    }
+    return Sketch(plane: plane, entities: entities)
+}
+
+private func loftCircularHoleSketch(plane: SketchPlane) -> Sketch {
+    var entities = loftRectangleSketch(
+        width: 40.0,
+        height: 40.0,
+        plane: plane
+    ).entities
+    entities[SketchEntityID()] = .circle(SketchCircle(
+        center: loftPoint(x: 0.0, y: 0.0),
+        radius: .constant(.length(10.0, unit: .millimeter))
+    ))
+    return Sketch(plane: plane, entities: entities)
+}
+
 private func ruledRectangleLoftDocument(
     resultKind: LoftResultKind,
     firstSectionStartSampleIndex: Int? = nil,
@@ -937,6 +1405,55 @@ private func nonPlanarSectionLoftDocument() -> (CADDocument, FeatureID) {
     return (document, loftID)
 }
 
+private func ruledCircleLoftDocument() -> CADDocument {
+    let firstProfileID = FeatureID()
+    let secondProfileID = FeatureID()
+    let loftID = FeatureID()
+    let secondPlane = SketchPlane.plane(Plane3D(
+        origin: Point3D(x: 0.0, y: 0.0, z: 0.010),
+        normal: .unitZ
+    ))
+    let loft = LoftFeature(
+        sections: [
+            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
+        ],
+        options: LoftOptions(resultKind: .solid, surfaceMode: .ruled)
+    )
+    return CADDocument(
+        units: .millimeters,
+        designGraph: DesignGraph(
+            nodes: [
+                firstProfileID: FeatureNode(
+                    id: firstProfileID,
+                    operation: .sketch(loftCircleSketch(radius: 2.0, plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                secondProfileID: FeatureNode(
+                    id: secondProfileID,
+                    operation: .sketch(loftCircleSketch(radius: 3.0, plane: secondPlane)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                loftID: FeatureNode(
+                    id: loftID,
+                    operation: .loft(loft),
+                    inputs: [
+                        FeatureInput(featureID: firstProfileID, role: .profile),
+                        FeatureInput(featureID: secondProfileID, role: .profile),
+                    ],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+            ],
+            order: [firstProfileID, secondProfileID, loftID],
+            dependencies: [
+                DependencyEdge(source: firstProfileID, target: loftID),
+                DependencyEdge(source: secondProfileID, target: loftID),
+            ],
+            revision: DocumentRevision(3)
+        )
+    )
+}
+
 private func smoothThreeSectionLoftDocument(
     smoothTangentScale: Double = 1.0,
     sectionSmoothTangentScales: [Double?] = [nil, nil, nil],
@@ -1037,6 +1554,26 @@ private func firstSmoothConnectorCurve(
           let edge = evaluated.brep.edges[edgeID],
           let curve = evaluated.brep.geometry.curves[edge.curveID]?.bSplineCurve else {
         throw FeatureEvaluationError.invalidGraph("Missing first smooth Loft connector curve.")
+    }
+    return curve
+}
+
+private func loftConnectorCurve(
+    ordinal: Int,
+    loftID: FeatureID,
+    in evaluated: EvaluatedDocument
+) throws -> BSplineCurve3D {
+    let subshapeID = SubshapeID(
+        featureID: loftID,
+        role: GeneratedSubshapeRole.edge.rawValue,
+        ordinal: ordinal
+    )
+    guard case .edge(let edgeID) = evaluated.subshapes[subshapeID],
+          let edge = evaluated.brep.edges[edgeID],
+          let curve = evaluated.brep.geometry.curves[edge.curveID]?.bSplineCurve else {
+        throw FeatureEvaluationError.invalidGraph(
+            "Missing exact Loft connector curve at ordinal \(ordinal)."
+        )
     }
     return curve
 }
@@ -1186,15 +1723,16 @@ private func guidedRectangleLoftDocument(
 }
 
 private func multiSectionGuidedRectangleLoftDocument(
-    guideSketches: [Sketch]
+    guideSketches: [Sketch],
+    profilePlanes providedProfilePlanes: [SketchPlane]? = nil
 ) -> (CADDocument, FeatureID) {
     let profileIDs = (0..<3).map { _ in FeatureID() }
     let guideIDs = guideSketches.map { _ in FeatureID() }
     let loftID = FeatureID()
-    let profilePlanes: [SketchPlane] = [
+    let defaultProfilePlanes: [SketchPlane] = [
         .xy,
         .plane(Plane3D(
-            origin: Point3D(x: 0.0, y: 0.0, z: 0.005),
+            origin: Point3D(x: 0.00225, y: 0.0, z: 0.005),
             normal: .unitZ
         )),
         .plane(Plane3D(
@@ -1202,6 +1740,10 @@ private func multiSectionGuidedRectangleLoftDocument(
             normal: .unitZ
         )),
     ]
+    let profilePlanes = providedProfilePlanes ?? defaultProfilePlanes
+    guard profilePlanes.count == profileIDs.count else {
+        return (CADDocument(units: .millimeters), FeatureID())
+    }
     let loft = LoftFeature(
         sections: profileIDs.map { profileID in
             LoftSectionReference(profile: ProfileReference(featureID: profileID))
@@ -1327,6 +1869,18 @@ private func loftRectangleSketch(width: Double, height: Double, plane: SketchPla
             .coincident(.lineEnd(leftID), .lineStart(bottomID)),
         ],
         dimensions: []
+    )
+}
+
+private func loftCircleSketch(radius: Double, plane: SketchPlane) -> Sketch {
+    Sketch(
+        plane: plane,
+        entities: [
+            SketchEntityID(): .circle(SketchCircle(
+                center: loftPoint(x: 0.0, y: 0.0),
+                radius: .constant(.length(radius, unit: .millimeter))
+            )),
+        ]
     )
 }
 

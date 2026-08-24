@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
     private struct EdgeUseCount {
@@ -48,7 +49,7 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
         case .references:
             referenceDiagnostics(model: model, tolerance: tolerance)
         case .loops:
-            loopDiagnostics(model: model)
+            loopDiagnostics(model: model, tolerance: tolerance)
         case .pcurves:
             pcurveDiagnostics(model: model, tolerance: tolerance)
         case .orientation:
@@ -306,8 +307,12 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
         return result
     }
 
-    private func loopDiagnostics(model: BRepModel) -> [TopologyValidationDiagnostic] {
+    private func loopDiagnostics(
+        model: BRepModel,
+        tolerance: ModelingTolerance
+    ) -> [TopologyValidationDiagnostic] {
         var result: [TopologyValidationDiagnostic] = []
+        var surfacesByLoopID: [LoopID: Surface3D] = [:]
         for (faceID, face) in sorted(model.faces) {
             let existingLoops = face.loops.compactMap { model.loops[$0] }
             let outerCount = existingLoops.filter { $0.role == .outer }.count
@@ -318,6 +323,11 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
                     entityID: faceID,
                     message: "A face requires exactly one outer loop; found \(outerCount)."
                 ))
+            }
+            if let surface = model.geometry.surfaces[face.surfaceID] {
+                for loopID in face.loops {
+                    surfacesByLoopID[loopID] = surface
+                }
             }
         }
         for (loopID, loop) in sorted(model.loops) {
@@ -330,12 +340,19 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
                 ))
                 continue
             }
-            if Set(loop.coedges.map(\.edgeID)).count != loop.coedges.count {
+            if Set(loop.coedges.map(\.edgeID)).count != loop.coedges.count,
+               surfacesByLoopID[loopID].map({ surface in
+                   PeriodicFaceSeamValidator().certifiesRepeatedEdgeUses(
+                       in: loop,
+                       on: surface,
+                       tolerance: tolerance
+                   )
+               }) != true {
                 result.append(diagnostic(
                     scope: .loops,
                     code: .topologyFailure,
                     entityID: loopID,
-                    message: "Loop contains duplicate edge references."
+                    message: "Loop contains repeated edge references that are not certified periodic seam uses."
                 ))
             }
             guard let first = orientedVertices(
@@ -399,7 +416,7 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
             }
         }
         let prerequisites = referenceDiagnostics(model: model, tolerance: tolerance)
-            + loopDiagnostics(model: model)
+            + loopDiagnostics(model: model, tolerance: tolerance)
             + orientationDiagnostics(model: model)
             + manifoldDiagnostics(model: model)
             + watertightDiagnostics(model: model)
@@ -504,7 +521,7 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
     ) -> [TopologyValidationDiagnostic] {
         guard model.bodies.values.contains(where: { $0.kind == .solid }) else { return [] }
         let prerequisites = referenceDiagnostics(model: model, tolerance: tolerance)
-            + loopDiagnostics(model: model)
+            + loopDiagnostics(model: model, tolerance: tolerance)
             + orientationDiagnostics(model: model)
             + manifoldDiagnostics(model: model)
             + watertightDiagnostics(model: model)

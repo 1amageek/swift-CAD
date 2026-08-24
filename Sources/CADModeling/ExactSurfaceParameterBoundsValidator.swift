@@ -96,6 +96,21 @@ package struct ExactSurfaceParameterBoundsValidator {
              .analytic(.cylinder),
              .analytic(.torus):
             break
+        case .procedural:
+            try DefaultSurfaceRegularityValidator().validate(
+                surface,
+                over: SurfaceParameterBox(
+                    u: try ScalarInterval(
+                        lower: bounds.lowerU,
+                        upper: bounds.upperU
+                    ),
+                    v: try ScalarInterval(
+                        lower: bounds.lowerV,
+                        upper: bounds.upperV
+                    )
+                ),
+                tolerance: tolerance
+            )
         }
     }
 

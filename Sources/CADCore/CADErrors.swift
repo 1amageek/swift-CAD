@@ -39,6 +39,7 @@ public enum GeometryError: Error, Equatable, Sendable {
 public enum SketchError: Error, Equatable, Sendable {
     case unsupportedEntity(String)
     case unsupportedProfile(String)
+    case disconnectedCurveChain(operation: String)
     case invalidReference(String)
     case openProfile
     case degenerateProfile

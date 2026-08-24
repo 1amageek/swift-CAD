@@ -95,7 +95,6 @@ struct GeneralSphereCylinderSurfaceIntersector {
                 )
             }
             return try fullDomainIntersections(
-                configuration: configuration,
                 builder: builder,
                 sphereSurface: sphereSurface,
                 cylinderSurface: cylinderSurface,
@@ -125,7 +124,6 @@ struct GeneralSphereCylinderSurfaceIntersector {
             if intervalNodes.isEmpty {
                 results.append(try intervalIntersection(
                     interval: interval,
-                    configuration: configuration,
                     builder: builder,
                     sphereSurface: sphereSurface,
                     cylinderSurface: cylinderSurface,
@@ -280,35 +278,13 @@ struct GeneralSphereCylinderSurfaceIntersector {
             upperAngle: upperAngle,
             tolerance: tolerance
         )
-        let derived = try builder.intersection(
-            parameterRange: 0.0...1.0,
+        return try splineIntersection(
+            proceduralCurve: proceduralCurve,
+            builder: builder,
             initialBreaks: (0...8).map { Double($0) / 8.0 },
             kind: kind,
             isClosed: false,
-            firstParameterAt: { fraction in
-                try proceduralCurve.parameter(
-                    on: firstSurface,
-                    atNormalizedFraction: fraction,
-                    tolerance: tolerance
-                )
-            },
-            secondParameterAt: { fraction in
-                try proceduralCurve.parameter(
-                    on: secondSurface,
-                    atNormalizedFraction: fraction,
-                    tolerance: tolerance
-                )
-            },
-            pointAt: { fraction in
-                try proceduralCurve.point(
-                    atNormalizedFraction: fraction,
-                    tolerance: tolerance
-                )
-            }
-        )
-        return try certifiedIntersection(
-            derived,
-            proceduralCurve: proceduralCurve,
+            providesRegularParameterDifferentials: false,
             firstSurface: firstSurface,
             secondSurface: secondSurface,
             tolerance: tolerance
@@ -316,7 +292,6 @@ struct GeneralSphereCylinderSurfaceIntersector {
     }
 
     private func fullDomainIntersections(
-        configuration: Configuration,
         builder: SurfaceIntersectionSplineBuilder,
         sphereSurface: Surface3D,
         cylinderSurface: Surface3D,
@@ -324,28 +299,14 @@ struct GeneralSphereCylinderSurfaceIntersector {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        let breaks = (0...16).map { Double($0) / 16.0 }
-        return try [1.0, -1.0].map { branch in
-            let derived = try builder.intersection(
-                parameterRange: 0.0...1.0,
-                initialBreaks: breaks,
-                kind: .transverse,
-                pointAt: { fraction in
-                    try intersectionPoint(
-                        angle: 2.0 * Double.pi * fraction,
-                        branch: branch,
-                        configuration: configuration,
-                        tolerance: tolerance
-                    )
-                }
-            )
-            return try certifiedIntersection(
-                derived,
-                componentKind: branch < 0.0
-                    ? .negativeFullBranch
-                    : .positiveFullBranch,
-                lowerAngle: 0.0,
-                upperAngle: 2.0 * Double.pi,
+        try [
+            CertifiedSphereCylinderIntersectionCurve.ComponentKind
+                .positiveFullBranch,
+            .negativeFullBranch,
+        ].map { componentKind in
+            try fullDomainIntersection(
+                componentKind: componentKind,
+                builder: builder,
                 sphereSurface: sphereSurface,
                 cylinderSurface: cylinderSurface,
                 firstSurface: firstSurface,
@@ -372,34 +333,13 @@ struct GeneralSphereCylinderSurfaceIntersector {
             upperAngle: 2.0 * Double.pi,
             tolerance: tolerance
         )
-        let derived = try builder.intersection(
-            parameterRange: 0.0...1.0,
+        return try splineIntersection(
+            proceduralCurve: proceduralCurve,
+            builder: builder,
             initialBreaks: (0...16).map { Double($0) / 16.0 },
             kind: .transverse,
-            firstParameterAt: { fraction in
-                try proceduralCurve.parameter(
-                    on: firstSurface,
-                    atNormalizedFraction: fraction,
-                    tolerance: tolerance
-                )
-            },
-            secondParameterAt: { fraction in
-                try proceduralCurve.parameter(
-                    on: secondSurface,
-                    atNormalizedFraction: fraction,
-                    tolerance: tolerance
-                )
-            },
-            pointAt: { fraction in
-                try proceduralCurve.point(
-                    atNormalizedFraction: fraction,
-                    tolerance: tolerance
-                )
-            }
-        )
-        return try certifiedIntersection(
-            derived,
-            proceduralCurve: proceduralCurve,
+            isClosed: true,
+            providesRegularParameterDifferentials: true,
             firstSurface: firstSurface,
             secondSurface: secondSurface,
             tolerance: tolerance
@@ -408,51 +348,7 @@ struct GeneralSphereCylinderSurfaceIntersector {
 
     private func intervalIntersection(
         interval: AngularInterval,
-        configuration: Configuration,
         builder: SurfaceIntersectionSplineBuilder,
-        sphereSurface: Surface3D,
-        cylinderSurface: Surface3D,
-        firstSurface: Surface3D,
-        secondSurface: Surface3D,
-        tolerance: ModelingTolerance
-    ) throws -> SurfaceSurfaceIntersection {
-        let derived = try builder.intersection(
-            parameterRange: 0.0...1.0,
-            initialBreaks: (0...8).map { Double($0) / 8.0 },
-            kind: .mixed,
-            pointAt: { fraction in
-                let midpoint = interval.lower
-                    + (interval.upper - interval.lower) * 0.5
-                let halfSpan = (interval.upper - interval.lower) * 0.5
-                let phase = 2.0 * Double.pi * fraction
-                let angle = midpoint - halfSpan * cos(phase)
-                let branch = sin(phase) < 0.0 ? -1.0 : 1.0
-                return try intersectionPoint(
-                    angle: angle,
-                    branch: branch,
-                    configuration: configuration,
-                    tolerance: tolerance
-                )
-            }
-        )
-        return try certifiedIntersection(
-            derived,
-            componentKind: .boundedAngularInterval,
-            lowerAngle: interval.lower,
-            upperAngle: interval.upper,
-            sphereSurface: sphereSurface,
-            cylinderSurface: cylinderSurface,
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            tolerance: tolerance
-        )
-    }
-
-    private func certifiedIntersection(
-        _ derived: SurfaceSurfaceIntersection,
-        componentKind: CertifiedSphereCylinderIntersectionCurve.ComponentKind,
-        lowerAngle: Double,
-        upperAngle: Double,
         sphereSurface: Surface3D,
         cylinderSurface: Surface3D,
         firstSurface: Surface3D,
@@ -462,25 +358,109 @@ struct GeneralSphereCylinderSurfaceIntersector {
         let proceduralCurve = try CertifiedSphereCylinderIntersectionCurve(
             sphereSurface: sphereSurface,
             cylinderSurface: cylinderSurface,
-            componentKind: componentKind,
-            lowerAngle: lowerAngle,
-            upperAngle: upperAngle,
+            componentKind: .boundedAngularInterval,
+            lowerAngle: interval.lower,
+            upperAngle: interval.upper,
             tolerance: tolerance
         )
-        return try certifiedIntersection(
-            derived,
+        return try splineIntersection(
             proceduralCurve: proceduralCurve,
+            builder: builder,
+            initialBreaks: (0...8).map { Double($0) / 8.0 },
+            kind: .mixed,
+            isClosed: true,
+            providesRegularParameterDifferentials: true,
             firstSurface: firstSurface,
             secondSurface: secondSurface,
             tolerance: tolerance
         )
     }
 
-    private func certifiedIntersection(
-        _ derived: SurfaceSurfaceIntersection,
+    private func splineIntersection(
         proceduralCurve: CertifiedSphereCylinderIntersectionCurve,
+        builder: SurfaceIntersectionSplineBuilder,
+        initialBreaks: [Double],
+        kind: CurveSurfaceIntersectionKind,
+        isClosed: Bool,
+        providesRegularParameterDifferentials: Bool,
         firstSurface: Surface3D,
         secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        let truth = try CertifiedAnalyticAnalyticIntersectionCurve(
+            sphereCylinderCurve: proceduralCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
+        let firstParameterCurve = truth.firstSurfaceParameterCurve
+        let secondParameterCurve = truth.secondSurfaceParameterCurve
+        let firstParameterAt: (Double) throws -> SurfaceParameter = { fraction in
+            try firstParameterCurve.parameter(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        }
+        let secondParameterAt: (Double) throws -> SurfaceParameter = { fraction in
+            try secondParameterCurve.parameter(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        }
+        let pointFirstDerivativeAt: (Double) throws -> Vector3D = { fraction in
+            try truth.differential(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            ).firstDerivative
+        }
+        let pointAt: (Double) throws -> Point3D = { fraction in
+            try truth.point(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        }
+        let derived: SurfaceSurfaceIntersection
+        if providesRegularParameterDifferentials {
+            derived = try builder.intersection(
+                parameterRange: 0.0...1.0,
+                initialBreaks: initialBreaks,
+                kind: kind,
+                isClosed: isClosed,
+                firstParameterAt: firstParameterAt,
+                secondParameterAt: secondParameterAt,
+                firstParameterDifferentialAt: { fraction in
+                    try firstParameterCurve.differentialGeometry(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                },
+                secondParameterDifferentialAt: { fraction in
+                    try secondParameterCurve.differentialGeometry(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                },
+                pointFirstDerivativeAt: pointFirstDerivativeAt,
+                pointAt: pointAt
+            )
+        } else {
+            derived = try builder.intersection(
+                parameterRange: 0.0...1.0,
+                initialBreaks: initialBreaks,
+                kind: kind,
+                isClosed: isClosed,
+                firstParameterAt: firstParameterAt,
+                secondParameterAt: secondParameterAt,
+                pointFirstDerivativeAt: pointFirstDerivativeAt,
+                pointAt: pointAt
+            )
+        }
+        return try certifiedIntersection(derived, truth: truth, tolerance: tolerance)
+    }
+
+    private func certifiedIntersection(
+        _ derived: SurfaceSurfaceIntersection,
+        truth: CertifiedAnalyticAnalyticIntersectionCurve,
         tolerance: ModelingTolerance
     ) throws -> SurfaceSurfaceIntersection {
         guard case let .curve(derivedCurve) = derived else {
@@ -491,12 +471,6 @@ struct GeneralSphereCylinderSurfaceIntersector {
                 message: "A regular sphere-cylinder component did not produce a derived curve cache."
             )
         }
-        let truth = try CertifiedAnalyticAnalyticIntersectionCurve(
-            sphereCylinderCurve: proceduralCurve,
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            tolerance: tolerance
-        )
         return .curve(try SurfaceSurfaceIntersectionCurve(
             truth: .analyticAnalytic(truth),
             derivedRepresentation: derivedCurve.derivedRepresentation,

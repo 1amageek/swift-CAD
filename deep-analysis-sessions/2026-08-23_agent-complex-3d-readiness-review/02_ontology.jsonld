@@ -1,0 +1,980 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "ea": "https://deep-analysis.dev/vocab#",
+    "rel": "https://deep-analysis.dev/relations#",
+    "schema": "https://schema.org/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "dc": "http://purl.org/dc/terms/",
+    "Topic": "ea:Topic",
+    "Evidence": "ea:Evidence",
+    "Insight": "ea:Insight",
+    "Question": "ea:Question",
+    "title": "rdfs:label",
+    "content": "schema:description",
+    "session": {
+      "@id": "ea:sessionMetadata",
+      "@type": "@json"
+    },
+    "view": {
+      "@id": "ea:view",
+      "@type": "@json"
+    },
+    "tags": {
+      "@id": "ea:tag",
+      "@container": "@set"
+    },
+    "epistemicStatus": {
+      "@id": "ea:epistemicStatus"
+    },
+    "confidence": {
+      "@id": "ea:confidence",
+      "@type": "xsd:decimal"
+    },
+    "priorConfidence": {
+      "@id": "ea:priorConfidence",
+      "@type": "xsd:decimal"
+    },
+    "posteriorConfidence": {
+      "@id": "ea:posteriorConfidence",
+      "@type": "xsd:decimal"
+    },
+    "parent": {
+      "@id": "ea:parent",
+      "@type": "@id"
+    },
+    "children": {
+      "@id": "ea:children",
+      "@type": "@id",
+      "@container": "@set"
+    },
+    "decompositionStrategy": {
+      "@id": "ea:decompositionStrategy"
+    },
+    "derivedFrom": {
+      "@id": "ea:derivedFrom",
+      "@type": "@id",
+      "@container": "@set"
+    },
+    "rationale": "ea:rationale",
+    "summary": "ea:summary",
+    "inferenceType": {
+      "@id": "ea:inferenceType"
+    },
+    "inferenceRationale": "ea:inferenceRationale",
+    "inferenceStrength": {
+      "@id": "ea:inferenceStrength",
+      "@type": "xsd:decimal"
+    },
+    "synthesis": {
+      "@id": "ea:synthesis",
+      "@type": "@json"
+    },
+    "claimRole": {
+      "@id": "ea:claimRole"
+    },
+    "primaryEvidence": {
+      "@id": "ea:primaryEvidence",
+      "@type": "@id",
+      "@container": "@set"
+    },
+    "counterEvidence": {
+      "@id": "ea:counterEvidence",
+      "@type": "@id",
+      "@container": "@set"
+    },
+    "sourceTopics": {
+      "@id": "ea:sourceTopics",
+      "@type": "@id",
+      "@container": "@set"
+    },
+    "reasoningPattern": {
+      "@id": "ea:reasoningPattern"
+    },
+    "synthesisStrength": {
+      "@id": "ea:synthesisStrength",
+      "@type": "xsd:decimal"
+    },
+    "limitations": {
+      "@id": "ea:limitations"
+    },
+    "visualEvidenceRequirement": {
+      "@id": "ea:visualEvidenceRequirement",
+      "@type": "@json"
+    },
+    "evidencePattern": {
+      "@id": "ea:evidencePattern"
+    },
+    "requiredChartType": "ea:requiredChartType",
+    "evidence": {
+      "@id": "ea:evidence",
+      "@type": "@json"
+    },
+    "investigations": {
+      "@id": "ea:investigations",
+      "@type": "@json"
+    },
+    "insights": {
+      "@id": "ea:insights",
+      "@type": "@json"
+    },
+    "chartableData": {
+      "@id": "ea:chartableData",
+      "@type": "@json"
+    },
+    "questionStatus": {
+      "@id": "ea:questionStatus"
+    },
+    "supports": {
+      "@id": "rel:supports",
+      "@type": "@id",
+      "@container": "@set"
+    },
+    "refutes": {
+      "@id": "rel:refutes",
+      "@type": "@id",
+      "@container": "@set"
+    },
+    "asksAbout": {
+      "@id": "rel:asksAbout",
+      "@type": "@id",
+      "@container": "@set"
+    },
+    "resolvedBy": {
+      "@id": "rel:resolvedBy",
+      "@type": "@id",
+      "@container": "@set"
+    },
+    "seriesLabel": "ea:seriesLabel",
+    "subject": "ea:subject",
+    "value": "schema:value",
+    "unit": "schema:unitText",
+    "period": "schema:temporalCoverage",
+    "status": "ea:status",
+    "supportsClaim": {
+      "@id": "ea:supportsClaim",
+      "@type": "@id",
+      "@container": "@set"
+    },
+    "visualRole": {
+      "@id": "ea:visualRole"
+    },
+    "appliedFrameworks": {
+      "@id": "ea:appliedFrameworks",
+      "@container": "@set"
+    },
+    "frameworkApplication": "ea:frameworkApplication",
+    "createdAt": {
+      "@id": "prov:generatedAtTime",
+      "@type": "xsd:dateTime"
+    },
+    "updatedAt": {
+      "@id": "ea:updatedAt",
+      "@type": "xsd:dateTime"
+    },
+    "wasGeneratedBy": {
+      "@id": "prov:wasGeneratedBy"
+    },
+    "wasRevisionOf": {
+      "@id": "prov:wasRevisionOf"
+    },
+    "source": "ea:source",
+    "sourceUrl": {
+      "@id": "schema:url"
+    },
+    "reliability": {
+      "@id": "ea:reliability",
+      "@type": "xsd:decimal"
+    },
+    "layer": "https://deep-analysis.dev/layers#",
+    "causes": {
+      "@id": "rel:causes",
+      "@type": "@id"
+    },
+    "causedBy": {
+      "@id": "rel:causedBy",
+      "@type": "@id",
+      "@reverse": "rel:causes"
+    },
+    "enables": {
+      "@id": "rel:enables",
+      "@type": "@id"
+    },
+    "prevents": {
+      "@id": "rel:prevents",
+      "@type": "@id"
+    },
+    "correlatesWith": {
+      "@id": "rel:correlatesWith",
+      "@type": "@id"
+    },
+    "implies": {
+      "@id": "rel:implies",
+      "@type": "@id"
+    },
+    "contradicts": {
+      "@id": "rel:contradicts",
+      "@type": "@id"
+    },
+    "partOf": {
+      "@id": "rel:partOf",
+      "@type": "@id"
+    },
+    "hasComponent": {
+      "@id": "rel:hasComponent",
+      "@type": "@id",
+      "@reverse": "rel:partOf"
+    },
+    "generalizes": {
+      "@id": "rel:generalizes",
+      "@type": "@id"
+    },
+    "specializes": {
+      "@id": "rel:specializes",
+      "@type": "@id",
+      "@reverse": "rel:generalizes"
+    },
+    "analogousTo": {
+      "@id": "rel:analogousTo",
+      "@type": "@id"
+    },
+    "precedes": {
+      "@id": "rel:precedes",
+      "@type": "@id"
+    },
+    "triggers": {
+      "@id": "rel:triggers",
+      "@type": "@id"
+    },
+    "coOccursWith": {
+      "@id": "rel:coOccursWith",
+      "@type": "@id"
+    },
+    "manifestsAs": {
+      "@id": "rel:manifestsAs",
+      "@type": "@id"
+    },
+    "addresses": {
+      "@id": "rel:addresses",
+      "@type": "@id"
+    },
+    "addressedBy": {
+      "@id": "rel:addressedBy",
+      "@type": "@id",
+      "@reverse": "rel:addresses"
+    },
+    "operatesIn": {
+      "@id": "rel:operatesIn",
+      "@type": "@id"
+    },
+    "produces": {
+      "@id": "rel:produces",
+      "@type": "@id"
+    },
+    "strength": {
+      "@id": "rel:strength",
+      "@type": "xsd:decimal"
+    },
+    "polarity": {
+      "@id": "rel:polarity"
+    },
+    "epi": "https://deep-analysis.dev/epistemic#",
+    "evidenceCount": {
+      "@id": "epi:evidenceCount",
+      "@type": "xsd:integer"
+    },
+    "counterEvidenceCount": {
+      "@id": "epi:counterEvidenceCount",
+      "@type": "xsd:integer"
+    },
+    "investigationCount": {
+      "@id": "epi:investigationCount",
+      "@type": "xsd:integer"
+    },
+    "lastUpdated": {
+      "@id": "epi:lastUpdated",
+      "@type": "xsd:dateTime"
+    },
+    "confidenceUpdate": "epi:confidenceUpdate",
+    "fromConfidence": {
+      "@id": "epi:fromConfidence",
+      "@type": "xsd:decimal"
+    },
+    "toConfidence": {
+      "@id": "epi:toConfidence",
+      "@type": "xsd:decimal"
+    },
+    "updateReason": "epi:updateReason",
+    "updateEvidence": "epi:updateEvidence"
+  },
+  "session": {
+    "id": "2026-08-23_agent-complex-3d-readiness-review",
+    "title": "Agent-driven complex 3D product generation readiness",
+    "createdAt": "2026-08-23T04:40:00+09:00",
+    "updatedAt": "2026-08-23T14:49:00+09:00",
+    "appliedFrameworks": [
+      "end-to-end capability funnel",
+      "compositional closure",
+      "release-gate assessment"
+    ]
+  },
+  "@graph": [
+    {
+      "@id": "topic:product-goal",
+      "@type": "Topic",
+      "title": "Product goal",
+      "content": "An external Agent should be able to construct, edit, query, validate, persist, and exchange complex exact 3D products through a deterministic CAD substrate.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "tags": [
+        "goal",
+        "agent",
+        "cad"
+      ],
+      "decompositionStrategy": "end-to-end capability funnel"
+    },
+    {
+      "@id": "topic:agent-contract",
+      "@type": "Topic",
+      "title": "Agent-facing contract",
+      "content": "The repository exposes Codable CADCommand and KernelQuery contracts and a SwiftCAD pipeline/builder facade. Natural-language planning and autonomous intent decomposition are outside this repository.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.96,
+      "parent": "topic:product-goal",
+      "supports": [
+        "insight:substrate-strong"
+      ]
+    },
+    {
+      "@id": "topic:capability-coverage",
+      "@type": "Topic",
+      "title": "Capability coverage",
+      "content": "The current ledger reports 67 capabilities: 39 supported and 28 partial. The repository completion rule grants completion only to supported capabilities with complete evidence.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "parent": "topic:product-goal",
+      "supports": [
+        "insight:general-not-achieved"
+      ]
+    },
+    {
+      "@id": "topic:composition",
+      "@type": "Topic",
+      "title": "Compositional closure",
+      "content": "Complex product generation requires an output accepted as supported by one operation to remain valid input for subsequent supported or general operations.",
+      "epistemicStatus": "Evidenced",
+      "confidence": 0.96,
+      "parent": "topic:product-goal",
+      "supports": [
+        "insight:composition-root-blocker"
+      ]
+    },
+    {
+      "@id": "topic:verification",
+      "@type": "Topic",
+      "title": "Verification state",
+      "content": "Product, kernel, facade, and exchange targets compile. The most recent full CADKernel run passed 615/615 tests and CADExchange passed 237/237 tests; changes added afterward passed 46 focused periodic geometry/topology tests. The complete optimized SwiftCAD facade bundle passed 181/181 tests across 69 suites in 244.344 seconds. No formal evidence manifests exist.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "parent": "topic:product-goal",
+      "supports": [
+        "insight:release-not-ready"
+      ]
+    },
+    {
+      "@id": "topic:ideal-target",
+      "@type": "Topic",
+      "title": "Ideal target state",
+      "content": "Every public representation pair and feature composition is behaviorally closed, selection remains stable through edits, external interchange is oracle-tested, and all evidence is produced from one revision.",
+      "epistemicStatus": "Evidenced",
+      "confidence": 0.91,
+      "parent": "topic:product-goal",
+      "supports": [
+        "insight:ideal-sequence"
+      ]
+    },
+    {
+      "@id": "evidence:inventory",
+      "@type": "Evidence",
+      "title": "Public route inventory",
+      "content": "The repository checker passes with 75 routes: 44 feature operations, 6 commands, 7 queries, 4 native persistence methods, and 14 exchange formats.",
+      "epistemicStatus": "Verified",
+      "confidence": 1,
+      "source": "Scripts/check_public_contract_inventory.py output",
+      "sourceUrl": "file:///Users/1amageek/Desktop/3D/swift-CAD/Scripts/check_public_contract_inventory.py",
+      "reliability": 1,
+      "supportsClaim": [
+        "insight:substrate-strong"
+      ]
+    },
+    {
+      "@id": "evidence:ledger",
+      "@type": "Evidence",
+      "title": "Capability ledger counts",
+      "content": "The generated capability ledger contains 67 unique capabilities, 39 supported, 28 partial, 115 development envelopes, and 556 capability-fixture bindings.",
+      "epistemicStatus": "Verified",
+      "confidence": 1,
+      "source": "Scripts/check_capability_ledger.py output and CAPABILITY_LEDGER.md",
+      "sourceUrl": "file:///Users/1amageek/Desktop/3D/swift-CAD/CAPABILITY_LEDGER.md",
+      "reliability": 1,
+      "supportsClaim": [
+        "insight:general-not-achieved"
+      ]
+    },
+    {
+      "@id": "evidence:roadmap-gates",
+      "@type": "Evidence",
+      "title": "Formal gate status",
+      "content": "ROADMAP reports all eight release gates incomplete and zero evidence manifests, and explicitly states the overall objective is not achieved.",
+      "epistemicStatus": "Verified",
+      "confidence": 1,
+      "source": "ROADMAP.md",
+      "sourceUrl": "file:///Users/1amageek/Desktop/3D/swift-CAD/ROADMAP.md",
+      "reliability": 1,
+      "supportsClaim": [
+        "insight:release-not-ready"
+      ]
+    },
+    {
+      "@id": "evidence:build",
+      "@type": "Evidence",
+      "title": "Production build",
+      "content": "The macOS SwiftCAD product build completed successfully with the pinned Swift 6.4 snapshot toolchain.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "source": "xcodebuild build log from current worktree",
+      "sourceUrl": "file:///tmp/swift-cad-product-build.log",
+      "reliability": 0.99,
+      "supportsClaim": [
+        "insight:substrate-strong"
+      ]
+    },
+    {
+      "@id": "evidence:kernel-tests",
+      "@type": "Evidence",
+      "title": "Kernel behavior tests",
+      "content": "The most recent full CADKernel suite passed 615 tests. Subsequent periodic-chart ownership changes pass 46 focused tests covering derivative-bounded universal-cover lift, general torus-torus first-through-third differential bounds, general cone-torus periodic lift ownership, certified area/flux, and trimmed analytic volume. The complete optimized SwiftCAD facade bundle passes 181/181 tests after the final chart-lift correction; the full 615-test kernel suite predates it.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.97,
+      "source": "xcodebuild CADKernel test logs",
+      "sourceUrl": "file:///tmp/swift-cad-cadkernel-full-rerun.log",
+      "reliability": 0.97,
+      "supportsClaim": [
+        "insight:substrate-strong"
+      ]
+    },
+    {
+      "@id": "evidence:curve-validation-performance",
+      "@type": "Evidence",
+      "title": "Validated curve boundary removes repeated surface hashing",
+      "content": "A ValidatedCurve3D certificate now validates a curve once and reuses assuming-valid dispatch during tessellation. Representative poly-spline patch-network tests improved from 104.326 seconds with a timeout to 20.474 seconds, and from more than 60 seconds to 24.564 seconds.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "source": "ValidatedCurve3D.swift, MeshTessellator.swift, and focused xcodebuild test measurements",
+      "sourceUrl": "file:///Users/1amageek/Desktop/3D/swift-CAD/Sources/CADGeometry/ValidatedCurve3D.swift",
+      "reliability": 0.99,
+      "supportsClaim": [
+        "insight:substrate-strong",
+        "insight:constrained-usable"
+      ],
+      "chartableData": [
+        {
+          "seriesLabel": "Before",
+          "subject": "polySplineRoundedPatchNetworkPreservesSharedInteriorTopology",
+          "value": 104.326,
+          "unit": "seconds",
+          "period": "2026-08-23",
+          "status": "timed out",
+          "source": "focused xcodebuild measurement",
+          "visualRole": "baseline"
+        },
+        {
+          "seriesLabel": "After",
+          "subject": "polySplineRoundedPatchNetworkPreservesSharedInteriorTopology",
+          "value": 20.474,
+          "unit": "seconds",
+          "period": "2026-08-23",
+          "status": "passed",
+          "source": "focused xcodebuild measurement",
+          "visualRole": "actual"
+        }
+      ]
+    },
+    {
+      "@id": "evidence:facade-run",
+      "@type": "Evidence",
+      "title": "Complete optimized facade run passes",
+      "content": "After the periodic-chart ownership correction and the generalized nonsingular-periodic analytic-pair lift, the complete optimized SwiftCADTests bundle passed 181/181 tests across 69 suites in 244.344 seconds. Public general torus-torus operations also pass independently in 41.254 to 46.624 seconds, and the public general cone-torus suite passes in 7.541 seconds without changing expected volumes or tolerances.",
+      "epistemicStatus": "Verified",
+      "confidence": 1,
+      "source": "xcodebuild SwiftCAD-Tests xcresult summary",
+      "sourceUrl": "file:///Users/1amageek/Library/Developer/Xcode/DerivedData/SwiftCAD-eygvayaohnarbvacofxtpbbgsqub/Logs/Test/Test-SwiftCAD-Tests-2026.08.23_09-44-42-+0900.xcresult",
+      "reliability": 1,
+      "supportsClaim": [
+        "insight:release-not-ready"
+      ]
+    },
+    {
+      "@id": "evidence:exchange-tests",
+      "@type": "Evidence",
+      "title": "Exchange behavior tests",
+      "content": "CADExchangeTests compiles and passes 237/237 tests, including exact STEP/IGES round trips, same-parameter procedural surface exchange, USD subset behavior, resource limits, and typed rejection paths.",
+      "epistemicStatus": "Verified",
+      "confidence": 1,
+      "source": "xcodebuild CADExchange-Tests xcresult summary",
+      "sourceUrl": "file:///Users/1amageek/Library/Developer/Xcode/DerivedData/SwiftCAD-eygvayaohnarbvacofxtpbbgsqub/Logs/Test/Test-CADExchange-Tests-2026.08.23_09-51-04-+0900.xcresult",
+      "reliability": 1,
+      "supportsClaim": [
+        "insight:constrained-usable"
+      ]
+    },
+    {
+      "@id": "evidence:surface-gap",
+      "@type": "Evidence",
+      "title": "Residual supported surface-intersection mismatch",
+      "content": "The dispatcher now resolves exact same-parameter representations before algorithm selection, so ruled surfaces intersect through exact rational B-splines while results retain the original surface identity and UV chart. General non-reducible procedural offsets still have no exact rational representation and remain outside the concrete representation-pair closure claimed by the supported surface-surface capability.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "source": "KernelCapabilities+Geometry.swift, DefaultSurfaceSurfaceIntersector.swift, Surface3D+ExactSameParameterRepresentation.swift, and OffsetSurface3D.swift",
+      "sourceUrl": "file:///Users/1amageek/Desktop/3D/swift-CAD/Sources/CADGeometry/DefaultSurfaceSurfaceIntersector.swift",
+      "reliability": 0.99,
+      "supportsClaim": [
+        "insight:composition-root-blocker"
+      ]
+    },
+    {
+      "@id": "evidence:boolean-path",
+      "@type": "Evidence",
+      "title": "Boolean composition path",
+      "content": "The Boolean pipeline invokes the default surface-surface intersector for face pairs. The latest implementation correctly routes one non-contractible periodic closed component through an explicit-seam open arrangement and validates the resulting exact cylinder strip, removing the prior incomplete marker. The Boolean capability remains partial because broader representation pairs, doubly periodic arrangements, coincident cases, and downstream feature compositions are not yet closed by a same-revision behavioral matrix.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "source": "BooleanPipeline.swift and exact Boolean materializers",
+      "sourceUrl": "file:///Users/1amageek/Desktop/3D/swift-CAD/Sources/CADKernel/BooleanPipeline.swift",
+      "reliability": 0.98,
+      "supportsClaim": [
+        "insight:composition-root-blocker",
+        "insight:general-not-achieved"
+      ]
+    },
+    {
+      "@id": "evidence:periodic-boolean-progress",
+      "@type": "Evidence",
+      "title": "Essential periodic Boolean strip now materializes exactly",
+      "content": "A full-period cylinder face with an explicit seam at a shifted chart coordinate is partitioned by an essential constant-v intersection curve into a finite strip. The focused production-path test passes arrangement, exact sewing, and ValidatedBRepModel exact validation. Companion tests accept only an opposite-orientation whole-period seam pair, reject an uncertified duplicate edge, and retain the upper endpoint lift when trimming a periodic pcurve.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "source": "BooleanOpenFaceArrangementTests, PeriodicFaceSeamValidatorTests, and SurfaceParameterCurvePeriodicEvaluationTests",
+      "sourceUrl": "file:///Users/1amageek/Desktop/3D/swift-CAD/Tests/CADKernelTests/BooleanOpenFaceArrangementTests.swift",
+      "reliability": 0.99,
+      "supportsClaim": [
+        "insight:substrate-strong",
+        "insight:constrained-usable"
+      ]
+    },
+    {
+      "@id": "evidence:representation-closure-progress",
+      "@type": "Evidence",
+      "title": "Ruled surfaces now preserve exact identity through intersection and sewing",
+      "content": "Focused current-worktree tests pass ruled-plane and ruled-ruled surface intersection through exact same-parameter rational B-spline representations, preserve the original UV chart across JSON round-trip, and consume the certified pcurve in a four-edge trim loop that sews and validates as an exact BRep face. B-spline closest-point projection now uses the same globally bounded interval branch-and-bound contract as procedural surfaces and returns typed resource failure when the proof budget cannot close the bound.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "source": "SurfaceSurfaceIntersectionTests, BSplineSurfaceParameterProjectionTests, and ProceduralSurfaceKernelIntegrationTests",
+      "sourceUrl": "file:///Users/1amageek/Desktop/3D/swift-CAD/Tests/CADGeometryTests/SurfaceSurfaceIntersectionTests.swift",
+      "reliability": 0.99,
+      "supportsClaim": [
+        "insight:substrate-strong",
+        "insight:constrained-usable"
+      ]
+    },
+    {
+      "@id": "evidence:query-heuristic",
+      "@type": "Evidence",
+      "title": "Residual Agent query heuristics",
+      "content": "B-spline surface closest-point queries now use globally bounded interval branch-and-bound projection. The public curve closest-point and general directional projection paths still use finite sampling and local Newton refinement, so the complete Agent selection/query surface is not globally certified.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "source": "CurveQueryEvaluator.swift",
+      "sourceUrl": "file:///Users/1amageek/Desktop/3D/swift-CAD/Sources/CADKernel/CurveQueryEvaluator.swift",
+      "reliability": 0.98,
+      "supportsClaim": [
+        "insight:general-not-achieved"
+      ]
+    },
+    {
+      "@id": "evidence:feature-envelopes",
+      "@type": "Evidence",
+      "title": "Feature envelopes remain narrow",
+      "content": "Sketch region extraction, fillet/G2/chamfer, shell, sweep, patterns, and direct edits retain explicit partial envelopes and typed unsupported branches for general cases.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.97,
+      "source": "CADModeling and CADKernel feature evaluators plus KernelCapabilities+Modeling.swift",
+      "sourceUrl": "file:///Users/1amageek/Desktop/3D/swift-CAD/Sources/CADKernel/KernelCapabilities+Modeling.swift",
+      "reliability": 0.97,
+      "supportsClaim": [
+        "insight:general-not-achieved"
+      ]
+    },
+    {
+      "@id": "evidence:no-evidence",
+      "@type": "Evidence",
+      "title": "No external proof corpus",
+      "content": "The Evidence directory and formal manifests are absent, and no dedicated external-CAD oracle corpus, benchmark, or fuzz corpus was found.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "source": "repository file inventory and ROADMAP.md",
+      "sourceUrl": "file:///Users/1amageek/Desktop/3D/swift-CAD",
+      "reliability": 0.98,
+      "supportsClaim": [
+        "insight:release-not-ready"
+      ]
+    },
+    {
+      "@id": "insight:substrate-strong",
+      "@type": "Insight",
+      "title": "Agent-operable substrate is substantial",
+      "content": "The public command/query surface, package layering, document evaluation engine, validated BRep path, persistence, and focused kernel behaviors form a substantial deterministic substrate for an external Agent.",
+      "epistemicStatus": "Evidenced",
+      "confidence": 0.97,
+      "derivedFrom": [
+        "evidence:inventory",
+        "evidence:build",
+        "evidence:kernel-tests",
+        "evidence:periodic-boolean-progress",
+        "evidence:representation-closure-progress",
+        "evidence:curve-validation-performance",
+        "topic:agent-contract"
+      ],
+      "rationale": "Multiple independent implementation and runtime observations agree that the foundation is real rather than declarative.",
+      "inferenceType": "abductive synthesis",
+      "supportsClaim": [
+        "insight:constrained-usable"
+      ]
+    },
+    {
+      "@id": "insight:composition-root-blocker",
+      "@type": "Insight",
+      "title": "Compositional closure is the root blocker",
+      "content": "The principal limitation is not merely missing feature names: representations produced by supported operations can reach general operations that reject them, so long feature histories cannot rely on closure.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.97,
+      "derivedFrom": [
+        "topic:composition",
+        "evidence:surface-gap",
+        "evidence:boolean-path"
+      ],
+      "rationale": "The ruled-surface branch now closes through an exact same-parameter representation, but a general non-reducible offset can still connect a supported producer to a general intersection consumer whose advertised representation envelope is broader than its implementation.",
+      "inferenceType": "deductive path trace",
+      "supportsClaim": [
+        "insight:general-not-achieved"
+      ]
+    },
+    {
+      "@id": "insight:general-not-achieved",
+      "@type": "Insight",
+      "title": "General complex-product generation is not achieved",
+      "content": "The project cannot yet reliably generate arbitrary complex exact 3D products because the high-dependency composition features remain partial, the general procedural-offset representation envelope is not closed, and the complete Agent-facing selection/query surface is not globally certified.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.97,
+      "derivedFrom": [
+        "evidence:ledger",
+        "evidence:boolean-path",
+        "evidence:query-heuristic",
+        "evidence:feature-envelopes",
+        "insight:composition-root-blocker"
+      ],
+      "rationale": "Complex products amplify topology, intersection, selection, and exchange requirements across long edit histories; the current partial areas sit on those critical paths.",
+      "inferenceType": "critical-path synthesis",
+      "claimRole": "final-claim",
+      "primaryEvidence": [
+        "evidence:ledger",
+        "evidence:surface-gap",
+        "evidence:boolean-path",
+        "evidence:feature-envelopes"
+      ],
+      "sourceTopics": [
+        "topic:product-goal",
+        "topic:capability-coverage",
+        "topic:composition"
+      ],
+      "visualEvidenceRequirement": {
+        "evidencePattern": "capability-and-critical-path",
+        "requiredChartType": "stacked-bars-and-flow"
+      }
+    },
+    {
+      "@id": "insight:constrained-usable",
+      "@type": "Insight",
+      "title": "Constrained alpha workflows are usable",
+      "content": "Within documented envelopes, an external Agent can already generate meaningful parametric products using primitives, sketches, extrude/revolve/loft, selected Booleans, native persistence, STL/GLB, and subset STEP/IGES exchange.",
+      "epistemicStatus": "Evidenced",
+      "confidence": 0.94,
+      "derivedFrom": [
+        "insight:substrate-strong",
+        "evidence:ledger",
+        "evidence:kernel-tests",
+        "evidence:periodic-boolean-progress",
+        "evidence:representation-closure-progress",
+        "evidence:curve-validation-performance",
+        "evidence:exchange-tests"
+      ],
+      "rationale": "Supported primitives and exact topology foundations are implemented and exercised, while the statement is deliberately limited to declared envelopes.",
+      "inferenceType": "bounded generalization",
+      "claimRole": "decision-claim",
+      "primaryEvidence": [
+        "evidence:inventory",
+        "evidence:ledger",
+        "evidence:kernel-tests",
+        "evidence:exchange-tests"
+      ],
+      "sourceTopics": [
+        "topic:agent-contract",
+        "topic:capability-coverage"
+      ],
+      "visualEvidenceRequirement": {
+        "evidencePattern": "bounded-readiness",
+        "requiredChartType": "readiness-ladder"
+      }
+    },
+    {
+      "@id": "insight:release-not-ready",
+      "@type": "Insight",
+      "title": "Production and release readiness are not achieved",
+      "content": "The current revision cannot be called release-ready because formal gates remain 0/8, evidence manifests and independent external interchange oracles are absent, and 28 capabilities remain partial despite the complete facade run passing.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "derivedFrom": [
+        "topic:verification",
+        "evidence:roadmap-gates",
+        "evidence:facade-run",
+        "evidence:no-evidence"
+      ],
+      "rationale": "Release claims require same-revision behavioral proof across the public path; the present state fails that precondition.",
+      "inferenceType": "deductive gate evaluation",
+      "claimRole": "final-claim",
+      "primaryEvidence": [
+        "evidence:roadmap-gates",
+        "evidence:facade-run",
+        "evidence:no-evidence"
+      ],
+      "sourceTopics": [
+        "topic:verification"
+      ],
+      "visualEvidenceRequirement": {
+        "evidencePattern": "verification-gates",
+        "requiredChartType": "verification-matrix"
+      }
+    },
+    {
+      "@id": "insight:ideal-sequence",
+      "@type": "Insight",
+      "title": "Ideal correction sequence",
+      "content": "Bind the recovered facade baseline to reproducible gate evidence, close or demote overclaimed representation envelopes, complete planar arrangement and general intersection/Boolean composition, certify Agent-facing queries and edit identity, generalize dependent feature algorithms, then prove interchange with external oracles and same-revision evidence.",
+      "epistemicStatus": "Evidenced",
+      "confidence": 0.93,
+      "derivedFrom": [
+        "topic:ideal-target",
+        "insight:composition-root-blocker",
+        "insight:release-not-ready"
+      ],
+      "rationale": "This ordering fixes the evidence system first and then follows the dependency critical path from geometry closure through topology/modeling to interchange.",
+      "inferenceType": "dependency-based recommendation"
+    },
+    {
+      "@id": "question:agent-scope",
+      "@type": "Question",
+      "title": "Agent orchestration scope",
+      "content": "Is natural-language intent decomposition expected inside this repository, or is an external Agent expected to translate intent into CADCommand and KernelQuery?",
+      "epistemicStatus": "Investigating",
+      "confidence": 0.75,
+      "questionStatus": "Open",
+      "asksAbout": [
+        "topic:agent-contract"
+      ],
+      "resolvedBy": [
+        "topic:agent-contract"
+      ]
+    }
+  ],
+  "view": {
+    "groups": [
+      {
+        "id": "group:layer/context",
+        "kind": "layer",
+        "title": "Context",
+        "layer": "Context",
+        "children": [
+          {
+            "id": "group:category/context/product-goal",
+            "kind": "category",
+            "title": "Product goal",
+            "layer": "Context",
+            "category": "Product goal",
+            "members": [
+              "topic:product-goal",
+              "topic:ideal-target"
+            ]
+          },
+          {
+            "id": "group:category/context/agent-boundary",
+            "kind": "category",
+            "title": "Agent boundary",
+            "layer": "Context",
+            "category": "Agent boundary",
+            "members": [
+              "topic:agent-contract",
+              "question:agent-scope"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "group:layer/situation",
+        "kind": "layer",
+        "title": "Situation",
+        "layer": "Situation",
+        "children": [
+          {
+            "id": "group:category/situation/coverage",
+            "kind": "category",
+            "title": "Coverage",
+            "layer": "Situation",
+            "category": "Coverage",
+            "members": [
+              "topic:capability-coverage",
+              "evidence:inventory",
+              "evidence:ledger"
+            ]
+          },
+          {
+            "id": "group:category/situation/verification",
+            "kind": "category",
+            "title": "Verification",
+            "layer": "Situation",
+            "category": "Verification",
+            "members": [
+              "topic:verification",
+              "evidence:build",
+              "evidence:kernel-tests",
+              "evidence:curve-validation-performance",
+              "evidence:exchange-tests",
+              "evidence:roadmap-gates"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "group:layer/operation",
+        "kind": "layer",
+        "title": "Operation",
+        "layer": "Operation",
+        "children": [
+          {
+            "id": "group:category/operation/composition",
+            "kind": "category",
+            "title": "Composition path",
+            "layer": "Operation",
+            "category": "Composition path",
+            "members": [
+              "topic:composition",
+              "evidence:boolean-path",
+              "evidence:periodic-boolean-progress",
+              "evidence:representation-closure-progress",
+              "evidence:query-heuristic"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "group:layer/problem",
+        "kind": "layer",
+        "title": "Problem",
+        "layer": "Problem",
+        "children": [
+          {
+            "id": "group:category/problem/coverage-gaps",
+            "kind": "category",
+            "title": "Coverage gaps",
+            "layer": "Problem",
+            "category": "Coverage gaps",
+            "members": [
+              "evidence:feature-envelopes",
+              "evidence:surface-gap"
+            ]
+          },
+          {
+            "id": "group:category/problem/verification-gaps",
+            "kind": "category",
+            "title": "Verification gaps",
+            "layer": "Problem",
+            "category": "Verification gaps",
+            "members": [
+              "evidence:facade-run",
+              "evidence:no-evidence"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "group:layer/issue",
+        "kind": "layer",
+        "title": "Issue",
+        "layer": "Issue",
+        "children": [
+          {
+            "id": "group:category/issue/root-causes",
+            "kind": "category",
+            "title": "Root causes",
+            "layer": "Issue",
+            "category": "Root causes",
+            "members": [
+              "insight:composition-root-blocker"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "group:layer/solution",
+        "kind": "layer",
+        "title": "Solution",
+        "layer": "Solution",
+        "children": [
+          {
+            "id": "group:category/solution/sequence",
+            "kind": "category",
+            "title": "Correction sequence",
+            "layer": "Solution",
+            "category": "Correction sequence",
+            "members": [
+              "insight:ideal-sequence"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "group:layer/outcome",
+        "kind": "layer",
+        "title": "Outcome",
+        "layer": "Outcome",
+        "children": [
+          {
+            "id": "group:category/outcome/readiness",
+            "kind": "category",
+            "title": "Readiness",
+            "layer": "Outcome",
+            "category": "Readiness",
+            "members": [
+              "insight:substrate-strong",
+              "insight:constrained-usable",
+              "insight:general-not-achieved",
+              "insight:release-not-ready"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

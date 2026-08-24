@@ -60,8 +60,10 @@ struct ConeConeApexContactIntersector {
             options: options,
             tolerance: tolerance
         )
-        var result = try ranges.map { range in
-            try intersection(
+        var result: [SurfaceSurfaceIntersection] = []
+        result.reserveCapacity(ranges.count + (hasIsolatedApex ? 1 : 0))
+        for range in ranges {
+            result.append(try intersection(
                 range: range,
                 isClosed: hasClosedLoop,
                 builder: builder,
@@ -70,7 +72,7 @@ struct ConeConeApexContactIntersector {
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: tolerance
-            )
+            ))
         }
         if hasIsolatedApex {
             result.append(try verifier.point(
@@ -101,30 +103,25 @@ struct ConeConeApexContactIntersector {
             upperAngle: range.upperBound,
             tolerance: tolerance
         )
+        let evaluationContext = SurfaceIntersectionCurveEvaluationContext(
+            curve: proceduralCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
         let derived = try builder.intersection(
             parameterRange: 0.0...1.0,
             initialBreaks: (0...16).map { Double($0) / 16.0 },
             kind: .mixed,
             isClosed: isClosed,
             firstParameterAt: { fraction in
-                try proceduralCurve.parameter(
-                    on: firstSurface,
-                    atNormalizedFraction: fraction,
-                    tolerance: tolerance
-                )
+                try evaluationContext.firstParameter(at: fraction)
             },
             secondParameterAt: { fraction in
-                try proceduralCurve.parameter(
-                    on: secondSurface,
-                    atNormalizedFraction: fraction,
-                    tolerance: tolerance
-                )
+                try evaluationContext.secondParameter(at: fraction)
             },
             pointAt: { fraction in
-                try proceduralCurve.point(
-                    atNormalizedFraction: fraction,
-                    tolerance: tolerance
-                )
+                try evaluationContext.point(at: fraction)
             }
         )
         guard case let .curve(derivedCurve) = derived else {

@@ -5,12 +5,14 @@ import CADTopology
 
 public struct SurfaceExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let targetResolver: any SurfaceOperationTargetResolving
+    private let targetValidator: any SingleFaceSheetSurfaceOperationTargetValidating
     private let boundsValidator: ExactSurfaceParameterBoundsValidator
     private let loopValidator: ExactSurfaceTrimLoopValidator
     private let sewer: any BRepSewing
 
     public init(sewer: any BRepSewing) {
         targetResolver = DefaultSurfaceOperationTargetResolver()
+        targetValidator = DefaultSingleFaceSheetSurfaceOperationTargetValidator()
         boundsValidator = ExactSurfaceParameterBoundsValidator()
         loopValidator = ExactSurfaceTrimLoopValidator()
         self.sewer = sewer
@@ -54,7 +56,7 @@ public struct SurfaceExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             try extensionRequest.validate(tolerance: context.tolerance)
         }
         try FeatureEvaluationBoundary.validateExactInput(
-            context.brep,
+            context,
             featureID: feature.id,
             tolerance: context.tolerance
         )
@@ -190,15 +192,12 @@ public struct SurfaceExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         context: EvaluationContext,
         featureID: FeatureID
     ) throws -> SourceSheet {
-        guard target.body.shellIDs == [target.shellID],
-              target.shell.faceIDs == [target.faceID] else {
-            throw kernelError(
-                .unsupportedCapability,
-                featureID: featureID,
-                tolerance: context.tolerance,
-                "Exact surface extend requires the selected face to be the only face of its sheet body."
-            )
-        }
+        try targetValidator.validate(
+            target,
+            operation: "Surface extend",
+            featureID: featureID,
+            tolerance: context.tolerance
+        )
         let bodyParents = context.subshapeIDs(for: .body(target.bodyID))
         let faceParents = context.subshapeIDs(for: .face(target.faceID))
         guard bodyParents.isEmpty == false, faceParents.isEmpty == false else {

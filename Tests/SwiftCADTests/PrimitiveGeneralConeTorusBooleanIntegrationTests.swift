@@ -86,7 +86,10 @@ struct PrimitiveGeneralConeTorusBooleanIntegrationTests {
         })
         let volume = try result.document.brep.volume(tolerance: .standard)
         let volumeTolerance = ModelingTolerance.standard.distance * 12.0 * 12.0 * 8.0
-        #expect(abs(volume - expectedVolume) <= volumeTolerance)
+        #expect(
+            abs(volume - expectedVolume) <= volumeTolerance,
+            "Expected volume \(expectedVolume), got \(volume); tolerance \(volumeTolerance)."
+        )
         let booleanLineage = result.document.lineage.values.filter {
             $0.output.featureID == result.featureID
         }

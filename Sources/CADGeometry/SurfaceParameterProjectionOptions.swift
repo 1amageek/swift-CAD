@@ -2,6 +2,7 @@ import CADCore
 
 public struct SurfaceParameterProjectionOptions: Hashable, Sendable {
     public var maximumIterations: Int
+    /// The maximum number of binary subdivisions permitted along each parameter axis.
     public var maximumSubdivisionDepth: Int
     public var maximumSubdivisionCells: Int
     public var maximumCandidateCount: Int

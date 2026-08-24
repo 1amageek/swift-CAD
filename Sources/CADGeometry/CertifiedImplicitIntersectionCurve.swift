@@ -127,6 +127,16 @@ public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
         )
     }
 
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        try differential(
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        ).thirdDerivative
+    }
+
     public func boundingBox(
         fromNormalizedFraction lower: Double,
         toNormalizedFraction upper: Double,

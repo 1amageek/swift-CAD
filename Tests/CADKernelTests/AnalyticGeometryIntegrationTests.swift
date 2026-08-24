@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 import CADTopology
@@ -76,6 +77,110 @@ struct AnalyticGeometryIntegrationTests {
             tolerance: 1.0e-9
         ))
         #expect(result.converged)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func curveQueryResolvesCenterThroughAnAffineImage() throws {
+        let featureID = FeatureID()
+        let source = Curve3D.analytic(.ellipse(
+            center: Point3D(x: 1.0, y: 2.0, z: 3.0),
+            normal: .unitZ,
+            majorAxis: .unitX,
+            majorRadius: 4.0,
+            minorRadius: 2.0
+        ))
+        let transform = try AffineTransform3D(
+            basisX: Vector3D(x: 2.0, y: 0.0, z: 0.0),
+            basisY: Vector3D(x: 0.0, y: 3.0, z: 0.0),
+            basisZ: .unitZ,
+            translation: Vector3D(x: -1.0, y: 5.0, z: 7.0)
+        )
+        let exactCurve = Curve3D.affineImage(try AffineImageCurve3D(
+            source: source,
+            transform: transform,
+            tolerance: .standard
+        ))
+        let parameters = [0.0, 0.5 * Double.pi, Double.pi, 1.5 * Double.pi, 2.0 * Double.pi]
+        let curve = EvaluatedCurve(
+            sourceFeatureID: featureID,
+            source: .generatedFeature,
+            kind: .spline,
+            points: try parameters.map { try exactCurve.point(at: $0, tolerance: .standard) },
+            isClosed: true,
+            exactCurve: exactCurve,
+            exactParameterDomain: .closed(0.0, 2.0 * Double.pi),
+            exactPointParameters: parameters
+        )
+        let document = makeEvaluatedDocument(curves: [featureID: [curve]])
+
+        let center = try CurveQueryEvaluator(tolerance: .standard).center(
+            CurveCenterReference(curve: CurveOutputReference(featureID: featureID)),
+            in: document
+        )
+
+        #expect(center.isApproximatelyEqual(
+            to: transform.applying(to: Point3D(x: 1.0, y: 2.0, z: 3.0)),
+            tolerance: 1.0e-12
+        ))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func curveQueryResolvesBSplineSubobjectsThroughAnAffineImage() throws {
+        let featureID = FeatureID()
+        let source = BSplineCurve3D(
+            degree: 2,
+            knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            controlPoints: [
+                .origin,
+                Point3D(x: 1.0, y: 2.0, z: 0.0),
+                Point3D(x: 3.0, y: 0.0, z: 0.0),
+            ]
+        )
+        let transform = try AffineTransform3D(
+            basisX: Vector3D(x: 2.0, y: 0.0, z: 0.0),
+            basisY: Vector3D(x: 0.0, y: 0.5, z: 0.0),
+            basisZ: .unitZ,
+            translation: Vector3D(x: 4.0, y: -3.0, z: 2.0)
+        )
+        let exactCurve = Curve3D.affineImage(try AffineImageCurve3D(
+            source: .bSpline(source),
+            transform: transform,
+            tolerance: .standard
+        ))
+        let parameters = [0.0, 0.5, 1.0]
+        let curve = EvaluatedCurve(
+            sourceFeatureID: featureID,
+            source: .generatedFeature,
+            kind: .spline,
+            points: try parameters.map { try exactCurve.point(at: $0, tolerance: .standard) },
+            exactCurve: exactCurve,
+            exactParameterDomain: .closed(0.0, 1.0),
+            exactPointParameters: parameters
+        )
+        let document = makeEvaluatedDocument(curves: [featureID: [curve]])
+        let reference = CurveOutputReference(featureID: featureID)
+        let evaluator = CurveQueryEvaluator(tolerance: .standard)
+
+        let controlPoint = try evaluator.controlPoint(
+            CurveControlPointReference(curve: reference, controlPointIndex: 1),
+            in: document
+        )
+        let knot = try evaluator.knot(
+            CurveKnotReference(curve: reference, knotIndex: 3),
+            in: document
+        )
+        let span = try evaluator.span(
+            CurveSpanReference(curve: reference, spanIndex: 0),
+            in: document
+        )
+
+        #expect(controlPoint.isApproximatelyEqual(
+            to: transform.applying(to: source.controlPoints[1]),
+            tolerance: 1.0e-12
+        ))
+        #expect(knot == 1.0)
+        #expect(span.lowerParameter == 0.0)
+        #expect(span.upperParameter == 1.0)
     }
 
     @Test(.timeLimit(.minutes(1)))

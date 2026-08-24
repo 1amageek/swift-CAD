@@ -20,6 +20,7 @@ struct CertifiedGeneralConeTorusSpatialDifferentialBoundsTests {
             let sourceBounds = try source.spatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
             )
+            let sourceThird = try #require(sourceBounds.third)
             for trim in [
                 (start: 0.0, end: 1.0),
                 (start: 0.1, end: 0.7),
@@ -43,8 +44,14 @@ struct CertifiedGeneralConeTorusSpatialDifferentialBoundsTests {
                 // actual differentials.
                 #expect(bounds.first > 0.0)
                 #expect(bounds.second > 0.0)
+                let third = try #require(bounds.third)
+                #expect(third > 0.0)
                 #expect(bounds.first <= sourceBounds.first * scale * 1.0000001)
                 #expect(bounds.second <= sourceBounds.second * scale * scale * 1.0000001)
+                #expect(
+                    third
+                        <= sourceThird * scale * scale * scale * 1.0000001
+                )
 
                 let lift = SurfaceLiftCurve3D(
                     surface: exact.surface(for: .first),
@@ -59,6 +66,71 @@ struct CertifiedGeneralConeTorusSpatialDifferentialBoundsTests {
                     )
                     #expect(geometry.firstDerivative.length <= bounds.first)
                     #expect(geometry.secondDerivative.length <= bounds.second)
+                    let thirdDerivative = try curve
+                        .parameterDerivativesThroughThirdOrder(
+                            at: fraction,
+                            tolerance: tolerance
+                        ).thirdDerivative
+                    #expect(thirdDerivative.length <= third)
+                }
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(4)))
+    func regularTorusPcurvesOwnTheirCertifiedContinuousChartLift() throws {
+        for exact in try curves() {
+            let pcurve = try CertifiedAnalyticPairSurfaceParameterCurve(
+                intersection: exact,
+                role: .second,
+                tolerance: tolerance
+            )
+            let preparation = try pcurve.prepareParameterCellBounds(
+                tolerance: tolerance
+            )
+            _ = try #require(preparation.continuousChartLift)
+            let fullBounds = try preparation.bounds(
+                fromNormalizedFraction: 0.0,
+                toNormalizedFraction: 1.0,
+                tolerance: tolerance
+            )
+
+            #expect(fullBounds.usesContinuousLiftForIntegration)
+            for index in 0..<128 {
+                let lower = Double(index) / 128.0
+                let upper = Double(index + 1) / 128.0
+                let bounds = try preparation.bounds(
+                    fromNormalizedFraction: lower,
+                    toNormalizedFraction: upper,
+                    tolerance: tolerance
+                )
+                let samples = [
+                    (fraction: lower, parameter: bounds.start),
+                    (
+                        fraction: lower + (upper - lower) * 0.5,
+                        parameter: bounds.middle
+                    ),
+                    (fraction: upper, parameter: bounds.end),
+                ]
+                for sample in samples {
+                    let canonical = try pcurve.parameter(
+                        atNormalizedFraction: sample.fraction,
+                        tolerance: tolerance
+                    )
+                    let canonicalPoint = try exact.surface(for: .second).point(
+                        u: canonical.u,
+                        v: canonical.v,
+                        tolerance: tolerance
+                    )
+                    let continuousPoint = try exact.surface(for: .second).point(
+                        u: sample.parameter.u,
+                        v: sample.parameter.v,
+                        tolerance: tolerance
+                    )
+                    #expect(canonicalPoint.isApproximatelyEqual(
+                        to: continuousPoint,
+                        tolerance: tolerance.distance * 8.0
+                    ))
                 }
             }
         }
@@ -176,6 +248,8 @@ struct CertifiedGeneralConeTorusSpatialDifferentialBoundsTests {
         )
         #expect(bounds.first.isFinite)
         #expect(bounds.second.isFinite)
+        let third = try #require(bounds.third)
+        #expect(third.isFinite)
     }
 
     @Test(.timeLimit(.minutes(4)))
@@ -194,6 +268,8 @@ struct CertifiedGeneralConeTorusSpatialDifferentialBoundsTests {
                 )
             #expect(sourceBounds.first.isFinite)
             #expect(sourceBounds.second.isFinite)
+            let sourceThird = try #require(sourceBounds.third)
+            #expect(sourceThird.isFinite)
             for trim in [
                 (start: 0.0, end: 1.0),
                 (start: 0.1, end: 0.7),
@@ -210,15 +286,26 @@ struct CertifiedGeneralConeTorusSpatialDifferentialBoundsTests {
                 let bounds = try pcurve.spatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
                 )
+                let localSourceBounds = try source
+                    .spatialDifferentialMagnitudeBounds(
+                        fromNormalizedFraction: min(trim.start, trim.end),
+                        toNormalizedFraction: max(trim.start, trim.end),
+                        tolerance: tolerance
+                    )
+                let localSourceThird = try #require(localSourceBounds.third)
+                let third = try #require(bounds.third)
+                let scale = abs(trim.end - trim.start)
+                #expect(third >= localSourceThird * scale * scale * scale)
                 let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
                     surface: exact.surface(for: .first),
                     parameterCurve: .certifiedAnalyticPair(pcurve)
                 ))
                 for index in 0...128 {
+                    let fraction = Double(index) / 128.0
                     let geometry: Curve3D.DifferentialGeometry
                     do {
                         geometry = try curve.differentialGeometry(
-                            at: Double(index) / 128.0,
+                            at: fraction,
                             tolerance: tolerance
                         )
                     } catch {
@@ -229,6 +316,12 @@ struct CertifiedGeneralConeTorusSpatialDifferentialBoundsTests {
                     }
                     #expect(geometry.firstDerivative.length <= bounds.first)
                     #expect(geometry.secondDerivative.length <= bounds.second)
+                    let thirdDerivative = try curve
+                        .parameterDerivativesThroughThirdOrder(
+                            at: fraction,
+                            tolerance: tolerance
+                        ).thirdDerivative
+                    #expect(thirdDerivative.length <= third)
                 }
             }
         }

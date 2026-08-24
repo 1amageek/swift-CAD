@@ -7,14 +7,14 @@ public struct SweepEvaluationPlanService: Sendable {
     private let optionValueResolver: SweepOptionValueResolver
     private let profileExtractor: (any SketchProfileExtracting)?
     private let curveExtractor: (any SketchCurveExtracting)?
-    private let documentEvaluator: DocumentEvaluator?
+    private let documentEvaluator: (any ExactDocumentEvaluating)?
     private let makePathSampler: @Sendable (ModelingTolerance) -> any SweepPathSampling
 
     public init(
         resolver: any ParameterResolving = ParameterResolver(),
         profileExtractor: (any SketchProfileExtracting)? = nil,
         curveExtractor: (any SketchCurveExtracting)? = nil,
-        documentEvaluator: DocumentEvaluator? = nil,
+        documentEvaluator: (any ExactDocumentEvaluating)? = nil,
         pathSamplerFactory: @escaping @Sendable (ModelingTolerance) -> any SweepPathSampling = {
             SweepPathSampler(tolerance: $0)
         }
@@ -490,7 +490,7 @@ public struct SweepEvaluationPlanService: Sendable {
                 message: "Sweep planning tolerance must match the injected document evaluator."
             )
         }
-        let evaluated = try evaluator.evaluate(try evaluationSubdocument(
+        let evaluated = try evaluator.evaluateExact(try evaluationSubdocument(
             from: document,
             including: featureIDs
         ))

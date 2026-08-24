@@ -55,6 +55,38 @@ struct BSplineSurfaceParameterProjectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func affineBoundedSurfaceResultDistinguishesAnOutsideDomainPoint() throws {
+        let surface = BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                [
+                    Point3D(x: 0.0, y: 0.0, z: 0.0),
+                    Point3D(x: 1.0, y: 0.0, z: 0.0),
+                ],
+                [
+                    Point3D(x: 0.0, y: 1.0, z: 0.0),
+                    Point3D(x: 1.0, y: 1.0, z: 0.0),
+                ],
+            ]
+        )
+        try surface.validate(tolerance: tolerance)
+
+        let result = try Surface3D.bSpline(surface).parameterProjectionResult(
+            of: Point3D(x: 1.25, y: 0.5, z: 0.0),
+            tolerance: tolerance
+        )
+
+        guard case let .outsideTolerance(residual) = result else {
+            Issue.record("A point outside the bounded affine patch must be a verified miss.")
+            return
+        }
+        #expect(abs(residual - 0.25.nextUp) <= Double.ulpOfOne)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func multipleDiscreteParametersReturnTypedAmbiguity() throws {
         let folded = BSplineSurface3D(
             uDegree: 2,
@@ -224,6 +256,64 @@ struct BSplineSurfaceParameterProjectionTests {
                 tolerance: tolerance
             )
             Issue.record("A bounded projection search must enforce its explicit cell budget.")
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+            #expect(error.code == .resourceLimitExceeded)
+            #expect(error.residual != nil)
+            #expect(error.tolerance == tolerance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func closestProjectionCertifiesBoundaryMinimum() throws {
+        let surface = BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                [
+                    Point3D(x: 0.0, y: 0.0, z: 0.0),
+                    Point3D(x: 1.0, y: 0.0, z: 0.0),
+                ],
+                [
+                    Point3D(x: 0.0, y: 1.0, z: 0.0),
+                    Point3D(x: 1.0, y: 1.0, z: 0.0),
+                ],
+            ]
+        )
+        let sourcePoint = Point3D(x: 2.0, y: 0.25, z: 3.0)
+
+        let projection = try surface.closestParameterProjection(
+            of: sourcePoint,
+            tolerance: tolerance
+        )
+
+        #expect(abs(projection.u - 1.0) <= tolerance.distance)
+        #expect(abs(projection.v - 0.25) <= tolerance.distance)
+        #expect(projection.point.isApproximatelyEqual(
+            to: Point3D(x: 1.0, y: 0.25, z: 0.0),
+            tolerance: tolerance.distance
+        ))
+        #expect(abs(projection.residual - 10.0.squareRoot()) <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func closestProjectionReportsUnclosedGlobalBound() throws {
+        let surface = try makeSurface()
+
+        do {
+            _ = try surface.closestParameterProjection(
+                of: Point3D(x: 1.0, y: 1.5, z: 3.0),
+                options: SurfaceParameterProjectionOptions(
+                    maximumIterations: 64,
+                    maximumSubdivisionDepth: 24,
+                    maximumSubdivisionCells: 1,
+                    maximumCandidateCount: 4_096
+                ),
+                tolerance: tolerance
+            )
+            Issue.record("A closest-point search must not accept an unclosed global bound.")
         } catch let error as KernelError {
             #expect(error.phase == .geometry)
             #expect(error.code == .resourceLimitExceeded)

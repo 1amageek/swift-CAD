@@ -3,6 +3,40 @@ import CADCore
 extension KernelCapabilities {
     static let exchangeCapabilities: [KernelCapability] = [
         KernelCapability(
+            id: "API-NATIVEPERSISTENCE-001",
+            operation: "nativePersistence",
+            status: .supported,
+            topology: .document,
+            acceptedInputs: [
+                "strictCurrentSchemaValidatedCADDocument",
+                "borrowedOrMappedSwiftCADNativePackage",
+            ],
+            exactOutputs: [
+                "deterministicSourceOnlyZipPackage",
+                "canonicalSortedDynamicDictionaries",
+                "strictManifestAndDocumentSchemaValidation",
+                "documentFeatureParameterAndSelectionIdentityRoundTrip",
+                "atomicURLPersistence",
+            ],
+            failureCodes: [
+                .invalidInput,
+                .missingReference,
+                .resourceLimitExceeded,
+                .topologyFailure,
+            ],
+            tolerance: .standard,
+            publicAPIs: [
+                "CADExchange.NativePackageStore",
+                "SwiftCAD.CADPipeline.writePackage",
+                "SwiftCAD.CADPipeline.loadDocument",
+            ],
+            testFixtures: [
+                "CADExchangeTests",
+                "NativeOperationSchemaTests",
+                "NativeStableSelectionPackageTests",
+            ]
+        ),
+        KernelCapability(
             id: "EXCHANGE-STEP-001",
             operation: "STEP",
             status: .partial,
@@ -13,11 +47,13 @@ extension KernelCapabilities {
                 "finiteSubperiodCircleAndEllipseEdgesAcrossPeriodicSeamsInEitherSense",
                 "piecewiseLinearPolylinePcurves",
                 "analyticLineArcEllipseHyperbolaAndParabolaEdges",
+                "finiteRegularAffineImageCurvesWithExactRationalMaterialization",
                 "projectedPlaneConeOpenConics",
                 "sphericalGreatCircleEdges",
                 "certifiedPlaneTorusIntersectionEdges",
                 "certifiedBSplinePairAndAnalyticBSplineIntersectionEdges",
                 "exactSurfaceLiftEdgesWithRationalBSplinePcurves",
+                "generalSameParameterOffsetSurfacesWithFiniteRationalBSplineBasis",
                 "oneOrMoreOrderedSolidComponentsWithOwnedReversedVoidShells",
                 "SILengthUnitsAndConversionBasedInchFootUnits",
             ],
@@ -37,6 +73,8 @@ extension KernelCapabilities {
                 "NoMeshFallback",
                 "CanonicalIntersectionTruthReconstructionFromExactSurfaceProvenance",
                 "PcurveMasterSurfaceLiftReconstruction",
+                "StandardOffsetSurfaceRoundTrip",
+                "StandardLineOrRationalBSplineAffineImageMaterialization",
             ],
             failureCodes: [.invalidInput, .missingReference, .unsupportedCapability, .topologyFailure, .resourceLimitExceeded],
             tolerance: .standard,
@@ -56,7 +94,10 @@ extension KernelCapabilities {
                 "ExactSTEPExchangeTests.roundTripsCertifiedImplicitIntersectionWithExactSurfaceProvenance",
                 "ExactSTEPExchangeTests.roundTripsCertifiedAnalyticBSplineIntersectionWithExactSurfaceProvenance",
                 "ExactSTEPExchangeTests.roundTripsSurfaceLiftAsPcurveMasterWithoutChangingCanonicalTruth",
+                "ExactSTEPExchangeTests.roundTripsGeneralOffsetSurfaceWithSameParameterChart",
                 "ExchangeProcessingBudgetTests",
+                "ExactAffineImageExchangeTests",
+                "ExactAffineImageExchangeTests.stepMaterializesAffineImagesAsExactStandardCurves",
                 "CADExchangeTests",
             ]
         ),
@@ -73,11 +114,13 @@ extension KernelCapabilities {
                 "harmonicEllipticPcurvesInEitherOrientation",
                 "piecewiseLinearPolylinePcurves",
                 "analyticLineArcEllipseHyperbolaAndParabolaEdges",
+                "finiteRegularAffineImageCurvesWithExactRationalMaterialization",
                 "projectedPlaneConeOpenConics",
                 "sphericalGreatCircleEdges",
                 "certifiedPlaneTorusIntersectionEdges",
                 "certifiedBSplinePairAndAnalyticBSplineIntersectionEdges",
                 "exactSurfaceLiftEdgesWithRationalBSplinePcurves",
+                "generalSameParameterOffsetSurfacesWithFiniteRationalBSplineBasis",
                 "oneOrMoreOrderedSolidComponentsWithOwnedReversedVoidShells",
                 "IGESLengthUnits",
             ],
@@ -97,6 +140,8 @@ extension KernelCapabilities {
                 "NoMeshFallback",
                 "CanonicalIntersectionTruthReconstructionFromNestedType142SurfaceProvenance",
                 "Type142SurfaceLiftReconstruction",
+                "Type140OffsetSurfaceRoundTrip",
+                "StandardLineOrType126AffineImageMaterialization",
             ],
             failureCodes: [.invalidInput, .missingReference, .unsupportedCapability, .topologyFailure, .resourceLimitExceeded],
             tolerance: .standard,
@@ -118,7 +163,10 @@ extension KernelCapabilities {
                 "ExactIGESExchangeTests.roundTripsCertifiedImplicitIntersectionThroughNestedCurveOnSurfaceEntities",
                 "ExactIGESExchangeTests.roundTripsCertifiedAnalyticBSplineIntersectionThroughNestedCurveOnSurfaceEntities",
                 "ExactIGESExchangeTests.roundTripsSurfaceLiftThroughExactCurveOnSurfaceEntity",
+                "ExactIGESExchangeTests.roundTripsGeneralOffsetSurfaceWithType140Indicator",
                 "ExchangeProcessingBudgetTests",
+                "ExactAffineImageExchangeTests",
+                "ExactAffineImageExchangeTests.igesMaterializesAffineImagesAsExactStandardCurves",
                 "CADExchangeTests",
             ]
         ),
@@ -178,6 +226,171 @@ extension KernelCapabilities {
                 "USDExporterCodecTests",
                 "USDExchangeResourceLimitTests",
             ]
+        ),
+        KernelCapability(
+            id: "EXCHANGE-STL-001",
+            operation: "STLMeshExchange",
+            status: .supported,
+            topology: .polygonMesh,
+            acceptedInputs: [
+                "validatedDerivedTriangleMeshes",
+                "binarySTLWithFiniteTriangleRecords",
+                "optionalSwiftCADLengthUnitMarker",
+            ],
+            exactOutputs: [
+                "deterministicBinarySTL",
+                "validatedTriangleMeshImport",
+                "finiteNormalsAndCoordinates",
+                "boundedImportResources",
+            ],
+            failureCodes: [.invalidInput, .resourceLimitExceeded],
+            tolerance: .standard,
+            publicAPIs: [
+                "CADExchange.STLExporter",
+                "CADExchange.OfficialFormatExchange",
+            ],
+            testFixtures: ["CADExchangeTests"]
+        ),
+        KernelCapability(
+            id: "EXCHANGE-3MF-001",
+            operation: "ThreeMFMeshExchange",
+            status: .supported,
+            topology: .polygonMesh,
+            acceptedInputs: [
+                "validatedDerivedTriangleMeshes",
+                "core3MFMeshPackageWithStoredOrDeflatedDirectBuildItems",
+                "finiteSupportedLengthUnit",
+            ],
+            exactOutputs: [
+                "deterministicStoredZip3MFPackage",
+                "storedAndDeflatedZIPImportWithCRCAndDescriptorValidation",
+                "validatedTriangleMeshImport",
+                "unitRoundTrip",
+                "strictPackageRelationshipAndXMLStructureValidation",
+                "boundedImportAndExportResources",
+            ],
+            failureCodes: [.invalidInput, .resourceLimitExceeded],
+            tolerance: .standard,
+            publicAPIs: [
+                "CADExchange.ThreeMFExchange",
+                "CADExchange.OfficialFormatExchange",
+            ],
+            testFixtures: ["CADExchangeTests"]
+        ),
+        KernelCapability(
+            id: "EXCHANGE-OBJ-001",
+            operation: "OBJMeshExchange",
+            status: .supported,
+            topology: .polygonMesh,
+            acceptedInputs: [
+                "validatedDerivedTriangleMeshes",
+                "finiteOBJVertexTextureNormalAndSimplePlanarPolygonFaceRecordsWithPerFaceConsistentAttributes",
+                "explicitFallbackLengthUnit",
+            ],
+            exactOutputs: [
+                "deterministicOBJMesh",
+                "validatedTriangulatedMeshImport",
+                "negativeAndPositiveIndexResolution",
+                "faceVaryingAttributePreservationAndLayoutPartitioning",
+                "boundedImportResources",
+            ],
+            failureCodes: [.invalidInput, .resourceLimitExceeded],
+            tolerance: .standard,
+            publicAPIs: [
+                "CADExchange.OBJExchange",
+                "CADExchange.OfficialFormatExchange",
+            ],
+            testFixtures: ["CADExchangeTests"]
+        ),
+        KernelCapability(
+            id: "EXCHANGE-DXF-001",
+            operation: "DXFMeshExchange",
+            status: .supported,
+            topology: .polygonMesh,
+            acceptedInputs: [
+                "validatedDerivedTriangleMeshes",
+                "ASCIIHeaderlessOrAC1027DXFWithTriangularOrQuadrilateral3DFACEEntities",
+                "headerOrExplicitFallbackLengthUnit",
+            ],
+            exactOutputs: [
+                "deterministicASCII3DFACEExchange",
+                "validatedTriangleAndQuadrilateralMeshImport",
+                "strictSectionAndGroupCodeValidation",
+                "boundedImportResources",
+            ],
+            failureCodes: [.invalidInput, .resourceLimitExceeded],
+            tolerance: .standard,
+            publicAPIs: [
+                "CADExchange.DXFExchange",
+                "CADExchange.OfficialFormatExchange",
+            ],
+            testFixtures: ["CADExchangeTests"]
+        ),
+        KernelCapability(
+            id: "EXCHANGE-SVG-001",
+            operation: "SVGMeshExchange",
+            status: .supported,
+            topology: .polygonMesh,
+            acceptedInputs: [
+                "validatedDerivedTriangleMeshesProjectedToXY",
+                "SVG11SimplePlanarPolygonElementsWithoutTransformsOrExternalContent",
+                "explicitFallbackLengthUnit",
+            ],
+            exactOutputs: [
+                "deterministicSVGPolygonExchange",
+                "validatedConcavePlanarPolygonTriangulation",
+                "strictNamespaceElementAndAttributeValidation",
+                "boundedImportResources",
+            ],
+            failureCodes: [.invalidInput, .resourceLimitExceeded],
+            tolerance: .standard,
+            publicAPIs: [
+                "CADExchange.SVGExchange",
+                "CADExchange.OfficialFormatExchange",
+            ],
+            testFixtures: ["CADExchangeTests"]
+        ),
+        KernelCapability(
+            id: "EXCHANGE-GLB-001",
+            operation: "GLBMeshExport",
+            status: .supported,
+            topology: .polygonMesh,
+            acceptedInputs: ["validatedDerivedTriangleMeshes"],
+            exactOutputs: [
+                "deterministicGLB2Mesh",
+                "finitePositionAndNormalAccessors",
+                "unsignedIndexComponentSelection",
+                "fourByteAlignedJSONAndBinaryChunks",
+            ],
+            failureCodes: [.invalidInput, .resourceLimitExceeded],
+            tolerance: .standard,
+            publicAPIs: [
+                "CADExchange.GLBExporter",
+                "CADExchange.OfficialFormatExchange",
+            ],
+            testFixtures: ["CADExchangeTests"]
+        ),
+        KernelCapability(
+            id: "EXCHANGE-PDF-001",
+            operation: "PDFMeshExport",
+            status: .supported,
+            topology: .polygonMesh,
+            acceptedInputs: [
+                "validatedDerivedTriangleMeshes",
+                "finiteDocumentTitle",
+            ],
+            exactOutputs: [
+                "deterministicSinglePagePDF",
+                "projectedVectorTrianglePaths",
+                "validCrossReferenceTable",
+            ],
+            failureCodes: [.invalidInput, .resourceLimitExceeded],
+            tolerance: .standard,
+            publicAPIs: [
+                "CADExchange.PDFExporter",
+                "CADExchange.OfficialFormatExchange",
+            ],
+            testFixtures: ["CADExchangeTests"]
         ),
     ]
 }

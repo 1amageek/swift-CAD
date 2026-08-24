@@ -1,7 +1,7 @@
 import CADCore
 import CADIR
 
-package protocol ExactPlanarPatternRebuilding: Sendable {
+package protocol ExactBodyPatternRebuilding: Sendable {
     func rebuild(
         featureID: FeatureID,
         sourceBodyID: BodyID,

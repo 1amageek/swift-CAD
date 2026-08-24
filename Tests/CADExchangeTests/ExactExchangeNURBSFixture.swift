@@ -218,6 +218,82 @@ enum ExactExchangeNURBSFixture {
         ), tolerance: .standard).brep
     }
 
+    static func offsetRationalSheet(distance: Double = 0.003) throws -> BRepModel {
+        var result = try rationalSheet()
+        let face = try required(result.faces.values.first, "source face")
+        let sourceSurface = try required(
+            result.geometry.surfaces[face.surfaceID],
+            "source surface"
+        )
+        guard case .bSpline = sourceSurface else {
+            throw KernelError(
+                phase: .exchange,
+                code: .topologyFailure,
+                tolerance: .standard,
+                message: "The offset exchange fixture requires a rational B-spline source surface."
+            )
+        }
+        let offsetSurface = Surface3D.procedural(.offset(OffsetSurface3D(
+            source: sourceSurface,
+            distance: distance
+        )))
+        result.geometry.surfaces[face.surfaceID] = offsetSurface
+
+        var processedEdges = Set<EdgeID>()
+        for loopID in face.loops {
+            let loop = try required(result.loops[loopID], "source loop")
+            for coedge in loop.coedges where processedEdges.insert(coedge.edgeID).inserted {
+                let parameterCurve = try required(
+                    coedge.surfaceParameterCurve,
+                    "source pcurve"
+                )
+                let edge = try required(result.edges[coedge.edgeID], "source edge")
+                let trim = try required(edge.trim, "source edge trim")
+                let lift = SurfaceLiftCurve3D(
+                    surface: offsetSurface,
+                    parameterCurve: parameterCurve
+                )
+                result.geometry.curves[edge.curveID] = .surfaceLift(lift)
+                var startVertex = try required(
+                    result.vertices[edge.startVertexID],
+                    "source start vertex"
+                )
+                var endVertex = try required(
+                    result.vertices[edge.endVertexID],
+                    "source end vertex"
+                )
+                startVertex.point = try lift.point(
+                    atNormalizedFraction: trim.startParameter,
+                    tolerance: .standard
+                )
+                endVertex.point = try lift.point(
+                    atNormalizedFraction: trim.endParameter,
+                    tolerance: .standard
+                )
+                result.vertices[edge.startVertexID] = startVertex
+                result.vertices[edge.endVertexID] = endVertex
+                result.edges[coedge.edgeID] = edge
+            }
+        }
+        try result.validate(level: .exact, tolerance: .standard)
+        return result
+    }
+
+    private static func required<Value>(
+        _ value: Value?,
+        _ label: String
+    ) throws -> Value {
+        guard let value else {
+            throw KernelError(
+                phase: .exchange,
+                code: .missingReference,
+                tolerance: .standard,
+                message: "The offset exchange fixture is missing its \(label)."
+            )
+        }
+        return value
+    }
+
     static func reversedRationalSheet() throws -> BRepModel {
         try reversingBSplineEdges(in: rationalSheet())
     }

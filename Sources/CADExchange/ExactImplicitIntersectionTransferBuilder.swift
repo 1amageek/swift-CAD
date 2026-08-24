@@ -34,7 +34,8 @@ struct ExactImplicitIntersectionTransferSource: Sendable {
                         analyticImplicit = curve.intersection
                     case .affine, .constantU, .constantV, .harmonic,
                          .sphericalGreatCircle, .polyline, .bSpline,
-                         .certifiedAnalyticPair, .projectedAnalytic, nil:
+                         .certifiedAnalyticPair, .projectedAnalytic,
+                         .rigidImage, .sameParameterImage, nil:
                         continue
                     case .periodicTranslation:
                         continue

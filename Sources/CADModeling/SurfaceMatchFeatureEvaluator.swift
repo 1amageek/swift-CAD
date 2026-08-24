@@ -6,12 +6,14 @@ import CADTopology
 
 public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let targetResolver: any SurfaceOperationTargetResolving
+    private let targetValidator: any SingleFaceSheetSurfaceOperationTargetValidating
     private let identityBuilder: any CarriedTopologyIdentityBuilding
     private let editor: any RectangularSurfaceSheetEditing
     private let patchBuilder: ExactRectangularBSplineSurfacePatchBuilder
 
     public init() {
         targetResolver = DefaultSurfaceOperationTargetResolver()
+        targetValidator = DefaultSingleFaceSheetSurfaceOperationTargetValidator()
         identityBuilder = DefaultCarriedTopologyIdentityBuilder()
         editor = DefaultRectangularSurfaceSheetEditor()
         patchBuilder = ExactRectangularBSplineSurfacePatchBuilder()
@@ -55,7 +57,7 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
             try match.validate()
         }
         try FeatureEvaluationBoundary.validateExactInput(
-            context.brep,
+            context,
             featureID: feature.id,
             tolerance: context.tolerance
         )
@@ -208,15 +210,12 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
         featureID: FeatureID,
         tolerance: ModelingTolerance
     ) throws -> (id: FaceID, surface: Surface3D) {
-        guard target.body.shellIDs == [target.shellID],
-              target.shell.faceIDs == [target.faceID] else {
-            throw kernelError(
-                .unsupportedCapability,
-                featureID: featureID,
-                tolerance: tolerance,
-                "Exact surface match requires each selected face to be the only face of its sheet body."
-            )
-        }
+        try targetValidator.validate(
+            target,
+            operation: "Surface match",
+            featureID: featureID,
+            tolerance: tolerance
+        )
         return (target.faceID, target.surface)
     }
 
@@ -292,11 +291,12 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
             + basisX * sourceFrame.position.x
             + basisY * sourceFrame.position.y
             + basisZ * sourceFrame.position.z
-        return ExactPatternTransform(
+        return try ExactPatternTransform(
             basisX: basisX,
             basisY: basisY,
             basisZ: basisZ,
-            translation: targetFrame.position - rotatedSource
+            translation: targetFrame.position - rotatedSource,
+            tolerance: tolerance
         )
     }
 

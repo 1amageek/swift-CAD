@@ -14,6 +14,13 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         public let secondDerivative: Vector3D
     }
 
+    private struct ThirdOrderDifferentialGeometry {
+        let position: Point3D
+        let firstDerivative: Vector3D
+        let secondDerivative: Vector3D
+        let thirdDerivative: Vector3D
+    }
+
     private struct Torus {
         let center: Point3D
         let axis: Vector3D
@@ -171,12 +178,14 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         let value: Interval
         let first: Interval
         let second: Interval
+        let third: Interval
 
         static func constant(_ value: Double) -> DifferentialInterval {
             DifferentialInterval(
                 value: .constant(value),
                 first: .constant(0.0),
-                second: .constant(0.0)
+                second: .constant(0.0),
+                third: .constant(0.0)
             )
         }
 
@@ -186,7 +195,8 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
             DifferentialInterval(
                 value: value.adding(other.value),
                 first: first.adding(other.first),
-                second: second.adding(other.second)
+                second: second.adding(other.second),
+                third: third.adding(other.third)
             )
         }
 
@@ -196,7 +206,8 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
             DifferentialInterval(
                 value: value.subtracting(other.value),
                 first: first.subtracting(other.first),
-                second: second.subtracting(other.second)
+                second: second.subtracting(other.second),
+                third: third.subtracting(other.third)
             )
         }
 
@@ -212,7 +223,17 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                         first.multiplied(by: other.first)
                             .scaled(by: 2.0)
                     )
-                    .adding(value.multiplied(by: other.second))
+                    .adding(value.multiplied(by: other.second)),
+                third: third.multiplied(by: other.value)
+                    .adding(
+                        second.multiplied(by: other.first)
+                            .scaled(by: 3.0)
+                    )
+                    .adding(
+                        first.multiplied(by: other.second)
+                            .scaled(by: 3.0)
+                    )
+                    .adding(value.multiplied(by: other.third))
             )
         }
 
@@ -220,7 +241,8 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
             DifferentialInterval(
                 value: value.scaled(by: scalar),
                 first: first.scaled(by: scalar),
-                second: second.scaled(by: scalar)
+                second: second.scaled(by: scalar),
+                third: third.scaled(by: scalar)
             )
         }
 
@@ -247,10 +269,25 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
             ) else {
                 return nil
             }
+            let rootFifth = rootCubed.multiplied(by: root).multiplied(by: root)
+            guard let thirdFirstTerm = third.divided(
+                by: root.scaled(by: 2.0)
+            ), let thirdSecondTerm = first.multiplied(by: second)
+                .scaled(by: 3.0)
+                .divided(by: rootCubed.scaled(by: 4.0)),
+                let thirdThirdTerm = first.multiplied(by: first)
+                    .multiplied(by: first)
+                    .scaled(by: 3.0)
+                    .divided(by: rootFifth.scaled(by: 8.0)) else {
+                return nil
+            }
             return DifferentialInterval(
                 value: root,
                 first: rootFirst,
-                second: firstTerm.subtracting(secondTerm)
+                second: firstTerm.subtracting(secondTerm),
+                third: thirdFirstTerm
+                    .subtracting(thirdSecondTerm)
+                    .adding(thirdThirdTerm)
             )
         }
     }
@@ -539,6 +576,57 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
+        let geometry = try derivativesThroughThirdOrder(
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        )
+        return DifferentialGeometry(
+            position: geometry.position,
+            firstDerivative: geometry.firstDerivative,
+            secondDerivative: geometry.secondDerivative
+        )
+    }
+
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        let endpointThreshold = Double.ulpOfOne * 1_024.0
+        if componentKind == .nodalSelfLoop,
+           fraction <= endpointThreshold || 1.0 - fraction <= endpointThreshold {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularGeometry,
+                residual: min(abs(fraction), abs(1.0 - fraction)),
+                tolerance: tolerance,
+                message: "A nodal torus-torus branch is only C2 at its joined endpoint."
+            )
+        }
+        if componentKind == .nearNodalClosedLoop,
+           fraction <= endpointThreshold
+                || abs(fraction - 0.5) <= endpointThreshold
+                || 1.0 - fraction <= endpointThreshold {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularGeometry,
+                residual: min(
+                    abs(fraction),
+                    min(abs(fraction - 0.5), abs(1.0 - fraction))
+                ),
+                tolerance: tolerance,
+                message: "A near-nodal torus-torus branch is only C2 at its joined point."
+            )
+        }
+        return try derivativesThroughThirdOrder(
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        ).thirdDerivative
+    }
+
+    private func derivativesThroughThirdOrder(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> ThirdOrderDifferentialGeometry {
         try tolerance.validate()
         guard fraction.isFinite,
               fraction >= -tolerance.relative,
@@ -638,6 +726,9 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         let secondDerivative = configuration.primary.axis * primaryHeight.second
             + configuration.radialDirection * radialCoordinate.second
             + configuration.quarterDirection * transverseCoordinate.second
+        let thirdDerivative = configuration.primary.axis * primaryHeight.third
+            + configuration.radialDirection * radialCoordinate.third
+            + configuration.quarterDirection * transverseCoordinate.third
         guard firstDerivative.length > tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
@@ -665,10 +756,11 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                 message: "A certified parallel torus-torus branch exceeded its geometric residual bound."
             )
         }
-        return DifferentialGeometry(
+        return ThirdOrderDifferentialGeometry(
             position: position,
             firstDerivative: firstDerivative,
-            secondDerivative: secondDerivative
+            secondDerivative: secondDerivative,
+            thirdDerivative: thirdDerivative
         )
     }
 
@@ -851,6 +943,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         let exactPeriod = 2.0 * Double.pi
         let period = exactPeriod.nextUp
         let periodSquared = (period * period).nextUp
+        let periodCubed = (periodSquared * period).nextUp
         let lowerAngle = (
             max(lowerFraction, 0.0) * exactPeriod
         ).nextDown
@@ -871,6 +964,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         var acceptedCellCount = 0
         var firstUpperBound = 0.0
         var secondUpperBound = 0.0
+        var thirdUpperBound = 0.0
 
         while let cell = cells.popLast() {
             processedCellCount += 1
@@ -885,6 +979,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                     angle: cell.angle,
                     period: period,
                     periodSquared: periodSquared,
+                    periodCubed: periodCubed,
                     secondaryRadialSign: secondaryRadialSign,
                     configuration: configuration
                ) {
@@ -914,6 +1009,19 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                             .maximumAbsoluteValue
                     ).nextUp
                 )
+                thirdUpperBound = max(
+                    thirdUpperBound,
+                    hypot(
+                        hypot(
+                            differential.primaryHeight.third
+                                .maximumAbsoluteValue,
+                            differential.radialCoordinate.third
+                                .maximumAbsoluteValue
+                        ),
+                        differential.transverseCoordinate.third
+                            .maximumAbsoluteValue
+                    ).nextUp
+                )
                 acceptedCellCount += 1
                 continue
             }
@@ -936,8 +1044,10 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         guard acceptedCellCount > 0,
               firstUpperBound.isFinite,
               secondUpperBound.isFinite,
+              thirdUpperBound.isFinite,
               firstUpperBound > 0.0,
-              secondUpperBound > 0.0 else {
+              secondUpperBound > 0.0,
+              thirdUpperBound > 0.0 else {
             throw Self.resourceFailure(
                 tolerance: tolerance,
                 message: "Parallel torus-torus differential certification produced no finite regular cells."
@@ -945,7 +1055,8 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         }
         return SpatialDifferentialMagnitudeBounds(
             first: firstUpperBound.nextUp,
-            second: secondUpperBound.nextUp
+            second: secondUpperBound.nextUp,
+            third: thirdUpperBound.nextUp
         )
     }
 
@@ -1101,10 +1212,14 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                         derivativeBounds.radicand[1],
                     secondDerivativeMagnitudeUpperBound:
                         derivativeBounds.radicand[2],
+                    thirdDerivativeMagnitudeUpperBound:
+                        derivativeBounds.radicand[3],
                     fifthDerivativeMagnitudeUpperBound:
                         derivativeBounds.radicand[5],
                     sixthDerivativeMagnitudeUpperBound:
                         derivativeBounds.radicand[6],
+                    seventhDerivativeMagnitudeUpperBound:
+                        derivativeBounds.radicand[7],
                     arithmeticEnvelope: arithmeticEnvelope,
                     valueRange: { lower, upper in
                         try Self.singularRadicandRange(
@@ -1141,6 +1256,8 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                     derivativeBounds.radicand[2],
                 thirdDerivativeMagnitudeUpperBound:
                     derivativeBounds.radicand[3],
+                fourthDerivativeMagnitudeUpperBound:
+                    derivativeBounds.radicand[4],
                 arithmeticEnvelope: arithmeticEnvelope,
                 valueRange: { lower, upper in
                     try Self.singularRadicandRange(
@@ -1174,12 +1291,26 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                         4.0 * factor.lower * factorRootLower
                     ).nextDown
         ).nextUp
+        let factorRootFifthLower = (
+            factor.lower * factor.lower * factorRootLower
+        ).nextDown
+        let factorRootThird = (
+            factor.third / (2.0 * factorRootLower).nextDown
+                + 3.0 * factor.first * factor.second
+                    / (
+                        4.0 * factor.lower * factorRootLower
+                    ).nextDown
+                + 3.0 * factor.first * factor.first * factor.first
+                    / (8.0 * factorRootFifthLower).nextDown
+        ).nextUp
         let span = (componentUpper - componentLower).nextUp
         let angleFirst: Double
         let angleSecond: Double
+        let angleThird: Double
         let distanceFactor: Double
         let distanceFactorFirst: Double
         let distanceFactorSecond: Double
+        let distanceFactorThird: Double
         switch componentKind {
         case .regularClosed:
             throw KernelError(
@@ -1191,6 +1322,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         case .nodalSelfLoop:
             angleFirst = period
             angleSecond = 0.0
+            angleThird = 0.0
             let spanSquared = (span * span).nextUp
             var distanceValues = [
                 lowerFraction * (1.0 - lowerFraction),
@@ -1209,6 +1341,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                 )
             ).nextUp
             distanceFactorSecond = (2.0 * spanSquared).nextUp
+            distanceFactorThird = 0.0
         case .nearNodalClosedLoop:
             let phase = Interval(
                 2.0 * Double.pi * lowerFraction,
@@ -1225,6 +1358,10 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                 span * 2.0 * Double.pi * Double.pi
                     * cosineMagnitude
             ).nextUp
+            angleThird = (
+                span * 4.0 * pow(Double.pi, 3.0)
+                    * sineMagnitude
+            ).nextUp
             distanceFactor = (
                 span * 0.5 * sineMagnitude
             ).nextUp
@@ -1235,6 +1372,10 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                 span * 2.0 * Double.pi * Double.pi
                     * sineMagnitude
             ).nextUp
+            distanceFactorThird = (
+                span * 4.0 * pow(Double.pi, 3.0)
+                    * cosineMagnitude
+            ).nextUp
         }
         let composedFactorFirst = (
             factorRootFirst * angleFirst
@@ -1242,6 +1383,11 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         let composedFactorSecond = (
             factorRootSecond * angleFirst * angleFirst
                 + factorRootFirst * angleSecond
+        ).nextUp
+        let composedFactorThird = (
+            factorRootThird * angleFirst * angleFirst * angleFirst
+                + 3.0 * factorRootSecond * angleFirst * angleSecond
+                + factorRootFirst * angleThird
         ).nextUp
         let transverseFirst = (
             distanceFactorFirst * factorRootUpper
@@ -1252,6 +1398,12 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                 + 2.0 * distanceFactorFirst * composedFactorFirst
                 + distanceFactor * composedFactorSecond
         ).nextUp
+        let transverseThird = (
+            distanceFactorThird * factorRootUpper
+                + 3.0 * distanceFactorSecond * composedFactorFirst
+                + 3.0 * distanceFactorFirst * composedFactorSecond
+                + distanceFactor * composedFactorThird
+        ).nextUp
         let primaryHeightFirst = (
             configuration.primary.minorRadius * angleFirst
         ).nextUp
@@ -1259,12 +1411,26 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
             configuration.primary.minorRadius
                 * (angleFirst * angleFirst + angleSecond)
         ).nextUp
+        let primaryHeightThird = (
+            configuration.primary.minorRadius * (
+                angleFirst * angleFirst * angleFirst
+                    + 3.0 * angleFirst * angleSecond
+                    + angleThird
+            )
+        ).nextUp
         let radialFirst = (
             derivativeBounds.radial[1] * angleFirst
         ).nextUp
         let radialSecond = (
             derivativeBounds.radial[2] * angleFirst * angleFirst
                 + derivativeBounds.radial[1] * angleSecond
+        ).nextUp
+        let radialThird = (
+            derivativeBounds.radial[3]
+                * angleFirst * angleFirst * angleFirst
+                + 3.0 * derivativeBounds.radial[2]
+                    * angleFirst * angleSecond
+                + derivativeBounds.radial[1] * angleThird
         ).nextUp
         let first = hypot(
             hypot(primaryHeightFirst, radialFirst),
@@ -1274,7 +1440,11 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
             hypot(primaryHeightSecond, radialSecond),
             transverseSecond
         ).nextUp
-        guard first.isFinite, second.isFinite else {
+        let third = hypot(
+            hypot(primaryHeightThird, radialThird),
+            transverseThird
+        ).nextUp
+        guard first.isFinite, second.isFinite, third.isFinite else {
             throw Self.resourceFailure(
                 tolerance: tolerance,
                 message: "Singular torus-torus differential certification exceeded finite arithmetic."
@@ -1282,7 +1452,8 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         }
         return SpatialDifferentialMagnitudeBounds(
             first: first,
-            second: second
+            second: second,
+            third: third
         )
     }
 
@@ -1292,7 +1463,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         arithmeticEnvelope: Double,
         tolerance: ModelingTolerance
     ) throws -> (radial: [Double], radicand: [Double]) {
-        let maximumOrder = 6
+        let maximumOrder = 7
         let primaryMinor = configuration.primary.minorRadius
         let secondaryMinor = configuration.secondary.minorRadius
         let heightMagnitude = (
@@ -1312,9 +1483,9 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         let secondaryTubeLower = sqrt(
             secondaryTubeSquaredLower
         ).nextDown
-        var height = Array(repeating: primaryMinor.nextUp, count: 7)
+        var height = Array(repeating: primaryMinor.nextUp, count: 8)
         height[0] = heightMagnitude
-        var secondaryTubeSquared = Array(repeating: 0.0, count: 7)
+        var secondaryTubeSquared = Array(repeating: 0.0, count: 8)
         secondaryTubeSquared[0] = (
             secondaryMinor * secondaryMinor
         ).nextUp
@@ -1325,7 +1496,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                 order: order
             )
         }
-        var secondaryTube = Array(repeating: 0.0, count: 7)
+        var secondaryTube = Array(repeating: 0.0, count: 8)
         secondaryTube[0] = secondaryMinor.nextUp
         for order in 1...maximumOrder {
             var convolution = 0.0
@@ -1344,7 +1515,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                     / (2.0 * secondaryTubeLower).nextDown
             ).nextUp
         }
-        var primaryRadius = Array(repeating: primaryMinor.nextUp, count: 7)
+        var primaryRadius = Array(repeating: primaryMinor.nextUp, count: 8)
         primaryRadius[0] = (
             configuration.primary.majorRadius + primaryMinor
         ).nextUp
@@ -1379,7 +1550,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                 message: "A singular torus-torus branch lost its axis-separation margin."
             )
         }
-        var radial = Array(repeating: 0.0, count: 7)
+        var radial = Array(repeating: 0.0, count: 8)
         radial[0] = (
             (
                 primarySquared[0]
@@ -1394,7 +1565,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                     / denominator
             ).nextUp
         }
-        var radicand = Array(repeating: 0.0, count: 7)
+        var radicand = Array(repeating: 0.0, count: 8)
         radicand[0] = primarySquared[0]
         for order in 1...maximumOrder {
             radicand[order] = (
@@ -1501,6 +1672,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         angle: Interval,
         period: Double,
         periodSquared: Double,
+        periodCubed: Double,
         secondaryRadialSign: Double,
         configuration: Configuration
     ) -> (
@@ -1513,12 +1685,14 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         let cosine = DifferentialInterval(
             value: cosineValue,
             first: sineValue.scaled(by: -period),
-            second: cosineValue.scaled(by: -periodSquared)
+            second: cosineValue.scaled(by: -periodSquared),
+            third: sineValue.scaled(by: periodCubed)
         )
         let sine = DifferentialInterval(
             value: sineValue,
             first: cosineValue.scaled(by: period),
-            second: sineValue.scaled(by: -periodSquared)
+            second: sineValue.scaled(by: -periodSquared),
+            third: cosineValue.scaled(by: -periodCubed)
         )
         let primaryRadius = DifferentialInterval
             .constant(configuration.primary.majorRadius)

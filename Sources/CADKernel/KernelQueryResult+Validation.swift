@@ -113,7 +113,8 @@ private func validateProjection(_ result: ProjectionQueryResult) throws {
         }
         try validateProjectionProgress(
             distance: projection.distance,
-            iterations: projection.iterations
+            iterations: projection.iterations,
+            converged: projection.converged
         )
     case let .curveDirectional(projection):
         try validateCurvePoint(projection.queryPoint)
@@ -127,7 +128,8 @@ private func validateProjection(_ result: ProjectionQueryResult) throws {
             expectedProjectedPoint: projection.queryPoint.point,
             lineResidual: projection.lineResidual,
             lineDistance: projection.lineDistance,
-            iterations: projection.iterations
+            iterations: projection.iterations,
+            converged: projection.converged
         )
     case let .edgeClosest(projection):
         try validateEdgeFrame(projection.frame)
@@ -142,7 +144,8 @@ private func validateProjection(_ result: ProjectionQueryResult) throws {
         }
         try validateProjectionProgress(
             distance: projection.distance,
-            iterations: projection.iterations
+            iterations: projection.iterations,
+            converged: projection.converged
         )
     case let .edgeDirectional(projection):
         try validateEdgeFrame(projection.frame)
@@ -156,7 +159,8 @@ private func validateProjection(_ result: ProjectionQueryResult) throws {
             expectedProjectedPoint: projection.frame.point,
             lineResidual: projection.lineResidual,
             lineDistance: projection.lineDistance,
-            iterations: projection.iterations
+            iterations: projection.iterations,
+            converged: projection.converged
         )
     case let .surfaceClosest(projection):
         try validateSurfaceFrame(projection.frame)
@@ -171,7 +175,8 @@ private func validateProjection(_ result: ProjectionQueryResult) throws {
         }
         try validateProjectionProgress(
             distance: projection.distance,
-            iterations: projection.iterations
+            iterations: projection.iterations,
+            converged: projection.converged
         )
     case let .surfaceDirectional(projection):
         try validateSurfaceFrame(projection.frame)
@@ -185,7 +190,8 @@ private func validateProjection(_ result: ProjectionQueryResult) throws {
             expectedProjectedPoint: projection.frame.point,
             lineResidual: projection.lineResidual,
             lineDistance: projection.lineDistance,
-            iterations: projection.iterations
+            iterations: projection.iterations,
+            converged: projection.converged
         )
     }
 }
@@ -237,7 +243,8 @@ private func validateDirectionalProjection(
     expectedProjectedPoint: Point3D,
     lineResidual: Vector3D,
     lineDistance: Double,
-    iterations: Int
+    iterations: Int,
+    converged: Bool
 ) throws {
     try sourcePoint.validate()
     try direction.validate()
@@ -253,12 +260,23 @@ private func validateDirectionalProjection(
           lineDistance == lineResidual.length else {
         throw invalidResult("Directional projection contains inconsistent derived fields.")
     }
-    try validateProjectionProgress(distance: lineDistance, iterations: iterations)
+    try validateProjectionProgress(
+        distance: lineDistance,
+        iterations: iterations,
+        converged: converged
+    )
 }
 
-private func validateProjectionProgress(distance: Double, iterations: Int) throws {
-    guard distance.isFinite, distance >= 0.0, iterations >= 0 else {
-        throw invalidResult("Projection result contains invalid distance or iteration metadata.")
+private func validateProjectionProgress(
+    distance: Double,
+    iterations: Int,
+    converged: Bool
+) throws {
+    guard distance.isFinite,
+          distance >= 0.0,
+          iterations >= 0,
+          converged else {
+        throw invalidResult("Projection result is not a valid converged result.")
     }
 }
 

@@ -155,7 +155,11 @@ struct CrossBodyReplacementFeatureTests {
                         count: 2
                     ))
                 ),
-                LinearPatternFeatureEvaluator(sewer: DefaultBRepSewer()),
+                LinearPatternFeatureEvaluator(
+                    sewer: DefaultBRepSewer(),
+                    unionApplicator: ExactBooleanOperationApplicator(),
+                    separationValidator: ExactBodyJoinValidator()
+                ),
                 [:]
             ),
             (
@@ -169,7 +173,11 @@ struct CrossBodyReplacementFeatureTests {
                         count: 2
                     ))
                 ),
-                RadialPatternFeatureEvaluator(sewer: DefaultBRepSewer()),
+                RadialPatternFeatureEvaluator(
+                    sewer: DefaultBRepSewer(),
+                    unionApplicator: ExactBooleanOperationApplicator(),
+                    separationValidator: ExactBodyJoinValidator()
+                ),
                 [:]
             ),
             (
@@ -185,7 +193,11 @@ struct CrossBodyReplacementFeatureTests {
                         secondCount: 2
                     ))
                 ),
-                GridPatternFeatureEvaluator(sewer: DefaultBRepSewer()),
+                GridPatternFeatureEvaluator(
+                    sewer: DefaultBRepSewer(),
+                    unionApplicator: ExactBooleanOperationApplicator(),
+                    separationValidator: ExactBodyJoinValidator()
+                ),
                 [:]
             ),
             (
@@ -204,7 +216,11 @@ struct CrossBodyReplacementFeatureTests {
                     ],
                     outputs: [FeatureOutput(role: .body)]
                 ),
-                CurveDrivenPatternFeatureEvaluator(sewer: DefaultBRepSewer()),
+                CurveDrivenPatternFeatureEvaluator(
+                    sewer: DefaultBRepSewer(),
+                    unionApplicator: ExactBooleanOperationApplicator(),
+                    separationValidator: ExactBodyJoinValidator()
+                ),
                 [pathFeatureID: [path]]
             ),
         ]

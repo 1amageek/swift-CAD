@@ -42,8 +42,11 @@ public struct SelectionAngleMeasurement: Codable, Sendable, Hashable {
         if let normal = point.normal {
             return try normal.normalized(tolerance: tolerance.distance)
         }
-        throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-            "Selection angle measurement requires a tangent or normal direction."
+        throw KernelError(
+            phase: .validation,
+            code: .invalidInput,
+            tolerance: tolerance,
+            message: "Selection angle measurement requires a tangent or normal direction."
         )
     }
 }

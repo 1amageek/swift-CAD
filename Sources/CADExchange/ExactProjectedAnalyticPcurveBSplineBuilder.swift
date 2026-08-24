@@ -108,6 +108,10 @@ struct ExactProjectedAnalyticPcurveBSplineBuilder {
             return true
         case .cylinder, .analytic, .bSpline:
             return false
+        case let .procedural(.offset(offset)):
+            return isPlanar(offset.source)
+        case .procedural(.ruled):
+            return false
         }
     }
 }

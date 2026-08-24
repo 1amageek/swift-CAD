@@ -6,6 +6,49 @@ import Testing
 struct CertifiedSphereCylinderSpatialDifferentialBoundsTests {
     private let tolerance = ModelingTolerance.standard
 
+    @Test(.timeLimit(.minutes(3)))
+    func thirdDerivativesCoverRootFreeAndRegularizedEndpointStructures() throws {
+        let groups = [
+            try rootFreeCurves(),
+            try boundedCurves(),
+            try rootFreePoleSplitCurves(),
+            try simpleRootPoleSplitCurves(),
+            try twoSimpleRootOpenCurves(),
+            try twoDoubleRootOpenCurves(),
+        ]
+        for exact in groups.compactMap(\.first) {
+            guard case let .sphereCylinder(curve) = exact.definition else {
+                Issue.record("Expected a certified sphere-cylinder curve.")
+                continue
+            }
+            let pcurve = try CertifiedAnalyticPairSurfaceParameterCurve(
+                intersection: exact,
+                role: .first,
+                tolerance: tolerance
+            )
+            let bounds = try pcurve.spatialDifferentialMagnitudeBounds(
+                tolerance: tolerance
+            )
+            let third = try #require(bounds.third)
+            for fraction in [0.0, 0.23, 0.57, 1.0] {
+                let actual = try curve.thirdDerivative(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                #expect(actual.length <= third)
+                let oracle = try secondDerivativeDifference(
+                    curve: curve,
+                    at: fraction
+                )
+                let scale = max(actual.length, oracle.length, 1.0)
+                #expect(
+                    (actual - oracle).length <= max(3.0e-4, scale * 2.0e-6),
+                    "component: \(curve.componentKind), fraction: \(fraction), magnitude: \(scale)"
+                )
+            }
+        }
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func rootFreeBranchesEncloseTrimmedSpatialDifferentials() throws {
         let exactCurves = try rootFreeCurves()
@@ -34,6 +77,7 @@ struct CertifiedSphereCylinderSpatialDifferentialBoundsTests {
                 .fullBranchSpatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
                 )
+            let sourceThird = try #require(sourceBounds.third)
             for trim in [
                 (start: 0.0, end: 1.0),
                 (start: 0.1, end: 0.7),
@@ -52,6 +96,8 @@ struct CertifiedSphereCylinderSpatialDifferentialBoundsTests {
                 let scale = abs(trim.end - trim.start)
                 #expect(bounds.first >= sourceBounds.first * scale)
                 #expect(bounds.second >= sourceBounds.second * scale * scale)
+                let third = try #require(bounds.third)
+                #expect(third >= sourceThird * scale * scale * scale)
 
                 let lift = SurfaceLiftCurve3D(
                     surface: exact.surface(for: .first),
@@ -78,6 +124,12 @@ struct CertifiedSphereCylinderSpatialDifferentialBoundsTests {
                     )
                     #expect(geometry.firstDerivative.length <= bounds.first)
                     #expect(geometry.secondDerivative.length <= bounds.second)
+                    let thirdDerivative = try curve
+                        .parameterDerivativesThroughThirdOrder(
+                            at: fraction,
+                            tolerance: tolerance
+                        ).thirdDerivative
+                    #expect(thirdDerivative.length <= third)
                     if interval.contains(fraction) {
                         #expect(
                             geometry.secondDerivative.length <= certifiedSecond
@@ -633,6 +685,44 @@ struct CertifiedSphereCylinderSpatialDifferentialBoundsTests {
                 )
             )
         ))
+    }
+
+    private func secondDerivativeDifference(
+        curve: CertifiedSphereCylinderIntersectionCurve,
+        at fraction: Double
+    ) throws -> Vector3D {
+        let endpointStep = 2.0e-4
+        func second(_ value: Double) throws -> Vector3D {
+            try curve.differential(
+                atNormalizedFraction: value,
+                tolerance: tolerance
+            ).secondDerivative
+        }
+        if fraction == 0.0 {
+            let step = endpointStep
+            return (
+                try second(0.0) * -25.0
+                    + second(step) * 48.0
+                    - second(2.0 * step) * 36.0
+                    + second(3.0 * step) * 16.0
+                    - second(4.0 * step) * 3.0
+            ) / (12.0 * step)
+        }
+        if fraction == 1.0 {
+            let step = endpointStep
+            return (
+                try second(1.0) * 25.0
+                    - second(1.0 - step) * 48.0
+                    + second(1.0 - 2.0 * step) * 36.0
+                    - second(1.0 - 3.0 * step) * 16.0
+                    + second(1.0 - 4.0 * step) * 3.0
+            ) / (12.0 * step)
+        }
+        let interiorStep = 1.0e-5
+        return (
+            try second(fraction + interiorStep)
+                - second(fraction - interiorStep)
+        ) / (2.0 * interiorStep)
     }
 
     private func sourceResiduals(

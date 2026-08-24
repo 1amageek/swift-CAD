@@ -11,27 +11,43 @@ import sys
 
 
 CAPABILITY_ID_PATTERN = (
-    r"(?:GEO|TOPO|MODEL|API|EXCHANGE)-[A-Z0-9]+-\d{3}"
+    r"(?:GEO|TOPO|MODEL|API|EXCHANGE)-[A-Z0-9]+(?:-[A-Z0-9]+)*-\d{3}"
 )
 CAPABILITY_ID = re.compile(rf"\b{CAPABILITY_ID_PATTERN}\b")
 CATALOG_ID = re.compile(rf'id:\s*"(?P<id>{CAPABILITY_ID_PATTERN})"')
 CATALOG_OPERATION = re.compile(r'operation:\s*"(?P<operation>[^"]+)"')
+CATALOG_STATUS = re.compile(r"status:\s*\.(?P<status>supported|partial|planned)")
 CATALOG_TOPOLOGY = re.compile(r"topology:\s*\.(?P<topology>[A-Za-z0-9_]+)")
+FEATURE_DEFAULT_STATUS = re.compile(
+    r"status:\s*KernelCapabilityStatus\s*=\s*\.(?P<status>supported|partial|planned)"
+)
 CATALOG_FIXTURE_ARRAY = re.compile(
     r"(?:fixtures|testFixtures):\s*\[(.*?)\]",
     re.DOTALL,
 )
+CATALOG_FAILURE_ARRAY = re.compile(r"failureCodes:\s*\[(.*?)\]", re.DOTALL)
+FEATURE_DEFAULT_FAILURE_ARRAY = re.compile(
+    r"failureCodes:\s*\[KernelErrorCode\]\s*=\s*\[(.*?)\]",
+    re.DOTALL,
+)
+KERNEL_ERROR_CASE = re.compile(r"\.([A-Za-z][A-Za-z0-9_]*)")
 SWIFT_STRING_LITERAL = re.compile(r'"([^"\\]*(?:\\.[^"\\]*)*)"')
 LEDGER_FIXTURE = re.compile(r"`([^`]*Tests(?:\.[^`]*)?)`")
 ENVELOPE_ID = re.compile(r"ENV-(?P<number>\d{3})")
+TEST_CONTAINER = re.compile(
+    r"\b(?:actor|class|enum|struct)\s+(?P<name>[A-Za-z_][A-Za-z0-9_]*Tests)\b"
+)
+TEST_FUNCTION = re.compile(r"\bfunc\s+(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*\(")
 
 
 @dataclass(frozen=True)
 class CatalogEntry:
     identifier: str
     operation: str
+    status: str
     topology: str
     fixtures: frozenset[str]
+    failure_codes: frozenset[str]
 
 
 @dataclass(frozen=True)
@@ -41,6 +57,12 @@ class LedgerContract:
     fixtures_by_capability: dict[str, frozenset[str]]
 
 
+@dataclass(frozen=True)
+class TestEvidence:
+    containers: frozenset[str]
+    functions: frozenset[str]
+
+
 def fail(message: str) -> None:
     print(f"Capability ledger check failed: {message}", file=sys.stderr)
     raise SystemExit(1)
@@ -48,6 +70,16 @@ def fail(message: str) -> None:
 
 def parse_catalog(paths: list[Path]) -> dict[str, CatalogEntry]:
     source = "\n".join(path.read_text(encoding="utf-8") for path in paths)
+    default_status_match = FEATURE_DEFAULT_STATUS.search(source)
+    if default_status_match is None:
+        fail("compiled catalog is missing the feature helper's default status")
+    default_status = default_status_match.group("status")
+    default_failure_match = FEATURE_DEFAULT_FAILURE_ARRAY.search(source)
+    if default_failure_match is None:
+        fail("compiled catalog is missing the feature helper's default failure codes")
+    default_failure_codes = frozenset(
+        KERNEL_ERROR_CASE.findall(default_failure_match.group(1))
+    )
     matches = list(CATALOG_ID.finditer(source))
     counts = Counter(match.group("id") for match in matches)
     duplicates = sorted(identifier for identifier, count in counts.items() if count != 1)
@@ -59,6 +91,7 @@ def parse_catalog(paths: list[Path]) -> dict[str, CatalogEntry]:
         end = matches[index + 1].start() if index + 1 < len(matches) else len(source)
         block = source[match.start():end]
         operation_match = CATALOG_OPERATION.search(block)
+        status_match = CATALOG_STATUS.search(block)
         topology_match = CATALOG_TOPOLOGY.search(block)
         fixture_match = CATALOG_FIXTURE_ARRAY.search(block)
         if operation_match is None or topology_match is None or fixture_match is None:
@@ -67,11 +100,21 @@ def parse_catalog(paths: list[Path]) -> dict[str, CatalogEntry]:
         if not fixtures:
             fail(f"compiled capability {match.group('id')} has no fixtures")
         identifier = match.group("id")
+        failure_match = CATALOG_FAILURE_ARRAY.search(block)
+        failure_codes = (
+            frozenset(KERNEL_ERROR_CASE.findall(failure_match.group(1)))
+            if failure_match is not None
+            else default_failure_codes
+        )
+        if not failure_codes:
+            fail(f"compiled capability {identifier} has no typed failure codes")
         entries[identifier] = CatalogEntry(
             identifier=identifier,
             operation=operation_match.group("operation"),
+            status=status_match.group("status") if status_match is not None else default_status,
             topology=topology_match.group("topology"),
             fixtures=fixtures,
+            failure_codes=failure_codes,
         )
     return entries
 
@@ -156,19 +199,90 @@ def ids_from_contract_test(path: Path) -> set[str]:
     return set(CAPABILITY_ID.findall(path.read_text(encoding="utf-8")))
 
 
-def test_evidence(root: Path) -> str:
-    evidence: list[str] = []
+def test_evidence(root: Path) -> TestEvidence:
+    containers: set[str] = set()
+    functions: set[str] = set()
     for path in sorted((root / "Tests").rglob("*.swift")):
-        evidence.append(str(path.relative_to(root)))
-        evidence.append(path.read_text(encoding="utf-8"))
-    return "\n".join(evidence)
-
-
-def fixture_has_source_evidence(fixture: str, evidence: str) -> bool:
-    return all(
-        re.search(rf"\b{re.escape(component)}\b", evidence) is not None
-        for component in fixture.split(".")
+        source = path.read_text(encoding="utf-8")
+        containers.add(path.stem)
+        containers.update(match.group("name") for match in TEST_CONTAINER.finditer(source))
+        functions.update(match.group("name") for match in TEST_FUNCTION.finditer(source))
+    return TestEvidence(
+        containers=frozenset(containers),
+        functions=frozenset(functions),
     )
+
+
+def fixture_has_source_evidence(fixture: str, evidence: TestEvidence) -> bool:
+    components = fixture.split(".")
+    if len(components) == 1:
+        return components[0] in evidence.containers
+    if len(components) == 2:
+        return (
+            components[0] in evidence.containers
+            and components[1] in evidence.functions
+        )
+    return False
+
+
+def roadmap_row_numbers(source: str, label: str) -> list[int]:
+    for line in source.splitlines():
+        if not line.startswith("|"):
+            continue
+        fields = table_fields(line)
+        if fields and fields[0] == label:
+            return [int(value) for value in re.findall(r"\d+", fields[1])]
+    fail(f"ROADMAP is missing the '{label}' row")
+
+
+def roadmap_domain_numbers(source: str, label: str) -> list[int]:
+    for line in source.splitlines():
+        if not line.startswith("|"):
+            continue
+        fields = table_fields(line)
+        if fields and fields[0] == label and len(fields) >= 4:
+            return [int(field) for field in fields[1:4]]
+    fail(f"ROADMAP is missing the '{label}' domain row")
+
+
+def validate_roadmap_metrics(
+    source: str,
+    catalog: dict[str, CatalogEntry],
+    envelope_count: int,
+) -> None:
+    statuses = Counter(entry.status for entry in catalog.values())
+    fixture_count = sum(len(entry.fixtures) for entry in catalog.values())
+    expected_metrics = {
+        "Catalog capabilities": [len(catalog)],
+        "General `supported` capabilities": [statuses["supported"], len(catalog)],
+        "`partial` capabilities": [statuses["partial"]],
+        "Development-only input envelopes": [envelope_count],
+        "Capability-to-fixture bindings": [fixture_count],
+    }
+    for label, expected in expected_metrics.items():
+        actual = roadmap_row_numbers(source, label)
+        if actual != expected:
+            fail(f"ROADMAP '{label}' reports {actual}, expected {expected}")
+
+    domains = {
+        "Geometry": "GEO-",
+        "Topology": "TOPO-",
+        "Modeling and constraints": "MODEL-",
+        "Shared command/query and native API": "API-",
+        "Exact and USD exchange": "EXCHANGE-",
+    }
+    for label, prefix in domains.items():
+        entries = [
+            entry for entry in catalog.values() if entry.identifier.startswith(prefix)
+        ]
+        expected = [
+            len(entries),
+            sum(entry.status == "supported" for entry in entries),
+            sum(entry.status == "partial" for entry in entries),
+        ]
+        actual = roadmap_domain_numbers(source, label)
+        if actual != expected:
+            fail(f"ROADMAP '{label}' reports {actual}, expected {expected}")
 
 
 def main() -> int:
@@ -196,6 +310,20 @@ def main() -> int:
             print("Capability IDs missing from contract tests:", ", ".join(missing_tests))
         if unknown_tests:
             print("Contract tests reference unknown capability IDs:", ", ".join(unknown_tests))
+        return 1
+
+    inconsistent_supported = sorted(
+        entry.identifier
+        for entry in catalog.values()
+        if entry.status == "supported"
+        and "unsupportedCapability" in entry.failure_codes
+    )
+    if inconsistent_supported:
+        print(
+            "Supported capabilities declaring unsupported public inputs:",
+            ", ".join(inconsistent_supported),
+            file=sys.stderr,
+        )
         return 1
 
     fixture_mismatches: list[str] = []
@@ -231,10 +359,20 @@ def main() -> int:
         )
         return 1
 
+    validate_roadmap_metrics(
+        (root / "ROADMAP.md").read_text(encoding="utf-8"),
+        catalog,
+        len(ledger.envelope_ids),
+    )
+
+    status_counts = Counter(entry.status for entry in catalog.values())
     fixture_count = sum(len(entry.fixtures) for entry in catalog.values())
     print(
         "Capability ledger check passed "
         f"({len(catalog)} unique capabilities, "
+        f"{status_counts['supported']} supported, "
+        f"{status_counts['partial']} partial, "
+        f"{status_counts['planned']} planned, "
         f"{len(ledger.envelope_ids)} unique envelopes, "
         f"{fixture_count} capability-fixture bindings)."
     )

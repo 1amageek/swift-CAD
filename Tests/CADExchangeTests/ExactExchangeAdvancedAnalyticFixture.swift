@@ -724,6 +724,137 @@ enum ExactExchangeAdvancedAnalyticFixture {
         )
     }
 
+    static func certifiedSphereConeIntersectionSheet(reversed: Bool) throws -> BRepModel {
+        let source = try certifiedSphereConeIntersection()
+        return try certifiedSphereConeSheet(
+            intersection: source.intersection,
+            curve: source.intersection.curve,
+            faceSurface: source.sphere,
+            transformedBy: nil,
+            reversed: reversed,
+            stableID: "exact:certified-sphere-cone:\(reversed)"
+        )
+    }
+
+    static func rigidImageSphereConeIntersectionSheet(reversed: Bool) throws -> BRepModel {
+        let source = try certifiedSphereConeIntersection()
+        let transform = RigidTransform3D.translated(
+            by: Vector3D(x: 0.011, y: -0.007, z: 0.005)
+        )
+        let targetSphere = Surface3D.analytic(.sphere(
+            center: transform.applying(to: .origin),
+            radius: 1.0
+        ))
+        let targetCurve = Curve3D.rigidImage(try RigidImageCurve3D(
+            source: source.intersection.curve,
+            transform: transform,
+            tolerance: .standard
+        ))
+        return try certifiedSphereConeSheet(
+            intersection: source.intersection,
+            curve: targetCurve,
+            faceSurface: targetSphere,
+            transformedBy: transform,
+            reversed: reversed,
+            stableID: "exact:rigid-sphere-cone:\(reversed)"
+        )
+    }
+
+    private static func certifiedSphereConeIntersection() throws -> (
+        intersection: SurfaceSurfaceIntersectionCurve,
+        sphere: Surface3D
+    ) {
+        let sphere = Surface3D.analytic(.sphere(center: .origin, radius: 1.0))
+        let cone = Surface3D.analytic(.cone(
+            apex: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            axis: .unitZ,
+            halfAngle: atan(0.5)
+        ))
+        let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+            first: sphere,
+            second: cone,
+            tolerance: .standard
+        )
+        guard let intersection = intersections.compactMap({ result -> SurfaceSurfaceIntersectionCurve? in
+            guard case let .curve(curve) = result,
+                  case .certifiedIntersection(.sphereCone) = curve.curve else {
+                return nil
+            }
+            return curve
+        }).first else {
+            throw KernelError(
+                phase: .exchange,
+                code: .intersectionFailure,
+                tolerance: .standard,
+                message: "The sphere-cone exchange fixture produced no certified component."
+            )
+        }
+        return (intersection, sphere)
+    }
+
+    private static func certifiedSphereConeSheet(
+        intersection: SurfaceSurfaceIntersectionCurve,
+        curve: Curve3D,
+        faceSurface: Surface3D,
+        transformedBy transform: RigidTransform3D?,
+        reversed: Bool,
+        stableID: String
+    ) throws -> BRepModel {
+        let intervals = reversed
+            ? [(1.0, 0.5), (0.5, 0.0)]
+            : [(0.0, 0.5), (0.5, 1.0)]
+        let edges = try intervals.enumerated().map { index, interval in
+            let sourceParameterCurve = SurfaceParameterCurve.certifiedAnalyticPair(
+                try CertifiedAnalyticPairSurfaceParameterCurve(
+                    intersection: try certifiedAnalyticIntersection(intersection),
+                    role: .first,
+                    startFraction: interval.0,
+                    endFraction: interval.1,
+                    tolerance: .standard
+                )
+            )
+            let parameterCurve: SurfaceParameterCurve
+            if let transform {
+                parameterCurve = .rigidImage(try RigidImageSurfaceParameterCurve(
+                    source: SurfaceLiftCurve3D(
+                        surface: try certifiedAnalyticIntersection(intersection)
+                            .surface(for: .first),
+                        parameterCurve: sourceParameterCurve
+                    ),
+                    targetSurface: faceSurface,
+                    transform: transform,
+                    tolerance: .standard
+                ))
+            } else {
+                parameterCurve = sourceParameterCurve
+            }
+            return BRepSewingEdge(
+                stableID: "\(stableID):\(index)",
+                curve: curve,
+                startParameter: interval.0,
+                endParameter: interval.1,
+                startPoint: try curve.point(at: interval.0, tolerance: .standard),
+                endPoint: try curve.point(at: interval.1, tolerance: .standard),
+                surfaceParameterCurve: parameterCurve
+            )
+        }
+        return try sheet(surface: faceSurface, stableID: stableID, edges: edges)
+    }
+
+    private static func certifiedAnalyticIntersection(
+        _ intersection: SurfaceSurfaceIntersectionCurve
+    ) throws -> CertifiedAnalyticAnalyticIntersectionCurve {
+        guard case let .analyticAnalytic(exact) = intersection.truth else {
+            throw KernelError(
+                phase: .exchange,
+                code: .topologyFailure,
+                tolerance: .standard,
+                message: "The sphere-cone exchange fixture lost analytic intersection truth."
+            )
+        }
+        return exact
+    }
+
     static func implicitBSplineIntersectionSheet(reversed: Bool) throws -> BRepModel {
         let horizontal = BSplineSurface3D(
             uDegree: 1,

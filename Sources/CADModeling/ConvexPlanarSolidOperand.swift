@@ -33,7 +33,10 @@ package struct ConvexPlanarSolidOperand: Sendable {
                   loop.role == .outer,
                   loop.coedges.count >= 3,
                   let surface = model.geometry.surfaces[face.surfaceID],
-                  let plane = Self.plane(from: surface) else {
+                  let plane = try Self.plane(
+                      from: surface,
+                      tolerance: tolerance
+                  ) else {
                 throw Self.unsupported(tolerance, "Convex planar Boolean requires one straight outer loop on every planar face.")
             }
             for coedge in loop.coedges {
@@ -77,30 +80,18 @@ package struct ConvexPlanarSolidOperand: Sendable {
     }
 
     private static func plane(
-        from surface: Surface3D
-    ) -> (origin: Point3D, normal: Vector3D)? {
-        switch surface {
-        case let .plane(plane):
-            return (plane.origin, plane.normal)
-        case let .analytic(.plane(origin, normal)):
-            return (origin, normal)
-        case .cylinder, .analytic, .bSpline:
-            return nil
-        }
+        from surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> (origin: Point3D, normal: Vector3D)? {
+        guard let plane = try DefaultPlanarSurfaceResolver().exactPlane(
+            for: surface,
+            tolerance: tolerance
+        ) else { return nil }
+        return (plane.origin, plane.normal)
     }
 
     private static func isLine(_ curve: Curve3D) -> Bool {
-        switch curve {
-        case .line, .analytic(.line):
-            return true
-        case .circle,
-             .analytic,
-             .bSpline,
-             .implicit,
-             .surfaceLift,
-             .certifiedIntersection:
-            return false
-        }
+        curve.hasExactLinearParameterization
     }
 
     private static func validateConvexPolygon(

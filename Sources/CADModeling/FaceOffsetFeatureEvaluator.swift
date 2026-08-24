@@ -43,7 +43,11 @@ public struct FaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         try FeatureEvaluationBoundary.validateRequest(featureID: feature.id, tolerance: context.tolerance) {
             try offset.validate()
         }
-        try FeatureEvaluationBoundary.validateExactInput(context.brep, featureID: feature.id, tolerance: context.tolerance)
+        try FeatureEvaluationBoundary.validateExactInput(
+            context,
+            featureID: feature.id,
+            tolerance: context.tolerance
+        )
         let distance = try resolvedDistance(offset.distance, featureID: feature.id, context: context)
         let bodyID = try context.bodyID(generatedBy: offset.target.featureID)
         let bodyScope = try BodyTopologyScope(bodyID: bodyID, model: context.brep)

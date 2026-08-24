@@ -34,6 +34,7 @@ struct CertifiedSphereConeSpatialDifferentialBoundsTests {
                 .fullBranchSpatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
                 )
+            let sourceThird = try #require(sourceBounds.third)
             for trim in [
                 (start: 0.0, end: 1.0),
                 (start: 0.1, end: 0.7),
@@ -52,6 +53,8 @@ struct CertifiedSphereConeSpatialDifferentialBoundsTests {
                 let scale = abs(trim.end - trim.start)
                 #expect(bounds.first >= sourceBounds.first * scale)
                 #expect(bounds.second >= sourceBounds.second * scale * scale)
+                let third = try #require(bounds.third)
+                #expect(third >= sourceThird * scale * scale * scale)
 
                 let lift = SurfaceLiftCurve3D(
                     surface: exact.surface(for: .first),
@@ -78,6 +81,12 @@ struct CertifiedSphereConeSpatialDifferentialBoundsTests {
                     )
                     #expect(geometry.firstDerivative.length <= bounds.first)
                     #expect(geometry.secondDerivative.length <= bounds.second)
+                    let thirdDerivative = try curve
+                        .parameterDerivativesThroughThirdOrder(
+                            at: fraction,
+                            tolerance: tolerance
+                        ).thirdDerivative
+                    #expect(thirdDerivative.length <= third)
                     if interval.contains(fraction) {
                         #expect(
                             geometry.secondDerivative.length <= certifiedSecond
@@ -185,6 +194,16 @@ struct CertifiedSphereConeSpatialDifferentialBoundsTests {
             let bounds = try pcurve.spatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
             )
+            let sourceBounds = try source
+                .boundedBranchSpatialDifferentialMagnitudeBounds(
+                    fromNormalizedFraction: min(trim.start, trim.end),
+                    toNormalizedFraction: max(trim.start, trim.end),
+                    tolerance: tolerance
+                )
+            let sourceThird = try #require(sourceBounds.third)
+            let third = try #require(bounds.third)
+            let scale = abs(trim.end - trim.start)
+            #expect(third >= sourceThird * scale * scale * scale)
             let lift = SurfaceLiftCurve3D(
                 surface: exact.surface(for: .first),
                 parameterCurve: .certifiedAnalyticPair(pcurve)
@@ -198,6 +217,12 @@ struct CertifiedSphereConeSpatialDifferentialBoundsTests {
                 )
                 #expect(geometry.firstDerivative.length <= bounds.first)
                 #expect(geometry.secondDerivative.length <= bounds.second)
+                let thirdDerivative = try curve
+                    .parameterDerivativesThroughThirdOrder(
+                        at: fraction,
+                        tolerance: tolerance
+                    ).thirdDerivative
+                #expect(thirdDerivative.length <= third)
             }
         }
     }
@@ -212,6 +237,11 @@ struct CertifiedSphereConeSpatialDifferentialBoundsTests {
                 continue
             }
             #expect(source.componentKind == .apexReducedAngularInterval)
+            let sourceBounds = try source
+                .apexReducedBranchSpatialDifferentialMagnitudeBounds(
+                    tolerance: tolerance
+                )
+            let sourceThird = try #require(sourceBounds.third)
             let pcurve = try CertifiedAnalyticPairSurfaceParameterCurve(
                 intersection: exact,
                 role: .first,
@@ -221,6 +251,8 @@ struct CertifiedSphereConeSpatialDifferentialBoundsTests {
             let bounds = try pcurve.spatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
             )
+            let third = try #require(bounds.third)
+            #expect(third >= sourceThird)
             let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
                 surface: exact.surface(for: .first),
                 parameterCurve: .certifiedAnalyticPair(pcurve)
@@ -233,6 +265,12 @@ struct CertifiedSphereConeSpatialDifferentialBoundsTests {
                 )
                 #expect(geometry.firstDerivative.length <= bounds.first)
                 #expect(geometry.secondDerivative.length <= bounds.second)
+                let thirdDerivative = try curve
+                    .parameterDerivativesThroughThirdOrder(
+                        at: fraction,
+                        tolerance: tolerance
+                    ).thirdDerivative
+                #expect(thirdDerivative.length <= third)
             }
         }
         try expectLocalPlaneIntersections(try #require(exactCurves.first))
@@ -253,6 +291,7 @@ struct CertifiedSphereConeSpatialDifferentialBoundsTests {
                 toNormalizedFraction: 1.0,
                 tolerance: tolerance
             )
+            let third = try #require(bounds.third)
             let pcurve = try CertifiedAnalyticPairSurfaceParameterCurve(
                 intersection: exact,
                 role: .first,
@@ -266,6 +305,7 @@ struct CertifiedSphereConeSpatialDifferentialBoundsTests {
             let liftedBounds = try pcurve.spatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
             )
+            let liftedThird = try #require(liftedBounds.third)
             for index in 0...128 {
                 let fraction = Double(index) / 128.0
                 let geometry = try source.differential(
@@ -280,6 +320,17 @@ struct CertifiedSphereConeSpatialDifferentialBoundsTests {
                 #expect(geometry.secondDerivative.length <= bounds.second)
                 #expect(lifted.firstDerivative.length <= liftedBounds.first)
                 #expect(lifted.secondDerivative.length <= liftedBounds.second)
+                let sourceThirdDerivative = try source.thirdDerivative(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                let liftedThirdDerivative = try Curve3D.surfaceLift(lift)
+                    .parameterDerivativesThroughThirdOrder(
+                        at: fraction,
+                        tolerance: tolerance
+                    ).thirdDerivative
+                #expect(sourceThirdDerivative.length <= third)
+                #expect(liftedThirdDerivative.length <= liftedThird)
                 #expect(
                     (lifted.position - geometry.position).length
                         <= tolerance.distance
@@ -324,6 +375,9 @@ struct CertifiedSphereConeSpatialDifferentialBoundsTests {
                     bounds.second
                         >= sourceBounds.second * scale * scale
                 )
+                let sourceThird = try #require(sourceBounds.third)
+                let third = try #require(bounds.third)
+                #expect(third >= sourceThird * scale * scale * scale)
 
                 for index in 0...128 {
                     let fraction = Double(index) / 128.0
@@ -341,6 +395,11 @@ struct CertifiedSphereConeSpatialDifferentialBoundsTests {
                         geometry.secondDerivative.length
                             <= sourceBounds.second
                     )
+                    let thirdDerivative = try source.thirdDerivative(
+                        atNormalizedFraction: sourceFraction,
+                        tolerance: tolerance
+                    )
+                    #expect(thirdDerivative.length <= sourceThird)
                 }
             }
         }
@@ -351,6 +410,76 @@ struct CertifiedSphereConeSpatialDifferentialBoundsTests {
     func openBranchIntersectsLocalTransverseAndTangentPlanes() throws {
         let exact = try #require(try simpleRootToPoleOpenCurves().first)
         try expectLocalPlaneIntersections(exact)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func analyticThirdDerivativeMatchesSecondDerivativeVariation() throws {
+        let exactCurves = try rootFreeCurves()
+            + boundedCurves()
+            + apexReducedCurves()
+            + poleToPoleOpenCurves()
+            + simpleRootToPoleOpenCurves()
+            + doubleRootToPoleOpenCurves()
+        let sources = exactCurves.compactMap(\.sphereConeCurve)
+        #expect(sources.count == exactCurves.count)
+        let step = 1.0e-5
+        for source in sources {
+            let curve = Curve3D.certifiedIntersection(.sphereCone(source))
+            for fraction in [0.17, 0.37, 0.73] {
+                let analytic = try curve.parameterDerivativesThroughThirdOrder(
+                    at: fraction,
+                    tolerance: tolerance
+                ).thirdDerivative
+                let lower = try curve.differentialGeometry(
+                    at: fraction - step,
+                    tolerance: tolerance
+                ).secondDerivative
+                let upper = try curve.differentialGeometry(
+                    at: fraction + step,
+                    tolerance: tolerance
+                ).secondDerivative
+                let reference = (upper - lower) / (2.0 * step)
+                let scale = max(analytic.length, reference.length, 1.0)
+                #expect((analytic - reference).length / scale < 2.0e-5)
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func endpointThirdDerivativeMatchesOneSidedSecondDerivativeVariation()
+        throws
+    {
+        let exactCurves = try poleToPoleOpenCurves()
+            + simpleRootToPoleOpenCurves()
+            + doubleRootToPoleOpenCurves()
+        let step = 2.0e-5
+        for source in exactCurves.compactMap(\.sphereConeCurve) {
+            let curve = Curve3D.certifiedIntersection(.sphereCone(source))
+            for endpoint in [0.0, 1.0] {
+                let direction = endpoint == 0.0 ? 1.0 : -1.0
+                let analytic = try curve.parameterDerivativesThroughThirdOrder(
+                    at: endpoint,
+                    tolerance: tolerance
+                ).thirdDerivative
+                let atEndpoint = try curve.differentialGeometry(
+                    at: endpoint,
+                    tolerance: tolerance
+                ).secondDerivative
+                let atOneStep = try curve.differentialGeometry(
+                    at: endpoint + direction * step,
+                    tolerance: tolerance
+                ).secondDerivative
+                let atTwoSteps = try curve.differentialGeometry(
+                    at: endpoint + direction * 2.0 * step,
+                    tolerance: tolerance
+                ).secondDerivative
+                let reference = (
+                    atEndpoint * -3.0 + atOneStep * 4.0 - atTwoSteps
+                ) / (2.0 * direction * step)
+                let scale = max(analytic.length, reference.length, 1.0)
+                #expect((analytic - reference).length / scale < 2.0e-3)
+            }
+        }
     }
 
     private func expectLocalPlaneIntersections(

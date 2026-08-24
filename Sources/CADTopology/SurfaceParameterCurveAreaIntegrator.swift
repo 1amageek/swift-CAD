@@ -129,6 +129,31 @@ package struct SurfaceParameterCurveAreaIntegrator {
                 lower: bounds.lower,
                 upper: bounds.upper
             )
+        case let .rigidImage(image):
+            if let mapping = try image.affineParameterTransform(
+                tolerance: tolerance
+            ) {
+                return try affineRigidImageBounds(
+                    image: image,
+                    mapping: mapping,
+                    uShift: uShift,
+                    requestedWidth: requestedWidth,
+                    tolerance: tolerance
+                )
+            }
+            return try sphericalRigidImageBounds(
+                image: image,
+                uShift: uShift,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
+        case let .sameParameterImage(image):
+            return try bounds(
+                for: image.source,
+                uShift: uShift,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
         case let .periodicTranslation(base, translatedU, _):
             return try bounds(
                 for: base,
@@ -136,6 +161,105 @@ package struct SurfaceParameterCurveAreaIntegrator {
                 requestedWidth: requestedWidth,
                 tolerance: tolerance
             )
+        }
+    }
+
+    /// Integrates the periodic cone area gauge `-v du`.
+    ///
+    /// The ordinary Green primitive `u dv` differs by the exact differential
+    /// `d(uv)`. Analytic-pair curves are certified directly in the periodic
+    /// gauge; every other representation reuses its ordinary integral plus
+    /// the exact endpoint correction. Keeping this operation here guarantees
+    /// that topology validation and volume orientation use the same pcurve
+    /// representation rules.
+    package func periodicConeBounds(
+        for curve: SurfaceParameterCurve,
+        requestedWidth: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterAreaBounds {
+        try tolerance.validate()
+        guard requestedWidth.isFinite, requestedWidth > 0.0 else {
+            throw KernelError(
+                phase: .topology,
+                code: .invalidInput,
+                residual: requestedWidth,
+                tolerance: tolerance,
+                message: "Periodic cone parameter-area integration requires a finite positive enclosure width."
+            )
+        }
+        switch curve {
+        case let .certifiedAnalyticPair(certified):
+            return try CertifiedAnalyticPairPcurveAreaIntegrator()
+                .periodicConeAreaBounds(
+                    for: certified,
+                    requestedWidth: requestedWidth,
+                    tolerance: tolerance
+                )
+        case let .sameParameterImage(image):
+            return try periodicConeBounds(
+                for: image.source,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
+        case let .periodicTranslation(base, uShift, vShift):
+            let period = 2.0 * Double.pi
+            let turns = uShift / period
+            guard vShift == 0.0,
+                  uShift.isFinite,
+                  abs(turns - turns.rounded()) <= tolerance.relative else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .invalidInput,
+                    residual: max(abs(uShift), abs(vShift)),
+                    tolerance: tolerance,
+                    message: "A cone pcurve translation must preserve its periodic U chart and non-periodic V coordinate."
+                )
+            }
+            return try periodicConeBounds(
+                for: base,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
+        default:
+            let start = try curve.parameter(
+                atNormalizedFraction: 0.0,
+                tolerance: tolerance
+            )
+            let end = try curve.parameter(
+                atNormalizedFraction: 1.0,
+                tolerance: tolerance
+            )
+            // -v du = u dv - d(uv).
+            let correction = productBounds(start.u, start.v).adding(
+                productBounds(-end.u, end.v)
+            )
+            let remainingWidth = (requestedWidth - correction.width).nextDown
+            guard remainingWidth.isFinite, remainingWidth > 0.0 else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .resourceLimitExceeded,
+                    residual: correction.width,
+                    tolerance: tolerance,
+                    message: "Periodic cone parameter area exhausted its enclosure width in the exact boundary-gauge correction."
+                )
+            }
+            let primitive = try bounds(
+                for: curve,
+                uShift: 0.0,
+                requestedWidth: remainingWidth,
+                tolerance: tolerance
+            )
+            let result = primitive.adding(correction)
+            guard result.width <= requestedWidth.nextUp else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .resourceLimitExceeded,
+                    residual: result.width,
+                    tolerance: tolerance,
+                    message: "Periodic cone parameter area exceeded its composed enclosure width."
+                )
+            }
+            return result
         }
     }
 
@@ -160,33 +284,35 @@ package struct SurfaceParameterCurveAreaIntegrator {
                 message: "Certified implicit pcurve area requires at least one graph cell."
             )
         }
-        let ascendingStart = min(curve.startFraction, curve.endFraction)
-        let ascendingEnd = max(curve.startFraction, curve.endFraction)
+        let traversalSegments = try curve.canonicalTraversalSegments(
+            tolerance: tolerance
+        )
+        let requestedSpan = abs(curve.endFraction - curve.startFraction)
         let cellCount = curve.intersection.cells.count
         var result = SurfaceParameterAreaBounds.zero
         var remainingCells = maximumCellCount
-        for (index, cell) in curve.intersection.cells.enumerated() {
-            let cellStart = Double(index) / Double(cellCount)
-            let cellEnd = Double(index + 1) / Double(cellCount)
-            let overlapStart = max(ascendingStart, cellStart)
-            let overlapEnd = min(ascendingEnd, cellEnd)
-            guard overlapEnd - overlapStart > tolerance.relative else {
-                continue
-            }
-            let localStart = (overlapStart - cellStart) * Double(cellCount)
-            let localEnd = (overlapEnd - cellStart) * Double(cellCount)
-            let derivativeBounds = try cell.parameterDerivativeBounds(
-                firstSurface: curve.intersection.firstSurface,
-                secondSurface: curve.intersection.secondSurface,
-                tolerance: tolerance
-            )
-            var stack = [ImplicitWorkItem(
-                lowerFraction: localStart,
-                upperFraction: localEnd,
-                requestedWidth: requestedWidth / Double(cellCount),
-                depth: 0
-            )]
-            while let item = stack.popLast() {
+        for traversal in traversalSegments {
+            for (index, cell) in curve.intersection.cells.enumerated() {
+                let cellStart = Double(index) / Double(cellCount)
+                let cellEnd = Double(index + 1) / Double(cellCount)
+                let overlapStart = max(traversal.canonicalLowerFraction, cellStart)
+                let overlapEnd = min(traversal.canonicalUpperFraction, cellEnd)
+                guard overlapEnd > overlapStart else { continue }
+                let localStart = (overlapStart - cellStart) * Double(cellCount)
+                let localEnd = (overlapEnd - cellStart) * Double(cellCount)
+                let derivativeBounds = try cell.parameterDerivativeBounds(
+                    firstSurface: curve.intersection.firstSurface,
+                    secondSurface: curve.intersection.secondSurface,
+                    tolerance: tolerance
+                )
+                var stack = [ImplicitWorkItem(
+                    lowerFraction: localStart,
+                    upperFraction: localEnd,
+                    requestedWidth: requestedWidth
+                        * (overlapEnd - overlapStart) / requestedSpan,
+                    depth: 0
+                )]
+                while let item = stack.popLast() {
                 guard remainingCells > 0 else {
                     throw KernelError(
                         phase: .topology,
@@ -211,9 +337,15 @@ package struct SurfaceParameterCurveAreaIntegrator {
                 // Numerical graph anchors carry the modeling-distance uncertainty.
                 // Past this depth, further bisection cannot reduce that term; the
                 // conservative enclosure remains authoritative for the caller.
+                let orientedContribution = traversal.direction == .forward
+                    ? contribution
+                    : SurfaceParameterAreaBounds(
+                        lower: (-contribution.upper).nextDown,
+                        upper: (-contribution.lower).nextUp
+                    )
                 if contribution.width <= item.requestedWidth
                     || item.depth == maximumImplicitSubdivisionDepthBeforeToleranceFloor {
-                    result = result.adding(contribution)
+                    result = result.adding(orientedContribution)
                     continue
                 }
                 guard item.depth < maximumSubdivisionDepth else {
@@ -249,13 +381,8 @@ package struct SurfaceParameterCurveAreaIntegrator {
                     requestedWidth: childWidth,
                     depth: item.depth + 1
                 ))
+                }
             }
-        }
-        guard curve.startFraction <= curve.endFraction else {
-            return SurfaceParameterAreaBounds(
-                lower: (-result.upper).nextDown,
-                upper: (-result.lower).nextUp
-            )
         }
         return result
     }
@@ -701,5 +828,174 @@ package struct SurfaceParameterCurveAreaIntegrator {
             lower: (value - roundoff).nextDown,
             upper: (value + roundoff).nextUp
         )
+    }
+
+    private func affineRigidImageBounds(
+        image: RigidImageSurfaceParameterCurve,
+        mapping: SurfaceParameterAffineTransform,
+        uShift: Double,
+        requestedWidth: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterAreaBounds {
+        let sourceCurve = try image.sourceParameterCurve(tolerance: tolerance)
+        let determinant = mapping.determinant
+        let source = try bounds(
+            for: sourceCurve,
+            uShift: 0.0,
+            requestedWidth: requestedWidth
+                / max(abs(determinant), Double.leastNormalMagnitude),
+            tolerance: tolerance
+        )
+        let start = try sourceCurve.startParameter(tolerance: tolerance)
+        let end = try sourceCurve.endParameter(tolerance: tolerance)
+        let c = mapping.uOffset + uShift
+        let correction = mapping.uu * mapping.vu * 0.5
+                * (end.u * end.u - start.u * start.u)
+            + mapping.uv * mapping.vu
+                * (end.u * end.v - start.u * start.v)
+            + mapping.uv * mapping.vv * 0.5
+                * (end.v * end.v - start.v * start.v)
+            + c * mapping.vu * (end.u - start.u)
+            + c * mapping.vv * (end.v - start.v)
+        let scaled: SurfaceParameterAreaBounds
+        if determinant >= 0.0 {
+            scaled = SurfaceParameterAreaBounds(
+                lower: (source.lower * determinant).nextDown,
+                upper: (source.upper * determinant).nextUp
+            )
+        } else {
+            scaled = SurfaceParameterAreaBounds(
+                lower: (source.upper * determinant).nextDown,
+                upper: (source.lower * determinant).nextUp
+            )
+        }
+        let scale = max(
+            abs(correction),
+            abs(scaled.lower),
+            abs(scaled.upper),
+            1.0
+        )
+        let roundoff = (scale * Double.ulpOfOne * 2_048.0).nextUp
+        return SurfaceParameterAreaBounds(
+            lower: (scaled.lower + correction - roundoff).nextDown,
+            upper: (scaled.upper + correction + roundoff).nextUp
+        )
+    }
+
+    private func sphericalRigidImageBounds(
+        image: RigidImageSurfaceParameterCurve,
+        uShift: Double,
+        requestedWidth: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterAreaBounds {
+        guard case let .analytic(.sphere(center, radius)) = image.targetSurface else {
+            throw KernelError(
+                phase: .topology,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A non-affine rigid pcurve area integral requires a spherical target surface."
+            )
+        }
+        var remainingCells = maximumCellCount
+        var stack: [ImplicitWorkItem] = [ImplicitWorkItem(
+            lowerFraction: 0.0,
+            upperFraction: 1.0,
+            requestedWidth: requestedWidth,
+            depth: 0
+        )]
+        var result = SurfaceParameterAreaBounds.zero
+        while let item = stack.popLast() {
+            guard remainingCells > 0 else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .resourceLimitExceeded,
+                    tolerance: tolerance,
+                    message: "Spherical rigid pcurve area integration exceeded its cell budget."
+                )
+            }
+            remainingCells -= 1
+            let midpoint = item.lowerFraction
+                + (item.upperFraction - item.lowerFraction) * 0.5
+            let halfSpan = (item.upperFraction - item.lowerFraction) * 0.5
+            let geometry = try image.modelSpaceDifferential(
+                atNormalizedFraction: midpoint,
+                tolerance: tolerance
+            )
+            guard let derivativeBound = try image
+                .modelSpaceFirstDerivativeMagnitude(
+                    fromNormalizedFraction: item.lowerFraction,
+                    toNormalizedFraction: item.upperFraction,
+                    tolerance: tolerance
+                ) else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .singularSystem,
+                    tolerance: tolerance,
+                    message: "Spherical rigid pcurve area integration requires a certified derivative bound."
+                )
+            }
+            let direction = (geometry.position - center) / radius
+            let radialLower = (
+                hypot(direction.x, direction.y)
+                    - derivativeBound / radius * halfSpan
+            ).nextDown
+            if radialLower > 0.0 {
+                let angularDerivative = (
+                    derivativeBound / radius / radialLower
+                ).nextUp
+                let parameter = try image.parameter(
+                    atNormalizedFraction: midpoint,
+                    tolerance: tolerance
+                )
+                let start = try image.parameter(
+                    atNormalizedFraction: item.lowerFraction,
+                    tolerance: tolerance
+                )
+                let end = try image.parameter(
+                    atNormalizedFraction: item.upperFraction,
+                    tolerance: tolerance
+                )
+                let central = (parameter.u + uShift) * (end.v - start.v)
+                let uRadius = (angularDerivative * halfSpan).nextUp
+                let variation = (
+                    angularDerivative
+                        * (item.upperFraction - item.lowerFraction)
+                ).nextUp
+                let error = (uRadius * variation).nextUp
+                let roundoff = (
+                    max(abs(central), error, 1.0)
+                        * Double.ulpOfOne * 2_048.0
+                ).nextUp
+                let totalError = (error + roundoff).nextUp
+                if 2.0 * totalError <= item.requestedWidth {
+                    result = result.adding(SurfaceParameterAreaBounds(
+                        lower: (central - totalError).nextDown,
+                        upper: (central + totalError).nextUp
+                    ))
+                    continue
+                }
+            }
+            guard item.depth < maximumSubdivisionDepth else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .singularSystem,
+                    tolerance: tolerance,
+                    message: "A spherical rigid pcurve reaches a target-chart pole within tolerance."
+                )
+            }
+            stack.append(ImplicitWorkItem(
+                lowerFraction: midpoint,
+                upperFraction: item.upperFraction,
+                requestedWidth: item.requestedWidth * 0.5,
+                depth: item.depth + 1
+            ))
+            stack.append(ImplicitWorkItem(
+                lowerFraction: item.lowerFraction,
+                upperFraction: midpoint,
+                requestedWidth: item.requestedWidth * 0.5,
+                depth: item.depth + 1
+            ))
+        }
+        return result
     }
 }

@@ -4,20 +4,41 @@ import CADIR
 
 public struct DXFExchange: Sendable {
     private let tolerance: ModelingTolerance
+    private let resourceLimits: ExchangeResourceLimits
 
-    public init(tolerance: ModelingTolerance) {
+    public init(
+        tolerance: ModelingTolerance,
+        resourceLimits: ExchangeResourceLimits = .standard
+    ) {
         self.tolerance = tolerance
+        self.resourceLimits = resourceLimits
     }
 
     public func write(meshes: [BodyID: Mesh], unit: LengthUnit = .meter, to sink: any ByteSink) throws {
         guard !meshes.isEmpty else {
             throw ExportError.emptyMesh
         }
-        try sink.writeUTF8("""
+        let sortedMeshes = meshes.sorted(by: { $0.key.description < $1.key.description })
+        var resources = try ExchangeResourceAccountant(limits: resourceLimits, format: .dxf)
+        for (_, mesh) in sortedMeshes {
+            try mesh.validate(tolerance: tolerance)
+            try resources.recordEntities(1 + mesh.positions.count + mesh.indices.count / 3)
+            try resources.recordIterations(mesh.positions.count + mesh.indices.count)
+        }
+        let output = try ExchangeBoundedByteSink(
+            downstream: sink,
+            limits: resourceLimits,
+            format: .dxf
+        )
+        try output.writeUTF8("""
         0
         SECTION
         2
         HEADER
+        9
+        $ACADVER
+        1
+        AC1027
         9
         $INSUNITS
         70
@@ -29,8 +50,7 @@ public struct DXFExchange: Sendable {
         2
         ENTITIES
         """)
-        for (_, mesh) in meshes.sorted(by: { $0.key.description < $1.key.description }) {
-            try mesh.validate(tolerance: tolerance)
+        for (_, mesh) in sortedMeshes {
             var index = 0
             while index < mesh.indices.count {
                 let points = [
@@ -38,11 +58,11 @@ public struct DXFExchange: Sendable {
                     mesh.positions[Int(mesh.indices[index + 1])],
                     mesh.positions[Int(mesh.indices[index + 2])]
                 ]
-                try writeFaceEntity(points: points, unit: unit, to: sink)
+                try writeFaceEntity(points: points, unit: unit, to: output)
                 index += 3
             }
         }
-        try sink.writeUTF8("""
+        try output.writeUTF8("""
 
         0
         ENDSEC
@@ -52,18 +72,29 @@ public struct DXFExchange: Sendable {
     }
 
     public func `import`(_ source: any ByteSource, unit: LengthUnit = .meter) throws -> ImportedExchangeModel {
-        try source.withNoCopyData { data in
-            guard let text = String(data: data, encoding: .utf8) else {
-                throw ImportError.invalidData("DXF data is not UTF-8.")
+        var resources = try ExchangeResourceAccountant(limits: resourceLimits, format: .dxf)
+        try resources.validateInputByteCount(source.count)
+        try resources.recordIterations(source.count)
+        return try source.withNoCopyData { data in
+            guard data.allSatisfy({ $0 < 0x80 }) else {
+                throw ImportError.invalidData("DXF data must contain ASCII bytes only.")
             }
-            return try importText(text, unit: unit)
+            guard let text = String(data: data, encoding: .utf8) else {
+                throw ImportError.invalidData("DXF data is not valid ASCII text.")
+            }
+            return try importText(text, unit: unit, resources: &resources)
         }
     }
 
-    private func importText(_ text: String, unit: LengthUnit) throws -> ImportedExchangeModel {
+    private func importText(
+        _ text: String,
+        unit: LengthUnit,
+        resources: inout ExchangeResourceAccountant
+    ) throws -> ImportedExchangeModel {
         let tokens = try dxfTokens(from: text)
         try validateDXFTerminator(tokens)
         try validateDXFSections(tokens)
+        try validateDXFVersion(in: tokens)
         let importUnit = try dxfLengthUnit(in: tokens, fallback: unit)
         let entityRanges = try dxfEntitiesSectionRanges(in: tokens)
         try rejectDXF3DFacesOutsideEntities(in: tokens, entityRanges: entityRanges)
@@ -76,7 +107,11 @@ public struct DXFExchange: Sendable {
             while cursor + 1 < range.upperBound {
                 if tokens[cursor] == "0", tokens[cursor + 1].uppercased() == "3DFACE" {
                     let face = try parseFace(tokens: tokens, cursor: &cursor, unit: importUnit)
+                    try resources.recordEntities(1 + face.count / 3)
                     for point in face {
+                        guard UInt64(positions.count) < UInt64(UInt32.max) else {
+                            throw ImportError.invalidData("DXF mesh vertex count exceeds UInt32 range.")
+                        }
                         positions.append(point)
                         indices.append(UInt32(positions.count - 1))
                     }
@@ -87,6 +122,7 @@ public struct DXFExchange: Sendable {
         }
         let mesh = Mesh(positions: positions, normals: [], indices: indices)
         try validateImportedMesh(mesh, formatName: "DXF", tolerance: tolerance)
+        try resources.checkTime()
         return ImportedExchangeModel(format: .dxf, meshes: [BodyID(): mesh], units: UnitSystem(length: importUnit, angle: .radian))
     }
 
@@ -143,19 +179,18 @@ public struct DXFExchange: Sendable {
             }
             return point
         }
-        try validateTriangularFourthPoint(in: values, thirdPoint: points[2], unit: unit)
-        return points
+        return try triangulatedFace(firstThree: points, values: values, unit: unit)
     }
 
-    private func validateTriangularFourthPoint(
-        in values: [String: Double],
-        thirdPoint: Point3D,
+    private func triangulatedFace(
+        firstThree points: [Point3D],
+        values: [String: Double],
         unit: LengthUnit
-    ) throws {
+    ) throws -> [Point3D] {
         let fourthCodes = ["13", "23", "33"]
         let presentCodes = fourthCodes.filter { values[$0] != nil }
         guard !presentCodes.isEmpty else {
-            return
+            return points
         }
         guard let x = values["13"],
               let y = values["23"],
@@ -163,12 +198,39 @@ public struct DXFExchange: Sendable {
             throw ImportError.invalidData("DXF 3DFACE fourth point is incomplete.")
         }
         let fourthPoint = Point3D(x: unit.toInternal(x), y: unit.toInternal(y), z: unit.toInternal(z))
-        guard fourthPoint.isApproximatelyEqual(
-            to: thirdPoint,
-            tolerance: tolerance.distance
-        ) else {
-            throw ImportError.invalidData("DXF quadrilateral 3DFACE is not supported.")
+        guard fourthPoint.x.isFinite,
+              fourthPoint.y.isFinite,
+              fourthPoint.z.isFinite else {
+            throw ImportError.invalidData("DXF 3DFACE fourth point contains a non-finite coordinate.")
         }
+        if fourthPoint.isApproximatelyEqual(
+            to: points[2],
+            tolerance: tolerance.distance
+        ) {
+            return points
+        }
+        let firstDiagonal = [
+            points[0], points[1], points[2],
+            points[0], points[2], fourthPoint,
+        ]
+        let secondDiagonal = [
+            points[0], points[1], fourthPoint,
+            points[1], points[2], fourthPoint,
+        ]
+        let firstScore = minimumTriangleAreaMagnitude(firstDiagonal)
+        let secondScore = minimumTriangleAreaMagnitude(secondDiagonal)
+        let selected = firstScore >= secondScore ? firstDiagonal : secondDiagonal
+        guard max(firstScore, secondScore) > tolerance.distance * tolerance.distance else {
+            throw ImportError.invalidData("DXF quadrilateral 3DFACE cannot be triangulated without a degenerate triangle.")
+        }
+        return selected
+    }
+
+    private func minimumTriangleAreaMagnitude(_ points: [Point3D]) -> Double {
+        min(
+            (points[1] - points[0]).cross(points[2] - points[0]).length,
+            (points[4] - points[3]).cross(points[5] - points[3]).length
+        )
     }
 }
 
@@ -244,6 +306,32 @@ private func dxfLengthUnit(in tokens: [String], fallback: LengthUnit) throws -> 
         cursor += 2
     }
     return resolvedUnit ?? fallback
+}
+
+private func validateDXFVersion(in tokens: [String]) throws {
+    guard let headerRange = try dxfHeaderSectionRange(in: tokens) else {
+        return
+    }
+    var version: String?
+    var cursor = headerRange.lowerBound
+    while cursor + 1 < headerRange.upperBound {
+        if tokens[cursor] == "9", tokens[cursor + 1] == "$ACADVER" {
+            guard version == nil else {
+                throw ImportError.invalidData("DXF HEADER contains duplicate $ACADVER declarations.")
+            }
+            guard cursor + 3 < headerRange.upperBound,
+                  tokens[cursor + 2] == "1" else {
+                throw ImportError.invalidData("DXF $ACADVER is missing a version value.")
+            }
+            version = tokens[cursor + 3].uppercased()
+            cursor += 4
+            continue
+        }
+        cursor += 2
+    }
+    if let version, version != "AC1027" {
+        throw ImportError.unsupportedVersion("DXF version \(version) is not AC1027.")
+    }
 }
 
 private func dxfTokens(from text: String) throws -> [String] {

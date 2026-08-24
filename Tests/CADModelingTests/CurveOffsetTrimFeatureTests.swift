@@ -322,7 +322,9 @@ struct CurveOffsetTrimFeatureTests {
              .bSpline,
              .implicit,
              .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection,
+             .rigidImage,
+             .affineImage:
             throw GeometryError.invalidRadius(0.0)
         }
     }

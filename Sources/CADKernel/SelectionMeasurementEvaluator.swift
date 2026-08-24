@@ -1,5 +1,6 @@
 import Foundation
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 import CADTopology
@@ -74,10 +75,13 @@ public struct SelectionMeasurementEvaluator: Sendable {
         in document: EvaluatedDocument
     ) throws -> SelectionMeasurementPoint {
         switch reference {
-        case .body:
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "Body selection does not define a unique measurement point."
+        case let .body(bodyID):
+            let bounds = try BRepBodyBoundingBoxBuilder().bounds(
+                for: bodyID,
+                in: document.brep,
+                tolerance: tolerance
             )
+            return SelectionMeasurementPoint(selection: selection, point: bounds.center)
         case .face:
             return try surfacePoint(
                 for: .whole(SurfaceReference(subshape: stableReference)),
@@ -179,8 +183,11 @@ public struct SelectionMeasurementEvaluator: Sendable {
             throw FeatureEvaluationError.missingInput("Sketch point selection entity could not be resolved.")
         }
         guard case let .point(point) = entity else {
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "Sketch point selection reference must target a sketch point entity."
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Sketch point selection reference must target a sketch point entity."
             )
         }
         let resolvedPoint = try resolveSketchPoint(point, parameters: document.parameters)
@@ -213,10 +220,8 @@ public struct SelectionMeasurementEvaluator: Sendable {
                 selection: selection,
                 point: try surfaceQueryEvaluator.controlPoint(controlPoint, in: document)
             )
-        case .knot:
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "Surface knot selection does not define a unique measurement point."
-            )
+        case let .knot(knot):
+            return try surfaceKnotPoint(for: knot, selection: selection, in: document)
         case let .trim(trim):
             return try surfaceTrimPoint(for: trim, selection: selection, in: document)
         case let .trimSpan(span):
@@ -255,6 +260,34 @@ public struct SelectionMeasurementEvaluator: Sendable {
         )
     }
 
+    private func surfaceKnotPoint(
+        for knot: SurfaceKnotReference,
+        selection: SelectionReference,
+        in document: EvaluatedDocument
+    ) throws -> SelectionMeasurementPoint {
+        let representative = try representativeFrame(for: knot.surface, in: document)
+        let knotParameter = try surfaceQueryEvaluator.knot(knot, in: document)
+        let parameter: SurfaceParameterReference
+        switch knot.direction {
+        case .u:
+            parameter = SurfaceParameterReference(
+                surface: knot.surface,
+                u: knotParameter,
+                v: representative.reference.v
+            )
+        case .v:
+            parameter = SurfaceParameterReference(
+                surface: knot.surface,
+                u: representative.reference.u,
+                v: knotParameter
+            )
+        }
+        return try measurementPoint(
+            from: surfaceQueryEvaluator.frame(at: parameter, in: document),
+            selection: selection
+        )
+    }
+
     private func surfaceTrimPoint(
         for trim: SurfaceTrimReference,
         selection: SelectionReference,
@@ -280,8 +313,11 @@ public struct SelectionMeasurementEvaluator: Sendable {
     ) throws -> SelectionMeasurementPoint {
         let result = try surfaceQueryEvaluator.trimCurve(span.trim, in: document)
         guard case let .bSpline(curve) = result.parameterCurve else {
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "Surface trim p-curve span selection requires a B-spline parameter curve."
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Surface trim p-curve span selection requires a B-spline parameter curve."
             )
         }
         let curveParameter = try trimSpanParameter(span.spanIndex, on: curve)
@@ -301,8 +337,11 @@ public struct SelectionMeasurementEvaluator: Sendable {
     ) throws -> SelectionMeasurementPoint {
         let result = try surfaceQueryEvaluator.trimCurve(knot.trim, in: document)
         guard case let .bSpline(curve) = result.parameterCurve else {
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "Surface trim p-curve knot selection requires a B-spline parameter curve."
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Surface trim p-curve knot selection requires a B-spline parameter curve."
             )
         }
         guard curve.knots.indices.contains(knot.knotIndex) else {
@@ -457,9 +496,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
     private func midpoint(of domain: ParameterDomain) throws -> Double {
         switch domain {
         case .unbounded:
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "Unbounded surface selection requires face topology to define a representative point."
-            )
+            return 0.0
         case let .closed(lower, upper):
             return (lower + upper) * 0.5
         case let .periodic(period):

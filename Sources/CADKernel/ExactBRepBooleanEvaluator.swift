@@ -73,17 +73,31 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 tolerance: tolerance
             )
         } catch let error as KernelError where error.code == .unsupportedCapability {
-            let request = try ExactIntersectionFacePatchMaterializer().materialize(
-                operation: operation,
-                targetBodyIDs: targetBodyIDs,
-                toolBodyID: toolBodyID,
-                featureID: featureID,
-                model: model,
-                sourceSubshapes: subshapes,
-                uvSplitGraph: uvSplitGraph,
-                regionSelectionGraph: regionSelectionGraph,
-                tolerance: tolerance
-            )
+            let request: BRepSewingRequest
+            if operation == .slice {
+                request = try BooleanSliceSewingRequestBuilder().materialize(
+                    targetBodyIDs: targetBodyIDs,
+                    toolBodyID: toolBodyID,
+                    featureID: featureID,
+                    model: model,
+                    sourceSubshapes: subshapes,
+                    uvSplitGraph: uvSplitGraph,
+                    sliceRegionSelectionGraph: regionSelectionGraph,
+                    tolerance: tolerance
+                )
+            } else {
+                request = try ExactIntersectionFacePatchMaterializer().materialize(
+                    operation: operation,
+                    targetBodyIDs: targetBodyIDs,
+                    toolBodyID: toolBodyID,
+                    featureID: featureID,
+                    model: model,
+                    sourceSubshapes: subshapes,
+                    uvSplitGraph: uvSplitGraph,
+                    regionSelectionGraph: regionSelectionGraph,
+                    tolerance: tolerance
+                )
+            }
             return BooleanExactRegionSelectionGraph(
                 decisions: regionSelectionGraph,
                 sewingRequest: request
@@ -261,7 +275,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             }
             resultSubshapes[subshapeID] = reference
         }
-        return EvaluationResult(
+        var evaluation = EvaluationResult(
             brep: resultModel,
             subshapes: resultSubshapes,
             removedSubshapeIDs: removedSubshapeIDs,
@@ -270,6 +284,10 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 sewn: sewn
             )
         )
+        if resultModel == sewn.brep {
+            evaluation.validatedBRep = sewn.validatedBRep
+        }
+        return evaluation
     }
 
     private func remappedSewnLineage(

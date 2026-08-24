@@ -22,6 +22,9 @@ struct CertifiedGeneralTorusTorusSpatialDifferentialBoundsTests {
             #expect(sourceBounds.second.isFinite)
             #expect(sourceBounds.first > 0.0)
             #expect(sourceBounds.second > 0.0)
+            let sourceThird = try #require(sourceBounds.third)
+            #expect(sourceThird.isFinite)
+            #expect(sourceThird > 0.0)
 
             for trim in [
                 (start: 0.0, end: 1.0),
@@ -38,6 +41,24 @@ struct CertifiedGeneralTorusTorusSpatialDifferentialBoundsTests {
                 let bounds = try pcurve.spatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
                 )
+                let third = try #require(bounds.third)
+                let scale = abs(trim.end - trim.start)
+                let localSourceBounds = try source
+                    .spatialDifferentialMagnitudeBounds(
+                        fromNormalizedFraction: min(trim.start, trim.end),
+                        toNormalizedFraction: max(trim.start, trim.end),
+                        tolerance: tolerance
+                    )
+                let localSourceThird = try #require(localSourceBounds.third)
+                #expect(bounds.first >= localSourceBounds.first * scale)
+                #expect(
+                    bounds.second
+                        >= localSourceBounds.second * scale * scale
+                )
+                #expect(
+                    third
+                        >= localSourceThird * scale * scale * scale
+                )
                 let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
                     surface: exact.surface(for: .first),
                     parameterCurve: .certifiedAnalyticPair(pcurve)
@@ -50,6 +71,12 @@ struct CertifiedGeneralTorusTorusSpatialDifferentialBoundsTests {
                     )
                     #expect(geometry.firstDerivative.length <= bounds.first)
                     #expect(geometry.secondDerivative.length <= bounds.second)
+                    let thirdDerivative = try curve
+                        .parameterDerivativesThroughThirdOrder(
+                            at: fraction,
+                            tolerance: tolerance
+                        ).thirdDerivative
+                    #expect(thirdDerivative.length <= third)
                 }
             }
         }
@@ -88,6 +115,7 @@ struct CertifiedGeneralTorusTorusSpatialDifferentialBoundsTests {
         )
         #expect(localBounds.first.isFinite)
         #expect(localBounds.second.isFinite)
+        #expect(try #require(localBounds.third).isFinite)
         let transversePlane = Surface3D.analytic(.plane(
             origin: geometry.position,
             normal: try geometry.firstDerivative.normalized(
@@ -125,6 +153,72 @@ struct CertifiedGeneralTorusTorusSpatialDifferentialBoundsTests {
         )
         #expect(tangent.count == 1)
         #expect(tangent.first?.kind == .tangent)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func preparedParameterizedChartBoundsEncloseSampledDerivatives() throws {
+        for exact in try curves() {
+            guard case let .generalTorusTorus(source) = exact.definition else {
+                Issue.record("Expected a certified general torus-torus curve.")
+                continue
+            }
+            let role: SurfaceIntersectionSurfaceRole =
+                exact.surface(for: .first) == source.parameterizedSurface
+                    ? .first
+                    : .second
+            let pcurve = try CertifiedAnalyticPairSurfaceParameterCurve(
+                intersection: exact,
+                role: role,
+                tolerance: tolerance
+            )
+            let preparation = try source.prepareSpatialDifferentialBounds(
+                tolerance: tolerance
+            )
+            let parameterPreparation = try pcurve.prepareParameterCellBounds(
+                tolerance: tolerance
+            )
+            let seamCell = try parameterPreparation.bounds(
+                fromNormalizedFraction: 0.0,
+                toNormalizedFraction: 1.0e-8,
+                tolerance: tolerance
+            )
+            #expect(seamCell.usesContinuousLiftForIntegration)
+
+            for interval in [(0.0, 1.0), (0.125, 0.625), (0.75, 0.875)] {
+                let bounds = try preparation
+                    .parameterizedParameterDifferentialMagnitudeBounds(
+                        fromNormalizedFraction: interval.0,
+                        toNormalizedFraction: interval.1,
+                        tolerance: tolerance
+                    )
+                for index in 0...32 {
+                    let fraction = interval.0
+                        + (interval.1 - interval.0) * Double(index) / 32.0
+                    let differential = try pcurve.differential(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let third = try pcurve.thirdDerivative(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let zeroDerivativeNoise = tolerance.relative
+                        * max(bounds.uFirst, 1.0)
+                    #expect(abs(differential.firstDerivative.x) <= bounds.uFirst)
+                    #expect(abs(differential.firstDerivative.y) <= bounds.vFirst)
+                    #expect(
+                        abs(differential.secondDerivative.x)
+                            <= max(bounds.uSecond, zeroDerivativeNoise)
+                    )
+                    #expect(abs(differential.secondDerivative.y) <= bounds.vSecond)
+                    #expect(
+                        abs(third.x)
+                            <= max(bounds.uThird, zeroDerivativeNoise)
+                    )
+                    #expect(abs(third.y) <= bounds.vThird)
+                }
+            }
+        }
     }
 
     private func curves()

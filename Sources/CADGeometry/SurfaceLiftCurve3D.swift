@@ -1,5 +1,4 @@
 import CADCore
-import Synchronization
 
 /// The exact model-space lift of a face-local parameter curve.
 public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
@@ -11,6 +10,8 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
 
     public let surface: Surface3D
     public let parameterCurve: SurfaceParameterCurve
+    package let exactBSplineImage: BSplineCurve3D?
+    package let exactDerivativeCertificate: RationalBezierCurveDerivativeCertificate?
 
     public init(
         surface: Surface3D,
@@ -18,6 +19,21 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
     ) {
         self.surface = surface
         self.parameterCurve = parameterCurve
+        exactBSplineImage = nil
+        exactDerivativeCertificate = nil
+    }
+
+    package init(
+        surface: Surface3D,
+        parameterCurve: SurfaceParameterCurve,
+        exactBSplineImage: BSplineCurve3D
+    ) {
+        self.surface = surface
+        self.parameterCurve = parameterCurve
+        self.exactBSplineImage = exactBSplineImage
+        exactDerivativeCertificate = RationalBezierCurveDerivativeCertificate(
+            curve: exactBSplineImage
+        )
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -36,6 +52,8 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
             SurfaceParameterCurve.self,
             forKey: .parameterCurve
         )
+        exactBSplineImage = nil
+        exactDerivativeCertificate = nil
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -44,42 +62,23 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
         try container.encode(parameterCurve, forKey: .parameterCurve)
     }
 
-    private struct ValidationCacheKey: Hashable, Sendable {
-        let curve: SurfaceLiftCurve3D
-        let tolerance: ModelingTolerance
-    }
-
-    // Every evaluation entry point revalidates the same immutable lift, and
-    // pcurve validation re-certifies the underlying intersection, so
-    // successful validations are memoized per process. Platforms without
-    // Synchronization.Mutex hold no cache state and validate every call.
-    @available(macOS 15.0, iOS 18.0, visionOS 2.0, *)
-    private enum ValidationCache {
-        static let storage = Mutex<Set<ValidationCacheKey>>([])
-    }
-
     public func validate(tolerance: ModelingTolerance) throws {
-        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, *) else {
-            try validateUncached(tolerance: tolerance)
-            return
-        }
-        let key = ValidationCacheKey(curve: self, tolerance: tolerance)
-        if ValidationCache.storage.withLock({ $0.contains(key) }) {
-            return
-        }
-        try validateUncached(tolerance: tolerance)
-        ValidationCache.storage.withLock { cache in
-            if cache.count >= 256 {
-                cache.removeAll(keepingCapacity: true)
-            }
-            cache.insert(key)
-        }
-    }
-
-    private func validateUncached(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         try surface.validate(tolerance: tolerance)
         try parameterCurve.validate(on: surface, tolerance: tolerance)
+        if let exactBSplineImage {
+            try exactBSplineImage.validate(tolerance: tolerance)
+            guard case let .closed(lower, upper) = exactBSplineImage.domain,
+                  abs(lower) <= tolerance.relative,
+                  abs(upper - 1.0) <= tolerance.relative else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "An exact surface-lift B-spline image must use the normalized closed domain."
+                )
+            }
+        }
     }
 
     public func point(
@@ -87,17 +86,51 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> Point3D {
         try validateFraction(fraction, tolerance: tolerance)
+        return try pointAssumingValid(
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        )
+    }
+
+    package func pointAssumingValid(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Point3D {
+        try validateFractionAssumingValid(fraction, tolerance: tolerance)
+        if let exactBSplineImage {
+            return try exactBSplineImage.pointAssumingValid(
+                at: fraction,
+                tolerance: tolerance
+            )
+        }
         if case let .certifiedAnalyticPair(curve) = parameterCurve {
             return try curve.modelSpaceDifferential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
             ).position
         }
-        let parameter = try parameterCurve.parameter(
-            atNormalizedFraction: fraction,
-            tolerance: tolerance
-        )
-        return try surface.point(
+        if case let .rigidImage(curve) = parameterCurve {
+            return try curve.modelSpaceDifferential(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            ).position
+        }
+        let parameter: SurfaceParameter
+        if case let .bSpline(curve) = parameterCurve,
+           case let .closed(lower, upper) = curve.domain {
+            let curveParameter = lower + (upper - lower) * fraction
+            let point = try curve.pointAssumingValid(
+                at: curveParameter,
+                tolerance: tolerance
+            )
+            parameter = SurfaceParameter(u: point.x, v: point.y)
+        } else {
+            parameter = try parameterCurve.parameter(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        }
+        return try surface.pointAssumingValid(
             u: parameter.u,
             v: parameter.v,
             tolerance: tolerance
@@ -115,10 +148,21 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
         )
     }
 
-    func differentialGeometryAssumingValid(
+    package func differentialGeometryAssumingValid(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
+        if let exactBSplineImage {
+            let geometry = try exactBSplineImage.differentialGeometryAssumingValid(
+                at: fraction,
+                tolerance: tolerance
+            )
+            return DifferentialGeometry(
+                position: geometry.position,
+                firstDerivative: geometry.firstDerivative,
+                secondDerivative: geometry.secondDerivative
+            )
+        }
         if case let .certifiedAnalyticPair(curve) = parameterCurve {
             let source = try curve.modelSpaceDifferential(
                 atNormalizedFraction: fraction,
@@ -128,6 +172,12 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
                 position: source.position,
                 firstDerivative: source.firstDerivative,
                 secondDerivative: source.secondDerivative
+            )
+        }
+        if case let .rigidImage(curve) = parameterCurve {
+            return try curve.modelSpaceDifferential(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
             )
         }
         let parameter: SurfaceParameterCurveDifferential
@@ -159,7 +209,7 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
                 tolerance: tolerance
             )
         }
-        let geometry = try surface.parameterDerivatives(
+        let geometry = try surface.parameterDerivativesAssumingValid(
             atU: parameter.parameter.u,
             v: parameter.parameter.v,
             tolerance: tolerance
@@ -187,10 +237,27 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws {
         try validate(tolerance: tolerance)
+        try validateFractionAssumingValid(fraction, tolerance: tolerance)
+    }
+
+    private func validateFractionAssumingValid(
+        _ fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws {
         guard fraction.isFinite,
               fraction >= -tolerance.relative,
               fraction <= 1.0 + tolerance.relative else {
             throw GeometryError.invalidDistance(fraction)
         }
+    }
+
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.surface == rhs.surface
+            && lhs.parameterCurve == rhs.parameterCurve
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(surface)
+        hasher.combine(parameterCurve)
     }
 }

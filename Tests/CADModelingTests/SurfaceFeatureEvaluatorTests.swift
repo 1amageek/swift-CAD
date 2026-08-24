@@ -249,6 +249,34 @@ struct SurfaceFeatureEvaluatorTests {
         #expect(result.lineage.values.allSatisfy { $0.output.featureID == featureID })
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func surfaceEvaluatorDispatchMismatchesReturnInvalidInput() throws {
+        let feature = FeatureNode(
+            id: FeatureID(),
+            operation: .primitive(PrimitiveFeature(
+                definition: .box(BoxPrimitive(
+                    width: .constant(.length(1.0, unit: .meter)),
+                    depth: .constant(.length(1.0, unit: .meter)),
+                    height: .constant(.length(1.0, unit: .meter))
+                ))
+            )),
+            outputs: [FeatureOutput(role: .body)]
+        )
+        let evaluators: [any FeatureEvaluating] = [
+            BridgeSurfaceFeatureEvaluator(),
+            PatchSurfaceFeatureEvaluator(),
+        ]
+
+        for evaluator in evaluators {
+            do {
+                _ = try evaluator.evaluate(feature: feature, context: context())
+                Issue.record("A surface evaluator dispatch mismatch must fail.")
+            } catch let error as KernelError {
+                #expect(error.code == .invalidInput)
+            }
+        }
+    }
+
     private func context() -> EvaluationContext {
         EvaluationContext(
             parameters: ResolvedParameterTable(),

@@ -4,9 +4,16 @@ import CADIR
 
 public struct SVGExchange: Sendable {
     private let tolerance: ModelingTolerance
+    private let resourceLimits: ExchangeResourceLimits
+    private let triangulator: ExchangePolygonTriangulator
 
-    public init(tolerance: ModelingTolerance) {
+    public init(
+        tolerance: ModelingTolerance,
+        resourceLimits: ExchangeResourceLimits = .standard
+    ) {
         self.tolerance = tolerance
+        self.resourceLimits = resourceLimits
+        triangulator = ExchangePolygonTriangulator()
     }
 
     public func write(meshes: [BodyID: Mesh], unit: LengthUnit = .meter, to sink: any ByteSink) throws {
@@ -14,10 +21,13 @@ public struct SVGExchange: Sendable {
             throw ExportError.emptyMesh
         }
         let sortedMeshes = meshes.sorted(by: { $0.key.description < $1.key.description })
+        var resources = try ExchangeResourceAccountant(limits: resourceLimits, format: .svg)
         var bounds = SVGExportBounds()
         var polygonCount = 0
         for (_, mesh) in sortedMeshes {
             try mesh.validate(tolerance: tolerance)
+            try resources.recordEntities(1 + mesh.positions.count + mesh.indices.count / 3)
+            try resources.recordIterations(mesh.positions.count + mesh.indices.count)
             var index = 0
             while index < mesh.indices.count {
                 let points = [
@@ -37,7 +47,12 @@ public struct SVGExchange: Sendable {
         guard polygonCount > 0 else {
             throw ExportError.invalidMesh("SVG projection contains no non-degenerate polygons.")
         }
-        try sink.writeUTF8("<svg xmlns=\"http://www.w3.org/2000/svg\" data-generator=\"Swift-CAD\" data-unit=\"\(unit.rawValue)\" viewBox=\"\(bounds.viewBox)\">")
+        let output = try ExchangeBoundedByteSink(
+            downstream: sink,
+            limits: resourceLimits,
+            format: .svg
+        )
+        try output.writeUTF8("<svg xmlns=\"http://www.w3.org/2000/svg\" data-generator=\"Swift-CAD\" data-unit=\"\(unit.rawValue)\" viewBox=\"\(bounds.viewBox)\">")
         for (_, mesh) in sortedMeshes {
             var index = 0
             while index < mesh.indices.count {
@@ -47,31 +62,49 @@ public struct SVGExchange: Sendable {
                     mesh.positions[Int(mesh.indices[index + 2])]
                 ]
                 if hasNonDegenerateXYProjection(points, tolerance: tolerance) {
-                    try writeSVGPolygon(points: points, unit: unit, to: sink)
+                    try writeSVGPolygon(points: points, unit: unit, to: output)
                 }
                 index += 3
             }
         }
-        try sink.writeUTF8("\n</svg>")
+        try output.writeUTF8("\n</svg>")
     }
 
     public func `import`(_ source: any ByteSource, unit: LengthUnit = .meter) throws -> ImportedExchangeModel {
-        try source.withNoCopyData { data in
+        var resources = try ExchangeResourceAccountant(limits: resourceLimits, format: .svg)
+        try resources.validateInputByteCount(source.count)
+        try resources.recordIterations(source.count)
+        return try source.withNoCopyData { data in
             guard String(data: data, encoding: .utf8) != nil else {
                 throw ImportError.invalidData("SVG data is not UTF-8.")
             }
-            return try importData(data, unit: unit)
+            return try importData(data, unit: unit, resources: &resources)
         }
     }
 
-    private func importData(_ data: Data, unit: LengthUnit) throws -> ImportedExchangeModel {
-        let model = try SVGXMLReader.read(data, fallbackUnit: unit, tolerance: tolerance)
+    private func importData(
+        _ data: Data,
+        unit: LengthUnit,
+        resources: inout ExchangeResourceAccountant
+    ) throws -> ImportedExchangeModel {
+        let model = try SVGXMLReader.read(
+            data,
+            fallbackUnit: unit,
+            tolerance: tolerance,
+            resources: &resources
+        )
         let importUnit = model.unit
         var positions: [Point3D] = []
         var indices: [UInt32] = []
         for points in model.polygons {
-            for localIndex in 1..<(points.count - 1) {
-                for point in [points[0], points[localIndex], points[localIndex + 1]] {
+            let triangles = try triangulator.triangles(for: points, tolerance: tolerance)
+            try resources.recordEntities(triangles.count)
+            for triangle in triangles {
+                for localIndex in [triangle.0, triangle.1, triangle.2] {
+                    guard UInt64(positions.count) < UInt64(UInt32.max) else {
+                        throw ImportError.invalidData("SVG mesh vertex count exceeds UInt32 range.")
+                    }
+                    let point = points[localIndex]
                     positions.append(point)
                     indices.append(UInt32(positions.count - 1))
                 }
@@ -79,6 +112,7 @@ public struct SVGExchange: Sendable {
         }
         let mesh = Mesh(positions: positions, normals: [], indices: indices)
         try validateImportedMesh(mesh, formatName: "SVG", tolerance: tolerance)
+        try resources.checkTime()
         return ImportedExchangeModel(format: .svg, meshes: [BodyID(): mesh], units: UnitSystem(length: importUnit, angle: .radian))
     }
 }

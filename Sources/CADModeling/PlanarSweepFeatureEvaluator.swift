@@ -59,7 +59,9 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
     ) throws -> EvaluationResult {
         try context.tolerance.validate()
         guard case let .sweep(sweep) = feature.operation else {
-            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance, message: "PlanarSweepFeatureEvaluator only supports sweep.")
+            throw FeatureEvaluationError.invalidGraph(
+                "PlanarSweepFeatureEvaluator received a non-sweep feature."
+            )
         }
         let capabilities = SweepEvaluationCapabilities()
         try capabilities.validateStaticOptions(
@@ -76,7 +78,9 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             throw FeatureEvaluationError.invalidGraph("Sweep features require at least one section.")
         }
         guard let pathCurves = context.curves[sweep.path.featureID] else {
-            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance, message: "Sweep evaluation requires a path curve feature.")
+            throw FeatureEvaluationError.missingInput(
+                "Sweep evaluation requires a path curve feature."
+            )
         }
         if pathCurves.count > 1, sweep.options.cornerStyle == .round {
             throw KernelError.unsupportedEvaluation(tolerance: context.tolerance, message:

@@ -124,7 +124,7 @@ struct SphereConeBooleanVolumeEvaluator {
                     normal: plane.normal,
                     face: face
                 ))
-            case .cylinder, .bSpline, .analytic:
+            case .cylinder, .bSpline, .analytic, .procedural:
                 return nil
             }
         }
@@ -170,29 +170,20 @@ struct SphereConeBooleanVolumeEvaluator {
             - sphereRadius * sphereRadius
         let discriminant = quadraticB * quadraticB
             - 4.0 * quadraticA * quadraticC
-        guard discriminant > tolerance.distance * tolerance.distance else {
-            throw KernelError(
-                phase: .topology,
-                code: .unsupportedCapability,
-                residual: discriminant,
-                tolerance: tolerance,
-                message: "Sphere-cone analytic volume requires two transverse axial intersections."
-            )
-        }
-        let root = sqrt(discriminant)
-        let roots = [
-            (-quadraticB - root) / (2.0 * quadraticA),
-            (-quadraticB + root) / (2.0 * quadraticA),
-        ].filter {
-            $0 > lower + tolerance.distance && $0 < upper - tolerance.distance
-        }
-        guard roots.count == 2 else {
-            throw KernelError(
-                phase: .topology,
-                code: .unsupportedCapability,
-                tolerance: tolerance,
-                message: "Sphere-cone analytic volume requires both transverse circles inside the finite overlap."
-            )
+        let roots: [Double]
+        if discriminant > 0.0 {
+            let root = sqrt(discriminant)
+            roots = [
+                (-quadraticB - root) / (2.0 * quadraticA),
+                (-quadraticB + root) / (2.0 * quadraticA),
+            ].filter {
+                $0 > lower + tolerance.distance && $0 < upper - tolerance.distance
+            }
+        } else {
+            // With no transverse root, one radial section owns the entire
+            // overlap interval. The midpoint classification below selects it
+            // without turning a closed-form special case into a capability gap.
+            roots = []
         }
         let breakpoints = [lower] + roots.sorted() + [upper]
         var result = 0.0

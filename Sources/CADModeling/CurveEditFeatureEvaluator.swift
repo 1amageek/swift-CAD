@@ -35,9 +35,8 @@ public struct CurveEditFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         context: EvaluationContext
     ) throws -> EvaluationResult {
         guard case let .curveEdit(curveEdit) = feature.operation else {
-            throw KernelError.unsupportedEvaluation(
-                tolerance: context.tolerance,
-                message: "CurveEditFeatureEvaluator requires a curve edit feature."
+            throw FeatureEvaluationError.invalidGraph(
+                "CurveEditFeatureEvaluator requires a curve edit feature."
             )
         }
         try FeatureEvaluationBoundary.validateRequest(featureID: feature.id, tolerance: context.tolerance) {
@@ -77,9 +76,8 @@ public struct CurveEditFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         let sourceCurve = curves[source.curveIndex]
         try sourceCurve.validate(tolerance: context.tolerance)
         guard case let .bSpline(curve) = sourceCurve.exactCurve else {
-            throw KernelError.unsupportedEvaluation(
-                tolerance: context.tolerance,
-                message: "Curve edit requires an exact B-spline curve."
+            throw FeatureEvaluationError.missingInput(
+                "Curve edit target does not expose B-spline control points, knots, or weights."
             )
         }
         return (

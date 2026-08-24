@@ -147,6 +147,227 @@ struct BoundedBSplineSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func coplanarAffinePatchesProduceExactSupportCoincidenceInBothOrders() throws {
+        let first = Self.unitPlanarPatch()
+        let second = BSplineSurface3D.bilinearPatch(
+            bottomLeft: Point3D(x: 0.25, y: 0.25, z: 0.0),
+            bottomRight: Point3D(x: 1.25, y: 0.25, z: 0.0),
+            topRight: Point3D(x: 1.25, y: 1.25, z: 0.0),
+            topLeft: Point3D(x: 0.25, y: 1.25, z: 0.0)
+        )
+        let options = SurfaceSurfaceIntersectionOptions(
+            maximumSubdivisionDepth: 0,
+            maximumSubdivisionCells: 1,
+            maximumRootAttempts: 1,
+            maximumBoundarySubdivisionDepth: 0,
+            maximumBoundarySubdivisionCells: 1
+        )
+
+        for operands in [(first, second), (second, first)] {
+            let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+                first: .bSpline(operands.0),
+                second: .bSpline(operands.1),
+                options: options,
+                tolerance: tolerance
+            )
+            #expect(intersections.count == 1)
+            #expect(intersections.contains {
+                if case .coincident = $0 { return true }
+                return false
+            })
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func parallelAffinePatchesProduceExactDisjointResultInBothOrders() throws {
+        let first = Self.unitPlanarPatch()
+        let second = BSplineSurface3D.bilinearPatch(
+            bottomLeft: Point3D(x: 0.0, y: 0.0, z: 1.0),
+            bottomRight: Point3D(x: 1.0, y: 0.0, z: 1.0),
+            topRight: Point3D(x: 1.0, y: 1.0, z: 1.0),
+            topLeft: Point3D(x: 0.0, y: 1.0, z: 1.0)
+        )
+        let options = SurfaceSurfaceIntersectionOptions(
+            maximumSubdivisionDepth: 0,
+            maximumSubdivisionCells: 1,
+            maximumRootAttempts: 1,
+            maximumBoundarySubdivisionDepth: 0,
+            maximumBoundarySubdivisionCells: 1
+        )
+
+        for operands in [(first, second), (second, first)] {
+            let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+                first: .bSpline(operands.0),
+                second: .bSpline(operands.1),
+                options: options,
+                tolerance: tolerance
+            )
+            #expect(intersections.isEmpty)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func affinePatchesSharingBoundaryProduceCompleteExactCurveInBothOrders() throws {
+        let horizontal = Self.unitPlanarPatch()
+        let vertical = BSplineSurface3D.bilinearPatch(
+            bottomLeft: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            bottomRight: Point3D(x: 1.0, y: 1.0, z: 0.0),
+            topRight: Point3D(x: 1.0, y: 1.0, z: 1.0),
+            topLeft: Point3D(x: 1.0, y: 0.0, z: 1.0)
+        )
+        let options = SurfaceSurfaceIntersectionOptions(
+            maximumSubdivisionDepth: 0,
+            maximumSubdivisionCells: 1,
+            maximumRootAttempts: 1,
+            maximumBoundarySubdivisionDepth: 0,
+            maximumBoundarySubdivisionCells: 1
+        )
+
+        for operands in [(horizontal, vertical), (vertical, horizontal)] {
+            let first = Surface3D.bSpline(operands.0)
+            let second = Surface3D.bSpline(operands.1)
+            let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+                first: first,
+                second: second,
+                options: options,
+                tolerance: tolerance
+            )
+            let curve = try Self.onlyCurve(intersections)
+            guard case let .parametric(.bSpline(exactLine)) = curve.truth,
+                  case .affine = curve.firstSurfaceParameterCurve,
+                  case .affine = curve.secondSurfaceParameterCurve else {
+                Issue.record("An exact affine patch intersection must preserve its certified linear parameterization.")
+                continue
+            }
+            #expect(exactLine.degree == 1)
+            #expect(exactLine.controlPoints.count == 2)
+            #expect(curve.curve.hasExactLinearParameterization)
+            #expect(curve.kind == .transverse)
+            #expect(curve.maximumResidual <= tolerance.distance)
+            try curve.firstSurfaceParameterCurve.validate(on: first, tolerance: tolerance)
+            try curve.secondSurfaceParameterCurve.validate(on: second, tolerance: tolerance)
+            for fraction in [0.0, 0.5, 1.0] {
+                let point = try Self.point(
+                    on: curve.curve,
+                    fraction: fraction,
+                    tolerance: tolerance
+                )
+                #expect(abs(point.x - 1.0) <= tolerance.distance)
+                #expect(abs(point.z) <= tolerance.distance)
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func affinePatchesWithPartiallyOverlappingLineProduceExactClippedCurve() throws {
+        let horizontal = Self.unitPlanarPatch()
+        let vertical = Self.verticalPlanarPatch(yLower: 0.4, yUpper: 1.6)
+        let options = SurfaceSurfaceIntersectionOptions(
+            maximumSubdivisionDepth: 0,
+            maximumSubdivisionCells: 1,
+            maximumSeedCount: 1,
+            maximumRootAttempts: 1,
+            maximumBoundarySubdivisionDepth: 0,
+            maximumBoundarySubdivisionCells: 1
+        )
+
+        for operands in [(horizontal, vertical), (vertical, horizontal)] {
+            let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+                first: .bSpline(operands.0),
+                second: .bSpline(operands.1),
+                options: options,
+                tolerance: tolerance
+            )
+            let curve = try Self.onlyCurve(intersections)
+            guard case let .parametric(.bSpline(exactLine)) = curve.truth,
+                  case .affine = curve.firstSurfaceParameterCurve,
+                  case .affine = curve.secondSurfaceParameterCurve else {
+                Issue.record("A clipped affine intersection must remain an exact bounded linear parameterization.")
+                continue
+            }
+            #expect(exactLine.degree == 1)
+            #expect(exactLine.controlPoints.count == 2)
+            #expect(curve.curve.hasExactLinearParameterization)
+            let endpoints = try [0.0, 1.0].map {
+                try Self.point(on: curve.curve, fraction: $0, tolerance: tolerance)
+            }.sorted { $0.y < $1.y }
+            #expect(abs(endpoints[0].x - 0.5) <= tolerance.distance)
+            #expect(abs(endpoints[0].y - 0.4) <= tolerance.distance)
+            #expect(abs(endpoints[0].z) <= tolerance.distance)
+            #expect(abs(endpoints[1].x - 0.5) <= tolerance.distance)
+            #expect(abs(endpoints[1].y - 1.0) <= tolerance.distance)
+            #expect(abs(endpoints[1].z) <= tolerance.distance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func transverseAffinePatchesWithDisjointBoundsProduceExactEmptyResult() throws {
+        let horizontal = Self.unitPlanarPatch()
+        let vertical = BSplineSurface3D.bilinearPatch(
+            bottomLeft: Point3D(x: 2.0, y: 0.0, z: -1.0),
+            bottomRight: Point3D(x: 2.0, y: 1.0, z: -1.0),
+            topRight: Point3D(x: 2.0, y: 1.0, z: 1.0),
+            topLeft: Point3D(x: 2.0, y: 0.0, z: 1.0)
+        )
+        let options = SurfaceSurfaceIntersectionOptions(
+            maximumSubdivisionDepth: 0,
+            maximumSubdivisionCells: 1,
+            maximumSeedCount: 1,
+            maximumRootAttempts: 1,
+            maximumBoundarySubdivisionDepth: 0,
+            maximumBoundarySubdivisionCells: 1
+        )
+
+        for operands in [(horizontal, vertical), (vertical, horizontal)] {
+            let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+                first: .bSpline(operands.0),
+                second: .bSpline(operands.1),
+                options: options,
+                tolerance: tolerance
+            )
+            #expect(intersections.isEmpty)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func transverseAffinePatchesTouchingAtOneVertexProduceExactPoint() throws {
+        let horizontal = Self.unitPlanarPatch()
+        let vertical = BSplineSurface3D.bilinearPatch(
+            bottomLeft: Point3D(x: 1.0, y: 1.0, z: 0.0),
+            bottomRight: Point3D(x: 1.0, y: 2.0, z: 0.0),
+            topRight: Point3D(x: 1.0, y: 2.0, z: 1.0),
+            topLeft: Point3D(x: 1.0, y: 1.0, z: 1.0)
+        )
+        let options = SurfaceSurfaceIntersectionOptions(
+            maximumSubdivisionDepth: 0,
+            maximumSubdivisionCells: 1,
+            maximumSeedCount: 1,
+            maximumRootAttempts: 1,
+            maximumBoundarySubdivisionDepth: 0,
+            maximumBoundarySubdivisionCells: 1
+        )
+
+        for operands in [(horizontal, vertical), (vertical, horizontal)] {
+            let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+                first: .bSpline(operands.0),
+                second: .bSpline(operands.1),
+                options: options,
+                tolerance: tolerance
+            )
+            guard intersections.count == 1,
+                  case let .point(contact) = intersections[0] else {
+                Issue.record("A transverse affine vertex contact must be an exact point.")
+                continue
+            }
+            #expect(contact.residual <= tolerance.distance)
+            #expect(contact.point.isApproximatelyEqual(
+                to: Point3D(x: 1.0, y: 1.0, z: 0.0),
+                tolerance: tolerance.distance
+            ))
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func exactQuadraticTangencyCertificateBypassesSubdivisionBudget() throws {
         let plane = Self.planarPatch()
         let paraboloid = Self.quadraticHeightPatch { xCoefficient, yCoefficient in
@@ -177,7 +398,7 @@ struct BoundedBSplineSurfaceIntersectionTests {
     @Test(.timeLimit(.minutes(1)))
     func completeRegularGraphStopsBeforeSubdivisionAndPreservesOperandOrder() throws {
         let horizontal = Self.unitPlanarPatch()
-        let vertical = Self.verticalPlanarPatch()
+        let vertical = Self.quadraticVerticalPlanarPatch()
         let options = SurfaceSurfaceIntersectionOptions(
             maximumSubdivisionDepth: 8,
             maximumSubdivisionCells: 1,
@@ -228,7 +449,7 @@ struct BoundedBSplineSurfaceIntersectionTests {
         do {
             _ = try DefaultSurfaceSurfaceIntersector().intersections(
                 first: .bSpline(Self.unitPlanarPatch()),
-                second: .bSpline(Self.verticalPlanarPatch()),
+                second: .bSpline(Self.quadraticVerticalPlanarPatch()),
                 options: SurfaceSurfaceIntersectionOptions(
                     maximumSubdivisionDepth: 8,
                     maximumSubdivisionCells: 1,
@@ -248,7 +469,10 @@ struct BoundedBSplineSurfaceIntersectionTests {
     @Test(.timeLimit(.minutes(1)))
     func boundaryKrawczykPromotesAClippedRegularArcToAFullGraph() throws {
         let horizontal = Self.unitPlanarPatch()
-        let vertical = Self.verticalPlanarPatch(yLower: 0.4, yUpper: 1.6)
+        let vertical = Self.quadraticVerticalPlanarPatch(
+            yLower: 0.4,
+            yUpper: 1.6
+        )
         let options = SurfaceSurfaceIntersectionOptions(
             maximumSubdivisionDepth: 0,
             maximumSubdivisionCells: 1,
@@ -1013,6 +1237,31 @@ struct BoundedBSplineSurfaceIntersectionTests {
             bottomRight: Point3D(x: 0.5, y: yUpper, z: -1.0),
             topRight: Point3D(x: 0.5, y: yUpper, z: 1.0),
             topLeft: Point3D(x: 0.5, y: yLower, z: 1.0)
+        )
+    }
+
+    private static func quadraticVerticalPlanarPatch(
+        yLower: Double = -1.0,
+        yUpper: Double = 2.0
+    ) -> BSplineSurface3D {
+        let midpoint = (yLower + yUpper) * 0.5
+        return BSplineSurface3D(
+            uDegree: 2,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                [
+                    Point3D(x: 0.5, y: yLower, z: -1.0),
+                    Point3D(x: 0.5, y: midpoint, z: -1.0),
+                    Point3D(x: 0.5, y: yUpper, z: -1.0),
+                ],
+                [
+                    Point3D(x: 0.5, y: yLower, z: 1.0),
+                    Point3D(x: 0.5, y: midpoint, z: 1.0),
+                    Point3D(x: 0.5, y: yUpper, z: 1.0),
+                ],
+            ]
         )
     }
 

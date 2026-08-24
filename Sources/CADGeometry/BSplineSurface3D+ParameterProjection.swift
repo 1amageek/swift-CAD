@@ -2,11 +2,11 @@ import CADCore
 import Foundation
 
 extension BSplineSurface3D {
-    func parameterProjection(
+    func parameterProjectionResult(
         of point: Point3D,
         options: SurfaceParameterProjectionOptions,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceParameterProjection {
+    ) throws -> SurfaceParameterProjectionResult {
         try options.validate(tolerance: tolerance)
         try validate(tolerance: tolerance)
         try point.validate()
@@ -17,6 +17,12 @@ extension BSplineSurface3D {
                 code: .invalidInput,
                 tolerance: tolerance,
                 message: "B-spline inverse projection requires finite parameter domains."
+            )
+        }
+        if let affine = ExactAffineBSplineSurfacePatch(self) {
+            return try affine.parameterProjectionResult(
+                of: point,
+                tolerance: tolerance
             )
         }
         let sourcePatches = try BSplineSurfaceBezierDecomposer().surfacePatches(
@@ -155,13 +161,7 @@ extension BSplineSurface3D {
             tolerance: tolerance
         )
         guard let selected = uniqueCandidates.min(by: projectionOrder) else {
-            throw KernelError(
-                phase: .geometry,
-                code: .intersectionFailure,
-                residual: bestWitness.residual,
-                tolerance: tolerance,
-                message: "Point does not lie on the bounded B-spline surface within tolerance."
-            )
+            return .outsideTolerance(residual: bestWitness.residual)
         }
         guard uniqueCandidates.count == 1 else {
             throw KernelError(
@@ -172,13 +172,13 @@ extension BSplineSurface3D {
                 message: "B-spline inverse projection has multiple distinct parameter solutions."
             )
         }
-        return try SurfaceParameterProjection(
+        return .projected(try SurfaceParameterProjection(
             u: selected.projection.u,
             v: selected.projection.v,
             point: selected.projection.point,
             residual: selected.projection.residual,
             iterations: selected.projection.iterations
-        )
+        ))
     }
 
     private func initialWitness(

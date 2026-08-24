@@ -48,11 +48,7 @@ struct BooleanOpenFaceArrangementBuilder {
                 tolerance: tolerance
             )
         }
-        let periodicity = UVPeriodicity(
-            uPeriod: period(of: surface.uDomain),
-            vPeriod: period(of: surface.vDomain),
-            uSingularVValues: uSingularVValues(on: surface)
-        )
+        let periodicity = SurfaceParameterTopology(surface: surface)
         let source: BRepSewingFacePatch
         do {
             source = try SourceBRepFacePatchBuilder().build(
@@ -235,8 +231,33 @@ struct BooleanOpenFaceArrangementBuilder {
             })
         }
         do {
+            guard let outerDomain = sourceDomain.first(where: {
+                $0.role == .outer
+            }) else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .missingReference,
+                    tolerance: tolerance,
+                    message: "Open Boolean arrangement lost its source outer chart."
+                )
+            }
+            baseEdges = try alignedBoundaryEdges(
+                baseEdges,
+                to: outerDomain,
+                periodicity: periodicity,
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "intersection-chart alignment",
+                tolerance: tolerance
+            )
+        }
+        do {
             baseEdges = try mergedCoincidentEdges(
                 baseEdges,
+                surface: surface,
                 tolerance: tolerance
             )
         } catch {
@@ -260,6 +281,7 @@ struct BooleanOpenFaceArrangementBuilder {
         do {
             graph = try makeGraph(
                 baseEdges: baseEdges,
+                surface: surface,
                 periodicity: periodicity,
                 tolerance: tolerance
             )
@@ -312,8 +334,93 @@ struct BooleanOpenFaceArrangementBuilder {
         )
     }
 
+    private func alignedBoundaryEdges(
+        _ edges: [BaseEdge],
+        to sourceDomain: SourceLoopDomain,
+        periodicity: UVPeriodicity,
+        tolerance: ModelingTolerance
+    ) throws -> [BaseEdge] {
+        guard let first = sourceDomain.polygon.first else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: tolerance,
+                message: "Periodic chart alignment requires a non-empty source domain."
+            )
+        }
+        let bounds = sourceDomain.polygon.dropFirst().reduce(
+            (uLower: first.x, uUpper: first.x, vLower: first.y, vUpper: first.y)
+        ) { partial, point in
+            (
+                min(partial.uLower, point.x),
+                max(partial.uUpper, point.x),
+                min(partial.vLower, point.y),
+                max(partial.vUpper, point.y)
+            )
+        }
+        let center = SurfaceParameter(
+            u: bounds.uLower + (bounds.uUpper - bounds.uLower) * 0.5,
+            v: bounds.vLower + (bounds.vUpper - bounds.vLower) * 0.5
+        )
+        return try edges.map { base in
+            guard let boundary = base.boundary else { return base }
+            let midpoint = try base.edge.surfaceParameterCurve.parameter(
+                atNormalizedFraction: 0.5,
+                tolerance: tolerance
+            )
+            let uShift = periodicity.uPeriod.map {
+                aligned(midpoint.u, to: center.u, period: $0) - midpoint.u
+            } ?? 0.0
+            let vShift = periodicity.vPeriod.map {
+                aligned(midpoint.v, to: center.v, period: $0) - midpoint.v
+            } ?? 0.0
+            guard uShift != 0.0 || vShift != 0.0 else { return base }
+            let parameterCurve = try translated(
+                base.edge.surfaceParameterCurve,
+                uShift: uShift,
+                vShift: vShift,
+                tolerance: tolerance
+            )
+            let edge = replacingParameterCurve(
+                base.edge,
+                with: parameterCurve
+            )
+            return BaseEdge(
+                edge: edge,
+                boundary: BooleanFaceArrangementBoundary(
+                    reference: boundary.reference,
+                    segmentOrdinal: boundary.segmentOrdinal,
+                    faceID: boundary.faceID,
+                    edge: edge,
+                    forwardLeftAction: boundary.forwardLeftAction,
+                    forwardRightAction: boundary.forwardRightAction
+                ),
+                sourceLoopRole: nil
+            )
+        }
+    }
+
+    private func replacingParameterCurve(
+        _ edge: BRepSewingEdge,
+        with parameterCurve: SurfaceParameterCurve
+    ) -> BRepSewingEdge {
+        BRepSewingEdge(
+            stableID: edge.stableID,
+            curve: edge.curve,
+            startParameter: edge.startParameter,
+            endParameter: edge.endParameter,
+            startPoint: edge.startPoint,
+            endPoint: edge.endPoint,
+            surfaceParameterCurve: parameterCurve,
+            parentSubshapeIDs: edge.parentSubshapeIDs,
+            startVertexParentSubshapeIDs: edge.startVertexParentSubshapeIDs,
+            endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs
+        )
+    }
+
     private func mergedCoincidentEdges(
         _ edges: [BaseEdge],
+        surface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [BaseEdge] {
         var groups: [[BaseEdge]] = []
@@ -343,10 +450,30 @@ struct BooleanOpenFaceArrangementBuilder {
                 groups.append([edge])
             }
         }
-        return try groups.map { group in
-            guard group.count > 1 else { return group[0] }
-            return try mergedCoincidentEdge(group, tolerance: tolerance)
+        var result: [BaseEdge] = []
+        for group in groups {
+            guard group.count > 1 else {
+                result.append(group[0])
+                continue
+            }
+            let sourceEdges = group.filter { $0.sourceLoopRole != nil }
+            if group.count == 2,
+               sourceEdges.count == 2,
+               try PeriodicFaceSeamValidator().certifiesOppositeSeamCurves(
+                   sourceEdges[0].edge.surfaceParameterCurve,
+                   sourceEdges[1].edge.surfaceParameterCurve,
+                   on: surface,
+                   tolerance: tolerance
+               ) {
+                result.append(contentsOf: sourceEdges)
+                continue
+            }
+            result.append(try mergedCoincidentEdge(
+                group,
+                tolerance: tolerance
+            ))
         }
+        return result
     }
 
     private func mergedCoincidentEdge(
@@ -482,15 +609,34 @@ struct BooleanOpenFaceArrangementBuilder {
         periodicity: UVPeriodicity,
         tolerance: ModelingTolerance
     ) throws -> [Point3D] {
-        let source = sourceEdges.map { (edge: $0, isBoundary: false) }
-        let boundaries = arrangementBoundaries.map { (edge: $0.edge, isBoundary: true) }
+        let source = sourceEdges.map {
+            (edge: $0, boundary: Optional<BooleanFaceArrangementBoundary>.none)
+        }
+        let boundaries = arrangementBoundaries.map {
+            (edge: $0.edge, boundary: Optional($0))
+        }
         let candidates = source + boundaries
         var result: [Point3D] = []
         for firstIndex in candidates.indices {
             for secondIndex in candidates.indices where secondIndex > firstIndex {
                 let first = candidates[firstIndex]
                 let second = candidates[secondIndex]
-                guard first.isBoundary || second.isBoundary else {
+                guard first.boundary != nil || second.boundary != nil else {
+                    continue
+                }
+                // Adjacent spans of one component already contribute their
+                // authored endpoints to the subdivision set. Intersecting
+                // them again is both redundant and incorrect on periodic
+                // charts, where midpoint alignment can place consecutive
+                // half-period spans on top of one another.
+                if let firstBoundary = first.boundary,
+                   let secondBoundary = second.boundary,
+                   firstBoundary.reference == secondBoundary.reference,
+                   shareEndpoint(
+                       first.edge,
+                       second.edge,
+                       tolerance: tolerance
+                   ) {
                     continue
                 }
                 guard let rawFirstSegment = try linearSegment(
@@ -507,8 +653,8 @@ struct BooleanOpenFaceArrangementBuilder {
                         // resolve at the exact tolerance; crossing detection
                         // certifies at the same widened snap bound used for
                         // source matching and node identity.
-                        let intersectionTolerance = first.isBoundary
-                            && second.isBoundary
+                        let intersectionTolerance = first.boundary != nil
+                            && second.boundary != nil
                             ? tolerance
                             : sourceSnapTolerance(tolerance)
                         intersections = try ExactTrimEdgeIntersector().intersections(
@@ -589,6 +735,21 @@ struct BooleanOpenFaceArrangementBuilder {
         return result
     }
 
+    private func shareEndpoint(
+        _ first: BRepSewingEdge,
+        _ second: BRepSewingEdge,
+        tolerance: ModelingTolerance
+    ) -> Bool {
+        [first.startPoint, first.endPoint].contains { firstPoint in
+            [second.startPoint, second.endPoint].contains { secondPoint in
+                firstPoint.isApproximatelyEqual(
+                    to: secondPoint,
+                    tolerance: tolerance.distance
+                )
+            }
+        }
+    }
+
     private func aligned(
         _ first: LinearSegment,
         with second: LinearSegment,
@@ -666,19 +827,7 @@ struct BooleanOpenFaceArrangementBuilder {
         _ edge: BRepSewingEdge,
         tolerance: ModelingTolerance
     ) throws -> LinearSegment? {
-        let isLinear: Bool
-        switch edge.curve {
-        case .line, .analytic(.line):
-            isLinear = true
-        case .circle,
-             .analytic,
-             .bSpline,
-             .implicit,
-             .surfaceLift,
-             .certifiedIntersection:
-            isLinear = false
-        }
-        guard isLinear else { return nil }
+        guard isLine(edge.curve) else { return nil }
         let start = try edge.surfaceParameterCurve.startParameter(tolerance: tolerance)
         let end = try edge.surfaceParameterCurve.endParameter(tolerance: tolerance)
         guard isLinearParameterCurve(edge.surfaceParameterCurve) else {
@@ -692,6 +841,10 @@ struct BooleanOpenFaceArrangementBuilder {
         )
     }
 
+    private func isLine(_ curve: Curve3D) -> Bool {
+        curve.hasExactLinearParameterization
+    }
+
     private func isLinearParameterCurve(
         _ curve: SurfaceParameterCurve
     ) -> Bool {
@@ -702,10 +855,12 @@ struct BooleanOpenFaceArrangementBuilder {
             return true
         case .polyline, .harmonic, .bSpline, .certifiedImplicit,
              .certifiedAnalyticImplicit, .sphericalGreatCircle,
-             .certifiedAnalyticPair, .projectedAnalytic:
+             .certifiedAnalyticPair, .projectedAnalytic, .rigidImage:
             return false
         case let .periodicTranslation(base, _, _):
             return isLinearParameterCurve(base)
+        case let .sameParameterImage(image):
+            return isLinearParameterCurve(image.source)
         }
     }
 
@@ -829,9 +984,15 @@ struct BooleanOpenFaceArrangementBuilder {
 
     private func makeGraph(
         baseEdges: [BaseEdge],
+        surface: Surface3D,
         periodicity: UVPeriodicity,
         tolerance: ModelingTolerance
     ) throws -> Graph {
+        let preservesPeriodicSheets = try hasExplicitPeriodicSeam(
+            baseEdges,
+            surface: surface,
+            tolerance: tolerance
+        )
         var nodes: [Node] = []
         var edges: [GraphEdge] = []
         for baseEdge in baseEdges {
@@ -845,6 +1006,7 @@ struct BooleanOpenFaceArrangementBuilder {
                 parameter: endpointParameters.start,
                 nodes: &nodes,
                 periodicity: periodicity,
+                preservesPeriodicSheets: preservesPeriodicSheets,
                 tolerance: tolerance
             )
             var endNode = try nodeID(
@@ -852,6 +1014,7 @@ struct BooleanOpenFaceArrangementBuilder {
                 parameter: endpointParameters.end,
                 nodes: &nodes,
                 periodicity: periodicity,
+                preservesPeriodicSheets: preservesPeriodicSheets,
                 tolerance: tolerance
             )
             if endNode == startNode {
@@ -950,33 +1113,46 @@ struct BooleanOpenFaceArrangementBuilder {
         )
     }
 
+    private func hasExplicitPeriodicSeam(
+        _ edges: [BaseEdge],
+        surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        let sourceEdges = edges.filter { $0.sourceLoopRole != nil }
+        for firstIndex in sourceEdges.indices {
+            for secondIndex in sourceEdges.indices where secondIndex > firstIndex {
+                guard try edgesAreEquivalent(
+                    sourceEdges[firstIndex].edge,
+                    sourceEdges[secondIndex].edge,
+                    tolerance: tolerance
+                ) else {
+                    continue
+                }
+                if try PeriodicFaceSeamValidator().certifiesOppositeSeamCurves(
+                    sourceEdges[firstIndex].edge.surfaceParameterCurve,
+                    sourceEdges[secondIndex].edge.surfaceParameterCurve,
+                    on: surface,
+                    tolerance: tolerance
+                ) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
     private func unwrappedEndpointParameters(
         of edge: BRepSewingEdge,
         periodicity: UVPeriodicity,
         tolerance: ModelingTolerance
     ) throws -> (start: SurfaceParameter, end: SurfaceParameter) {
-        let start = try edge.surfaceParameterCurve.startParameter(
-            tolerance: tolerance
-        )
-        let rawEnd = try edge.surfaceParameterCurve.endParameter(
+        let lift = try edge.surfaceParameterCurve.continuousChartLift(
+            topology: periodicity,
             tolerance: tolerance
         )
         return (
-            start,
-            SurfaceParameter(
-                u: start.u + (try periodicDelta(
-                    from: start.u,
-                    to: rawEnd.u,
-                    period: periodicity.uPeriod,
-                    tolerance: tolerance
-                )),
-                v: start.v + (try periodicDelta(
-                    from: start.v,
-                    to: rawEnd.v,
-                    period: periodicity.vPeriod,
-                    tolerance: tolerance
-                ))
-            )
+            lift.start,
+            lift.end
         )
     }
 
@@ -1539,9 +1715,8 @@ struct BooleanOpenFaceArrangementBuilder {
                 vShift: vShift,
                 tolerance: tolerance
             )
-            let internalDelta = try unwrappedInternalDelta(
-                of: edge.surfaceParameterCurve,
-                periodicity: graph.periodicity,
+            let curveLift = try edge.surfaceParameterCurve.continuousChartLift(
+                topology: graph.periodicity,
                 tolerance: tolerance
             )
             let junctionIsUSingular = isUSingular(
@@ -1549,7 +1724,7 @@ struct BooleanOpenFaceArrangementBuilder {
                 periodicity: graph.periodicity,
                 tolerance: tolerance
             )
-            if junctionIsUSingular || internalDelta.visitsUSingularity {
+            if junctionIsUSingular || curveLift.visitsUSingularity {
                 visitsUSingularity = true
             }
             let liftedStart = SurfaceParameter(
@@ -1562,8 +1737,8 @@ struct BooleanOpenFaceArrangementBuilder {
                 firstAnchor = liftedStart
             }
             anchor = SurfaceParameter(
-                u: liftedStart.u + internalDelta.u,
-                v: liftedStart.v + internalDelta.v
+                u: liftedStart.u + curveLift.end.u - curveLift.start.u,
+                v: liftedStart.v + curveLift.end.v - curveLift.start.v
             )
             let liftedEdge = BRepSewingEdge(
                 stableID: edge.stableID,
@@ -1615,61 +1790,6 @@ struct BooleanOpenFaceArrangementBuilder {
             )
         }
         return result
-    }
-
-    /// The unwrapped parameter displacement from a pcurve's start to its end,
-    /// accumulated over a fraction ladder so principal-value reporting across
-    /// a periodic seam cannot alias the true displacement. Ladder steps
-    /// adjacent to a u-singular sample contribute no u displacement, matching
-    /// the periodic cycle unwrap.
-    private func unwrappedInternalDelta(
-        of curve: SurfaceParameterCurve,
-        periodicity: UVPeriodicity,
-        tolerance: ModelingTolerance
-    ) throws -> (u: Double, v: Double, visitsUSingularity: Bool) {
-        let subdivisions = 16
-        var samples: [SurfaceParameter] = []
-        samples.reserveCapacity(subdivisions + 1)
-        for index in 0...subdivisions {
-            samples.append(try curve.parameter(
-                atNormalizedFraction: Double(index) / Double(subdivisions),
-                tolerance: tolerance
-            ))
-        }
-        var deltaU = 0.0
-        var deltaV = 0.0
-        var visitsUSingularity = false
-        for index in 1..<samples.count {
-            let previous = samples[index - 1]
-            let current = samples[index]
-            let crossesUSingularity = isUSingular(
-                previous,
-                periodicity: periodicity,
-                tolerance: tolerance
-            ) || isUSingular(
-                current,
-                periodicity: periodicity,
-                tolerance: tolerance
-            )
-            if crossesUSingularity {
-                visitsUSingularity = true
-            }
-            if crossesUSingularity == false {
-                deltaU += try periodicDelta(
-                    from: previous.u,
-                    to: current.u,
-                    period: periodicity.uPeriod,
-                    tolerance: tolerance
-                )
-            }
-            deltaV += try periodicDelta(
-                from: previous.v,
-                to: current.v,
-                period: periodicity.vPeriod,
-                tolerance: tolerance
-            )
-        }
-        return (deltaU, deltaV, visitsUSingularity)
     }
 
     private func translated(
@@ -1736,7 +1856,7 @@ struct BooleanOpenFaceArrangementBuilder {
             )
         case .sphericalGreatCircle, .certifiedImplicit,
              .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-             .projectedAnalytic:
+             .projectedAnalytic, .rigidImage, .sameParameterImage:
             return .periodicTranslation(
                 base: curve,
                 uShift: uShift,
@@ -1806,7 +1926,12 @@ struct BooleanOpenFaceArrangementBuilder {
                     message: "Open Boolean half-edge traversal did not close deterministically."
                 )
             }
-            let area = try signedArea(of: cycle, graph: graph, tolerance: tolerance)
+            let canonicalCycle = canonicalizedCycle(cycle, graph: graph)
+            let area = try signedArea(
+                of: canonicalCycle,
+                graph: graph,
+                tolerance: tolerance
+            )
             if abs(area) <= tolerance.distance * tolerance.distance {
                 throw KernelError(
                     phase: .topology,
@@ -1815,7 +1940,7 @@ struct BooleanOpenFaceArrangementBuilder {
                     message: "Open Boolean arrangement produced a degenerate UV cycle."
                 )
             }
-            result.append(Cycle(uses: cycle, signedArea: area))
+            result.append(Cycle(uses: canonicalCycle, signedArea: area))
         }
         return result.sorted {
             cycleStableKey($0.uses, graph: graph)
@@ -1883,14 +2008,22 @@ struct BooleanOpenFaceArrangementBuilder {
                 message: "\(error.message) Cycle: \(cycleStableKey(cycle, graph: graph))."
             )
         }
-        return try AdaptivePlanarPredicateEvaluator().certifiedSignedArea(
-            of: points.map { Point2D(x: $0.u, y: $0.v) },
-            tolerance: ModelingTolerance(
-                distance: max(tolerance.distance, tolerance.angle),
-                angle: tolerance.angle,
-                relative: tolerance.relative
+        do {
+            return try AdaptivePlanarPredicateEvaluator().certifiedSignedArea(
+                of: points.map { Point2D(x: $0.u, y: $0.v) },
+                tolerance: ModelingTolerance(
+                    distance: max(tolerance.distance, tolerance.angle),
+                    angle: tolerance.angle,
+                    relative: tolerance.relative
+                )
             )
-        )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "signed-area certification for cycle \(cycleStableKey(cycle, graph: graph)) with lifted points \(points)",
+                tolerance: tolerance
+            )
+        }
     }
 
     private func unwrapped(
@@ -2143,6 +2276,7 @@ struct BooleanOpenFaceArrangementBuilder {
         parameter: SurfaceParameter,
         nodes: inout [Node],
         periodicity: UVPeriodicity,
+        preservesPeriodicSheets: Bool,
         tolerance: ModelingTolerance
     ) throws -> Int {
         // Exact matching first preserves precise models untouched; only
@@ -2156,24 +2290,31 @@ struct BooleanOpenFaceArrangementBuilder {
                 to: point,
                 tolerance: radius
             ) {
-                let deltaV = try periodicDelta(
-                    from: node.parameter.v,
-                    to: parameter.v,
-                    period: periodicity.vPeriod,
-                    tolerance: tolerance
-                )
+                let deltaV = preservesPeriodicSheets
+                    ? parameter.v - node.parameter.v
+                    : try periodicDelta(
+                        from: node.parameter.v,
+                        to: parameter.v,
+                        period: periodicity.vPeriod,
+                        tolerance: tolerance
+                    )
                 let sharesUSingularity =
                     isUSingular(node.parameter, periodicity: periodicity, tolerance: tolerance)
                     && isUSingular(parameter, periodicity: periodicity, tolerance: tolerance)
                     && abs(deltaV) <= parameterTolerance
-                let deltaU = sharesUSingularity
-                    ? 0.0
-                    : try periodicDelta(
+                let deltaU: Double
+                if sharesUSingularity {
+                    deltaU = 0.0
+                } else if preservesPeriodicSheets {
+                    deltaU = parameter.u - node.parameter.u
+                } else {
+                    deltaU = try periodicDelta(
                         from: node.parameter.u,
                         to: parameter.u,
                         period: periodicity.uPeriod,
                         tolerance: tolerance
                     )
+                }
                 if hypot(deltaU, deltaV) <= parameterTolerance {
                     matches.append(node)
                 }
@@ -2321,6 +2462,93 @@ struct BooleanOpenFaceArrangementBuilder {
         return (tokens[minimum...] + tokens[..<minimum]).joined(separator: "|")
     }
 
+    /// Rotates a directed cycle to a geometry-owned start. Stable IDs may
+    /// contain document UUIDs and therefore cannot define the serialized or
+    /// lifted representation of an otherwise identical Boolean result.
+    private func canonicalizedCycle(
+        _ cycle: [DirectedEdgeID],
+        graph: Graph
+    ) -> [DirectedEdgeID] {
+        guard let startIndex = cycle.indices.min(by: { lhs, rhs in
+            directedGeometryPrecedes(
+                cycle[lhs],
+                cycle[rhs],
+                graph: graph
+            )
+        }) else {
+            return cycle
+        }
+        return Array(cycle[startIndex...] + cycle[..<startIndex])
+    }
+
+    private func directedGeometryPrecedes(
+        _ lhs: DirectedEdgeID,
+        _ rhs: DirectedEdgeID,
+        graph: Graph
+    ) -> Bool {
+        let lhsEdge = graph.edges[lhs.edgeIndex]
+        let rhsEdge = graph.edges[rhs.edgeIndex]
+        let lhsStart = graph.nodes[
+            lhs.isForward ? lhsEdge.startNode : lhsEdge.endNode
+        ]
+        let rhsStart = graph.nodes[
+            rhs.isForward ? rhsEdge.startNode : rhsEdge.endNode
+        ]
+        let lhsEnd = graph.nodes[
+            lhs.isForward ? lhsEdge.endNode : lhsEdge.startNode
+        ]
+        let rhsEnd = graph.nodes[
+            rhs.isForward ? rhsEdge.endNode : rhsEdge.startNode
+        ]
+        let lhsValues = geometryCycleKey(
+            start: lhsStart,
+            end: lhsEnd,
+            periodicity: graph.periodicity
+        )
+        let rhsValues = geometryCycleKey(
+            start: rhsStart,
+            end: rhsEnd,
+            periodicity: graph.periodicity
+        )
+        if lhsValues != rhsValues {
+            return lhsValues.lexicographicallyPrecedes(rhsValues)
+        }
+        return directedStableKey(lhs, graph: graph)
+            < directedStableKey(rhs, graph: graph)
+    }
+
+    private func geometryCycleKey(
+        start: Node,
+        end: Node,
+        periodicity: UVPeriodicity
+    ) -> [Double] {
+        [
+            start.point.x,
+            start.point.y,
+            start.point.z,
+            canonicalPeriodicValue(start.parameter.u, period: periodicity.uPeriod),
+            canonicalPeriodicValue(start.parameter.v, period: periodicity.vPeriod),
+            end.point.x,
+            end.point.y,
+            end.point.z,
+            canonicalPeriodicValue(end.parameter.u, period: periodicity.uPeriod),
+            canonicalPeriodicValue(end.parameter.v, period: periodicity.vPeriod),
+        ]
+    }
+
+    private func canonicalPeriodicValue(
+        _ value: Double,
+        period: Double?
+    ) -> Double {
+        guard let period else { return value }
+        var canonical = value.truncatingRemainder(dividingBy: period)
+        if canonical < 0.0 { canonical += period }
+        if canonical == period || abs(canonical) <= Double.ulpOfOne * 256.0 {
+            canonical = 0.0
+        }
+        return canonical
+    }
+
     private func directedStableKey(
         _ use: DirectedEdgeID,
         graph: Graph
@@ -2334,23 +2562,6 @@ struct BooleanOpenFaceArrangementBuilder {
     ) -> Orientation {
         guard action == .keepReversed else { return source }
         return source == .forward ? .reversed : .forward
-    }
-
-    private func period(of domain: ParameterDomain) -> Double? {
-        if case let .periodic(period) = domain { return period }
-        return nil
-    }
-
-    private func uSingularVValues(on surface: Surface3D) -> [Double] {
-        guard case let .analytic(analytic) = surface else { return [] }
-        switch analytic {
-        case .sphere:
-            return [-Double.pi * 0.5, Double.pi * 0.5]
-        case .cone:
-            return [0.0]
-        case .plane, .cylinder, .torus:
-            return []
-        }
     }
 
     private func surfaceDescription(_ surface: Surface3D) -> String {
@@ -2374,6 +2585,10 @@ struct BooleanOpenFaceArrangementBuilder {
             }
         case .bSpline:
             return "b-spline"
+        case .procedural(.offset):
+            return "procedural-offset"
+        case .procedural(.ruled):
+            return "procedural-ruled"
         }
     }
 
@@ -2486,12 +2701,9 @@ struct BooleanOpenFaceArrangementBuilder {
         let stableKey: String
     }
 
-    private struct UVPeriodicity: Sendable {
-        let uPeriod: Double?
-        let vPeriod: Double?
-        let uSingularVValues: [Double]
-    }
 }
+
+private typealias UVPeriodicity = SurfaceParameterTopology
 
 private extension BooleanRegionSelectionAction {
     var isSelected: Bool {

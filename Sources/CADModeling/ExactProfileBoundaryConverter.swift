@@ -15,11 +15,40 @@ package struct ExactProfileBoundaryConverter: Sendable {
         offset: Vector3D,
         extrusionAxis: Vector3D
     ) throws -> [ExactPrismaticBoundarySegment] {
+        try segments(
+            from: profile.outerLoop,
+            on: profile.plane,
+            offset: offset,
+            extrusionAxis: extrusionAxis
+        )
+    }
+
+    package func boundaries(
+        from profile: Profile,
+        offset: Vector3D,
+        extrusionAxis: Vector3D
+    ) throws -> [[ExactPrismaticBoundarySegment]] {
+        try ([profile.outerLoop] + profile.innerLoops).map { loop in
+            try segments(
+                from: loop,
+                on: profile.plane,
+                offset: offset,
+                extrusionAxis: extrusionAxis
+            )
+        }
+    }
+
+    private func segments(
+        from loop: ProfileLoop,
+        on plane: SketchPlane,
+        offset: Vector3D,
+        extrusionAxis: Vector3D
+    ) throws -> [ExactPrismaticBoundarySegment] {
         try tolerance.validate()
         let axis = try extrusionAxis.normalized(tolerance: tolerance.distance)
-        let profilePlane = try plane(for: profile.plane)
+        let profilePlane = try self.plane(for: plane)
         var result: [ExactPrismaticBoundarySegment] = []
-        for boundary in profile.boundarySegments {
+        for boundary in loop.boundarySegments {
             switch boundary {
             case let .line(line):
                 try validate(point: line.start, on: profilePlane)

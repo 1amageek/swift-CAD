@@ -248,8 +248,22 @@ public struct DefaultBRepRepairer: BRepRepairing {
         guard loop.coedges.isEmpty == false else {
             return .rejected("An empty loop has no cycle to reorder.")
         }
-        guard Set(loop.coedges.map(\.edgeID)).count == loop.coedges.count else {
-            return .rejected("A loop with duplicate edges cannot be repaired without changing topology.")
+        if Set(loop.coedges.map(\.edgeID)).count != loop.coedges.count {
+            let owningFaces = model.faces.values.filter {
+                $0.loops.contains(loop.id)
+            }
+            if owningFaces.count == 1,
+               let surface = model.geometry.surfaces[owningFaces[0].surfaceID],
+               PeriodicFaceSeamValidator().certifiesRepeatedEdgeUses(
+                   in: loop,
+                   on: surface,
+                   tolerance: tolerance
+               ) {
+                return .unchanged
+            }
+            return .rejected(
+                "A loop with repeated non-seam edges cannot be repaired without changing topology."
+            )
         }
         let ordered = loop.coedges.sorted {
             describe($0.edgeID) < describe($1.edgeID)

@@ -24,6 +24,7 @@ public struct PolySplineMeshAnalyzer: Sendable {
         public var result: PolySplineMeshAnalysisResult
         public var orderedBoundaryPoints: [Point3D]?
         public var supportedPatches: [SupportedPatch]
+        package var reconstruction: ExactPolySplinePatchNetworkReconstructor.Reconstruction?
 
         public init(
             result: PolySplineMeshAnalysisResult,
@@ -33,6 +34,7 @@ public struct PolySplineMeshAnalyzer: Sendable {
             self.result = result
             self.orderedBoundaryPoints = orderedBoundaryPoints
             self.supportedPatches = supportedPatches
+            reconstruction = nil
         }
     }
 
@@ -63,15 +65,6 @@ public struct PolySplineMeshAnalyzer: Sendable {
 
         let topology = analyzeTopology(mesh: mesh)
         var diagnostics: [PolySplineMeshAnalysisResult.Diagnostic] = []
-        if options.roundedCorners {
-            diagnostics.append(
-                diagnostic(
-                    .error,
-                    .unsupportedRoundedCorners,
-                    "PolySpline rounded-corner patch generation is not supported by the current evaluator."
-                )
-            )
-        }
         if topology.nonManifoldEdgeCount > 0 {
             diagnostics.append(
                 diagnostic(
@@ -100,26 +93,6 @@ public struct PolySplineMeshAnalyzer: Sendable {
                     vertexIndices: sharedVertexIndices
                 )
             )
-            if selectedAdjacencies.contains(where: { $0.continuityLevel == .positional }) {
-                diagnostics.append(
-                    diagnostic(
-                        .warning,
-                        .patchTangentPlaneDiscontinuity,
-                        "PolySpline selected patch adjacencies include non-tangent mesh normals; reconstruction must solve tangent continuity before smooth surface output.",
-                        vertexIndices: sharedVertexIndices
-                    )
-                )
-            }
-            if selectedAdjacencies.contains(where: { $0.requiresCurvatureContinuitySolve }) {
-                diagnostics.append(
-                    diagnostic(
-                        .warning,
-                        .patchCurvatureContinuityUnresolved,
-                        "PolySpline selected patch adjacencies require a curvature-continuity solve before G2 multi-patch B-spline reconstruction.",
-                        vertexIndices: sharedVertexIndices
-                    )
-                )
-            }
         }
         if let partition = patchGraph?.partition {
             if partition.isComplete {
@@ -140,14 +113,6 @@ public struct PolySplineMeshAnalyzer: Sendable {
                     )
                 )
             }
-        } else if candidatePatchCount > 0 {
-            diagnostics.append(
-                diagnostic(
-                    .error,
-                    .oversizedPatchPartitionSearch,
-                    "PolySpline patch graph has too many candidates for the current exact partition search."
-                )
-            )
         }
         let isSingleQuadCandidate = mesh.indices.count == 6
             && topology.usedVertexCount == 4
@@ -160,6 +125,7 @@ public struct PolySplineMeshAnalyzer: Sendable {
         var supportedPatchCount = 0
         var orderedBoundaryPoints: [Point3D]?
         var supportedPatches: [Analysis.SupportedPatch] = []
+        var exactReconstruction: ExactPolySplinePatchNetworkReconstructor.Reconstruction?
         if isSingleQuadCandidate {
             candidateKind = .singleQuad
             switch orderedQuadBoundary(from: mesh, edgeUseCounts: topology.edgeUseCounts, tolerance: tolerance) {
@@ -204,39 +170,77 @@ public struct PolySplineMeshAnalyzer: Sendable {
                 )
             )
             }
-            if let patchGraph,
-               let planarPatches = supportedPlanarPatchNetwork(
-                patchGraph: patchGraph,
-                mesh: mesh,
-                options: options,
-                tolerance: tolerance
-               ) {
-                supportedPatches = planarPatches
-                supportedPatchCount = planarPatches.count
-                diagnostics.append(
-                    diagnostic(
-                        .info,
-                        .planarPatchNetworkSupported,
-                        "PolySpline selected patch partition is a planar unmerged B-spline patch network with \(planarPatches.count) patches."
+            if let patchGraph {
+                do {
+                    let reconstruction = try ExactPolySplinePatchNetworkReconstructor()
+                        .reconstruct(
+                            patchGraph: patchGraph,
+                            mesh: mesh,
+                            options: options,
+                            tolerance: tolerance
+                        )
+                    exactReconstruction = reconstruction
+                    supportedPatches = reconstruction.patches.map { patch in
+                        Analysis.SupportedPatch(
+                            candidateID: patch.candidateID,
+                            boundaryVertexIndices: patch.boundaryVertexIndices,
+                            boundaryPoints: patch.boundaryVertexIndices.map { mesh.positions[$0] }
+                        )
+                    }
+                    supportedPatchCount = supportedPatches.count
+                    diagnostics.append(
+                        diagnostic(
+                            .info,
+                            .bicubicPatchNetworkSupported,
+                            "PolySpline selected patch partition reconstructs one exact bicubic grid with \(supportedPatchCount) cells."
+                        )
                     )
-                )
+                } catch {
+                    diagnostics.append(
+                        diagnostic(
+                            .error,
+                            .unsupportedPatchNetwork,
+                            "PolySpline patch reconstruction failed: \(String(describing: error))"
+                        )
+                    )
+                }
             } else {
                 diagnostics.append(
                     diagnostic(
                         .error,
                         .unsupportedPatchNetwork,
-                        unsupportedPatchNetworkMessage(
-                            patchGraph: patchGraph,
-                            candidatePatchCount: candidatePatchCount,
-                            options: options
-                        )
+                        "PolySpline source triangles do not define a complete manifold rectangular quad grid."
                     )
                 )
             }
         }
 
+        if supportedPatches.isEmpty == false,
+           exactReconstruction == nil,
+           let patchGraph {
+            do {
+                exactReconstruction = try ExactPolySplinePatchNetworkReconstructor()
+                    .reconstruct(
+                        patchGraph: patchGraph,
+                        mesh: mesh,
+                        options: options,
+                        tolerance: tolerance
+                    )
+            } catch {
+                diagnostics.append(
+                    diagnostic(
+                        .error,
+                        .unsupportedPatchNetwork,
+                        "PolySpline patch reconstruction failed: \(String(describing: error))"
+                    )
+                )
+                supportedPatches.removeAll(keepingCapacity: false)
+                supportedPatchCount = 0
+            }
+        }
+
         let hasErrors = diagnostics.contains { $0.severity == .error }
-        return Analysis(
+        var analysis = Analysis(
             result: result(
                 baseCounts: baseCounts,
                 boundaryEdgeCount: topology.boundaryEdgeCount,
@@ -253,97 +257,8 @@ public struct PolySplineMeshAnalyzer: Sendable {
             orderedBoundaryPoints: orderedBoundaryPoints,
             supportedPatches: supportedPatches
         )
-    }
-
-    private func supportedPlanarPatchNetwork(
-        patchGraph: PolySplinePatchGraph,
-        mesh: Mesh,
-        options: PolySplineOptions,
-        tolerance: ModelingTolerance
-    ) -> [Analysis.SupportedPatch]? {
-        guard options.roundedCorners == false,
-              options.mergePatches == false,
-              let partition = patchGraph.partition,
-              partition.isComplete,
-              partition.selectedCandidateIDs.count > 1,
-              !patchGraph.selectedAdjacencies.isEmpty,
-              patchGraph.selectedAdjacencies.allSatisfy({
-                  $0.continuityLevel == .tangentPlane && !$0.requiresCurvatureContinuitySolve
-              }),
-              areSelectedCandidatesConnected(
-                selectedCandidateIDs: partition.selectedCandidateIDs,
-                selectedAdjacencies: patchGraph.selectedAdjacencies
-              ) else {
-            return nil
-        }
-
-        let candidatesByID = Dictionary(uniqueKeysWithValues: patchGraph.candidates.map { ($0.id, $0) })
-        var patches: [Analysis.SupportedPatch] = []
-        patches.reserveCapacity(partition.selectedCandidateIDs.count)
-        for candidateID in partition.selectedCandidateIDs.sorted() {
-            guard let candidate = candidatesByID[candidateID],
-                  isPlanarQuad(candidate, mesh: mesh, tolerance: tolerance) else {
-                return nil
-            }
-            patches.append(
-                Analysis.SupportedPatch(
-                    candidateID: candidate.id,
-                    boundaryVertexIndices: candidate.boundaryVertexIndices,
-                    boundaryPoints: candidate.boundaryVertexIndices.map { mesh.positions[$0] }
-                )
-            )
-        }
-        return patches
-    }
-
-    private func areSelectedCandidatesConnected(
-        selectedCandidateIDs: [Int],
-        selectedAdjacencies: [PolySplinePatchGraph.SelectedAdjacency]
-    ) -> Bool {
-        guard let startCandidateID = selectedCandidateIDs.first else {
-            return false
-        }
-        let selectedCandidateIDSet = Set(selectedCandidateIDs)
-        var adjacencyByCandidateID: [Int: Set<Int>] = [:]
-        for adjacency in selectedAdjacencies {
-            guard selectedCandidateIDSet.contains(adjacency.firstCandidateID),
-                  selectedCandidateIDSet.contains(adjacency.secondCandidateID) else {
-                continue
-            }
-            adjacencyByCandidateID[adjacency.firstCandidateID, default: []].insert(adjacency.secondCandidateID)
-            adjacencyByCandidateID[adjacency.secondCandidateID, default: []].insert(adjacency.firstCandidateID)
-        }
-
-        var visitedCandidateIDs = Set<Int>()
-        var pendingCandidateIDs = [startCandidateID]
-        while let candidateID = pendingCandidateIDs.popLast() {
-            guard visitedCandidateIDs.insert(candidateID).inserted else {
-                continue
-            }
-            for nextCandidateID in adjacencyByCandidateID[candidateID, default: []] {
-                if !visitedCandidateIDs.contains(nextCandidateID) {
-                    pendingCandidateIDs.append(nextCandidateID)
-                }
-            }
-        }
-        return visitedCandidateIDs == selectedCandidateIDSet
-    }
-
-    private func unsupportedPatchNetworkMessage(
-        patchGraph: PolySplinePatchGraph?,
-        candidatePatchCount: Int,
-        options: PolySplineOptions
-    ) -> String {
-        if patchGraph?.partition?.isComplete == true {
-            if options.mergePatches {
-                return "PolySpline patch graph partition is available, but merge-patches reconstruction and non-planar G2 multi-patch solving are not implemented by the current evaluator."
-            }
-            return "PolySpline patch graph partition is available, but this mesh still needs non-planar G2 multi-patch B-spline reconstruction."
-        }
-        if candidatePatchCount > 0 {
-            return "PolySpline patch graph extraction is available, but it does not yet provide a complete reconstruction partition."
-        }
-        return "PolySpline currently supports one quad patch represented by two triangles; patch networks and triangle or ngon layouts need viable quad candidates before evaluation."
+        analysis.reconstruction = exactReconstruction
+        return analysis
     }
 
     private func baseCounts(for mesh: Mesh) -> BaseCounts {
@@ -558,86 +473,26 @@ public struct PolySplineMeshAnalyzer: Sendable {
         guard !candidates.isEmpty else {
             return nil
         }
-        guard candidates.count <= 64 else {
-            return nil
-        }
-
-        var best = PatchPartitionSearchState(selectedCandidateIDs: [], coveredTriangleIndices: [])
-        var current = PatchPartitionSearchState(selectedCandidateIDs: [], coveredTriangleIndices: [])
-        searchPartition(
-            candidateIndex: 0,
-            candidates: candidates,
-            current: &current,
-            best: &best
+        let selected = PolySplineTrianglePairingSolver().selectedCandidateIDs(
+            triangleCount: triangleCount,
+            candidates: candidates
         )
-
-        let selectedCandidateIDs = Set(best.selectedCandidateIDs)
+        let selectedCandidateIDs = Set(selected)
         let rejectedCandidateIDs = candidates
             .map(\.id)
             .filter { !selectedCandidateIDs.contains($0) }
-        let coveredTriangleIndices = Set(best.coveredTriangleIndices)
+        let candidatesByID = Dictionary(uniqueKeysWithValues: candidates.map { ($0.id, $0) })
+        let coveredTriangleIndices = Set(selected.flatMap { candidateID in
+            candidatesByID[candidateID]?.triangleIndices ?? []
+        })
         let uncoveredTriangleIndices = (0..<triangleCount)
             .filter { !coveredTriangleIndices.contains($0) }
         return PolySplinePatchGraph.Partition(
-            selectedCandidateIDs: best.selectedCandidateIDs,
+            selectedCandidateIDs: selected,
             rejectedCandidateIDs: rejectedCandidateIDs,
-            coveredTriangleIndices: Array(best.coveredTriangleIndices),
+            coveredTriangleIndices: Array(coveredTriangleIndices),
             uncoveredTriangleIndices: uncoveredTriangleIndices
         )
-    }
-
-    private func searchPartition(
-        candidateIndex: Int,
-        candidates: [PolySplinePatchGraph.QuadCandidate],
-        current: inout PatchPartitionSearchState,
-        best: inout PatchPartitionSearchState
-    ) {
-        if candidateIndex == candidates.count {
-            if isBetterPartition(current, than: best) {
-                best = current
-            }
-            return
-        }
-
-        let maximumAdditionalTriangleCount = (candidates.count - candidateIndex) * 2
-        if current.coveredTriangleIndices.count + maximumAdditionalTriangleCount < best.coveredTriangleIndices.count {
-            return
-        }
-
-        let candidate = candidates[candidateIndex]
-        let candidateTriangleIndices = Set(candidate.triangleIndices)
-        if current.coveredTriangleIndices.isDisjoint(with: candidateTriangleIndices) {
-            current.selectedCandidateIDs.append(candidate.id)
-            current.coveredTriangleIndices.formUnion(candidateTriangleIndices)
-            searchPartition(
-                candidateIndex: candidateIndex + 1,
-                candidates: candidates,
-                current: &current,
-                best: &best
-            )
-            current.coveredTriangleIndices.subtract(candidateTriangleIndices)
-            current.selectedCandidateIDs.removeLast()
-        }
-
-        searchPartition(
-            candidateIndex: candidateIndex + 1,
-            candidates: candidates,
-            current: &current,
-            best: &best
-        )
-    }
-
-    private func isBetterPartition(
-        _ candidate: PatchPartitionSearchState,
-        than current: PatchPartitionSearchState
-    ) -> Bool {
-        if candidate.coveredTriangleIndices.count != current.coveredTriangleIndices.count {
-            return candidate.coveredTriangleIndices.count > current.coveredTriangleIndices.count
-        }
-        if candidate.selectedCandidateIDs.count != current.selectedCandidateIDs.count {
-            return candidate.selectedCandidateIDs.count > current.selectedCandidateIDs.count
-        }
-        return candidate.selectedCandidateIDs.lexicographicallyPrecedes(current.selectedCandidateIDs)
     }
 
     private func relationships(
@@ -1117,11 +972,6 @@ private struct PendingQuadCandidate: Hashable {
     var boundaryVertexIndices: [Int]
     var boundaryEdges: [PolySplinePatchGraph.VertexPair]
     var splitEdge: PolySplinePatchGraph.VertexPair
-}
-
-private struct PatchPartitionSearchState: Hashable {
-    var selectedCandidateIDs: [Int]
-    var coveredTriangleIndices: Set<Int>
 }
 
 private struct TopologyAnalysis {

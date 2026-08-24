@@ -37,4 +37,53 @@ struct LinearPatternBuilderTests {
             return
         }
     }
+
+    @Test(.timeLimit(.minutes(1)))
+    func separatedPatternPreservesOuterAndVoidShellOwnership() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let outerID = try builder.box(
+            width: .constant(.length(0.040, unit: .meter)),
+            depth: .constant(.length(0.030, unit: .meter)),
+            height: .constant(.length(0.020, unit: .meter))
+        )
+        let cavityID = try builder.box(
+            placement: PrimitivePlacement(
+                origin: Point3D(x: 0.010, y: 0.010, z: 0.004),
+                axis: .unitZ,
+                referenceDirection: .unitX
+            ),
+            width: .constant(.length(0.020, unit: .meter)),
+            depth: .constant(.length(0.010, unit: .meter)),
+            height: .constant(.length(0.010, unit: .meter))
+        )
+        let cavitySolidID = try builder.boolean(
+            targets: [outerID],
+            tool: cavityID,
+            operation: .difference
+        )
+        _ = try builder.linearPattern(
+            target: cavitySolidID,
+            direction: .unitX,
+            spacing: .constant(.length(0.100, unit: .meter)),
+            count: 2
+        )
+
+        let evaluated = try CADPipeline(tolerance: .standard).evaluate(
+            builder.build(name: "Cavity pattern ownership")
+        )
+
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        let body = try #require(evaluated.brep.bodies.values.first)
+        let components = try #require(body.solidComponents)
+        #expect(components.count == 2)
+        #expect(components.allSatisfy { $0.voidShellIDs.count == 1 })
+        #expect(body.shellIDs.count == 4)
+        let expectedVolume = 2.0 * (
+            0.040 * 0.030 * 0.020
+                - 0.020 * 0.010 * 0.010
+        )
+        #expect(abs(
+            try evaluated.brep.volume(tolerance: .standard) - expectedVolume
+        ) <= 1.0e-12)
+    }
 }

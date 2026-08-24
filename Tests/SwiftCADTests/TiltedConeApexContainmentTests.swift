@@ -12,6 +12,10 @@ import SwiftCAD
 // quadrant faces claim each other's regions.
 @Suite("Tilted cone apex containment")
 struct TiltedConeApexContainmentTests {
+    private enum FixtureError: Error {
+        case rootNotBracketed
+    }
+
     private func length(_ value: Double) -> CADExpression {
         .constant(.length(value, unit: .meter))
     }
@@ -48,7 +52,7 @@ struct TiltedConeApexContainmentTests {
         // Solve for torus points that also satisfy the cone constraint:
         // p(theta, phi) on the torus (major 3, minor 1) with
         // dot(p, axis) / |p| == cos(halfAngle).
-        func conePoint(theta: Double) -> Point3D {
+        func conePoint(theta: Double) throws -> Point3D {
             func deviation(_ phi: Double) -> Double {
                 let rho = 3.0 + cos(phi)
                 let point = Vector3D(
@@ -60,7 +64,9 @@ struct TiltedConeApexContainmentTests {
             }
             var lower = 0.0
             var upper = Double.pi / 2.0
-            precondition(deviation(lower) * deviation(upper) < 0.0)
+            guard deviation(lower) * deviation(upper) < 0.0 else {
+                throw FixtureError.rootNotBracketed
+            }
             for _ in 0..<80 {
                 let middle = (lower + upper) * 0.5
                 if deviation(lower) * deviation(middle) <= 0.0 {
@@ -128,7 +134,7 @@ struct TiltedConeApexContainmentTests {
         let containment = DefaultFacePointContainmentTester()
         for degrees in [110.0, 120.0, 125.0, 130.0, 135.0, 140.0, 150.0, 160.0] {
             let theta = degrees * Double.pi / 180.0
-            let point = conePoint(theta: theta)
+            let point = try conePoint(theta: theta)
             let inQ2 = try containment.contains(
                 point,
                 on: quadrantTwoFace,

@@ -125,42 +125,37 @@ public struct ProjectionQuery: Codable, Sendable, Hashable {
     public var point: Point3D
     public var target: Target
     public var mode: Mode
-    public var sampleCount: Int
-    public var maximumIterations: Int
+    public var resourceLimits: ProjectionResourceLimits
 
     private enum CodingKeys: String, CodingKey {
         case point
         case target
         case mode
-        case sampleCount
-        case maximumIterations
+        case resourceLimits
     }
 
     public init(
         point: Point3D,
         target: Target,
         mode: Mode = .closest,
-        sampleCount: Int = 9,
-        maximumIterations: Int = 32
+        resourceLimits: ProjectionResourceLimits = ProjectionResourceLimits()
     ) {
         self.point = point
         self.target = target
         self.mode = mode
-        self.sampleCount = sampleCount
-        self.maximumIterations = maximumIterations
+        self.resourceLimits = resourceLimits
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
-            [.point, .target, .mode, .sampleCount, .maximumIterations],
+            [.point, .target, .mode, .resourceLimits],
             in: decoder
         )
         point = try container.decode(Point3D.self, forKey: .point)
         target = try container.decode(Target.self, forKey: .target)
         mode = try container.decode(Mode.self, forKey: .mode)
-        sampleCount = try container.decode(Int.self, forKey: .sampleCount)
-        maximumIterations = try container.decode(Int.self, forKey: .maximumIterations)
+        resourceLimits = try container.decode(ProjectionResourceLimits.self, forKey: .resourceLimits)
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
@@ -168,15 +163,6 @@ public struct ProjectionQuery: Codable, Sendable, Hashable {
         try point.validate()
         try target.validate()
         try mode.validate(tolerance: tolerance)
-        guard sampleCount >= 2 else {
-            throw FeatureEvaluationError.invalidGraph(
-                "Projection query sample count must be at least two."
-            )
-        }
-        guard maximumIterations >= 0 else {
-            throw FeatureEvaluationError.invalidGraph(
-                "Projection query iteration count must not be negative."
-            )
-        }
+        try resourceLimits.validate(tolerance: tolerance)
     }
 }

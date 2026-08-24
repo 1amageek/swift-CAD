@@ -35,18 +35,16 @@ struct TrimmedParametricSurfaceVolumeTests {
             in: fixture.model,
             tolerance: tolerance
         ) == nil)
-        let directResult = try TrimmedParametricSurfaceVolumeEvaluator().volume(
+        let direct = try TrimmedParametricSurfaceVolumeEvaluator().volume(
             of: shell,
             in: fixture.model,
             tolerance: tolerance
         )
-        let direct = try #require(directResult)
-        let certifiedBoundsResult = try TrimmedParametricSurfaceVolumeEvaluator().volumeBounds(
+        let certifiedBounds = try TrimmedParametricSurfaceVolumeEvaluator().volumeBounds(
             of: shell,
             in: fixture.model,
             tolerance: tolerance
         )
-        let certifiedBounds = try #require(certifiedBoundsResult)
         let publicVolume = try fixture.model.volume(tolerance: tolerance)
 
         #expect(certifiedBounds.lower <= expectedVolume)
@@ -94,12 +92,11 @@ struct TrimmedParametricSurfaceVolumeTests {
         let shell = try #require(fixture.model.shells[fixture.shellID])
 
         try fixture.model.validate(level: .exact, tolerance: tolerance)
-        let boundsResult = try TrimmedParametricSurfaceVolumeEvaluator().volumeBounds(
+        let bounds = try TrimmedParametricSurfaceVolumeEvaluator().volumeBounds(
             of: shell,
             in: fixture.model,
             tolerance: tolerance
         )
-        let bounds = try #require(boundsResult)
         let expectedVolume = 24.0
         let publicVolume = try fixture.model.volume(tolerance: tolerance)
 
@@ -462,6 +459,52 @@ struct TrimmedParametricSurfaceVolumeTests {
         #expect(bounds.lower <= expected)
         #expect(bounds.upper >= expected)
         #expect(bounds.errorRadius <= 1.0e-10)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func triangularRuledTrimReturnsCertifiedSaddleContribution() throws {
+        let surface = Surface3D.procedural(.ruled(RuledSurface3D(
+            startBoundary: .line(Line3D(
+                origin: .origin,
+                direction: .unitX
+            )),
+            endBoundary: .bSpline(BSplineCurve3D(
+                degree: 1,
+                knots: [0.0, 0.0, 1.0, 1.0],
+                controlPoints: [
+                    Point3D(x: 0.0, y: 1.0, z: 0.0),
+                    Point3D(x: 1.0, y: 1.0, z: 1.0),
+                ]
+            ))
+        )))
+        let curves: [SurfaceParameterCurve] = [
+            .constantV(v: 0.0, uStart: 0.0, uEnd: 1.0),
+            .affine(
+                origin: Point2D(x: 1.0, y: 0.0),
+                direction: Point2D(x: -1.0, y: 1.0),
+                startParameter: 0.0,
+                endParameter: 1.0
+            ),
+            .constantU(u: 0.0, vStart: 1.0, vEnd: 0.0),
+        ]
+        let integrator = CertifiedAnalyticPcurveFluxIntegrator()
+        var bounds = TrimmedAnalyticSurfaceVolumeEvaluator.Interval.exact(0.0)
+        for curve in curves {
+            let contribution = try integrator.proceduralSurfaceBounds(
+                for: curve,
+                surface: surface,
+                reference: .origin,
+                uBase: 0.0,
+                requestedWidth: tolerance.distance / Double(curves.count),
+                tolerance: tolerance
+            )
+            bounds = bounds + (try #require(contribution))
+        }
+        let expected = -1.0 / 72.0
+
+        #expect(bounds.lower <= expected)
+        #expect(bounds.upper >= expected)
+        #expect(bounds.width * 0.5 <= tolerance.distance)
     }
 
     @Test(.timeLimit(.minutes(1)))

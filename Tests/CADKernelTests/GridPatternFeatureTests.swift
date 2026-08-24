@@ -40,7 +40,7 @@ struct GridPatternFeatureTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func rejectsOverlappingGridInstances() throws {
+    func unionsOverlappingGridInstancesExactly() throws {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let sourceFeatureID = try #require(document.designGraph.order.last)
         let patternID = FeatureID()
@@ -59,11 +59,26 @@ struct GridPatternFeatureTests {
         document.designGraph.dependencies.append(DependencyEdge(source: sourceFeatureID, target: patternID))
         document.designGraph.revision = document.designGraph.revision.advanced()
 
-        do {
-            _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
-            Issue.record("Overlapping grid pattern instances must be rejected.")
-        } catch let error as KernelError {
-            #expect(error.code == .unsupportedCapability)
+        let evaluated = try DocumentEvaluator(
+            tolerance: .standard,
+            artifactPolicy: .deferred
+        ).evaluate(document)
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.shells.count == 2)
+        #expect(evaluated.brep.faces.count == 12)
+        #expect(evaluated.brep.edges.count == 24)
+        #expect(evaluated.brep.vertices.count == 16)
+        #expect(abs(
+            try evaluated.brep.volume(tolerance: .standard)
+                - 2.0 * 0.060 * 0.020 * 0.010
+        ) <= 1.0e-12)
+        let patternLineage = evaluated.lineage.values.filter {
+            $0.output.featureID == patternID
         }
+        #expect(patternLineage.isEmpty == false)
+        #expect(patternLineage.flatMap(\.parents).allSatisfy {
+            $0.featureID == sourceFeatureID
+        })
     }
 }

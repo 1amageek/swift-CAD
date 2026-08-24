@@ -84,6 +84,18 @@ public struct CurveTrim: Codable, Hashable, Sendable {
             guard span > tolerance.relative else {
                 throw TopologyError.invalidTrim(edgeID)
             }
+        case let .rigidImage(image):
+            try validate(
+                on: image.source,
+                edgeID: edgeID,
+                tolerance: tolerance
+            )
+        case let .affineImage(image):
+            try validate(
+                on: image.source,
+                edgeID: edgeID,
+                tolerance: tolerance
+            )
         }
     }
 

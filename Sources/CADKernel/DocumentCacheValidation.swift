@@ -128,7 +128,7 @@ private func faceSignature(_ face: Face, in model: BRepModel) throws -> String {
     return [
         "face",
         face.orientation.rawValue,
-        surfaceSignature(surface),
+        try surfaceSignature(surface),
         loopSignatures.joined(separator: "|")
     ].joined(separator: ":")
 }
@@ -157,7 +157,7 @@ private func loopSignature(_ loop: Loop, in model: BRepModel) throws -> String {
     ].joined(separator: ":")
 }
 
-private func surfaceSignature(_ surface: Surface3D) -> String {
+private func surfaceSignature(_ surface: Surface3D) throws -> String {
     switch surface {
     case let .plane(plane):
         return [
@@ -188,6 +188,18 @@ private func surfaceSignature(_ surface: Surface3D) -> String {
                 .map { row in row.map(doubleSignature).joined(separator: ";") }
                 .joined(separator: "|")
         ].joined(separator: ",")
+    case let .procedural(.offset(surface)):
+        return [
+            "proceduralOffset",
+            try surfaceSignature(surface.source),
+            doubleSignature(surface.distance)
+        ].joined(separator: ",")
+    case let .procedural(.ruled(surface)):
+        return [
+            "proceduralRuled",
+            try curveSignature(surface.startBoundary),
+            try curveSignature(surface.endBoundary),
+        ].joined(separator: ",")
     }
 }
 
@@ -207,7 +219,7 @@ private func curveSignature(_ curve: Curve3D) throws -> String {
             doubleSignature(circle.radius)
         ].joined(separator: ",")
     case let .analytic(curve):
-        return analyticCurveSignature(curve)
+        return try analyticCurveSignature(curve)
     case let .bSpline(curve):
         return [
             "bSpline",
@@ -231,20 +243,30 @@ private func curveSignature(_ curve: Curve3D) throws -> String {
         }
         return [
             "implicit",
-            surfaceSignature(.bSpline(curve.firstSurface)),
-            surfaceSignature(.bSpline(curve.secondSurface)),
+            try surfaceSignature(.bSpline(curve.firstSurface)),
+            try surfaceSignature(.bSpline(curve.secondSurface)),
             curve.isClosed ? "closed" : "open",
             cellSignatures.joined(separator: "|")
         ].joined(separator: ",")
     case let .surfaceLift(curve):
         return [
             "surfaceLift",
-            surfaceSignature(curve.surface),
+            try surfaceSignature(curve.surface),
             try canonicalEncodingSignature(curve.parameterCurve)
         ].joined(separator: ",")
     case let .certifiedIntersection(curve):
         return [
             "certifiedIntersection",
+            try canonicalEncodingSignature(curve)
+        ].joined(separator: ",")
+    case let .rigidImage(curve):
+        return [
+            "rigidImage",
+            try canonicalEncodingSignature(curve)
+        ].joined(separator: ",")
+    case let .affineImage(curve):
+        return [
+            "affineImage",
             try canonicalEncodingSignature(curve)
         ].joined(separator: ",")
     }
@@ -275,7 +297,7 @@ private func analyticSurfaceSignature(_ surface: AnalyticSurface3D) -> String {
     }
 }
 
-private func analyticCurveSignature(_ curve: AnalyticCurve3D) -> String {
+private func analyticCurveSignature(_ curve: AnalyticCurve3D) throws -> String {
     switch curve {
     case let .line(origin, direction):
         return ["analyticLine", pointSignature(origin), vectorSignature(direction)].joined(separator: ",")
@@ -321,8 +343,8 @@ private func analyticCurveSignature(_ curve: AnalyticCurve3D) -> String {
     case let .planeTorus(curve):
         return [
             "planeTorus",
-            surfaceSignature(curve.planeSurface),
-            surfaceSignature(curve.torusSurface),
+            try surfaceSignature(curve.planeSurface),
+            try surfaceSignature(curve.torusSurface),
             curve.componentKind.rawValue,
             doubleSignature(curve.lowerMinorAngle),
             doubleSignature(curve.upperMinorAngle),

@@ -154,6 +154,11 @@ public struct BRepModel: Codable, Equatable, Sendable {
                     }
                     referencedLoopIDs.insert(loopID)
                     try validate(loop: loop, tolerance: tolerance)
+                    try PeriodicFaceSeamValidator().validateRepeatedEdgeUses(
+                        in: loop,
+                        on: surface,
+                        tolerance: tolerance
+                    )
                     try validate(loop: loop, liesOn: surface, faceID: face.id, tolerance: tolerance)
                     for orientedEdge in loop.edges {
                         referencedEdgeIDs.insert(orientedEdge.edgeID)
@@ -363,8 +368,9 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 throw KernelError(
                     phase: .topology,
                     code: .topologyFailure,
+                    residual: componentVolume,
                     tolerance: tolerance,
-                    message: "A solid component must retain positive material volume after subtracting its void shells."
+                    message: "A solid component must retain positive material volume after subtracting its void shells; certified component volume was \(componentVolume)."
                 )
             }
             bodyVolume += componentVolume
@@ -392,8 +398,9 @@ public struct BRepModel: Codable, Equatable, Sendable {
         ) {
             return lineOnlyContribution
         }
-        if let analyticContribution = try analyticPrismaticVolume(
+        if let analyticContribution = try AnalyticPrismaticVolumeEvaluator().volume(
             of: shell,
+            in: self,
             tolerance: tolerance
         ) {
             return shell.orientation == .forward
@@ -409,36 +416,12 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 ? trimmedAnalyticContribution
                 : -trimmedAnalyticContribution
         }
-        if let parametricContribution = try TrimmedParametricSurfaceVolumeEvaluator().volume(
+        return try TrimmedParametricSurfaceVolumeEvaluator().volume(
             of: shell,
             in: self,
             tolerance: tolerance
-        ) {
-            return shell.orientation == .forward
-                ? parametricContribution
-                : -parametricContribution
-        }
-        throw KernelError(
-            phase: .topology,
-            code: .unsupportedCapability,
-            tolerance: tolerance,
-            message: "Exact volume is not implemented for this curved or trimmed shell."
         )
-    }
-
-    private func analyticPrismaticVolume(
-        of shell: Shell,
-        tolerance: ModelingTolerance
-    ) throws -> Double? {
-        do {
-            return try AnalyticPrismaticVolumeEvaluator().volume(
-                of: shell,
-                in: self,
-                tolerance: tolerance
-            )
-        } catch let error as KernelError where error.code == .unsupportedCapability {
-            return nil
-        }
+            * (shell.orientation == .forward ? 1.0 : -1.0)
     }
 
     public func orderedVertexIDs(for loopID: LoopID) throws -> [VertexID] {
@@ -677,16 +660,11 @@ public struct BRepModel: Codable, Equatable, Sendable {
     }
 
     private func lineOnlyShellReferencePoint(_ shell: Shell) throws -> Point3D {
-        for faceID in shell.faceIDs {
-            guard let face = faces[faceID],
-                  let loopID = face.loops.first else {
-                continue
-            }
-            if let first = try orderedPoints(for: loopID).first {
-                return first
-            }
-        }
-        return Point3D(x: 0.0, y: 0.0, z: 0.0)
+        try BRepShellReferencePointResolver().referencePoint(
+            for: shell,
+            in: self,
+            context: "Line-only shell volume"
+        )
     }
 
     private func lineOnlyShellVolume(
@@ -722,18 +700,14 @@ public struct BRepModel: Codable, Equatable, Sendable {
         guard let surface = geometry.surfaces[face.surfaceID] else {
             throw TopologyError.missingSurface(face.surfaceID)
         }
-        let planeOrigin: Point3D
-        let planeNormal: Vector3D
-        switch surface {
-        case let .plane(plane):
-            planeOrigin = plane.origin
-            planeNormal = try plane.normal.normalized(tolerance: tolerance.distance)
-        case let .analytic(.plane(origin, normal)):
-            planeOrigin = origin
-            planeNormal = try normal.normalized(tolerance: tolerance.distance)
-        case .cylinder, .analytic, .bSpline:
+        guard let plane = try DefaultPlanarSurfaceResolver().exactPlane(
+            for: surface,
+            tolerance: tolerance
+        ) else {
             return nil
         }
+        let planeOrigin = plane.origin
+        let planeNormal = try plane.normal.normalized(tolerance: tolerance.distance)
 
         var materialArea = 0.0
         for loopID in face.loops {
@@ -958,184 +932,22 @@ public struct BRepModel: Codable, Equatable, Sendable {
             return nil
         }
         let minimumRequestedLoopWidth = minimumArea * 0.25
-        var shiftedCurves: [(curve: SurfaceParameterCurve, uShift: Double)] = []
-        shiftedCurves.reserveCapacity(loop.coedges.count)
-        var firstParameter: SurfaceParameter?
-        var previousParameter: SurfaceParameter?
-        for coedge in loop.coedges {
-            guard let pcurve = coedge.surfaceParameterCurve else {
-                return nil
-            }
-            var start = try pcurve.parameter(
-                atNormalizedFraction: 0.0,
-                tolerance: tolerance
-            )
-            let uShift: Double
-            let vShift: Double
-            if let previousParameter {
-                if let uPeriod {
-                    let unwrappedU = unwrappedPeriodicParameter(
-                        start.u,
-                        nearest: previousParameter.u,
-                        period: uPeriod
-                    )
-                    uShift = unwrappedU - start.u
-                    start.u = unwrappedU
-                } else {
-                    uShift = 0.0
-                }
-                if let vPeriod {
-                    let unwrappedV = unwrappedPeriodicParameter(
-                        start.v,
-                        nearest: previousParameter.v,
-                        period: vPeriod
-                    )
-                    vShift = unwrappedV - start.v
-                    start.v = unwrappedV
-                } else {
-                    vShift = 0.0
-                }
-                let connectsNormally = abs(start.u - previousParameter.u)
-                    <= uClosureTolerance
-                    && abs(start.v - previousParameter.v) <= vClosureTolerance
-                let connectsAcrossCollapsedBoundary = try parametersCloseAcrossCollapsedBoundary(
-                    previousParameter,
-                    start,
-                    on: surface,
-                    uTolerance: uClosureTolerance,
-                    vTolerance: vClosureTolerance,
-                    tolerance: tolerance
-                )
-                // Junction vertices snap to canonical points up to eight
-                // tolerances apart in 3D; per-surface chart tolerances can
-                // reject that geometric closeness (a cone's angular unit is
-                // unscaled by radius), so nearby unwrapped parameters that
-                // evaluate to nearby 3D points still connect.
-                var connectsGeometrically = false
-                if connectsNormally == false,
-                   connectsAcrossCollapsedBoundary == false,
-                   abs(start.u - previousParameter.u) <= 1.0e-2,
-                   abs(start.v - previousParameter.v) <= 1.0e-2 {
-                    let previousPoint = try surface.point(
-                        u: previousParameter.u,
-                        v: previousParameter.v,
-                        tolerance: tolerance
-                    )
-                    let startPoint = try surface.point(
-                        u: start.u,
-                        v: start.v,
-                        tolerance: tolerance
-                    )
-                    connectsGeometrically = previousPoint.isApproximatelyEqual(
-                        to: startPoint,
-                        tolerance: tolerance.distance * 8.0
-                    )
-                }
-                guard connectsNormally || connectsAcrossCollapsedBoundary
-                    || connectsGeometrically else {
-                    throw KernelError(
-                        phase: .topology,
-                        code: .topologyFailure,
-                        residual: hypot(
-                            start.u - previousParameter.u,
-                            start.v - previousParameter.v
-                        ),
-                        tolerance: tolerance,
-                        message: "Surface loop pcurve for edge \(coedge.edgeID) does not connect to its predecessor in the periodic parameter chart."
-                    )
-                }
-            } else {
-                uShift = 0.0
-                vShift = 0.0
-                firstParameter = start
-            }
-            shiftedCurves.append((curve: pcurve, uShift: uShift))
-            var end = try pcurve.parameter(
-                atNormalizedFraction: 1.0,
-                tolerance: tolerance
-            )
-            end.u += uShift
-            end.v += vShift
-            previousParameter = end
-        }
-        guard let first = firstParameter,
-              let last = previousParameter else {
-            return .zero
-        }
-        let closesAcrossCollapsedBoundary = try parametersCloseAcrossCollapsedBoundary(
-            first,
-            last,
+        let shiftedCurves = try SurfaceParameterLoopUnwrapper().unwrap(
+            loop.coedges.compactMap(\.surfaceParameterCurve),
+            uPeriod: uPeriod,
+            vPeriod: vPeriod,
+            uClosureTolerance: uClosureTolerance,
+            vClosureTolerance: vClosureTolerance,
             on: surface,
-            uTolerance: uClosureTolerance,
-            vTolerance: vClosureTolerance,
-            tolerance: tolerance
+            tolerance: tolerance,
+            context: "Surface loop \(loop.id)"
         )
-        // A loop on a periodic surface may wind a periodic direction, so
-        // the unrolled chain legitimately ends a whole number of periods
-        // away from its start; genuine chain gaps stay detected because
-        // they miss every periodic representative.
-        func closesModuloPeriod(
-            _ delta: Double,
-            period: Double?,
-            closureTolerance: Double
-        ) -> Bool {
-            if abs(delta) <= closureTolerance {
-                return true
-            }
-            guard let period, period > 0.0 else {
-                return false
-            }
-            let remainder = abs(delta.truncatingRemainder(dividingBy: period))
-            return min(remainder, period - remainder) <= closureTolerance
-        }
-        let closesNormally = closesModuloPeriod(
-            last.u - first.u,
-            period: uPeriod,
-            closureTolerance: uClosureTolerance
-        ) && closesModuloPeriod(
-            last.v - first.v,
-            period: vPeriod,
-            closureTolerance: vClosureTolerance
-        )
-        // Junction vertices snap to canonical points up to eight tolerances
-        // apart in 3D; chart closure tolerances can reject that geometric
-        // closeness, so a chain whose reduced closing delta is small and
-        // whose endpoint charts evaluate to nearby 3D points still closes.
-        var closesGeometrically = false
-        if closesNormally == false, closesAcrossCollapsedBoundary == false {
-            func reducedDelta(_ delta: Double, period: Double?) -> Double {
-                guard let period, period > 0.0 else { return abs(delta) }
-                let remainder = abs(delta.truncatingRemainder(dividingBy: period))
-                return min(remainder, period - remainder)
-            }
-            if reducedDelta(last.u - first.u, period: uPeriod) <= 1.0e-2,
-               reducedDelta(last.v - first.v, period: vPeriod) <= 1.0e-2 {
-                let firstPoint = try surface.point(
-                    u: first.u,
-                    v: first.v,
-                    tolerance: tolerance
-                )
-                let lastPoint = try surface.point(
-                    u: last.u,
-                    v: last.v,
-                    tolerance: tolerance
-                )
-                closesGeometrically = firstPoint.isApproximatelyEqual(
-                    to: lastPoint,
-                    tolerance: tolerance.distance * 8.0
-                )
-            }
-        }
-        guard closesNormally || closesAcrossCollapsedBoundary
-            || closesGeometrically else {
-            throw TopologyError.degenerateLoop(loop.id)
-        }
         let integrator = SurfaceParameterCurveAreaIntegrator()
         // A loose first request keeps singular-endpoint pcurve integrands
         // affordable for loops whose area dwarfs the degeneracy threshold;
         // the refinement loop tightens the request only when the enclosure
         // stays inconclusive.
-        var requestedLoopWidth = max(minimumRequestedLoopWidth, 1.0e-2)
+        var requestedLoopWidth = max(minimumRequestedLoopWidth, 1.0)
         while true {
             let requestedCurveWidth = requestedLoopWidth
                 / Double(shiftedCurves.count)
@@ -1159,58 +971,6 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 minimumRequestedLoopWidth,
                 requestedLoopWidth / 16.0
             )
-        }
-    }
-
-    private func parametersCloseAcrossCollapsedBoundary(
-        _ first: SurfaceParameter,
-        _ last: SurfaceParameter,
-        on surface: Surface3D,
-        uTolerance: Double,
-        vTolerance: Double,
-        tolerance: ModelingTolerance
-    ) throws -> Bool {
-        let uDiffers = abs(last.u - first.u) > uTolerance
-        let vDiffers = abs(last.v - first.v) > vTolerance
-        guard uDiffers != vDiffers else { return false }
-
-        switch surface {
-        case .analytic(.cone):
-            return uDiffers
-                && abs(first.v) <= vTolerance
-                && abs(last.v) <= vTolerance
-        case .analytic(.sphere):
-            let pole = Double.pi * 0.5
-            let firstAtPole = abs(abs(first.v) - pole) <= vTolerance
-            let lastAtPole = abs(abs(last.v) - pole) <= vTolerance
-            return uDiffers
-                && firstAtPole
-                && lastAtPole
-                && abs(first.v - last.v) <= vTolerance
-        case let .bSpline(spline):
-            let boundary: BSplineCurve3D
-            if uDiffers {
-                guard abs(last.v - first.v) <= vTolerance else { return false }
-                boundary = try spline.uIsoparametricCurve(
-                    atV: 0.5 * (first.v + last.v),
-                    tolerance: tolerance
-                )
-            } else {
-                guard abs(last.u - first.u) <= uTolerance else { return false }
-                boundary = try spline.vIsoparametricCurve(
-                    atU: 0.5 * (first.u + last.u),
-                    tolerance: tolerance
-                )
-            }
-            guard let anchor = boundary.controlPoints.first else { return false }
-            return boundary.controlPoints.dropFirst().allSatisfy {
-                $0.isApproximatelyEqual(
-                    to: anchor,
-                    tolerance: tolerance.distance
-                )
-            }
-        case .plane, .cylinder, .analytic:
-            return false
         }
     }
 
@@ -1260,6 +1020,11 @@ public struct BRepModel: Codable, Equatable, Sendable {
             return (
                 parameterResolution(spline.uDomain, tolerance: tolerance),
                 parameterResolution(spline.vDomain, tolerance: tolerance)
+            )
+        case let .procedural(procedural):
+            return (
+                parameterResolution(procedural.uDomain, tolerance: tolerance),
+                parameterResolution(procedural.vDomain, tolerance: tolerance)
             )
         }
     }
@@ -1399,7 +1164,7 @@ public struct BRepModel: Codable, Equatable, Sendable {
             )
         case .affine, .constantU, .constantV, .harmonic, .sphericalGreatCircle,
              .polyline, .bSpline, .certifiedImplicit, .certifiedAnalyticPair,
-             .projectedAnalytic:
+             .projectedAnalytic, .rigidImage, .sameParameterImage:
             let parameter = try pcurve.parameter(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
@@ -1523,6 +1288,21 @@ public struct BRepModel: Codable, Equatable, Sendable {
             return (cosine, sine, startParameter, endParameter)
         case let .periodicTranslation(base, _, _):
             return sphericalGreatCircleDefinition(base)
+        case let .rigidImage(image):
+            guard let source = sphericalGreatCircleDefinition(
+                image.source.parameterCurve
+            ) else {
+                return nil
+            }
+            let span = source.endParameter - source.startParameter
+            return (
+                image.transform.applying(to: source.cosine),
+                image.transform.applying(to: source.sine),
+                source.startParameter + span * image.startFraction,
+                source.startParameter + span * image.endFraction
+            )
+        case let .sameParameterImage(image):
+            return sphericalGreatCircleDefinition(image.source)
         case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline,
              .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
              .projectedAnalytic:
@@ -1539,14 +1319,6 @@ public struct BRepModel: Codable, Equatable, Sendable {
         try (cosine * cos(parameter) + sine * sin(parameter)).normalized(
             tolerance: tolerance.distance
         )
-    }
-
-    private func unwrappedPeriodicParameter(
-        _ value: Double,
-        nearest reference: Double,
-        period: Double
-    ) -> Double {
-        value + ((reference - value) / period).rounded() * period
     }
 
     private func vector(from point: Point3D) -> Vector3D {
@@ -1607,6 +1379,14 @@ public struct BRepModel: Codable, Equatable, Sendable {
             guard residual <= tolerance.distance else {
                 throw TopologyError.invalidFaceSurface(faceID)
             }
+        case .procedural:
+            let projection = try surface.parameterProjection(
+                of: point,
+                tolerance: tolerance
+            )
+            guard projection.residual <= tolerance.distance else {
+                throw TopologyError.invalidFaceSurface(faceID)
+            }
         }
     }
 
@@ -1616,6 +1396,18 @@ public struct BRepModel: Codable, Equatable, Sendable {
         faceID: FaceID,
         tolerance: ModelingTolerance
     ) throws {
+        if case let .rigidImage(image) = curve {
+            let sourceSurface = try image.transform.inverted().applying(
+                to: surface,
+                tolerance: tolerance
+            )
+            return try validate(
+                image.source,
+                liesOn: sourceSurface,
+                faceID: faceID,
+                tolerance: tolerance
+            )
+        }
         if case let .surfaceLift(lift) = curve {
             try lift.validate(tolerance: tolerance)
             guard lift.surface == surface else {
@@ -1703,6 +1495,18 @@ public struct BRepModel: Codable, Equatable, Sendable {
             }
         }
 
+        if case let .procedural(.offset(offset)) = surface,
+           let equivalent = try offset.exactSameParameterSurface(
+               tolerance: tolerance
+           ) {
+            return try validate(
+                curve,
+                liesOn: equivalent,
+                faceID: faceID,
+                tolerance: tolerance
+            )
+        }
+
         switch (curve, surface) {
         case let (.line(line), .plane(plane)):
             try line.validate(tolerance: tolerance)
@@ -1775,7 +1579,13 @@ public struct BRepModel: Codable, Equatable, Sendable {
             throw TopologyError.invalidFaceSurface(faceID)
         case (.certifiedIntersection, _):
             throw TopologyError.invalidFaceSurface(faceID)
+        case (.rigidImage, _):
+            throw TopologyError.invalidFaceSurface(faceID)
+        case (.affineImage, _):
+            throw TopologyError.invalidFaceSurface(faceID)
         case (.analytic, _), (_, .analytic):
+            throw TopologyError.invalidFaceSurface(faceID)
+        case (_, .procedural):
             throw TopologyError.invalidFaceSurface(faceID)
         }
     }
@@ -1811,7 +1621,7 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 throw TopologyError.invalidFaceSurface(faceID)
             }
         case .analytic, .bSpline, .implicit, .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection, .rigidImage, .affineImage:
             throw TopologyError.invalidFaceSurface(faceID)
         }
     }
@@ -1914,10 +1724,67 @@ public struct BRepModel: Codable, Equatable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> Bool {
         try tolerance.validate()
-        guard lhs != rhs else {
+        if lhs == rhs {
             return true
         }
-        return lhs == (try rhs.reversed(tolerance: tolerance))
+        let reversedRHS = try rhs.reversed(tolerance: tolerance)
+        if lhs == reversedRHS { return true }
+        if try commonBasisCurvesMatch(lhs, rhs, tolerance: tolerance) {
+            return true
+        }
+        return try commonBasisCurvesMatch(
+            lhs,
+            reversedRHS,
+            tolerance: tolerance
+        )
+    }
+
+    private func commonBasisCurvesMatch(
+        _ lhs: BSplineCurve3D,
+        _ rhs: BSplineCurve3D,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        let common = try DefaultBSplineCurveCommonBasisResolver().resolve(
+            first: lhs,
+            second: rhs,
+            tolerance: tolerance
+        )
+        guard common.first.degree == common.second.degree,
+              common.first.knots == common.second.knots,
+              common.first.controlPointCount == common.second.controlPointCount,
+              let firstWeight = common.first.weights.first,
+              let secondWeight = common.second.weights.first,
+              firstWeight > 0.0,
+              secondWeight > 0.0 else {
+            return false
+        }
+        let weightScale = firstWeight / secondWeight
+        guard weightScale.isFinite, weightScale > 0.0 else {
+            return false
+        }
+        for index in 0..<common.first.controlPointCount {
+            guard common.first.controlPoints[index].isApproximatelyEqual(
+                to: common.second.controlPoints[index],
+                tolerance: tolerance.distance
+            ) else {
+                return false
+            }
+            let expectedWeight = common.second.weights[index] * weightScale
+            let weightMagnitude = max(
+                abs(common.first.weights[index]),
+                abs(expectedWeight),
+                1.0
+            )
+            let weightTolerance = max(
+                tolerance.relative * weightMagnitude,
+                Double.ulpOfOne * weightMagnitude * 512.0
+            )
+            guard abs(common.first.weights[index] - expectedWeight)
+                <= weightTolerance else {
+                return false
+            }
+        }
+        return true
     }
 
     private func isLineOnBSplineBoundary(
@@ -1990,7 +1857,6 @@ public struct BRepModel: Codable, Equatable, Sendable {
         guard !loop.edges.isEmpty else {
             throw TopologyError.openLoop(loop.id)
         }
-        try validateNoDuplicateReferences(loop.edges.map(\.edgeID), owner: "Loop \(loop.id)", child: "edge")
         let orderedVertexIDs = try orderedVertexIDs(for: loop)
         guard let firstVertexID = orderedVertexIDs.first, let lastEdge = loop.edges.last else {
             throw TopologyError.openLoop(loop.id)
@@ -2126,6 +1992,11 @@ public struct BRepModel: Codable, Equatable, Sendable {
             switch curve {
             case .line, .analytic(.line):
                 isUnboundedLine = true
+            case let .rigidImage(image):
+                isUnboundedLine = isUnboundedLineCurve(image.source)
+            case let .affineImage(image):
+                isUnboundedLine = curve.hasExactLinearParameterization
+                    && isUnboundedLineCurve(image.source)
             case .circle, .analytic, .bSpline, .implicit, .surfaceLift,
                  .certifiedIntersection:
                 isUnboundedLine = false
@@ -2218,6 +2089,37 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 of: point,
                 tolerance: tolerance
             )
+        case let .rigidImage(image):
+            try validate(
+                image.transform.inverted().applying(to: point),
+                liesOn: image.source,
+                edgeID: edgeID,
+                tolerance: tolerance
+            )
+        case .affineImage:
+            guard let line = curve.exactLinearLocus else {
+                throw TopologyError.invalidEdge(edgeID)
+            }
+            let distance = (point - line.origin).cross(line.direction).length
+                / line.direction.length
+            guard distance <= tolerance.distance else {
+                throw TopologyError.invalidEdge(edgeID)
+            }
+        }
+    }
+
+    private func isUnboundedLineCurve(_ curve: Curve3D) -> Bool {
+        switch curve {
+        case .line, .analytic(.line):
+            return true
+        case let .rigidImage(image):
+            return isUnboundedLineCurve(image.source)
+        case let .affineImage(image):
+            return curve.hasExactLinearParameterization
+                && isUnboundedLineCurve(image.source)
+        case .circle, .analytic, .bSpline, .implicit, .surfaceLift,
+             .certifiedIntersection:
+            return false
         }
     }
 

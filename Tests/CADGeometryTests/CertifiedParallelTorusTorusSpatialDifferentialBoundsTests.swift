@@ -6,6 +6,47 @@ struct CertifiedParallelTorusTorusSpatialDifferentialBoundsTests {
     private let tolerance = ModelingTolerance.standard
 
     @Test(.timeLimit(.minutes(2)))
+    func analyticThirdDerivativeMatchesSecondDerivativeVariationAwayFromJoins() throws {
+        let exactCurves = try regularCurves()
+            + exactCurves(offset: 2.0)
+            + exactCurves(offset: 1.9999)
+        for exact in exactCurves {
+            guard case let .parallelTorusTorus(source) = exact.definition else {
+                Issue.record("Expected a parallel torus-torus curve.")
+                continue
+            }
+            let curve = Curve3D.certifiedIntersection(
+                .parallelTorusTorus(source)
+            )
+            let bounds = try source.spatialDifferentialMagnitudeBounds(
+                fromNormalizedFraction: 0.0,
+                toNormalizedFraction: 1.0,
+                tolerance: tolerance
+            )
+            let third = try #require(bounds.third)
+            for fraction in [0.17, 0.31, 0.73] {
+                let step = 1.0e-5
+                let actual = try curve.parameterDerivativesThroughThirdOrder(
+                    at: fraction,
+                    tolerance: tolerance
+                ).thirdDerivative
+                #expect(actual.length <= third)
+                let lower = try curve.differentialGeometry(
+                    at: fraction - step,
+                    tolerance: tolerance
+                ).secondDerivative
+                let upper = try curve.differentialGeometry(
+                    at: fraction + step,
+                    tolerance: tolerance
+                ).secondDerivative
+                let reference = (upper - lower) / (2.0 * step)
+                let scale = max(reference.length, actual.length, 1.0)
+                #expect((actual - reference).length <= scale * 2.0e-5)
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func regularBranchesEncloseTrimmedSpatialDifferentials() throws {
         let exactCurves = try regularCurves()
         #expect(exactCurves.count == 4)
@@ -24,6 +65,8 @@ struct CertifiedParallelTorusTorusSpatialDifferentialBoundsTests {
                 )
             #expect(sourceBounds.first.isFinite)
             #expect(sourceBounds.second.isFinite)
+            let sourceThird = try #require(sourceBounds.third)
+            #expect(sourceThird.isFinite)
 
             for trim in [
                 (start: 0.0, end: 1.0),
@@ -44,6 +87,24 @@ struct CertifiedParallelTorusTorusSpatialDifferentialBoundsTests {
                 #expect(bounds.second.isFinite)
                 #expect(bounds.first > 0.0)
                 #expect(bounds.second > 0.0)
+                let third = try #require(bounds.third)
+                let scale = abs(trim.end - trim.start)
+                let localSourceBounds = try source
+                    .spatialDifferentialMagnitudeBounds(
+                        fromNormalizedFraction: min(trim.start, trim.end),
+                        toNormalizedFraction: max(trim.start, trim.end),
+                        tolerance: tolerance
+                    )
+                let localSourceThird = try #require(localSourceBounds.third)
+                #expect(bounds.first >= localSourceBounds.first * scale)
+                #expect(
+                    bounds.second
+                        >= localSourceBounds.second * scale * scale
+                )
+                #expect(
+                    third
+                        >= localSourceThird * scale * scale * scale
+                )
 
                 let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
                     surface: exact.surface(for: .first),
@@ -57,6 +118,12 @@ struct CertifiedParallelTorusTorusSpatialDifferentialBoundsTests {
                     )
                     #expect(geometry.firstDerivative.length <= bounds.first)
                     #expect(geometry.secondDerivative.length <= bounds.second)
+                    let thirdDerivative = try curve
+                        .parameterDerivativesThroughThirdOrder(
+                            at: fraction,
+                            tolerance: tolerance
+                        ).thirdDerivative
+                    #expect(thirdDerivative.length <= third)
                 }
             }
         }
@@ -154,13 +221,15 @@ struct CertifiedParallelTorusTorusSpatialDifferentialBoundsTests {
                 )
                 #expect(bounds.first.isFinite)
                 #expect(bounds.second.isFinite)
+                let third = try #require(bounds.third)
                 let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
                     surface: exact.surface(for: .first),
                     parameterCurve: .certifiedAnalyticPair(trimmed)
                 ))
                 for index in 0...128 {
+                    let fraction = Double(index) / 128.0
                     let geometry = try curve.differentialGeometry(
-                        at: Double(index) / 128.0,
+                        at: fraction,
                         tolerance: tolerance
                     )
                     #expect(
@@ -169,6 +238,26 @@ struct CertifiedParallelTorusTorusSpatialDifferentialBoundsTests {
                     #expect(
                         geometry.secondDerivative.length <= bounds.second
                     )
+                    let sourceFraction = trim.start
+                        + (trim.end - trim.start) * fraction
+                    if isNonC3Join(
+                        sourceFraction,
+                        componentKind: source.componentKind
+                    ) {
+                        #expect(throws: KernelError.self) {
+                            try curve.parameterDerivativesThroughThirdOrder(
+                                at: fraction,
+                                tolerance: tolerance
+                            )
+                        }
+                    } else {
+                        let thirdDerivative = try curve
+                            .parameterDerivativesThroughThirdOrder(
+                                at: fraction,
+                                tolerance: tolerance
+                            ).thirdDerivative
+                        #expect(thirdDerivative.length <= third)
+                    }
                 }
             }
         }
@@ -193,17 +282,37 @@ struct CertifiedParallelTorusTorusSpatialDifferentialBoundsTests {
             let bounds = try pcurve.spatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
             )
+            let third = try #require(bounds.third)
             let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
                 surface: exact.surface(for: .first),
                 parameterCurve: .certifiedAnalyticPair(pcurve)
             ))
             for index in 0...256 {
+                let fraction = Double(index) / 256.0
                 let geometry = try curve.differentialGeometry(
-                    at: Double(index) / 256.0,
+                    at: fraction,
                     tolerance: tolerance
                 )
                 #expect(geometry.firstDerivative.length <= bounds.first)
                 #expect(geometry.secondDerivative.length <= bounds.second)
+                if isNonC3Join(
+                    fraction,
+                    componentKind: source.componentKind
+                ) {
+                    #expect(throws: KernelError.self) {
+                        try curve.parameterDerivativesThroughThirdOrder(
+                            at: fraction,
+                            tolerance: tolerance
+                        )
+                    }
+                } else {
+                    let thirdDerivative = try curve
+                        .parameterDerivativesThroughThirdOrder(
+                            at: fraction,
+                            tolerance: tolerance
+                        ).thirdDerivative
+                    #expect(thirdDerivative.length <= third)
+                }
             }
         }
     }
@@ -316,5 +425,23 @@ struct CertifiedParallelTorusTorusSpatialDifferentialBoundsTests {
             majorRadius: 3.0,
             minorRadius: minorRadius
         ))
+    }
+
+    private func isNonC3Join(
+        _ sourceFraction: Double,
+        componentKind: CertifiedParallelTorusTorusIntersectionCurve.ComponentKind
+    ) -> Bool {
+        let threshold = Double.ulpOfOne * 1_024.0
+        switch componentKind {
+        case .regularClosed:
+            return false
+        case .nodalSelfLoop:
+            return abs(sourceFraction) <= threshold
+                || abs(sourceFraction - 1.0) <= threshold
+        case .nearNodalClosedLoop:
+            return abs(sourceFraction) <= threshold
+                || abs(sourceFraction - 0.5) <= threshold
+                || abs(sourceFraction - 1.0) <= threshold
+        }
     }
 }

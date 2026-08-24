@@ -91,20 +91,32 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         )
         self.linearPatternEvaluator = LinearPatternFeatureEvaluator(
             sewer: sewer,
+            unionApplicator: ExactBooleanOperationApplicator(),
+            separationValidator: ExactBodyJoinValidator(),
             resolver: resolver
         )
         self.radialPatternEvaluator = RadialPatternFeatureEvaluator(
             sewer: sewer,
+            unionApplicator: ExactBooleanOperationApplicator(),
+            separationValidator: ExactBodyJoinValidator(),
             resolver: resolver
         )
         self.gridPatternEvaluator = GridPatternFeatureEvaluator(
             sewer: sewer,
+            unionApplicator: ExactBooleanOperationApplicator(),
+            separationValidator: ExactBodyJoinValidator(),
             resolver: resolver
         )
         self.curveDrivenPatternEvaluator = CurveDrivenPatternFeatureEvaluator(
-            sewer: sewer
+            sewer: sewer,
+            unionApplicator: ExactBooleanOperationApplicator(),
+            separationValidator: ExactBodyJoinValidator()
         )
-        self.mirrorEvaluator = MirrorFeatureEvaluator(sewer: sewer)
+        self.mirrorEvaluator = MirrorFeatureEvaluator(
+            sewer: sewer,
+            unionApplicator: ExactBooleanOperationApplicator(),
+            separationValidator: ExactBodyJoinValidator()
+        )
         self.joinBodiesEvaluator = JoinBodiesFeatureEvaluator(
             validator: ExactBodyJoinValidator()
         )

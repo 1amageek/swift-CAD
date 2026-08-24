@@ -18,6 +18,20 @@ func modelingOwnsTheSewingPortWhileKernelOwnsTheDefaultAdapter() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
+func topologyOwnsBodySubmodelExtraction() throws {
+    let packageRoot = try swiftCADPackageRoot()
+    let topologyExtractor = packageRoot.appendingPathComponent(
+        "Sources/CADTopology/BRepBodySubmodelExtractor.swift"
+    )
+    let modelingExtractor = packageRoot.appendingPathComponent(
+        "Sources/CADModeling/BRepBodySubmodelExtractor.swift"
+    )
+
+    #expect(FileManager.default.fileExists(atPath: topologyExtractor.path))
+    #expect(!FileManager.default.fileExists(atPath: modelingExtractor.path))
+}
+
+@Test(.timeLimit(.minutes(1)))
 func packageModulesOnlyImportTheirDeclaredResponsibilityLayers() throws {
     let packageRoot = try swiftCADPackageRoot()
     let packageModules: Set<String> = [

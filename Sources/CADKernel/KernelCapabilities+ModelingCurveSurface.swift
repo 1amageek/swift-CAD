@@ -27,8 +27,8 @@ extension KernelCapabilities {
             failureCodes: [
                 .invalidInput,
                 .missingReference,
-                .unsupportedCapability,
                 .singularGeometry,
+                .resourceLimitExceeded,
             ],
             additionalPublicAPIs: [
                 "CADModeling.BridgeCurveFeatureEvaluator",
@@ -133,6 +133,10 @@ extension KernelCapabilities {
                 "CurveEditCommandParityTests",
             ],
             status: .supported,
+            failureCodes: [
+                .invalidInput,
+                .missingReference,
+            ],
             additionalPublicAPIs: ["CADModeling.CurveEditFeatureEvaluator"]
         ),
         feature(
@@ -158,7 +162,7 @@ extension KernelCapabilities {
                 "CurveOffsetTrimBuilderTests",
                 "CurveOffsetCommandParityTests",
             ],
-            status: .supported,
+            status: .partial,
             failureCodes: [.invalidInput, .missingReference, .unsupportedCapability],
             additionalPublicAPIs: ["CADModeling.CurveOffsetFeatureEvaluator"]
         ),
@@ -167,7 +171,7 @@ extension KernelCapabilities {
             operation: "projectCurve",
             topology: .curve,
             inputs: [
-                "exactLineCircleOrBSpline",
+                "finiteRegularExactCurve3D",
                 "finiteNonzeroTargetPlaneNormal",
                 "optionalNonGrazingProjectionDirection",
             ],
@@ -175,15 +179,26 @@ extension KernelCapabilities {
                 "exactRepresentationPreservingProjectedCurve",
                 "affineControlPointBSplineProjection",
                 "axisAlignedTranslatedCircleProjection",
+                "exactRationalQuadraticObliqueConicProjection",
+                "parameterPreservingExactAffineImageForGeneralCurves",
+                "outwardRoundedWholeIntervalRegularityCertificate",
                 "recomputedLineArcLengthDomain",
                 "derivedDisplaySamples",
                 "strictRequestDecoding",
             ],
             fixtures: [
                 "ProjectCurveFeatureIntegrationTests",
+                "ProjectCurveAffineImageTests",
+                "CurveRegularityValidatorTests",
             ],
             status: .supported,
-            failureCodes: [.invalidInput, .missingReference, .unsupportedCapability],
+            failureCodes: [
+                .invalidInput,
+                .missingReference,
+                .singularGeometry,
+                .intersectionFailure,
+                .resourceLimitExceeded,
+            ],
             additionalPublicAPIs: ["CADModeling.ProjectCurveFeatureEvaluator"]
         ),
         feature(
@@ -204,7 +219,14 @@ extension KernelCapabilities {
                 "CurveOffsetTrimBuilderTests",
             ],
             status: .supported,
-            failureCodes: [.invalidInput, .missingReference, .unsupportedCapability],
+            failureCodes: [
+                .invalidInput,
+                .missingReference,
+                .singularGeometry,
+                .intersectionFailure,
+                .nonDiscreteIntersection,
+                .resourceLimitExceeded,
+            ],
             additionalPublicAPIs: ["CADModeling.CurveTrimFeatureEvaluator"]
         ),
         feature(
@@ -225,7 +247,7 @@ extension KernelCapabilities {
                 "CurveExtendBuilderTests",
                 "CurveExtendCommandParityTests",
             ],
-            status: .supported,
+            status: .partial,
             failureCodes: [.invalidInput, .missingReference, .unsupportedCapability, .topologyFailure],
             additionalPublicAPIs: ["CADModeling.CurveExtendFeatureEvaluator"]
         ),
@@ -271,22 +293,46 @@ extension KernelCapabilities {
             inputs: [
                 "explicitStableSelectedFaceOwnedByReferencedSheetBody",
                 "selectedFaceIsOnlyFaceOfSingleShellSheetBody",
-                "oneSingleFaceLineBoundedPlanarSheet",
+                "oneSingleFaceRegularExactSurfaceSheet",
+                "everyValidatedSurface3DRepresentation",
+                "oneOuterAndZeroOrMoreInnerExactPcurveLoops",
+                "everyValidatedSurfaceParameterCurveRepresentation",
+                "finiteParameterBoundsAndCertifiableOffsetRegularity",
                 "finiteNonzeroSignedNormalDistance",
             ],
             outputs: [
                 "validatedExactSheetBRep",
-                "translatedPlaneAndBoundaryCurves",
-                "faceLocalPcurves",
+                "sameParameterExactOffsetSurface",
+                "analyticOffsetSimplificationOrCertifiedProceduralOffset",
+                "exactSurfaceLiftBoundaryCurves",
+                "sameParameterFaceLocalPcurves",
+                "preservedOuterAndInnerLoopTopology",
+                "freshFeatureScopedSurfaceAndCurveIdentities",
                 "preservedTopologyLineage",
                 "preservedUnrelatedBodiesAndSelections",
                 "strictCurrentSchemaNativePersistence",
                 "deterministicStableFaceResolutionWithoutImplicitFaceSelection",
             ],
-            fixtures: ["SurfaceOffsetFeatureTests", "SurfaceOffsetBuilderTests", "DirectEditSchemaTests"],
+            fixtures: [
+                "SurfaceOffsetFeatureTests",
+                "SameParameterSurfaceParameterCurveTests",
+                "SurfaceOffsetBuilderTests",
+                "DirectEditSchemaTests",
+            ],
             status: .supported,
-            failureCodes: [.invalidInput, .missingReference, .unsupportedCapability, .topologyFailure],
-            additionalPublicAPIs: ["CADModeling.SurfaceOffsetFeatureEvaluator"]
+            failureCodes: [
+                .invalidInput,
+                .missingReference,
+                .singularGeometry,
+                .singularSystem,
+                .classificationFailure,
+                .resourceLimitExceeded,
+                .topologyFailure,
+            ],
+            additionalPublicAPIs: [
+                "CADGeometry.SameParameterSurfaceParameterCurve",
+                "CADModeling.SurfaceOffsetFeatureEvaluator",
+            ]
         ),
         feature(
             id: "MODEL-SURFACETRIM-001",
@@ -333,7 +379,6 @@ extension KernelCapabilities {
             failureCodes: [
                 .invalidInput,
                 .missingReference,
-                .unsupportedCapability,
                 .singularGeometry,
                 .intersectionFailure,
                 .classificationFailure,
@@ -379,7 +424,6 @@ extension KernelCapabilities {
             failureCodes: [
                 .invalidInput,
                 .missingReference,
-                .unsupportedCapability,
                 .singularGeometry,
                 .resourceLimitExceeded,
                 .topologyFailure,
@@ -423,7 +467,6 @@ extension KernelCapabilities {
             failureCodes: [
                 .invalidInput,
                 .missingReference,
-                .unsupportedCapability,
                 .singularGeometry,
                 .resourceLimitExceeded,
                 .conflictingConstraints,

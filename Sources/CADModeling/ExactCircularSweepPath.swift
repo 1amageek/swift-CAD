@@ -41,7 +41,20 @@ package struct ExactCircularSweepPath: Sendable, Hashable {
             case .line, .ellipse, .hyperbola, .parabola, .planeTorus:
                 return nil
             }
-        case .line, .bSpline, .implicit, .surfaceLift, .certifiedIntersection:
+        case let .rigidImage(image):
+            guard let source = Self.circle(
+                from: image.source,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            circle = Circle3D(
+                center: image.transform.applying(to: source.center),
+                normal: image.transform.applying(to: source.normal),
+                radius: source.radius
+            )
+        case .line, .bSpline, .implicit, .surfaceLift, .certifiedIntersection,
+             .affineImage:
             return nil
         }
         try circle.validate(tolerance: tolerance)
@@ -69,6 +82,31 @@ package struct ExactCircularSweepPath: Sendable, Hashable {
         self.angle = directionSign * span * distanceFraction
         self.startPoint = differential.position
         self.startTangent = differential.tangent * directionSign
+    }
+
+    private static func circle(
+        from curve: Curve3D,
+        tolerance: ModelingTolerance
+    ) -> Circle3D? {
+        switch curve {
+        case let .circle(circle):
+            return circle
+        case let .analytic(.circle(center, normal, radius)),
+             let .analytic(.arc(center, normal, radius, _, _)):
+            return Circle3D(center: center, normal: normal, radius: radius)
+        case let .rigidImage(image):
+            guard let source = circle(from: image.source, tolerance: tolerance) else {
+                return nil
+            }
+            return Circle3D(
+                center: image.transform.applying(to: source.center),
+                normal: image.transform.applying(to: source.normal),
+                radius: source.radius
+            )
+        case .line, .analytic, .bSpline, .implicit, .surfaceLift,
+             .certifiedIntersection, .affineImage:
+            return nil
+        }
     }
 
     package func validateNormalSection(

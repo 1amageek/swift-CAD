@@ -1,18 +1,19 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADTopology
 
 public struct SurfaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let resolver: ParameterResolving
     private let targetResolver: any SurfaceOperationTargetResolving
+    private let targetValidator: any SingleFaceSheetSurfaceOperationTargetValidating
     private let identityBuilder: any CarriedTopologyIdentityBuilding
-    private let geometryRebuilder: any PlanarBodyGeometryRebuilding
 
     public init(resolver: ParameterResolving = ParameterResolver()) {
         self.resolver = resolver
         self.targetResolver = DefaultSurfaceOperationTargetResolver()
+        self.targetValidator = DefaultSingleFaceSheetSurfaceOperationTargetValidator()
         self.identityBuilder = DefaultCarriedTopologyIdentityBuilder()
-        self.geometryRebuilder = DefaultPlanarBodyGeometryRebuilder()
     }
 
     public func evaluate(
@@ -50,7 +51,7 @@ public struct SurfaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             try offset.validate()
         }
         try FeatureEvaluationBoundary.validateExactInput(
-            context.brep,
+            context,
             featureID: feature.id,
             tolerance: context.tolerance
         )
@@ -66,21 +67,13 @@ public struct SurfaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             model: context.brep
         ).subshapeIDs(in: context.subshapes)
         var model = context.brep
-        try translatePlanarSheet(
-            bodyID: bodyID,
-            selectedFaceID: target.faceID,
+        try offsetSingleFaceSheet(
+            target: target,
             distance: distance,
             featureID: feature.id,
             model: &model,
             tolerance: context.tolerance
         )
-        try geometryRebuilder.rebuild(
-            featureID: feature.id,
-            bodyID: bodyID,
-            in: &model,
-            tolerance: context.tolerance
-        )
-        try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: context.tolerance)
         try model.validate(level: .exact, tolerance: context.tolerance)
         let identity = try identityBuilder.identity(
             featureID: feature.id,
@@ -117,64 +110,216 @@ public struct SurfaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         return quantity.value
     }
 
-    private func translatePlanarSheet(
-        bodyID: BodyID,
-        selectedFaceID: FaceID,
+    private struct BoundaryUse {
+        let loopID: LoopID
+        let coedgeIndex: Int
+        let coedge: Coedge
+        let sourceParameterCurve: SurfaceParameterCurve
+    }
+
+    private func offsetSingleFaceSheet(
+        target: ResolvedSurfaceOperationTarget,
         distance: Double,
         featureID: FeatureID,
         model: inout BRepModel,
         tolerance: ModelingTolerance
     ) throws {
-        guard let body = model.bodies[bodyID],
-              body.kind == .sheet,
-              body.shellIDs.count == 1,
-              let shellID = body.shellIDs.first,
-              let shell = model.shells[shellID],
-              shell.faceIDs.count == 1,
-              let faceID = shell.faceIDs.first,
-              faceID == selectedFaceID,
-              let face = model.faces[faceID],
-              case let .plane(plane) = model.geometry.surfaces[face.surfaceID] else {
-            throw kernelError(
-                .unsupportedCapability,
-                featureID: featureID,
-                tolerance: tolerance,
-                "Exact surface offset requires the selected face to be the only planar face of its sheet body."
-            )
+        try targetValidator.validate(
+            target,
+            operation: "Surface offset",
+            featureID: featureID,
+            tolerance: tolerance
+        )
+        let boundaryUses = try collectBoundaryUses(
+            face: target.face,
+            model: model
+        )
+        let parameterBounds = try ExactSurfaceParameterBoundsResolver().resolve(
+            parameterCurves: boundaryUses.map(\.sourceParameterCurve),
+            on: target.surface,
+            tolerance: tolerance
+        )
+        let orientationSign = target.face.orientation == .forward ? 1.0 : -1.0
+        let proceduralOffset = OffsetSurface3D(
+            source: target.surface,
+            distance: distance * orientationSign
+        )
+        let targetSurface = try proceduralOffset.exactSameParameterSurface(
+            tolerance: tolerance
+        ) ?? .procedural(.offset(proceduralOffset))
+        try DefaultSurfaceRegularityValidator().validate(
+            targetSurface,
+            over: parameterBounds,
+            tolerance: tolerance
+        )
+
+        var topologyIDs = FeatureTopologyIDAllocator(featureID: featureID)
+        let surfaceID = nextAvailableSurfaceID(
+            model: model,
+            topologyIDs: &topologyIDs
+        )
+        model.geometry.surfaces[surfaceID] = targetSurface
+        var face = target.face
+        face.surfaceID = surfaceID
+        model.faces[target.faceID] = face
+
+        var firstUseByEdge: [EdgeID: BoundaryUse] = [:]
+        for use in boundaryUses where firstUseByEdge[use.coedge.edgeID] == nil {
+            firstUseByEdge[use.coedge.edgeID] = use
         }
-        var vertexIDs = Set<VertexID>()
-        for loopID in face.loops {
-            guard let loop = model.loops[loopID], loop.role == .outer else {
-                throw kernelError(
-                    .unsupportedCapability,
-                    featureID: featureID,
-                    tolerance: tolerance,
-                    "Exact surface offset currently requires outer line loops without holes."
+        var vertexCandidates: [VertexID: [Point3D]] = [:]
+        for edgeID in firstUseByEdge.keys.sorted() {
+            guard let use = firstUseByEdge[edgeID],
+                  var edge = model.edges[edgeID] else {
+                throw TopologyError.missingReference(
+                    "Surface offset boundary edge is missing."
                 )
             }
-            for coedge in loop.coedges {
-                guard let edge = model.edges[coedge.edgeID],
-                      case .line = model.geometry.curves[edge.curveID] else {
+            let canonicalSource = use.coedge.orientation == .forward
+                ? use.sourceParameterCurve
+                : try use.sourceParameterCurve.reversed(tolerance: tolerance)
+            let canonicalTarget = try transported(
+                canonicalSource,
+                sourceSurface: target.surface,
+                targetSurface: targetSurface,
+                tolerance: tolerance
+            )
+            let lift = SurfaceLiftCurve3D(
+                surface: targetSurface,
+                parameterCurve: canonicalTarget
+            )
+            try lift.validate(tolerance: tolerance)
+            let start = try lift.point(
+                atNormalizedFraction: 0.0,
+                tolerance: tolerance
+            )
+            let end = try lift.point(
+                atNormalizedFraction: 1.0,
+                tolerance: tolerance
+            )
+            vertexCandidates[edge.startVertexID, default: []].append(start)
+            vertexCandidates[edge.endVertexID, default: []].append(end)
+            let curveID = nextAvailableCurveID(
+                model: model,
+                topologyIDs: &topologyIDs
+            )
+            model.geometry.curves[curveID] = .surfaceLift(lift)
+            edge.curveID = curveID
+            edge.trim = CurveTrim(startParameter: 0.0, endParameter: 1.0)
+            model.edges[edgeID] = edge
+        }
+
+        for use in boundaryUses {
+            guard var loop = model.loops[use.loopID] else {
+                throw TopologyError.missingReference(
+                    "Surface offset boundary loop is missing."
+                )
+            }
+            loop.coedges[use.coedgeIndex].surfaceParameterCurve = try transported(
+                use.sourceParameterCurve,
+                sourceSurface: target.surface,
+                targetSurface: targetSurface,
+                tolerance: tolerance
+            )
+            model.loops[use.loopID] = loop
+        }
+        for vertexID in vertexCandidates.keys.sorted() {
+            guard var vertex = model.vertices[vertexID],
+                  let candidates = vertexCandidates[vertexID],
+                  let point = candidates.first else {
+                throw TopologyError.missingReference(
+                    "Surface offset sheet vertex is missing."
+                )
+            }
+            for candidate in candidates.dropFirst() {
+                let residual = (candidate - point).length
+                guard residual <= tolerance.distance else {
                     throw kernelError(
-                        .unsupportedCapability,
+                        .topologyFailure,
                         featureID: featureID,
                         tolerance: tolerance,
-                        "Exact surface offset currently requires straight sheet boundaries."
+                        "Offset boundary curves disagree at a shared vertex."
                     )
                 }
-                vertexIDs.insert(edge.startVertexID)
-                vertexIDs.insert(edge.endVertexID)
+            }
+            vertex.point = point
+            model.vertices[vertexID] = vertex
+        }
+        pruneUnreferencedGeometry(in: &model)
+    }
+
+    private func collectBoundaryUses(
+        face: Face,
+        model: BRepModel
+    ) throws -> [BoundaryUse] {
+        var result: [BoundaryUse] = []
+        for loopID in face.loops {
+            guard let loop = model.loops[loopID],
+                  loop.coedges.isEmpty == false else {
+                throw TopologyError.missingReference(
+                    "Surface offset face boundary is missing."
+                )
+            }
+            for (coedgeIndex, coedge) in loop.coedges.enumerated() {
+                guard model.edges[coedge.edgeID] != nil,
+                      let parameterCurve = coedge.surfaceParameterCurve else {
+                    throw TopologyError.missingReference(
+                        "Surface offset requires an exact pcurve on every boundary coedge."
+                    )
+                }
+                result.append(BoundaryUse(
+                    loopID: loopID,
+                    coedgeIndex: coedgeIndex,
+                    coedge: coedge,
+                    sourceParameterCurve: parameterCurve
+                ))
             }
         }
-        let normal = face.orientation == .forward ? plane.normal : -plane.normal
-        let translation = normal * distance
-        for vertexID in vertexIDs {
-            guard var vertex = model.vertices[vertexID] else {
-                throw TopologyError.missingReference("Surface offset sheet vertex is missing.")
-            }
-            vertex.point = vertex.point + translation
-            try vertex.point.validate()
-            model.vertices[vertexID] = vertex
+        return result
+    }
+
+    private func transported(
+        _ curve: SurfaceParameterCurve,
+        sourceSurface: Surface3D,
+        targetSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterCurve {
+        .sameParameterImage(try SameParameterSurfaceParameterCurve(
+            source: curve,
+            sourceSurface: sourceSurface,
+            targetSurface: targetSurface,
+            tolerance: tolerance
+        ))
+    }
+
+    private func nextAvailableCurveID(
+        model: BRepModel,
+        topologyIDs: inout FeatureTopologyIDAllocator
+    ) -> CurveID {
+        while true {
+            let id = topologyIDs.nextCurveID()
+            if model.geometry.curves[id] == nil { return id }
+        }
+    }
+
+    private func nextAvailableSurfaceID(
+        model: BRepModel,
+        topologyIDs: inout FeatureTopologyIDAllocator
+    ) -> SurfaceID {
+        while true {
+            let id = topologyIDs.nextSurfaceID()
+            if model.geometry.surfaces[id] == nil { return id }
+        }
+    }
+
+    private func pruneUnreferencedGeometry(in model: inout BRepModel) {
+        let curveIDs = Set(model.edges.values.map(\.curveID))
+        model.geometry.curves = model.geometry.curves.filter {
+            curveIDs.contains($0.key)
+        }
+        let surfaceIDs = Set(model.faces.values.map(\.surfaceID))
+        model.geometry.surfaces = model.geometry.surfaces.filter {
+            surfaceIDs.contains($0.key)
         }
     }
 

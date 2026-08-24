@@ -24,6 +24,13 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         public let secondDerivative: Vector3D
     }
 
+    struct ThirdOrderDifferentialGeometry {
+        let position: Point3D
+        let firstDerivative: Vector3D
+        let secondDerivative: Vector3D
+        let thirdDerivative: Vector3D
+    }
+
     private struct Cone {
         let apex: Point3D
         let centerDirection: Vector3D
@@ -42,6 +49,10 @@ public struct CertifiedConeTorusApexIntersectionCurve:
 
         func secondDerivative(at angle: Double) -> Vector3D {
             radialU * -cos(angle) + radialV * -sin(angle)
+        }
+
+        func thirdDerivative(at angle: Double) -> Vector3D {
+            radialU * sin(angle) + radialV * -cos(angle)
         }
     }
 
@@ -70,6 +81,7 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         let value: Double
         let first: Double
         let second: Double
+        let third: Double
     }
 
     private struct ScalarRange {
@@ -140,6 +152,7 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         let firstDerivativeMagnitude: Double
         let secondDerivativeMagnitude: Double
         let thirdDerivativeMagnitude: Double
+        let fourthDerivativeMagnitude: Double
 
         func merged(with other: Self) -> Self {
             Self(
@@ -156,6 +169,10 @@ public struct CertifiedConeTorusApexIntersectionCurve:
                 thirdDerivativeMagnitude: max(
                     thirdDerivativeMagnitude,
                     other.thirdDerivativeMagnitude
+                ).nextUp,
+                fourthDerivativeMagnitude: max(
+                    fourthDerivativeMagnitude,
+                    other.fourthDerivativeMagnitude
                 ).nextUp
             )
         }
@@ -644,6 +661,21 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
+        let geometry = try derivativesThroughThirdOrder(
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        )
+        return DifferentialGeometry(
+            position: geometry.position,
+            firstDerivative: geometry.firstDerivative,
+            secondDerivative: geometry.secondDerivative
+        )
+    }
+
+    func derivativesThroughThirdOrder(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> ThirdOrderDifferentialGeometry {
         try tolerance.validate()
         guard fraction.isFinite,
               fraction >= -tolerance.relative,
@@ -683,14 +715,25 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         let direction = configuration.cone.direction(at: angle.value)
         let directionFirst = configuration.cone.firstDerivative(at: angle.value)
         let directionSecond = configuration.cone.secondDerivative(at: angle.value)
+        let directionThird = configuration.cone.thirdDerivative(at: angle.value)
+        let composedDirectionFirst = directionFirst * angle.first
+        let composedDirectionSecond = directionSecond
+                * (angle.first * angle.first)
+            + directionFirst * angle.second
+        let composedDirectionThird = directionThird
+                * (angle.first * angle.first * angle.first)
+            + directionSecond * (3.0 * angle.first * angle.second)
+            + directionFirst * angle.third
         let position = configuration.cone.apex + direction * slant
-        let firstDerivative = directionFirst * (angle.first * slant)
+        let firstDerivative = composedDirectionFirst * slant
             + direction * slantDifferential.first
-        let secondDerivative = directionSecond
-                * (angle.first * angle.first * slant)
-            + directionFirst
-                * (angle.second * slant + 2.0 * angle.first * slantDifferential.first)
+        let secondDerivative = composedDirectionSecond * slant
+            + composedDirectionFirst * (2.0 * slantDifferential.first)
             + direction * slantDifferential.second
+        let thirdDerivative = composedDirectionThird * slant
+            + composedDirectionSecond * (3.0 * slantDifferential.first)
+            + composedDirectionFirst * (3.0 * slantDifferential.second)
+            + direction * slantDifferential.third
         guard firstDerivative.length > tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
@@ -700,10 +743,17 @@ public struct CertifiedConeTorusApexIntersectionCurve:
                 message: "A cone-torus apex component has a singular spatial differential."
             )
         }
-        return DifferentialGeometry(
+        guard thirdDerivative.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A cone-torus apex third differential exceeded finite arithmetic."
+            )
+        }
+        return ThirdOrderDifferentialGeometry(
             position: position,
             firstDerivative: firstDerivative,
-            secondDerivative: secondDerivative
+            secondDerivative: secondDerivative,
+            thirdDerivative: thirdDerivative
         )
     }
 
@@ -819,8 +869,12 @@ public struct CertifiedConeTorusApexIntersectionCurve:
             slantSecondMagnitude: (
                 root.secondDerivativeMagnitude * span * span
             ).nextUp,
+            slantThirdMagnitude: (
+                root.thirdDerivativeMagnitude * span * span * span
+            ).nextUp,
             angleFirstMagnitude: span.nextUp,
             angleSecondMagnitude: 0.0,
+            angleThirdMagnitude: 0.0,
             cone: configuration.cone,
             tolerance: tolerance,
             label: "Cone-torus apex-node"
@@ -877,6 +931,8 @@ public struct CertifiedConeTorusApexIntersectionCurve:
                 derivativeBounds[2],
             thirdDerivativeMagnitudeUpperBound:
                 derivativeBounds[3],
+            fourthDerivativeMagnitudeUpperBound:
+                derivativeBounds[4],
             arithmeticEnvelope: arithmeticEnvelope,
             valueRange: { rangeLower, rangeUpper in
                 let root = try simpleMainRootBounds(
@@ -946,6 +1002,18 @@ public struct CertifiedConeTorusApexIntersectionCurve:
                         4.0 * factor.lower * factorRootLower
                     ).nextDown
         ).nextUp
+        let factorRootFifthLower = (
+            factor.lower * factor.lower * factorRootLower
+        ).nextDown
+        let factorRootThird = (
+            factor.third / (2.0 * factorRootLower).nextDown
+                + 3.0 * factor.first * factor.second
+                    / (
+                        4.0 * factor.lower * factorRootLower
+                    ).nextDown
+                + 3.0 * factor.first * factor.first * factor.first
+                    / (8.0 * factorRootFifthLower).nextDown
+        ).nextUp
         let phase = ScalarRange(
             2.0 * Double.pi * lowerFraction,
             2.0 * Double.pi * upperFraction
@@ -965,12 +1033,21 @@ public struct CertifiedConeTorusApexIntersectionCurve:
             2.0 * span * Double.pi * Double.pi
                 * cosineMagnitude
         ).nextUp
+        let angleThird = (
+            4.0 * span * pow(Double.pi, 3.0)
+                * sineMagnitude
+        ).nextUp
         let composedFactorFirst = (
             factorRootFirst * angleFirst
         ).nextUp
         let composedFactorSecond = (
             factorRootSecond * angleFirst * angleFirst
                 + factorRootFirst * angleSecond
+        ).nextUp
+        let composedFactorThird = (
+            factorRootThird * angleFirst * angleFirst * angleFirst
+                + 3.0 * factorRootSecond * angleFirst * angleSecond
+                + factorRootFirst * angleThird
         ).nextUp
         let distance = (halfSpan * 0.5 * sineMagnitude).nextUp
         let distanceFirst = (
@@ -979,6 +1056,10 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         let distanceSecond = (
             2.0 * halfSpan * Double.pi * Double.pi
                 * sineMagnitude
+        ).nextUp
+        let distanceThird = (
+            4.0 * halfSpan * pow(Double.pi, 3.0)
+                * cosineMagnitude
         ).nextUp
         let splitMagnitude = (distance * factorRootUpper).nextUp
         let splitFirst = (
@@ -989,6 +1070,12 @@ public struct CertifiedConeTorusApexIntersectionCurve:
             distanceSecond * factorRootUpper
                 + 2.0 * distanceFirst * composedFactorFirst
                 + distance * composedFactorSecond
+        ).nextUp
+        let splitThird = (
+            distanceThird * factorRootUpper
+                + 3.0 * distanceSecond * composedFactorFirst
+                + 3.0 * distanceFirst * composedFactorSecond
+                + distance * composedFactorThird
         ).nextUp
         let quadratic = configuration.cubicQuadratic
         let quadraticMagnitude = quadratic.range(
@@ -1004,6 +1091,11 @@ public struct CertifiedConeTorusApexIntersectionCurve:
             from: requestedAngle.lower,
             to: requestedAngle.upper,
             derivativeOrder: 2
+        ).maximumAbsoluteValue
+        let quadraticThird = quadratic.range(
+            from: requestedAngle.lower,
+            to: requestedAngle.upper,
+            derivativeOrder: 3
         ).maximumAbsoluteValue
         let baseMagnitude = (
             0.5 * (
@@ -1032,12 +1124,30 @@ public struct CertifiedConeTorusApexIntersectionCurve:
                     ) * angleSecond
             )
         ).nextUp
+        let baseThird = (
+            0.5 * (
+                (
+                    quadraticThird
+                        + mainRoot.thirdDerivativeMagnitude
+                ) * angleFirst * angleFirst * angleFirst
+                    + 3.0 * (
+                        quadraticSecond
+                            + mainRoot.secondDerivativeMagnitude
+                    ) * angleFirst * angleSecond
+                    + (
+                        quadraticFirst
+                            + mainRoot.firstDerivativeMagnitude
+                    ) * angleThird
+            )
+        ).nextUp
         return try Self.spatialBounds(
             slantMagnitude: (baseMagnitude + splitMagnitude).nextUp,
             slantFirstMagnitude: (baseFirst + splitFirst).nextUp,
             slantSecondMagnitude: (baseSecond + splitSecond).nextUp,
+            slantThirdMagnitude: (baseThird + splitThird).nextUp,
             angleFirstMagnitude: angleFirst,
             angleSecondMagnitude: angleSecond,
+            angleThirdMagnitude: angleThird,
             cone: configuration.cone,
             tolerance: tolerance,
             label: "Cone-torus generator-fold"
@@ -1067,8 +1177,10 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         slantMagnitude: Double,
         slantFirstMagnitude: Double,
         slantSecondMagnitude: Double,
+        slantThirdMagnitude: Double,
         angleFirstMagnitude: Double,
         angleSecondMagnitude: Double,
+        angleThirdMagnitude: Double,
         cone: Cone,
         tolerance: ModelingTolerance,
         label: String
@@ -1090,8 +1202,31 @@ public struct CertifiedConeTorusApexIntersectionCurve:
                     * slantFirstMagnitude
                 + slantSecondMagnitude
         ).nextUp
-        guard first.isFinite, second.isFinite,
-              first > 0.0, second > 0.0 else {
+        let directionSecondMagnitude = (
+            angularMagnitude * (
+                angleFirstMagnitude * angleFirstMagnitude
+                    + angleSecondMagnitude
+            )
+        ).nextUp
+        let directionThirdMagnitude = (
+            angularMagnitude * (
+                angleFirstMagnitude * angleFirstMagnitude
+                    * angleFirstMagnitude
+                    + 3.0 * angleFirstMagnitude
+                        * angleSecondMagnitude
+                    + angleThirdMagnitude
+            )
+        ).nextUp
+        let third = (
+            directionThirdMagnitude * slantMagnitude
+                + 3.0 * directionSecondMagnitude
+                    * slantFirstMagnitude
+                + 3.0 * angularMagnitude * angleFirstMagnitude
+                    * slantSecondMagnitude
+                + slantThirdMagnitude
+        ).nextUp
+        guard first.isFinite, second.isFinite, third.isFinite,
+              first > 0.0, second > 0.0, third > 0.0 else {
             throw resourceFailure(
                 tolerance: tolerance,
                 message: "\(label) spatial bounds exceeded finite arithmetic."
@@ -1099,7 +1234,8 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         }
         return SpatialDifferentialMagnitudeBounds(
             first: first,
-            second: second
+            second: second,
+            third: third
         )
     }
 
@@ -1352,7 +1488,52 @@ public struct CertifiedConeTorusApexIntersectionCurve:
                     ) * second
             ) / denominator
         ).nextUp
-        guard first.isFinite, second.isFinite, third.isFinite else {
+        let c1Fourth = c1.range(
+            from: lowerAngle,
+            to: upperAngle,
+            derivativeOrder: 4
+        )
+        let c2Fourth = c2.range(
+            from: lowerAngle,
+            to: upperAngle,
+            derivativeOrder: 4
+        )
+        let c3Fourth = c3.range(
+            from: lowerAngle,
+            to: upperAngle,
+            derivativeOrder: 4
+        )
+        let angleAngleAngleAngle = c1Fourth
+            .adding(c2Fourth.multiplied(by: rootRange))
+            .adding(c3Fourth.multiplied(by: rootRange.squared()))
+        let angleAngleAngleSlant = c2Third
+            .adding(c3Third.multiplied(by: rootRange).scaled(by: 2.0))
+        let angleAngleSlantSlant = c3Second.scaled(by: 2.0)
+        let fourth = (
+            (
+                angleAngleAngleAngle.maximumAbsoluteValue
+                    + 4.0 * angleAngleAngleSlant.maximumAbsoluteValue
+                        * first
+                    + 6.0 * angleAngleSlantSlant.maximumAbsoluteValue
+                        * first * first
+                    + 6.0 * second * (
+                        angleAngleSlant.maximumAbsoluteValue
+                            + 2.0 * angleSlantSlant.maximumAbsoluteValue
+                                * first
+                            + 6.0 * first * first
+                    )
+                    + 3.0 * slantSlant.maximumAbsoluteValue
+                        * second * second
+                    + 4.0 * third * (
+                        angleSlant.maximumAbsoluteValue
+                            + slantSlant.maximumAbsoluteValue * first
+                    )
+            ) / denominator
+        ).nextUp
+        guard first.isFinite,
+              second.isFinite,
+              third.isFinite,
+              fourth.isFinite else {
             return nil
         }
         let valueVariation = (first * halfWidth).nextUp
@@ -1361,7 +1542,8 @@ public struct CertifiedConeTorusApexIntersectionCurve:
             upperValue: (root + valueVariation).nextUp,
             firstDerivativeMagnitude: first,
             secondDerivativeMagnitude: second,
-            thirdDerivativeMagnitude: third
+            thirdDerivativeMagnitude: third,
+            fourthDerivativeMagnitude: fourth
         )
     }
 
@@ -1589,11 +1771,26 @@ public struct CertifiedConeTorusApexIntersectionCurve:
                 + 2.0 * angleSlant * first
                 + slantSlant * first * first
         ) / denominator
-        return ScalarDifferential(
-            value: root,
-            first: first,
-            second: second
-        )
+            return ScalarDifferential(
+                value: root,
+                first: first,
+                second: second,
+                third: -(
+                    c1.derivative(at: angle, order: 3)
+                        + c2.derivative(at: angle, order: 3) * root
+                        + c3.derivative(at: angle, order: 3) * root * root
+                        + 3.0 * (
+                            c2.secondDerivative(at: angle)
+                                + 2.0 * c3.secondDerivative(at: angle) * root
+                        ) * first
+                        + 6.0 * c3.firstDerivative(at: angle)
+                            * first * first
+                        + 6.0 * first * first * first
+                        + 3.0 * (
+                            angleSlant + slantSlant * first
+                        ) * second
+                ) / denominator
+            )
     }
 
     private static func quadraticDiscriminant(
@@ -1654,20 +1851,45 @@ public struct CertifiedConeTorusApexIntersectionCurve:
                 .secondDerivative(at: angle)
     }
 
+    private static func quadraticDiscriminantThirdDerivative(
+        angle: Double,
+        root: ScalarDifferential,
+        configuration: Configuration
+    ) -> Double {
+        let quadratic = configuration.cubicQuadratic
+        let linear = configuration.cubicLinear
+        let value = quadratic.value(at: angle)
+        let first = quadratic.firstDerivative(at: angle)
+        let second = quadratic.secondDerivative(at: angle)
+        let third = quadratic.derivative(at: angle, order: 3)
+        return 2.0 * (3.0 * first * second + value * third)
+            - 2.0 * (
+                third * root.value
+                    + 3.0 * second * root.first
+                    + 3.0 * first * root.second
+                    + value * root.third
+            )
+            - 6.0 * (
+                3.0 * root.first * root.second
+                    + root.value * root.third
+            )
+            - 4.0 * linear.derivative(at: angle, order: 3)
+    }
+
     private static func quadraticDiscriminantDerivativeBounds(
         root: SimpleRootBounds,
         lowerAngle: Double,
         upperAngle: Double,
         configuration: Configuration
     ) -> [Double] {
-        let quadratic = (0...3).map {
+        let quadratic = (0...4).map {
             configuration.cubicQuadratic.range(
                 from: lowerAngle,
                 to: upperAngle,
                 derivativeOrder: $0
             ).maximumAbsoluteValue
         }
-        let linear = (0...3).map {
+        let linear = (0...4).map {
             configuration.cubicLinear.range(
                 from: lowerAngle,
                 to: upperAngle,
@@ -1679,9 +1901,10 @@ public struct CertifiedConeTorusApexIntersectionCurve:
             root.firstDerivativeMagnitude,
             root.secondDerivativeMagnitude,
             root.thirdDerivativeMagnitude,
+            root.fourthDerivativeMagnitude,
         ]
-        var result = Array(repeating: 0.0, count: 4)
-        for order in 0...3 {
+        var result = Array(repeating: 0.0, count: 5)
+        for order in 0...4 {
             result[order] = (
                 Self.derivativeProductMagnitude(
                     quadratic,
@@ -1773,7 +1996,8 @@ public struct CertifiedConeTorusApexIntersectionCurve:
             return ScalarDifferential(
                 value: lowerAngle + span * fraction,
                 first: span,
-                second: 0.0
+                second: 0.0,
+                third: 0.0
             )
         case .generatorTangencyInterval:
             let phase = 2.0 * Double.pi * fraction
@@ -1781,7 +2005,8 @@ public struct CertifiedConeTorusApexIntersectionCurve:
             return ScalarDifferential(
                 value: lowerAngle + halfSpan * (1.0 - cos(phase)),
                 first: halfSpan * 2.0 * Double.pi * sin(phase),
-                second: halfSpan * 4.0 * Double.pi * Double.pi * cos(phase)
+                second: halfSpan * 4.0 * Double.pi * Double.pi * cos(phase),
+                third: -halfSpan * 8.0 * pow(Double.pi, 3.0) * sin(phase)
             )
         }
     }
@@ -1834,6 +2059,10 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         let quadraticValue = quadratic.value(at: angle.value)
         let quadraticFirst = quadratic.firstDerivative(at: angle.value)
         let quadraticSecond = quadratic.secondDerivative(at: angle.value)
+        let quadraticThird = quadratic.derivative(
+            at: angle.value,
+            order: 3
+        )
         let baseValue = -0.5 * (quadraticValue + companion.value)
         let baseAngleFirst = -0.5 * (
             quadraticFirst + companion.first
@@ -1841,9 +2070,16 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         let baseAngleSecond = -0.5 * (
             quadraticSecond + companion.second
         )
+        let baseAngleThird = -0.5 * (
+            quadraticThird + companion.third
+        )
         let baseFirst = baseAngleFirst * angle.first
         let baseSecond = baseAngleSecond * angle.first * angle.first
             + baseAngleFirst * angle.second
+        let baseThird = baseAngleThird
+                * angle.first * angle.first * angle.first
+            + 3.0 * baseAngleSecond * angle.first * angle.second
+            + baseAngleFirst * angle.third
         let rawDiscriminant = Self.quadraticDiscriminant(
             angle: angle.value,
             root: companion.value,
@@ -1860,6 +2096,12 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         let correctedAngleFirst = rawFirst - correction.slope
         let correctedAngleSecond =
             Self.quadraticDiscriminantSecondDerivative(
+                angle: angle.value,
+                root: companion,
+                configuration: configuration
+            )
+        let correctedAngleThird =
+            Self.quadraticDiscriminantThirdDerivative(
                 angle: angle.value,
                 root: companion,
                 configuration: configuration
@@ -1930,7 +2172,8 @@ public struct CertifiedConeTorusApexIntersectionCurve:
                     + splitLinear
                     + 3.0 * splitCubic * offsetSquared,
                 second: baseSecond
-                    + 6.0 * splitCubic * joinOffset
+                    + 6.0 * splitCubic * joinOffset,
+                third: baseThird + 6.0 * splitCubic
             )
         }
         guard correctedValue > 0.0, correctedValue.isFinite else {
@@ -1947,6 +2190,10 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         let discriminantSecond =
             correctedAngleSecond * angle.first * angle.first
                 + correctedAngleFirst * angle.second
+        let discriminantThird = correctedAngleThird
+                * angle.first * angle.first * angle.first
+            + 3.0 * correctedAngleSecond * angle.first * angle.second
+            + correctedAngleFirst * angle.third
         let branchSign = fraction <= 0.5 ? -1.0 : 1.0
         let splitValue = branchSign * 0.5 * root
         let splitFirst = branchSign * discriminantFirst / (4.0 * root)
@@ -1955,10 +2202,18 @@ public struct CertifiedConeTorusApexIntersectionCurve:
                 - discriminantFirst * discriminantFirst
                     / (8.0 * root * root * root)
         )
+        let splitThird = branchSign * (
+            discriminantThird / (4.0 * root)
+                - 3.0 * discriminantFirst * discriminantSecond
+                    / (8.0 * root * root * root)
+                + 3.0 * discriminantFirst * discriminantFirst
+                    * discriminantFirst / (16.0 * pow(root, 5.0))
+        )
         return ScalarDifferential(
             value: baseValue + splitValue,
             first: baseFirst + splitFirst,
-            second: baseSecond + splitSecond
+            second: baseSecond + splitSecond,
+            third: baseThird + splitThird
         )
     }
 
@@ -1977,12 +2232,18 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         let secondAngle = c1.secondDerivative(at: angle.value)
             + c2.secondDerivative(at: angle.value) * slant
             + c3.secondDerivative(at: angle.value) * slant * slant
+        let thirdAngle = c1.derivative(at: angle.value, order: 3)
+            + c2.derivative(at: angle.value, order: 3) * slant
+            + c3.derivative(at: angle.value, order: 3) * slant * slant
         let slantDerivative = c2.value(at: angle.value)
             + 2.0 * c3.value(at: angle.value) * slant
             + 3.0 * slant * slant
         let mixed = c2.firstDerivative(at: angle.value)
             + 2.0 * c3.firstDerivative(at: angle.value) * slant
         let secondSlant = 2.0 * c3.value(at: angle.value) + 6.0 * slant
+        let secondAngleSlant = c2.secondDerivative(at: angle.value)
+            + 2.0 * c3.secondDerivative(at: angle.value) * slant
+        let angleSecondSlant = 2.0 * c3.firstDerivative(at: angle.value)
         let threshold = Self.derivativeThreshold(
             configuration: configuration,
             tolerance: tolerance
@@ -2002,11 +2263,26 @@ public struct CertifiedConeTorusApexIntersectionCurve:
                 + 2.0 * mixed * slantAngleFirst
                 + secondSlant * slantAngleFirst * slantAngleFirst
         ) / slantDerivative
+        let slantAngleThird = -(
+            thirdAngle
+                + 3.0 * secondAngleSlant * slantAngleFirst
+                + 3.0 * angleSecondSlant
+                    * slantAngleFirst * slantAngleFirst
+                + 6.0 * slantAngleFirst * slantAngleFirst
+                    * slantAngleFirst
+                + 3.0 * (
+                    mixed + secondSlant * slantAngleFirst
+                ) * slantAngleSecond
+        ) / slantDerivative
         return ScalarDifferential(
             value: slant,
             first: slantAngleFirst * angle.first,
             second: slantAngleSecond * angle.first * angle.first
-                + slantAngleFirst * angle.second
+                + slantAngleFirst * angle.second,
+            third: slantAngleThird
+                    * angle.first * angle.first * angle.first
+                + 3.0 * slantAngleSecond * angle.first * angle.second
+                + slantAngleFirst * angle.third
         )
     }
 

@@ -16,6 +16,7 @@ extension KernelCapabilities {
             tolerance: .standard,
             publicAPIs: [
                 "CADGeometry.Curve3D",
+                "CADGeometry.ValidatedCurve3D",
                 "CADGeometry.CurveParameterProjection",
                 "CADGeometry.CurveParameterProjectionOptions",
             ],
@@ -23,6 +24,7 @@ extension KernelCapabilities {
                 "GeometryKernelTests",
                 "AnalyticGeometryIntegrationTests",
                 "CurveParameterProjectionTests",
+                "ValidatedCurve3DTests",
             ]
         ),
         KernelCapability(
@@ -54,6 +56,7 @@ extension KernelCapabilities {
             tolerance: .standard,
             publicAPIs: [
                 "CADGeometry.BSplineCurve3D",
+                "CADGeometry.ValidatedCurve3D",
                 "CADGeometry.CurveParameterProjection",
                 "CADGeometry.CurveParameterProjectionOptions",
                 "CADGeometry.SurfaceParameterCurve",
@@ -64,6 +67,7 @@ extension KernelCapabilities {
                 "BSplineCurveTrimmingTests",
                 "SurfaceParameterCurveDifferentialTests",
                 "SurfaceParameterCurveSubcurveTests",
+                "ValidatedCurve3DTests",
             ]
         ),
         KernelCapability(
@@ -480,7 +484,10 @@ extension KernelCapabilities {
                 "SurfaceSurfaceIntersectionTests.planeTorusInternalTangencyProducesCompleteMixedGraph",
                 "SurfaceSurfaceIntersectionTests.obliquePlaneTorusInternalTangencyRetainsNodalBranches",
                 "SurfaceSurfaceIntersectionTests.nearbyPlaneTorusSectionsDoNotClaimNodalTangency",
-                "CertifiedAnalyticPairPcurveAreaIntegratorTests.innerSupportNodalBranchesReturnTypedUnsupportedAreaDiagnostic",
+                "CertifiedAnalyticPairPcurveAreaIntegratorTests.negativeInnerSupportNodalPlaneRoleHasCertifiedAreaBounds",
+                "CertifiedAnalyticPairPcurveAreaIntegratorTests.negativeInnerSupportNodalTorusRoleHasCertifiedAreaBounds",
+                "CertifiedAnalyticPairPcurveAreaIntegratorTests.positiveInnerSupportNodalPlaneRoleHasCertifiedAreaBounds",
+                "CertifiedAnalyticPairPcurveAreaIntegratorTests.positiveInnerSupportNodalTorusRoleHasCertifiedAreaBounds",
                 "ParallelOffsetTorusTorusSurfaceIntersectionTests.generatorTangencyProducesCompleteNodalGraph",
                 "ParallelOffsetTorusTorusSurfaceIntersectionTests.nodalGraphIsOperandOrderAndRotationInvariant",
                 "ParallelOffsetTorusTorusSurfaceIntersectionTests.nodalCertificateRoundTripsAndRejectsTampering",
@@ -545,7 +552,7 @@ extension KernelCapabilities {
             ],
             testFixtures: [
                 "AdaptivePlanarPredicateEvaluatorTests",
-                "CADKernelTests.profileExtractionRejectsNestedClosedLoops",
+                "CADKernelTests.profileExtractionBuildsHoleAwareNestedRegion",
                 "CADKernelTests.profileExtractionRejectsAdjacentOverlappingLoopSegments",
                 "CADKernelTests.profileExtractionRejectsIntersectingClosedLoops",
                 "CADKernelTests.profileExtractionUsesLocalAreaForFarOriginLoops",

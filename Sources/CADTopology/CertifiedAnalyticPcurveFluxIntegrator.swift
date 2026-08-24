@@ -16,8 +16,23 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         let parameterArea: SurfaceParameterAreaBounds
     }
 
+    fileprivate struct AnalyticPairCacheKey: Hashable {
+        let intersection: CertifiedAnalyticAnalyticIntersectionCurve
+        let role: SurfaceIntersectionSurfaceRole
+        let lowerFraction: Double
+        let upperFraction: Double
+        let integrand: Integrand
+        let requestedWidth: Double
+        let tolerance: ModelingTolerance
+    }
+
+    final class EvaluationCache {
+        fileprivate var analyticPairBounds: [AnalyticPairCacheKey: Interval] = [:]
+    }
+
     private let maximumWorkItems: Int
     private let maximumDepth: Int
+    private let evaluationCache: EvaluationCache
 
     private enum LocalProofFailure: Error {
         case intervalSingularity
@@ -47,10 +62,21 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         let depth: Int
     }
 
+    private struct RigidImageWorkItem {
+        let lowerFraction: Double
+        let upperFraction: Double
+        let requestedWidth: Double
+        let depth: Int
+    }
+
     private struct TensorGaussEnclosure {
         let bounds: Interval
         let lambdaError: Double
         let curveError: Double
+    }
+
+    private struct ImplicitMidpointEnclosure {
+        let bounds: Interval
     }
 
     /// Owns the immutable Bernstein derivative nets shared by every adaptive
@@ -64,24 +90,48 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         let weightDerivativeControls: [[Interval]]
     }
 
-    init(maximumWorkItems: Int = 65_536, maximumDepth: Int = 48) {
+    init(
+        maximumWorkItems: Int = 65_536,
+        maximumDepth: Int = 48,
+        evaluationCache: EvaluationCache = EvaluationCache()
+    ) {
         self.maximumWorkItems = maximumWorkItems
         self.maximumDepth = maximumDepth
+        self.evaluationCache = evaluationCache
     }
 
     func parameterEnclosures(
         for curve: SurfaceParameterCurve,
+        fromNormalizedFraction lowerFraction: Double = 0.0,
+        toNormalizedFraction upperFraction: Double = 1.0,
         maximumWidth: Double,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceParameterCurveEnclosure] {
         try tolerance.validate()
-        guard maximumWidth.isFinite, maximumWidth > 0.0 else {
+        guard lowerFraction.isFinite,
+              upperFraction.isFinite,
+              lowerFraction >= -tolerance.relative,
+              upperFraction <= 1.0 + tolerance.relative,
+              upperFraction > lowerFraction,
+              maximumWidth.isFinite,
+              maximumWidth > 0.0 else {
             throw KernelError(
                 phase: .topology,
                 code: .invalidInput,
-                residual: maximumWidth,
+                residual: upperFraction - lowerFraction,
                 tolerance: tolerance,
-                message: "Certified analytic pcurve enclosure requires a finite positive width."
+                message: "Certified analytic pcurve enclosure requires an ordered normalized range and a finite positive width."
+            )
+        }
+        let boundedLower = min(max(lowerFraction, 0.0), 1.0)
+        let boundedUpper = min(max(upperFraction, 0.0), 1.0)
+        guard boundedUpper > boundedLower else {
+            throw KernelError(
+                phase: .topology,
+                code: .invalidInput,
+                residual: boundedUpper - boundedLower,
+                tolerance: tolerance,
+                message: "Certified analytic pcurve enclosure range collapsed at its normalized domain boundary."
             )
         }
         switch curve {
@@ -102,20 +152,57 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                     message: "A spherical pcurve enclosure requires an orthonormal great-circle frame."
                 )
             }
-            return try adaptiveParameterEnclosures(
-                maximumWidth: maximumWidth,
-                tolerance: tolerance
-            ) { fraction in
-                let parameter = Jet.constant(startParameter)
-                    + Jet.constant(endParameter - startParameter) * fraction
-                return try greatCircleParameterJets(
-                    cosine: cosine,
-                    sine: sine,
-                    parameter: parameter
+            let parameterSpan = endParameter - startParameter
+            let rangeStartParameter = startParameter
+                + parameterSpan * boundedLower
+            let rangeEndParameter = startParameter
+                + parameterSpan * boundedUpper
+            let localEnclosures: [SurfaceParameterCurveEnclosure]
+            if let meridian = try meridianParameterEnclosures(
+                cosine: cosine,
+                sine: sine,
+                startParameter: rangeStartParameter,
+                endParameter: rangeEndParameter
+            ) {
+                localEnclosures = meridian
+            } else {
+                localEnclosures = try adaptiveParameterEnclosures(
+                    lowerFraction: 0.0,
+                    upperFraction: 1.0,
+                    maximumWidth: maximumWidth,
+                    tolerance: tolerance
+                ) { fraction in
+                    let parameter = Jet.constant(rangeStartParameter)
+                        + Jet.constant(rangeEndParameter - rangeStartParameter) * fraction
+                    return try greatCircleParameterJets(
+                        cosine: cosine,
+                        sine: sine,
+                        parameter: parameter
+                    )
+                }
+            }
+            let aligned = try alignedSphericalEnclosures(
+                localEnclosures,
+                cosine: cosine,
+                sine: sine,
+                startParameter: rangeStartParameter,
+                endParameter: rangeEndParameter
+            )
+            let rangeSpan = boundedUpper - boundedLower
+            return aligned.map { enclosure in
+                SurfaceParameterCurveEnclosure(
+                    lowerFraction: boundedLower
+                        + rangeSpan * enclosure.lowerFraction,
+                    upperFraction: boundedLower
+                        + rangeSpan * enclosure.upperFraction,
+                    u: enclosure.u,
+                    v: enclosure.v
                 )
             }
         case let .projectedAnalytic(projected):
             return try adaptiveParameterEnclosures(
+                lowerFraction: boundedLower,
+                upperFraction: boundedUpper,
                 maximumWidth: maximumWidth,
                 tolerance: tolerance
             ) { fraction in
@@ -128,6 +215,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         case let .periodicTranslation(base, uShift, vShift):
             return try parameterEnclosures(
                 for: base,
+                fromNormalizedFraction: boundedLower,
+                toNormalizedFraction: boundedUpper,
                 maximumWidth: maximumWidth,
                 tolerance: tolerance
             ).map { enclosure in
@@ -144,8 +233,17 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                     )
                 )
             }
+        case let .sameParameterImage(image):
+            return try parameterEnclosures(
+                for: image.source,
+                fromNormalizedFraction: boundedLower,
+                toNormalizedFraction: boundedUpper,
+                maximumWidth: maximumWidth,
+                tolerance: tolerance
+            )
         case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline,
-             .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair:
+             .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
+             .rigidImage:
             throw KernelError(
                 phase: .topology,
                 code: .invalidInput,
@@ -155,7 +253,234 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         }
     }
 
+    private func alignedSphericalEnclosures(
+        _ enclosures: [SurfaceParameterCurveEnclosure],
+        cosine: Vector3D,
+        sine: Vector3D,
+        startParameter: Double,
+        endParameter: Double
+    ) throws -> [SurfaceParameterCurveEnclosure] {
+        let period = 2.0 * Double.pi
+        var referenceLongitude = sphericalEndpointLongitude(
+            cosine: cosine,
+            sine: sine,
+            parameter: startParameter,
+            approachDirection: endParameter > startParameter ? 1.0 : -1.0
+        )
+        var result: [SurfaceParameterCurveEnclosure] = []
+        for enclosure in enclosures.sorted(by: {
+            $0.lowerFraction < $1.lowerFraction
+        }) {
+            let shift = round(
+                (referenceLongitude - enclosure.u.midpoint) / period
+            ) * period
+            let shiftedLowerU = enclosure.u.lower + shift
+            let shiftedUpperU = enclosure.u.upper + shift
+            let parameterSpan = endParameter - startParameter
+            let lowerParameter = startParameter
+                + parameterSpan * enclosure.lowerFraction
+            let upperParameter = startParameter
+                + parameterSpan * enclosure.upperFraction
+            let direction = parameterSpan > 0.0 ? 1.0 : -1.0
+            let lowerEndpoint = sphericalParameterEnclosureEndpoint(
+                cosine: cosine,
+                sine: sine,
+                parameter: lowerParameter,
+                approachDirection: direction,
+                longitudeReference: shiftedLowerU
+                    + (shiftedUpperU - shiftedLowerU) * 0.5
+            )
+            let upperEndpoint = sphericalParameterEnclosureEndpoint(
+                cosine: cosine,
+                sine: sine,
+                parameter: upperParameter,
+                approachDirection: -direction,
+                longitudeReference: shiftedLowerU
+                    + (shiftedUpperU - shiftedLowerU) * 0.5
+            )
+            let alignedU = try ScalarInterval(
+                lower: min(
+                    shiftedLowerU,
+                    lowerEndpoint.u,
+                    upperEndpoint.u
+                ).nextDown,
+                upper: max(
+                    shiftedUpperU,
+                    lowerEndpoint.u,
+                    upperEndpoint.u
+                ).nextUp
+            )
+            let alignedV = try ScalarInterval(
+                lower: min(
+                    enclosure.v.lower,
+                    lowerEndpoint.v,
+                    upperEndpoint.v
+                ).nextDown,
+                upper: max(
+                    enclosure.v.upper,
+                    lowerEndpoint.v,
+                    upperEndpoint.v
+                ).nextUp
+            )
+            result.append(SurfaceParameterCurveEnclosure(
+                lowerFraction: enclosure.lowerFraction,
+                upperFraction: enclosure.upperFraction,
+                u: alignedU,
+                v: alignedV
+            ))
+            referenceLongitude = alignedU.midpoint
+        }
+        return result
+    }
+
+    private func sphericalParameterEnclosureEndpoint(
+        cosine: Vector3D,
+        sine: Vector3D,
+        parameter: Double,
+        approachDirection: Double,
+        longitudeReference: Double
+    ) -> SurfaceParameter {
+        let radial = cosine * cos(parameter) + sine * sin(parameter)
+        var longitude = sphericalEndpointLongitude(
+            cosine: cosine,
+            sine: sine,
+            parameter: parameter,
+            approachDirection: approachDirection
+        )
+        longitude += round(
+            (longitudeReference - longitude) / (2.0 * Double.pi)
+        ) * (2.0 * Double.pi)
+        return SurfaceParameter(
+            u: longitude,
+            v: asin(min(max(radial.z, -1.0), 1.0))
+        )
+    }
+
+    private func meridianParameterEnclosures(
+        cosine: Vector3D,
+        sine: Vector3D,
+        startParameter: Double,
+        endParameter: Double
+    ) throws -> [SurfaceParameterCurveEnclosure]? {
+        let verticalRadius = hypot(cosine.z, sine.z)
+        let longitudeNumerator = cosine.x * sine.y - cosine.y * sine.x
+        let machineTolerance = Double.ulpOfOne * 16_384.0
+        guard abs(verticalRadius - 1.0) <= machineTolerance,
+              abs(longitudeNumerator) <= machineTolerance else {
+            return nil
+        }
+        let ascendingLower = min(startParameter, endParameter)
+        let ascendingUpper = max(startParameter, endParameter)
+        let phase = atan2(cosine.z, sine.z)
+        var ascendingBreakpoints = [ascendingLower]
+        let firstIndex = Int(ceil(
+            (ascendingLower + phase - Double.pi * 0.5) / Double.pi
+        ))
+        let lastIndex = Int(floor(
+            (ascendingUpper + phase - Double.pi * 0.5) / Double.pi
+        ))
+        if firstIndex <= lastIndex {
+            for index in firstIndex...lastIndex {
+                let parameter = Double.pi * 0.5 - phase
+                    + Double(index) * Double.pi
+                if parameter > ascendingLower, parameter < ascendingUpper {
+                    ascendingBreakpoints.append(parameter)
+                }
+            }
+        }
+        ascendingBreakpoints.append(ascendingUpper)
+        ascendingBreakpoints.sort()
+        let breakpoints = startParameter <= endParameter
+            ? ascendingBreakpoints
+            : Array(ascendingBreakpoints.reversed())
+        let parameterSpan = endParameter - startParameter
+        var referenceLongitude = sphericalEndpointLongitude(
+            cosine: cosine,
+            sine: sine,
+            parameter: startParameter,
+            approachDirection: parameterSpan > 0.0 ? 1.0 : -1.0
+        )
+        var result: [SurfaceParameterCurveEnclosure] = []
+        for index in 1..<breakpoints.count {
+            let first = breakpoints[index - 1]
+            let second = breakpoints[index]
+            let midpoint = first + (second - first) * 0.5
+            let radial = cosine * cos(midpoint) + sine * sin(midpoint)
+            var longitude = atan2(-radial.x, radial.y)
+            if longitude < 0.0 { longitude += 2.0 * Double.pi }
+            longitude += round(
+                (referenceLongitude - longitude) / (2.0 * Double.pi)
+            ) * (2.0 * Double.pi)
+            referenceLongitude = longitude
+            let firstLatitude = asin(min(max(
+                cosine.z * cos(first) + sine.z * sin(first),
+                -1.0
+            ), 1.0))
+            let secondLatitude = asin(min(max(
+                cosine.z * cos(second) + sine.z * sin(second),
+                -1.0
+            ), 1.0))
+            let firstFraction = (first - startParameter) / parameterSpan
+            let secondFraction = (second - startParameter) / parameterSpan
+            result.append(SurfaceParameterCurveEnclosure(
+                lowerFraction: min(firstFraction, secondFraction),
+                upperFraction: max(firstFraction, secondFraction),
+                u: try ScalarInterval(
+                    lower: longitude.nextDown,
+                    upper: longitude.nextUp
+                ),
+                v: try ScalarInterval(
+                    lower: min(firstLatitude, secondLatitude).nextDown,
+                    upper: max(firstLatitude, secondLatitude).nextUp
+                )
+            ))
+        }
+        return result.sorted { $0.lowerFraction < $1.lowerFraction }
+    }
+
+    private func sphericalEndpointLongitude(
+        cosine: Vector3D,
+        sine: Vector3D,
+        parameter: Double,
+        approachDirection: Double
+    ) -> Double {
+        let radial = cosine * cos(parameter) + sine * sin(parameter)
+        let horizontalLength = hypot(radial.x, radial.y)
+        let direction: Vector3D
+        if horizontalLength <= 1.0e-12 {
+            let derivative = cosine * -sin(parameter) + sine * cos(parameter)
+            direction = derivative * approachDirection
+        } else {
+            direction = radial
+        }
+        var longitude = atan2(-direction.x, direction.y)
+        if longitude < 0.0 { longitude += 2.0 * Double.pi }
+        return longitude
+    }
+
     func bounds(
+        for curve: SurfaceParameterCurve,
+        integrand: Integrand,
+        requestedWidth: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Interval? {
+        if integrand.usesPeriodicBoundaryGauge {
+            return try periodicBoundaryGaugeBounds(
+                for: curve,
+                integrand: integrand,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
+        }
+        return try greenPrimitiveBounds(
+            for: curve,
+            integrand: integrand,
+            requestedWidth: requestedWidth,
+            tolerance: tolerance
+        )
+    }
+
+    private func greenPrimitiveBounds(
         for curve: SurfaceParameterCurve,
         integrand: Integrand,
         requestedWidth: Double,
@@ -306,7 +631,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 tolerance: tolerance
             )
         case let .certifiedAnalyticPair(certified):
-            return try CertifiedAnalyticPairPcurveAreaIntegrator().fluxBounds(
+            return try analyticPairFluxBounds(
                 for: certified,
                 integrand: integrand,
                 requestedWidth: requestedWidth,
@@ -325,6 +650,13 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
             // the parametric-surface volume path. This analytic caller must
             // treat nil as unsupported and cannot report a successful result.
             return nil
+        case let .rigidImage(image):
+            return try rigidImageBounds(
+                image: image,
+                integrand: integrand,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
         case let .projectedAnalytic(projected):
             return try adaptiveJetBounds(
                 requestedWidth: requestedWidth,
@@ -341,11 +673,28 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                     v: parameters.v
                 ) * parameters.v.derivative()
             }
+        case let .sameParameterImage(image):
+            return try bounds(
+                for: image.source,
+                integrand: integrand,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
         case let .periodicTranslation(base, uShift, vShift):
+            let correctionBudget = (requestedWidth * 0.25).nextDown
+            guard correctionBudget.isFinite, correctionBudget > 0.0 else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .resourceLimitExceeded,
+                    residual: correctionBudget,
+                    tolerance: tolerance,
+                    message: "Periodic analytic flux could not allocate a finite translation-correction enclosure."
+                )
+            }
             let baseBounds = try bounds(
                 for: base,
                 integrand: integrand,
-                requestedWidth: requestedWidth,
+                requestedWidth: (requestedWidth - correctionBudget).nextDown,
                 tolerance: tolerance
             )
             guard let baseBounds else { return nil }
@@ -354,9 +703,495 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 uShift: uShift,
                 vShift: vShift,
                 integrand: integrand,
+                requestedWidth: correctionBudget,
                 tolerance: tolerance
             )
-            return baseBounds + correction
+            let result = baseBounds + correction
+            guard result.width <= requestedWidth.nextUp else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .resourceLimitExceeded,
+                    residual: result.width,
+                    tolerance: tolerance,
+                    message: "Periodic analytic flux exceeded its composed enclosure width."
+                )
+            }
+            return result
+        }
+    }
+
+    private func analyticPairFluxBounds(
+        for curve: CertifiedAnalyticPairSurfaceParameterCurve,
+        integrand: Integrand,
+        requestedWidth: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Interval {
+        let isReversed = curve.startFraction > curve.endFraction
+        let key = AnalyticPairCacheKey(
+            intersection: curve.intersection,
+            role: curve.role,
+            lowerFraction: min(curve.startFraction, curve.endFraction),
+            upperFraction: max(curve.startFraction, curve.endFraction),
+            integrand: integrand,
+            requestedWidth: requestedWidth,
+            tolerance: tolerance
+        )
+        if let canonical = evaluationCache.analyticPairBounds[key] {
+            return isReversed ? -canonical : canonical
+        }
+        let result = try CertifiedAnalyticPairPcurveAreaIntegrator().fluxBounds(
+            for: curve,
+            integrand: integrand,
+            requestedWidth: requestedWidth,
+            tolerance: tolerance
+        )
+        evaluationCache.analyticPairBounds[key] = isReversed ? -result : result
+        return result
+    }
+
+    private func periodicBoundaryGaugeBounds(
+        for curve: SurfaceParameterCurve,
+        integrand: Integrand,
+        requestedWidth: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Interval? {
+        try tolerance.validate()
+        guard requestedWidth.isFinite, requestedWidth > 0.0 else {
+            throw KernelError(
+                phase: .topology,
+                code: .invalidInput,
+                residual: requestedWidth,
+                tolerance: tolerance,
+                message: "Periodic analytic flux requires a finite positive enclosure width."
+            )
+        }
+        switch curve {
+        case let .certifiedAnalyticPair(certified):
+            return try analyticPairFluxBounds(
+                for: certified,
+                integrand: integrand,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
+        case let .sameParameterImage(image):
+            return try periodicBoundaryGaugeBounds(
+                for: image.source,
+                integrand: integrand,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
+        case let .periodicTranslation(base, uShift, vShift):
+            let period = 2.0 * Double.pi
+            let turns = uShift / period
+            guard uShift.isFinite,
+                  vShift.isFinite,
+                  abs(turns - turns.rounded()) <= tolerance.relative else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .invalidInput,
+                    residual: max(abs(uShift), abs(vShift)),
+                    tolerance: tolerance,
+                    message: "A periodic analytic pcurve translation must preserve its whole-turn U chart."
+                )
+            }
+            if vShift != 0.0 {
+                let vTurns = vShift / period
+                guard case .torus = integrand,
+                      abs(vTurns - vTurns.rounded()) <= tolerance.relative else {
+                    throw KernelError(
+                        phase: .topology,
+                        code: .invalidInput,
+                        residual: vShift,
+                        tolerance: tolerance,
+                        message: "Only a torus pcurve can receive a whole-turn V translation."
+                    )
+                }
+            }
+            let correctionBudget = (requestedWidth * 0.25).nextDown
+            let baseBounds = try periodicBoundaryGaugeBounds(
+                for: base,
+                integrand: integrand,
+                requestedWidth: (requestedWidth - correctionBudget).nextDown,
+                tolerance: tolerance
+            )
+            guard let baseBounds else { return nil }
+            let correction = try periodicBoundaryTranslationFluxCorrection(
+                base: base,
+                uShift: uShift,
+                vShift: vShift,
+                integrand: integrand,
+                requestedWidth: correctionBudget,
+                tolerance: tolerance
+            )
+            let result = baseBounds + correction
+            guard result.width <= requestedWidth.nextUp else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .resourceLimitExceeded,
+                    residual: result.width,
+                    tolerance: tolerance,
+                    message: "Periodic analytic flux exceeded its composed enclosure width."
+                )
+            }
+            return result
+        default:
+            let correction = try periodicBoundaryGaugeCorrection(
+                for: curve,
+                integrand: integrand,
+                tolerance: tolerance
+            )
+            let remainingWidth = (requestedWidth - correction.width).nextDown
+            guard remainingWidth.isFinite, remainingWidth > 0.0 else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .resourceLimitExceeded,
+                    residual: correction.width,
+                    tolerance: tolerance,
+                    message: "Periodic analytic flux exhausted its enclosure width in the exact boundary-gauge correction."
+                )
+            }
+            guard let primitiveBounds = try greenPrimitiveBounds(
+                for: curve,
+                integrand: integrand,
+                requestedWidth: remainingWidth,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            let result = primitiveBounds + correction
+            guard result.width <= requestedWidth.nextUp else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .resourceLimitExceeded,
+                    residual: result.width,
+                    tolerance: tolerance,
+                    message: "Periodic analytic flux exceeded its composed enclosure width."
+                )
+            }
+            return result
+        }
+    }
+
+    private func periodicBoundaryGaugeCorrection(
+        for curve: SurfaceParameterCurve,
+        integrand: Integrand,
+        tolerance: ModelingTolerance
+    ) throws -> Interval {
+        let start = try curve.parameter(
+            atNormalizedFraction: 0.0,
+            tolerance: tolerance
+        )
+        let end = try curve.parameter(
+            atNormalizedFraction: 1.0,
+            tolerance: tolerance
+        )
+        let startPotential = integrand.periodicBoundaryGaugePotential(
+            u: .floating(start.u),
+            v: .floating(start.v)
+        )
+        let endPotential = integrand.periodicBoundaryGaugePotential(
+            u: .floating(end.u),
+            v: .floating(end.v)
+        )
+        return endPotential - startPotential
+    }
+
+    private func periodicBoundaryTranslationFluxCorrection(
+        base: SurfaceParameterCurve,
+        uShift: Double,
+        vShift: Double,
+        integrand: Integrand,
+        requestedWidth: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Interval {
+        if abs(uShift) <= tolerance.relative {
+            return .exact(0.0)
+        }
+        guard requestedWidth.isFinite, requestedWidth > 0.0 else {
+            throw KernelError(
+                phase: .topology,
+                code: .invalidInput,
+                residual: requestedWidth,
+                tolerance: tolerance,
+                message: "Periodic analytic flux requires a finite positive translation-correction width."
+            )
+        }
+        var maximumEndpointWidth = min(
+            1.0e-3,
+            requestedWidth / max(abs(uShift), 1.0)
+        )
+        for _ in 0..<16 {
+            let endpoints = try continuousEndpointVEnclosures(
+                for: base,
+                maximumWidth: maximumEndpointWidth,
+                tolerance: tolerance
+            )
+            let shiftedStartV = Interval(
+                lower: (endpoints.start.lower + vShift).nextDown,
+                upper: (endpoints.start.upper + vShift).nextUp
+            )
+            let shiftedEndV = Interval(
+                lower: (endpoints.end.lower + vShift).nextDown,
+                upper: (endpoints.end.upper + vShift).nextUp
+            )
+            let correction = integrand.periodicBoundaryVerticalIntegral(
+                u: .floating(uShift),
+                vStart: shiftedStartV,
+                vEnd: shiftedEndV
+            ) - integrand.periodicBoundaryVerticalIntegral(
+                u: .exact(0.0),
+                vStart: shiftedStartV,
+                vEnd: shiftedEndV
+            )
+            if correction.width <= requestedWidth.nextUp {
+                return correction
+            }
+            maximumEndpointWidth *= 0.25
+        }
+        throw KernelError(
+            phase: .topology,
+            code: .resourceLimitExceeded,
+            residual: maximumEndpointWidth,
+            tolerance: tolerance,
+            message: "Periodic analytic flux could not certify translated endpoint lifts within its correction budget."
+        )
+    }
+
+    /// Certifies `integral u dv` directly from outward-rounded homogeneous
+    /// Bezier patches. This is the proof boundary used by rational revolution
+    /// moments; materializing nominal Euclidean control points here would lose
+    /// the extraction and Bernstein-product rounding enclosure.
+    func parameterAreaBounds(
+        for patches: [HomogeneousPatch],
+        requestedWidth: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterAreaBounds {
+        try tolerance.validate()
+        guard patches.isEmpty == false,
+              requestedWidth.isFinite,
+              requestedWidth > 0.0 else {
+            throw KernelError(
+                phase: .topology,
+                code: .invalidInput,
+                residual: requestedWidth,
+                tolerance: tolerance,
+                message: "Certified rational parameter-area integration requires patches and a finite positive width."
+            )
+        }
+        let preparedPatches = try patches.map {
+            try prepareRationalPcurvePatch($0, tolerance: tolerance)
+        }
+        let area = try adaptiveJetBoundsShared(
+            requestedWidth: requestedWidth,
+            tolerance: tolerance,
+            evaluators: preparedPatches.map { patch in
+                { fraction in
+                    try self.rationalFluxJet(
+                        patch: patch,
+                        parameter: fraction.coefficients[0],
+                        integrand: .plane(volumeScale: .exact(1.0)),
+                        tolerance: tolerance
+                    )
+                }
+            }
+        )
+        return SurfaceParameterAreaBounds(lower: area.lower, upper: area.upper)
+    }
+
+    private func rigidImageBounds(
+        image: RigidImageSurfaceParameterCurve,
+        integrand: Integrand,
+        requestedWidth: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Interval {
+        var remainingItems = maximumWorkItems
+        var stack = [RigidImageWorkItem(
+            lowerFraction: 0.0,
+            upperFraction: 1.0,
+            requestedWidth: requestedWidth,
+            depth: 0
+        )]
+        var result = Interval.exact(0.0)
+        while let item = stack.popLast() {
+            guard remainingItems > 0 else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .resourceLimitExceeded,
+                    tolerance: tolerance,
+                    message: "Rigid-image analytic flux integration exceeded its work-item budget."
+                )
+            }
+            remainingItems -= 1
+            let localImage = try image.subcurve(
+                fromNormalizedFraction: item.lowerFraction,
+                toNormalizedFraction: item.upperFraction,
+                tolerance: tolerance
+            )
+            let enclosures = try CertifiedSurfaceParameterCurveEncloser()
+                .enclosures(
+                    for: .rigidImage(localImage),
+                    maximumWidth: 0.25,
+                    tolerance: tolerance
+                )
+            if enclosures.count != 1 {
+                guard item.depth < maximumDepth,
+                      enclosures.isEmpty == false else {
+                    throw KernelError(
+                        phase: .topology,
+                        code: .resourceLimitExceeded,
+                        tolerance: tolerance,
+                        message: "Rigid-image analytic flux subdivision did not converge to one certified chart cell."
+                    )
+                }
+                for enclosure in enclosures.reversed() {
+                    let span = item.upperFraction - item.lowerFraction
+                    let lower = item.lowerFraction
+                        + span * enclosure.lowerFraction
+                    let upper = item.lowerFraction
+                        + span * enclosure.upperFraction
+                    stack.append(RigidImageWorkItem(
+                        lowerFraction: lower,
+                        upperFraction: upper,
+                        requestedWidth: item.requestedWidth
+                            * (enclosure.upperFraction - enclosure.lowerFraction),
+                        depth: item.depth + 1
+                    ))
+                }
+                continue
+            }
+            let enclosure = enclosures[0]
+            let lower = item.lowerFraction
+            let upper = item.upperFraction
+            let midpoint = lower + (upper - lower) * 0.5
+            guard let derivativeBound = try image
+                .modelSpaceFirstDerivativeMagnitude(
+                    fromNormalizedFraction: lower,
+                    toNormalizedFraction: upper,
+                    tolerance: tolerance
+                ), let metricLower = minimumMetricScale(
+                    surface: image.targetSurface,
+                    enclosure: enclosure
+                ), metricLower > 0.0 else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .singularSystem,
+                    tolerance: tolerance,
+                    message: "Rigid-image analytic flux reached a singular target parameter chart."
+                )
+            }
+            let middleParameter = try image.parameter(
+                atNormalizedFraction: midpoint,
+                tolerance: tolerance
+            )
+            let startParameter = try image.parameter(
+                atNormalizedFraction: lower,
+                tolerance: tolerance
+            )
+            let endParameter = try image.parameter(
+                atNormalizedFraction: upper,
+                tolerance: tolerance
+            )
+            let qBounds = integrand.greenPrimitive(
+                u: Interval(
+                    lower: enclosure.u.lower,
+                    upper: enclosure.u.upper
+                ),
+                v: Interval(
+                    lower: enclosure.v.lower,
+                    upper: enclosure.v.upper
+                )
+            )
+            let qMiddle = integrand.greenPrimitive(
+                u: .exact(middleParameter.u),
+                v: .exact(middleParameter.v)
+            )
+            let deltaV = Interval.floating(
+                endParameter.v - startParameter.v
+            )
+            let central = qMiddle * deltaV
+            let qDeviation = max(
+                abs(qBounds.lower - qMiddle.upper),
+                abs(qBounds.upper - qMiddle.lower)
+            ).nextUp
+            let parameterVariation = (
+                derivativeBound / metricLower * (upper - lower)
+            ).nextUp
+            let error = (qDeviation * parameterVariation).nextUp
+            let contribution = central + Interval(
+                lower: (-error).nextDown,
+                upper: error.nextUp
+            )
+            if contribution.width <= item.requestedWidth {
+                result = result + contribution
+                continue
+            }
+            guard item.depth < maximumDepth else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .resourceLimitExceeded,
+                    residual: contribution.width,
+                    tolerance: tolerance,
+                    message: "Rigid-image analytic flux exceeded its subdivision depth before reaching the requested enclosure width."
+                )
+            }
+            let split = midpoint
+            stack.append(RigidImageWorkItem(
+                lowerFraction: split,
+                upperFraction: upper,
+                requestedWidth: item.requestedWidth * 0.5,
+                depth: item.depth + 1
+            ))
+            stack.append(RigidImageWorkItem(
+                lowerFraction: lower,
+                upperFraction: split,
+                requestedWidth: item.requestedWidth * 0.5,
+                depth: item.depth + 1
+            ))
+        }
+        return result
+    }
+
+    private func minimumMetricScale(
+        surface: Surface3D,
+        enclosure: SurfaceParameterCurveEnclosure
+    ) -> Double? {
+        switch surface {
+        case .plane, .analytic(.plane):
+            return 1.0
+        case let .cylinder(cylinder):
+            return min(cylinder.radius, 1.0).nextDown
+        case let .analytic(.cylinder(_, _, radius)):
+            return min(radius, 1.0).nextDown
+        case let .analytic(.cone(_, _, halfAngle)):
+            let minimumAbsoluteV: Double
+            if enclosure.v.lower <= 0.0, enclosure.v.upper >= 0.0 {
+                minimumAbsoluteV = 0.0
+            } else {
+                minimumAbsoluteV = min(
+                    abs(enclosure.v.lower),
+                    abs(enclosure.v.upper)
+                )
+            }
+            return min(
+                1.0,
+                minimumAbsoluteV * abs(sin(halfAngle))
+            ).nextDown
+        case let .analytic(.sphere(_, radius)):
+            let maximumAbsoluteV = max(
+                abs(enclosure.v.lower),
+                abs(enclosure.v.upper)
+            )
+            return (radius * max(0.0, cos(min(
+                maximumAbsoluteV,
+                Double.pi * 0.5
+            )))).nextDown
+        case let .analytic(.torus(_, _, majorRadius, minorRadius)):
+            return min(
+                minorRadius,
+                majorRadius - minorRadius
+            ).nextDown
+        case .analytic, .bSpline, .procedural:
+            return nil
         }
     }
 
@@ -365,6 +1200,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         uShift: Double,
         vShift: Double,
         integrand: Integrand,
+        requestedWidth: Double,
         tolerance: ModelingTolerance
     ) throws -> Interval {
         let period = 2.0 * Double.pi
@@ -395,24 +1231,53 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         }
         if uShift == 0.0 { return .exact(0.0) }
         guard case .plane = integrand else {
-            let start = try base.parameter(
-                atNormalizedFraction: 0.0,
-                tolerance: tolerance
+            guard requestedWidth.isFinite, requestedWidth > 0.0 else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .invalidInput,
+                    residual: requestedWidth,
+                    tolerance: tolerance,
+                    message: "Periodic analytic flux requires a finite positive correction width."
+                )
+            }
+            var maximumEndpointWidth = min(
+                1.0e-3,
+                requestedWidth / max(abs(uShift), 1.0)
             )
-            let end = try base.parameter(
-                atNormalizedFraction: 1.0,
-                tolerance: tolerance
-            )
-            let shiftedStartV = Interval.exact(start.v + vShift)
-            let shiftedEndV = Interval.exact(end.v + vShift)
-            return integrand.verticalBoundaryIntegral(
-                u: .exact(uShift),
-                vStart: shiftedStartV,
-                vEnd: shiftedEndV
-            ) - integrand.verticalBoundaryIntegral(
-                u: .exact(0.0),
-                vStart: shiftedStartV,
-                vEnd: shiftedEndV
+            for _ in 0..<16 {
+                let endpoints = try continuousEndpointVEnclosures(
+                    for: base,
+                    maximumWidth: maximumEndpointWidth,
+                    tolerance: tolerance
+                )
+                let shiftedStartV = Interval(
+                    lower: (endpoints.start.lower + vShift).nextDown,
+                    upper: (endpoints.start.upper + vShift).nextUp
+                )
+                let shiftedEndV = Interval(
+                    lower: (endpoints.end.lower + vShift).nextDown,
+                    upper: (endpoints.end.upper + vShift).nextUp
+                )
+                let correction = integrand.verticalBoundaryIntegral(
+                    u: .exact(uShift),
+                    vStart: shiftedStartV,
+                    vEnd: shiftedEndV
+                ) - integrand.verticalBoundaryIntegral(
+                    u: .exact(0.0),
+                    vStart: shiftedStartV,
+                    vEnd: shiftedEndV
+                )
+                if correction.width <= requestedWidth.nextUp {
+                    return correction
+                }
+                maximumEndpointWidth *= 0.25
+            }
+            throw KernelError(
+                phase: .topology,
+                code: .resourceLimitExceeded,
+                residual: maximumEndpointWidth,
+                tolerance: tolerance,
+                message: "Periodic analytic flux could not certify continuous endpoint lifts within its correction budget."
             )
         }
         throw KernelError(
@@ -422,6 +1287,65 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
             tolerance: tolerance,
             message: "A planar analytic flux cannot receive a periodic U translation."
         )
+    }
+
+    /// Returns endpoint V coordinates in the curve's certified continuous
+    /// universal-cover chart. Direct endpoint evaluation is intentionally not
+    /// used: periodic analytic pcurves report principal representatives, and
+    /// a seam endpoint can therefore differ from the traversed lift by one
+    /// whole period. Borrowed endpoint neighborhoods retain the geometric
+    /// proof sheet without constructing tolerance-sized topology curves.
+    private func continuousEndpointVEnclosures(
+        for curve: SurfaceParameterCurve,
+        maximumWidth: Double,
+        tolerance: ModelingTolerance
+    ) throws -> (start: ScalarInterval, end: ScalarInterval) {
+        let minimumSpan = Double.ulpOfOne * 64.0
+        let endpointSpan = min(
+            1.0e-6,
+            max(maximumEndpointSpan(maximumWidth), minimumSpan)
+        )
+        guard endpointSpan < 1.0,
+              1.0 - endpointSpan < 1.0 else {
+            throw KernelError(
+                phase: .topology,
+                code: .resourceLimitExceeded,
+                residual: endpointSpan,
+                tolerance: tolerance,
+                message: "Periodic analytic flux reached normalized endpoint resolution."
+            )
+        }
+        let encloser = CertifiedSurfaceParameterCurveEncloser()
+        let startEnclosures = try encloser.vEnclosures(
+            for: curve,
+            fromNormalizedFraction: 0.0,
+            toNormalizedFraction: endpointSpan,
+            maximumWidth: maximumWidth,
+            tolerance: tolerance
+        )
+        let endEnclosures = try encloser.vEnclosures(
+            for: curve,
+            fromNormalizedFraction: 1.0 - endpointSpan,
+            toNormalizedFraction: 1.0,
+            maximumWidth: maximumWidth,
+            tolerance: tolerance
+        )
+        guard let start = startEnclosures.first,
+              let end = endEnclosures.last,
+              abs(start.lowerFraction) <= tolerance.relative,
+              abs(end.upperFraction - 1.0) <= tolerance.relative else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: tolerance,
+                message: "Periodic analytic flux received incomplete endpoint lift certificates."
+            )
+        }
+        return (start.v, end.v)
+    }
+
+    private func maximumEndpointSpan(_ maximumWidth: Double) -> Double {
+        (maximumWidth * 0.01).nextDown
     }
 
     func projectedParameterAreaBounds(
@@ -595,8 +1519,16 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
              .certifiedImplicit,
              .certifiedAnalyticImplicit,
              .certifiedAnalyticPair,
-             .projectedAnalytic:
+             .projectedAnalytic,
+             .rigidImage:
             return nil
+        case let .sameParameterImage(image):
+            return try polynomialBounds(
+                for: image.source,
+                primitive: primitive,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
         case let .periodicTranslation(base, uShift, vShift):
             guard uShift == 0.0, vShift == 0.0 else {
                 throw KernelError(
@@ -795,6 +1727,26 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
              .certifiedAnalyticPair,
              .projectedAnalytic:
             return nil
+        case let .rigidImage(image):
+            guard try image.affineParameterTransform(tolerance: tolerance)
+                    == .identity else {
+                return nil
+            }
+            return try rationalSurfaceBounds(
+                for: image.sourceParameterCurve(tolerance: tolerance),
+                field: field,
+                uBase: uBase,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
+        case let .sameParameterImage(image):
+            return try rationalSurfaceBounds(
+                for: image.source,
+                field: field,
+                uBase: uBase,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
         case let .periodicTranslation(base, uShift, vShift):
             guard uShift == 0.0, vShift == 0.0 else {
                 throw KernelError(
@@ -811,6 +1763,211 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 requestedWidth: requestedWidth,
                 tolerance: tolerance
             )
+        }
+    }
+
+    func proceduralSurfaceBounds(
+        for curve: SurfaceParameterCurve,
+        surface: Surface3D,
+        reference: Point3D,
+        uBase: Double,
+        requestedWidth: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Interval? {
+        try tolerance.validate()
+        guard case .procedural = surface,
+              uBase.isFinite,
+              requestedWidth.isFinite,
+              requestedWidth > 0.0 else {
+            throw KernelError(
+                phase: .topology,
+                code: .invalidInput,
+                residual: requestedWidth,
+                tolerance: tolerance,
+                message: "Certified procedural pcurve flux requires a procedural surface, finite base, and positive enclosure width."
+            )
+        }
+        switch curve {
+        case let .constantU(u, vStart, vEnd):
+            return try proceduralSurfaceExplicitBounds(
+                surface: surface,
+                reference: reference,
+                uBase: uBase,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            ) { fraction in
+                (
+                    .constant(u),
+                    .constant(vStart)
+                        + .constant(Interval.exact(vEnd) - .exact(vStart)) * fraction
+                )
+            }
+        case .constantV:
+            return .exact(0.0)
+        case let .affine(origin, direction, startParameter, endParameter):
+            return try proceduralSurfaceExplicitBounds(
+                surface: surface,
+                reference: reference,
+                uBase: uBase,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            ) { fraction in
+                let span = Jet.constant(
+                    Interval.exact(endParameter) - .exact(startParameter)
+                )
+                let parameter = Jet.constant(startParameter) + span * fraction
+                return (
+                    Jet.constant(origin.x) + Jet.constant(direction.x) * parameter,
+                    Jet.constant(origin.y) + Jet.constant(direction.y) * parameter
+                )
+            }
+        case let .harmonic(center, cosine, sine, startParameter, endParameter):
+            return try proceduralSurfaceExplicitBounds(
+                surface: surface,
+                reference: reference,
+                uBase: uBase,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            ) { fraction in
+                let span = Jet.constant(
+                    Interval.exact(endParameter) - .exact(startParameter)
+                )
+                let parameter = Jet.constant(startParameter) + span * fraction
+                let values = parameter.sineAndCosine()
+                return (
+                    Jet.constant(center.x)
+                        + Jet.constant(cosine.x) * values.cosine
+                        + Jet.constant(sine.x) * values.sine,
+                    Jet.constant(center.y)
+                        + Jet.constant(cosine.y) * values.cosine
+                        + Jet.constant(sine.y) * values.sine
+                )
+            }
+        case let .polyline(points):
+            guard points.count >= 2 else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .invalidInput,
+                    residual: Double(points.count),
+                    tolerance: tolerance,
+                    message: "Certified procedural polyline flux requires at least two points."
+                )
+            }
+            let segmentWidth = requestedWidth / Double(points.count - 1)
+            var result = Interval.exact(0.0)
+            for index in 1..<points.count {
+                let start = points[index - 1]
+                let end = points[index]
+                result = result + (try proceduralSurfaceExplicitBounds(
+                    surface: surface,
+                    reference: reference,
+                    uBase: uBase,
+                    requestedWidth: segmentWidth,
+                    tolerance: tolerance
+                ) { fraction in
+                    (
+                        .constant(start.u)
+                            + .constant(Interval.exact(end.u) - .exact(start.u)) * fraction,
+                        .constant(start.v)
+                            + .constant(Interval.exact(end.v) - .exact(start.v)) * fraction
+                    )
+                })
+            }
+            return result
+        case let .bSpline(spline):
+            let patches = try CertifiedBSplineCurveBezierExtractor().patches(
+                curve: spline,
+                tolerance: tolerance
+            )
+            guard patches.isEmpty == false else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
+                    tolerance: tolerance,
+                    message: "Certified procedural B-spline flux found no active Bezier span."
+                )
+            }
+            let patchWidth = requestedWidth / Double(patches.count)
+            var result = Interval.exact(0.0)
+            for patch in patches {
+                let prepared = try prepareRationalPcurvePatch(
+                    patch,
+                    tolerance: tolerance
+                )
+                result = result + (try proceduralSurfaceExplicitBounds(
+                    surface: surface,
+                    reference: reference,
+                    uBase: uBase,
+                    requestedWidth: patchWidth,
+                    tolerance: tolerance
+                ) { fraction in
+                    try rationalPcurveJets(
+                        patch: prepared,
+                        parameter: fraction.coefficients[0],
+                        tolerance: tolerance
+                    )
+                })
+            }
+            return result
+        case let .rigidImage(image):
+            guard try image.affineParameterTransform(tolerance: tolerance)
+                    == .identity else {
+                return nil
+            }
+            return try proceduralSurfaceBounds(
+                for: image.sourceParameterCurve(tolerance: tolerance),
+                surface: surface,
+                reference: reference,
+                uBase: uBase,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
+        case let .sameParameterImage(image):
+            return try proceduralSurfaceBounds(
+                for: image.source,
+                surface: surface,
+                reference: reference,
+                uBase: uBase,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
+        case let .periodicTranslation(base, uShift, vShift):
+            let materialized = curve.materializingPeriodicTranslation()
+            if materialized == curve,
+               case let .rigidImage(image) = base,
+               try image.affineParameterTransform(tolerance: tolerance) == .identity {
+                let sourceCurve = try image.sourceParameterCurve(tolerance: tolerance)
+                let untranslated = SurfaceParameterCurve.periodicTranslation(
+                    base: sourceCurve,
+                    uShift: uShift,
+                    vShift: vShift
+                )
+                let translatedSource = untranslated.materializingPeriodicTranslation()
+                guard translatedSource != untranslated else {
+                    return nil
+                }
+                return try proceduralSurfaceBounds(
+                    for: translatedSource,
+                    surface: surface,
+                    reference: reference,
+                    uBase: uBase,
+                    requestedWidth: requestedWidth,
+                    tolerance: tolerance
+                )
+            }
+            guard materialized != curve else { return nil }
+            return try proceduralSurfaceBounds(
+                for: materialized,
+                surface: surface,
+                reference: reference,
+                uBase: uBase,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
+        case .sphericalGreatCircle, .certifiedImplicit,
+             .certifiedAnalyticImplicit, .certifiedAnalyticPair,
+             .projectedAnalytic:
+            return nil
         }
     }
 
@@ -957,6 +2114,26 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
              .certifiedAnalyticPair,
              .projectedAnalytic:
             return nil
+        case let .rigidImage(image):
+            guard try image.affineParameterTransform(tolerance: tolerance)
+                    == .identity else {
+                return nil
+            }
+            return try rationalPlanarAreaBounds(
+                for: image.sourceParameterCurve(tolerance: tolerance),
+                field: field,
+                projection: projection,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
+        case let .sameParameterImage(image):
+            return try rationalPlanarAreaBounds(
+                for: image.source,
+                field: field,
+                projection: projection,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
         case let .periodicTranslation(base, uShift, vShift):
             guard uShift == 0.0, vShift == 0.0 else {
                 throw KernelError(
@@ -1136,6 +2313,390 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 )
             }
         )
+    }
+
+    private func proceduralSurfaceExplicitBounds(
+        surface: Surface3D,
+        reference: Point3D,
+        uBase: Double,
+        requestedWidth: Double,
+        tolerance: ModelingTolerance,
+        parameterEvaluator: (Jet) throws -> (u: Jet, v: Jet)
+    ) throws -> Interval {
+        struct WorkItem {
+            let lambdaLower: Double
+            let lambdaUpper: Double
+            let curveLower: Double
+            let curveUpper: Double
+            let depth: Int
+            let enclosure: Interval
+            let lambdaError: Double
+            let curveError: Double
+
+            var width: Double { enclosure.width }
+        }
+
+        func positiveScalarInterval(
+            _ source: Interval,
+            domain: ParameterDomain,
+            tolerance: ModelingTolerance
+        ) throws -> ScalarInterval {
+            var lower = source.lower
+            var upper = source.upper
+            if case let .closed(domainLower, domainUpper) = domain {
+                let scale = max(
+                    abs(domainLower),
+                    abs(domainUpper),
+                    abs(lower),
+                    abs(upper),
+                    1.0
+                )
+                let slack = max(
+                    tolerance.relative * scale,
+                    Double.ulpOfOne * scale * 4_096.0
+                )
+                guard lower >= domainLower - slack,
+                      upper <= domainUpper + slack else {
+                    throw KernelError(
+                        phase: .topology,
+                        code: .invalidInput,
+                        tolerance: tolerance,
+                        message: "Certified procedural pcurve flux midpoint left the surface parameter domain."
+                    )
+                }
+                lower = max(lower, domainLower)
+                upper = min(upper, domainUpper)
+                if lower == upper {
+                    if upper < domainUpper {
+                        upper = min(domainUpper, upper.nextUp)
+                    } else if lower > domainLower {
+                        lower = max(domainLower, lower.nextDown)
+                    }
+                }
+            } else if lower == upper {
+                lower = lower.nextDown
+                upper = upper.nextUp
+            }
+            guard lower.isFinite,
+                  upper.isFinite,
+                  upper > lower else {
+                throw resourceFailure(
+                    residual: upper - lower,
+                    tolerance: tolerance,
+                    message: "Certified procedural pcurve flux midpoint requires a positive finite parameter interval."
+                )
+            }
+            return try ScalarInterval(lower: lower, upper: upper)
+        }
+
+        func enclosed(
+            lambdaLower: Double,
+            lambdaUpper: Double,
+            curveLower: Double,
+            curveUpper: Double,
+            depth: Int
+        ) throws -> WorkItem {
+            let curve = try parameterEvaluator(.variable(Interval(
+                lower: curveLower,
+                upper: curveUpper
+            )))
+            let u = curve.u.coefficients[0]
+            let v = curve.v.coefficients[0]
+            let vDerivative = curve.v.derivative().coefficients[0]
+            let deltaU = u - .exact(uBase)
+            if deltaU.lower == 0.0, deltaU.upper == 0.0 {
+                return WorkItem(
+                    lambdaLower: lambdaLower,
+                    lambdaUpper: lambdaUpper,
+                    curveLower: curveLower,
+                    curveUpper: curveUpper,
+                    depth: depth,
+                    enclosure: .exact(0.0),
+                    lambdaError: 0.0,
+                    curveError: 0.0
+                )
+            }
+            if vDerivative.lower == 0.0, vDerivative.upper == 0.0 {
+                return WorkItem(
+                    lambdaLower: lambdaLower,
+                    lambdaUpper: lambdaUpper,
+                    curveLower: curveLower,
+                    curveUpper: curveUpper,
+                    depth: depth,
+                    enclosure: .exact(0.0),
+                    lambdaError: 0.0,
+                    curveError: 0.0
+                )
+            }
+            let lambda = Interval(
+                lower: lambdaLower,
+                upper: lambdaUpper
+            )
+            let mappedU = Interval.exact(uBase) + lambda * deltaU
+            guard mappedU.width > 0.0, v.width > 0.0 else {
+                throw resourceFailure(
+                    residual: max(mappedU.width, v.width),
+                    tolerance: tolerance,
+                    message: "Certified procedural pcurve flux could not form a positive parameter cell."
+                )
+            }
+            let differential = try SurfaceFluxDifferentialEncloser().enclosure(
+                of: surface,
+                over: SurfaceParameterBox(
+                    u: try positiveScalarInterval(
+                        mappedU,
+                        domain: surface.uDomain,
+                        tolerance: tolerance
+                    ),
+                    v: try positiveScalarInterval(
+                        v,
+                        domain: surface.vDomain,
+                        tolerance: tolerance
+                    )
+                ),
+                relativeTo: reference,
+                tolerance: tolerance
+            )
+            let cellArea = (lambdaUpper - lambdaLower)
+                * (curveUpper - curveLower)
+            let flux = Interval(
+                lower: differential.value.lower,
+                upper: differential.value.upper
+            )
+            let rangeContribution = flux * deltaU * vDerivative
+                * .floating(cellArea)
+            let firstU = Interval(
+                lower: differential.firstDerivativeU.lower,
+                upper: differential.firstDerivativeU.upper
+            )
+            let firstV = Interval(
+                lower: differential.firstDerivativeV.lower,
+                upper: differential.firstDerivativeV.upper
+            )
+            let secondUU = Interval(
+                lower: differential.secondDerivativeUU.lower,
+                upper: differential.secondDerivativeUU.upper
+            )
+            let secondUV = Interval(
+                lower: differential.secondDerivativeUV.lower,
+                upper: differential.secondDerivativeUV.upper
+            )
+            let secondVV = Interval(
+                lower: differential.secondDerivativeVV.lower,
+                upper: differential.secondDerivativeVV.upper
+            )
+            let uFirst = curve.u.derivative().coefficients[0]
+            let uSecond = curve.u.derivative().derivative().coefficients[0]
+            let vSecond = curve.v.derivative().derivative().coefficients[0]
+            let vThird = curve.v.derivative().derivative().derivative()
+                .coefficients[0]
+            let xFirst = lambda * uFirst
+            let xSecond = lambda * uSecond
+            let fluxFirst = firstU * xFirst + firstV * vDerivative
+            let fluxSecond = secondUU * xFirst * xFirst
+                + .floating(2.0) * secondUV * xFirst * vDerivative
+                + secondVV * vDerivative * vDerivative
+                + firstU * xSecond
+                + firstV * vSecond
+            let boundaryFactor = deltaU * vDerivative
+            let boundaryFactorFirst = uFirst * vDerivative
+                + deltaU * vSecond
+            let boundaryFactorSecond = uSecond * vDerivative
+                + .floating(2.0) * uFirst * vSecond
+                + deltaU * vThird
+            let secondCurve = fluxSecond * boundaryFactor
+                + .floating(2.0) * fluxFirst * boundaryFactorFirst
+                + flux * boundaryFactorSecond
+            let secondLambda = secondUU * deltaU * deltaU * deltaU
+                * vDerivative
+            let lambdaSpan = lambdaUpper - lambdaLower
+            let curveSpan = curveUpper - curveLower
+            let lambdaError = (cellArea * secondLambda.maximumAbsolute
+                * lambdaSpan * lambdaSpan / 24.0).nextUp
+            let curveError = (cellArea * secondCurve.maximumAbsolute
+                * curveSpan * curveSpan / 24.0).nextUp
+            let totalError = (lambdaError + curveError).nextUp
+
+            let lambdaMidpoint = lambdaLower + lambdaSpan * 0.5
+            let curveMidpoint = curveLower + curveSpan * 0.5
+            let midpointCurve = try parameterEvaluator(
+                .variable(.floating(curveMidpoint))
+            )
+            let midpointDeltaU = midpointCurve.u.coefficients[0]
+                - .exact(uBase)
+            let midpointMappedU = Interval.exact(uBase)
+                + .floating(lambdaMidpoint) * midpointDeltaU
+            let midpointV = midpointCurve.v.coefficients[0]
+            let midpointFlux = try SurfaceFluxDifferentialEncloser().enclosure(
+                of: surface,
+                over: SurfaceParameterBox(
+                    u: try positiveScalarInterval(
+                        midpointMappedU,
+                        domain: surface.uDomain,
+                        tolerance: tolerance
+                    ),
+                    v: try positiveScalarInterval(
+                        midpointV,
+                        domain: surface.vDomain,
+                        tolerance: tolerance
+                    )
+                ),
+                relativeTo: reference,
+                tolerance: tolerance
+            ).value
+            let midpointEstimate = Interval(
+                lower: midpointFlux.lower,
+                upper: midpointFlux.upper
+            ) * midpointDeltaU
+                * midpointCurve.v.derivative().coefficients[0]
+                * .floating(cellArea)
+            let midpointContribution = midpointEstimate + Interval(
+                lower: (-totalError).nextDown,
+                upper: totalError.nextUp
+            )
+            let lower = max(
+                rangeContribution.lower,
+                midpointContribution.lower
+            )
+            let upper = min(
+                rangeContribution.upper,
+                midpointContribution.upper
+            )
+            guard lower <= upper else {
+                throw resourceFailure(
+                    residual: lower - upper,
+                    tolerance: tolerance,
+                    message: "Certified procedural pcurve flux produced inconsistent independent enclosures."
+                )
+            }
+            let contribution = Interval(lower: lower, upper: upper)
+            guard contribution.lower.isFinite,
+                  contribution.upper.isFinite else {
+                throw resourceFailure(
+                    residual: contribution.width,
+                    tolerance: tolerance,
+                    message: "Certified procedural pcurve flux exceeded finite interval arithmetic."
+                )
+            }
+            return WorkItem(
+                lambdaLower: lambdaLower,
+                lambdaUpper: lambdaUpper,
+                curveLower: curveLower,
+                curveUpper: curveUpper,
+                depth: depth,
+                enclosure: contribution,
+                lambdaError: lambdaError,
+                curveError: curveError
+            )
+        }
+
+        guard maximumWorkItems > 0 else {
+            throw resourceFailure(
+                residual: Double(maximumWorkItems),
+                tolerance: tolerance,
+                message: "Certified procedural pcurve flux has no subdivision budget."
+            )
+        }
+        var heap: [WorkItem] = []
+        func push(_ item: WorkItem) {
+            heap.append(item)
+            var index = heap.count - 1
+            while index > 0 {
+                let parent = (index - 1) / 2
+                guard heap[index].width > heap[parent].width else { break }
+                heap.swapAt(index, parent)
+                index = parent
+            }
+        }
+        func popMaximum() -> WorkItem? {
+            guard heap.isEmpty == false else { return nil }
+            if heap.count == 1 { return heap.removeLast() }
+            let result = heap[0]
+            heap[0] = heap.removeLast()
+            var index = 0
+            while true {
+                let left = index * 2 + 1
+                let right = left + 1
+                var largest = index
+                if left < heap.count, heap[left].width > heap[largest].width {
+                    largest = left
+                }
+                if right < heap.count, heap[right].width > heap[largest].width {
+                    largest = right
+                }
+                guard largest != index else { break }
+                heap.swapAt(index, largest)
+                index = largest
+            }
+            return result
+        }
+        func accumulated() -> Interval {
+            heap.reduce(.exact(0.0)) { $0 + $1.enclosure }
+        }
+
+        push(try enclosed(
+            lambdaLower: 0.0,
+            lambdaUpper: 1.0,
+            curveLower: 0.0,
+            curveUpper: 1.0,
+            depth: 0
+        ))
+        var evaluatedCellCount = 1
+        while accumulated().width > requestedWidth {
+            guard let item = popMaximum() else {
+                throw resourceFailure(
+                    residual: requestedWidth,
+                    tolerance: tolerance,
+                    message: "Certified procedural pcurve flux lost its active subdivision cells."
+                )
+            }
+            guard item.depth < maximumDepth,
+                  evaluatedCellCount + 2 <= maximumWorkItems else {
+                throw resourceFailure(
+                    residual: accumulated().width + item.width,
+                    tolerance: tolerance,
+                    message: "Certified procedural pcurve flux exhausted its adaptive subdivision budget."
+                )
+            }
+            let childDepth = item.depth + 1
+            if item.curveError >= item.lambdaError {
+                let middle = item.curveLower
+                    + (item.curveUpper - item.curveLower) * 0.5
+                push(try enclosed(
+                    lambdaLower: item.lambdaLower,
+                    lambdaUpper: item.lambdaUpper,
+                    curveLower: item.curveLower,
+                    curveUpper: middle,
+                    depth: childDepth
+                ))
+                push(try enclosed(
+                    lambdaLower: item.lambdaLower,
+                    lambdaUpper: item.lambdaUpper,
+                    curveLower: middle,
+                    curveUpper: item.curveUpper,
+                    depth: childDepth
+                ))
+            } else {
+                let middle = item.lambdaLower
+                    + (item.lambdaUpper - item.lambdaLower) * 0.5
+                push(try enclosed(
+                    lambdaLower: item.lambdaLower,
+                    lambdaUpper: middle,
+                    curveLower: item.curveLower,
+                    curveUpper: item.curveUpper,
+                    depth: childDepth
+                ))
+                push(try enclosed(
+                    lambdaLower: middle,
+                    lambdaUpper: item.lambdaUpper,
+                    curveLower: item.curveLower,
+                    curveUpper: item.curveUpper,
+                    depth: childDepth
+                ))
+            }
+            evaluatedCellCount += 2
+        }
+        return accumulated()
     }
 
     private func rationalSurfaceExplicitBounds(
@@ -2002,15 +3563,70 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     ) throws -> Interval {
         let implicit = curve.intersection
         try implicit.validate(tolerance: tolerance)
+        if let planar = try field.exactPlanarAffineFluxTraversal(for: curve) {
+            let scale = Interval(
+                lower: planar.fluxScale.lower,
+                upper: planar.fluxScale.upper
+            )
+            let scaleMagnitude = scale.maximumAbsolute
+            guard scaleMagnitude.isFinite else {
+                throw resourceFailure(
+                    residual: scaleMagnitude,
+                    tolerance: tolerance,
+                    message: "Certified planar affine flux lost its finite scale."
+                )
+            }
+            let patches = planar.patches.map { patch in
+                HomogeneousPatch(
+                    controls: patch.controls.map { control in
+                        HomogeneousPatch.HomogeneousPoint(
+                            x: ScalarBounds(
+                                lower: control.x.lower,
+                                upper: control.x.upper
+                            ),
+                            y: ScalarBounds(
+                                lower: control.y.lower,
+                                upper: control.y.upper
+                            ),
+                            weight: ScalarBounds(
+                                lower: control.weight.lower,
+                                upper: control.weight.upper
+                            )
+                        )
+                    },
+                    lower: 0.0,
+                    upper: 1.0
+                )
+            }
+            let areaWidth = requestedWidth / max(scaleMagnitude * 4.0, 1.0)
+            let area = try parameterAreaBounds(
+                for: patches,
+                requestedWidth: areaWidth,
+                tolerance: tolerance
+            )
+            let result = scale * Interval(
+                lower: area.lower,
+                upper: area.upper
+            )
+            guard result.width <= requestedWidth else {
+                throw resourceFailure(
+                    residual: result.width,
+                    tolerance: tolerance,
+                    message: "Certified planar affine flux exceeded its requested enclosure width."
+                )
+            }
+            return result
+        }
         let uCoordinate: SurfaceIntersectionParameterCoordinate = curve.role == .first
             ? .firstU
             : .secondU
         let vCoordinate: SurfaceIntersectionParameterCoordinate = curve.role == .first
             ? .firstV
             : .secondV
-        let ascendingStart = min(curve.startFraction, curve.endFraction)
-        let ascendingEnd = max(curve.startFraction, curve.endFraction)
-        let requestedSpan = ascendingEnd - ascendingStart
+        let traversalSegments = try curve.canonicalTraversalSegments(
+            tolerance: tolerance
+        )
+        let requestedSpan = abs(curve.endFraction - curve.startFraction)
         guard !implicit.cells.isEmpty,
               requestedSpan > tolerance.relative else {
             throw KernelError(
@@ -2020,49 +3636,41 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 message: "Certified implicit rational pcurve flux requires a nonempty graph traversal."
             )
         }
+        let implicitJetEncloser = try ImplicitCurveIntervalJetEncloser(
+            intersection: implicit,
+            tolerance: tolerance
+        )
         struct WorkItem {
             let cell: CertifiedImplicitIntersectionGraphCell
+            let cellIndex: Int
             let curveLower: Double
             let curveUpper: Double
             let lambdaLower: Double
             let lambdaUpper: Double
-            let widthBudget: Double
+            let orientationMultiplier: Double
             let depth: Int
+            let enclosure: Interval
+            let rangeWidth: Double
+            let midpointWidth: Double?
+
+            var width: Double { enclosure.width }
         }
         let cellCount = implicit.cells.count
-        var pending: [WorkItem] = []
-        for (index, cell) in implicit.cells.enumerated() {
-            let cellStart = Double(index) / Double(cellCount)
-            let cellEnd = Double(index + 1) / Double(cellCount)
-            let overlapStart = max(ascendingStart, cellStart)
-            let overlapEnd = min(ascendingEnd, cellEnd)
-            guard overlapEnd - overlapStart > tolerance.relative else { continue }
-            pending.append(WorkItem(
-                cell: cell,
-                curveLower: (overlapStart - cellStart) * Double(cellCount),
-                curveUpper: (overlapEnd - cellStart) * Double(cellCount),
-                lambdaLower: 0.0,
-                lambdaUpper: 1.0,
-                widthBudget: requestedWidth * (overlapEnd - overlapStart) / requestedSpan,
-                depth: 0
-            ))
-        }
-        var result = Interval.exact(0.0)
-        var workItemCount = 0
-        while let item = pending.popLast() {
-            workItemCount += 1
-            guard workItemCount <= maximumWorkItems else {
-                throw resourceFailure(
-                    residual: Double(workItemCount),
-                    tolerance: tolerance,
-                    message: "Certified implicit rational pcurve flux exhausted its cell budget."
-                )
-            }
-            let subcell = try item.cell.restrictedBounds(
-                fromNormalizedFraction: item.curveLower,
-                toNormalizedFraction: item.curveUpper,
-                firstSurface: implicit.firstSurface,
-                secondSurface: implicit.secondSurface,
+        func makeItem(
+            cell: CertifiedImplicitIntersectionGraphCell,
+            cellIndex: Int,
+            curveLower: Double,
+            curveUpper: Double,
+            lambdaLower: Double,
+            lambdaUpper: Double,
+            orientationMultiplier: Double,
+            depth: Int
+        ) throws -> WorkItem {
+            let subcell = try implicitJetEncloser.restrictedBounds(
+                of: implicit,
+                cellIndex: cellIndex,
+                fromNormalizedFraction: curveLower,
+                toNormalizedFraction: curveUpper,
                 tolerance: tolerance
             )
             let u = interval(subcell.parameterBox.interval(for: uCoordinate))
@@ -2072,8 +3680,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
             )
             let deltaU = u - .exact(uBase)
             let lambda = Interval(
-                lower: item.lambdaLower,
-                upper: item.lambdaUpper
+                lower: lambdaLower,
+                upper: lambdaUpper
             )
             let mappedU = Interval.exact(uBase) + lambda * deltaU
             let flux = try field.bounds(
@@ -2082,67 +3690,423 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 vLower: v.lower,
                 vUpper: v.upper
             )
-            let enclosure = Interval(lower: flux.lower, upper: flux.upper)
+            let rangeEnclosure = Interval(lower: flux.lower, upper: flux.upper)
                 * deltaU * vDerivative
-                * .floating(item.lambdaUpper - item.lambdaLower)
-            if enclosure.width <= item.widthBudget {
-                result = result + enclosure
-                continue
+                * .floating(
+                    (lambdaUpper - lambdaLower) * orientationMultiplier
+            )
+            let enclosure: Interval
+            let midpointWidth: Double?
+            let midpointEnclosure = try implicitRationalMidpointEnclosure(
+                intersection: implicit,
+                cellIndex: cellIndex,
+                curveLower: curveLower,
+                curveUpper: curveUpper,
+                lambdaLower: lambdaLower,
+                lambdaUpper: lambdaUpper,
+                orientationMultiplier: orientationMultiplier,
+                uCoordinate: uCoordinate,
+                vCoordinate: vCoordinate,
+                field: field,
+                uBase: uBase,
+                curveJetEncloser: implicitJetEncloser,
+                tolerance: tolerance
+            )
+            if let midpointEnclosure {
+                let lower = max(
+                    rangeEnclosure.lower,
+                    midpointEnclosure.bounds.lower
+                )
+                let upper = min(
+                    rangeEnclosure.upper,
+                    midpointEnclosure.bounds.upper
+                )
+                guard lower <= upper else {
+                    throw resourceFailure(
+                        residual: lower - upper,
+                        tolerance: tolerance,
+                        message: "Certified implicit rational pcurve flux produced inconsistent independent enclosures."
+                    )
+                }
+                enclosure = Interval(lower: lower, upper: upper)
+                midpointWidth = midpointEnclosure.bounds.width
+            } else {
+                enclosure = rangeEnclosure
+                midpointWidth = nil
+            }
+            guard enclosure.lower.isFinite, enclosure.upper.isFinite else {
+                throw resourceFailure(
+                    residual: enclosure.width,
+                    tolerance: tolerance,
+                    message: "Certified implicit rational pcurve flux exceeded finite interval arithmetic."
+                )
+            }
+            return WorkItem(
+                cell: cell,
+                cellIndex: cellIndex,
+                curveLower: curveLower,
+                curveUpper: curveUpper,
+                lambdaLower: lambdaLower,
+                lambdaUpper: lambdaUpper,
+                orientationMultiplier: orientationMultiplier,
+                depth: depth,
+                enclosure: enclosure,
+                rangeWidth: rangeEnclosure.width,
+                midpointWidth: midpointWidth
+            )
+        }
+
+        var heap: [WorkItem] = []
+        func push(_ item: WorkItem) {
+            heap.append(item)
+            var index = heap.count - 1
+            while index > 0 {
+                let parent = (index - 1) / 2
+                guard heap[index].width > heap[parent].width else { break }
+                heap.swapAt(index, parent)
+                index = parent
+            }
+        }
+        func popMaximum() -> WorkItem? {
+            guard !heap.isEmpty else { return nil }
+            if heap.count == 1 { return heap.removeLast() }
+            let result = heap[0]
+            heap[0] = heap.removeLast()
+            var index = 0
+            while true {
+                let left = index * 2 + 1
+                let right = left + 1
+                var largest = index
+                if left < heap.count, heap[left].width > heap[largest].width {
+                    largest = left
+                }
+                if right < heap.count, heap[right].width > heap[largest].width {
+                    largest = right
+                }
+                guard largest != index else { break }
+                heap.swapAt(index, largest)
+                index = largest
+            }
+            return result
+        }
+        func accumulatedBounds() -> Interval {
+            heap.reduce(Interval.exact(0.0)) { $0 + $1.enclosure }
+        }
+
+        for traversal in traversalSegments {
+            for (index, cell) in implicit.cells.enumerated() {
+                let cellStart = Double(index) / Double(cellCount)
+                let cellEnd = Double(index + 1) / Double(cellCount)
+                let overlapStart = max(traversal.canonicalLowerFraction, cellStart)
+                let overlapEnd = min(traversal.canonicalUpperFraction, cellEnd)
+                guard overlapEnd > overlapStart else { continue }
+                push(try makeItem(
+                    cell: cell,
+                    cellIndex: index,
+                    curveLower: (overlapStart - cellStart) * Double(cellCount),
+                    curveUpper: (overlapEnd - cellStart) * Double(cellCount),
+                    lambdaLower: 0.0,
+                    lambdaUpper: 1.0,
+                    orientationMultiplier: traversal.orientationMultiplier,
+                    depth: 0
+                ))
+            }
+        }
+        guard !heap.isEmpty else {
+            throw resourceFailure(
+                residual: 0.0,
+                tolerance: tolerance,
+                message: "Certified implicit rational pcurve flux found no active traversal cell."
+            )
+        }
+
+        var workItemCount = heap.count
+        var activeWidth = heap.reduce(0.0) {
+            ($0 + $1.enclosure.width).nextUp
+        }
+        while true {
+            if activeWidth <= requestedWidth {
+                let result = accumulatedBounds()
+                if result.width <= requestedWidth {
+                    return result
+                }
+                activeWidth = result.width
+            }
+            guard let item = popMaximum() else {
+                throw resourceFailure(
+                    residual: nil,
+                    tolerance: tolerance,
+                    message: "Certified implicit rational pcurve flux lost its active proof cells."
+                )
             }
             guard item.depth < maximumDepth else {
                 throw resourceFailure(
-                    residual: enclosure.width,
+                    residual: item.enclosure.width,
                     tolerance: tolerance,
                     message: "Certified implicit rational pcurve flux exceeded its proof depth."
                 )
             }
-            let halfBudget = item.widthBudget * 0.5
+            workItemCount += 2
+            guard workItemCount <= maximumWorkItems else {
+                throw resourceFailure(
+                    residual: activeWidth,
+                    tolerance: tolerance,
+                    message: "Certified implicit rational pcurve flux exhausted its \(maximumWorkItems)-cell budget; widest cell index \(item.cellIndex), local curve [\(item.curveLower), \(item.curveUpper)], depth \(item.depth), lambda [\(item.lambdaLower), \(item.lambdaUpper)], width \(item.width), range width \(item.rangeWidth), midpoint width \(String(describing: item.midpointWidth))."
+                )
+            }
             let curveSpan = item.curveUpper - item.curveLower
-            if item.depth.isMultiple(of: 2),
-               curveSpan > tolerance.relative * 2.0 {
+            let lambdaSpan = item.lambdaUpper - item.lambdaLower
+            let canSplitCurve = curveSpan > tolerance.relative * 2.0
+                && item.curveLower + curveSpan * 0.5 > item.curveLower
+                && item.curveLower + curveSpan * 0.5 < item.curveUpper
+            let canSplitLambda = lambdaSpan > tolerance.relative * 2.0
+                && item.lambdaLower + lambdaSpan * 0.5 > item.lambdaLower
+                && item.lambdaLower + lambdaSpan * 0.5 < item.lambdaUpper
+            guard canSplitCurve || canSplitLambda else {
+                throw resourceFailure(
+                    residual: item.enclosure.width,
+                    tolerance: tolerance,
+                    message: "Certified implicit rational pcurve flux subdivision reached parameter resolution."
+                )
+            }
+            if canSplitCurve,
+               item.depth.isMultiple(of: 2) || !canSplitLambda {
                 let middle = item.curveLower + curveSpan * 0.5
-                pending.append(WorkItem(
+                let upper = try makeItem(
                     cell: item.cell,
+                    cellIndex: item.cellIndex,
                     curveLower: middle,
                     curveUpper: item.curveUpper,
                     lambdaLower: item.lambdaLower,
                     lambdaUpper: item.lambdaUpper,
-                    widthBudget: halfBudget,
+                    orientationMultiplier: item.orientationMultiplier,
                     depth: item.depth + 1
-                ))
-                pending.append(WorkItem(
+                )
+                let lower = try makeItem(
                     cell: item.cell,
+                    cellIndex: item.cellIndex,
                     curveLower: item.curveLower,
                     curveUpper: middle,
                     lambdaLower: item.lambdaLower,
                     lambdaUpper: item.lambdaUpper,
-                    widthBudget: halfBudget,
+                    orientationMultiplier: item.orientationMultiplier,
                     depth: item.depth + 1
-                ))
+                )
+                push(upper)
+                push(lower)
+                activeWidth = max(0.0, activeWidth - item.width)
+                activeWidth = (
+                    activeWidth + upper.width + lower.width
+                ).nextUp
             } else {
                 let middle = item.lambdaLower
-                    + (item.lambdaUpper - item.lambdaLower) * 0.5
-                pending.append(WorkItem(
+                    + lambdaSpan * 0.5
+                let upper = try makeItem(
                     cell: item.cell,
+                    cellIndex: item.cellIndex,
                     curveLower: item.curveLower,
                     curveUpper: item.curveUpper,
                     lambdaLower: middle,
                     lambdaUpper: item.lambdaUpper,
-                    widthBudget: halfBudget,
+                    orientationMultiplier: item.orientationMultiplier,
                     depth: item.depth + 1
-                ))
-                pending.append(WorkItem(
+                )
+                let lower = try makeItem(
                     cell: item.cell,
+                    cellIndex: item.cellIndex,
                     curveLower: item.curveLower,
                     curveUpper: item.curveUpper,
                     lambdaLower: item.lambdaLower,
                     lambdaUpper: middle,
-                    widthBudget: halfBudget,
+                    orientationMultiplier: item.orientationMultiplier,
                     depth: item.depth + 1
-                ))
+                )
+                push(upper)
+                push(lower)
+                activeWidth = max(0.0, activeWidth - item.width)
+                activeWidth = (
+                    activeWidth + upper.width + lower.width
+                ).nextUp
             }
         }
-        return curve.startFraction <= curve.endFraction ? result : -result
+    }
+
+    private func implicitRationalMidpointEnclosure(
+        intersection: CertifiedImplicitIntersectionCurve,
+        cellIndex: Int,
+        curveLower: Double,
+        curveUpper: Double,
+        lambdaLower: Double,
+        lambdaUpper: Double,
+        orientationMultiplier: Double,
+        uCoordinate: SurfaceIntersectionParameterCoordinate,
+        vCoordinate: SurfaceIntersectionParameterCoordinate,
+        field: CertifiedRationalBezierSurfaceFluxIntegrator.PreparedField,
+        uBase: Double,
+        curveJetEncloser: ImplicitCurveIntervalJetEncloser,
+        tolerance: ModelingTolerance
+    ) throws -> ImplicitMidpointEnclosure? {
+        let cellCount = Double(intersection.cells.count)
+        let localSpan = curveUpper - curveLower
+        let lambdaSpan = lambdaUpper - lambdaLower
+        guard cellCount > 0.0,
+              localSpan > tolerance.relative * 4.0,
+              localSpan <= 1.0 / 16.0,
+              lambdaSpan > 0.0 else {
+            return nil
+        }
+        let globalLower = (Double(cellIndex) + curveLower) / cellCount
+        let globalUpper = (Double(cellIndex) + curveUpper) / cellCount
+        let globalSpan = globalUpper - globalLower
+        let globalInterval = try ScalarInterval(
+            lower: globalLower,
+            upper: globalUpper
+        )
+        let parameterJet = try curveJetEncloser.parameterIntervalJet(
+            of: intersection,
+            over: globalInterval,
+            tolerance: tolerance
+        )
+        let uCoordinateJet = parameterJet[uCoordinate]
+        let vCoordinateJet = parameterJet[vCoordinate]
+        let u = interval(uCoordinateJet.value)
+        let uFirst = interval(uCoordinateJet.firstDerivative)
+        let uSecond = interval(uCoordinateJet.secondDerivative)
+        let v = interval(vCoordinateJet.value)
+        let vFirst = interval(vCoordinateJet.firstDerivative)
+        let vSecond = interval(vCoordinateJet.secondDerivative)
+        let vThird = interval(vCoordinateJet.thirdDerivative)
+        let deltaU = u - .exact(uBase)
+        let lambda = Interval(lower: lambdaLower, upper: lambdaUpper)
+        let mappedU = Interval.exact(uBase) + lambda * deltaU
+        guard let uSpan = field.containingUSpan(mappedU),
+              let vSpan = field.containingVSpan(v) else {
+            return nil
+        }
+        let partials = try field.secondOrderBounds(
+            u: mappedU,
+            v: v,
+            uSpan: uSpan,
+            vSpan: vSpan
+        )
+        let two = Interval.exact(2.0)
+        let mappedUFirst = lambda * uFirst
+        let mappedUSecond = lambda * uSecond
+        let fluxFirst = partials.derivativeU * mappedUFirst
+            + partials.derivativeV * vFirst
+        let fluxSecond = partials.secondDerivativeUU
+            * mappedUFirst * mappedUFirst
+            + two * partials.secondDerivativeUV * mappedUFirst * vFirst
+            + partials.secondDerivativeVV * vFirst * vFirst
+            + partials.derivativeU * mappedUSecond
+            + partials.derivativeV * vSecond
+        let curveIntegrandSecond = fluxSecond * deltaU * vFirst
+            + partials.value * uSecond * vFirst
+            + partials.value * deltaU * vThird
+            + two * fluxFirst * uFirst * vFirst
+            + two * fluxFirst * deltaU * vSecond
+            + two * partials.value * uFirst * vSecond
+        let lambdaIntegrandSecond = partials.secondDerivativeUU
+            * deltaU * deltaU * deltaU * vFirst
+        let lambdaSecond = lambdaIntegrandSecond.maximumAbsolute
+        let curveSecond = curveIntegrandSecond.maximumAbsolute
+        let lambdaError = outwardProduct(
+            outwardProduct(lambdaSecond, pow(lambdaSpan, 3.0)),
+            globalSpan / 24.0
+        )
+        let curveError = outwardProduct(
+            outwardProduct(curveSecond, pow(globalSpan, 3.0)),
+            lambdaSpan / 24.0
+        )
+        let error = (lambdaError + curveError).nextUp
+        guard error.isFinite else {
+            throw resourceFailure(
+                residual: error,
+                tolerance: tolerance,
+                message: "Certified implicit rational pcurve midpoint error exceeded finite arithmetic."
+            )
+        }
+
+        let localMidpoint = curveLower + localSpan * 0.5
+        let minimumHalfWidth = max(
+            tolerance.relative * 2.0,
+            Double.ulpOfOne * max(1.0, abs(localMidpoint)) * 4_096.0
+        )
+        let sampleHalfWidth = min(localSpan * 0.25, minimumHalfWidth)
+        let sampleGlobalInterval = try ScalarInterval(
+            lower: (Double(cellIndex) + localMidpoint - sampleHalfWidth) / cellCount,
+            upper: (Double(cellIndex) + localMidpoint + sampleHalfWidth) / cellCount
+        )
+        let sampleJet = try curveJetEncloser.parameterIntervalJet(
+            of: intersection,
+            over: sampleGlobalInterval,
+            tolerance: tolerance
+        )
+        let sampleU = interval(sampleJet[uCoordinate].value)
+        let sampleV = interval(sampleJet[vCoordinate].value)
+        let derivativeOffset = localSpan * 0.125
+        let derivativeOffsetGlobal = derivativeOffset / cellCount
+        let lowerDerivativeSample = try curveJetEncloser.parameterIntervalJet(
+            of: intersection,
+            over: try ScalarInterval(
+                lower: (
+                    Double(cellIndex) + localMidpoint - derivativeOffset
+                        - sampleHalfWidth
+                ) / cellCount,
+                upper: (
+                    Double(cellIndex) + localMidpoint - derivativeOffset
+                        + sampleHalfWidth
+                ) / cellCount
+            ),
+            tolerance: tolerance
+        )
+        let upperDerivativeSample = try curveJetEncloser.parameterIntervalJet(
+            of: intersection,
+            over: try ScalarInterval(
+                lower: (
+                    Double(cellIndex) + localMidpoint + derivativeOffset
+                        - sampleHalfWidth
+                ) / cellCount,
+                upper: (
+                    Double(cellIndex) + localMidpoint + derivativeOffset
+                        + sampleHalfWidth
+                ) / cellCount
+            ),
+            tolerance: tolerance
+        )
+        let derivativeSecant = (
+            interval(upperDerivativeSample[vCoordinate].value)
+                - interval(lowerDerivativeSample[vCoordinate].value)
+        ) / .floating(2.0 * derivativeOffsetGlobal)
+        let derivativeRemainder = outwardProduct(
+            vThird.maximumAbsolute,
+            derivativeOffsetGlobal * derivativeOffsetGlobal / 6.0
+        )
+        let sampleVDerivative = derivativeSecant + Interval(
+            lower: (-derivativeRemainder).nextDown,
+            upper: derivativeRemainder.nextUp
+        )
+        let sampleDeltaU = sampleU - .exact(uBase)
+        let lambdaMidpoint = lambdaLower + lambdaSpan * 0.5
+        let sampleMappedU = Interval.exact(uBase)
+            + .floating(lambdaMidpoint) * sampleDeltaU
+        let sampleFlux = try field.bounds(
+            uLower: sampleMappedU.lower,
+            uUpper: sampleMappedU.upper,
+            vLower: sampleV.lower,
+            vUpper: sampleV.upper
+        )
+        let estimate = Interval(
+            lower: sampleFlux.lower,
+            upper: sampleFlux.upper
+        ) * sampleDeltaU * sampleVDerivative
+            * .floating(lambdaSpan * globalSpan * orientationMultiplier)
+        return ImplicitMidpointEnclosure(
+            bounds: Interval(
+                lower: (estimate.lower - error).nextDown,
+                upper: (estimate.upper + error).nextUp
+            )
+        )
     }
 
     private func adaptiveJetBounds(
@@ -2365,6 +4329,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     }
 
     private func adaptiveParameterEnclosures(
+        lowerFraction: Double,
+        upperFraction: Double,
         maximumWidth: Double,
         tolerance: ModelingTolerance,
         evaluator: (Jet) throws -> (u: Jet, v: Jet)
@@ -2374,7 +4340,11 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
             let upper: Double
             let depth: Int
         }
-        var pending = [WorkItem(lower: 0.0, upper: 1.0, depth: 0)]
+        var pending = [WorkItem(
+            lower: lowerFraction,
+            upper: upperFraction,
+            depth: 0
+        )]
         var result: [SurfaceParameterCurveEnclosure] = []
         var workItemCount = 0
         while let item = pending.popLast() {
@@ -2599,12 +4569,6 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         let intersection = curve.intersection
         try intersection.validate(tolerance: tolerance)
         let implicit = intersection.implicitCurve
-        let analyticU: SurfaceIntersectionParameterCoordinate = intersection.analyticIsFirst
-            ? .firstU
-            : .secondU
-        let analyticV: SurfaceIntersectionParameterCoordinate = intersection.analyticIsFirst
-            ? .firstV
-            : .secondV
         guard !implicit.cells.isEmpty else {
             throw KernelError(
                 phase: .topology,
@@ -2660,11 +4624,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 tolerance: tolerance
             )
             let contribution = try certifiedAnalyticImplicitSubcellBounds(
+                curve: curve,
                 subcell: subcell,
-                analyticSurface: intersection.analyticSurface,
-                analyticU: analyticU,
-                analyticV: analyticV,
-                periodicSeamOffset: intersection.periodicSeamOffset,
                 integrand: integrand,
                 tolerance: tolerance
             )
@@ -2702,106 +4663,22 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     }
 
     private func certifiedAnalyticImplicitSubcellBounds(
+        curve: CertifiedAnalyticImplicitSurfaceParameterCurve,
         subcell: CertifiedImplicitIntersectionGraphSubcell,
-        analyticSurface: Surface3D,
-        analyticU: SurfaceIntersectionParameterCoordinate,
-        analyticV: SurfaceIntersectionParameterCoordinate,
-        periodicSeamOffset: Double,
         integrand: Integrand,
         tolerance: ModelingTolerance
     ) throws -> Interval {
-        let u = try analyticCircleAngleBounds(
-            subcell.parameterBox.interval(for: analyticU),
-            offset: periodicSeamOffset,
-            parameterUpperBound: 4.0,
+        let enclosure = try curve.parameterEnclosure(
+            for: subcell,
             tolerance: tolerance
         )
-        let v: Interval
-        let vDerivative: Interval
-        switch analyticSurface {
-        case .cylinder, .analytic(.cylinder), .analytic(.cone):
-            v = interval(subcell.parameterBox.interval(for: analyticV))
-            vDerivative = interval(subcell.parameterDerivativeBounds[analyticV.rawValue])
-        case .analytic(.sphere):
-            v = try analyticCircleAngleBounds(
-                subcell.parameterBox.interval(for: analyticV),
-                offset: -Double.pi * 0.5,
-                parameterUpperBound: 2.0,
-                tolerance: tolerance
-            )
-            vDerivative = try analyticCircleAngleDerivativeBounds(
-                subcell.parameterDerivativeBounds[analyticV.rawValue]
-            )
-        case .analytic(.torus):
-            v = try analyticCircleAngleBounds(
-                subcell.parameterBox.interval(for: analyticV),
-                offset: periodicSeamOffset,
-                parameterUpperBound: 4.0,
-                tolerance: tolerance
-            )
-            vDerivative = try analyticCircleAngleDerivativeBounds(
-                subcell.parameterDerivativeBounds[analyticV.rawValue]
-            )
-        case .plane, .analytic(.plane), .bSpline:
-            throw KernelError(
-                phase: .topology,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "Certified analytic pcurve flux received a non-periodic analytic source."
-            )
-        }
-        return integrand.greenPrimitive(u: u, v: v) * vDerivative
-    }
-
-    private func analyticCircleAngleBounds(
-        _ parameter: ScalarInterval,
-        offset: Double,
-        parameterUpperBound: Double,
-        tolerance: ModelingTolerance
-    ) throws -> Interval {
-        guard parameter.lower >= -tolerance.relative,
-              parameter.upper <= parameterUpperBound + tolerance.relative else {
-            throw KernelError(
-                phase: .topology,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "An analytic NURBS circle parameter left its certified conversion domain."
-            )
-        }
-        let lower = analyticCircleAngle(
-            at: min(max(parameter.lower, 0.0), parameterUpperBound)
-        ) + offset
-        let upper = analyticCircleAngle(
-            at: min(max(parameter.upper, 0.0), parameterUpperBound)
-        ) + offset
-        guard lower.isFinite, upper.isFinite, lower <= upper else {
-            throw KernelError(
-                phase: .topology,
-                code: .topologyFailure,
-                tolerance: tolerance,
-                message: "An analytic NURBS circle parameter lost monotone angle order."
-            )
-        }
-        return Interval(lower: lower.nextDown, upper: upper.nextUp)
-    }
-
-    private func analyticCircleAngle(at parameter: Double) -> Double {
-        if parameter >= 4.0 { return 2.0 * Double.pi }
-        let segment = min(max(Int(floor(parameter)), 0), 3)
-        let local = parameter - Double(segment)
-        let complement = 1.0 - local
-        let diagonalWeight = sqrt(0.5)
-        let x = complement * complement
-            + 2.0 * diagonalWeight * local * complement
-        let y = 2.0 * diagonalWeight * local * complement + local * local
-        return Double(segment) * Double.pi * 0.5 + atan2(y, x)
-    }
-
-    private func analyticCircleAngleDerivativeBounds(
-        _ derivative: ScalarInterval
-    ) throws -> Interval {
-        let scale = Interval(lower: 1.0.nextDown, upper: 2.0.nextUp)
-        return interval(derivative) * scale
+        return integrand.greenPrimitive(
+            u: Interval(lower: enclosure.u.lower, upper: enclosure.u.upper),
+            v: Interval(lower: enclosure.v.lower, upper: enclosure.v.upper)
+        ) * Interval(
+            lower: enclosure.vDerivative.lower,
+            upper: enclosure.vDerivative.upper
+        )
     }
 
     private func interval(_ bounds: ScalarInterval) -> Interval {
@@ -2980,7 +4857,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 fraction: fraction,
                 tolerance: tolerance
             )
-        case .cylinder, .analytic, .bSpline:
+        case .cylinder, .analytic, .bSpline, .procedural:
             throw KernelError(
                 phase: .topology,
                 code: .invalidInput,
@@ -3038,7 +4915,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                     + .constant(parabola.axis.z * inverseFourFocalLength) * squared
             )
         case .line, .circle, .analytic, .bSpline, .implicit, .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection, .rigidImage, .affineImage:
             throw KernelError(
                 phase: .topology,
                 code: .invalidInput,

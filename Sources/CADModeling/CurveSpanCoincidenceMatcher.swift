@@ -205,6 +205,10 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
              .analytic(.arc),
              .analytic(.ellipse):
             return true
+        case let .rigidImage(image):
+            return requiresAngularSubdivision(image.source)
+        case let .affineImage(image):
+            return requiresAngularSubdivision(image.source)
         case .line,
              .bSpline,
              .implicit,

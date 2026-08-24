@@ -1,6 +1,6 @@
 import CADGeometry
 
-package struct SurfaceParameterCurveEnclosure: Sendable {
+package struct SurfaceParameterCurveEnclosure: Hashable, Sendable {
     package let lowerFraction: Double
     package let upperFraction: Double
     package let u: ScalarInterval

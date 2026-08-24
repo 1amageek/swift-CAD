@@ -32,11 +32,16 @@ package struct BRepSewingEdgeSubdivider {
             for: edge,
             tolerance: tolerance
         )
+        let validatedCurve = try ValidatedCurve3D(
+            edge.curve,
+            tolerance: tolerance
+        )
         for point in points {
             guard let parameter = try projectedParameter(
                 of: point,
                 on: edge,
                 authoredProjector: authoredProjector,
+                validatedCurve: validatedCurve,
                 tolerance: tolerance
             ) else {
                 continue
@@ -117,22 +122,45 @@ package struct BRepSewingEdgeSubdivider {
         on edge: BRepSewingEdge,
         tolerance: ModelingTolerance
     ) throws -> Bool {
+        try containedPoints(
+            from: [point],
+            on: edge,
+            tolerance: tolerance
+        ).isEmpty == false
+    }
+
+    package func containedPoints(
+        from points: [Point3D],
+        on edge: BRepSewingEdge,
+        tolerance: ModelingTolerance
+    ) throws -> [Point3D] {
         let authoredProjector = try makeAuthoredPcurveProjector(
             for: edge,
             tolerance: tolerance
         )
-        return try projectedParameter(
+        let validatedCurve = try ValidatedCurve3D(
+            edge.curve,
+            tolerance: tolerance
+        )
+        var result: [Point3D] = []
+        result.reserveCapacity(points.count)
+        for point in points where try projectedParameter(
             of: point,
             on: edge,
             authoredProjector: authoredProjector,
+            validatedCurve: validatedCurve,
             tolerance: tolerance
-        ) != nil
+        ) != nil {
+            result.append(point)
+        }
+        return result
     }
 
     private func projectedParameter(
         of point: Point3D,
         on edge: BRepSewingEdge,
         authoredProjector: BSplineCurve3D.ParameterProjector?,
+        validatedCurve: ValidatedCurve3D,
         tolerance: ModelingTolerance
     ) throws -> Double? {
         switch try authoredPcurveProjection(
@@ -152,20 +180,16 @@ package struct BRepSewingEdgeSubdivider {
         let upper = max(edge.startParameter, edge.endParameter)
         let interval = try ScalarInterval(lower: lower, upper: upper)
         do {
-            return try edge.curve.parameterProjection(
+            return try validatedCurve.parameterProjection(
                 of: point,
-                options: CurveParameterProjectionOptions(parameterRange: interval),
-                tolerance: tolerance
+                options: CurveParameterProjectionOptions(parameterRange: interval)
             ).parameter
         } catch let error as KernelError where error.code == .intersectionFailure {
             guard case let .periodic(period) = edge.curve.parameterDomain else {
                 return nil
             }
             do {
-                let projection = try edge.curve.parameterProjection(
-                    of: point,
-                    tolerance: tolerance
-                )
+                let projection = try validatedCurve.parameterProjection(of: point)
                 var parameter = projection.parameter
                 while parameter < lower - tolerance.angle {
                     parameter += period
@@ -191,6 +215,11 @@ package struct BRepSewingEdgeSubdivider {
         tolerance: ModelingTolerance
     ) throws -> AuthoredPcurveProjection {
         guard case let .surfaceLift(lift) = edge.curve,
+              try carriesTrimmedLiftParameterCurve(
+                  edge,
+                  lift: lift,
+                  tolerance: tolerance
+              ),
               case let .bSpline(parameterCurve) = edge.surfaceParameterCurve,
               case let .closed(parameterLower, parameterUpper) = parameterCurve.domain,
               let projector else {
@@ -247,7 +276,12 @@ package struct BRepSewingEdgeSubdivider {
         for edge: BRepSewingEdge,
         tolerance: ModelingTolerance
     ) throws -> BSplineCurve3D.ParameterProjector? {
-        guard case .surfaceLift = edge.curve,
+        guard case let .surfaceLift(lift) = edge.curve,
+              try carriesTrimmedLiftParameterCurve(
+                  edge,
+                  lift: lift,
+                  tolerance: tolerance
+              ),
               case let .bSpline(parameterCurve) = edge.surfaceParameterCurve,
               case let .closed(parameterLower, parameterUpper) = parameterCurve.domain else {
             return nil
@@ -277,6 +311,34 @@ package struct BRepSewingEdgeSubdivider {
                 relative: tolerance.relative
             )
         )
+    }
+
+    /// A B-Rep edge pcurve belongs to its hosting face, which is not
+    /// necessarily the surface chosen to evaluate a procedural 3D curve.
+    /// The fast parameter-space projector is valid only when the edge pcurve
+    /// is exactly the oriented trim of the lift's own parameter curve.
+    private func carriesTrimmedLiftParameterCurve(
+        _ edge: BRepSewingEdge,
+        lift: SurfaceLiftCurve3D,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        let expected: SurfaceParameterCurve
+        if edge.startParameter < edge.endParameter {
+            expected = try lift.parameterCurve.trimmed(
+                from: edge.startParameter,
+                to: edge.endParameter,
+                curveDomain: edge.curve.parameterDomain,
+                tolerance: tolerance
+            )
+        } else {
+            expected = try lift.parameterCurve.trimmed(
+                from: edge.endParameter,
+                to: edge.startParameter,
+                curveDomain: edge.curve.parameterDomain,
+                tolerance: tolerance
+            ).reversed(tolerance: tolerance)
+        }
+        return edge.surfaceParameterCurve == expected
     }
 
     private func alignedPeriodicParameter(

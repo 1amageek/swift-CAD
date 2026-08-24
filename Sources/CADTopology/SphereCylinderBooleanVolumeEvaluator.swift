@@ -147,7 +147,7 @@ struct SphereCylinderBooleanVolumeEvaluator {
                 planes.append(Plane(origin: value.origin, normal: value.normal, face: face))
             case let .analytic(.plane(origin, normal)):
                 planes.append(Plane(origin: origin, normal: normal, face: face))
-            case .bSpline, .analytic:
+            case .bSpline, .analytic, .procedural:
                 return nil
             }
         }

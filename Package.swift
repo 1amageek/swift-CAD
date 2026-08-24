@@ -42,6 +42,10 @@ let package = Package(
             name: "CADUSD",
             targets: ["CADUSD"]
         ),
+        .executable(
+            name: "CADWASMSmoke",
+            targets: ["CADWASMSmoke"]
+        ),
     ],
     dependencies: [
         .package(
@@ -106,6 +110,16 @@ let package = Package(
             name: "SwiftCAD",
             dependencies: ["CADCore", "CADTopology", "CADIR", "CADModeling", "CADKernel", "CADExchange"]
         ),
+        .executableTarget(
+            name: "CADWASMSmoke",
+            dependencies: ["CADCore", "CADTopology", "CADIR", "CADKernel"],
+            linkerSettings: [
+                .unsafeFlags(
+                    ["-Xlinker", "-z", "-Xlinker", "stack-size=67108864"],
+                    .when(platforms: [.custom("wasi")])
+                ),
+            ]
+        ),
         .testTarget(
             name: "CADCoreTests",
             dependencies: ["CADCore"]
@@ -115,7 +129,15 @@ let package = Package(
             dependencies: ["CADCore", "CADGeometry"]
         ),
         .testTarget(
+            name: "CADGeometryCertificationTests",
+            dependencies: ["CADCore", "CADGeometry"]
+        ),
+        .testTarget(
             name: "CADTopologyTests",
+            dependencies: ["CADCore", "CADGeometry", "CADTopology"]
+        ),
+        .testTarget(
+            name: "CADTopologyCertificationTests",
             dependencies: ["CADCore", "CADGeometry", "CADTopology"]
         ),
         .testTarget(

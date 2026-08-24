@@ -304,7 +304,56 @@ struct TranslationalPrismVolumeEvaluator {
             )
         case .analytic:
             return false
+        case let .procedural(.offset(offset)):
+            return try faceIsTranslatedSide(
+                face,
+                surface: offset.source,
+                translation: translation,
+                crossEdgeIDs: crossEdgeIDs,
+                model: model,
+                tolerance: tolerance
+            )
+        case let .procedural(.ruled(ruled)):
+            return try ruledBoundariesDiffer(
+                ruled,
+                by: translation,
+                tolerance: tolerance
+            )
         }
+    }
+
+    private func ruledBoundariesDiffer(
+        _ ruled: RuledSurface3D,
+        by translation: Vector3D,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        guard case let .surfaceLift(start) = ruled.startBoundary,
+              case let .surfaceLift(end) = ruled.endBoundary,
+              start.parameterCurve == end.parameterCurve else {
+            return false
+        }
+        let first = offsetDescriptor(start.surface)
+        let second = offsetDescriptor(end.surface)
+        guard first.source == second.source,
+              let plane = try DefaultPlanarSurfaceResolver().exactPlane(
+                  for: first.source,
+                  tolerance: tolerance
+              ) else {
+            return false
+        }
+        let delta = plane.normal * (second.distance - first.distance)
+        return (delta - translation).length <= tolerance.distance
+            || (delta + translation).length <= tolerance.distance
+    }
+
+    private func offsetDescriptor(
+        _ surface: Surface3D
+    ) -> (source: Surface3D, distance: Double) {
+        guard case let .procedural(.offset(offset)) = surface else {
+            return (surface, 0.0)
+        }
+        let nested = offsetDescriptor(offset.source)
+        return (nested.source, nested.distance + offset.distance)
     }
 
     private func exactTranslationDirection(
@@ -445,6 +494,19 @@ struct TranslationalPrismVolumeEvaluator {
             )
         case .cylinder, .analytic, .bSpline:
             return nil
+        case let .procedural(.offset(offset)):
+            guard let source = try planeDescriptor(
+                for: offset.source,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            return PlaneDescriptor(
+                origin: source.origin + source.normal * offset.distance,
+                normal: source.normal
+            )
+        case .procedural(.ruled):
+            return nil
         }
     }
 
@@ -452,6 +514,10 @@ struct TranslationalPrismVolumeEvaluator {
         switch curve {
         case .line, .analytic(.line):
             return true
+        case let .rigidImage(image):
+            return isLine(image.source)
+        case .affineImage:
+            return curve.hasExactLinearParameterization
         case .circle, .analytic, .bSpline, .implicit, .surfaceLift,
              .certifiedIntersection:
             return false

@@ -75,4 +75,22 @@ package enum FeatureEvaluationBoundary {
             )
         }
     }
+
+    package static func validateExactInput(
+        _ context: EvaluationContext,
+        featureID: FeatureID,
+        tolerance: ModelingTolerance
+    ) throws {
+        if let validatedBRep = context.validatedBRep,
+           validatedBRep.model == context.brep,
+           validatedBRep.tolerance == tolerance,
+           validatedBRep.validationLevel != .modeling {
+            return
+        }
+        try validateExactInput(
+            context.brep,
+            featureID: featureID,
+            tolerance: tolerance
+        )
+    }
 }

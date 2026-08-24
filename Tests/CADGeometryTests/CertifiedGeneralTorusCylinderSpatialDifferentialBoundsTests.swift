@@ -38,6 +38,9 @@ struct CertifiedGeneralTorusCylinderSpatialDifferentialBoundsTests {
                 let scale = abs(trim.end - trim.start)
                 #expect(bounds.first >= sourceBounds.first * scale)
                 #expect(bounds.second >= sourceBounds.second * scale * scale)
+                let sourceThird = try #require(sourceBounds.third)
+                let third = try #require(bounds.third)
+                #expect(third >= sourceThird * scale * scale * scale)
 
                 let lift = SurfaceLiftCurve3D(
                     surface: exact.surface(for: .first),
@@ -52,6 +55,12 @@ struct CertifiedGeneralTorusCylinderSpatialDifferentialBoundsTests {
                     )
                     #expect(geometry.firstDerivative.length <= bounds.first)
                     #expect(geometry.secondDerivative.length <= bounds.second)
+                    let thirdDerivative = try curve
+                        .parameterDerivativesThroughThirdOrder(
+                            at: fraction,
+                            tolerance: tolerance
+                        ).thirdDerivative
+                    #expect(thirdDerivative.length <= third)
                 }
             }
         }

@@ -371,8 +371,18 @@ public enum FeatureNodeFactory {
                     throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
                 }
                 try feature.validate()
-                try validateSource(feature.target.featureID, role: .body, in: document)
-                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+                let outputRole = try bodyOrSheetSourceRole(
+                    feature.target.featureID,
+                    owner: "Unjoin body target",
+                    in: document
+                )
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                    outputs: [FeatureOutput(role: outputRole)]
+                )
             }
             return try run()
         case .chamfer:
@@ -663,6 +673,23 @@ public enum FeatureNodeFactory {
                 "Feature source \(featureID) does not declare the required \(role.rawValue) output."
             )
         }
+    }
+
+    private static func bodyOrSheetSourceRole(
+        _ featureID: FeatureID,
+        owner: String,
+        in document: CADDocument
+    ) throws -> FeaturePort {
+        guard let source = document.designGraph.nodes[featureID] else {
+            throw FeatureEvaluationError.missingInput("Feature source \(featureID) was not found.")
+        }
+        let roles = source.outputs.map(\.role).filter { $0 == .body || $0 == .sheet }
+        guard roles.count == 1, let role = roles.first else {
+            throw FeatureEvaluationError.invalidGraph(
+                "\(owner) must declare exactly one body or sheet output."
+            )
+        }
+        return role
     }
 
     private static func sweepInputs(for sweep: SweepFeature) -> [FeatureInput] {

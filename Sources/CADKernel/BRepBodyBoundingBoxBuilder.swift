@@ -18,18 +18,11 @@ struct BRepBodyBoundingBoxBuilder: Sendable {
                 throw TopologyError.missingReference("Body bounds reference a missing shell.")
             }
             for faceID in shell.faceIDs {
-                guard let faceBounds = try BRepFaceBoundingBoxBuilder().bounds(
+                let faceBounds = try BRepFaceBoundingBoxBuilder().bounds(
                     for: faceID,
                     in: model,
                     tolerance: tolerance
-                ) else {
-                    throw KernelError(
-                        phase: .geometry,
-                        code: .unsupportedCapability,
-                        tolerance: tolerance,
-                        message: "Exact body bounds require bounded geometry for every face."
-                    )
-                }
+                )
                 if let current = result {
                     result = try current.union(faceBounds)
                 } else {

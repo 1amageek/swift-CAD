@@ -563,7 +563,7 @@ struct RationalRevolutionVolumeEvaluator {
         var total = SurfaceParameterAreaBounds.zero
         let perCurveWidth = requestedWidth / Double(group.faces.count)
         for face in group.faces {
-            let curve = try squaredRadiusMomentCurve(
+            let patches = try squaredRadiusMomentPatches(
                 face: face,
                 radialDirection: group.direction,
                 axisOrigin: axisOrigin,
@@ -571,9 +571,8 @@ struct RationalRevolutionVolumeEvaluator {
                 tolerance: tolerance
             )
             total = total.adding(
-                try SurfaceParameterCurveAreaIntegrator().bounds(
-                    for: .bSpline(curve),
-                    uShift: 0.0,
+                try CertifiedAnalyticPcurveFluxIntegrator().parameterAreaBounds(
+                    for: patches,
                     requestedWidth: perCurveWidth,
                     tolerance: tolerance
                 )
@@ -594,79 +593,51 @@ struct RationalRevolutionVolumeEvaluator {
         )
     }
 
-    private func squaredRadiusMomentCurve(
+    private func squaredRadiusMomentPatches(
         face: RevolvedFace,
         radialDirection: Vector3D,
         axisOrigin: Point3D,
         axisDirection: Vector3D,
         tolerance: ModelingTolerance
-    ) throws -> BSplineCurve2D {
+    ) throws -> [CertifiedHomogeneousBezierCurvePatch] {
         let degree = face.surface.vDegree
         guard degree >= 1,
-              face.rows.count == degree + 1,
+              face.rows.count == face.surface.vControlPointCount,
               case let .closed(lower, upper) = face.surface.vDomain else {
             throw KernelError(
                 phase: .topology,
-                code: .unsupportedCapability,
+                code: .invalidInput,
                 tolerance: tolerance,
-                message: "Rational revolve moment requires one bounded Bezier profile span."
+                message: "Rational revolve moment requires a positive bounded profile domain."
             )
         }
-        var weightedRadius: [Double] = []
-        var weightedAxial: [Double] = []
+        var controlPoints: [Point2D] = []
         var weights: [Double] = []
         for row in face.rows {
             let radius = (row.start - row.center).dot(radialDirection)
             let weight = row.profileWeight
             let axial = (row.center - axisOrigin).dot(axisDirection)
-            weightedRadius.append(radius * weight)
-            weightedAxial.append(axial * weight)
+            controlPoints.append(Point2D(x: radius, y: axial))
             weights.append(weight)
         }
-        let productDegree = degree * 2
-        var productWeights: [Double] = []
-        var controlPoints: [Point2D] = []
-        for productIndex in 0...productDegree {
-            var denominator = 0.0
-            var radiusSquared = 0.0
-            var axialNumerator = 0.0
-            let lowerIndex = max(0, productIndex - degree)
-            let upperIndex = min(degree, productIndex)
-            for first in lowerIndex...upperIndex {
-                let second = productIndex - first
-                let coefficient = binomial(degree, first)
-                    * binomial(degree, second)
-                    / binomial(productDegree, productIndex)
-                denominator += coefficient * weights[first] * weights[second]
-                radiusSquared += coefficient
-                    * weightedRadius[first] * weightedRadius[second]
-                axialNumerator += coefficient
-                    * weightedAxial[first] * weights[second]
-            }
-            guard denominator.isFinite,
-                  denominator > Double.ulpOfOne else {
-                throw KernelError(
-                    phase: .geometry,
-                    code: .singularGeometry,
-                    tolerance: tolerance,
-                    message: "Rational revolve moment produced a non-positive product weight."
-                )
-            }
-            productWeights.append(denominator)
-            controlPoints.append(Point2D(
-                x: 0.5 * radiusSquared / denominator,
-                y: axialNumerator / denominator
-            ))
-        }
-        let curve = BSplineCurve2D(
-            degree: productDegree,
-            knots: Array(repeating: lower, count: productDegree + 1)
-                + Array(repeating: upper, count: productDegree + 1),
+        let profile = BSplineCurve2D(
+            degree: degree,
+            knots: face.surface.vKnots,
             controlPoints: controlPoints,
-            weights: productWeights
+            weights: weights
         )
-        try curve.validate(tolerance: tolerance)
-        return curve
+        guard profile.domain == .closed(lower, upper) else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: tolerance,
+                message: "Rational revolve profile domain does not match its surface domain."
+            )
+        }
+        return try RationalRevolutionProfileMomentBuilder().patches(
+            for: profile,
+            tolerance: tolerance
+        )
     }
 
     private func characteristicLength(
@@ -706,14 +677,6 @@ struct RationalRevolutionVolumeEvaluator {
             y: 0.5 * (first.y + second.y),
             z: 0.5 * (first.z + second.z)
         )
-    }
-
-    private func binomial(_ n: Int, _ k: Int) -> Double {
-        guard k > 0, k < n else { return 1.0 }
-        let reduced = min(k, n - k)
-        return (1...reduced).reduce(1.0) { result, index in
-            result * Double(n - reduced + index) / Double(index)
-        }
     }
 
     private struct MomentBounds {

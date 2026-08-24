@@ -40,7 +40,7 @@ public struct UnjoinBodyFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             try unjoin.validate()
         }
         try FeatureEvaluationBoundary.validateExactInput(
-            context.brep,
+            context,
             featureID: feature.id,
             tolerance: context.tolerance
         )
@@ -55,15 +55,6 @@ public struct UnjoinBodyFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         case .sheet(let shellIDs):
             componentTopologies = shellIDs.map { .sheet(shellIDs: [$0]) }
         }
-        guard componentTopologies.count >= 2 else {
-            throw error(
-                .invalidInput,
-                featureID: feature.id,
-                tolerance: context.tolerance,
-                "Unjoin body requires a source body with at least two disconnected components."
-            )
-        }
-
         var replacement = try BRepBodySubmodelExtractor().extract(
             bodyIDs: [bodyID],
             from: context.brep
@@ -82,21 +73,21 @@ public struct UnjoinBodyFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         }
         let parents = Array(removedSubshapeIDs)
         for (ordinal, topology) in componentTopologies.enumerated() {
-            let splitBodyID = BodyID()
-            replacement.bodies[splitBodyID] = Body(
-                id: splitBodyID,
+            let outputBodyID = BodyID()
+            replacement.bodies[outputBodyID] = Body(
+                id: outputBodyID,
                 topology: topology
             )
-            let splitSubshapeID = SubshapeID(
+            let outputSubshapeID = SubshapeID(
                 featureID: feature.id,
                 role: GeneratedSubshapeRole.body.rawValue,
                 ordinal: ordinal
             )
-            subshapes[splitSubshapeID] = .body(splitBodyID)
-            lineage[splitSubshapeID] = TopologyLineage(
-                output: splitSubshapeID,
+            subshapes[outputSubshapeID] = .body(outputBodyID)
+            lineage[outputSubshapeID] = TopologyLineage(
+                output: outputSubshapeID,
                 parents: parents,
-                relation: .split
+                relation: componentTopologies.count == 1 ? .preserved : .split
             )
         }
         let model = try BRepBodyModelReplacer().replacing(

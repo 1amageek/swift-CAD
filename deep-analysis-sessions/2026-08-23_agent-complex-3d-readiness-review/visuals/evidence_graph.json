@@ -1,0 +1,71 @@
+{
+  "nodes": [
+    {
+      "id": "agent",
+      "label": "External Agent",
+      "kind": "actor"
+    },
+    {
+      "id": "api",
+      "label": "CADCommand / KernelQuery",
+      "kind": "working"
+    },
+    {
+      "id": "history",
+      "label": "Document evaluation + BRep",
+      "kind": "working"
+    },
+    {
+      "id": "composition",
+      "label": "General feature composition",
+      "kind": "blocking"
+    },
+    {
+      "id": "validation",
+      "label": "Topology validation",
+      "kind": "working"
+    },
+    {
+      "id": "exchange",
+      "label": "Exact interchange subsets",
+      "kind": "partial"
+    },
+    {
+      "id": "proof",
+      "label": "Same-revision release evidence",
+      "kind": "blocking"
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent",
+      "to": "api",
+      "status": "external integration"
+    },
+    {
+      "from": "api",
+      "to": "history",
+      "status": "implemented"
+    },
+    {
+      "from": "history",
+      "to": "composition",
+      "status": "partial envelope"
+    },
+    {
+      "from": "composition",
+      "to": "validation",
+      "status": "typed failure"
+    },
+    {
+      "from": "validation",
+      "to": "exchange",
+      "status": "subset"
+    },
+    {
+      "from": "exchange",
+      "to": "proof",
+      "status": "subset tests pass; external oracle absent"
+    }
+  ]
+}

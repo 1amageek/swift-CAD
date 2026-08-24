@@ -103,21 +103,23 @@ package struct PlanarFaceTranslator: Sendable {
         guard let owningShell,
               let face = model.faces[faceID],
               let surface = model.geometry.surfaces[face.surfaceID],
-              let surfaceNormal = planarNormal(from: surface) else {
+              let surfaceNormal = try planarNormal(
+                  from: surface,
+                  tolerance: tolerance
+              ) else {
             throw unsupported(featureID: featureID, tolerance: tolerance, "Direct face editing requires a planar face on the target body.")
         }
         return (face, owningShell.orientation, surfaceNormal)
     }
 
-    private func planarNormal(from surface: Surface3D) -> Vector3D? {
-        switch surface {
-        case let .plane(plane):
-            return plane.normal
-        case let .analytic(.plane(_, normal)):
-            return normal
-        case .cylinder, .analytic, .bSpline:
-            return nil
-        }
+    private func planarNormal(
+        from surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D? {
+        try DefaultPlanarSurfaceResolver().exactPlane(
+            for: surface,
+            tolerance: tolerance
+        )?.normal
     }
 
     private func unsupported(

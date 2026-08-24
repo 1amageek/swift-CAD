@@ -34,6 +34,7 @@ struct CertifiedPlaneTorusSpatialDifferentialBoundsTests {
                 .fullBranchSpatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
                 )
+            let sourceThird = try #require(sourceBounds.third)
             for trim in [
                 (start: 0.0, end: 1.0),
                 (start: 0.1, end: 0.7),
@@ -52,6 +53,8 @@ struct CertifiedPlaneTorusSpatialDifferentialBoundsTests {
                 let scale = abs(trim.end - trim.start) * 2.0 * Double.pi
                 #expect(bounds.first >= sourceBounds.first * scale)
                 #expect(bounds.second >= sourceBounds.second * scale * scale)
+                let third = try #require(bounds.third)
+                #expect(third >= sourceThird * scale * scale * scale)
 
                 let lift = SurfaceLiftCurve3D(
                     surface: exact.surface(for: .first),
@@ -75,6 +78,12 @@ struct CertifiedPlaneTorusSpatialDifferentialBoundsTests {
                     )
                     #expect(geometry.firstDerivative.length <= bounds.first)
                     #expect(geometry.secondDerivative.length <= bounds.second)
+                    let thirdDerivative = try curve
+                        .parameterDerivativesThroughThirdOrder(
+                            at: fraction,
+                            tolerance: tolerance
+                        ).thirdDerivative
+                    #expect(thirdDerivative.length <= third)
                     if interval.contains(fraction) {
                         #expect(
                             geometry.secondDerivative.length <= certifiedSecond
@@ -174,6 +183,15 @@ struct CertifiedPlaneTorusSpatialDifferentialBoundsTests {
             let bounds = try pcurve.spatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
             )
+            let sourceBounds = try source.spatialDifferentialMagnitudeBounds(
+                fromNormalizedFraction: min(trim.start, trim.end),
+                toNormalizedFraction: max(trim.start, trim.end),
+                tolerance: tolerance
+            )
+            let scale = abs(trim.end - trim.start) * 2.0 * Double.pi
+            let sourceThird = try #require(sourceBounds.third)
+            let third = try #require(bounds.third)
+            #expect(third >= sourceThird * scale * scale * scale)
             let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
                 surface: exact.surface(for: .first),
                 parameterCurve: .certifiedAnalyticPair(pcurve)
@@ -190,6 +208,12 @@ struct CertifiedPlaneTorusSpatialDifferentialBoundsTests {
                 )
                 #expect(geometry.firstDerivative.length <= bounds.first)
                 #expect(geometry.secondDerivative.length <= bounds.second)
+                let thirdDerivative = try curve
+                    .parameterDerivativesThroughThirdOrder(
+                        at: fraction,
+                        tolerance: tolerance
+                    ).thirdDerivative
+                #expect(thirdDerivative.length <= third)
                 let firstProjection = try exact.firstSurface
                     .parameterProjection(
                         of: geometry.position,
@@ -296,6 +320,16 @@ struct CertifiedPlaneTorusSpatialDifferentialBoundsTests {
                 let bounds = try pcurve.spatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
                 )
+                let sourceBounds = try source
+                    .spatialDifferentialMagnitudeBounds(
+                        fromNormalizedFraction: min(trim.start, trim.end),
+                        toNormalizedFraction: max(trim.start, trim.end),
+                        tolerance: tolerance
+                    )
+                let scale = abs(trim.end - trim.start) * 2.0 * Double.pi
+                let sourceThird = try #require(sourceBounds.third)
+                let third = try #require(bounds.third)
+                #expect(third >= sourceThird * scale * scale * scale)
                 let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
                     surface: exact.surface(for: .first),
                     parameterCurve: .certifiedAnalyticPair(pcurve)
@@ -316,6 +350,12 @@ struct CertifiedPlaneTorusSpatialDifferentialBoundsTests {
                     #expect(
                         geometry.secondDerivative.length <= bounds.second
                     )
+                    let thirdDerivative = try curve
+                        .parameterDerivativesThroughThirdOrder(
+                            at: fraction,
+                            tolerance: tolerance
+                        ).thirdDerivative
+                    #expect(thirdDerivative.length <= third)
                     let firstProjection = try exact.firstSurface
                         .parameterProjection(
                             of: geometry.position,
@@ -392,6 +432,34 @@ struct CertifiedPlaneTorusSpatialDifferentialBoundsTests {
         )
         #expect(tangent.count == 1)
         #expect(tangent.first?.kind == .tangent)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func analyticThirdDerivativeMatchesSecondDerivativeVariation() throws {
+        let sources = try (
+            rootFreeCurves() + boundedCurves() + innerTangencyCurves()
+        ).map { try #require($0.planeTorusCurve) }
+        let step = 1.0e-5
+        for source in sources {
+            let curve = Curve3D.analytic(.planeTorus(source))
+            for parameter in [0.7, 2.1, 4.3] {
+                let analytic = try curve.parameterDerivativesThroughThirdOrder(
+                    at: parameter,
+                    tolerance: tolerance
+                ).thirdDerivative
+                let lower = try curve.differentialGeometry(
+                    at: parameter - step,
+                    tolerance: tolerance
+                ).secondDerivative
+                let upper = try curve.differentialGeometry(
+                    at: parameter + step,
+                    tolerance: tolerance
+                ).secondDerivative
+                let reference = (upper - lower) / (2.0 * step)
+                let scale = max(analytic.length, reference.length, 1.0)
+                #expect((analytic - reference).length / scale < 2.0e-5)
+            }
+        }
     }
 
     private func rootFreeCurves()

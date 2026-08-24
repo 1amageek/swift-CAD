@@ -203,6 +203,14 @@ public struct CurveOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
                 "A certified intersection curve offset requires a certified offset-locus implementation."
             )
+        case .rigidImage:
+            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                "A rigid-image curve offset requires a certified offset-locus implementation."
+            )
+        case .affineImage:
+            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                "An affine-image curve offset requires a certified offset-locus implementation."
+            )
         }
     }
 

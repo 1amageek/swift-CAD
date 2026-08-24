@@ -61,6 +61,8 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
     case certifiedAnalyticImplicit(CertifiedAnalyticImplicitSurfaceParameterCurve)
     case certifiedAnalyticPair(CertifiedAnalyticPairSurfaceParameterCurve)
     indirect case projectedAnalytic(ProjectedAnalyticSurfaceParameterCurve)
+    indirect case rigidImage(RigidImageSurfaceParameterCurve)
+    indirect case sameParameterImage(SameParameterSurfaceParameterCurve)
     indirect case periodicTranslation(
         base: SurfaceParameterCurve,
         uShift: Double,
@@ -207,6 +209,10 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             try curve.validate(on: surface, tolerance: tolerance)
         case let .projectedAnalytic(curve):
             try curve.validate(on: surface, tolerance: tolerance)
+        case let .rigidImage(curve):
+            try curve.validate(on: surface, tolerance: tolerance)
+        case let .sameParameterImage(curve):
+            try curve.validate(on: surface, tolerance: tolerance)
         case let .periodicTranslation(base, uShift, vShift):
             try base.validate(on: surface, tolerance: tolerance)
             try validatePeriodicShift(
@@ -268,7 +274,10 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case let .bSpline(curve):
             let bounds = try Self.closedBounds(curve.domain, tolerance: tolerance)
             let parameter = interpolated(bounds.lower, bounds.upper, fraction: clampedFraction)
-            let point = try curve.point(at: parameter, tolerance: tolerance)
+            let point = try curve.pointAssumingValid(
+                at: parameter,
+                tolerance: tolerance
+            )
             return SurfaceParameter(u: point.x, v: point.y)
         case let .certifiedImplicit(curve):
             return try curve.parameter(
@@ -286,6 +295,16 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 tolerance: tolerance
             )
         case let .projectedAnalytic(curve):
+            return try curve.parameter(
+                atNormalizedFraction: clampedFraction,
+                tolerance: tolerance
+            )
+        case let .rigidImage(curve):
+            return try curve.parameter(
+                atNormalizedFraction: clampedFraction,
+                tolerance: tolerance
+            )
+        case let .sameParameterImage(curve):
             return try curve.parameter(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
@@ -349,7 +368,7 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             } else {
                 pcurveParameter = parameter
             }
-            let point = try curve.point(
+            let point = try curve.pointAssumingValid(
                 at: pcurveParameter,
                 tolerance: tolerance
             )
@@ -390,6 +409,21 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case let .projectedAnalytic(curve):
             return try curve.parameter(
                 atCurveParameter: parameter,
+                tolerance: tolerance
+            )
+        case let .rigidImage(curve):
+            return try curve.parameter(
+                atNormalizedFraction: normalizedFraction(
+                    parameter,
+                    domain: curveDomain,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            )
+        case let .sameParameterImage(curve):
+            return try curve.parameter(
+                atCurveParameter: parameter,
+                curveDomain: curveDomain,
                 tolerance: tolerance
             )
         case let .periodicTranslation(base, uShift, vShift):
@@ -466,6 +500,10 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             return .certifiedAnalyticPair(try curve.reversed(tolerance: tolerance))
         case let .projectedAnalytic(curve):
             return .projectedAnalytic(try curve.reversed(tolerance: tolerance))
+        case let .rigidImage(curve):
+            return .rigidImage(try curve.reversed(tolerance: tolerance))
+        case let .sameParameterImage(curve):
+            return .sameParameterImage(try curve.reversed(tolerance: tolerance))
         case let .periodicTranslation(base, uShift, vShift):
             return .periodicTranslation(
                 base: try base.reversed(tolerance: tolerance),
@@ -527,7 +565,8 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 vShift: vShift + nestedVShift
             ).materializingPeriodicTranslation()
         case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
-             .certifiedAnalyticPair, .projectedAnalytic:
+             .certifiedAnalyticPair, .projectedAnalytic, .rigidImage,
+             .sameParameterImage:
             return .periodicTranslation(
                 base: base,
                 uShift: uShift,
@@ -562,26 +601,34 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 endParameter: endParameter
             )
         case let .constantU(u, _, _):
+            let fractions = try trimFractions(
+                from: startParameter,
+                to: endParameter,
+                domain: curveDomain,
+                tolerance: tolerance
+            )
             let start = try parameter(
-                atCurveParameter: startParameter,
-                curveDomain: curveDomain,
+                atNormalizedFraction: fractions.start,
                 tolerance: tolerance
             )
             let end = try parameter(
-                atCurveParameter: endParameter,
-                curveDomain: curveDomain,
+                atNormalizedFraction: fractions.end,
                 tolerance: tolerance
             )
             return .constantU(u: u, vStart: start.v, vEnd: end.v)
         case let .constantV(v, _, _):
+            let fractions = try trimFractions(
+                from: startParameter,
+                to: endParameter,
+                domain: curveDomain,
+                tolerance: tolerance
+            )
             let start = try parameter(
-                atCurveParameter: startParameter,
-                curveDomain: curveDomain,
+                atNormalizedFraction: fractions.start,
                 tolerance: tolerance
             )
             let end = try parameter(
-                atCurveParameter: endParameter,
-                curveDomain: curveDomain,
+                atNormalizedFraction: fractions.end,
                 tolerance: tolerance
             )
             return .constantV(v: v, uStart: start.u, uEnd: end.u)
@@ -641,6 +688,29 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 to: endParameter,
                 tolerance: tolerance
             ))
+        case let .rigidImage(curve):
+            let lower = try normalizedFraction(
+                startParameter,
+                domain: curveDomain,
+                tolerance: tolerance
+            )
+            let upper = try normalizedFraction(
+                endParameter,
+                domain: curveDomain,
+                tolerance: tolerance
+            )
+            return .rigidImage(try curve.subcurve(
+                fromNormalizedFraction: lower,
+                toNormalizedFraction: upper,
+                tolerance: tolerance
+            ))
+        case let .sameParameterImage(curve):
+            return .sameParameterImage(try curve.trimmed(
+                from: startParameter,
+                to: endParameter,
+                curveDomain: curveDomain,
+                tolerance: tolerance
+            ))
         case let .periodicTranslation(base, uShift, vShift):
             return .periodicTranslation(
                 base: try base.trimmed(
@@ -677,6 +747,8 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case certifiedAnalyticPair
         case sphericalGreatCircle
         case projectedAnalytic
+        case rigidImage
+        case sameParameterImage
         case base
         case uShift
         case vShift
@@ -694,6 +766,8 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case certifiedAnalyticPair
         case sphericalGreatCircle
         case projectedAnalytic
+        case rigidImage
+        case sameParameterImage
         case periodicTranslation
     }
 
@@ -791,6 +865,21 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 ProjectedAnalyticSurfaceParameterCurve.self,
                 forKey: .projectedAnalytic
             ))
+        case .rigidImage:
+            try container.validateOnlyExpectedKeys([.kind, .rigidImage], in: decoder)
+            self = .rigidImage(try container.decode(
+                RigidImageSurfaceParameterCurve.self,
+                forKey: .rigidImage
+            ))
+        case .sameParameterImage:
+            try container.validateOnlyExpectedKeys(
+                [.kind, .sameParameterImage],
+                in: decoder
+            )
+            self = .sameParameterImage(try container.decode(
+                SameParameterSurfaceParameterCurve.self,
+                forKey: .sameParameterImage
+            ))
         case .periodicTranslation:
             try container.validateOnlyExpectedKeys(
                 [.kind, .base, .uShift, .vShift],
@@ -854,6 +943,12 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case let .projectedAnalytic(curve):
             try container.encode(Kind.projectedAnalytic, forKey: .kind)
             try container.encode(curve, forKey: .projectedAnalytic)
+        case let .rigidImage(curve):
+            try container.encode(Kind.rigidImage, forKey: .kind)
+            try container.encode(curve, forKey: .rigidImage)
+        case let .sameParameterImage(curve):
+            try container.encode(Kind.sameParameterImage, forKey: .kind)
+            try container.encode(curve, forKey: .sameParameterImage)
         case let .periodicTranslation(base, uShift, vShift):
             try container.encode(Kind.periodicTranslation, forKey: .kind)
             try container.encode(base, forKey: .base)
@@ -1039,6 +1134,37 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case .unbounded:
             throw GeometryError.invalidDistance(parameter)
         }
+    }
+
+    /// Fractions used to trim an authored full-period pcurve. Point
+    /// evaluation identifies a period's upper endpoint with zero, while a
+    /// monotone trim ending exactly at that upper endpoint must retain the
+    /// universal-cover representative at fraction one.
+    private func trimFractions(
+        from start: Double,
+        to end: Double,
+        domain: ParameterDomain,
+        tolerance: ModelingTolerance
+    ) throws -> (start: Double, end: Double) {
+        let startFraction = try normalizedFraction(
+            start,
+            domain: domain,
+            tolerance: tolerance
+        )
+        var endFraction = try normalizedFraction(
+            end,
+            domain: domain,
+            tolerance: tolerance
+        )
+        if case let .periodic(period) = domain {
+            let remainder = end.truncatingRemainder(dividingBy: period)
+            if end > start,
+               abs(remainder) <= tolerance.angle,
+               abs(end - period) <= tolerance.angle {
+                endFraction = 1.0
+            }
+        }
+        return (startFraction, endFraction)
     }
 
     private func certifiedLocalFraction(

@@ -121,6 +121,66 @@ struct CurveEditFeatureTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func nonBSplineSourceReturnsMissingReferenceInsteadOfUnsupportedCapability() throws {
+        let sourceID = FeatureID()
+        let sourceReference = CurveOutputReference(featureID: sourceID)
+        let source = EvaluatedCurve(
+            sourceFeatureID: sourceID,
+            source: .generatedFeature,
+            kind: .line,
+            points: [.origin, Point3D(x: 1.0, y: 0.0, z: 0.0)],
+            plane: .xy,
+            exactCurve: .line(Line3D(origin: .origin, direction: .unitX)),
+            exactParameterDomain: .closed(0.0, 1.0)
+        )
+
+        do {
+            _ = try evaluate(source: source, edits: [
+                .setControlPoint(CurveControlPointEdit(
+                    target: CurveControlPointReference(
+                        curve: sourceReference,
+                        controlPointIndex: 0
+                    ),
+                    point: Point3D(x: 0.25, y: 0.0, z: 0.0)
+                )),
+            ])
+            Issue.record("A non-B-spline edit target must fail.")
+        } catch let error as KernelError {
+            #expect(error.code == .missingReference)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func evaluatorDispatchMismatchReturnsInvalidInput() throws {
+        let feature = FeatureNode(
+            id: FeatureID(),
+            operation: .primitive(PrimitiveFeature(
+                definition: .box(BoxPrimitive(
+                    width: .constant(.length(1.0, unit: .meter)),
+                    depth: .constant(.length(1.0, unit: .meter)),
+                    height: .constant(.length(1.0, unit: .meter))
+                ))
+            )),
+            outputs: [FeatureOutput(role: .body)]
+        )
+
+        do {
+            _ = try CurveEditFeatureEvaluator().evaluate(
+                feature: feature,
+                context: EvaluationContext(
+                    parameters: ResolvedParameterTable(),
+                    brep: BRepModel(),
+                    profiles: [:],
+                    tolerance: .standard
+                )
+            )
+            Issue.record("A curve-edit evaluator dispatch mismatch must fail.")
+        } catch let error as KernelError {
+            #expect(error.code == .invalidInput)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func nestedEditPayloadUsesStrictCurrentSchema() throws {
         let source = CurveOutputReference(featureID: FeatureID())
         let feature = CurveEditFeature(

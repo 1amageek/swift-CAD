@@ -148,7 +148,7 @@ struct BridgeCurveFeatureTests {
             )
             Issue.record("A non-exact bridge source must fail.")
         } catch let error as KernelError {
-            #expect(error.code == .unsupportedCapability)
+            #expect(error.code == .missingReference)
         }
 
         let endpointless = EvaluatedCurve(
@@ -168,7 +168,7 @@ struct BridgeCurveFeatureTests {
             )
             Issue.record("An unbounded bridge source must fail.")
         } catch let error as KernelError {
-            #expect(error.code == .unsupportedCapability)
+            #expect(error.code == .invalidInput)
         }
     }
 

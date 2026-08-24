@@ -94,12 +94,12 @@ public struct CADPipeline: Sendable {
         case .evaluatedDocument:
             return .evaluatedDocument(try evaluate(document))
         case let .lineage(subshapeID):
-            let evaluated = try evaluate(document)
+            let evaluated = try evaluateExactForQuery(document)
             return .lineage(evaluated.lineage[subshapeID])
         case .diagnostics:
             return .diagnostics(evaluator.evaluateReport(document))
         case let .snap(query):
-            let evaluated = try evaluate(document)
+            let evaluated = try evaluateExactForQuery(document)
             return .snap(try snapCandidates(
                 near: query.point,
                 in: evaluated,
@@ -108,10 +108,10 @@ public struct CADPipeline: Sendable {
         case let .measurement(query):
             return .measurement(try executeMeasurementQuery(
                 query,
-                in: evaluate(document)
+                in: evaluateExactForQuery(document)
             ))
         case let .selectionDimensionEvaluation(query):
-            let evaluated = try evaluate(document)
+            let evaluated = try evaluateExactForQuery(document)
             if let dimensionID = query.dimensionID {
                 return .selectionDimensionEvaluation(try evaluateSelectionDimension(
                     dimensionID,
@@ -124,8 +124,22 @@ public struct CADPipeline: Sendable {
         case let .projection(query):
             return .projection(try executeProjectionQuery(
                 query,
-                in: evaluate(document)
+                in: evaluateExactForQuery(document)
             ))
+        }
+    }
+
+    private func evaluateExactForQuery(
+        _ document: CADDocument
+    ) throws -> EvaluatedDocument {
+        do {
+            return try evaluator.evaluateExact(document)
+        } catch {
+            throw KernelError.wrapping(
+                error,
+                phase: .evaluation,
+                tolerance: evaluator.evaluationTolerance
+            )
         }
     }
 
@@ -266,10 +280,7 @@ public struct CADPipeline: Sendable {
                 to: query.point,
                 on: reference,
                 in: evaluatedDocument,
-                options: CurveProjectionOptions(
-                    sampleCount: query.sampleCount,
-                    maximumIterations: query.maximumIterations
-                )
+                options: CurveProjectionOptions(limits: query.resourceLimits)
             ))
         case let (.curve(reference), .directional(direction, range)):
             return .curveDirectional(try curveQueryEvaluator.project(
@@ -278,8 +289,7 @@ public struct CADPipeline: Sendable {
                 onto: reference,
                 in: evaluatedDocument,
                 options: CurveDirectionalProjectionOptions(
-                    sampleCount: query.sampleCount,
-                    maximumIterations: query.maximumIterations,
+                    limits: query.resourceLimits,
                     range: curveProjectionRange(range)
                 )
             ))
@@ -288,10 +298,7 @@ public struct CADPipeline: Sendable {
                 to: query.point,
                 on: reference,
                 in: evaluatedDocument,
-                options: EdgeProjectionOptions(
-                    sampleCount: query.sampleCount,
-                    maximumIterations: query.maximumIterations
-                )
+                options: EdgeProjectionOptions(limits: query.resourceLimits)
             ))
         case let (.edge(reference), .directional(direction, range)):
             return .edgeDirectional(try edgeQueryEvaluator.project(
@@ -300,8 +307,7 @@ public struct CADPipeline: Sendable {
                 onto: reference,
                 in: evaluatedDocument,
                 options: EdgeDirectionalProjectionOptions(
-                    sampleCount: query.sampleCount,
-                    maximumIterations: query.maximumIterations,
+                    limits: query.resourceLimits,
                     range: edgeProjectionRange(range)
                 )
             ))
@@ -310,10 +316,7 @@ public struct CADPipeline: Sendable {
                 to: query.point,
                 on: reference,
                 in: evaluatedDocument,
-                options: SurfaceProjectionOptions(
-                    sampleCount: query.sampleCount,
-                    maximumIterations: query.maximumIterations
-                )
+                options: SurfaceProjectionOptions(limits: query.resourceLimits)
             ))
         case let (.surface(reference), .directional(direction, range)):
             return .surfaceDirectional(try surfaceQueryEvaluator.project(
@@ -322,8 +325,7 @@ public struct CADPipeline: Sendable {
                 onto: reference,
                 in: evaluatedDocument,
                 options: SurfaceDirectionalProjectionOptions(
-                    sampleCount: query.sampleCount,
-                    maximumIterations: query.maximumIterations,
+                    limits: query.resourceLimits,
                     range: surfaceProjectionRange(range)
                 )
             ))

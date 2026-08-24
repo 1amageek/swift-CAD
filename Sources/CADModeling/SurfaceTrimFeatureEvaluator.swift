@@ -5,12 +5,14 @@ import CADTopology
 
 public struct SurfaceTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let targetResolver: any SurfaceOperationTargetResolving
+    private let targetValidator: any SingleFaceSheetSurfaceOperationTargetValidating
     private let rectangularEditor: any RectangularSurfaceSheetEditing
     private let loopValidator: ExactSurfaceTrimLoopValidator
     private let sewer: any BRepSewing
 
     public init(sewer: any BRepSewing) {
         targetResolver = DefaultSurfaceOperationTargetResolver()
+        targetValidator = DefaultSingleFaceSheetSurfaceOperationTargetValidator()
         rectangularEditor = DefaultRectangularSurfaceSheetEditor()
         loopValidator = ExactSurfaceTrimLoopValidator()
         self.sewer = sewer
@@ -54,7 +56,7 @@ public struct SurfaceTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             try trim.validate(tolerance: context.tolerance)
         }
         try FeatureEvaluationBoundary.validateExactInput(
-            context.brep,
+            context,
             featureID: feature.id,
             tolerance: context.tolerance
         )
@@ -143,15 +145,12 @@ public struct SurfaceTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         orientation: Orientation,
         shellOrientation: Orientation
     ) {
-        guard target.body.shellIDs == [target.shellID],
-              target.shell.faceIDs == [target.faceID] else {
-            throw kernelError(
-                .unsupportedCapability,
-                featureID: featureID,
-                tolerance: tolerance,
-                "Exact surface trim requires the selected face to be the only face of its sheet body."
-            )
-        }
+        try targetValidator.validate(
+            target,
+            operation: "Surface trim",
+            featureID: featureID,
+            tolerance: tolerance
+        )
         return (
             target.faceID,
             target.surface,

@@ -34,6 +34,35 @@ struct KernelQueryPipelineTests {
         }
     }
 
+    @Test
+    func nonArtifactQueriesDoNotMaterializeMeshes() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        _ = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.line(from: point(0.0, 0.0), to: point(10.0, 0.0))
+        }
+        let document = try builder.build()
+        let evaluator = DocumentEvaluator(
+            tessellator: QueryRejectingTessellator(),
+            tolerance: .standard,
+            artifactPolicy: .materialized
+        )
+        let pipeline = CADPipeline(tolerance: .standard, evaluator: evaluator)
+
+        let result = try pipeline.execute(
+            .snap(SnapQueryRequest(point: .origin)),
+            on: document
+        )
+
+        guard case let .snap(snapResult) = result else {
+            Issue.record("Expected an exact snap result.")
+            return
+        }
+        #expect(snapResult.candidates.isEmpty == false)
+        #expect(throws: KernelError.self) {
+            _ = try pipeline.execute(.evaluatedDocument, on: document)
+        }
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func allKernelResultsRoundTripThroughTheSharedTransportContract() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
@@ -472,6 +501,20 @@ struct KernelQueryPipelineTests {
         SketchPoint(
             x: .constant(.length(x, unit: .millimeter)),
             y: .constant(.length(y, unit: .millimeter))
+        )
+    }
+}
+
+private struct QueryRejectingTessellator: Tessellating {
+    func tessellate(
+        model: BRepModel,
+        options: TessellationOptions
+    ) throws -> [BodyID: Mesh] {
+        throw KernelError(
+            phase: .evaluation,
+            code: .unsupportedCapability,
+            tolerance: .standard,
+            message: "The query-only evaluation path must not materialize meshes."
         )
     }
 }

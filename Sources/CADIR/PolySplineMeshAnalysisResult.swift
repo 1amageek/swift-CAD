@@ -13,6 +13,7 @@ public struct PolySplineMeshAnalysisResult: Codable, Sendable, Hashable {
 
         public enum Code: String, Codable, Sendable, Hashable {
             case invalidMesh
+            @available(*, deprecated, message: "Rounded corner reconstruction is supported; this case is retained for decoding older analysis results.")
             case unsupportedRoundedCorners
             case unsupportedPatchNetwork
             case nonManifoldEdges
@@ -22,10 +23,15 @@ public struct PolySplineMeshAnalysisResult: Codable, Sendable, Hashable {
             case patchGraphIdentified
             case patchGraphPartitioned
             case patchAdjacencyIdentified
+            @available(*, deprecated, message: "Exact reconstruction failures use unsupportedPatchNetwork; this case is retained for decoding older analysis results.")
             case patchTangentPlaneDiscontinuity
+            @available(*, deprecated, message: "Exact reconstruction failures use unsupportedPatchNetwork; this case is retained for decoding older analysis results.")
             case patchCurvatureContinuityUnresolved
+            @available(*, deprecated, message: "Use bicubicPatchNetworkSupported; this case is retained for decoding older analysis results.")
             case planarPatchNetworkSupported
+            case bicubicPatchNetworkSupported
             case incompletePatchPartition
+            @available(*, deprecated, message: "Partitioning uses deterministic polynomial-time matching; this case is retained for decoding older analysis results.")
             case oversizedPatchPartitionSearch
             case mergePatchesHasNoEffect
         }

@@ -100,6 +100,63 @@ struct FaceDeleteFeatureTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func removesCurvedFaceWithoutChangingSharedExactGeometry() throws {
+        var document = try makeCylinderDocument()
+        let sourceFeatureID = try #require(document.designGraph.order.last)
+        let source = try DocumentEvaluator(
+            tolerance: .standard,
+            artifactPolicy: .deferred
+        ).evaluate(document)
+        let curvedFace = try #require(source.brep.faces.values.sorted { $0.id < $1.id }.first {
+            guard let surface = source.brep.geometry.surfaces[$0.surfaceID] else {
+                return false
+            }
+            switch surface {
+            case .cylinder, .analytic(.cylinder):
+                return true
+            default:
+                return false
+            }
+        })
+        let curvedFaceSubshapeID = try #require(source.subshapes.entries.first {
+            $0.value == .face(curvedFace.id)
+        }?.key)
+        let sourceGeometry = source.brep.geometry
+        let deleteFeatureID = FeatureID()
+        try appendFaceDelete(
+            featureID: deleteFeatureID,
+            sourceFeatureID: sourceFeatureID,
+            faces: [try source.stableSubshapeReference(for: curvedFaceSubshapeID)],
+            to: &document
+        )
+
+        let evaluated = try DocumentEvaluator(
+            tolerance: .standard,
+            artifactPolicy: .deferred
+        ).evaluate(document)
+        let body = try #require(evaluated.brep.bodies.values.first)
+
+        #expect(body.kind == .sheet)
+        #expect(evaluated.brep.faces[curvedFace.id] == nil)
+        #expect(evaluated.brep.geometry.surfaces.values.contains {
+            switch $0 {
+            case .cylinder, .analytic(.cylinder): return true
+            default: return false
+            }
+        })
+        for (surfaceID, surface) in evaluated.brep.geometry.surfaces {
+            #expect(sourceGeometry.surfaces[surfaceID] == surface)
+        }
+        for (curveID, curve) in evaluated.brep.geometry.curves {
+            #expect(sourceGeometry.curves[curveID] == curve)
+        }
+        #expect(evaluated.brep.loops.values.allSatisfy {
+            $0.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
+        })
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func preservesUnrelatedBodyIdentitiesWhenEvaluatedAgainstAFullModel() throws {
         let firstDocument = makeRectangleExtrudeDocument(documentUnits: .meters)
         let secondDocument = makeRectangleExtrudeDocument(
@@ -179,8 +236,73 @@ struct FaceDeleteFeatureTests {
             ).evaluate(document)
             Issue.record("Deleting every face of a shell must not succeed.")
         } catch let error as KernelError {
-            #expect(error.code == .unsupportedCapability)
+            #expect(error.code == .invalidInput)
             #expect(error.featureID == deleteFeatureID)
+            #expect(error.tolerance == .standard)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsSheetBodyAsOutsideTheSupportedInputDomain() throws {
+        var document = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let sourceFeatureID = try #require(document.designGraph.order.last)
+        let source = try DocumentEvaluator(
+            tolerance: .standard,
+            artifactPolicy: .deferred
+        ).evaluate(document)
+        let removedFaceID = SubshapeID(
+            featureID: sourceFeatureID,
+            role: GeneratedSubshapeRole.startFace.rawValue,
+            ordinal: 0
+        )
+        let firstDeleteFeatureID = FeatureID()
+        try appendFaceDelete(
+            featureID: firstDeleteFeatureID,
+            sourceFeatureID: sourceFeatureID,
+            faces: [try source.stableSubshapeReference(for: removedFaceID)],
+            to: &document
+        )
+        let sheet = try DocumentEvaluator(
+            tolerance: .standard,
+            artifactPolicy: .deferred
+        ).evaluate(document)
+        let remainingFaceSubshapeID = try #require(sheet.subshapes.entries.first {
+            guard $0.key.featureID == firstDeleteFeatureID,
+                  case .face = $0.value else {
+                return false
+            }
+            return true
+        }?.key)
+        let secondDeleteFeatureID = FeatureID()
+        let feature = FeatureNode(
+            id: secondDeleteFeatureID,
+            operation: .faceDelete(FaceDeleteFeature(
+                target: FaceDeleteTargetReference(featureID: firstDeleteFeatureID),
+                faces: [try sheet.stableSubshapeReference(
+                    for: remainingFaceSubshapeID
+                )]
+            )),
+            inputs: [FeatureInput(featureID: firstDeleteFeatureID, role: .target)],
+            outputs: [FeatureOutput(role: .sheet)]
+        )
+
+        do {
+            _ = try FaceDeleteFeatureEvaluator().evaluate(
+                feature: feature,
+                context: EvaluationContext(
+                    parameters: sheet.parameters,
+                    brep: sheet.brep,
+                    profiles: [:],
+                    curves: sheet.curves,
+                    subshapes: sheet.subshapes,
+                    lineage: sheet.lineage,
+                    tolerance: .standard
+                )
+            )
+            Issue.record("Face delete must reject a sheet target body.")
+        } catch let error as KernelError {
+            #expect(error.code == .invalidInput)
+            #expect(error.featureID == secondDeleteFeatureID)
             #expect(error.tolerance == .standard)
         }
     }
@@ -257,6 +379,28 @@ struct FaceDeleteFeatureTests {
             target: featureID
         ))
         document.designGraph.revision = document.designGraph.revision.advanced()
+    }
+
+    private func makeCylinderDocument() throws -> CADDocument {
+        let featureID = FeatureID()
+        let operation = FeatureOperation.primitive(PrimitiveFeature(
+            definition: .cylinder(CylinderPrimitive(
+                radius: .constant(.length(2.0, unit: .meter)),
+                height: .constant(.length(5.0, unit: .meter))
+            ))
+        ))
+        var document = CADDocument(units: .meters)
+        let node = try FeatureNodeFactory.make(
+            operation: operation,
+            id: featureID,
+            name: "cylinder",
+            in: document,
+            tolerance: .standard
+        )
+        document.designGraph.nodes[featureID] = node
+        document.designGraph.order = [featureID]
+        document.designGraph.revision = document.designGraph.revision.advanced()
+        return document
     }
 
     private func combinedContext(

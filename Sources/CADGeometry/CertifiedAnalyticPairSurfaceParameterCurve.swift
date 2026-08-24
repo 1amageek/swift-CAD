@@ -63,15 +63,13 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
         let mapped = try mappedFraction(fraction, tolerance: tolerance)
-        let point = try intersection.point(
-            atNormalizedFraction: mapped,
-            tolerance: tolerance
-        )
-        let result = try intersection.internalParameter(
+        let evaluation = try intersection.pointAndInternalParameter(
             for: role,
             atNormalizedFraction: mapped,
             tolerance: tolerance
         )
+        let point = evaluation.point
+        let result = evaluation.parameter
         let surface = intersection.surface(for: role)
         let reconstructed = try surface.point(
             u: result.u,
@@ -95,11 +93,23 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterCurveDifferential {
-        let mapped = try mappedFraction(fraction, tolerance: tolerance)
         let parameter = try parameter(
             atNormalizedFraction: fraction,
             tolerance: tolerance
         )
+        return try differential(
+            atNormalizedFraction: fraction,
+            knownParameter: parameter,
+            tolerance: tolerance
+        )
+    }
+
+    package func differential(
+        atNormalizedFraction fraction: Double,
+        knownParameter parameter: SurfaceParameter,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterCurveDifferential {
+        let mapped = try mappedFraction(fraction, tolerance: tolerance)
         let curveDifferential = try intersection.differential(
             atNormalizedFraction: mapped,
             tolerance: tolerance
@@ -163,6 +173,36 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
         )
     }
 
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Point2D {
+        let lower = try differential(
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        )
+        let mapped = try mappedFraction(fraction, tolerance: tolerance)
+        let scale = endFraction - startFraction
+        let spatialThirdDerivative = try intersection.thirdDerivative(
+            atNormalizedFraction: mapped,
+            tolerance: tolerance
+        ) * (scale * scale * scale)
+        let surface = try intersection.surface(for: role)
+            .parameterDerivativesThroughThirdOrder(
+                atU: lower.parameter.u,
+                v: lower.parameter.v,
+                tolerance: tolerance
+            )
+        return try SurfaceParameterThirdDerivativeSolver().solve(
+            surface: surface,
+            firstParameterDerivative: lower.firstDerivative,
+            secondParameterDerivative: lower.secondDerivative,
+            spatialThirdDerivative: spatialThirdDerivative,
+            tolerance: tolerance,
+            diagnosticContext: "Certified analytic-pair pcurve"
+        )
+    }
+
     func modelSpaceDifferential(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
@@ -183,6 +223,21 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
                 secondDerivative: source.secondDerivative
                     * (scale * scale)
             )
+    }
+
+    func modelSpaceThirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        let mapped = try mappedFraction(
+            fraction,
+            tolerance: tolerance
+        )
+        let scale = endFraction - startFraction
+        return try intersection.thirdDerivative(
+            atNormalizedFraction: mapped,
+            tolerance: tolerance
+        ) * (scale * scale * scale)
     }
 
     public func reversed(

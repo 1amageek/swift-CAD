@@ -22,7 +22,7 @@ package struct ExactPointGuideSectionTransformResolver: Sendable {
             tolerance: tolerance
         )
         return try resolve(
-            sectionSpans: spanBuilder.profileSpans(from: profile),
+            sectionSpans: spanBuilder.profileLoopSpans(from: profile).flatMap { $0 },
             sectionPlane: profile.plane,
             pathStart: pathStart,
             pathEnd: pathEnd,

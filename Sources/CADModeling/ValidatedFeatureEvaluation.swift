@@ -12,10 +12,9 @@ package struct ValidatedFeatureEvaluation: Sendable {
     ) throws {
         let exactResult = try Self.exactResult(result, tolerance: tolerance)
         self.result = exactResult
-        brep = try ValidatedBRepModel(
-            exactResult.brep,
-            tolerance: tolerance,
-            validationLevel: .exact
+        brep = try Self.validatedBRep(
+            for: exactResult,
+            tolerance: tolerance
         )
     }
 
@@ -25,10 +24,9 @@ package struct ValidatedFeatureEvaluation: Sendable {
     ) throws {
         let exactResult = try Self.exactResult(result, tolerance: tolerance)
         self.result = exactResult
-        brep = try ValidatedBRepModel(
-            exactResult.brep,
-            tolerance: tolerance,
-            validationLevel: .exact
+        brep = try Self.validatedBRep(
+            for: exactResult,
+            tolerance: tolerance
         )
     }
 
@@ -43,5 +41,22 @@ package struct ValidatedFeatureEvaluation: Sendable {
             tolerance: tolerance
         )
         return exactResult
+    }
+
+    private static func validatedBRep(
+        for result: EvaluationResult,
+        tolerance: ModelingTolerance
+    ) throws -> ValidatedBRepModel {
+        if let certificate = result.validatedBRep,
+           certificate.model == result.brep,
+           certificate.tolerance == tolerance,
+           certificate.validationLevel != .modeling {
+            return certificate
+        }
+        return try ValidatedBRepModel(
+            result.brep,
+            tolerance: tolerance,
+            validationLevel: .exact
+        )
     }
 }

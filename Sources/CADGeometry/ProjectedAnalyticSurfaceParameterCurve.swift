@@ -34,14 +34,14 @@ public struct ProjectedAnalyticSurfaceParameterCurve: Codable, Hashable, Sendabl
         case .analytic(.hyperbola), .analytic(.parabola):
             hasSupportedCurve = true
         case .line, .circle, .analytic, .bSpline, .implicit, .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection, .rigidImage, .affineImage:
             hasSupportedCurve = false
         }
         let hasSupportedSurface: Bool
         switch surface {
         case .plane, .analytic(.plane), .analytic(.cone):
             hasSupportedSurface = true
-        case .cylinder, .analytic, .bSpline:
+        case .cylinder, .analytic, .bSpline, .procedural:
             hasSupportedSurface = false
         }
         guard requestedSurface == surface,
@@ -139,6 +139,42 @@ public struct ProjectedAnalyticSurfaceParameterCurve: Codable, Hashable, Sendabl
                 x: result.secondDerivative.x * span * span,
                 y: result.secondDerivative.y * span * span
             )
+        )
+    }
+
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Point2D {
+        try tolerance.validate()
+        guard fraction.isFinite,
+              fraction >= -tolerance.relative,
+              fraction <= 1.0 + tolerance.relative else {
+            throw GeometryError.invalidDistance(fraction)
+        }
+        let span = endParameter - startParameter
+        let boundedFraction = min(max(fraction, 0.0), 1.0)
+        let parameter = startParameter + span * boundedFraction
+        let lower = try differential(
+            atNormalizedFraction: boundedFraction,
+            tolerance: tolerance
+        )
+        let spatialThird = try curve.parameterDerivativesThroughThirdOrder(
+            at: parameter,
+            tolerance: tolerance
+        ).thirdDerivative * (span * span * span)
+        let surfaceDerivatives = try surface.parameterDerivativesThroughThirdOrder(
+            atU: lower.parameter.u,
+            v: lower.parameter.v,
+            tolerance: tolerance
+        )
+        return try SurfaceParameterThirdDerivativeSolver().solve(
+            surface: surfaceDerivatives,
+            firstParameterDerivative: lower.firstDerivative,
+            secondParameterDerivative: lower.secondDerivative,
+            spatialThirdDerivative: spatialThird,
+            tolerance: tolerance,
+            diagnosticContext: "Analytic projected pcurve"
         )
     }
 

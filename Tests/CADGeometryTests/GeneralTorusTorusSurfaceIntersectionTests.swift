@@ -23,6 +23,25 @@ struct GeneralTorusTorusSurfaceIntersectionTests {
         for intersection in intersections {
             try verifyCurve(intersection, first: first, second: second)
         }
+        let certifiedTruth: [CertifiedAnalyticAnalyticIntersectionCurve] =
+            intersections.compactMap { intersection in
+            guard case let .curve(curve) = intersection,
+                  case let .analyticAnalytic(truth) = curve.truth else {
+                return nil
+            }
+            return truth
+        }
+        #expect(certifiedTruth.count == 2)
+        if certifiedTruth.count == 2 {
+            #expect(
+                certifiedTruth[0].componentRelation(to: certifiedTruth[0])
+                    == .sameEmbeddedComponent(isClosed: true)
+            )
+            #expect(
+                certifiedTruth[0].componentRelation(to: certifiedTruth[1])
+                    == .disjointComponents
+            )
+        }
 
         let boundaryContacts = try DefaultCurveSurfaceIntersector().intersections(
             curve: .circle(Circle3D(
@@ -321,6 +340,10 @@ struct GeneralTorusTorusSurfaceIntersectionTests {
               case .generalTorusTorus = exactTruth.definition,
               case .surfaceLift = result.curve,
               case let .bSpline(derivedCurve) = result.derivedRepresentation.curve,
+              case .certifiedAnalyticPair = result.firstSurfaceParameterCurve,
+              case .certifiedAnalyticPair = result.secondSurfaceParameterCurve,
+              case .bSpline = result.derivedRepresentation.firstSurfaceParameterCurve,
+              case .bSpline = result.derivedRepresentation.secondSurfaceParameterCurve,
               case let .closed(lower, upper) = result.curve.parameterDomain else {
             Issue.record("A regular general torus-torus intersection must retain procedural truth and a derived B-spline cache.")
             return
@@ -398,7 +421,6 @@ struct GeneralTorusTorusSurfaceIntersectionTests {
             #expect(curve.kind == .mixed)
             #expect(proceduralCurve.branchCount == 4)
             #expect(curve.maximumResidual <= tolerance.distance)
-            #expect(exact.usesDerivedSurfaceParameterCurves == false)
             try curve.validate(tolerance: tolerance)
             try curve.firstSurfaceParameterCurve.validate(
                 on: first,

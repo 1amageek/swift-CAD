@@ -53,6 +53,8 @@ enum ExactExchangePeriodicTrimAssertions {
                  .implicit,
                  .surfaceLift,
                  .certifiedIntersection,
+                 .rigidImage,
+                 .affineImage,
                  .analytic(.line),
                  .analytic(.arc),
                  .analytic(.hyperbola),
@@ -98,15 +100,28 @@ enum ExactExchangePeriodicTrimAssertions {
                     return nil
                 }
                 return end.u - start.u
+            case let .bSpline(curve):
+                guard curve.degree == 1,
+                      let start = curve.controlPoints.first,
+                      let end = curve.controlPoints.last,
+                      curve.controlPoints.allSatisfy({
+                          abs($0.y - start.y) <= ModelingTolerance.standard.distance
+                      }),
+                      abs(end.x - start.x) > 1.0 else {
+                    return nil
+                }
+                return end.x - start.x
             case .affine,
                  .constantU,
                  .sphericalGreatCircle,
-                 .bSpline,
                  .certifiedImplicit,
                  .certifiedAnalyticImplicit,
                  .certifiedAnalyticPair,
-                 .projectedAnalytic:
+                 .projectedAnalytic,
+                 .rigidImage:
                 return nil
+            case let .sameParameterImage(image):
+                return periodicPcurveSpan(image.source)
             case let .periodicTranslation(base, _, _):
                 return periodicPcurveSpan(base)
         }

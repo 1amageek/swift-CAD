@@ -62,8 +62,53 @@ enum CanonicalAnalyticSurface: Sendable {
                 majorRadius: majorRadius,
                 minorRadius: minorRadius
             ))
-        case .bSpline:
+        case .bSpline, .procedural(.ruled):
             self = .unsupported
+        case let .procedural(.offset(offset)):
+            switch CanonicalAnalyticSurface(offset.source) {
+            case let .plane(plane):
+                self = .plane(Plane(
+                    origin: plane.origin + plane.normal * offset.distance,
+                    normal: plane.normal
+                ))
+            case let .cylinder(cylinder):
+                let radius = cylinder.radius + offset.distance
+                guard radius.isFinite, radius > 0.0 else {
+                    self = .unsupported
+                    return
+                }
+                self = .cylinder(Cylinder(
+                    origin: cylinder.origin,
+                    axis: cylinder.axis,
+                    radius: radius
+                ))
+            case let .sphere(sphere):
+                let radius = sphere.radius + offset.distance
+                guard radius.isFinite, radius > 0.0 else {
+                    self = .unsupported
+                    return
+                }
+                self = .sphere(Sphere(
+                    center: sphere.center,
+                    radius: radius
+                ))
+            case let .torus(torus):
+                let minorRadius = torus.minorRadius + offset.distance
+                guard minorRadius.isFinite,
+                      minorRadius > 0.0,
+                      torus.majorRadius > minorRadius else {
+                    self = .unsupported
+                    return
+                }
+                self = .torus(Torus(
+                    center: torus.center,
+                    axis: torus.axis,
+                    majorRadius: torus.majorRadius,
+                    minorRadius: minorRadius
+                ))
+            case .cone, .unsupported:
+                self = .unsupported
+            }
         }
     }
 }

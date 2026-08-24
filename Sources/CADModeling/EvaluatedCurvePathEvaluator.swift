@@ -20,13 +20,230 @@ public struct EvaluatedCurvePathSample: Sendable, Hashable {
 }
 
 public struct EvaluatedCurvePathEvaluator: Sendable {
+    private struct PreparedPathSegment {
+        let segment: EvaluatedCurvePathSegment
+        let path: PreparedEvaluatedCurvePath
+
+        var length: Double {
+            path.totalLength
+        }
+    }
+
     private let tolerance: ModelingTolerance
+    private let arcLengthResolver: any CurveArcLengthResolving
     private let minimumCircularSegmentCount = 32
     private let maximumCircularSegmentCount = 8_192
     private let maximumSplineSegmentCount = 512
 
-    public init(tolerance: ModelingTolerance) {
+    public init(
+        tolerance: ModelingTolerance,
+        arcLengthResolver: any CurveArcLengthResolving = DefaultCurveArcLengthResolver()
+    ) {
         self.tolerance = tolerance
+        self.arcLengthResolver = arcLengthResolver
+    }
+
+    /// Prepares a reusable distance parameterization for an evaluated curve.
+    /// Exact geometry remains authoritative whenever the curve provides it.
+    public func prepare(
+        _ curve: EvaluatedCurve
+    ) throws -> PreparedEvaluatedCurvePath {
+        try tolerance.validate()
+        try curve.validate(tolerance: tolerance)
+        guard let exactCurve = curve.exactCurve else {
+            return try prepare(points: curve.points)
+        }
+        let interval = try traversalInterval(for: curve, exactCurve: exactCurve)
+        let parameterization = try arcLengthResolver.parameterization(
+            of: exactCurve,
+            over: interval,
+            tolerance: tolerance
+        )
+        let totalLength = parameterization.lengthEnclosure.midpoint
+        guard totalLength.isFinite,
+              totalLength > tolerance.distance else {
+            throw FeatureEvaluationError.invalidDistance(totalLength)
+        }
+        let startParameter = try parameterization.parameterEnclosure(
+            atArcLengthFraction: 0.0
+        ).parameter
+        return PreparedEvaluatedCurvePath(
+            origin: try exactCurve.point(
+                at: startParameter,
+                tolerance: tolerance
+            ),
+            totalLength: totalLength,
+            storage: .exact(
+                curve: exactCurve,
+                parameterization: parameterization
+            )
+        )
+    }
+
+    /// Prepares a reusable piecewise-linear path when no exact curve exists.
+    public func prepare(
+        points: [Point3D]
+    ) throws -> PreparedEvaluatedCurvePath {
+        try tolerance.validate()
+        guard points.count >= 2 else {
+            throw SketchError.unsupportedEntity(
+                "Curve path preparation requires at least two points."
+            )
+        }
+        var cumulativeLengths = [0.0]
+        cumulativeLengths.reserveCapacity(points.count)
+        var totalLength = 0.0
+        for index in points.indices {
+            try points[index].validate()
+            guard index > points.startIndex else { continue }
+            let segmentLength = (points[index] - points[index - 1]).length
+            guard segmentLength.isFinite,
+                  segmentLength > tolerance.distance else {
+                throw SketchError.unsupportedEntity(
+                    "Curve path preparation requires non-degenerate spans."
+                )
+            }
+            totalLength += segmentLength
+            cumulativeLengths.append(totalLength)
+        }
+        guard totalLength.isFinite,
+              totalLength > tolerance.distance else {
+            throw FeatureEvaluationError.invalidDistance(totalLength)
+        }
+        return PreparedEvaluatedCurvePath(
+            origin: points[0],
+            totalLength: totalLength,
+            storage: .polyline(
+                points: points,
+                cumulativeLengths: cumulativeLengths
+            )
+        )
+    }
+
+    /// Prepares every segment once so repeated distance queries do not rebuild
+    /// certified arc-length partitions.
+    public func prepare(
+        _ segments: [EvaluatedCurvePathSegment]
+    ) throws -> PreparedEvaluatedCurveChain {
+        try tolerance.validate()
+        guard segments.isEmpty == false else {
+            throw SketchError.unsupportedEntity(
+                "Curve path preparation requires at least one segment."
+            )
+        }
+        var prepared: [PreparedEvaluatedCurveChain.Segment] = []
+        prepared.reserveCapacity(segments.count)
+        var totalLength = 0.0
+        for segment in segments {
+            try segment.validate(tolerance: tolerance)
+            let path = try prepare(segment.curve)
+            let startDistance = totalLength
+            totalLength += path.totalLength
+            guard totalLength.isFinite else {
+                throw FeatureEvaluationError.invalidDistance(totalLength)
+            }
+            prepared.append(PreparedEvaluatedCurveChain.Segment(
+                path: path,
+                isReversed: segment.isReversed,
+                startDistance: startDistance,
+                endDistance: totalLength
+            ))
+        }
+        guard totalLength > tolerance.distance else {
+            throw FeatureEvaluationError.invalidDistance(totalLength)
+        }
+        return PreparedEvaluatedCurveChain(
+            totalLength: totalLength,
+            segments: prepared
+        )
+    }
+
+    /// Evaluates one point and tangent at a physical distance along a prepared path.
+    public func sample(
+        at distance: Double,
+        on path: PreparedEvaluatedCurvePath
+    ) throws -> EvaluatedCurvePathSample {
+        try tolerance.validate()
+        guard distance.isFinite,
+              distance >= -tolerance.distance,
+              distance <= path.totalLength + tolerance.distance else {
+            throw FeatureEvaluationError.invalidDistance(distance)
+        }
+        let clampedDistance = min(max(distance, 0.0), path.totalLength)
+        switch path.storage {
+        case let .exact(curve, parameterization):
+            let fraction = clampedDistance / path.totalLength
+            let parameter = try parameterization.parameterEnclosure(
+                atArcLengthFraction: fraction
+            ).parameter
+            let geometry = try curve.differentialGeometry(
+                at: parameter,
+                tolerance: tolerance
+            )
+            return EvaluatedCurvePathSample(
+                point: geometry.position,
+                tangent: geometry.tangent,
+                distance: clampedDistance
+            )
+        case let .polyline(points, cumulativeLengths):
+            let spanIndex = polylineSpanIndex(
+                containing: clampedDistance,
+                cumulativeLengths: cumulativeLengths
+            )
+            let startDistance = cumulativeLengths[spanIndex - 1]
+            let endDistance = cumulativeLengths[spanIndex]
+            let spanLength = endDistance - startDistance
+            let start = points[spanIndex - 1]
+            let end = points[spanIndex]
+            let tangent = try (end - start).normalized(
+                tolerance: tolerance.distance
+            )
+            let localFraction = (clampedDistance - startDistance) / spanLength
+            return EvaluatedCurvePathSample(
+                point: start + (end - start) * localFraction,
+                tangent: tangent,
+                distance: clampedDistance
+            )
+        }
+    }
+
+    /// Evaluates one point and tangent at a physical distance along a prepared chain.
+    public func sample(
+        at distance: Double,
+        on chain: PreparedEvaluatedCurveChain
+    ) throws -> EvaluatedCurvePathSample {
+        try tolerance.validate()
+        guard distance.isFinite,
+              distance >= -tolerance.distance,
+              distance <= chain.totalLength + tolerance.distance else {
+            throw FeatureEvaluationError.invalidDistance(distance)
+        }
+        let clampedDistance = min(max(distance, 0.0), chain.totalLength)
+        guard let segment = chain.segments.first(where: {
+            clampedDistance <= $0.endDistance
+        }) ?? chain.segments.last else {
+            throw SketchError.unsupportedEntity(
+                "Prepared curve chain contains no segments."
+            )
+        }
+        let localDistance = min(
+            max(clampedDistance - segment.startDistance, 0.0),
+            segment.path.totalLength
+        )
+        let canonicalDistance = segment.isReversed
+            ? segment.path.totalLength - localDistance
+            : localDistance
+        let canonicalSample = try sample(
+            at: canonicalDistance,
+            on: segment.path
+        )
+        return EvaluatedCurvePathSample(
+            point: canonicalSample.point,
+            tangent: segment.isReversed
+                ? -canonicalSample.tangent
+                : canonicalSample.tangent,
+            distance: clampedDistance
+        )
     }
 
     public func length(of curves: [EvaluatedCurve]) throws -> Double {
@@ -34,42 +251,11 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
     }
 
     public func length(of segments: [EvaluatedCurvePathSegment]) throws -> Double {
-        try tolerance.validate()
-        guard segments.isEmpty == false else {
-            throw SketchError.unsupportedEntity("Curve path evaluation requires at least one segment.")
-        }
-        var totalLength = 0.0
-        for segment in segments {
-            try segment.validate(tolerance: tolerance)
-            totalLength += try length(of: segment.curve)
-        }
-        guard totalLength > tolerance.distance else {
-            throw FeatureEvaluationError.invalidDistance(totalLength)
-        }
-        return totalLength
+        try prepare(segments).totalLength
     }
 
     public func length(of curve: EvaluatedCurve) throws -> Double {
-        try tolerance.validate()
-        try curve.validate(tolerance: tolerance)
-        if let exactCurve = curve.exactCurve {
-            switch exactCurve {
-            case .line:
-                let (_, _, length) = try finiteLineParameters(for: curve)
-                return length
-            case .circle(let circle):
-                let (_, _, length) = try finiteCircleParameters(for: curve, circle: circle)
-                return length
-            case .analytic(.line):
-                let (_, _, length) = try finiteLineParameters(for: curve)
-                return length
-            case .analytic:
-                return try polylineLength(samples(for: curve, distanceFraction: 1.0))
-            case .bSpline, .implicit, .surfaceLift, .certifiedIntersection:
-                return try polylineLength(samples(for: curve, distanceFraction: 1.0))
-            }
-        }
-        return try polylineLength(polylineSamples(points: curve.points, distanceFraction: 1.0))
+        try prepare(curve).totalLength
     }
 
     public func samples(
@@ -77,59 +263,11 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
         distanceFraction: Double = 1.0
     ) throws -> [EvaluatedCurvePathSample] {
         try tolerance.validate()
-        try curve.validate(tolerance: tolerance)
         try validateDistanceFraction(distanceFraction)
-
-        if let exactCurve = curve.exactCurve {
-            switch exactCurve {
-            case .line(let line):
-                return try lineSamples(
-                    line: line,
-                    curve: curve,
-                    distanceFraction: distanceFraction
-                )
-            case .circle(let circle):
-                return try circleSamples(
-                    circle: circle,
-                    curve: curve,
-                    distanceFraction: distanceFraction
-                )
-            case let .analytic(analyticCurve):
-                if case let .line(origin, direction) = analyticCurve {
-                    return try lineSamples(
-                        line: Line3D(origin: origin, direction: direction),
-                        curve: curve,
-                        distanceFraction: distanceFraction
-                    )
-                }
-                if case .planeTorus = analyticCurve {
-                    return try implicitSamples(
-                        curve: curve,
-                        distanceFraction: distanceFraction
-                    )
-                }
-                return try analyticSamples(
-                    exactCurve: exactCurve,
-                    analyticCurve: analyticCurve,
-                    curve: curve,
-                    distanceFraction: distanceFraction
-                )
-            case .bSpline(let spline):
-                return try bSplineSamples(
-                    spline: spline,
-                    curve: curve,
-                    distanceFraction: distanceFraction
-                )
-            case .implicit, .surfaceLift, .certifiedIntersection:
-                return try implicitSamples(
-                    curve: curve,
-                    distanceFraction: distanceFraction
-                )
-            }
-        }
-
-        return try polylineSamples(
-            points: curve.points,
+        return try samples(
+            for: preparedSegment(
+                EvaluatedCurvePathSegment(curve: curve)
+            ),
             distanceFraction: distanceFraction
         )
     }
@@ -144,11 +282,10 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
             throw SketchError.unsupportedEntity("Curve path sampling requires at least one segment.")
         }
 
-        let segmentLengths = try segments.map { segment in
-            try segment.validate(tolerance: tolerance)
-            return try length(of: segment.curve)
+        let preparedSegments = try segments.map(preparedSegment)
+        let totalLength = preparedSegments.reduce(0.0) {
+            $0 + $1.length
         }
-        let totalLength = segmentLengths.reduce(0.0, +)
         guard totalLength > tolerance.distance else {
             throw FeatureEvaluationError.invalidDistance(totalLength)
         }
@@ -156,8 +293,8 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
         let targetDistance = totalLength * distanceFraction
         var coveredDistance = 0.0
         var pathSamples: [EvaluatedCurvePathSample] = []
-        for index in segments.indices {
-            let segmentLength = segmentLengths[index]
+        for prepared in preparedSegments {
+            let segmentLength = prepared.length
             let remainingDistance = targetDistance - coveredDistance
             guard remainingDistance > tolerance.distance else {
                 break
@@ -165,7 +302,7 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
             let segmentTargetDistance = min(remainingDistance, segmentLength)
             let segmentFraction = segmentTargetDistance / segmentLength
             let segmentSamples = try samples(
-                for: segments[index],
+                for: prepared,
                 distanceFraction: segmentFraction
             )
             append(
@@ -191,318 +328,171 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
     }
 
     private func samples(
-        for segment: EvaluatedCurvePathSegment,
+        for prepared: PreparedPathSegment,
         distanceFraction: Double
     ) throws -> [EvaluatedCurvePathSample] {
-        try segment.validate(tolerance: tolerance)
-        guard segment.isReversed else {
-            return try samples(for: segment.curve, distanceFraction: distanceFraction)
+        let segment = prepared.segment
+        let curve = segment.curve
+        guard curve.exactCurve != nil else {
+            return try polylineSamples(
+                points: segment.isReversed
+                    ? Array(curve.points.reversed())
+                    : curve.points,
+                distanceFraction: distanceFraction
+            )
         }
-        if let reversedCurve = try reversedExactCurve(for: segment.curve) {
-            return try samples(for: reversedCurve, distanceFraction: distanceFraction)
-        }
-        return try polylineSamples(
-            points: Array(segment.curve.points.reversed()),
+        return try exactSamples(
+            for: prepared,
             distanceFraction: distanceFraction
         )
     }
 
-    private func reversedExactCurve(for curve: EvaluatedCurve) throws -> EvaluatedCurve? {
-        guard let exactCurve = curve.exactCurve else {
-            return nil
-        }
-        let reversedPoints = Array(curve.points.reversed())
-        switch exactCurve {
-        case .line(let line):
-            let (_, end, length) = try finiteLineParameters(for: curve)
-            let reversedLine = Line3D(
-                origin: line.origin + line.direction * end,
-                direction: line.direction * -1.0
-            )
-            let reversedCurve = EvaluatedCurve(
-                sourceFeatureID: curve.sourceFeatureID,
-                source: curve.source,
-                kind: curve.kind,
-                points: reversedPoints,
-                isClosed: curve.isClosed,
-                plane: curve.plane,
-                exactCurve: .line(reversedLine),
-                exactParameterDomain: .closed(0.0, length)
-            )
-            try reversedCurve.validate(tolerance: tolerance)
-            return reversedCurve
-        case .circle(let circle):
-            let (start, end, _) = try finiteCircleParameters(for: curve, circle: circle)
-            let reversedCircle = Circle3D(
-                center: circle.center,
-                normal: circle.normal * -1.0,
-                radius: circle.radius
-            )
-            let reversedCurve = EvaluatedCurve(
-                sourceFeatureID: curve.sourceFeatureID,
-                source: curve.source,
-                kind: curve.kind,
-                points: reversedPoints,
-                isClosed: curve.isClosed,
-                plane: curve.plane,
-                exactCurve: .circle(reversedCircle),
-                exactParameterDomain: .closed(Double.pi - end, Double.pi - start)
-            )
-            try reversedCurve.validate(tolerance: tolerance)
-            return reversedCurve
-        case .analytic:
-            return nil
-        case .bSpline(let spline):
-            let reversedSpline = try spline.reversed(tolerance: tolerance)
-            let reversedCurve = EvaluatedCurve(
-                sourceFeatureID: curve.sourceFeatureID,
-                source: curve.source,
-                kind: curve.kind,
-                points: reversedPoints,
-                isClosed: curve.isClosed,
-                plane: curve.plane,
-                exactCurve: .bSpline(reversedSpline),
-                exactParameterDomain: try reversedParameterDomain(for: curve.parameterDomain, on: spline)
-            )
-            try reversedCurve.validate(tolerance: tolerance)
-            return reversedCurve
-        case .implicit, .surfaceLift, .certifiedIntersection:
-            return nil
-        }
+    private func preparedSegment(
+        _ segment: EvaluatedCurvePathSegment
+    ) throws -> PreparedPathSegment {
+        try segment.validate(tolerance: tolerance)
+        return PreparedPathSegment(
+            segment: segment,
+            path: try prepare(segment.curve)
+        )
     }
 
-    private func implicitSamples(
-        curve: EvaluatedCurve,
+    private func exactSamples(
+        for prepared: PreparedPathSegment,
         distanceFraction: Double
     ) throws -> [EvaluatedCurvePathSample] {
-        guard let exactCurve = curve.exactCurve,
-              case let .closed(lower, upper) = curve.parameterDomain else {
-            throw KernelError.unsupportedEvaluation(
-                tolerance: tolerance,
-                message: "Implicit curve path sampling requires a finite certified parameter domain."
-            )
-        }
-        let targetUpper = lower + (upper - lower) * distanceFraction
-        let segmentCount = max(min(maximumSplineSegmentCount, curve.points.count * 8), 32)
-        var result: [EvaluatedCurvePathSample] = []
-        result.reserveCapacity(segmentCount + 1)
-        var previousPoint: Point3D?
-        var distance = 0.0
-        for index in 0...segmentCount {
-            let fraction = Double(index) / Double(segmentCount)
-            let parameter = lower + (targetUpper - lower) * fraction
-            let geometry = try exactCurve.differentialGeometry(
-                at: parameter,
-                tolerance: tolerance
-            )
-            if let previousPoint {
-                distance += (geometry.position - previousPoint).length
-            }
-            result.append(EvaluatedCurvePathSample(
-                point: geometry.position,
-                tangent: geometry.tangent,
-                distance: distance
-            ))
-            previousPoint = geometry.position
-        }
-        return try validateSamples(result)
-    }
-
-    private func reversedParameterDomain(
-        for domain: ParameterDomain,
-        on spline: BSplineCurve3D
-    ) throws -> ParameterDomain {
-        guard case let .closed(curveLowerBound, curveUpperBound) = spline.domain else {
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "B-spline curve path reversal requires a finite curve domain."
-            )
-        }
-        guard case let .closed(lowerBound, upperBound) = domain else {
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "B-spline curve path reversal requires a finite parameter range."
-            )
-        }
-        let sum = curveLowerBound + curveUpperBound
-        return .closed(sum - upperBound, sum - lowerBound)
-    }
-
-    private func lineSamples(
-        line: Line3D,
-        curve: EvaluatedCurve,
-        distanceFraction: Double
-    ) throws -> [EvaluatedCurvePathSample] {
-        try line.validate(tolerance: tolerance)
-        let (start, end, fullLength) = try finiteLineParameters(for: curve)
-        let span = end - start
-        let targetEnd = start + span * distanceFraction
-        let directionSign = span >= 0.0 ? 1.0 : -1.0
-        let startPoint = line.origin + line.direction * start
-        let endPoint = line.origin + line.direction * targetEnd
-        let tangent = line.direction * directionSign
-        try tangent.validateUnitLength(tolerance: tolerance)
-        let targetLength = fullLength * distanceFraction
-        guard targetLength > tolerance.distance else {
+        let path = prepared.path
+        let targetLength = path.totalLength * distanceFraction
+        guard targetLength.isFinite,
+              targetLength > tolerance.distance else {
             throw FeatureEvaluationError.invalidDistance(targetLength)
         }
-        return [
-            EvaluatedCurvePathSample(point: startPoint, tangent: tangent, distance: 0.0),
-            EvaluatedCurvePathSample(point: endPoint, tangent: tangent, distance: targetLength),
-        ]
-    }
-
-    private func circleSamples(
-        circle: Circle3D,
-        curve: EvaluatedCurve,
-        distanceFraction: Double
-    ) throws -> [EvaluatedCurvePathSample] {
-        try circle.validate(tolerance: tolerance)
-        let (start, end, fullLength) = try finiteCircleParameters(for: curve, circle: circle)
-        let span = end - start
-        let targetSpan = span * distanceFraction
-        let segmentCount = circularSegmentCount(radius: circle.radius, angleSpan: abs(targetSpan))
-        var samples: [EvaluatedCurvePathSample] = []
-        samples.reserveCapacity(segmentCount + 1)
-        for index in 0...segmentCount {
-            let ratio = Double(index) / Double(segmentCount)
-            let parameter = start + targetSpan * ratio
-            let geometry = try Curve3D.circle(circle).differentialGeometry(
-                at: parameter,
-                tolerance: tolerance
-            )
-            let tangent = geometry.tangent * (targetSpan >= 0.0 ? 1.0 : -1.0)
-            try tangent.validateUnitLength(tolerance: tolerance)
-            samples.append(EvaluatedCurvePathSample(
-                point: geometry.position,
-                tangent: tangent,
-                distance: fullLength * distanceFraction * ratio
-            ))
-        }
-        return try validateSamples(samples)
-    }
-
-    private func bSplineSamples(
-        spline: BSplineCurve3D,
-        curve: EvaluatedCurve,
-        distanceFraction: Double
-    ) throws -> [EvaluatedCurvePathSample] {
-        try spline.validate(tolerance: tolerance)
-        guard case let .closed(start, end) = curve.parameterDomain else {
-            return try polylineSamples(
-                points: curve.points,
-                distanceFraction: distanceFraction
-            )
-        }
-        let span = end - start
-        let targetEnd = start + span * distanceFraction
-        let segmentCount = max(
-            max(
-                bSplineSegmentCount(curve: spline, span: targetEnd - start),
-                curve.points.count - 1
-            ),
-            2
+        let segmentCount = try exactSampleSegmentCount(
+            for: prepared.segment.curve,
+            distanceFraction: distanceFraction
         )
-        let directionSign = targetEnd >= start ? 1.0 : -1.0
         var samples: [EvaluatedCurvePathSample] = []
         samples.reserveCapacity(segmentCount + 1)
-        var previousPoint: Point3D?
-        var distance = 0.0
         for index in 0...segmentCount {
             let ratio = Double(index) / Double(segmentCount)
-            let parameter = start + (targetEnd - start) * ratio
-            let geometry = try Curve3D.bSpline(spline).differentialGeometry(
-                at: parameter,
-                tolerance: tolerance
+            let localDistance = targetLength * ratio
+            let canonicalDistance = prepared.segment.isReversed
+                ? path.totalLength - localDistance
+                : localDistance
+            let canonicalSample = try sample(
+                at: canonicalDistance,
+                on: path
             )
-            let tangent = geometry.tangent * directionSign
-            try tangent.validateUnitLength(tolerance: tolerance)
-            if let previousPoint {
-                let segmentLength = (geometry.position - previousPoint).length
-                guard segmentLength.isFinite else {
-                    throw GeometryError.invalidDistance(segmentLength)
-                }
-                if segmentLength <= tolerance.distance {
-                    continue
-                }
-                distance += segmentLength
-            }
             samples.append(EvaluatedCurvePathSample(
-                point: geometry.position,
-                tangent: tangent,
-                distance: distance
+                point: canonicalSample.point,
+                tangent: prepared.segment.isReversed
+                    ? -canonicalSample.tangent
+                    : canonicalSample.tangent,
+                distance: localDistance
             ))
-            previousPoint = geometry.position
         }
         return try validateSamples(samples)
     }
 
-    private func analyticSamples(
-        exactCurve: Curve3D,
-        analyticCurve: AnalyticCurve3D,
-        curve: EvaluatedCurve,
+    private func exactSampleSegmentCount(
+        for curve: EvaluatedCurve,
         distanceFraction: Double
-    ) throws -> [EvaluatedCurvePathSample] {
-        let start: Double
-        let end: Double
-        switch curve.parameterDomain {
-        case let .closed(lower, upper):
-            start = lower
-            end = upper
-        case let .periodic(period):
-            guard curve.isClosed else {
-                throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                    "Periodic analytic path evaluation requires a closed evaluated curve."
-                )
-            }
-            start = 0.0
-            end = period
-        case .unbounded:
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "Analytic curve path evaluation requires a finite parameter range."
-            )
-        }
-        let targetEnd = start + (end - start) * distanceFraction
-        let radiusScale: Double
-        switch analyticCurve {
-        case .line:
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "Analytic line sampling uses the exact line path.")
-        case let .circle(_, _, radius), let .arc(_, _, radius, _, _):
-            radiusScale = radius
-        case let .ellipse(_, _, _, majorRadius, _):
-            radiusScale = majorRadius
-        case let .hyperbola(curve):
-            radiusScale = max(curve.transverseRadius, curve.conjugateRadius)
-        case let .parabola(curve):
-            radiusScale = 2.0 * curve.focalLength
-        case .planeTorus:
+    ) throws -> Int {
+        guard let exactCurve = curve.exactCurve else {
             throw KernelError.unsupportedEvaluation(
                 tolerance: tolerance,
-                message: "Certified plane-torus sampling must use the bounded procedural curve path."
+                message: "Exact path sampling requires canonical curve geometry."
             )
         }
-        let segmentCount = circularSegmentCount(
-            radius: radiusScale,
-            angleSpan: abs(targetEnd - start)
+        let interval = try traversalInterval(
+            for: curve,
+            exactCurve: exactCurve
         )
-        let directionSign = targetEnd >= start ? 1.0 : -1.0
-        var samples: [EvaluatedCurvePathSample] = []
-        samples.reserveCapacity(segmentCount + 1)
-        var previousPoint: Point3D?
-        var distance = 0.0
-        for index in 0...segmentCount {
-            let ratio = Double(index) / Double(segmentCount)
-            let parameter = start + (targetEnd - start) * ratio
-            let geometry = try exactCurve.differentialGeometry(at: parameter, tolerance: tolerance)
-            if let previousPoint {
-                distance += (geometry.position - previousPoint).length
+        let parameterSpan = interval.width * distanceFraction
+        return exactSampleSegmentCount(
+            for: exactCurve,
+            evaluatedCurve: curve,
+            parameterSpan: parameterSpan
+        )
+    }
+
+    private func exactSampleSegmentCount(
+        for exactCurve: Curve3D,
+        evaluatedCurve curve: EvaluatedCurve,
+        parameterSpan: Double
+    ) -> Int {
+        switch exactCurve {
+        case .line, .analytic(.line):
+            return 1
+        case let .circle(circle):
+            return circularSegmentCount(
+                radius: circle.radius,
+                angleSpan: parameterSpan
+            )
+        case let .analytic(analyticCurve):
+            let radiusScale: Double
+            switch analyticCurve {
+            case .line:
+                return 1
+            case let .circle(_, _, radius), let .arc(_, _, radius, _, _):
+                radiusScale = radius
+            case let .ellipse(_, _, _, majorRadius, _):
+                radiusScale = majorRadius
+            case let .hyperbola(hyperbola):
+                radiusScale = max(
+                    hyperbola.transverseRadius,
+                    hyperbola.conjugateRadius
+                )
+            case let .parabola(parabola):
+                radiusScale = 2.0 * parabola.focalLength
+            case .planeTorus:
+                return max(
+                    min(maximumSplineSegmentCount, curve.points.count * 8),
+                    32
+                )
             }
-            samples.append(EvaluatedCurvePathSample(
-                point: geometry.position,
-                tangent: geometry.tangent * directionSign,
-                distance: distance
-            ))
-            previousPoint = geometry.position
+            return circularSegmentCount(
+                radius: radiusScale,
+                angleSpan: parameterSpan
+            )
+        case let .bSpline(spline):
+            return min(
+                max(
+                    curve.points.count - 1,
+                    spline.controlPointCount * 2,
+                    8
+                ),
+                maximumSplineSegmentCount
+            )
+        case .implicit, .surfaceLift, .certifiedIntersection:
+            return max(
+                min(maximumSplineSegmentCount, curve.points.count - 1),
+                8
+            )
+        case let .rigidImage(image):
+            return exactSampleSegmentCount(
+                for: image.source,
+                evaluatedCurve: curve,
+                parameterSpan: parameterSpan
+            )
+        case let .affineImage(image):
+            let sourceCount = exactSampleSegmentCount(
+                for: image.source,
+                evaluatedCurve: curve,
+                parameterSpan: parameterSpan
+            )
+            let stretchSubdivision = max(
+                1,
+                Int(ceil(sqrt(max(
+                    1.0,
+                    image.transform.linearMagnitudeUpperBound
+                ))))
+            )
+            return min(
+                maximumSplineSegmentCount,
+                sourceCount * stretchSubdivision
+            )
         }
-        return try validateSamples(samples)
     }
 
     private func polylineSamples(
@@ -574,68 +564,6 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
         return try validateSamples(samples)
     }
 
-    private func finiteLineParameters(for curve: EvaluatedCurve) throws -> (Double, Double, Double) {
-        guard case let .closed(start, end) = curve.parameterDomain else {
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "Line curve path evaluation requires a finite parameter range."
-            )
-        }
-        let length = abs(end - start)
-        guard length > tolerance.distance else {
-            throw FeatureEvaluationError.invalidDistance(length)
-        }
-        return (start, end, length)
-    }
-
-    private func finiteCircleParameters(
-        for curve: EvaluatedCurve,
-        circle: Circle3D
-    ) throws -> (Double, Double, Double) {
-        try circle.validate(tolerance: tolerance)
-        let start: Double
-        let end: Double
-        switch curve.parameterDomain {
-        case let .closed(lower, upper):
-            start = lower
-            end = upper
-        case .periodic(let period):
-            guard curve.isClosed,
-                  let first = curve.points.first else {
-                throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                    "Periodic circle curve path evaluation requires a closed evaluated curve."
-                )
-            }
-            start = try circleParameter(for: first, on: circle)
-            end = start + period
-        case .unbounded:
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "Circle curve path evaluation requires a finite parameter range."
-            )
-        }
-        let length = circle.radius * abs(end - start)
-        guard length > tolerance.distance else {
-            throw FeatureEvaluationError.invalidDistance(length)
-        }
-        return (start, end, length)
-    }
-
-    private func circleParameter(
-        for point: Point3D,
-        on circle: Circle3D
-    ) throws -> Double {
-        let (u, v) = try circleBasis(for: circle)
-        let offset = point - circle.center
-        return atan2(offset.dot(v), offset.dot(u))
-    }
-
-    private func circleBasis(for circle: Circle3D) throws -> (Vector3D, Vector3D) {
-        let normal = try circle.normal.normalized(tolerance: tolerance.distance)
-        let helper = abs(normal.z) < 0.9 ? Vector3D.unitZ : Vector3D.unitY
-        let u = try helper.cross(normal).normalized(tolerance: tolerance.distance)
-        let v = normal.cross(u)
-        return (u, v)
-    }
-
     private func circularSegmentCount(radius: Double, angleSpan: Double) -> Int {
         let ratio = min(max(tolerance.distance / radius, 1.0e-9), 0.5)
         let angle = 2.0 * acos(1.0 - ratio)
@@ -648,38 +576,54 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
         return max(proportionalCount, 2)
     }
 
-    private func bSplineSegmentCount(curve: BSplineCurve3D, span: Double) -> Int {
-        let domainLength: Double
-        switch curve.domain {
+    private func traversalInterval(
+        for curve: EvaluatedCurve,
+        exactCurve: Curve3D
+    ) throws -> ScalarInterval {
+        switch curve.parameterDomain {
         case let .closed(lower, upper):
-            domainLength = max(upper - lower, Double.ulpOfOne)
-        case .unbounded, .periodic:
-            domainLength = max(abs(span), Double.ulpOfOne)
+            return try ScalarInterval(lower: lower, upper: upper)
+        case let .periodic(period):
+            guard curve.isClosed,
+                  let firstPoint = curve.points.first else {
+                throw KernelError.unsupportedEvaluation(
+                    tolerance: tolerance,
+                    message: "Certified periodic curve path preparation requires a closed evaluated curve."
+                )
+            }
+            let startParameter: Double
+            if let exactStart = curve.exactPointParameters?.first {
+                startParameter = exactStart
+            } else {
+                startParameter = try exactCurve.parameterProjection(
+                    of: firstPoint,
+                    tolerance: tolerance
+                ).parameter
+            }
+            return try ScalarInterval(
+                lower: startParameter,
+                upper: startParameter + period
+            )
+        case .unbounded:
+            throw KernelError.unsupportedEvaluation(
+                tolerance: tolerance,
+                message: "Certified curve path preparation requires an explicit bounded parameter interval."
+            )
         }
-        let spanFraction = min(max(abs(span) / domainLength, 0.0), 1.0)
-        let controlLength = controlPolygonLength(curve.controlPoints) * max(spanFraction, Double.ulpOfOne)
-        let toleranceLimit = max(4, Int(ceil(sqrt(controlLength / tolerance.distance))))
-        return min(toleranceLimit, maximumSplineSegmentCount)
     }
 
-    private func controlPolygonLength(_ points: [Point3D]) -> Double {
-        guard points.count > 1 else {
-            return 0.0
+    private func polylineSpanIndex(
+        containing distance: Double,
+        cumulativeLengths: [Double]
+    ) -> Int {
+        if distance <= 0.0 {
+            return 1
         }
-        var length = 0.0
-        for index in 1..<points.count {
-            length += (points[index] - points[index - 1]).length
+        for index in 1..<cumulativeLengths.count
+            where distance <= cumulativeLengths[index] {
+            return index
         }
-        return length
-    }
-
-    private func polylineLength(_ samples: [EvaluatedCurvePathSample]) throws -> Double {
-        guard let length = samples.last?.distance,
-              length.isFinite,
-              length > tolerance.distance else {
-            throw FeatureEvaluationError.invalidDistance(samples.last?.distance ?? 0.0)
-        }
-        return length
+        return cumulativeLengths.count - 1
     }
 
     private func append(

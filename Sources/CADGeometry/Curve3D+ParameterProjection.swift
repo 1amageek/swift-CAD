@@ -11,6 +11,19 @@ public extension Curve3D {
         try validate(tolerance: tolerance)
         try point.validate()
 
+        return try parameterProjectionAssumingValid(
+            of: point,
+            options: options,
+            tolerance: tolerance
+        )
+    }
+
+    package func parameterProjectionAssumingValid(
+        of point: Point3D,
+        options: CurveParameterProjectionOptions,
+        tolerance: ModelingTolerance
+    ) throws -> CurveParameterProjection {
+
         let candidate: (parameter: Double, iterations: Int)
         switch self {
         case let .line(line):
@@ -31,7 +44,8 @@ public extension Curve3D {
                 ),
                 0
             )
-        case .analytic(.planeTorus), .surfaceLift, .certifiedIntersection:
+        case .analytic(.planeTorus), .surfaceLift, .certifiedIntersection,
+             .rigidImage, .affineImage:
             candidate = try iterativeParameter(
                 point,
                 options: options,
@@ -289,25 +303,38 @@ public extension Curve3D {
                     / Double(options.seedCount)
             }
             if case let .surfaceLift(lift) = self,
-               case let .certifiedAnalyticPair(parameterCurve) = lift.parameterCurve,
-               case let .generalTorusTorus(curve) = parameterCurve
-                    .intersection.definition {
-                let projection = try curve.parameterizedSurface.parameterProjection(
-                    of: point,
-                    tolerance: tolerance
-                )
-                let period = 2.0 * Double.pi
-                let normalizedMajorAngle = projection.u
-                    .truncatingRemainder(dividingBy: period)
-                let majorAngle = normalizedMajorAngle >= 0.0
-                    ? normalizedMajorAngle
-                    : normalizedMajorAngle + period
+               case let .certifiedAnalyticPair(parameterCurve) = lift.parameterCurve {
                 let mappingScale = parameterCurve.endFraction
                     - parameterCurve.startFraction
-                for windingIndex in 0..<curve.majorAngleWindingCount {
-                    let exactFraction = (
-                        majorAngle + period * Double(windingIndex)
-                    ) / (period * Double(curve.majorAngleWindingCount))
+                let exactFractions: [Double]
+                switch parameterCurve.intersection.definition {
+                case let .generalTorusCylinder(curve):
+                    let exactFraction = try curve.normalizedGeneratorAngle(
+                        for: point,
+                        tolerance: tolerance
+                    )
+                    exactFractions = [-1.0, 0.0, 1.0].map {
+                        exactFraction + $0
+                    }
+                case let .generalTorusTorus(curve):
+                    let projection = try curve.parameterizedSurface.parameterProjection(
+                        of: point,
+                        tolerance: tolerance
+                    )
+                    let period = 2.0 * Double.pi
+                    let normalizedMajorAngle = projection.u
+                        .truncatingRemainder(dividingBy: period)
+                    let majorAngle = normalizedMajorAngle >= 0.0
+                        ? normalizedMajorAngle
+                        : normalizedMajorAngle + period
+                    exactFractions = (0..<curve.majorAngleWindingCount).map {
+                        (majorAngle + period * Double($0))
+                            / (period * Double(curve.majorAngleWindingCount))
+                    }
+                default:
+                    exactFractions = []
+                }
+                for exactFraction in exactFractions {
                     let parameter = (
                         exactFraction - parameterCurve.startFraction
                     ) / mappingScale
@@ -374,81 +401,20 @@ public extension Curve3D {
         at parameter: Double,
         tolerance: ModelingTolerance
     ) throws -> Point3D {
-        switch self {
-        case let .bSpline(curve):
-            return try curve.pointAssumingValid(
-                at: parameter,
-                tolerance: tolerance
-            )
-        case let .implicit(curve):
-            return try curve.point(
-                atNormalizedFraction: parameter,
-                tolerance: tolerance
-            )
-        case let .surfaceLift(lift):
-            let surfaceParameter = try lift.parameterCurve.parameter(
-                atNormalizedFraction: parameter,
-                tolerance: tolerance
-            )
-            return try lift.surface.point(
-                u: surfaceParameter.u,
-                v: surfaceParameter.v,
-                tolerance: tolerance
-            )
-        case .line, .circle, .analytic, .certifiedIntersection:
-            return try point(at: parameter, tolerance: tolerance)
-        }
+        try pointAssumingValid(
+            at: parameter,
+            tolerance: tolerance
+        )
     }
 
     private func differentialGeometryAssumingValidated(
         at parameter: Double,
         tolerance: ModelingTolerance
     ) throws -> Curve3D.DifferentialGeometry {
-        switch self {
-        case let .bSpline(curve):
-            let geometry = try curve.differentialGeometryAssumingValid(
-                at: parameter,
-                tolerance: tolerance
-            )
-            return Curve3D.DifferentialGeometry(
-                position: geometry.position,
-                firstDerivative: geometry.firstDerivative,
-                secondDerivative: geometry.secondDerivative,
-                tangent: geometry.tangent,
-                curvatureVector: geometry.curvatureVector,
-                curvature: geometry.curvature
-            )
-        case let .implicit(curve):
-            let geometry = try curve.differential(
-                atNormalizedFraction: parameter,
-                tolerance: tolerance
-            )
-            let tangent = try geometry.firstDerivative.normalized(
-                tolerance: tolerance.distance
-            )
-            let speed = geometry.firstDerivative.length
-            let tangentialAcceleration = tangent * geometry.secondDerivative.dot(tangent)
-            let curvatureVector = (geometry.secondDerivative - tangentialAcceleration)
-                / (speed * speed)
-            return Curve3D.DifferentialGeometry(
-                position: geometry.position,
-                firstDerivative: geometry.firstDerivative,
-                secondDerivative: geometry.secondDerivative,
-                tangent: tangent,
-                curvatureVector: curvatureVector,
-                curvature: curvatureVector.length
-            )
-        case .surfaceLift:
-            return try differentialGeometryAssumingValid(
-                at: parameter,
-                tolerance: tolerance
-            )
-        case .line, .circle, .analytic, .certifiedIntersection:
-            return try differentialGeometry(
-                at: parameter,
-                tolerance: tolerance
-            )
-        }
+        try differentialGeometryAssumingValid(
+            at: parameter,
+            tolerance: tolerance
+        )
     }
 
     private func resolvedProjectionInterval(

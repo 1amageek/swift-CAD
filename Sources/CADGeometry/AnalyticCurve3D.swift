@@ -242,6 +242,16 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
         try validate(tolerance: tolerance)
+        return try differentialGeometryAssumingValid(
+            at: parameter,
+            tolerance: tolerance
+        )
+    }
+
+    package func differentialGeometryAssumingValid(
+        at parameter: Double,
+        tolerance: ModelingTolerance
+    ) throws -> DifferentialGeometry {
         guard parameter.isFinite else {
             throw GeometryError.invalidDistance(parameter)
         }

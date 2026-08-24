@@ -1,6 +1,7 @@
 import Testing
 import CADCore
 import CADIR
+import CADTopology
 @testable import CADKernel
 
 @Suite("Document evaluator incremental execution")
@@ -25,6 +26,8 @@ struct DocumentEvaluatorIncrementalTests {
         #expect(incremental.evaluationMetrics.reusedMeshCount == 2)
         #expect(incremental.brep == initial.brep)
         #expect(incremental.meshes == initial.meshes)
+        try expectExactCertificate(initial)
+        try expectExactCertificate(incremental)
         try incremental.validate()
     }
 
@@ -70,6 +73,8 @@ struct DocumentEvaluatorIncrementalTests {
             try incremental.topologyReference(for: changedBodyReference)
                 == changedBodyTopology
         )
+        try expectExactCertificate(incremental)
+        try expectExactCertificate(full)
         try incremental.validate()
     }
 
@@ -93,6 +98,7 @@ struct DocumentEvaluatorIncrementalTests {
         #expect(incremental.evaluationMetrics.tessellatedBodyCount == 1)
         #expect(incremental.evaluationMetrics.reusedMeshCount == 1)
         #expect(meshMultiset(incremental.meshes.values) == meshMultiset(full.meshes.values))
+        try expectExactCertificate(incremental)
         try incremental.validate()
     }
 
@@ -290,6 +296,13 @@ struct DocumentEvaluatorIncrementalTests {
         #expect(incremental.lineage == full.lineage)
         try incremental.validate()
     }
+}
+
+private func expectExactCertificate(_ document: EvaluatedDocument) throws {
+    let certificate = try #require(document.validatedBRep)
+    #expect(certificate.model == document.brep)
+    #expect(certificate.tolerance == document.configuration.tolerance)
+    #expect(certificate.validationLevel == .exact)
 }
 
 private struct IndependentExtrusionFixture {

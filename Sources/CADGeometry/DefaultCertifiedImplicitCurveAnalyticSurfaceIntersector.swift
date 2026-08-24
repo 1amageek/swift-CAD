@@ -51,7 +51,6 @@ struct DefaultCertifiedImplicitCurveAnalyticSurfaceIntersector:
             guard let searchRanges = try rationalSearchRanges(
                 surface: rationalTarget,
                 targetSurface: targetSurface,
-                canonicalTarget: canonicalTarget,
                 seamOffset: seamOffset,
                 options: options,
                 tolerance: tolerance
@@ -220,67 +219,19 @@ struct DefaultCertifiedImplicitCurveAnalyticSurfaceIntersector:
     private func rationalSearchRanges(
         surface: BSplineSurface3D,
         targetSurface: Surface3D,
-        canonicalTarget: CanonicalAnalyticSurface,
         seamOffset: Double,
         options: CurveSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [(u: ScalarInterval, v: ScalarInterval)]? {
-        let parameterOffset = try periodicParameterOffset(
-            targetSurface: targetSurface,
-            canonicalTarget: canonicalTarget,
+        let parameterMap = try AnalyticSurfaceRationalParameterMap(
+            surface: targetSurface,
+            periodicSeamOffset: seamOffset,
             tolerance: tolerance
         )
-        let requested: (
-            u: ScalarInterval?,
-            v: ScalarInterval?
-        )
-        switch canonicalTarget {
-        case let .plane(plane):
-            requested = try planeRationalRanges(
-                targetSurface: targetSurface,
-                plane: plane,
-                options: options,
-                tolerance: tolerance
-            )
-        case .cylinder, .cone:
-            guard let u = try periodicRationalRange(
-                requested: options.surfaceURange,
-                seamOffset: seamOffset,
-                parameterOffset: parameterOffset
-            ) else {
-                return nil
-            }
-            requested = (u: u, v: options.surfaceVRange)
-        case .sphere:
-            guard let u = try periodicRationalRange(
-                requested: options.surfaceURange,
-                seamOffset: seamOffset,
-                parameterOffset: parameterOffset
-            ) else {
-                return nil
-            }
-            requested = (
-                u: u,
-                v: try sphericalMeridianRange(
-                    requested: options.surfaceVRange
-                )
-            )
-        case .torus:
-            guard let u = try periodicRationalRange(
-                requested: options.surfaceURange,
-                seamOffset: seamOffset,
-                parameterOffset: parameterOffset
-            ), let v = try periodicRationalRange(
-                requested: options.surfaceVRange,
-                seamOffset: seamOffset,
-                parameterOffset: 0.0
-            ) else {
-                return nil
-            }
-            requested = (u: u, v: v)
-        case .unsupported:
-            return nil
-        }
+        guard let requested = try parameterMap.rationalSearchRanges(
+            surfaceU: options.surfaceURange,
+            surfaceV: options.surfaceVRange
+        ) else { return nil }
         let uSpans = try knotSpans(
             knots: surface.uKnots,
             requested: requested.u
@@ -292,173 +243,6 @@ struct DefaultCertifiedImplicitCurveAnalyticSurfaceIntersector:
         return uSpans.flatMap { u in
             vSpans.map { v in (u: u, v: v) }
         }
-    }
-
-    private func planeRationalRanges(
-        targetSurface: Surface3D,
-        plane: CanonicalAnalyticSurface.Plane,
-        options: CurveSurfaceIntersectionOptions,
-        tolerance: ModelingTolerance
-    ) throws -> (u: ScalarInterval?, v: ScalarInterval?) {
-        guard case let .plane(legacyPlane) = targetSurface else {
-            return (
-                u: options.surfaceURange,
-                v: options.surfaceVRange
-            )
-        }
-        guard let requestedU = options.surfaceURange,
-              let requestedV = options.surfaceVRange else {
-            return (u: nil, v: nil)
-        }
-        let targetBasis = try circleOrthonormalBasis(
-            legacyPlane.normal,
-            tolerance: tolerance
-        )
-        let rationalBasis = try analyticOrthonormalBasis(
-            plane.normal,
-            tolerance: tolerance
-        )
-        let corners = [
-            (requestedU.lower, requestedV.lower),
-            (requestedU.upper, requestedV.lower),
-            (requestedU.lower, requestedV.upper),
-            (requestedU.upper, requestedV.upper),
-        ].map { targetU, targetV in
-            let offset =
-                targetBasis.u * targetU + targetBasis.v * targetV
-            return (
-                u: offset.dot(rationalBasis.u),
-                v: offset.dot(rationalBasis.v)
-            )
-        }
-        return (
-            u: try ScalarInterval(
-                lower: corners.map(\.u).min() ?? 0.0,
-                upper: corners.map(\.u).max() ?? 0.0
-            ),
-            v: try ScalarInterval(
-                lower: corners.map(\.v).min() ?? 0.0,
-                upper: corners.map(\.v).max() ?? 0.0
-            )
-        )
-    }
-
-    private func periodicRationalRange(
-        requested: ScalarInterval?,
-        seamOffset: Double,
-        parameterOffset: Double
-    ) throws -> ScalarInterval? {
-        guard let requested else {
-            return try ScalarInterval(lower: 0.0, upper: 4.0)
-        }
-        let period = 2.0 * Double.pi
-        guard requested.width < period else {
-            return try ScalarInterval(lower: 0.0, upper: 4.0)
-        }
-        let shiftedLower = requested.lower + parameterOffset
-        let shiftedUpper = requested.upper + parameterOffset
-        let cycle = floor((shiftedLower - seamOffset) / period)
-        let lower = shiftedLower - seamOffset - cycle * period
-        let upper = shiftedUpper - seamOffset - cycle * period
-        let boundaryEnvelope = Double.ulpOfOne * 4_096.0
-        guard lower >= -boundaryEnvelope,
-              upper <= period + boundaryEnvelope else {
-            return nil
-        }
-        let internalLower = rationalCircleParameter(
-            angle: max(lower, 0.0)
-        ).nextDown
-        let internalUpper = rationalCircleParameter(
-            angle: min(upper, period)
-        ).nextUp
-        guard internalLower < internalUpper else {
-            return nil
-        }
-        return try ScalarInterval(
-            lower: max(0.0, internalLower),
-            upper: min(4.0, internalUpper)
-        )
-    }
-
-    private func periodicParameterOffset(
-        targetSurface: Surface3D,
-        canonicalTarget: CanonicalAnalyticSurface,
-        tolerance: ModelingTolerance
-    ) throws -> Double {
-        guard case let .cylinder(cylinder) = targetSurface,
-              case let .cylinder(canonicalCylinder) = canonicalTarget else {
-            return 0.0
-        }
-        let targetBasis = try circleOrthonormalBasis(
-            cylinder.axis,
-            tolerance: tolerance
-        )
-        let rationalBasis = try analyticOrthonormalBasis(
-            canonicalCylinder.axis,
-            tolerance: tolerance
-        )
-        return atan2(
-            targetBasis.u.dot(rationalBasis.v),
-            targetBasis.u.dot(rationalBasis.u)
-        )
-    }
-
-    private func rationalCircleParameter(angle: Double) -> Double {
-        let period = 2.0 * Double.pi
-        if angle <= 0.0 { return 0.0 }
-        if angle >= period { return 4.0 }
-        let quarterAngle = Double.pi * 0.5
-        let quarter = min(Int(floor(angle / quarterAngle)), 3)
-        let localAngle = angle - Double(quarter) * quarterAngle
-        var lower = 0.0
-        var upper = 1.0
-        for _ in 0..<64 {
-            let parameter = (lower + upper) * 0.5
-            if rationalQuarterCircleAngle(parameter: parameter)
-                < localAngle {
-                lower = parameter
-            } else {
-                upper = parameter
-            }
-        }
-        return Double(quarter) + (lower + upper) * 0.5
-    }
-
-    private func rationalQuarterCircleAngle(parameter: Double) -> Double {
-        let oneMinusParameter = 1.0 - parameter
-        let weightedProduct =
-            2.0 * sqrt(0.5) * oneMinusParameter * parameter
-        let x = oneMinusParameter * oneMinusParameter + weightedProduct
-        let y = weightedProduct + parameter * parameter
-        return atan2(y, x)
-    }
-
-    private func sphericalMeridianRange(
-        requested: ScalarInterval?
-    ) throws -> ScalarInterval? {
-        guard let requested else {
-            return try ScalarInterval(lower: 0.0, upper: 2.0)
-        }
-        let lowerLatitude = -Double.pi * 0.5
-        let upperLatitude = Double.pi * 0.5
-        let lower = max(requested.lower, lowerLatitude)
-        let upper = min(requested.upper, upperLatitude)
-        guard lower <= upper else {
-            return try ScalarInterval(lower: 0.0, upper: 0.0)
-        }
-        let quarter = Double.pi * 0.5
-        let internalLower = max(
-            0.0,
-            floor((lower - lowerLatitude) / quarter)
-        )
-        let internalUpper = min(
-            2.0,
-            ceil((upper - lowerLatitude) / quarter)
-        )
-        return try ScalarInterval(
-            lower: internalLower,
-            upper: internalUpper
-        )
     }
 
     private func knotSpans(

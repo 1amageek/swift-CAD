@@ -23,6 +23,17 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
     }
 
     struct PreparedField {
+        struct SecondOrderBounds {
+            typealias Interval = CertifiedUnivariateTaylorJet.Interval
+
+            let value: Interval
+            let derivativeU: Interval
+            let derivativeV: Interval
+            let secondDerivativeUU: Interval
+            let secondDerivativeUV: Interval
+            let secondDerivativeVV: Interval
+        }
+
         struct ParameterSpan: Sendable, Hashable {
             let lower: Double
             let upper: Double
@@ -37,6 +48,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
         }
 
         private let patches: [SourcePatch]
+        private let sourceSurface: BSplineSurface3D
         private let reference: Point3D
         private let tolerance: ModelingTolerance
 
@@ -45,6 +57,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
 
         fileprivate init(
             certifiedPatches: [CertifiedHomogeneousBezierSurfacePatch],
+            sourceSurface: BSplineSurface3D,
             reference: Point3D,
             includeFluxNumerator: Bool,
             tolerance: ModelingTolerance
@@ -63,6 +76,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                     vUpper: $0.vUpper
                 )
             }
+            self.sourceSurface = sourceSurface
             self.reference = reference
             self.tolerance = tolerance
             uSpans = Self.distinctSpans(
@@ -74,6 +88,16 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                 certifiedPatches.map {
                     ParameterSpan(lower: $0.vLower, upper: $0.vUpper)
                 }
+            )
+        }
+
+        func exactPlanarAffineFluxTraversal(
+            for curve: CertifiedImplicitSurfaceParameterCurve
+        ) throws -> CertifiedPlanarAffineFluxTraversal? {
+            try curve.exactPlanarAffineFluxTraversal(
+                on: sourceSurface,
+                reference: reference,
+                tolerance: tolerance
             )
         }
 
@@ -278,63 +302,130 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                 )),
                 tolerance: tolerance
             )
-            if source.patch.hasExactConstantWeight {
-                let localFlux = try source.patch.directionalFluxJet(
-                    u: normalizedU,
-                    v: normalizedV,
-                    tolerance: tolerance
-                )
-                return try localFlux.divided(
-                    by: .constant(CertifiedUnivariateTaylorJet.Interval(
-                        lower: (uWidth * vWidth).lower,
-                        upper: (uWidth * vWidth).upper
-                    )),
-                    tolerance: tolerance
-                )
-            }
-            let uRestriction = Self.positiveRestriction(
-                containing: normalizedU.value
-            )
-            let vRestriction = Self.positiveRestriction(
-                containing: normalizedV.value
-            )
-            let restrictedPatch = try source.patch.trimmed(
-                uLower: uRestriction.lower,
-                uUpper: uRestriction.upper,
-                vLower: vRestriction.lower,
-                vUpper: vRestriction.upper,
-                sourceUDomain: .closed(0.0, 1.0),
-                sourceVDomain: .closed(0.0, 1.0),
+            // A directional jet is already evaluated over its certified value
+            // box. Reparameterizing a trimmed patch scales its derivatives by
+            // inverse powers of a small restriction width; although those
+            // factors cancel algebraically, interval arithmetic loses the
+            // correlation and can inflate higher derivatives by many orders
+            // of magnitude. Positive Bernstein weights certify the original
+            // patch denominator directly, so evaluate the original patch and
+            // apply only the source-domain scale.
+            let localFlux = try source.patch.directionalFluxJet(
+                u: normalizedU,
+                v: normalizedV,
                 tolerance: tolerance
             )
-            let restrictionUWidth = uRestriction.upper - uRestriction.lower
-            let restrictionVWidth = vRestriction.upper - vRestriction.lower
-            let restrictedU = try (
-                normalizedU - .constant(uRestriction.lower)
-            ).divided(
-                by: .constant(restrictionUWidth),
-                tolerance: tolerance
-            )
-            let restrictedV = try (
-                normalizedV - .constant(vRestriction.lower)
-            ).divided(
-                by: .constant(restrictionVWidth),
-                tolerance: tolerance
-            )
-            let localFlux = try restrictedPatch.directionalFluxJet(
-                u: restrictedU,
-                v: restrictedV,
-                tolerance: tolerance
-            )
-            let localScale = uWidth * vWidth
-                * Interval.exact(restrictionUWidth)
-                * Interval.exact(restrictionVWidth)
             return try localFlux.divided(
                 by: .constant(CertifiedUnivariateTaylorJet.Interval(
-                    lower: localScale.lower,
-                    upper: localScale.upper
+                    lower: (uWidth * vWidth).lower,
+                    upper: (uWidth * vWidth).upper
                 )),
                 tolerance: tolerance
+            )
+        }
+
+        func secondOrderBounds(
+            u: CertifiedUnivariateTaylorJet.Interval,
+            v: CertifiedUnivariateTaylorJet.Interval,
+            uSpan: ParameterSpan,
+            vSpan: ParameterSpan
+        ) throws -> SecondOrderBounds {
+            typealias TaylorInterval = CertifiedUnivariateTaylorJet.Interval
+            func evaluate(
+                u localU: TaylorInterval,
+                v localV: TaylorInterval
+            ) throws -> SecondOrderBounds {
+                let one = TaylorInterval.exact(1.0)
+                let uVariable = CertifiedUnivariateTaylorJet.series([localU, one])
+                let vVariable = CertifiedUnivariateTaylorJet.series([localV, one])
+                let constantU = CertifiedUnivariateTaylorJet.constant(localU)
+                let constantV = CertifiedUnivariateTaylorJet.constant(localV)
+                let alongU = try directionalFluxJet(
+                    u: uVariable,
+                    v: constantV,
+                    uSpan: uSpan,
+                    vSpan: vSpan
+                )
+                let alongV = try directionalFluxJet(
+                    u: constantU,
+                    v: vVariable,
+                    uSpan: uSpan,
+                    vSpan: vSpan
+                )
+                let alongDiagonal = try directionalFluxJet(
+                    u: uVariable,
+                    v: vVariable,
+                    uSpan: uSpan,
+                    vSpan: vSpan
+                )
+                let two = TaylorInterval.exact(2.0)
+                return SecondOrderBounds(
+                    value: alongDiagonal.coefficients[0],
+                    derivativeU: alongU.coefficients[1],
+                    derivativeV: alongV.coefficients[1],
+                    secondDerivativeUU: alongU.coefficients[2] * two,
+                    secondDerivativeUV: alongDiagonal.coefficients[2]
+                        - alongU.coefficients[2]
+                        - alongV.coefficients[2],
+                    secondDerivativeVV: alongV.coefficients[2] * two
+                )
+            }
+            let subdivisionCount = 4
+            let uBoundaries = (0...subdivisionCount).map { index in
+                u.lower + (u.upper - u.lower)
+                    * Double(index) / Double(subdivisionCount)
+            }
+            let vBoundaries = (0...subdivisionCount).map { index in
+                v.lower + (v.upper - v.lower)
+                    * Double(index) / Double(subdivisionCount)
+            }
+            var localBounds: [SecondOrderBounds] = []
+            localBounds.reserveCapacity(subdivisionCount * subdivisionCount)
+            for vIndex in 0..<subdivisionCount {
+                for uIndex in 0..<subdivisionCount {
+                    localBounds.append(try evaluate(
+                        u: TaylorInterval(
+                            lower: uBoundaries[uIndex],
+                            upper: uBoundaries[uIndex + 1]
+                        ),
+                        v: TaylorInterval(
+                            lower: vBoundaries[vIndex],
+                            upper: vBoundaries[vIndex + 1]
+                        )
+                    ))
+                }
+            }
+            return SecondOrderBounds(
+                value: TaylorInterval(
+                    lower: localBounds.map(\.value.lower).min() ?? -.infinity,
+                    upper: localBounds.map(\.value.upper).max() ?? .infinity
+                ),
+                derivativeU: TaylorInterval(
+                    lower: localBounds.map(\.derivativeU.lower).min() ?? -.infinity,
+                    upper: localBounds.map(\.derivativeU.upper).max() ?? .infinity
+                ),
+                derivativeV: TaylorInterval(
+                    lower: localBounds.map(\.derivativeV.lower).min() ?? -.infinity,
+                    upper: localBounds.map(\.derivativeV.upper).max() ?? .infinity
+                ),
+                secondDerivativeUU: TaylorInterval(
+                    lower: localBounds.map(\.secondDerivativeUU.lower).min()
+                        ?? -.infinity,
+                    upper: localBounds.map(\.secondDerivativeUU.upper).max()
+                        ?? .infinity
+                ),
+                secondDerivativeUV: TaylorInterval(
+                    lower: localBounds.map(\.secondDerivativeUV.lower).min()
+                        ?? -.infinity,
+                    upper: localBounds.map(\.secondDerivativeUV.upper).max()
+                        ?? .infinity
+                ),
+                secondDerivativeVV: TaylorInterval(
+                    lower: localBounds.map(\.secondDerivativeVV.lower).min()
+                        ?? -.infinity,
+                    upper: localBounds.map(\.secondDerivativeVV.upper).max()
+                        ?? .infinity
+                )
             )
         }
 
@@ -561,6 +652,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
         }
         return try PreparedField(
             certifiedPatches: extracted,
+            sourceSurface: surface,
             reference: reference,
             includeFluxNumerator: includeFluxNumerator,
             tolerance: tolerance
@@ -959,24 +1051,31 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                     message: "Certified rational surface flux evaluation requires a prepared determinant polynomial."
                 )
             }
-            let weight = try derivativeValue(
+            guard let restrictedU = u.intersection(.unit),
+                  let restrictedV = v.intersection(.unit) else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "Certified rational surface flux parameters do not overlap the patch domain."
+                )
+            }
+            let evaluatedWeight = try derivativeValue(
                 component: \HomogeneousPoint.weight,
                 uOrder: 0,
                 vOrder: 0,
-                u: u,
-                v: v,
+                u: restrictedU,
+                v: restrictedV,
                 tolerance: tolerance
             )
-            guard weight.lower > 0.0 else {
-                throw KernelError(
-                    phase: .topology,
-                    code: .singularSystem,
-                    residual: weight.lower,
-                    tolerance: tolerance,
-                    message: "Certified rational surface flux could not prove a positive point weight."
-                )
-            }
-            let numerator = fluxNumerator.evaluated(u: u, v: v)
+            let weight = try certifiedWeightIntersection(
+                evaluatedWeight,
+                tolerance: tolerance
+            )
+            let numerator = fluxNumerator.evaluated(
+                u: restrictedU,
+                v: restrictedV
+            )
             return numerator
                 / (weight * weight * weight)
                 / Interval.exact(3.0)
@@ -1003,21 +1102,9 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                 v: v,
                 tolerance: tolerance
             )
-            let weightHull = Interval.hull(
-                controls.flatMap { row in row.map(\.weight) }
-            )
-            let weightValue = weight.coefficients[0]
-            let intersectedWeight = CertifiedUnivariateTaylorJet.Interval(
-                lower: max(weightValue.lower, weightHull.lower),
-                upper: min(weightValue.upper, weightHull.upper)
-            )
-            weight.coefficients[0] = CertifiedUnivariateTaylorJet.Interval(
-                lower: intersectedWeight.lower <= intersectedWeight.upper
-                    ? intersectedWeight.lower
-                    : weightHull.lower,
-                upper: intersectedWeight.lower <= intersectedWeight.upper
-                    ? intersectedWeight.upper
-                    : weightHull.upper
+            weight.coefficients[0] = try certifiedWeightIntersection(
+                weight.coefficients[0],
+                tolerance: tolerance
             )
             let inverseWeight = try weight.reciprocal(tolerance: tolerance)
             let numerator = fluxNumerator.evaluated(u: u, v: v)
@@ -1068,21 +1155,9 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                 v: v,
                 tolerance: tolerance
             )
-            let weightHull = Interval.hull(
-                controls.flatMap { row in row.map(\.weight) }
-            )
-            let weightValue = weight.coefficients[0]
-            let intersectedWeight = CertifiedUnivariateTaylorJet.Interval(
-                lower: max(weightValue.lower, weightHull.lower),
-                upper: min(weightValue.upper, weightHull.upper)
-            )
-            weight.coefficients[0] = CertifiedUnivariateTaylorJet.Interval(
-                lower: intersectedWeight.lower <= intersectedWeight.upper
-                    ? intersectedWeight.lower
-                    : weightHull.lower,
-                upper: intersectedWeight.lower <= intersectedWeight.upper
-                    ? intersectedWeight.upper
-                    : weightHull.upper
+            weight.coefficients[0] = try certifiedWeightIntersection(
+                weight.coefficients[0],
+                tolerance: tolerance
             )
             let inverseWeight = try weight.reciprocal(tolerance: tolerance)
             return try (
@@ -1388,6 +1463,40 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                 Self.evaluateUnivariate($0, parameter: u)
             }
             return Self.evaluateUnivariate(rows, parameter: v)
+        }
+
+        private func certifiedWeightIntersection(
+            _ evaluated: Interval,
+            tolerance: ModelingTolerance
+        ) throws -> Interval {
+            let controlHull = Interval.hull(
+                controls.flatMap { row in row.map(\.weight) }
+            )
+            guard let certified = evaluated.intersection(controlHull),
+                  certified.lower > 0.0 else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .singularSystem,
+                    residual: evaluated.lower,
+                    tolerance: tolerance,
+                    message: "Certified rational surface flux could not prove a positive point weight."
+                )
+            }
+            return certified
+        }
+
+        private func certifiedWeightIntersection(
+            _ evaluated: CertifiedUnivariateTaylorJet.Interval,
+            tolerance: ModelingTolerance
+        ) throws -> CertifiedUnivariateTaylorJet.Interval {
+            let interval = try certifiedWeightIntersection(
+                Interval(lower: evaluated.lower, upper: evaluated.upper),
+                tolerance: tolerance
+            )
+            return CertifiedUnivariateTaylorJet.Interval(
+                lower: interval.lower,
+                upper: interval.upper
+            )
         }
 
         private static func evaluateUnivariate(

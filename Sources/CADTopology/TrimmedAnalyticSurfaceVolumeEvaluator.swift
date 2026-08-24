@@ -73,72 +73,65 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         )
         let totalCoedgeCount = try coedgeCount(of: shell, in: model)
         guard totalCoedgeCount > 0 else { return nil }
-        // A loose first pass hands slow coedges most of the width budget;
-        // the uniform per-coedge division stays as the sound fallback when
-        // the summed enclosure misses the shell-level error contract.
+        let fluxIntegrator = CertifiedAnalyticPcurveFluxIntegrator()
         var total = Interval.exact(0.0)
-        for effectiveCoedgeCount in [min(12, totalCoedgeCount), totalCoedgeCount] {
-            total = Interval.exact(0.0)
-            for faceID in shell.faceIDs {
-                guard let face = model.faces[faceID],
-                      let surface = model.geometry.surfaces[face.surfaceID] else {
-                    throw TopologyError.missingReference(
-                        "Trimmed analytic volume references missing face geometry."
-                    )
-                }
-                guard let integrand = try Integrand(
-                    surface: surface,
-                    reference: reference,
-                    tolerance: tolerance
-                ) else {
-                    return nil
-                }
-                let domain = try ExactRectangularPcurveDomainResolver().resolve(
-                    face: face,
-                    model: model,
-                    tolerance: tolerance
+        for faceID in shell.faceIDs {
+            guard let face = model.faces[faceID],
+                  let surface = model.geometry.surfaces[face.surfaceID] else {
+                throw TopologyError.missingReference(
+                    "Trimmed analytic volume references missing face geometry."
                 )
-                var contribution: Interval
-                if let domain {
-                    contribution = integrand.integral(over: domain)
-                } else if let planeScale = integrand.planeVolumeScale {
-                    contribution = try planarFaceContribution(
-                        face: face,
-                        model: model,
-                        volumeScale: planeScale,
-                        requestedError: requestedError,
-                        totalCoedgeCount: effectiveCoedgeCount,
-                        tolerance: tolerance
-                    )
-                } else if let analyticContribution = try analyticFaceContribution(
+            }
+            guard let integrand = try Integrand(
+                surface: surface,
+                reference: reference,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            let domain = try ExactRectangularPcurveDomainResolver().resolve(
+                face: face,
+                model: model,
+                tolerance: tolerance
+            )
+            var contribution: Interval
+            if let domain {
+                contribution = integrand.integral(over: domain)
+            } else if let planeScale = integrand.planeVolumeScale {
+                contribution = try planarFaceContribution(
                     face: face,
                     model: model,
-                    integrand: integrand,
+                    volumeScale: planeScale,
                     requestedError: requestedError,
-                    totalCoedgeCount: effectiveCoedgeCount,
+                    totalCoedgeCount: totalCoedgeCount,
                     tolerance: tolerance
-                ) {
-                    contribution = analyticContribution
-                } else {
-                    return nil
-                }
-                if face.orientation == .reversed {
-                    contribution = -contribution
-                }
-                total = total + contribution
-            }
-            guard total.lower.isFinite, total.upper.isFinite else {
-                throw KernelError(
-                    phase: .topology,
-                    code: .resourceLimitExceeded,
-                    tolerance: tolerance,
-                    message: "Certified analytic surface-flux volume exceeded finite arithmetic."
                 )
+            } else if let analyticContribution = try analyticFaceContribution(
+                face: face,
+                model: model,
+                surface: surface,
+                integrand: integrand,
+                requestedError: requestedError,
+                totalCoedgeCount: totalCoedgeCount,
+                fluxIntegrator: fluxIntegrator,
+                tolerance: tolerance
+            ) {
+                contribution = analyticContribution
+            } else {
+                return nil
             }
-            if total.upper - total.lower <= requestedError * 1.98
-                || effectiveCoedgeCount == totalCoedgeCount {
-                break
+            if face.orientation == .reversed {
+                contribution = -contribution
             }
+            total = total + contribution
+        }
+        guard total.lower.isFinite, total.upper.isFinite else {
+            throw KernelError(
+                phase: .topology,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "Certified analytic surface-flux volume exceeded finite arithmetic."
+            )
         }
         return VolumeBounds(
             lower: total.lower,
@@ -194,9 +187,11 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     private func analyticFaceContribution(
         face: Face,
         model: BRepModel,
+        surface: Surface3D,
         integrand: Integrand,
         requestedError: Double,
         totalCoedgeCount: Int,
+        fluxIntegrator: CertifiedAnalyticPcurveFluxIntegrator,
         tolerance: ModelingTolerance
     ) throws -> Interval? {
         var total = Interval.exact(0.0)
@@ -215,11 +210,20 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
                 }
                 curves.append(curve)
             }
+            let unwrapped = try SurfaceParameterLoopUnwrapper().unwrap(
+                curves,
+                on: surface,
+                tolerance: tolerance,
+                context: "Analytic face loop \(loop.id)"
+            )
+            curves = unwrapped.map(\.translatedCurve)
             guard let contribution = try analyticLoopContribution(
                 parameterCurves: curves,
                 role: loop.role,
                 integrand: integrand,
-                requestedWidth: requestedError * 1.98 / Double(totalCoedgeCount),
+                requestedCurveWidth: requestedError * 1.98
+                    / Double(totalCoedgeCount),
+                generalIntegrator: fluxIntegrator,
                 tolerance: tolerance
             ) else {
                 return nil
@@ -241,8 +245,18 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
             surface: surface,
             reference: reference,
             tolerance: tolerance
-        ), let contribution = try coordinateLoopContribution(
-            parameterCurves: parameterCurves,
+        ) else {
+            return nil
+        }
+        let unwrapped = try SurfaceParameterLoopUnwrapper().unwrap(
+            parameterCurves,
+            on: surface,
+            tolerance: tolerance,
+            context: "Analytic coordinate-loop volume"
+        )
+        let integrationCurves = unwrapped.map(\.translatedCurve)
+        guard let contribution = try coordinateLoopContribution(
+            parameterCurves: integrationCurves,
             role: role,
             integrand: integrand,
             tolerance: tolerance
@@ -280,11 +294,20 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         ) else {
             return nil
         }
+        let unwrapped = try SurfaceParameterLoopUnwrapper().unwrap(
+            parameterCurves,
+            on: surface,
+            tolerance: tolerance,
+            context: "Analytic pcurve-loop volume"
+        )
+        let integrationCurves = unwrapped.map(\.translatedCurve)
         guard let contribution = try analyticLoopContribution(
-            parameterCurves: parameterCurves,
+            parameterCurves: integrationCurves,
             role: role,
             integrand: integrand,
-            requestedWidth: requestedWidth,
+            requestedCurveWidth: requestedWidth
+                / Double(parameterCurves.count),
+            generalIntegrator: CertifiedAnalyticPcurveFluxIntegrator(),
             tolerance: tolerance
         ) else {
             return nil
@@ -310,7 +333,8 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         parameterCurves: [SurfaceParameterCurve],
         role: LoopRole,
         integrand: Integrand,
-        requestedWidth: Double,
+        requestedCurveWidth: Double,
+        generalIntegrator: CertifiedAnalyticPcurveFluxIntegrator,
         tolerance: ModelingTolerance
     ) throws -> Interval? {
         guard !parameterCurves.isEmpty else {
@@ -321,29 +345,36 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
                 message: "Analytic pcurve volume requires at least one pcurve."
             )
         }
-        let curveWidth = requestedWidth / Double(parameterCurves.count)
-        guard curveWidth.isFinite, curveWidth > 0.0 else {
+        guard requestedCurveWidth.isFinite, requestedCurveWidth > 0.0 else {
             throw KernelError(
                 phase: .topology,
                 code: .resourceLimitExceeded,
-                residual: curveWidth,
+                residual: requestedCurveWidth,
                 tolerance: tolerance,
                 message: "Analytic pcurve volume could not allocate a finite curve enclosure."
             )
         }
-        let generalIntegrator = CertifiedAnalyticPcurveFluxIntegrator()
         var rawFlux = Interval.exact(0.0)
-        var areaBounds = SurfaceParameterAreaBounds.zero
         for curve in parameterCurves {
+            if integrand.usesPeriodicBoundaryGauge {
+                let contribution = try generalIntegrator.bounds(
+                    for: curve,
+                    integrand: integrand,
+                    requestedWidth: requestedCurveWidth,
+                    tolerance: tolerance
+                )
+                guard let contribution else { return nil }
+                rawFlux = rawFlux + contribution
+                continue
+            }
             if case let .bSpline(spline) = curve,
                let polynomial = try generalIntegrator.polynomialCylinderBounds(
                     for: spline,
                     integrand: integrand,
-                    requestedWidth: curveWidth,
+                    requestedWidth: requestedCurveWidth,
                     tolerance: tolerance
-               ) {
+                ) {
                 rawFlux = rawFlux + polynomial.flux
-                areaBounds = areaBounds.adding(polynomial.parameterArea)
                 continue
             }
             if let verticalSegments = try coordinateVerticalSegments(
@@ -361,21 +392,18 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
                 let contribution = try generalIntegrator.bounds(
                     for: curve,
                     integrand: integrand,
-                    requestedWidth: curveWidth,
+                    requestedWidth: requestedCurveWidth,
                     tolerance: tolerance
                 )
                 guard let contribution else { return nil }
                 rawFlux = rawFlux + contribution
             }
-            areaBounds = areaBounds.adding(
-                try SurfaceParameterCurveAreaIntegrator().bounds(
-                    for: curve,
-                    uShift: 0.0,
-                    requestedWidth: max(tolerance.relative, Double.ulpOfOne * 256.0),
-                    tolerance: tolerance
-                )
-            )
         }
+        let areaBounds = try certifiedLoopOrientationBounds(
+            parameterCurves: parameterCurves,
+            usesPeriodicConeGauge: integrand.usesPeriodicConeBoundaryGauge,
+            tolerance: tolerance
+        )
         return try normalizedLoopContribution(
             rawFlux: rawFlux,
             areaBounds: areaBounds,
@@ -400,8 +428,19 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
             )
         }
         var rawFlux = Interval.exact(0.0)
-        var areaBounds = SurfaceParameterAreaBounds.zero
+        let generalIntegrator = CertifiedAnalyticPcurveFluxIntegrator()
         for curve in parameterCurves {
+            if integrand.usesPeriodicBoundaryGauge {
+                let contribution = try generalIntegrator.bounds(
+                    for: curve,
+                    integrand: integrand,
+                    requestedWidth: max(tolerance.distance, 1.0e-10),
+                    tolerance: tolerance
+                )
+                guard let contribution else { return nil }
+                rawFlux = rawFlux + contribution
+                continue
+            }
             guard let verticalSegments = try coordinateVerticalSegments(
                 curve,
                 tolerance: tolerance
@@ -415,21 +454,61 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
                     vEnd: segment.vEnd
                 )
             }
-            areaBounds = areaBounds.adding(
-                try SurfaceParameterCurveAreaIntegrator().bounds(
-                    for: curve,
-                    uShift: 0.0,
-                    requestedWidth: max(tolerance.relative, Double.ulpOfOne * 256.0),
-                    tolerance: tolerance
-                )
-            )
         }
+        let areaBounds = try certifiedLoopOrientationBounds(
+            parameterCurves: parameterCurves,
+            usesPeriodicConeGauge: integrand.usesPeriodicConeBoundaryGauge,
+            tolerance: tolerance
+        )
         return try normalizedLoopContribution(
             rawFlux: rawFlux,
             areaBounds: areaBounds,
             role: role,
             tolerance: tolerance,
             context: "Analytic coordinate-loop volume"
+        )
+    }
+
+    private func certifiedLoopOrientationBounds(
+        parameterCurves: [SurfaceParameterCurve],
+        usesPeriodicConeGauge: Bool,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterAreaBounds {
+        let integrator = SurfaceParameterCurveAreaIntegrator()
+        var requestedWidth = 1.0
+        while requestedWidth.isFinite, requestedWidth > 0.0 {
+            let curveWidth = requestedWidth / Double(parameterCurves.count)
+            var loopBounds = SurfaceParameterAreaBounds.zero
+            for curve in parameterCurves {
+                loopBounds = loopBounds.adding(
+                    try usesPeriodicConeGauge
+                        ? integrator.periodicConeBounds(
+                            for: curve,
+                            requestedWidth: curveWidth,
+                            tolerance: tolerance
+                        )
+                        : integrator.bounds(
+                            for: curve,
+                            uShift: 0.0,
+                            requestedWidth: curveWidth,
+                            tolerance: tolerance
+                        )
+                )
+            }
+            if loopBounds.lower > 0.0 || loopBounds.upper < 0.0 {
+                return loopBounds
+            }
+            let nextWidth = (requestedWidth * 0.125).nextDown
+            guard nextWidth > 0.0, nextWidth < requestedWidth else {
+                break
+            }
+            requestedWidth = nextWidth
+        }
+        throw KernelError(
+            phase: .topology,
+            code: .topologyFailure,
+            tolerance: tolerance,
+            message: "Analytic pcurve-loop volume could not certify a nonzero traversal orientation."
         )
     }
 
@@ -528,8 +607,14 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
              .certifiedImplicit,
              .certifiedAnalyticImplicit,
              .certifiedAnalyticPair,
-             .projectedAnalytic:
+             .projectedAnalytic,
+             .rigidImage:
             return nil
+        case let .sameParameterImage(image):
+            return try coordinateVerticalSegments(
+                image.source,
+                tolerance: tolerance
+            )
         case let .periodicTranslation(base, uShift, vShift):
             return try coordinateVerticalSegments(
                 base,
@@ -651,30 +736,11 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         for shell: Shell,
         in model: BRepModel
     ) throws -> Point3D {
-        for faceID in shell.faceIDs {
-            guard let face = model.faces[faceID] else {
-                throw TopologyError.missingReference(
-                    "Trimmed analytic volume references a missing face."
-                )
-            }
-            for loopID in face.loops {
-                guard let loop = model.loops[loopID] else {
-                    throw TopologyError.missingReference(
-                        "Trimmed analytic volume references a missing loop."
-                    )
-                }
-                for coedge in loop.coedges {
-                    guard let edge = model.edges[coedge.edgeID],
-                          let point = model.vertices[edge.startVertexID]?.point else {
-                        throw TopologyError.missingReference(
-                            "Trimmed analytic volume references a missing boundary vertex."
-                        )
-                    }
-                    return point
-                }
-            }
-        }
-        throw TopologyError.openShell(shell.id)
+        try BRepShellReferencePointResolver().referencePoint(
+            for: shell,
+            in: model,
+            context: "Trimmed analytic volume"
+        )
     }
 
     private func characteristicLength(
@@ -737,7 +803,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         return count
     }
 
-    enum Integrand {
+    enum Integrand: Hashable {
         case plane(volumeScale: Interval)
         case cylinder(
             radius: Interval,
@@ -792,6 +858,20 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
                     minorRadius: minorRadius
                 )
             case .analytic, .bSpline:
+                return nil
+            case let .procedural(.offset(offset)):
+                guard let equivalent = try offset.exactSameParameterSurface(
+                    tolerance: tolerance
+                ) else {
+                    return nil
+                }
+                try self.init(
+                    surface: equivalent,
+                    reference: reference,
+                    tolerance: tolerance
+                )
+                return
+            case .procedural(.ruled):
                 return nil
             }
             let sampleV = if case .cone = kind { 1.0 } else { 0.0 }
@@ -1115,11 +1195,178 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
             }
         }
 
+        /// Returns the chart one-form whose exterior derivative is the
+        /// surface volume density. Periodic revolution surfaces move the
+        /// reference-axis contribution into `du` so that translating a
+        /// pcurve by a whole azimuth turn cannot change that contribution.
+        func boundaryOneForm(
+            u: Interval,
+            v: Interval
+        ) -> (du: Interval, dv: Interval) {
+            switch self {
+            case let .cone(
+                sine,
+                cosine,
+                radialOffsetU,
+                radialOffsetV,
+                axialOffset
+            ):
+                let sineU = Interval.sine(u)
+                let cosineU = Interval.cosine(u)
+                let azimuth = radialOffsetU * sineU - radialOffsetV * cosineU
+                return (
+                    du: sine * sine * axialOffset * v * v / .exact(6.0),
+                    dv: sine * cosine * azimuth * v / .exact(3.0)
+                )
+            case let .torus(
+                majorRadius,
+                minorRadius,
+                radialOffsetU,
+                radialOffsetV,
+                axialOffset
+            ):
+                let sineU = Interval.sine(u)
+                let cosineU = Interval.cosine(u)
+                let cosineV = Interval.cosine(v)
+                let cosineSquaredV = cosineV * cosineV
+                let azimuth = radialOffsetU * sineU - radialOffsetV * cosineU
+                let radialFactor = majorRadius * cosineV
+                    + minorRadius * cosineSquaredV
+                let intrinsicFactor = majorRadius * majorRadius * cosineV
+                    + majorRadius * minorRadius * cosineSquaredV
+                    + minorRadius * majorRadius
+                    + minorRadius * minorRadius * cosineV
+                return (
+                    du: minorRadius * axialOffset / .exact(3.0) * (
+                        majorRadius * cosineV
+                            + minorRadius * cosineSquaredV / .exact(2.0)
+                    ),
+                    dv: minorRadius / .exact(3.0) * (
+                        azimuth * radialFactor + u * intrinsicFactor
+                    )
+                )
+            default:
+                return (du: .exact(0.0), dv: greenPrimitive(u: u, v: v))
+            }
+        }
+
+        /// Integrates the `dv` component of `boundaryOneForm` along a
+        /// constant-U segment. This is the only chart-translation correction
+        /// needed after pcurves have been lifted to a continuous sheet.
+        func periodicBoundaryVerticalIntegral(
+            u: Interval,
+            vStart: Interval,
+            vEnd: Interval
+        ) -> Interval {
+            let deltaV = vEnd - vStart
+            switch self {
+            case let .cone(
+                sine,
+                cosine,
+                radialOffsetU,
+                radialOffsetV,
+                _
+            ):
+                let primitive = Self.azimuthPrimitive(
+                    u: u,
+                    offsetU: radialOffsetU,
+                    offsetV: radialOffsetV
+                )
+                let vMoment = (vEnd * vEnd - vStart * vStart) / .exact(2.0)
+                return sine * cosine * primitive * vMoment / .exact(3.0)
+            case let .torus(
+                majorRadius,
+                minorRadius,
+                radialOffsetU,
+                radialOffsetV,
+                _
+            ):
+                let primitive = Self.azimuthPrimitive(
+                    u: u,
+                    offsetU: radialOffsetU,
+                    offsetV: radialOffsetV
+                )
+                let moments = Self.trigonometricMoments(
+                    lower: vStart,
+                    upper: vEnd
+                )
+                let azimuthTerm = primitive * (
+                    majorRadius * moments.cosine
+                        + minorRadius * moments.cosineSquared
+                )
+                let intrinsicTerm = u * (
+                    majorRadius * majorRadius * moments.cosine
+                        + majorRadius * minorRadius * moments.cosineSquared
+                        + minorRadius * majorRadius * deltaV
+                        + minorRadius * minorRadius * moments.cosine
+                )
+                return minorRadius / .exact(3.0) * (
+                    azimuthTerm + intrinsicTerm
+                )
+            default:
+                return verticalBoundaryIntegral(
+                    u: u,
+                    vStart: vStart,
+                    vEnd: vEnd
+                )
+            }
+        }
+
+        /// Returns the exact-differential potential `H` satisfying
+        /// `periodic one-form = legacy Q dv + dH`.
+        func periodicBoundaryGaugePotential(
+            u: Interval,
+            v: Interval
+        ) -> Interval {
+            switch self {
+            case let .cone(sine, _, _, _, axialOffset):
+                return u * sine * sine * axialOffset * v * v / .exact(6.0)
+            case let .torus(
+                majorRadius,
+                minorRadius,
+                _,
+                _,
+                axialOffset
+            ):
+                let cosineV = Interval.cosine(v)
+                return u * minorRadius * axialOffset / .exact(3.0) * (
+                    majorRadius * cosineV
+                        + minorRadius * cosineV * cosineV / .exact(2.0)
+                )
+            case .plane, .cylinder, .sphere:
+                return .exact(0.0)
+            }
+        }
+
+        var usesPeriodicBoundaryGauge: Bool {
+            switch self {
+            case .cone:
+                return true
+            case .plane, .cylinder, .sphere, .torus:
+                return false
+            }
+        }
+
+        var requiresNonzeroPeriodicReferenceGauge: Bool {
+            switch self {
+            case let .cone(_, _, _, _, axialOffset),
+                 let .torus(_, _, _, _, axialOffset):
+                return axialOffset.lower != 0.0 || axialOffset.upper != 0.0
+            case .plane, .cylinder, .sphere:
+                return false
+            }
+        }
+
         var planeVolumeScale: Interval? {
             if case let .plane(volumeScale) = self {
                 return volumeScale
             }
             return nil
+        }
+
+        var usesPeriodicConeBoundaryGauge: Bool {
+            if case .cone = self { return true }
+            return false
         }
 
         private static func deltaAzimuthPrimitive(
@@ -1262,15 +1509,19 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         }
 
         static func * (lhs: Interval, rhs: Interval) -> Interval {
-            let products = [
-                lhs.lower * rhs.lower,
-                lhs.lower * rhs.upper,
-                lhs.upper * rhs.lower,
-                lhs.upper * rhs.upper,
-            ]
+            let lowerLower = lhs.lower * rhs.lower
+            let lowerUpper = lhs.lower * rhs.upper
+            let upperLower = lhs.upper * rhs.lower
+            let upperUpper = lhs.upper * rhs.upper
             return Interval(
-                lower: (products.min() ?? -.infinity).nextDown,
-                upper: (products.max() ?? .infinity).nextUp
+                lower: min(
+                    min(lowerLower, lowerUpper),
+                    min(upperLower, upperUpper)
+                ).nextDown,
+                upper: max(
+                    max(lowerLower, lowerUpper),
+                    max(upperLower, upperUpper)
+                ).nextUp
             )
         }
 

@@ -390,7 +390,7 @@ private func validateIGESDirectoryRecords(_ records: [IGESRecord]) throws {
             throw ImportError.invalidData("IGES directory entity type pair is inconsistent.")
         }
         let supportedEntityTypes: Set<Int> = [
-            100, 104, 110, 116, 123, 124, 126, 128, 142,
+            100, 104, 110, 116, 123, 124, 126, 128, 140, 142,
             186, 190, 192, 194, 196, 198,
             402, 502, 504, 508, 510, 514,
         ]

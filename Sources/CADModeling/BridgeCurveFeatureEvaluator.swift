@@ -36,8 +36,8 @@ public struct BridgeCurveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
     ) throws -> EvaluationResult {
         guard case let .bridgeCurve(bridgeCurve) = feature.operation else {
             throw KernelError(
-                phase: .evaluation,
-                code: .unsupportedCapability,
+                phase: .validation,
+                code: .invalidInput,
                 featureID: feature.id,
                 tolerance: context.tolerance,
                 message: "BridgeCurveFeatureEvaluator requires a bridge curve feature."
@@ -96,10 +96,10 @@ public struct BridgeCurveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         guard let exactCurve = evaluatedCurve.exactCurve else {
             throw KernelError(
                 phase: .evaluation,
-                code: .unsupportedCapability,
+                code: .missingReference,
                 featureID: featureID,
                 tolerance: context.tolerance,
-                message: "Bridge curve \(owner) input must provide exact curve geometry."
+                message: "Bridge curve \(owner) input does not contain exact curve geometry."
             )
         }
         let parameter: Double
@@ -108,8 +108,8 @@ public struct BridgeCurveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             parameter = reference.end == .start ? lowerBound : upperBound
         case .periodic, .unbounded:
             throw KernelError(
-                phase: .evaluation,
-                code: .unsupportedCapability,
+                phase: .validation,
+                code: .invalidInput,
                 featureID: featureID,
                 tolerance: context.tolerance,
                 message: "Bridge curve \(owner) input must have a finite distinguished endpoint."

@@ -265,6 +265,14 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
 
     public func point(u: Double, v: Double, tolerance: ModelingTolerance) throws -> Point3D {
         try validate(tolerance: tolerance)
+        return try pointAssumingValid(u: u, v: v, tolerance: tolerance)
+    }
+
+    package func pointAssumingValid(
+        u: Double,
+        v: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Point3D {
         guard try uDomain.contains(u, tolerance: tolerance),
               try vDomain.contains(v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)

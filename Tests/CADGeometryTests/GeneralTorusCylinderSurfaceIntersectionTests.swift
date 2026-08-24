@@ -25,6 +25,36 @@ struct GeneralTorusCylinderSurfaceIntersectionTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(2)))
+    func closedProceduralCurveProjectionResolvesNearSeamContacts() throws {
+        let intersections = try intersector.intersections(
+            first: torusSurface(),
+            second: tiltedCylinderSurface(),
+            tolerance: tolerance
+        )
+
+        #expect(intersections.count == 2)
+        let fractions = [0.002_118_744_004_804_728, 0.997_881_255_995_196_6]
+        for intersection in intersections {
+            guard case let .curve(result) = intersection else {
+                Issue.record("Expected a certified general torus-cylinder curve.")
+                continue
+            }
+            for fraction in fractions {
+                let point = try result.curve.point(
+                    at: fraction,
+                    tolerance: tolerance
+                )
+                let projection = try result.curve.parameterProjection(
+                    of: point,
+                    tolerance: tolerance
+                )
+                #expect(projection.residual <= tolerance.distance)
+                #expect(abs(projection.parameter - fraction) <= tolerance.relative * 8.0)
+            }
+        }
+    }
+
     // Deterministic operand-order tracing runs near two minutes under
     // full-suite load in unoptimized builds.
     @Test(.timeLimit(.minutes(4)))

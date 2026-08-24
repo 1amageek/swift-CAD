@@ -79,6 +79,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
         let processedCellCount: Int
         let firstDerivativeMagnitudeUpperBound: Double
         let secondDerivativeMagnitudeUpperBound: Double
+        let thirdDerivativeMagnitudeUpperBound: Double
         let traceParameters: [Double]
         let heightsByBranch: [[Double]]
 
@@ -89,6 +90,8 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
                     == rhs.firstDerivativeMagnitudeUpperBound
                 && lhs.secondDerivativeMagnitudeUpperBound
                     == rhs.secondDerivativeMagnitudeUpperBound
+                && lhs.thirdDerivativeMagnitudeUpperBound
+                    == rhs.thirdDerivativeMagnitudeUpperBound
                 && lhs.traceParameters == rhs.traceParameters
                 && lhs.heightsByBranch == rhs.heightsByBranch
         }
@@ -98,6 +101,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
             hasher.combine(processedCellCount)
             hasher.combine(firstDerivativeMagnitudeUpperBound)
             hasher.combine(secondDerivativeMagnitudeUpperBound)
+            hasher.combine(thirdDerivativeMagnitudeUpperBound)
             hasher.combine(traceParameters.count)
             hasher.combine(traceParameters.first ?? 0.0)
             hasher.combine(traceParameters.last ?? 0.0)
@@ -352,6 +356,8 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
               certificate.firstDerivativeMagnitudeUpperBound > 0.0,
               certificate.secondDerivativeMagnitudeUpperBound.isFinite,
               certificate.secondDerivativeMagnitudeUpperBound > 0.0,
+              certificate.thirdDerivativeMagnitudeUpperBound.isFinite,
+              certificate.thirdDerivativeMagnitudeUpperBound > 0.0,
               certificate.traceParameters.count >= 2,
               certificate.heightsByBranch.count == branchCount,
               certificate.heightsByBranch.allSatisfy({
@@ -507,6 +513,86 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
         )
     }
 
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        let lower = try differential(
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        )
+        let configuration = try Self.makeConfiguration(
+            torusSurface: torusSurface,
+            cylinderSurface: cylinderSurface,
+            tolerance: tolerance
+        )
+        let projection = try cylinderSurface.parameterProjection(
+            of: lower.position,
+            tolerance: tolerance
+        )
+        let surface = try cylinderSurface.parameterDerivativesThroughThirdOrder(
+            atU: projection.u,
+            v: projection.v,
+            tolerance: tolerance
+        )
+        let firstParameter = try SurfaceParameterFirstDerivativeSolver().solve(
+            tangentU: surface.tangentU,
+            tangentV: surface.tangentV,
+            spatialFirstDerivative: lower.firstDerivative,
+            tolerance: tolerance,
+            diagnosticContext: "General torus-cylinder curve"
+        )
+        let lowerSurface = try cylinderSurface.differentialGeometry(
+            atU: projection.u,
+            v: projection.v,
+            tolerance: tolerance
+        )
+        let secondParameter = try SurfaceParameterSecondDerivativeSolver().solve(
+            surface: lowerSurface,
+            firstParameterDerivative: firstParameter,
+            spatialSecondDerivative: lower.secondDerivative,
+            tolerance: tolerance,
+            diagnosticContext: "General torus-cylinder curve"
+        )
+        let offset = lower.position - configuration.torus.center
+        let gradient = Self.torusGradient(
+            offset: offset,
+            torus: configuration.torus
+        )
+        let thirdParameter = try ImplicitSurfaceParameterThirdDerivativeSolver().solve(
+            surface: surface,
+            firstParameterDerivative: firstParameter,
+            secondParameterDerivative: secondParameter,
+            knownThirdParameterDerivative: Point2D(x: 0.0, y: 0.0),
+            solvedCoordinate: .v,
+            implicitGradient: gradient,
+            implicitHessian: { first, second in
+                Self.torusHessianBilinear(
+                    offset: offset,
+                    first: first,
+                    second: second,
+                    torus: configuration.torus
+                )
+            },
+            implicitThirdDifferential: { first, second, third in
+                Self.torusThirdDifferential(
+                    offset: offset,
+                    first: first,
+                    second: second,
+                    third: third
+                )
+            },
+            tolerance: tolerance,
+            diagnosticContext: "General torus-cylinder curve"
+        )
+        return SurfaceParameterThirdOrderChainRule.thirdDerivative(
+            surface: surface,
+            firstParameterDerivative: firstParameter,
+            secondParameterDerivative: secondParameter,
+            thirdParameterDerivative: thirdParameter
+        )
+    }
+
     public func parameter(
         on surface: Surface3D,
         atNormalizedFraction fraction: Double,
@@ -529,6 +615,53 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
             tolerance: tolerance
         )
         return SurfaceParameter(u: projection.u, v: projection.v)
+    }
+
+    func normalizedGeneratorAngle(
+        for point: Point3D,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        try tolerance.validate()
+        try point.validate()
+        let configuration = try Self.makeConfiguration(
+            torusSurface: torusSurface,
+            cylinderSurface: cylinderSurface,
+            tolerance: tolerance
+        )
+        let offset = point - configuration.cylinder.origin
+        let radialScale = configuration.cylinder.radius
+            * configuration.cylinder.radius
+        guard radialScale.isFinite,
+              radialScale > tolerance.distance * tolerance.distance else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A general torus-cylinder curve has a degenerate cylinder radius."
+            )
+        }
+        let cosine = offset.dot(configuration.cylinder.radialU) / radialScale
+        let sine = offset.dot(configuration.cylinder.radialV) / radialScale
+        var angle = atan2(sine, cosine)
+        if angle < 0.0 {
+            angle += 2.0 * Double.pi
+        }
+        let height = offset.dot(configuration.cylinder.axis)
+        let reconstructed = configuration.generatorPoint(
+            angle: angle,
+            height: height
+        )
+        let residual = (reconstructed - point).length
+        guard residual <= tolerance.distance else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: residual,
+                tolerance: tolerance,
+                message: "A point cannot seed the general torus-cylinder generator angle because it is off the certified cylinder."
+            )
+        }
+        return angle / (2.0 * Double.pi)
     }
 
     public func boundingBox(tolerance: ModelingTolerance) throws -> BoundingBox3D {
@@ -560,7 +693,8 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
         try validate(tolerance: tolerance)
         return SpatialDifferentialMagnitudeBounds(
             first: certificate.firstDerivativeMagnitudeUpperBound,
-            second: certificate.secondDerivativeMagnitudeUpperBound
+            second: certificate.secondDerivativeMagnitudeUpperBound,
+            third: certificate.thirdDerivativeMagnitudeUpperBound
         )
     }
 
@@ -664,6 +798,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
         var processedCellCount = 0
         var maximumHeightFirstDerivative = 0.0
         var maximumHeightSecondDerivative = 0.0
+        var maximumHeightThirdDerivative = 0.0
         while let cell = cells.popLast() {
             processedCellCount += 1
             guard processedCellCount <= maximumCellCount else {
@@ -702,6 +837,41 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
                         + values.heightHeightDerivative.maximumAbsoluteValue
                             * heightFirstDerivative * heightFirstDerivative
                 ) / denominator).nextUp
+                let firstHeight = Interval(
+                    -heightFirstDerivative,
+                    heightFirstDerivative
+                )
+                let secondHeight = Interval(
+                    -heightSecondDerivative,
+                    heightSecondDerivative
+                )
+                let axis = values.axis
+                let spatialFirst = zip(values.angleTangent, axis).map { pair in
+                    pair.0.adding(pair.1.multiplied(by: firstHeight))
+                }
+                let spatialSecond = zip(values.angleSecond, axis).map { pair in
+                    pair.0.adding(pair.1.multiplied(by: secondHeight))
+                }
+                let angleThird = values.angleTangent.map {
+                    $0.scaled(by: -1.0)
+                }
+                let knownThirdImplicit = torusThirdDifferentialInterval(
+                    offset: values.offset,
+                    first: spatialFirst,
+                    second: spatialFirst,
+                    third: spatialFirst
+                ).adding(
+                    torusHessianBilinearInterval(
+                        offset: values.offset,
+                        q: values.q,
+                        first: spatialSecond,
+                        second: spatialFirst,
+                        torus: configuration.torus
+                    ).scaled(by: 3.0)
+                ).adding(dotInterval(values.gradient, angleThird))
+                let heightThirdDerivative = (
+                    knownThirdImplicit.maximumAbsoluteValue / denominator
+                ).nextUp
                 maximumHeightFirstDerivative = max(
                     maximumHeightFirstDerivative,
                     heightFirstDerivative
@@ -709,6 +879,10 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
                 maximumHeightSecondDerivative = max(
                     maximumHeightSecondDerivative,
                     heightSecondDerivative
+                )
+                maximumHeightThirdDerivative = max(
+                    maximumHeightThirdDerivative,
+                    heightThirdDerivative
                 )
                 continue
             }
@@ -764,6 +938,9 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
         let secondDerivativeMagnitudeUpperBound = ((
             configuration.cylinder.radius + maximumHeightSecondDerivative
         ).nextUp * angularScale * angularScale).nextUp
+        let thirdDerivativeMagnitudeUpperBound = ((
+            configuration.cylinder.radius + maximumHeightThirdDerivative
+        ).nextUp * angularScale * angularScale * angularScale).nextUp
         return Certificate(
             branchCount: initialRoots.count,
             processedCellCount: processedCellCount,
@@ -771,6 +948,8 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
                 firstDerivativeMagnitudeUpperBound,
             secondDerivativeMagnitudeUpperBound:
                 secondDerivativeMagnitudeUpperBound,
+            thirdDerivativeMagnitudeUpperBound:
+                thirdDerivativeMagnitudeUpperBound,
             traceParameters: trace.parameters,
             heightsByBranch: trace.heightsByBranch
         )
@@ -911,7 +1090,13 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
         heightDerivative: Interval,
         angleAngleDerivative: Interval,
         angleHeightDerivative: Interval,
-        heightHeightDerivative: Interval
+        heightHeightDerivative: Interval,
+        offset: [Interval],
+        q: Interval,
+        gradient: [Interval],
+        angleTangent: [Interval],
+        angleSecond: [Interval],
+        axis: [Interval]
     ) {
         let cosine = cosineInterval(angle)
         let sine = sineInterval(angle)
@@ -1036,7 +1221,13 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
             heightDerivative,
             angleAngleDerivative,
             angleHeightDerivative,
-            heightHeightDerivative
+            heightHeightDerivative,
+            x,
+            q,
+            gradient,
+            angleTangent,
+            angleSecond,
+            axisIntervals
         )
     }
 
@@ -1094,6 +1285,25 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
                     firstAxis.multiplied(by: secondAxis)
                 ).scaled(by: 8.0 * torus.majorRadius * torus.majorRadius)
             )
+    }
+
+    private static func torusThirdDifferentialInterval(
+        offset: [Interval],
+        first: [Interval],
+        second: [Interval],
+        third: [Interval]
+    ) -> Interval {
+        dotInterval(first, second)
+            .multiplied(by: dotInterval(offset, third))
+            .adding(
+                dotInterval(first, third)
+                    .multiplied(by: dotInterval(offset, second))
+            )
+            .adding(
+                dotInterval(second, third)
+                    .multiplied(by: dotInterval(offset, first))
+            )
+            .scaled(by: 8.0)
     }
 
     private static func certifiedRoots(
@@ -1219,6 +1429,19 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
                 first.dot(second)
                     - first.dot(torus.axis) * second.dot(torus.axis)
             )
+    }
+
+    private static func torusThirdDifferential(
+        offset: Vector3D,
+        first: Vector3D,
+        second: Vector3D,
+        third: Vector3D
+    ) -> Double {
+        8.0 * (
+            first.dot(second) * offset.dot(third)
+                + first.dot(third) * offset.dot(second)
+                + second.dot(third) * offset.dot(first)
+        )
     }
 
     private static func polynomialDerivative(

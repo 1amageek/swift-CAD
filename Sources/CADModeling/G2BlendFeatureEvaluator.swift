@@ -37,7 +37,9 @@ public struct G2BlendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
     ) throws -> EvaluationResult {
         try context.tolerance.validate()
         guard case let .g2Blend(blend) = feature.operation else {
-            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance, message: "G2 blend evaluator requires a G2 blend feature.")
+            throw FeatureEvaluationError.invalidGraph(
+                "G2BlendFeatureEvaluator received a non-G2-blend feature."
+            )
         }
         return try edgeBlendEvaluator.evaluateG2(feature: feature, blend: blend, context: context)
     }

@@ -4,23 +4,53 @@ import CADGeometry
 import CADIR
 import CADTopology
 
-struct BRepFaceBoundingBoxBuilder: Sendable {
+struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
+    private let parameterBoundsResolver: any FaceParameterBoundsResolving
+    private let surfaceDifferentialEncloser: any SurfaceDifferentialEnclosing
+
+    private struct ProceduralBoundsCell: Sendable {
+        let parameters: SurfaceParameterBox
+        let depth: Int
+    }
+
+    init(
+        parameterBoundsResolver: any FaceParameterBoundsResolving =
+            DefaultFaceParameterBoundsResolver(),
+        surfaceDifferentialEncloser: any SurfaceDifferentialEnclosing =
+            DefaultSurfaceDifferentialEncloser()
+    ) {
+        self.parameterBoundsResolver = parameterBoundsResolver
+        self.surfaceDifferentialEncloser = surfaceDifferentialEncloser
+    }
+
     func bounds(
         for faceID: FaceID,
         in model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> BoundingBox3D? {
+    ) throws -> BoundingBox3D {
         try tolerance.validate()
         guard let face = model.faces[faceID],
               let surface = model.geometry.surfaces[face.surfaceID] else {
-            return nil
+            throw KernelError(
+                phase: .topology,
+                code: .missingReference,
+                tolerance: tolerance,
+                message: "Face bounds reference a missing face or support surface."
+            )
         }
         let boundaryPoints = try supportPoints(
             for: face,
             in: model,
             tolerance: tolerance
         )
-        guard boundaryPoints.isEmpty == false else { return nil }
+        guard boundaryPoints.isEmpty == false else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: tolerance,
+                message: "A bounded face requires at least one certified boundary point."
+            )
+        }
         switch surface {
         case .plane, .analytic(.plane):
             return try BoundingBox3D(points: boundaryPoints)
@@ -69,7 +99,145 @@ struct BRepFaceBoundingBoxBuilder: Sendable {
             return try radialBounds(center: center, radius: majorRadius + minorRadius)
         case let .bSpline(surface):
             return try BoundingBox3D(points: surface.controlPoints.flatMap { $0 })
+        case .procedural:
+            let parameters = try parameterBoundsResolver.bounds(
+                for: faceID,
+                in: model,
+                tolerance: tolerance
+            )
+            return try proceduralBounds(
+                surface: surface,
+                parameters: parameters,
+                tolerance: tolerance
+            )
         }
+    }
+
+    private func proceduralBounds(
+        surface: Surface3D,
+        parameters: SurfaceParameterBox,
+        tolerance: ModelingTolerance
+    ) throws -> BoundingBox3D {
+        var minimum = Point3D(
+            x: .infinity,
+            y: .infinity,
+            z: .infinity
+        )
+        var maximum = Point3D(
+            x: -.infinity,
+            y: -.infinity,
+            z: -.infinity
+        )
+        var remainingCells = 1_048_576
+        var stack = [ProceduralBoundsCell(parameters: parameters, depth: 0)]
+        while let cell = stack.popLast() {
+            guard remainingCells > 0 else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .resourceLimitExceeded,
+                    tolerance: tolerance,
+                    message: "Procedural face bounds exhausted the certified cell budget."
+                )
+            }
+            remainingCells -= 1
+            do {
+                let enclosure = try surfaceDifferentialEncloser.enclosure(
+                    of: surface,
+                    over: cell.parameters,
+                    tolerance: tolerance
+                ).position
+                minimum = Point3D(
+                    x: min(minimum.x, enclosure.x.lower),
+                    y: min(minimum.y, enclosure.y.lower),
+                    z: min(minimum.z, enclosure.z.lower)
+                )
+                maximum = Point3D(
+                    x: max(maximum.x, enclosure.x.upper),
+                    y: max(maximum.y, enclosure.y.upper),
+                    z: max(maximum.z, enclosure.z.upper)
+                )
+            } catch let error as KernelError where error.code == .singularSystem {
+                guard cell.depth < 32 else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .resourceLimitExceeded,
+                        tolerance: tolerance,
+                        message: "Procedural face bounds could not certify a regular parameter cell."
+                    )
+                }
+                stack.append(contentsOf: try subdivided(
+                    cell.parameters,
+                    depth: cell.depth + 1
+                ).reversed())
+            }
+        }
+        guard minimum.x.isFinite,
+              minimum.y.isFinite,
+              minimum.z.isFinite,
+              maximum.x.isFinite,
+              maximum.y.isFinite,
+              maximum.z.isFinite else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "Procedural face bounds did not produce a finite enclosure."
+            )
+        }
+        return try BoundingBox3D(minimum: minimum, maximum: maximum)
+    }
+
+    private func subdivided(
+        _ parameters: SurfaceParameterBox,
+        depth: Int
+    ) throws -> [ProceduralBoundsCell] {
+        let middleU = parameters.u.midpoint
+        let middleV = parameters.v.midpoint
+        guard middleU > parameters.u.lower,
+              middleU < parameters.u.upper,
+              middleV > parameters.v.lower,
+              middleV < parameters.v.upper else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                tolerance: nil,
+                message: "Procedural face bounds reached the representable parameter resolution."
+            )
+        }
+        let lowerU = try ScalarInterval(
+            lower: parameters.u.lower,
+            upper: middleU
+        )
+        let upperU = try ScalarInterval(
+            lower: middleU,
+            upper: parameters.u.upper
+        )
+        let lowerV = try ScalarInterval(
+            lower: parameters.v.lower,
+            upper: middleV
+        )
+        let upperV = try ScalarInterval(
+            lower: middleV,
+            upper: parameters.v.upper
+        )
+        return [
+            ProceduralBoundsCell(
+                parameters: SurfaceParameterBox(u: lowerU, v: lowerV),
+                depth: depth
+            ),
+            ProceduralBoundsCell(
+                parameters: SurfaceParameterBox(u: upperU, v: lowerV),
+                depth: depth
+            ),
+            ProceduralBoundsCell(
+                parameters: SurfaceParameterBox(u: lowerU, v: upperV),
+                depth: depth
+            ),
+            ProceduralBoundsCell(
+                parameters: SurfaceParameterBox(u: upperU, v: upperV),
+                depth: depth
+            ),
+        ]
     }
 
     private func supportPoints(
@@ -179,22 +347,68 @@ struct BRepFaceBoundingBoxBuilder: Sendable {
         case let .implicit(curve):
             return curve.firstSurface.controlPoints.flatMap { $0 }
         case let .surfaceLift(curve):
-            guard case let .bSpline(surface) = curve.surface else {
-                throw KernelError(
-                    phase: .geometry,
-                    code: .unsupportedCapability,
-                    tolerance: tolerance,
-                    message: "Face bounds for a surface-lift curve require a bounded B-spline support surface."
+            let interval: ScalarInterval
+            if let trim {
+                interval = try ScalarInterval(
+                    lower: min(trim.startParameter, trim.endParameter),
+                    upper: max(trim.startParameter, trim.endParameter)
                 )
+            } else {
+                interval = try ScalarInterval(lower: 0.0, upper: 1.0)
             }
-            return surface.controlPoints.flatMap { $0 }
-        case .certifiedIntersection:
-            throw KernelError(
-                phase: .geometry,
-                code: .unsupportedCapability,
-                tolerance: tolerance,
-                message: "Certified intersection face bounds require a certified extremum solver."
+            let bounds = try curve.boundingBox(
+                over: interval,
+                tolerance: tolerance
             )
+            return [bounds.minimum, bounds.maximum]
+        case let .certifiedIntersection(curve):
+            let bounds = try curve.boundingBox(tolerance: tolerance)
+            return [bounds.minimum, bounds.maximum]
+        case let .rigidImage(image):
+            return try curveSupportPoints(
+                image.source,
+                trim: trim,
+                tolerance: tolerance
+            ).map(image.transform.applying(to:))
+        case .affineImage:
+            let interval: ScalarInterval
+            if let trim {
+                interval = try ScalarInterval(
+                    lower: min(trim.startParameter, trim.endParameter),
+                    upper: max(trim.startParameter, trim.endParameter)
+                )
+            } else {
+                switch curve.parameterDomain {
+                case let .closed(lower, upper):
+                    interval = try ScalarInterval(lower: lower, upper: upper)
+                case let .periodic(period):
+                    interval = try ScalarInterval(lower: 0.0, upper: period)
+                case .unbounded:
+                    throw KernelError(
+                        phase: .topology,
+                        code: .invalidInput,
+                        tolerance: tolerance,
+                        message: "A bounded face edge on an unbounded affine-image curve requires a finite trim."
+                    )
+                }
+            }
+            let enclosure = try DefaultCurvePositionEncloser().enclosure(
+                of: curve,
+                over: interval,
+                tolerance: tolerance
+            )
+            return [
+                Point3D(
+                    x: enclosure.x.lower,
+                    y: enclosure.y.lower,
+                    z: enclosure.z.lower
+                ),
+                Point3D(
+                    x: enclosure.x.upper,
+                    y: enclosure.y.upper,
+                    z: enclosure.z.upper
+                ),
+            ]
         }
     }
 
@@ -334,9 +548,11 @@ struct BRepFaceBoundingBoxBuilder: Sendable {
                 values.u.map { $0 + uShift },
                 values.v.map { $0 + vShift }
             )
+        case let .sameParameterImage(image):
+            return rectangularBoundaryValues(image.source)
         case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline,
              .certifiedImplicit, .certifiedAnalyticImplicit,
-             .certifiedAnalyticPair, .projectedAnalytic:
+             .certifiedAnalyticPair, .projectedAnalytic, .rigidImage:
             return nil
         }
     }

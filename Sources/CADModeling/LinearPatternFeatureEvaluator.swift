@@ -3,14 +3,20 @@ import CADIR
 
 public struct LinearPatternFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let resolver: ParameterResolving
-    private let rebuilder: any ExactPlanarPatternRebuilding
+    private let rebuilder: any ExactBodyPatternRebuilding
 
     public init(
         sewer: any BRepSewing,
+        unionApplicator: any BooleanOperationApplying,
+        separationValidator: any BodyJoinValidating,
         resolver: ParameterResolving = ParameterResolver()
     ) {
         self.resolver = resolver
-        self.rebuilder = DefaultExactPlanarPatternRebuilder(sewer: sewer)
+        self.rebuilder = DefaultExactBodyPatternRebuilder(
+            sewer: sewer,
+            unionApplicator: unionApplicator,
+            separationValidator: separationValidator
+        )
     }
 
     public func evaluate(
@@ -48,7 +54,7 @@ public struct LinearPatternFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             try pattern.validate(tolerance: context.tolerance)
         }
         try FeatureEvaluationBoundary.validateExactInput(
-            context.brep,
+            context,
             featureID: feature.id,
             tolerance: context.tolerance
         )

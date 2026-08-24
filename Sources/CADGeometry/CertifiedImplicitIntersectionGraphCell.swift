@@ -221,12 +221,12 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
             tolerance: tolerance
         )
         let values = parameters.values
-        let firstGeometry = try firstSurface.differentialGeometry(
+        let firstGeometry = try firstSurface.parameterDerivativesThroughThirdOrder(
             atU: values[0],
             v: values[1],
             tolerance: tolerance
         )
-        let secondGeometry = try secondSurface.differentialGeometry(
+        let secondGeometry = try secondSurface.parameterDerivativesThroughThirdOrder(
             atU: values[2],
             v: values[3],
             tolerance: tolerance
@@ -288,6 +288,35 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
             secondParameterDerivatives[dependentIndexes[index]] = dependentSecondDerivatives[index]
         }
 
+        let firstSurfaceCubic = Self.composedCubicTerm(
+            geometry: firstGeometry,
+            firstU: firstParameterDerivatives[0],
+            firstV: firstParameterDerivatives[1],
+            secondU: secondParameterDerivatives[0],
+            secondV: secondParameterDerivatives[1]
+        )
+        let secondSurfaceCubic = Self.composedCubicTerm(
+            geometry: secondGeometry,
+            firstU: firstParameterDerivatives[2],
+            firstV: firstParameterDerivatives[3],
+            secondU: secondParameterDerivatives[2],
+            secondV: secondParameterDerivatives[3]
+        )
+        let thirdRightHandSide = (firstSurfaceCubic - secondSurfaceCubic) * -1.0
+        guard let dependentThirdDerivatives = Self.solve(
+            columns: dependentIndexes.map { columns[$0] },
+            rightHandSide: thirdRightHandSide
+        ) else {
+            throw certificateFailure(
+                tolerance: tolerance,
+                message: "A certified implicit intersection graph has no regular third differential."
+            )
+        }
+        var thirdParameterDerivatives = Array(repeating: 0.0, count: 4)
+        for index in dependentIndexes.indices {
+            thirdParameterDerivatives[dependentIndexes[index]] = dependentThirdDerivatives[index]
+        }
+
         let firstPoint = firstGeometry.position
         let secondPoint = secondGeometry.position
         let residual = (firstPoint - secondPoint).length
@@ -332,6 +361,32 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
                 message: "A certified implicit intersection differential has inconsistent dual-surface curvature."
             )
         }
+        let firstSpatialThirdDerivative = firstGeometry.tangentU
+                * thirdParameterDerivatives[0]
+            + firstGeometry.tangentV * thirdParameterDerivatives[1]
+            + firstSurfaceCubic
+        let secondSpatialThirdDerivative = secondGeometry.tangentU
+                * thirdParameterDerivatives[2]
+            + secondGeometry.tangentV * thirdParameterDerivatives[3]
+            + secondSurfaceCubic
+        let thirdDerivativeResidual = (
+            firstSpatialThirdDerivative - secondSpatialThirdDerivative
+        ).length
+        let thirdDerivativeScale = max(
+            max(
+                firstSpatialThirdDerivative.length,
+                secondSpatialThirdDerivative.length
+            ),
+            1.0
+        )
+        guard thirdDerivativeResidual
+                <= tolerance.relative * thirdDerivativeScale else {
+            throw certificateFailure(
+                tolerance: tolerance,
+                residual: thirdDerivativeResidual / thirdDerivativeScale,
+                message: "A certified implicit intersection differential has inconsistent dual-surface third derivatives."
+            )
+        }
         return CertifiedImplicitIntersectionDifferential(
             position: Point3D(
                 x: (firstPoint.x + secondPoint.x) * 0.5,
@@ -340,12 +395,18 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
             ),
             firstDerivative: (firstSpatialDerivative + secondSpatialFirstDerivative) * 0.5,
             secondDerivative: (secondSpatialDerivative + secondSpatialSecondDerivative) * 0.5,
+            thirdDerivative: (
+                firstSpatialThirdDerivative + secondSpatialThirdDerivative
+            ) * 0.5,
             parameters: parameters,
             firstParameterDerivatives: try SurfaceIntersectionParameterVector(
                 values: firstParameterDerivatives
             ),
             secondParameterDerivatives: try SurfaceIntersectionParameterVector(
                 values: secondParameterDerivatives
+            ),
+            thirdParameterDerivatives: try SurfaceIntersectionParameterVector(
+                values: thirdParameterDerivatives
             )
         )
     }
@@ -356,6 +417,26 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
         tolerance: ModelingTolerance
     ) throws -> [ScalarInterval] {
         try tolerance.validate()
+        // Structural certificates own their derivative contract. Resolving one
+        // before constructing the generic difference patch avoids rebuilding
+        // and decomposing both source surfaces for every restricted subcell.
+        if let exactGraph = try ExactIsoparametricPlanarIntersectionGraph.certified(
+            first: firstSurface,
+            second: secondSurface,
+            tolerance: tolerance
+        ), let exactBounds = try exactGraph.parameterDerivativeBounds(
+            parameterBox: parameterBox,
+            freeParameter: freeParameter,
+            direction: direction,
+            lowerAnchor: lowerAnchor,
+            midpointAnchor: midpointAnchor,
+            upperAnchor: upperAnchor,
+            first: firstSurface,
+            second: secondSurface,
+            tolerance: tolerance
+        ) {
+            return exactBounds
+        }
         let difference = try differencePatch(
             firstSurface: firstSurface,
             secondSurface: secondSurface,
@@ -396,29 +477,6 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
         secondSurface: BSplineSurface3D,
         tolerance: ModelingTolerance
     ) throws {
-        let difference = try differencePatch(
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            tolerance: tolerance
-        )
-        let intervals = parameterBox.intervals
-        let normalizedLowerAnchor = zip(lowerAnchor.values, intervals).map {
-            value, interval in
-            (value - interval.lower) / interval.width
-        }
-        let normalizedUpperAnchor = zip(upperAnchor.values, intervals).map {
-            value, interval in
-            (value - interval.lower) / interval.width
-        }
-        let reproducedCertificate = difference.affinePredictorGaugeRootCertificate(
-            freeParameterIndex: freeParameter.rawValue,
-            lowerAnchor: normalizedLowerAnchor,
-            upperAnchor: normalizedUpperAnchor
-        )
-        if reproducedCertificate
-            == .fullGraph(freeParameterIndex: freeParameter.rawValue) {
-            return
-        }
         if let exactGraph = try ExactAffineBilinearIntersectionGraph.certified(
             first: firstSurface,
             second: secondSurface,
@@ -449,6 +507,29 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
             second: secondSurface,
             tolerance: tolerance
         ) {
+            return
+        }
+        let difference = try differencePatch(
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
+        let intervals = parameterBox.intervals
+        let normalizedLowerAnchor = zip(lowerAnchor.values, intervals).map {
+            value, interval in
+            (value - interval.lower) / interval.width
+        }
+        let normalizedUpperAnchor = zip(upperAnchor.values, intervals).map {
+            value, interval in
+            (value - interval.lower) / interval.width
+        }
+        let reproducedCertificate = difference.affinePredictorGaugeRootCertificate(
+            freeParameterIndex: freeParameter.rawValue,
+            lowerAnchor: normalizedLowerAnchor,
+            upperAnchor: normalizedUpperAnchor
+        )
+        if reproducedCertificate
+            == .fullGraph(freeParameterIndex: freeParameter.rawValue) {
             return
         }
         let predictorDiagnostic = difference.affinePredictorProofDiagnostic(
@@ -609,6 +690,25 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
             columns[0].dot(rightHandSide.cross(columns[2])) / determinant,
             columns[0].dot(columns[1].cross(rightHandSide)) / determinant,
         ]
+    }
+
+    private static func composedCubicTerm(
+        geometry: SurfaceParameterThirdOrderDerivatives,
+        firstU: Double,
+        firstV: Double,
+        secondU: Double,
+        secondV: Double
+    ) -> Vector3D {
+        geometry.thirdDerivativeUUU * (firstU * firstU * firstU)
+            + geometry.thirdDerivativeUUV
+                * (3.0 * firstU * firstU * firstV)
+            + geometry.thirdDerivativeUVV
+                * (3.0 * firstU * firstV * firstV)
+            + geometry.thirdDerivativeVVV * (firstV * firstV * firstV)
+            + geometry.secondDerivativeUU * (3.0 * firstU * secondU)
+            + geometry.secondDerivativeUV
+                * (3.0 * (secondU * firstV + firstU * secondV))
+            + geometry.secondDerivativeVV * (3.0 * firstV * secondV)
     }
 
     private static func interpolate(

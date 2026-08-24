@@ -47,6 +47,13 @@ public struct DefaultBRepSewer: BRepSewing {
             var vertices: [VertexRecord] = []
             var edges: [EdgeRecord] = []
             var faceRecords: [FaceRecord] = []
+            let connectivity = try makeConnectivity(
+                for: shell,
+                records: &vertices,
+                model: &model,
+                topologyIDs: &topologyIDs,
+                tolerance: tolerance
+            )
             for patch in shell.patches.sorted(by: { $0.stableID < $1.stableID }) {
                 let surfaceID = topologyIDs.nextSurfaceID()
                 let faceID = topologyIDs.nextFaceID()
@@ -61,22 +68,18 @@ public struct DefaultBRepSewer: BRepSewing {
                     let loopID = topologyIDs.nextLoopID()
                     var coedges: [Coedge] = []
                     for sewingEdge in loop.edges {
-                        let startVertexID = canonicalVertex(
-                            for: sewingEdge.startPoint,
-                            parents: sewingEdge.startVertexParentSubshapeIDs,
-                            records: &vertices,
-                            model: &model,
-                            topologyIDs: &topologyIDs,
-                            tolerance: tolerance
-                        )
-                        let endVertexID = canonicalVertex(
-                            for: sewingEdge.endPoint,
-                            parents: sewingEdge.endVertexParentSubshapeIDs,
-                            records: &vertices,
-                            model: &model,
-                            topologyIDs: &topologyIDs,
-                            tolerance: tolerance
-                        )
+                        guard let endpointIDs = connectivity.endpointIDs[
+                            sewingEdge.stableID
+                        ] else {
+                            throw KernelError(
+                                phase: .topology,
+                                code: .missingReference,
+                                tolerance: tolerance,
+                                message: "Sewing connectivity has no endpoint identity for edge \(sewingEdge.stableID)."
+                            )
+                        }
+                        let startVertexID = endpointIDs.start
+                        let endVertexID = endpointIDs.end
                         guard startVertexID != endVertexID else {
                             throw KernelError(
                                 phase: .topology,
@@ -87,6 +90,7 @@ public struct DefaultBRepSewer: BRepSewing {
                         }
                         let use = try canonicalEdge(
                             sewingEdge,
+                            patchStableID: patch.stableID,
                             faceSurface: patch.surface,
                             startVertexID: startVertexID,
                             endVertexID: endVertexID,
@@ -199,28 +203,176 @@ public struct DefaultBRepSewer: BRepSewing {
         }
     }
 
-    private func canonicalVertex(
-        for point: Point3D,
-        parents: [SubshapeID],
+    private func makeConnectivity(
+        for shell: BRepSewingShell,
         records: inout [VertexRecord],
         model: inout BRepModel,
         topologyIDs: inout FeatureTopologyIDAllocator,
         tolerance: ModelingTolerance
-    ) -> VertexID {
-        if let index = records.firstIndex(where: {
-            $0.point.isApproximatelyEqual(to: point, tolerance: tolerance.distance)
-        }) {
-            records[index].parents.formUnion(parents)
-            return records[index].id
+    ) throws -> SewingConnectivity {
+        var slots: [EndpointSlot] = []
+        var uses: [InputEdgeUse] = []
+        var endpointSlots: [String: EndpointSlotPair] = [:]
+        var disjointSet = DisjointSet(count: 0)
+
+        let orderedPatches = shell.patches.sorted { $0.stableID < $1.stableID }
+        for patch in orderedPatches {
+            let orderedLoops = patch.loops.sorted {
+                if $0.role != $1.role { return $0.role == .outer }
+                return $0.stableID < $1.stableID
+            }
+            for loop in orderedLoops {
+                var loopPairs: [EndpointSlotPair] = []
+                for edge in loop.edges {
+                    let start = slots.count
+                    slots.append(EndpointSlot(
+                        point: edge.startPoint,
+                        parents: edge.startVertexParentSubshapeIDs,
+                        stableKey: "\(edge.stableID):start"
+                    ))
+                    let end = slots.count
+                    slots.append(EndpointSlot(
+                        point: edge.endPoint,
+                        parents: edge.endVertexParentSubshapeIDs,
+                        stableKey: "\(edge.stableID):end"
+                    ))
+                    disjointSet.appendPair()
+                    let pair = EndpointSlotPair(start: start, end: end)
+                    endpointSlots[edge.stableID] = pair
+                    loopPairs.append(pair)
+                    uses.append(InputEdgeUse(edge: edge, slots: pair))
+                }
+                for index in loopPairs.indices {
+                    disjointSet.union(
+                        loopPairs[index].end,
+                        loopPairs[(index + 1) % loopPairs.count].start
+                    )
+                }
+            }
         }
-        let id = topologyIDs.nextVertexID()
-        model.vertices[id] = Vertex(id: id, point: point)
-        records.append(VertexRecord(id: id, point: point, parents: Set(parents)))
-        return id
+
+        for firstIndex in uses.indices {
+            for secondIndex in uses.indices where secondIndex > firstIndex {
+                let first = uses[firstIndex]
+                let second = uses[secondIndex]
+                let forwardEndpointsAgree = endpointsAgree(
+                    first.edge,
+                    second.edge,
+                    orientation: .forward,
+                    tolerance: tolerance
+                )
+                if forwardEndpointsAgree,
+                   try isProvablySameCurveSpan(
+                       CurveSpanDefinition(second.edge),
+                       record: CurveSpanDefinition(first.edge),
+                       orientation: .forward,
+                       tolerance: tolerance
+                   ) {
+                    disjointSet.union(first.slots.start, second.slots.start)
+                    disjointSet.union(first.slots.end, second.slots.end)
+                    continue
+                }
+                let reversedEndpointsAgree = endpointsAgree(
+                    first.edge,
+                    second.edge,
+                    orientation: .reversed,
+                    tolerance: tolerance
+                )
+                if reversedEndpointsAgree,
+                   try isProvablySameCurveSpan(
+                       CurveSpanDefinition(second.edge),
+                       record: CurveSpanDefinition(first.edge),
+                       orientation: .reversed,
+                       tolerance: tolerance
+                   ) {
+                    disjointSet.union(first.slots.start, second.slots.end)
+                    disjointSet.union(first.slots.end, second.slots.start)
+                }
+            }
+        }
+
+        var groupedSlots: [Int: [Int]] = [:]
+        for slot in slots.indices {
+            groupedSlots[disjointSet.find(slot), default: []].append(slot)
+        }
+        var vertexIDByRoot: [Int: VertexID] = [:]
+        for root in groupedSlots.keys.sorted() {
+            guard let members = groupedSlots[root],
+                  let canonicalIndex = members.min(by: {
+                      slots[$0].stableKey < slots[$1].stableKey
+                  }) else {
+                continue
+            }
+            let canonicalPoint = slots[canonicalIndex].point
+            var parents: Set<SubshapeID> = []
+            for member in members {
+                let gap = (slots[member].point - canonicalPoint).length
+                guard gap <= tolerance.distance else {
+                    throw KernelError(
+                        phase: .topology,
+                        code: .topologyFailure,
+                        residual: gap,
+                        tolerance: tolerance,
+                        message: "Topologically identical sewing endpoints disagree geometrically. \(slots[canonicalIndex].stableKey) and \(slots[member].stableKey) exceed the distance contract."
+                    )
+                }
+                parents.formUnion(slots[member].parents)
+            }
+            let vertexID = topologyIDs.nextVertexID()
+            model.vertices[vertexID] = Vertex(id: vertexID, point: canonicalPoint)
+            records.append(VertexRecord(
+                id: vertexID,
+                point: canonicalPoint,
+                parents: parents
+            ))
+            vertexIDByRoot[root] = vertexID
+        }
+
+        var endpointIDs: [String: EndpointVertexPair] = [:]
+        for (stableID, pair) in endpointSlots {
+            guard let start = vertexIDByRoot[disjointSet.find(pair.start)],
+                  let end = vertexIDByRoot[disjointSet.find(pair.end)] else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .missingReference,
+                    tolerance: tolerance,
+                    message: "Sewing endpoint union did not materialize a vertex identity."
+                )
+            }
+            endpointIDs[stableID] = EndpointVertexPair(start: start, end: end)
+        }
+        return SewingConnectivity(endpointIDs: endpointIDs)
+    }
+
+    private func endpointsAgree(
+        _ first: BRepSewingEdge,
+        _ second: BRepSewingEdge,
+        orientation: Orientation,
+        tolerance: ModelingTolerance
+    ) -> Bool {
+        switch orientation {
+        case .forward:
+            return first.startPoint.isApproximatelyEqual(
+                to: second.startPoint,
+                tolerance: tolerance.distance
+            ) && first.endPoint.isApproximatelyEqual(
+                to: second.endPoint,
+                tolerance: tolerance.distance
+            )
+        case .reversed:
+            return first.startPoint.isApproximatelyEqual(
+                to: second.endPoint,
+                tolerance: tolerance.distance
+            ) && first.endPoint.isApproximatelyEqual(
+                to: second.startPoint,
+                tolerance: tolerance.distance
+            )
+        }
     }
 
     private func canonicalEdge(
         _ sewingEdge: BRepSewingEdge,
+        patchStableID: String,
         faceSurface: Surface3D,
         startVertexID: VertexID,
         endVertexID: VertexID,
@@ -251,6 +403,7 @@ public struct DefaultBRepSewer: BRepSewing {
             records[index].orientations.append(orientation)
             records[index].parents.formUnion(sewingEdge.parentSubshapeIDs)
             records[index].stableIDs.insert(sewingEdge.stableID)
+            records[index].patchStableIDs.insert(patchStableID)
             return EdgeUse(
                 edgeID: records[index].id,
                 orientation: orientation,
@@ -285,7 +438,8 @@ public struct DefaultBRepSewer: BRepSewing {
             span: CurveSpanDefinition(sewingEdge),
             orientations: [.forward],
             parents: Set(sewingEdge.parentSubshapeIDs),
-            stableIDs: [sewingEdge.stableID]
+            stableIDs: [sewingEdge.stableID],
+            patchStableIDs: [patchStableID]
         ))
         return EdgeUse(
             edgeID: edgeID,
@@ -381,11 +535,18 @@ public struct DefaultBRepSewer: BRepSewing {
                       reversedCount == 1 else {
                     let start = model.vertices[edge.startVertexID]?.point
                     let end = model.vertices[edge.endVertexID]?.point
+                    let endpointPeers = edges.filter { candidate in
+                        candidate.id != edge.id
+                            && ((candidate.startVertexID == edge.startVertexID
+                                && candidate.endVertexID == edge.endVertexID)
+                                || (candidate.startVertexID == edge.endVertexID
+                                    && candidate.endVertexID == edge.startVertexID))
+                    }.flatMap(\.stableIDs).sorted()
                     throw KernelError(
                         phase: .topology,
                         code: edge.orientations.count > 2 ? .nonManifoldResult : .topologyFailure,
                         tolerance: tolerance,
-                        message: "Solid sewing edge \(edge.stableIDs.sorted()) from \(String(describing: start)) to \(String(describing: end)) has \(edge.orientations.count) uses with \(forwardCount) forward and \(reversedCount) reversed."
+                        message: "Solid sewing edge \(edge.stableIDs.sorted()) owned by patches \(edge.patchStableIDs.sorted()) from \(String(describing: start)) to \(String(describing: end)) has \(edge.orientations.count) uses with \(forwardCount) forward and \(reversedCount) reversed. Distinct curve-span records with the same endpoint pair: \(endpointPeers)."
                     )
                 }
             case .sheet:
@@ -463,6 +624,69 @@ public struct DefaultBRepSewer: BRepSewing {
         var parents: Set<SubshapeID>
     }
 
+    private struct SewingConnectivity {
+        let endpointIDs: [String: EndpointVertexPair]
+    }
+
+    private struct EndpointVertexPair {
+        let start: VertexID
+        let end: VertexID
+    }
+
+    private struct EndpointSlotPair {
+        let start: Int
+        let end: Int
+    }
+
+    private struct EndpointSlot {
+        let point: Point3D
+        let parents: [SubshapeID]
+        let stableKey: String
+    }
+
+    private struct InputEdgeUse {
+        let edge: BRepSewingEdge
+        let slots: EndpointSlotPair
+    }
+
+    private struct DisjointSet {
+        private var parents: [Int]
+        private var ranks: [UInt8]
+
+        init(count: Int) {
+            parents = Array(0..<count)
+            ranks = Array(repeating: 0, count: count)
+        }
+
+        mutating func appendPair() {
+            parents.append(parents.count)
+            ranks.append(0)
+            parents.append(parents.count)
+            ranks.append(0)
+        }
+
+        mutating func find(_ element: Int) -> Int {
+            if parents[element] != element {
+                parents[element] = find(parents[element])
+            }
+            return parents[element]
+        }
+
+        mutating func union(_ first: Int, _ second: Int) {
+            let firstRoot = find(first)
+            let secondRoot = find(second)
+            guard firstRoot != secondRoot else { return }
+            if ranks[firstRoot] < ranks[secondRoot] {
+                parents[firstRoot] = secondRoot
+            } else if ranks[firstRoot] > ranks[secondRoot] {
+                parents[secondRoot] = firstRoot
+            } else {
+                parents[secondRoot] = firstRoot
+                ranks[firstRoot] += 1
+            }
+        }
+    }
+
     private struct EdgeRecord {
         let id: EdgeID
         let startVertexID: VertexID
@@ -471,6 +695,7 @@ public struct DefaultBRepSewer: BRepSewing {
         var orientations: [Orientation]
         var parents: Set<SubshapeID>
         var stableIDs: Set<String>
+        var patchStableIDs: Set<String>
     }
 
     private struct FaceRecord {

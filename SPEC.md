@@ -427,6 +427,15 @@ public enum AnalyticCurve3D: Codable, Sendable {
 
 `Curve3D` and the rational B-spline curve types expose explicit-tolerance validation, point evaluation, first/second differential geometry, curvature, reversal, trimming, knot operations, and verified inverse parameter projection. Polynomial Bezier curves use the rational B-spline representation with unit weights.
 
+`ValidatedCurve3D` is the immutable validation boundary for repeated numerical
+evaluation. Its initializer validates the complete recursive curve
+representation once at the supplied `ModelingTolerance`; subsequent point and
+differential queries retain that tolerance and may use package-internal
+assuming-valid dispatch. Adaptive tessellation and other repeated consumers
+must retain this validated owner for the duration of sampling instead of
+revalidating nested B-spline surfaces or procedural curve definitions at every
+parameter.
+
 ### Surfaces
 
 ```swift
@@ -646,6 +655,18 @@ with knot-span subdivision, nested adaptive Gaussian integration, accumulated
 error estimates, and explicit recursion/evaluation budgets. An unresolved
 error bound or singular differential is a typed failure, never a successful
 approximation.
+
+Periodic parameter charts have one ownership path. `CADGeometry` lifts each
+individual pcurve continuously into the support surface's universal cover using
+surface periodicity, singularity information, and certified derivative bounds.
+Certified analytic-pair pcurves on nonsingular periodic elementary charts must
+carry that continuous lift regardless of the other surface in the pair.
+`CADTopology` may then translate complete coedges only by integer chart periods
+to connect one loop; it must not normalize, recenter, or reconstruct the
+within-curve lift. Green and divergence integrators consume that aligned chain
+without another chart transform. Certified cell enclosures are combined with a
+balanced outward-rounded reduction so the proof width grows with reduction depth
+rather than source iteration order.
 
 ## Sketch IR
 
@@ -957,15 +978,18 @@ requested start sample fixed and may only reverse direction to minimize
 correspondence error. Each `LoftGuideReference` points at an open curve-producing
 feature.
 
-Current evaluation support accepts closed profile sections, matches equal
-boundary sample counts directly, resamples unequal boundary sample counts by
-closed-loop boundary progress, produces degree-1 ruled B-spline side faces or
-smooth cubic section-direction B-spline side faces with explicit
-surface-parameter trim curves, and emits either a solid body with planar
-start/end caps or a sheet body without caps. `LoftOptions.surfaceMode` defaults
-to `.ruled`; `.smooth` creates cubic connector edges and cubic
-section-direction side faces for open section chains while preserving the same
-matched section rings. `LoftOptions.smoothTangentScale` defaults to `1.0` and
+Current evaluation support accepts closed exact profile sections with one outer
+boundary and any finite number of nonintersecting hole boundaries preserved
+across sections. It splits every line, circular-arc, and rational B-spline
+boundary without replacing it by display samples, establishes one common exact
+partition per boundary loop, and produces minimal-degree ruled, polynomial
+transfinite, or rational Coons B-spline side faces with explicit
+surface-parameter trim curves. Solid output owns all outer and hole walls in one
+watertight material shell and uses multi-loop planar start/end caps. Sheet output
+omits caps and owns one open shell per boundary loop.
+`LoftOptions.surfaceMode` defaults to `.ruled`; `.smooth` creates cubic
+connector edges and exact transfinite side faces while preserving the same
+matched section partition. `LoftOptions.smoothTangentScale` defaults to `1.0` and
 must be finite and greater than zero; smooth mode applies it to the automatic
 section-direction tangents used by cubic connector edges and smooth side faces.
 A section-level `smoothTangentScale` must also be finite and greater than zero,
@@ -973,12 +997,14 @@ overrides the global value for that authored section, and is linearly
 interpolated for guide-inserted intermediate section rings. Section-level
 `smoothTangentMode` applies only to authored section rings; generated
 guide-inserted rings keep automatic smooth tangents.
-Open guide curves whose
-endpoints touch first and last section boundary samples lock those section seam
-samples before boundary-progress matching. For the current guide subset, one or
-more open guide curves with intermediate samples also insert rail-following
-intermediate section rings between authored sections so the generated side faces
-follow the guides as piecewise section-to-section B-spline surfaces. Sheet output
+Open rational guide curves are oriented from the first to the last section. The
+kernel first identifies the outer or hole boundary touched by both guide
+endpoints, then intersects the guide with that same boundary on every
+intermediate section plane. It verifies one exact boundary contact in strictly
+increasing guide order, splits source profile curves at those contacts, and
+assigns every guide to one common partition vertex across all sections. Guide
+contacts may lie inside a source line, arc, or spline segment and multiple
+guides on one boundary must preserve their cyclic boundary order. Sheet output
 may set `closesSectionLoop` to connect the last profile section back to the
 first profile section in either ruled or smooth surface mode; closed section
 loops require at least three sections and are invalid for solid output because
@@ -1443,19 +1469,21 @@ Unknown required discriminators must fail with a schema error.
 
 ### Package Entry Safety
 
-Native and 3MF ZIP packages use stored entries only.
+Native and 3MF writers emit deterministic stored entries. Their readers accept
+stored entries and bounded raw-DEFLATE entries so interoperable ZIP producers
+do not require a Swift-CAD-specific packaging mode.
 
 | Rule | Requirement |
 |---|---|
 | Paths | Entry paths must be non-empty relative paths using `/` separators. |
 | Traversal | Absolute paths, empty path segments, `.`, `..`, trailing `/`, and backslashes are invalid. |
 | Duplicates | Duplicate entry paths are invalid on write and read. |
-| Flags | General-purpose bit flags must be zero; encrypted entries, data descriptors, and other alternate modes are unsupported. |
-| Optional metadata | Archive comments, central-directory extra fields, central-directory file comments, and local-header extra fields are unsupported and must be absent. |
+| Flags | Only the UTF-8 name and data-descriptor flags are accepted. Encryption and every other general-purpose flag are unsupported. |
+| Optional metadata | Structurally valid central/local extra fields are accepted except ZIP64; archive comments and central-directory file comments are unsupported. |
 | Central directory | The central directory and end-of-central-directory record must exactly match the file bounds and declared comment length. |
 | Local entry coverage | Central-directory records must cover the complete local-entry byte range exactly once; unreferenced local entries, gaps, overlaps, and trailing local data before the central directory are invalid. |
-| Stored sizes | Stored entries must have matching compressed and uncompressed sizes in the central directory and local header. |
-| Entry integrity | Central directory path, local header path, size fields, and CRC-32 must all agree before entry data is accepted. |
+| Sizes and compression | Method 0 entries have equal compressed/uncompressed sizes. Method 8 entries must be a complete raw-DEFLATE stream whose bounded decoded size equals the central-directory declaration. ZIP64 size sentinels and ZIP64 extra fields are rejected. |
+| Entry integrity | Central directory path, local header path, flags, method, size fields, optional data descriptor, and CRC-32 must all agree before entry data is accepted. |
 
 ## STL Export
 
@@ -1547,12 +1575,15 @@ flowchart LR
 
 ## PDF Export
 
-PDF export writes a compact review summary from validated mesh data.
+PDF export writes a compact single-page vector review drawing from validated mesh data.
 
 | Requirement | Rule |
 |---|---|
-| Title | Document title text is encoded as a PDF literal string with backslash, parentheses, and ASCII control characters escaped before content stream length and xref offsets are computed. |
-| Content | The summary records body, vertex, and triangle counts from validated meshes. |
+| Projection | The exporter deterministically selects XY, XZ, or YZ by the greatest nonzero triangle projection score, maps the full projected model bounds into the page drawing area, and emits every source triangle as a PDF vector path. |
+| Title | ASCII document title text uses a PDF literal string with backslash, parentheses, and control characters escaped; non-ASCII text uses a UTF-16BE hexadecimal PDF text string. Encoding occurs before content stream lengths and xref offsets are computed. |
+| Content | The page contains fitted vector triangle paths plus body, vertex, and triangle counts from validated meshes. |
+| Determinism | Bodies are traversed by stable identifier order; projection selection, path order, object numbering, stream length, and cross-reference offsets are deterministic. |
+| Resources | Byte, entity, iteration, and processing-duration limits reject with a typed `resourceLimitExceeded` diagnostic. |
 
 ## SVG Export
 
@@ -1567,17 +1598,27 @@ SVG is a 2D XY projection of mesh triangles, not a native sketch format.
 
 ## Mesh Import Shape Safety
 
-Importers must not silently change unsupported polygons into triangles.
+Importers triangulate only geometrically validated polygon records and must not silently approximate unsupported or malformed geometry.
 Known mesh records that are syntactically present but incomplete or malformed must fail instead of being skipped while importing later geometry.
 
 | Format | Rule |
 |---|---|
 | STL | Binary STL length units resolve only from the `Swift-CAD binary STL unit=` header prefix when that prefix is followed by exactly one supported unit token and padding. Other header text is not unit metadata. Binary STL triangle counts must fit the internal `UInt32` mesh index range before payload allocation or index generation. Imported facet normals must be finite, normalizable, and agree with triangle winding when provided; zero normals are recomputed from triangle geometry. |
-| OBJ | Length units resolve only from a single leading comment preamble declaration before the first non-comment record; duplicate unit declarations fail as ambiguous. Import accepts triangular faces only; `v`, `vn`, `vt`, and face subindices must be syntactically valid and referenced indices must resolve. `vn` records must be finite unit vectors whether or not they are referenced. Referenced normal indices are preserved as face-corner mesh normals, and normal index presence must be consistent within each imported mesh. `o` object records and `g` group records delimit imported meshes; each non-empty object or group becomes a separate mesh, while OBJ vertex, texture-coordinate, and normal indices remain file-global. Unsupported OBJ geometry, free-form records, material records, smoothing records, display records, merging records, and any record outside the explicit supported set must fail instead of being partially imported. |
+| OBJ | Length units resolve only from a single leading comment preamble declaration before the first non-comment record; duplicate unit declarations fail as ambiguous. Import accepts finite homogeneous or Cartesian `v`, two-dimensional/default-depth `vt`, nonzero finite `vn`, and simple planar polygon `f` records with positive or negative file-global indices. Robust predicate-backed ear clipping triangulates convex or concave faces after rejecting non-planarity, self-intersection, and unresolved degeneracy. Texture and normal references must be consistently present or absent within each face; changes between faces create separate valid meshes so provided face-varying attributes are preserved without inventing missing values. Normals are normalized, texture depth other than the OBJ default is rejected because it is not representable by the mesh contract, and all referenced indices must resolve. `o` object records and `g` group records delimit imported meshes while source indices remain file-global. Unsupported OBJ geometry, free-form records, material records, smoothing records, display records, merging records, and any record outside the explicit supported set fail instead of being partially imported. Byte, entity, iteration, and processing-duration limits apply to import and export. |
 | 3MF | The ZIP package must contain exactly `[Content_Types].xml`, `_rels/.rels`, and `3D/3dmodel.model`; missing required entries and unsupported package entries fail instead of being ignored. `[Content_Types].xml` must use the OPC content-types namespace and declare exactly the supported `rels` and `model` defaults with the official relationship and 3D model content types. `_rels/.rels` must use the OPC relationships namespace and declare exactly one relationship whose type is the 3MF model relationship and whose target is `/3D/3dmodel.model`. Model XML must use the `model` root element in the 3MF core namespace, and length units are read only from that root element. Supported structural elements must appear only in their official container paths; `model`, `metadata`, `resources`, `object`, `mesh`, `vertices`, `vertex`, `triangles`, `triangle`, `build`, and `item` lookalikes inside metadata or outside official paths fail instead of being ignored. Supported core attributes are limited to `unit` and `xml:lang` on `model`, `name` on `metadata`, `id` and `type` on `object`, `x`, `y`, and `z` on `vertex`, `v1`, `v2`, and `v3` on `triangle`, and `objectid` on `item`; structural containers accept no attributes. Other core attributes fail instead of being ignored. Build items must reference existing mesh objects, every resource object must be referenced by the build, triangle indices are object-local, and each built mesh object imports as a separate mesh; export writes one mesh object and build item per input mesh. Unsupported package metadata, build transforms, component object references, material/property resources, object or triangle property references, wrong namespaces, and unsupported structure elements outside metadata must fail instead of being ignored. |
-| SVG | Import requires an `svg` root element in the SVG namespace, and length units are read only from that root element. Import accepts non-degenerate convex `polygon` elements only under the root `svg` element or nested `g` groups in the SVG namespace. Supported attributes are limited to `data-generator`, `data-unit`, and `viewBox` on root `svg`, `data-unit` on `g`, and `points`, `fill`, and `stroke` on `polygon`; other attributes fail instead of being ignored. Nested `svg` containers are unsupported. Unsupported `transform` attributes on supported SVG containers fail instead of being ignored. Missing `points`, wrong namespaces, malformed point-list separators, empty point-list coordinate fields, unsupported non-whitespace character data, unsupported geometry elements, unsupported visible/content elements, and polygons inside unsupported containers fail instead of being ignored or partially imported. Concave polygons fail rather than using fan triangulation. |
-| DXF | The token stream must consist of complete integer group code/value pairs, supported sections must terminate with `ENDSEC`, unsupported sections fail instead of being ignored, duplicate `HEADER` sections fail as ambiguous, unsupported records outside sections fail instead of being ignored, and the final record must be `0`/`EOF` with no trailing payload. Length units resolve only from a single HEADER section `$INSUNITS` group; duplicate unit declarations fail as ambiguous. Import accepts triangular `3DFACE` records only from `ENTITIES` sections; `3DFACE` records outside `ENTITIES` and non-`3DFACE` entities inside `ENTITIES` fail instead of being partially imported. Coordinate group codes must be unique finite numbers, and a distinct fourth vertex is rejected. |
+| SVG | Import requires an `svg` root element in the SVG namespace, and length units are read only from that root element. Import accepts simple planar convex or concave `polygon` elements only under the root `svg` element or nested `g` groups in the SVG namespace; robust predicate-backed ear clipping rejects self-intersection, non-planarity, and unresolved degeneracy. Supported attributes are limited to `data-generator`, `data-unit`, and a finite positive-size `viewBox` on root `svg`, a valid non-operative `data-unit` on `g`, and `points`, `fill`, and `stroke` without external paint references on `polygon`; other attributes fail instead of being ignored. Nested `svg` containers, transforms, entity declarations, external entities, processing instructions, non-whitespace CDATA or character data, unsupported geometry/content elements, and polygons inside unsupported containers fail instead of being ignored or partially imported. Byte, element/point/triangle entity, nesting, iteration, and processing-duration limits apply to import; export uses a bounded byte sink and the same entity, iteration, and duration contract. |
+| DXF | Input is strict ASCII and the token stream must consist of complete integer group code/value pairs. Supported sections must terminate with `ENDSEC`, unsupported or duplicate sections fail, unsupported records outside sections fail, and the final record must be `0`/`EOF` with no trailing payload. A declared HEADER `$ACADVER` must be uniquely `AC1027`; a headerless file is accepted for the supported minimal subset. Length units resolve only from a unique HEADER `$INSUNITS` group or the explicit fallback. Import accepts triangular and ordered quadrilateral `3DFACE` records only from `ENTITIES`; a repeated third/fourth point denotes a triangle, while a distinct fourth point is deterministically split along the diagonal maximizing the minimum triangle area. Coordinate group codes must be unique finite numbers, incomplete fourth points and degenerate splits fail, and non-`3DFACE` entities never produce a partial import. Export always declares AC1027 and emits deterministic triangular 3DFACE records. Byte, entity, iteration, and processing-duration limits apply to import and export. |
 | STEP / IGES | Exact geometry/topology exchange is capability-gated. STEP length units use SI units directly and standard conversion-based units for inch and foot; each conversion factor must reference metre, match the declared unit exactly, and scale the physical modeling uncertainty consistently. Multi-segment face-local polyline pcurves are converted exactly to clamped degree-one B-splines, retaining every vertex and segment rather than being tessellated or simplified. Finite sub-period circle/arc/ellipse edges are canonically unwrapped across periodic seams while preserving direction; IGES arbitrary-axis analytic arcs use Type 100 plus a transformation and retain analytic identity. Finite partial or complete rational B-spline edge trim parameters and direction are preserved explicitly, and one forward outer shell plus reversed void shells round-trips through STEP `BREP_WITH_VOIDS` or IGES Type 186 shell uses. An IGES sheet body with multiple open shells is represented by a shell-only Type 402 Form 7 group without back pointers; grouped shells are emitted as logically dependent entities and shared ownership is rejected. IGES harmonic elliptic pcurves preserve either orientation: counterclockwise arcs use Type 104 and clockwise arcs use an exact equal-angle piecewise rational-quadratic Type 126 representation. Tessellated STEP and Type 110 triangle-wire IGES are explicitly rejected as mesh fallbacks. Exact parsers and writers must validate bounded entity tables, units, curves, surfaces, trims, pcurves, shell ownership, associativity groups, and resource limits before returning a model. |
+
+The supported 3MF ZIP boundary accepts method 0 and complete raw-DEFLATE method
+8 streams, optional UTF-8/data-descriptor flags, and structurally valid
+non-ZIP64 extra fields. It verifies declared compressed and expanded sizes,
+CRC-32, optional descriptor values, local/central header agreement, path safety,
+entry coverage, entry count, and total expanded bytes before XML semantics are
+accepted. DTD/entity declarations, external entities, CDATA, and processing
+instructions are rejected. Import enforces byte, expanded-byte, XML/mesh
+entity, nesting, iteration, and processing-duration limits; export enforces the
+same entity, iteration, duration, and bounded-output contract.
 
 ## Public Facade
 

@@ -269,12 +269,24 @@ perl -e 'alarm 30; exec @ARGV' xcodebuild test-without-building \
   -only-testing:CADExchangeTests/ExactSTEPExchangeTests
 ```
 
-Run the WebAssembly build when the configured SDK is installed:
+Build and execute the release WebAssembly smoke when the configured SDK is installed:
 
 ```bash
 swiftly run swift build \
+  --configuration release \
+  --product CADWASMSmoke \
   +6.4.x-snapshot-2026-08-14 \
   --swift-sdk swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-08-14-a_wasm
+
+WASM_BIN_PATH=$(swiftly run swift build \
+  --configuration release \
+  --show-bin-path \
+  +6.4.x-snapshot-2026-08-14 \
+  --swift-sdk swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-08-14-a_wasm)
+
+node --no-warnings --experimental-wasi-unstable-preview1 \
+  Scripts/run_wasi_smoke.mjs \
+  "$WASM_BIN_PATH/CADWASMSmoke.wasm"
 ```
 
 Run the Xcode test runner:
@@ -302,6 +314,7 @@ The current test suite covers:
 |---|---|
 | [SPEC.md](SPEC.md) | Current official support scope, contracts, formats, and validation rules |
 | [CAPABILITY_LEDGER.md](CAPABILITY_LEDGER.md) | Exact input envelopes, outputs, public paths, failures, and fixture evidence currently implemented |
+| [PUBLIC_CONTRACT_INVENTORY.json](PUBLIC_CONTRACT_INVENTORY.json) | Machine-checked mapping from every public mutation, query, persistence route, and exchange format to one primary Capability ID |
 | [ROADMAP.md](ROADMAP.md) | Unfinished work, binary eight-gate completion status, and required final evidence |
 
 ## Project Principles

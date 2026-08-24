@@ -121,7 +121,7 @@ public enum CertifiedIntersectionCurve3D: Codable, Hashable, Sendable {
         }
     }
 
-    func boundingBox(
+    package func boundingBox(
         tolerance: ModelingTolerance
     ) throws -> BoundingBox3D {
         switch self {
@@ -135,6 +135,45 @@ public enum CertifiedIntersectionCurve3D: Codable, Hashable, Sendable {
             try curve.boundingBox(tolerance: tolerance)
         case let .parallelTorusTorus(curve):
             try curve.boundingBox(tolerance: tolerance)
+        }
+    }
+
+    public func parameter(
+        on surface: Surface3D,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameter {
+        switch self {
+        case let .sphereCone(curve):
+            return try curve.parameter(
+                on: surface,
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .coneCone(curve):
+            return try curve.parameter(
+                on: surface,
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .coneCylinder(curve):
+            return try curve.parameter(
+                on: surface,
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .coneTorus(curve):
+            return try curve.parameter(
+                on: surface,
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .parallelTorusTorus(curve):
+            return try curve.parameter(
+                on: surface,
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
         }
     }
 }

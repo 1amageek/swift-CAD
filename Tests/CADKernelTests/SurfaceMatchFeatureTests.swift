@@ -25,7 +25,7 @@ struct SurfaceMatchFeatureTests {
         )
         let target = try exactSurfaceSheet(
             featureID: targetID,
-            surface: translated(
+            surface: try translated(
                 surfaceCase.surface,
                 by: Vector3D(x: 1.7, y: -0.4, z: 2.3)
             ),
@@ -426,54 +426,11 @@ struct SurfaceMatchFeatureTests {
     private func translated(
         _ surface: Surface3D,
         by offset: Vector3D
-    ) -> Surface3D {
-        switch surface {
-        case let .plane(plane):
-            return .plane(Plane3D(
-                origin: plane.origin + offset,
-                normal: plane.normal
-            ))
-        case let .cylinder(cylinder):
-            return .cylinder(Cylinder3D(
-                origin: cylinder.origin + offset,
-                axis: cylinder.axis,
-                radius: cylinder.radius
-            ))
-        case let .analytic(.plane(origin, normal)):
-            return .analytic(.plane(origin: origin + offset, normal: normal))
-        case let .analytic(.cylinder(origin, axis, radius)):
-            return .analytic(.cylinder(
-                origin: origin + offset,
-                axis: axis,
-                radius: radius
-            ))
-        case let .analytic(.cone(apex, axis, halfAngle)):
-            return .analytic(.cone(
-                apex: apex + offset,
-                axis: axis,
-                halfAngle: halfAngle
-            ))
-        case let .analytic(.sphere(center, radius)):
-            return .analytic(.sphere(center: center + offset, radius: radius))
-        case let .analytic(.torus(center, axis, majorRadius, minorRadius)):
-            return .analytic(.torus(
-                center: center + offset,
-                axis: axis,
-                majorRadius: majorRadius,
-                minorRadius: minorRadius
-            ))
-        case let .bSpline(surface):
-            return .bSpline(BSplineSurface3D(
-                uDegree: surface.uDegree,
-                vDegree: surface.vDegree,
-                uKnots: surface.uKnots,
-                vKnots: surface.vKnots,
-                controlPoints: surface.controlPoints.map { row in
-                    row.map { $0 + offset }
-                },
-                weights: surface.weights
-            ))
-        }
+    ) throws -> Surface3D {
+        try RigidTransform3D.translated(by: offset).applying(
+            to: surface,
+            tolerance: .standard
+        )
     }
 
     private static let exactSurfaceCases: [ExactSurfaceMatchCase] = {

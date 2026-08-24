@@ -61,48 +61,90 @@ struct CurvedRevolveBodyBuilder {
     }
 
     func build(from profile: Profile) throws -> EvaluationResult {
-        let segments = try exactSegments(from: profile)
-        try validateClosure(segments)
-        let profileAreaSign = try signedProfileAreaSign(profile.vertices)
-        var patches: [BRepSewingFacePatch] = []
-        var sideSegmentIndices: [Int] = []
+        let loopData = try profile.boundaryLoops.map { loop in
+            let segments = try exactSegments(from: loop)
+            try validateClosure(segments)
+            return CurvedRevolveLoopData(
+                segments: segments,
+                areaSign: try signedProfileAreaSign(loop.vertices)
+            )
+        }
+        guard let outerAreaSign = loopData.first?.areaSign else {
+            throw SketchError.openProfile
+        }
+        var sidePatchesByLoop = Array(
+            repeating: [BRepSewingFacePatch](),
+            count: loopData.count
+        )
+        var sideSegmentIndices: [(loopIndex: Int, segmentIndex: Int)] = []
 
-        for segmentIndex in segments.indices {
-            let segment = segments[segmentIndex]
-            guard try isAxisSegment(segment) == false else {
-                continue
-            }
-            sideSegmentIndices.append(segmentIndex)
-            for intervalIndex in 0..<(angleBreaks.count - 1) {
-                patches.append(try sidePatch(
-                    segment: segment,
-                    segmentIndex: segmentIndex,
-                    intervalIndex: intervalIndex,
-                    profileAreaSign: profileAreaSign
-                ))
+        for (loopIndex, loop) in loopData.enumerated() {
+            let materialAreaSign = loopIndex == 0
+                ? outerAreaSign
+                : -outerAreaSign
+            let shellLocalAreaSign = isFullTurn
+                ? outerAreaSign
+                : materialAreaSign
+            for segmentIndex in loop.segments.indices {
+                let segment = loop.segments[segmentIndex]
+                guard try isAxisSegment(segment) == false else {
+                    continue
+                }
+                sideSegmentIndices.append((loopIndex, segmentIndex))
+                for intervalIndex in 0..<(angleBreaks.count - 1) {
+                    sidePatchesByLoop[loopIndex].append(try sidePatch(
+                        segment: segment,
+                        loopIndex: loopIndex,
+                        segmentIndex: segmentIndex,
+                        intervalIndex: intervalIndex,
+                        profileAreaSign: shellLocalAreaSign
+                    ))
+                }
             }
         }
+        var capPatches: [BRepSewingFacePatch] = []
         if isFullTurn == false {
-            patches.append(try capPatch(
-                segments: segments,
+            capPatches.append(try capPatch(
+                loopData: loopData,
                 angle: angleBreaks[0],
                 role: .startFace
             ))
-            patches.append(try capPatch(
-                segments: segments,
+            capPatches.append(try capPatch(
+                loopData: loopData,
                 angle: angleBreaks[angleBreaks.count - 1],
                 role: .endFace
             ))
         }
 
-        let request = BRepSewingRequest(
-            featureID: featureID,
-            bodyKind: .solid,
-            shells: [BRepSewingShell(
+        let request: BRepSewingRequest
+        if isFullTurn {
+            let shells = sidePatchesByLoop.enumerated().map { loopIndex, patches in
+                BRepSewingShell(
+                    stableID: shellStableID(loopIndex: loopIndex),
+                    patches: patches,
+                    orientation: loopIndex == 0 ? .forward : .reversed
+                )
+            }
+            request = BRepSewingRequest(
+                featureID: featureID,
+                bodyTopology: .solid(components: [BRepSewingSolidComponent(
+                    outerShellStableID: shellStableID(loopIndex: 0),
+                    voidShellStableIDs: loopData.indices.dropFirst().map {
+                        shellStableID(loopIndex: $0)
+                    }
+                )]),
+                shells: shells
+            )
+        } else {
+            request = BRepSewingRequest(
+                featureID: featureID,
+                bodyKind: .solid,
+                shells: [BRepSewingShell(
                 stableID: "revolve:shell",
-                patches: patches
-            )]
-        )
+                    patches: capPatches + sidePatchesByLoop.flatMap { $0 }
+                )]
+            )
+        }
         let sewn = try sewer.sew(
             request,
             tolerance: context.tolerance
@@ -122,9 +164,9 @@ struct CurvedRevolveBodyBuilder {
         )
     }
 
-    private func exactSegments(from profile: Profile) throws -> [RevolveProfileSegment] {
+    private func exactSegments(from loop: ProfileLoop) throws -> [RevolveProfileSegment] {
         var result: [RevolveProfileSegment] = []
-        for (boundaryIndex, boundary) in profile.boundarySegments.enumerated() {
+        for (boundaryIndex, boundary) in loop.boundarySegments.enumerated() {
             switch boundary {
             case let .line(line):
                 let curve = BSplineCurve3D(
@@ -278,10 +320,10 @@ struct CurvedRevolveBodyBuilder {
               curve.knots.prefix(curve.degree + 1).allSatisfy({ $0 == lowerKnot }),
               curve.knots.suffix(curve.degree + 1).allSatisfy({ $0 == upperKnot }) else {
             throw KernelError(
-                phase: .geometry,
-                code: .unsupportedCapability,
+                phase: .topology,
+                code: .topologyFailure,
                 tolerance: context.tolerance,
-                message: "Revolve radius classification requires exact single-span Bezier profile segments."
+                message: "Revolve span decomposition failed to produce an exact single-span Bezier profile segment."
             )
         }
         let radii = try curve.controlPoints.map {
@@ -320,6 +362,7 @@ struct CurvedRevolveBodyBuilder {
 
     private func sidePatch(
         segment: RevolveProfileSegment,
+        loopIndex: Int,
         segmentIndex: Int,
         intervalIndex: Int,
         profileAreaSign: Double
@@ -334,7 +377,11 @@ struct CurvedRevolveBodyBuilder {
         guard case let .closed(vLower, vUpper) = segment.curve.domain else {
             throw GeometryError.invalidDistance(0.0)
         }
-        let prefix = "revolve:side:\(segmentIndex):\(intervalIndex)"
+        let prefix = sideStableID(
+            loopIndex: loopIndex,
+            segmentIndex: segmentIndex,
+            intervalIndex: intervalIndex
+        )
         let startRotation = try rotationEdge(
             point: segment.startPoint,
             startAngle: startAngle,
@@ -395,60 +442,69 @@ struct CurvedRevolveBodyBuilder {
     }
 
     private func capPatch(
-        segments: [RevolveProfileSegment],
+        loopData: [CurvedRevolveLoopData],
         angle: Double,
         role: GeneratedSubshapeRole
     ) throws -> BRepSewingFacePatch {
         let sweepSign = self.angle >= 0.0 ? 1.0 : -1.0
         let tangent = axisDirection.cross(rotatedRadialDirection(angle: angle))
         let normal: Vector3D
-        let ordered: [(Int, RevolveProfileSegment, Bool)]
+        let reversesBoundary: Bool
         switch role {
         case .startFace:
             normal = -tangent * sweepSign
-            ordered = segments.enumerated().map { ($0.offset, $0.element, false) }
+            reversesBoundary = false
         case .endFace:
             normal = tangent * sweepSign
-            ordered = segments.enumerated().reversed().map { ($0.offset, $0.element, true) }
+            reversesBoundary = true
         default:
             throw FeatureEvaluationError.invalidGraph(
                 "Curved revolve cap requires a startFace or endFace role."
             )
         }
         let cap = try capSurface(
-            segments: segments,
+            segments: loopData.flatMap(\.segments),
             angle: angle,
             normal: normal
         )
         let surface = Surface3D.bSpline(cap.surface)
         let prefix = "revolve:cap:\(role.rawValue)"
-        let edges = try ordered.map { segmentIndex, segment, reversed in
-            guard case let .closed(lower, upper) = segment.curve.domain else {
-                throw GeometryError.invalidDistance(0.0)
+        let loops = try loopData.enumerated().map { loopIndex, loop in
+            let ordered = reversesBoundary
+                ? Array(loop.segments.enumerated().reversed())
+                : Array(loop.segments.enumerated())
+            let loopPrefix = loopIndex == 0
+                ? prefix
+                : "\(prefix):inner:\(loopIndex - 1)"
+            let edges = try ordered.map { segmentIndex, segment in
+                guard case let .closed(lower, upper) = segment.curve.domain else {
+                    throw GeometryError.invalidDistance(0.0)
+                }
+                let curve = try rotatedProfileCurve(segment.curve, angle: angle)
+                let pcurve = try projectedPcurve(
+                    curve,
+                    on: cap,
+                    reversed: reversesBoundary
+                )
+                return try bSplineEdge(
+                    curve: curve,
+                    startParameter: reversesBoundary ? upper : lower,
+                    endParameter: reversesBoundary ? lower : upper,
+                    pcurve: pcurve,
+                    stableID: "\(loopPrefix):edge:\(segmentIndex)"
+                )
             }
-            let curve = try rotatedProfileCurve(segment.curve, angle: angle)
-            let pcurve = try projectedPcurve(
-                curve,
-                on: cap,
-                reversed: reversed
-            )
-            return try bSplineEdge(
-                curve: curve,
-                startParameter: reversed ? upper : lower,
-                endParameter: reversed ? lower : upper,
-                pcurve: pcurve,
-                stableID: "\(prefix):edge:\(segmentIndex)"
+            return BRepSewingLoop(
+                stableID: "\(loopPrefix):loop",
+                role: loopIndex == 0 ? .outer : .inner,
+                edges: edges
             )
         }
         return BRepSewingFacePatch(
             stableID: prefix,
             surface: surface,
             orientation: .forward,
-            loops: [BRepSewingLoop(
-                stableID: "\(prefix):loop",
-                role: .outer,
-                edges: edges
-            )]
+            loops: loops
         )
     }
 
@@ -686,16 +742,20 @@ struct CurvedRevolveBodyBuilder {
 
     private func semanticSubshapes(
         sewn: BRepSewingResult,
-        sideSegmentIndices: [Int]
+        sideSegmentIndices: [(loopIndex: Int, segmentIndex: Int)]
     ) throws -> [SubshapeID: TopologyReference] {
         var result: [SubshapeID: TopologyReference] = [
             subshapeID(role: .body, ordinal: 0): .body(sewn.bodyID),
         ]
         let intervalCount = angleBreaks.count - 1
         var sideFaceOrdinal = 0
-        for segmentIndex in sideSegmentIndices {
+        for entry in sideSegmentIndices {
             for intervalIndex in 0..<intervalCount {
-                let stableID = "revolve:side:\(segmentIndex):\(intervalIndex)"
+                let stableID = sideStableID(
+                    loopIndex: entry.loopIndex,
+                    segmentIndex: entry.segmentIndex,
+                    intervalIndex: intervalIndex
+                )
                 guard let reference = sewn.stableReferences[.face(stableID)] else {
                     throw TopologyError.missingReference(
                         "Missing curved revolve side face \(stableID)."
@@ -827,6 +887,23 @@ struct CurvedRevolveBodyBuilder {
         SubshapeID(featureID: featureID, role: role.rawValue, ordinal: ordinal)
     }
 
+    private func sideStableID(
+        loopIndex: Int,
+        segmentIndex: Int,
+        intervalIndex: Int
+    ) -> String {
+        if loopIndex == 0 {
+            return "revolve:side:\(segmentIndex):\(intervalIndex)"
+        }
+        return "revolve:inner:\(loopIndex - 1):side:\(segmentIndex):\(intervalIndex)"
+    }
+
+    private func shellStableID(loopIndex: Int) -> String {
+        loopIndex == 0
+            ? "revolve:shell"
+            : "revolve:inner:\(loopIndex - 1):shell"
+    }
+
     private static func parameterBasis(
         for axisDirection: Vector3D,
         tolerance: ModelingTolerance
@@ -887,7 +964,7 @@ struct CurvedRevolveBodyBuilder {
             tolerance: tolerance.distance
         )
         var observedSign: Double?
-        for point in profile.vertices {
+        for point in profile.boundaryLoops.flatMap(\.vertices) {
             let offset = point - axis.origin
             let axial = offset.dot(axisDirection)
             let radial = point - (axis.origin + axisDirection * axial)
@@ -945,6 +1022,11 @@ private struct RevolveProfileSegment {
     let endPoint: Point3D
     let boundaryIndex: Int
     let spanIndex: Int
+}
+
+private struct CurvedRevolveLoopData {
+    let segments: [RevolveProfileSegment]
+    let areaSign: Double
 }
 
 private struct RevolveCoordinate {

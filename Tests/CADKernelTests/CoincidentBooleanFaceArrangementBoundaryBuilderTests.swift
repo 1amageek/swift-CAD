@@ -103,6 +103,67 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
         #expect(patch.loops[0].edges.count == 4)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func alignedPartialUnionProducesTwinBoundaryForOwnedTargetAndToolRemainder() throws {
+        let fixture = try fixture(
+            targetPoints: rectangle(
+                minimumX: -0.020,
+                maximumX: 0.020,
+                minimumY: -0.010,
+                maximumY: 0.010
+            ),
+            toolPoints: rectangle(
+                minimumX: 0.0,
+                maximumX: 0.040,
+                minimumY: -0.010,
+                maximumY: 0.010
+            )
+        )
+        let resolution = try resolve(.union, fixture: fixture)
+        let arrangement = try CoincidentBooleanFaceArrangementBoundaryBuilder().build(
+            operation: .union,
+            pairs: resolution.partiallyCoincidentPairs,
+            model: fixture.model,
+            sourceSubshapes: fixture.sourceSubshapes,
+            tolerance: tolerance
+        )
+        #expect(arrangement.constantActions[fixture.targetFaceID] == .keep)
+        #expect(arrangement.constantActions[fixture.toolFaceID] == nil)
+
+        let targetBoundaries = arrangement.boundaries.filter {
+            $0.faceID == fixture.targetFaceID
+        }
+        let toolBoundaries = arrangement.boundaries.filter {
+            $0.faceID == fixture.toolFaceID
+        }
+        let target = try BooleanOpenFaceArrangementBuilder().build(
+            faceID: fixture.targetFaceID,
+            boundaries: targetBoundaries,
+            model: fixture.model,
+            sourceSubshapes: fixture.sourceSubshapes,
+            forcedAction: .keep,
+            tolerance: tolerance
+        )
+        let tool = try BooleanOpenFaceArrangementBuilder().build(
+            faceID: fixture.toolFaceID,
+            boundaries: toolBoundaries,
+            model: fixture.model,
+            sourceSubshapes: fixture.sourceSubshapes,
+            tolerance: tolerance
+        )
+
+        #expect(target.patches.count == 1)
+        #expect(tool.patches.count == 1)
+        let sharedStart = Point3D(x: 0.020, y: -0.010, z: 0.0)
+        let sharedEnd = Point3D(x: 0.020, y: 0.010, z: 0.0)
+        #expect(target.patches.flatMap(\.loops).flatMap(\.edges).contains {
+            spans($0, sharedStart, sharedEnd)
+        })
+        #expect(tool.patches.flatMap(\.loops).flatMap(\.edges).contains {
+            spans($0, sharedStart, sharedEnd)
+        })
+    }
+
     private func resolve(
         _ operation: BooleanOperation,
         fixture: Fixture
@@ -228,6 +289,17 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
             let end = points[(index + 1) % points.count]
             return result + start.u * end.v - end.u * start.v
         } * 0.5
+    }
+
+    private func spans(
+        _ edge: BRepSewingEdge,
+        _ first: Point3D,
+        _ second: Point3D
+    ) -> Bool {
+        (edge.startPoint.isApproximatelyEqual(to: first, tolerance: tolerance.distance)
+            && edge.endPoint.isApproximatelyEqual(to: second, tolerance: tolerance.distance))
+            || (edge.startPoint.isApproximatelyEqual(to: second, tolerance: tolerance.distance)
+                && edge.endPoint.isApproximatelyEqual(to: first, tolerance: tolerance.distance))
     }
 
     private struct Fixture {

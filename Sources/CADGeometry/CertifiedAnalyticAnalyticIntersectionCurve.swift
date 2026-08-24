@@ -313,24 +313,6 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         return curve
     }
 
-    public var usesDerivedSurfaceParameterCurves: Bool {
-        switch definition {
-        case .planeTorus, .congruentTorusTorus, .boundedPlaneCone:
-            false
-        case let .coneCylinder(curve):
-            curve.componentKind != .apexLowerNodeInterval
-                && curve.componentKind != .apexUpperNodeInterval
-        case let .parallelTorusTorus(curve):
-            curve.componentKind != .nearNodalClosedLoop
-        case let .generalConeTorus(curve):
-            curve.apexReduction == nil
-        case .coneCone, .cylinderCylinder, .sphereCylinder, .sphereCone,
-             .sphereTorus, .parallelTorusCylinder,
-             .generalTorusCylinder, .generalTorusTorus:
-            true
-        }
-    }
-
     public var curve: Curve3D {
         switch definition {
         case let .planeTorus(curve):
@@ -766,6 +748,31 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         }
     }
 
+    func pointAndInternalParameter(
+        for role: SurfaceIntersectionSurfaceRole,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> (point: Point3D, parameter: SurfaceParameter) {
+        if case let .generalTorusTorus(curve) = definition {
+            return try curve.pointAndParameter(
+                on: surface(for: role),
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        }
+        return try (
+            point(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            ),
+            internalParameter(
+                for: role,
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        )
+    }
+
     public func differential(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
@@ -911,6 +918,85 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
                 secondDerivative: geometry.secondDerivative
+            )
+        }
+    }
+
+    public func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        switch definition {
+        case let .planeTorus(curve):
+            let scale = 2.0 * Double.pi
+            return try curve.thirdDerivative(
+                at: try planeTorusParameter(fraction, tolerance: tolerance),
+                tolerance: tolerance
+            ) * (scale * scale * scale)
+        case let .coneCone(curve):
+            return try curve.thirdDerivative(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .cylinderCylinder(curve):
+            return try curve.thirdDerivative(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .sphereCylinder(curve):
+            return try curve.thirdDerivative(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .sphereCone(curve):
+            return try curve.thirdDerivative(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .coneCylinder(curve):
+            return try curve.thirdDerivative(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .sphereTorus(curve):
+            return try curve.thirdDerivative(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .parallelTorusCylinder(curve):
+            return try curve.thirdDerivative(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .generalTorusCylinder(curve):
+            return try curve.thirdDerivative(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .generalConeTorus(curve):
+            return try curve.thirdDerivative(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .parallelTorusTorus(curve):
+            return try curve.thirdDerivative(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .congruentTorusTorus(curve):
+            return try curve.thirdDerivative(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .generalTorusTorus(curve):
+            return try curve.thirdDerivative(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .boundedPlaneCone(curve):
+            return try curve.thirdDerivative(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
             )
         }
     }

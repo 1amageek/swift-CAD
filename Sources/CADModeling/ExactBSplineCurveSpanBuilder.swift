@@ -10,12 +10,20 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
         self.tolerance = tolerance
     }
 
-    package func profileSpans(
+    package func profileLoopSpans(
         from profile: Profile
+    ) throws -> [[ExactBSplineCurveSpan]] {
+        try profile.boundaryLoops.map { loop in
+            try profileSpans(from: loop)
+        }
+    }
+
+    package func profileSpans(
+        from loop: ProfileLoop
     ) throws -> [ExactBSplineCurveSpan] {
         try tolerance.validate()
         var result: [ExactBSplineCurveSpan] = []
-        for boundary in profile.boundarySegments {
+        for boundary in loop.boundarySegments {
             switch boundary {
             case let .line(line):
                 result.append(try lineSpan(
@@ -316,6 +324,34 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                 spline,
                 requestedDomain: .closed(lower, upper)
             )
+        case let .rigidImage(image):
+            return try spans(
+                curve: image.source,
+                lower: lower,
+                upper: upper
+            ).map { span in
+                try ExactBSplineCurveSpan(
+                    curve: image.transform.applying(
+                        to: span.curve,
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                )
+            }
+        case let .affineImage(image):
+            return try spans(
+                curve: image.source,
+                lower: lower,
+                upper: upper
+            ).map { span in
+                try ExactBSplineCurveSpan(
+                    curve: image.transform.applying(
+                        to: span.curve,
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                )
+            }
         case .implicit, .surfaceLift, .certifiedIntersection:
             throw KernelError.unsupportedEvaluation(
                 tolerance: tolerance,

@@ -20,8 +20,29 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         endTransform: ExactSectionTransform2D = .identity,
         featureID: FeatureID
     ) throws -> BRepSewingRequest {
+        try request(
+            profileSpanLoops: [profileSpans],
+            pathSpans: pathSpans,
+            profilePlane: profilePlane,
+            sectionIsClosed: sectionIsClosed,
+            resultKind: resultKind,
+            endTransform: endTransform,
+            featureID: featureID
+        )
+    }
+
+    package func request(
+        profileSpanLoops: [[ExactBSplineCurveSpan]],
+        pathSpans: [ExactBSplineCurveSpan],
+        profilePlane: SketchPlane,
+        sectionIsClosed: Bool,
+        resultKind: SweepResultKind,
+        endTransform: ExactSectionTransform2D = .identity,
+        featureID: FeatureID
+    ) throws -> BRepSewingRequest {
         try tolerance.validate()
-        guard profileSpans.isEmpty == false,
+        guard profileSpanLoops.isEmpty == false,
+              profileSpanLoops.allSatisfy({ $0.isEmpty == false }),
               pathSpans.isEmpty == false else {
             throw KernelError(
                 phase: .geometry,
@@ -36,27 +57,33 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                 "Solid exact linear section Sweeps require a closed profile section."
             )
         }
-        try validateSectionContinuity(
-            profileSpans,
-            isClosed: sectionIsClosed
-        )
+        for profileSpans in profileSpanLoops {
+            try validateSectionContinuity(
+                profileSpans,
+                isClosed: sectionIsClosed
+            )
+        }
         let sectionPlane = try ExactSweepSectionPlane(
             profilePlane,
             tolerance: tolerance
         )
-        try validateProfileSpans(profileSpans, on: sectionPlane.plane)
+        for profileSpans in profileSpanLoops {
+            try validateProfileSpans(profileSpans, on: sectionPlane.plane)
+        }
         let advanceSign = try certifiedAdvanceSign(
             pathSpans: pathSpans,
             profileNormal: sectionPlane.plane.normal,
             featureID: featureID
         )
-        let windingSign = sectionIsClosed
-            ? try profileWindingSign(
-                profileSpans,
-                normal: sectionPlane.plane.normal,
-                featureID: featureID
-            )
-            : 1.0
+        let windingSigns = try profileSpanLoops.map { profileSpans in
+            sectionIsClosed
+                ? try profileWindingSign(
+                    profileSpans,
+                    normal: sectionPlane.plane.normal,
+                    featureID: featureID
+                )
+                : 1.0
+        }
         let transformLaw = try ExactLinearSectionTransformLaw(
             pathSpans: pathSpans,
             endTransform: endTransform,
@@ -66,61 +93,95 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         let pathStart = transformLaw.pathStart
         let pathEnd = transformLaw.pathEnd
         let pathAnchor = sectionPlane.orthogonalProjection(pathStart)
-        var patches: [BRepSewingFacePatch] = []
+        var capPatches: [BRepSewingFacePatch] = []
         if resultKind == .solid {
-            patches.append(try capPatch(
-                profileSpans: profileSpans,
+            capPatches.append(try capPatch(
+                profileSpanLoops: profileSpanLoops,
                 pathPoint: pathStart,
                 pathAnchor: pathAnchor,
                 transform: .identity,
                 sectionPlane: sectionPlane,
                 desiredNormalSign: -advanceSign,
-                windingSign: windingSign,
+                outerWindingSign: windingSigns[0],
                 reversedBoundary: true,
                 stableID: "sweep:cap:start"
             ))
-            patches.append(try capPatch(
-                profileSpans: profileSpans,
+            capPatches.append(try capPatch(
+                profileSpanLoops: profileSpanLoops,
                 pathPoint: pathEnd,
                 pathAnchor: pathAnchor,
                 transform: endTransform,
                 sectionPlane: sectionPlane,
                 desiredNormalSign: advanceSign,
-                windingSign: windingSign,
+                outerWindingSign: windingSigns[0],
                 reversedBoundary: false,
                 stableID: "sweep:cap:end"
             ))
         }
-        let sideOrientation: Orientation
-        if sectionIsClosed {
-            sideOrientation = windingSign * advanceSign > 0.0
-                ? .forward
-                : .reversed
-        } else {
-            sideOrientation = .forward
-        }
-        for pathIndex in pathSpans.indices {
-            for profileIndex in profileSpans.indices {
-                patches.append(try sidePatch(
-                    profileSpan: profileSpans[profileIndex],
-                    pathSpan: pathSpans[pathIndex],
-                    pathAnchor: pathAnchor,
-                    transformLaw: transformLaw,
-                    sectionPlane: sectionPlane,
-                    orientation: sideOrientation,
-                    stableID: "sweep:side:path:\(pathIndex):profile:\(profileIndex)"
-                ))
+        var sidePatchesByLoop: [[BRepSewingFacePatch]] = []
+        sidePatchesByLoop.reserveCapacity(profileSpanLoops.count)
+        for (loopIndex, profileSpans) in profileSpanLoops.enumerated() {
+            let sideOrientation: Orientation
+            if sectionIsClosed {
+                sideOrientation = windingSigns[loopIndex] * advanceSign > 0.0
+                    ? .forward
+                    : .reversed
+            } else {
+                sideOrientation = .forward
             }
+            var loopPatches: [BRepSewingFacePatch] = []
+            for pathIndex in pathSpans.indices {
+                for profileIndex in profileSpans.indices {
+                    loopPatches.append(try sidePatch(
+                        profileSpan: profileSpans[profileIndex],
+                        pathSpan: pathSpans[pathIndex],
+                        pathAnchor: pathAnchor,
+                        transformLaw: transformLaw,
+                        sectionPlane: sectionPlane,
+                        orientation: sideOrientation,
+                        stableID: sideStableID(
+                            pathIndex: pathIndex,
+                            loopIndex: loopIndex,
+                            profileIndex: profileIndex
+                        )
+                    ))
+                }
+            }
+            sidePatchesByLoop.append(loopPatches)
         }
         let bodyKind: BodyKind = resultKind == .solid ? .solid : .sheet
+        let shells: [BRepSewingShell]
+        if resultKind == .solid {
+            shells = [BRepSewingShell(
+                stableID: "sweep:shell",
+                patches: capPatches + sidePatchesByLoop.flatMap { $0 }
+            )]
+        } else {
+            shells = sidePatchesByLoop.enumerated().map { loopIndex, patches in
+                BRepSewingShell(
+                    stableID: loopIndex == 0
+                        ? "sweep:shell"
+                        : "sweep:inner:\(loopIndex - 1):shell",
+                    patches: patches
+                )
+            }
+        }
         return BRepSewingRequest(
             featureID: featureID,
             bodyKind: bodyKind,
-            shells: [BRepSewingShell(
-                stableID: "sweep:shell",
-                patches: patches
-            )]
+            shells: shells
         )
+    }
+
+    private func sideStableID(
+        pathIndex: Int,
+        loopIndex: Int,
+        profileIndex: Int
+    ) -> String {
+        if loopIndex == 0 {
+            return "sweep:side:path:\(pathIndex):profile:\(profileIndex)"
+        }
+        return "sweep:side:path:\(pathIndex):inner:\(loopIndex - 1):profile:\(profileIndex)"
     }
 
     private func sidePatch(
@@ -221,24 +282,24 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
     }
 
     private func capPatch(
-        profileSpans: [ExactBSplineCurveSpan],
+        profileSpanLoops: [[ExactBSplineCurveSpan]],
         pathPoint: Point3D,
         pathAnchor: Point3D,
         transform: ExactSectionTransform2D,
         sectionPlane: ExactSweepSectionPlane,
         desiredNormalSign: Double,
-        windingSign: Double,
+        outerWindingSign: Double,
         reversedBoundary: Bool,
         stableID: String
     ) throws -> BRepSewingFacePatch {
-        guard let first = profileSpans.first else {
+        guard let first = profileSpanLoops.first?.first else {
             throw FeatureEvaluationError.emptyResult(
                 "Exact linear section Sweep cap has no profile span."
             )
         }
         let boundaryNormalSign = reversedBoundary
-            ? -windingSign
-            : windingSign
+            ? -outerWindingSign
+            : outerWindingSign
         let firstCurve = try transformedProfileCurve(
             first.curve,
             at: pathPoint,
@@ -253,26 +314,36 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
             ),
             normal: sectionPlane.plane.normal * boundaryNormalSign
         ))
-        let ordered = reversedBoundary
-            ? Array(profileSpans.indices.reversed())
-            : Array(profileSpans.indices)
-        let edges = try ordered.map { profileIndex in
-            let curve = try transformedProfileCurve(
-                profileSpans[profileIndex].curve,
-                at: pathPoint,
-                pathAnchor: pathAnchor,
-                transform: transform,
-                sectionPlane: sectionPlane
-            )
-            return try exactEdge(
-                curve,
-                reversed: reversedBoundary,
-                surfaceParameterCurve: try planarPcurve(
+        let loops = try profileSpanLoops.enumerated().map { loopIndex, profileSpans in
+            let ordered = reversedBoundary
+                ? Array(profileSpans.indices.reversed())
+                : Array(profileSpans.indices)
+            let loopPrefix = loopIndex == 0
+                ? stableID
+                : "\(stableID):inner:\(loopIndex - 1)"
+            let edges = try ordered.map { profileIndex in
+                let curve = try transformedProfileCurve(
+                    profileSpans[profileIndex].curve,
+                    at: pathPoint,
+                    pathAnchor: pathAnchor,
+                    transform: transform,
+                    sectionPlane: sectionPlane
+                )
+                return try exactEdge(
                     curve,
                     reversed: reversedBoundary,
-                    on: surface
-                ),
-                stableID: "\(stableID):edge:\(profileIndex)"
+                    surfaceParameterCurve: try planarPcurve(
+                        curve,
+                        reversed: reversedBoundary,
+                        on: surface
+                    ),
+                    stableID: "\(loopPrefix):edge:\(profileIndex)"
+                )
+            }
+            return BRepSewingLoop(
+                stableID: "\(loopPrefix):loop",
+                role: loopIndex == 0 ? .outer : .inner,
+                edges: edges
             )
         }
         let patch = BRepSewingFacePatch(
@@ -281,11 +352,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
             orientation: boundaryNormalSign == desiredNormalSign
                 ? .forward
                 : .reversed,
-            loops: [BRepSewingLoop(
-                stableID: "\(stableID):loop",
-                role: .outer,
-                edges: edges
-            )]
+            loops: loops
         )
         try patch.validate(tolerance: tolerance)
         return patch

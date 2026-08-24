@@ -50,6 +50,15 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying,
             in: model,
             tolerance: tolerance
         )
+        let faceBounds = try Dictionary(uniqueKeysWithValues: faceIDs.map {
+            faceID -> (FaceID, BoundingBox3D) in
+            let bounds = try BRepFaceBoundingBoxBuilder().bounds(
+                for: faceID,
+                in: model,
+                tolerance: tolerance
+            )
+            return (faceID, bounds)
+        })
         let containmentSession = try (
             facePointContainment as? any FacePointContainmentSessionPreparing
         )?.makeContainmentSession(
@@ -62,6 +71,7 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying,
             model: model,
             faceIDs: faceIDs,
             bounds: bounds,
+            faceBounds: faceBounds,
             containmentSession: containmentSession,
             tolerance: tolerance
         )
@@ -72,11 +82,16 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying,
         model: BRepModel,
         faceIDs: [FaceID],
         bounds: BoundingBox3D,
+        faceBounds: [FaceID: BoundingBox3D],
         containmentSession: (any FacePointContainmentSession)?,
         tolerance: ModelingTolerance
     ) throws -> SolidPointClassification {
         try point.validate()
         for faceID in faceIDs {
+            if let faceBounds = faceBounds[faceID],
+               faceBounds.contains(point, tolerance: tolerance.distance) == false {
+                continue
+            }
             do {
                 if try contains(
                     point,
@@ -180,8 +195,12 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying,
                 tolerance: tolerance
             )
             for intersection in intersections where intersection.kind == .transverse {
-                let isContained = try contains(
-                    intersection.point,
+                let isContained = try containsSurfaceParameter(
+                    SurfaceParameter(
+                        u: intersection.surfaceU,
+                        v: intersection.surfaceV
+                    ),
+                    fallbackPoint: intersection.point,
                     on: faceID,
                     model: model,
                     containmentSession: containmentSession,
@@ -237,6 +256,27 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying,
         )
     }
 
+    private func containsSurfaceParameter(
+        _ parameter: SurfaceParameter,
+        fallbackPoint: Point3D,
+        on faceID: FaceID,
+        model: BRepModel,
+        containmentSession: (any FacePointContainmentSession)?,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        if let parameterSession = containmentSession
+            as? any FaceParameterContainmentSession {
+            return try parameterSession.contains(parameter, on: faceID)
+        }
+        return try contains(
+            fallbackPoint,
+            on: faceID,
+            model: model,
+            containmentSession: containmentSession,
+            tolerance: tolerance
+        )
+    }
+
     private func faceIDs(
         for body: Body,
         model: BRepModel,
@@ -281,6 +321,7 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying,
         let model: BRepModel
         let faceIDs: [FaceID]
         let bounds: BoundingBox3D
+        let faceBounds: [FaceID: BoundingBox3D]
         let containmentSession: (any FacePointContainmentSession)?
         let tolerance: ModelingTolerance
 
@@ -290,6 +331,7 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying,
                 model: model,
                 faceIDs: faceIDs,
                 bounds: bounds,
+                faceBounds: faceBounds,
                 containmentSession: containmentSession,
                 tolerance: tolerance
             )

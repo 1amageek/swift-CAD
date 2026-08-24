@@ -102,27 +102,19 @@ public struct SurfaceTrimQueryResult: Codable, Sendable, Hashable {
 }
 
 public struct SurfaceProjectionOptions: Sendable, Hashable {
-    public var sampleCount: Int
-    public var maximumIterations: Int
+    public var limits: ProjectionResourceLimits
     public var respectsTrimBounds: Bool
 
     public init(
-        sampleCount: Int = 9,
-        maximumIterations: Int = 32,
+        limits: ProjectionResourceLimits = ProjectionResourceLimits(),
         respectsTrimBounds: Bool = true
     ) {
-        self.sampleCount = sampleCount
-        self.maximumIterations = maximumIterations
+        self.limits = limits
         self.respectsTrimBounds = respectsTrimBounds
     }
 
-    public func validate() throws {
-        guard sampleCount >= 2 else {
-            throw FeatureEvaluationError.invalidGraph("Surface projection sample count must be at least two.")
-        }
-        guard maximumIterations >= 0 else {
-            throw FeatureEvaluationError.invalidGraph("Surface projection iteration count must not be negative.")
-        }
+    public func validate(tolerance: ModelingTolerance) throws {
+        try limits.validate(tolerance: tolerance)
     }
 }
 
@@ -168,30 +160,22 @@ public enum SurfaceDirectionalProjectionRange: Sendable, Hashable {
 }
 
 public struct SurfaceDirectionalProjectionOptions: Sendable, Hashable {
-    public var sampleCount: Int
-    public var maximumIterations: Int
+    public var limits: ProjectionResourceLimits
     public var range: SurfaceDirectionalProjectionRange
     public var respectsTrimBounds: Bool
 
     public init(
-        sampleCount: Int = 9,
-        maximumIterations: Int = 32,
+        limits: ProjectionResourceLimits = ProjectionResourceLimits(),
         range: SurfaceDirectionalProjectionRange = .line,
         respectsTrimBounds: Bool = true
     ) {
-        self.sampleCount = sampleCount
-        self.maximumIterations = maximumIterations
+        self.limits = limits
         self.range = range
         self.respectsTrimBounds = respectsTrimBounds
     }
 
-    public func validate() throws {
-        guard sampleCount >= 2 else {
-            throw FeatureEvaluationError.invalidGraph("Surface projection sample count must be at least two.")
-        }
-        guard maximumIterations >= 0 else {
-            throw FeatureEvaluationError.invalidGraph("Surface projection iteration count must not be negative.")
-        }
+    public func validate(tolerance: ModelingTolerance) throws {
+        try limits.validate(tolerance: tolerance)
     }
 }
 
@@ -232,9 +216,19 @@ public struct SurfaceDirectionalProjectionResult: Codable, Sendable, Hashable {
 
 public struct SurfaceQueryEvaluator: Sendable {
     private let tolerance: ModelingTolerance
+    private let faceDomainResolver: any FaceQueryDomainResolving
 
     public init(tolerance: ModelingTolerance) {
         self.tolerance = tolerance
+        faceDomainResolver = DefaultFaceQueryDomainResolver()
+    }
+
+    init(
+        tolerance: ModelingTolerance,
+        faceDomainResolver: any FaceQueryDomainResolving
+    ) {
+        self.tolerance = tolerance
+        self.faceDomainResolver = faceDomainResolver
     }
 
     public func resolve(
@@ -292,35 +286,94 @@ public struct SurfaceQueryEvaluator: Sendable {
         options: SurfaceProjectionOptions = SurfaceProjectionOptions()
     ) throws -> SurfaceProjectionResult {
         try point.validate()
-        try options.validate()
+        try options.validate(tolerance: tolerance)
         let resolved = try resolve(reference, in: document)
-        switch resolved.surface {
+        var unrestrictedOptions = options
+        unrestrictedOptions.respectsTrimBounds = false
+        let supportProjection: SurfaceProjectionResult = switch resolved.surface {
         case let .plane(plane):
-            return try closestPointOnPlane(
+            try closestPointOnPlane(
                 point,
                 plane: plane,
                 resolved: resolved,
                 model: document.brep,
-                options: options
+                options: unrestrictedOptions
             )
         case let .cylinder(cylinder):
-            return try closestPointOnCylinder(point, cylinder: cylinder, reference: reference)
+            try closestPointOnCylinder(
+                point,
+                cylinder: cylinder,
+                reference: reference
+            )
         case let .analytic(surface):
-            return try closestPointOnAnalyticSurface(
+            try closestPointOnAnalyticSurface(
                 point,
                 surface: surface,
                 resolved: resolved,
                 model: document.brep,
-                options: options
+                options: unrestrictedOptions
             )
         case let .bSpline(surface):
-            return try closestPointOnBSpline(
+            try closestPointOnBSpline(
                 point,
                 surface: surface,
                 reference: reference,
-                options: options
+                options: unrestrictedOptions
+            )
+        case let .procedural(.offset(offset)):
+            try closestPointOnProceduralOffset(
+                point,
+                offset: offset,
+                resolved: resolved,
+                model: document.brep,
+                options: unrestrictedOptions
+            )
+        case let .procedural(.ruled(ruled)):
+            try closestPointOnProceduralRuled(
+                point,
+                ruled: ruled,
+                resolved: resolved,
+                options: unrestrictedOptions
             )
         }
+        guard options.respectsTrimBounds else {
+            return supportProjection
+        }
+        let containment = try faceDomainResolver.makeContainmentSession(
+            for: resolved.faceID,
+            in: document.brep,
+            tolerance: tolerance
+        )
+        let supportParameter = SurfaceParameter(
+            u: supportProjection.parameterReference.u,
+            v: supportProjection.parameterReference.v
+        )
+        if try containment.contains(
+            supportParameter,
+            on: resolved.faceID
+        ) {
+            return supportProjection
+        }
+        let boundary = try faceDomainResolver.closestBoundaryProjection(
+            to: point,
+            from: supportParameter,
+            on: resolved.faceID,
+            surface: resolved.surface,
+            in: document.brep,
+            maximumIterations: options.limits.maximumIterations,
+            tolerance: tolerance
+        )
+        return try projectionResult(
+            sourcePoint: point,
+            reference: SurfaceParameterReference(
+                surface: reference,
+                u: boundary.parameter.u,
+                v: boundary.parameter.v
+            ),
+            surface: resolved.surface,
+            iterations: boundary.iterations,
+            converged: true
+        )
     }
 
     public func project(
@@ -331,7 +384,7 @@ public struct SurfaceQueryEvaluator: Sendable {
         options: SurfaceDirectionalProjectionOptions = SurfaceDirectionalProjectionOptions()
     ) throws -> SurfaceDirectionalProjectionResult {
         try point.validate()
-        try options.validate()
+        try options.validate(tolerance: tolerance)
         let unitDirection = try direction.normalized(tolerance: tolerance.distance)
         let resolved = try resolve(reference, in: document)
         switch resolved.surface {
@@ -361,12 +414,31 @@ public struct SurfaceQueryEvaluator: Sendable {
                 model: document.brep,
                 options: options
             )
-        case let .bSpline(surface):
-            return try projectOntoBSpline(
+        case .bSpline:
+            return try projectOntoGeneralSurface(
                 point,
                 direction: unitDirection,
-                surface: surface,
-                reference: reference,
+                surface: resolved.surface,
+                resolved: resolved,
+                model: document.brep,
+                options: options
+            )
+        case let .procedural(.offset(offset)):
+            return try projectOntoProceduralOffset(
+                point,
+                direction: unitDirection,
+                offset: offset,
+                resolved: resolved,
+                model: document.brep,
+                options: options
+            )
+        case .procedural(.ruled):
+            return try projectOntoGeneralSurface(
+                point,
+                direction: unitDirection,
+                surface: resolved.surface,
+                resolved: resolved,
+                model: document.brep,
                 options: options
             )
         }
@@ -487,7 +559,12 @@ public struct SurfaceQueryEvaluator: Sendable {
     ) throws -> BSplineSurface3D {
         let resolved = try resolve(reference, in: document)
         guard case let .bSpline(surface) = resolved.surface else {
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "Surface query requires an exact B-spline surface.")
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Surface control-point, knot, and span selections require an exact B-spline surface."
+            )
         }
         return surface
     }
@@ -652,6 +729,294 @@ public struct SurfaceQueryEvaluator: Sendable {
             return try analyticSurfaceParameter(for: point, on: surface)
         case let .bSpline(surface):
             return try bSplineBoundaryParameter(for: point, on: surface)
+        case .procedural:
+            let projection = try surface.parameterProjection(
+                of: point,
+                tolerance: tolerance
+            )
+            return SurfaceParameter(u: projection.u, v: projection.v)
+        }
+    }
+
+    private func closestPointOnProceduralOffset(
+        _ point: Point3D,
+        offset: OffsetSurface3D,
+        resolved: ResolvedSurface,
+        model: BRepModel,
+        options: SurfaceProjectionOptions
+    ) throws -> SurfaceProjectionResult {
+        let proceduralSurface = Surface3D.procedural(.offset(offset))
+        if let equivalent = try offset.exactSameParameterSurface(
+            tolerance: tolerance
+        ) {
+            let equivalentResult: SurfaceProjectionResult
+            switch equivalent {
+            case let .plane(plane):
+                equivalentResult = try closestPointOnPlane(
+                    point,
+                    plane: plane,
+                    resolved: resolved,
+                    model: model,
+                    options: options
+                )
+            case let .cylinder(cylinder):
+                equivalentResult = try closestPointOnCylinder(
+                    point,
+                    cylinder: cylinder,
+                    reference: resolved.reference
+                )
+            case let .analytic(analytic):
+                equivalentResult = try closestPointOnAnalyticSurface(
+                    point,
+                    surface: analytic,
+                    resolved: resolved,
+                    model: model,
+                    options: options
+                )
+            case let .bSpline(spline):
+                equivalentResult = try closestPointOnBSpline(
+                    point,
+                    surface: spline,
+                    reference: resolved.reference,
+                    options: options
+                )
+            case .procedural:
+                throw KernelError(
+                    phase: .geometry,
+                    code: .topologyFailure,
+                    tolerance: tolerance,
+                    message: "Procedural closest-point reduction must terminate at a non-procedural surface."
+                )
+            }
+            return try projectionResult(
+                sourcePoint: point,
+                reference: equivalentResult.parameterReference,
+                surface: proceduralSurface,
+                iterations: equivalentResult.iterations,
+                converged: equivalentResult.converged
+            )
+        }
+        let projection = try offset.closestParameterProjection(
+            of: point,
+            options: SurfaceParameterProjectionOptions(
+                maximumIterations: options.limits.maximumIterations,
+                maximumSubdivisionDepth: options.limits.maximumSubdivisionDepth,
+                maximumSubdivisionCells: options.limits.maximumSubdivisionCells,
+                maximumCandidateCount: options.limits.maximumCandidateCount
+            ),
+            tolerance: tolerance
+        )
+        return try projectionResult(
+            sourcePoint: point,
+            reference: SurfaceParameterReference(
+                surface: resolved.reference,
+                u: projection.u,
+                v: projection.v
+            ),
+            surface: proceduralSurface,
+            iterations: projection.iterations,
+            converged: true
+        )
+    }
+
+    private func closestPointOnProceduralRuled(
+        _ point: Point3D,
+        ruled: RuledSurface3D,
+        resolved: ResolvedSurface,
+        options: SurfaceProjectionOptions
+    ) throws -> SurfaceProjectionResult {
+        let surface = Surface3D.procedural(.ruled(ruled))
+        let projection = try ruled.closestParameterProjection(
+            of: point,
+            options: SurfaceParameterProjectionOptions(
+                maximumIterations: options.limits.maximumIterations,
+                maximumSubdivisionDepth: options.limits.maximumSubdivisionDepth,
+                maximumSubdivisionCells: options.limits.maximumSubdivisionCells,
+                maximumCandidateCount: options.limits.maximumCandidateCount
+            ),
+            tolerance: tolerance
+        )
+        return try projectionResult(
+            sourcePoint: point,
+            reference: SurfaceParameterReference(
+                surface: resolved.reference,
+                u: projection.u,
+                v: projection.v
+            ),
+            surface: surface,
+            iterations: projection.iterations,
+            converged: true
+        )
+    }
+
+    private func projectOntoProceduralOffset(
+        _ point: Point3D,
+        direction: Vector3D,
+        offset: OffsetSurface3D,
+        resolved: ResolvedSurface,
+        model: BRepModel,
+        options: SurfaceDirectionalProjectionOptions
+    ) throws -> SurfaceDirectionalProjectionResult {
+        let proceduralSurface = Surface3D.procedural(.offset(offset))
+        if let equivalent = try offset.exactSameParameterSurface(
+            tolerance: tolerance
+        ) {
+            let equivalentResult: SurfaceDirectionalProjectionResult
+            switch equivalent {
+            case let .plane(plane):
+                equivalentResult = try projectOntoPlane(
+                    point,
+                    direction: direction,
+                    plane: plane,
+                    resolved: resolved,
+                    model: model,
+                    options: options
+                )
+            case let .cylinder(cylinder):
+                equivalentResult = try projectOntoCylinder(
+                    point,
+                    direction: direction,
+                    cylinder: cylinder,
+                    reference: resolved.reference,
+                    range: options.range
+                )
+            case let .analytic(analytic):
+                equivalentResult = try projectOntoAnalyticSurface(
+                    point,
+                    direction: direction,
+                    surface: analytic,
+                    resolved: resolved,
+                    model: model,
+                    options: options
+                )
+            case let .bSpline(spline):
+                equivalentResult = try projectOntoGeneralSurface(
+                    point,
+                    direction: direction,
+                    surface: .bSpline(spline),
+                    resolved: resolved,
+                    model: model,
+                    options: options
+                )
+            case .procedural:
+                throw KernelError(
+                    phase: .geometry,
+                    code: .topologyFailure,
+                    tolerance: tolerance,
+                    message: "Procedural directional reduction must terminate at a non-procedural surface."
+                )
+            }
+            return try directionalProjectionResult(
+                sourcePoint: point,
+                direction: direction,
+                signedDistanceAlongDirection: equivalentResult.signedDistanceAlongDirection,
+                reference: equivalentResult.parameterReference,
+                surface: proceduralSurface,
+                iterations: equivalentResult.iterations,
+                converged: equivalentResult.converged
+            )
+        }
+
+        return try projectOntoGeneralSurface(
+            point,
+            direction: direction,
+            surface: proceduralSurface,
+            resolved: resolved,
+            model: model,
+            options: options
+        )
+    }
+
+    private func projectOntoGeneralSurface(
+        _ point: Point3D,
+        direction: Vector3D,
+        surface: Surface3D,
+        resolved: ResolvedSurface,
+        model: BRepModel,
+        options: SurfaceDirectionalProjectionOptions
+    ) throws -> SurfaceDirectionalProjectionResult {
+        let searchDomain = try faceDomainResolver.directionalSearchDomain(
+            from: point,
+            direction: direction,
+            on: resolved.faceID,
+            in: model,
+            tolerance: tolerance
+        )
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: .line(Line3D(origin: point, direction: direction)),
+            surface: surface,
+            options: CurveSurfaceIntersectionOptions(
+                curveRange: searchDomain.curve,
+                surfaceURange: searchDomain.surface.u,
+                surfaceVRange: searchDomain.surface.v,
+                maximumSubdivisionDepth: options.limits.maximumSubdivisionDepth,
+                maximumSubdivisionCells: options.limits.maximumSubdivisionCells,
+                maximumIterations: options.limits.maximumIterations,
+                maximumCandidateCount: options.limits.maximumCandidateCount
+            ),
+            tolerance: tolerance
+        )
+        let containment = options.respectsTrimBounds
+            ? try faceDomainResolver.makeContainmentSession(
+                for: resolved.faceID,
+                in: model,
+                tolerance: tolerance
+            )
+            : nil
+        var accepted: [CurveSurfaceIntersection] = []
+        for intersection in intersections where options.range.accepts(
+            intersection.curveParameter,
+            tolerance: tolerance
+        ) {
+            if let containment,
+               try containment.contains(
+                   SurfaceParameter(
+                       u: intersection.surfaceU,
+                       v: intersection.surfaceV
+                   ),
+                   on: resolved.faceID
+               ) == false {
+                continue
+            }
+            accepted.append(intersection)
+        }
+        guard let selected = accepted.min(by: { lhs, rhs in
+            switch options.range {
+            case .line:
+                abs(lhs.curveParameter) < abs(rhs.curveParameter)
+            case .ray:
+                lhs.curveParameter < rhs.curveParameter
+            }
+        }) else {
+            throw FeatureEvaluationError.emptyResult(
+                "Projection does not intersect the procedural face in the requested range."
+            )
+        }
+        return try directionalProjectionResult(
+            sourcePoint: point,
+            direction: direction,
+            signedDistanceAlongDirection: selected.curveParameter,
+            reference: SurfaceParameterReference(
+                surface: resolved.reference,
+                u: selected.surfaceU,
+                v: selected.surfaceV
+            ),
+            surface: surface,
+            iterations: selected.iterations,
+            converged: selected.residual <= tolerance.distance
+        )
+    }
+
+    private func finiteInterval(
+        _ domain: ParameterDomain
+    ) throws -> ScalarInterval? {
+        switch domain {
+        case let .closed(lower, upper):
+            return try ScalarInterval(lower: lower, upper: upper)
+        case let .periodic(period):
+            return try ScalarInterval(lower: 0.0, upper: period)
+        case .unbounded:
+            return nil
         }
     }
 
@@ -1027,67 +1392,27 @@ public struct SurfaceQueryEvaluator: Sendable {
         reference: SurfaceReference,
         options: SurfaceProjectionOptions
     ) throws -> SurfaceProjectionResult {
-        try surface.validate(tolerance: tolerance)
-        let bounds = try SurfaceParameterBounds(
-            u: parameterBounds(for: surface.uDomain),
-            v: parameterBounds(for: surface.vDomain)
+        let projection = try surface.closestParameterProjection(
+            of: point,
+            options: SurfaceParameterProjectionOptions(
+                maximumIterations: options.limits.maximumIterations,
+                maximumSubdivisionDepth: options.limits.maximumSubdivisionDepth,
+                maximumSubdivisionCells: options.limits.maximumSubdivisionCells,
+                maximumCandidateCount: options.limits.maximumCandidateCount
+            ),
+            tolerance: tolerance
         )
-        let uSamples = try parameterSamples(
-            knots: surface.uKnots,
-            degree: surface.uDegree,
-            domain: surface.uDomain,
-            fallbackCount: options.sampleCount
-        )
-        let vSamples = try parameterSamples(
-            knots: surface.vKnots,
-            degree: surface.vDegree,
-            domain: surface.vDomain,
-            fallbackCount: options.sampleCount
-        )
-
-        var candidates: [SurfaceProjectionCandidate] = []
-        for u in uSamples {
-            for v in vSamples {
-                candidates.append(try projectionCandidate(
-                    point,
-                    surface: surface,
-                    u: u,
-                    v: v
-                ))
-            }
-        }
-        guard !candidates.isEmpty else {
-            throw FeatureEvaluationError.emptyResult("Surface projection has no parameter samples.")
-        }
-
-        candidates.sort { lhs, rhs in
-            lhs.squaredDistance < rhs.squaredDistance
-        }
-
-        var best: SurfaceProjectionCandidate?
-        let seedCount = min(6, candidates.count)
-        for seed in candidates.prefix(seedCount) {
-            let refined = try refineProjection(
-                from: seed,
-                point: point,
-                surface: surface,
-                bounds: bounds,
-                maximumIterations: options.maximumIterations
-            )
-            if shouldReplaceProjectionCandidate(current: best, candidate: refined) {
-                best = refined
-            }
-        }
-        guard let best else {
-            throw FeatureEvaluationError.emptyResult("Surface projection refinement produced no candidate.")
-        }
 
         return try projectionResult(
             sourcePoint: point,
-            reference: SurfaceParameterReference(surface: reference, u: best.u, v: best.v),
+            reference: SurfaceParameterReference(
+                surface: reference,
+                u: projection.u,
+                v: projection.v
+            ),
             surface: .bSpline(surface),
-            iterations: best.iterations,
-            converged: best.converged
+            iterations: projection.iterations,
+            converged: true
         )
     }
 
@@ -1308,302 +1633,6 @@ public struct SurfaceQueryEvaluator: Sendable {
         )
     }
 
-    private func projectOntoBSpline(
-        _ point: Point3D,
-        direction: Vector3D,
-        surface: BSplineSurface3D,
-        reference: SurfaceReference,
-        options: SurfaceDirectionalProjectionOptions
-    ) throws -> SurfaceDirectionalProjectionResult {
-        try surface.validate(tolerance: tolerance)
-        let bounds = try SurfaceParameterBounds(
-            u: parameterBounds(for: surface.uDomain),
-            v: parameterBounds(for: surface.vDomain)
-        )
-        let uSamples = try parameterSamples(
-            knots: surface.uKnots,
-            degree: surface.uDegree,
-            domain: surface.uDomain,
-            fallbackCount: options.sampleCount
-        )
-        let vSamples = try parameterSamples(
-            knots: surface.vKnots,
-            degree: surface.vDegree,
-            domain: surface.vDomain,
-            fallbackCount: options.sampleCount
-        )
-
-        var candidates: [SurfaceDirectionalProjectionCandidate] = []
-        for u in uSamples {
-            for v in vSamples {
-                if let candidate = try directionalProjectionCandidate(
-                    point,
-                    direction: direction,
-                    surface: surface,
-                    u: u,
-                    v: v,
-                    range: options.range
-                ) {
-                    candidates.append(candidate)
-                }
-            }
-        }
-        guard !candidates.isEmpty else {
-            throw FeatureEvaluationError.emptyResult("Surface directional projection has no parameter samples.")
-        }
-
-        candidates.sort { lhs, rhs in
-            lhs.squaredLineDistance < rhs.squaredLineDistance
-        }
-
-        var best: SurfaceDirectionalProjectionCandidate?
-        let seedCount = min(8, candidates.count)
-        for seed in candidates.prefix(seedCount) {
-            let refined = try refineDirectionalProjection(
-                from: seed,
-                point: point,
-                direction: direction,
-                surface: surface,
-                bounds: bounds,
-                range: options.range,
-                maximumIterations: options.maximumIterations
-            )
-            if shouldReplaceDirectionalProjectionCandidate(current: best, candidate: refined) {
-                best = refined
-            }
-        }
-        guard let best else {
-            throw FeatureEvaluationError.emptyResult("Surface directional projection refinement produced no candidate.")
-        }
-
-        return try directionalProjectionResult(
-            sourcePoint: point,
-            direction: direction,
-            signedDistanceAlongDirection: best.signedDistanceAlongDirection,
-            reference: SurfaceParameterReference(surface: reference, u: best.u, v: best.v),
-            surface: .bSpline(surface),
-            iterations: best.iterations,
-            converged: best.converged
-        )
-    }
-
-    private func refineDirectionalProjection(
-        from seed: SurfaceDirectionalProjectionCandidate,
-        point: Point3D,
-        direction: Vector3D,
-        surface: BSplineSurface3D,
-        bounds: SurfaceParameterBounds,
-        range: SurfaceDirectionalProjectionRange,
-        maximumIterations: Int
-    ) throws -> SurfaceDirectionalProjectionCandidate {
-        var current = seed
-        guard maximumIterations > 0 else {
-            return current
-        }
-
-        for iteration in 1...maximumIterations {
-            let geometry = try surface.differentialGeometry(
-                atU: current.u,
-                v: current.v,
-                tolerance: tolerance
-            )
-            let linePoint = point + direction * current.signedDistanceAlongDirection
-            let residual = geometry.position - linePoint
-            if residual.length <= tolerance.distance {
-                current.iterations = iteration
-                current.converged = true
-                return current
-            }
-
-            let columnU = geometry.tangentU
-            let columnV = geometry.tangentV
-            let columnT = -direction
-            let jacobianDeterminant = determinant(columnU, columnV, columnT)
-            guard abs(jacobianDeterminant) > max(tolerance.distance * tolerance.distance, Double.ulpOfOne) else {
-                return current
-            }
-
-            let rightHandSide = -residual
-            let deltaU = determinant(rightHandSide, columnV, columnT) / jacobianDeterminant
-            let deltaV = determinant(columnU, rightHandSide, columnT) / jacobianDeterminant
-            let deltaT = determinant(columnU, columnV, rightHandSide) / jacobianDeterminant
-            guard deltaU.isFinite, deltaV.isFinite, deltaT.isFinite else {
-                throw GeometryError.invalidDistance(deltaU.isFinite ? (deltaV.isFinite ? deltaT : deltaV) : deltaU)
-            }
-
-            let stepLength = hypot(hypot(deltaU, deltaV), deltaT)
-            if stepLength <= tolerance.distance {
-                current.iterations = iteration
-                current.converged = true
-                return current
-            }
-
-            let previousSquaredDistance = current.squaredLineDistance
-            var stepScale = 1.0
-            var accepted: SurfaceDirectionalProjectionCandidate?
-            while stepScale >= 1.0 / 128.0 {
-                let nextU = bounds.clampedU(current.u + deltaU * stepScale)
-                let nextV = bounds.clampedV(current.v + deltaV * stepScale)
-                let nextSignedDistance = current.signedDistanceAlongDirection + deltaT * stepScale
-                guard range.accepts(nextSignedDistance, tolerance: tolerance) else {
-                    stepScale *= 0.5
-                    continue
-                }
-                let next = try directionalProjectionCandidate(
-                    point,
-                    direction: direction,
-                    surface: surface,
-                    u: nextU,
-                    v: nextV,
-                    signedDistanceAlongDirection: nextSignedDistance,
-                    range: range,
-                    iterations: iteration
-                )
-                if next.squaredLineDistance <= previousSquaredDistance {
-                    accepted = next
-                    break
-                }
-                stepScale *= 0.5
-            }
-
-            guard var next = accepted else {
-                current.iterations = iteration
-                return current
-            }
-
-            let improvement = previousSquaredDistance - next.squaredLineDistance
-            if next.lineDistance <= tolerance.distance ||
-                improvement <= tolerance.distance * tolerance.distance {
-                next.converged = next.lineDistance <= tolerance.distance
-                return next
-            }
-            current = next
-        }
-
-        return current
-    }
-
-    private func shouldReplaceDirectionalProjectionCandidate(
-        current: SurfaceDirectionalProjectionCandidate?,
-        candidate: SurfaceDirectionalProjectionCandidate
-    ) -> Bool {
-        guard let current else {
-            return true
-        }
-        let squaredDistanceTolerance = tolerance.distance * tolerance.distance
-        if candidate.squaredLineDistance < current.squaredLineDistance - squaredDistanceTolerance {
-            return true
-        }
-        if abs(candidate.squaredLineDistance - current.squaredLineDistance) <= squaredDistanceTolerance {
-            if candidate.converged != current.converged {
-                return candidate.converged
-            }
-            return abs(candidate.signedDistanceAlongDirection) < abs(current.signedDistanceAlongDirection)
-        }
-        return false
-    }
-
-    private func refineProjection(
-        from seed: SurfaceProjectionCandidate,
-        point: Point3D,
-        surface: BSplineSurface3D,
-        bounds: SurfaceParameterBounds,
-        maximumIterations: Int
-    ) throws -> SurfaceProjectionCandidate {
-        var current = seed
-        guard maximumIterations > 0 else {
-            return current
-        }
-
-        for iteration in 1...maximumIterations {
-            let geometry = try surface.differentialGeometry(
-                atU: current.u,
-                v: current.v,
-                tolerance: tolerance
-            )
-            let residual = geometry.position - point
-            let gradientU = residual.dot(geometry.tangentU)
-            let gradientV = residual.dot(geometry.tangentV)
-            let firstE = geometry.tangentU.dot(geometry.tangentU)
-            let firstF = geometry.tangentU.dot(geometry.tangentV)
-            let firstG = geometry.tangentV.dot(geometry.tangentV)
-            let determinant = firstE * firstG - firstF * firstF
-            let metricTolerance = tolerance.distance * tolerance.distance
-            guard determinant > max(metricTolerance, Double.ulpOfOne) else {
-                return current
-            }
-
-            let deltaU = (firstG * gradientU - firstF * gradientV) / determinant
-            let deltaV = (-firstF * gradientU + firstE * gradientV) / determinant
-            guard deltaU.isFinite, deltaV.isFinite else {
-                throw GeometryError.invalidDistance(deltaU.isFinite ? deltaV : deltaU)
-            }
-
-            let stepLength = hypot(deltaU, deltaV)
-            if stepLength <= tolerance.distance {
-                current.iterations = iteration
-                current.converged = true
-                return current
-            }
-
-            let previousSquaredDistance = current.squaredDistance
-            var stepScale = 1.0
-            var accepted: SurfaceProjectionCandidate?
-            while stepScale >= 1.0 / 128.0 {
-                let nextU = bounds.clampedU(current.u - deltaU * stepScale)
-                let nextV = bounds.clampedV(current.v - deltaV * stepScale)
-                if abs(nextU - current.u) <= Double.ulpOfOne,
-                   abs(nextV - current.v) <= Double.ulpOfOne {
-                    stepScale *= 0.5
-                    continue
-                }
-                let next = try projectionCandidate(
-                    point,
-                    surface: surface,
-                    u: nextU,
-                    v: nextV,
-                    iterations: iteration
-                )
-                if next.squaredDistance <= previousSquaredDistance {
-                    accepted = next
-                    break
-                }
-                stepScale *= 0.5
-            }
-
-            guard var next = accepted else {
-                current.iterations = iteration
-                return current
-            }
-
-            let improvement = previousSquaredDistance - next.squaredDistance
-            if improvement <= tolerance.distance * tolerance.distance {
-                next.converged = true
-                return next
-            }
-            current = next
-        }
-
-        return current
-    }
-
-    private func shouldReplaceProjectionCandidate(
-        current: SurfaceProjectionCandidate?,
-        candidate: SurfaceProjectionCandidate
-    ) -> Bool {
-        guard let current else {
-            return true
-        }
-        let squaredDistanceTolerance = tolerance.distance * tolerance.distance
-        if candidate.squaredDistance < current.squaredDistance - squaredDistanceTolerance {
-            return true
-        }
-        if abs(candidate.squaredDistance - current.squaredDistance) <= squaredDistanceTolerance {
-            return candidate.converged && !current.converged
-        }
-        return false
-    }
-
     private func projectionResult(
         sourcePoint: Point3D,
         reference: SurfaceParameterReference,
@@ -1634,149 +1663,38 @@ public struct SurfaceQueryEvaluator: Sendable {
         iterations: Int,
         converged: Bool
     ) throws -> SurfaceDirectionalProjectionResult {
+        guard converged else {
+            throw KernelError(
+                phase: .evaluation,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "Surface directional projection did not produce a certified intersection."
+            )
+        }
         let geometry = try surface.differentialGeometry(
             atU: reference.u,
             v: reference.v,
             tolerance: tolerance
         )
         let frame = SurfaceQueryFrame(reference: reference, geometry: geometry)
-        return SurfaceDirectionalProjectionResult(
+        let result = SurfaceDirectionalProjectionResult(
             sourcePoint: sourcePoint,
             direction: direction,
             signedDistanceAlongDirection: signedDistanceAlongDirection,
             frame: frame,
             iterations: iterations,
-            converged: converged
+            converged: true
         )
-    }
-
-    private func projectionCandidate(
-        _ point: Point3D,
-        surface: BSplineSurface3D,
-        u: Double,
-        v: Double,
-        iterations: Int = 0
-    ) throws -> SurfaceProjectionCandidate {
-        let projectedPoint = try surface.point(u: u, v: v, tolerance: tolerance)
-        let residual = projectedPoint - point
-        let squaredDistance = residual.dot(residual)
-        guard squaredDistance.isFinite else {
-            throw GeometryError.invalidDistance(squaredDistance)
+        guard result.lineDistance <= tolerance.distance else {
+            throw KernelError(
+                phase: .evaluation,
+                code: .intersectionFailure,
+                residual: result.lineDistance,
+                tolerance: tolerance,
+                message: "Surface directional projection exceeds the modeling tolerance."
+            )
         }
-        return SurfaceProjectionCandidate(
-            u: u,
-            v: v,
-            squaredDistance: squaredDistance,
-            iterations: iterations,
-            converged: false
-        )
-    }
-
-    private func directionalProjectionCandidate(
-        _ point: Point3D,
-        direction: Vector3D,
-        surface: BSplineSurface3D,
-        u: Double,
-        v: Double,
-        range: SurfaceDirectionalProjectionRange
-    ) throws -> SurfaceDirectionalProjectionCandidate? {
-        let projectedPoint = try surface.point(u: u, v: v, tolerance: tolerance)
-        let signedDistance = (projectedPoint - point).dot(direction)
-        guard range.accepts(signedDistance, tolerance: tolerance) else {
-            return nil
-        }
-        return try directionalProjectionCandidate(
-            point,
-            direction: direction,
-            surface: surface,
-            u: u,
-            v: v,
-            signedDistanceAlongDirection: signedDistance,
-            range: range
-        )
-    }
-
-    private func directionalProjectionCandidate(
-        _ point: Point3D,
-        direction: Vector3D,
-        surface: BSplineSurface3D,
-        u: Double,
-        v: Double,
-        signedDistanceAlongDirection: Double,
-        range: SurfaceDirectionalProjectionRange,
-        iterations: Int = 0
-    ) throws -> SurfaceDirectionalProjectionCandidate {
-        guard range.accepts(signedDistanceAlongDirection, tolerance: tolerance) else {
-            throw FeatureEvaluationError.emptyResult("Surface directional projection candidate is outside the requested range.")
-        }
-        let projectedPoint = try surface.point(u: u, v: v, tolerance: tolerance)
-        let linePoint = point + direction * signedDistanceAlongDirection
-        let lineResidual = projectedPoint - linePoint
-        let squaredLineDistance = lineResidual.dot(lineResidual)
-        guard squaredLineDistance.isFinite else {
-            throw GeometryError.invalidDistance(squaredLineDistance)
-        }
-        return SurfaceDirectionalProjectionCandidate(
-            u: u,
-            v: v,
-            signedDistanceAlongDirection: signedDistanceAlongDirection,
-            squaredLineDistance: squaredLineDistance,
-            lineDistance: sqrt(squaredLineDistance),
-            iterations: iterations,
-            converged: false
-        )
-    }
-
-    private func parameterSamples(
-        knots: [Double],
-        degree: Int,
-        domain: ParameterDomain,
-        fallbackCount: Int
-    ) throws -> [Double] {
-        let bounds = try parameterBounds(for: domain)
-        var samples: [Double] = []
-        appendUnique(bounds.lower, to: &samples)
-        appendUnique(bounds.upper, to: &samples)
-
-        if knots.count > degree + 1 {
-            let lowerIndex = degree
-            let upperIndex = knots.count - degree - 1
-            if lowerIndex < upperIndex {
-                for index in lowerIndex...upperIndex {
-                    appendUnique(clamped(knots[index], lower: bounds.lower, upper: bounds.upper), to: &samples)
-                    if index < upperIndex {
-                        let lower = knots[index]
-                        let upper = knots[index + 1]
-                        if upper - lower > tolerance.distance {
-                            appendUnique(
-                                clamped((lower + upper) * 0.5, lower: bounds.lower, upper: bounds.upper),
-                                to: &samples
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        if fallbackCount > 1 {
-            for index in 0..<fallbackCount {
-                let ratio = Double(index) / Double(fallbackCount - 1)
-                appendUnique(bounds.lower + (bounds.upper - bounds.lower) * ratio, to: &samples)
-            }
-        }
-
-        samples.sort()
-        return samples
-    }
-
-    private func appendUnique(_ value: Double, to samples: inout [Double]) {
-        guard value.isFinite else {
-            return
-        }
-        if samples.contains(where: { abs($0 - value) <= tolerance.distance }) {
-            return
-        }
-        samples.append(value)
+        return result
     }
 
     private func parameterBounds(for domain: ParameterDomain) throws -> (lower: Double, upper: Double) {
@@ -1785,12 +1703,13 @@ public struct SurfaceQueryEvaluator: Sendable {
         case let .closed(lower, upper):
             return (lower, upper)
         case .unbounded, .periodic:
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "Surface projection requires bounded B-spline parameters.")
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "B-spline surface projection requires finite bounded parameter domains."
+            )
         }
-    }
-
-    private func clamped(_ value: Double, lower: Double, upper: Double) -> Double {
-        min(max(value, lower), upper)
     }
 
     private func bestSignedDistance(
@@ -1914,13 +1833,6 @@ public struct SurfaceQueryEvaluator: Sendable {
         return (u, v)
     }
 
-    private func determinant(
-        _ first: Vector3D,
-        _ second: Vector3D,
-        _ third: Vector3D
-    ) -> Double {
-        first.dot(second.cross(third))
-    }
 }
 
 private struct PlanarTrimDomain: Sendable, Hashable {
@@ -2057,23 +1969,6 @@ private struct PlanarTrimPoint2D: Sendable, Hashable {
     }
 }
 
-private struct SurfaceProjectionCandidate: Sendable, Hashable {
-    var u: Double
-    var v: Double
-    var squaredDistance: Double
-    var iterations: Int
-    var converged: Bool
-}
-
-private struct SurfaceDirectionalProjectionCandidate: Sendable, Hashable {
-    var u: Double
-    var v: Double
-    var signedDistanceAlongDirection: Double
-    var squaredLineDistance: Double
-    var lineDistance: Double
-    var iterations: Int
-    var converged: Bool
-}
 
 private struct SurfaceBoundaryCorner: Sendable, Hashable {
     var parameter: SurfaceParameter
@@ -2083,37 +1978,4 @@ private struct SurfaceBoundaryCorner: Sendable, Hashable {
 private struct SurfaceBoundaryProjection: Sendable, Hashable {
     var parameter: SurfaceParameter
     var distance: Double
-}
-
-private struct SurfaceParameterBounds: Sendable, Hashable {
-    var uLower: Double
-    var uUpper: Double
-    var vLower: Double
-    var vUpper: Double
-
-    init(
-        u: (lower: Double, upper: Double),
-        v: (lower: Double, upper: Double)
-    ) throws {
-        guard u.lower.isFinite,
-              u.upper.isFinite,
-              v.lower.isFinite,
-              v.upper.isFinite,
-              u.upper >= u.lower,
-              v.upper >= v.lower else {
-            throw GeometryError.invalidDistance(0.0)
-        }
-        self.uLower = u.lower
-        self.uUpper = u.upper
-        self.vLower = v.lower
-        self.vUpper = v.upper
-    }
-
-    func clampedU(_ value: Double) -> Double {
-        min(max(value, uLower), uUpper)
-    }
-
-    func clampedV(_ value: Double) -> Double {
-        min(max(value, vLower), vUpper)
-    }
 }

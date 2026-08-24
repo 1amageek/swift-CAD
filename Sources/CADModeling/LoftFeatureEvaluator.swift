@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADTopology
 
@@ -28,28 +29,34 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         guard case let .loft(loft) = feature.operation else {
             throw KernelError(
                 phase: .evaluation,
-                code: .unsupportedCapability,
+                code: .invalidInput,
                 featureID: feature.id,
                 tolerance: context.tolerance,
-                message: "LoftFeatureEvaluator only supports loft."
+                message: "LoftFeatureEvaluator requires a loft feature."
             )
         }
         try loft.validate()
         let profiles = try resolvedProfiles(for: loft, context: context)
-        let matchedRings = try resolvedMatchedRings(
+        let guideCurves = try ExactLoftGuideCurveResolver().resolve(
+            guides: loft.guides,
+            profiles: profiles,
+            context: context
+        )
+        let matchedLoops = try resolvedMatchedLoops(
             from: profiles,
             sections: loft.sections,
-            guides: loft.guides,
+            guides: guideCurves,
             smoothTangentScale: loft.options.smoothTangentScale,
-            context: context,
             tolerance: context.tolerance
         )
-        let rings = matchedRings.rings
-        let vertexCount = rings[0].count
+        guard let outerMatched = matchedLoops.loops.first else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Loft requires at least one matched profile boundary loop."
+            )
+        }
+        let rings = outerMatched.rings
         let includesCaps = loft.options.resultKind == .solid
         let closesSectionLoop = loft.options.closesSectionLoop
-        let sectionConnectionCount = rings.count - 1 + (closesSectionLoop ? 1 : 0)
-        let bodyKind: BodyKind = includesCaps ? .solid : .sheet
         let faceOrientation = try sectionAdvanceFaceOrientation(
             rings: rings,
             includesCaps: includesCaps,
@@ -57,216 +64,70 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             tolerance: context.tolerance
         )
 
-        var model = context.brep
-        var geometry = model.geometry
-        var generatedSubshapes: [SubshapeID: TopologyReference] = [:]
+        return try ExactLoftBodyBuilder(
+            featureID: feature.id,
+            context: context
+        ).build(
+            loft: loft,
+            profiles: profiles,
+            matchedLoopRings: matchedLoops.loops.map(\.rings),
+            sectionSeamPointsByLoop: matchedLoops.loops.map(\.exactSeamPoints),
+            sectionTangentScales: outerMatched.smoothTangentScales,
+            sectionTangentModes: outerMatched.smoothTangentModes,
+            guideCurves: guideCurves,
+            faceOrientation: faceOrientation
+        )
+    }
 
-        let bodyID = BodyID()
-        let shellID = ShellID()
-        var vertexIDs: [[VertexID]] = []
-        vertexIDs.reserveCapacity(rings.count)
-        for sectionIndex in rings.indices {
-            var sectionVertexIDs: [VertexID] = []
-            sectionVertexIDs.reserveCapacity(vertexCount)
-            for vertexIndex in rings[sectionIndex].indices {
-                let vertexID = VertexID()
-                sectionVertexIDs.append(vertexID)
-                model.vertices[vertexID] = Vertex(id: vertexID, point: rings[sectionIndex][vertexIndex])
-                generatedSubshapes[subshapeID(
-                    feature.id,
-                    role: .vertex,
-                    index: sectionIndex * vertexCount + vertexIndex
-                )] = .vertex(vertexID)
-            }
-            vertexIDs.append(sectionVertexIDs)
+    private func resolvedMatchedLoops(
+        from profiles: [Profile],
+        sections: [LoftSectionReference],
+        guides: [ExactLoftGuideCurve],
+        smoothTangentScale: Double,
+        tolerance: ModelingTolerance
+    ) throws -> LoftMatchedLoopSet {
+        guard let loopCount = profiles.first?.boundaryLoops.count,
+              loopCount > 0,
+              profiles.allSatisfy({ $0.boundaryLoops.count == loopCount }) else {
+            throw KernelError(
+                phase: .topology,
+                code: .nonManifoldResult,
+                tolerance: tolerance,
+                message: "Every Loft section must preserve the same number of boundary loops."
+            )
         }
-
-        var ringEdgeIDs: [[EdgeID]] = []
-        ringEdgeIDs.reserveCapacity(rings.count)
-        for sectionIndex in rings.indices {
-            var sectionEdgeIDs: [EdgeID] = []
-            sectionEdgeIDs.reserveCapacity(vertexCount)
-            for vertexIndex in 0..<vertexCount {
-                let nextIndex = (vertexIndex + 1) % vertexCount
-                let edgeID = try addLineEdge(
-                    from: vertexIDs[sectionIndex][vertexIndex],
-                    to: vertexIDs[sectionIndex][nextIndex],
-                    model: &model,
-                    geometry: &geometry,
-                    tolerance: context.tolerance
+        guard guides.allSatisfy({ $0.boundaryLoopIndex < loopCount }) else {
+            throw FeatureEvaluationError.invalidGraph(
+                "A Loft guide resolved to a boundary loop missing from another section."
+            )
+        }
+        let matched = try (0..<loopCount).map { loopIndex in
+            let loopProfiles = profiles.map { profile in
+                Profile(
+                    sourceFeatureID: profile.sourceFeatureID,
+                    plane: profile.plane,
+                    outerLoop: profile.boundaryLoops[loopIndex]
                 )
-                sectionEdgeIDs.append(edgeID)
-                generatedSubshapes[subshapeID(
-                    feature.id,
-                    role: .edge,
-                    index: sectionIndex * vertexCount + vertexIndex
-                )] = .edge(edgeID)
             }
-            ringEdgeIDs.append(sectionEdgeIDs)
-        }
-
-        let surfaceMode = loft.options.surfaceMode
-        let sectionConnectionSpans = sectionConnectionSpans(
-            for: rings,
-            closesSectionLoop: closesSectionLoop,
-            tolerance: context.tolerance
-        )
-        let sectionParametersForSurfaces = sectionParameters(
-            from: sectionConnectionSpans,
-            ringCount: rings.count
-        )
-        let smoothTangents = try smoothSectionTangents(
-            for: rings,
-            sectionParameters: sectionParametersForSurfaces,
-            connectionSpans: sectionConnectionSpans,
-            closesSectionLoop: closesSectionLoop,
-            sectionTangentScales: matchedRings.smoothTangentScales,
-            sectionTangentModes: matchedRings.smoothTangentModes,
-            enabled: surfaceMode == .smooth
-        )
-        var connectorEdgeIDs: [[EdgeID]] = []
-        connectorEdgeIDs.reserveCapacity(sectionConnectionCount)
-        let connectorIndexOffset = rings.count * vertexCount
-        for sectionIndex in 0..<sectionConnectionCount {
-            let nextSectionIndex = (sectionIndex + 1) % rings.count
-            var sectionConnectorIDs: [EdgeID] = []
-            sectionConnectorIDs.reserveCapacity(vertexCount)
-            for vertexIndex in 0..<vertexCount {
-                let edgeID: EdgeID
-                if surfaceMode == .smooth {
-                    edgeID = try addCubicConnectorEdge(
-                        from: vertexIDs[sectionIndex][vertexIndex],
-                        to: vertexIDs[nextSectionIndex][vertexIndex],
-                        startTangent: smoothTangents[sectionIndex][vertexIndex],
-                        endTangent: smoothTangents[nextSectionIndex][vertexIndex],
-                        parameterSpan: sectionConnectionSpans[sectionIndex],
-                        model: &model,
-                        geometry: &geometry,
-                        tolerance: context.tolerance
-                    )
-                } else {
-                    edgeID = try addLineEdge(
-                        from: vertexIDs[sectionIndex][vertexIndex],
-                        to: vertexIDs[nextSectionIndex][vertexIndex],
-                        model: &model,
-                        geometry: &geometry,
-                        tolerance: context.tolerance
-                    )
-                }
-                sectionConnectorIDs.append(edgeID)
-                generatedSubshapes[subshapeID(
-                    feature.id,
-                    role: .edge,
-                    index: connectorIndexOffset + sectionIndex * vertexCount + vertexIndex
-                )] = .edge(edgeID)
+            let loopSections = sections.map { section in
+                LoftSectionReference(
+                    profile: section.profile,
+                    startSampleIndex: loopIndex == 0
+                        ? section.startSampleIndex
+                        : nil,
+                    smoothTangentScale: section.smoothTangentScale,
+                    smoothTangentMode: section.smoothTangentMode
+                )
             }
-            connectorEdgeIDs.append(sectionConnectorIDs)
-        }
-
-        var faceIDs: [FaceID] = []
-        if includesCaps {
-            let startFaceID = try addPlanarFace(
-                featureID: feature.id,
-                role: .startFace,
-                index: nil,
-                orientation: faceOrientation,
-                loopEdges: ringEdgeIDs[0].indices.reversed().map { index in
-                    Coedge(edgeID: ringEdgeIDs[0][index], orientation: .reversed)
-                },
-                model: &model,
-                geometry: &geometry,
-                generatedSubshapes: &generatedSubshapes,
-                tolerance: context.tolerance
+            return try resolvedMatchedRings(
+                from: loopProfiles,
+                sections: loopSections,
+                guides: guides.filter { $0.boundaryLoopIndex == loopIndex },
+                smoothTangentScale: smoothTangentScale,
+                tolerance: tolerance
             )
-            faceIDs.append(startFaceID)
-
-            let endSectionIndex = rings.count - 1
-            let endFaceID = try addPlanarFace(
-                featureID: feature.id,
-                role: .endFace,
-                index: nil,
-                orientation: faceOrientation,
-                loopEdges: ringEdgeIDs[endSectionIndex].map {
-                    Coedge(edgeID: $0, orientation: .forward)
-                },
-                model: &model,
-                geometry: &geometry,
-                generatedSubshapes: &generatedSubshapes,
-                tolerance: context.tolerance
-            )
-            faceIDs.append(endFaceID)
         }
-
-        for sectionIndex in 0..<sectionConnectionCount {
-            let nextSectionIndex = (sectionIndex + 1) % rings.count
-            for vertexIndex in 0..<vertexCount {
-                let nextIndex = (vertexIndex + 1) % vertexCount
-                let faceID: FaceID
-                if surfaceMode == .smooth {
-                    faceID = try addSmoothBSplineFace(
-                        featureID: feature.id,
-                        index: sectionIndex * vertexCount + vertexIndex,
-                        orientation: faceOrientation,
-                        bottomLeft: rings[sectionIndex][vertexIndex],
-                        bottomRight: rings[sectionIndex][nextIndex],
-                        topRight: rings[nextSectionIndex][nextIndex],
-                        topLeft: rings[nextSectionIndex][vertexIndex],
-                        bottomLeftTangent: smoothTangents[sectionIndex][vertexIndex],
-                        bottomRightTangent: smoothTangents[sectionIndex][nextIndex],
-                        topRightTangent: smoothTangents[nextSectionIndex][nextIndex],
-                        topLeftTangent: smoothTangents[nextSectionIndex][vertexIndex],
-                        parameterSpan: sectionConnectionSpans[sectionIndex],
-                        bottomEdgeID: ringEdgeIDs[sectionIndex][vertexIndex],
-                        rightEdgeID: connectorEdgeIDs[sectionIndex][nextIndex],
-                        topEdgeID: ringEdgeIDs[nextSectionIndex][vertexIndex],
-                        leftEdgeID: connectorEdgeIDs[sectionIndex][vertexIndex],
-                        model: &model,
-                        geometry: &geometry,
-                        generatedSubshapes: &generatedSubshapes,
-                        tolerance: context.tolerance
-                    )
-                } else {
-                    faceID = try addRuledBSplineFace(
-                        featureID: feature.id,
-                        index: sectionIndex * vertexCount + vertexIndex,
-                        orientation: faceOrientation,
-                        bottomLeft: rings[sectionIndex][vertexIndex],
-                        bottomRight: rings[sectionIndex][nextIndex],
-                        topRight: rings[nextSectionIndex][nextIndex],
-                        topLeft: rings[nextSectionIndex][vertexIndex],
-                        bottomEdgeID: ringEdgeIDs[sectionIndex][vertexIndex],
-                        rightEdgeID: connectorEdgeIDs[sectionIndex][nextIndex],
-                        topEdgeID: ringEdgeIDs[nextSectionIndex][vertexIndex],
-                        leftEdgeID: connectorEdgeIDs[sectionIndex][vertexIndex],
-                        model: &model,
-                        geometry: &geometry,
-                        generatedSubshapes: &generatedSubshapes,
-                        tolerance: context.tolerance
-                    )
-                }
-                faceIDs.append(faceID)
-            }
-        }
-
-        model.geometry = geometry
-        model.shells[shellID] = Shell(id: shellID, faceIDs: faceIDs)
-        let bodyTopology: BodyTopology = switch bodyKind {
-        case .solid:
-            .solid(components: [SolidShellComponent(outerShellID: shellID)])
-        case .sheet:
-            .sheet(shellIDs: [shellID])
-        }
-        model.bodies[bodyID] = Body(id: bodyID, topology: bodyTopology)
-        generatedSubshapes[subshapeID(feature.id, role: .body, index: nil)] = .body(bodyID)
-        try model.validate(tolerance: context.tolerance)
-        return EvaluationResult(
-            brep: model,
-            subshapes: generatedSubshapes,
-            lineage: try GeneratedTopologyLineageBuilder().build(
-                featureID: feature.id,
-                subshapes: generatedSubshapes
-            )
-        )
+        return LoftMatchedLoopSet(loops: matched)
     }
 
     private func resolvedProfiles(
@@ -289,9 +150,8 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
     private func resolvedMatchedRings(
         from profiles: [Profile],
         sections: [LoftSectionReference],
-        guides: [LoftGuideReference],
+        guides: [ExactLoftGuideCurve],
         smoothTangentScale: Double,
-        context: EvaluationContext,
         tolerance: ModelingTolerance
     ) throws -> LoftMatchedRings {
         guard let first = profiles.first else {
@@ -304,15 +164,16 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         guard vertexCount >= 3 else {
             throw SketchError.openProfile
         }
-        let guideEndpointMatches = try guideEndpointMatches(
-            profiles: profiles,
-            guides: guides,
-            context: context,
-            tolerance: tolerance
-        )
-        let firstGuideEndpointMatch = guideEndpointMatches.first
-        var rings: [[Point3D]] = []
-        rings.reserveCapacity(profiles.count)
+        guard guides.allSatisfy({
+            $0.sectionPoints.count == profiles.count
+                && $0.sectionParameters.count == profiles.count
+        }) else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Every exact Loft guide must provide one ordered contact per section."
+            )
+        }
+        var exactSections: [[ExactBSplineCurveSpan]] = []
+        exactSections.reserveCapacity(profiles.count)
         for (sectionIndex, values) in zip(sections, profiles).enumerated() {
             let (section, profile) = values
             if let startSampleIndex = section.startSampleIndex,
@@ -320,508 +181,406 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 throw FeatureEvaluationError.invalidGraph("Loft section start sample indexes must reference existing section samples.")
             }
             try validateClosedRing(profile.vertices, tolerance: tolerance)
-            let guideStartSampleIndex: Int?
-            if sectionIndex == 0 {
-                guideStartSampleIndex = firstGuideEndpointMatch?.firstSectionSampleIndex
-            } else if sectionIndex == profiles.count - 1 {
-                guideStartSampleIndex = firstGuideEndpointMatch?.lastSectionSampleIndex
-            } else {
-                guideStartSampleIndex = nil
-            }
-            let effectiveStartSampleIndex = section.startSampleIndex ?? guideStartSampleIndex
-            let ring = if let startSampleIndex = effectiveStartSampleIndex {
-                rotatedRing(profile.vertices, offset: startSampleIndex)
-            } else {
-                profile.vertices
-            }
-            rings.append(ring)
+            let guidePoints = guides.map { $0.sectionPoints[sectionIndex] }
+            let seamPoint = section.startSampleIndex.map { profile.vertices[$0] }
+                ?? guidePoints.first
+            exactSections.append(try exactMatchingSpans(
+                profile: profile,
+                seamPoint: seamPoint,
+                partitionPoints: guidePoints,
+                tolerance: tolerance
+            ))
         }
         let sectionTangentScales = sections.map { section in
             section.smoothTangentScale ?? smoothTangentScale
         }
         let sectionTangentModes = sections.map(\.smoothTangentMode)
-        let targetSampleCount = rings.map(\.count).max() ?? vertexCount
-        var lockedSectionIndexes = Set(
-            sections.indices.filter { sections[$0].startSampleIndex != nil }
-        )
-        if firstGuideEndpointMatch != nil {
-            lockedSectionIndexes.insert(0)
-            lockedSectionIndexes.insert(profiles.count - 1)
+        let guidePointsBySection = profiles.indices.map { sectionIndex in
+            guides.map { $0.sectionPoints[sectionIndex] }
         }
-        let matched = try matchedRings(
-            rings,
-            lockedSectionIndexes: lockedSectionIndexes,
-            targetSampleCount: targetSampleCount,
+        let rings = try exactCorrespondenceRings(
+            sections: exactSections,
+            guidePointsBySection: guidePointsBySection,
             tolerance: tolerance
         )
-        return try railDeformedRings(
-            LoftMatchedRings(
-                rings: matched,
-                smoothTangentScales: sectionTangentScales,
-                smoothTangentModes: sectionTangentModes
-            ),
-            guides: guides,
-            context: context,
-            tolerance: tolerance
-        )
-    }
-
-    private func guideEndpointMatches(
-        profiles: [Profile],
-        guides: [LoftGuideReference],
-        context: EvaluationContext,
-        tolerance: ModelingTolerance
-    ) throws -> [LoftGuideEndpointMatch] {
-        guard guides.isEmpty == false else {
-            return []
-        }
-        guard profiles.count >= 2 else {
-            throw FeatureEvaluationError.invalidGraph("Loft guides require at least two profile sections.")
-        }
-        guard let firstRing = profiles.first?.vertices,
-              let lastRing = profiles.last?.vertices else {
-            throw FeatureEvaluationError.invalidGraph("Loft guides require resolved profile sections.")
-        }
-        var matches: [LoftGuideEndpointMatch] = []
-        matches.reserveCapacity(guides.count)
-        var firstSectionSamples: Set<Int> = []
-        var lastSectionSamples: Set<Int> = []
-        for guide in guides {
-            let endpoints = try guideEndpoints(for: guide, context: context, tolerance: tolerance)
-            let matched = try matchedGuideEndpoints(
-                endpoints,
-                firstRing: firstRing,
-                lastRing: lastRing,
+        let matched: [[Point3D]]
+        if guides.isEmpty {
+            let lockedSectionIndexes = Set(
+                sections.indices.filter { sections[$0].startSampleIndex != nil }
+            )
+            matched = try matchedEqualCountRings(
+                rings,
+                lockedSectionIndexes: lockedSectionIndexes,
                 tolerance: tolerance
             )
-            guard firstSectionSamples.insert(matched.firstSectionSampleIndex).inserted else {
-                throw FeatureEvaluationError.invalidGraph("Loft guides must not share the same first section boundary sample.")
-            }
-            guard lastSectionSamples.insert(matched.lastSectionSampleIndex).inserted else {
-                throw FeatureEvaluationError.invalidGraph("Loft guides must not share the same last section boundary sample.")
-            }
-            matches.append(LoftGuideEndpointMatch(
-                guideID: guide.featureID,
-                firstSectionSampleIndex: matched.firstSectionSampleIndex,
-                lastSectionSampleIndex: matched.lastSectionSampleIndex
-            ))
-        }
-        return matches
-    }
-
-    private func guideEndpoints(
-        for guide: LoftGuideReference,
-        context: EvaluationContext,
-        tolerance: ModelingTolerance
-    ) throws -> (start: Point3D, end: Point3D) {
-        guard let curves = context.curves[guide.featureID] else {
-            throw FeatureEvaluationError.missingInput("Missing Loft guide curve source \(guide.featureID).")
-        }
-        let chain = try EvaluatedCurveChainBuilder(tolerance: tolerance).openChain(
-            from: curves,
-            operationName: "Loft guide"
-        )
-        guard let start = chain.points.first,
-              let end = chain.points.last else {
-            throw SketchError.unsupportedEntity("Loft guides require an open curve chain with endpoints.")
-        }
-        return (start, end)
-    }
-
-    private func matchedGuideEndpoints(
-        _ endpoints: (start: Point3D, end: Point3D),
-        firstRing: [Point3D],
-        lastRing: [Point3D],
-        tolerance: ModelingTolerance
-    ) throws -> (firstSectionSampleIndex: Int, lastSectionSampleIndex: Int) {
-        if let firstIndex = sampleIndex(of: endpoints.start, in: firstRing, tolerance: tolerance),
-           let lastIndex = sampleIndex(of: endpoints.end, in: lastRing, tolerance: tolerance) {
-            return (firstIndex, lastIndex)
-        }
-        if let firstIndex = sampleIndex(of: endpoints.end, in: firstRing, tolerance: tolerance),
-           let lastIndex = sampleIndex(of: endpoints.start, in: lastRing, tolerance: tolerance) {
-            return (firstIndex, lastIndex)
-        }
-        throw unsupported(
-            "Loft guides currently require open guide endpoints to touch first and last section boundary samples.",
-            tolerance: tolerance
-        )
-    }
-
-    private func sampleIndex(
-        of point: Point3D,
-        in ring: [Point3D],
-        tolerance: ModelingTolerance
-    ) -> Int? {
-        ring.indices.first { index in
-            ring[index].isApproximatelyEqual(to: point, tolerance: tolerance.distance)
-        }
-    }
-
-    private func railDeformedRings(
-        _ matchedRings: LoftMatchedRings,
-        guides: [LoftGuideReference],
-        context: EvaluationContext,
-        tolerance: ModelingTolerance
-    ) throws -> LoftMatchedRings {
-        let rings = matchedRings.rings
-        guard rings.count == matchedRings.smoothTangentScales.count else {
-            throw FeatureEvaluationError.invalidGraph("Loft section tangent scale count must match matched section rings.")
-        }
-        guard rings.count == matchedRings.smoothTangentModes.count else {
-            throw FeatureEvaluationError.invalidGraph("Loft section tangent mode count must match matched section rings.")
-        }
-        guard guides.isEmpty == false,
-              rings.count >= 2 else {
-            return matchedRings
-        }
-        let rails = try guides.map { guide in
-            try orientedGuideRail(
-                for: guide,
-                firstRing: rings[0],
-                lastRing: rings[rings.index(before: rings.endIndex)],
-                context: context,
-                tolerance: tolerance
-            )
-        }
-        try validateUniqueGuideRailIndexes(rails)
-        guard rails.contains(where: { $0.samples.count > 2 }) else {
-            return matchedRings
-        }
-        return try railDeformedRings(
-            matchedRings: matchedRings,
-            rails: rails,
-            tolerance: tolerance
-        )
-    }
-
-    private func orientedGuideRail(
-        for guide: LoftGuideReference,
-        firstRing: [Point3D],
-        lastRing: [Point3D],
-        context: EvaluationContext,
-        tolerance: ModelingTolerance
-    ) throws -> LoftGuideRail {
-        guard let curves = context.curves[guide.featureID] else {
-            throw FeatureEvaluationError.missingInput("Missing Loft guide curve source \(guide.featureID).")
-        }
-        let chain = try EvaluatedCurveChainBuilder(tolerance: tolerance).openChain(
-            from: curves,
-            operationName: "Loft guide"
-        )
-        guard let firstPoint = chain.points.first,
-              let lastPoint = chain.points.last else {
-            throw SketchError.unsupportedEntity("Loft guides require an open curve chain with endpoints.")
-        }
-        if let firstIndex = sampleIndex(of: firstPoint, in: firstRing, tolerance: tolerance),
-           let lastIndex = sampleIndex(of: lastPoint, in: lastRing, tolerance: tolerance) {
-            guard firstIndex == lastIndex else {
-                throw unsupported(
-                    "Loft guide rail deformation requires guide endpoints to resolve to matching section sample indexes.",
-                    tolerance: tolerance
-                )
-            }
-            return LoftGuideRail(
-                vertexIndex: firstIndex,
-                samples: try railSamples(from: chain.points, tolerance: tolerance)
-            )
-        }
-        if let firstIndex = sampleIndex(of: lastPoint, in: firstRing, tolerance: tolerance),
-           let lastIndex = sampleIndex(of: firstPoint, in: lastRing, tolerance: tolerance) {
-            guard firstIndex == lastIndex else {
-                throw unsupported(
-                    "Loft guide rail deformation requires guide endpoints to resolve to matching section sample indexes.",
-                    tolerance: tolerance
-                )
-            }
-            return LoftGuideRail(
-                vertexIndex: firstIndex,
-                samples: try railSamples(from: Array(chain.points.reversed()), tolerance: tolerance)
-            )
-        }
-        throw unsupported(
-            "Loft guide rail deformation requires guide endpoints to match section boundary samples after section matching.",
-            tolerance: tolerance
-        )
-    }
-
-    private func validateUniqueGuideRailIndexes(_ rails: [LoftGuideRail]) throws {
-        var indexes: Set<Int> = []
-        for rail in rails {
-            guard indexes.insert(rail.vertexIndex).inserted else {
-                throw FeatureEvaluationError.invalidGraph("Loft guide rails must target distinct section sample indexes.")
-            }
-        }
-    }
-
-    private func railDeformedRings(
-        matchedRings: LoftMatchedRings,
-        rails: [LoftGuideRail],
-        tolerance: ModelingTolerance
-    ) throws -> LoftMatchedRings {
-        let rings = matchedRings.rings
-        let sectionRatios = sectionRatios(for: rings, tolerance: tolerance)
-        let ratios = mergedRatios(
-            sectionRatios + railSampleRatios(from: rails, tolerance: tolerance)
-        )
-        guard ratios.count > rings.count else { return matchedRings }
-        var result: [[Point3D]] = []
-        var smoothTangentScales: [Double] = []
-        var smoothTangentModes: [LoftSectionSmoothTangentMode] = []
-        result.reserveCapacity(ratios.count)
-        smoothTangentScales.reserveCapacity(ratios.count)
-        smoothTangentModes.reserveCapacity(ratios.count)
-        for ratio in ratios {
-            if let sectionIndex = matchingSectionIndex(
-                for: ratio,
-                sectionRatios: sectionRatios
-            ) {
-                result.append(rings[sectionIndex])
-                smoothTangentScales.append(matchedRings.smoothTangentScales[sectionIndex])
-                smoothTangentModes.append(matchedRings.smoothTangentModes[sectionIndex])
-                continue
-            }
-            let interval = sectionInterval(
-                for: ratio,
-                sectionRatios: sectionRatios
-            )
-            let localRatio = localSectionRatio(
-                ratio,
-                lowerRatio: sectionRatios[interval.lower],
-                upperRatio: sectionRatios[interval.upper]
-            )
-            let scale = linearlyInterpolatedScalar(
-                lower: matchedRings.smoothTangentScales[interval.lower],
-                upper: matchedRings.smoothTangentScales[interval.upper],
-                ratio: localRatio
-            )
-            let baseRing = linearlyInterpolatedRing(
-                startRing: rings[interval.lower],
-                endRing: rings[interval.upper],
-                ratio: localRatio
-            )
-            let constraints = try guideRailConstraints(
-                for: rails,
-                baseRing: baseRing,
-                ratio: ratio,
-                tolerance: tolerance
-            )
-            let ring = baseRing.indices.map { vertexIndex in
-                baseRing[vertexIndex] + interpolatedRailOffset(
-                    for: vertexIndex,
-                    vertexCount: baseRing.count,
-                    constraints: constraints
-                )
-            }
-            guard isTopologicallyDistinct(
-                ring,
-                from: rings[interval.lower],
-                and: rings[interval.upper],
-                tolerance: tolerance
-            ) else {
-                continue
-            }
-            if let previous = result.last,
-               minimumCorrespondingRingDistance(from: previous, to: ring) <= tolerance.distance {
-                continue
-            }
-            try validateClosedRing(ring, tolerance: tolerance)
-            result.append(ring)
-            smoothTangentScales.append(scale)
-            smoothTangentModes.append(.automatic)
+        } else {
+            matched = rings
         }
         return LoftMatchedRings(
-            rings: result,
-            smoothTangentScales: smoothTangentScales,
-            smoothTangentModes: smoothTangentModes
+            rings: matched,
+            smoothTangentScales: sectionTangentScales,
+            smoothTangentModes: sectionTangentModes,
+            exactSeamPoints: matched.map { $0.first }
         )
     }
 
-    private func isTopologicallyDistinct(
-        _ ring: [Point3D],
-        from lowerRing: [Point3D],
-        and upperRing: [Point3D],
+    private func exactMatchingSpans(
+        profile: Profile,
+        seamPoint: Point3D?,
+        partitionPoints: [Point3D],
         tolerance: ModelingTolerance
-    ) -> Bool {
-        minimumCorrespondingRingDistance(from: lowerRing, to: ring) > tolerance.distance
-            && minimumCorrespondingRingDistance(from: ring, to: upperRing) > tolerance.distance
-    }
-
-    private func minimumCorrespondingRingDistance(
-        from first: [Point3D],
-        to second: [Point3D]
-    ) -> Double {
-        guard first.count == second.count,
-              first.isEmpty == false else {
-            return 0.0
-        }
-        return zip(first, second).reduce(Double.infinity) { current, pair in
-            min(current, (pair.1 - pair.0).length)
-        }
-    }
-
-    private func sectionRatios(
-        for rings: [[Point3D]],
-        tolerance: ModelingTolerance
-    ) -> [Double] {
-        guard rings.count > 1 else { return [0.0] }
-        var distances = [0.0]
-        distances.reserveCapacity(rings.count)
-        var accumulatedDistance = 0.0
-        for index in 1..<rings.count {
-            let segmentLength = averageRingDistance(
-                from: rings[index - 1],
-                to: rings[index]
+    ) throws -> [ExactBSplineCurveSpan] {
+        var spans = try ExactBSplineCurveSpanBuilder(
+            tolerance: tolerance
+        ).profileSpans(from: profile.outerLoop)
+        for point in partitionPoints {
+            spans = try spansSplit(
+                spans,
+                at: point,
+                tolerance: tolerance
             )
-            accumulatedDistance += segmentLength
-            distances.append(accumulatedDistance)
         }
-        guard accumulatedDistance > tolerance.distance else {
-            return rings.indices.map { index in
-                Double(index) / Double(rings.count - 1)
+        guard let seamPoint else {
+            return spans
+        }
+        for index in spans.indices {
+            if spans[index].startPoint.isApproximatelyEqual(
+                to: seamPoint,
+                tolerance: tolerance.distance
+            ) {
+                return rotatedSpans(spans, offset: index)
+            }
+            if spans[index].endPoint.isApproximatelyEqual(
+                to: seamPoint,
+                tolerance: tolerance.distance
+            ) {
+                return rotatedSpans(spans, offset: (index + 1) % spans.count)
             }
         }
-        return distances.map { distance in
-            distance / accumulatedDistance
-        }
-    }
 
-    private func sectionConnectionSpans(
-        for rings: [[Point3D]],
-        closesSectionLoop: Bool,
-        tolerance: ModelingTolerance
-    ) -> [Double] {
-        let connectionCount = rings.count - 1 + (closesSectionLoop ? 1 : 0)
-        guard connectionCount > 0 else { return [] }
-        var distances: [Double] = []
-        distances.reserveCapacity(connectionCount)
-        for sectionIndex in 0..<connectionCount {
-            let nextSectionIndex = (sectionIndex + 1) % rings.count
-            distances.append(averageRingDistance(
-                from: rings[sectionIndex],
-                to: rings[nextSectionIndex]
-            ))
-        }
-        let totalDistance = distances.reduce(0.0, +)
-        guard totalDistance > tolerance.distance else {
-            return Array(repeating: 1.0 / Double(connectionCount), count: connectionCount)
-        }
-        return distances.map { distance in
-            distance / totalDistance
-        }
-    }
-
-    private func sectionParameters(
-        from connectionSpans: [Double],
-        ringCount: Int
-    ) -> [Double] {
-        guard ringCount > 0 else { return [] }
-        var parameters = [0.0]
-        parameters.reserveCapacity(ringCount)
-        for sectionIndex in 1..<ringCount {
-            parameters.append(parameters[sectionIndex - 1] + connectionSpans[sectionIndex - 1])
-        }
-        return parameters
-    }
-
-    private func smoothSectionTangents(
-        for rings: [[Point3D]],
-        sectionParameters: [Double],
-        connectionSpans: [Double],
-        closesSectionLoop: Bool,
-        sectionTangentScales: [Double],
-        sectionTangentModes: [LoftSectionSmoothTangentMode],
-        enabled: Bool
-    ) throws -> [[Vector3D]] {
-        guard enabled else {
-            return rings.map { ring in
-                Array(repeating: .zero, count: ring.count)
-            }
-        }
-        guard rings.count == sectionParameters.count,
-              rings.count == sectionTangentScales.count,
-              rings.count == sectionTangentModes.count,
-              rings.count >= 2 else {
-            throw FeatureEvaluationError.invalidGraph("Smooth Loft requires at least two matched section rings.")
-        }
-        for scale in sectionTangentScales {
-            guard scale.isFinite,
-                  scale > 0.0 else {
-                throw FeatureEvaluationError.invalidGraph("Smooth Loft tangent scales must be finite and greater than zero.")
-            }
-        }
-        let expectedConnectionCount = rings.count - 1 + (closesSectionLoop ? 1 : 0)
-        guard connectionSpans.count == expectedConnectionCount else {
-            throw FeatureEvaluationError.invalidGraph("Smooth Loft section connection spans are inconsistent.")
-        }
-        var tangents: [[Vector3D]] = []
-        tangents.reserveCapacity(rings.count)
-        for sectionIndex in rings.indices {
-            let tangentIndexes = sectionTangentIndexes(
-                sectionIndex: sectionIndex,
-                ringCount: rings.count,
-                closesSectionLoop: closesSectionLoop
-            )
-            let parameterSpan = sectionTangentParameterSpan(
-                sectionIndex: sectionIndex,
-                sectionParameters: sectionParameters,
-                connectionSpans: connectionSpans,
-                closesSectionLoop: closesSectionLoop
-            )
-            guard parameterSpan > 1.0e-12 else {
-                throw FeatureEvaluationError.invalidGraph("Smooth Loft section parameters must be strictly increasing.")
-            }
-            if sectionTangentModes[sectionIndex] == .zero {
-                tangents.append(Array(repeating: .zero, count: rings[sectionIndex].count))
+        for index in spans.indices {
+            let projection: CurveParameterProjection
+            do {
+                projection = try Curve3D.bSpline(spans[index].curve)
+                    .parameterProjection(of: seamPoint, tolerance: tolerance)
+            } catch let error as KernelError where error.code == .intersectionFailure {
                 continue
             }
-            let sectionTangentScale = sectionTangentScales[sectionIndex]
-            let sectionTangents = rings[sectionIndex].indices.map { vertexIndex in
-                ((rings[tangentIndexes.upper][vertexIndex] - rings[tangentIndexes.lower][vertexIndex]) / parameterSpan) * sectionTangentScale
+            guard projection.residual <= tolerance.distance,
+                  case let .closed(lower, upper) = spans[index].curve.domain else {
+                continue
             }
-            tangents.append(sectionTangents)
+            let resolution = max(
+                tolerance.relative * max(abs(lower), abs(upper), 1.0),
+                Double.ulpOfOne * max(abs(lower), abs(upper), 1.0) * 256.0
+            )
+            guard projection.parameter > lower + resolution,
+                  projection.parameter < upper - resolution else {
+                continue
+            }
+            let tail = try ExactBSplineCurveSpan(
+                curve: spans[index].curve.trimmed(
+                    from: projection.parameter,
+                    to: upper,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            )
+            let head = try ExactBSplineCurveSpan(
+                curve: spans[index].curve.trimmed(
+                    from: lower,
+                    to: projection.parameter,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            )
+            var result = [tail]
+            if spans.count > 1 {
+                var cursor = (index + 1) % spans.count
+                while cursor != index {
+                    result.append(spans[cursor])
+                    cursor = (cursor + 1) % spans.count
+                }
+            }
+            result.append(head)
+            return result
         }
-        return tangents
+        throw KernelError(
+            phase: .geometry,
+            code: .invalidInput,
+            tolerance: tolerance,
+            message:
+            "Loft section seam sample does not lie on its exact profile boundary.",
+        )
     }
 
-    private func sectionTangentIndexes(
-        sectionIndex: Int,
-        ringCount: Int,
-        closesSectionLoop: Bool
-    ) -> (lower: Int, upper: Int) {
-        if closesSectionLoop {
-            let lowerIndex = sectionIndex == 0 ? ringCount - 1 : sectionIndex - 1
-            let upperIndex = (sectionIndex + 1) % ringCount
-            return (lowerIndex, upperIndex)
+    private func spansSplit(
+        _ spans: [ExactBSplineCurveSpan],
+        at point: Point3D,
+        tolerance: ModelingTolerance
+    ) throws -> [ExactBSplineCurveSpan] {
+        if spans.contains(where: { span in
+            span.startPoint.isApproximatelyEqual(
+                to: point,
+                tolerance: tolerance.distance
+            ) || span.endPoint.isApproximatelyEqual(
+                to: point,
+                tolerance: tolerance.distance
+            )
+        }) {
+            return spans
         }
-        if sectionIndex == 0 {
-            return (sectionIndex, sectionIndex + 1)
+        var best: (index: Int, projection: CurveParameterProjection)?
+        for index in spans.indices {
+            do {
+                let projection = try Curve3D.bSpline(spans[index].curve)
+                    .parameterProjection(of: point, tolerance: tolerance)
+                if best.map({ projection.residual < $0.projection.residual }) ?? true {
+                    best = (index, projection)
+                }
+            } catch let error as KernelError where error.code == .intersectionFailure {
+                continue
+            }
         }
-        if sectionIndex == ringCount - 1 {
-            return (sectionIndex - 1, sectionIndex)
+        guard let best,
+              best.projection.residual <= tolerance.distance,
+              case let .closed(lower, upper) = spans[best.index].curve.domain else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A Loft guide contact does not lie on its exact section boundary."
+            )
         }
-        return (sectionIndex - 1, sectionIndex + 1)
+        let resolution = max(
+            tolerance.relative * max(abs(lower), abs(upper), 1.0),
+            Double.ulpOfOne * max(abs(lower), abs(upper), 1.0) * 256.0
+        )
+        guard best.projection.parameter > lower + resolution,
+              best.projection.parameter < upper - resolution else {
+            return spans
+        }
+        let head = try ExactBSplineCurveSpan(
+            curve: spans[best.index].curve.trimmed(
+                from: lower,
+                to: best.projection.parameter,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let tail = try ExactBSplineCurveSpan(
+            curve: spans[best.index].curve.trimmed(
+                from: best.projection.parameter,
+                to: upper,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        var result = Array(spans[..<best.index])
+        result.append(head)
+        result.append(tail)
+        result.append(contentsOf: spans[(best.index + 1)...])
+        return result
     }
 
-    private func sectionTangentParameterSpan(
-        sectionIndex: Int,
-        sectionParameters: [Double],
-        connectionSpans: [Double],
-        closesSectionLoop: Bool
-    ) -> Double {
-        if closesSectionLoop {
-            let previousSpan = sectionIndex == 0
-                ? connectionSpans[connectionSpans.count - 1]
-                : connectionSpans[sectionIndex - 1]
-            return previousSpan + connectionSpans[sectionIndex]
+    private func exactCorrespondenceRings(
+        sections: [[ExactBSplineCurveSpan]],
+        guidePointsBySection: [[Point3D]],
+        tolerance: ModelingTolerance
+    ) throws -> [[Point3D]] {
+        guard sections.count == guidePointsBySection.count,
+              let firstSection = sections.first else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Exact Loft correspondence requires one guide-contact set per section."
+            )
         }
-        if sectionIndex == 0 {
-            return sectionParameters[1] - sectionParameters[0]
+        guard guidePointsBySection.contains(where: { $0.isEmpty == false }) else {
+            let targetCount = sections.map(\.count).max() ?? firstSection.count
+            return try sections.map { spans in
+                let ring = try exactMatchingRing(
+                    spans: spans,
+                    targetSampleCount: targetCount,
+                    tolerance: tolerance
+                )
+                try validateClosedRing(ring, tolerance: tolerance)
+                return ring
+            }
         }
-        if sectionIndex == sectionParameters.count - 1 {
-            return sectionParameters[sectionIndex] - sectionParameters[sectionIndex - 1]
+        guard let guideCount = guidePointsBySection.first?.count,
+              guidePointsBySection.allSatisfy({ $0.count == guideCount }) else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Exact Loft sections require one contact for every guide."
+            )
         }
-        return sectionParameters[sectionIndex + 1] - sectionParameters[sectionIndex - 1]
+        let guideIndexes = try sections.indices.map { sectionIndex in
+            try guidePointsBySection[sectionIndex].map { point in
+                guard let index = sections[sectionIndex].firstIndex(where: { span in
+                    span.startPoint.isApproximatelyEqual(
+                        to: point,
+                        tolerance: tolerance.distance
+                    )
+                }) else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .topologyFailure,
+                        tolerance: tolerance,
+                        message: "A Loft guide contact is not an exact section partition vertex."
+                    )
+                }
+                return index
+            }
+        }
+        for indexes in guideIndexes where Set(indexes).count != indexes.count {
+            throw FeatureEvaluationError.invalidGraph(
+                "Loft guide curves must constrain distinct section boundary positions."
+            )
+        }
+        let canonicalOrder = guideIndexes[0].indices.sorted {
+            guideIndexes[0][$0] < guideIndexes[0][$1]
+        }
+        for indexes in guideIndexes.dropFirst() {
+            let order = indexes.indices.sorted { indexes[$0] < indexes[$1] }
+            guard order == canonicalOrder else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .nonManifoldResult,
+                    tolerance: tolerance,
+                    message: "Loft guide contacts must preserve their cyclic boundary order across sections."
+                )
+            }
+        }
+        let boundaries = sections.indices.map { sectionIndex in
+            [0]
+                + guideIndexes[sectionIndex]
+                    .filter { $0 > 0 }
+                    .sorted()
+                + [sections[sectionIndex].count]
+        }
+        guard let intervalCount = boundaries.first.map({ $0.count - 1 }),
+              boundaries.allSatisfy({ $0.count == intervalCount + 1 }) else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Exact Loft guide partitions do not share one interval count."
+            )
+        }
+        let targetCounts = (0..<intervalCount).map { intervalIndex in
+            boundaries.indices.map { sectionIndex in
+                boundaries[sectionIndex][intervalIndex + 1]
+                    - boundaries[sectionIndex][intervalIndex]
+            }.max() ?? 0
+        }
+        return try sections.indices.map { sectionIndex in
+            var ring: [Point3D] = []
+            for intervalIndex in 0..<intervalCount {
+                let lower = boundaries[sectionIndex][intervalIndex]
+                let upper = boundaries[sectionIndex][intervalIndex + 1]
+                ring.append(contentsOf: try exactMatchingRing(
+                    spans: Array(sections[sectionIndex][lower..<upper]),
+                    targetSampleCount: targetCounts[intervalIndex],
+                    tolerance: tolerance
+                ))
+            }
+            try validateClosedRing(ring, tolerance: tolerance)
+            return ring
+        }
+    }
+
+    private func exactMatchingRing(
+        spans: [ExactBSplineCurveSpan],
+        targetSampleCount: Int,
+        tolerance: ModelingTolerance
+    ) throws -> [Point3D] {
+        guard spans.isEmpty == false,
+              targetSampleCount >= spans.count else {
+            throw SketchError.openProfile
+        }
+        let insertedCounts = apportionedCounts(
+            weights: spans.map { span in
+                zip(
+                    span.curve.controlPoints,
+                    span.curve.controlPoints.dropFirst()
+                ).reduce(0.0) { partial, pair in
+                    partial + (pair.1 - pair.0).length
+                }
+            },
+            total: targetSampleCount - spans.count
+        )
+        var result: [Point3D] = []
+        result.reserveCapacity(targetSampleCount)
+        for index in spans.indices {
+            let span = spans[index]
+            result.append(span.startPoint)
+            guard insertedCounts[index] > 0,
+                  case let .closed(lower, upper) = span.curve.domain else {
+                continue
+            }
+            for step in 1...insertedCounts[index] {
+                let ratio = Double(step) / Double(insertedCounts[index] + 1)
+                result.append(try span.curve.point(
+                    at: lower + (upper - lower) * ratio,
+                    tolerance: tolerance
+                ))
+            }
+        }
+        guard result.count == targetSampleCount else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Exact Loft section matching did not produce its target correspondence count."
+            )
+        }
+        return result
+    }
+
+    private func matchedEqualCountRings(
+        _ rings: [[Point3D]],
+        lockedSectionIndexes: Set<Int>,
+        tolerance: ModelingTolerance
+    ) throws -> [[Point3D]] {
+        guard let reference = rings.first,
+              rings.allSatisfy({ $0.count == reference.count }) else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Exact Loft correspondence rings require one common sample count."
+            )
+        }
+        var matched = [reference]
+        for index in rings.dropFirst().indices {
+            let ring = rings[index]
+            if lockedSectionIndexes.contains(index) {
+                let reversed = [ring[0]] + Array(ring.dropFirst().reversed())
+                let forwardScore = cyclicMatchScore(ring, reference: reference)
+                let reversedScore = cyclicMatchScore(reversed, reference: reference)
+                matched.append(
+                    reversedScore < forwardScore - tolerance.distance * tolerance.distance
+                        ? reversed
+                        : ring
+                )
+                continue
+            }
+            let candidates = [ring, Array(ring.reversed())]
+            var best: [Point3D] = []
+            var bestScore = Double.infinity
+            for candidate in candidates {
+                for offset in candidate.indices {
+                    let rotated = rotatedRing(candidate, offset: offset)
+                    let score = cyclicMatchScore(rotated, reference: reference)
+                    if score < bestScore - tolerance.distance * tolerance.distance {
+                        best = rotated
+                        bestScore = score
+                    }
+                }
+            }
+            guard best.isEmpty == false else {
+                throw FeatureEvaluationError.invalidGraph(
+                    "Exact Loft section matching found no correspondence candidate."
+                )
+            }
+            matched.append(best)
+        }
+        return matched
+    }
+
+    private func rotatedSpans<T>(_ spans: [T], offset: Int) -> [T] {
+        spans.indices.map { index in
+            spans[(index + offset) % spans.count]
+        }
     }
 
     /// Loft rings are extracted counterclockwise about their sketch normal, so
@@ -859,9 +618,11 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             }
         }
         if hasForwardAdvance, hasReversedAdvance {
-            throw unsupported(
-                "Loft sections must advance in one direction along the section winding normal; mixed-direction section stacks are not supported.",
-                tolerance: tolerance
+            throw KernelError(
+                phase: .topology,
+                code: .nonManifoldResult,
+                tolerance: tolerance,
+                message: "A mixed-direction solid Loft section stack folds back through one shell and cannot produce a consistently oriented manifold boundary."
             )
         }
         return hasReversedAdvance ? .reversed : .forward
@@ -896,389 +657,6 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         return sum * (1.0 / Double(first.count))
     }
 
-    private func averageRingDistance(
-        from first: [Point3D],
-        to second: [Point3D]
-    ) -> Double {
-        guard first.count == second.count,
-              first.isEmpty == false else {
-            return 0.0
-        }
-        let totalDistance = zip(first, second).reduce(0.0) { partial, pair in
-            partial + (pair.1 - pair.0).length
-        }
-        return totalDistance / Double(first.count)
-    }
-
-    private func mergedRatios(_ ratios: [Double]) -> [Double] {
-        let sorted = ratios.map { min(1.0, max(0.0, $0)) }.sorted()
-        var unique: [Double] = []
-        unique.reserveCapacity(sorted.count)
-        for ratio in sorted {
-            if let last = unique.last,
-               abs(last - ratio) <= 1.0e-12 {
-                continue
-            }
-            unique.append(ratio)
-        }
-        return unique
-    }
-
-    private func matchingSectionIndex(
-        for ratio: Double,
-        sectionRatios: [Double]
-    ) -> Int? {
-        sectionRatios.indices.first { index in
-            abs(sectionRatios[index] - ratio) <= 1.0e-12
-        }
-    }
-
-    private func sectionInterval(
-        for ratio: Double,
-        sectionRatios: [Double]
-    ) -> (lower: Int, upper: Int) {
-        for index in 0..<sectionRatios.index(before: sectionRatios.endIndex) {
-            let nextIndex = sectionRatios.index(after: index)
-            if ratio < sectionRatios[nextIndex] {
-                return (index, nextIndex)
-            }
-        }
-        let upper = sectionRatios.index(before: sectionRatios.endIndex)
-        return (sectionRatios.index(before: upper), upper)
-    }
-
-    private func localSectionRatio(
-        _ ratio: Double,
-        lowerRatio: Double,
-        upperRatio: Double
-    ) -> Double {
-        let span = upperRatio - lowerRatio
-        guard span > 1.0e-12 else { return 0.0 }
-        return min(1.0, max(0.0, (ratio - lowerRatio) / span))
-    }
-
-    private func linearlyInterpolatedRing(
-        startRing: [Point3D],
-        endRing: [Point3D],
-        ratio: Double
-    ) -> [Point3D] {
-        startRing.indices.map { vertexIndex in
-            startRing[vertexIndex] + ((endRing[vertexIndex] - startRing[vertexIndex]) * ratio)
-        }
-    }
-
-    private func linearlyInterpolatedScalar(
-        lower: Double,
-        upper: Double,
-        ratio: Double
-    ) -> Double {
-        lower + ((upper - lower) * ratio)
-    }
-
-    private func railSampleRatios(
-        from rails: [LoftGuideRail],
-        tolerance: ModelingTolerance
-    ) -> [Double] {
-        var ratios = [0.0, 1.0]
-        for rail in rails {
-            let totalDistance = rail.totalDistance
-            guard totalDistance > tolerance.distance else { continue }
-            for sample in rail.samples.dropFirst().dropLast() {
-                ratios.append(sample.distance / totalDistance)
-            }
-        }
-        ratios.sort()
-        var unique: [Double] = []
-        unique.reserveCapacity(ratios.count)
-        for ratio in ratios {
-            let clamped = min(1.0, max(0.0, ratio))
-            if let last = unique.last,
-               abs(last - clamped) <= 1.0e-12 {
-                continue
-            }
-            unique.append(clamped)
-        }
-        return unique
-    }
-
-    private func guideRailConstraints(
-        for rails: [LoftGuideRail],
-        baseRing: [Point3D],
-        ratio: Double,
-        tolerance: ModelingTolerance
-    ) throws -> [LoftGuideRailConstraint] {
-        var constraints: [LoftGuideRailConstraint] = []
-        constraints.reserveCapacity(rails.count)
-        for rail in rails {
-            let targetPoint = try point(on: rail, at: ratio, tolerance: tolerance)
-            constraints.append(LoftGuideRailConstraint(
-                vertexIndex: rail.vertexIndex,
-                offset: targetPoint - baseRing[rail.vertexIndex]
-            ))
-        }
-        constraints.sort { $0.vertexIndex < $1.vertexIndex }
-        return constraints
-    }
-
-    private func point(
-        on rail: LoftGuideRail,
-        at ratio: Double,
-        tolerance: ModelingTolerance
-    ) throws -> Point3D {
-        if ratio <= 0.0 {
-            return rail.samples[0].point
-        }
-        if ratio >= 1.0 {
-            return rail.samples[rail.samples.index(before: rail.samples.endIndex)].point
-        }
-        let targetDistance = rail.totalDistance * ratio
-        for index in 1..<rail.samples.count {
-            let previous = rail.samples[index - 1]
-            let next = rail.samples[index]
-            if targetDistance <= next.distance + tolerance.distance {
-                let span = next.distance - previous.distance
-                guard span > tolerance.distance else {
-                    return next.point
-                }
-                let localRatio = (targetDistance - previous.distance) / span
-                return previous.point + ((next.point - previous.point) * localRatio)
-            }
-        }
-        return rail.samples[rail.samples.index(before: rail.samples.endIndex)].point
-    }
-
-    private func interpolatedRailOffset(
-        for vertexIndex: Int,
-        vertexCount: Int,
-        constraints: [LoftGuideRailConstraint]
-    ) -> Vector3D {
-        guard constraints.isEmpty == false else { return .zero }
-        if constraints.count == 1 {
-            return constraints[0].offset
-        }
-        if let exact = constraints.first(where: { $0.vertexIndex == vertexIndex }) {
-            return exact.offset
-        }
-        let previous = previousConstraint(for: vertexIndex, constraints: constraints)
-        let next = nextConstraint(for: vertexIndex, constraints: constraints)
-        let totalSteps = cyclicDistance(
-            from: previous.vertexIndex,
-            to: next.vertexIndex,
-            vertexCount: vertexCount
-        )
-        guard totalSteps > 0 else { return previous.offset }
-        let vertexSteps = cyclicDistance(
-            from: previous.vertexIndex,
-            to: vertexIndex,
-            vertexCount: vertexCount
-        )
-        let ratio = Double(vertexSteps) / Double(totalSteps)
-        return previous.offset + ((next.offset - previous.offset) * ratio)
-    }
-
-    private func previousConstraint(
-        for vertexIndex: Int,
-        constraints: [LoftGuideRailConstraint]
-    ) -> LoftGuideRailConstraint {
-        constraints.last { $0.vertexIndex < vertexIndex }
-            ?? constraints[constraints.index(before: constraints.endIndex)]
-    }
-
-    private func nextConstraint(
-        for vertexIndex: Int,
-        constraints: [LoftGuideRailConstraint]
-    ) -> LoftGuideRailConstraint {
-        constraints.first { $0.vertexIndex > vertexIndex }
-            ?? constraints[0]
-    }
-
-    private func cyclicDistance(
-        from start: Int,
-        to end: Int,
-        vertexCount: Int
-    ) -> Int {
-        let raw = end - start
-        return raw >= 0 ? raw : raw + vertexCount
-    }
-
-    private func railSamples(
-        from points: [Point3D],
-        tolerance: ModelingTolerance
-    ) throws -> [LoftGuideRailSample] {
-        guard let first = points.first else {
-            throw SketchError.unsupportedEntity("Loft guide has no points.")
-        }
-        var samples = [LoftGuideRailSample(point: first, distance: 0.0)]
-        var accumulatedDistance = 0.0
-        for index in 1..<points.count {
-            let previous = samples[samples.index(before: samples.endIndex)].point
-            let current = points[index]
-            let segmentLength = (current - previous).length
-            guard segmentLength.isFinite else {
-                throw GeometryError.invalidDistance(segmentLength)
-            }
-            guard segmentLength > tolerance.distance else {
-                continue
-            }
-            accumulatedDistance += segmentLength
-            samples.append(LoftGuideRailSample(point: current, distance: accumulatedDistance))
-        }
-        guard samples.count >= 2 else {
-            throw FeatureEvaluationError.invalidDistance(accumulatedDistance)
-        }
-        return samples
-    }
-
-    private func matchedRings(
-        _ rings: [[Point3D]],
-        lockedSectionIndexes: Set<Int>,
-        targetSampleCount: Int,
-        tolerance: ModelingTolerance
-    ) throws -> [[Point3D]] {
-        guard let reference = rings.first else {
-            throw FeatureEvaluationError.invalidGraph("Loft requires at least one resolved section ring.")
-        }
-        let referenceSamples = try sampledClosedRing(
-            reference,
-            targetSampleCount: targetSampleCount,
-            tolerance: tolerance
-        )
-        var matched = [referenceSamples]
-        matched.reserveCapacity(rings.count)
-        for index in rings.dropFirst().indices {
-            let ring = rings[index]
-            if lockedSectionIndexes.contains(index) {
-                matched.append(try bestDirectionMatch(
-                    for: ring,
-                    reference: referenceSamples,
-                    targetSampleCount: targetSampleCount,
-                    tolerance: tolerance
-                ))
-            } else {
-                matched.append(try bestCyclicMatch(
-                    for: ring,
-                    reference: referenceSamples,
-                    targetSampleCount: targetSampleCount,
-                    tolerance: tolerance
-                ))
-            }
-        }
-        return matched
-    }
-
-    private func bestDirectionMatch(
-        for ring: [Point3D],
-        reference: [Point3D],
-        targetSampleCount: Int,
-        tolerance: ModelingTolerance
-    ) throws -> [Point3D] {
-        let reversed = [ring[0]] + Array(ring.dropFirst().reversed())
-        let forward = try sampledClosedRing(
-            ring,
-            targetSampleCount: targetSampleCount,
-            tolerance: tolerance
-        )
-        let reversedSamples = try sampledClosedRing(
-            reversed,
-            targetSampleCount: targetSampleCount,
-            tolerance: tolerance
-        )
-        let forwardScore = cyclicMatchScore(forward, reference: reference)
-        let reversedScore = cyclicMatchScore(reversedSamples, reference: reference)
-        if reversedScore < forwardScore - tolerance.distance * tolerance.distance {
-            return reversedSamples
-        }
-        return forward
-    }
-
-    private func bestCyclicMatch(
-        for ring: [Point3D],
-        reference: [Point3D],
-        targetSampleCount: Int,
-        tolerance: ModelingTolerance
-    ) throws -> [Point3D] {
-        let candidates = [ring, Array(ring.reversed())]
-        var bestRing: [Point3D] = []
-        var bestScore = Double.infinity
-        for candidate in candidates {
-            for offset in candidate.indices {
-                let rotated = rotatedRing(candidate, offset: offset)
-                let sampled = try sampledClosedRing(
-                    rotated,
-                    targetSampleCount: targetSampleCount,
-                    tolerance: tolerance
-                )
-                let score = cyclicMatchScore(sampled, reference: reference)
-                if score < bestScore - tolerance.distance * tolerance.distance {
-                    bestScore = score
-                    bestRing = sampled
-                }
-            }
-        }
-        guard bestRing.isEmpty == false else {
-            throw FeatureEvaluationError.invalidGraph("Loft requires at least one section matching candidate.")
-        }
-        return bestRing
-    }
-
-    /// Uniform perimeter-fraction resampling need not land on the source
-    /// ring's vertices, so section corners were silently rounded off whenever
-    /// section vertex counts differed. Keep every original vertex (the seam
-    /// vertex stays at index 0) and spend the remaining sample budget on the
-    /// edges proportionally to their length, so the drawn profile's corners
-    /// always appear in the matched ring.
-    private func sampledClosedRing(
-        _ ring: [Point3D],
-        targetSampleCount: Int,
-        tolerance: ModelingTolerance
-    ) throws -> [Point3D] {
-        guard targetSampleCount >= 3 else {
-            throw SketchError.openProfile
-        }
-        guard ring.count != targetSampleCount else {
-            return ring
-        }
-        guard ring.count < targetSampleCount else {
-            throw FeatureEvaluationError.invalidGraph(
-                "Loft section resampling must not reduce a section below its drawn vertex count."
-            )
-        }
-        let edgeLengths = ring.indices.map { index in
-            (ring[(index + 1) % ring.count] - ring[index]).length
-        }
-        let perimeter = edgeLengths.reduce(0.0, +)
-        guard perimeter > tolerance.distance else {
-            throw SketchError.degenerateProfile
-        }
-        let insertedCounts = apportionedCounts(
-            weights: edgeLengths,
-            total: targetSampleCount - ring.count
-        )
-        var samples: [Point3D] = []
-        samples.reserveCapacity(targetSampleCount)
-        for index in ring.indices {
-            let start = ring[index]
-            samples.append(start)
-            let insertedCount = insertedCounts[index]
-            guard insertedCount > 0 else {
-                continue
-            }
-            let segment = ring[(index + 1) % ring.count] - start
-            for step in 1...insertedCount {
-                let fraction = Double(step) / Double(insertedCount + 1)
-                samples.append(start + segment * fraction)
-            }
-        }
-        guard samples.count == targetSampleCount else {
-            throw FeatureEvaluationError.invalidGraph(
-                "Loft section resampling must produce the matched target sample count."
-            )
-        }
-        return samples
-    }
-
-    /// Largest-remainder apportionment of `total` integer counts across
-    /// nonnegative weights.
     private func apportionedCounts(weights: [Double], total: Int) -> [Int] {
         let weightSum = weights.reduce(0.0, +)
         guard total > 0, weightSum > 0.0 else {
@@ -1337,356 +715,15 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         }
     }
 
-    private func addLineEdge(
-        from startID: VertexID,
-        to endID: VertexID,
-        model: inout BRepModel,
-        geometry: inout GeometryStore,
-        tolerance: ModelingTolerance
-    ) throws -> EdgeID {
-        guard let start = model.vertices[startID]?.point,
-              let end = model.vertices[endID]?.point else {
-            throw TopologyError.missingReference("Missing loft edge vertex.")
-        }
-        let delta = end - start
-        let direction = try delta.normalized(tolerance: tolerance.distance)
-        let curveID = CurveID()
-        let edgeID = EdgeID()
-        geometry.curves[curveID] = .line(Line3D(origin: start, direction: direction))
-        model.edges[edgeID] = Edge(
-            id: edgeID,
-            curveID: curveID,
-            startVertexID: startID,
-            endVertexID: endID,
-            trim: CurveTrim(startParameter: 0.0, endParameter: delta.length)
-        )
-        return edgeID
-    }
-
-    private func addCubicConnectorEdge(
-        from startID: VertexID,
-        to endID: VertexID,
-        startTangent: Vector3D,
-        endTangent: Vector3D,
-        parameterSpan: Double,
-        model: inout BRepModel,
-        geometry: inout GeometryStore,
-        tolerance: ModelingTolerance
-    ) throws -> EdgeID {
-        guard let start = model.vertices[startID]?.point,
-              let end = model.vertices[endID]?.point else {
-            throw TopologyError.missingReference("Missing smooth loft connector edge vertex.")
-        }
-        guard parameterSpan > 1.0e-12 else {
-            throw FeatureEvaluationError.invalidGraph("Smooth Loft connector parameter spans must be positive.")
-        }
-        let firstControlPoint = start + startTangent * (parameterSpan / 3.0)
-        let secondControlPoint = end + endTangent * (-parameterSpan / 3.0)
-        let controlPoints: [Point3D] = [
-            start,
-            firstControlPoint,
-            secondControlPoint,
-            end,
-        ]
-        let curve = BSplineCurve3D(
-            degree: 3,
-            knots: cubicBezierKnots(),
-            controlPoints: controlPoints
-        )
-        try curve.validate(tolerance: tolerance)
-        let curveID = CurveID()
-        let edgeID = EdgeID()
-        geometry.curves[curveID] = .bSpline(curve)
-        model.edges[edgeID] = Edge(
-            id: edgeID,
-            curveID: curveID,
-            startVertexID: startID,
-            endVertexID: endID,
-            trim: CurveTrim(startParameter: 0.0, endParameter: 1.0)
-        )
-        return edgeID
-    }
-
-    private func addRuledBSplineFace(
-        featureID: FeatureID,
-        index: Int,
-        orientation: Orientation = .forward,
-        bottomLeft: Point3D,
-        bottomRight: Point3D,
-        topRight: Point3D,
-        topLeft: Point3D,
-        bottomEdgeID: EdgeID,
-        rightEdgeID: EdgeID,
-        topEdgeID: EdgeID,
-        leftEdgeID: EdgeID,
-        model: inout BRepModel,
-        geometry: inout GeometryStore,
-        generatedSubshapes: inout [SubshapeID: TopologyReference],
-        tolerance: ModelingTolerance
-    ) throws -> FaceID {
-        let surface = BSplineSurface3D.bilinearPatch(
-            bottomLeft: bottomLeft,
-            bottomRight: bottomRight,
-            topRight: topRight,
-            topLeft: topLeft
-        )
-        try surface.validate(tolerance: tolerance)
-
-        let surfaceID = SurfaceID()
-        let loopID = LoopID()
-        let faceID = FaceID()
-        geometry.surfaces[surfaceID] = .bSpline(surface)
-        model.loops[loopID] = Loop(
-            id: loopID,
-            role: .outer,
-            edges: [
-                Coedge(
-                    edgeID: bottomEdgeID,
-                    orientation: .forward,
-                    surfaceParameterCurve: .constantV(v: 0.0, uStart: 0.0, uEnd: 1.0)
-                ),
-                Coedge(
-                    edgeID: rightEdgeID,
-                    orientation: .forward,
-                    surfaceParameterCurve: .constantU(u: 1.0, vStart: 0.0, vEnd: 1.0)
-                ),
-                Coedge(
-                    edgeID: topEdgeID,
-                    orientation: .reversed,
-                    surfaceParameterCurve: .constantV(v: 1.0, uStart: 1.0, uEnd: 0.0)
-                ),
-                Coedge(
-                    edgeID: leftEdgeID,
-                    orientation: .reversed,
-                    surfaceParameterCurve: .constantU(u: 0.0, vStart: 1.0, vEnd: 0.0)
-                ),
-            ]
-        )
-        model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID], orientation: orientation)
-        generatedSubshapes[subshapeID(featureID, role: .sideFace, index: index)] = .face(faceID)
-        return faceID
-    }
-
-    private func addSmoothBSplineFace(
-        featureID: FeatureID,
-        index: Int,
-        orientation: Orientation = .forward,
-        bottomLeft: Point3D,
-        bottomRight: Point3D,
-        topRight: Point3D,
-        topLeft: Point3D,
-        bottomLeftTangent: Vector3D,
-        bottomRightTangent: Vector3D,
-        topRightTangent: Vector3D,
-        topLeftTangent: Vector3D,
-        parameterSpan: Double,
-        bottomEdgeID: EdgeID,
-        rightEdgeID: EdgeID,
-        topEdgeID: EdgeID,
-        leftEdgeID: EdgeID,
-        model: inout BRepModel,
-        geometry: inout GeometryStore,
-        generatedSubshapes: inout [SubshapeID: TopologyReference],
-        tolerance: ModelingTolerance
-    ) throws -> FaceID {
-        guard parameterSpan > 1.0e-12 else {
-            throw FeatureEvaluationError.invalidGraph("Smooth Loft surface parameter spans must be positive.")
-        }
-        let tangentScale = parameterSpan / 3.0
-        let firstInteriorRow: [Point3D] = [
-            bottomLeft + bottomLeftTangent * tangentScale,
-            bottomRight + bottomRightTangent * tangentScale,
-        ]
-        let secondInteriorRow: [Point3D] = [
-            topLeft + topLeftTangent * (-tangentScale),
-            topRight + topRightTangent * (-tangentScale),
-        ]
-        let controlPoints: [[Point3D]] = [
-            [bottomLeft, bottomRight],
-            firstInteriorRow,
-            secondInteriorRow,
-            [topLeft, topRight],
-        ]
-        let surface = BSplineSurface3D(
-            uDegree: 1,
-            vDegree: 3,
-            uKnots: [0.0, 0.0, 1.0, 1.0],
-            vKnots: cubicBezierKnots(),
-            controlPoints: controlPoints
-        )
-        try surface.validate(tolerance: tolerance)
-
-        let surfaceID = SurfaceID()
-        let loopID = LoopID()
-        let faceID = FaceID()
-        geometry.surfaces[surfaceID] = .bSpline(surface)
-        model.loops[loopID] = Loop(
-            id: loopID,
-            role: .outer,
-            edges: [
-                Coedge(
-                    edgeID: bottomEdgeID,
-                    orientation: .forward,
-                    surfaceParameterCurve: .constantV(v: 0.0, uStart: 0.0, uEnd: 1.0)
-                ),
-                Coedge(
-                    edgeID: rightEdgeID,
-                    orientation: .forward,
-                    surfaceParameterCurve: .constantU(u: 1.0, vStart: 0.0, vEnd: 1.0)
-                ),
-                Coedge(
-                    edgeID: topEdgeID,
-                    orientation: .reversed,
-                    surfaceParameterCurve: .constantV(v: 1.0, uStart: 1.0, uEnd: 0.0)
-                ),
-                Coedge(
-                    edgeID: leftEdgeID,
-                    orientation: .reversed,
-                    surfaceParameterCurve: .constantU(u: 0.0, vStart: 1.0, vEnd: 0.0)
-                ),
-            ]
-        )
-        model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID], orientation: orientation)
-        generatedSubshapes[subshapeID(featureID, role: .sideFace, index: index)] = .face(faceID)
-        return faceID
-    }
-
-    private func cubicBezierKnots() -> [Double] {
-        [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]
-    }
-
-    private func addPlanarFace(
-        featureID: FeatureID,
-        role: GeneratedSubshapeRole,
-        index: Int?,
-        orientation: Orientation = .forward,
-        loopEdges: [Coedge],
-        model: inout BRepModel,
-        geometry: inout GeometryStore,
-        generatedSubshapes: inout [SubshapeID: TopologyReference],
-        tolerance: ModelingTolerance
-    ) throws -> FaceID {
-        let loopPoints = try orderedPoints(for: loopEdges, in: model)
-        let plane = try plane(for: loopPoints, tolerance: tolerance)
-        let surfaceID = SurfaceID()
-        let loopID = LoopID()
-        let faceID = FaceID()
-        geometry.surfaces[surfaceID] = .plane(plane)
-        model.loops[loopID] = Loop(id: loopID, role: .outer, edges: loopEdges)
-        model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID], orientation: orientation)
-        generatedSubshapes[subshapeID(featureID, role: role, index: index)] = .face(faceID)
-        return faceID
-    }
-
-    private func orderedPoints(
-        for loopEdges: [Coedge],
-        in model: BRepModel
-    ) throws -> [Point3D] {
-        try loopEdges.map { orientedEdge in
-            guard let edge = model.edges[orientedEdge.edgeID] else {
-                throw TopologyError.missingReference("Missing loft loop edge.")
-            }
-            let vertexID: VertexID
-            switch orientedEdge.orientation {
-            case .forward:
-                vertexID = edge.startVertexID
-            case .reversed:
-                vertexID = edge.endVertexID
-            }
-            guard let vertex = model.vertices[vertexID] else {
-                throw TopologyError.missingReference("Missing loft loop vertex.")
-            }
-            return vertex.point
-        }
-    }
-
-    private func plane(
-        for points: [Point3D],
-        tolerance: ModelingTolerance
-    ) throws -> Plane3D {
-        guard points.count >= 3 else {
-            throw TopologyError.degenerateLoop(LoopID())
-        }
-        // Newell's method: the summed edge cross products give the loop's area
-        // vector, whose direction always matches the loop winding. A single fan
-        // corner (the previous approach) flips sign whenever the first
-        // non-degenerate corner is concave, silently inverting the cap plane.
-        // Rebasing to the first point keeps the sum exact far from the origin.
-        let origin = points[0]
-        var areaVector = Vector3D(x: 0.0, y: 0.0, z: 0.0)
-        for index in points.indices {
-            let current = points[index] - origin
-            let next = points[(index + 1) % points.count] - origin
-            areaVector = areaVector + current.cross(next)
-        }
-        guard areaVector.length > tolerance.distance else {
-            throw TopologyError.degenerateLoop(LoopID())
-        }
-        let normal = try areaVector.normalized(tolerance: tolerance.distance)
-        for point in points {
-            let distance = abs((point - origin).dot(normal))
-            guard distance <= tolerance.distance else {
-                throw unsupported(
-                    "Loft cap faces must be planar.",
-                    tolerance: tolerance
-                )
-            }
-        }
-        return Plane3D(origin: origin, normal: normal)
-    }
-
-    private func unsupported(
-        _ message: String,
-        tolerance: ModelingTolerance
-    ) -> KernelError {
-        KernelError(
-            phase: .evaluation,
-            code: .unsupportedCapability,
-            tolerance: tolerance,
-            message: message
-        )
-    }
-
-    private func subshapeID(
-        _ featureID: FeatureID,
-        role: GeneratedSubshapeRole,
-        index: Int?
-    ) -> SubshapeID {
-        SubshapeID(
-            featureID: featureID,
-            role: role.rawValue,
-            ordinal: index ?? 0
-        )
-    }
 }
 
 private struct LoftMatchedRings: Sendable, Hashable {
     var rings: [[Point3D]]
     var smoothTangentScales: [Double]
     var smoothTangentModes: [LoftSectionSmoothTangentMode]
+    var exactSeamPoints: [Point3D?]
 }
 
-private struct LoftGuideRailSample: Sendable, Hashable {
-    var point: Point3D
-    var distance: Double
-}
-
-private struct LoftGuideEndpointMatch: Sendable, Hashable {
-    var guideID: FeatureID
-    var firstSectionSampleIndex: Int
-    var lastSectionSampleIndex: Int
-}
-
-private struct LoftGuideRail: Sendable, Hashable {
-    var vertexIndex: Int
-    var samples: [LoftGuideRailSample]
-
-    var totalDistance: Double {
-        samples[samples.index(before: samples.endIndex)].distance
-    }
-}
-
-private struct LoftGuideRailConstraint: Sendable, Hashable {
-    var vertexIndex: Int
-    var offset: Vector3D
+private struct LoftMatchedLoopSet: Sendable, Hashable {
+    var loops: [LoftMatchedRings]
 }

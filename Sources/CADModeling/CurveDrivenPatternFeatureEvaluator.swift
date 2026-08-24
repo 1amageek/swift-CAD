@@ -2,10 +2,18 @@ import CADCore
 import CADIR
 
 public struct CurveDrivenPatternFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
-    private let rebuilder: any ExactPlanarPatternRebuilding
+    private let rebuilder: any ExactBodyPatternRebuilding
 
-    public init(sewer: any BRepSewing) {
-        self.rebuilder = DefaultExactPlanarPatternRebuilder(sewer: sewer)
+    public init(
+        sewer: any BRepSewing,
+        unionApplicator: any BooleanOperationApplying,
+        separationValidator: any BodyJoinValidating
+    ) {
+        self.rebuilder = DefaultExactBodyPatternRebuilder(
+            sewer: sewer,
+            unionApplicator: unionApplicator,
+            separationValidator: separationValidator
+        )
     }
 
     public func evaluate(
@@ -43,7 +51,7 @@ public struct CurveDrivenPatternFeatureEvaluator: FeatureEvaluating, ValidatedFe
             try pattern.validate(tolerance: context.tolerance)
         }
         try FeatureEvaluationBoundary.validateExactInput(
-            context.brep,
+            context,
             featureID: feature.id,
             tolerance: context.tolerance
         )
@@ -87,46 +95,39 @@ public struct CurveDrivenPatternFeatureEvaluator: FeatureEvaluating, ValidatedFe
         tolerance: ModelingTolerance
     ) throws -> [EvaluatedCurvePathSample] {
         do {
-            let segments = try EvaluatedCurveChainBuilder(tolerance: tolerance).openSegments(
+            let chain = try EvaluatedCurveChainBuilder(tolerance: tolerance).connectedSegments(
                 from: curves,
                 operationName: "Curve-driven pattern path"
             )
             let evaluator = EvaluatedCurvePathEvaluator(tolerance: tolerance)
-            let fullSamples = try evaluator.samples(for: segments)
-            guard let first = fullSamples.first else {
-                throw error(
-                    .topologyFailure,
-                    featureID: featureID,
-                    tolerance: tolerance,
-                    "Curve-driven pattern path produced no samples."
-                )
-            }
-            var result = [first]
+            let preparedPath = try evaluator.prepare(chain.segments)
+            var result: [EvaluatedCurvePathSample] = []
             result.reserveCapacity(count)
-            for index in 1..<count {
-                let fraction = Double(index) / Double(count - 1)
-                guard let sample = try evaluator.samples(
-                    for: segments,
-                    distanceFraction: fraction
-                ).last else {
-                    throw error(
-                        .topologyFailure,
-                        featureID: featureID,
-                        tolerance: tolerance,
-                        "Curve-driven pattern path fraction produced no sample."
-                    )
-                }
-                result.append(sample)
+            for index in 0..<count {
+                let fraction = Double(index) / Double(
+                    chain.isClosed ? count : count - 1
+                )
+                result.append(try evaluator.sample(
+                    at: preparedPath.totalLength * fraction,
+                    on: preparedPath
+                ))
             }
             return result
         } catch let kernelError as KernelError {
             throw kernelError
-        } catch {
+        } catch let sketchError as SketchError {
             throw self.error(
-                .unsupportedCapability,
+                .ambiguousSelection,
                 featureID: featureID,
                 tolerance: tolerance,
-                "Curve-driven pattern requires one connected open path supported by exact path evaluation: \(error)"
+                "Curve-driven pattern path must resolve to one connected, non-branching chain: \(sketchError)"
+            )
+        } catch {
+            throw self.error(
+                .invalidInput,
+                featureID: featureID,
+                tolerance: tolerance,
+                "Curve-driven pattern path evaluation failed: \(error)"
             )
         }
     }

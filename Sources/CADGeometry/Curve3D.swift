@@ -34,6 +34,8 @@ public enum Curve3D: Codable, Sendable, Hashable {
     case implicit(CertifiedImplicitIntersectionCurve)
     case surfaceLift(SurfaceLiftCurve3D)
     case certifiedIntersection(CertifiedIntersectionCurve3D)
+    indirect case rigidImage(RigidImageCurve3D)
+    indirect case affineImage(AffineImageCurve3D)
 
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
@@ -52,6 +54,10 @@ public enum Curve3D: Codable, Sendable, Hashable {
             try curve.validate(tolerance: tolerance)
         case let .certifiedIntersection(curve):
             try curve.validate(tolerance: tolerance)
+        case let .rigidImage(curve):
+            try curve.validate(tolerance: tolerance)
+        case let .affineImage(curve):
+            try curve.validate(tolerance: tolerance)
         }
     }
 
@@ -67,14 +73,21 @@ public enum Curve3D: Codable, Sendable, Hashable {
             curve.domain
         case .implicit, .surfaceLift, .certifiedIntersection:
             .closed(0.0, 1.0)
+        case let .rigidImage(curve):
+            curve.parameterDomain
+        case let .affineImage(curve):
+            curve.parameterDomain
         }
     }
 
     public func point(at parameter: Double, tolerance: ModelingTolerance) throws -> Point3D {
-        try validate(tolerance: tolerance)
-        guard try parameterDomain.contains(parameter, tolerance: tolerance) else {
-            throw GeometryError.invalidDistance(0.0)
-        }
+        try ValidatedCurve3D(self, tolerance: tolerance).point(at: parameter)
+    }
+
+    package func pointAssumingValid(
+        at parameter: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Point3D {
         switch self {
         case let .line(line):
             return line.origin + line.direction * parameter
@@ -87,22 +100,38 @@ public enum Curve3D: Codable, Sendable, Hashable {
                 + (u * (circle.radius * cos(parameter)))
                 + (v * (circle.radius * sin(parameter)))
         case let .analytic(curve):
-            return try curve.point(at: parameter, tolerance: tolerance)
+            return try curve.differentialGeometryAssumingValid(
+                at: parameter,
+                tolerance: tolerance
+            ).position
         case let .bSpline(curve):
-            return try curve.point(at: parameter, tolerance: tolerance)
+            return try curve.pointAssumingValid(
+                at: parameter,
+                tolerance: tolerance
+            )
         case let .implicit(curve):
             return try curve.point(
                 atNormalizedFraction: parameter,
                 tolerance: tolerance
             )
         case let .surfaceLift(curve):
-            return try curve.point(
+            return try curve.pointAssumingValid(
                 atNormalizedFraction: parameter,
                 tolerance: tolerance
             )
         case let .certifiedIntersection(curve):
             return try curve.point(
                 atNormalizedFraction: parameter,
+                tolerance: tolerance
+            )
+        case let .rigidImage(curve):
+            return try curve.pointAssumingValid(
+                at: parameter,
+                tolerance: tolerance
+            )
+        case let .affineImage(curve):
+            return try curve.pointAssumingValid(
+                at: parameter,
                 tolerance: tolerance
             )
         }
@@ -112,17 +141,11 @@ public enum Curve3D: Codable, Sendable, Hashable {
         at parameter: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
-        try validate(tolerance: tolerance)
-        guard try parameterDomain.contains(parameter, tolerance: tolerance) else {
-            throw GeometryError.invalidDistance(0.0)
-        }
-        return try differentialGeometryAssumingValid(
-            at: parameter,
-            tolerance: tolerance
-        )
+        try ValidatedCurve3D(self, tolerance: tolerance)
+            .differentialGeometry(at: parameter)
     }
 
-    func differentialGeometryAssumingValid(
+    package func differentialGeometryAssumingValid(
         at parameter: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
@@ -156,7 +179,10 @@ public enum Curve3D: Codable, Sendable, Hashable {
                 tolerance: tolerance
             )
         case let .analytic(curve):
-            let geometry = try curve.differentialGeometry(at: parameter, tolerance: tolerance)
+            let geometry = try curve.differentialGeometryAssumingValid(
+                at: parameter,
+                tolerance: tolerance
+            )
             return try Self.differentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
@@ -164,7 +190,10 @@ public enum Curve3D: Codable, Sendable, Hashable {
                 tolerance: tolerance
             )
         case let .bSpline(curve):
-            let geometry = try curve.differentialGeometry(at: parameter, tolerance: tolerance)
+            let geometry = try curve.differentialGeometryAssumingValid(
+                at: parameter,
+                tolerance: tolerance
+            )
             return DifferentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
@@ -206,6 +235,16 @@ public enum Curve3D: Codable, Sendable, Hashable {
                 secondDerivative: geometry.secondDerivative,
                 tolerance: tolerance
             )
+        case let .rigidImage(curve):
+            return try curve.differentialGeometryAssumingValid(
+                at: parameter,
+                tolerance: tolerance
+            )
+        case let .affineImage(curve):
+            return try curve.differentialGeometryAssumingValid(
+                at: parameter,
+                tolerance: tolerance
+            )
         }
     }
 
@@ -218,6 +257,8 @@ public enum Curve3D: Codable, Sendable, Hashable {
         case implicit
         case surfaceLift
         case certifiedIntersection
+        case rigidImage
+        case affineImage
     }
 
     private enum Kind: String, Codable {
@@ -228,6 +269,8 @@ public enum Curve3D: Codable, Sendable, Hashable {
         case implicit
         case surfaceLift
         case certifiedIntersection
+        case rigidImage
+        case affineImage
     }
 
     public init(from decoder: Decoder) throws {
@@ -265,6 +308,18 @@ public enum Curve3D: Codable, Sendable, Hashable {
                 CertifiedIntersectionCurve3D.self,
                 forKey: .certifiedIntersection
             ))
+        case .rigidImage:
+            try container.validateOnlyExpectedKeys([.kind, .rigidImage], in: decoder)
+            self = .rigidImage(try container.decode(
+                RigidImageCurve3D.self,
+                forKey: .rigidImage
+            ))
+        case .affineImage:
+            try container.validateOnlyExpectedKeys([.kind, .affineImage], in: decoder)
+            self = .affineImage(try container.decode(
+                AffineImageCurve3D.self,
+                forKey: .affineImage
+            ))
         }
     }
 
@@ -292,6 +347,12 @@ public enum Curve3D: Codable, Sendable, Hashable {
         case let .certifiedIntersection(curve):
             try container.encode(Kind.certifiedIntersection, forKey: .kind)
             try container.encode(curve, forKey: .certifiedIntersection)
+        case let .rigidImage(curve):
+            try container.encode(Kind.rigidImage, forKey: .kind)
+            try container.encode(curve, forKey: .rigidImage)
+        case let .affineImage(curve):
+            try container.encode(Kind.affineImage, forKey: .kind)
+            try container.encode(curve, forKey: .affineImage)
         }
     }
 

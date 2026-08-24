@@ -33,9 +33,8 @@ public struct BooleanFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
     ) throws -> EvaluationResult {
         try context.tolerance.validate()
         guard case let .boolean(boolean) = feature.operation else {
-            throw KernelError.unsupportedEvaluation(
-                tolerance: context.tolerance,
-                message: "BooleanFeatureEvaluator only supports boolean features."
+            throw FeatureEvaluationError.invalidGraph(
+                "BooleanFeatureEvaluator received a non-boolean feature."
             )
         }
         try FeatureEvaluationBoundary.validateRequest(

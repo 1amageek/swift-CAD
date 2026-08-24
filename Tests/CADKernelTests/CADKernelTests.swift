@@ -1,6 +1,7 @@
 import Testing
 import Foundation
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 import CADTopology
@@ -365,6 +366,127 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func nestedRectangleExtrudeCreatesOneWatertightHollowPrism() throws {
+        let sketchFeatureID = FeatureID()
+        let extrudeFeatureID = FeatureID()
+        let sketch = lineLoopSketches([
+            [
+                Point2D(x: -0.020, y: -0.020),
+                Point2D(x: 0.020, y: -0.020),
+                Point2D(x: 0.020, y: 0.020),
+                Point2D(x: -0.020, y: 0.020),
+            ],
+            [
+                Point2D(x: -0.010, y: -0.010),
+                Point2D(x: 0.010, y: -0.010),
+                Point2D(x: 0.010, y: 0.010),
+                Point2D(x: -0.010, y: 0.010),
+            ],
+        ])
+        let document = CADDocument(
+            units: .meters,
+            designGraph: DesignGraph(
+                nodes: [
+                    sketchFeatureID: FeatureNode(
+                        id: sketchFeatureID,
+                        operation: .sketch(sketch),
+                        outputs: [FeatureOutput(role: .profile)]
+                    ),
+                    extrudeFeatureID: FeatureNode(
+                        id: extrudeFeatureID,
+                        operation: .extrude(ExtrudeFeature(
+                            profile: ProfileReference(featureID: sketchFeatureID),
+                            distance: .constant(.length(0.010, unit: .meter))
+                        )),
+                        inputs: [FeatureInput(featureID: sketchFeatureID, role: .profile)],
+                        outputs: [FeatureOutput(role: .body)]
+                    ),
+                ],
+                order: [sketchFeatureID, extrudeFeatureID],
+                dependencies: [DependencyEdge(source: sketchFeatureID, target: extrudeFeatureID)]
+            )
+        )
+
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.shells.count == 1)
+        #expect(evaluated.brep.faces.count == 10)
+        #expect(evaluated.brep.edges.count == 24)
+        #expect(evaluated.brep.vertices.count == 16)
+        #expect(evaluated.brep.loops.values.filter { $0.role == .inner }.count == 2)
+        let volume = try evaluated.brep.volume(tolerance: .standard)
+        #expect(abs(volume - 0.000_012) <= 1.0e-12)
+        let bodyID = try #require(evaluated.brep.bodies.keys.first)
+        let classifier = DefaultBRepSolidPointClassifier()
+        #expect(try classifier.classify(
+            Point3D(x: 0.0, y: 0.0, z: 0.005),
+            in: bodyID,
+            model: evaluated.brep,
+            tolerance: .standard
+        ) == .outside)
+        #expect(try classifier.classify(
+            Point3D(x: 0.015, y: 0.0, z: 0.005),
+            in: bodyID,
+            model: evaluated.brep,
+            tolerance: .standard
+        ) == .inside)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func mixedRectangleAndCircleExtrudePreservesExactCylindricalHole() throws {
+        let sketchFeatureID = FeatureID()
+        let extrudeFeatureID = FeatureID()
+        var sketch = lineLoopSketch([
+            Point2D(x: -0.020, y: -0.020),
+            Point2D(x: 0.020, y: -0.020),
+            Point2D(x: 0.020, y: 0.020),
+            Point2D(x: -0.020, y: 0.020),
+        ])
+        sketch.entities[SketchEntityID()] = .circle(SketchCircle(
+            center: SketchPoint(
+                x: .constant(.length(0.0, unit: .meter)),
+                y: .constant(.length(0.0, unit: .meter))
+            ),
+            radius: .constant(.length(0.010, unit: .meter))
+        ))
+        let document = CADDocument(
+            units: .meters,
+            designGraph: DesignGraph(
+                nodes: [
+                    sketchFeatureID: FeatureNode(
+                        id: sketchFeatureID,
+                        operation: .sketch(sketch),
+                        outputs: [FeatureOutput(role: .profile)]
+                    ),
+                    extrudeFeatureID: FeatureNode(
+                        id: extrudeFeatureID,
+                        operation: .extrude(ExtrudeFeature(
+                            profile: ProfileReference(featureID: sketchFeatureID),
+                            distance: .constant(.length(0.010, unit: .meter))
+                        )),
+                        inputs: [FeatureInput(featureID: sketchFeatureID, role: .profile)],
+                        outputs: [FeatureOutput(role: .body)]
+                    ),
+                ],
+                order: [sketchFeatureID, extrudeFeatureID],
+                dependencies: [DependencyEdge(source: sketchFeatureID, target: extrudeFeatureID)]
+            )
+        )
+
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.faces.count == 10)
+        #expect(evaluated.brep.geometry.surfaces.values.filter(\.isCylinder).count == 4)
+        #expect(evaluated.brep.loops.values.filter { $0.role == .inner }.count == 2)
+        let expectedVolume = (0.040 * 0.040 - Double.pi * 0.010 * 0.010) * 0.010
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - expectedVolume) <= 1.0e-10)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func ringRevolveMeshVolumeMatchesAnnulus() throws {
         let document = makeRingRectangleRevolveDocument()
         let evaluated = try DocumentEvaluator(
@@ -376,7 +498,11 @@ struct CADKernelTests {
         // hollow revolve equals pi * (R^2 - r^2) * h instead of silently
         // inflating by (4/3) * pi * r^2 * h.
         let expected = Double.pi * (0.025 * 0.025 - 0.015 * 0.015) * 0.03
-        #expect(abs(abs(signedMeshVolume(mesh)) - expected) <= 1.0e-9)
+        let actual = abs(signedMeshVolume(mesh))
+        #expect(
+            abs(actual - expected) <= 1.0e-9,
+            "Expected mesh volume \(expected), got \(actual)."
+        )
         try evaluated.brep.validate(tolerance: .standard)
     }
 
@@ -394,7 +520,11 @@ struct CADKernelTests {
         // sagitta-simplified to the distance tolerance. Both chord-error
         // budgets stay well inside the 1e-9 band used by the sibling tests.
         let expected = Double.pi * (0.025 * 0.025 - 0.015 * 0.015) * 0.03
-        #expect(abs(abs(signedMeshVolume(mesh)) - expected) <= 1.0e-9)
+        let actual = abs(signedMeshVolume(mesh))
+        #expect(
+            abs(actual - expected) <= 1.0e-9,
+            "Expected mesh volume \(expected), got \(actual)."
+        )
         try mesh.validate(tolerance: .standard)
         try evaluated.brep.validate(tolerance: .standard)
     }
@@ -438,7 +568,11 @@ struct CADKernelTests {
         let mesh = try #require(evaluated.meshes.values.first)
 
         let expected = Double.pi * 0.02 * 0.02 * 0.04
-        #expect(abs(abs(signedMeshVolume(mesh)) - expected) <= 1.0e-9)
+        let actual = abs(signedMeshVolume(mesh))
+        #expect(
+            abs(actual - expected) <= 1.0e-9,
+            "Expected mesh volume \(expected), got \(actual)."
+        )
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -514,10 +648,10 @@ struct CADKernelTests {
         do {
             _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
             Issue.record("Revolve must reject axes outside the profile plane.")
-        } catch let error as KernelError where error.code == .unsupportedCapability {
+        } catch let error as KernelError where error.code == .invalidInput {
             #expect(error.message.contains("profile plane"))
         } catch {
-            Issue.record("Expected unsupportedCapability for axis outside profile plane, got \(error).")
+            Issue.record("Expected invalidInput for axis outside profile plane, got \(error).")
         }
     }
 
@@ -528,10 +662,10 @@ struct CADKernelTests {
         do {
             _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
             Issue.record("Revolve must reject profiles crossing the rotation axis.")
-        } catch let error as KernelError where error.code == .unsupportedCapability {
+        } catch let error as KernelError where error.code == .invalidInput {
             #expect(error.message.contains("one side"))
         } catch {
-            Issue.record("Expected unsupportedCapability for profile crossing axis, got \(error).")
+            Issue.record("Expected invalidInput for profile crossing axis, got \(error).")
         }
     }
 
@@ -1258,11 +1392,11 @@ struct CADKernelTests {
             _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
             Issue.record("Disconnected multi-curve sweep paths must be rejected.")
         } catch let error as SketchError {
-            guard case .unsupportedEntity(let message) = error else {
-                Issue.record("Expected unsupportedEntity for disconnected sweep path, got \(error).")
+            guard case .disconnectedCurveChain(let operation) = error else {
+                Issue.record("Expected disconnectedCurveChain for disconnected sweep path, got \(error).")
                 return
             }
-            #expect(message.contains("Sweep path requires connected open curve segments."))
+            #expect(operation == "Sweep path")
         } catch {
             Issue.record("Expected SketchError for disconnected sweep path, got \(error).")
         }
@@ -1330,7 +1464,8 @@ struct CADKernelTests {
         try expectBounds(
             evaluated.brep,
             minimum: Point3D(x: -0.020, y: -0.010, z: 0.0),
-            maximum: Point3D(x: 0.020, y: 0.010, z: 0.010)
+            maximum: Point3D(x: 0.020, y: 0.010, z: 0.010),
+            tolerance: ModelingTolerance.standard.distance
         )
     }
 
@@ -1628,6 +1763,45 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func selectionMeasurementEvaluatorResolvesWholeBodyRepresentativePoint() throws {
+        let fixture = makeRationalSurfaceParameterTrimEvaluatedDocument()
+        let bodyID = try #require(fixture.document.brep.bodies.keys.first)
+        let bodyName = SubshapeID(
+            featureID: FeatureID(),
+            role: "measurement.body",
+            ordinal: 0
+        )
+        var subshapeEntries = fixture.document.subshapes.entries
+        subshapeEntries[bodyName] = .body(bodyID)
+        let document = EvaluatedDocument(
+            document: fixture.document.document,
+            parameters: fixture.document.parameters,
+            brep: fixture.document.brep,
+            meshes: fixture.document.meshes,
+            curves: fixture.document.curves,
+            caches: fixture.document.caches,
+            subshapes: SubshapeIndex(subshapeEntries),
+            lineage: fixture.document.lineage,
+            configuration: fixture.document.configuration,
+            evaluationMetrics: fixture.document.evaluationMetrics
+        )
+        let selection = SelectionReference.subshape(
+            try document.stableSubshapeReference(for: bodyName)
+        )
+
+        let point = try SelectionMeasurementEvaluator(tolerance: .standard).point(
+            for: selection,
+            in: document
+        )
+
+        #expect(point.selection == selection)
+        #expect(point.point.isApproximatelyEqual(
+            to: Point3D(x: 0.5, y: 0.5, z: 0.0),
+            tolerance: 1.0e-12
+        ))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func selectionDimensionEvaluatorMeasuresDocumentDimensions() throws {
         var document = makeStraightPathSweepDocument()
         let pathFeatureID = try #require(document.designGraph.order.dropFirst().first)
@@ -1698,6 +1872,47 @@ struct CADKernelTests {
         #expect(abs((midpoint.tangent?.z ?? 0.0) - 1.0) <= 1.0e-12)
         #expect(abs(midpoint.point.z - 0.005) <= 1.0e-12)
         #expect(abs((midpoint.curvature ?? 1.0)) <= 1.0e-9)
+
+        let closest = try evaluator.closestPoint(
+            to: midpoint.point + Vector3D(x: 0.002, y: 0.0, z: 0.0),
+            on: curveReference,
+            in: evaluated
+        )
+        #expect(closest.converged)
+        #expect(abs(closest.parameterReference.parameter - 0.5) <= 1.0e-9)
+        #expect(closest.projectedPoint.isApproximatelyEqual(
+            to: midpoint.point,
+            tolerance: 1.0e-12
+        ))
+        #expect(abs(closest.distance - 0.002) <= 1.0e-12)
+
+        let directional = try evaluator.project(
+            midpoint.point + Vector3D(x: 0.002, y: 0.0, z: 0.0),
+            along: -Vector3D.unitX,
+            onto: curveReference,
+            in: evaluated,
+            options: CurveDirectionalProjectionOptions(range: .ray)
+        )
+        #expect(directional.converged)
+        #expect(abs(directional.parameterReference.parameter - 0.5) <= 1.0e-9)
+        #expect(directional.projectedPoint.isApproximatelyEqual(
+            to: midpoint.point,
+            tolerance: 1.0e-12
+        ))
+        #expect(abs(directional.signedDistanceAlongDirection - 0.002) <= 1.0e-12)
+        #expect(directional.lineDistance <= 1.0e-12)
+
+        do {
+            _ = try evaluator.project(
+                midpoint.point + Vector3D(x: 0.002, y: 0.0, z: 0.0),
+                along: Vector3D.unitY,
+                onto: curveReference,
+                in: evaluated
+            )
+            Issue.record("A non-intersecting directional curve query must fail.")
+        } catch let error as KernelError {
+            #expect(error.code == .emptyResult)
+        }
 
         let startControlPoint = try evaluator.controlPoint(
             CurveControlPointReference(curve: curveReference, controlPointIndex: 0),
@@ -1808,7 +2023,8 @@ struct CADKernelTests {
         try expectBounds(
             evaluated.brep,
             minimum: Point3D(x: -0.030, y: -0.015, z: 0.0),
-            maximum: Point3D(x: 0.030, y: 0.015, z: 0.010)
+            maximum: Point3D(x: 0.030, y: 0.015, z: 0.010),
+            tolerance: ModelingTolerance.standard.distance
         )
     }
 
@@ -1880,7 +2096,8 @@ struct CADKernelTests {
         try expectBounds(
             evaluated.brep,
             minimum: Point3D(x: -0.020, y: -0.010, z: 0.0),
-            maximum: Point3D(x: 0.0, y: 0.010, z: 0.010)
+            maximum: Point3D(x: 0.0, y: 0.010, z: 0.010),
+            tolerance: ModelingTolerance.standard.distance
         )
     }
 
@@ -1913,7 +2130,8 @@ struct CADKernelTests {
         try expectBounds(
             evaluated.brep,
             minimum: Point3D(x: -0.020, y: -0.010, z: 0.0),
-            maximum: Point3D(x: 0.020, y: 0.010, z: 0.010)
+            maximum: Point3D(x: 0.020, y: 0.010, z: 0.010),
+            tolerance: ModelingTolerance.standard.distance
         )
     }
 
@@ -1947,7 +2165,8 @@ struct CADKernelTests {
         try expectBounds(
             evaluated.brep,
             minimum: Point3D(x: -0.020, y: -0.020, z: 0.0),
-            maximum: Point3D(x: 0.020, y: 0.020, z: 0.010)
+            maximum: Point3D(x: 0.020, y: 0.020, z: 0.010),
+            tolerance: ModelingTolerance.standard.distance
         )
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.positions.count >= evaluated.brep.vertices.count)
@@ -2016,7 +2235,8 @@ struct CADKernelTests {
         try expectBounds(
             evaluated.brep,
             minimum: Point3D(x: -0.020, y: -0.020, z: 0.0),
-            maximum: Point3D(x: 0.020, y: 0.020, z: 0.010)
+            maximum: Point3D(x: 0.020, y: 0.020, z: 0.010),
+            tolerance: ModelingTolerance.standard.distance
         )
     }
 
@@ -2069,7 +2289,8 @@ struct CADKernelTests {
         try expectBounds(
             evaluated.brep,
             minimum: Point3D(x: -0.020, y: -0.020, z: 0.0),
-            maximum: Point3D(x: 0.020, y: 0.020, z: 0.010)
+            maximum: Point3D(x: 0.020, y: 0.020, z: 0.010),
+            tolerance: ModelingTolerance.standard.distance
         )
     }
 
@@ -2102,7 +2323,8 @@ struct CADKernelTests {
         try expectBounds(
             evaluated.brep,
             minimum: Point3D(x: -0.020, y: -0.010, z: 0.0),
-            maximum: Point3D(x: 0.020, y: 0.010, z: 0.010)
+            maximum: Point3D(x: 0.020, y: 0.010, z: 0.010),
+            tolerance: ModelingTolerance.standard.distance
         )
     }
 
@@ -3229,7 +3451,7 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func circleProfileExtractionReportsMultipleCirclesAsUnsupported() throws {
+    func circleProfileExtractionReturnsIndependentCircleRegions() throws {
         var sketch = circleSketch(radius: .constant(.length(10.0, unit: .millimeter)))
         sketch.entities[SketchEntityID()] = .circle(SketchCircle(
             center: SketchPoint(
@@ -3239,18 +3461,19 @@ struct CADKernelTests {
             radius: .constant(.length(5.0, unit: .millimeter))
         ))
 
-        do {
-            _ = try SketchProfileExtractor(tolerance: .standard).extractProfiles(
-                from: sketch,
-                sourceFeatureID: FeatureID(),
-                parameters: ResolvedParameterTable()
-            )
-            Issue.record("Expected multiple circle profiles to be rejected.")
-        } catch SketchError.unsupportedProfile(let message) {
-            #expect(message.contains("Multiple circle"))
-        } catch {
-            Issue.record("Expected unsupportedProfile for multiple circles, got \(error).")
-        }
+        let profiles = try SketchProfileExtractor(tolerance: .standard).extractProfiles(
+            from: sketch,
+            sourceFeatureID: FeatureID(),
+            parameters: ResolvedParameterTable()
+        )
+        let areas = try profiles.map {
+            try ProfileRegionAnalyzer(tolerance: .standard).summary(for: $0).areaSquareMeters
+        }.sorted()
+
+        #expect(profiles.count == 2)
+        #expect(profiles.allSatisfy { $0.innerLoops.isEmpty })
+        #expect(abs((areas.first ?? 0.0) - Double.pi * 0.005 * 0.005) <= 1.0e-12)
+        #expect(abs((areas.last ?? 0.0) - Double.pi * 0.010 * 0.010) <= 1.0e-12)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -3648,7 +3871,7 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func profileExtractionRejectsNestedClosedLoops() throws {
+    func profileExtractionBuildsHoleAwareNestedRegion() throws {
         func point(_ x: Double, _ y: Double) -> SketchPoint {
             SketchPoint(
                 x: .constant(.length(x, unit: .meter)),
@@ -3681,18 +3904,22 @@ struct CADKernelTests {
             ]
         )
 
-        do {
-            _ = try SketchProfileExtractor(tolerance: .standard).extractProfiles(
-                from: sketch,
-                sourceFeatureID: FeatureID(),
-                parameters: ResolvedParameterTable()
-            )
-            Issue.record("Nested profile loops must be rejected until hole-aware extraction is available.")
-        } catch SketchError.unsupportedProfile(let message) {
-            #expect(message.contains("Nested profile loops"))
-        } catch {
-            Issue.record("Expected unsupportedProfile for nested loops, got \(error).")
-        }
+        let profiles = try SketchProfileExtractor(tolerance: .standard).extractProfiles(
+            from: sketch,
+            sourceFeatureID: FeatureID(),
+            parameters: ResolvedParameterTable()
+        )
+        let profile = try #require(profiles.first)
+        let summary = try ProfileRegionAnalyzer(tolerance: .standard).summary(for: profile)
+
+        #expect(profiles.count == 1)
+        #expect(profile.outerLoop.boundarySegments.count == 4)
+        #expect(profile.innerLoops.count == 1)
+        #expect(profile.innerLoops[0].boundarySegments.count == 4)
+        #expect(summary.innerPoints.count == 1)
+        #expect(abs(summary.areaSquareMeters - 0.000_084) <= 1.0e-12)
+        #expect(abs(summary.center.x - 0.005) <= 1.0e-12)
+        #expect(abs(summary.center.y - 0.005) <= 1.0e-12)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -3975,31 +4202,6 @@ struct CADKernelTests {
         #expect(mesh.indices.count == 48)
         #expect(mesh.indices.count % 3 == 0)
         #expect(firstTriangleNormal.dot(firstNormal) > 0.9)
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func profileExtractionRejectsUnsupportedEntitiesInsteadOfIgnoringThem() throws {
-        var document = makeRectangleExtrudeDocument()
-        let sketchFeatureID = try #require(document.designGraph.order.first)
-        var sketchFeature = try #require(document.designGraph.nodes[sketchFeatureID])
-        guard case var .sketch(sketch) = sketchFeature.operation else {
-            Issue.record("Expected first feature to be a sketch.")
-            return
-        }
-        let circleID = SketchEntityID()
-        sketch.entities[circleID] = .circle(SketchCircle(
-            center: SketchPoint(
-                x: .constant(.length(0.0, unit: .millimeter)),
-                y: .constant(.length(0.0, unit: .millimeter))
-            ),
-            radius: .constant(.length(1.0, unit: .millimeter))
-        ))
-        sketchFeature.operation = .sketch(sketch)
-        document.designGraph.nodes[sketchFeatureID] = sketchFeature
-
-        #expect(throws: SketchError.self) {
-            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
-        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -4690,6 +4892,164 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func polySplineNonplanarPatchNetworkCreatesC2MultiPatchSheetTopology() throws {
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(
+            makePolySplinePatchNetworkDocument(
+                centerZ: 0.1,
+                options: PolySplineOptions(
+                    mergePatches: false,
+                    interpolateBoundaryExactly: false
+                )
+            )
+        )
+        let first = try polySplineSurface(patchID: 0, from: evaluated)
+        let second = try polySplineSurface(patchID: 2, from: evaluated)
+
+        #expect(evaluated.brep.faces.count == 2)
+        #expect(evaluated.brep.edges.count == 7)
+        #expect(evaluated.brep.vertices.count == 6)
+        for parameter in [0.0, 0.25, 0.5, 0.75, 1.0] {
+            let firstGeometry = try first.differentialGeometry(
+                atU: 1.0,
+                v: parameter,
+                tolerance: .standard
+            )
+            let secondGeometry = try second.differentialGeometry(
+                atU: 0.0,
+                v: parameter,
+                tolerance: .standard
+            )
+            #expect(firstGeometry.position.isApproximatelyEqual(
+                to: secondGeometry.position,
+                tolerance: 1.0e-10
+            ))
+            #expect((firstGeometry.tangentU - secondGeometry.tangentU).length <= 1.0e-10)
+            #expect((firstGeometry.tangentV - secondGeometry.tangentV).length <= 1.0e-10)
+            #expect(
+                (firstGeometry.secondDerivativeUU - secondGeometry.secondDerivativeUU).length
+                    <= 1.0e-10
+            )
+            #expect(
+                (firstGeometry.secondDerivativeUV - secondGeometry.secondDerivativeUV).length
+                    <= 1.0e-10
+            )
+            #expect(
+                (firstGeometry.secondDerivativeVV - secondGeometry.secondDerivativeVV).length
+                    <= 1.0e-10
+            )
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func polySplineMergedPatchNetworkCreatesOneExactMultiSpanFace() throws {
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(
+            makePolySplinePatchNetworkDocument(centerZ: 0.1)
+        )
+
+        #expect(evaluated.brep.faces.count == 1)
+        #expect(evaluated.brep.edges.count == 6)
+        #expect(evaluated.brep.vertices.count == 6)
+        let surface = try polySplineSurface(from: evaluated)
+        #expect(surface.uDegree == 3)
+        #expect(surface.vDegree == 3)
+        #expect(surface.uControlPointCount == 7)
+        #expect(surface.vControlPointCount == 4)
+        #expect(surface.uKnots.filter { abs($0 - 1.0) <= 1.0e-12 }.count == 3)
+        let faceReferences = evaluated.subshapes.entries.filter { name, reference in
+            reference.isFace && name.role.contains("polySpline.merged:face")
+        }
+        #expect(faceReferences.count == 1)
+        #expect(!evaluated.subshapes.entries.contains { name, reference in
+            reference.isFace && name.role.contains("polySpline.patch:")
+        })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func polySplineRoundedCornersProduceValidatedSheetTopology() throws {
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(
+            makePolySplineQuadDocument(
+                options: PolySplineOptions(roundedCorners: true)
+            )
+        )
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.faces.count == 1)
+        #expect(evaluated.brep.edges.count == 8)
+        #expect(evaluated.brep.vertices.count == 8)
+        #expect(evaluated.meshes.values.first?.indices.isEmpty == false)
+        try expectExactRoundedPolySplineEdges(in: evaluated, count: 4)
+        let surface = try polySplineSurface(from: evaluated)
+        for (u, v) in [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)] {
+            let geometry = try surface.differentialGeometry(
+                atU: u,
+                v: v,
+                tolerance: .standard
+            )
+            #expect(geometry.tangentU.cross(geometry.tangentV).length > 1.0e-9)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func polySplineRoundedPatchNetworkPreservesSharedInteriorTopology() throws {
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(
+            makePolySplinePatchNetworkDocument(
+                centerZ: 0.1,
+                options: PolySplineOptions(
+                    roundedCorners: true,
+                    mergePatches: false
+                )
+            )
+        )
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.faces.count == 2)
+        #expect(evaluated.brep.edges.count == 11)
+        #expect(evaluated.brep.vertices.count == 10)
+        #expect(evaluated.brep.geometry.surfaces.count == 2)
+        #expect(evaluated.meshes.values.first?.indices.isEmpty == false)
+        try expectExactRoundedPolySplineEdges(in: evaluated, count: 4)
+        let sharedEdges = evaluated.subshapes.entries.filter { name, reference in
+            reference.isEdge && name.role.contains("polySpline.edge:source:1:4")
+        }
+        #expect(sharedEdges.count == 1)
+        let patchFaces = evaluated.subshapes.entries.filter { name, reference in
+            reference.isFace && name.role.contains("polySpline.patch:")
+        }
+        #expect(patchFaces.count == 2)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func polySplineRoundedMergedPatchNetworkCreatesOneExactTrimmedFace() throws {
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(
+            makePolySplinePatchNetworkDocument(
+                centerZ: 0.1,
+                options: PolySplineOptions(
+                    roundedCorners: true,
+                    mergePatches: true
+                )
+            )
+        )
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.faces.count == 1)
+        #expect(evaluated.brep.edges.count == 10)
+        #expect(evaluated.brep.vertices.count == 10)
+        #expect(evaluated.brep.geometry.surfaces.count == 1)
+        #expect(evaluated.meshes.values.first?.indices.isEmpty == false)
+        try expectExactRoundedPolySplineEdges(in: evaluated, count: 4)
+        let surface = try polySplineSurface(from: evaluated)
+        #expect(surface.uControlPointCount == 7)
+        #expect(surface.vControlPointCount == 4)
+        let mergedFaces = evaluated.subshapes.entries.filter { name, reference in
+            reference.isFace && name.role.contains("polySpline.merged:face")
+        }
+        #expect(mergedFaces.count == 1)
+        #expect(!evaluated.subshapes.entries.contains { name, reference in
+            reference.isFace && name.role.contains("polySpline.patch:")
+        })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func polySplineQuadMeshPreservesMeshBoundaryWinding() throws {
         let forward = try DocumentEvaluator(tolerance: .standard).evaluate(makePolySplineQuadDocument())
         let reversed = try DocumentEvaluator(tolerance: .standard).evaluate(makePolySplineQuadDocument(indices: [0, 2, 1, 0, 3, 2]))
@@ -4741,6 +5101,63 @@ struct CADKernelTests {
 
         #expect(surface.isRational)
         #expect(surface.weights[1][1] == 2.5)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func polySplineRejectsControlPointOverridesThatMakeSurfaceSingular() throws {
+        let firstInteriorLeft = Point3D(
+            x: 22.0 / 9.0,
+            y: 0.5,
+            z: 11.0 / 45.0
+        )
+        let firstInteriorRight = Point3D(
+            x: -4.0 / 9.0,
+            y: 0.5,
+            z: -2.0 / 45.0
+        )
+        let secondInteriorLeft = Point3D(
+            x: 22.0 / 9.0,
+            y: 1.0,
+            z: 11.0 / 30.0
+        )
+        let secondInteriorRight = Point3D(
+            x: -4.0 / 9.0,
+            y: 1.0,
+            z: -1.0 / 15.0
+        )
+        let document = makePolySplineQuadDocument(controlPointOverrides: [
+            PolySplineSurfaceControlPointOverride(
+                patchID: 0,
+                uIndex: 1,
+                vIndex: 1,
+                point: firstInteriorLeft
+            ),
+            PolySplineSurfaceControlPointOverride(
+                patchID: 0,
+                uIndex: 2,
+                vIndex: 1,
+                point: firstInteriorRight
+            ),
+            PolySplineSurfaceControlPointOverride(
+                patchID: 0,
+                uIndex: 1,
+                vIndex: 2,
+                point: secondInteriorLeft
+            ),
+            PolySplineSurfaceControlPointOverride(
+                patchID: 0,
+                uIndex: 2,
+                vIndex: 2,
+                point: secondInteriorRight
+            ),
+        ])
+
+        do {
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+            Issue.record("Expected singular PolySpline control-point overrides to fail evaluation.")
+        } catch let error as KernelError {
+            #expect(error.code == .singularGeometry)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -4947,7 +5364,8 @@ struct CADKernelTests {
             break
         case .affine, .harmonic, .polyline, .bSpline, .sphericalGreatCircle,
              .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-             .projectedAnalytic, .periodicTranslation:
+             .projectedAnalytic, .rigidImage, .sameParameterImage,
+             .periodicTranslation:
             Issue.record("Expected a boundary B-spline trim to collapse to a constant parameter curve.")
             return
         }
@@ -5114,6 +5532,56 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func selectionMeasurementEvaluatorResolvesSurfaceKnotRepresentativePoint() throws {
+        let fixture = makeRationalSurfaceParameterTrimEvaluatedDocument()
+        let surfaceReference = try stableSurfaceReference(fixture.faceName, in: fixture.document)
+        let selection = SelectionReference.surface(.knot(SurfaceKnotReference(
+            surface: surfaceReference,
+            direction: .u,
+            knotIndex: 0
+        )))
+
+        let point = try SelectionMeasurementEvaluator(tolerance: .standard).point(
+            for: selection,
+            in: fixture.document
+        )
+
+        #expect(point.selection == selection)
+        #expect(point.point.isApproximatelyEqual(
+            to: Point3D(x: 0.0, y: 1.0 / 3.0, z: 0.0),
+            tolerance: 1.0e-10
+        ))
+        #expect((point.normal?.z ?? 0.0) > 0.0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func selectionAngleRejectsSelectionsWithoutDirectionAsInvalidInput() throws {
+        let firstSelection = SelectionReference.sketchPoint(SketchPointSelectionReference(
+            featureID: FeatureID(),
+            entityID: SketchEntityID()
+        ))
+        let secondSelection = SelectionReference.sketchPoint(SketchPointSelectionReference(
+            featureID: FeatureID(),
+            entityID: SketchEntityID()
+        ))
+
+        do {
+            _ = try SelectionAngleMeasurement(
+                first: SelectionMeasurementPoint(selection: firstSelection, point: .origin),
+                second: SelectionMeasurementPoint(
+                    selection: secondSelection,
+                    point: Point3D(x: 1.0, y: 0.0, z: 0.0)
+                ),
+                tolerance: .standard
+            )
+            Issue.record("Expected directionless angle selections to be rejected.")
+        } catch let error as KernelError {
+            #expect(error.code == .invalidInput)
+            #expect(error.phase == .validation)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func surfaceQueryEvaluatorProjectsPointToPolySplineUVFrame() throws {
         let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makePolySplineQuadDocument())
         let faceName = try #require(evaluated.subshapes.entries.first { name, reference in
@@ -5174,15 +5642,12 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func surfaceQueryEvaluatorProjectsPointToCylindricalSurface() throws {
         let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeCircleExtrudeDocument())
-        let faceName = try #require(evaluated.subshapes.entries.first { _, reference in
-            guard case let .face(faceID) = reference,
-                  let face = evaluated.brep.faces[faceID],
-                  let surface = evaluated.brep.geometry.surfaces[face.surfaceID],
-                  case .cylinder = surface else {
-                return false
-            }
-            return true
-        }?.key)
+        let extrudeFeatureID = try #require(evaluated.document.designGraph.order.last)
+        let faceName = testSubshapeID(
+            extrudeFeatureID,
+            .sideFace,
+            ordinal: 0
+        )
         let surfaceReference = try stableSurfaceReference(faceName, in: evaluated)
         let evaluator = SurfaceQueryEvaluator(tolerance: .standard)
 
@@ -5202,15 +5667,12 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func surfaceQueryEvaluatorProjectsAlongDirectionToCylindricalSurface() throws {
         let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeCircleExtrudeDocument())
-        let faceName = try #require(evaluated.subshapes.entries.first { _, reference in
-            guard case let .face(faceID) = reference,
-                  let face = evaluated.brep.faces[faceID],
-                  let surface = evaluated.brep.geometry.surfaces[face.surfaceID],
-                  case .cylinder = surface else {
-                return false
-            }
-            return true
-        }?.key)
+        let extrudeFeatureID = try #require(evaluated.document.designGraph.order.last)
+        let faceName = testSubshapeID(
+            extrudeFeatureID,
+            .sideFace,
+            ordinal: 0
+        )
         let surfaceReference = try stableSurfaceReference(faceName, in: evaluated)
         let evaluator = SurfaceQueryEvaluator(tolerance: .standard)
 
@@ -5372,31 +5834,31 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func polySplineMeshAnalysisRejectsRoundedCornerOptionWithoutLosingPatchCandidate() throws {
+    func polySplineMeshAnalysisSupportsRoundedCornerOption() throws {
         let analysis = PolySplineMeshAnalyzer().analyze(
             mesh: makePolySplineQuadMesh(),
             options: PolySplineOptions(roundedCorners: true),
             tolerance: .standard
         )
 
-        #expect(!analysis.result.isSupported)
+        #expect(analysis.result.isSupported)
         #expect(analysis.result.candidateKind == .singleQuad)
         #expect(analysis.result.supportedPatchCount == 1)
         #expect(analysis.result.candidatePatchCount == 1)
         #expect(analysis.result.patchGraph?.candidates.count == 1)
         #expect(analysis.result.patchGraph?.partition?.selectedCandidateIDs == [0])
         #expect(analysis.orderedBoundaryPoints?.count == 4)
-        #expect(analysis.result.errors.contains { $0.code == .unsupportedRoundedCorners })
+        #expect(analysis.result.errors.isEmpty)
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func polySplineMeshAnalysisReportsPatchGraphBeforeMultiPatchEvaluation() throws {
+    func polySplineMeshAnalysisSupportsNonplanarPatchGraph() throws {
         let analysis = PolySplineMeshAnalyzer().analyze(
             mesh: makePolySplinePatchNetworkMesh(),
             tolerance: .standard
         )
 
-        #expect(!analysis.result.isSupported)
+        #expect(analysis.result.isSupported)
         #expect(analysis.result.candidateKind == .quadPatchGraph)
         #expect(analysis.result.vertexCount == 6)
         #expect(analysis.result.usedVertexCount == 6)
@@ -5404,14 +5866,13 @@ struct CADKernelTests {
         #expect(analysis.result.boundaryEdgeCount == 6)
         #expect(analysis.result.internalEdgeCount == 3)
         #expect(analysis.result.connectedComponentCount == 1)
-        #expect(analysis.result.supportedPatchCount == 0)
+        #expect(analysis.result.supportedPatchCount == 2)
         #expect(analysis.result.candidatePatchCount == 3)
         #expect(analysis.result.diagnostics.contains { $0.code == .patchGraphIdentified })
         #expect(analysis.result.diagnostics.contains { $0.code == .patchGraphPartitioned })
         #expect(analysis.result.diagnostics.contains { $0.code == .patchAdjacencyIdentified })
-        #expect(analysis.result.diagnostics.contains { $0.code == .patchTangentPlaneDiscontinuity })
-        #expect(analysis.result.diagnostics.contains { $0.code == .patchCurvatureContinuityUnresolved })
-        #expect(analysis.result.errors.contains { $0.code == .unsupportedPatchNetwork })
+        #expect(analysis.result.diagnostics.contains { $0.code == .bicubicPatchNetworkSupported })
+        #expect(!analysis.result.errors.contains { $0.code == .unsupportedPatchNetwork })
         #expect(analysis.orderedBoundaryPoints == nil)
         let patchGraph = try #require(analysis.result.patchGraph)
         #expect(patchGraph.triangleCount == 4)
@@ -5456,15 +5917,45 @@ struct CADKernelTests {
         #expect(analysis.result.supportedPatchCount == 2)
         #expect(analysis.supportedPatches.map(\.candidateID) == [0, 2])
         #expect(analysis.result.diagnostics.contains { $0.code == .patchAdjacencyIdentified })
-        #expect(!analysis.result.diagnostics.contains { $0.code == .patchTangentPlaneDiscontinuity })
-        #expect(!analysis.result.diagnostics.contains { $0.code == .patchCurvatureContinuityUnresolved })
-        #expect(analysis.result.diagnostics.contains { $0.code == .planarPatchNetworkSupported })
+        #expect(analysis.result.diagnostics.contains { $0.code == .bicubicPatchNetworkSupported })
         #expect(!analysis.result.errors.contains { $0.code == .unsupportedPatchNetwork })
         let adjacency = try #require(analysis.result.patchGraph?.selectedAdjacencies.first)
         #expect(analysis.result.patchGraph?.selectedAdjacencies.count == 1)
         #expect(adjacency.continuityLevel == .tangentPlane)
         #expect(adjacency.normalAngleRadians <= ModelingTolerance.standard.angle)
         #expect(!adjacency.requiresCurvatureContinuitySolve)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func polySplineMeshAnalysisRejectsFoldedRectangularPatchGrid() throws {
+        let analysis = PolySplineMeshAnalyzer().analyze(
+            mesh: makeFoldedPolySplinePatchNetworkMesh(),
+            tolerance: .standard
+        )
+
+        #expect(!analysis.result.isSupported)
+        #expect(analysis.result.supportedPatchCount == 0)
+        #expect(analysis.result.errors.contains { $0.code == .unsupportedPatchNetwork })
+        #expect(analysis.result.failureMessage?.contains("singular") == true)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func polySplineMeshAnalysisPartitionsMoreThan64Candidates() throws {
+        let cellCount = 40
+        let analysis = PolySplineMeshAnalyzer().analyze(
+            mesh: makePolySplineStripMesh(cellCount: cellCount),
+            options: PolySplineOptions(mergePatches: false),
+            tolerance: .standard
+        )
+
+        #expect(analysis.result.isSupported)
+        #expect(analysis.result.candidatePatchCount > 64)
+        #expect(analysis.result.supportedPatchCount == cellCount)
+        let partition = try #require(analysis.result.patchGraph?.partition)
+        #expect(partition.isComplete)
+        #expect(partition.selectedCandidateIDs.count == cellCount)
+        #expect(partition.coveredTriangleIndices.count == cellCount * 2)
+        #expect(partition.uncoveredTriangleIndices.isEmpty)
     }
 }
 
@@ -5522,8 +6013,36 @@ private struct EmptyTessellator: Tessellating {
     }
 }
 
+private func expectExactRoundedPolySplineEdges(
+    in evaluated: EvaluatedDocument,
+    count expectedCount: Int
+) throws {
+    let references = evaluated.subshapes.entries.filter { name, reference in
+        reference.isEdge && name.role.contains("polySpline.edge:rounded:corner:")
+    }
+    #expect(references.count == expectedCount)
+    var edgeIDs = Set<EdgeID>()
+    for reference in references.values {
+        guard case let .edge(edgeID) = reference,
+              let edge = evaluated.brep.edges[edgeID],
+              let curve = evaluated.brep.geometry.curves[edge.curveID],
+              case let .surfaceLift(lift) = curve,
+              case .bSpline = lift.parameterCurve else {
+            Issue.record("Expected a rounded PolySpline subshape to reference an exact surface-lift edge.")
+            continue
+        }
+        let exactImage = try #require(lift.exactBSplineImage)
+        #expect(exactImage.degree == 12)
+        #expect(exactImage.controlPointCount == 13)
+        #expect(exactImage.weights.allSatisfy { $0.isFinite && $0 > 0.0 })
+        edgeIDs.insert(edgeID)
+    }
+    #expect(edgeIDs.count == expectedCount)
+}
+
 private func makePolySplineQuadDocument(
     indices: [UInt32] = [0, 1, 2, 0, 2, 3],
+    options: PolySplineOptions = PolySplineOptions(),
     controlPointOverrides: [PolySplineSurfaceControlPointOverride] = []
 ) -> CADDocument {
     let featureID = FeatureID()
@@ -5532,6 +6051,7 @@ private func makePolySplineQuadDocument(
         name: "Quad PolySpline",
         operation: .polySpline(PolySplineFeature(
             sourceMesh: makePolySplineQuadMesh(indices: indices),
+            options: options,
             controlPointOverrides: controlPointOverrides
         )),
         outputs: [FeatureOutput(role: .sheet)]
@@ -5795,12 +6315,86 @@ private func makePolySplinePatchNetworkMesh(centerZ: Double = 0.1) -> Mesh {
     )
 }
 
+private func makeFoldedPolySplinePatchNetworkMesh() -> Mesh {
+    Mesh(
+        positions: [
+            Point3D(x: 0.0, y: 0.0, z: 0.0),
+            Point3D(x: 1.0, y: 0.0, z: 0.0),
+            Point3D(x: 0.0, y: 0.0, z: 0.0),
+            Point3D(x: 0.0, y: 1.0, z: 0.0),
+            Point3D(x: 1.0, y: 1.0, z: 0.0),
+            Point3D(x: 0.0, y: 1.0, z: 0.0),
+        ],
+        indices: [
+            0, 1, 4,
+            0, 4, 3,
+            1, 2, 5,
+            1, 5, 4,
+        ]
+    )
+}
+
+private func makePolySplineStripMesh(cellCount: Int) -> Mesh {
+    let positions = (0...1).flatMap { row in
+        (0...cellCount).map { column in
+            Point3D(
+                x: Double(column),
+                y: Double(row),
+                z: 0.05 * sin(Double(column) * 0.25) * Double(row)
+            )
+        }
+    }
+    var indices: [UInt32] = []
+    indices.reserveCapacity(cellCount * 6)
+    let rowWidth = cellCount + 1
+    for column in 0..<cellCount {
+        let bottomLeft = UInt32(column)
+        let bottomRight = UInt32(column + 1)
+        let topLeft = UInt32(rowWidth + column)
+        let topRight = UInt32(rowWidth + column + 1)
+        indices.append(contentsOf: [
+            bottomLeft, bottomRight, topRight,
+            bottomLeft, topRight, topLeft,
+        ])
+    }
+    return Mesh(positions: positions, indices: indices)
+}
+
 private func polySplineSurface(from document: EvaluatedDocument) throws -> BSplineSurface3D {
     let face = try #require(document.brep.faces.values.first)
     let surface = try #require(document.brep.geometry.surfaces[face.surfaceID])
     guard case let .bSpline(bSpline) = surface else {
         Issue.record("Expected a B-spline surface.")
         throw KernelError.unsupportedEvaluation(tolerance: .standard, message: "Expected a B-spline surface.")
+    }
+    return bSpline
+}
+
+private func polySplineFaceReference(
+    patchID: Int,
+    from document: EvaluatedDocument
+) throws -> TopologyReference {
+    try #require(document.subshapes.entries.first { name, reference in
+        reference.isFace && name.role.contains("polySpline.patch:\(patchID):face")
+    }?.value)
+}
+
+private func polySplineSurface(
+    patchID: Int,
+    from document: EvaluatedDocument
+) throws -> BSplineSurface3D {
+    guard case let .face(faceID) = try polySplineFaceReference(
+        patchID: patchID,
+        from: document
+    ),
+    let face = document.brep.faces[faceID],
+    let surface = document.brep.geometry.surfaces[face.surfaceID],
+    case let .bSpline(bSpline) = surface else {
+        Issue.record("Expected a PolySpline patch B-spline surface.")
+        throw KernelError.unsupportedEvaluation(
+            tolerance: .standard,
+            message: "Expected a PolySpline patch B-spline surface."
+        )
     }
     return bSpline
 }
@@ -8222,7 +8816,7 @@ private func expectBounds(
     _ model: BRepModel,
     minimum: Point3D,
     maximum: Point3D,
-    tolerance: Double = 1.0e-12
+    tolerance: Double
 ) throws {
     let points = model.vertices.values.map(\.point)
     let actualMinimum = Point3D(

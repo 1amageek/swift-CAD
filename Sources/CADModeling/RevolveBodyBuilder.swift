@@ -49,14 +49,59 @@ struct RevolveBodyBuilder {
     }
 
     func build(from profile: Profile) throws -> EvaluationResult {
-        guard profile.boundarySegments.count >= 3 else {
+        guard profile.innerLoops.isEmpty else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Analytic revolve received a multi-loop profile reserved for the general exact sewing path."
+            )
+        }
+        guard profile.boundaryLoops.allSatisfy({ $0.boundarySegments.count >= 3 }) else {
             throw SketchError.openProfile
         }
-        let segments = try profile.boundarySegments.map { segment in
-            try classifiedSegment(from: segment)
+        let sourceLoopData = try profile.boundaryLoops.enumerated().map { loopIndex, loop in
+            let segments = try loop.boundarySegments.map { segment in
+                try classifiedSegment(from: segment)
+            }
+            guard segments.contains(where: { $0.kind != .axis }) else {
+                throw KernelError(
+                    phase: .validation,
+                    code: .invalidInput,
+                    tolerance: context.tolerance,
+                    message: "Revolve profile loop \(loopIndex) collapses onto the rotation axis."
+                )
+            }
+            let pointTable = try makePointTable(from: segments)
+            return RevolveLoopData(
+                segments: segments,
+                pointTable: pointTable,
+                areaSign: try signedProfileAreaSign(pointTable)
+            )
         }
-        guard segments.contains(where: { $0.kind != .axis }) else {
-            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance, message: "Revolve profile collapses onto the rotation axis.")
+        guard let sourceOuterAreaSign = sourceLoopData.first?.areaSign else {
+            throw SketchError.openProfile
+        }
+        let loopData = try sourceLoopData.enumerated().map { loopIndex, loop in
+            guard isFullTurn,
+                  loopIndex > 0,
+                  loop.areaSign != sourceOuterAreaSign else {
+                return loop
+            }
+            // A detached void shell must first be a consistently oriented local
+            // closed shell. Body ownership then reverses that shell as a void.
+            // Reversing face flags alone leaves coedge traversal and analytic
+            // volume integration in different orientation domains.
+            let reversedSegments = loop.segments.reversed().map { segment in
+                RevolveSegment(
+                    start: segment.end,
+                    end: segment.start,
+                    kind: segment.kind
+                )
+            }
+            let pointTable = try makePointTable(from: reversedSegments)
+            return RevolveLoopData(
+                segments: reversedSegments,
+                pointTable: pointTable,
+                areaSign: try signedProfileAreaSign(pointTable)
+            )
         }
 
         var model = context.brep
@@ -64,47 +109,61 @@ struct RevolveBodyBuilder {
         var geometry = model.geometry
         var topologyIDs = FeatureTopologyIDAllocator(featureID: featureID)
         let bodyID = topologyIDs.nextBodyID()
-        let shellID = topologyIDs.nextShellID()
-        let pointTable = try makePointTable(from: segments)
 
         var vertices: [RevolveVertexKey: VertexID] = [:]
         var profileEdges: [RevolveProfileEdgeKey: EdgeID] = [:]
         var arcEdges: [RevolveArcEdgeKey: EdgeID] = [:]
-        var faceIDs: [FaceID] = []
-        let profileAreaSign = try signedProfileAreaSign(pointTable)
+        var faceIDsByLoop = Array(repeating: [FaceID](), count: loopData.count)
+        let outerAreaSign = loopData[0].areaSign
+        var sideFaceOrdinal = 0
 
-        for segmentIndex in segments.indices {
-            let segment = segments[segmentIndex]
-            guard segment.kind != .axis else {
-                continue
-            }
-            for intervalIndex in 0..<intervalCount {
-                let loopEdges = try surfaceLoopEdges(
-                    segmentIndex: segmentIndex,
-                    intervalIndex: intervalIndex,
-                    segment: segment,
-                    pointTable: pointTable,
-                    vertices: &vertices,
-                    profileEdges: &profileEdges,
-                    arcEdges: &arcEdges,
-                    model: &model,
-                    geometry: &geometry,
-                    topologyIDs: &topologyIDs
-                )
-                let surface = try surface(for: segment, profileAreaSign: profileAreaSign)
-                let faceID = addFace(
-                    surface: surface.surface,
-                    orientation: surface.orientation,
-                    loopEdges: loopEdges,
-                    model: &model,
-                    geometry: &geometry,
-                    topologyIDs: &topologyIDs
-                )
-                subshapes[subshapeID(
-                    generatedRole: .sideFace,
-                    ordinal: segmentIndex * intervalCount + intervalIndex
-                )] = .face(faceID)
-                faceIDs.append(faceID)
+        for (loopIndex, loop) in loopData.enumerated() {
+            // The analytic surface resolver already incorporates segment travel
+            // direction. A connected partial-turn hole therefore keeps the
+            // outer material sign, while a detached full-turn void shell first
+            // needs its own local winding before the reversed shell orientation
+            // subtracts its volume.
+            let shellLocalAreaSign = isFullTurn
+                ? loop.areaSign
+                : outerAreaSign
+            for segmentIndex in loop.segments.indices {
+                let segment = loop.segments[segmentIndex]
+                guard segment.kind != .axis else {
+                    continue
+                }
+                for intervalIndex in 0..<intervalCount {
+                    let loopEdges = try surfaceLoopEdges(
+                        loopIndex: loopIndex,
+                        segmentIndex: segmentIndex,
+                        intervalIndex: intervalIndex,
+                        segment: segment,
+                        pointTable: loop.pointTable,
+                        vertices: &vertices,
+                        profileEdges: &profileEdges,
+                        arcEdges: &arcEdges,
+                        model: &model,
+                        geometry: &geometry,
+                        topologyIDs: &topologyIDs
+                    )
+                    let surface = try surface(
+                        for: segment,
+                        profileAreaSign: shellLocalAreaSign
+                    )
+                    let faceID = addFace(
+                        surface: surface.surface,
+                        orientation: surface.orientation,
+                        loopEdges: loopEdges,
+                        model: &model,
+                        geometry: &geometry,
+                        topologyIDs: &topologyIDs
+                    )
+                    subshapes[subshapeID(
+                        generatedRole: .sideFace,
+                        ordinal: sideFaceOrdinal
+                    )] = .face(faceID)
+                    sideFaceOrdinal += 1
+                    faceIDsByLoop[loopIndex].append(faceID)
+                }
             }
         }
 
@@ -112,8 +171,7 @@ struct RevolveBodyBuilder {
             let startFaceID = try addEndFace(
                 angleIndex: 0,
                 role: .startFace,
-                segments: segments,
-                pointTable: pointTable,
+                loopData: loopData,
                 vertices: &vertices,
                 profileEdges: &profileEdges,
                 model: &model,
@@ -121,13 +179,12 @@ struct RevolveBodyBuilder {
                 topologyIDs: &topologyIDs
             )
             subshapes[subshapeID(generatedRole: .startFace, ordinal: 0)] = .face(startFaceID)
-            faceIDs.append(startFaceID)
+            faceIDsByLoop[0].append(startFaceID)
 
             let endFaceID = try addEndFace(
                 angleIndex: angleBreaks.count - 1,
                 role: .endFace,
-                segments: segments,
-                pointTable: pointTable,
+                loopData: loopData,
                 vertices: &vertices,
                 profileEdges: &profileEdges,
                 model: &model,
@@ -135,7 +192,7 @@ struct RevolveBodyBuilder {
                 topologyIDs: &topologyIDs
             )
             subshapes[subshapeID(generatedRole: .endFace, ordinal: 0)] = .face(endFaceID)
-            faceIDs.append(endFaceID)
+            faceIDsByLoop[0].append(endFaceID)
         }
 
         var vertexOrdinals: [String: Int] = [:]
@@ -165,10 +222,31 @@ struct RevolveBodyBuilder {
         }
 
         model.geometry = geometry
-        model.shells[shellID] = Shell(id: shellID, faceIDs: faceIDs)
+        let shellIDs: [ShellID]
+        if isFullTurn {
+            shellIDs = faceIDsByLoop.enumerated().map { loopIndex, faceIDs in
+                let shellID = topologyIDs.nextShellID()
+                model.shells[shellID] = Shell(
+                    id: shellID,
+                    faceIDs: faceIDs,
+                    orientation: loopIndex == 0 ? .forward : .reversed
+                )
+                return shellID
+            }
+        } else {
+            let shellID = topologyIDs.nextShellID()
+            model.shells[shellID] = Shell(
+                id: shellID,
+                faceIDs: faceIDsByLoop.flatMap { $0 }
+            )
+            shellIDs = [shellID]
+        }
         model.bodies[bodyID] = Body(
             id: bodyID,
-            solidComponents: [SolidShellComponent(outerShellID: shellID)]
+            solidComponents: [SolidShellComponent(
+                outerShellID: shellIDs[0],
+                voidShellIDs: isFullTurn ? Array(shellIDs.dropFirst()) : []
+            )]
         )
         subshapes[subshapeID(generatedRole: .body, ordinal: 0)] = .body(bodyID)
         let namedEdgeIDs = Set(subshapes.values.compactMap { reference -> EdgeID? in
@@ -201,8 +279,11 @@ struct RevolveBodyBuilder {
 
     private func classifiedSegment(from segment: ProfileBoundarySegment) throws -> RevolveSegment {
         guard case let .line(line) = segment else {
-            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance, message:
-                "Revolve currently supports line profile boundaries. Circular and spline profile boundaries require analytic surface-of-revolution support."
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: context.tolerance,
+                message: "Line-profile revolve dispatch received a curved profile segment."
             )
         }
         let start = try coordinates(for: line.start)
@@ -263,6 +344,7 @@ struct RevolveBodyBuilder {
     }
 
     private func surfaceLoopEdges(
+        loopIndex: Int,
         segmentIndex: Int,
         intervalIndex: Int,
         segment: RevolveSegment,
@@ -278,6 +360,7 @@ struct RevolveBodyBuilder {
         let startAngleIndex = intervalIndex
         let endAngleIndex = wrappedAngleIndex(intervalIndex + 1)
         let startLineEdge = try profileEdge(
+            loopIndex: loopIndex,
             segmentIndex: segmentIndex,
             angleIndex: startAngleIndex,
             startPointIndex: segmentIndex,
@@ -290,6 +373,7 @@ struct RevolveBodyBuilder {
             topologyIDs: &topologyIDs
         )
         let endLineEdge = try profileEdge(
+            loopIndex: loopIndex,
             segmentIndex: segmentIndex,
             angleIndex: endAngleIndex,
             startPointIndex: segmentIndex,
@@ -302,6 +386,7 @@ struct RevolveBodyBuilder {
             topologyIDs: &topologyIDs
         )
         let startArc = try arcEdgeIfNeeded(
+            loopIndex: loopIndex,
             pointIndex: segmentIndex,
             intervalIndex: intervalIndex,
             point: segment.start,
@@ -312,6 +397,7 @@ struct RevolveBodyBuilder {
             topologyIDs: &topologyIDs
         )
         let endArc = try arcEdgeIfNeeded(
+            loopIndex: loopIndex,
             pointIndex: nextSegmentIndex,
             intervalIndex: intervalIndex,
             point: segment.end,
@@ -347,53 +433,64 @@ struct RevolveBodyBuilder {
     private func addEndFace(
         angleIndex: Int,
         role: GeneratedSubshapeRole,
-        segments: [RevolveSegment],
-        pointTable: [RevolvePoint],
+        loopData: [RevolveLoopData],
         vertices: inout [RevolveVertexKey: VertexID],
         profileEdges: inout [RevolveProfileEdgeKey: EdgeID],
         model: inout BRepModel,
         geometry: inout GeometryStore,
         topologyIDs: inout FeatureTopologyIDAllocator
     ) throws -> FaceID {
-        var edges: [Coedge] = []
-        switch role {
-        case .startFace:
-            for segmentIndex in segments.indices.reversed() {
-                let edgeID = try profileEdge(
-                    segmentIndex: segmentIndex,
-                    angleIndex: angleIndex,
-                    startPointIndex: segmentIndex,
-                    endPointIndex: (segmentIndex + 1) % pointTable.count,
-                    pointTable: pointTable,
-                    vertices: &vertices,
-                    profileEdges: &profileEdges,
-                    model: &model,
-                    geometry: &geometry,
-                    topologyIDs: &topologyIDs
+        let loopEdges = try loopData.enumerated().map { loopIndex, loop in
+            var edges: [Coedge] = []
+            switch role {
+            case .startFace:
+                for segmentIndex in loop.segments.indices.reversed() {
+                    let edgeID = try profileEdge(
+                        loopIndex: loopIndex,
+                        segmentIndex: segmentIndex,
+                        angleIndex: angleIndex,
+                        startPointIndex: segmentIndex,
+                        endPointIndex: (segmentIndex + 1) % loop.pointTable.count,
+                        pointTable: loop.pointTable,
+                        vertices: &vertices,
+                        profileEdges: &profileEdges,
+                        model: &model,
+                        geometry: &geometry,
+                        topologyIDs: &topologyIDs
+                    )
+                    edges.append(Coedge(edgeID: edgeID, orientation: .reversed))
+                }
+            case .endFace:
+                for segmentIndex in loop.segments.indices {
+                    let edgeID = try profileEdge(
+                        loopIndex: loopIndex,
+                        segmentIndex: segmentIndex,
+                        angleIndex: angleIndex,
+                        startPointIndex: segmentIndex,
+                        endPointIndex: (segmentIndex + 1) % loop.pointTable.count,
+                        pointTable: loop.pointTable,
+                        vertices: &vertices,
+                        profileEdges: &profileEdges,
+                        model: &model,
+                        geometry: &geometry,
+                        topologyIDs: &topologyIDs
+                    )
+                    edges.append(Coedge(edgeID: edgeID, orientation: .forward))
+                }
+            default:
+                throw FeatureEvaluationError.invalidGraph(
+                    "Revolve end faces must use startFace or endFace roles."
                 )
-                edges.append(Coedge(edgeID: edgeID, orientation: .reversed))
             }
-        case .endFace:
-            for segmentIndex in segments.indices {
-                let edgeID = try profileEdge(
-                    segmentIndex: segmentIndex,
-                    angleIndex: angleIndex,
-                    startPointIndex: segmentIndex,
-                    endPointIndex: (segmentIndex + 1) % pointTable.count,
-                    pointTable: pointTable,
-                    vertices: &vertices,
-                    profileEdges: &profileEdges,
-                    model: &model,
-                    geometry: &geometry,
-                    topologyIDs: &topologyIDs
+            guard edges.count >= 3 else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
+                    tolerance: context.tolerance,
+                    message: "Revolve end cap loop collapsed after validated profile classification."
                 )
-                edges.append(Coedge(edgeID: edgeID, orientation: .forward))
             }
-        default:
-            throw FeatureEvaluationError.invalidGraph("Revolve end faces must use startFace or endFace roles.")
-        }
-        guard edges.count >= 3 else {
-            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance, message: "Revolve end cap collapsed.")
+            return (role: loopIndex == 0 ? LoopRole.outer : .inner, edges: edges)
         }
         let angleValue = angleBreaks[angleIndex]
         let sweepSign = angle >= 0.0 ? 1.0 : -1.0
@@ -409,7 +506,7 @@ struct RevolveBodyBuilder {
         }
         return addFace(
             surface: .plane(Plane3D(origin: axisOrigin, normal: normal)),
-            loopEdges: edges,
+            loopDefinitions: loopEdges,
             model: &model,
             geometry: &geometry,
             topologyIDs: &topologyIDs
@@ -436,7 +533,12 @@ struct RevolveBodyBuilder {
         case .axial:
             let radius = (segment.start.radius + segment.end.radius) / 2.0
             guard radius > context.tolerance.distance else {
-                throw KernelError.unsupportedEvaluation(tolerance: context.tolerance, message: "Revolve axial segment collapsed onto the rotation axis.")
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
+                    tolerance: context.tolerance,
+                    message: "Revolve axial segment collapsed after validated segment classification."
+                )
             }
             // A counterclockwise profile keeps material on the smaller-radius side
             // of a segment travelling toward +axial, so the cylinder's radially
@@ -455,7 +557,9 @@ struct RevolveBodyBuilder {
             let radiusDelta = segment.end.radius - segment.start.radius
             guard abs(axialDelta) > context.tolerance.distance,
                   abs(radiusDelta) > context.tolerance.distance else {
-                throw KernelError.unsupportedEvaluation(
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
                     tolerance: context.tolerance,
                     message: "Revolve conical segment is numerically indistinguishable from a radial or axial segment."
                 )
@@ -464,7 +568,9 @@ struct RevolveBodyBuilder {
             let halfAngle = atan(abs(radialSlope))
             guard halfAngle > context.tolerance.angle,
                   halfAngle < Double.pi * 0.5 - context.tolerance.angle else {
-                throw KernelError.unsupportedEvaluation(
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
                     tolerance: context.tolerance,
                     message: "Revolve conical segment produces a degenerate cone angle."
                 )
@@ -486,6 +592,7 @@ struct RevolveBodyBuilder {
     }
 
     private func profileEdge(
+        loopIndex: Int,
         segmentIndex: Int,
         angleIndex: Int,
         startPointIndex: Int,
@@ -504,11 +611,16 @@ struct RevolveBodyBuilder {
             && endPoint.radius <= context.tolerance.distance
             ? 0
             : normalizedAngleIndex
-        let key = RevolveProfileEdgeKey(segmentIndex: segmentIndex, angleIndex: edgeAngleIndex)
+        let key = RevolveProfileEdgeKey(
+            loopIndex: loopIndex,
+            segmentIndex: segmentIndex,
+            angleIndex: edgeAngleIndex
+        )
         if let edgeID = profileEdges[key] {
             return edgeID
         }
         let startVertexID = try vertex(
+            loopIndex: loopIndex,
             pointIndex: startPointIndex,
             angleIndex: normalizedAngleIndex,
             point: startPoint,
@@ -517,6 +629,7 @@ struct RevolveBodyBuilder {
             topologyIDs: &topologyIDs
         )
         let endVertexID = try vertex(
+            loopIndex: loopIndex,
             pointIndex: endPointIndex,
             angleIndex: normalizedAngleIndex,
             point: endPoint,
@@ -548,6 +661,7 @@ struct RevolveBodyBuilder {
     }
 
     private func arcEdgeIfNeeded(
+        loopIndex: Int,
         pointIndex: Int,
         intervalIndex: Int,
         point: RevolvePoint,
@@ -560,13 +674,18 @@ struct RevolveBodyBuilder {
         guard point.radius > context.tolerance.distance else {
             return nil
         }
-        let key = RevolveArcEdgeKey(pointIndex: pointIndex, intervalIndex: intervalIndex)
+        let key = RevolveArcEdgeKey(
+            loopIndex: loopIndex,
+            pointIndex: pointIndex,
+            intervalIndex: intervalIndex
+        )
         if let edgeID = arcEdges[key] {
             return edgeID
         }
         let startAngleIndex = wrappedAngleIndex(intervalIndex)
         let endAngleIndex = wrappedAngleIndex(intervalIndex + 1)
         let startVertexID = try vertex(
+            loopIndex: loopIndex,
             pointIndex: pointIndex,
             angleIndex: startAngleIndex,
             point: point,
@@ -575,6 +694,7 @@ struct RevolveBodyBuilder {
             topologyIDs: &topologyIDs
         )
         let endVertexID = try vertex(
+            loopIndex: loopIndex,
             pointIndex: pointIndex,
             angleIndex: endAngleIndex,
             point: point,
@@ -603,6 +723,7 @@ struct RevolveBodyBuilder {
     }
 
     private func vertex(
+        loopIndex: Int,
         pointIndex: Int,
         angleIndex: Int,
         point: RevolvePoint,
@@ -611,8 +732,16 @@ struct RevolveBodyBuilder {
         topologyIDs: inout FeatureTopologyIDAllocator
     ) throws -> VertexID {
         let key = point.radius <= context.tolerance.distance
-            ? RevolveVertexKey(pointIndex: pointIndex, angleIndex: nil)
-            : RevolveVertexKey(pointIndex: pointIndex, angleIndex: angleIndex)
+            ? RevolveVertexKey(
+                loopIndex: loopIndex,
+                pointIndex: pointIndex,
+                angleIndex: nil
+            )
+            : RevolveVertexKey(
+                loopIndex: loopIndex,
+                pointIndex: pointIndex,
+                angleIndex: angleIndex
+            )
         if let vertexID = vertices[key] {
             return vertexID
         }
@@ -630,15 +759,40 @@ struct RevolveBodyBuilder {
         geometry: inout GeometryStore,
         topologyIDs: inout FeatureTopologyIDAllocator
     ) -> FaceID {
+        addFace(
+            surface: surface,
+            orientation: orientation,
+            loopDefinitions: [(role: .outer, edges: loopEdges)],
+            model: &model,
+            geometry: &geometry,
+            topologyIDs: &topologyIDs
+        )
+    }
+
+    private func addFace(
+        surface: Surface3D,
+        orientation: Orientation = .forward,
+        loopDefinitions: [(role: LoopRole, edges: [Coedge])],
+        model: inout BRepModel,
+        geometry: inout GeometryStore,
+        topologyIDs: inout FeatureTopologyIDAllocator
+    ) -> FaceID {
         let surfaceID = topologyIDs.nextSurfaceID()
-        let loopID = topologyIDs.nextLoopID()
         let faceID = topologyIDs.nextFaceID()
         geometry.surfaces[surfaceID] = surface
-        model.loops[loopID] = Loop(id: loopID, role: .outer, edges: loopEdges)
+        let loopIDs = loopDefinitions.map { definition in
+            let loopID = topologyIDs.nextLoopID()
+            model.loops[loopID] = Loop(
+                id: loopID,
+                role: definition.role,
+                edges: definition.edges
+            )
+            return loopID
+        }
         model.faces[faceID] = Face(
             id: faceID,
             surfaceID: surfaceID,
-            loops: [loopID],
+            loops: loopIDs,
             orientation: orientation
         )
         return faceID
@@ -653,13 +807,21 @@ struct RevolveBodyBuilder {
         let signedRadius = radialVector.dot(profileRadialDirection)
         let radialResidual = radialVector - profileRadialDirection * signedRadius
         guard radialResidual.length <= context.tolerance.distance else {
-            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance, message:
-                "Revolve profile points must lie in one generator half-plane containing the rotation axis."
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                residual: radialResidual.length,
+                tolerance: context.tolerance,
+                message: "Revolve profile points must lie in one generator half-plane containing the rotation axis."
             )
         }
         guard signedRadius >= -context.tolerance.distance else {
-            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance, message:
-                "Revolve profile must stay on one side of the rotation axis."
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                residual: -signedRadius,
+                tolerance: context.tolerance,
+                message: "Revolve profile must stay on one side of the rotation axis."
             )
         }
         let radius = max(0.0, signedRadius)
@@ -768,13 +930,21 @@ struct RevolveBodyBuilder {
         let planeNormal = try profilePlane.normal.normalized(tolerance: tolerance.distance)
         let axisPlaneDistance = (axis.origin - profilePlane.origin).dot(planeNormal)
         guard abs(axisPlaneDistance) <= tolerance.distance else {
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "Revolve axis must lie on the profile plane."
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                residual: abs(axisPlaneDistance),
+                tolerance: tolerance,
+                message: "Revolve axis must lie on the profile plane."
             )
         }
         guard abs(axisDirection.dot(planeNormal)) <= max(tolerance.angle, tolerance.distance) else {
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "Revolve axis direction must lie in the profile plane."
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                residual: abs(axisDirection.dot(planeNormal)),
+                tolerance: tolerance,
+                message: "Revolve axis direction must lie in the profile plane."
             )
         }
         let candidateRadialDirection = try axisDirection
@@ -810,8 +980,12 @@ struct RevolveBodyBuilder {
             try point.validate()
             let planeDistance = (point - profilePlane.origin).dot(planeNormal)
             guard abs(planeDistance) <= tolerance.distance else {
-                throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                    "Revolve profile points must lie on the profile plane."
+                throw KernelError(
+                    phase: .validation,
+                    code: .invalidInput,
+                    residual: abs(planeDistance),
+                    tolerance: tolerance,
+                    message: "Revolve profile points must lie on the profile plane."
                 )
             }
             let offset = point - axis.origin
@@ -821,8 +995,12 @@ struct RevolveBodyBuilder {
             let signedRadius = radialVector.dot(candidateRadialDirection)
             let radialResidual = radialVector - candidateRadialDirection * signedRadius
             guard radialResidual.length <= tolerance.distance else {
-                throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                    "Revolve profile points must lie in one generator half-plane containing the rotation axis."
+                throw KernelError(
+                    phase: .validation,
+                    code: .invalidInput,
+                    residual: radialResidual.length,
+                    tolerance: tolerance,
+                    message: "Revolve profile points must lie in one generator half-plane containing the rotation axis."
                 )
             }
             guard abs(signedRadius) > tolerance.distance else {
@@ -830,8 +1008,12 @@ struct RevolveBodyBuilder {
             }
             let sign = signedRadius >= 0.0 ? 1.0 : -1.0
             if let nonAxisSign, nonAxisSign != sign {
-                throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                    "Revolve profile must stay on one side of the rotation axis."
+                throw KernelError(
+                    phase: .validation,
+                    code: .invalidInput,
+                    residual: abs(signedRadius),
+                    tolerance: tolerance,
+                    message: "Revolve profile must stay on one side of the rotation axis."
                 )
             }
             nonAxisSign = sign
@@ -843,7 +1025,7 @@ struct RevolveBodyBuilder {
     }
 
     private static func profileBoundaryPoints(_ profile: Profile) -> [Point3D] {
-        profile.boundarySegments.flatMap { segment -> [Point3D] in
+        profile.boundaryLoops.flatMap(\.boundarySegments).flatMap { segment -> [Point3D] in
             switch segment {
             case .line(let line):
                 return [line.start, line.end]
@@ -882,6 +1064,12 @@ private struct RevolveSegment {
     var kind: RevolveSegmentKind
 }
 
+private struct RevolveLoopData {
+    var segments: [RevolveSegment]
+    var pointTable: [RevolvePoint]
+    var areaSign: Double
+}
+
 private struct RevolvePoint: Hashable {
     var axial: Double
     var radius: Double
@@ -896,30 +1084,33 @@ private struct RevolvePoint: Hashable {
 }
 
 private struct RevolveVertexKey: Hashable {
+    var loopIndex: Int
     var pointIndex: Int
     var angleIndex: Int?
 
     var sortKey: String {
-        "\(pointIndex):\(angleIndex ?? -1)"
+        "\(loopIndex):\(pointIndex):\(angleIndex ?? -1)"
     }
 
 }
 
 private struct RevolveProfileEdgeKey: Hashable {
+    var loopIndex: Int
     var segmentIndex: Int
     var angleIndex: Int
 
     var sortKey: String {
-        "\(segmentIndex):\(angleIndex)"
+        "\(loopIndex):\(segmentIndex):\(angleIndex)"
     }
 
 }
 
 private struct RevolveArcEdgeKey: Hashable {
+    var loopIndex: Int
     var pointIndex: Int
     var intervalIndex: Int
 
     var sortKey: String {
-        "\(pointIndex):\(intervalIndex)"
+        "\(loopIndex):\(pointIndex):\(intervalIndex)"
     }
 }

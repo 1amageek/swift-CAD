@@ -4,12 +4,15 @@ import CADTopology
 
 public struct FaceDeleteFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let subshapeResolver: any StableSubshapeResolving
+    private let topologyTransformer: any FaceDeletionTopologyTransforming
     private let identityBuilder: any CarriedTopologyIdentityBuilding
 
     public init(
-        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver()
+        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver(),
+        topologyTransformer: any FaceDeletionTopologyTransforming = DefaultFaceDeletionTopologyTransformer()
     ) {
         self.subshapeResolver = subshapeResolver
+        self.topologyTransformer = topologyTransformer
         identityBuilder = DefaultCarriedTopologyIdentityBuilder()
     }
 
@@ -45,7 +48,11 @@ public struct FaceDeleteFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             )
         }
         try faceDelete.validate()
-        try context.brep.validate(level: .exact, tolerance: context.tolerance)
+        try FeatureEvaluationBoundary.validateExactInput(
+            context,
+            featureID: feature.id,
+            tolerance: context.tolerance
+        )
 
         let bodyID = try targetBodyID(for: faceDelete.target.featureID, context: context)
         let replacedSubshapeIDs = try BodyTopologyScope(
@@ -66,15 +73,12 @@ public struct FaceDeleteFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             }
         }
 
-        var model = context.brep
-        var topologyIDs = FeatureTopologyIDAllocator(featureID: feature.id)
-        try deleteFaces(
-            resolvedFaceIDs,
+        let model = try topologyTransformer.transformedModel(
+            deleting: resolvedFaceIDs,
             from: bodyID,
             featureID: feature.id,
-            model: &model,
-            tolerance: context.tolerance,
-            topologyIDs: &topologyIDs
+            in: context.brep,
+            tolerance: context.tolerance
         )
         try model.validate(level: .exact, tolerance: context.tolerance)
 
@@ -121,175 +125,6 @@ public struct FaceDeleteFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             )
         }
         return faceID
-    }
-
-    private func deleteFaces(
-        _ faceIDs: Set<FaceID>,
-        from bodyID: BodyID,
-        featureID: FeatureID,
-        model: inout BRepModel,
-        tolerance: ModelingTolerance,
-        topologyIDs: inout FeatureTopologyIDAllocator
-    ) throws {
-        guard faceIDs.isEmpty == false else {
-            throw kernelError(
-                .invalidInput,
-                featureID: featureID,
-                tolerance: tolerance,
-                "Face delete requires at least one face target."
-            )
-        }
-        guard var body = model.bodies[bodyID] else {
-            throw TopologyError.missingReference("Missing Face Delete body \(bodyID).")
-        }
-        guard body.kind == .solid else {
-            throw kernelError(
-                .unsupportedCapability,
-                featureID: featureID,
-                tolerance: tolerance,
-                "Face delete requires a solid target body."
-            )
-        }
-        let targetBodyFaceIDs = try collectFaceIDs(in: body, model: model)
-        guard faceIDs.isSubset(of: targetBodyFaceIDs) else {
-            throw kernelError(
-                .missingReference,
-                featureID: featureID,
-                tolerance: tolerance,
-                "Face delete target faces must all belong to the target body."
-            )
-        }
-
-        var remainingShells: [ShellID] = []
-        for shellID in body.shellIDs {
-            guard let shell = model.shells[shellID] else {
-                throw TopologyError.missingReference("Missing Face Delete shell \(shellID).")
-            }
-            let remainingFaceIDs = shell.faceIDs.filter { faceIDs.contains($0) == false }
-            guard remainingFaceIDs.isEmpty == false else {
-                throw kernelError(
-                    .unsupportedCapability,
-                    featureID: featureID,
-                    tolerance: tolerance,
-                    "Face delete cannot remove every face of a shell."
-                )
-            }
-            let components = try connectedFaceComponents(
-                remainingFaceIDs,
-                model: model
-            )
-            for (componentIndex, component) in components.enumerated() {
-                let componentShellID = componentIndex == 0
-                    ? shellID
-                    : topologyIDs.nextShellID()
-                model.shells[componentShellID] = Shell(
-                    id: componentShellID,
-                    faceIDs: component,
-                    orientation: shell.orientation
-                )
-                remainingShells.append(componentShellID)
-            }
-        }
-
-        for faceID in faceIDs.sorted() {
-            guard let face = model.faces.removeValue(forKey: faceID) else {
-                throw TopologyError.missingReference("Missing Face Delete face \(faceID).")
-            }
-            for loopID in face.loops {
-                model.loops.removeValue(forKey: loopID)
-            }
-        }
-        body.topology = .sheet(shellIDs: remainingShells)
-        model.bodies[bodyID] = body
-        pruneUnreferencedTopology(in: &model)
-    }
-
-    private func connectedFaceComponents(
-        _ faceIDs: [FaceID],
-        model: BRepModel
-    ) throws -> [[FaceID]] {
-        let faceSet = Set(faceIDs)
-        var edgeFaces: [EdgeID: [FaceID]] = [:]
-        for faceID in faceIDs.sorted() {
-            guard let face = model.faces[faceID] else {
-                throw TopologyError.missingReference("Missing Face Delete face \(faceID).")
-            }
-            for loopID in face.loops {
-                guard let loop = model.loops[loopID] else {
-                    throw TopologyError.missingReference("Missing Face Delete loop \(loopID).")
-                }
-                for coedge in loop.coedges {
-                    edgeFaces[coedge.edgeID, default: []].append(faceID)
-                }
-            }
-        }
-
-        var adjacency: [FaceID: Set<FaceID>] = Dictionary(
-            uniqueKeysWithValues: faceIDs.map { ($0, Set<FaceID>()) }
-        )
-        for incidentFaces in edgeFaces.values {
-            let retainedFaces = incidentFaces.filter { faceSet.contains($0) }.sorted()
-            for faceID in retainedFaces {
-                adjacency[faceID, default: []].formUnion(retainedFaces.filter { $0 != faceID })
-            }
-        }
-
-        var pending = faceSet
-        var components: [[FaceID]] = []
-        while let seed = pending.min() {
-            var stack = [seed]
-            var component = Set<FaceID>()
-            pending.remove(seed)
-            while let faceID = stack.popLast() {
-                guard component.insert(faceID).inserted else { continue }
-                let neighbors = adjacency[faceID, default: []]
-                    .filter { pending.contains($0) }
-                    .sorted(by: >)
-                for neighbor in neighbors {
-                    pending.remove(neighbor)
-                    stack.append(neighbor)
-                }
-            }
-            components.append(component.sorted())
-        }
-        return components.sorted { lhs, rhs in
-            guard let left = lhs.first, let right = rhs.first else {
-                return lhs.count < rhs.count
-            }
-            return left < right
-        }
-    }
-
-    private func collectFaceIDs(in body: Body, model: BRepModel) throws -> Set<FaceID> {
-        var result: Set<FaceID> = []
-        for shellID in body.shellIDs {
-            guard let shell = model.shells[shellID] else {
-                throw TopologyError.missingReference("Missing Face Delete shell \(shellID).")
-            }
-            result.formUnion(shell.faceIDs)
-        }
-        return result
-    }
-
-    private func pruneUnreferencedTopology(in model: inout BRepModel) {
-        let referencedLoopIDs = Set(model.faces.values.flatMap(\.loops))
-        model.loops = model.loops.filter { referencedLoopIDs.contains($0.key) }
-
-        let referencedSurfaceIDs = Set(model.faces.values.map(\.surfaceID))
-        model.geometry.surfaces = model.geometry.surfaces.filter { referencedSurfaceIDs.contains($0.key) }
-
-        let referencedEdgeIDs = Set(model.loops.values.flatMap { loop in
-            loop.edges.map(\.edgeID)
-        })
-        model.edges = model.edges.filter { referencedEdgeIDs.contains($0.key) }
-
-        let referencedCurveIDs = Set(model.edges.values.map(\.curveID))
-        model.geometry.curves = model.geometry.curves.filter { referencedCurveIDs.contains($0.key) }
-
-        let referencedVertexIDs = Set(model.edges.values.flatMap { edge in
-            [edge.startVertexID, edge.endVertexID]
-        })
-        model.vertices = model.vertices.filter { referencedVertexIDs.contains($0.key) }
     }
 
     private func kernelError(

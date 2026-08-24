@@ -1,26 +1,18 @@
 import CADCore
 
 public struct CurveDirectionalProjectionOptions: Sendable, Hashable {
-    public var sampleCount: Int
-    public var maximumIterations: Int
+    public var limits: ProjectionResourceLimits
     public var range: CurveDirectionalProjectionRange
 
     public init(
-        sampleCount: Int = 9,
-        maximumIterations: Int = 32,
+        limits: ProjectionResourceLimits = ProjectionResourceLimits(),
         range: CurveDirectionalProjectionRange = .line
     ) {
-        self.sampleCount = sampleCount
-        self.maximumIterations = maximumIterations
+        self.limits = limits
         self.range = range
     }
 
-    public func validate() throws {
-        guard sampleCount >= 2 else {
-            throw FeatureEvaluationError.invalidGraph("Curve projection sample count must be at least two.")
-        }
-        guard maximumIterations >= 0 else {
-            throw FeatureEvaluationError.invalidGraph("Curve projection iteration count must not be negative.")
-        }
+    public func validate(tolerance: ModelingTolerance) throws {
+        try limits.validate(tolerance: tolerance)
     }
 }

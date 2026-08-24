@@ -153,11 +153,21 @@ struct CoincidentBooleanFaceOwnershipResolver {
               let toolSurface = model.geometry.surfaces[toolFace.surfaceID] else {
             throw missingReference(tolerance: tolerance)
         }
-        let point = try BRepFaceInteriorPointSampler().point(
-            on: targetFaceID,
+        guard let point = try CoincidentFaceOverlapTester(
+            facePointContainment: DefaultFacePointContainmentTester()
+        ).overlapWitness(
+            targetFaceID,
+            toolFaceID,
             in: model,
             tolerance: tolerance
-        )
+        ) else {
+            throw KernelError(
+                phase: .classification,
+                code: .classificationFailure,
+                tolerance: tolerance,
+                message: "Coincident face ownership requires a certified common trim-domain witness."
+            )
+        }
         let targetParameter = try targetSurface.parameterProjection(
             of: point,
             tolerance: tolerance
@@ -295,17 +305,7 @@ struct CoincidentBooleanFaceOwnershipResolver {
     }
 
     private func isLine(_ curve: Curve3D) -> Bool {
-        switch curve {
-        case .line, .analytic(.line):
-            return true
-        case .circle,
-             .analytic,
-             .bSpline,
-             .implicit,
-             .surfaceLift,
-             .certifiedIntersection:
-            return false
-        }
+        curve.hasExactLinearParameterization
     }
 
     private func missingReference(tolerance: ModelingTolerance) -> KernelError {

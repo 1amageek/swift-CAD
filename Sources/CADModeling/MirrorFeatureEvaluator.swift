@@ -2,10 +2,18 @@ import CADCore
 import CADIR
 
 public struct MirrorFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
-    private let rebuilder: any ExactPlanarPatternRebuilding
+    private let rebuilder: any ExactBodyPatternRebuilding
 
-    public init(sewer: any BRepSewing) {
-        self.rebuilder = DefaultExactPlanarPatternRebuilder(sewer: sewer)
+    public init(
+        sewer: any BRepSewing,
+        unionApplicator: any BooleanOperationApplying,
+        separationValidator: any BodyJoinValidating
+    ) {
+        self.rebuilder = DefaultExactBodyPatternRebuilder(
+            sewer: sewer,
+            unionApplicator: unionApplicator,
+            separationValidator: separationValidator
+        )
     }
 
     public func evaluate(
@@ -43,7 +51,7 @@ public struct MirrorFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             try mirror.validate(tolerance: context.tolerance)
         }
         try FeatureEvaluationBoundary.validateExactInput(
-            context.brep,
+            context,
             featureID: feature.id,
             tolerance: context.tolerance
         )

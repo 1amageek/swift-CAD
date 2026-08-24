@@ -9,6 +9,13 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         public let secondDerivative: Vector3D
     }
 
+    private struct ThirdOrderDifferentialGeometry {
+        let position: Point3D
+        let firstDerivative: Vector3D
+        let secondDerivative: Vector3D
+        let thirdDerivative: Vector3D
+    }
+
     public typealias ApexReduction =
         CertifiedConeTorusApexIntersectionCurve
 
@@ -32,6 +39,10 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
 
         func directionSecondDerivative(at angle: Double) -> Vector3D {
             radialU * -cos(angle) + radialV * -sin(angle)
+        }
+
+        func directionThirdDerivative(at angle: Double) -> Vector3D {
+            radialU * sin(angle) + radialV * -cos(angle)
         }
     }
 
@@ -167,8 +178,14 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
     private struct DifferentialPartition: Hashable, Sendable {
         let lowerNormalizedAngle: Double
         let upperNormalizedAngle: Double
+        let lowerSlant: Double
+        let upperSlant: Double
+        let slantFirstDerivativeMagnitudeUpperBound: Double
+        let slantSecondDerivativeMagnitudeUpperBound: Double
+        let slantThirdDerivativeMagnitudeUpperBound: Double
         let firstDerivativeMagnitudeUpperBound: Double
         let secondDerivativeMagnitudeUpperBound: Double
+        let thirdDerivativeMagnitudeUpperBound: Double
     }
 
     /// Exact range-maximum acceleration for the immutable differential
@@ -181,8 +198,16 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             let maximumLower: Double
             let minimumUpper: Double
             let maximumUpper: Double
+            let minimumSlantLower: Double
+            let maximumSlantLower: Double
+            let minimumSlantUpper: Double
+            let maximumSlantUpper: Double
+            let maximumSlantFirstDerivative: Double
+            let maximumSlantSecondDerivative: Double
+            let maximumSlantThirdDerivative: Double
             let maximumFirstDerivative: Double
             let maximumSecondDerivative: Double
+            let maximumThirdDerivative: Double
             let partitionIndex: Int?
             let leftIndex: Int?
             let rightIndex: Int?
@@ -200,13 +225,24 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                 if lhs.upperNormalizedAngle != rhs.upperNormalizedAngle {
                     return lhs.upperNormalizedAngle < rhs.upperNormalizedAngle
                 }
+                if lhs.lowerSlant != rhs.lowerSlant {
+                    return lhs.lowerSlant < rhs.lowerSlant
+                }
+                if lhs.upperSlant != rhs.upperSlant {
+                    return lhs.upperSlant < rhs.upperSlant
+                }
                 if lhs.firstDerivativeMagnitudeUpperBound
                     != rhs.firstDerivativeMagnitudeUpperBound {
                     return lhs.firstDerivativeMagnitudeUpperBound
                         < rhs.firstDerivativeMagnitudeUpperBound
                 }
-                return lhs.secondDerivativeMagnitudeUpperBound
-                    < rhs.secondDerivativeMagnitudeUpperBound
+                if lhs.secondDerivativeMagnitudeUpperBound
+                    != rhs.secondDerivativeMagnitudeUpperBound {
+                    return lhs.secondDerivativeMagnitudeUpperBound
+                        < rhs.secondDerivativeMagnitudeUpperBound
+                }
+                return lhs.thirdDerivativeMagnitudeUpperBound
+                    < rhs.thirdDerivativeMagnitudeUpperBound
             }
             self.partitions = sorted
             var summaries: [Node] = []
@@ -220,10 +256,22 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                         maximumLower: partition.lowerNormalizedAngle,
                         minimumUpper: partition.upperNormalizedAngle,
                         maximumUpper: partition.upperNormalizedAngle,
+                        minimumSlantLower: partition.lowerSlant,
+                        maximumSlantLower: partition.lowerSlant,
+                        minimumSlantUpper: partition.upperSlant,
+                        maximumSlantUpper: partition.upperSlant,
+                        maximumSlantFirstDerivative:
+                            partition.slantFirstDerivativeMagnitudeUpperBound,
+                        maximumSlantSecondDerivative:
+                            partition.slantSecondDerivativeMagnitudeUpperBound,
+                        maximumSlantThirdDerivative:
+                            partition.slantThirdDerivativeMagnitudeUpperBound,
                         maximumFirstDerivative:
                             partition.firstDerivativeMagnitudeUpperBound,
                         maximumSecondDerivative:
                             partition.secondDerivativeMagnitudeUpperBound,
+                        maximumThirdDerivative:
+                            partition.thirdDerivativeMagnitudeUpperBound,
                         partitionIndex: lower,
                         leftIndex: nil,
                         rightIndex: nil
@@ -253,6 +301,34 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                         left.maximumUpper,
                         right.maximumUpper
                     ),
+                    minimumSlantLower: min(
+                        left.minimumSlantLower,
+                        right.minimumSlantLower
+                    ),
+                    maximumSlantLower: max(
+                        left.maximumSlantLower,
+                        right.maximumSlantLower
+                    ),
+                    minimumSlantUpper: min(
+                        left.minimumSlantUpper,
+                        right.minimumSlantUpper
+                    ),
+                    maximumSlantUpper: max(
+                        left.maximumSlantUpper,
+                        right.maximumSlantUpper
+                    ),
+                    maximumSlantFirstDerivative: max(
+                        left.maximumSlantFirstDerivative,
+                        right.maximumSlantFirstDerivative
+                    ),
+                    maximumSlantSecondDerivative: max(
+                        left.maximumSlantSecondDerivative,
+                        right.maximumSlantSecondDerivative
+                    ),
+                    maximumSlantThirdDerivative: max(
+                        left.maximumSlantThirdDerivative,
+                        right.maximumSlantThirdDerivative
+                    ),
                     maximumFirstDerivative: max(
                         left.maximumFirstDerivative,
                         right.maximumFirstDerivative
@@ -260,6 +336,10 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                     maximumSecondDerivative: max(
                         left.maximumSecondDerivative,
                         right.maximumSecondDerivative
+                    ),
+                    maximumThirdDerivative: max(
+                        left.maximumThirdDerivative,
+                        right.maximumThirdDerivative
                     ),
                     partitionIndex: nil,
                     leftIndex: leftIndex,
@@ -276,28 +356,38 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
 
         func bounds(
             overlappingLower lower: Double,
-            upper: Double
+            upper: Double,
+            slantLower: Double,
+            slantUpper: Double
         ) -> SpatialDifferentialMagnitudeBounds? {
             var found = false
             var first = -Double.infinity
             var second = -Double.infinity
+            var third = -Double.infinity
             func visit(_ index: Int) {
                 let node = nodes[index]
                 if node.minimumLower > upper
-                    || node.maximumUpper < lower {
+                    || node.maximumUpper < lower
+                    || node.minimumSlantLower > slantUpper
+                    || node.maximumSlantUpper < slantLower {
                     return
                 }
                 if node.maximumLower <= upper,
-                   node.minimumUpper >= lower {
+                   node.minimumUpper >= lower,
+                   node.maximumSlantLower <= slantUpper,
+                   node.minimumSlantUpper >= slantLower {
                     found = true
                     first = max(first, node.maximumFirstDerivative)
                     second = max(second, node.maximumSecondDerivative)
+                    third = max(third, node.maximumThirdDerivative)
                     return
                 }
                 if let partitionIndex = node.partitionIndex {
                     let partition = partitions[partitionIndex]
                     guard partition.upperNormalizedAngle >= lower,
-                          partition.lowerNormalizedAngle <= upper else {
+                          partition.lowerNormalizedAngle <= upper,
+                          partition.upperSlant >= slantLower,
+                          partition.lowerSlant <= slantUpper else {
                         return
                     }
                     found = true
@@ -309,6 +399,10 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                         second,
                         partition.secondDerivativeMagnitudeUpperBound
                     )
+                    third = max(
+                        third,
+                        partition.thirdDerivativeMagnitudeUpperBound
+                    )
                     return
                 }
                 if let leftIndex = node.leftIndex { visit(leftIndex) }
@@ -318,8 +412,146 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             guard found else { return nil }
             return SpatialDifferentialMagnitudeBounds(
                 first: first,
-                second: second
+                second: second,
+                third: third
             )
+        }
+
+        func maximumSlantFirstDerivative(
+            overlappingLower lower: Double,
+            upper: Double
+        ) -> Double? {
+            var found = false
+            var maximum = -Double.infinity
+            func visit(_ index: Int) {
+                let node = nodes[index]
+                if node.minimumLower > upper
+                    || node.maximumUpper < lower {
+                    return
+                }
+                if node.maximumLower <= upper,
+                   node.minimumUpper >= lower {
+                    found = true
+                    maximum = max(
+                        maximum,
+                        node.maximumSlantFirstDerivative
+                    )
+                    return
+                }
+                if let partitionIndex = node.partitionIndex {
+                    let partition = partitions[partitionIndex]
+                    guard partition.upperNormalizedAngle >= lower,
+                          partition.lowerNormalizedAngle <= upper else {
+                        return
+                    }
+                    found = true
+                    maximum = max(
+                        maximum,
+                        partition.slantFirstDerivativeMagnitudeUpperBound
+                    )
+                    return
+                }
+                if let leftIndex = node.leftIndex { visit(leftIndex) }
+                if let rightIndex = node.rightIndex { visit(rightIndex) }
+            }
+            if let rootIndex { visit(rootIndex) }
+            return found ? maximum : nil
+        }
+
+        func slantDifferentialBounds(
+            overlappingLower lower: Double,
+            upper: Double,
+            slantLower: Double,
+            slantUpper: Double
+        ) -> SpatialDifferentialMagnitudeBounds? {
+            var found = false
+            var first = -Double.infinity
+            var second = -Double.infinity
+            var third = -Double.infinity
+            func visit(_ index: Int) {
+                let node = nodes[index]
+                if node.minimumLower > upper
+                    || node.maximumUpper < lower
+                    || node.minimumSlantLower > slantUpper
+                    || node.maximumSlantUpper < slantLower {
+                    return
+                }
+                if node.maximumLower <= upper,
+                   node.minimumUpper >= lower,
+                   node.maximumSlantLower <= slantUpper,
+                   node.minimumSlantUpper >= slantLower {
+                    found = true
+                    first = max(first, node.maximumSlantFirstDerivative)
+                    second = max(second, node.maximumSlantSecondDerivative)
+                    third = max(third, node.maximumSlantThirdDerivative)
+                    return
+                }
+                if let partitionIndex = node.partitionIndex {
+                    let partition = partitions[partitionIndex]
+                    guard partition.upperNormalizedAngle >= lower,
+                          partition.lowerNormalizedAngle <= upper,
+                          partition.upperSlant >= slantLower,
+                          partition.lowerSlant <= slantUpper else {
+                        return
+                    }
+                    found = true
+                    first = max(
+                        first,
+                        partition.slantFirstDerivativeMagnitudeUpperBound
+                    )
+                    second = max(
+                        second,
+                        partition.slantSecondDerivativeMagnitudeUpperBound
+                    )
+                    third = max(
+                        third,
+                        partition.slantThirdDerivativeMagnitudeUpperBound
+                    )
+                    return
+                }
+                if let leftIndex = node.leftIndex { visit(leftIndex) }
+                if let rightIndex = node.rightIndex { visit(rightIndex) }
+            }
+            if let rootIndex { visit(rootIndex) }
+            guard found else { return nil }
+            return SpatialDifferentialMagnitudeBounds(
+                first: first,
+                second: second,
+                third: third
+            )
+        }
+
+        func overlappingPartitions(
+            lower: Double,
+            upper: Double,
+            slantLower: Double,
+            slantUpper: Double
+        ) -> [DifferentialPartition] {
+            var result: [DifferentialPartition] = []
+            func visit(_ index: Int) {
+                let node = nodes[index]
+                if node.minimumLower > upper
+                    || node.maximumUpper < lower
+                    || node.minimumSlantLower > slantUpper
+                    || node.maximumSlantUpper < slantLower {
+                    return
+                }
+                if let partitionIndex = node.partitionIndex {
+                    let partition = partitions[partitionIndex]
+                    guard partition.upperNormalizedAngle >= lower,
+                          partition.lowerNormalizedAngle <= upper,
+                          partition.upperSlant >= slantLower,
+                          partition.lowerSlant <= slantUpper else {
+                        return
+                    }
+                    result.append(partition)
+                    return
+                }
+                if let leftIndex = node.leftIndex { visit(leftIndex) }
+                if let rightIndex = node.rightIndex { visit(rightIndex) }
+            }
+            if let rootIndex { visit(rootIndex) }
+            return result
         }
     }
 
@@ -329,7 +561,7 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         let depth: Int
     }
 
-    private struct Interval {
+    private struct Interval: Hashable, Sendable {
         let lower: Double
         let upper: Double
 
@@ -387,6 +619,25 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                 min(lower * lower, upper * upper),
                 max(lower * lower, upper * upper)
             )
+        }
+
+        func divided(by other: Interval) -> Interval? {
+            guard other.containsZero == false else { return nil }
+            return multiplied(by: Interval(
+                1.0 / other.upper,
+                1.0 / other.lower
+            ))
+        }
+
+        func intersection(with other: Interval) -> Interval? {
+            let intersectionLower = max(lower, other.lower)
+            let intersectionUpper = min(upper, other.upper)
+            guard intersectionLower <= intersectionUpper else { return nil }
+            return Interval(intersectionLower, intersectionUpper)
+        }
+
+        func hull(_ other: Interval) -> Interval {
+            Interval(min(lower, other.lower), max(upper, other.upper))
         }
     }
 
@@ -722,6 +973,15 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                           && $0.upperNormalizedAngle <= 1.0
                           && $0.lowerNormalizedAngle
                               <= $0.upperNormalizedAngle
+                          && $0.lowerSlant.isFinite
+                          && $0.upperSlant.isFinite
+                          && $0.lowerSlant <= $0.upperSlant
+                          && $0.slantFirstDerivativeMagnitudeUpperBound.isFinite
+                          && $0.slantFirstDerivativeMagnitudeUpperBound > 0.0
+                          && $0.slantSecondDerivativeMagnitudeUpperBound.isFinite
+                          && $0.slantSecondDerivativeMagnitudeUpperBound > 0.0
+                          && $0.slantThirdDerivativeMagnitudeUpperBound.isFinite
+                          && $0.slantThirdDerivativeMagnitudeUpperBound > 0.0
                           && $0.firstDerivativeMagnitudeUpperBound.isFinite
                           && $0.secondDerivativeMagnitudeUpperBound.isFinite
                           && $0.firstDerivativeMagnitudeUpperBound > 0.0
@@ -751,6 +1011,34 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
+        let geometry = try derivativesThroughThirdOrder(
+            atNormalizedFraction: fraction,
+            includingThirdDerivative: false,
+            tolerance: tolerance
+        )
+        return DifferentialGeometry(
+            position: geometry.position,
+            firstDerivative: geometry.firstDerivative,
+            secondDerivative: geometry.secondDerivative
+        )
+    }
+
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        try derivativesThroughThirdOrder(
+            atNormalizedFraction: fraction,
+            includingThirdDerivative: true,
+            tolerance: tolerance
+        ).thirdDerivative
+    }
+
+    private func derivativesThroughThirdOrder(
+        atNormalizedFraction fraction: Double,
+        includingThirdDerivative: Bool,
+        tolerance: ModelingTolerance
+    ) throws -> ThirdOrderDifferentialGeometry {
         try tolerance.validate()
         guard fraction.isFinite,
               fraction >= -tolerance.relative,
@@ -758,14 +1046,27 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             throw GeometryError.invalidDistance(fraction)
         }
         if let apexReduction {
-            let geometry = try apexReduction.differential(
+            guard includingThirdDerivative else {
+                let geometry = try apexReduction.differential(
+                    atNormalizedFraction: min(max(fraction, 0.0), 1.0),
+                    tolerance: tolerance
+                )
+                return ThirdOrderDifferentialGeometry(
+                    position: geometry.position,
+                    firstDerivative: geometry.firstDerivative,
+                    secondDerivative: geometry.secondDerivative,
+                    thirdDerivative: .zero
+                )
+            }
+            let geometry = try apexReduction.derivativesThroughThirdOrder(
                 atNormalizedFraction: min(max(fraction, 0.0), 1.0),
                 tolerance: tolerance
             )
-            return DifferentialGeometry(
+            return ThirdOrderDifferentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
-                secondDerivative: geometry.secondDerivative
+                secondDerivative: geometry.secondDerivative,
+                thirdDerivative: geometry.thirdDerivative
             )
         }
         let clamped = min(max(fraction, 0.0), 1.0)
@@ -855,6 +1156,41 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                 + directionFirst * (2.0 * slantAngleDerivative)
                 + direction * slantAngleSecondDerivative
         ) * (angularScale * angularScale)
+        let thirdDerivative: Vector3D
+        if includingThirdDerivative {
+            let directionThird = configuration.cone
+                .directionThirdDerivative(at: angle)
+            let firstByAngle = angleTangent
+                + direction * slantAngleDerivative
+            let secondByAngle = angleSecond
+                + directionFirst * (2.0 * slantAngleDerivative)
+                + direction * slantAngleSecondDerivative
+            let knownThirdByAngle = directionThird * slant
+                + directionSecond * (3.0 * slantAngleDerivative)
+                + directionFirst * (3.0 * slantAngleSecondDerivative)
+            let implicitThird = Self.torusThirdDerivativeTrilinear(
+                offset: offset,
+                first: firstByAngle,
+                second: firstByAngle,
+                third: firstByAngle
+            )
+            let thirdRightHandSide = implicitThird
+                + 3.0 * Self.torusHessianBilinear(
+                    offset: offset,
+                    first: firstByAngle,
+                    second: secondByAngle,
+                    torus: configuration.torus
+                )
+                + gradient.dot(knownThirdByAngle)
+            let slantAngleThirdDerivative = -thirdRightHandSide
+                / slantDenominator
+            thirdDerivative = (
+                knownThirdByAngle
+                    + direction * slantAngleThirdDerivative
+            ) * (angularScale * angularScale * angularScale)
+        } else {
+            thirdDerivative = .zero
+        }
         guard firstDerivative.length > tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
@@ -892,10 +1228,19 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                 message: "A certified cone-torus root exceeded its geometric residual bound."
             )
         }
-        return DifferentialGeometry(
+        guard thirdDerivative.isFinite else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "A certified cone-torus third differential exceeded finite arithmetic."
+            )
+        }
+        return ThirdOrderDifferentialGeometry(
             position: position,
             firstDerivative: firstDerivative,
-            secondDerivative: secondDerivative
+            secondDerivative: secondDerivative,
+            thirdDerivative: thirdDerivative
         )
     }
 
@@ -993,18 +1338,544 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                 message: "Cone-torus spatial differential bounds require an ordered normalized interval."
             )
         }
-        guard let bounds = certificate.differentialPartitionIndex.bounds(
+        let index = certificate.differentialPartitionIndex
+        guard let maximumSlantFirstDerivative = index
+            .maximumSlantFirstDerivative(
+                overlappingLower: lowerFraction,
+                upper: upperFraction
+            ) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "Cone-torus spatial differential certification has no slant derivative covering the requested interval."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            coneSurface: coneSurface,
+            torusSurface: torusSurface,
+            tolerance: tolerance
+        )
+        let middleFraction = lowerFraction
+            + (upperFraction - lowerFraction) * 0.5
+        let middleAngle = middleFraction * 2.0 * Double.pi
+        let middleRoot = try Self.certifiedRefinedRootInterval(
+            angle: middleAngle,
+            initialSlant: certificate.referenceSlant(
+                branchIndex: branchIndex,
+                at: middleAngle
+            ),
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let halfWidth = max(
+            middleFraction - lowerFraction,
+            upperFraction - middleFraction
+        )
+        let variationRadius = (
+            maximumSlantFirstDerivative * halfWidth
+        ).nextUp
+        guard variationRadius.isFinite,
+              let bounds = index.bounds(
             overlappingLower: lowerFraction,
-            upper: upperFraction
+            upper: upperFraction,
+            slantLower: (middleRoot.lower - variationRadius).nextDown,
+            slantUpper: (middleRoot.upper + variationRadius).nextUp
         ) else {
             throw KernelError(
                 phase: .geometry,
                 code: .intersectionFailure,
                 tolerance: tolerance,
-                message: "Cone-torus spatial differential certificate has no partition covering the requested interval."
+                message: "Cone-torus spatial differential certificate has no branch-local partition covering the requested interval."
             )
         }
         return bounds
+    }
+
+    func spatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        branchPointAtMiddle middlePoint: Point3D,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        let slantEnclosure = try branchSlantEnclosure(
+            fromNormalizedFraction: lowerFraction,
+            toNormalizedFraction: upperFraction,
+            branchPointAtMiddle: middlePoint,
+            tolerance: tolerance
+        )
+        let index = certificate.differentialPartitionIndex
+        guard let bounds = index.bounds(
+            overlappingLower: lowerFraction,
+            upper: upperFraction,
+            slantLower: slantEnclosure.lower,
+            slantUpper: slantEnclosure.upper
+        ) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "Cone-torus spatial differential certificate has no partition covering the reconstructed branch point."
+            )
+        }
+        return bounds
+    }
+
+    struct ParameterDifferentialMagnitudeBounds: Sendable {
+        let uFirst: Double
+        let uSecond: Double
+        let uThird: Double
+        let vFirst: Double
+        let vSecond: Double
+        let vThird: Double
+    }
+
+    func coneParameterDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        branchPointAtMiddle middlePoint: Point3D,
+        tolerance: ModelingTolerance
+    ) throws -> ParameterDifferentialMagnitudeBounds {
+        let slantEnclosure = try branchSlantEnclosure(
+            fromNormalizedFraction: lowerFraction,
+            toNormalizedFraction: upperFraction,
+            branchPointAtMiddle: middlePoint,
+            tolerance: tolerance
+        )
+        guard let slant = certificate.differentialPartitionIndex
+            .slantDifferentialBounds(
+                overlappingLower: lowerFraction,
+                upper: upperFraction,
+                slantLower: slantEnclosure.lower,
+                slantUpper: slantEnclosure.upper
+            ) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "Cone-torus cone-parameter certification has no partition covering the reconstructed branch point."
+            )
+        }
+        return ParameterDifferentialMagnitudeBounds(
+            uFirst: (2.0 * Double.pi).nextUp,
+            uSecond: 0.0,
+            uThird: 0.0,
+            vFirst: slant.first,
+            vSecond: slant.second,
+            vThird: slant.third ?? .infinity
+        )
+    }
+
+    func torusParameterDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        branchPointAtMiddle middlePoint: Point3D,
+        uBounds: ScalarInterval,
+        vBounds: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> ParameterDifferentialMagnitudeBounds {
+        let slant = try branchSlantEnclosure(
+            fromNormalizedFraction: lowerFraction,
+            toNormalizedFraction: upperFraction,
+            branchPointAtMiddle: middlePoint,
+            tolerance: tolerance
+        )
+        let configuration = try Self.makeConfiguration(
+            coneSurface: coneSurface,
+            torusSurface: torusSurface,
+            tolerance: tolerance
+        )
+        let period = 2.0 * Double.pi
+        let partitions = certificate.differentialPartitionIndex
+            .overlappingPartitions(
+                lower: lowerFraction,
+                upper: upperFraction,
+                slantLower: slant.lower,
+                slantUpper: slant.upper
+            )
+        guard partitions.isEmpty == false else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "Cone-torus torus-parameter certification has no branch-local differential partition."
+            )
+        }
+        var firstByAngle: [Interval]?
+        var secondByAngle: [Interval]?
+        var thirdByAngle: [Interval]?
+        for partition in partitions {
+            let clippedAngle = Interval(
+                max(lowerFraction, partition.lowerNormalizedAngle) * period,
+                min(upperFraction, partition.upperNormalizedAngle) * period
+            )
+            let clippedSlant = Interval(
+                max(slant.lower, partition.lowerSlant),
+                min(slant.upper, partition.upperSlant)
+            )
+            let implicit = Self.implicitDifferentialIntervals(
+                angle: clippedAngle,
+                slant: clippedSlant,
+                configuration: configuration
+            )
+            guard implicit.slantDerivative.containsZero == false,
+                  let slantFirst = implicit.angleDerivative
+                    .scaled(by: -1.0)
+                    .divided(by: implicit.slantDerivative) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .topologyFailure,
+                    tolerance: tolerance,
+                    message: "A branch-local cone-torus certificate lost its non-tangent first derivative invariant."
+                )
+            }
+            let slantSecondNumerator = implicit.angleAngleDerivative
+                .adding(
+                    implicit.angleSlantDerivative
+                        .multiplied(by: slantFirst)
+                        .scaled(by: 2.0)
+                )
+                .adding(
+                    implicit.slantSlantDerivative
+                        .multiplied(by: slantFirst)
+                        .multiplied(by: slantFirst)
+                )
+            guard let slantSecond = slantSecondNumerator
+                .scaled(by: -1.0)
+                .divided(by: implicit.slantDerivative) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .topologyFailure,
+                    tolerance: tolerance,
+                    message: "A branch-local cone-torus certificate lost its non-tangent second derivative invariant."
+                )
+            }
+            let localFirst = implicit.direction.indices.map { index in
+                implicit.directionFirst[index]
+                    .multiplied(by: clippedSlant)
+                    .adding(
+                        implicit.direction[index].multiplied(by: slantFirst)
+                    )
+            }
+            let localSecond = implicit.direction.indices.map { index in
+                implicit.directionSecond[index]
+                    .multiplied(by: clippedSlant)
+                    .adding(
+                        implicit.directionFirst[index]
+                            .multiplied(by: slantFirst)
+                            .scaled(by: 2.0)
+                    )
+                    .adding(
+                        implicit.direction[index].multiplied(by: slantSecond)
+                    )
+            }
+            let knownThird = implicit.direction.indices.map { index in
+                implicit.directionFirst[index]
+                    .scaled(by: -1.0)
+                    .multiplied(by: clippedSlant)
+                    .adding(
+                        implicit.directionSecond[index]
+                            .multiplied(by: slantFirst)
+                            .scaled(by: 3.0)
+                    )
+                    .adding(
+                        implicit.directionFirst[index]
+                            .multiplied(by: slantSecond)
+                            .scaled(by: 3.0)
+                    )
+            }
+            let thirdRightHandSide = Self
+                .torusThirdDerivativeTrilinearInterval(
+                    offset: implicit.offset,
+                    first: localFirst,
+                    second: localFirst,
+                    third: localFirst
+                )
+                .adding(
+                    Self.torusHessianBilinearInterval(
+                        offset: implicit.offset,
+                        q: implicit.q,
+                        first: localFirst,
+                        second: localSecond,
+                        torus: configuration.torus
+                    ).scaled(by: 3.0)
+                )
+                .adding(Self.dotInterval(implicit.gradient, knownThird))
+            guard let slantThird = thirdRightHandSide
+                .scaled(by: -1.0)
+                .divided(by: implicit.slantDerivative) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .topologyFailure,
+                    tolerance: tolerance,
+                    message: "A branch-local cone-torus certificate lost its non-tangent third derivative invariant."
+                )
+            }
+            let localThird = implicit.direction.indices.map { index in
+                knownThird[index].adding(
+                    implicit.direction[index].multiplied(by: slantThird)
+                )
+            }
+            if let existingFirst = firstByAngle,
+               let existingSecond = secondByAngle,
+               let existingThird = thirdByAngle {
+                firstByAngle = existingFirst.indices.map {
+                    existingFirst[$0].hull(localFirst[$0])
+                }
+                secondByAngle = existingSecond.indices.map {
+                    existingSecond[$0].hull(localSecond[$0])
+                }
+                thirdByAngle = existingThird.indices.map {
+                    existingThird[$0].hull(localThird[$0])
+                }
+            } else {
+                firstByAngle = localFirst
+                secondByAngle = localSecond
+                thirdByAngle = localThird
+            }
+        }
+        guard let firstByAngle,
+              let secondByAngle,
+              let thirdByAngle else {
+            throw KernelError(
+                phase: .geometry,
+                code: .topologyFailure,
+                tolerance: tolerance,
+                message: "Cone-torus torus-parameter certification failed to compose its branch-local differential intervals."
+            )
+        }
+        let firstScale = period.nextUp
+        let secondScale = (firstScale * firstScale).nextUp
+        let thirdScale = (secondScale * firstScale).nextUp
+        let spatialFirst = firstByAngle.map { $0.scaled(by: firstScale) }
+        let spatialSecond = secondByAngle.map { $0.scaled(by: secondScale) }
+        let spatialThird = thirdByAngle.map { $0.scaled(by: thirdScale) }
+
+        let torusBasis = try analyticOrthonormalBasis(
+            configuration.torus.axis,
+            tolerance: tolerance
+        )
+        let u = Interval(uBounds.lower, uBounds.upper)
+        let v = Interval(vBounds.lower, vBounds.upper)
+        let cosineU = Self.cosineInterval(u)
+        let sineU = Self.sineInterval(u)
+        let cosineV = Self.cosineInterval(v)
+        let sineV = Self.sineInterval(v)
+        let torusAxis = [
+            configuration.torus.axis.x,
+            configuration.torus.axis.y,
+            configuration.torus.axis.z,
+        ]
+        let radial = [
+            cosineU.scaled(by: torusBasis.u.x)
+                .adding(sineU.scaled(by: torusBasis.v.x)),
+            cosineU.scaled(by: torusBasis.u.y)
+                .adding(sineU.scaled(by: torusBasis.v.y)),
+            cosineU.scaled(by: torusBasis.u.z)
+                .adding(sineU.scaled(by: torusBasis.v.z)),
+        ]
+        let azimuth = [
+            sineU.scaled(by: -torusBasis.u.x)
+                .adding(cosineU.scaled(by: torusBasis.v.x)),
+            sineU.scaled(by: -torusBasis.u.y)
+                .adding(cosineU.scaled(by: torusBasis.v.y)),
+            sineU.scaled(by: -torusBasis.u.z)
+                .adding(cosineU.scaled(by: torusBasis.v.z)),
+        ]
+        let meridian = radial.indices.map { index in
+            radial[index].multiplied(by: sineV).scaled(by: -1.0)
+                .adding(
+                    cosineV.scaled(by: torusAxis[index])
+                )
+        }
+        let azimuthScale = Interval.constant(configuration.torus.majorRadius)
+            .adding(cosineV.scaled(by: configuration.torus.minorRadius))
+        guard let uFirst = Self.dotInterval(azimuth, spatialFirst)
+            .divided(by: azimuthScale) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                tolerance: tolerance,
+                message: "Cone-torus torus azimuth scale became singular."
+            )
+        }
+        let vFirst = Self.dotInterval(meridian, spatialFirst)
+            .scaled(by: 1.0 / configuration.torus.minorRadius)
+        let uSecondNumerator = Self.dotInterval(azimuth, spatialSecond)
+            .adding(
+                sineV.multiplied(by: uFirst).multiplied(by: vFirst)
+                    .scaled(by: 2.0 * configuration.torus.minorRadius)
+            )
+        guard let uSecond = uSecondNumerator.divided(by: azimuthScale) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                tolerance: tolerance,
+                message: "Cone-torus torus azimuth second differentiation became singular."
+            )
+        }
+        let vSecond = Self.dotInterval(meridian, spatialSecond)
+            .subtracting(
+                azimuthScale.multiplied(by: sineV)
+                    .multiplied(by: uFirst).multiplied(by: uFirst)
+            )
+            .scaled(by: 1.0 / configuration.torus.minorRadius)
+        let uThirdNumerator = Self.dotInterval(azimuth, spatialThird)
+            .adding(
+                sineV.multiplied(by:
+                    uSecond.multiplied(by: vFirst)
+                        .adding(uFirst.multiplied(by: vSecond))
+                ).scaled(by: 3.0 * configuration.torus.minorRadius)
+            )
+            .adding(
+                azimuthScale.multiplied(by: uFirst)
+                    .multiplied(by: uFirst).multiplied(by: uFirst)
+            )
+            .adding(
+                cosineV.multiplied(by: uFirst)
+                    .multiplied(by: vFirst).multiplied(by: vFirst)
+                    .scaled(by: 3.0 * configuration.torus.minorRadius)
+            )
+        guard let uThird = uThirdNumerator.divided(by: azimuthScale) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                tolerance: tolerance,
+                message: "Cone-torus torus azimuth third differentiation became singular."
+            )
+        }
+        let vThird = Self.dotInterval(meridian, spatialThird)
+            .subtracting(
+                azimuthScale.multiplied(by: sineV)
+                    .multiplied(by: uFirst).multiplied(by: uSecond)
+                    .scaled(by: 3.0)
+            )
+            .adding(
+                sineV.multiplied(by: sineV)
+                    .multiplied(by: uFirst).multiplied(by: uFirst)
+                    .multiplied(by: vFirst)
+                    .scaled(by: 3.0 * configuration.torus.minorRadius)
+            )
+            .adding(
+                vFirst.multiplied(by: vFirst).multiplied(by: vFirst)
+                    .scaled(by: configuration.torus.minorRadius)
+            )
+            .scaled(by: 1.0 / configuration.torus.minorRadius)
+        return ParameterDifferentialMagnitudeBounds(
+            uFirst: uFirst.maximumAbsoluteValue,
+            uSecond: uSecond.maximumAbsoluteValue,
+            uThird: uThird.maximumAbsoluteValue,
+            vFirst: vFirst.maximumAbsoluteValue,
+            vSecond: vSecond.maximumAbsoluteValue,
+            vThird: vThird.maximumAbsoluteValue
+        )
+    }
+
+    private func branchSlantEnclosure(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        branchPointAtMiddle middlePoint: Point3D,
+        tolerance: ModelingTolerance
+    ) throws -> Interval {
+        try validate(tolerance: tolerance)
+        guard apexReduction == nil,
+              lowerFraction.isFinite,
+              upperFraction.isFinite,
+              lowerFraction >= 0.0,
+              upperFraction <= 1.0,
+              lowerFraction <= upperFraction,
+              middlePoint.isFinite else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Cone-torus branch-point differential bounds require a regular branch, an ordered interval, and a finite middle point."
+            )
+        }
+        let index = certificate.differentialPartitionIndex
+        guard let maximumSlantFirstDerivative = index
+            .maximumSlantFirstDerivative(
+                overlappingLower: lowerFraction,
+                upper: upperFraction
+            ) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "Cone-torus branch-point differential certification has no slant derivative covering the requested interval."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            coneSurface: coneSurface,
+            torusSurface: torusSurface,
+            tolerance: tolerance
+        )
+        let middleFraction = lowerFraction
+            + (upperFraction - lowerFraction) * 0.5
+        let middleAngle = middleFraction * 2.0 * Double.pi
+        let direction = configuration.cone.direction(at: middleAngle)
+        let middleSlant = (middlePoint - configuration.cone.apex).dot(direction)
+        let reconstructionUncertainty = (
+            Self.rootTolerance(
+                configuration: configuration,
+                tolerance: tolerance
+            ) * 16.0
+                + Double.ulpOfOne * max(abs(middleSlant), 1.0) * 4_096.0
+        ).nextUp
+        let halfWidth = max(
+            middleFraction - lowerFraction,
+            upperFraction - middleFraction
+        )
+        let variationRadius = (
+            maximumSlantFirstDerivative * halfWidth
+        ).nextUp
+        guard variationRadius.isFinite else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                residual: variationRadius,
+                tolerance: tolerance,
+                message: "Cone-torus branch slant enclosure exceeded finite arithmetic."
+            )
+        }
+        return Interval(
+            middleSlant - reconstructionUncertainty - variationRadius,
+            middleSlant + reconstructionUncertainty + variationRadius
+        )
+    }
+
+    /// Returns the source-parameter boundaries where the stored differential
+    /// certificate changes. Consumers that integrate the curve should seed
+    /// their adaptive work at these boundaries so a narrow near-tangent
+    /// partition does not smear its derivative maximum across adjacent cells.
+    func differentialPartitionBreakpoints(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double
+    ) -> [Double] {
+        let lower = min(lowerFraction, upperFraction)
+        let upper = max(lowerFraction, upperFraction)
+        guard apexReduction == nil, upper > lower else {
+            return [lower, upper]
+        }
+        var values = [lower, upper]
+        values.reserveCapacity(certificate.differentialPartitions.count * 2 + 2)
+        for partition in certificate.differentialPartitions {
+            if partition.lowerNormalizedAngle > lower,
+               partition.lowerNormalizedAngle < upper {
+                values.append(partition.lowerNormalizedAngle)
+            }
+            if partition.upperNormalizedAngle > lower,
+               partition.upperNormalizedAngle < upper {
+                values.append(partition.upperNormalizedAngle)
+            }
+        }
+        values.sort()
+        var result: [Double] = []
+        result.reserveCapacity(values.count)
+        for value in values where result.last != value {
+            result.append(value)
+        }
+        return result
     }
 
     private static func makeConfiguration(
@@ -1173,18 +2044,105 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             if values.slantDerivative.containsZero == false,
                normalizedAngleWidth <= maximumNormalizedAngleWidth,
                normalizedSlantWidth <= maximumNormalizedSlantWidth {
-                let denominator = values.slantDerivative.minimumAbsoluteValue
-                let slantFirstDerivative = (
-                    values.angleDerivative.maximumAbsoluteValue / denominator
-                ).nextUp
-                let slantSecondDerivative = ((
-                    values.angleAngleDerivative.maximumAbsoluteValue
-                        + 2.0
-                            * values.angleSlantDerivative.maximumAbsoluteValue
-                            * slantFirstDerivative
-                        + values.slantSlantDerivative.maximumAbsoluteValue
-                            * slantFirstDerivative * slantFirstDerivative
-                ) / denominator).nextUp
+                guard let slantFirstInterval = values.angleDerivative
+                    .scaled(by: -1.0)
+                    .divided(by: values.slantDerivative) else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .topologyFailure,
+                        tolerance: tolerance,
+                        message: "A non-tangent cone-torus certificate lost its first implicit derivative denominator."
+                    )
+                }
+                let slantSecondNumerator = values.angleAngleDerivative
+                    .adding(
+                        values.angleSlantDerivative
+                            .multiplied(by: slantFirstInterval)
+                            .scaled(by: 2.0)
+                    )
+                    .adding(
+                        values.slantSlantDerivative
+                            .multiplied(by: slantFirstInterval)
+                            .multiplied(by: slantFirstInterval)
+                    )
+                guard let slantSecondInterval = slantSecondNumerator
+                    .scaled(by: -1.0)
+                    .divided(by: values.slantDerivative) else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .topologyFailure,
+                        tolerance: tolerance,
+                        message: "A non-tangent cone-torus certificate lost its second implicit derivative denominator."
+                    )
+                }
+                let slantFirstDerivative = slantFirstInterval
+                    .maximumAbsoluteValue
+                let slantSecondDerivative = slantSecondInterval
+                    .maximumAbsoluteValue
+                let firstByAngle = values.direction.indices.map { index in
+                    values.directionFirst[index]
+                        .multiplied(by: cell.slant)
+                        .adding(
+                            values.direction[index].multiplied(
+                                by: slantFirstInterval
+                            )
+                        )
+                }
+                let secondByAngle = values.direction.indices.map { index in
+                    values.directionSecond[index]
+                        .multiplied(by: cell.slant)
+                        .adding(
+                            values.directionFirst[index]
+                                .multiplied(by: slantFirstInterval)
+                                .scaled(by: 2.0)
+                        )
+                        .adding(
+                            values.direction[index].multiplied(
+                                by: slantSecondInterval
+                            )
+                        )
+                }
+                let knownThirdByAngle = values.direction.indices.map { index in
+                    values.directionFirst[index]
+                        .scaled(by: -1.0)
+                        .multiplied(by: cell.slant)
+                        .adding(
+                            values.directionSecond[index]
+                                .multiplied(by: slantFirstInterval)
+                                .scaled(by: 3.0)
+                        )
+                        .adding(
+                            values.directionFirst[index]
+                                .multiplied(by: slantSecondInterval)
+                                .scaled(by: 3.0)
+                        )
+                }
+                let thirdRightHandSide = torusThirdDerivativeTrilinearInterval(
+                    offset: values.offset,
+                    first: firstByAngle,
+                    second: firstByAngle,
+                    third: firstByAngle
+                ).adding(
+                    torusHessianBilinearInterval(
+                        offset: values.offset,
+                        q: values.q,
+                        first: firstByAngle,
+                        second: secondByAngle,
+                        torus: configuration.torus
+                    ).scaled(by: 3.0)
+                ).adding(dotInterval(values.gradient, knownThirdByAngle))
+                guard let slantThirdInterval = thirdRightHandSide
+                    .scaled(by: -1.0)
+                    .divided(by: values.slantDerivative) else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .topologyFailure,
+                        tolerance: tolerance,
+                        message: "A non-tangent cone-torus certificate lost its third implicit derivative denominator."
+                    )
+                }
+                let slantThirdDerivative = slantThirdInterval
+                    .maximumAbsoluteValue
                 let maximumAbsoluteSlant = max(
                     abs(cell.slant.lower),
                     abs(cell.slant.upper)
@@ -1199,6 +2157,14 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                             * slantFirstDerivative
                         + slantSecondDerivative
                 ).nextUp * angularScale * angularScale).nextUp
+                let thirdDerivativeMagnitudeUpperBound = ((
+                    generatorAngularMagnitude * maximumAbsoluteSlant
+                        + 3.0 * generatorAngularMagnitude
+                            * slantFirstDerivative
+                        + 3.0 * generatorAngularMagnitude
+                            * slantSecondDerivative
+                        + slantThirdDerivative
+                ).nextUp * angularScale * angularScale * angularScale).nextUp
                 // Near a generator tangency the interval denominator smears
                 // an enormous derivative bound across the whole partition;
                 // refining until the bound is usable (or the width floors)
@@ -1209,7 +2175,10 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                 let canRefine = cell.depth < maximumSubdivisionDepth
                     && (normalizedAngleWidth > minimumNormalizedRefinementWidth
                         || normalizedSlantWidth > minimumNormalizedRefinementWidth)
-                if secondDerivativeMagnitudeUpperBound <= boundQualityLimit
+                if firstDerivativeMagnitudeUpperBound.isFinite,
+                   secondDerivativeMagnitudeUpperBound.isFinite,
+                   thirdDerivativeMagnitudeUpperBound.isFinite,
+                   secondDerivativeMagnitudeUpperBound <= boundQualityLimit
                     || canRefine == false {
                     differentialPartitions.append(DifferentialPartition(
                         lowerNormalizedAngle: max(
@@ -1220,10 +2189,25 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                             1.0,
                             cell.angle.upper / (2.0 * Double.pi)
                         ),
+                        lowerSlant: cell.slant.lower,
+                        upperSlant: cell.slant.upper,
+                        slantFirstDerivativeMagnitudeUpperBound: (
+                            slantFirstDerivative * angularScale
+                        ).nextUp,
+                        slantSecondDerivativeMagnitudeUpperBound: (
+                            slantSecondDerivative
+                                * angularScale * angularScale
+                        ).nextUp,
+                        slantThirdDerivativeMagnitudeUpperBound: (
+                            slantThirdDerivative
+                                * angularScale * angularScale * angularScale
+                        ).nextUp,
                         firstDerivativeMagnitudeUpperBound:
                             firstDerivativeMagnitudeUpperBound,
                         secondDerivativeMagnitudeUpperBound:
-                            secondDerivativeMagnitudeUpperBound
+                            secondDerivativeMagnitudeUpperBound,
+                        thirdDerivativeMagnitudeUpperBound:
+                            thirdDerivativeMagnitudeUpperBound
                     ))
                     continue
                 }
@@ -1442,7 +2426,13 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         slantDerivative: Interval,
         angleAngleDerivative: Interval,
         angleSlantDerivative: Interval,
-        slantSlantDerivative: Interval
+        slantSlantDerivative: Interval,
+        offset: [Interval],
+        q: Interval,
+        gradient: [Interval],
+        direction: [Interval],
+        directionFirst: [Interval],
+        directionSecond: [Interval]
     ) {
         let cosine = cosineInterval(angle)
         let sine = sineInterval(angle)
@@ -1564,7 +2554,13 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             slantDerivative,
             angleAngleDerivative,
             angleSlantDerivative,
-            slantSlantDerivative
+            slantSlantDerivative,
+            coordinates,
+            q,
+            gradient,
+            direction,
+            directionFirst,
+            directionSecond
         )
     }
 
@@ -1619,6 +2615,25 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                     firstAxis.multiplied(by: secondAxis)
                 ).scaled(by: 8.0 * torus.majorRadius * torus.majorRadius)
             )
+    }
+
+    private static func torusThirdDerivativeTrilinearInterval(
+        offset: [Interval],
+        first: [Interval],
+        second: [Interval],
+        third: [Interval]
+    ) -> Interval {
+        dotInterval(offset, first)
+            .multiplied(by: dotInterval(second, third))
+            .adding(
+                dotInterval(offset, second)
+                    .multiplied(by: dotInterval(first, third))
+            )
+            .adding(
+                dotInterval(offset, third)
+                    .multiplied(by: dotInterval(first, second))
+            )
+            .scaled(by: 8.0)
     }
 
     private static func certifiedRoots(
@@ -1725,6 +2740,70 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         return slant
     }
 
+    /// Certifies the already selected branch locally. Global polynomial root
+    /// isolation belongs to curve construction; repeating it for every
+    /// downstream integration cell would discard both the branch identity and
+    /// the continuation trace stored in the certificate.
+    private static func certifiedRefinedRootInterval(
+        angle: Double,
+        initialSlant: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> Interval {
+        let approximation = try refinedRoot(
+            angle: angle,
+            initialSlant: initialSlant,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        var radius = max(
+            rootTolerance(
+                configuration: configuration,
+                tolerance: tolerance
+            ) * 16.0,
+            Double.ulpOfOne * max(abs(approximation), 1.0) * 4_096.0
+        ).nextUp
+        let angleInterval = Interval.constant(angle)
+        let pointValue = implicitDifferentialIntervals(
+            angle: angleInterval,
+            slant: .constant(approximation),
+            configuration: configuration
+        ).implicit
+        for _ in 0..<24 {
+            let candidate = Interval(
+                approximation - radius,
+                approximation + radius
+            )
+            let derivative = implicitDifferentialIntervals(
+                angle: angleInterval,
+                slant: candidate,
+                configuration: configuration
+            ).slantDerivative
+            if let correction = pointValue.divided(by: derivative) {
+                let newton = Interval.constant(approximation)
+                    .subtracting(correction)
+                if newton.lower > candidate.lower,
+                   newton.upper < candidate.upper,
+                   let certified = candidate.intersection(with: newton) {
+                    return certified
+                }
+            }
+            radius = (radius * 4.0).nextUp
+            guard radius.isFinite,
+                  radius <= configuration.upperSlant
+                    - configuration.lowerSlant else {
+                break
+            }
+        }
+        throw KernelError(
+            phase: .geometry,
+            code: .intersectionFailure,
+            residual: radius,
+            tolerance: tolerance,
+            message: "General cone-torus branch refinement could not certify its local root interval."
+        )
+    }
+
     private static func torusGradient(
         offset: Vector3D,
         torus: Torus
@@ -1752,6 +2831,19 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                 first.dot(second)
                     - first.dot(torus.axis) * second.dot(torus.axis)
             )
+    }
+
+    private static func torusThirdDerivativeTrilinear(
+        offset: Vector3D,
+        first: Vector3D,
+        second: Vector3D,
+        third: Vector3D
+    ) -> Double {
+        8.0 * (
+            offset.dot(first) * second.dot(third)
+                + offset.dot(second) * first.dot(third)
+                + offset.dot(third) * first.dot(second)
+        )
     }
 
     private static func polynomialDerivative(

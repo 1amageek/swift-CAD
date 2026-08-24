@@ -23,6 +23,7 @@ struct CertifiedCongruentTorusTorusSpatialDifferentialBoundsTests {
                 .fullBranchSpatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
                 )
+            let sourceThird = try #require(sourceBounds.third)
             for trim in [
                 (start: 0.0, end: 1.0),
                 (start: 0.1, end: 0.7),
@@ -41,6 +42,8 @@ struct CertifiedCongruentTorusTorusSpatialDifferentialBoundsTests {
                 let scale = abs(trim.end - trim.start)
                 #expect(bounds.first >= sourceBounds.first * scale)
                 #expect(bounds.second >= sourceBounds.second * scale * scale)
+                let third = try #require(bounds.third)
+                #expect(third >= sourceThird * scale * scale * scale)
 
                 let lift = SurfaceLiftCurve3D(
                     surface: exact.surface(for: .first),
@@ -64,6 +67,12 @@ struct CertifiedCongruentTorusTorusSpatialDifferentialBoundsTests {
                     )
                     #expect(geometry.firstDerivative.length <= bounds.first)
                     #expect(geometry.secondDerivative.length <= bounds.second)
+                    let thirdDerivative = try curve
+                        .parameterDerivativesThroughThirdOrder(
+                            at: fraction,
+                            tolerance: tolerance
+                        ).thirdDerivative
+                    #expect(thirdDerivative.length <= third)
                     if interval.contains(fraction) {
                         #expect(
                             geometry.secondDerivative.length <= certifiedSecond

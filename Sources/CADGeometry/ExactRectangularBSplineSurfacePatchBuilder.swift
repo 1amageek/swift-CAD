@@ -136,6 +136,90 @@ package struct ExactRectangularBSplineSurfacePatchBuilder: Sendable {
                     kind: .identity
                 )
             )
+        case let .procedural(.offset(offset)):
+            if let equivalent = try offset.exactSameParameterSurface(
+                tolerance: tolerance
+            ) {
+                return try build(
+                    surface: equivalent,
+                    lowerU: lowerU,
+                    upperU: upperU,
+                    lowerV: lowerV,
+                    upperV: upperV,
+                    tolerance: tolerance
+                )
+            }
+            if try DefaultPlanarSurfaceResolver().exactPlane(
+                for: surface,
+                tolerance: tolerance
+            ) != nil {
+                result = try planarPatch(
+                    surface: surface,
+                    lowerU: lowerU,
+                    upperU: upperU,
+                    lowerV: lowerV,
+                    upperV: upperV,
+                    tolerance: tolerance
+                )
+            } else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "Exact rational B-spline conversion requires a rationally representable source surface."
+                )
+            }
+        case let .procedural(.ruled(ruled)):
+            let interval = try ScalarInterval(lower: lowerU, upper: upperU)
+            let curveBuilder = AnalyticCurveBSplineBuilder()
+            guard let start = try curveBuilder.boundedCurve(
+                      curve: ruled.startBoundary,
+                      interval: interval,
+                      maximumSpanCount: 64,
+                      tolerance: tolerance
+                  ),
+                  let end = try curveBuilder.boundedCurve(
+                      curve: ruled.endBoundary,
+                      interval: interval,
+                      maximumSpanCount: 64,
+                      tolerance: tolerance
+                  ) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "Exact rational B-spline conversion requires rationally representable ruled boundaries."
+                )
+            }
+            let completeSurface = try ExactRuledBSplineSurfaceBuilder().build(
+                startBoundary: start,
+                endBoundary: end,
+                tolerance: tolerance
+            )
+            guard let uMapping = ruledParameterMapping(
+                start: ruled.startBoundary,
+                end: ruled.endBoundary,
+                lower: lowerU,
+                upper: upperU
+            ) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "Exact rational ruled conversion requires parameter-compatible rational boundary curves."
+                )
+            }
+            result = ExactRectangularBSplineSurfacePatch(
+                surface: try completeSurface.trimmed(
+                    uFrom: 0.0,
+                    uTo: 1.0,
+                    vFrom: lowerV,
+                    vTo: upperV,
+                    tolerance: tolerance
+                ),
+                uMapping: uMapping,
+                vMapping: identityMapping(lower: lowerV, upper: upperV)
+            )
         }
         try result.surface.validate(tolerance: tolerance)
         return result
@@ -392,6 +476,69 @@ package struct ExactRectangularBSplineSurfacePatchBuilder: Sendable {
         upper: Double
     ) -> ExactRectangularBSplineSurfacePatch.AxisMapping {
         .init(sourceLower: lower, sourceUpper: upper, kind: .identity)
+    }
+
+    private func ruledParameterMapping(
+        start: Curve3D,
+        end: Curve3D,
+        lower: Double,
+        upper: Double
+    ) -> ExactRectangularBSplineSurfacePatch.AxisMapping? {
+        guard let startKind = ruledBoundaryMappingKind(
+                  start,
+                  lower: lower,
+                  upper: upper
+              ),
+              let endKind = ruledBoundaryMappingKind(
+                  end,
+                  lower: lower,
+                  upper: upper
+              ),
+              startKind == endKind else {
+            return nil
+        }
+        return .init(
+            sourceLower: lower,
+            sourceUpper: upper,
+            kind: startKind
+        )
+    }
+
+    private func ruledBoundaryMappingKind(
+        _ curve: Curve3D,
+        lower: Double,
+        upper: Double
+    ) -> ExactRectangularBSplineSurfacePatch.AxisMapping.Kind? {
+        switch curve {
+        case .line, .analytic(.line), .analytic(.parabola), .bSpline:
+            return .normalized
+        case .circle, .analytic(.circle), .analytic(.arc), .analytic(.ellipse):
+            return .normalizedRationalCircularArc(
+                segmentCount: max(
+                    1,
+                    Int(ceil((upper - lower) / (Double.pi * 0.5)))
+                )
+            )
+        case .analytic(.hyperbola):
+            return .normalizedRationalHyperbola(
+                spanCount: max(1, Int(ceil(upper - lower)))
+            )
+        case let .rigidImage(image):
+            return ruledBoundaryMappingKind(
+                image.source,
+                lower: lower,
+                upper: upper
+            )
+        case let .affineImage(image):
+            return ruledBoundaryMappingKind(
+                image.source,
+                lower: lower,
+                upper: upper
+            )
+        case .analytic(.planeTorus), .implicit, .surfaceLift,
+             .certifiedIntersection:
+            return nil
+        }
     }
 
     private func legacyCylinderBasis(

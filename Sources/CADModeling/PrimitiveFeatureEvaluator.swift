@@ -26,9 +26,8 @@ public struct PrimitiveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
     ) throws -> ValidatedFeatureEvaluation {
         try context.tolerance.validate()
         guard case let .primitive(primitive) = feature.operation else {
-            throw KernelError.unsupportedEvaluation(
-                tolerance: context.tolerance,
-                message: "PrimitiveFeatureEvaluator only supports primitive features."
+            throw FeatureEvaluationError.invalidGraph(
+                "PrimitiveFeatureEvaluator received a non-primitive feature."
             )
         }
         try primitive.validate(tolerance: context.tolerance)

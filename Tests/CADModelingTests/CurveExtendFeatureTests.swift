@@ -199,7 +199,9 @@ struct CurveExtendFeatureTests {
                      .bSpline,
                      .implicit,
                      .surfaceLift,
-                     .certifiedIntersection:
+                     .certifiedIntersection,
+                     .rigidImage,
+                     .affineImage:
                     Issue.record("Unsupported representation entered the curve extend matrix.")
                     return
                 }

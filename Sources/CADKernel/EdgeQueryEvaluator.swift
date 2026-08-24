@@ -1,5 +1,6 @@
 import Foundation
 import CADCore
+import CADGeometry
 import CADIR
 import CADTopology
 
@@ -72,21 +73,14 @@ public struct EdgeQueryFrame: Codable, Sendable, Hashable {
 }
 
 public struct EdgeProjectionOptions: Sendable, Hashable {
-    public var sampleCount: Int
-    public var maximumIterations: Int
+    public var limits: ProjectionResourceLimits
 
-    public init(sampleCount: Int = 9, maximumIterations: Int = 32) {
-        self.sampleCount = sampleCount
-        self.maximumIterations = maximumIterations
+    public init(limits: ProjectionResourceLimits = ProjectionResourceLimits()) {
+        self.limits = limits
     }
 
-    public func validate() throws {
-        guard sampleCount >= 2 else {
-            throw FeatureEvaluationError.invalidGraph("Edge projection sample count must be at least two.")
-        }
-        guard maximumIterations >= 0 else {
-            throw FeatureEvaluationError.invalidGraph("Edge projection iteration count must not be negative.")
-        }
+    public func validate(tolerance: ModelingTolerance) throws {
+        try limits.validate(tolerance: tolerance)
     }
 }
 
@@ -132,27 +126,19 @@ public enum EdgeDirectionalProjectionRange: Sendable, Hashable {
 }
 
 public struct EdgeDirectionalProjectionOptions: Sendable, Hashable {
-    public var sampleCount: Int
-    public var maximumIterations: Int
+    public var limits: ProjectionResourceLimits
     public var range: EdgeDirectionalProjectionRange
 
     public init(
-        sampleCount: Int = 9,
-        maximumIterations: Int = 32,
+        limits: ProjectionResourceLimits = ProjectionResourceLimits(),
         range: EdgeDirectionalProjectionRange = .line
     ) {
-        self.sampleCount = sampleCount
-        self.maximumIterations = maximumIterations
+        self.limits = limits
         self.range = range
     }
 
-    public func validate() throws {
-        guard sampleCount >= 2 else {
-            throw FeatureEvaluationError.invalidGraph("Edge projection sample count must be at least two.")
-        }
-        guard maximumIterations >= 0 else {
-            throw FeatureEvaluationError.invalidGraph("Edge projection iteration count must not be negative.")
-        }
+    public func validate(tolerance: ModelingTolerance) throws {
+        try limits.validate(tolerance: tolerance)
     }
 }
 
@@ -280,7 +266,7 @@ public struct EdgeQueryEvaluator: Sendable {
         options: EdgeProjectionOptions = EdgeProjectionOptions()
     ) throws -> EdgeProjectionResult {
         try point.validate()
-        try options.validate()
+        try options.validate(tolerance: tolerance)
         let resolved = try resolve(reference, in: document)
         let range = EdgeParameterRange(start: resolved.startParameter, end: resolved.endParameter)
         let candidate: EdgeProjectionCandidate
@@ -298,7 +284,9 @@ public struct EdgeQueryEvaluator: Sendable {
              .bSpline,
              .implicit,
              .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection,
+             .rigidImage,
+             .affineImage:
             candidate = try closestPointOnCurve(
                 point,
                 curve: resolved.curve,
@@ -327,7 +315,7 @@ public struct EdgeQueryEvaluator: Sendable {
         options: EdgeDirectionalProjectionOptions = EdgeDirectionalProjectionOptions()
     ) throws -> EdgeDirectionalProjectionResult {
         try point.validate()
-        try options.validate()
+        try options.validate(tolerance: tolerance)
         let unitDirection = try direction.normalized(tolerance: tolerance.distance)
         let resolved = try resolve(reference, in: document)
         let range = EdgeParameterRange(start: resolved.startParameter, end: resolved.endParameter)
@@ -381,93 +369,27 @@ public struct EdgeQueryEvaluator: Sendable {
         range: EdgeParameterRange,
         options: EdgeProjectionOptions
     ) throws -> EdgeProjectionCandidate {
-        let candidates = try sampleParameters(curve: curve, range: range, sampleCount: options.sampleCount)
-            .map { try projectionCandidate(point, curve: curve, parameter: $0) }
-            .sorted { $0.squaredDistance < $1.squaredDistance }
-        guard !candidates.isEmpty else {
-            throw FeatureEvaluationError.emptyResult("Edge projection has no parameter samples.")
-        }
-        var best: EdgeProjectionCandidate?
-        for seed in candidates.prefix(min(6, candidates.count)) {
-            let refined = try refineClosestProjection(
-                from: seed,
-                point: point,
-                curve: curve,
-                range: range,
-                maximumIterations: options.maximumIterations
-            )
-            if shouldReplaceProjectionCandidate(current: best, candidate: refined) {
-                best = refined
-            }
-        }
-        guard let best else {
-            throw FeatureEvaluationError.emptyResult("Edge projection refinement produced no candidate.")
-        }
-        return best
-    }
-
-    private func refineClosestProjection(
-        from seed: EdgeProjectionCandidate,
-        point: Point3D,
-        curve: Curve3D,
-        range: EdgeParameterRange,
-        maximumIterations: Int
-    ) throws -> EdgeProjectionCandidate {
-        var current = seed
-        guard maximumIterations > 0 else {
-            return current
-        }
-        let parameterTolerance = self.parameterTolerance(for: curve)
-        for iteration in 1...maximumIterations {
-            let geometry = try curve.differentialGeometry(at: current.parameter, tolerance: tolerance)
-            let residual = geometry.position - point
-            let gradient = residual.dot(geometry.firstDerivative)
-            let hessian = geometry.firstDerivative.dot(geometry.firstDerivative) +
-                residual.dot(geometry.secondDerivative)
-            guard abs(hessian) > max(tolerance.distance * tolerance.distance, Double.ulpOfOne) else {
-                return current
-            }
-            let delta = gradient / hessian
-            guard delta.isFinite else {
-                throw GeometryError.invalidDistance(delta)
-            }
-            if abs(delta) <= parameterTolerance {
-                current.iterations = iteration
-                current.converged = true
-                return current
-            }
-            var stepScale = 1.0
-            var accepted: EdgeProjectionCandidate?
-            while stepScale >= 1.0 / 128.0 {
-                let nextParameter = range.clamped(current.parameter - delta * stepScale)
-                if abs(nextParameter - current.parameter) <= Double.ulpOfOne {
-                    stepScale *= 0.5
-                    continue
-                }
-                let next = try projectionCandidate(
-                    point,
-                    curve: curve,
-                    parameter: nextParameter,
-                    iterations: iteration
-                )
-                if next.squaredDistance <= current.squaredDistance {
-                    accepted = next
-                    break
-                }
-                stepScale *= 0.5
-            }
-            guard var next = accepted else {
-                current.iterations = iteration
-                return current
-            }
-            let improvement = current.squaredDistance - next.squaredDistance
-            if improvement <= tolerance.distance * tolerance.distance {
-                next.converged = true
-                return next
-            }
-            current = next
-        }
-        return current
+        let projection = try curve.closestParameterProjection(
+            of: point,
+            options: CurveParameterProjectionOptions(
+                parameterRange: try ScalarInterval(
+                    lower: range.lower,
+                    upper: range.upper
+                ),
+                maximumIterations: options.limits.maximumIterations,
+                seedCount: options.limits.seedCount,
+                maximumSubdivisionDepth: options.limits.maximumSubdivisionDepth,
+                maximumSubdivisionCells: options.limits.maximumSubdivisionCells,
+                maximumCandidateCount: options.limits.maximumCandidateCount
+            ),
+            tolerance: tolerance
+        )
+        return EdgeProjectionCandidate(
+            parameter: projection.parameter,
+            squaredDistance: projection.residual * projection.residual,
+            iterations: projection.iterations,
+            converged: true
+        )
     }
 
     private func projectOntoCurve(
@@ -477,119 +399,39 @@ public struct EdgeQueryEvaluator: Sendable {
         range: EdgeParameterRange,
         options: EdgeDirectionalProjectionOptions
     ) throws -> EdgeDirectionalProjectionCandidate {
-        let candidates = try sampleParameters(curve: curve, range: range, sampleCount: options.sampleCount)
-            .compactMap {
-                try directionalProjectionCandidate(
-                    point,
-                    direction: direction,
-                    curve: curve,
-                    parameter: $0,
-                    range: options.range
-                )
-            }
-            .sorted { $0.squaredLineDistance < $1.squaredLineDistance }
-        guard !candidates.isEmpty else {
-            throw FeatureEvaluationError.emptyResult("Edge directional projection has no parameter samples.")
-        }
-        var best: EdgeDirectionalProjectionCandidate?
-        for seed in candidates.prefix(min(6, candidates.count)) {
-            let refined = try refineDirectionalProjection(
-                from: seed,
-                point: point,
-                direction: direction,
-                curve: curve,
-                parameterRange: range,
-                directionalRange: options.range,
-                maximumIterations: options.maximumIterations
-            )
-            if shouldReplaceDirectionalProjectionCandidate(current: best, candidate: refined) {
-                best = refined
-            }
-        }
-        guard let best else {
-            throw FeatureEvaluationError.emptyResult("Edge directional projection refinement produced no candidate.")
-        }
-        return best
+        let projection = try curve.directionalParameterProjection(
+            from: point,
+            along: direction,
+            options: CurveDirectionalParameterProjectionOptions(
+                parameterRange: try ScalarInterval(
+                    lower: range.lower,
+                    upper: range.upper
+                ),
+                range: directionalProjectionRange(options.range),
+                maximumSubdivisionDepth: options.limits.maximumSubdivisionDepth,
+                maximumSubdivisionCells: options.limits.maximumSubdivisionCells,
+                maximumIterations: options.limits.maximumIterations,
+                maximumCandidateCount: options.limits.maximumCandidateCount
+            ),
+            tolerance: tolerance
+        )
+        return EdgeDirectionalProjectionCandidate(
+            parameter: projection.parameter,
+            signedDistanceAlongDirection: projection.signedDistanceAlongDirection,
+            iterations: projection.iterations,
+            converged: true
+        )
     }
 
-    private func refineDirectionalProjection(
-        from seed: EdgeDirectionalProjectionCandidate,
-        point: Point3D,
-        direction: Vector3D,
-        curve: Curve3D,
-        parameterRange: EdgeParameterRange,
-        directionalRange: EdgeDirectionalProjectionRange,
-        maximumIterations: Int
-    ) throws -> EdgeDirectionalProjectionCandidate {
-        var current = seed
-        guard maximumIterations > 0 else {
-            return current
+    private func directionalProjectionRange(
+        _ range: EdgeDirectionalProjectionRange
+    ) -> DirectionalProjectionRange3D {
+        switch range {
+        case .line:
+            return .line
+        case .ray:
+            return .ray
         }
-        let parameterTolerance = self.parameterTolerance(for: curve)
-        for iteration in 1...maximumIterations {
-            if current.lineDistance <= tolerance.distance {
-                current.iterations = iteration
-                current.converged = true
-                return current
-            }
-            let geometry = try curve.differentialGeometry(at: current.parameter, tolerance: tolerance)
-            let lineDerivative = geometry.firstDerivative -
-                direction * geometry.firstDerivative.dot(direction)
-            let lineSecondDerivative = geometry.secondDerivative -
-                direction * geometry.secondDerivative.dot(direction)
-            let gradient = current.lineResidual.dot(lineDerivative)
-            let hessian = lineDerivative.dot(lineDerivative) +
-                current.lineResidual.dot(lineSecondDerivative)
-            guard abs(hessian) > max(tolerance.distance * tolerance.distance, Double.ulpOfOne) else {
-                return current
-            }
-            let delta = gradient / hessian
-            guard delta.isFinite else {
-                throw GeometryError.invalidDistance(delta)
-            }
-            if abs(delta) <= parameterTolerance {
-                current.iterations = iteration
-                current.converged = current.lineDistance <= tolerance.distance
-                return current
-            }
-            var stepScale = 1.0
-            var accepted: EdgeDirectionalProjectionCandidate?
-            while stepScale >= 1.0 / 128.0 {
-                let nextParameter = parameterRange.clamped(current.parameter - delta * stepScale)
-                if abs(nextParameter - current.parameter) <= Double.ulpOfOne {
-                    stepScale *= 0.5
-                    continue
-                }
-                guard let next = try directionalProjectionCandidate(
-                    point,
-                    direction: direction,
-                    curve: curve,
-                    parameter: nextParameter,
-                    range: directionalRange,
-                    iterations: iteration
-                ) else {
-                    stepScale *= 0.5
-                    continue
-                }
-                if next.squaredLineDistance <= current.squaredLineDistance {
-                    accepted = next
-                    break
-                }
-                stepScale *= 0.5
-            }
-            guard var next = accepted else {
-                current.iterations = iteration
-                return current
-            }
-            let improvement = current.squaredLineDistance - next.squaredLineDistance
-            if next.lineDistance <= tolerance.distance ||
-                improvement <= tolerance.distance * tolerance.distance {
-                next.converged = next.lineDistance <= tolerance.distance
-                return next
-            }
-            current = next
-        }
-        return current
     }
 
     private func projectionCandidate(
@@ -612,36 +454,6 @@ public struct EdgeQueryEvaluator: Sendable {
         )
     }
 
-    private func directionalProjectionCandidate(
-        _ point: Point3D,
-        direction: Vector3D,
-        curve: Curve3D,
-        parameter: Double,
-        range: EdgeDirectionalProjectionRange,
-        iterations: Int = 0
-    ) throws -> EdgeDirectionalProjectionCandidate? {
-        let curvePoint = try curve.point(at: parameter, tolerance: tolerance)
-        let signedDistance = (curvePoint - point).dot(direction)
-        guard range.accepts(signedDistance, tolerance: tolerance) else {
-            return nil
-        }
-        let linePoint = point + direction * signedDistance
-        let lineResidual = curvePoint - linePoint
-        let squaredLineDistance = lineResidual.dot(lineResidual)
-        guard squaredLineDistance.isFinite else {
-            throw GeometryError.invalidDistance(squaredLineDistance)
-        }
-        return EdgeDirectionalProjectionCandidate(
-            parameter: parameter,
-            signedDistanceAlongDirection: signedDistance,
-            lineResidual: lineResidual,
-            squaredLineDistance: squaredLineDistance,
-            lineDistance: sqrt(squaredLineDistance),
-            iterations: iterations,
-            converged: false
-        )
-    }
-
     private func edgeParameterRange(
         edge: Edge,
         curve: Curve3D,
@@ -655,6 +467,9 @@ public struct EdgeQueryEvaluator: Sendable {
                 end: trim.endParameter
             )
         }
+        if case let .closed(lower, upper) = curve.parameterDomain {
+            return EdgeParameterRange(start: lower, end: upper)
+        }
         switch curve {
         case let .line(line):
             return EdgeParameterRange(
@@ -662,122 +477,65 @@ public struct EdgeQueryEvaluator: Sendable {
                 end: (endPoint - line.origin).dot(line.direction)
             )
         case .circle:
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "Circle edge queries require explicit trim parameters.")
+            throw missingNonlinearEdgeTrimError(edgeID: edge.id)
         case let .analytic(.line(origin, direction)):
             return EdgeParameterRange(
                 start: (startPoint - origin).dot(direction),
                 end: (endPoint - origin).dot(direction)
             )
-        case .analytic:
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "Bounded analytic edge queries require explicit trim parameters."
-            )
-        case let .bSpline(curve):
-            guard case let .closed(lower, upper) = curve.domain else {
-                throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "B-spline edge queries require bounded parameters.")
-            }
-            return EdgeParameterRange(start: lower, end: upper)
-        case .implicit:
-            throw KernelError.unsupportedEvaluation(
-                tolerance: tolerance,
-                message: "Implicit intersection edge queries require explicit trim parameters."
-            )
-        case .surfaceLift:
-            throw KernelError.unsupportedEvaluation(
-                tolerance: tolerance,
-                message: "Surface-lift edge queries require explicit trim parameters."
-            )
-        case .certifiedIntersection:
-            throw KernelError.unsupportedEvaluation(
-                tolerance: tolerance,
-                message: "Certified intersection edge queries require explicit trim parameters."
-            )
-        }
-    }
-
-    private func sampleParameters(
-        curve: Curve3D,
-        range: EdgeParameterRange,
-        sampleCount: Int
-    ) throws -> [Double] {
-        var samples: [Double] = []
-        appendUnique(range.start, to: &samples)
-        appendUnique(range.end, to: &samples)
-        appendUnique(range.midpoint, to: &samples)
-        if case let .bSpline(curve) = curve {
-            for knot in curve.knots where knot >= range.lower - tolerance.distance &&
-                knot <= range.upper + tolerance.distance {
-                appendUnique(range.clamped(knot), to: &samples)
-            }
-        }
-        for index in 0..<sampleCount {
-            let ratio = Double(index) / Double(sampleCount - 1)
-            appendUnique(range.lower + (range.upper - range.lower) * ratio, to: &samples)
-        }
-        samples.sort()
-        return samples
-    }
-
-    private func appendUnique(_ value: Double, to samples: inout [Double]) {
-        guard value.isFinite else {
-            return
-        }
-        if samples.contains(where: { abs($0 - value) <= tolerance.distance }) {
-            return
-        }
-        samples.append(value)
-    }
-
-    private func shouldReplaceProjectionCandidate(
-        current: EdgeProjectionCandidate?,
-        candidate: EdgeProjectionCandidate
-    ) -> Bool {
-        guard let current else {
-            return true
-        }
-        let squaredDistanceTolerance = tolerance.distance * tolerance.distance
-        if candidate.squaredDistance < current.squaredDistance - squaredDistanceTolerance {
-            return true
-        }
-        if abs(candidate.squaredDistance - current.squaredDistance) <= squaredDistanceTolerance {
-            return candidate.converged && !current.converged
-        }
-        return false
-    }
-
-    private func shouldReplaceDirectionalProjectionCandidate(
-        current: EdgeDirectionalProjectionCandidate?,
-        candidate: EdgeDirectionalProjectionCandidate
-    ) -> Bool {
-        guard let current else {
-            return true
-        }
-        let squaredDistanceTolerance = tolerance.distance * tolerance.distance
-        if candidate.squaredLineDistance < current.squaredLineDistance - squaredDistanceTolerance {
-            return true
-        }
-        if abs(candidate.squaredLineDistance - current.squaredLineDistance) <= squaredDistanceTolerance {
-            if candidate.converged != current.converged {
-                return candidate.converged
-            }
-            return abs(candidate.signedDistanceAlongDirection) < abs(current.signedDistanceAlongDirection)
-        }
-        return false
-    }
-
-    private func parameterTolerance(for curve: Curve3D) -> Double {
-        switch curve {
-        case .circle, .analytic(.circle), .analytic(.arc), .analytic(.ellipse), .analytic(.planeTorus):
-            return tolerance.angle
-        case .line, .analytic(.line), .analytic(.parabola), .bSpline:
-            return tolerance.distance
-        case .analytic(.hyperbola),
+        case .analytic,
+             .bSpline,
              .implicit,
              .surfaceLift,
              .certifiedIntersection:
-            return tolerance.relative
+            throw missingNonlinearEdgeTrimError(edgeID: edge.id)
+        case let .rigidImage(image):
+            let inverse = image.transform.inverted()
+            return try edgeParameterRange(
+                edge: edge,
+                curve: image.source,
+                startPoint: inverse.applying(to: startPoint),
+                endPoint: inverse.applying(to: endPoint)
+            )
+        case .affineImage:
+            if case let .closed(lower, upper) = curve.parameterDomain {
+                return EdgeParameterRange(start: lower, end: upper)
+            }
+            guard let line = curve.exactLinearLocus else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
+                    subshapeID: nil,
+                    tolerance: tolerance,
+                    message: "An untrimmed affine-image edge requires an exact linear parameterization."
+                )
+            }
+            let denominator = line.direction.dot(line.direction)
+            guard denominator > tolerance.distance * tolerance.distance else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .singularGeometry,
+                    residual: sqrt(max(0.0, denominator)),
+                    tolerance: tolerance,
+                    message: "An affine-image edge has a singular line direction."
+                )
+            }
+            return EdgeParameterRange(
+                start: (startPoint - line.origin).dot(line.direction) / denominator,
+                end: (endPoint - line.origin).dot(line.direction) / denominator
+            )
         }
     }
+
+    private func missingNonlinearEdgeTrimError(edgeID: EdgeID) -> KernelError {
+        KernelError(
+            phase: .topology,
+            code: .topologyFailure,
+            tolerance: tolerance,
+            message: "Non-linear edge \(edgeID) requires either explicit trim parameters or a bounded exact curve domain."
+        )
+    }
+
 }
 
 private struct EdgeParameterRange: Sendable, Hashable {
@@ -828,9 +586,6 @@ private struct EdgeProjectionCandidate: Sendable, Hashable {
 private struct EdgeDirectionalProjectionCandidate: Sendable, Hashable {
     var parameter: Double
     var signedDistanceAlongDirection: Double
-    var lineResidual: Vector3D
-    var squaredLineDistance: Double
-    var lineDistance: Double
     var iterations: Int
     var converged: Bool
 }

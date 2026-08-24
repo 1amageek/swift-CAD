@@ -223,6 +223,17 @@ public struct CertifiedCongruentTorusTorusIntersectionCurve: Codable, Hashable, 
         )
     }
 
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        let scale = 2.0 * Double.pi
+        return try sectionCurve.thirdDerivative(
+            at: sectionParameter(fraction, tolerance: tolerance),
+            tolerance: tolerance
+        ) * (scale * scale * scale)
+    }
+
     public func parameter(
         on surface: Surface3D,
         atNormalizedFraction fraction: Double,
@@ -289,12 +300,22 @@ public struct CertifiedCongruentTorusTorusIntersectionCurve: Codable, Hashable, 
                 fromNormalizedFraction: lowerFraction,
                 toNormalizedFraction: upperFraction,
                 tolerance: tolerance
-            )
+        )
         let period = (2.0 * Double.pi).nextUp
         let periodSquared = (period * period).nextUp
+        let periodCubed = (periodSquared * period).nextUp
+        guard let sourceThird = source.third else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "A congruent torus-torus bisector section lacks a third-order differential certificate."
+            )
+        }
         return SpatialDifferentialMagnitudeBounds(
             first: (source.first * period).nextUp,
-            second: (source.second * periodSquared).nextUp
+            second: (source.second * periodSquared).nextUp,
+            third: (sourceThird * periodCubed).nextUp
         )
     }
 

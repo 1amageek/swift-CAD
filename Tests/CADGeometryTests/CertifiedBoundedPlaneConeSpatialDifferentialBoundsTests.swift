@@ -37,6 +37,9 @@ struct CertifiedBoundedPlaneConeSpatialDifferentialBoundsTests {
                 let scale = abs(trim.end - trim.start)
                 #expect(bounds.first >= sourceBounds.first * scale)
                 #expect(bounds.second >= sourceBounds.second * scale * scale)
+                let sourceThird = try #require(sourceBounds.third)
+                let third = try #require(bounds.third)
+                #expect(third >= sourceThird * scale * scale * scale)
 
                 let lift = SurfaceLiftCurve3D(
                     surface: exact.surface(for: .first),
@@ -55,6 +58,14 @@ struct CertifiedBoundedPlaneConeSpatialDifferentialBoundsTests {
                             tolerance: tolerance
                         )
                 )
+                let certifiedThird = try #require(
+                    try SurfaceLiftDifferentialBounder()
+                        .thirdDerivativeMagnitude(
+                            lift: lift,
+                            interval: interval,
+                            tolerance: tolerance
+                        )
+                )
                 for index in 0...128 {
                     let fraction = Double(index) / 128.0
                     let geometry = try curve.differentialGeometry(
@@ -63,10 +74,17 @@ struct CertifiedBoundedPlaneConeSpatialDifferentialBoundsTests {
                     )
                     #expect(geometry.firstDerivative.length <= bounds.first)
                     #expect(geometry.secondDerivative.length <= bounds.second)
+                    let thirdDerivative = try curve
+                        .parameterDerivativesThroughThirdOrder(
+                            at: fraction,
+                            tolerance: tolerance
+                        ).thirdDerivative
+                    #expect(thirdDerivative.length <= third)
                     if interval.contains(fraction) {
                         #expect(
                             geometry.secondDerivative.length <= certifiedSecond
                         )
+                        #expect(thirdDerivative.length <= certifiedThird)
                     }
                 }
             }

@@ -8,6 +8,56 @@ struct CurveParameterProjectionTests {
     private let tolerance = ModelingTolerance.standard
 
     @Test(.timeLimit(.minutes(1)))
+    func closestProjectionCertifiesTrimmedEndpointMinimum() throws {
+        let curve = Curve3D.line(Line3D(
+            origin: .origin,
+            direction: .unitX
+        ))
+        let projection = try curve.closestParameterProjection(
+            of: Point3D(x: 3.0, y: 2.0, z: 0.0),
+            options: CurveParameterProjectionOptions(
+                parameterRange: try ScalarInterval(lower: 0.0, upper: 1.0)
+            ),
+            tolerance: tolerance
+        )
+
+        #expect(abs(projection.parameter - 1.0) <= tolerance.relative)
+        #expect(projection.point.isApproximatelyEqual(
+            to: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            tolerance: tolerance.distance
+        ))
+        #expect(abs(projection.residual - hypot(2.0, 2.0)) <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func closestProjectionCertifiesCurvedInteriorMinimum() throws {
+        let curve = Curve3D.bSpline(BSplineCurve3D(
+            degree: 2,
+            knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            controlPoints: [
+                Point3D(x: -1.0, y: 1.0, z: 0.0),
+                Point3D(x: 0.0, y: -1.0, z: 0.0),
+                Point3D(x: 1.0, y: 1.0, z: 0.0),
+            ]
+        ))
+        let target = try curve.point(at: 0.5, tolerance: tolerance)
+        let projection = try curve.closestParameterProjection(
+            of: target + Vector3D(x: 0.0, y: 0.1, z: 0.0),
+            options: CurveParameterProjectionOptions(
+                parameterRange: try ScalarInterval(lower: 0.0, upper: 1.0)
+            ),
+            tolerance: tolerance
+        )
+
+        #expect(abs(projection.parameter - 0.5) <= tolerance.relative * 64.0)
+        #expect(projection.point.isApproximatelyEqual(
+            to: target,
+            tolerance: tolerance.distance
+        ))
+        #expect(abs(projection.residual - 0.1) <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func analyticCurvesRecoverExactParameters() throws {
         let curves: [(Curve3D, Double)] = [
             (
@@ -79,6 +129,59 @@ struct CurveParameterProjectionTests {
         #expect(abs(projection.parameter - parameter) <= tolerance.angle)
         #expect(projection.residual <= tolerance.distance)
         #expect(projection.iterations > 0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func exactLinearRationalBSplineProjectionUsesClosedFormParameter() throws {
+        let curve = Curve3D.bSpline(BSplineCurve3D(
+            degree: 1,
+            knots: [2.0, 2.0, 5.0, 5.0],
+            controlPoints: [
+                Point3D(x: -1.0, y: 2.0, z: 0.5),
+                Point3D(x: 4.0, y: -3.0, z: 2.5),
+            ],
+            weights: [0.6, 1.8]
+        ))
+        let parameter = 3.2
+        let point = try curve.point(at: parameter, tolerance: tolerance)
+        let projection = try curve.parameterProjection(
+            of: point,
+            options: CurveParameterProjectionOptions(
+                parameterRange: try ScalarInterval(lower: 3.0, upper: 4.0)
+            ),
+            tolerance: tolerance
+        )
+
+        #expect(abs(projection.parameter - parameter) <= tolerance.relative)
+        #expect(projection.residual <= tolerance.distance)
+        #expect(projection.iterations == 0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func exactLinearBSplineProjectionRejectsPointOutsideRequestedSpan() throws {
+        let curve = Curve3D.bSpline(BSplineCurve3D(
+            degree: 1,
+            knots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                Point3D(x: 0.0, y: 0.0, z: 0.0),
+                Point3D(x: 10.0, y: 0.0, z: 0.0),
+            ]
+        ))
+
+        do {
+            _ = try curve.parameterProjection(
+                of: Point3D(x: 8.0, y: 0.0, z: 0.0),
+                options: CurveParameterProjectionOptions(
+                    parameterRange: try ScalarInterval(lower: 0.0, upper: 0.5)
+                ),
+                tolerance: tolerance
+            )
+            Issue.record("An exact linear projection outside the requested trim must fail explicitly.")
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+            #expect(error.code == .intersectionFailure)
+            #expect(error.tolerance == tolerance)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))

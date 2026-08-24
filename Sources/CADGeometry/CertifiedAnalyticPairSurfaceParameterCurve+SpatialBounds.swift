@@ -88,11 +88,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         let source = try curve.fullBranchSpatialDifferentialMagnitudeBounds(
             tolerance: tolerance
         )
-        let scale = abs(endFraction - startFraction).nextUp
-        return SpatialDifferentialMagnitudeBounds(
-            first: (source.first * scale).nextUp,
-            second: ((source.second * scale).nextUp * scale).nextUp
-        )
+        return source.scaled(by: endFraction - startFraction)
     }
 
     func cylinderSpatialDifferentialMagnitudeBounds(
@@ -113,11 +109,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             toNormalizedFraction: upperFraction,
             tolerance: tolerance
         )
-        let scale = abs(endFraction - startFraction).nextUp
-        return SpatialDifferentialMagnitudeBounds(
-            first: (source.first * scale).nextUp,
-            second: ((source.second * scale).nextUp * scale).nextUp
-        )
+        return source.scaled(by: endFraction - startFraction)
     }
 
     func spatialDifferentialMagnitudeBounds(
@@ -134,11 +126,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 toNormalizedFraction: max(startFraction, endFraction),
                 tolerance: tolerance
             )
-            let scale = abs(endFraction - startFraction).nextUp
-            return SpatialDifferentialMagnitudeBounds(
-                first: (source.first * scale).nextUp,
-                second: ((source.second * scale).nextUp * scale).nextUp
-            )
+            return source.scaled(by: endFraction - startFraction)
         case let .sphereCylinder(curve):
             let source: SpatialDifferentialMagnitudeBounds
             switch curve.componentKind {
@@ -169,11 +157,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                         tolerance: tolerance
                     )
             }
-            let scale = abs(endFraction - startFraction).nextUp
-            return SpatialDifferentialMagnitudeBounds(
-                first: (source.first * scale).nextUp,
-                second: ((source.second * scale).nextUp * scale).nextUp
-            )
+            return source.scaled(by: endFraction - startFraction)
         case let .sphereCone(curve):
             let source: SpatialDifferentialMagnitudeBounds
             switch curve.componentKind {
@@ -214,11 +198,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                         tolerance: tolerance
                     )
             }
-            let scale = abs(endFraction - startFraction).nextUp
-            return SpatialDifferentialMagnitudeBounds(
-                first: (source.first * scale).nextUp,
-                second: ((source.second * scale).nextUp * scale).nextUp
-            )
+            return source.scaled(by: endFraction - startFraction)
         case let .coneCylinder(curve):
             let source: SpatialDifferentialMagnitudeBounds
             switch curve.componentKind {
@@ -259,11 +239,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                         tolerance: tolerance
                     )
             }
-            let scale = abs(endFraction - startFraction).nextUp
-            return SpatialDifferentialMagnitudeBounds(
-                first: (source.first * scale).nextUp,
-                second: ((source.second * scale).nextUp * scale).nextUp
-            )
+            return source.scaled(by: endFraction - startFraction)
         case let .coneCone(curve):
             let source: SpatialDifferentialMagnitudeBounds
             switch curve.componentKind {
@@ -290,24 +266,15 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                     tolerance: tolerance
                 )
             }
-            let scale = abs(endFraction - startFraction).nextUp
-            return SpatialDifferentialMagnitudeBounds(
-                first: (source.first * scale).nextUp,
-                second: ((source.second * scale).nextUp * scale).nextUp
-            )
+            return source.scaled(by: endFraction - startFraction)
         case let .planeTorus(curve):
             let source = try curve.spatialDifferentialMagnitudeBounds(
                 fromNormalizedFraction: min(startFraction, endFraction),
                 toNormalizedFraction: max(startFraction, endFraction),
                 tolerance: tolerance
             )
-            let period = (2.0 * Double.pi).nextUp
-            let scale = (
-                abs(endFraction - startFraction).nextUp * period
-            ).nextUp
-            return SpatialDifferentialMagnitudeBounds(
-                first: (source.first * scale).nextUp,
-                second: ((source.second * scale).nextUp * scale).nextUp
+            return source.scaled(
+                by: (endFraction - startFraction) * 2.0 * Double.pi
             )
         case let .congruentTorusTorus(curve):
             let source = try curve.spatialDifferentialMagnitudeBounds(
@@ -315,11 +282,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 toNormalizedFraction: max(startFraction, endFraction),
                 tolerance: tolerance
             )
-            let scale = abs(endFraction - startFraction).nextUp
-            return SpatialDifferentialMagnitudeBounds(
-                first: (source.first * scale).nextUp,
-                second: ((source.second * scale).nextUp * scale).nextUp
-            )
+            return source.scaled(by: endFraction - startFraction)
         case let .parallelTorusCylinder(curve):
             let source: SpatialDifferentialMagnitudeBounds
             switch curve.componentKind {
@@ -356,64 +319,40 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                         tolerance: tolerance
                     )
             }
-            let scale = abs(endFraction - startFraction).nextUp
-            return SpatialDifferentialMagnitudeBounds(
-                first: (source.first * scale).nextUp,
-                second: ((source.second * scale).nextUp * scale).nextUp
-            )
+            return source.scaled(by: endFraction - startFraction)
         case let .generalTorusCylinder(curve):
             let source = try curve.spatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
             )
-            let scale = abs(endFraction - startFraction).nextUp
-            return SpatialDifferentialMagnitudeBounds(
-                first: (source.first * scale).nextUp,
-                second: ((source.second * scale).nextUp * scale).nextUp
-            )
+            return source.scaled(by: endFraction - startFraction)
         case let .generalConeTorus(curve):
             let source = try curve.spatialDifferentialMagnitudeBounds(
                 fromNormalizedFraction: min(startFraction, endFraction),
                 toNormalizedFraction: max(startFraction, endFraction),
                 tolerance: tolerance
             )
-            let scale = abs(endFraction - startFraction).nextUp
-            return SpatialDifferentialMagnitudeBounds(
-                first: (source.first * scale).nextUp,
-                second: ((source.second * scale).nextUp * scale).nextUp
-            )
+            return source.scaled(by: endFraction - startFraction)
         case let .sphereTorus(curve):
             let source = try curve.spatialDifferentialMagnitudeBounds(
                 fromNormalizedFraction: min(startFraction, endFraction),
                 toNormalizedFraction: max(startFraction, endFraction),
                 tolerance: tolerance
             )
-            let scale = abs(endFraction - startFraction).nextUp
-            return SpatialDifferentialMagnitudeBounds(
-                first: (source.first * scale).nextUp,
-                second: ((source.second * scale).nextUp * scale).nextUp
-            )
+            return source.scaled(by: endFraction - startFraction)
         case let .parallelTorusTorus(curve):
             let source = try curve.spatialDifferentialMagnitudeBounds(
                 fromNormalizedFraction: min(startFraction, endFraction),
                 toNormalizedFraction: max(startFraction, endFraction),
                 tolerance: tolerance
             )
-            let scale = abs(endFraction - startFraction).nextUp
-            return SpatialDifferentialMagnitudeBounds(
-                first: (source.first * scale).nextUp,
-                second: ((source.second * scale).nextUp * scale).nextUp
-            )
+            return source.scaled(by: endFraction - startFraction)
         case let .generalTorusTorus(curve):
             let source = try curve.spatialDifferentialMagnitudeBounds(
                 fromNormalizedFraction: min(startFraction, endFraction),
                 toNormalizedFraction: max(startFraction, endFraction),
                 tolerance: tolerance
             )
-            let scale = abs(endFraction - startFraction).nextUp
-            return SpatialDifferentialMagnitudeBounds(
-                first: (source.first * scale).nextUp,
-                second: ((source.second * scale).nextUp * scale).nextUp
-            )
+            return source.scaled(by: endFraction - startFraction)
         }
     }
 }

@@ -1,5 +1,6 @@
 import Foundation
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 
@@ -131,7 +132,7 @@ public struct CurveQueryEvaluator: Sendable {
         options: CurveProjectionOptions = CurveProjectionOptions()
     ) throws -> CurveProjectionResult {
         try point.validate()
-        try options.validate()
+        try options.validate(tolerance: tolerance)
         let curve = try resolve(reference, in: document)
         let candidate: CurveProjectionCandidate
         if let exactCurve = curve.exactCurve {
@@ -153,7 +154,9 @@ public struct CurveQueryEvaluator: Sendable {
                  .bSpline,
                  .implicit,
                  .surfaceLift,
-                 .certifiedIntersection:
+                 .certifiedIntersection,
+                 .rigidImage,
+                 .affineImage:
                 candidate = try closestPointOnCurve(
                     point,
                     curve: exactCurve,
@@ -185,7 +188,7 @@ public struct CurveQueryEvaluator: Sendable {
         options: CurveDirectionalProjectionOptions = CurveDirectionalProjectionOptions()
     ) throws -> CurveDirectionalProjectionResult {
         try point.validate()
-        try options.validate()
+        try options.validate(tolerance: tolerance)
         let unitDirection = try direction.normalized(tolerance: tolerance.distance)
         let curve = try resolve(reference, in: document)
         let candidate: CurveDirectionalProjectionCandidate
@@ -212,7 +215,9 @@ public struct CurveQueryEvaluator: Sendable {
                  .bSpline,
                  .implicit,
                  .surfaceLift,
-                 .certifiedIntersection:
+                 .certifiedIntersection,
+                 .rigidImage,
+                 .affineImage:
                 candidate = try projectOntoCurve(
                     point,
                     direction: unitDirection,
@@ -261,12 +266,16 @@ public struct CurveQueryEvaluator: Sendable {
     ) throws -> Point3D {
         try reference.validate()
         let curve = try resolve(reference.curve, in: document)
-        guard case .circle(let circle) = curve.exactCurve else {
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "Curve center selection requires an exact circular curve."
+        guard let exactCurve = curve.exactCurve,
+              let center = try exactCenter(of: exactCurve) else {
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Curve center selection requires an exact central conic."
             )
         }
-        return circle.center
+        return center
     }
 
     public func knot(
@@ -327,10 +336,70 @@ public struct CurveQueryEvaluator: Sendable {
         in document: EvaluatedDocument
     ) throws -> BSplineCurve3D {
         let evaluatedCurve = try resolve(reference, in: document)
-        guard case let .bSpline(curve) = evaluatedCurve.exactCurve else {
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "Curve query requires an exact B-spline curve.")
+        guard let exactCurve = evaluatedCurve.exactCurve else {
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Curve subobject query requires exact curve geometry."
+            )
         }
-        return curve
+        return try exactBSpline(from: exactCurve)
+    }
+
+    private func exactBSpline(from curve: Curve3D) throws -> BSplineCurve3D {
+        switch curve {
+        case let .bSpline(curve):
+            return curve
+        case let .rigidImage(image):
+            return try image.transform.applying(
+                to: exactBSpline(from: image.source),
+                tolerance: tolerance
+            )
+        case let .affineImage(image):
+            return try image.transform.applying(
+                to: exactBSpline(from: image.source),
+                tolerance: tolerance
+            )
+        case .line,
+             .circle,
+             .analytic,
+             .implicit,
+             .surfaceLift,
+             .certifiedIntersection:
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Curve control-point, knot, and span selections require an exact B-spline curve."
+            )
+        }
+    }
+
+    private func exactCenter(of curve: Curve3D) throws -> Point3D? {
+        switch curve {
+        case let .circle(circle):
+            return circle.center
+        case let .analytic(.circle(center, _, _)),
+             let .analytic(.arc(center, _, _, _, _)),
+             let .analytic(.ellipse(center, _, _, _, _)):
+            return center
+        case let .analytic(.hyperbola(hyperbola)):
+            return hyperbola.center
+        case let .rigidImage(image):
+            return try exactCenter(of: image.source).map(image.transform.applying(to:))
+        case let .affineImage(image):
+            return try exactCenter(of: image.source).map(image.transform.applying(to:))
+        case .line,
+             .analytic(.line),
+             .analytic(.parabola),
+             .analytic(.planeTorus),
+             .bSpline,
+             .implicit,
+             .surfaceLift,
+             .certifiedIntersection:
+            return nil
+        }
     }
 
     private func closestPointOnCurve(
@@ -339,93 +408,27 @@ public struct CurveQueryEvaluator: Sendable {
         range: CurveParameterRange,
         options: CurveProjectionOptions
     ) throws -> CurveProjectionCandidate {
-        let candidates = try sampleParameters(curve: curve, range: range, sampleCount: options.sampleCount)
-            .map { try projectionCandidate(point, curve: curve, parameter: $0) }
-            .sorted { $0.squaredDistance < $1.squaredDistance }
-        guard !candidates.isEmpty else {
-            throw FeatureEvaluationError.emptyResult("Curve projection has no parameter samples.")
-        }
-        var best: CurveProjectionCandidate?
-        for seed in candidates.prefix(min(6, candidates.count)) {
-            let refined = try refineClosestProjection(
-                from: seed,
-                point: point,
-                curve: curve,
-                range: range,
-                maximumIterations: options.maximumIterations
-            )
-            if shouldReplaceProjectionCandidate(current: best, candidate: refined) {
-                best = refined
-            }
-        }
-        guard let best else {
-            throw FeatureEvaluationError.emptyResult("Curve projection refinement produced no candidate.")
-        }
-        return best
-    }
-
-    private func refineClosestProjection(
-        from seed: CurveProjectionCandidate,
-        point: Point3D,
-        curve: Curve3D,
-        range: CurveParameterRange,
-        maximumIterations: Int
-    ) throws -> CurveProjectionCandidate {
-        var current = seed
-        guard maximumIterations > 0 else {
-            return current
-        }
-        let parameterTolerance = self.parameterTolerance(for: curve)
-        for iteration in 1...maximumIterations {
-            let geometry = try curve.differentialGeometry(at: current.parameter, tolerance: tolerance)
-            let residual = geometry.position - point
-            let gradient = residual.dot(geometry.firstDerivative)
-            let hessian = geometry.firstDerivative.dot(geometry.firstDerivative) +
-                residual.dot(geometry.secondDerivative)
-            guard abs(hessian) > max(tolerance.distance * tolerance.distance, Double.ulpOfOne) else {
-                return current
-            }
-            let delta = gradient / hessian
-            guard delta.isFinite else {
-                throw GeometryError.invalidDistance(delta)
-            }
-            if abs(delta) <= parameterTolerance {
-                current.iterations = iteration
-                current.converged = true
-                return current
-            }
-            var stepScale = 1.0
-            var accepted: CurveProjectionCandidate?
-            while stepScale >= 1.0 / 128.0 {
-                let nextParameter = range.clamped(current.parameter - delta * stepScale)
-                if abs(nextParameter - current.parameter) <= Double.ulpOfOne {
-                    stepScale *= 0.5
-                    continue
-                }
-                let next = try projectionCandidate(
-                    point,
-                    curve: curve,
-                    parameter: nextParameter,
-                    iterations: iteration
-                )
-                if next.squaredDistance <= current.squaredDistance {
-                    accepted = next
-                    break
-                }
-                stepScale *= 0.5
-            }
-            guard var next = accepted else {
-                current.iterations = iteration
-                return current
-            }
-            let improvement = current.squaredDistance - next.squaredDistance
-            if improvement <= tolerance.distance * tolerance.distance {
-                next.converged = true
-                return next
-            }
-            current = next
-        }
-        return current
+        let projection = try curve.closestParameterProjection(
+            of: point,
+            options: CurveParameterProjectionOptions(
+                parameterRange: try ScalarInterval(
+                    lower: range.lower,
+                    upper: range.upper
+                ),
+                maximumIterations: options.limits.maximumIterations,
+                seedCount: options.limits.seedCount,
+                maximumSubdivisionDepth: options.limits.maximumSubdivisionDepth,
+                maximumSubdivisionCells: options.limits.maximumSubdivisionCells,
+                maximumCandidateCount: options.limits.maximumCandidateCount
+            ),
+            tolerance: tolerance
+        )
+        return CurveProjectionCandidate(
+            parameter: projection.parameter,
+            squaredDistance: projection.residual * projection.residual,
+            iterations: projection.iterations,
+            converged: true
+        )
     }
 
     private func projectOntoCurve(
@@ -435,119 +438,43 @@ public struct CurveQueryEvaluator: Sendable {
         range: CurveParameterRange,
         options: CurveDirectionalProjectionOptions
     ) throws -> CurveDirectionalProjectionCandidate {
-        let candidates = try sampleParameters(curve: curve, range: range, sampleCount: options.sampleCount)
-            .compactMap {
-                try directionalProjectionCandidate(
-                    point,
-                    direction: direction,
-                    curve: curve,
-                    parameter: $0,
-                    range: options.range
-                )
-            }
-            .sorted { $0.squaredLineDistance < $1.squaredLineDistance }
-        guard !candidates.isEmpty else {
-            throw FeatureEvaluationError.emptyResult("Curve directional projection has no parameter samples.")
-        }
-        var best: CurveDirectionalProjectionCandidate?
-        for seed in candidates.prefix(min(6, candidates.count)) {
-            let refined = try refineDirectionalProjection(
-                from: seed,
-                point: point,
-                direction: direction,
-                curve: curve,
-                parameterRange: range,
-                directionalRange: options.range,
-                maximumIterations: options.maximumIterations
-            )
-            if shouldReplaceDirectionalProjectionCandidate(current: best, candidate: refined) {
-                best = refined
-            }
-        }
-        guard let best else {
-            throw FeatureEvaluationError.emptyResult("Curve directional projection refinement produced no candidate.")
-        }
-        return best
+        let projection = try curve.directionalParameterProjection(
+            from: point,
+            along: direction,
+            options: CurveDirectionalParameterProjectionOptions(
+                parameterRange: try ScalarInterval(
+                    lower: range.lower,
+                    upper: range.upper
+                ),
+                range: directionalProjectionRange(options.range),
+                maximumSubdivisionDepth: options.limits.maximumSubdivisionDepth,
+                maximumSubdivisionCells: options.limits.maximumSubdivisionCells,
+                maximumIterations: options.limits.maximumIterations,
+                maximumCandidateCount: options.limits.maximumCandidateCount
+            ),
+            tolerance: tolerance
+        )
+        return CurveDirectionalProjectionCandidate(
+            parameter: projection.parameter,
+            signedDistanceAlongDirection: projection.signedDistanceAlongDirection,
+            lineResidual: projection.point -
+                (point + direction * projection.signedDistanceAlongDirection),
+            squaredLineDistance: projection.residual * projection.residual,
+            lineDistance: projection.residual,
+            iterations: projection.iterations,
+            converged: true
+        )
     }
 
-    private func refineDirectionalProjection(
-        from seed: CurveDirectionalProjectionCandidate,
-        point: Point3D,
-        direction: Vector3D,
-        curve: Curve3D,
-        parameterRange: CurveParameterRange,
-        directionalRange: CurveDirectionalProjectionRange,
-        maximumIterations: Int
-    ) throws -> CurveDirectionalProjectionCandidate {
-        var current = seed
-        guard maximumIterations > 0 else {
-            return current
+    private func directionalProjectionRange(
+        _ range: CurveDirectionalProjectionRange
+    ) -> DirectionalProjectionRange3D {
+        switch range {
+        case .line:
+            return .line
+        case .ray:
+            return .ray
         }
-        let parameterTolerance = self.parameterTolerance(for: curve)
-        for iteration in 1...maximumIterations {
-            if current.lineDistance <= tolerance.distance {
-                current.iterations = iteration
-                current.converged = true
-                return current
-            }
-            let geometry = try curve.differentialGeometry(at: current.parameter, tolerance: tolerance)
-            let lineDerivative = geometry.firstDerivative -
-                direction * geometry.firstDerivative.dot(direction)
-            let lineSecondDerivative = geometry.secondDerivative -
-                direction * geometry.secondDerivative.dot(direction)
-            let gradient = current.lineResidual.dot(lineDerivative)
-            let hessian = lineDerivative.dot(lineDerivative) +
-                current.lineResidual.dot(lineSecondDerivative)
-            guard abs(hessian) > max(tolerance.distance * tolerance.distance, Double.ulpOfOne) else {
-                return current
-            }
-            let delta = gradient / hessian
-            guard delta.isFinite else {
-                throw GeometryError.invalidDistance(delta)
-            }
-            if abs(delta) <= parameterTolerance {
-                current.iterations = iteration
-                current.converged = current.lineDistance <= tolerance.distance
-                return current
-            }
-            var stepScale = 1.0
-            var accepted: CurveDirectionalProjectionCandidate?
-            while stepScale >= 1.0 / 128.0 {
-                let nextParameter = parameterRange.clamped(current.parameter - delta * stepScale)
-                if abs(nextParameter - current.parameter) <= Double.ulpOfOne {
-                    stepScale *= 0.5
-                    continue
-                }
-                guard let next = try directionalProjectionCandidate(
-                    point,
-                    direction: direction,
-                    curve: curve,
-                    parameter: nextParameter,
-                    range: directionalRange,
-                    iterations: iteration
-                ) else {
-                    stepScale *= 0.5
-                    continue
-                }
-                if next.squaredLineDistance <= current.squaredLineDistance {
-                    accepted = next
-                    break
-                }
-                stepScale *= 0.5
-            }
-            guard var next = accepted else {
-                current.iterations = iteration
-                return current
-            }
-            let improvement = current.squaredLineDistance - next.squaredLineDistance
-            if next.lineDistance <= tolerance.distance ||
-                improvement <= tolerance.distance * tolerance.distance {
-                next.converged = next.lineDistance <= tolerance.distance
-                return next
-            }
-            current = next
-        }
-        return current
     }
 
     private func closestLineParameter(
@@ -561,7 +488,12 @@ public struct CurveQueryEvaluator: Sendable {
         case let .closed(lower, upper):
             return min(max(rawParameter, min(lower, upper)), max(lower, upper))
         case .periodic:
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "Line curves cannot use periodic parameter domains.")
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Line curves cannot use periodic parameter domains."
+            )
         case .unbounded:
             return rawParameter
         }
@@ -589,7 +521,12 @@ public struct CurveQueryEvaluator: Sendable {
             appendUnique(lowerBound, to: &parameters)
             appendUnique(upperBound, to: &parameters)
         case .periodic:
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "Line curves cannot use periodic parameter domains.")
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Line curves cannot use periodic parameter domains."
+            )
         case .unbounded:
             appendUnique(rawParameter, to: &parameters)
         }
@@ -611,7 +548,16 @@ public struct CurveQueryEvaluator: Sendable {
         guard var best else {
             throw FeatureEvaluationError.emptyResult("Curve directional projection produced no accepted line candidate.")
         }
-        best.converged = best.lineDistance <= tolerance.distance
+        guard best.lineDistance <= tolerance.distance else {
+            throw KernelError(
+                phase: .evaluation,
+                code: .emptyResult,
+                residual: best.lineDistance,
+                tolerance: tolerance,
+                message: "The directed line does not intersect the curve."
+            )
+        }
+        best.converged = true
         return best
     }
 
@@ -724,7 +670,17 @@ public struct CurveQueryEvaluator: Sendable {
             }
             traversedDistance += segmentLength
         }
-        guard let best else {
+        guard let best, best.converged else {
+            let residual = best?.lineDistance
+            throw KernelError(
+                phase: .evaluation,
+                code: .emptyResult,
+                residual: residual,
+                tolerance: tolerance,
+                message: "The directed line does not intersect the curve polyline."
+            )
+        }
+        guard best.lineDistance <= tolerance.distance else {
             throw FeatureEvaluationError.emptyResult("Curve directional projection has no accepted polyline candidate.")
         }
         return best
@@ -808,33 +764,13 @@ public struct CurveQueryEvaluator: Sendable {
         case let .periodic(period):
             return CurveParameterRange(start: 0.0, end: period)
         case .unbounded:
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "Curve projection requires a finite parameter range unless the source is an exact line."
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A projection query for a non-linear unbounded curve requires a finite evaluated trim domain."
             )
         }
-    }
-
-    private func sampleParameters(
-        curve: Curve3D,
-        range: CurveParameterRange,
-        sampleCount: Int
-    ) throws -> [Double] {
-        var samples: [Double] = []
-        appendUnique(range.start, to: &samples)
-        appendUnique(range.end, to: &samples)
-        appendUnique(range.midpoint, to: &samples)
-        if case let .bSpline(curve) = curve {
-            for knot in curve.knots where knot >= range.lower - tolerance.distance &&
-                knot <= range.upper + tolerance.distance {
-                appendUnique(range.clamped(knot), to: &samples)
-            }
-        }
-        for index in 0..<sampleCount {
-            let ratio = Double(index) / Double(sampleCount - 1)
-            appendUnique(range.lower + (range.upper - range.lower) * ratio, to: &samples)
-        }
-        samples.sort()
-        return samples
     }
 
     private func appendUnique(_ value: Double, to samples: inout [Double]) {
@@ -882,20 +818,6 @@ public struct CurveQueryEvaluator: Sendable {
             return abs(candidate.signedDistanceAlongDirection) < abs(current.signedDistanceAlongDirection)
         }
         return false
-    }
-
-    private func parameterTolerance(for curve: Curve3D) -> Double {
-        switch curve {
-        case .circle, .analytic(.circle), .analytic(.arc), .analytic(.ellipse), .analytic(.planeTorus):
-            return tolerance.angle
-        case .line, .analytic(.line), .analytic(.parabola), .bSpline:
-            return tolerance.distance
-        case .analytic(.hyperbola),
-             .implicit,
-             .surfaceLift,
-             .certifiedIntersection:
-            return tolerance.relative
-        }
     }
 
     private func polylinePoint(

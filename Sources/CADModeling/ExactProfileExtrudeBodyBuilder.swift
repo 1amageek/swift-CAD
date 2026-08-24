@@ -44,9 +44,9 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
         case .normal, .vector:
             bottomOffset = .zero
         }
-        let boundary = try ExactProfileBoundaryConverter(
+        let boundaries = try ExactProfileBoundaryConverter(
             tolerance: context.tolerance
-        ).segments(
+        ).boundaries(
             from: profile,
             offset: bottomOffset,
             extrusionAxis: axis
@@ -55,19 +55,34 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
             ? .forward
             : .reversed
         let capNormal = profileNormal * (normalComponent >= 0.0 ? 1.0 : -1.0)
-        let request = try ExactPrismaticFacePatchBuilder(
-            tolerance: context.tolerance
-        ).request(
-            boundary: boundary,
-            axis: axis,
-            height: distance,
-            featureID: featureID,
-            stablePrefix: "extrude",
-            bodyKind: bodyKind,
-            includesCaps: includesCaps,
-            sideOrientation: sideOrientation,
-            capNormal: capNormal
-        )
+        let patchBuilder = ExactPrismaticFacePatchBuilder(tolerance: context.tolerance)
+        let request: BRepSewingRequest
+        if includesCaps {
+            request = try patchBuilder.request(
+                outerBoundary: boundaries[0],
+                innerBoundaries: Array(boundaries.dropFirst()),
+                axis: axis,
+                height: distance,
+                featureID: featureID,
+                stablePrefix: "extrude",
+                bodyKind: bodyKind,
+                includesCaps: true,
+                sideOrientation: sideOrientation,
+                capNormal: capNormal
+            )
+        } else {
+            request = try patchBuilder.request(
+                boundaries: boundaries,
+                axis: axis,
+                height: distance,
+                featureID: featureID,
+                stablePrefix: "extrude",
+                bodyKind: bodyKind,
+                includesCaps: false,
+                sideOrientation: sideOrientation,
+                capNormal: capNormal
+            )
+        }
         let sewn = try sewer.sew(
             request,
             tolerance: context.tolerance
@@ -78,7 +93,7 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
         ])
         let subshapes = try semanticSubshapes(
             sewn: sewn,
-            sideCount: boundary.count,
+            boundaryCounts: boundaries.map(\.count),
             includesCaps: includesCaps
         )
         return EvaluationResult(
@@ -93,7 +108,7 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
 
     private func semanticSubshapes(
         sewn: BRepSewingResult,
-        sideCount: Int,
+        boundaryCounts: [Int],
         includesCaps: Bool
     ) throws -> [SubshapeID: TopologyReference] {
         var result: [SubshapeID: TopologyReference] = [
@@ -109,15 +124,24 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
                 in: sewn
             )
         }
-        for index in 0..<sideCount {
-            result[subshapeID(role: .sideFace, ordinal: index)] = try reference(
-                .face("extrude:side:\(index)"),
-                in: sewn
+        var sideOrdinal = 0
+        for (loopIndex, sideCount) in boundaryCounts.enumerated() {
+            let prefix = stableLoopPrefix(
+                loopIndex: loopIndex,
+                boundaryCount: boundaryCounts.count,
+                includesCaps: includesCaps
             )
+            for index in 0..<sideCount {
+                result[subshapeID(role: .sideFace, ordinal: sideOrdinal)] = try reference(
+                    .face("\(prefix):side:\(index)"),
+                    in: sewn
+                )
+                sideOrdinal += 1
+            }
         }
         let orderedEdgeIDs = try orderedEdgeIDs(
             sewn: sewn,
-            sideCount: sideCount,
+            boundaryCounts: boundaryCounts,
             includesCaps: includesCaps
         )
         for (ordinal, edgeID) in orderedEdgeIDs.enumerated() {
@@ -135,7 +159,7 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
 
     private func orderedEdgeIDs(
         sewn: BRepSewingResult,
-        sideCount: Int,
+        boundaryCounts: [Int],
         includesCaps: Bool
     ) throws -> [EdgeID] {
         var edgeIDs: [EdgeID] = []
@@ -153,22 +177,46 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
         }
 
         if includesCaps {
-            for index in 0..<sideCount {
-                try append("extrude:cap:lower:edge:\(index)")
+            for (loopIndex, sideCount) in boundaryCounts.enumerated() {
+                let prefix = loopIndex == 0
+                    ? "extrude:cap:lower"
+                    : "extrude:cap:lower:inner:\(loopIndex - 1)"
+                for index in 0..<sideCount {
+                    try append("\(prefix):edge:\(index)")
+                }
             }
-            for index in 0..<sideCount {
-                try append("extrude:cap:upper:edge:\(index)")
+            for (loopIndex, sideCount) in boundaryCounts.enumerated() {
+                let prefix = loopIndex == 0
+                    ? "extrude:cap:upper"
+                    : "extrude:cap:upper:inner:\(loopIndex - 1)"
+                for index in 0..<sideCount {
+                    try append("\(prefix):edge:\(index)")
+                }
             }
         } else {
-            for index in 0..<sideCount {
-                try append("extrude:side:\(index):bottom")
-            }
-            for index in 0..<sideCount {
-                try append("extrude:side:\(index):top")
+            for (loopIndex, sideCount) in boundaryCounts.enumerated() {
+                let prefix = stableLoopPrefix(
+                    loopIndex: loopIndex,
+                    boundaryCount: boundaryCounts.count,
+                    includesCaps: false
+                )
+                for index in 0..<sideCount {
+                    try append("\(prefix):side:\(index):bottom")
+                }
+                for index in 0..<sideCount {
+                    try append("\(prefix):side:\(index):top")
+                }
             }
         }
-        for index in 0..<sideCount {
-            try append("extrude:side:\(index):end")
+        for (loopIndex, sideCount) in boundaryCounts.enumerated() {
+            let prefix = stableLoopPrefix(
+                loopIndex: loopIndex,
+                boundaryCount: boundaryCounts.count,
+                includesCaps: includesCaps
+            )
+            for index in 0..<sideCount {
+                try append("\(prefix):side:\(index):end")
+            }
         }
         guard edgeIDs.count == sewn.brep.edges.count else {
             throw TopologyError.missingReference(
@@ -176,6 +224,21 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
             )
         }
         return edgeIDs
+    }
+
+    private func stableLoopPrefix(
+        loopIndex: Int,
+        boundaryCount: Int,
+        includesCaps: Bool
+    ) -> String {
+        if loopIndex == 0 {
+            return includesCaps || boundaryCount == 1
+                ? "extrude"
+                : "extrude:component:0"
+        }
+        return includesCaps
+            ? "extrude:inner:\(loopIndex - 1)"
+            : "extrude:component:\(loopIndex)"
     }
 
     private func orderedVertexIDs(

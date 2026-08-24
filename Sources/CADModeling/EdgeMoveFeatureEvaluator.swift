@@ -45,7 +45,7 @@ public struct EdgeMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalu
             try move.validate(tolerance: context.tolerance)
         }
         try FeatureEvaluationBoundary.validateExactInput(
-            context.brep,
+            context,
             featureID: feature.id,
             tolerance: context.tolerance
         )

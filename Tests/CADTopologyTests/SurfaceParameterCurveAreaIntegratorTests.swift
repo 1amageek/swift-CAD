@@ -559,7 +559,9 @@ struct SurfaceParameterCurveAreaIntegratorTests {
             tolerance: .standard
         )
 
-        let expected = Double.pi * 0.25 * (upperHeight - lowerHeight)
+        let publicChartU = try forward.startParameter(tolerance: .standard).u
+        let expected = publicChartU * (upperHeight - lowerHeight)
+        #expect(abs(publicChartU - Double.pi * 0.75) <= ModelingTolerance.standard.angle)
         #expect(forwardBounds.lower <= expected)
         #expect(forwardBounds.upper >= expected)
         #expect(forwardBounds.minimumAbsoluteValue > 0.1)
@@ -808,6 +810,23 @@ struct SurfaceParameterCurveAreaIntegratorTests {
             #expect(abs(enclosures[enclosures.count - 1].upperFraction - 1.0)
                 <= 1.0e-12)
             #expect(zip(enclosures, enclosures.dropFirst()).allSatisfy { pair in
+                abs(pair.0.upperFraction - pair.1.lowerFraction) <= 1.0e-12
+            })
+
+            let partial = try CertifiedSurfaceParameterCurveEncloser()
+                .enclosures(
+                    for: curve,
+                    fromNormalizedFraction: 0.25,
+                    toNormalizedFraction: 0.75,
+                    maximumWidth: 0.05,
+                    tolerance: curve == projected ? tolerance : .standard
+                )
+            #expect(partial.isEmpty == false)
+            #expect(partial.allSatisfy { $0.maximumWidth <= 0.05 })
+            #expect(abs(partial[0].lowerFraction - 0.25) <= 1.0e-12)
+            #expect(abs(partial[partial.count - 1].upperFraction - 0.75)
+                <= 1.0e-12)
+            #expect(zip(partial, partial.dropFirst()).allSatisfy { pair in
                 abs(pair.0.upperFraction - pair.1.lowerFraction) <= 1.0e-12
             })
         }
@@ -1148,7 +1167,7 @@ struct WeightedRationalPcurveAreaBudgetTests {
 @Suite("Weighted rational pcurve width sweep")
 struct WeightedRationalPcurveWidthSweepTests {
     @Test(.timeLimit(.minutes(1)))
-    func reportsConvergenceAcrossRequestedWidths() throws {
+    func certifiesSupportedWidthsAndReportsResourceLimits() throws {
         let curve = SurfaceParameterCurve.bSpline(BSplineCurve2D(
             degree: 2,
             knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
@@ -1159,17 +1178,28 @@ struct WeightedRationalPcurveWidthSweepTests {
             ],
             weights: [1.0, 2.4, 1.0]
         ))
-        for width in [1.0e-6, 1.0e-8, 1.0e-10, 1.0e-12, 1.0e-14] {
+        for width in [1.0e-6, 1.0e-8] {
+            let bounds = try SurfaceParameterCurveAreaIntegrator().bounds(
+                for: curve,
+                uShift: 0.0,
+                requestedWidth: width,
+                tolerance: .standard
+            )
+            #expect(bounds.width <= width)
+        }
+        for width in [1.0e-10, 1.0e-12, 1.0e-14] {
             do {
-                let bounds = try SurfaceParameterCurveAreaIntegrator().bounds(
+                _ = try SurfaceParameterCurveAreaIntegrator().bounds(
                     for: curve,
                     uShift: 0.0,
                     requestedWidth: width,
                     tolerance: .standard
                 )
-                print("width=\(width) ok boundsWidth=\(bounds.width)")
-            } catch {
-                print("width=\(width) FAILED: \(error)")
+                Issue.record("A request beyond the certified cell budget must fail explicitly.")
+            } catch let error as KernelError {
+                #expect(error.phase == .topology)
+                #expect(error.code == .resourceLimitExceeded)
+                #expect(error.tolerance == .standard)
             }
         }
     }

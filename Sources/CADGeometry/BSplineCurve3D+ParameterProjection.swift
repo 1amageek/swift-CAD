@@ -21,10 +21,102 @@ extension BSplineCurve3D {
         options: CurveParameterProjectionOptions,
         tolerance: ModelingTolerance
     ) throws -> CurveParameterProjection {
-        try makeParameterProjector(
+        try options.validate(tolerance: tolerance)
+        try validate(tolerance: tolerance)
+        try point.validate()
+        if let exactLinearProjection = try exactLinearParameterProjection(
+            of: point,
+            options: options,
+            tolerance: tolerance
+        ) {
+            return exactLinearProjection
+        }
+        return try makeParameterProjector(
             options: options,
             tolerance: tolerance
         ).project(point)
+    }
+
+    private func exactLinearParameterProjection(
+        of point: Point3D,
+        options: CurveParameterProjectionOptions,
+        tolerance: ModelingTolerance
+    ) throws -> CurveParameterProjection? {
+        guard degree == 1,
+              controlPoints.count == 2,
+              case let .closed(domainLower, domainUpper) = domain else {
+            return nil
+        }
+        let chord = controlPoints[1] - controlPoints[0]
+        let squaredLength = chord.dot(chord)
+        guard squaredLength > tolerance.distance * tolerance.distance else {
+            return nil
+        }
+        let length = sqrt(squaredLength)
+        let rawFraction = (point - controlPoints[0]).dot(chord) / squaredLength
+        let weightScale = max(weights[0], weights[1]) / min(weights[0], weights[1])
+        let parameterTolerance = max(
+            domain.parameterResolution(tolerance: tolerance),
+            tolerance.angle,
+            tolerance.distance / length * (domainUpper - domainLower) * weightScale
+        )
+        guard rawFraction >= -tolerance.distance / length,
+              rawFraction <= 1.0 + tolerance.distance / length else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "Point projects outside the exact linear B-spline segment."
+            )
+        }
+        let fraction = min(max(rawFraction, 0.0), 1.0)
+        let denominator = (1.0 - fraction) * weights[1]
+            + fraction * weights[0]
+        guard denominator.isFinite,
+              denominator > Double.ulpOfOne else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                tolerance: tolerance,
+                message: "Exact linear B-spline projection produced a singular rational parameter."
+            )
+        }
+        let basisParameter = fraction * weights[0] / denominator
+        var parameter = domainLower
+            + (domainUpper - domainLower) * basisParameter
+        let allowedLower = max(domainLower, options.parameterRange?.lower ?? domainLower)
+        let allowedUpper = min(domainUpper, options.parameterRange?.upper ?? domainUpper)
+        guard allowedUpper >= allowedLower,
+              parameter >= allowedLower - parameterTolerance,
+              parameter <= allowedUpper + parameterTolerance else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "Exact linear B-spline projection lies outside the requested parameter range."
+            )
+        }
+        parameter = min(max(parameter, allowedLower), allowedUpper)
+        let projectedPoint = try pointAssumingValid(
+            at: parameter,
+            tolerance: tolerance
+        )
+        let residual = (point - projectedPoint).length
+        guard residual <= tolerance.distance else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: residual,
+                tolerance: tolerance,
+                message: "Point does not lie on the exact linear B-spline within tolerance."
+            )
+        }
+        return try CurveParameterProjection(
+            parameter: parameter,
+            point: projectedPoint,
+            residual: residual,
+            iterations: 0
+        )
     }
 
     package func makeParameterProjector(

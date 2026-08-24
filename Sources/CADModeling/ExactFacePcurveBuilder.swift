@@ -170,7 +170,11 @@ package struct ExactFacePcurveBuilder {
             )
             return greatCircle
         }
-        guard supportsExactProjection(curve: curve, surface: surface) else {
+        guard try supportsExactProjection(
+            curve: curve,
+            surface: surface,
+            tolerance: tolerance
+        ) else {
             throw unsupportedPcurveError(tolerance)
         }
 
@@ -247,11 +251,18 @@ package struct ExactFacePcurveBuilder {
             trimmed = try trimmed.reversed(tolerance: tolerance)
         }
         let controlPoints = try trimmed.controlPoints.map { point -> Point2D in
-            let projection = try surface.parameterProjection(
+            guard let result = try surface.exactAffineParameterProjectionResult(
                 of: point,
                 tolerance: tolerance
-            )
-            return Point2D(x: projection.u, y: projection.v)
+            ) else {
+                throw unsupportedPcurveError(tolerance)
+            }
+            switch result {
+            case let .projected(projection):
+                return Point2D(x: projection.u, y: projection.v)
+            case .outsideTolerance:
+                throw unsupportedPcurveError(tolerance)
+            }
         }
         let result = BSplineCurve2D(
             degree: trimmed.degree,
@@ -280,7 +291,9 @@ package struct ExactFacePcurveBuilder {
              .bSpline,
              .implicit,
              .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection,
+             .rigidImage,
+             .affineImage:
             isOpenConic = false
         }
         guard isOpenConic else { return nil }
@@ -288,7 +301,7 @@ package struct ExactFacePcurveBuilder {
         switch surface {
         case .plane, .analytic(.plane), .analytic(.cone):
             isSupportedSurface = true
-        case .cylinder, .analytic, .bSpline:
+        case .cylinder, .analytic, .bSpline, .procedural:
             isSupportedSurface = false
         }
         guard isSupportedSurface else { return nil }
@@ -308,7 +321,10 @@ package struct ExactFacePcurveBuilder {
         surface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterCurve? {
-        guard let definition = harmonicDefinition(for: curve) else {
+        guard let definition = try harmonicDefinition(
+            for: curve,
+            tolerance: tolerance
+        ) else {
             return nil
         }
         let center = try surface.parameterProjection(of: definition.center, tolerance: tolerance)
@@ -337,7 +353,10 @@ package struct ExactFacePcurveBuilder {
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterCurve? {
         guard case let .analytic(.sphere(surfaceCenter, surfaceRadius)) = surface,
-              let definition = harmonicDefinition(for: curve),
+              let definition = try harmonicDefinition(
+                  for: curve,
+                  tolerance: tolerance
+              ),
               definition.center.isApproximatelyEqual(
                   to: surfaceCenter,
                   tolerance: tolerance.distance
@@ -365,8 +384,9 @@ package struct ExactFacePcurveBuilder {
     }
 
     private func harmonicDefinition(
-        for curve: Curve3D
-    ) -> (center: Point3D, fullCurve: Curve3D)? {
+        for curve: Curve3D,
+        tolerance: ModelingTolerance
+    ) throws -> (center: Point3D, fullCurve: Curve3D)? {
         switch curve {
         case let .circle(circle):
             return (circle.center, curve)
@@ -383,6 +403,35 @@ package struct ExactFacePcurveBuilder {
                     majorAxis: majorAxis,
                     majorRadius: majorRadius,
                     minorRadius: minorRadius
+                ))
+            )
+        case let .rigidImage(image):
+            guard let source = try harmonicDefinition(
+                for: image.source,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            return (
+                image.transform.applying(to: source.center),
+                try image.transform.applying(
+                    to: source.fullCurve,
+                    tolerance: tolerance
+                )
+            )
+        case let .affineImage(image):
+            guard let source = try harmonicDefinition(
+                for: image.source,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            return (
+                image.transform.applying(to: source.center),
+                .affineImage(try AffineImageCurve3D(
+                    source: source.fullCurve,
+                    transform: image.transform,
+                    tolerance: tolerance
                 ))
             )
         case .line,
@@ -464,74 +513,111 @@ package struct ExactFacePcurveBuilder {
     }
 
     private func isPlanar(_ surface: Surface3D) -> Bool {
-        switch surface {
-        case .plane, .analytic(.plane):
-            return true
-        case .cylinder, .analytic, .bSpline:
-            return false
-        }
+        surface.hasExactAffineParameterization
     }
 
-    private func isCylindrical(_ surface: Surface3D) -> Bool {
-        switch surface {
+    private func isCylindrical(
+        _ surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        switch try exactAnalyticReduction(of: surface, tolerance: tolerance) {
         case .cylinder, .analytic(.cylinder):
             return true
-        case .plane, .analytic, .bSpline:
+        case .plane, .analytic, .bSpline, .procedural:
             return false
         }
     }
 
-    private func isConical(_ surface: Surface3D) -> Bool {
-        guard case .analytic(.cone) = surface else { return false }
+    private func isConical(
+        _ surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        guard case .analytic(.cone) = try exactAnalyticReduction(
+            of: surface,
+            tolerance: tolerance
+        ) else { return false }
         return true
     }
 
-    private func isSpherical(_ surface: Surface3D) -> Bool {
-        guard case .analytic(.sphere) = surface else { return false }
+    private func isSpherical(
+        _ surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        guard case .analytic(.sphere) = try exactAnalyticReduction(
+            of: surface,
+            tolerance: tolerance
+        ) else { return false }
         return true
     }
 
-    private func isToroidal(_ surface: Surface3D) -> Bool {
-        guard case .analytic(.torus) = surface else { return false }
+    private func isToroidal(
+        _ surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        guard case .analytic(.torus) = try exactAnalyticReduction(
+            of: surface,
+            tolerance: tolerance
+        ) else { return false }
         return true
+    }
+
+    private func exactAnalyticReduction(
+        of surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> Surface3D {
+        guard case let .procedural(.offset(offset)) = surface else {
+            return surface
+        }
+        return try offset.exactSameParameterSurface(tolerance: tolerance)
+            ?? surface
     }
 
     private func isLinear(_ curve: Curve3D) -> Bool {
-        switch curve {
-        case .line, .analytic(.line):
-            return true
-        case .circle,
-             .analytic,
-             .bSpline,
-             .implicit,
-             .surfaceLift,
-             .certifiedIntersection:
-            return false
-        }
+        curve.hasExactLinearParameterization
     }
 
     private func supportsExactProjection(
         curve: Curve3D,
-        surface: Surface3D
-    ) -> Bool {
+        surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
         if isLinear(curve) {
-            return isPlanar(surface) || isCylindrical(surface) || isConical(surface)
+            if isPlanar(surface) { return true }
+            if try isCylindrical(surface, tolerance: tolerance) { return true }
+            return try isConical(surface, tolerance: tolerance)
         }
-        guard isCylindrical(surface)
-                || isConical(surface)
-                || isSpherical(surface)
-                || isToroidal(surface) else {
+        let supportedSurface: Bool
+        if try isCylindrical(surface, tolerance: tolerance) {
+            supportedSurface = true
+        } else if try isConical(surface, tolerance: tolerance) {
+            supportedSurface = true
+        } else if try isSpherical(surface, tolerance: tolerance) {
+            supportedSurface = true
+        } else {
+            supportedSurface = try isToroidal(surface, tolerance: tolerance)
+        }
+        guard supportedSurface else {
             return false
         }
         switch curve {
         case .circle, .analytic(.circle), .analytic(.arc):
             return true
+        case let .rigidImage(image):
+            return try supportsExactProjection(
+                curve: image.source,
+                surface: image.transform.inverted().applying(
+                    to: surface,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            )
         case .line,
              .analytic,
              .bSpline,
              .implicit,
              .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection,
+             .affineImage:
             return false
         }
     }

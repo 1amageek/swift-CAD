@@ -38,13 +38,17 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
     ) throws -> EvaluationResult {
         try context.tolerance.validate()
         guard case let .revolve(revolve) = feature.operation else {
-            throw KernelError.unsupportedEvaluation(
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
                 tolerance: context.tolerance,
                 message: "PlanarRevolveFeatureEvaluator only supports revolve."
             )
         }
         guard revolve.operation == .newBody else {
-            throw KernelError.unsupportedEvaluation(
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
                 tolerance: context.tolerance,
                 message: "PlanarRevolveFeatureEvaluator only supports newBody revolve."
             )
@@ -83,7 +87,7 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         guard abs(angle) <= Double.pi * 2.0 + context.tolerance.angle else {
             throw KernelError(
                 phase: .validation,
-                code: .unsupportedCapability,
+                code: .invalidInput,
                 featureID: feature.id,
                 residual: abs(angle) - 2.0 * Double.pi,
                 tolerance: context.tolerance,
@@ -92,14 +96,20 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         }
 
         let profile = profiles[revolve.profile.profileIndex]
-        if profile.boundarySegments.contains(where: { segment in
+        // Multi-loop regions require one topology authority for cap holes,
+        // detached void shells, pcurves, and volume ownership. The general
+        // exact sewing path provides that contract even when every boundary is
+        // linear; the analytic fast path remains specialized for one loop.
+        let requiresGeneralTopology = profile.innerLoops.isEmpty == false
+            || profile.boundaryLoops.flatMap(\.boundarySegments).contains(where: { segment in
             switch segment {
             case .line:
                 return false
             case .circularArc, .spline:
                 return true
             }
-        }) {
+        })
+        if requiresGeneralTopology {
             return try CurvedRevolveBodyBuilder(
                 axis: revolve.axis,
                 angle: angle,

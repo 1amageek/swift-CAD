@@ -34,6 +34,13 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         public let secondDerivative: Vector3D
     }
 
+    private struct ThirdOrderDifferentialGeometry {
+        let position: Point3D
+        let firstDerivative: Vector3D
+        let secondDerivative: Vector3D
+        let thirdDerivative: Vector3D
+    }
+
     private struct TrigonometricPolynomial {
         let constant: Double
         let cosine: Double
@@ -95,6 +102,15 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                     + abs(sine)
                     + 16.0 * abs(cosineDouble)
                     + 16.0 * abs(sineDouble)
+            ).nextUp
+        }
+
+        var fifthDerivativeAbsoluteUpperBound: Double {
+            (
+                abs(cosine)
+                    + abs(sine)
+                    + 32.0 * abs(cosineDouble)
+                    + 32.0 * abs(sineDouble)
             ).nextUp
         }
 
@@ -217,16 +233,23 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         let value: Double
         let first: Double
         let second: Double
+        let third: Double
 
         static func constant(_ value: Double) -> ScalarDifferential {
-            ScalarDifferential(value: value, first: 0.0, second: 0.0)
+            ScalarDifferential(
+                value: value,
+                first: 0.0,
+                second: 0.0,
+                third: 0.0
+            )
         }
 
         func adding(_ other: ScalarDifferential) -> ScalarDifferential {
             ScalarDifferential(
                 value: value + other.value,
                 first: first + other.first,
-                second: second + other.second
+                second: second + other.second,
+                third: third + other.third
             )
         }
 
@@ -234,7 +257,8 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             ScalarDifferential(
                 value: value - other.value,
                 first: first - other.first,
-                second: second - other.second
+                second: second - other.second,
+                third: third - other.third
             )
         }
 
@@ -242,7 +266,8 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             ScalarDifferential(
                 value: value * scale,
                 first: first * scale,
-                second: second * scale
+                second: second * scale,
+                third: third * scale
             )
         }
     }
@@ -594,6 +619,31 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
+        let geometry = try derivativesThroughThirdOrder(
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        )
+        return DifferentialGeometry(
+            position: geometry.position,
+            firstDerivative: geometry.firstDerivative,
+            secondDerivative: geometry.secondDerivative
+        )
+    }
+
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        try derivativesThroughThirdOrder(
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        ).thirdDerivative
+    }
+
+    private func derivativesThroughThirdOrder(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> ThirdOrderDifferentialGeometry {
         try tolerance.validate()
         guard fraction.isFinite,
               fraction >= -tolerance.relative,
@@ -636,17 +686,29 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         let radial = basis.u * cos(angle.value) + basis.v * sin(angle.value)
         let radialFirst = -basis.u * sin(angle.value) + basis.v * cos(angle.value)
         let radialSecond = -radial
+        let radialThird = -radialFirst
         let generator = configuration.cone.axis * cosine + radial * sine
         let generatorFirst = radialFirst * sine
         let generatorSecond = radialSecond * sine
+        let generatorThird = radialThird * sine
+        let composedGeneratorFirst = generatorFirst * angle.first
+        let composedGeneratorSecond = generatorSecond
+                * (angle.first * angle.first)
+            + generatorFirst * angle.second
+        let composedGeneratorThird = generatorThird
+                * (angle.first * angle.first * angle.first)
+            + generatorSecond * (3.0 * angle.first * angle.second)
+            + generatorFirst * angle.third
         let position = configuration.cone.apex + generator * slant.value
-        let firstDerivative = generatorFirst * (angle.first * slant.value)
+        let firstDerivative = composedGeneratorFirst * slant.value
             + generator * slant.first
-        let secondDerivative = generatorSecond
-                * (angle.first * angle.first * slant.value)
-            + generatorFirst
-                * (angle.second * slant.value + 2.0 * angle.first * slant.first)
+        let secondDerivative = composedGeneratorSecond * slant.value
+            + composedGeneratorFirst * (2.0 * slant.first)
             + generator * slant.second
+        let thirdDerivative = composedGeneratorThird * slant.value
+            + composedGeneratorSecond * (3.0 * slant.first)
+            + composedGeneratorFirst * (3.0 * slant.second)
+            + generator * slant.third
         guard firstDerivative.length > tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
@@ -656,10 +718,17 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                 message: "A certified sphere-cone component has a singular differential."
             )
         }
-        return DifferentialGeometry(
+        guard thirdDerivative.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A certified sphere-cone third differential exceeded finite arithmetic."
+            )
+        }
+        return ThirdOrderDifferentialGeometry(
             position: position,
             firstDerivative: firstDerivative,
-            secondDerivative: secondDerivative
+            secondDerivative: secondDerivative,
+            thirdDerivative: thirdDerivative
         )
     }
 
@@ -826,6 +895,12 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             ),
             tolerance: tolerance
         )
+        let radicandThird = (
+            2.0 * (
+                3.0 * harmonicMagnitude * harmonicMagnitude
+                    + halfLinearMagnitude * harmonicMagnitude
+            )
+        ).nextUp
         let rootLower = sqrt(minimumRadicand).nextDown
         let rootUpper = sqrt(maximumRadicand).nextUp
         guard rootLower > 0.0, rootUpper.isFinite else {
@@ -859,6 +934,16 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             ),
             tolerance: tolerance
         )
+        let rootFifthLower = (
+            minimumRadicand * minimumRadicand * rootLower
+        ).nextDown
+        let rootThird = (
+            radicandThird / (2.0 * rootLower).nextDown
+                + 3.0 * radicandFirst * radicandSecond
+                    / (4.0 * rootCubedLower).nextDown
+                + 3.0 * radicandFirst * radicandFirst * radicandFirst
+                    / (8.0 * rootFifthLower).nextDown
+        ).nextUp
 
         let rawDenominator = configuration.quadraticA
             * cos(configuration.cone.halfAngle)
@@ -902,6 +987,15 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             denominatorLower,
             tolerance: tolerance
         )
+        let slantThird = try upperQuotient(
+            try upperSum(
+                harmonicMagnitude,
+                rootThird,
+                tolerance: tolerance
+            ),
+            denominatorLower,
+            tolerance: tolerance
+        )
 
         let sine = sin(configuration.cone.halfAngle).nextUp
         let angularFirst = hypot(
@@ -929,9 +1023,20 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             ),
             tolerance: tolerance
         )
+        let angularThird = (
+            sine * slantMagnitude
+                + 3.0 * sine * slantFirst
+                + 3.0 * sine * slantSecond
+                + slantThird
+        ).nextUp
         let period = (2.0 * Double.pi).nextUp
         let periodSquared = try upperProduct(
             period,
+            period,
+            tolerance: tolerance
+        )
+        let periodCubed = try upperProduct(
+            periodSquared,
             period,
             tolerance: tolerance
         )
@@ -944,6 +1049,11 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             second: try upperProduct(
                 periodSquared,
                 angularSecond,
+                tolerance: tolerance
+            ),
+            third: try upperProduct(
+                periodCubed,
+                angularThird,
                 tolerance: tolerance
             )
         )
@@ -981,6 +1091,7 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         let upper = min(upperFraction, 1.0)
         let period = (2.0 * Double.pi).nextUp
         let periodSquared = (period * period).nextUp
+        let periodCubed = (periodSquared * period).nextUp
         let phaseLower = period * lower
         let phaseUpper = period * upper
         let angleRange = Self.boundedAngleRange(
@@ -1004,6 +1115,8 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                 radicand.secondDerivativeAbsoluteUpperBound,
             thirdDerivativeMagnitudeUpperBound:
                 radicand.thirdDerivativeAbsoluteUpperBound,
+            fourthDerivativeMagnitudeUpperBound:
+                radicand.fourthDerivativeAbsoluteUpperBound,
             arithmeticEnvelope: arithmeticEnvelope,
             valueRange: { rangeLower, rangeUpper in
                 Self.radicandRange(
@@ -1047,6 +1160,16 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             ),
             tolerance: tolerance
         )
+        let rootFifthLower = (
+            factor.lower * factor.lower * rootLower
+        ).nextDown
+        let rootThirdByAngle = (
+            factor.third / (2.0 * rootLower).nextDown
+                + 3.0 * factor.first * factor.second
+                    / (4.0 * rootCubedLower).nextDown
+                + 3.0 * factor.first * factor.first * factor.first
+                    / (8.0 * rootFifthLower).nextDown
+        ).nextUp
         let halfSpan = ((upperAngle - lowerAngle) * 0.5).nextUp
         let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(
             lower: phaseLower,
@@ -1063,6 +1186,9 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         ).nextUp
         let angleSecond = (
             halfSpan * periodSquared * cosineMagnitude
+        ).nextUp
+        let angleThird = (
+            halfSpan * periodCubed * sineMagnitude
         ).nextUp
         let signedRootMagnitude = (
             halfSpan * sineMagnitude * rootUpper
@@ -1084,6 +1210,34 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                     )
             )
         ).nextUp
+        let rootByFractionFirst = (
+            rootFirstByAngle * angleFirst
+        ).nextUp
+        let rootByFractionSecond = (
+            rootSecondByAngle * angleFirst * angleFirst
+                + rootFirstByAngle * angleSecond
+        ).nextUp
+        let rootByFractionThird = (
+            rootThirdByAngle * angleFirst * angleFirst * angleFirst
+                + 3.0 * rootSecondByAngle * angleFirst * angleSecond
+                + rootFirstByAngle * angleThird
+        ).nextUp
+        let prefixMagnitude = (halfSpan * sineMagnitude).nextUp
+        let prefixFirst = (
+            halfSpan * period * cosineMagnitude
+        ).nextUp
+        let prefixSecond = (
+            halfSpan * periodSquared * sineMagnitude
+        ).nextUp
+        let prefixThird = (
+            halfSpan * periodCubed * cosineMagnitude
+        ).nextUp
+        let signedRootThird = (
+            prefixThird * rootUpper
+                + 3.0 * prefixSecond * rootByFractionFirst
+                + 3.0 * prefixFirst * rootByFractionSecond
+                + prefixMagnitude * rootByFractionThird
+        ).nextUp
         let harmonicMagnitude = (
             abs(configuration.slope) * configuration.radialAmplitude
         ).nextUp
@@ -1096,6 +1250,13 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         let halfLinearSecond = (
             harmonicMagnitude
                 * (angleFirst * angleFirst + angleSecond)
+        ).nextUp
+        let halfLinearThird = (
+            harmonicMagnitude * (
+                angleFirst * angleFirst * angleFirst
+                    + 3.0 * angleFirst * angleSecond
+                    + angleThird
+            )
         ).nextUp
         let denominatorLower = try slantDenominatorLowerBound(
             configuration: configuration,
@@ -1128,12 +1289,23 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             denominatorLower,
             tolerance: tolerance
         )
+        let slantThird = try upperQuotient(
+            try upperSum(
+                halfLinearThird,
+                signedRootThird,
+                tolerance: tolerance
+            ),
+            denominatorLower,
+            tolerance: tolerance
+        )
         return try spatialBounds(
             angleFirst: angleFirst,
             angleSecond: angleSecond,
+            angleThird: angleThird,
             slantMagnitude: slantMagnitude,
             slantFirst: slantFirst,
             slantSecond: slantSecond,
+            slantThird: slantThird,
             configuration: configuration,
             tolerance: tolerance
         )
@@ -1169,6 +1341,9 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         let halfLinearSecond = (
             harmonicMagnitude * angleFirst * angleFirst
         ).nextUp
+        let halfLinearThird = (
+            harmonicMagnitude * angleFirst * angleFirst * angleFirst
+        ).nextUp
         let denominatorLower = try slantDenominatorLowerBound(
             configuration: configuration,
             tolerance: tolerance
@@ -1181,6 +1356,7 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         return try spatialBounds(
             angleFirst: angleFirst,
             angleSecond: 0.0,
+            angleThird: 0.0,
             slantMagnitude: try upperProduct(
                 scale,
                 halfLinearMagnitude,
@@ -1194,6 +1370,11 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             slantSecond: try upperProduct(
                 scale,
                 halfLinearSecond,
+                tolerance: tolerance
+            ),
+            slantThird: try upperProduct(
+                scale,
+                halfLinearThird,
                 tolerance: tolerance
             ),
             configuration: configuration,
@@ -1344,9 +1525,24 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             ),
             tolerance: tolerance
         )
+        let rootFifthLower = (
+            minimum * minimum * rootLower
+        ).nextDown
+        let rootThirdByAngle = (
+            radicand.thirdDerivativeAbsoluteUpperBound
+                    / (2.0 * rootLower).nextDown
+                + 3.0 * radicand.firstDerivativeAbsoluteUpperBound
+                    * radicand.secondDerivativeAbsoluteUpperBound
+                    / (4.0 * rootCubedLower).nextDown
+                + 3.0 * pow(
+                    radicand.firstDerivativeAbsoluteUpperBound,
+                    3.0
+                ) / (8.0 * rootFifthLower).nextDown
+        ).nextUp
         return try spatialBoundsFromSignedRoot(
             angleFirst: span,
             angleSecond: 0.0,
+            angleThird: 0.0,
             rootMagnitude: rootUpper,
             rootFirst: try upperProduct(
                 rootFirstByAngle,
@@ -1358,6 +1554,9 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                 try upperProduct(span, span, tolerance: tolerance),
                 tolerance: tolerance
             ),
+            rootThird: (
+                rootThirdByAngle * span * span * span
+            ).nextUp,
             configuration: configuration,
             tolerance: tolerance
         )
@@ -1398,6 +1597,8 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                     radicand.thirdDerivativeAbsoluteUpperBound,
                 fourthDerivativeMagnitudeUpperBound:
                     radicand.fourthDerivativeAbsoluteUpperBound,
+                fifthDerivativeMagnitudeUpperBound:
+                    radicand.fifthDerivativeAbsoluteUpperBound,
                 arithmeticEnvelope: arithmeticEnvelope,
                 valueRange: { rangeLower, rangeUpper in
                     Self.radicandRange(
@@ -1441,6 +1642,16 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             ),
             tolerance: tolerance
         )
+        let rootFifthLower = (
+            factor.lower * factor.lower * rootLower
+        ).nextDown
+        let rootThirdByAngle = (
+            factor.third / (2.0 * rootLower).nextDown
+                + 3.0 * factor.first * factor.second
+                    / (4.0 * rootCubedLower).nextDown
+                + 3.0 * factor.first * factor.first * factor.first
+                    / (8.0 * rootFifthLower).nextDown
+        ).nextUp
         let distanceMagnitude = span
         let signedRootMagnitude = (
             distanceMagnitude * rootUpper
@@ -1453,12 +1664,24 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             2.0 * span * rootFirstByAngle * span
                 + distanceMagnitude * rootSecondByAngle * span * span
         ).nextUp
+        let rootByFractionSecond = (
+            rootSecondByAngle * span * span
+        ).nextUp
+        let rootByFractionThird = (
+            rootThirdByAngle * span * span * span
+        ).nextUp
+        let signedRootThird = (
+            3.0 * span * rootByFractionSecond
+                + distanceMagnitude * rootByFractionThird
+        ).nextUp
         return try spatialBoundsFromSignedRoot(
             angleFirst: span,
             angleSecond: 0.0,
+            angleThird: 0.0,
             rootMagnitude: signedRootMagnitude,
             rootFirst: signedRootFirst,
             rootSecond: signedRootSecond,
+            rootThird: signedRootThird,
             configuration: configuration,
             tolerance: tolerance
         )
@@ -1508,6 +1731,8 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                 radicand.secondDerivativeAbsoluteUpperBound,
             thirdDerivativeMagnitudeUpperBound:
                 radicand.thirdDerivativeAbsoluteUpperBound,
+            fourthDerivativeMagnitudeUpperBound:
+                radicand.fourthDerivativeAbsoluteUpperBound,
             arithmeticEnvelope: arithmeticEnvelope,
             orientedValueRange: { rangeLower, rangeUpper in
                 let range = Self.radicandRange(
@@ -1552,6 +1777,16 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             ),
             tolerance: tolerance
         )
+        let rootFifthLower = (
+            factor.lower * factor.lower * rootLower
+        ).nextDown
+        let rootThirdByAngle = (
+            factor.third / (2.0 * rootLower).nextDown
+                + 3.0 * factor.first * factor.second
+                    / (4.0 * rootCubedLower).nextDown
+                + 3.0 * factor.first * factor.first * factor.first
+                    / (8.0 * rootFifthLower).nextDown
+        ).nextUp
         let phaseScale = (Double.pi * 0.5).nextUp
         let phaseLower = phaseScale * lowerFraction
         let phaseUpper = phaseScale * upperFraction
@@ -1572,6 +1807,9 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         let angleSecond = rootAtLower
             ? (span * phaseScale * phaseScale * cosineMagnitude).nextUp
             : (span * phaseScale * phaseScale * sineMagnitude).nextUp
+        let angleThird = rootAtLower
+            ? (span * pow(phaseScale, 3.0) * sineMagnitude).nextUp
+            : (span * pow(phaseScale, 3.0) * cosineMagnitude).nextUp
         let distanceRootScale = sqrt(2.0 * span).nextUp
         let distanceRootMagnitude = sqrt(span).nextUp
         let halfPhaseScale = (phaseScale * 0.5).nextUp
@@ -1580,6 +1818,9 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         ).nextUp
         let distanceRootSecond = (
             distanceRootScale * halfPhaseScale * halfPhaseScale
+        ).nextUp
+        let distanceRootThird = (
+            distanceRootScale * pow(halfPhaseScale, 3.0)
         ).nextUp
         let signedRootMagnitude = (
             distanceRootMagnitude * rootUpper
@@ -1598,12 +1839,32 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                         + rootFirstByAngle * angleSecond
                 )
         ).nextUp
+        let rootByFractionFirst = (
+            rootFirstByAngle * angleFirst
+        ).nextUp
+        let rootByFractionSecond = (
+            rootSecondByAngle * angleFirst * angleFirst
+                + rootFirstByAngle * angleSecond
+        ).nextUp
+        let rootByFractionThird = (
+            rootThirdByAngle * angleFirst * angleFirst * angleFirst
+                + 3.0 * rootSecondByAngle * angleFirst * angleSecond
+                + rootFirstByAngle * angleThird
+        ).nextUp
+        let signedRootThird = (
+            distanceRootThird * rootUpper
+                + 3.0 * distanceRootSecond * rootByFractionFirst
+                + 3.0 * distanceRootFirst * rootByFractionSecond
+                + distanceRootMagnitude * rootByFractionThird
+        ).nextUp
         return try spatialBoundsFromSignedRoot(
             angleFirst: angleFirst,
             angleSecond: angleSecond,
+            angleThird: angleThird,
             rootMagnitude: signedRootMagnitude,
             rootFirst: signedRootFirst,
             rootSecond: signedRootSecond,
+            rootThird: signedRootThird,
             configuration: configuration,
             tolerance: tolerance
         )
@@ -1644,6 +1905,8 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                 radicand.secondDerivativeAbsoluteUpperBound,
             thirdDerivativeMagnitudeUpperBound:
                 radicand.thirdDerivativeAbsoluteUpperBound,
+            fourthDerivativeMagnitudeUpperBound:
+                radicand.fourthDerivativeAbsoluteUpperBound,
             arithmeticEnvelope: arithmeticEnvelope,
             valueRange: { rangeLower, rangeUpper in
                 Self.radicandRange(
@@ -1687,6 +1950,16 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             ),
             tolerance: tolerance
         )
+        let rootFifthLower = (
+            factor.lower * factor.lower * rootLower
+        ).nextDown
+        let rootThirdByAngle = (
+            factor.third / (2.0 * rootLower).nextDown
+                + 3.0 * factor.first * factor.second
+                    / (4.0 * rootCubedLower).nextDown
+                + 3.0 * factor.first * factor.first * factor.first
+                    / (8.0 * rootFifthLower).nextDown
+        ).nextUp
         let phaseScale = Double.pi.nextUp
         let phaseLower = phaseScale * lowerFraction
         let phaseUpper = phaseScale * upperFraction
@@ -1706,6 +1979,9 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         ).nextUp
         let angleSecond = (
             halfSpan * phaseScale * phaseScale * cosineMagnitude
+        ).nextUp
+        let angleThird = (
+            halfSpan * pow(phaseScale, 3.0) * sineMagnitude
         ).nextUp
         let signedRootMagnitude = (
             halfSpan * sineMagnitude * rootUpper
@@ -1727,12 +2003,42 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                     )
             )
         ).nextUp
+        let rootByFractionFirst = (
+            rootFirstByAngle * angleFirst
+        ).nextUp
+        let rootByFractionSecond = (
+            rootSecondByAngle * angleFirst * angleFirst
+                + rootFirstByAngle * angleSecond
+        ).nextUp
+        let rootByFractionThird = (
+            rootThirdByAngle * angleFirst * angleFirst * angleFirst
+                + 3.0 * rootSecondByAngle * angleFirst * angleSecond
+                + rootFirstByAngle * angleThird
+        ).nextUp
+        let prefixMagnitude = (halfSpan * sineMagnitude).nextUp
+        let prefixFirst = (
+            halfSpan * phaseScale * cosineMagnitude
+        ).nextUp
+        let prefixSecond = (
+            halfSpan * phaseScale * phaseScale * sineMagnitude
+        ).nextUp
+        let prefixThird = (
+            halfSpan * pow(phaseScale, 3.0) * cosineMagnitude
+        ).nextUp
+        let signedRootThird = (
+            prefixThird * rootUpper
+                + 3.0 * prefixSecond * rootByFractionFirst
+                + 3.0 * prefixFirst * rootByFractionSecond
+                + prefixMagnitude * rootByFractionThird
+        ).nextUp
         return try spatialBoundsFromSignedRoot(
             angleFirst: angleFirst,
             angleSecond: angleSecond,
+            angleThird: angleThird,
             rootMagnitude: signedRootMagnitude,
             rootFirst: signedRootFirst,
             rootSecond: signedRootSecond,
+            rootThird: signedRootThird,
             configuration: configuration,
             tolerance: tolerance
         )
@@ -1959,9 +2265,11 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
     private func spatialBounds(
         angleFirst: Double,
         angleSecond: Double,
+        angleThird: Double,
         slantMagnitude: Double,
         slantFirst: Double,
         slantSecond: Double,
+        slantThird: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
@@ -2013,18 +2321,34 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             ),
             tolerance: tolerance
         )
+        let generatorThird = (
+            sine * (
+                angleFirst * angleFirst * angleFirst
+                    + 3.0 * angleFirst * angleSecond
+                    + angleThird
+            )
+        ).nextUp
+        let third = (
+            generatorThird * slantMagnitude
+                + 3.0 * generatorSecond * slantFirst
+                + 3.0 * sine * angleFirst * slantSecond
+                + slantThird
+        ).nextUp
         return SpatialDifferentialMagnitudeBounds(
             first: first,
-            second: second
+            second: second,
+            third: third
         )
     }
 
     private func spatialBoundsFromSignedRoot(
         angleFirst: Double,
         angleSecond: Double,
+        angleThird: Double,
         rootMagnitude: Double,
         rootFirst: Double,
         rootSecond: Double,
+        rootThird: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
@@ -2056,6 +2380,13 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             ),
             tolerance: tolerance
         )
+        let halfLinearThird = (
+            harmonicMagnitude * (
+                angleFirst * angleFirst * angleFirst
+                    + 3.0 * angleFirst * angleSecond
+                    + angleThird
+            )
+        ).nextUp
         let denominatorLower = try slantDenominatorLowerBound(
             configuration: configuration,
             tolerance: tolerance
@@ -2063,6 +2394,7 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         return try spatialBounds(
             angleFirst: angleFirst,
             angleSecond: angleSecond,
+            angleThird: angleThird,
             slantMagnitude: try upperQuotient(
                 try upperSum(
                     halfLinearMagnitude,
@@ -2085,6 +2417,15 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                 try upperSum(
                     halfLinearSecond,
                     rootSecond,
+                    tolerance: tolerance
+                ),
+                denominatorLower,
+                tolerance: tolerance
+            ),
+            slantThird: try upperQuotient(
+                try upperSum(
+                    halfLinearThird,
+                    rootThird,
                     tolerance: tolerance
                 ),
                 denominatorLower,
@@ -2157,7 +2498,8 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             return ScalarDifferential(
                 value: period * fraction,
                 first: period,
-                second: 0.0
+                second: 0.0,
+                third: 0.0
             )
         case .boundedAngularInterval:
             let midpoint = lowerAngle + (upperAngle - lowerAngle) * 0.5
@@ -2166,7 +2508,8 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             return ScalarDifferential(
                 value: midpoint - halfSpan * cos(phase),
                 first: halfSpan * period * sin(phase),
-                second: halfSpan * period * period * cos(phase)
+                second: halfSpan * period * period * cos(phase),
+                third: -halfSpan * period * period * period * sin(phase)
             )
         case .negativeOpenAngularInterval,
              .positiveOpenAngularInterval:
@@ -2180,44 +2523,112 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                 normalized = ScalarDifferential(
                     value: 0.5 - 0.5 * cos(phase),
                     first: Double.pi * 0.5 * sin(phase),
-                    second: Double.pi * Double.pi * 0.5 * cos(phase)
+                    second: Double.pi * Double.pi * 0.5 * cos(phase),
+                    third: -pow(Double.pi, 3.0) * 0.5 * sin(phase)
                 )
             case .lowerSimpleRoot, .lowerSimpleUpperDouble:
                 let phase = Double.pi * 0.5 * fraction
                 normalized = ScalarDifferential(
                     value: 1.0 - cos(phase),
                     first: Double.pi * 0.5 * sin(phase),
-                    second: Double.pi * Double.pi * 0.25 * cos(phase)
+                    second: Double.pi * Double.pi * 0.25 * cos(phase),
+                    third: -pow(Double.pi * 0.5, 3.0) * sin(phase)
                 )
             case .upperSimpleRoot, .lowerDoubleUpperSimple:
                 let phase = Double.pi * 0.5 * fraction
                 normalized = ScalarDifferential(
                     value: sin(phase),
                     first: Double.pi * 0.5 * cos(phase),
-                    second: -Double.pi * Double.pi * 0.25 * sin(phase)
+                    second: -Double.pi * Double.pi * 0.25 * sin(phase),
+                    third: -pow(Double.pi * 0.5, 3.0) * cos(phase)
                 )
             case .rootFree, .lowerDoubleRoot, .upperDoubleRoot,
                  .twoDoubleRoots:
                 normalized = ScalarDifferential(
                     value: fraction,
                     first: 1.0,
-                    second: 0.0
+                    second: 0.0,
+                    third: 0.0
                 )
             }
             let span = upperAngle - lowerAngle
             return ScalarDifferential(
                 value: lowerAngle + span * normalized.value,
                 first: span * normalized.first,
-                second: span * normalized.second
+                second: span * normalized.second,
+                third: span * normalized.third
             )
         case .apexReducedAngularInterval:
             let span = upperAngle - lowerAngle
             return ScalarDifferential(
                 value: lowerAngle + span * fraction,
                 first: span,
-                second: 0.0
+                second: 0.0,
+                third: 0.0
             )
         }
+    }
+
+    private func angleFourthDerivative(
+        at fraction: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) -> Double {
+        let period = 2.0 * Double.pi
+        switch componentKind {
+        case .negativeFullBranch, .positiveFullBranch,
+             .apexReducedAngularInterval:
+            return 0.0
+        case .boundedAngularInterval:
+            let halfSpan = (upperAngle - lowerAngle) * 0.5
+            return -halfSpan * pow(period, 4.0) * cos(period * fraction)
+        case .negativeOpenAngularInterval,
+             .positiveOpenAngularInterval:
+            let normalizedFourth: Double
+            switch openEndpointStructure(
+                configuration: configuration,
+                tolerance: tolerance
+            ) {
+            case .twoSimpleRoots:
+                normalizedFourth = -0.5 * pow(Double.pi, 4.0)
+                    * cos(Double.pi * fraction)
+            case .lowerSimpleRoot, .lowerSimpleUpperDouble:
+                let scale = Double.pi * 0.5
+                normalizedFourth = -pow(scale, 4.0)
+                    * cos(scale * fraction)
+            case .upperSimpleRoot, .lowerDoubleUpperSimple:
+                let scale = Double.pi * 0.5
+                normalizedFourth = pow(scale, 4.0)
+                    * sin(scale * fraction)
+            case .rootFree, .lowerDoubleRoot, .upperDoubleRoot,
+                 .twoDoubleRoots:
+                normalizedFourth = 0.0
+            }
+            return (upperAngle - lowerAngle) * normalizedFourth
+        }
+    }
+
+    private func radicandFourthDerivative(
+        angle: ScalarDifferential,
+        fraction: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) -> Double {
+        let polynomial = configuration.radicandPolynomial
+        let firstAngular = polynomial.derivative(at: angle.value)
+        let secondAngular = polynomial.secondDerivative(at: angle.value)
+        let thirdAngular = polynomial.thirdDerivative(at: angle.value)
+        let fourthAngular = polynomial.derivative(order: 4, at: angle.value)
+        let angleFourth = angleFourthDerivative(
+            at: fraction,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        return fourthAngular * pow(angle.first, 4.0)
+            + 6.0 * thirdAngular * angle.first * angle.first * angle.second
+            + 3.0 * secondAngular * angle.second * angle.second
+            + 4.0 * secondAngular * angle.first * angle.third
+            + firstAngular * angleFourth
     }
 
     private func slantDifferential(
@@ -2229,11 +2640,18 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         let halfLinearAngularFirst = configuration.halfLinearFirstDerivative(
             at: angle.value
         )
+        let halfLinearAngularSecond = configuration.halfLinearSecondDerivative(
+            at: angle.value
+        )
         let halfLinear = ScalarDifferential(
             value: configuration.halfLinear(at: angle.value),
             first: halfLinearAngularFirst * angle.first,
-            second: configuration.halfLinearSecondDerivative(at: angle.value)
-                * angle.first * angle.first + halfLinearAngularFirst * angle.second
+            second: halfLinearAngularSecond * angle.first * angle.first
+                + halfLinearAngularFirst * angle.second,
+            third: -halfLinearAngularFirst
+                    * angle.first * angle.first * angle.first
+                + 3.0 * halfLinearAngularSecond * angle.first * angle.second
+                + halfLinearAngularFirst * angle.third
         )
         let inverseQuadraticCosine = 1.0 / (
             configuration.quadraticA * cos(configuration.cone.halfAngle)
@@ -2243,7 +2661,8 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             return ScalarDifferential(
                 value: halfLinear.value * scale,
                 first: halfLinear.first * scale,
-                second: halfLinear.second * scale
+                second: halfLinear.second * scale,
+                third: halfLinear.third * scale
             )
         }
         let radicand = ScalarDifferential(
@@ -2253,6 +2672,10 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             second: 2.0 * (
                 halfLinear.first * halfLinear.first
                     + halfLinear.value * halfLinear.second
+            ),
+            third: 2.0 * (
+                3.0 * halfLinear.first * halfLinear.second
+                    + halfLinear.value * halfLinear.third
             )
         )
         let root = try signedSquareRootDifferential(
@@ -2265,7 +2688,8 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         return ScalarDifferential(
             value: (halfLinear.value + root.value) * inverseQuadraticCosine,
             first: (halfLinear.first + root.first) * inverseQuadraticCosine,
-            second: (halfLinear.second + root.second) * inverseQuadraticCosine
+            second: (halfLinear.second + root.second) * inverseQuadraticCosine,
+            third: (halfLinear.third + root.third) * inverseQuadraticCosine
         )
     }
 
@@ -2321,19 +2745,29 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                 first: factor.first / (2.0 * root),
                 second: factor.second / (2.0 * root)
                     - factor.first * factor.first
+                        / (4.0 * root * root * root),
+                third: factor.third / (2.0 * root)
+                    - 3.0 * factor.first * factor.second
                         / (4.0 * root * root * root)
+                    + 3.0 * factor.first * factor.first * factor.first
+                        / (8.0 * pow(root, 5.0))
             )
             let rootByFraction = ScalarDifferential(
                 value: rootByAngle.value,
                 first: rootByAngle.first * angle.first,
                 second: rootByAngle.second * angle.first * angle.first
-                    + rootByAngle.first * angle.second
+                    + rootByAngle.first * angle.second,
+                third: rootByAngle.third
+                        * angle.first * angle.first * angle.first
+                    + 3.0 * rootByAngle.second * angle.first * angle.second
+                    + rootByAngle.first * angle.third
             )
             let phase = 2.0 * Double.pi * fraction
             let sine = ScalarDifferential(
                 value: sin(phase),
                 first: 2.0 * Double.pi * cos(phase),
-                second: -4.0 * Double.pi * Double.pi * sin(phase)
+                second: -4.0 * Double.pi * Double.pi * sin(phase),
+                third: -8.0 * pow(Double.pi, 3.0) * cos(phase)
             )
             let result = Self.product(
                 sine,
@@ -2341,7 +2775,8 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             ).scaled(by: (upperAngle - lowerAngle) * 0.5)
             guard result.value.isFinite,
                   result.first.isFinite,
-                  result.second.isFinite else {
+                  result.second.isFinite,
+                  result.third.isFinite else {
                 throw resourceFailure(
                     tolerance: tolerance,
                     message: "A bounded sphere-cone regularized square-root differential exceeded finite arithmetic."
@@ -2418,10 +2853,21 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             let signedEndpointDirection = componentKind == .boundedAngularInterval
                 ? endpointDirection
                 : branchSign * endpointDirection
+            let signedFirst = signedEndpointDirection * sqrt(squaredSlope)
+            let second = radicand.third / (6.0 * signedFirst)
+            let fourth = radicandFourthDerivative(
+                angle: angle,
+                fraction: fraction,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            let third = (fourth - 6.0 * second * second)
+                / (8.0 * signedFirst)
             return ScalarDifferential(
                 value: 0.0,
-                first: signedEndpointDirection * sqrt(squaredSlope),
-                second: 0.0
+                first: signedFirst,
+                second: second,
+                third: third
             )
         }
         guard radicand.value >= -algebraicTolerance else {
@@ -2449,7 +2895,12 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             first: radicand.first / (2.0 * signedValue),
             second: radicand.second / (2.0 * signedValue)
                 - radicand.first * radicand.first
+                    / (4.0 * signedValue * signedValue * signedValue),
+            third: radicand.third / (2.0 * signedValue)
+                - 3.0 * radicand.first * radicand.second
                     / (4.0 * signedValue * signedValue * signedValue)
+                + 3.0 * radicand.first * radicand.first * radicand.first
+                    / (8.0 * pow(signedValue, 5.0))
         )
     }
 
@@ -2487,7 +2938,11 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                 first: derivativeSign * scale * halfPhaseScale
                     * cos(argument),
                 second: -scale * halfPhaseScale * halfPhaseScale
-                    * sin(argument)
+                    * sin(argument),
+                third: -scale * pow(
+                    derivativeSign * halfPhaseScale,
+                    3.0
+                ) * cos(argument)
             )
         case .twoSimpleRoots:
             factor = try regularizedRadicandFactorDifferential(
@@ -2500,7 +2955,8 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             distanceRoot = ScalarDifferential(
                 value: halfSpan * sin(phase),
                 first: halfSpan * Double.pi * cos(phase),
-                second: -halfSpan * Double.pi * Double.pi * sin(phase)
+                second: -halfSpan * Double.pi * Double.pi * sin(phase),
+                third: -halfSpan * pow(Double.pi, 3.0) * cos(phase)
             )
         case .lowerDoubleRoot, .upperDoubleRoot:
             let rootAtLower = structure == .lowerDoubleRoot
@@ -2515,7 +2971,8 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                     ? span * fraction
                     : span * (1.0 - fraction),
                 first: rootAtLower ? span : -span,
-                second: 0.0
+                second: 0.0,
+                third: 0.0
             )
         case .rootFree, .twoDoubleRoots, .lowerSimpleUpperDouble,
              .lowerDoubleUpperSimple:
@@ -2541,13 +2998,22 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             first: factor.first / (2.0 * root),
             second: factor.second / (2.0 * root)
                 - factor.first * factor.first
+                    / (4.0 * root * root * root),
+            third: factor.third / (2.0 * root)
+                - 3.0 * factor.first * factor.second
                     / (4.0 * root * root * root)
+                + 3.0 * factor.first * factor.first * factor.first
+                    / (8.0 * pow(root, 5.0))
         )
         let rootByFraction = ScalarDifferential(
             value: rootByAngle.value,
             first: rootByAngle.first * angle.first,
             second: rootByAngle.second * angle.first * angle.first
-                + rootByAngle.first * angle.second
+                + rootByAngle.first * angle.second,
+            third: rootByAngle.third
+                    * angle.first * angle.first * angle.first
+                + 3.0 * rootByAngle.second * angle.first * angle.second
+                + rootByAngle.first * angle.third
         )
         let result = Self.product(
             distanceRoot,
@@ -2555,7 +3021,8 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         ).scaled(by: branchSign)
         guard result.value.isFinite,
               result.first.isFinite,
-              result.second.isFinite else {
+              result.second.isFinite,
+              result.third.isFinite else {
             throw resourceFailure(
                 tolerance: tolerance,
                 message: "An open sphere-cone regularized square-root differential exceeded finite arithmetic."
@@ -2602,12 +3069,14 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             ? ScalarDifferential(
                 value: upperAngle - angle,
                 first: -1.0,
-                second: 0.0
+                second: 0.0,
+                third: 0.0
             )
             : ScalarDifferential(
                 value: angle - lowerAngle,
                 first: 1.0,
-                second: 0.0
+                second: 0.0,
+                third: 0.0
             )
         return try Self.quotient(
             numerator,
@@ -2652,6 +3121,10 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                 second: -halfOrder * halfOrder * (
                     -harmonic.cosine * sin(midpoint)
                         + harmonic.sine * cos(midpoint)
+                ),
+                third: -halfOrder * halfOrder * halfOrder * (
+                    -harmonic.cosine * cos(midpoint)
+                        - harmonic.sine * sin(midpoint)
                 )
             )
             result = result.adding(
@@ -2671,6 +3144,7 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             var result = 0.0
             var first = 0.0
             var second = 0.0
+            var third = 0.0
             var factorial = 1.0
             for order in 1...24 {
                 factorial *= Double(order)
@@ -2693,11 +3167,17 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                         * Double(exponent * (exponent - 1))
                         * pow(difference, Double(exponent - 2))
                 }
+                if exponent > 2 {
+                    third += coefficient
+                        * Double(exponent * (exponent - 1) * (exponent - 2))
+                        * pow(difference, Double(exponent - 3))
+                }
             }
             return ScalarDifferential(
                 value: result,
                 first: first,
-                second: second
+                second: second,
+                third: third
             )
         }
         let endpointValue = polynomial.value(at: endpoint)
@@ -2707,15 +3187,21 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         let numeratorFirst = polynomial.derivative(at: value)
             - endpointFirst
         let numeratorSecond = polynomial.secondDerivative(at: value)
+        let numeratorThird = polynomial.thirdDerivative(at: value)
         let squared = difference * difference
         let cubed = squared * difference
         let fourth = squared * squared
+        let fifth = fourth * difference
         return ScalarDifferential(
             value: numerator / squared,
             first: numeratorFirst / squared - 2.0 * numerator / cubed,
             second: numeratorSecond / squared
                 - 4.0 * numeratorFirst / cubed
-                + 6.0 * numerator / fourth
+                + 6.0 * numerator / fourth,
+            third: numeratorThird / squared
+                - 6.0 * numeratorSecond / cubed
+                + 18.0 * numeratorFirst / fourth
+                - 24.0 * numerator / fifth
         )
     }
 
@@ -2726,10 +3212,12 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         let valueResult: Double
         let firstByValue: Double
         let secondByValue: Double
+        let thirdByValue: Double
         if abs(value) <= 0.25 {
             var accumulatedValue = 0.0
             var accumulatedFirst = 0.0
             var accumulatedSecond = 0.0
+            var accumulatedThird = 0.0
             var coefficient = 1.0
             for index in 0...12 {
                 let exponent = index * 2
@@ -2744,6 +3232,11 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                         * Double(exponent * (exponent - 1))
                         * pow(value, Double(exponent - 2))
                 }
+                if exponent > 2 {
+                    accumulatedThird += coefficient
+                        * Double(exponent * (exponent - 1) * (exponent - 2))
+                        * pow(value, Double(exponent - 3))
+                }
                 coefficient /= -Double(
                     (2 * index + 2) * (2 * index + 3)
                 )
@@ -2751,6 +3244,7 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             valueResult = accumulatedValue
             firstByValue = accumulatedFirst
             secondByValue = accumulatedSecond
+            thirdByValue = accumulatedThird
         } else {
             let sine = sin(value)
             let cosine = cos(value)
@@ -2760,11 +3254,17 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             secondByValue = -sine / value
                 - 2.0 * cosine / squared
                 + 2.0 * sine / (squared * value)
+            thirdByValue = -cosine / value
+                + 3.0 * sine / squared
+                + 6.0 * cosine / (squared * value)
+                - 6.0 * sine / (squared * squared)
         }
         return ScalarDifferential(
             value: valueResult,
             first: firstByValue * derivativeScale,
-            second: secondByValue * derivativeScale * derivativeScale
+            second: secondByValue * derivativeScale * derivativeScale,
+            third: thirdByValue * derivativeScale * derivativeScale
+                * derivativeScale
         )
     }
 
@@ -2778,7 +3278,11 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                 + first.value * second.first,
             second: first.second * second.value
                 + 2.0 * first.first * second.first
-                + first.value * second.second
+                + first.value * second.second,
+            third: first.third * second.value
+                + 3.0 * first.second * second.first
+                + 3.0 * first.first * second.second
+                + first.value * second.third
         )
     }
 
@@ -2802,12 +3306,18 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         let inverseSecond = 2.0 * denominator.first * denominator.first
                 * inverse * inverse * inverse
             - denominator.second * inverse * inverse
+        let inverseThird = -6.0 * denominator.first * denominator.first
+                * denominator.first * pow(inverse, 4.0)
+            + 6.0 * denominator.first * denominator.second
+                * inverse * inverse * inverse
+            - denominator.third * inverse * inverse
         return product(
             numerator,
             ScalarDifferential(
                 value: inverse,
                 first: inverseFirst,
-                second: inverseSecond
+                second: inverseSecond,
+                third: inverseThird
             )
         )
     }

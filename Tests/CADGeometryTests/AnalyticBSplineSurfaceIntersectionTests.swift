@@ -161,6 +161,55 @@ struct AnalyticBSplineSurfaceIntersectionTests {
         }
     }
 
+    @Test
+    func rationalParameterMapUsesThePublicCylinderChartForValuesAndBounds() throws {
+        let legacyCylinder = Surface3D.cylinder(Cylinder3D(
+            origin: .origin,
+            axis: .unitZ,
+            radius: 1.0
+        ))
+        let rationalParameter = SurfaceParameter(u: 0.5, v: 0.25)
+        let legacyMap = try AnalyticSurfaceRationalParameterMap(
+            surface: legacyCylinder,
+            periodicSeamOffset: 0.0,
+            tolerance: tolerance
+        )
+        let legacyParameter = try legacyMap.parameter(
+            fromRational: rationalParameter,
+            tolerance: tolerance
+        )
+        let analyticParameter = try AnalyticSurfaceRationalParameterMap(
+            surface: .analytic(.cylinder(
+                origin: .origin,
+                axis: .unitZ,
+                radius: 1.0
+            )),
+            periodicSeamOffset: 0.0,
+            tolerance: tolerance
+        ).parameter(fromRational: rationalParameter, tolerance: tolerance)
+
+        #expect(abs(legacyParameter.u - Double.pi * 0.75) <= tolerance.angle)
+        #expect(abs(analyticParameter.u - Double.pi * 0.25) <= tolerance.angle)
+        let enclosure = try legacyMap.enclosure(
+            rationalU: try ScalarInterval(lower: 0.49, upper: 0.51),
+            rationalV: try ScalarInterval(lower: 0.24, upper: 0.26),
+            rationalUDerivative: try ScalarInterval(lower: 0.0, upper: 0.0),
+            rationalVDerivative: try ScalarInterval(lower: 1.0, upper: 1.0),
+            tolerance: tolerance
+        )
+        #expect(enclosure.u.contains(legacyParameter.u))
+        #expect(enclosure.v.contains(legacyParameter.v))
+        #expect(enclosure.vDerivative.contains(1.0))
+        let inverse = try #require(legacyMap.rationalSearchRanges(
+            surfaceU: try ScalarInterval(
+                lower: legacyParameter.u - 0.01,
+                upper: legacyParameter.u + 0.01
+            ),
+            surfaceV: nil
+        ))
+        #expect(try #require(inverse.u).contains(rationalParameter.u))
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func cylinderAndBoundedRationalPlaneProduceVerifiedGenerator() throws {
         let cylinder = Surface3D.cylinder(Cylinder3D(

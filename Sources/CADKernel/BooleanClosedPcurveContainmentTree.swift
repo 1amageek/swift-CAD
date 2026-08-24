@@ -43,21 +43,34 @@ struct BooleanClosedPcurveContainmentTree: Sendable {
         var parents: [BooleanFaceSplitComponentReference: BooleanFaceSplitComponentReference] = [:]
         for child in regions {
             let containers = try regions.filter { candidate in
-                guard candidate.reference != child.reference,
-                      candidate.absoluteArea > child.absoluteArea else {
+                guard candidate.reference != child.reference else {
                     return false
                 }
                 return try candidate.containsStrictly(
                     child.points[0],
                     tolerance: tolerance
                 )
-            }.sorted { lhs, rhs in
-                if lhs.absoluteArea != rhs.absoluteArea {
-                    return lhs.absoluteArea < rhs.absoluteArea
-                }
-                return lhs.reference < rhs.reference
             }
-            if let parent = containers.first {
+            let immediateContainers = try containers.filter { candidate in
+                for other in containers where other.reference != candidate.reference {
+                    guard try other.containsStrictly(
+                        candidate.points[0],
+                        tolerance: tolerance
+                    ) else {
+                        return false
+                    }
+                }
+                return true
+            }
+            guard immediateContainers.count <= 1 else {
+                throw KernelError(
+                    phase: .classification,
+                    code: .classificationFailure,
+                    tolerance: tolerance,
+                    message: "Closed pcurve containment did not produce a unique immediate parent."
+                )
+            }
+            if let parent = immediateContainers.first {
                 parents[child.reference] = parent.reference
             }
         }
@@ -77,5 +90,27 @@ struct BooleanClosedPcurveContainmentTree: Sendable {
         self.roots = regions.map(\.reference).filter {
             parents[$0] == nil
         }.sorted()
+    }
+
+    func depth(
+        of reference: BooleanFaceSplitComponentReference,
+        tolerance: ModelingTolerance
+    ) throws -> Int {
+        var depth = 0
+        var current = reference
+        var visited: Set<BooleanFaceSplitComponentReference> = []
+        while let parent = nodes[current]?.parent {
+            guard visited.insert(current).inserted else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
+                    tolerance: tolerance,
+                    message: "Closed pcurve containment graph contains a parent cycle."
+                )
+            }
+            depth += 1
+            current = parent
+        }
+        return depth
     }
 }

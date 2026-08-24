@@ -123,8 +123,13 @@ struct BooleanTopologyLineageBuilder {
               let inputSurface = inputModel.geometry.surfaces[inputFace.surfaceID] else {
             return false
         }
-        if let outputCylinder = cylinder(outputSurface),
-           let inputCylinder = cylinder(inputSurface) {
+        if let outputCylinder = try cylinder(
+            outputSurface,
+            tolerance: tolerance
+        ), let inputCylinder = try cylinder(
+            inputSurface,
+            tolerance: tolerance
+        ) {
             return try cylindricalFacesMatch(
                 outputFace: outputFace,
                 outputSurface: outputSurface,
@@ -149,8 +154,13 @@ struct BooleanTopologyLineageBuilder {
                 tolerance: tolerance
             )
         }
-        guard let outputPlane = plane(outputSurface),
-              let inputPlane = plane(inputSurface) else {
+        guard let outputPlane = try plane(
+            outputSurface,
+            tolerance: tolerance
+        ), let inputPlane = try plane(
+            inputSurface,
+            tolerance: tolerance
+        ) else {
             return false
         }
         let outputNormal = try outputPlane.normal.normalized(tolerance: tolerance.distance)
@@ -349,25 +359,37 @@ struct BooleanTopologyLineageBuilder {
         )
     }
 
-    private func plane(_ surface: Surface3D) -> (origin: Point3D, normal: Vector3D)? {
-        switch surface {
-        case let .plane(plane):
-            return (plane.origin, plane.normal)
-        case let .analytic(.plane(origin, normal)):
-            return (origin, normal)
-        case .cylinder, .analytic, .bSpline:
+    private func plane(
+        _ surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> (origin: Point3D, normal: Vector3D)? {
+        guard let plane = try DefaultPlanarSurfaceResolver().exactPlane(
+            for: surface,
+            tolerance: tolerance
+        ) else {
             return nil
         }
+        return (plane.origin, plane.normal)
     }
 
     private func cylinder(
-        _ surface: Surface3D
-    ) -> (origin: Point3D, axis: Vector3D, radius: Double)? {
+        _ surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> (origin: Point3D, axis: Vector3D, radius: Double)? {
         switch surface {
         case let .cylinder(cylinder):
             return (cylinder.origin, cylinder.axis, cylinder.radius)
         case let .analytic(.cylinder(origin, axis, radius)):
             return (origin, axis, radius)
+        case let .procedural(.offset(offset)):
+            guard let equivalent = try offset.exactSameParameterSurface(
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            return try cylinder(equivalent, tolerance: tolerance)
+        case .procedural(.ruled):
+            return nil
         case .plane, .analytic, .bSpline:
             return nil
         }

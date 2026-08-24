@@ -96,8 +96,11 @@ public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendabl
         let expected = role == .first
             ? intersection.firstSurface
             : intersection.secondSurface
+        let exactSurface = try surface.exactSameParameterRepresentation(
+            tolerance: tolerance
+        )
         let fractionUpperBound = intersection.isClosed ? 2.0 : 1.0
-        guard surface == .bSpline(expected),
+        guard exactSurface == .bSpline(expected),
               startFraction.isFinite,
               endFraction.isFinite,
               startFraction >= 0.0,

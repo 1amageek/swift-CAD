@@ -1,0 +1,4 @@
+extension CertifiedConeConeIntersectionCurve: NormalizedSurfaceIntersectionCurveEvaluating {}
+extension CertifiedConeCylinderIntersectionCurve: NormalizedSurfaceIntersectionCurveEvaluating {}
+extension CertifiedParallelTorusTorusIntersectionCurve: NormalizedSurfaceIntersectionCurveEvaluating {}
+extension CertifiedSphereConeIntersectionCurve: NormalizedSurfaceIntersectionCurveEvaluating {}

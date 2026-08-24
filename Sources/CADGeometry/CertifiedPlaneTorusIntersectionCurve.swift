@@ -17,6 +17,13 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         public let secondDerivative: Vector3D
     }
 
+    private struct ThirdOrderDifferentialGeometry {
+        let position: Point3D
+        let firstDerivative: Vector3D
+        let secondDerivative: Vector3D
+        let thirdDerivative: Vector3D
+    }
+
     private struct TrigonometricPolynomial {
         let constant: Double
         let cosine: Double
@@ -63,6 +70,14 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                 abs(cosine)
                     + abs(sine)
                     + 8.0 * abs(cosineDouble)
+            ).nextUp
+        }
+
+        var fourthDerivativeAbsoluteUpperBound: Double {
+            (
+                abs(cosine)
+                    + abs(sine)
+                    + 16.0 * abs(cosineDouble)
             ).nextUp
         }
 
@@ -139,9 +154,15 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         let value: Double
         let first: Double
         let second: Double
+        let third: Double
 
         static func constant(_ value: Double) -> ScalarDifferential {
-            ScalarDifferential(value: value, first: 0.0, second: 0.0)
+            ScalarDifferential(
+                value: value,
+                first: 0.0,
+                second: 0.0,
+                third: 0.0
+            )
         }
 
         func adding(
@@ -150,7 +171,8 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             ScalarDifferential(
                 value: value + other.value,
                 first: first + other.first,
-                second: second + other.second
+                second: second + other.second,
+                third: third + other.third
             )
         }
 
@@ -160,7 +182,8 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             ScalarDifferential(
                 value: value - other.value,
                 first: first - other.first,
-                second: second - other.second
+                second: second - other.second,
+                third: third - other.third
             )
         }
 
@@ -168,7 +191,8 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             ScalarDifferential(
                 value: value * scale,
                 first: first * scale,
-                second: second * scale
+                second: second * scale,
+                third: third * scale
             )
         }
     }
@@ -186,8 +210,8 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
     // Validation re-isolates the discriminant boundary roots with exact
     // arithmetic and reconstructs sample points, and every evaluation entry
     // point revalidates the same immutable value, so successful validations
-    // are memoized per process. Platforms without Synchronization.Mutex
-    // hold no cache state and validate every call.
+    // are memoized per process. Older Apple platforms validate every call
+    // instead of weakening the shared-state isolation contract.
     @available(macOS 15.0, iOS 18.0, visionOS 2.0, *)
     private enum ValidationCache {
         static let storage = Mutex<Set<ValidationCacheKey>>([])
@@ -509,6 +533,31 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         at parameter: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
+        let geometry = try derivativesThroughThirdOrder(
+            at: parameter,
+            tolerance: tolerance
+        )
+        return DifferentialGeometry(
+            position: geometry.position,
+            firstDerivative: geometry.firstDerivative,
+            secondDerivative: geometry.secondDerivative
+        )
+    }
+
+    func thirdDerivative(
+        at parameter: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        try derivativesThroughThirdOrder(
+            at: parameter,
+            tolerance: tolerance
+        ).thirdDerivative
+    }
+
+    private func derivativesThroughThirdOrder(
+        at parameter: Double,
+        tolerance: ModelingTolerance
+    ) throws -> ThirdOrderDifferentialGeometry {
         try tolerance.validate()
         guard parameter.isFinite else {
             throw GeometryError.invalidDistance(parameter)
@@ -537,6 +586,11 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             cos(minor.value) * minor.first * minor.first
                 + sin(minor.value) * minor.second
         )
+        let radialScaleThird = configuration.torus.minorRadius * (
+            sin(minor.value) * minor.first * minor.first * minor.first
+                - 3.0 * cos(minor.value) * minor.first * minor.second
+                - sin(minor.value) * minor.third
+        )
         let axialTerm = configuration.centerDistance
             + configuration.torus.minorRadius
                 * configuration.axialNormal * sin(minor.value)
@@ -546,6 +600,12 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             * configuration.axialNormal * (
                 -sin(minor.value) * minor.first * minor.first
                     + cos(minor.value) * minor.second
+            )
+        let axialTermThird = configuration.torus.minorRadius
+            * configuration.axialNormal * (
+                -cos(minor.value) * minor.first * minor.first * minor.first
+                    - 3.0 * sin(minor.value) * minor.first * minor.second
+                    + cos(minor.value) * minor.third
             )
         let radialDiscriminant = pow(
             configuration.radialNormalLength * radialScale,
@@ -561,10 +621,17 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             - 2.0 * (
                 axialTermFirst * axialTermFirst + axialTerm * axialTermSecond
             )
+        let radialDiscriminantThird = 2.0
+            * pow(configuration.radialNormalLength, 2.0)
+            * (3.0 * radialScaleFirst * radialScaleSecond
+                + radialScale * radialScaleThird)
+            - 2.0 * (3.0 * axialTermFirst * axialTermSecond
+                + axialTerm * axialTermThird)
         let transverse = try signedSquareRootDifferential(
             value: radialDiscriminant,
             first: radialDiscriminantFirst,
             second: radialDiscriminantSecond,
+            third: radialDiscriminantThird,
             minorAngle: minor.value,
             parameter: curveParameter,
             configuration: configuration,
@@ -574,12 +641,14 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         let along = ScalarDifferential(
             value: -axialTerm * inverseRadialNormalLength,
             first: -axialTermFirst * inverseRadialNormalLength,
-            second: -axialTermSecond * inverseRadialNormalLength
+            second: -axialTermSecond * inverseRadialNormalLength,
+            third: -axialTermThird * inverseRadialNormalLength
         )
         let across = ScalarDifferential(
             value: transverse.value * inverseRadialNormalLength,
             first: transverse.first * inverseRadialNormalLength,
-            second: transverse.second * inverseRadialNormalLength
+            second: transverse.second * inverseRadialNormalLength,
+            third: transverse.third * inverseRadialNormalLength
         )
         let height = ScalarDifferential(
             value: configuration.torus.minorRadius * sin(minor.value),
@@ -587,6 +656,11 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             second: configuration.torus.minorRadius * (
                 -sin(minor.value) * minor.first * minor.first
                     + cos(minor.value) * minor.second
+            ),
+            third: configuration.torus.minorRadius * (
+                -cos(minor.value) * minor.first * minor.first * minor.first
+                    - 3.0 * sin(minor.value) * minor.first * minor.second
+                    + cos(minor.value) * minor.third
             )
         )
         let position = configuration.torus.center
@@ -599,6 +673,9 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         let secondDerivative = configuration.radialNormal * along.second
             + configuration.radialPerpendicular * across.second
             + configuration.torus.axis * height.second
+        let thirdDerivative = configuration.radialNormal * along.third
+            + configuration.radialPerpendicular * across.third
+            + configuration.torus.axis * height.third
         guard firstDerivative.length > tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
@@ -608,10 +685,17 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                 message: "A certified plane-torus component has a singular differential."
             )
         }
-        return DifferentialGeometry(
+        guard thirdDerivative.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A certified plane-torus third differential exceeded finite arithmetic."
+            )
+        }
+        return ThirdOrderDifferentialGeometry(
             position: position,
             firstDerivative: firstDerivative,
-            secondDerivative: secondDerivative
+            secondDerivative: secondDerivative,
+            thirdDerivative: thirdDerivative
         )
     }
 
@@ -744,6 +828,8 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             discriminant.firstDerivativeAbsoluteUpperBound
         let discriminantSecond =
             discriminant.secondDerivativeAbsoluteUpperBound
+        let discriminantThird =
+            discriminant.thirdDerivativeAbsoluteUpperBound
         let rootFirst = (
             discriminantFirst / (2.0 * rootLower).nextDown
         ).nextUp
@@ -754,6 +840,17 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             discriminantSecond / (2.0 * rootLower).nextDown
                 + discriminantFirst * discriminantFirst
                     / (4.0 * rootCubedLower).nextDown
+        ).nextUp
+        let rootFifthLower = (
+            minimumDiscriminant * minimumDiscriminant * rootLower
+        ).nextDown
+        let rootThird = (
+            discriminantThird / (2.0 * rootLower).nextDown
+                + 3.0 * discriminantFirst * discriminantSecond
+                    / (4.0 * rootCubedLower).nextDown
+                + 3.0 * discriminantFirst * discriminantFirst
+                    * discriminantFirst
+                    / (8.0 * rootFifthLower).nextDown
         ).nextUp
         let inverseRadialNormalLength = (
             1.0 / configuration.radialNormalLength
@@ -766,11 +863,15 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             axialDerivative * inverseRadialNormalLength
         ).nextUp
         let alongSecond = alongFirst
+        let alongThird = alongFirst
         let acrossFirst = (
             rootFirst * inverseRadialNormalLength
         ).nextUp
         let acrossSecond = (
             rootSecond * inverseRadialNormalLength
+        ).nextUp
+        let acrossThird = (
+            rootThird * inverseRadialNormalLength
         ).nextUp
         let heightDerivative = configuration.torus.minorRadius.nextUp
         let first = hypot(
@@ -781,7 +882,11 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             hypot(alongSecond, acrossSecond),
             heightDerivative
         ).nextUp
-        guard first.isFinite, second.isFinite else {
+        let third = hypot(
+            hypot(alongThird, acrossThird),
+            heightDerivative
+        ).nextUp
+        guard first.isFinite, second.isFinite, third.isFinite else {
             throw Self.resourceFailure(
                 tolerance: tolerance,
                 message: "Plane-torus full-branch differential certification exceeded finite arithmetic."
@@ -789,8 +894,67 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         }
         return SpatialDifferentialMagnitudeBounds(
             first: first,
-            second: second
+            second: second,
+            third: third
         )
+    }
+
+    func spatialDifferentialMagnitudeBounds(
+        fromParameter lower: Double,
+        toParameter upper: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard lower.isFinite, upper.isFinite, upper > lower else {
+            throw GeometryError.invalidDistance(upper - lower)
+        }
+        switch parameterDomain {
+        case let .periodic(period):
+            if upper - lower >= period - tolerance.angle {
+                return try spatialDifferentialMagnitudeBounds(
+                    fromNormalizedFraction: 0.0,
+                    toNormalizedFraction: 1.0,
+                    tolerance: tolerance
+                )
+            }
+            return try spatialDifferentialMagnitudeBounds(
+                fromNormalizedFraction: Self.normalizedAngle(lower) / period,
+                toNormalizedFraction: Self.normalizedAngle(upper) / period,
+                tolerance: tolerance
+            )
+        case let .bounded(domainLower, domainUpper):
+            guard parameterDomain.contains(lower, tolerance: tolerance.angle),
+                  parameterDomain.contains(upper, tolerance: tolerance.angle) else {
+                throw GeometryError.invalidDistance(upper - lower)
+            }
+            let width = domainUpper - domainLower
+            guard width.isFinite, width > 0.0 else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "A bounded plane-torus curve requires a finite positive parameter-domain width."
+                )
+            }
+            return try spatialDifferentialMagnitudeBounds(
+                fromNormalizedFraction: min(max(
+                    (lower - domainLower) / width,
+                    0.0
+                ), 1.0),
+                toNormalizedFraction: min(max(
+                    (upper - domainLower) / width,
+                    0.0
+                ), 1.0),
+                tolerance: tolerance
+            )
+        case .unbounded:
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A plane-torus curve cannot have an unbounded parameter domain."
+            )
+        }
     }
 
     func spatialDifferentialMagnitudeBounds(
@@ -822,9 +986,17 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                     toNormalizedFraction: upperFraction,
                     tolerance: tolerance
                 )
+                guard let headThird = head.third,
+                      let tailThird = tail.third else {
+                    throw Self.resourceFailure(
+                        tolerance: tolerance,
+                        message: "A plane-torus seam span lost its third-order differential certificate."
+                    )
+                }
                 return SpatialDifferentialMagnitudeBounds(
                     first: max(head.first, tail.first),
-                    second: max(head.second, tail.second)
+                    second: max(head.second, tail.second),
+                    third: max(headThird, tailThird)
                 )
             case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
                 throw GeometryError.invalidDistance(
@@ -924,9 +1096,21 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                 + factorDerivative * factorDerivative
                     / (4.0 * rootCubedLower).nextDown
         ).nextUp
+        let rootFifthLower = (
+            factorLower * factorLower * rootLower
+        ).nextDown
+        let rootThird = (
+            factorDerivative / (2.0 * rootLower).nextDown
+                + 3.0 * factorDerivative * factorDerivative
+                    / (4.0 * rootCubedLower).nextDown
+                + 3.0 * factorDerivative * factorDerivative
+                    * factorDerivative
+                    / (8.0 * rootFifthLower).nextDown
+        ).nextUp
         let distanceMagnitude = 2.0.nextUp
         let distanceFirst = 1.0.nextUp
         let distanceSecond = 0.5.nextUp
+        let distanceThird = 0.25.nextUp
         let transverseFirst = (
             distanceFirst * rootUpper
                 + distanceMagnitude * rootFirst
@@ -935,6 +1119,12 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             distanceSecond * rootUpper
                 + 2.0 * distanceFirst * rootFirst
                 + distanceMagnitude * rootSecond
+        ).nextUp
+        let transverseThird = (
+            distanceThird * rootUpper
+                + 3.0 * distanceSecond * rootFirst
+                + 3.0 * distanceFirst * rootSecond
+                + distanceMagnitude * rootThird
         ).nextUp
         let inverseRadialNormalLength = (
             1.0 / configuration.radialNormalLength
@@ -947,14 +1137,19 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             axialScale * inverseRadialNormalLength
         ).nextUp
         let alongSecond = alongFirst
+        let alongThird = alongFirst
         let acrossFirst = (
             transverseFirst * inverseRadialNormalLength
         ).nextUp
         let acrossSecond = (
             transverseSecond * inverseRadialNormalLength
         ).nextUp
+        let acrossThird = (
+            transverseThird * inverseRadialNormalLength
+        ).nextUp
         let heightFirst = configuration.torus.minorRadius.nextUp
         let heightSecond = heightFirst
+        let heightThird = heightFirst
         let first = hypot(
             hypot(alongFirst, acrossFirst),
             heightFirst
@@ -963,7 +1158,11 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             hypot(alongSecond, acrossSecond),
             heightSecond
         ).nextUp
-        guard first.isFinite, second.isFinite else {
+        let third = hypot(
+            hypot(alongThird, acrossThird),
+            heightThird
+        ).nextUp
+        guard first.isFinite, second.isFinite, third.isFinite else {
             throw Self.resourceFailure(
                 tolerance: tolerance,
                 message: "Inner-tangency plane-torus spatial differentiation exceeded finite arithmetic."
@@ -971,7 +1170,8 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         }
         return SpatialDifferentialMagnitudeBounds(
             first: first,
-            second: second
+            second: second,
+            third: third
         )
     }
 
@@ -1024,6 +1224,8 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                 discriminant.secondDerivativeAbsoluteUpperBound,
             thirdDerivativeMagnitudeUpperBound:
                 discriminant.thirdDerivativeAbsoluteUpperBound,
+            fourthDerivativeMagnitudeUpperBound:
+                discriminant.fourthDerivativeAbsoluteUpperBound,
             arithmeticEnvelope: arithmeticEnvelope,
             valueRange: { lower, upper in
                 Self.discriminantRange(
@@ -1055,6 +1257,16 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                 + factor.first * factor.first
                     / (4.0 * rootCubedLower).nextDown
         ).nextUp
+        let rootFifthLower = (
+            factor.lower * factor.lower * rootLower
+        ).nextDown
+        let rootThird = (
+            factor.third / (2.0 * rootLower).nextDown
+                + 3.0 * factor.first * factor.second
+                    / (4.0 * rootCubedLower).nextDown
+                + 3.0 * factor.first * factor.first * factor.first
+                    / (8.0 * rootFifthLower).nextDown
+        ).nextUp
         let halfSpan = (
             (upperMinorAngle - lowerMinorAngle) * 0.5
         ).nextUp
@@ -1074,6 +1286,17 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         let minorSecond = (
             halfSpan * cosineMagnitude
         ).nextUp
+        let minorThird = minorFirst
+        let rootByParameterFirst = (rootFirst * minorFirst).nextUp
+        let rootByParameterSecond = (
+            rootSecond * minorFirst * minorFirst
+                + rootFirst * minorSecond
+        ).nextUp
+        let rootByParameterThird = (
+            rootThird * minorFirst * minorFirst * minorFirst
+                + 3.0 * rootSecond * minorFirst * minorSecond
+                + rootFirst * minorThird
+        ).nextUp
         let transverseFirst = (
             halfSpan * (
                 cosineMagnitude * rootUpper
@@ -1088,6 +1311,14 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                         rootSecond * minorFirst * minorFirst
                             + rootFirst * minorSecond
                     )
+                )
+        ).nextUp
+        let transverseThird = (
+            halfSpan * (
+                cosineMagnitude * rootUpper
+                    + 3.0 * sineMagnitude * rootByParameterFirst
+                    + 3.0 * cosineMagnitude * rootByParameterSecond
+                    + sineMagnitude * rootByParameterThird
             )
         ).nextUp
         let inverseRadialNormalLength = (
@@ -1105,11 +1336,22 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                 * (minorFirst * minorFirst + minorSecond)
                 * inverseRadialNormalLength
         ).nextUp
+        let alongThird = (
+            axialScale
+                * (
+                    minorFirst * minorFirst * minorFirst
+                        + 3.0 * minorFirst * minorSecond
+                        + minorThird
+                ) * inverseRadialNormalLength
+        ).nextUp
         let acrossFirst = (
             transverseFirst * inverseRadialNormalLength
         ).nextUp
         let acrossSecond = (
             transverseSecond * inverseRadialNormalLength
+        ).nextUp
+        let acrossThird = (
+            transverseThird * inverseRadialNormalLength
         ).nextUp
         let heightFirst = (
             configuration.torus.minorRadius * minorFirst
@@ -1117,6 +1359,14 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         let heightSecond = (
             configuration.torus.minorRadius
                 * (minorFirst * minorFirst + minorSecond)
+        ).nextUp
+        let heightThird = (
+            configuration.torus.minorRadius
+                * (
+                    minorFirst * minorFirst * minorFirst
+                        + 3.0 * minorFirst * minorSecond
+                        + minorThird
+                )
         ).nextUp
         let first = hypot(
             hypot(alongFirst, acrossFirst),
@@ -1126,7 +1376,11 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             hypot(alongSecond, acrossSecond),
             heightSecond
         ).nextUp
-        guard first.isFinite, second.isFinite else {
+        let third = hypot(
+            hypot(alongThird, acrossThird),
+            heightThird
+        ).nextUp
+        guard first.isFinite, second.isFinite, third.isFinite else {
             throw Self.resourceFailure(
                 tolerance: tolerance,
                 message: "Bounded plane-torus spatial differentiation exceeded finite arithmetic."
@@ -1134,7 +1388,8 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         }
         return SpatialDifferentialMagnitudeBounds(
             first: first,
-            second: second
+            second: second,
+            third: third
         )
     }
 
@@ -1144,7 +1399,8 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             return ScalarDifferential(
                 value: parameter,
                 first: 1.0,
-                second: 0.0
+                second: 0.0,
+                third: 0.0
             )
         case .boundedMinorAngle:
             let midpoint = lowerMinorAngle
@@ -1153,13 +1409,15 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             return ScalarDifferential(
                 value: midpoint - halfSpan * cos(parameter),
                 first: halfSpan * sin(parameter),
-                second: halfSpan * cos(parameter)
+                second: halfSpan * cos(parameter),
+                third: -halfSpan * sin(parameter)
             )
         case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
             return ScalarDifferential(
                 value: lowerMinorAngle + parameter,
                 first: 1.0,
-                second: 0.0
+                second: 0.0,
+                third: 0.0
             )
         }
     }
@@ -1168,6 +1426,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         value: Double,
         first: Double,
         second: Double,
+        third: Double,
         minorAngle: Double,
         parameter: Double,
         configuration: Configuration,
@@ -1205,19 +1464,30 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                 first: factor.first / (2.0 * root),
                 second: factor.second / (2.0 * root)
                     - factor.first * factor.first
+                        / (4.0 * root * root * root),
+                third: factor.third / (2.0 * root)
+                    - 3.0 * factor.first * factor.second
                         / (4.0 * root * root * root)
+                    + 3.0 * factor.first * factor.first * factor.first
+                        / (8.0 * pow(root, 5.0))
             )
             let minor = minorAngleDifferential(at: parameter)
             let rootByParameter = ScalarDifferential(
                 value: rootByMinor.value,
                 first: rootByMinor.first * minor.first,
                 second: rootByMinor.second * minor.first * minor.first
-                    + rootByMinor.first * minor.second
+                    + rootByMinor.first * minor.second,
+                third: rootByMinor.third
+                        * minor.first * minor.first * minor.first
+                    + 3.0 * rootByMinor.second
+                        * minor.first * minor.second
+                    + rootByMinor.first * minor.third
             )
             let sine = ScalarDifferential(
                 value: sin(parameter),
                 first: cos(parameter),
-                second: -sin(parameter)
+                second: -sin(parameter),
+                third: -cos(parameter)
             )
             let result = Self.product(
                 sine,
@@ -1227,7 +1497,8 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             )
             guard result.value.isFinite,
                   result.first.isFinite,
-                  result.second.isFinite else {
+                  result.second.isFinite,
+                  result.third.isFinite else {
                 throw Self.resourceFailure(
                     tolerance: tolerance,
                     message: "A bounded plane-torus regularized square-root differential exceeded finite arithmetic."
@@ -1244,7 +1515,8 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             let factor = ScalarDifferential(
                 value: factorPolynomial.value(at: parameter),
                 first: factorPolynomial.derivative(at: parameter),
-                second: factorPolynomial.secondDerivative(at: parameter)
+                second: factorPolynomial.secondDerivative(at: parameter),
+                third: factorPolynomial.thirdDerivative(at: parameter)
             )
             guard factor.value > 0.0, factor.value.isFinite else {
                 throw Self.singularSection(
@@ -1259,13 +1531,19 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                 first: factor.first / (2.0 * root),
                 second: factor.second / (2.0 * root)
                     - factor.first * factor.first
+                        / (4.0 * root * root * root),
+                third: factor.third / (2.0 * root)
+                    - 3.0 * factor.first * factor.second
                         / (4.0 * root * root * root)
+                    + 3.0 * factor.first * factor.first * factor.first
+                        / (8.0 * pow(root, 5.0))
             )
             let halfParameter = parameter * 0.5
             let periodicDistance = ScalarDifferential(
                 value: 2.0 * sin(halfParameter),
                 first: cos(halfParameter),
-                second: -0.5 * sin(halfParameter)
+                second: -0.5 * sin(halfParameter),
+                third: -0.25 * cos(halfParameter)
             )
             let result = Self.product(
                 periodicDistance,
@@ -1273,7 +1551,8 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             ).scaled(by: branchSign)
             guard result.value.isFinite,
                   result.first.isFinite,
-                  result.second.isFinite else {
+                  result.second.isFinite,
+                  result.third.isFinite else {
                 throw Self.resourceFailure(
                     tolerance: tolerance,
                     message: "An inner-tangent plane-torus periodic square-root differential exceeded finite arithmetic."
@@ -1303,7 +1582,12 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             value: signedValue,
             first: first / (2.0 * signedValue),
             second: second / (2.0 * signedValue)
-                - first * first / (4.0 * signedValue * signedValue * signedValue)
+                - first * first / (4.0 * signedValue * signedValue * signedValue),
+            third: third / (2.0 * signedValue)
+                - 3.0 * first * second
+                    / (4.0 * signedValue * signedValue * signedValue)
+                + 3.0 * first * first * first
+                    / (8.0 * pow(signedValue, 5.0))
         )
     }
 
@@ -1347,12 +1631,14 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             ? ScalarDifferential(
                 value: upperMinorAngle - minorAngle,
                 first: -1.0,
-                second: 0.0
+                second: 0.0,
+                third: 0.0
             )
             : ScalarDifferential(
                 value: minorAngle - lowerMinorAngle,
                 first: 1.0,
-                second: 0.0
+                second: 0.0,
+                third: 0.0
             )
         return try Self.quotient(
             numerator,
@@ -1407,6 +1693,10 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                 second: -halfOrder * halfOrder * (
                     -harmonic.cosine * sin(midpoint)
                         + harmonic.sine * cos(midpoint)
+                ),
+                third: -halfOrder * halfOrder * halfOrder * (
+                    -harmonic.cosine * cos(midpoint)
+                        - harmonic.sine * sin(midpoint)
                 )
             )
             result = result.adding(
@@ -1423,10 +1713,12 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         let valueResult: Double
         let firstByValue: Double
         let secondByValue: Double
+        let thirdByValue: Double
         if abs(value) <= 0.25 {
             var accumulatedValue = 0.0
             var accumulatedFirst = 0.0
             var accumulatedSecond = 0.0
+            var accumulatedThird = 0.0
             var coefficient = 1.0
             for index in 0...12 {
                 let exponent = index * 2
@@ -1441,6 +1733,11 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                         * Double(exponent * (exponent - 1))
                         * pow(value, Double(exponent - 2))
                 }
+                if exponent > 2 {
+                    accumulatedThird += coefficient
+                        * Double(exponent * (exponent - 1) * (exponent - 2))
+                        * pow(value, Double(exponent - 3))
+                }
                 coefficient /= -Double(
                     (2 * index + 2) * (2 * index + 3)
                 )
@@ -1448,6 +1745,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             valueResult = accumulatedValue
             firstByValue = accumulatedFirst
             secondByValue = accumulatedSecond
+            thirdByValue = accumulatedThird
         } else {
             let sine = sin(value)
             let cosine = cos(value)
@@ -1457,11 +1755,17 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             secondByValue = -sine / value
                 - 2.0 * cosine / squared
                 + 2.0 * sine / (squared * value)
+            thirdByValue = -cosine / value
+                + 3.0 * sine / squared
+                + 6.0 * cosine / (squared * value)
+                - 6.0 * sine / (squared * squared)
         }
         return ScalarDifferential(
             value: valueResult,
             first: firstByValue * derivativeScale,
-            second: secondByValue * derivativeScale * derivativeScale
+            second: secondByValue * derivativeScale * derivativeScale,
+            third: thirdByValue * derivativeScale * derivativeScale
+                * derivativeScale
         )
     }
 
@@ -1475,7 +1779,11 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                 + first.value * second.first,
             second: first.second * second.value
                 + 2.0 * first.first * second.first
-                + first.value * second.second
+                + first.value * second.second,
+            third: first.third * second.value
+                + 3.0 * first.second * second.first
+                + 3.0 * first.first * second.second
+                + first.value * second.third
         )
     }
 
@@ -1499,12 +1807,18 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         let inverseSecond = 2.0 * denominator.first * denominator.first
                 * inverse * inverse * inverse
             - denominator.second * inverse * inverse
+        let inverseThird = -6.0 * denominator.first * denominator.first
+                * denominator.first * pow(inverse, 4.0)
+            + 6.0 * denominator.first * denominator.second
+                * inverse * inverse * inverse
+            - denominator.third * inverse * inverse
         return product(
             numerator,
             ScalarDifferential(
                 value: inverse,
                 first: inverseFirst,
-                second: inverseSecond
+                second: inverseSecond,
+                third: inverseThird
             )
         )
     }

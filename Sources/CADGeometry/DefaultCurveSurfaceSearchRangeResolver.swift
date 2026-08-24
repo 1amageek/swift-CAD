@@ -88,7 +88,14 @@ struct DefaultCurveSurfaceSearchRangeResolver:
                 ),
                 metricScale: hyperbola.conjugateRadius
             )
-        case .circle, .bSpline, .implicit, .surfaceLift,
+        case let .rigidImage(image):
+            let inverse = image.transform.inverted()
+            return try derivedUnboundedRange(
+                curve: image.source,
+                surface: inverse.applying(to: surface, tolerance: tolerance),
+                tolerance: tolerance
+            )
+        case .circle, .bSpline, .implicit, .surfaceLift, .affineImage,
              .certifiedIntersection,
              .analytic(.circle), .analytic(.arc), .analytic(.ellipse),
              .analytic(.planeTorus):

@@ -148,6 +148,20 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Codable, Hashable, Sen
         )
     }
 
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        let parameter = try mappedParameter(fraction, tolerance: tolerance)
+        let derivative = try Curve3D.analytic(analyticCurve)
+            .parameterDerivativesThroughThirdOrder(
+                at: parameter,
+                tolerance: tolerance
+            ).thirdDerivative
+        let scale = endParameter - startParameter
+        return derivative * (scale * scale * scale)
+    }
+
     public func parameter(
         on surface: Surface3D,
         atNormalizedFraction fraction: Double,

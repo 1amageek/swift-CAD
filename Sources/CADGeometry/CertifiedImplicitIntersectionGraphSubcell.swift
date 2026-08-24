@@ -24,12 +24,37 @@ public extension CertifiedImplicitIntersectionGraphCell {
         secondSurface: BSplineSurface3D,
         tolerance: ModelingTolerance
     ) throws -> CertifiedImplicitIntersectionGraphSubcell {
+        let parentDerivatives = try parameterDerivativeBounds(
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
+        return try restrictedBounds(
+            fromNormalizedFraction: lowerFraction,
+            toNormalizedFraction: upperFraction,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            parentDerivativeBounds: parentDerivatives,
+            tolerance: tolerance
+        )
+    }
+
+    package func restrictedBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        firstSurface: BSplineSurface3D,
+        secondSurface: BSplineSurface3D,
+        parentDerivativeBounds: [ScalarInterval],
+        tolerance: ModelingTolerance
+    ) throws -> CertifiedImplicitIntersectionGraphSubcell {
         try tolerance.validate()
         guard lowerFraction.isFinite,
               upperFraction.isFinite,
               lowerFraction >= 0.0,
               upperFraction <= 1.0,
-              upperFraction - lowerFraction > tolerance.relative else {
+              upperFraction - lowerFraction > tolerance.relative,
+              parentDerivativeBounds.count
+                == SurfaceIntersectionParameterCoordinate.allCases.count else {
             throw GeometryError.invalidDistance(upperFraction - lowerFraction)
         }
         let midpointFraction = lowerFraction
@@ -48,11 +73,6 @@ public extension CertifiedImplicitIntersectionGraphCell {
         )
         let traversalEnd = try parameterPair(
             atNormalizedFraction: upperFraction,
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            tolerance: tolerance
-        )
-        let parentDerivatives = try parameterDerivativeBounds(
             firstSurface: firstSurface,
             secondSurface: secondSurface,
             tolerance: tolerance
@@ -77,7 +97,7 @@ public extension CertifiedImplicitIntersectionGraphCell {
                 ))
             } else {
                 let midpointValue = traversalMidpoint.values[index]
-                let parentDerivative = parentDerivatives[index]
+                let parentDerivative = parentDerivativeBounds[index]
                 let radius = max(
                     abs(parentDerivative.lower),
                     abs(parentDerivative.upper)
@@ -103,7 +123,7 @@ public extension CertifiedImplicitIntersectionGraphCell {
                 }
                 intervals.append(try ScalarInterval(lower: lower, upper: upper))
             }
-            let derivative = parentDerivatives[index]
+            let derivative = parentDerivativeBounds[index]
             let products = [
                 derivative.lower * localSpan,
                 derivative.upper * localSpan,

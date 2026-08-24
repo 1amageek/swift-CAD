@@ -445,11 +445,16 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
             return try curve.rationalBezierPatches(tolerance: tolerance)
         case .sphericalGreatCircle, .certifiedImplicit,
              .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-             .projectedAnalytic:
+             .projectedAnalytic, .rigidImage:
             throw failure(
                 .invalidInput,
                 tolerance: tolerance,
                 "A certificate-backed pcurve must use its interval enclosure path."
+            )
+        case let .sameParameterImage(image):
+            return try rationalPatches(
+                for: image.source,
+                tolerance: tolerance
             )
         case let .periodicTranslation(base, uShift, vShift):
             return try rationalPatches(
@@ -465,8 +470,10 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         switch curve {
         case .sphericalGreatCircle, .certifiedImplicit,
              .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-             .projectedAnalytic:
+             .projectedAnalytic, .rigidImage:
             true
+        case let .sameParameterImage(image):
+            requiresCertifiedEnclosure(image.source)
         case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline:
             false
         case let .periodicTranslation(base, _, _):

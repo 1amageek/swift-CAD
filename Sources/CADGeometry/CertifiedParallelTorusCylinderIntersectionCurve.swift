@@ -388,6 +388,118 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
         )
     }
 
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        try tolerance.validate()
+        guard fraction.isFinite,
+              fraction >= -tolerance.relative,
+              fraction <= 1.0 + tolerance.relative else {
+            throw GeometryError.invalidDistance(fraction)
+        }
+        let clamped = min(max(fraction, 0.0), 1.0)
+        let lower = try differential(
+            atNormalizedFraction: clamped,
+            tolerance: tolerance
+        )
+        let configuration = try Self.makeConfiguration(
+            torusSurface: torusSurface,
+            cylinderSurface: cylinderSurface,
+            tolerance: tolerance
+        )
+        let source = CurveTaylorScalarJet.variable(clamped)
+        let angle = try angleTaylorJet(
+            at: source,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let radialSquared = CurveTaylorScalarJet(
+            value: configuration.radialSquaredCenter
+        ) + angle.cosine().scaled(
+            by: configuration.radialSquaredCosine
+        ) + angle.sine().scaled(by: configuration.radialSquaredSine)
+        guard radialSquared.value > tolerance.distance * tolerance.distance else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: sqrt(max(radialSquared.value, 0.0)),
+                tolerance: tolerance,
+                message: "A parallel torus-cylinder third-order evaluator reached a singular radial coordinate."
+            )
+        }
+        let context = "Parallel torus-cylinder third derivative"
+        let radialDistance = try radialSquared.squareRoot(
+            tolerance: tolerance,
+            diagnosticContext: context
+        )
+        let tubeDistance = radialDistance
+            - CurveTaylorScalarJet(value: configuration.torus.majorRadius)
+        let radicand = CurveTaylorScalarJet(
+            value: configuration.torus.minorRadius
+                * configuration.torus.minorRadius
+        ) - tubeDistance * tubeDistance
+        let height = (lower.position - configuration.cylinder.origin).dot(
+            configuration.cylinder.axis
+        )
+        let heightFirst = lower.firstDerivative.dot(
+            configuration.cylinder.axis
+        )
+        let heightSecond = lower.secondDerivative.dot(
+            configuration.cylinder.axis
+        )
+        let heightThird: Double
+        let heightThreshold = max(
+            tolerance.distance * 1.0e-4,
+            Double.ulpOfOne * configuration.characteristicLength * 4_096.0
+        )
+        if abs(height) > heightThreshold {
+            heightThird = (
+                radicand.thirdDerivative
+                    - 6.0 * heightFirst * heightSecond
+            ) / (2.0 * height)
+        } else {
+            let derivativeScale = max(
+                lower.firstDerivative.length,
+                configuration.characteristicLength,
+                1.0
+            )
+            let derivativeFloor = max(
+                tolerance.relative,
+                Double.ulpOfOne * 4_096.0
+            ) * derivativeScale
+            guard abs(heightFirst) > derivativeFloor else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .singularSystem,
+                    residual: abs(heightFirst) / derivativeScale,
+                    tolerance: tolerance,
+                    message: "A parallel torus-cylinder endpoint has no regular third-order square-root continuation."
+                )
+            }
+            heightThird = (
+                radicand.fourthDerivative
+                    - 6.0 * heightSecond * heightSecond
+            ) / (8.0 * heightFirst)
+        }
+        let radialThird = configuration.cylinder.radialU
+                * angle.cosine().thirdDerivative
+            + configuration.cylinder.radialV
+                * angle.sine().thirdDerivative
+        let result = radialThird
+            + configuration.cylinder.axis * heightThird
+        guard heightThird.isFinite,
+              result.x.isFinite,
+              result.y.isFinite,
+              result.z.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "Parallel torus-cylinder third-order reconstruction exceeded finite arithmetic."
+            )
+        }
+        return result
+    }
+
     public func parameter(
         on surface: Surface3D,
         atNormalizedFraction fraction: Double,
@@ -489,6 +601,17 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
                 + harmonicDerivative * harmonicDerivative
                     / (4.0 * radialCubedLower).nextDown
         ).nextUp
+        let radialFifthLower = (
+            radialSquaredLower * radialSquaredLower * radialLower
+        ).nextDown
+        let radialThird = (
+            harmonicDerivative / (2.0 * radialLower).nextDown
+                + 3.0 * harmonicDerivative * harmonicDerivative
+                    / (4.0 * radialCubedLower).nextDown
+                + 3.0 * harmonicDerivative * harmonicDerivative
+                    * harmonicDerivative
+                    / (8.0 * radialFifthLower).nextDown
+        ).nextUp
         let tubeDistance = max(
             abs(radialLower - configuration.torus.majorRadius),
             abs(radialUpper - configuration.torus.majorRadius)
@@ -513,6 +636,12 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
                     + tubeDistance * radialSecond
             )
         ).nextUp
+        let radicandThird = (
+            2.0 * (
+                3.0 * radialFirst * radialSecond
+                    + tubeDistance * radialThird
+            )
+        ).nextUp
         let heightFirst = (
             radicandFirst / (2.0 * heightLower).nextDown
         ).nextUp
@@ -524,6 +653,16 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
                 + radicandFirst * radicandFirst
                     / (4.0 * heightCubedLower).nextDown
         ).nextUp
+        let heightFifthLower = (
+            minimumRadicand * minimumRadicand * heightLower
+        ).nextDown
+        let heightThird = (
+            radicandThird / (2.0 * heightLower).nextDown
+                + 3.0 * radicandFirst * radicandSecond
+                    / (4.0 * heightCubedLower).nextDown
+                + 3.0 * radicandFirst * radicandFirst * radicandFirst
+                    / (8.0 * heightFifthLower).nextDown
+        ).nextUp
         let angularFirst = hypot(
             configuration.cylinder.radius,
             heightFirst
@@ -532,11 +671,17 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
             configuration.cylinder.radius,
             heightSecond
         ).nextUp
+        let angularThird = hypot(
+            configuration.cylinder.radius,
+            heightThird
+        ).nextUp
         let period = (2.0 * Double.pi).nextUp
         let periodSquared = (period * period).nextUp
+        let periodCubed = (periodSquared * period).nextUp
         let first = (angularFirst * period).nextUp
         let second = (angularSecond * periodSquared).nextUp
-        guard first.isFinite, second.isFinite else {
+        let third = (angularThird * periodCubed).nextUp
+        guard first.isFinite, second.isFinite, third.isFinite else {
             throw Self.resourceFailure(
                 tolerance: tolerance,
                 message: "Parallel torus-cylinder differential certification exceeded finite arithmetic."
@@ -544,7 +689,8 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
         }
         return SpatialDifferentialMagnitudeBounds(
             first: first,
-            second: second
+            second: second,
+            third: third
         )
     }
 
@@ -586,6 +732,7 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
         let upper = min(upperFraction, 1.0)
         let period = (2.0 * Double.pi).nextUp
         let periodSquared = (period * period).nextUp
+        let periodCubed = (periodSquared * period).nextUp
         let phaseLower = period * lower
         let phaseUpper = period * upper
         let angleRange = Self.boundedAngleRange(
@@ -608,6 +755,7 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
             firstDerivativeMagnitudeUpperBound: derivativeBounds.first,
             secondDerivativeMagnitudeUpperBound: derivativeBounds.second,
             thirdDerivativeMagnitudeUpperBound: derivativeBounds.third,
+            fourthDerivativeMagnitudeUpperBound: derivativeBounds.fourth,
             arithmeticEnvelope: arithmeticEnvelope,
             valueRange: { rangeLower, rangeUpper in
                 Self.restrictedRadicandRange(
@@ -640,6 +788,16 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
                 + factor.first * factor.first
                     / (4.0 * factorRootCubedLower).nextDown
         ).nextUp
+        let factorRootFifthLower = (
+            factor.lower * factor.lower * factorRootLower
+        ).nextDown
+        let factorRootThird = (
+            factor.third / (2.0 * factorRootLower).nextDown
+                + 3.0 * factor.first * factor.second
+                    / (4.0 * factorRootCubedLower).nextDown
+                + 3.0 * factor.first * factor.first * factor.first
+                    / (8.0 * factorRootFifthLower).nextDown
+        ).nextUp
         let halfSpan = ((upperAngle - lowerAngle) * 0.5).nextUp
         let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(
             lower: phaseLower,
@@ -656,6 +814,9 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
         ).nextUp
         let angleSecond = (
             halfSpan * periodSquared * cosineMagnitude
+        ).nextUp
+        let angleThird = (
+            halfSpan * periodCubed * sineMagnitude
         ).nextUp
         let heightFirst = (
             halfSpan * (
@@ -674,6 +835,34 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
                     )
             )
         ).nextUp
+        let rootByFractionFirst = (
+            factorRootFirst * angleFirst
+        ).nextUp
+        let rootByFractionSecond = (
+            factorRootSecond * angleFirst * angleFirst
+                + factorRootFirst * angleSecond
+        ).nextUp
+        let rootByFractionThird = (
+            factorRootThird * angleFirst * angleFirst * angleFirst
+                + 3.0 * factorRootSecond * angleFirst * angleSecond
+                + factorRootFirst * angleThird
+        ).nextUp
+        let prefixValue = (halfSpan * sineMagnitude).nextUp
+        let prefixFirst = (
+            halfSpan * period * cosineMagnitude
+        ).nextUp
+        let prefixSecond = (
+            halfSpan * periodSquared * sineMagnitude
+        ).nextUp
+        let prefixThird = (
+            halfSpan * periodCubed * cosineMagnitude
+        ).nextUp
+        let heightThird = (
+            prefixThird * factorRootUpper
+                + 3.0 * prefixSecond * rootByFractionFirst
+                + 3.0 * prefixFirst * rootByFractionSecond
+                + prefixValue * rootByFractionThird
+        ).nextUp
         let radialFirst = (
             configuration.cylinder.radius * angleFirst
         ).nextUp
@@ -682,9 +871,17 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
                 angleFirst * angleFirst + angleSecond
             )
         ).nextUp
+        let radialThird = (
+            configuration.cylinder.radius * (
+                angleFirst * angleFirst * angleFirst
+                    + 3.0 * angleFirst * angleSecond
+                    + angleThird
+            )
+        ).nextUp
         let first = hypot(radialFirst, heightFirst).nextUp
         let second = hypot(radialSecond, heightSecond).nextUp
-        guard first.isFinite, second.isFinite else {
+        let third = hypot(radialThird, heightThird).nextUp
+        guard first.isFinite, second.isFinite, third.isFinite else {
             throw Self.resourceFailure(
                 tolerance: tolerance,
                 message: "Bounded parallel torus-cylinder differential certification exceeded finite arithmetic."
@@ -692,7 +889,8 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
         }
         return SpatialDifferentialMagnitudeBounds(
             first: first,
-            second: second
+            second: second,
+            third: third
         )
     }
 
@@ -791,10 +989,14 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
                         derivativeBounds.first,
                     secondDerivativeMagnitudeUpperBound:
                         derivativeBounds.second,
+                    thirdDerivativeMagnitudeUpperBound:
+                        derivativeBounds.third,
                     fifthDerivativeMagnitudeUpperBound:
                         derivativeBounds.fifth,
                     sixthDerivativeMagnitudeUpperBound:
                         derivativeBounds.sixth,
+                    seventhDerivativeMagnitudeUpperBound:
+                        derivativeBounds.seventh,
                     arithmeticEnvelope: arithmeticEnvelope,
                     valueRange: { rangeLower, rangeUpper in
                         Self.restrictedRadicandRange(
@@ -832,10 +1034,14 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
                         derivativeBounds.first,
                     secondDerivativeMagnitudeUpperBound:
                         derivativeBounds.second,
+                    thirdDerivativeMagnitudeUpperBound:
+                        derivativeBounds.third,
                     fourthDerivativeMagnitudeUpperBound:
                         derivativeBounds.fourth,
                     fifthDerivativeMagnitudeUpperBound:
                         derivativeBounds.fifth,
+                    sixthDerivativeMagnitudeUpperBound:
+                        derivativeBounds.sixth,
                     arithmeticEnvelope: arithmeticEnvelope,
                     valueRange: { rangeLower, rangeUpper in
                         Self.restrictedRadicandRange(
@@ -854,38 +1060,54 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
         let halfPiSquared = (halfPi * halfPi).nextUp
         let angleFirst: Double
         let angleSecond: Double
+        let angleThird: Double
         let normalizedLower: Double
         let normalizedUpper: Double
         let normalizedFirst: Double
         let normalizedSecond: Double
+        let normalizedThird: Double
         let distanceRootMagnitude: Double
         let distanceRootFirst: Double
         let distanceRootSecond: Double
+        let distanceRootThird: Double
         if lowerIsDouble && upperIsDouble {
             angleFirst = span
             angleSecond = 0.0
+            angleThird = 0.0
             normalizedLower = factor.lower
             normalizedUpper = factor.upper
             normalizedFirst = (factor.first * angleFirst).nextUp
             normalizedSecond = (
                 factor.second * angleFirst * angleFirst
             ).nextUp
+            normalizedThird = (
+                factor.third * angleFirst * angleFirst * angleFirst
+            ).nextUp
             let spanSquared = (span * span).nextUp
             distanceRootMagnitude = (spanSquared * 0.25).nextUp
             distanceRootFirst = spanSquared.nextUp
             distanceRootSecond = (2.0 * spanSquared).nextUp
+            distanceRootThird = 0.0
         } else {
             angleFirst = (span * halfPi).nextUp
             angleSecond = (span * halfPiSquared).nextUp
+            let halfPiCubed = (halfPiSquared * halfPi).nextUp
+            angleThird = (span * halfPiCubed).nextUp
             let factorFirst = (factor.first * angleFirst).nextUp
             let factorSecond = (
                 factor.second * angleFirst * angleFirst
                     + factor.first * angleSecond
             ).nextUp
+            let factorThird = (
+                factor.third * angleFirst * angleFirst * angleFirst
+                    + 3.0 * factor.second * angleFirst * angleSecond
+                    + factor.first * angleThird
+            ).nextUp
             let inverseFirst = halfPi
             let inverseSecond = (
                 3.0 * halfPiSquared
             ).nextUp
+            let inverseThird = (13.0 * halfPiCubed).nextUp
             normalizedLower = (factor.lower * 0.5).nextDown
             normalizedUpper = factor.upper.nextUp
             normalizedFirst = (
@@ -896,11 +1118,20 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
                     + 2.0 * factorFirst * inverseFirst
                     + factor.upper * inverseSecond
             ).nextUp
+            normalizedThird = (
+                factorThird
+                    + 3.0 * factorSecond * inverseFirst
+                    + 3.0 * factorFirst * inverseSecond
+                    + factor.upper * inverseThird
+            ).nextUp
             let spanScale = pow(span, 1.5).nextUp
             distanceRootMagnitude = (spanScale * 0.5).nextUp
             distanceRootFirst = (spanScale * halfPi).nextUp
             distanceRootSecond = (
                 2.0 * spanScale * halfPiSquared
+            ).nextUp
+            distanceRootThird = (
+                4.0 * spanScale * halfPiCubed
             ).nextUp
         }
         let rootLower = sqrt(normalizedLower).nextDown
@@ -922,6 +1153,17 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
                 + normalizedFirst * normalizedFirst
                     / (4.0 * rootCubedLower).nextDown
         ).nextUp
+        let rootFifthLower = (
+            normalizedLower * normalizedLower * rootLower
+        ).nextDown
+        let rootThird = (
+            normalizedThird / (2.0 * rootLower).nextDown
+                + 3.0 * normalizedFirst * normalizedSecond
+                    / (4.0 * rootCubedLower).nextDown
+                + 3.0 * normalizedFirst * normalizedFirst
+                    * normalizedFirst
+                    / (8.0 * rootFifthLower).nextDown
+        ).nextUp
         let heightFirst = (
             distanceRootFirst * rootUpper
                 + distanceRootMagnitude * rootFirst
@@ -931,6 +1173,12 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
                 + 2.0 * distanceRootFirst * rootFirst
                 + distanceRootMagnitude * rootSecond
         ).nextUp
+        let heightThird = (
+            distanceRootThird * rootUpper
+                + 3.0 * distanceRootSecond * rootFirst
+                + 3.0 * distanceRootFirst * rootSecond
+                + distanceRootMagnitude * rootThird
+        ).nextUp
         let radialFirst = (
             configuration.cylinder.radius * angleFirst
         ).nextUp
@@ -939,9 +1187,17 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
                 angleFirst * angleFirst + angleSecond
             )
         ).nextUp
+        let radialThird = (
+            configuration.cylinder.radius * (
+                angleFirst * angleFirst * angleFirst
+                    + 3.0 * angleFirst * angleSecond
+                    + angleThird
+            )
+        ).nextUp
         let first = hypot(radialFirst, heightFirst).nextUp
         let second = hypot(radialSecond, heightSecond).nextUp
-        guard first.isFinite, second.isFinite else {
+        let third = hypot(radialThird, heightThird).nextUp
+        guard first.isFinite, second.isFinite, third.isFinite else {
             throw Self.resourceFailure(
                 tolerance: tolerance,
                 message: "Internal-tangency torus-cylinder differential certification exceeded finite arithmetic."
@@ -949,7 +1205,8 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
         }
         return SpatialDifferentialMagnitudeBounds(
             first: first,
-            second: second
+            second: second,
+            third: third
         )
     }
 
@@ -1023,6 +1280,56 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
                 first: span * normalized.first,
                 second: span * normalized.second
             )
+        }
+    }
+
+    private func angleTaylorJet(
+        at fraction: CurveTaylorScalarJet,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> CurveTaylorScalarJet {
+        let span = upperAngle - lowerAngle
+        switch componentKind {
+        case .negativeFullBranch, .positiveFullBranch:
+            return fraction.scaled(by: 2.0 * Double.pi)
+        case .boundedAngularInterval:
+            let period = 2.0 * Double.pi
+            let midpoint = lowerAngle + span * 0.5
+            return CurveTaylorScalarJet(value: midpoint)
+                - fraction.scaled(by: period).cosine()
+                    .scaled(by: span * 0.5)
+        case .negativeInternalTangencyInterval,
+             .positiveInternalTangencyInterval:
+            let classificationTolerance = Self.classificationTolerance(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            let lowerIsInternal = abs(
+                configuration.radicandFirstDerivative(at: lowerAngle)
+            ) <= classificationTolerance * 16.0
+            let upperIsInternal = abs(
+                configuration.radicandFirstDerivative(at: upperAngle)
+            ) <= classificationTolerance * 16.0
+            let scale = Double.pi * 0.5
+            let normalized: CurveTaylorScalarJet
+            switch (lowerIsInternal, upperIsInternal) {
+            case (true, true):
+                normalized = fraction
+            case (false, true):
+                normalized = CurveTaylorScalarJet(value: 1.0)
+                    - fraction.scaled(by: scale).cosine()
+            case (true, false):
+                normalized = fraction.scaled(by: scale).sine()
+            case (false, false):
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "An internal-tangency interval has no verified double-root endpoint."
+                )
+            }
+            return CurveTaylorScalarJet(value: lowerAngle)
+                + normalized.scaled(by: span)
         }
     }
 
@@ -1179,7 +1486,8 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
         third: Double,
         fourth: Double,
         fifth: Double,
-        sixth: Double
+        sixth: Double,
+        seventh: Double
     ) {
         let radialSquaredLower = (
             configuration.radialSquaredCenter
@@ -1200,9 +1508,9 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
         let radialLower = sqrt(radialSquaredLower).nextDown
         let radialUpper = sqrt(radialSquaredUpper).nextUp
         let harmonic = configuration.harmonicAmplitude.nextUp
-        var radialDerivatives = Array(repeating: 0.0, count: 7)
+        var radialDerivatives = Array(repeating: 0.0, count: 8)
         radialDerivatives[0] = radialUpper
-        for order in 1...6 {
+        for order in 1...7 {
             var convolution = 0.0
             if order > 1 {
                 for index in 1..<order {
@@ -1223,8 +1531,8 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
             abs(radialLower - configuration.torus.majorRadius),
             abs(radialUpper - configuration.torus.majorRadius)
         ).nextUp
-        var radicandDerivatives = Array(repeating: 0.0, count: 7)
-        for order in 1...6 {
+        var radicandDerivatives = Array(repeating: 0.0, count: 8)
+        for order in 1...7 {
             var value = (
                 2.0 * tubeDistance * radialDerivatives[order]
             ).nextUp
@@ -1252,7 +1560,8 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
             radicandDerivatives[3],
             radicandDerivatives[4],
             radicandDerivatives[5],
-            radicandDerivatives[6]
+            radicandDerivatives[6],
+            radicandDerivatives[7]
         )
     }
 

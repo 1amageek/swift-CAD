@@ -126,17 +126,12 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Codable, Hashab
                 message: "An analytic B-spline tangency requires a finite seam offset."
             )
         }
-        let canonical = try canonicalAnalyticSurface(
-            analyticSurface,
-            tolerance: tolerance
-        )
         let lower = try analyticParameter(
             atNormalizedFraction: 0.0,
             tangencyCurve: tangencyCurve,
             analyticSurface: analyticSurface,
             analyticIsFirst: analyticIsFirst,
             periodicSeamOffset: periodicSeamOffset,
-            canonical: canonical,
             tolerance: tolerance
         )
         let upper = try analyticParameter(
@@ -145,7 +140,6 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Codable, Hashab
             analyticSurface: analyticSurface,
             analyticIsFirst: analyticIsFirst,
             periodicSeamOffset: periodicSeamOffset,
-            canonical: canonical,
             tolerance: tolerance
         )
         let parameterCurve = SurfaceParameterCurve.bSpline(BSplineCurve2D(
@@ -178,7 +172,6 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Codable, Hashab
         analyticSurface: Surface3D,
         analyticIsFirst: Bool,
         periodicSeamOffset: Double,
-        canonical: CanonicalAnalyticSurface,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
         let point = try tangencyCurve.curve.point(
@@ -192,48 +185,11 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Codable, Hashab
             atNormalizedFraction: fraction,
             tolerance: tolerance
         )
-        let projection = try analyticSurface.parameterProjection(
-            of: point,
+        let result = try AnalyticSurfaceRationalParameterMap(
+            surface: analyticSurface,
+            periodicSeamOffset: periodicSeamOffset,
             tolerance: tolerance
-        )
-        guard projection.residual <= tolerance.distance else {
-            throw KernelError(
-                phase: .geometry,
-                code: .intersectionFailure,
-                residual: projection.residual,
-                tolerance: tolerance,
-                message: "A quadratic tangency point has no certified analytic-surface parameter."
-            )
-        }
-        var result = SurfaceParameter(u: projection.u, v: projection.v)
-        switch canonical {
-        case .cylinder, .cone, .sphere:
-            result.u = unwrapped(
-                result.u,
-                near: periodicSeamOffset + internalParameter.u * Double.pi * 0.5,
-                domain: analyticSurface.uDomain
-            )
-        case .torus:
-            result.u = unwrapped(
-                result.u,
-                near: periodicSeamOffset + internalParameter.u * Double.pi * 0.5,
-                domain: analyticSurface.uDomain
-            )
-            result.v = unwrapped(
-                result.v,
-                near: periodicSeamOffset + internalParameter.v * Double.pi * 0.5,
-                domain: analyticSurface.vDomain
-            )
-        case .plane:
-            break
-        case .unsupported:
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "A quadratic tangency certificate requires an exact analytic surface."
-            )
-        }
+        ).parameter(fromRational: internalParameter, tolerance: tolerance)
         let reconstructed = try analyticSurface.point(
             u: result.u,
             v: result.v,
@@ -268,15 +224,6 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Codable, Hashab
                 message: "A quadratic tangency certificate requires an exact analytic surface."
             )
         }
-    }
-
-    private static func unwrapped(
-        _ value: Double,
-        near reference: Double,
-        domain: ParameterDomain
-    ) -> Double {
-        guard case let .periodic(period) = domain else { return value }
-        return value + ((reference - value) / period).rounded() * period
     }
 
     private enum CodingKeys: String, CodingKey {

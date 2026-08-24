@@ -164,6 +164,86 @@ struct ExactTranslationalSweepFeatureTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func holeAwareProfileProducesOneWatertightHollowSweep() throws {
+        let profileFeatureID = FeatureID()
+        let pathFeatureID = FeatureID()
+        let sweepFeatureID = FeatureID()
+        let outerVertices = [
+            Point3D(x: -0.020, y: -0.020, z: 0.0),
+            Point3D(x: 0.020, y: -0.020, z: 0.0),
+            Point3D(x: 0.020, y: 0.020, z: 0.0),
+            Point3D(x: -0.020, y: 0.020, z: 0.0),
+        ]
+        let innerVertices = [
+            Point3D(x: -0.010, y: -0.010, z: 0.0),
+            Point3D(x: -0.010, y: 0.010, z: 0.0),
+            Point3D(x: 0.010, y: 0.010, z: 0.0),
+            Point3D(x: 0.010, y: -0.010, z: 0.0),
+        ]
+        let profile = Profile(
+            sourceFeatureID: profileFeatureID,
+            plane: .xy,
+            outerLoop: ProfileLoop(vertices: outerVertices),
+            innerLoops: [ProfileLoop(vertices: innerVertices)]
+        )
+        let pathCurve = BSplineCurve3D(
+            degree: 1,
+            knots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                .origin,
+                Point3D(x: 0.0, y: 0.0, z: 0.010),
+            ],
+            weights: [1.0, 1.0]
+        )
+        try pathCurve.validate(tolerance: tolerance)
+        let path = try evaluatedCurve(
+            featureID: pathFeatureID,
+            curve: pathCurve,
+            plane: .zx
+        )
+        let result = try PlanarSweepFeatureEvaluator(
+            sewer: DefaultBRepSewer()
+        ).evaluate(
+            feature: sweepFeature(
+                id: sweepFeatureID,
+                section: .profile(ProfileReference(featureID: profileFeatureID)),
+                pathFeatureID: pathFeatureID,
+                resultKind: .solid
+            ),
+            context: EvaluationContext(
+                parameters: ResolvedParameterTable(),
+                brep: BRepModel(),
+                profiles: [profileFeatureID: [profile]],
+                curves: [pathFeatureID: [path]],
+                tolerance: tolerance
+            )
+        )
+
+        try result.brep.validate(level: .exact, tolerance: tolerance)
+        #expect(result.brep.bodies.count == 1)
+        #expect(result.brep.shells.count == 1)
+        #expect(result.brep.faces.count == 10)
+        #expect(result.brep.edges.count == 24)
+        #expect(result.brep.vertices.count == 16)
+        #expect(result.brep.loops.values.filter { $0.role == .inner }.count == 2)
+        #expect(abs(try result.brep.volume(tolerance: tolerance) - 0.000_012) <= 1.0e-12)
+        let bodyID = try #require(result.brep.bodies.keys.first)
+        let classifier = DefaultBRepSolidPointClassifier()
+        #expect(try classifier.classify(
+            Point3D(x: 0.0, y: 0.0, z: 0.005),
+            in: bodyID,
+            model: result.brep,
+            tolerance: tolerance
+        ) == .outside)
+        #expect(try classifier.classify(
+            Point3D(x: 0.015, y: 0.0, z: 0.005),
+            in: bodyID,
+            model: result.brep,
+            tolerance: tolerance
+        ) == .inside)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func exactOpenCurveSectionProducesUncappedSheet() throws {
         let sectionFeatureID = FeatureID()
         let pathFeatureID = FeatureID()

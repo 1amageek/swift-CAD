@@ -52,7 +52,7 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
                     end: try resolve(line.end, parameters: parameters)
                 ))
             case .point:
-                throw SketchError.unsupportedProfile("Point entities are not supported in profile extraction.")
+                continue
             case let .spline(spline):
                 splines.append(ResolvedSketchSpline(
                     id: entityID,
@@ -94,61 +94,27 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
             }
         }
 
-        if (!lines.isEmpty || !arcs.isEmpty || !splines.isEmpty), !circles.isEmpty {
-            throw SketchError.unsupportedProfile("Mixed curve and circle profiles are not supported.")
-        }
-
-        if circles.count > 1 {
-            throw SketchError.unsupportedProfile("Multiple circle profiles are not supported.")
-        }
-
-        if let circle = circles.first {
-            let orderedPoints = try normalizedCircleSampleLoop(from: try polygonizedCircle(circle))
-            let vertices = try orderedPoints.map { point in
-                try mapTo3D(point, on: sketch.plane)
-            }
-            return [Profile(
-                sourceFeatureID: sourceFeatureID,
-                plane: sketch.plane,
-                vertices: vertices,
-                boundarySegments: [
-                    try circularArcBoundarySegment(
-                        center: circle.center,
-                        radius: circle.radius,
-                        start: Point2D(x: circle.center.x + circle.radius, y: circle.center.y),
-                        end: Point2D(x: circle.center.x + circle.radius, y: circle.center.y),
-                        sweepAngle: Double.pi * 2.0,
-                        on: sketch.plane
-                    )
-                ]
-            )]
-        }
-
-        guard !lines.isEmpty || !arcs.isEmpty || !splines.isEmpty else {
+        guard !lines.isEmpty || !arcs.isEmpty || !splines.isEmpty || !circles.isEmpty else {
             throw SketchError.emptyProfile
         }
 
-        let segments = try resolvedProfileSegments(lines: lines, arcs: arcs, splines: splines)
+        let segments = try resolvedProfileSegments(
+            lines: lines,
+            arcs: arcs,
+            splines: splines,
+            circles: circles
+        )
         let orderedLoops = try orderClosedLoops(segments).map { segments in
             try normalizedSupportedSegments(from: segments)
         }.sorted(by: areLoopsInCanonicalOrder)
         let orderedLoopPoints = try orderedLoops.map { try loopPoints(from: $0) }
-        try validateIndependentLoops(orderedLoopPoints)
-        return try orderedLoops.map { orderedSegments in
-            let orderedPoints = try loopPoints(from: orderedSegments)
-            let vertices = try orderedPoints.map { point in
-                try mapTo3D(point, on: sketch.plane)
-            }
-            let profileBoundarySegments = try orderedSegments.flatMap { segment in
-                try boundarySegments(from: segment, on: sketch.plane)
-            }
-            return Profile(
-                sourceFeatureID: sourceFeatureID,
-                plane: sketch.plane,
-                vertices: vertices,
-                boundarySegments: profileBoundarySegments
-            )
-        }
+        try validateLoopsDoNotIntersect(orderedLoopPoints)
+        return try materialProfiles(
+            from: orderedLoops,
+            points: orderedLoopPoints,
+            sourceFeatureID: sourceFeatureID,
+            plane: sketch.plane
+        )
     }
 
     private func resolve(_ point: SketchPoint, parameters: ResolvedParameterTable) throws -> Point2D {
@@ -214,7 +180,8 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
     private func resolvedProfileSegments(
         lines: [ResolvedSketchLine],
         arcs: [ResolvedSketchArc],
-        splines: [ResolvedSketchSpline]
+        splines: [ResolvedSketchSpline],
+        circles: [ResolvedSketchCircle]
     ) throws -> [ResolvedProfileSegment] {
         var segments = lines.map { line in
             ResolvedProfileSegment(
@@ -228,6 +195,22 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
         }
         for spline in splines {
             segments.append(try polygonizedSplineSegment(spline))
+        }
+        for circle in circles {
+            var points = try normalizedCircleSampleLoop(from: try polygonizedCircle(circle))
+            guard let first = points.first else {
+                throw SketchError.degenerateProfile
+            }
+            points.append(first)
+            segments.append(ResolvedProfileSegment(
+                id: circle.id,
+                kind: .arc(
+                    center: circle.center,
+                    radius: circle.radius,
+                    sweepAngle: Double.pi * 2.0
+                ),
+                points: points
+            ))
         }
         return segments
     }
@@ -559,18 +542,104 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
         )
     }
 
-    private func validateIndependentLoops(_ loops: [[Point2D]]) throws {
+    private func validateLoopsDoNotIntersect(_ loops: [[Point2D]]) throws {
         for leftIndex in loops.indices {
             let left = loops[leftIndex]
             for rightIndex in loops.indices where rightIndex > leftIndex {
                 let right = loops[rightIndex]
                 try validateLoopsDoNotIntersect(left, right)
-                if try containsPoint(right[0], in: left)
-                    || containsPoint(left[0], in: right) {
-                    throw SketchError.unsupportedProfile("Nested profile loops require hole-aware profile extraction.")
-                }
             }
         }
+    }
+
+    private func materialProfiles(
+        from loops: [[ResolvedProfileSegment]],
+        points: [[Point2D]],
+        sourceFeatureID: FeatureID,
+        plane: SketchPlane
+    ) throws -> [Profile] {
+        let parents = try containmentParents(for: points)
+        let depths = try containmentDepths(for: parents)
+        return try loops.indices.compactMap { loopIndex in
+            guard depths[loopIndex].isMultiple(of: 2) else {
+                return nil
+            }
+            let holeIndices = loops.indices.filter { candidateIndex in
+                parents[candidateIndex] == loopIndex
+                    && depths[candidateIndex] == depths[loopIndex] + 1
+            }
+            let outerLoop = try profileLoop(
+                segments: loops[loopIndex],
+                points: points[loopIndex],
+                plane: plane
+            )
+            let innerLoops = try holeIndices.map { holeIndex in
+                let reversedSegments = loops[holeIndex].reversed().map { $0.reversed() }
+                return try profileLoop(
+                    segments: reversedSegments,
+                    points: try loopPoints(from: reversedSegments),
+                    plane: plane
+                )
+            }
+            return Profile(
+                sourceFeatureID: sourceFeatureID,
+                plane: plane,
+                outerLoop: outerLoop,
+                innerLoops: innerLoops
+            )
+        }
+    }
+
+    private func containmentParents(for loops: [[Point2D]]) throws -> [Int?] {
+        let areas = try loops.map { loop in
+            abs(try planarPredicates.certifiedSignedArea(of: loop, tolerance: tolerance))
+        }
+        return try loops.indices.map { childIndex in
+            let containers = try loops.indices.filter { candidateIndex in
+                guard candidateIndex != childIndex,
+                      areas[candidateIndex] > areas[childIndex] else {
+                    return false
+                }
+                return try containsPoint(loops[childIndex][0], in: loops[candidateIndex])
+            }
+            return containers.min { areas[$0] < areas[$1] }
+        }
+    }
+
+    private func containmentDepths(for parents: [Int?]) throws -> [Int] {
+        try parents.indices.map { index in
+            var visited = Set<Int>()
+            var parent = parents[index]
+            var depth = 0
+            while let parentIndex = parent {
+                guard visited.insert(parentIndex).inserted else {
+                    throw KernelError(
+                        phase: .classification,
+                        code: .classificationFailure,
+                        tolerance: tolerance,
+                        message: "Sketch profile containment hierarchy contains a cycle."
+                    )
+                }
+                depth += 1
+                parent = parents[parentIndex]
+            }
+            return depth
+        }
+    }
+
+    private func profileLoop(
+        segments: [ResolvedProfileSegment],
+        points: [Point2D],
+        plane: SketchPlane
+    ) throws -> ProfileLoop {
+        ProfileLoop(
+            vertices: try points.map { point in
+                try mapTo3D(point, on: plane)
+            },
+            boundarySegments: try segments.flatMap { segment in
+                try boundarySegments(from: segment, on: plane)
+            }
+        )
     }
 
     private func validateLoopsDoNotIntersect(

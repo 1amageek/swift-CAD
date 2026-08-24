@@ -20,6 +20,108 @@ struct BRepValidationLevelTests {
         try makePlanarSheet(includePcurves: true).validate(level: .exact, tolerance: .standard)
     }
 
+    @Test
+    func exactBodyCertificatesComposeOwnershipClosedBodies() throws {
+        let first = try ValidatedBRepModel(
+            makePlanarSheet(includePcurves: true),
+            tolerance: .standard
+        )
+        let second = try ValidatedBRepModel(
+            makePlanarSheet(includePcurves: true),
+            tolerance: .standard
+        )
+        let composed = merge(first.model, second.model)
+        let firstBodyID = try #require(first.model.bodies.keys.first)
+        let secondBodyID = try #require(second.model.bodies.keys.first)
+
+        let validated = try ValidatedBRepModel(
+            composingValidatedBodies: [firstBodyID: first, secondBodyID: second],
+            as: composed,
+            tolerance: .standard
+        )
+
+        #expect(validated.model == composed)
+        #expect(validated.validationLevel == .exact)
+    }
+
+    @Test
+    func exactBodyCertificateCompositionRejectsMissingCoverage() throws {
+        let first = try ValidatedBRepModel(
+            makePlanarSheet(includePcurves: true),
+            tolerance: .standard
+        )
+        let second = try ValidatedBRepModel(
+            makePlanarSheet(includePcurves: true),
+            tolerance: .standard
+        )
+        let composed = merge(first.model, second.model)
+        let firstBodyID = try #require(first.model.bodies.keys.first)
+
+        #expect(throws: KernelError.self) {
+            try ValidatedBRepModel(
+                composingValidatedBodies: [firstBodyID: first],
+                as: composed,
+                tolerance: .standard
+            )
+        }
+    }
+
+    @Test
+    func exactBodyCertificateCompositionRejectsMismatchedIdentity() throws {
+        let certified = try ValidatedBRepModel(
+            makePlanarSheet(includePcurves: true),
+            tolerance: .standard
+        )
+        let certifiedBodyID = try #require(certified.model.bodies.keys.first)
+        let outputBodyID = BodyID()
+        var output = certified.model
+        let certifiedBody = try #require(output.bodies[certifiedBodyID])
+        output.bodies.removeValue(forKey: certifiedBodyID)
+        output.bodies[outputBodyID] = Body(
+            id: outputBodyID,
+            topology: certifiedBody.topology,
+            name: certifiedBody.name,
+            material: certifiedBody.material
+        )
+
+        #expect(throws: KernelError.self) {
+            try ValidatedBRepModel(
+                composingValidatedBodies: [outputBodyID: certified],
+                as: output,
+                tolerance: .standard
+            )
+        }
+    }
+
+    @Test
+    func exactBodyCertificateCompositionRejectsSharedOwnedIdentity() throws {
+        let first = try ValidatedBRepModel(
+            makePlanarSheet(includePcurves: true),
+            tolerance: .standard
+        )
+        let firstBodyID = try #require(first.model.bodies.keys.first)
+        let secondBodyID = BodyID()
+        let firstBody = try #require(first.model.bodies[firstBodyID])
+        var secondModel = first.model
+        secondModel.bodies.removeValue(forKey: firstBodyID)
+        secondModel.bodies[secondBodyID] = Body(
+            id: secondBodyID,
+            topology: firstBody.topology,
+            name: firstBody.name,
+            material: firstBody.material
+        )
+        let second = try ValidatedBRepModel(secondModel, tolerance: .standard)
+        let composed = merge(first.model, second.model)
+
+        #expect(throws: KernelError.self) {
+            try ValidatedBRepModel(
+                composingValidatedBodies: [firstBodyID: first, secondBodyID: second],
+                as: composed,
+                tolerance: .standard
+            )
+        }
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func exactValidationAcceptsCertifiedImplicitLoopOnSphere() throws {
         let sphere = Surface3D.analytic(.sphere(center: .origin, radius: 0.030))
@@ -176,6 +278,28 @@ struct BRepValidationLevelTests {
             edges: edges,
             vertices: vertices
         )
+    }
+
+    private func merge(_ first: BRepModel, _ second: BRepModel) -> BRepModel {
+        var result = first
+        merge(second.geometry.curves, into: &result.geometry.curves)
+        merge(second.geometry.surfaces, into: &result.geometry.surfaces)
+        merge(second.bodies, into: &result.bodies)
+        merge(second.shells, into: &result.shells)
+        merge(second.faces, into: &result.faces)
+        merge(second.loops, into: &result.loops)
+        merge(second.edges, into: &result.edges)
+        merge(second.vertices, into: &result.vertices)
+        return result
+    }
+
+    private func merge<Key: Hashable, Value>(
+        _ source: PersistentMap<Key, Value>,
+        into destination: inout PersistentMap<Key, Value>
+    ) {
+        for (key, value) in source {
+            destination[key] = value
+        }
     }
 }
 

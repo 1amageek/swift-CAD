@@ -640,12 +640,17 @@ struct RevolvedBooleanFacePatchBuilder {
             centerPoint = definition.center
         case let .analytic(.circle(center, _, _)):
             centerPoint = center
+        case let .rigidImage(image):
+            centerPoint = image.transform.applying(
+                to: try circleCenter(image.source)
+            )
         case .line,
              .analytic,
              .bSpline,
              .implicit,
              .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection,
+             .affineImage:
             throw topologyFailure("Revolved Boolean cap boundary is not an exact circle.")
         }
         let center = try surface.parameterProjection(of: centerPoint, tolerance: tolerance)
@@ -664,6 +669,21 @@ struct RevolvedBooleanFacePatchBuilder {
             startParameter: 0.0,
             endParameter: Double.pi * 2.0
         )
+    }
+
+    private func circleCenter(_ curve: Curve3D) throws -> Point3D {
+        switch curve {
+        case let .circle(circle):
+            return circle.center
+        case let .analytic(.circle(center, _, _)),
+             let .analytic(.arc(center, _, _, _, _)):
+            return center
+        case let .rigidImage(image):
+            return image.transform.applying(to: try circleCenter(image.source))
+        case .line, .analytic, .bSpline, .implicit, .surfaceLift,
+             .certifiedIntersection, .affineImage:
+            throw topologyFailure("Revolved Boolean cap boundary is not an exact circle.")
+        }
     }
 
     private func coordinate(_ point: Point3D, axis: Vector3D) -> Double {

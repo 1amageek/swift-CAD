@@ -89,6 +89,8 @@ struct BoundedBSplineSurfaceIntersector {
             tolerance: tolerance
         ) {
             switch exactCertificate {
+            case .disjoint:
+                return []
             case .coincidence:
                 return [.coincident(try SurfaceSurfaceCoincidence(
                     residual: 0.0,
@@ -122,6 +124,18 @@ struct BoundedBSplineSurfaceIntersector {
                     secondSurface: secondSurface,
                     domains: domains,
                     options: options,
+                    tolerance: tolerance
+                )]
+            case let .affinePoint(parameters):
+                let sample = try pairSample(
+                    normalized: parameters.values,
+                    first: first,
+                    second: second,
+                    domains: domains,
+                    tolerance: tolerance
+                )
+                return [try certifiedAffineBoundaryPoint(
+                    sample: sample,
                     tolerance: tolerance
                 )]
             case let .affineBilinear(certificate):
@@ -465,6 +479,17 @@ struct BoundedBSplineSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> SurfaceSurfaceIntersection {
+        if exactGraph.exactAffineSegmentEndpoints != nil {
+            return try exactAffineSegmentIntersection(
+                exactGraph,
+                first: first,
+                second: second,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                domains: domains,
+                tolerance: tolerance
+            )
+        }
         let fractions = (0...16).map { Double($0) / 16.0 }
         let samples = try fractions.map { fraction in
             let parameters = try exactGraph.normalizedParameterPair(
@@ -493,10 +518,7 @@ struct BoundedBSplineSurfaceIntersector {
             )
         }
         let graphCell = CertifiedRegularGraphCell(
-            bounds: Array(
-                repeating: (lower: 0.0, upper: 1.0),
-                count: 4
-            ),
+            bounds: exactGraph.normalizedBounds,
             freeParameterIndex: exactGraph.freeParameter.rawValue,
             probes: graphProbes
         )
@@ -512,6 +534,140 @@ struct BoundedBSplineSurfaceIntersector {
             options: options,
             tolerance: tolerance
         )
+    }
+
+    private func exactAffineSegmentIntersection(
+        _ exactGraph: ExactAffineBilinearIntersectionGraph,
+        first: BSplineSurface3D,
+        second: BSplineSurface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        domains: BoundedSurfaceParameterDomainMap,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        guard exactGraph.exactAffineSegmentEndpoints != nil else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "An exact affine segment intersection requires an affine segment certificate."
+            )
+        }
+        let samples = try [0.0, 1.0].map { fraction in
+            let parameters = try exactGraph.normalizedParameterPair(
+                at: fraction,
+                tolerance: tolerance
+            )
+            return try pairSample(
+                normalized: parameters.values,
+                first: first,
+                second: second,
+                domains: domains,
+                tolerance: tolerance
+            )
+        }
+        let lower = samples[0]
+        let upper = samples[1]
+        let curve = Curve3D.bSpline(BSplineCurve3D(
+            degree: 1,
+            knots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [lower.point, upper.point]
+        ))
+        let firstParameterCurve = SurfaceParameterCurve.affine(
+            origin: Point2D(x: lower.actual[0], y: lower.actual[1]),
+            direction: Point2D(
+                x: upper.actual[0] - lower.actual[0],
+                y: upper.actual[1] - lower.actual[1]
+            ),
+            startParameter: 0.0,
+            endParameter: 1.0
+        )
+        let secondParameterCurve = SurfaceParameterCurve.affine(
+            origin: Point2D(x: lower.actual[2], y: lower.actual[3]),
+            direction: Point2D(
+                x: upper.actual[2] - lower.actual[2],
+                y: upper.actual[3] - lower.actual[3]
+            ),
+            startParameter: 0.0,
+            endParameter: 1.0
+        )
+        try curve.validate(tolerance: tolerance)
+        try firstParameterCurve.validate(on: firstSurface, tolerance: tolerance)
+        try secondParameterCurve.validate(on: secondSurface, tolerance: tolerance)
+        let maximumResidual = max(lower.residual, upper.residual)
+        let firstAnchorResidual = (lower.point - lower.firstPoint).length
+        let secondAnchorResidual = (lower.point - lower.secondPoint).length
+        let firstAnchor = try SurfaceParameterProjection(
+            u: lower.actual[0],
+            v: lower.actual[1],
+            point: lower.firstPoint,
+            residual: firstAnchorResidual
+        )
+        let secondAnchor = try SurfaceParameterProjection(
+            u: lower.actual[2],
+            v: lower.actual[3],
+            point: lower.secondPoint,
+            residual: secondAnchorResidual
+        )
+        let representation = try SurfaceSurfaceIntersectionDerivedRepresentation(
+            curve: curve,
+            firstSurfaceParameterCurve: firstParameterCurve,
+            secondSurfaceParameterCurve: secondParameterCurve,
+            maximumResidualUpperBound: maximumResidual,
+            tolerance: tolerance
+        )
+        return .curve(try SurfaceSurfaceIntersectionCurve(
+            truth: .parametric(curve),
+            derivedRepresentation: representation,
+            kind: .transverse,
+            firstSurfaceAnchor: firstAnchor,
+            secondSurfaceAnchor: secondAnchor,
+            tolerance: tolerance
+        ))
+    }
+
+    private func certifiedAffineBoundaryPoint(
+        sample: PairSample,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        let firstProjectionResidual = (sample.point - sample.firstPoint).length
+        let secondProjectionResidual = (sample.point - sample.secondPoint).length
+        guard sample.residual <= tolerance.distance,
+              firstProjectionResidual <= tolerance.distance,
+              secondProjectionResidual <= tolerance.distance else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: max(
+                    sample.residual,
+                    max(firstProjectionResidual, secondProjectionResidual)
+                ),
+                tolerance: tolerance,
+                message: "An exact affine boundary contact failed residual verification."
+            )
+        }
+        let firstProjection = try SurfaceParameterProjection(
+            u: sample.actual[0],
+            v: sample.actual[1],
+            point: sample.firstPoint,
+            residual: firstProjectionResidual
+        )
+        let secondProjection = try SurfaceParameterProjection(
+            u: sample.actual[2],
+            v: sample.actual[3],
+            point: sample.secondPoint,
+            residual: secondProjectionResidual
+        )
+        return .point(try SurfaceSurfaceIntersectionPoint(
+            point: sample.point,
+            firstSurfaceParameter: firstProjection,
+            secondSurfaceParameter: secondProjection,
+            residual: max(
+                sample.residual,
+                max(firstProjectionResidual, secondProjectionResidual)
+            ),
+            tolerance: tolerance
+        ))
     }
 
     private func supplementalCertifiedGraphCells(

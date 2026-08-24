@@ -90,6 +90,56 @@ struct GeometryKernelTests {
     }
 
     @Test
+    func spherePoleNormalRemainsGeometricallyDefined() throws {
+        let sphere = Surface3D.analytic(.sphere(center: .origin, radius: 2.0))
+
+        let north = try sphere.normal(
+            u: 0.4,
+            v: Double.pi * 0.5,
+            tolerance: .standard
+        )
+        let south = try sphere.normal(
+            u: 1.7,
+            v: -Double.pi * 0.5,
+            tolerance: .standard
+        )
+
+        #expect((north - .unitZ).length <= 1.0e-12)
+        #expect((south + .unitZ).length <= 1.0e-12)
+    }
+
+    @Test
+    func coneApexNormalUsesTheRequestedRulingLimit() throws {
+        let halfAngle = Double.pi / 6.0
+        let cone = Surface3D.analytic(.cone(
+            apex: .origin,
+            axis: .unitZ,
+            halfAngle: halfAngle
+        ))
+
+        let first = try cone.normal(
+            u: 0.0,
+            v: 0.0,
+            tolerance: .standard
+        )
+        let quarterTurn = try cone.normal(
+            u: Double.pi * 0.5,
+            v: 0.0,
+            tolerance: .standard
+        )
+        let firstNearApex = try cone.normal(
+            u: 0.0,
+            v: 1.0e-6,
+            tolerance: .standard
+        )
+
+        #expect(abs(first.length - 1.0) <= 1.0e-12)
+        #expect(abs(quarterTurn.length - 1.0) <= 1.0e-12)
+        #expect(abs(first.dot(quarterTurn) - sin(halfAngle) * sin(halfAngle)) <= 1.0e-12)
+        #expect((first - firstNearApex).length <= 1.0e-12)
+    }
+
+    @Test
     func ellipseHasExactEndpointAndCurvature() throws {
         let ellipse = Curve3D.analytic(.ellipse(
             center: .origin,

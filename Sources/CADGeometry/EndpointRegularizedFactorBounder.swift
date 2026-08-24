@@ -6,13 +6,15 @@ struct EndpointRegularizedFactorBounder {
         let upper: Double
         let first: Double
         let second: Double
+        let third: Double
 
         func merged(with other: Bounds) -> Bounds {
             Bounds(
                 lower: min(lower, other.lower).nextDown,
                 upper: max(upper, other.upper).nextUp,
                 first: max(first, other.first).nextUp,
-                second: max(second, other.second).nextUp
+                second: max(second, other.second).nextUp,
+                third: max(third, other.third).nextUp
             )
         }
     }
@@ -29,6 +31,7 @@ struct EndpointRegularizedFactorBounder {
         firstDerivativeMagnitudeUpperBound: Double,
         secondDerivativeMagnitudeUpperBound: Double,
         thirdDerivativeMagnitudeUpperBound: Double,
+        fourthDerivativeMagnitudeUpperBound: Double,
         arithmeticEnvelope: Double,
         valueRange: (Double, Double) throws -> (
             lower: Double,
@@ -60,7 +63,8 @@ struct EndpointRegularizedFactorBounder {
               upperSlope > arithmeticEnvelope,
               regularizedFirst.isFinite,
               secondDerivativeMagnitudeUpperBound.isFinite,
-              thirdDerivativeMagnitudeUpperBound.isFinite else {
+              thirdDerivativeMagnitudeUpperBound.isFinite,
+              fourthDerivativeMagnitudeUpperBound.isFinite else {
             throw failure(
                 residual: min(span, lowerSlope, upperSlope),
                 tolerance: tolerance,
@@ -91,6 +95,8 @@ struct EndpointRegularizedFactorBounder {
                     secondDerivativeMagnitudeUpperBound,
                 thirdDerivativeBound:
                     thirdDerivativeMagnitudeUpperBound,
+                fourthDerivativeBound:
+                    fourthDerivativeMagnitudeUpperBound,
                 arithmeticEnvelope: arithmeticEnvelope,
                 tolerance: tolerance,
                 label: label
@@ -106,6 +112,8 @@ struct EndpointRegularizedFactorBounder {
                     secondDerivativeMagnitudeUpperBound,
                 thirdDerivativeBound:
                     thirdDerivativeMagnitudeUpperBound,
+                fourthDerivativeBound:
+                    fourthDerivativeMagnitudeUpperBound,
                 arithmeticEnvelope: arithmeticEnvelope,
                 tolerance: tolerance,
                 label: label
@@ -135,6 +143,8 @@ struct EndpointRegularizedFactorBounder {
                     secondDerivativeMagnitudeUpperBound,
                 thirdDerivativeBound:
                     thirdDerivativeMagnitudeUpperBound,
+                fourthDerivativeBound:
+                    fourthDerivativeMagnitudeUpperBound,
                 arithmeticEnvelope: arithmeticEnvelope,
                 valueRange: valueRange,
                 tolerance: tolerance,
@@ -146,7 +156,8 @@ struct EndpointRegularizedFactorBounder {
               result.lower > 0.0,
               result.upper.isFinite,
               result.first.isFinite,
-              result.second.isFinite else {
+              result.second.isFinite,
+              result.third.isFinite else {
             throw failure(
                 residual: result?.lower,
                 tolerance: tolerance,
@@ -168,6 +179,7 @@ struct EndpointRegularizedFactorBounder {
         firstDerivativeMagnitudeUpperBound: Double,
         secondDerivativeMagnitudeUpperBound: Double,
         thirdDerivativeMagnitudeUpperBound: Double,
+        fourthDerivativeMagnitudeUpperBound: Double,
         arithmeticEnvelope: Double,
         orientedValueRange: (Double, Double) throws -> (
             lower: Double,
@@ -187,7 +199,8 @@ struct EndpointRegularizedFactorBounder {
               endpointSlope > arithmeticEnvelope,
               firstDerivativeMagnitudeUpperBound.isFinite,
               secondDerivativeMagnitudeUpperBound.isFinite,
-              thirdDerivativeMagnitudeUpperBound.isFinite else {
+              thirdDerivativeMagnitudeUpperBound.isFinite,
+              fourthDerivativeMagnitudeUpperBound.isFinite else {
             throw failure(
                 residual: min(span, endpointSlope),
                 tolerance: tolerance,
@@ -235,6 +248,9 @@ struct EndpointRegularizedFactorBounder {
                 ).nextUp,
                 second: (
                     thirdDerivativeMagnitudeUpperBound / 3.0
+                ).nextUp,
+                third: (
+                    fourthDerivativeMagnitudeUpperBound / 4.0
                 ).nextUp
             )
         }
@@ -256,6 +272,8 @@ struct EndpointRegularizedFactorBounder {
                     firstDerivativeMagnitudeUpperBound,
                 secondDerivativeBound:
                     secondDerivativeMagnitudeUpperBound,
+                thirdDerivativeBound:
+                    thirdDerivativeMagnitudeUpperBound,
                 arithmeticEnvelope: arithmeticEnvelope,
                 orientedValueRange: orientedValueRange,
                 tolerance: tolerance,
@@ -267,7 +285,8 @@ struct EndpointRegularizedFactorBounder {
               result.lower > 0.0,
               result.upper.isFinite,
               result.first.isFinite,
-              result.second.isFinite else {
+              result.second.isFinite,
+              result.third.isFinite else {
             throw failure(
                 residual: result?.lower,
                 tolerance: tolerance,
@@ -291,6 +310,7 @@ struct EndpointRegularizedFactorBounder {
         secondDerivativeMagnitudeUpperBound: Double,
         thirdDerivativeMagnitudeUpperBound: Double,
         fourthDerivativeMagnitudeUpperBound: Double,
+        fifthDerivativeMagnitudeUpperBound: Double,
         arithmeticEnvelope: Double,
         valueRange: (Double, Double) throws -> (
             lower: Double,
@@ -307,13 +327,17 @@ struct EndpointRegularizedFactorBounder {
         let factorSecondBound = (
             fourthDerivativeMagnitudeUpperBound / 12.0
         ).nextUp
+        let factorThirdBound = (
+            fifthDerivativeMagnitudeUpperBound / 20.0
+        ).nextUp
         guard span > tolerance.angle,
               requestedLower >= componentLower - tolerance.angle,
               requestedUpper <= componentUpper + tolerance.angle,
               requestedUpper > requestedLower,
               endpointFactor > arithmeticEnvelope,
               factorFirstBound.isFinite,
-              factorSecondBound.isFinite else {
+              factorSecondBound.isFinite,
+              factorThirdBound.isFinite else {
             throw failure(
                 residual: min(span, endpointFactor),
                 tolerance: tolerance,
@@ -363,7 +387,8 @@ struct EndpointRegularizedFactorBounder {
                     arithmeticEnvelope
                 ),
                 first: factorFirstBound,
-                second: factorSecondBound
+                second: factorSecondBound,
+                third: factorThirdBound
             )
         }
         let interiorLower = rootAtLower
@@ -385,6 +410,8 @@ struct EndpointRegularizedFactorBounder {
                     firstDerivativeMagnitudeUpperBound,
                 secondDerivativeBound:
                     secondDerivativeMagnitudeUpperBound,
+                thirdDerivativeBound:
+                    thirdDerivativeMagnitudeUpperBound,
                 arithmeticEnvelope: arithmeticEnvelope,
                 valueRange: valueRange,
                 tolerance: tolerance,
@@ -396,7 +423,8 @@ struct EndpointRegularizedFactorBounder {
               result.lower > 0.0,
               result.upper.isFinite,
               result.first.isFinite,
-              result.second.isFinite else {
+              result.second.isFinite,
+              result.third.isFinite else {
             throw failure(
                 residual: result?.lower,
                 tolerance: tolerance,
@@ -420,8 +448,10 @@ struct EndpointRegularizedFactorBounder {
         simpleRootFirstDerivative: Double,
         firstDerivativeMagnitudeUpperBound: Double,
         secondDerivativeMagnitudeUpperBound: Double,
+        thirdDerivativeMagnitudeUpperBound: Double,
         fourthDerivativeMagnitudeUpperBound: Double,
         fifthDerivativeMagnitudeUpperBound: Double,
+        sixthDerivativeMagnitudeUpperBound: Double,
         arithmeticEnvelope: Double,
         valueRange: (Double, Double) throws -> (
             lower: Double,
@@ -435,8 +465,10 @@ struct EndpointRegularizedFactorBounder {
               requestedLower >= componentLower - tolerance.angle,
               requestedUpper <= componentUpper + tolerance.angle,
               requestedUpper > requestedLower,
+              thirdDerivativeMagnitudeUpperBound.isFinite,
               fourthDerivativeMagnitudeUpperBound.isFinite,
-              fifthDerivativeMagnitudeUpperBound.isFinite else {
+              fifthDerivativeMagnitudeUpperBound.isFinite,
+              sixthDerivativeMagnitudeUpperBound.isFinite else {
             throw failure(
                 residual: span,
                 tolerance: tolerance,
@@ -469,12 +501,16 @@ struct EndpointRegularizedFactorBounder {
         let secondBound = (
             fifthDerivativeMagnitudeUpperBound / 60.0
         ).nextUp
+        let thirdBound = (
+            sixthDerivativeMagnitudeUpperBound / 120.0
+        ).nextUp
         guard doubleFactor > arithmeticEnvelope,
               simpleFactor > arithmeticEnvelope,
               firstDerivativeMagnitudeUpperBound.isFinite,
               secondDerivativeMagnitudeUpperBound.isFinite,
               firstBound.isFinite,
-              secondBound.isFinite else {
+              secondBound.isFinite,
+              thirdBound.isFinite else {
             throw failure(
                 residual: min(doubleFactor, simpleFactor),
                 tolerance: tolerance,
@@ -524,7 +560,8 @@ struct EndpointRegularizedFactorBounder {
                         + arithmeticEnvelope
                 ).nextUp,
                 first: firstBound,
-                second: secondBound
+                second: secondBound,
+                third: thirdBound
             )
         }
         if requestedCoordinateUpper > span - simpleWidth {
@@ -538,7 +575,8 @@ struct EndpointRegularizedFactorBounder {
                         + arithmeticEnvelope
                 ).nextUp,
                 first: firstBound,
-                second: secondBound
+                second: secondBound,
+                third: thirdBound
             )
             result = result?.merged(with: simple) ?? simple
         }
@@ -626,12 +664,17 @@ struct EndpointRegularizedFactorBounder {
             let denominatorSecond = (
                 2.0 * span + 6.0 * xUpper
             ).nextUp
+            let denominatorThird = 6.0.nextUp
             let denominatorSquaredLower = lowerProduct(
                 denominatorLower,
                 denominatorLower
             )
             let denominatorCubedLower = lowerProduct(
                 denominatorSquaredLower,
+                denominatorLower
+            )
+            let denominatorFourthLower = lowerProduct(
+                denominatorCubedLower,
                 denominatorLower
             )
             let inverse = (1.0 / denominatorLower).nextUp
@@ -643,6 +686,13 @@ struct EndpointRegularizedFactorBounder {
                     / denominatorCubedLower
                     + denominatorSecond / denominatorSquaredLower
             ).nextUp
+            let inverseThird = (
+                6.0 * denominatorFirst * denominatorFirst
+                    * denominatorFirst / denominatorFourthLower
+                    + 6.0 * denominatorFirst * denominatorSecond
+                        / denominatorCubedLower
+                    + denominatorThird / denominatorSquaredLower
+            ).nextUp
             let numeratorFirst = upperSum(
                 firstDerivativeMagnitudeUpperBound,
                 correctionFirstMagnitude
@@ -651,6 +701,7 @@ struct EndpointRegularizedFactorBounder {
                 secondDerivativeMagnitudeUpperBound,
                 correctionSecondMagnitude
             )
+            let numeratorThird = thirdDerivativeMagnitudeUpperBound.nextUp
             let cell = Bounds(
                 lower: (numeratorLower / denominatorUpper).nextDown,
                 upper: (numeratorUpper / denominatorLower).nextUp,
@@ -662,6 +713,12 @@ struct EndpointRegularizedFactorBounder {
                     numeratorSecond * inverse
                         + 2.0 * numeratorFirst * inverseFirst
                         + numeratorUpper * inverseSecond
+                ).nextUp,
+                third: (
+                    numeratorThird * inverse
+                        + 3.0 * numeratorSecond * inverseFirst
+                        + 3.0 * numeratorFirst * inverseSecond
+                        + numeratorUpper * inverseThird
                 ).nextUp
             )
             result = result?.merged(with: cell) ?? cell
@@ -671,7 +728,8 @@ struct EndpointRegularizedFactorBounder {
               result.lower > 0.0,
               result.upper.isFinite,
               result.first.isFinite,
-              result.second.isFinite else {
+              result.second.isFinite,
+              result.third.isFinite else {
             throw failure(
                 residual: result?.lower,
                 tolerance: tolerance,
@@ -695,8 +753,10 @@ struct EndpointRegularizedFactorBounder {
         upperSecondDerivative: Double,
         firstDerivativeMagnitudeUpperBound: Double,
         secondDerivativeMagnitudeUpperBound: Double,
+        thirdDerivativeMagnitudeUpperBound: Double,
         fifthDerivativeMagnitudeUpperBound: Double,
         sixthDerivativeMagnitudeUpperBound: Double,
+        seventhDerivativeMagnitudeUpperBound: Double,
         arithmeticEnvelope: Double,
         valueRange: (Double, Double) throws -> (
             lower: Double,
@@ -710,8 +770,10 @@ struct EndpointRegularizedFactorBounder {
               requestedLower >= componentLower - tolerance.angle,
               requestedUpper <= componentUpper + tolerance.angle,
               requestedUpper > requestedLower,
+              thirdDerivativeMagnitudeUpperBound.isFinite,
               fifthDerivativeMagnitudeUpperBound.isFinite,
-              sixthDerivativeMagnitudeUpperBound.isFinite else {
+              sixthDerivativeMagnitudeUpperBound.isFinite,
+              seventhDerivativeMagnitudeUpperBound.isFinite else {
             throw failure(
                 residual: span,
                 tolerance: tolerance,
@@ -745,12 +807,16 @@ struct EndpointRegularizedFactorBounder {
         let secondBound = (
             sixthDerivativeMagnitudeUpperBound / 360.0
         ).nextUp
+        let thirdBound = (
+            seventhDerivativeMagnitudeUpperBound / 840.0
+        ).nextUp
         guard lowerFactor > arithmeticEnvelope,
               upperFactor > arithmeticEnvelope,
               firstDerivativeMagnitudeUpperBound.isFinite,
               secondDerivativeMagnitudeUpperBound.isFinite,
               firstBound.isFinite,
-              secondBound.isFinite else {
+              secondBound.isFinite,
+              thirdBound.isFinite else {
             throw failure(
                 residual: min(lowerFactor, upperFactor),
                 tolerance: tolerance,
@@ -794,7 +860,8 @@ struct EndpointRegularizedFactorBounder {
                         + arithmeticEnvelope
                 ).nextUp,
                 first: firstBound,
-                second: secondBound
+                second: secondBound,
+                third: thirdBound
             )
         }
         if requestedUpper > componentUpper - upperWidth {
@@ -808,7 +875,8 @@ struct EndpointRegularizedFactorBounder {
                         + arithmeticEnvelope
                 ).nextUp,
                 first: firstBound,
-                second: secondBound
+                second: secondBound,
+                third: thirdBound
             )
             result = result?.merged(with: upper) ?? upper
         }
@@ -827,6 +895,9 @@ struct EndpointRegularizedFactorBounder {
         let correctionSecondMagnitude = (
             2.0 * abs(correctionQuadratic)
                 + 6.0 * abs(correctionCubic) * span
+        ).nextUp
+        let correctionThirdMagnitude = (
+            6.0 * abs(correctionCubic)
         ).nextUp
         var cellLower = max(
             requestedLower,
@@ -890,12 +961,17 @@ struct EndpointRegularizedFactorBounder {
                     + 8.0 * xUpper * yUpper
                     + 2.0 * xUpper * xUpper
             ).nextUp
+            let denominatorThird = (12.0 * span).nextUp
             let denominatorSquaredLower = lowerProduct(
                 denominatorLower,
                 denominatorLower
             )
             let denominatorCubedLower = lowerProduct(
                 denominatorSquaredLower,
+                denominatorLower
+            )
+            let denominatorFourthLower = lowerProduct(
+                denominatorCubedLower,
                 denominatorLower
             )
             let inverse = (1.0 / denominatorLower).nextUp
@@ -907,6 +983,13 @@ struct EndpointRegularizedFactorBounder {
                     / denominatorCubedLower
                     + denominatorSecond / denominatorSquaredLower
             ).nextUp
+            let inverseThird = (
+                6.0 * denominatorFirst * denominatorFirst
+                    * denominatorFirst / denominatorFourthLower
+                    + 6.0 * denominatorFirst * denominatorSecond
+                        / denominatorCubedLower
+                    + denominatorThird / denominatorSquaredLower
+            ).nextUp
             let numeratorFirst = upperSum(
                 firstDerivativeMagnitudeUpperBound,
                 correctionFirstMagnitude
@@ -914,6 +997,10 @@ struct EndpointRegularizedFactorBounder {
             let numeratorSecond = upperSum(
                 secondDerivativeMagnitudeUpperBound,
                 correctionSecondMagnitude
+            )
+            let numeratorThird = upperSum(
+                thirdDerivativeMagnitudeUpperBound,
+                correctionThirdMagnitude
             )
             let cell = Bounds(
                 lower: (numeratorLower / denominatorUpper).nextDown,
@@ -926,6 +1013,12 @@ struct EndpointRegularizedFactorBounder {
                     numeratorSecond * inverse
                         + 2.0 * numeratorFirst * inverseFirst
                         + numeratorUpper * inverseSecond
+                ).nextUp,
+                third: (
+                    numeratorThird * inverse
+                        + 3.0 * numeratorSecond * inverseFirst
+                        + 3.0 * numeratorFirst * inverseSecond
+                        + numeratorUpper * inverseThird
                 ).nextUp
             )
             result = result?.merged(with: cell) ?? cell
@@ -935,7 +1028,8 @@ struct EndpointRegularizedFactorBounder {
               result.lower > 0.0,
               result.upper.isFinite,
               result.first.isFinite,
-              result.second.isFinite else {
+              result.second.isFinite,
+              result.third.isFinite else {
             throw failure(
                 residual: result?.lower,
                 tolerance: tolerance,
@@ -956,6 +1050,7 @@ struct EndpointRegularizedFactorBounder {
         endpointDerivative: Double,
         firstDerivativeBound: Double,
         secondDerivativeBound: Double,
+        thirdDerivativeBound: Double,
         arithmeticEnvelope: Double,
         valueRange: (Double, Double) throws -> (
             lower: Double,
@@ -1037,6 +1132,10 @@ struct EndpointRegularizedFactorBounder {
                 denominatorSquaredLower,
                 denominatorSquaredLower
             )
+            let denominatorFifthLower = lowerProduct(
+                denominatorFourthLower,
+                denominatorLower
+            )
             let correctedFirst = upperSum(
                 firstDerivativeBound,
                 abs(endpointDerivative)
@@ -1063,6 +1162,25 @@ struct EndpointRegularizedFactorBounder {
                                 / denominatorFourthLower
                         ).nextUp
                     )
+                ),
+                third: upperSum(
+                    (thirdDerivativeBound / denominatorSquaredLower).nextUp,
+                    upperSum(
+                        (
+                            upperProduct(6.0, secondDerivativeBound)
+                                / denominatorCubedLower
+                        ).nextUp,
+                        upperSum(
+                            (
+                                upperProduct(18.0, correctedFirst)
+                                    / denominatorFourthLower
+                            ).nextUp,
+                            (
+                                upperProduct(24.0, valueUpper)
+                                    / denominatorFifthLower
+                            ).nextUp
+                        )
+                    )
                 )
             )
             result = result?.merged(with: cell) ?? cell
@@ -1088,6 +1206,7 @@ struct EndpointRegularizedFactorBounder {
         endpointResidualMagnitude: Double,
         firstDerivativeBound: Double,
         secondDerivativeBound: Double,
+        thirdDerivativeBound: Double,
         arithmeticEnvelope: Double,
         orientedValueRange: (Double, Double) throws -> (
             lower: Double,
@@ -1160,6 +1279,10 @@ struct EndpointRegularizedFactorBounder {
                 denominatorSquared,
                 denominatorLower
             )
+            let denominatorFourth = lowerProduct(
+                denominatorCubed,
+                denominatorLower
+            )
             let cell = Bounds(
                 lower: (valueLower / denominatorUpper).nextDown,
                 upper: (valueUpper / denominatorLower).nextUp,
@@ -1178,6 +1301,25 @@ struct EndpointRegularizedFactorBounder {
                             upperProduct(2.0, valueUpper)
                                 / denominatorCubed
                         ).nextUp
+                    )
+                ),
+                third: upperSum(
+                    (thirdDerivativeBound / denominatorLower).nextUp,
+                    upperSum(
+                        (
+                            upperProduct(3.0, secondDerivativeBound)
+                                / denominatorSquared
+                        ).nextUp,
+                        upperSum(
+                            (
+                                upperProduct(6.0, firstDerivativeBound)
+                                    / denominatorCubed
+                            ).nextUp,
+                            (
+                                upperProduct(6.0, valueUpper)
+                                    / denominatorFourth
+                            ).nextUp
+                        )
                     )
                 )
             )
@@ -1216,6 +1358,7 @@ struct EndpointRegularizedFactorBounder {
         firstDerivativeBound: Double,
         secondDerivativeBound: Double,
         thirdDerivativeBound: Double,
+        fourthDerivativeBound: Double,
         arithmeticEnvelope: Double,
         tolerance: ModelingTolerance,
         label: String
@@ -1244,6 +1387,10 @@ struct EndpointRegularizedFactorBounder {
             denominatorSquared,
             denominatorLower
         )
+        let denominatorFourth = lowerProduct(
+            denominatorCubed,
+            denominatorLower
+        )
         return Bounds(
             lower: (averagedSlopeLower / span.nextUp).nextDown,
             upper: (firstDerivativeBound / denominatorLower).nextUp,
@@ -1266,6 +1413,25 @@ struct EndpointRegularizedFactorBounder {
                             / denominatorCubed
                     ).nextUp
                 )
+            ),
+            third: upperSum(
+                (
+                    (fourthDerivativeBound / 4.0).nextUp
+                        / denominatorLower
+                ).nextUp,
+                upperSum(
+                    (thirdDerivativeBound / denominatorSquared).nextUp,
+                    upperSum(
+                        (
+                            upperProduct(3.0, secondDerivativeBound)
+                                / denominatorCubed
+                        ).nextUp,
+                        (
+                            upperProduct(6.0, firstDerivativeBound)
+                                / denominatorFourth
+                        ).nextUp
+                    )
+                )
             )
         )
     }
@@ -1275,7 +1441,8 @@ struct EndpointRegularizedFactorBounder {
         width: Double,
         firstDerivativeBound: Double,
         secondDerivativeBound: Double,
-        thirdDerivativeBound: Double
+        thirdDerivativeBound: Double,
+        fourthDerivativeBound: Double
     ) -> Bounds? {
         let denominatorLower = (span - width).nextDown
         guard width >= 0.0, denominatorLower > 0.0 else {
@@ -1287,6 +1454,10 @@ struct EndpointRegularizedFactorBounder {
         )
         let denominatorCubed = lowerProduct(
             denominatorSquared,
+            denominatorLower
+        )
+        let denominatorFourth = lowerProduct(
+            denominatorCubed,
             denominatorLower
         )
         return Bounds(
@@ -1311,6 +1482,25 @@ struct EndpointRegularizedFactorBounder {
                             / denominatorCubed
                     ).nextUp
                 )
+            ),
+            third: upperSum(
+                (
+                    (fourthDerivativeBound / 4.0).nextUp
+                        / denominatorLower
+                ).nextUp,
+                upperSum(
+                    (thirdDerivativeBound / denominatorSquared).nextUp,
+                    upperSum(
+                        (
+                            upperProduct(3.0, secondDerivativeBound)
+                                / denominatorCubed
+                        ).nextUp,
+                        (
+                            upperProduct(6.0, firstDerivativeBound)
+                                / denominatorFourth
+                        ).nextUp
+                    )
+                )
             )
         )
     }
@@ -1324,6 +1514,7 @@ struct EndpointRegularizedFactorBounder {
         firstDerivativeBound: Double,
         secondDerivativeBound: Double,
         thirdDerivativeBound: Double,
+        fourthDerivativeBound: Double,
         arithmeticEnvelope: Double,
         valueRange: (Double, Double) throws -> (
             lower: Double,
@@ -1362,6 +1553,7 @@ struct EndpointRegularizedFactorBounder {
                 firstDerivativeBound: firstDerivativeBound,
                 secondDerivativeBound: secondDerivativeBound,
                 thirdDerivativeBound: thirdDerivativeBound,
+                fourthDerivativeBound: fourthDerivativeBound,
                 arithmeticEnvelope: arithmeticEnvelope,
                 valueRange: valueRange,
                 tolerance: tolerance,
@@ -1390,6 +1582,7 @@ struct EndpointRegularizedFactorBounder {
         firstDerivativeBound: Double,
         secondDerivativeBound: Double,
         thirdDerivativeBound: Double,
+        fourthDerivativeBound: Double,
         arithmeticEnvelope: Double,
         valueRange: (Double, Double) throws -> (
             lower: Double,
@@ -1456,6 +1649,10 @@ struct EndpointRegularizedFactorBounder {
             denominatorSquared,
             denominatorLower
         )
+        let denominatorFourth = lowerProduct(
+            denominatorCubed,
+            denominatorLower
+        )
         let direct = Bounds(
             lower: (rawLower / denominatorUpper).nextDown,
             upper: (valueUpper / denominatorLower).nextUp,
@@ -1491,6 +1688,54 @@ struct EndpointRegularizedFactorBounder {
                         ).nextUp
                     )
                 )
+            ),
+            third: upperSum(
+                (thirdDerivativeBound / denominatorLower).nextUp,
+                upperSum(
+                    (
+                        upperProduct(
+                            3.0,
+                            upperProduct(secondDerivativeBound, span)
+                        ) / denominatorSquared
+                    ).nextUp,
+                    upperSum(
+                        (
+                            upperProduct(6.0, firstDerivativeBound)
+                                / denominatorSquared
+                        ).nextUp,
+                        upperSum(
+                            (
+                                upperProduct(
+                                    6.0,
+                                    upperProduct(
+                                        firstDerivativeBound,
+                                        upperProduct(span, span)
+                                    )
+                                ) / denominatorCubed
+                            ).nextUp,
+                            upperSum(
+                                (
+                                    upperProduct(
+                                        12.0,
+                                        upperProduct(valueUpper, span)
+                                    ) / denominatorCubed
+                                ).nextUp,
+                                (
+                                    upperProduct(
+                                        6.0,
+                                        upperProduct(
+                                            valueUpper,
+                                            upperProduct(
+                                                upperProduct(span, span),
+                                                span
+                                            )
+                                        )
+                                    ) / denominatorFourth
+                                ).nextUp
+                            )
+                        )
+                    )
+                )
             )
         )
         let derivativeCertificates = [
@@ -1499,14 +1744,16 @@ struct EndpointRegularizedFactorBounder {
                 width: upperOffset,
                 firstDerivativeBound: firstDerivativeBound,
                 secondDerivativeBound: secondDerivativeBound,
-                thirdDerivativeBound: thirdDerivativeBound
+                thirdDerivativeBound: thirdDerivativeBound,
+                fourthDerivativeBound: fourthDerivativeBound
             ),
             derivativeEndpointBounds(
                 span: span,
                 width: span - lowerOffset,
                 firstDerivativeBound: firstDerivativeBound,
                 secondDerivativeBound: secondDerivativeBound,
-                thirdDerivativeBound: thirdDerivativeBound
+                thirdDerivativeBound: thirdDerivativeBound,
+                fourthDerivativeBound: fourthDerivativeBound
             ),
         ].compactMap { $0 }
         return Bounds(
@@ -1519,6 +1766,9 @@ struct EndpointRegularizedFactorBounder {
             }.nextUp,
             second: derivativeCertificates.reduce(direct.second) {
                 min($0, $1.second)
+            }.nextUp,
+            third: derivativeCertificates.reduce(direct.third) {
+                min($0, $1.third)
             }.nextUp
         )
     }

@@ -50,13 +50,15 @@ struct BooleanIntersectionGraphTests {
         for faceIntersection in graph.faceIntersections {
             guard case let .curve(curve) = faceIntersection.geometry,
                   case .surfaceLift = curve.curve,
-                  case .bSpline = curve.firstSurfaceParameterCurve,
-                  case .bSpline = curve.secondSurfaceParameterCurve,
+                  case .certifiedAnalyticPair = curve.firstSurfaceParameterCurve,
+                  case .certifiedAnalyticPair = curve.secondSurfaceParameterCurve,
+                  case .bSpline = curve.derivedRepresentation.firstSurfaceParameterCurve,
+                  case .bSpline = curve.derivedRepresentation.secondSurfaceParameterCurve,
                   let targetFace = model.faces[faceIntersection.facePair.targetFaceID],
                   let toolFace = model.faces[faceIntersection.facePair.toolFaceID],
                   let targetSurface = model.geometry.surfaces[targetFace.surfaceID],
                   let toolSurface = model.geometry.surfaces[toolFace.surfaceID] else {
-                Issue.record("General cylinder Boolean broad phase must retain certified surface-lift geometry with dual spline pcurves.")
+                Issue.record("General cylinder Boolean broad phase must retain exact dual pcurves and separate spline caches.")
                 continue
             }
             #expect(curve.maximumResidual <= ModelingTolerance.standard.distance)
@@ -68,6 +70,10 @@ struct BooleanIntersectionGraphTests {
                 on: toolSurface,
                 tolerance: .standard
             )
+            #expect(curve.firstSurfaceParameterCurve
+                != curve.derivedRepresentation.firstSurfaceParameterCurve)
+            #expect(curve.secondSurfaceParameterCurve
+                != curve.derivedRepresentation.secondSurfaceParameterCurve)
         }
         try graph.validate(in: model, tolerance: .standard)
 

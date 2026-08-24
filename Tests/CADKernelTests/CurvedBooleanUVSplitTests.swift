@@ -32,8 +32,16 @@ struct CurvedBooleanUVSplitTests {
             Point3D(x: 2.0, y: 2.0, z: 0.0),
             Point3D(x: -2.0, y: 2.0, z: 0.0),
         ]
-        let cylinderFace = makeFace(surfaceID: cylinderSurfaceID, points: cylinderPoints)
-        let planeFace = makeFace(surfaceID: planeSurfaceID, points: planePoints)
+        let cylinderFace = try makeFace(
+            surfaceID: cylinderSurfaceID,
+            surface: cylinderSurface,
+            points: cylinderPoints
+        )
+        let planeFace = try makeFace(
+            surfaceID: planeSurfaceID,
+            surface: planeSurface,
+            points: planePoints
+        )
         let model = BRepModel(
             geometry: GeometryStore(
                 curves: cylinderFace.curves.merging(planeFace.curves) { current, _ in current },
@@ -275,8 +283,9 @@ struct CurvedBooleanUVSplitTests {
 
     private func makeFace(
         surfaceID: SurfaceID,
+        surface: Surface3D,
         points: [Point3D]
-    ) -> FaceFixture {
+    ) throws -> FaceFixture {
         let vertexIDs = points.map { _ in VertexID() }
         let edgeIDs = points.map { _ in EdgeID() }
         let loopID = LoopID()
@@ -285,27 +294,44 @@ struct CurvedBooleanUVSplitTests {
             ($0.0, Vertex(id: $0.0, point: $0.1))
         })
         var curves: [CurveID: Curve3D] = [:]
-        let edges = Dictionary(uniqueKeysWithValues: edgeIDs.indices.map { index in
-            let edgeID = edgeIDs[index]
-            let start = points[index]
-            let end = points[(index + 1) % points.count]
-            let offset = end - start
-            let curveID = CurveID()
-            curves[curveID] = .line(Line3D(
-                origin: start,
-                direction: offset / offset.length
-            ))
-            return (edgeID, Edge(
-                id: edgeID,
-                curveID: curveID,
-                startVertexID: vertexIDs[index],
-                endVertexID: vertexIDs[(index + 1) % vertexIDs.count]
-            ))
-        })
+        var pcurves: [SurfaceParameterCurve] = []
+        let edges: [EdgeID: Edge] = try Dictionary(
+            uniqueKeysWithValues: edgeIDs.indices.map { index in
+                let edgeID = edgeIDs[index]
+                let start = points[index]
+                let end = points[(index + 1) % points.count]
+                let startParameter = try surface.parameterProjection(
+                    of: start,
+                    tolerance: tolerance
+                )
+                let endParameter = try surface.parameterProjection(
+                    of: end,
+                    tolerance: tolerance
+                )
+                let pcurve = SurfaceParameterCurve.polyline([
+                    SurfaceParameter(u: startParameter.u, v: startParameter.v),
+                    SurfaceParameter(u: endParameter.u, v: endParameter.v),
+                ])
+                pcurves.append(pcurve)
+                let curveID = CurveID()
+                curves[curveID] = .surfaceLift(SurfaceLiftCurve3D(
+                    surface: surface,
+                    parameterCurve: pcurve
+                ))
+                return (edgeID, Edge(
+                    id: edgeID,
+                    curveID: curveID,
+                    startVertexID: vertexIDs[index],
+                    endVertexID: vertexIDs[(index + 1) % vertexIDs.count]
+                ))
+            }
+        )
         let loop = Loop(
             id: loopID,
             role: .outer,
-            coedges: edgeIDs.map { Coedge(edgeID: $0) }
+            coedges: zip(edgeIDs, pcurves).map {
+                Coedge(edgeID: $0.0, surfaceParameterCurve: $0.1)
+            }
         )
         return FaceFixture(
             face: Face(id: faceID, surfaceID: surfaceID, loops: [loopID]),

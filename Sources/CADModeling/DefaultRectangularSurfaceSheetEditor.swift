@@ -187,9 +187,9 @@ package struct DefaultRectangularSurfaceSheetEditor: RectangularSurfaceSheetEdit
               loop.role == .outer,
               loop.coedges.count == 4,
               let surface = model.geometry.surfaces[face.surfaceID] else {
-            throw unsupported(
+            throw invalidInput(
                 tolerance: tolerance,
-                message: "Surface trim requires one exact four-edge rectangular sheet face."
+                message: "Rectangular surface sheet editing requires one exact four-edge face with one outer loop."
             )
         }
         guard Set(loop.coedges.map(\.edgeID)).count == loop.coedges.count else {
@@ -235,9 +235,9 @@ package struct DefaultRectangularSurfaceSheetEditor: RectangularSurfaceSheetEdit
                 parameterTolerance: parameterTolerance,
                 tolerance: tolerance
             ) else {
-                throw unsupported(
+                throw invalidInput(
                     tolerance: tolerance,
-                    message: "Surface trim requires four exact axis-aligned pcurve boundaries."
+                    message: "Rectangular surface sheet editing requires four exact axis-aligned pcurve boundaries."
                 )
             }
             segments.append(segment)
@@ -308,8 +308,19 @@ package struct DefaultRectangularSurfaceSheetEditor: RectangularSurfaceSheetEdit
              .certifiedImplicit,
              .certifiedAnalyticImplicit,
              .certifiedAnalyticPair,
-             .projectedAnalytic:
+             .projectedAnalytic,
+             .rigidImage:
             return nil
+        case let .sameParameterImage(image):
+            return try axisAlignedSegment(
+                coedgeIndex: coedgeIndex,
+                coedge: coedge,
+                startVertexID: startVertexID,
+                endVertexID: endVertexID,
+                parameterCurve: image.source,
+                parameterTolerance: parameterTolerance,
+                tolerance: tolerance
+            )
         case let .periodicTranslation(base, _, _):
             guard let baseSegment = try axisAlignedSegment(
                 coedgeIndex: coedgeIndex,
@@ -421,7 +432,7 @@ package struct DefaultRectangularSurfaceSheetEditor: RectangularSurfaceSheetEdit
                 ) {
                     boundary = .vUpper
                 } else {
-                    throw unsupported(
+                    throw invalidInput(
                         tolerance: tolerance,
                         message: "A rectangular U boundary must lie on a V domain limit."
                     )
@@ -433,7 +444,7 @@ package struct DefaultRectangularSurfaceSheetEditor: RectangularSurfaceSheetEdit
                     upper: bounds.upperU,
                     tolerance: parameterTolerance
                 ) else {
-                    throw unsupported(
+                    throw invalidInput(
                         tolerance: tolerance,
                         message: "A rectangular U boundary must span both U domain limits."
                     )
@@ -452,7 +463,7 @@ package struct DefaultRectangularSurfaceSheetEditor: RectangularSurfaceSheetEdit
                 ) {
                     boundary = .uUpper
                 } else {
-                    throw unsupported(
+                    throw invalidInput(
                         tolerance: tolerance,
                         message: "A rectangular V boundary must lie on a U domain limit."
                     )
@@ -464,7 +475,7 @@ package struct DefaultRectangularSurfaceSheetEditor: RectangularSurfaceSheetEdit
                     upper: bounds.upperV,
                     tolerance: parameterTolerance
                 ) else {
-                    throw unsupported(
+                    throw invalidInput(
                         tolerance: tolerance,
                         message: "A rectangular V boundary must span both V domain limits."
                     )
@@ -762,13 +773,13 @@ package struct DefaultRectangularSurfaceSheetEditor: RectangularSurfaceSheetEdit
         }
     }
 
-    private func unsupported(
+    private func invalidInput(
         tolerance: ModelingTolerance,
         message: String
     ) -> KernelError {
         KernelError(
             phase: .evaluation,
-            code: .unsupportedCapability,
+            code: .invalidInput,
             tolerance: tolerance,
             message: message
         )

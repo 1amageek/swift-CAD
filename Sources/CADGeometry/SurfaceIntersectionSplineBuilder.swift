@@ -2,6 +2,16 @@ import Foundation
 import CADCore
 
 package struct SurfaceIntersectionSplineBuilder {
+    package struct Representation: Sendable {
+        package let curve: BSplineCurve3D
+        package let firstSurfaceParameterCurve: SurfaceParameterCurve
+        package let secondSurfaceParameterCurve: SurfaceParameterCurve
+        package let maximumResidual: Double
+
+        fileprivate let firstAnchor: SurfaceParameterProjection
+        fileprivate let secondAnchor: SurfaceParameterProjection
+    }
+
     private struct Sample {
         let parameter: Double
         let point: Point3D
@@ -57,8 +67,49 @@ package struct SurfaceIntersectionSplineBuilder {
             ((Double) throws -> SurfaceParameterCurveDifferential)? = nil,
         secondParameterDifferentialAt:
             ((Double) throws -> SurfaceParameterCurveDifferential)? = nil,
-        pointAt: (Double) throws -> Point3D
+        pointFirstDerivativeAt: ((Double) throws -> Vector3D)? = nil,
+        pointAt: @escaping (Double) throws -> Point3D
     ) throws -> SurfaceSurfaceIntersection {
+        let representation = try representation(
+            parameterRange: parameterRange,
+            initialBreaks: initialBreaks,
+            isClosed: isClosed,
+            firstParameterAt: firstParameterAt,
+            secondParameterAt: secondParameterAt,
+            firstParameterDifferentialAt: firstParameterDifferentialAt,
+            secondParameterDifferentialAt: secondParameterDifferentialAt,
+            pointFirstDerivativeAt: pointFirstDerivativeAt,
+            pointAt: pointAt
+        )
+        return .curve(try SurfaceSurfaceIntersectionCurve(
+            truth: .parametric(.bSpline(representation.curve)),
+            derivedRepresentation: try SurfaceSurfaceIntersectionDerivedRepresentation(
+                curve: .bSpline(representation.curve),
+                firstSurfaceParameterCurve: representation.firstSurfaceParameterCurve,
+                secondSurfaceParameterCurve: representation.secondSurfaceParameterCurve,
+                maximumResidualUpperBound: representation.maximumResidual,
+                tolerance: tolerance
+            ),
+            kind: kind,
+            firstSurfaceAnchor: representation.firstAnchor,
+            secondSurfaceAnchor: representation.secondAnchor,
+            tolerance: tolerance
+        ))
+    }
+
+    package func representation(
+        parameterRange: ClosedRange<Double>,
+        initialBreaks: [Double],
+        isClosed: Bool = true,
+        firstParameterAt: ((Double) throws -> SurfaceParameter)? = nil,
+        secondParameterAt: ((Double) throws -> SurfaceParameter)? = nil,
+        firstParameterDifferentialAt:
+            ((Double) throws -> SurfaceParameterCurveDifferential)? = nil,
+        secondParameterDifferentialAt:
+            ((Double) throws -> SurfaceParameterCurveDifferential)? = nil,
+        pointFirstDerivativeAt: ((Double) throws -> Vector3D)? = nil,
+        pointAt: @escaping (Double) throws -> Point3D
+    ) throws -> Representation {
         guard maximumAcceptedResidual.isFinite,
               maximumAcceptedResidual > 0.0,
               maximumAcceptedResidual <= tolerance.distance else {
@@ -114,6 +165,7 @@ package struct SurfaceIntersectionSplineBuilder {
                 secondParameterAt: secondParameterAt,
                 firstParameterDifferentialAt: firstParameterDifferentialAt,
                 secondParameterDifferentialAt: secondParameterDifferentialAt,
+                pointFirstDerivativeAt: pointFirstDerivativeAt,
                 pointAt: cachedPointAt,
                 remainingSegments: &remainingSegments,
                 result: &segments
@@ -127,9 +179,8 @@ package struct SurfaceIntersectionSplineBuilder {
                 message: "Adaptive surface intersection tracing produced no curve segments."
             )
         }
-        return try makeIntersection(
+        return try makeRepresentation(
             segments: segments,
-            kind: kind,
             pointAt: cachedPointAt
         )
     }
@@ -146,6 +197,7 @@ package struct SurfaceIntersectionSplineBuilder {
             ((Double) throws -> SurfaceParameterCurveDifferential)?,
         secondParameterDifferentialAt:
             ((Double) throws -> SurfaceParameterCurveDifferential)?,
+        pointFirstDerivativeAt: ((Double) throws -> Vector3D)?,
         pointAt: (Double) throws -> Point3D,
         remainingSegments: inout Int,
         result: inout [Segment]
@@ -159,6 +211,7 @@ package struct SurfaceIntersectionSplineBuilder {
             secondParameterAt: secondParameterAt,
             firstParameterDifferentialAt: firstParameterDifferentialAt,
             secondParameterDifferentialAt: secondParameterDifferentialAt,
+            pointFirstDerivativeAt: pointFirstDerivativeAt,
             pointAt: pointAt
         )
         if segment.maximumResidual <= maximumAcceptedResidual {
@@ -197,6 +250,7 @@ package struct SurfaceIntersectionSplineBuilder {
             secondParameterAt: secondParameterAt,
             firstParameterDifferentialAt: firstParameterDifferentialAt,
             secondParameterDifferentialAt: secondParameterDifferentialAt,
+            pointFirstDerivativeAt: pointFirstDerivativeAt,
             pointAt: pointAt,
             remainingSegments: &remainingSegments,
             result: &result
@@ -211,6 +265,7 @@ package struct SurfaceIntersectionSplineBuilder {
             secondParameterAt: secondParameterAt,
             firstParameterDifferentialAt: firstParameterDifferentialAt,
             secondParameterDifferentialAt: secondParameterDifferentialAt,
+            pointFirstDerivativeAt: pointFirstDerivativeAt,
             pointAt: pointAt,
             remainingSegments: &remainingSegments,
             result: &result
@@ -228,6 +283,7 @@ package struct SurfaceIntersectionSplineBuilder {
             ((Double) throws -> SurfaceParameterCurveDifferential)?,
         secondParameterDifferentialAt:
             ((Double) throws -> SurfaceParameterCurveDifferential)?,
+        pointFirstDerivativeAt: ((Double) throws -> Vector3D)?,
         pointAt: (Double) throws -> Point3D
     ) throws -> Segment {
         let span = upper.parameter - lower.parameter
@@ -242,6 +298,7 @@ package struct SurfaceIntersectionSplineBuilder {
             secondParameterAt: secondParameterAt,
             firstParameterDifferentialAt: firstParameterDifferentialAt,
             secondParameterDifferentialAt: secondParameterDifferentialAt,
+            pointFirstDerivativeAt: pointFirstDerivativeAt,
             pointAt: pointAt
         )
         let upperDerivative = try derivatives(
@@ -252,6 +309,7 @@ package struct SurfaceIntersectionSplineBuilder {
             secondParameterAt: secondParameterAt,
             firstParameterDifferentialAt: firstParameterDifferentialAt,
             secondParameterDifferentialAt: secondParameterDifferentialAt,
+            pointFirstDerivativeAt: pointFirstDerivativeAt,
             pointAt: pointAt
         )
         let points = [
@@ -323,6 +381,7 @@ package struct SurfaceIntersectionSplineBuilder {
             ((Double) throws -> SurfaceParameterCurveDifferential)?,
         secondParameterDifferentialAt:
             ((Double) throws -> SurfaceParameterCurveDifferential)?,
+        pointFirstDerivativeAt: ((Double) throws -> Vector3D)?,
         pointAt: (Double) throws -> Point3D
     ) throws -> Derivatives {
         let firstParameterDerivative = try firstParameterDifferentialAt?(
@@ -370,7 +429,8 @@ package struct SurfaceIntersectionSplineBuilder {
             )
         }
         return Derivatives(
-            point: (upper.point - lower.point) / denominator,
+            point: try pointFirstDerivativeAt?(centerSample.parameter)
+                ?? (upper.point - lower.point) / denominator,
             firstUV: firstParameterDerivative ?? Point2D(
                 x: (upper.firstUV.x - lower.firstUV.x) / denominator,
                 y: (upper.firstUV.y - lower.firstUV.y) / denominator
@@ -464,11 +524,10 @@ package struct SurfaceIntersectionSplineBuilder {
         )
     }
 
-    private func makeIntersection(
+    private func makeRepresentation(
         segments: [Segment],
-        kind: CurveSurfaceIntersectionKind,
         pointAt: (Double) throws -> Point3D
-    ) throws -> SurfaceSurfaceIntersection {
+    ) throws -> Representation {
         let curve = BSplineCurve3D(
             degree: 3,
             knots: compositeKnots(segments: segments),
@@ -491,28 +550,42 @@ package struct SurfaceIntersectionSplineBuilder {
         try secondPcurve.validate(on: secondSurface, tolerance: tolerance)
 
         let anchorPoint = try pointAt(segments[0].lower)
-        let firstAnchor = try firstSurface.parameterProjection(
-            of: anchorPoint,
+        let firstAnchor = try anchorProjection(
+            parameter: segments[0].firstParameters[0],
+            point: anchorPoint,
+            surface: firstSurface
+        )
+        let secondAnchor = try anchorProjection(
+            parameter: segments[0].secondParameters[0],
+            point: anchorPoint,
+            surface: secondSurface
+        )
+        return Representation(
+            curve: curve,
+            firstSurfaceParameterCurve: firstPcurve,
+            secondSurfaceParameterCurve: secondPcurve,
+            maximumResidual: segments.map(\.maximumResidual).max() ?? 0.0,
+            firstAnchor: firstAnchor,
+            secondAnchor: secondAnchor
+        )
+    }
+
+    private func anchorProjection(
+        parameter: Point2D,
+        point: Point3D,
+        surface: Surface3D
+    ) throws -> SurfaceParameterProjection {
+        let reconstructed = try surface.point(
+            u: parameter.x,
+            v: parameter.y,
             tolerance: tolerance
         )
-        let secondAnchor = try secondSurface.parameterProjection(
-            of: anchorPoint,
-            tolerance: tolerance
+        return try SurfaceParameterProjection(
+            u: parameter.x,
+            v: parameter.y,
+            point: reconstructed,
+            residual: (reconstructed - point).length
         )
-        return .curve(try SurfaceSurfaceIntersectionCurve(
-            truth: .parametric(.bSpline(curve)),
-            derivedRepresentation: try SurfaceSurfaceIntersectionDerivedRepresentation(
-                curve: .bSpline(curve),
-                firstSurfaceParameterCurve: firstPcurve,
-                secondSurfaceParameterCurve: secondPcurve,
-                maximumResidualUpperBound: segments.map(\.maximumResidual).max() ?? 0.0,
-                tolerance: tolerance
-            ),
-            kind: kind,
-            firstSurfaceAnchor: firstAnchor,
-            secondSurfaceAnchor: secondAnchor,
-            tolerance: tolerance
-        ))
     }
 
     private func validatedBreaks(

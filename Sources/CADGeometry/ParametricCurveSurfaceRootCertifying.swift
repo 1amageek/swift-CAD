@@ -16,7 +16,7 @@ struct ParametricCurveSurfaceRootCell: Sendable {
 protocol ParametricCurveSurfaceRootCertifying: Sendable {
     func certificate(
         curve: Curve3D,
-        surface: BSplineSurface3D,
+        surface: Surface3D,
         cell: ParametricCurveSurfaceRootCell,
         tolerance: ModelingTolerance
     ) throws -> ParametricCurveSurfaceRootCertificate
@@ -25,7 +25,7 @@ protocol ParametricCurveSurfaceRootCertifying: Sendable {
     /// can exist in the supplied boundary cell.
     func boundaryCertificate(
         curve: Curve3D,
-        surface: BSplineSurface3D,
+        surface: Surface3D,
         cell: ParametricCurveSurfaceRootCell,
         witness: CurveSurfaceIntersection,
         tolerance: ModelingTolerance

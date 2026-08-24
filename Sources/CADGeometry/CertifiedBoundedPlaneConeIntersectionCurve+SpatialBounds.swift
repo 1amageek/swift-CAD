@@ -32,6 +32,7 @@ extension CertifiedBoundedPlaneConeIntersectionCurve {
         ).nextUp
         let first: Double
         let second: Double
+        let third: Double
 
         switch analyticCurve {
         case let .hyperbola(curve):
@@ -82,6 +83,19 @@ extension CertifiedBoundedPlaneConeIntersectionCurve {
                 parameterSpan,
                 tolerance: tolerance
             )
+            third = try upperProduct(
+                try upperProduct(
+                    try upperProduct(
+                        sourceFirst,
+                        parameterSpan,
+                        tolerance: tolerance
+                    ),
+                    parameterSpan,
+                    tolerance: tolerance
+                ),
+                parameterSpan,
+                tolerance: tolerance
+            )
         case let .parabola(curve):
             let scaledParameter = try upperProduct(
                 maximumParameterMagnitude,
@@ -104,6 +118,7 @@ extension CertifiedBoundedPlaneConeIntersectionCurve {
                 parameterSpan,
                 tolerance: tolerance
             )
+            third = 0.0
         case .line, .circle, .arc, .ellipse, .planeTorus:
             throw KernelError(
                 phase: .geometry,
@@ -113,7 +128,7 @@ extension CertifiedBoundedPlaneConeIntersectionCurve {
             )
         }
 
-        guard first.isFinite, second.isFinite else {
+        guard first.isFinite, second.isFinite, third.isFinite else {
             throw resourceFailure(
                 tolerance: tolerance,
                 message: "Bounded plane-cone differential certification exceeded finite arithmetic."
@@ -121,7 +136,8 @@ extension CertifiedBoundedPlaneConeIntersectionCurve {
         }
         return SpatialDifferentialMagnitudeBounds(
             first: first.nextUp,
-            second: second.nextUp
+            second: second.nextUp,
+            third: third.nextUp
         )
     }
 

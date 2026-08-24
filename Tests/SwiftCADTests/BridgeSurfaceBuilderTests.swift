@@ -40,7 +40,7 @@ struct BridgeSurfaceBuilderTests {
             return
         }
         try evaluated.brep.validate(level: .exact, tolerance: Self.testTolerance)
-        #expect(surface.uDegree == 2)
+        #expect(surface.uDegree == 4)
         #expect(surface.uKnots.contains(1.0 / 3.0))
     }
 
@@ -81,7 +81,7 @@ struct BridgeSurfaceBuilderTests {
             Issue.record("Bridge surface must retain exact rational B-spline geometry.")
             return
         }
-        #expect(surface.uDegree == 2)
+        #expect(surface.uDegree == 4)
         #expect(surface.vDegree == 1)
         #expect(surface.isRational)
         let orientedEnd = try end.reversed(tolerance: Self.testTolerance)
@@ -89,16 +89,34 @@ struct BridgeSurfaceBuilderTests {
             let fraction = Double(index) / 16.0
             let startParameter = fraction
             let endParameter = 2.0 + 3.0 * fraction
+            let startPoint = try start.point(
+                at: startParameter,
+                tolerance: Self.testTolerance
+            )
+            let endPoint = try orientedEnd.point(
+                at: endParameter,
+                tolerance: Self.testTolerance
+            )
             let startResidual = try (
                 surface.point(u: startParameter, v: 0.0, tolerance: Self.testTolerance)
-                    - start.point(at: startParameter, tolerance: Self.testTolerance)
+                    - startPoint
             ).length
             let endResidual = try (
                 surface.point(u: startParameter, v: 1.0, tolerance: Self.testTolerance)
-                    - orientedEnd.point(at: endParameter, tolerance: Self.testTolerance)
+                    - endPoint
+            ).length
+            let interiorFraction = 0.37
+            let interiorResidual = try (
+                surface.point(
+                    u: startParameter,
+                    v: interiorFraction,
+                    tolerance: Self.testTolerance
+                )
+                    - (startPoint + (endPoint - startPoint) * interiorFraction)
             ).length
             #expect(startResidual <= Self.testTolerance.distance)
             #expect(endResidual <= Self.testTolerance.distance)
+            #expect(interiorResidual <= Self.testTolerance.distance)
         }
 
         let lineage = evaluated.lineage.values.filter {
@@ -154,7 +172,7 @@ struct BridgeSurfaceBuilderTests {
                 Point3D(x: 1.0, y: 3.0, z: 1.0),
                 Point3D(x: 0.0, y: 3.0, z: 0.0),
             ],
-            weights: [1.0, 0.6, 1.0]
+            weights: [0.8, 1.7, 1.2]
         )
     }
 }

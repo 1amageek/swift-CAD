@@ -397,6 +397,89 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
         )
     }
 
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        try tolerance.validate()
+        guard fraction.isFinite,
+              fraction >= -tolerance.relative,
+              fraction <= 1.0 + tolerance.relative else {
+            throw GeometryError.invalidDistance(fraction)
+        }
+        let clamped = min(max(fraction, 0.0), 1.0)
+        let configuration = try Self.makeConfiguration(
+            sphereSurface: sphereSurface,
+            cylinderSurface: cylinderSurface,
+            tolerance: tolerance
+        )
+        let source = CurveTaylorScalarJet.variable(clamped)
+        let angle = try angleTaylorJet(
+            at: source,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let root = try signedSquareRootTaylorJet(
+            angle: angle,
+            fraction: source,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let height = CurveTaylorScalarJet(value: -configuration.axialCenter)
+            + root
+        let surface = try cylinderSurface.parameterDerivativesThroughThirdOrder(
+            atU: angle.value,
+            v: height.value,
+            tolerance: tolerance
+        )
+        let firstParameter = Point2D(
+            x: angle.firstDerivative,
+            y: height.firstDerivative
+        )
+        let secondParameter = Point2D(
+            x: angle.secondDerivative,
+            y: height.secondDerivative
+        )
+        let thirdParameter = Point2D(
+            x: angle.thirdDerivative,
+            y: height.thirdDerivative
+        )
+        let lower = try differential(
+            atNormalizedFraction: clamped,
+            tolerance: tolerance
+        )
+        let reconstructedFirst = SurfaceParameterThirdOrderChainRule.firstDerivative(
+            surface: surface,
+            parameter: firstParameter
+        )
+        let reconstructedSecond = SurfaceParameterThirdOrderChainRule.secondDerivative(
+            surface: surface,
+            firstParameterDerivative: firstParameter,
+            secondParameterDerivative: secondParameter
+        )
+        let firstScale = max(lower.firstDerivative.length, 1.0)
+        let secondScale = max(lower.secondDerivative.length, 1.0)
+        let residual = max(
+            (reconstructedFirst - lower.firstDerivative).length / firstScale,
+            (reconstructedSecond - lower.secondDerivative).length / secondScale
+        )
+        guard residual <= tolerance.relative * 64.0 else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: residual,
+                tolerance: tolerance,
+                message: "Sphere-cylinder Taylor differentiation disagrees with the certified lower-order differential."
+            )
+        }
+        return SurfaceParameterThirdOrderChainRule.thirdDerivative(
+            surface: surface,
+            firstParameterDerivative: firstParameter,
+            secondParameterDerivative: secondParameter,
+            thirdParameterDerivative: thirdParameter
+        )
+    }
+
     public func parameter(
         on surface: Surface3D,
         atNormalizedFraction fraction: Double,
@@ -492,6 +575,11 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
             period,
             tolerance: tolerance
         )
+        let periodCubed = try upperProduct(
+            periodSquared,
+            period,
+            tolerance: tolerance
+        )
         let radicandFirst = try upperProduct(
             amplitude,
             period,
@@ -500,6 +588,11 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
         let radicandSecond = try upperProduct(
             amplitude,
             periodSquared,
+            tolerance: tolerance
+        )
+        let radicandThird = try upperProduct(
+            amplitude,
+            periodCubed,
             tolerance: tolerance
         )
         let rootLower = sqrt(minimumRadicand).nextDown
@@ -534,6 +627,50 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
             ),
             tolerance: tolerance
         )
+        let rootFifthLower = (
+            rootCubedLower * rootLower * rootLower
+        ).nextDown
+        let rootThird = try upperSum(
+            upperQuotient(
+                radicandThird,
+                (2.0 * rootLower).nextDown,
+                tolerance: tolerance
+            ),
+            upperSum(
+                upperQuotient(
+                    try upperProduct(
+                        3.0,
+                        try upperProduct(
+                            radicandFirst,
+                            radicandSecond,
+                            tolerance: tolerance
+                        ),
+                        tolerance: tolerance
+                    ),
+                    (4.0 * rootCubedLower).nextDown,
+                    tolerance: tolerance
+                ),
+                upperQuotient(
+                    try upperProduct(
+                        3.0,
+                        try upperProduct(
+                            radicandFirst,
+                            try upperProduct(
+                                radicandFirst,
+                                radicandFirst,
+                                tolerance: tolerance
+                            ),
+                            tolerance: tolerance
+                        ),
+                        tolerance: tolerance
+                    ),
+                    (8.0 * rootFifthLower).nextDown,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
         let angularFirst = try upperProduct(
             configuration.cylinder.radius,
             period,
@@ -544,9 +681,15 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
             periodSquared,
             tolerance: tolerance
         )
+        let angularThird = try upperProduct(
+            configuration.cylinder.radius,
+            periodCubed,
+            tolerance: tolerance
+        )
         let first = hypot(angularFirst, rootFirst).nextUp
         let second = hypot(angularSecond, rootSecond).nextUp
-        guard first.isFinite, second.isFinite else {
+        let third = hypot(angularThird, rootThird).nextUp
+        guard first.isFinite, second.isFinite, third.isFinite else {
             throw resourceFailure(
                 tolerance: tolerance,
                 message: "Sphere-cylinder differential certification exceeded finite arithmetic."
@@ -554,7 +697,8 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
         }
         return SpatialDifferentialMagnitudeBounds(
             first: first,
-            second: second
+            second: second,
+            third: third
         )
     }
 
@@ -597,43 +741,52 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
         let phaseUpper = 2.0 * Double.pi
             * min(upperFraction, 1.0)
         let halfSpan = ((upperAngle - lowerAngle) * 0.5).nextUp
-        let endpointSinc = Self.sincValue(at: halfSpan)
-        let amplitudeLower = configuration.radicandAmplitude.nextDown
-        let amplitudeUpper = configuration.radicandAmplitude.nextUp
-        let factorLower = (
-            amplitudeLower * 0.5 * endpointSinc * endpointSinc
-                - arithmeticEnvelope
-        ).nextDown
-        let factorUpper = (
-            amplitudeUpper * 0.5 + arithmeticEnvelope
-        ).nextUp
-        let factorFirst = (
-            amplitudeUpper * 0.25 + arithmeticEnvelope
-        ).nextUp
-        let factorSecond = (
-            amplitudeUpper * 7.0 / 48.0 + arithmeticEnvelope
-        ).nextUp
-        let rootLower = sqrt(factorLower).nextDown
-        let rootUpper = sqrt(factorUpper).nextUp
-        guard rootLower > 0.0, rootUpper.isFinite else {
-            throw resourceFailure(
-                tolerance: tolerance,
-                message: "A bounded sphere-cylinder regularized square-root factor lost its positive margin."
-            )
-        }
-        let rootFirst = (
-            factorFirst / (2.0 * rootLower).nextDown
-        ).nextUp
-        let rootCubedLower = (
-            factorLower * rootLower
-        ).nextDown
-        let rootSecond = (
-            factorSecond / (2.0 * rootLower).nextDown
-                + factorFirst * factorFirst
-                    / (4.0 * rootCubedLower).nextDown
-        ).nextUp
+        let amplitude = configuration.radicandAmplitude.nextUp
+        let factor = try EndpointRegularizedFactorBounder().bounds(
+            componentLower: lowerAngle,
+            componentUpper: upperAngle,
+            requestedLower: lowerAngle,
+            requestedUpper: upperAngle,
+            lowerValue: configuration.radicand(at: lowerAngle),
+            upperValue: configuration.radicand(at: upperAngle),
+            lowerDerivative: configuration.radicandFirstDerivative(
+                at: lowerAngle
+            ),
+            upperDerivative: configuration.radicandFirstDerivative(
+                at: upperAngle
+            ),
+            firstDerivativeMagnitudeUpperBound: amplitude,
+            secondDerivativeMagnitudeUpperBound: amplitude,
+            thirdDerivativeMagnitudeUpperBound: amplitude,
+            fourthDerivativeMagnitudeUpperBound: amplitude,
+            arithmeticEnvelope: arithmeticEnvelope,
+            valueRange: { lower, upper in
+                (
+                    Self.minimumRadicand(
+                        from: lower,
+                        to: upper,
+                        configuration: configuration
+                    ).nextDown,
+                    (
+                        configuration.radicandCenter
+                            + configuration.radicandAmplitude
+                    ).nextUp
+                )
+            },
+            tolerance: tolerance,
+            label: "Sphere-cylinder bounded branch"
+        )
+        let rootBounds = try factorSquareRootBounds(
+            lower: factor.lower,
+            upper: factor.upper,
+            first: factor.first,
+            second: factor.second,
+            third: factor.third,
+            tolerance: tolerance
+        )
         let period = (2.0 * Double.pi).nextUp
         let periodSquared = (period * period).nextUp
+        let periodCubed = (periodSquared * period).nextUp
         let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(
             lower: phaseLower,
             upper: phaseUpper,
@@ -650,22 +803,53 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
         let angleSecond = (
             halfSpan * periodSquared * cosineMagnitude
         ).nextUp
+        let angleThird = (
+            halfSpan * periodCubed * sineMagnitude
+        ).nextUp
         let transverseFirst = (
             halfSpan * (
-                period * cosineMagnitude * rootUpper
-                    + sineMagnitude * rootFirst * angleFirst
+                period * cosineMagnitude * rootBounds.value
+                    + sineMagnitude * rootBounds.first * angleFirst
             )
         ).nextUp
         let transverseSecond = (
             halfSpan * (
-                periodSquared * sineMagnitude * rootUpper
+                periodSquared * sineMagnitude * rootBounds.value
                     + 2.0 * period * cosineMagnitude
-                        * rootFirst * angleFirst
+                        * rootBounds.first * angleFirst
                     + sineMagnitude * (
-                        rootSecond * angleFirst * angleFirst
-                            + rootFirst * angleSecond
+                        rootBounds.second * angleFirst * angleFirst
+                            + rootBounds.first * angleSecond
                     )
             )
+        ).nextUp
+        let rootByFractionFirst = (
+            rootBounds.first * angleFirst
+        ).nextUp
+        let rootByFractionSecond = (
+            rootBounds.second * angleFirst * angleFirst
+                + rootBounds.first * angleSecond
+        ).nextUp
+        let rootByFractionThird = (
+            rootBounds.third * angleFirst * angleFirst * angleFirst
+                + 3.0 * rootBounds.second * angleFirst * angleSecond
+                + rootBounds.first * angleThird
+        ).nextUp
+        let prefixValue = (halfSpan * sineMagnitude).nextUp
+        let prefixFirst = (
+            halfSpan * period * cosineMagnitude
+        ).nextUp
+        let prefixSecond = (
+            halfSpan * periodSquared * sineMagnitude
+        ).nextUp
+        let prefixThird = (
+            halfSpan * periodCubed * cosineMagnitude
+        ).nextUp
+        let transverseThird = (
+            prefixThird * rootBounds.value
+                + 3.0 * prefixSecond * rootByFractionFirst
+                + 3.0 * prefixFirst * rootByFractionSecond
+                + prefixValue * rootByFractionThird
         ).nextUp
         let radialFirst = (
             configuration.cylinder.radius * angleFirst
@@ -674,9 +858,17 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
             configuration.cylinder.radius
                 * hypot(angleFirst * angleFirst, angleSecond)
         ).nextUp
+        let radialThird = (
+            configuration.cylinder.radius * (
+                angleFirst * angleFirst * angleFirst
+                    + 3.0 * angleFirst * angleSecond
+                    + angleThird
+            )
+        ).nextUp
         let first = hypot(radialFirst, transverseFirst).nextUp
         let second = hypot(radialSecond, transverseSecond).nextUp
-        guard first.isFinite, second.isFinite else {
+        let third = hypot(radialThird, transverseThird).nextUp
+        guard first.isFinite, second.isFinite, third.isFinite else {
             throw resourceFailure(
                 tolerance: tolerance,
                 message: "Bounded sphere-cylinder spatial differentiation exceeded finite arithmetic."
@@ -684,7 +876,8 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
         }
         return SpatialDifferentialMagnitudeBounds(
             first: first,
-            second: second
+            second: second,
+            third: third
         )
     }
 
@@ -796,15 +989,30 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
                 + amplitude * amplitude
                     / (4.0 * rootCubedLower).nextDown
         ).nextUp
+        let rootFifthLower = (
+            minimumRadicand * minimumRadicand * rootLower
+        ).nextDown
+        let rootThirdByAngle = (
+            amplitude / (2.0 * rootLower).nextDown
+                + 3.0 * amplitude * amplitude
+                    / (4.0 * rootCubedLower).nextDown
+                + 3.0 * amplitude * amplitude * amplitude
+                    / (8.0 * rootFifthLower).nextDown
+        ).nextUp
         let axialFirst = (rootFirstByAngle * span).nextUp
         let axialSecond = (
             rootSecondByAngle * span * span
         ).nextUp
+        let axialThird = (
+            rootThirdByAngle * span * span * span
+        ).nextUp
         return try spatialBounds(
             angleFirst: span,
             angleSecond: 0.0,
+            angleThird: 0.0,
             axialFirst: axialFirst,
             axialSecond: axialSecond,
+            axialThird: axialThird,
             configuration: configuration,
             tolerance: tolerance
         )
@@ -823,25 +1031,54 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
                 * 131_072.0
         ).nextUp
         let halfSpan = ((upperAngle - lowerAngle) * 0.5).nextUp
-        let endpointSinc = Self.sincValue(at: halfSpan)
-        let amplitudeLower = configuration.radicandAmplitude.nextDown
-        let amplitudeUpper = configuration.radicandAmplitude.nextUp
+        let span = (upperAngle - lowerAngle).nextUp
+        let requestedLower = lowerAngle + span * (
+            0.5 - 0.5 * cos(Double.pi * lowerFraction)
+        )
+        let requestedUpper = lowerAngle + span * (
+            0.5 - 0.5 * cos(Double.pi * upperFraction)
+        )
+        let amplitude = configuration.radicandAmplitude.nextUp
+        let factor = try EndpointRegularizedFactorBounder().bounds(
+            componentLower: lowerAngle,
+            componentUpper: upperAngle,
+            requestedLower: requestedLower.nextDown,
+            requestedUpper: requestedUpper.nextUp,
+            lowerValue: configuration.radicand(at: lowerAngle),
+            upperValue: configuration.radicand(at: upperAngle),
+            lowerDerivative: configuration.radicandFirstDerivative(
+                at: lowerAngle
+            ),
+            upperDerivative: configuration.radicandFirstDerivative(
+                at: upperAngle
+            ),
+            firstDerivativeMagnitudeUpperBound: amplitude,
+            secondDerivativeMagnitudeUpperBound: amplitude,
+            thirdDerivativeMagnitudeUpperBound: amplitude,
+            fourthDerivativeMagnitudeUpperBound: amplitude,
+            arithmeticEnvelope: arithmeticEnvelope,
+            valueRange: { lower, upper in
+                (
+                    Self.minimumRadicand(
+                        from: lower,
+                        to: upper,
+                        configuration: configuration
+                    ).nextDown,
+                    (
+                        configuration.radicandCenter
+                            + configuration.radicandAmplitude
+                    ).nextUp
+                )
+            },
+            tolerance: tolerance,
+            label: "Sphere-cylinder two-simple-root open branch"
+        )
         let rootBounds = try factorSquareRootBounds(
-            lower: (
-                amplitudeLower * 0.5
-                    * endpointSinc * endpointSinc
-                    - arithmeticEnvelope
-            ).nextDown,
-            upper: (
-                amplitudeUpper * 0.5 + arithmeticEnvelope
-            ).nextUp,
-            first: (
-                amplitudeUpper * 0.25 + arithmeticEnvelope
-            ).nextUp,
-            second: (
-                amplitudeUpper * 7.0 / 48.0
-                    + arithmeticEnvelope
-            ).nextUp,
+            lower: factor.lower,
+            upper: factor.upper,
+            first: factor.first,
+            second: factor.second,
+            third: factor.third,
             tolerance: tolerance
         )
         let phaseLower = Double.pi * lowerFraction
@@ -862,6 +1099,9 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
         let angleSecond = (
             halfSpan * Double.pi * Double.pi * cosineMagnitude
         ).nextUp
+        let angleThird = (
+            halfSpan * pow(Double.pi, 3.0) * sineMagnitude
+        ).nextUp
         let axialFirst = (
             halfSpan * (
                 Double.pi * cosineMagnitude * rootBounds.value
@@ -880,11 +1120,41 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
                     )
             )
         ).nextUp
+        let rootByFractionFirst = (
+            rootBounds.first * angleFirst
+        ).nextUp
+        let rootByFractionSecond = (
+            rootBounds.second * angleFirst * angleFirst
+                + rootBounds.first * angleSecond
+        ).nextUp
+        let rootByFractionThird = (
+            rootBounds.third * angleFirst * angleFirst * angleFirst
+                + 3.0 * rootBounds.second * angleFirst * angleSecond
+                + rootBounds.first * angleThird
+        ).nextUp
+        let prefixValue = (halfSpan * sineMagnitude).nextUp
+        let prefixFirst = (
+            halfSpan * Double.pi * cosineMagnitude
+        ).nextUp
+        let prefixSecond = (
+            halfSpan * Double.pi * Double.pi * sineMagnitude
+        ).nextUp
+        let prefixThird = (
+            halfSpan * pow(Double.pi, 3.0) * cosineMagnitude
+        ).nextUp
+        let axialThird = (
+            prefixThird * rootBounds.value
+                + 3.0 * prefixSecond * rootByFractionFirst
+                + 3.0 * prefixFirst * rootByFractionSecond
+                + prefixValue * rootByFractionThird
+        ).nextUp
         return try spatialBounds(
             angleFirst: angleFirst,
             angleSecond: angleSecond,
+            angleThird: angleThird,
             axialFirst: axialFirst,
             axialSecond: axialSecond,
+            axialThird: axialThird,
             configuration: configuration,
             tolerance: tolerance
         )
@@ -910,157 +1180,161 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
         let requestedLowerAngle = min(
             lowerAngleGeometry.value,
             upperAngleGeometry.value
-        )
+        ).nextDown
         let requestedUpperAngle = max(
             lowerAngleGeometry.value,
             upperAngleGeometry.value
-        )
+        ).nextUp
         let arithmeticEnvelope = (
             Double.ulpOfOne
                 * configuration.characteristicLength
                 * configuration.characteristicLength
                 * 131_072.0
         ).nextUp
-        let amplitudeLower = configuration.radicandAmplitude.nextDown
-        let amplitudeUpper = configuration.radicandAmplitude.nextUp
-        let factorLower: Double
-        let factorUpper: Double
-        let factorFirst: Double
-        let factorSecond: Double
+        let amplitude = configuration.radicandAmplitude.nextUp
         let span = (upperAngle - lowerAngle).nextUp
+        let factor: EndpointRegularizedFactorBounder.Bounds
         let angleFirst: Double
         let angleSecond: Double
+        let angleThird: Double
         let prefixValue: Double
         let prefixFirst: Double
         let prefixSecond: Double
+        let prefixThird: Double
+
         switch structure {
         case .lowerSimpleRoot, .upperSimpleRoot:
-            let isLowerRoot = structure == .lowerSimpleRoot
-            let endpoint = isLowerRoot ? lowerAngle : upperAngle
-            let phase = atan2(
-                configuration.radicandSine,
-                configuration.radicandCosine
+            let rootAtLower = structure == .lowerSimpleRoot
+            let endpoint = rootAtLower ? lowerAngle : upperAngle
+            factor = try EndpointRegularizedFactorBounder().oneSidedBounds(
+                componentLower: lowerAngle,
+                componentUpper: upperAngle,
+                requestedLower: requestedLowerAngle,
+                requestedUpper: requestedUpperAngle,
+                rootAtLower: rootAtLower,
+                endpointValue: configuration.radicand(at: endpoint),
+                endpointDerivative:
+                    configuration.radicandFirstDerivative(at: endpoint),
+                firstDerivativeMagnitudeUpperBound: amplitude,
+                secondDerivativeMagnitudeUpperBound: amplitude,
+                thirdDerivativeMagnitudeUpperBound: amplitude,
+                fourthDerivativeMagnitudeUpperBound: amplitude,
+                arithmeticEnvelope: arithmeticEnvelope,
+                orientedValueRange: { lower, upper in
+                    (
+                        Self.minimumRadicand(
+                            from: lower,
+                            to: upper,
+                            configuration: configuration
+                        ).nextDown,
+                        (
+                            configuration.radicandCenter
+                                + configuration.radicandAmplitude
+                        ).nextUp
+                    )
+                },
+                tolerance: tolerance,
+                label: "Sphere-cylinder one-sided simple-root branch"
             )
-            let firstMidpoint = (
-                requestedLowerAngle + endpoint
-            ) * 0.5 - phase
-            let secondMidpoint = (
-                requestedUpperAngle + endpoint
-            ) * 0.5 - phase
-            let firstAmplitude = isLowerRoot
-                ? -sin(firstMidpoint)
-                : sin(firstMidpoint)
-            let secondAmplitude = isLowerRoot
-                ? -sin(secondMidpoint)
-                : sin(secondMidpoint)
-            let minimumAmplitude = min(
-                firstAmplitude,
-                secondAmplitude
-            ).nextDown
-            let maximumDistance = max(
-                abs(requestedLowerAngle - endpoint),
-                abs(requestedUpperAngle - endpoint)
-            ).nextUp
-            let minimumSinc = Self.sincValue(
-                at: maximumDistance * 0.5
-            ).nextDown
-            factorLower = (
-                amplitudeLower * minimumAmplitude * minimumSinc
-                    - arithmeticEnvelope
-            ).nextDown
-            factorUpper = (
-                amplitudeUpper + arithmeticEnvelope
-            ).nextUp
-            factorFirst = (
-                amplitudeUpper * 0.75 + arithmeticEnvelope
-            ).nextUp
-            factorSecond = (
-                amplitudeUpper * 7.0 / 12.0
-                    + arithmeticEnvelope
-            ).nextUp
             let angularRate = Double.pi * 0.5
             let angularPhaseLower = angularRate * lowerFraction
             let angularPhaseUpper = angularRate * upperFraction
-            let angularFirstMagnitude =
-                Self.maximumAbsoluteTrigonometricValue(
-                    lower: angularPhaseLower,
-                    upper: angularPhaseUpper,
-                    phase: isLowerRoot ? Double.pi * 0.5 : 0.0
-                )
-            let angularSecondMagnitude =
-                Self.maximumAbsoluteTrigonometricValue(
-                    lower: angularPhaseLower,
-                    upper: angularPhaseUpper,
-                    phase: isLowerRoot ? 0.0 : Double.pi * 0.5
-                )
-            angleFirst = (
-                span * angularRate * angularFirstMagnitude
-            ).nextUp
+            let firstMagnitude = Self.maximumAbsoluteTrigonometricValue(
+                lower: angularPhaseLower,
+                upper: angularPhaseUpper,
+                phase: rootAtLower ? Double.pi * 0.5 : 0.0
+            )
+            let secondMagnitude = Self.maximumAbsoluteTrigonometricValue(
+                lower: angularPhaseLower,
+                upper: angularPhaseUpper,
+                phase: rootAtLower ? 0.0 : Double.pi * 0.5
+            )
+            angleFirst = (span * angularRate * firstMagnitude).nextUp
             angleSecond = (
-                span * angularRate * angularRate
-                    * angularSecondMagnitude
+                span * angularRate * angularRate * secondMagnitude
             ).nextUp
+            angleThird = (
+                span * pow(angularRate, 3.0) * firstMagnitude
+            ).nextUp
+
             let prefixScale = sqrt(2.0 * span).nextUp
             let prefixRate = Double.pi * 0.25
-            let prefixPhaseLower = isLowerRoot
+            let prefixPhaseLower = rootAtLower
                 ? prefixRate * lowerFraction
                 : prefixRate * (1.0 - upperFraction)
-            let prefixPhaseUpper = isLowerRoot
+            let prefixPhaseUpper = rootAtLower
                 ? prefixRate * upperFraction
                 : prefixRate * (1.0 - lowerFraction)
-            let prefixSineMagnitude =
-                Self.maximumAbsoluteTrigonometricValue(
-                    lower: prefixPhaseLower,
-                    upper: prefixPhaseUpper,
-                    phase: Double.pi * 0.5
-                )
-            let prefixCosineMagnitude =
-                Self.maximumAbsoluteTrigonometricValue(
-                    lower: prefixPhaseLower,
-                    upper: prefixPhaseUpper,
-                    phase: 0.0
-                )
-            prefixValue = (
-                prefixScale * prefixSineMagnitude
-            ).nextUp
+            let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+                lower: prefixPhaseLower,
+                upper: prefixPhaseUpper,
+                phase: Double.pi * 0.5
+            )
+            let cosineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+                lower: prefixPhaseLower,
+                upper: prefixPhaseUpper,
+                phase: 0.0
+            )
+            prefixValue = (prefixScale * sineMagnitude).nextUp
             prefixFirst = (
-                prefixScale * prefixRate * prefixCosineMagnitude
+                prefixScale * prefixRate * cosineMagnitude
             ).nextUp
             prefixSecond = (
-                prefixScale * prefixRate * prefixRate
-                    * prefixSineMagnitude
+                prefixScale * prefixRate * prefixRate * sineMagnitude
             ).nextUp
+            prefixThird = (
+                prefixScale * pow(prefixRate, 3.0) * cosineMagnitude
+            ).nextUp
+
         case .lowerDoubleRoot, .upperDoubleRoot:
-            let endpoint = structure == .lowerDoubleRoot
-                ? lowerAngle
-                : upperAngle
+            let rootAtLower = structure == .lowerDoubleRoot
+            let endpoint = rootAtLower ? lowerAngle : upperAngle
+            factor = try EndpointRegularizedFactorBounder()
+                .oneSidedDoubleRootBounds(
+                    componentLower: lowerAngle,
+                    componentUpper: upperAngle,
+                    requestedLower: requestedLowerAngle,
+                    requestedUpper: requestedUpperAngle,
+                    rootAtLower: rootAtLower,
+                    endpointValue: configuration.radicand(at: endpoint),
+                    endpointDerivative:
+                        configuration.radicandFirstDerivative(at: endpoint),
+                    endpointSecondDerivative:
+                        configuration.radicandSecondDerivative(at: endpoint),
+                    firstDerivativeMagnitudeUpperBound: amplitude,
+                    secondDerivativeMagnitudeUpperBound: amplitude,
+                    thirdDerivativeMagnitudeUpperBound: amplitude,
+                    fourthDerivativeMagnitudeUpperBound: amplitude,
+                    fifthDerivativeMagnitudeUpperBound: amplitude,
+                    arithmeticEnvelope: arithmeticEnvelope,
+                    valueRange: { lower, upper in
+                        (
+                            Self.minimumRadicand(
+                                from: lower,
+                                to: upper,
+                                configuration: configuration
+                            ).nextDown,
+                            (
+                                configuration.radicandCenter
+                                    + configuration.radicandAmplitude
+                            ).nextUp
+                        )
+                    },
+                    tolerance: tolerance,
+                    label: "Sphere-cylinder one-sided double-root branch"
+                )
             let maximumDistance = max(
                 abs(requestedLowerAngle - endpoint),
                 abs(requestedUpperAngle - endpoint)
             ).nextUp
-            let minimumSinc = Self.sincValue(
-                at: maximumDistance * 0.5
-            ).nextDown
-            factorLower = (
-                amplitudeLower * 0.5
-                    * minimumSinc * minimumSinc
-                    - arithmeticEnvelope
-            ).nextDown
-            factorUpper = (
-                amplitudeUpper * 0.5 + arithmeticEnvelope
-            ).nextUp
-            factorFirst = (
-                amplitudeUpper * 0.25 + arithmeticEnvelope
-            ).nextUp
-            factorSecond = (
-                amplitudeUpper * 7.0 / 48.0
-                    + arithmeticEnvelope
-            ).nextUp
             angleFirst = span
             angleSecond = 0.0
+            angleThird = 0.0
             prefixValue = maximumDistance
             prefixFirst = span
             prefixSecond = 0.0
+            prefixThird = 0.0
+
         case .rootFree, .twoSimpleRoots, .twoDoubleRoots:
             throw KernelError(
                 phase: .geometry,
@@ -1069,35 +1343,53 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
                 message: "A non-one-sided sphere-cylinder endpoint structure reached the one-sided differential bounder."
             )
         }
+
         let rootBounds = try factorSquareRootBounds(
-            lower: factorLower,
-            upper: factorUpper,
-            first: factorFirst,
-            second: factorSecond,
+            lower: factor.lower,
+            upper: factor.upper,
+            first: factor.first,
+            second: factor.second,
+            third: factor.third,
             tolerance: tolerance
         )
+        let rootByFractionFirst = (
+            rootBounds.first * angleFirst
+        ).nextUp
+        let rootByFractionSecond = (
+            rootBounds.second * angleFirst * angleFirst
+                + rootBounds.first * angleSecond
+        ).nextUp
+        let rootByFractionThird = (
+            rootBounds.third * angleFirst * angleFirst * angleFirst
+                + 3.0 * rootBounds.second * angleFirst * angleSecond
+                + rootBounds.first * angleThird
+        ).nextUp
         let axialFirst = (
             prefixFirst * rootBounds.value
-                + prefixValue * rootBounds.first * angleFirst
+                + prefixValue * rootByFractionFirst
         ).nextUp
         let axialSecond = (
             prefixSecond * rootBounds.value
-                + 2.0 * prefixFirst * rootBounds.first * angleFirst
-                + prefixValue * (
-                    rootBounds.second * angleFirst * angleFirst
-                        + rootBounds.first * angleSecond
-                )
+                + 2.0 * prefixFirst * rootByFractionFirst
+                + prefixValue * rootByFractionSecond
+        ).nextUp
+        let axialThird = (
+            prefixThird * rootBounds.value
+                + 3.0 * prefixSecond * rootByFractionFirst
+                + 3.0 * prefixFirst * rootByFractionSecond
+                + prefixValue * rootByFractionThird
         ).nextUp
         return try spatialBounds(
             angleFirst: angleFirst,
             angleSecond: angleSecond,
+            angleThird: angleThird,
             axialFirst: axialFirst,
             axialSecond: axialSecond,
+            axialThird: axialThird,
             configuration: configuration,
             tolerance: tolerance
         )
     }
-
     private func twoDoubleRootOpenSpatialDifferentialMagnitudeBounds(
         fromNormalizedFraction lowerFraction: Double,
         toNormalizedFraction upperFraction: Double,
@@ -1125,11 +1417,16 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
         let axialSecond = (
             axialScale * Double.pi * Double.pi * sineMagnitude
         ).nextUp
+        let axialThird = (
+            axialScale * pow(Double.pi, 3.0) * cosineMagnitude
+        ).nextUp
         return try spatialBounds(
             angleFirst: (upperAngle - lowerAngle).nextUp,
             angleSecond: 0.0,
+            angleThird: 0.0,
             axialFirst: axialFirst,
             axialSecond: axialSecond,
+            axialThird: axialThird,
             configuration: configuration,
             tolerance: tolerance
         )
@@ -1140,14 +1437,21 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
         upper: Double,
         first: Double,
         second: Double,
+        third: Double,
         tolerance: ModelingTolerance
-    ) throws -> (value: Double, first: Double, second: Double) {
+    ) throws -> (
+        value: Double,
+        first: Double,
+        second: Double,
+        third: Double
+    ) {
         let rootLower = sqrt(lower).nextDown
         let rootUpper = sqrt(upper).nextUp
         guard rootLower > 0.0,
               rootUpper.isFinite,
               first.isFinite,
-              second.isFinite else {
+              second.isFinite,
+              third.isFinite else {
             throw resourceFailure(
                 tolerance: tolerance,
                 message: "A sphere-cylinder regularized square-root factor lost its positive finite margin."
@@ -1162,14 +1466,24 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
                 + first * first
                     / (4.0 * rootCubedLower).nextDown
         ).nextUp
-        return (rootUpper, rootFirst, rootSecond)
+        let rootFifthLower = (lower * lower * rootLower).nextDown
+        let rootThird = (
+            third / (2.0 * rootLower).nextDown
+                + 3.0 * first * second
+                    / (4.0 * rootCubedLower).nextDown
+                + 3.0 * first * first * first
+                    / (8.0 * rootFifthLower).nextDown
+        ).nextUp
+        return (rootUpper, rootFirst, rootSecond, rootThird)
     }
 
     private func spatialBounds(
         angleFirst: Double,
         angleSecond: Double,
+        angleThird: Double,
         axialFirst: Double,
         axialSecond: Double,
+        axialThird: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
@@ -1180,9 +1494,17 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
             configuration.cylinder.radius
                 * hypot(angleFirst * angleFirst, angleSecond)
         ).nextUp
+        let radialThird = (
+            configuration.cylinder.radius * (
+                angleFirst * angleFirst * angleFirst
+                    + 3.0 * angleFirst * angleSecond
+                    + angleThird
+            )
+        ).nextUp
         let first = hypot(radialFirst, axialFirst).nextUp
         let second = hypot(radialSecond, axialSecond).nextUp
-        guard first.isFinite, second.isFinite else {
+        let third = hypot(radialThird, axialThird).nextUp
+        guard first.isFinite, second.isFinite, third.isFinite else {
             throw resourceFailure(
                 tolerance: tolerance,
                 message: "Sphere-cylinder spatial differentiation exceeded finite arithmetic."
@@ -1190,7 +1512,8 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
         }
         return SpatialDifferentialMagnitudeBounds(
             first: first,
-            second: second
+            second: second,
+            third: third
         )
     }
 
@@ -1407,6 +1730,240 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
                 second: span * normalized.second
             )
         }
+    }
+
+    private func angleTaylorJet(
+        at fraction: CurveTaylorScalarJet,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> CurveTaylorScalarJet {
+        let period = 2.0 * Double.pi
+        switch componentKind {
+        case .negativeFullBranch, .positiveFullBranch:
+            return fraction.scaled(by: period)
+        case .boundedAngularInterval:
+            let midpoint = lowerAngle + (upperAngle - lowerAngle) * 0.5
+            let halfSpan = (upperAngle - lowerAngle) * 0.5
+            return CurveTaylorScalarJet(value: midpoint)
+                - fraction.scaled(by: period).cosine().scaled(by: halfSpan)
+        case .negativeOpenAngularInterval,
+             .positiveOpenAngularInterval:
+            let structure = try openEndpointStructure(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            let normalized: CurveTaylorScalarJet
+            switch structure {
+            case .twoSimpleRoots:
+                normalized = CurveTaylorScalarJet(value: 0.5)
+                    - fraction.scaled(by: Double.pi).cosine().scaled(by: 0.5)
+            case .lowerSimpleRoot:
+                normalized = CurveTaylorScalarJet(value: 1.0)
+                    - fraction.scaled(by: Double.pi * 0.5).cosine()
+            case .upperSimpleRoot:
+                normalized = fraction.scaled(by: Double.pi * 0.5).sine()
+            case .rootFree, .lowerDoubleRoot, .upperDoubleRoot,
+                 .twoDoubleRoots:
+                normalized = fraction
+            }
+            return CurveTaylorScalarJet(value: lowerAngle)
+                + normalized.scaled(by: upperAngle - lowerAngle)
+        }
+    }
+
+    private func signedSquareRootTaylorJet(
+        angle: CurveTaylorScalarJet,
+        fraction: CurveTaylorScalarJet,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> CurveTaylorScalarJet {
+        let context = "Sphere-cylinder third derivative"
+        let branchSign: Double
+        switch componentKind {
+        case .negativeFullBranch, .negativeOpenAngularInterval:
+            branchSign = -1.0
+        case .positiveFullBranch, .positiveOpenAngularInterval,
+             .boundedAngularInterval:
+            branchSign = 1.0
+        }
+        if componentKind == .boundedAngularInterval {
+            let factor = try regularizedRadicandFactorTaylorJet(
+                angle: angle,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            let prefix = fraction.scaled(by: 2.0 * Double.pi).sine()
+                .scaled(by: (upperAngle - lowerAngle) * 0.5)
+            return try (prefix * factor.squareRoot(
+                tolerance: tolerance,
+                diagnosticContext: context
+            )).validated(tolerance: tolerance, diagnosticContext: context)
+        }
+        if componentKind == .negativeOpenAngularInterval
+            || componentKind == .positiveOpenAngularInterval {
+            let structure = try openEndpointStructure(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            switch structure {
+            case .rootFree:
+                break
+            case .twoDoubleRoots:
+                return fraction.scaled(by: Double.pi).sine().scaled(
+                    by: branchSign * sqrt(2.0 * configuration.radicandAmplitude)
+                )
+            case .twoSimpleRoots, .lowerSimpleRoot, .upperSimpleRoot,
+                 .lowerDoubleRoot, .upperDoubleRoot:
+                let factor: CurveTaylorScalarJet
+                let prefix: CurveTaylorScalarJet
+                switch structure {
+                case .twoSimpleRoots:
+                    factor = try regularizedRadicandFactorTaylorJet(
+                        angle: angle,
+                        configuration: configuration,
+                        tolerance: tolerance
+                    )
+                    prefix = fraction.scaled(by: Double.pi).sine()
+                        .scaled(by: (upperAngle - lowerAngle) * 0.5)
+                case .lowerSimpleRoot:
+                    factor = try simpleRootFactorTaylorJet(
+                        angle: angle,
+                        endpoint: lowerAngle,
+                        isLowerRoot: true,
+                        configuration: configuration,
+                        tolerance: tolerance
+                    )
+                    prefix = fraction.scaled(by: Double.pi * 0.25).sine()
+                        .scaled(by: sqrt(2.0 * (upperAngle - lowerAngle)))
+                case .upperSimpleRoot:
+                    factor = try simpleRootFactorTaylorJet(
+                        angle: angle,
+                        endpoint: upperAngle,
+                        isLowerRoot: false,
+                        configuration: configuration,
+                        tolerance: tolerance
+                    )
+                    prefix = (
+                        CurveTaylorScalarJet(value: 1.0) - fraction
+                    ).scaled(by: Double.pi * 0.25).sine()
+                        .scaled(by: sqrt(2.0 * (upperAngle - lowerAngle)))
+                case .lowerDoubleRoot:
+                    factor = try doubleRootFactorTaylorJet(
+                        angle: angle,
+                        endpoint: lowerAngle,
+                        isLowerRoot: true,
+                        configuration: configuration,
+                        tolerance: tolerance
+                    )
+                    prefix = fraction.scaled(by: upperAngle - lowerAngle)
+                case .upperDoubleRoot:
+                    factor = try doubleRootFactorTaylorJet(
+                        angle: angle,
+                        endpoint: upperAngle,
+                        isLowerRoot: false,
+                        configuration: configuration,
+                        tolerance: tolerance
+                    )
+                    prefix = (CurveTaylorScalarJet(value: 1.0) - fraction)
+                        .scaled(by: upperAngle - lowerAngle)
+                case .rootFree, .twoDoubleRoots:
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .invalidInput,
+                        tolerance: tolerance,
+                        message: "An incompatible sphere-cylinder endpoint structure reached Taylor regularization."
+                    )
+                }
+                return try (
+                    prefix * factor.squareRoot(
+                        tolerance: tolerance,
+                        diagnosticContext: context
+                    )
+                ).scaled(by: branchSign).validated(
+                    tolerance: tolerance,
+                    diagnosticContext: context
+                )
+            }
+        }
+        let radicand = CurveTaylorScalarJet(value: configuration.radicandCenter)
+            + angle.cosine().scaled(by: configuration.radicandCosine)
+            + angle.sine().scaled(by: configuration.radicandSine)
+        return try radicand.squareRoot(
+            tolerance: tolerance,
+            diagnosticContext: context
+        ).scaled(by: branchSign).validated(
+            tolerance: tolerance,
+            diagnosticContext: context
+        )
+    }
+
+    private func regularizedRadicandFactorTaylorJet(
+        angle: CurveTaylorScalarJet,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> CurveTaylorScalarJet {
+        let context = "Sphere-cylinder regularized radicand"
+        let lower = (angle - CurveTaylorScalarJet(value: lowerAngle))
+            .scaled(by: 0.5)
+        let upper = (CurveTaylorScalarJet(value: upperAngle) - angle)
+            .scaled(by: 0.5)
+        return try (
+            lower.sinc(tolerance: tolerance, diagnosticContext: context)
+                * upper.sinc(tolerance: tolerance, diagnosticContext: context)
+        ).scaled(by: configuration.radicandAmplitude * 0.5).validated(
+            tolerance: tolerance,
+            diagnosticContext: context
+        )
+    }
+
+    private func simpleRootFactorTaylorJet(
+        angle: CurveTaylorScalarJet,
+        endpoint: Double,
+        isLowerRoot: Bool,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> CurveTaylorScalarJet {
+        let context = "Sphere-cylinder simple-root factor"
+        let phase = atan2(
+            configuration.radicandSine,
+            configuration.radicandCosine
+        )
+        let midpoint = (
+            angle + CurveTaylorScalarJet(value: endpoint)
+        ).scaled(by: 0.5) - CurveTaylorScalarJet(value: phase)
+        let amplitude = midpoint.sine().scaled(by: isLowerRoot ? -1.0 : 1.0)
+        let distance = isLowerRoot
+            ? angle - CurveTaylorScalarJet(value: endpoint)
+            : CurveTaylorScalarJet(value: endpoint) - angle
+        return try (
+            amplitude * distance.scaled(by: 0.5).sinc(
+                tolerance: tolerance,
+                diagnosticContext: context
+            )
+        ).scaled(by: configuration.radicandAmplitude).validated(
+            tolerance: tolerance,
+            diagnosticContext: context
+        )
+    }
+
+    private func doubleRootFactorTaylorJet(
+        angle: CurveTaylorScalarJet,
+        endpoint: Double,
+        isLowerRoot: Bool,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> CurveTaylorScalarJet {
+        let context = "Sphere-cylinder double-root factor"
+        let distance = isLowerRoot
+            ? angle - CurveTaylorScalarJet(value: endpoint)
+            : CurveTaylorScalarJet(value: endpoint) - angle
+        let sinc = try distance.scaled(by: 0.5).sinc(
+            tolerance: tolerance,
+            diagnosticContext: context
+        )
+        return try (sinc * sinc).scaled(
+            by: configuration.radicandAmplitude * 0.5
+        ).validated(tolerance: tolerance, diagnosticContext: context)
     }
 
     private func openEndpointStructure(
@@ -2326,21 +2883,6 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
             }
         }
         return values.min() ?? -.infinity
-    }
-
-    private static func sincValue(at value: Double) -> Double {
-        if abs(value) <= 0.25 {
-            var result = 0.0
-            var coefficient = 1.0
-            for index in 0...12 {
-                result += coefficient * pow(value, Double(index * 2))
-                coefficient /= -Double(
-                    (2 * index + 2) * (2 * index + 3)
-                )
-            }
-            return result
-        }
-        return sin(value) / value
     }
 
     private static func maximumAbsoluteTrigonometricValue(

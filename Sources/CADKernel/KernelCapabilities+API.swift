@@ -20,7 +20,6 @@ extension KernelCapabilities {
             failureCodes: [
                 .invalidInput,
                 .missingReference,
-                .unsupportedCapability,
                 .ambiguousSelection,
                 .resourceLimitExceeded,
                 .topologyFailure,

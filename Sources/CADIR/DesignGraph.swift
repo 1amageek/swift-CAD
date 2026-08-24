@@ -1249,12 +1249,21 @@ public struct DesignGraph: Codable, Sendable {
         guard node.inputs == [FeatureInput(featureID: unjoin.target.featureID, role: .target)] else {
             throw FeatureEvaluationError.invalidGraph("Unjoin body features must consume the referenced target body input.")
         }
-        guard let targetSource = nodes[unjoin.target.featureID],
-              targetSource.outputs.contains(where: { $0.role == .body }) else {
-            throw FeatureEvaluationError.invalidGraph("Unjoin body target source must declare a body output.")
+        guard let targetSource = nodes[unjoin.target.featureID] else {
+            throw FeatureEvaluationError.invalidGraph("Unjoin body target source is missing.")
         }
-        guard outputRoles == [.body] else {
-            throw FeatureEvaluationError.invalidGraph("Unjoin body features must declare one body output.")
+        let targetRoles = targetSource.outputs.map(\.role).filter {
+            $0 == .body || $0 == .sheet
+        }
+        guard targetRoles.count == 1, let targetRole = targetRoles.first else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Unjoin body target source must declare exactly one body or sheet output."
+            )
+        }
+        guard outputRoles == [targetRole] else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Unjoin body output must preserve the target's body or sheet role."
+            )
         }
     }
 

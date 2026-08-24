@@ -267,6 +267,126 @@ struct CurvedRevolveFeatureTests {
             <= tolerance.distance * 0.05 * 0.05)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func fullRevolutionPreservesRectangularVoidShellOwnership() throws {
+        let profileFeatureID = FeatureID()
+        let profile = rectangularHoleProfile(featureID: profileFeatureID)
+        let result = try PlanarRevolveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
+            feature: revolveFeature(
+                id: FeatureID(),
+                profileFeatureID: profileFeatureID,
+                angleDegrees: 360.0
+            ),
+            context: evaluationContext(
+                profileFeatureID: profileFeatureID,
+                profile: profile
+            )
+        )
+
+        try result.brep.validate(level: .exact, tolerance: tolerance)
+        let body = try #require(result.brep.bodies.values.first)
+        let component = try #require(body.solidComponents?.first)
+        #expect(result.brep.shells.count == 2)
+        #expect(component.voidShellIDs.count == 1)
+        #expect(result.brep.shells[component.outerShellID]?.orientation == .forward)
+        #expect(result.brep.shells[component.voidShellIDs[0]]?.orientation == .reversed)
+        let expectedVolume = 2.0 * Double.pi * 0.035 * (0.0012 - 0.0002)
+        let actualVolume = try result.brep.volume(tolerance: tolerance)
+        #expect(
+            abs(actualVolume - expectedVolume) <= tolerance.distance * 0.05 * 0.05,
+            "Expected hollow revolve volume \(expectedVolume), got \(actualVolume)."
+        )
+        try expectRevolvedHoleClassification(in: result.brep, bodyID: body.id)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func partialRevolutionPreservesRectangularHoleInBothCaps() throws {
+        let profileFeatureID = FeatureID()
+        let profile = rectangularHoleProfile(featureID: profileFeatureID)
+        let result = try PlanarRevolveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
+            feature: revolveFeature(
+                id: FeatureID(),
+                profileFeatureID: profileFeatureID,
+                angleDegrees: 180.0
+            ),
+            context: evaluationContext(
+                profileFeatureID: profileFeatureID,
+                profile: profile
+            )
+        )
+
+        try result.brep.validate(level: .exact, tolerance: tolerance)
+        #expect(result.brep.shells.count == 1)
+        #expect(result.brep.loops.values.filter { $0.role == .inner }.count == 2)
+        let expectedVolume = Double.pi * 0.035 * (0.0012 - 0.0002)
+        let actualVolume = try result.brep.volume(tolerance: tolerance)
+        #expect(
+            abs(actualVolume - expectedVolume) <= tolerance.distance * 0.05 * 0.05,
+            "Expected partial hollow revolve volume \(expectedVolume), got \(actualVolume)."
+        )
+        let bodyID = try #require(result.brep.bodies.keys.first)
+        try expectRevolvedHoleClassification(in: result.brep, bodyID: bodyID)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func circularInnerLoopUsesCurvedBuilderAndRemainsAnExactVoid() throws {
+        let profileFeatureID = FeatureID()
+        let profile = circularHoleProfile(featureID: profileFeatureID)
+        let result = try PlanarRevolveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
+            feature: revolveFeature(
+                id: FeatureID(),
+                profileFeatureID: profileFeatureID,
+                angleDegrees: 360.0
+            ),
+            context: evaluationContext(
+                profileFeatureID: profileFeatureID,
+                profile: profile
+            )
+        )
+
+        try result.brep.validate(level: .exact, tolerance: tolerance)
+        let body = try #require(result.brep.bodies.values.first)
+        let component = try #require(body.solidComponents?.first)
+        #expect(result.brep.shells.count == 2)
+        #expect(component.voidShellIDs.count == 1)
+        #expect(result.brep.geometry.surfaces.values.allSatisfy {
+            if case .bSpline = $0 { return true }
+            return false
+        })
+        let materialArea = 0.0012 - Double.pi * 0.005 * 0.005
+        let expectedVolume = 2.0 * Double.pi * 0.035 * materialArea
+        #expect(abs(try result.brep.volume(tolerance: tolerance) - expectedVolume)
+            <= tolerance.distance * 0.05 * 0.05)
+        try expectRevolvedHoleClassification(in: result.brep, bodyID: body.id)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func partialCurvedRevolutionKeepsCircularHoleLoopsOnCaps() throws {
+        let profileFeatureID = FeatureID()
+        let profile = circularHoleProfile(featureID: profileFeatureID)
+        let result = try PlanarRevolveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
+            feature: revolveFeature(
+                id: FeatureID(),
+                profileFeatureID: profileFeatureID,
+                angleDegrees: 180.0
+            ),
+            context: evaluationContext(
+                profileFeatureID: profileFeatureID,
+                profile: profile
+            )
+        )
+
+        try result.brep.validate(level: .exact, tolerance: tolerance)
+        #expect(result.brep.shells.count == 1)
+        #expect(result.brep.loops.values.filter { $0.role == .inner }.count == 2)
+        let materialArea = 0.0012 - Double.pi * 0.005 * 0.005
+        let expectedVolume = Double.pi * 0.035 * materialArea
+        #expect(abs(try result.brep.volume(tolerance: tolerance) - expectedVolume)
+            <= tolerance.distance * 0.05 * 0.05)
+        let bodyID = try #require(result.brep.bodies.keys.first)
+        try expectRevolvedHoleClassification(in: result.brep, bodyID: bodyID)
+    }
+
     @Test
     func invalidAnglesReturnFeatureScopedKernelDiagnostics() throws {
         let profileFeatureID = FeatureID()
@@ -306,7 +426,7 @@ struct CurvedRevolveFeatureTests {
             Issue.record("Revolve beyond one full turn must fail.")
         } catch let error as KernelError {
             #expect(error.phase == .validation)
-            #expect(error.code == .unsupportedCapability)
+            #expect(error.code == .invalidInput)
             #expect(error.featureID == excessiveFeatureID)
             #expect(try #require(error.residual) > 0.0)
             #expect(error.tolerance == tolerance)
@@ -384,6 +504,75 @@ struct CurvedRevolveFeatureTests {
                 sweepAngle: 2.0 * Double.pi
             ))]
         )
+    }
+
+    private func rectangularHoleProfile(featureID: FeatureID) -> Profile {
+        Profile(
+            sourceFeatureID: featureID,
+            plane: .xy,
+            outerLoop: ProfileLoop(vertices: [
+                Point3D(x: 0.020, y: -0.020, z: 0.0),
+                Point3D(x: 0.050, y: -0.020, z: 0.0),
+                Point3D(x: 0.050, y: 0.020, z: 0.0),
+                Point3D(x: 0.020, y: 0.020, z: 0.0),
+            ]),
+            innerLoops: [ProfileLoop(vertices: [
+                Point3D(x: 0.030, y: -0.010, z: 0.0),
+                Point3D(x: 0.030, y: 0.010, z: 0.0),
+                Point3D(x: 0.040, y: 0.010, z: 0.0),
+                Point3D(x: 0.040, y: -0.010, z: 0.0),
+            ])]
+        )
+    }
+
+    private func circularHoleProfile(featureID: FeatureID) -> Profile {
+        let center = Point3D(x: 0.035, y: 0.0, z: 0.0)
+        let start = Point3D(x: 0.040, y: 0.0, z: 0.0)
+        return Profile(
+            sourceFeatureID: featureID,
+            plane: .xy,
+            outerLoop: ProfileLoop(vertices: [
+                Point3D(x: 0.020, y: -0.020, z: 0.0),
+                Point3D(x: 0.050, y: -0.020, z: 0.0),
+                Point3D(x: 0.050, y: 0.020, z: 0.0),
+                Point3D(x: 0.020, y: 0.020, z: 0.0),
+            ]),
+            innerLoops: [ProfileLoop(
+                vertices: [
+                    start,
+                    Point3D(x: 0.035, y: -0.005, z: 0.0),
+                    Point3D(x: 0.030, y: 0.0, z: 0.0),
+                    Point3D(x: 0.035, y: 0.005, z: 0.0),
+                ],
+                boundarySegments: [.circularArc(ProfileCircularArcSegment(
+                    center: center,
+                    normal: .unitZ,
+                    radius: 0.005,
+                    start: start,
+                    end: start,
+                    sweepAngle: -2.0 * Double.pi
+                ))]
+            )]
+        )
+    }
+
+    private func expectRevolvedHoleClassification(
+        in model: BRepModel,
+        bodyID: BodyID
+    ) throws {
+        let classifier = DefaultBRepSolidPointClassifier()
+        #expect(try classifier.classify(
+            Point3D(x: 0.0, y: 0.0, z: -0.035),
+            in: bodyID,
+            model: model,
+            tolerance: tolerance
+        ) == .outside)
+        #expect(try classifier.classify(
+            Point3D(x: 0.0, y: 0.0, z: -0.025),
+            in: bodyID,
+            model: model,
+            tolerance: tolerance
+        ) == .inside)
     }
 
     private func splineProfile(featureID: FeatureID) throws -> Profile {

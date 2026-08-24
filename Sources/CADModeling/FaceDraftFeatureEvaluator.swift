@@ -72,7 +72,11 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             )
         }
         do {
-            try context.brep.validate(level: .exact, tolerance: context.tolerance)
+            try FeatureEvaluationBoundary.validateExactInput(
+                context,
+                featureID: feature.id,
+                tolerance: context.tolerance
+            )
         } catch {
             throw KernelError.wrapping(
                 error,

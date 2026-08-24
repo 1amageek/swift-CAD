@@ -1,5 +1,6 @@
 import CADCore
 import CADGeometry
+import CADTopology
 
 struct BooleanClosedPcurveRegion: Hashable, Sendable {
     enum SurfaceSide: Hashable, Sendable {
@@ -12,6 +13,7 @@ struct BooleanClosedPcurveRegion: Hashable, Sendable {
     let signedArea: Double
     let uPeriod: Double?
     let vPeriod: Double?
+    private let boundaryPredicate: CertifiedSurfaceParameterLoopPredicate
 
     init(
         reference: BooleanFaceSplitComponentReference,
@@ -21,18 +23,21 @@ struct BooleanClosedPcurveRegion: Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws {
         try tolerance.validate()
-        let rawPoints = closedIntersection.samples.map { sample in
+        let rawParameters = closedIntersection.samples.map { sample in
             switch surfaceSide {
             case .first:
-                Point2D(x: sample.uvPoint.targetU, y: sample.uvPoint.targetV)
+                SurfaceParameter(
+                    u: sample.uvPoint.targetU,
+                    v: sample.uvPoint.targetV
+                )
             case .second:
-                Point2D(x: sample.uvPoint.toolU, y: sample.uvPoint.toolV)
+                SurfaceParameter(
+                    u: sample.uvPoint.toolU,
+                    v: sample.uvPoint.toolV
+                )
             }
         }
-        guard rawPoints.count >= 8,
-              rawPoints.allSatisfy({
-                  $0.x.isFinite && $0.y.isFinite
-              }) else {
+        guard rawParameters.count >= 8 else {
             throw KernelError(
                 phase: .topology,
                 code: .invalidInput,
@@ -40,46 +45,84 @@ struct BooleanClosedPcurveRegion: Hashable, Sendable {
                 message: "Closed Boolean pcurve region requires finite verified samples."
             )
         }
-        let uPeriod = Self.period(surface.uDomain)
-        let vPeriod = Self.period(surface.vDomain)
-        let points = Self.unwrapped(
-            rawPoints,
-            uPeriod: uPeriod,
-            vPeriod: vPeriod
+        let topology = SurfaceParameterTopology(surface: surface)
+        let uPeriod = topology.uPeriod
+        let vPeriod = topology.vPeriod
+        let lift = try SurfaceParameterLoopLift(
+            samples: rawParameters,
+            surface: surface,
+            tolerance: tolerance
         )
-        let closingPoint = Self.aligned(
-            points[0],
-            to: points[points.count - 1],
-            uPeriod: uPeriod,
-            vPeriod: vPeriod
-        )
-        let parameterTolerance = max(tolerance.distance, tolerance.angle)
-        guard abs(closingPoint.x - points[0].x) <= parameterTolerance,
-              abs(closingPoint.y - points[0].y) <= parameterTolerance else {
+        // Strategy selection routes essential periodic loops through the
+        // source face's explicit seam arrangement. Reaching this bounded
+        // containment type with one is therefore an internal topology error.
+        guard let points = lift.planarBoundary else {
             throw KernelError(
                 phase: .topology,
-                code: .unsupportedCapability,
+                code: .topologyFailure,
                 tolerance: tolerance,
-                message: "A non-contractible periodic pcurve requires a surface partition rather than a bounded face region."
+                message: "Closed pcurve containment received an essential periodic loop with winding (\(lift.uWinding), \(lift.vWinding)) instead of the seam arrangement strategy."
             )
         }
-        let signedArea = try AdaptivePlanarPredicateEvaluator().certifiedSignedArea(
+        let indexedArea = try AdaptivePlanarPredicateEvaluator().certifiedSignedArea(
             of: points,
             tolerance: Self.parameterTolerance(from: tolerance)
         )
+        let parameterCurve = switch surfaceSide {
+        case .first:
+            closedIntersection.intersection.firstSurfaceParameterCurve
+        case .second:
+            closedIntersection.intersection.secondSurfaceParameterCurve
+        }
+        let curveStart = try parameterCurve.startParameter(tolerance: tolerance)
+        let curveUShift = Self.aligned(
+            curveStart.u,
+            to: points[0].x,
+            period: uPeriod
+        ) - curveStart.u
+        let curveVShift = Self.aligned(
+            curveStart.v,
+            to: points[0].y,
+            period: vPeriod
+        ) - curveStart.v
+        let requestedAreaWidth = max(
+            abs(indexedArea) * 0.25,
+            Self.parameterTolerance(from: tolerance).distance
+                * Self.parameterTolerance(from: tolerance).distance
+        )
+        let exactArea = try SurfaceParameterCurveAreaIntegrator().bounds(
+            for: parameterCurve,
+            uShift: curveUShift,
+            requestedWidth: requestedAreaWidth,
+            tolerance: tolerance
+        )
+        guard exactArea.lower > 0.0 || exactArea.upper < 0.0 else {
+            throw KernelError(
+                phase: .classification,
+                code: .classificationFailure,
+                residual: (exactArea.upper - exactArea.lower).nextUp,
+                tolerance: tolerance,
+                message: "Closed Boolean pcurve orientation could not be certified from its exact boundary."
+            )
+        }
         self.reference = reference
         self.points = points
-        self.signedArea = signedArea
+        self.signedArea = exactArea.lower
+            + (exactArea.upper - exactArea.lower) * 0.5
         self.uPeriod = uPeriod
         self.vPeriod = vPeriod
+        self.boundaryPredicate = try CertifiedSurfaceParameterLoopPredicate(
+            curve: parameterCurve,
+            uShift: curveUShift,
+            vShift: curveVShift,
+            uPeriod: uPeriod,
+            vPeriod: vPeriod,
+            tolerance: tolerance
+        )
     }
 
     var isCounterclockwise: Bool {
         signedArea > 0.0
-    }
-
-    var absoluteArea: Double {
-        abs(signedArea)
     }
 
     var centroid: Point2D {
@@ -100,23 +143,10 @@ struct BooleanClosedPcurveRegion: Hashable, Sendable {
             uPeriod: uPeriod,
             vPeriod: vPeriod
         )
-        switch try AdaptivePlanarPredicateEvaluator().classify(
+        return try boundaryPredicate.containsStrictly(
             point,
-            in: points,
-            tolerance: Self.parameterTolerance(from: tolerance)
-        ) {
-        case .inside:
-            return true
-        case .boundary, .outside:
-            return false
-        case .indeterminate:
-            throw KernelError(
-                phase: .classification,
-                code: .classificationFailure,
-                tolerance: tolerance,
-                message: "Closed Boolean pcurve containment could not be certified."
-            )
-        }
+            tolerance: tolerance
+        )
     }
 
     func boundaryIntersects(
@@ -131,46 +161,12 @@ struct BooleanClosedPcurveRegion: Hashable, Sendable {
         )
         let offsetX = alignedOtherCentroid.x - other.centroid.x
         let offsetY = alignedOtherCentroid.y - other.centroid.y
-        let otherPoints = other.points.map { point in
-            Point2D(x: point.x + offsetX, y: point.y + offsetY)
-        }
-        let planarPredicates = AdaptivePlanarPredicateEvaluator()
-        let parameterTolerance = Self.parameterTolerance(from: tolerance)
-        for firstIndex in points.indices {
-            let firstStart = points[firstIndex]
-            let firstEnd = points[(firstIndex + 1) % points.count]
-            for secondIndex in otherPoints.indices {
-                let secondStart = otherPoints[secondIndex]
-                let secondEnd = otherPoints[(secondIndex + 1) % otherPoints.count]
-                if try planarPredicates.segmentsIntersectOrTouch(
-                    firstStart,
-                    firstEnd,
-                    secondStart,
-                    secondEnd,
-                    tolerance: parameterTolerance
-                ) {
-                    return true
-                }
-            }
-        }
-        return false
-    }
-
-    private static func unwrapped(
-        _ points: [Point2D],
-        uPeriod: Double?,
-        vPeriod: Double?
-    ) -> [Point2D] {
-        var result: [Point2D] = [points[0]]
-        for point in points.dropFirst() {
-            result.append(aligned(
-                point,
-                to: result[result.count - 1],
-                uPeriod: uPeriod,
-                vPeriod: vPeriod
-            ))
-        }
-        return result
+        return try boundaryPredicate.boundaryIntersectsOrTouches(
+            other.boundaryPredicate,
+            otherUShift: offsetX,
+            otherVShift: offsetY,
+            tolerance: tolerance
+        )
     }
 
     private static func aligned(
@@ -192,11 +188,6 @@ struct BooleanClosedPcurveRegion: Hashable, Sendable {
     ) -> Double {
         guard let period else { return value }
         return value + ((reference - value) / period).rounded() * period
-    }
-
-    private static func period(_ domain: ParameterDomain) -> Double? {
-        guard case let .periodic(period) = domain else { return nil }
-        return period
     }
 
     private static func parameterTolerance(

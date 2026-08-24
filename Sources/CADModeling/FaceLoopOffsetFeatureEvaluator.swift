@@ -50,7 +50,7 @@ public struct FaceLoopOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatur
             try faceLoopOffset.validate()
         }
         try FeatureEvaluationBoundary.validateExactInput(
-            context.brep,
+            context,
             featureID: feature.id,
             tolerance: context.tolerance
         )

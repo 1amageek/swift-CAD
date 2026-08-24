@@ -239,6 +239,57 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
         )
     }
 
+    public func parameterDerivatives(
+        at parameter: Double,
+        tolerance: ModelingTolerance
+    ) throws -> CurveParameterDerivatives {
+        try validate(tolerance: tolerance)
+        return try parameterDerivativesAssumingValid(
+            at: parameter,
+            tolerance: tolerance
+        )
+    }
+
+    package func parameterDerivativesAssumingValid(
+        at parameter: Double,
+        tolerance: ModelingTolerance
+    ) throws -> CurveParameterDerivatives {
+        guard try domain.contains(parameter, tolerance: tolerance) else {
+            throw GeometryError.invalidDistance(0.0)
+        }
+        let clamped = BSplineBasis.clampedParameter(
+            parameter,
+            knots: knots,
+            degree: degree
+        )
+        let basis = BSplineBasis.nonzeroDerivativeValues(
+            parameter: clamped,
+            degree: degree,
+            throughDerivativeOrder: 2,
+            knots: knots,
+            count: controlPointCount
+        )
+        let derivatives = try rationalDerivatives(
+            basis: basis[0],
+            firstBasis: basis[1],
+            secondBasis: basis[2]
+        )
+        guard derivatives.first.isFinite,
+              derivatives.second.isFinite else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "Rational B-spline parameter differentiation exceeded the finite numeric range."
+            )
+        }
+        return CurveParameterDerivatives(
+            position: derivatives.position,
+            firstDerivative: derivatives.first,
+            secondDerivative: derivatives.second
+        )
+    }
+
     func differentialGeometryAssumingValid(
         at parameter: Double,
         tolerance: ModelingTolerance

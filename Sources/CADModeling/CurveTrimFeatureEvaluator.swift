@@ -68,7 +68,7 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         let curve = curves[reference.curveIndex]
         try curve.validate(tolerance: context.tolerance)
         guard curve.exactCurve != nil else {
-            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: context.tolerance, "Curve trim requires an exact source curve.")
+            throw kernelError(.missingReference, featureID: featureID, tolerance: context.tolerance, "Curve trim source does not contain exact curve geometry.")
         }
         return curve
     }
@@ -80,7 +80,7 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         tolerance: ModelingTolerance
     ) throws -> EvaluatedCurve {
         guard let exactCurve = source.exactCurve else {
-            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance, "Curve trim requires an exact source curve.")
+            throw kernelError(.missingReference, featureID: featureID, tolerance: tolerance, "Curve trim source does not contain exact curve geometry.")
         }
         guard case let .closed(lowerBound, upperBound) = domain else {
             throw kernelError(.invalidInput, featureID: featureID, tolerance: tolerance, "Curve trim requires a finite closed parameter domain.")
@@ -204,6 +204,16 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             return sourceKind == .arc ? .spline : sourceKind
         case .implicit, .surfaceLift, .certifiedIntersection:
             return .spline
+        case let .rigidImage(image):
+            return trimmedKind(
+                sourceKind: sourceKind,
+                exactCurve: image.source,
+                lowerBound: lowerBound,
+                upperBound: upperBound,
+                tolerance: tolerance
+            )
+        case .affineImage:
+            return exactCurve.hasExactLinearParameterization ? .line : .spline
         }
     }
 

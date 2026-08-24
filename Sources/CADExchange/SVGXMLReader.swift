@@ -13,27 +13,38 @@ final class SVGXMLReader: NSObject, XMLParserDelegate {
     private var fallbackUnit: LengthUnit = .meter
     private var unit: LengthUnit?
     private var polygons: [[Point3D]] = []
-    private var importError: ImportError?
+    private var failure: (any Error)?
     private var elementStack: [String] = []
-    private var tolerance: ModelingTolerance?
+    private var resources: ExchangeResourceAccountant?
 
     static func read(
         _ data: Data,
         fallbackUnit: LengthUnit,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        resources: inout ExchangeResourceAccountant
     ) throws -> SVGXMLModel {
         try tolerance.validate()
         let reader = SVGXMLReader()
         reader.fallbackUnit = fallbackUnit
-        reader.tolerance = tolerance
+        reader.resources = resources
         let parser = XMLParser(data: data)
         parser.shouldProcessNamespaces = true
+        parser.shouldResolveExternalEntities = false
         parser.delegate = reader
         guard parser.parse() else {
-            if let importError = reader.importError {
-                throw importError
+            if let resolvedResources = reader.resources {
+                resources = resolvedResources
+            }
+            if let failure = reader.failure {
+                throw failure
             }
             throw ImportError.invalidData(parser.parserError?.localizedDescription ?? "Invalid SVG XML.")
+        }
+        guard reader.elementStack.isEmpty else {
+            throw ImportError.invalidData("SVG XML nesting is incomplete.")
+        }
+        if let resolvedResources = reader.resources {
+            resources = resolvedResources
         }
         return SVGXMLModel(unit: reader.unit ?? fallbackUnit, polygons: reader.polygons)
     }
@@ -46,6 +57,9 @@ final class SVGXMLReader: NSObject, XMLParserDelegate {
         attributes attributeDict: [String: String] = [:]
     ) {
         let name = svgLocalName(elementName)
+        guard accountStartElement(attributeCount: attributeDict.count, parser: parser) else {
+            return
+        }
         guard namespaceURI == svgNamespaceURI else {
             fail("SVG element \(name) must use the SVG namespace.", parser: parser)
             return
@@ -60,6 +74,9 @@ final class SVGXMLReader: NSObject, XMLParserDelegate {
             return
         }
         guard validateSupportedAttributes(attributeDict, for: name, parser: parser) else {
+            return
+        }
+        guard validateSupportedAttributeValues(attributeDict, for: name, parser: parser) else {
             return
         }
         if elementStack.isEmpty, let value = attributeDict["data-unit"] {
@@ -79,7 +96,7 @@ final class SVGXMLReader: NSObject, XMLParserDelegate {
                 return
             }
             readPolygon(pointsValue, parser: parser)
-            if importError == nil {
+            if failure == nil {
                 elementStack.append(name)
             }
             return
@@ -92,7 +109,7 @@ final class SVGXMLReader: NSObject, XMLParserDelegate {
             fail("Unsupported SVG element \(name).", parser: parser)
             return
         }
-        if importError == nil {
+        if failure == nil {
             elementStack.append(name)
         }
     }
@@ -116,6 +133,39 @@ final class SVGXMLReader: NSObject, XMLParserDelegate {
             fail("SVG contains unsupported character data.", parser: parser)
             return
         }
+    }
+
+    func parser(_ parser: XMLParser, foundCDATA CDATABlock: Data) {
+        guard let text = String(data: CDATABlock, encoding: .utf8),
+              text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            fail("SVG contains unsupported CDATA content.", parser: parser)
+            return
+        }
+    }
+
+    func parser(
+        _ parser: XMLParser,
+        foundInternalEntityDeclarationWithName name: String,
+        value: String?
+    ) {
+        fail("SVG entity declarations are not supported.", parser: parser)
+    }
+
+    func parser(
+        _ parser: XMLParser,
+        foundExternalEntityDeclarationWithName name: String,
+        publicID: String?,
+        systemID: String?
+    ) {
+        fail("SVG external entities are not supported.", parser: parser)
+    }
+
+    func parser(
+        _ parser: XMLParser,
+        foundProcessingInstructionWithTarget target: String,
+        data: String?
+    ) {
+        fail("SVG processing instructions are not supported.", parser: parser)
     }
 
     private func readUnit(_ value: String, parser: XMLParser) {
@@ -154,22 +204,41 @@ final class SVGXMLReader: NSObject, XMLParserDelegate {
                 fail("SVG polygon must contain at least three points.", parser: parser)
                 return
             }
-            guard let tolerance else {
-                throw ImportError.invalidData("SVG parser tolerance is unavailable.")
+            guard var resources else {
+                throw ImportError.invalidData("SVG parser resource accounting is unavailable.")
             }
-            try validateSupportedPolygon(points, tolerance: tolerance)
+            try resources.recordEntities(points.count)
+            try resources.recordIterations(numbers.count)
+            self.resources = resources
             polygons.append(points)
-        } catch let error as ImportError {
-            importError = error
-            parser.abortParsing()
         } catch {
-            fail(error.localizedDescription, parser: parser)
+            fail(error, parser: parser)
         }
     }
 
     private func fail(_ message: String, parser: XMLParser) {
-        importError = ImportError.invalidData(message)
+        fail(ImportError.invalidData(message), parser: parser)
+    }
+
+    private func fail(_ error: any Error, parser: XMLParser) {
+        failure = error
         parser.abortParsing()
+    }
+
+    private func accountStartElement(attributeCount: Int, parser: XMLParser) -> Bool {
+        do {
+            guard var resources else {
+                throw ImportError.invalidData("SVG parser resource accounting is unavailable.")
+            }
+            try resources.validateNestingDepth(elementStack.count + 1)
+            try resources.recordEntities()
+            try resources.recordIterations(1 + attributeCount)
+            self.resources = resources
+            return true
+        } catch {
+            fail(error, parser: parser)
+            return false
+        }
     }
 
     private func validateSupportedAttributes(
@@ -181,6 +250,41 @@ final class SVGXMLReader: NSObject, XMLParserDelegate {
         for attribute in attributes.keys {
             guard allowedAttributes.contains(attribute) else {
                 fail("Unsupported SVG attribute \(attribute) on \(elementName).", parser: parser)
+                return false
+            }
+        }
+        return true
+    }
+
+    private func validateSupportedAttributeValues(
+        _ attributes: [String: String],
+        for elementName: String,
+        parser: XMLParser
+    ) -> Bool {
+        if let viewBox = attributes["viewBox"] {
+            do {
+                let values = try svgNumbers(from: viewBox)
+                guard values.count == 4,
+                      values[2] > 0.0,
+                      values[3] > 0.0 else {
+                    fail("SVG viewBox must contain four finite values with positive width and height.", parser: parser)
+                    return false
+                }
+            } catch {
+                fail("SVG viewBox is malformed.", parser: parser)
+                return false
+            }
+        }
+        if elementName == "g",
+           let scopedUnit = attributes["data-unit"],
+           parseLengthUnitName(scopedUnit) == nil {
+            fail("Unsupported SVG group unit \(scopedUnit).", parser: parser)
+            return false
+        }
+        for paintAttribute in ["fill", "stroke"] {
+            if let value = attributes[paintAttribute],
+               value.lowercased().contains("url(") {
+                fail("SVG external paint references are not supported.", parser: parser)
                 return false
             }
         }
@@ -312,42 +416,4 @@ private func skipSVGSeparators(in value: String, index: inout String.Index) -> S
         }
     }
     return run
-}
-
-private func validateSupportedPolygon(
-    _ points: [Point3D],
-    tolerance: ModelingTolerance
-) throws {
-    let area = signedXYArea(of: points)
-    let areaTolerance = tolerance.distance * tolerance.distance
-    guard abs(area) > areaTolerance else {
-        throw ImportError.invalidData("SVG polygon is degenerate.")
-    }
-    let isCounterClockwise = area > 0.0
-    for index in points.indices {
-        let previous = points[(index + points.count - 1) % points.count]
-        let current = points[index]
-        let next = points[(index + 1) % points.count]
-        let cross = (current.x - previous.x) * (next.y - current.y)
-            - (current.y - previous.y) * (next.x - current.x)
-        guard abs(cross) > areaTolerance else {
-            throw ImportError.invalidData("SVG polygon has a degenerate corner.")
-        }
-        if isCounterClockwise, cross < -areaTolerance {
-            throw ImportError.invalidData("Concave SVG polygons are not supported.")
-        }
-        if !isCounterClockwise, cross > areaTolerance {
-            throw ImportError.invalidData("Concave SVG polygons are not supported.")
-        }
-    }
-}
-
-private func signedXYArea(of points: [Point3D]) -> Double {
-    var twiceArea = 0.0
-    for index in points.indices {
-        let current = points[index]
-        let next = points[(index + 1) % points.count]
-        twiceArea += current.x * next.y - next.x * current.y
-    }
-    return twiceArea / 2.0
 }

@@ -1,4 +1,5 @@
 import CADCore
+import Foundation
 
 /// An exact graph certificate for an affine bilinear patch intersecting a rational bilinear patch.
 ///
@@ -8,6 +9,12 @@ import CADCore
 /// parameter. Exact expansion signs also prove that the resulting rational quadratic curve remains
 /// inside the affine patch.
 struct ExactAffineBilinearIntersectionGraph: Sendable {
+    enum PlaneRelation: Sendable, Equatable {
+        case coincident
+        case disjoint
+        case transverse
+    }
+
     private struct ExpansionVector3 {
         let x: [Double]
         let y: [Double]
@@ -48,6 +55,47 @@ struct ExactAffineBilinearIntersectionGraph: Sendable {
         }
     }
 
+    enum BoundedIntersection: Sendable {
+        case disjoint
+        case point(SurfaceIntersectionParameterPair)
+        case segment(ExactAffineBilinearIntersectionGraph)
+    }
+
+    private struct ExactRatio {
+        let numerator: [Double]
+        let denominator: [Double]
+
+        init?(numerator: [Double], denominator: [Double]) {
+            switch FloatingPointExpansion.sign(denominator) {
+            case .positive:
+                self.numerator = numerator
+                self.denominator = denominator
+            case .negative:
+                self.numerator = numerator.map { -$0 }
+                self.denominator = denominator.map { -$0 }
+            case .zero, .indeterminate:
+                return nil
+            }
+        }
+
+        func compared(to other: ExactRatio) -> RobustSign {
+            FloatingPointExpansion.sign(FloatingPointExpansion.subtract(
+                FloatingPointExpansion.product(numerator, other.denominator),
+                FloatingPointExpansion.product(other.numerator, denominator)
+            ))
+        }
+
+        var estimate: Double {
+            FloatingPointExpansion.estimate(numerator)
+                / FloatingPointExpansion.estimate(denominator)
+        }
+    }
+
+    private struct SectionEndpoint {
+        let point: HomogeneousExpansion
+        let coordinate: ExactRatio
+    }
+
     private struct AffinePatch {
         let surface: BSplineSurface3D
         let origin: Point3D
@@ -70,8 +118,64 @@ struct ExactAffineBilinearIntersectionGraph: Sendable {
         let upperPlaneValues: [Double]
     }
 
+    private enum Mapping: Sendable {
+        case candidate(CandidateGraph)
+        case affineSegment(
+            lower: SurfaceIntersectionParameterPair,
+            upper: SurfaceIntersectionParameterPair
+        )
+    }
+
     let freeParameter: SurfaceIntersectionParameterCoordinate
-    private let graph: CandidateGraph
+    let normalizedBounds: [(lower: Double, upper: Double)]
+    private let mapping: Mapping
+
+    var exactAffineSegmentEndpoints: (
+        lower: SurfaceIntersectionParameterPair,
+        upper: SurfaceIntersectionParameterPair
+    )? {
+        guard case let .affineSegment(lower, upper) = mapping else {
+            return nil
+        }
+        return (lower, upper)
+    }
+
+    static func planeRelation(
+        first: BSplineSurface3D,
+        second: BSplineSurface3D
+    ) -> PlaneRelation? {
+        guard isSingleBilinearBezier(first),
+              isSingleBilinearBezier(second),
+              let firstAffine = exactAffinePatch(first),
+              let secondAffine = exactAffinePatch(second) else {
+            return nil
+        }
+        let secondUDistance = sign(exactTriple(
+            firstAffine.exactU,
+            firstAffine.exactV,
+            secondAffine.exactU
+        ))
+        let secondVDistance = sign(exactTriple(
+            firstAffine.exactU,
+            firstAffine.exactV,
+            secondAffine.exactV
+        ))
+        guard secondUDistance != .indeterminate,
+              secondVDistance != .indeterminate else {
+            return nil
+        }
+        guard secondUDistance == .zero,
+              secondVDistance == .zero else {
+            return .transverse
+        }
+        let originDistance = sign(exactTriple(
+            firstAffine.exactU,
+            firstAffine.exactV,
+            exactDifference(secondAffine.origin, firstAffine.origin)
+        ))
+        guard originDistance != .indeterminate else { return nil }
+        return originDistance == .zero ? .coincident : .disjoint
+    }
 
     static func certified(
         first: BSplineSurface3D,
@@ -85,9 +189,18 @@ struct ExactAffineBilinearIntersectionGraph: Sendable {
         }
         let firstAffine = exactAffinePatch(first)
         let secondAffine = exactAffinePatch(second)
-        // Two affine patches are already covered by the general full-graph proof. Keeping that
-        // path preserves its explicit numerical root-budget contract.
-        if firstAffine != nil, secondAffine != nil { return nil }
+        if let firstAffine, let secondAffine {
+            switch try boundedAffineIntersection(
+                first: firstAffine,
+                second: secondAffine,
+                tolerance: tolerance
+            ) {
+            case let .segment(graph):
+                return graph
+            case .disjoint, .point:
+                return nil
+            }
+        }
         if let affine = firstAffine,
            let graph = exactCandidateGraph(
                affine: affine,
@@ -96,7 +209,11 @@ struct ExactAffineBilinearIntersectionGraph: Sendable {
            ) {
             return ExactAffineBilinearIntersectionGraph(
                 freeParameter: graph.freeIsU ? .secondU : .secondV,
-                graph: graph
+                normalizedBounds: Array(
+                    repeating: (lower: 0.0, upper: 1.0),
+                    count: 4
+                ),
+                mapping: .candidate(graph)
             )
         }
         if let affine = secondAffine,
@@ -107,10 +224,34 @@ struct ExactAffineBilinearIntersectionGraph: Sendable {
            ) {
             return ExactAffineBilinearIntersectionGraph(
                 freeParameter: graph.freeIsU ? .firstU : .firstV,
-                graph: graph
+                normalizedBounds: Array(
+                    repeating: (lower: 0.0, upper: 1.0),
+                    count: 4
+                ),
+                mapping: .candidate(graph)
             )
         }
         return nil
+    }
+
+    static func boundedAffineIntersection(
+        first: BSplineSurface3D,
+        second: BSplineSurface3D,
+        tolerance: ModelingTolerance
+    ) throws -> BoundedIntersection? {
+        try tolerance.validate()
+        guard isSingleBilinearBezier(first),
+              isSingleBilinearBezier(second),
+              let firstAffine = exactAffinePatch(first),
+              let secondAffine = exactAffinePatch(second),
+              planeRelation(first: first, second: second) == .transverse else {
+            return nil
+        }
+        return try boundedAffineIntersection(
+            first: firstAffine,
+            second: secondAffine,
+            tolerance: tolerance
+        )
     }
 
     func normalizedParameterPair(
@@ -122,7 +263,29 @@ struct ExactAffineBilinearIntersectionGraph: Sendable {
               fraction <= 1.0 + tolerance.relative else {
             throw GeometryError.invalidDistance(fraction)
         }
-        let free = min(max(fraction, 0.0), 1.0)
+        let clamped = min(max(fraction, 0.0), 1.0)
+        switch mapping {
+        case let .affineSegment(lower, upper):
+            return try SurfaceIntersectionParameterPair(values: zip(
+                lower.values,
+                upper.values
+            ).map { lowerValue, upperValue in
+                lowerValue + (upperValue - lowerValue) * clamped
+            })
+        case let .candidate(graph):
+            return try candidateParameterPair(
+                graph: graph,
+                free: clamped,
+                tolerance: tolerance
+            )
+        }
+    }
+
+    private func candidateParameterPair(
+        graph: CandidateGraph,
+        free: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceIntersectionParameterPair {
         let lower = Self.linearBernstein(graph.lowerPlaneValues, at: free)
         let upper = Self.linearBernstein(graph.upperPlaneValues, at: free)
         let denominator = upper - lower
@@ -193,8 +356,9 @@ struct ExactAffineBilinearIntersectionGraph: Sendable {
         tolerance: ModelingTolerance
     ) throws -> Bool {
         guard freeParameter == self.freeParameter,
-              Self.matchesFullDomain(
+              Self.matches(
                   parameterBox: parameterBox,
+                  normalizedBounds: normalizedBounds,
                   first: first,
                   second: second,
                   tolerance: tolerance
@@ -215,6 +379,51 @@ struct ExactAffineBilinearIntersectionGraph: Sendable {
                     abs(value - expectedValue) <= tolerance.relative
                 }
             }
+    }
+
+    func certifiedImplicitCurve(
+        first: BSplineSurface3D,
+        second: BSplineSurface3D,
+        tolerance: ModelingTolerance
+    ) throws -> CertifiedImplicitIntersectionCurve {
+        let domains = try BoundedSurfaceParameterDomainMap(
+            first: first,
+            second: second,
+            tolerance: tolerance
+        )
+        let lower = domains.actual(normalizedBounds.map(\.lower))
+        let upper = domains.actual(normalizedBounds.map(\.upper))
+        let anchors = try [0.0, 0.5, 1.0].map {
+            try actualParameterPair(
+                at: $0,
+                first: first,
+                second: second,
+                tolerance: tolerance
+            )
+        }
+        let cell = try CertifiedImplicitIntersectionGraphCell(
+            parameterBox: SurfaceIntersectionParameterBox(
+                firstU: try ScalarInterval(lower: lower[0], upper: upper[0]),
+                firstV: try ScalarInterval(lower: lower[1], upper: upper[1]),
+                secondU: try ScalarInterval(lower: lower[2], upper: upper[2]),
+                secondV: try ScalarInterval(lower: lower[3], upper: upper[3])
+            ),
+            freeParameter: freeParameter,
+            direction: .forward,
+            lowerAnchor: anchors[0],
+            midpointAnchor: anchors[1],
+            upperAnchor: anchors[2],
+            firstSurface: first,
+            secondSurface: second,
+            tolerance: tolerance
+        )
+        return try CertifiedImplicitIntersectionCurve(
+            firstSurface: first,
+            secondSurface: second,
+            cells: [cell],
+            isClosed: false,
+            tolerance: tolerance
+        )
     }
 
     private static func exactCandidateGraph(
@@ -305,27 +514,14 @@ struct ExactAffineBilinearIntersectionGraph: Sendable {
     private static func exactAffinePatch(
         _ surface: BSplineSurface3D
     ) -> AffinePatch? {
-        let weights = surface.weights.flatMap { $0 }
-        guard let weight = weights.first,
-              weight.isFinite,
-              weight > 0.0,
-              weights.allSatisfy({ $0 == weight }) else {
+        guard let parameterization = ExactAffineBSplineSurfacePatch(surface) else {
             return nil
         }
-        let p00 = surface.controlPoints[0][0]
+        let p00 = parameterization.origin
         let p10 = surface.controlPoints[0][1]
         let p01 = surface.controlPoints[1][0]
-        let p11 = surface.controlPoints[1][1]
         let exactU = exactDifference(p10, p00)
         let exactV = exactDifference(p01, p00)
-        let parallelogramResidual = exactDifference(
-            exactDifference(p11, p10),
-            exactDifference(p01, p00)
-        )
-        guard [parallelogramResidual.x, parallelogramResidual.y, parallelogramResidual.z]
-            .allSatisfy({ sign($0) == .zero }) else {
-            return nil
-        }
         let gramUU = exactDot(exactU, exactU)
         let gramUV = exactDot(exactU, exactV)
         let gramVV = exactDot(exactV, exactV)
@@ -333,12 +529,11 @@ struct ExactAffineBilinearIntersectionGraph: Sendable {
             FloatingPointExpansion.product(gramUU, gramVV),
             FloatingPointExpansion.product(gramUV, gramUV)
         )
-        guard sign(determinant) == .positive else { return nil }
         return AffinePatch(
             surface: surface,
             origin: p00,
-            u: p10 - p00,
-            v: p01 - p00,
+            u: parameterization.uDirection,
+            v: parameterization.vDirection,
             exactU: exactU,
             exactV: exactV,
             gramUU: gramUU,
@@ -470,17 +665,512 @@ struct ExactAffineBilinearIntersectionGraph: Sendable {
         return (min(max(u, 0.0), 1.0), min(max(v, 0.0), 1.0))
     }
 
-    private static func matchesFullDomain(
+    private static func matches(
         parameterBox: SurfaceIntersectionParameterBox,
+        normalizedBounds: [(lower: Double, upper: Double)],
         first: BSplineSurface3D,
         second: BSplineSurface3D,
         tolerance: ModelingTolerance
     ) -> Bool {
-        let expected = [first.uDomain, first.vDomain, second.uDomain, second.vDomain]
-        return zip(parameterBox.intervals, expected).allSatisfy { interval, domain in
+        let domains = [first.uDomain, first.vDomain, second.uDomain, second.vDomain]
+        guard normalizedBounds.count == domains.count else { return false }
+        return zip(
+            zip(parameterBox.intervals, normalizedBounds),
+            domains
+        ).allSatisfy { values, domain in
+            let (interval, normalized) = values
             guard case let .closed(lower, upper) = domain else { return false }
-            return abs(interval.lower - lower) <= tolerance.relative
-                && abs(interval.upper - upper) <= tolerance.relative
+            let span = upper - lower
+            let expectedLower = lower + span * normalized.lower
+            let expectedUpper = lower + span * normalized.upper
+            return abs(interval.lower - expectedLower) <= tolerance.relative
+                && abs(interval.upper - expectedUpper) <= tolerance.relative
+        }
+    }
+
+    private static func parameterDomainSpans(
+        first: BSplineSurface3D,
+        second: BSplineSurface3D,
+        tolerance: ModelingTolerance
+    ) throws -> [Double] {
+        try [first.uDomain, first.vDomain, second.uDomain, second.vDomain].map { domain in
+            guard case let .closed(lower, upper) = domain,
+                  upper - lower > tolerance.relative else {
+                throw certificateFailure(
+                    tolerance: tolerance,
+                    message: "An exact affine graph requires non-degenerate closed parameter domains."
+                )
+            }
+            return upper - lower
+        }
+    }
+
+    private static func boundedAffineIntersection(
+        first: AffinePatch,
+        second: AffinePatch,
+        tolerance: ModelingTolerance
+    ) throws -> BoundedIntersection {
+        let firstSection = try exactSection(
+            patch: first,
+            cuttingPlane: second,
+            tolerance: tolerance
+        )
+        let secondSection = try exactSection(
+            patch: second,
+            cuttingPlane: first,
+            tolerance: tolerance
+        )
+        guard firstSection.isEmpty == false,
+              secondSection.isEmpty == false else {
+            return .disjoint
+        }
+
+        let allPoints = firstSection + secondSection
+        let coordinateIndex = try nonconstantFirstPatchCoordinate(
+            points: allPoints,
+            first: first,
+            tolerance: tolerance
+        )
+        let firstRange = try sectionRange(
+            points: firstSection,
+            coordinateIndex: coordinateIndex,
+            first: first,
+            tolerance: tolerance
+        )
+        let secondRange = try sectionRange(
+            points: secondSection,
+            coordinateIndex: coordinateIndex,
+            first: first,
+            tolerance: tolerance
+        )
+        let lower = try maximumEndpoint(
+            firstRange.lower,
+            secondRange.lower,
+            tolerance: tolerance
+        )
+        let upper = try minimumEndpoint(
+            firstRange.upper,
+            secondRange.upper,
+            tolerance: tolerance
+        )
+        switch lower.coordinate.compared(to: upper.coordinate) {
+        case .positive:
+            return .disjoint
+        case .zero:
+            return .point(try normalizedParameterPair(
+                for: lower.point,
+                first: first,
+                second: second,
+                tolerance: tolerance
+            ))
+        case .negative:
+            break
+        case .indeterminate:
+            throw certificateFailure(
+                tolerance: tolerance,
+                message: "Exact affine bounded-intersection ordering was indeterminate."
+            )
+        }
+
+        let lowerValues = try normalizedParameterPair(
+            for: lower.point,
+            first: first,
+            second: second,
+            tolerance: tolerance
+        ).values
+        let upperValues = try normalizedParameterPair(
+            for: upper.point,
+            first: first,
+            second: second,
+            tolerance: tolerance
+        ).values
+        let spans = zip(lowerValues, upperValues).map { abs($0.1 - $0.0) }
+        let domainSpans = try parameterDomainSpans(
+            first: first.surface,
+            second: second.surface,
+            tolerance: tolerance
+        )
+        let actualSpans = zip(spans, domainSpans).map { $0.0 * $0.1 }
+        guard let freeIndex = actualSpans.indices.max(by: {
+            actualSpans[$0] < actualSpans[$1]
+        }), actualSpans[freeIndex] > 0.0 else {
+            throw certificateFailure(
+                tolerance: tolerance,
+                message: "An exact nonzero affine segment could not be represented in Double parameters."
+            )
+        }
+        let orderedLower: [Double]
+        let orderedUpper: [Double]
+        if lowerValues[freeIndex] <= upperValues[freeIndex] {
+            orderedLower = lowerValues
+            orderedUpper = upperValues
+        } else {
+            orderedLower = upperValues
+            orderedUpper = lowerValues
+        }
+        let normalizedBounds = try certifiedBounds(
+            lower: orderedLower,
+            upper: orderedUpper,
+            surfaces: [first.surface, second.surface],
+            freeIndex: freeIndex,
+            tolerance: tolerance
+        )
+        guard let freeParameter = SurfaceIntersectionParameterCoordinate(
+            rawValue: freeIndex
+        ) else {
+            throw certificateFailure(
+                tolerance: tolerance,
+                message: "An exact affine segment selected an invalid free parameter."
+            )
+        }
+        return .segment(ExactAffineBilinearIntersectionGraph(
+            freeParameter: freeParameter,
+            normalizedBounds: normalizedBounds,
+            mapping: .affineSegment(
+                lower: try SurfaceIntersectionParameterPair(values: orderedLower),
+                upper: try SurfaceIntersectionParameterPair(values: orderedUpper)
+            )
+        ))
+    }
+
+    private static func exactSection(
+        patch: AffinePatch,
+        cuttingPlane: AffinePatch,
+        tolerance: ModelingTolerance
+    ) throws -> [HomogeneousExpansion] {
+        let p00 = patch.surface.controlPoints[0][0]
+        let p10 = patch.surface.controlPoints[0][1]
+        let p01 = patch.surface.controlPoints[1][0]
+        let p11 = patch.surface.controlPoints[1][1]
+        let corners = [p00, p10, p11, p01]
+        let values = corners.map {
+            planeValue(point: $0, weight: 1.0, affine: cuttingPlane)
+        }
+        guard values.allSatisfy({ sign($0) != .indeterminate }) else {
+            throw certificateFailure(
+                tolerance: tolerance,
+                message: "Exact affine boundary signs were indeterminate."
+            )
+        }
+        var endpoints: [HomogeneousExpansion] = []
+        for index in corners.indices {
+            let next = (index + 1) % corners.count
+            let firstSign = sign(values[index])
+            let secondSign = sign(values[next])
+            if firstSign == .zero {
+                appendUnique(homogeneous(point: corners[index], weight: 1.0), to: &endpoints)
+            }
+            if secondSign == .zero {
+                appendUnique(homogeneous(point: corners[next], weight: 1.0), to: &endpoints)
+            }
+            if (firstSign == .negative && secondSign == .positive)
+                || (firstSign == .positive && secondSign == .negative) {
+                let denominator = FloatingPointExpansion.subtract(
+                    values[next],
+                    values[index]
+                )
+                var root = HomogeneousExpansion(
+                    x: FloatingPointExpansion.subtract(
+                        FloatingPointExpansion.product([corners[index].x], values[next]),
+                        FloatingPointExpansion.product([corners[next].x], values[index])
+                    ),
+                    y: FloatingPointExpansion.subtract(
+                        FloatingPointExpansion.product([corners[index].y], values[next]),
+                        FloatingPointExpansion.product([corners[next].y], values[index])
+                    ),
+                    z: FloatingPointExpansion.subtract(
+                        FloatingPointExpansion.product([corners[index].z], values[next]),
+                        FloatingPointExpansion.product([corners[next].z], values[index])
+                    ),
+                    weight: denominator
+                )
+                if sign(root.weight) == .negative {
+                    root = root.scaled(by: [-1.0])
+                }
+                guard sign(root.weight) == .positive else {
+                    throw certificateFailure(
+                        tolerance: tolerance,
+                        message: "Exact affine edge interpolation lost its positive denominator."
+                    )
+                }
+                appendUnique(root, to: &endpoints)
+            }
+        }
+        guard endpoints.count <= 2 else {
+            throw certificateFailure(
+                tolerance: tolerance,
+                message: "A transverse plane produced more than two affine section endpoints."
+            )
+        }
+        return endpoints
+    }
+
+    private static func appendUnique(
+        _ candidate: HomogeneousExpansion,
+        to endpoints: inout [HomogeneousExpansion]
+    ) {
+        guard endpoints.contains(where: { exactlyEqual($0, candidate) }) == false else {
+            return
+        }
+        endpoints.append(candidate)
+    }
+
+    private static func exactlyEqual(
+        _ first: HomogeneousExpansion,
+        _ second: HomogeneousExpansion
+    ) -> Bool {
+        [
+            (first.x, second.x),
+            (first.y, second.y),
+            (first.z, second.z),
+        ].allSatisfy { firstCoordinate, secondCoordinate in
+            sign(FloatingPointExpansion.subtract(
+                FloatingPointExpansion.product(firstCoordinate, second.weight),
+                FloatingPointExpansion.product(secondCoordinate, first.weight)
+            )) == .zero
+        }
+    }
+
+    private static func affineParameterRatios(
+        for point: HomogeneousExpansion,
+        on patch: AffinePatch,
+        tolerance: ModelingTolerance
+    ) throws -> (u: ExactRatio, v: ExactRatio) {
+        guard sign(point.weight) == .positive else {
+            throw certificateFailure(
+                tolerance: tolerance,
+                message: "An exact affine endpoint had a nonpositive homogeneous weight."
+            )
+        }
+        let relative = ExpansionVector3(
+            x: FloatingPointExpansion.subtract(
+                point.x,
+                FloatingPointExpansion.product([patch.origin.x], point.weight)
+            ),
+            y: FloatingPointExpansion.subtract(
+                point.y,
+                FloatingPointExpansion.product([patch.origin.y], point.weight)
+            ),
+            z: FloatingPointExpansion.subtract(
+                point.z,
+                FloatingPointExpansion.product([patch.origin.z], point.weight)
+            )
+        )
+        let dotU = exactDot(relative, patch.exactU)
+        let dotV = exactDot(relative, patch.exactV)
+        let uNumerator = FloatingPointExpansion.subtract(
+            FloatingPointExpansion.product(dotU, patch.gramVV),
+            FloatingPointExpansion.product(dotV, patch.gramUV)
+        )
+        let vNumerator = FloatingPointExpansion.subtract(
+            FloatingPointExpansion.product(dotV, patch.gramUU),
+            FloatingPointExpansion.product(dotU, patch.gramUV)
+        )
+        let denominator = FloatingPointExpansion.product(
+            point.weight,
+            patch.gramDeterminant
+        )
+        guard let u = ExactRatio(numerator: uNumerator, denominator: denominator),
+              let v = ExactRatio(numerator: vNumerator, denominator: denominator) else {
+            throw certificateFailure(
+                tolerance: tolerance,
+                message: "An exact affine endpoint lost its parameter denominator."
+            )
+        }
+        return (u, v)
+    }
+
+    private static func nonconstantFirstPatchCoordinate(
+        points: [HomogeneousExpansion],
+        first: AffinePatch,
+        tolerance: ModelingTolerance
+    ) throws -> Int {
+        let parameters = try points.map {
+            try affineParameterRatios(for: $0, on: first, tolerance: tolerance)
+        }
+        for coordinateIndex in 0...1 {
+            let values = parameters.map { coordinateIndex == 0 ? $0.u : $0.v }
+            guard let reference = values.first else { continue }
+            if values.dropFirst().contains(where: {
+                reference.compared(to: $0) != .zero
+            }) {
+                return coordinateIndex
+            }
+        }
+        return 0
+    }
+
+    private static func sectionRange(
+        points: [HomogeneousExpansion],
+        coordinateIndex: Int,
+        first: AffinePatch,
+        tolerance: ModelingTolerance
+    ) throws -> (lower: SectionEndpoint, upper: SectionEndpoint) {
+        let endpoints = try points.map { point in
+            let parameters = try affineParameterRatios(
+                for: point,
+                on: first,
+                tolerance: tolerance
+            )
+            return SectionEndpoint(
+                point: point,
+                coordinate: coordinateIndex == 0 ? parameters.u : parameters.v
+            )
+        }
+        guard let firstEndpoint = endpoints.first else {
+            throw certificateFailure(
+                tolerance: tolerance,
+                message: "An exact affine section unexpectedly had no endpoints."
+            )
+        }
+        guard endpoints.count == 2 else {
+            return (firstEndpoint, firstEndpoint)
+        }
+        switch endpoints[0].coordinate.compared(to: endpoints[1].coordinate) {
+        case .negative, .zero:
+            return (endpoints[0], endpoints[1])
+        case .positive:
+            return (endpoints[1], endpoints[0])
+        case .indeterminate:
+            throw certificateFailure(
+                tolerance: tolerance,
+                message: "Exact affine section ordering was indeterminate."
+            )
+        }
+    }
+
+    private static func maximumEndpoint(
+        _ first: SectionEndpoint,
+        _ second: SectionEndpoint,
+        tolerance: ModelingTolerance
+    ) throws -> SectionEndpoint {
+        switch first.coordinate.compared(to: second.coordinate) {
+        case .negative:
+            return second
+        case .zero, .positive:
+            return first
+        case .indeterminate:
+            throw certificateFailure(
+                tolerance: tolerance,
+                message: "Exact affine lower-bound comparison was indeterminate."
+            )
+        }
+    }
+
+    private static func minimumEndpoint(
+        _ first: SectionEndpoint,
+        _ second: SectionEndpoint,
+        tolerance: ModelingTolerance
+    ) throws -> SectionEndpoint {
+        switch first.coordinate.compared(to: second.coordinate) {
+        case .negative, .zero:
+            return first
+        case .positive:
+            return second
+        case .indeterminate:
+            throw certificateFailure(
+                tolerance: tolerance,
+                message: "Exact affine upper-bound comparison was indeterminate."
+            )
+        }
+    }
+
+    private static func normalizedParameterPair(
+        for point: HomogeneousExpansion,
+        first: AffinePatch,
+        second: AffinePatch,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceIntersectionParameterPair {
+        let firstParameters = try affineParameterRatios(
+            for: point,
+            on: first,
+            tolerance: tolerance
+        )
+        let secondParameters = try affineParameterRatios(
+            for: point,
+            on: second,
+            tolerance: tolerance
+        )
+        return try SurfaceIntersectionParameterPair(values: try [
+            firstParameters.u,
+            firstParameters.v,
+            secondParameters.u,
+            secondParameters.v,
+        ].map {
+            try normalizedEstimate($0, tolerance: tolerance)
+        })
+    }
+
+    private static func normalizedEstimate(
+        _ ratio: ExactRatio,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        guard isNonnegative(ratio.numerator),
+              isNonnegative(FloatingPointExpansion.subtract(
+                  ratio.denominator,
+                  ratio.numerator
+              )) else {
+            throw certificateFailure(
+                tolerance: tolerance,
+                message: "An exact affine intersection endpoint left a bounded patch."
+            )
+        }
+        let value = ratio.estimate
+        guard value.isFinite,
+              value >= -tolerance.relative * 8.0,
+              value <= 1.0 + tolerance.relative * 8.0 else {
+            throw certificateFailure(
+                tolerance: tolerance,
+                residual: max(-value, value - 1.0),
+                message: "An exact affine endpoint could not be materialized in Double parameters."
+            )
+        }
+        return min(max(value, 0.0), 1.0)
+    }
+
+    private static func certifiedBounds(
+        lower: [Double],
+        upper: [Double],
+        surfaces: [BSplineSurface3D],
+        freeIndex: Int,
+        tolerance: ModelingTolerance
+    ) throws -> [(lower: Double, upper: Double)] {
+        let domainSpans = try parameterDomainSpans(
+            first: surfaces[0],
+            second: surfaces[1],
+            tolerance: tolerance
+        )
+        return try lower.indices.map { index in
+            var boundLower = min(lower[index], upper[index])
+            var boundUpper = max(lower[index], upper[index])
+            if index != freeIndex {
+                let minimumWidth = max(
+                    tolerance.relative * 4.0 / domainSpans[index],
+                    Double.ulpOfOne * 1_024.0
+                )
+                if boundUpper - boundLower <= minimumWidth {
+                    if boundLower <= minimumWidth {
+                        boundLower = 0.0
+                        boundUpper = max(boundUpper, minimumWidth)
+                    } else if boundUpper >= 1.0 - minimumWidth {
+                        boundLower = min(boundLower, 1.0 - minimumWidth)
+                        boundUpper = 1.0
+                    } else {
+                        let midpoint = (boundLower + boundUpper) * 0.5
+                        boundLower = midpoint - minimumWidth * 0.5
+                        boundUpper = midpoint + minimumWidth * 0.5
+                    }
+                }
+            }
+            guard boundLower >= 0.0,
+                  boundUpper <= 1.0,
+                  boundUpper > boundLower else {
+                throw certificateFailure(
+                    tolerance: tolerance,
+                    message: "An exact affine graph produced invalid certified bounds."
+                )
+            }
+            return (boundLower, boundUpper)
         }
     }
 

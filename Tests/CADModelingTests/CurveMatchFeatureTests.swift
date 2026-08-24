@@ -201,6 +201,56 @@ struct CurveMatchFeatureTests {
         #expect(actualJoined.curvatureVector.length <= 1.0e-6)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func sampledSourceWithoutExactGeometryReturnsMissingReference() throws {
+        let sourceID = FeatureID()
+        let targetID = FeatureID()
+        let sampledSource = EvaluatedCurve(
+            sourceFeatureID: sourceID,
+            source: .generatedFeature,
+            kind: .line,
+            points: [.origin, Point3D(x: 0.1, y: 0.0, z: 0.0)]
+        )
+        let target = try evaluatedCurve(
+            id: targetID,
+            exactCurve: .line(Line3D(origin: .origin, direction: .unitY)),
+            domain: .closed(0.0, 0.1)
+        )
+        let featureID = FeatureID()
+        let feature = FeatureNode(
+            id: featureID,
+            operation: .curveMatch(CurveMatchFeature(
+                source: CurveOutputReference(featureID: sourceID),
+                sourceEnd: .end,
+                target: CurveOutputReference(featureID: targetID),
+                targetEnd: .start,
+                continuity: .positional
+            )),
+            inputs: [
+                FeatureInput(featureID: sourceID, role: .curve),
+                FeatureInput(featureID: targetID, role: .target),
+            ],
+            outputs: [FeatureOutput(role: .curve)]
+        )
+
+        do {
+            _ = try CurveMatchFeatureEvaluator().evaluate(
+                feature: feature,
+                context: EvaluationContext(
+                    parameters: ResolvedParameterTable(),
+                    brep: BRepModel(),
+                    profiles: [:],
+                    curves: [sourceID: [sampledSource], targetID: [target]],
+                    tolerance: .standard
+                )
+            )
+            Issue.record("A sampled-only source cannot satisfy an exact curve match.")
+        } catch let error as KernelError {
+            #expect(error.code == .missingReference)
+            #expect(error.featureID == featureID)
+        }
+    }
+
     private func evaluatedCurve(
         id: FeatureID,
         exactCurve: Curve3D,
@@ -244,6 +294,10 @@ struct CurveMatchFeatureTests {
              .surfaceLift,
              .certifiedIntersection:
             return .spline
+        case let .rigidImage(image):
+            return exactCurveKind(image.source)
+        case .affineImage:
+            return curve.exactLinearLocus == nil ? .spline : .line
         }
     }
 }

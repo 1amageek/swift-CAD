@@ -1,0 +1,82 @@
+{
+  "session": "2026-08-23_agent-complex-3d-readiness-review",
+  "conclusion": {
+    "substrate": "Substantially achieved",
+    "constrainedComplexGeneration": "Usable within declared envelopes (alpha)",
+    "generalComplexProductGeneration": "Not achieved",
+    "productionReadiness": "Not achieved"
+  },
+  "metrics": {
+    "publicRoutes": {
+      "total": 75,
+      "features": 44,
+      "commands": 6,
+      "queries": 7,
+      "persistence": 4,
+      "exchange": 14
+    },
+    "capabilities": {
+      "total": 67,
+      "supported": 39,
+      "partial": 28,
+      "developmentEnvelopes": 115,
+      "fixtureBindings": 556
+    },
+    "releaseGates": {
+      "complete": 0,
+      "total": 8
+    },
+    "evidenceManifests": 0,
+    "kernelTests": {
+      "passed": 615,
+      "failed": 0,
+      "total": 615,
+      "suites": null,
+      "durationSeconds": null
+    },
+    "focusedCurrentTests": {
+      "passed": 46,
+      "failed": 0,
+      "scope": "continuous chart lift, general torus-torus differential bounds, general cone-torus periodic lift ownership, trimmed analytic volume, and certified analytic-pair area/flux"
+    },
+    "facadeTests": {
+      "fullCurrentRun": "passed",
+      "passed": 181,
+      "failed": 0,
+      "total": 181,
+      "suites": 69,
+      "durationSeconds": 244.344,
+      "targetedReleaseRun": "passed",
+      "generalTorusTorusIntersectionSeconds": 41.976,
+      "generalTorusTorusDifferenceSeconds": 46.624,
+      "generalTorusTorusUnionSeconds": 41.254,
+      "generalConeTorusSuiteSeconds": 7.541
+    },
+    "exchangeTests": {
+      "passed": 237,
+      "failed": 0,
+      "total": 237,
+      "suites": 12,
+      "durationSeconds": 84.405
+    },
+    "performanceSeconds": {
+      "polySplineRoundedPatchNetworkBefore": 104.326,
+      "polySplineRoundedPatchNetworkAfter": 20.474,
+      "polySplineRoundedMergedNetworkBefore": 60,
+      "polySplineRoundedMergedNetworkAfter": 24.564
+    },
+    "dirtyWorktreeEntries": 535
+  },
+  "strongestEvidence": [
+    "The command/query/evaluation/BRep foundation builds from the current worktree. The latest full CADKernel run passed 615/615 behavioral tests; 46 latest focused tests and the complete optimized SwiftCAD facade run verify the subsequent periodic-chart correction.",
+    "Ruled surfaces now resolve to exact same-parameter rational B-splines for algorithm dispatch while public results and certified pcurves retain the original procedural surface identity and UV chart.",
+    "An essential closed intersection on a shifted-seam full-period cylinder now materializes, sews, and validates as an exact finite strip instead of entering invalid planar closed-loop containment.",
+    "Hole-aware exact Extrude, Revolve, translational Sweep, and Loft paths now preserve void topology and validated volume.",
+    "Twenty-eight capabilities remain explicitly partial, concentrated in composition-critical modeling and exchange functions.",
+    "The complete optimized SwiftCAD facade bundle passes 181/181 tests across 69 suites in 244.344 seconds; public general torus-torus and general cone-torus Boolean paths retain their existing expected volumes and tolerances.",
+    "CADExchange passes 237/237 internal fixtures, but STEP/IGES remain partial until independent external interoperability evidence closes their declared domains.",
+    "The repository's own release contract reports 0/8 gates and no evidence manifests."
+  ],
+  "decision": "Treat the project as an advanced exact-CAD kernel prototype for constrained Agent workflows, not as a general autonomous complex-product CAD system or production-ready release.",
+  "caveat": "Do not convert 39/67 into an overall completion percentage; capability dependencies and envelope breadth are not uniform."
+}

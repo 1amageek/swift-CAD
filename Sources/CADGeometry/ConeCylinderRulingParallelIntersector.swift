@@ -29,29 +29,24 @@ struct ConeCylinderRulingParallelIntersector {
             options: options,
             tolerance: tolerance
         )
+        let evaluationContext = SurfaceIntersectionCurveEvaluationContext(
+            curve: proceduralCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
         let derived = try builder.intersection(
             parameterRange: 0.0...1.0,
             initialBreaks: (0...16).map { Double($0) / 16.0 },
             kind: .transverse,
             firstParameterAt: { fraction in
-                try proceduralCurve.parameter(
-                    on: firstSurface,
-                    atNormalizedFraction: fraction,
-                    tolerance: tolerance
-                )
+                try evaluationContext.firstParameter(at: fraction)
             },
             secondParameterAt: { fraction in
-                try proceduralCurve.parameter(
-                    on: secondSurface,
-                    atNormalizedFraction: fraction,
-                    tolerance: tolerance
-                )
+                try evaluationContext.secondParameter(at: fraction)
             },
             pointAt: { fraction in
-                try proceduralCurve.point(
-                    atNormalizedFraction: fraction,
-                    tolerance: tolerance
-                )
+                try evaluationContext.point(at: fraction)
             }
         )
         guard case let .curve(derivedCurve) = derived else {

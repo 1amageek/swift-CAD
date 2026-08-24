@@ -399,4 +399,72 @@ struct CurveSurfaceCorrespondenceValidatorTests {
             )
         }
     }
+
+    @Test(.timeLimit(.minutes(1)))
+    func curvedProceduralOffsetCertifiesEquivalentPcurveRepresentations() throws {
+        let tolerance = ModelingTolerance(
+            distance: 1.0e-7,
+            angle: 1.0e-9,
+            relative: 1.0e-10
+        )
+        let source = Surface3D.bSpline(BSplineSurface3D(
+            uDegree: 2,
+            vDegree: 2,
+            uKnots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            controlPoints: [
+                [
+                    Point3D(x: 0.0, y: 0.0, z: 0.0),
+                    Point3D(x: 0.5, y: 0.0, z: 0.08),
+                    Point3D(x: 1.0, y: 0.0, z: 0.24),
+                ],
+                [
+                    Point3D(x: 0.0, y: 0.5, z: 0.10),
+                    Point3D(x: 0.5, y: 0.5, z: 0.22),
+                    Point3D(x: 1.0, y: 0.5, z: 0.41),
+                ],
+                [
+                    Point3D(x: 0.0, y: 1.0, z: 0.31),
+                    Point3D(x: 0.5, y: 1.0, z: 0.48),
+                    Point3D(x: 1.0, y: 1.0, z: 0.72),
+                ],
+            ]
+        ))
+        let surface = Surface3D.procedural(.offset(OffsetSurface3D(
+            source: source,
+            distance: 0.13
+        )))
+        let affinePcurve = SurfaceParameterCurve.affine(
+            origin: Point2D(x: 0.22, y: 0.28),
+            direction: Point2D(x: 0.31, y: 0.19),
+            startParameter: 0.0,
+            endParameter: 1.0
+        )
+        let equivalentBSplinePcurve = SurfaceParameterCurve.bSpline(BSplineCurve2D(
+            degree: 1,
+            knots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                Point2D(x: 0.22, y: 0.28),
+                Point2D(x: 0.53, y: 0.47),
+            ]
+        ))
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: surface,
+            parameterCurve: affinePcurve
+        ))
+
+        try DefaultCurveSurfaceCorrespondenceValidator().validate(
+            curve: curve,
+            from: 0.0,
+            to: 1.0,
+            surface: surface,
+            parameterCurve: equivalentBSplinePcurve,
+            options: CurveSurfaceCorrespondenceValidationOptions(
+                maximumSubdivisionDepth: 32,
+                maximumCellCount: 65_536,
+                maximumDeviation: tolerance.distance
+            ),
+            tolerance: tolerance
+        )
+    }
 }

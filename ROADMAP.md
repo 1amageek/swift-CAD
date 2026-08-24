@@ -50,7 +50,7 @@ operation at completion.
   Capability ID. An unregistered public behavior fails completion.
 - Every capability found by that inventory must have status `supported`. No
   `partial`, `planned`, or required-but-unregistered capability may remain.
-  The 55 currently registered capabilities are a provisional baseline, not a
+  The 67 currently registered capabilities are an inventory-derived baseline, not a
   frozen final denominator; discovering an omitted contract increases the
   denominator instead of narrowing the goal.
 - A finite valid public input may fail only because the requested result is
@@ -109,36 +109,27 @@ completion gate.
 
 ### Current quantitative truth
 
-The current catalog is not close to this completion condition. The counts
-below describe capability declarations, not product completion.
+The current catalog distinguishes complete public-domain support from bounded
+development envelopes. The counts below describe capability declarations, not
+final same-revision gate completion.
 
 | Measure | Current | Required |
 |---|---:|---:|
-| Catalog capabilities | 55 registered; inventory not closed | Inventory-derived and complete |
-| General `supported` capabilities | 43 of the provisional 55 | All inventory-derived capabilities |
-| `partial` capabilities | 12 | 0 |
-| Required-but-unregistered contracts | More than 0; exact inventory pending | 0 |
-| Development-only input envelopes | 105 | 0 completion exemptions |
-| Capability-to-fixture bindings | 484 | Complete adversarial and oracle coverage |
+| Catalog capabilities | 67 registered | Inventory-derived and complete |
+| General `supported` capabilities | 39 of 67 | All inventory-derived capabilities |
+| `partial` capabilities | 28 | 0 |
+| Required-but-unregistered contracts | 0 in the mechanically enumerated mutation, query, persistence, and exchange routes | 0 |
+| Development-only input envelopes | 115 | 0 completion exemptions |
+| Capability-to-fixture bindings | 556 | Complete adversarial and oracle coverage |
 | Final gate evidence manifests | 0 | 8 on one source revision |
 | Completion gates | 0/8 | 8/8 |
 
-The 43 currently `supported` catalog entries cover all seven geometry foundations,
-all four registered topology foundations, four modeling foundations, the five
-completed curve-operation slices for bridge, edit, offset, trim, and extend,
-the general finite exact Curve Match contract with opposite-end G2 preservation,
-the exact regular rectangular B-spline surface source slice, and the exact
-rational ruled Bridge Surface slice with arbitrary finite B-spline boundary
-bases, the exact rational Coons Patch Surface slice with arbitrary finite
-B-spline boundary bases, the bounded exact Surface Offset, Surface Trim,
-Surface Extend, Surface Match, Face Loop Offset, Edge Offset, Face Knife, Face Delete,
-Face Draft, Chamfer, Fillet, G2 Blend, Setback Corner, Shell, Edge Move, Vertex Move,
-Face Offset, and Face Move
-contracts, and the shared strict Codable command/query/result
-transport with evaluated-document and derived-result invariant validation. This does not
-pass `G1`, `G2`, or `G3`: registered topology coverage is not yet the full
-topology inventory, the complete intersection matrix remains open, and 9
-registered modeling and constraint operations are still partial.
+The 28 `partial` entries expose executable, tested envelopes but still declare
+`unsupportedCapability` for at least one structurally valid public input. They
+cannot be promoted until those envelope rejections are implemented or shown to
+be mathematical singularity, ambiguity, non-discreteness, or an explicit
+resource-limit failure under the completion rule. The 39 `supported` entries
+also remain subject to the required G0-G7 same-revision evidence.
 
 The current provisional catalog breaks down as follows. A `partial` entry earns
 no completion credit even when it contains substantial working envelopes.
@@ -147,14 +138,16 @@ no completion credit even when it contains substantial working envelopes.
 |---|---:|---:|---:|---|
 | Geometry | 7 | 7 | 0 | OPEN |
 | Topology | 4 | 4 | 0 | OPEN |
-| Modeling and constraints | 40 | 31 | 9 | OPEN |
-| Shared command/query API | 1 | 1 | 0 | OPEN |
-| Exact and USD exchange | 3 | 0 | 3 | OPEN |
+| Modeling and constraints | 44 | 19 | 25 | OPEN |
+| Shared command/query and native API | 2 | 2 | 0 | OPEN |
+| Exact and USD exchange | 10 | 7 | 3 | OPEN |
 
-The inventory itself is also incomplete. The public native-persistence and
-non-USD mesh-exchange surfaces must either receive
-primary Capability IDs or be removed from the public pre-v1 contract. This is a
-completion blocker, not future polish.
+`PUBLIC_CONTRACT_INVENTORY.json` now enumerates every current
+`FeatureOperationKind`, `CADCommand`, `KernelQuery`, `NativePackageStore`
+operation, and `ExchangeFileFormat` case. Native persistence and every non-USD
+mesh/document exchange surface have primary Capability IDs. This closes the
+known registration gap, but it does not pass `G4` or `G7`: repository-wide
+bypass-path analysis and same-revision behavioral evidence remain open.
 
 **Overall status: NOT ACHIEVED — 0/8 gates passed.**
 
@@ -162,7 +155,7 @@ completion blocker, not future polish.
 |---|---|---|---|---|---|
 | `G0` | Reproducible development contract | OPEN | The current revision has not passed one isolated-checkout audit covering remote-only dependency resolution, macOS, iOS, visionOS, WASM, strict current-schema decoding, AST policy checks, and documentation/capability consistency. | Fresh-checkout build logs for every platform plus policy, schema, and contract reports on one revision. | — |
 | `G1` | Complete exact geometry | OPEN | Analytic and rational NURBS evaluation exists, but intersection, projection, adaptive-precision classification, singular handling, residual certification, and an exact certified-implicit intersection representation remain incomplete or restricted to registered envelopes. | Property suites and oracle comparisons covering all declared curve/surface pairs, derivatives, curvature, UVN frames, intersections, implicit branch identity, singularities, and tolerance scaling. | — |
-| `G2` | Complete validated topology | OPEN | Coedge B-rep, pcurves, validation, sewing, repair requests, and lineage exist, but general curved-shell manifold, watertight, orientation, volume, split/merge, and healing behavior is not closed. | Invariant, sewing, repair, classification, exact-volume, and lineage suites over general analytic/NURBS shells. | — |
+| `G2` | Complete validated topology | OPEN | The registered topology capabilities now declare complete public-domain support and volumetric validation has a total certified surface-flux path, but the required same-revision invariant, external-oracle, lineage, and repair evidence manifest has not been produced. | Invariant, sewing, repair, classification, exact-volume, and lineage suites over general analytic/NURBS shells. | — |
 | `G3` | Complete exact modeling | OPEN | Named operations are implemented only for capability-ledger subsets; general Boolean, Sweep, Loft, blends, shell/direct edits, patterns, and curve/surface editing are not complete. | Every named operation passes IR, evaluator, exact-output, topology, lineage, persistence, Builder/Agent parity, and typed-rejection fixtures without mesh fallback. | — |
 | `G4` | One public operation and query path | OPEN | Shared commands, queries, strict Codable result transport, capability preflight, and result invariant validation exist, but all legacy or bypass paths, deterministic cache invalidation, and stable selection across arbitrary editing chains have not passed a repository-wide proof. | API inventory plus parity tests showing UI/Builder/Agent command identity and deterministic source, topology, lineage, diagnostics, and queries after edits. | — |
 | `G5` | Complete constraints | OPEN | The declared relation set, forward differentiation, DOF classification, typed conflict/singularity results, explicit circular and spline tangency branches, and document-edit integration exist. The same-revision residual/Jacobian oracle, adversarial singular-system coverage, and document-level all-relation proof are not complete. | Residual/Jacobian oracle tests and document-level solve fixtures for under-, well-, over-constrained, conflicting, and singular systems. | — |

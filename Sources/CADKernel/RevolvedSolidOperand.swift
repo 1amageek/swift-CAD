@@ -44,7 +44,15 @@ struct RevolvedSolidOperand: Sendable {
                     message: "Revolved operand references missing face geometry."
                 )
             }
-            switch surface {
+            let classifiedSurface: Surface3D
+            if case let .procedural(.offset(offset)) = surface {
+                classifiedSurface = try offset.exactSameParameterSurface(
+                    tolerance: tolerance
+                ) ?? surface
+            } else {
+                classifiedSurface = surface
+            }
+            switch classifiedSurface {
             case let .cylinder(cylinder):
                 cylinders.append((cylinder.origin, cylinder.axis, cylinder.radius))
             case let .analytic(.cylinder(origin, axis, radius)):
@@ -55,8 +63,16 @@ struct RevolvedSolidOperand: Sendable {
                 capNormals.append(plane.normal)
             case let .analytic(.plane(_, normal)):
                 capNormals.append(normal)
-            case .analytic, .bSpline:
+            case .analytic, .procedural:
                 throw Self.unsupported(tolerance)
+            case .bSpline:
+                guard let plane = try DefaultPlanarSurfaceResolver().exactPlane(
+                    for: classifiedSurface,
+                    tolerance: tolerance
+                ) else {
+                    throw Self.unsupported(tolerance)
+                }
+                capNormals.append(plane.normal)
             }
             for loopID in face.loops {
                 guard let loop = model.loops[loopID] else {

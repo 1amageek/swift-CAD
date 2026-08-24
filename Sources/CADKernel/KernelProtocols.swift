@@ -98,6 +98,7 @@ public struct EvaluatedDocument: Codable, Sendable {
     public let configuration: DocumentEvaluationConfiguration
     public let evaluationMetrics: DocumentEvaluationMetrics
     var incrementalEvaluationState: IncrementalEvaluationState?
+    var validatedBRep: ValidatedBRepModel?
 
     public init(
         document: CADDocument,
@@ -122,6 +123,7 @@ public struct EvaluatedDocument: Codable, Sendable {
         self.configuration = configuration
         self.evaluationMetrics = evaluationMetrics
         incrementalEvaluationState = nil
+        validatedBRep = nil
     }
 
     private enum CodingKeys: String, CodingKey {

@@ -1,5 +1,6 @@
 import CADCore
 import CADIR
+import CADTopology
 
 public enum BooleanEvaluationCapabilities {
     public enum OperandKind: String, Codable, Equatable, Sendable {
@@ -8,6 +9,7 @@ public enum BooleanEvaluationCapabilities {
         case planarAndRevolvedSolids
         case convexPlanarSolids
         case separatedSolidBodies
+        case generalExactBRepSolids
     }
 
     public enum OutputTopologyKind: String, Codable, Equatable, Sendable {
@@ -28,6 +30,7 @@ public enum BooleanEvaluationCapabilities {
         case convexPlanarDifference
         case convexPlanarIntersection
         case disjointSolidUnion
+        case generalExactBRepResult
     }
 
     public enum TopologyNameScheme: String, Codable, Equatable, Sendable {
@@ -36,6 +39,7 @@ public enum BooleanEvaluationCapabilities {
         case curvedBoundaryTopology
         case exactPlanarBoundaryTopology
         case copiedSourceTopology
+        case exactIntersectionBoundaryTopology
     }
 
     public enum UnsupportedCode: String, Codable, Equatable, Sendable {
@@ -143,11 +147,11 @@ public struct BooleanEvaluationPreflightCheck: Codable, Equatable, Sendable {
 }
 
 public struct BooleanEvaluationPlanService: Sendable {
-    private let documentEvaluator: DocumentEvaluator?
+    private let documentEvaluator: (any ExactDocumentEvaluating)?
     private let booleanEvaluator: ExactBRepBooleanEvaluator
 
     public init(
-        documentEvaluator: DocumentEvaluator? = nil,
+        documentEvaluator: (any ExactDocumentEvaluating)? = nil,
         booleanEvaluator: ExactBRepBooleanEvaluator = ExactBRepBooleanEvaluator()
     ) {
         self.documentEvaluator = documentEvaluator
@@ -207,7 +211,7 @@ public struct BooleanEvaluationPlanService: Sendable {
                 message: "Boolean planning tolerance must match the injected document evaluator."
             )
         }
-        let evaluated = try resolvedDocumentEvaluator.evaluate(document)
+        let evaluated = try resolvedDocumentEvaluator.evaluateExact(document)
         let targetBodyIDs: [BodyID]
         let toolBodyID: BodyID
         do {
@@ -274,6 +278,32 @@ public struct BooleanEvaluationPlanService: Sendable {
                 message: "Boolean can evaluate as \(plan.outputTopologyKind.rawValue).",
                 checks: passedChecks
             )
+        } catch let error as KernelError where error.code == .unsupportedCapability {
+            do {
+                return try generalExactPlanResult(
+                    operation: operation,
+                    keepTools: keepTools,
+                    targetBodyIDs: targetBodyIDs,
+                    toolBodyID: toolBodyID,
+                    evaluated: evaluated,
+                    checks: checks
+                )
+            } catch {
+                let unsupported = unsupportedCase(for: error)
+                return unsupportedResult(
+                    operation: operation,
+                    keepTools: keepTools,
+                    targetCount: targets.count,
+                    unsupportedCase: unsupported,
+                    checks: checks + [
+                        BooleanEvaluationPreflightCheck(
+                            kind: unsupported.checkKind,
+                            status: .unsupported,
+                            message: unsupported.message
+                        ),
+                    ]
+                )
+            }
         } catch {
             let unsupported = unsupportedCase(for: error)
             return unsupportedResult(
@@ -290,6 +320,117 @@ public struct BooleanEvaluationPlanService: Sendable {
                 ]
             )
         }
+    }
+
+    private func generalExactPlanResult(
+        operation: BooleanOperation,
+        keepTools: Bool,
+        targetBodyIDs: [BodyID],
+        toolBodyID: BodyID,
+        evaluated: EvaluatedDocument,
+        checks: [BooleanEvaluationPreflightCheck]
+    ) throws -> BooleanEvaluationPlanResult {
+        let previewFeatureID = FeatureID()
+        let preview = try BooleanPipeline(evaluator: booleanEvaluator).evaluate(
+            operation: operation,
+            targetBodyIDs: targetBodyIDs,
+            toolBodyID: toolBodyID,
+            keepTools: false,
+            featureID: previewFeatureID,
+            model: evaluated.brep,
+            subshapes: evaluated.subshapes.entries,
+            toolSubshapes: [:],
+            inputLineage: evaluated.lineage,
+            tolerance: evaluated.configuration.tolerance
+        )
+        let outputEntries = preview.subshapes.filter {
+            $0.key.featureID == previewFeatureID
+        }
+        let outputBodyIDs: Set<BodyID> = Set(outputEntries.compactMap { _, reference in
+            guard case let .body(bodyID) = reference else { return nil }
+            return bodyID
+        })
+        guard outputBodyIDs.isEmpty == false else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: evaluated.configuration.tolerance,
+                message: "General exact Boolean preflight produced no output body identity."
+            )
+        }
+        let outputModel = try BRepBodySubmodelExtractor().extract(
+            bodyIDs: outputBodyIDs,
+            from: preview.brep
+        )
+        let topologySlots = outputEntries
+            .sorted { $0.key < $1.key }
+            .map { subshapeID, reference in
+                topologySlot(for: subshapeID, reference: reference)
+            }
+        let outputKind = BooleanEvaluationCapabilities.OutputTopologyKind.generalExactBRepResult
+        let passedChecks = checks + [
+            BooleanEvaluationPreflightCheck(
+                kind: .operandTopology,
+                status: .passed,
+                message: "Boolean operands resolve to general exact B-rep solids."
+            ),
+            BooleanEvaluationPreflightCheck(
+                kind: .capabilityDecision,
+                status: .passed,
+                message: "Boolean exact dry-run produced validated result topology."
+            ),
+        ]
+        return BooleanEvaluationPlanResult(
+            status: .supported,
+            operation: operation,
+            keepTools: keepTools,
+            targetCount: targetBodyIDs.count,
+            targetCellCount: 0,
+            toolCellCount: 0,
+            resultPrimitiveCount: outputModel.bodies.count,
+            resultTopologyCounts: BooleanEvaluationTopologyCounts(
+                bodyCount: outputModel.bodies.count,
+                shellCount: outputModel.shells.count,
+                faceCount: outputModel.faces.count,
+                loopCount: outputModel.loops.count,
+                edgeCount: outputModel.edges.count,
+                vertexCount: outputModel.vertices.count
+            ),
+            operandKind: .generalExactBRepSolids,
+            outputTopologyKind: outputKind,
+            topologyNameSchemes: [.body, .exactIntersectionBoundaryTopology],
+            topologySlots: topologySlots,
+            unsupportedCode: nil,
+            message: "Boolean can evaluate as \(outputKind.rawValue).",
+            checks: passedChecks
+        )
+    }
+
+    private func topologySlot(
+        for subshapeID: SubshapeID,
+        reference: TopologyReference
+    ) -> BooleanEvaluationTopologySlot {
+        let role: GeneratedSubshapeRole
+        switch reference {
+        case .body:
+            role = .body
+        case .face:
+            role = .face
+        case .edge:
+            role = .edge
+        case .vertex:
+            role = .vertex
+        }
+        let prefix = "\(role.rawValue)."
+        let subshapeRole: String?
+        if subshapeID.role == role.rawValue {
+            subshapeRole = nil
+        } else if subshapeID.role.hasPrefix(prefix) {
+            subshapeRole = String(subshapeID.role.dropFirst(prefix.count))
+        } else {
+            subshapeRole = subshapeID.role
+        }
+        return BooleanEvaluationTopologySlot(role: role, subshape: subshapeRole)
     }
 
     private struct UnsupportedCase {

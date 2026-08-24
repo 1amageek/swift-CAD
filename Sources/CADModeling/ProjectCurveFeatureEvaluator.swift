@@ -118,11 +118,62 @@ public struct ProjectCurveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
                 projection: projection,
                 tolerance: tolerance
             )
-        case .analytic, .implicit, .surfaceLift, .certifiedIntersection:
-            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
-                "Curve projection supports exact line, circle, and B-spline sources only."
+        case .analytic, .implicit, .surfaceLift, .certifiedIntersection,
+             .rigidImage, .affineImage:
+            return try projectAffineImage(
+                featureID: featureID,
+                source: source,
+                curve: exactCurve,
+                projection: projection,
+                tolerance: tolerance
             )
         }
+    }
+
+    private func projectAffineImage(
+        featureID: FeatureID,
+        source: EvaluatedCurve,
+        curve: Curve3D,
+        projection: ParallelPlaneProjection,
+        tolerance: ModelingTolerance
+    ) throws -> EvaluatedCurve {
+        let projected = Curve3D.affineImage(try AffineImageCurve3D(
+            source: curve,
+            transform: projection.affineTransform,
+            tolerance: tolerance
+        ))
+        let regularityInterval: ScalarInterval
+        switch source.parameterDomain {
+        case let .closed(lower, upper):
+            regularityInterval = try ScalarInterval(lower: lower, upper: upper)
+        case let .periodic(period):
+            regularityInterval = try ScalarInterval(lower: 0.0, upper: period)
+        case .unbounded:
+            throw kernelError(
+                .invalidInput,
+                featureID: featureID,
+                tolerance: tolerance,
+                "Curve projection requires a finite source parameter interval."
+            )
+        }
+        try DefaultCurveRegularityValidator().validate(
+            projected,
+            over: regularityInterval,
+            tolerance: tolerance
+        )
+        let evaluated = EvaluatedCurve(
+            sourceFeatureID: featureID,
+            source: .generatedFeature,
+            kind: source.kind,
+            points: source.points.map(projection.apply),
+            isClosed: source.isClosed,
+            plane: .plane(Plane3D(origin: projection.planeOrigin, normal: projection.planeNormal)),
+            exactCurve: projected,
+            exactParameterDomain: source.exactParameterDomain,
+            exactPointParameters: source.exactPointParameters
+        )
+        try evaluated.validate(tolerance: tolerance)
+        return evaluated
     }
 
     private func projectLine(
@@ -200,16 +251,33 @@ public struct ProjectCurveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
     ) throws -> EvaluatedCurve {
         try circle.validate(tolerance: tolerance)
         let circleNormal = try circle.normal.normalized(tolerance: tolerance.distance)
-        // A parallel projection maps a circle onto a congruent translated circle
-        // only when the projection direction and the target plane normal are both
-        // parallel to the circle normal; every other configuration produces an
-        // ellipse that has no exact circular representation.
-        guard circleNormal.cross(projection.direction).length <= sin(tolerance.angle),
-              circleNormal.cross(projection.planeNormal).length <= sin(tolerance.angle) else {
-            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
-                "Curve projection of a circle off its axis requires an elliptical projection construction that is not yet available."
+        if circleNormal.cross(projection.direction).length <= sin(tolerance.angle),
+           circleNormal.cross(projection.planeNormal).length <= sin(tolerance.angle) {
+            return try projectAxisAlignedCircle(
+                featureID: featureID,
+                source: source,
+                circle: circle,
+                projection: projection,
+                tolerance: tolerance
             )
         }
+
+        return try projectCircleAsRationalBSpline(
+            featureID: featureID,
+            source: source,
+            circle: circle,
+            projection: projection,
+            tolerance: tolerance
+        )
+    }
+
+    private func projectAxisAlignedCircle(
+        featureID: FeatureID,
+        source: EvaluatedCurve,
+        circle: Circle3D,
+        projection: ParallelPlaneProjection,
+        tolerance: ModelingTolerance
+    ) throws -> EvaluatedCurve {
         let projectedCircle = Circle3D(
             center: projection.apply(circle.center),
             normal: circle.normal,
@@ -224,6 +292,101 @@ public struct ProjectCurveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
             plane: .plane(Plane3D(origin: projection.planeOrigin, normal: projection.planeNormal)),
             exactCurve: .circle(projectedCircle),
             exactParameterDomain: source.exactParameterDomain
+        )
+        try evaluated.validate(tolerance: tolerance)
+        return evaluated
+    }
+
+    private func projectCircleAsRationalBSpline(
+        featureID: FeatureID,
+        source: EvaluatedCurve,
+        circle: Circle3D,
+        projection: ParallelPlaneProjection,
+        tolerance: ModelingTolerance
+    ) throws -> EvaluatedCurve {
+        let bounds: (lower: Double, upper: Double)
+        switch source.parameterDomain {
+        case let .closed(lower, upper):
+            bounds = (lower, upper)
+        case let .periodic(period):
+            bounds = (0.0, period)
+        case .unbounded:
+            throw kernelError(
+                .invalidInput,
+                featureID: featureID,
+                tolerance: tolerance,
+                "A circular projection source must have a bounded or periodic parameter domain."
+            )
+        }
+
+        let sourceCurve = Curve3D.circle(circle)
+        let sourceCenter = circle.center
+        let projectedCenter = projection.apply(sourceCenter)
+        let sourceBasisPoint = try sourceCurve.point(at: 0.0, tolerance: tolerance)
+        let sourceQuarterPoint = try sourceCurve.point(
+            at: 0.5 * Double.pi,
+            tolerance: tolerance
+        )
+        let projectedFirstAxis = projection.apply(sourceBasisPoint) - projectedCenter
+        let projectedSecondAxis = projection.apply(sourceQuarterPoint) - projectedCenter
+        let projectedScale = max(
+            projectedFirstAxis.length,
+            projectedSecondAxis.length,
+            tolerance.distance
+        )
+        let projectedArea = projectedFirstAxis.cross(projectedSecondAxis).length
+        guard projectedArea > tolerance.distance * projectedScale else {
+            throw kernelError(
+                .singularGeometry,
+                featureID: featureID,
+                tolerance: tolerance,
+                "Curve projection collapses the source circle below the modeling tolerance."
+            )
+        }
+
+        let sweep = bounds.upper - bounds.lower
+        let spanCount = max(1, Int(ceil(abs(sweep) / (0.5 * Double.pi))))
+        let spans = try (0..<spanCount).map { index in
+            let start = bounds.lower + sweep * Double(index) / Double(spanCount)
+            let end = bounds.lower + sweep * Double(index + 1) / Double(spanCount)
+            let middle = 0.5 * (start + end)
+            let weight = cos(0.5 * (end - start))
+            guard weight.isFinite, weight > Double.ulpOfOne else {
+                throw kernelError(
+                    .singularGeometry,
+                    featureID: featureID,
+                    tolerance: tolerance,
+                    "Curve projection produced a singular rational conic span."
+                )
+            }
+            let middlePoint = try sourceCurve.point(at: middle, tolerance: tolerance)
+            let sourceControl = sourceCenter + (middlePoint - sourceCenter) / weight
+            let span = BSplineCurve3D(
+                degree: 2,
+                knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                controlPoints: [
+                    projection.apply(try sourceCurve.point(at: start, tolerance: tolerance)),
+                    projection.apply(sourceControl),
+                    projection.apply(try sourceCurve.point(at: end, tolerance: tolerance)),
+                ],
+                weights: [1.0, weight, 1.0]
+            )
+            try span.validate(tolerance: tolerance)
+            return span
+        }
+        let projected = try ExactCompositeBSplineCurveBuilder().build(
+            spans: spans,
+            tolerance: tolerance
+        )
+        let evaluated = EvaluatedCurve(
+            sourceFeatureID: featureID,
+            source: .generatedFeature,
+            kind: source.kind,
+            points: source.points.map(projection.apply),
+            isClosed: source.isClosed,
+            plane: .plane(Plane3D(origin: projection.planeOrigin, normal: projection.planeNormal)),
+            exactCurve: .bSpline(projected),
+            exactParameterDomain: projected.domain
         )
         try evaluated.validate(tolerance: tolerance)
         return evaluated
@@ -249,6 +412,18 @@ private struct ParallelPlaneProjection {
     let planeOrigin: Point3D
     let planeNormal: Vector3D
     let direction: Vector3D
+
+    var affineTransform: AffineTransform3D {
+        get throws {
+            let denominator = direction.dot(planeNormal)
+            return try AffineTransform3D(
+                basisX: .unitX - direction * (planeNormal.x / denominator),
+                basisY: .unitY - direction * (planeNormal.y / denominator),
+                basisZ: .unitZ - direction * (planeNormal.z / denominator),
+                translation: direction * ((planeOrigin - .origin).dot(planeNormal) / denominator)
+            )
+        }
+    }
 
     func apply(_ point: Point3D) -> Point3D {
         let offset = (point - planeOrigin).dot(planeNormal) / direction.dot(planeNormal)

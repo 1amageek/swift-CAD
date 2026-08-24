@@ -185,6 +185,16 @@ public extension SurfaceParameterCurve {
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
             )
+        case let .rigidImage(curve):
+            return try curve.differential(
+                atNormalizedFraction: clampedFraction,
+                tolerance: tolerance
+            )
+        case let .sameParameterImage(curve):
+            return try curve.differential(
+                atNormalizedFraction: clampedFraction,
+                tolerance: tolerance
+            )
         case let .periodicTranslation(base, uShift, vShift):
             var differential = try base.differentialGeometry(
                 atNormalizedFraction: clampedFraction,

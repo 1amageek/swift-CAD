@@ -79,8 +79,18 @@ struct PrimitiveGeneralConeConeBooleanIntegrationTests {
             loop.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
         })
         let volume = try result.document.brep.volume(tolerance: .standard)
+        let bodyID = try #require(result.document.brep.bodies.keys.first)
+        let mesh = try #require(
+            MeshTessellator(tolerance: .standard)
+                .tessellate(model: result.document.brep)[bodyID]
+        )
+        let meshVolume = signedMeshVolume(mesh)
         let volumeTolerance = ModelingTolerance.standard.distance * 8.0 * 8.0 * 64.0
-        #expect(abs(volume - expectedVolume) <= volumeTolerance)
+        #expect(
+            abs(volume - expectedVolume) <= volumeTolerance,
+            "Expected volume \(expectedVolume), got \(volume); mesh volume was \(meshVolume)."
+        )
+        #expect(meshVolume > 0.0)
         let booleanLineage = result.document.lineage.values.filter {
             $0.output.featureID == result.featureID
         }
@@ -112,4 +122,19 @@ struct PrimitiveGeneralConeConeBooleanIntegrationTests {
     private func length(_ value: Double) -> CADExpression {
         .constant(.length(value, unit: .meter))
     }
+
+    private func signedMeshVolume(_ mesh: Mesh) -> Double {
+        guard let origin = mesh.positions.first else { return 0.0 }
+        var result = 0.0
+        var index = 0
+        while index + 2 < mesh.indices.count {
+            let first = mesh.positions[Int(mesh.indices[index])] - origin
+            let second = mesh.positions[Int(mesh.indices[index + 1])] - origin
+            let third = mesh.positions[Int(mesh.indices[index + 2])] - origin
+            result += first.dot(second.cross(third)) / 6.0
+            index += 3
+        }
+        return result
+    }
+
 }

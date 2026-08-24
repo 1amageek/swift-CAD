@@ -248,6 +248,56 @@ struct TrimmedAnalyticSurfaceVolumeEvaluatorTests {
     }
 
     @Test
+    func torusCoordinateLoopCrossingAzimuthSeamMatchesUnwrappedRectangle() throws {
+        let period = 2.0 * Double.pi
+        let uLower = period - 0.2
+        let uUpper = period + 0.3
+        let vLower = 0.1
+        let vUpper = 0.6
+        let surface = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: .unitZ,
+            majorRadius: 3.0,
+            minorRadius: 0.75
+        ))
+        let reference = Point3D(x: -0.3, y: 0.2, z: 0.1)
+        let seamCrossingLoop: [SurfaceParameterCurve] = [
+            .constantV(v: vLower, uStart: uLower, uEnd: period),
+            .constantV(v: vLower, uStart: 0.0, uEnd: uUpper - period),
+            .constantU(u: uUpper - period, vStart: vLower, vEnd: vUpper),
+            .constantV(v: vUpper, uStart: uUpper - period, uEnd: 0.0),
+            .constantV(v: vUpper, uStart: period, uEnd: uLower),
+            .constantU(u: uLower, vStart: vUpper, vEnd: vLower),
+        ]
+        let evaluator = TrimmedAnalyticSurfaceVolumeEvaluator()
+
+        let seamResult = try evaluator.coordinateLoopVolumeBounds(
+            surface: surface,
+            parameterCurves: seamCrossingLoop,
+            role: .outer,
+            reference: reference,
+            tolerance: tolerance
+        )
+        let rectangleResult = try evaluator.faceVolumeBounds(
+            surface: surface,
+            domain: ExactRectangularPcurveDomain(
+                uLower: uLower,
+                uUpper: uUpper,
+                vLower: vLower,
+                vUpper: vUpper
+            ),
+            reference: reference,
+            tolerance: tolerance
+        )
+        let seam = try #require(seamResult)
+        let rectangle = try #require(rectangleResult)
+
+        #expect(seam.lower <= rectangle.upper)
+        #expect(seam.upper >= rectangle.lower)
+        #expect(abs(seam.midpoint - rectangle.midpoint) <= tolerance.distance)
+    }
+
+    @Test
     func reversedCoordinateLoopPreservesCanonicalOuterContribution() throws {
         let forward = coordinateLLoop(
             uLower: 0.0,
@@ -578,7 +628,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluatorTests {
             lowerHeight: lowerHeight,
             upperHeight: upperHeight
         )
-        let uLower = Double.pi * 0.25
+        let uLower = try implicitEdge.startParameter(tolerance: tolerance).u
         let uUpper = uLower + 0.5
         let evaluator = TrimmedAnalyticSurfaceVolumeEvaluator()
         let result = try evaluator.analyticLoopVolumeBounds(
@@ -627,7 +677,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluatorTests {
             lowerHeight: lowerHeight,
             upperHeight: upperHeight
         )
-        let uLower = Double.pi * 0.25
+        let uLower = try implicitEdge.startParameter(tolerance: tolerance).u
         let uUpper = uLower + 0.5
         let requestedWidth = tolerance.distance * 0.01
 

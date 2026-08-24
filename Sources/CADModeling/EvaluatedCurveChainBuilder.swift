@@ -43,30 +43,53 @@ package struct EvaluatedCurveChainBuilder: Sendable {
         operationName: String,
         preferredStartPlane: Plane3D? = nil
     ) throws -> [EvaluatedCurvePathSegment] {
+        let chain = try connectedSegments(
+            from: curves,
+            operationName: operationName,
+            preferredStartPlane: preferredStartPlane
+        )
+        guard chain.isClosed == false else {
+            throw SketchError.unsupportedEntity(
+                "\(operationName) requires an open curve chain."
+            )
+        }
+        return chain.segments
+    }
+
+    package func connectedSegments(
+        from curves: [EvaluatedCurve],
+        operationName: String,
+        preferredStartPlane: Plane3D? = nil
+    ) throws -> (segments: [EvaluatedCurvePathSegment], isClosed: Bool) {
         try tolerance.validate()
         guard curves.isEmpty == false else {
             throw SketchError.unsupportedEntity("\(operationName) contains no curve entities.")
         }
         if curves.count == 1 {
-            let curve = try validateSingleOpenCurve(curves[0], operationName: operationName)
-            return [EvaluatedCurvePathSegment(curve: curve)]
+            let curve = curves[0]
+            try curve.validate(tolerance: tolerance)
+            guard let first = curve.points.first,
+                  let last = curve.points.last else {
+                throw SketchError.unsupportedEntity("\(operationName) contains no curve points.")
+            }
+            return (
+                [EvaluatedCurvePathSegment(curve: curve)],
+                curve.isClosed
+                    || first.isApproximatelyEqual(to: last, tolerance: tolerance.distance)
+            )
         }
 
         try validateOpenSegments(curves, operationName: operationName)
         let endpoints = endpoints(for: curves)
         try validateEndpointDegrees(endpoints, operationName: operationName)
         let unmatchedEndpoints = endpoints.filter { matchingEndpointCount(for: $0, in: endpoints) == 0 }
-        guard unmatchedEndpoints.count != 0 else {
-            throw SketchError.unsupportedEntity(
-                "\(operationName) closed curve chains require closed sweep topology support."
-            )
-        }
-        guard unmatchedEndpoints.count == 2 else {
-            throw SketchError.unsupportedEntity("\(operationName) requires connected open curve segments.")
+        let isClosed = unmatchedEndpoints.isEmpty
+        guard isClosed || unmatchedEndpoints.count == 2 else {
+            throw SketchError.disconnectedCurveChain(operation: operationName)
         }
 
         let startEndpoint = selectedStartEndpoint(
-            from: unmatchedEndpoints,
+            from: isClosed ? endpoints : unmatchedEndpoints,
             preferredStartPlane: preferredStartPlane
         )
         var usedCurveIndexes: Set<Int> = [startEndpoint.curveIndex]
@@ -90,24 +113,42 @@ package struct EvaluatedCurveChainBuilder: Sendable {
                 throw SketchError.unsupportedEntity("\(operationName) contains a branched curve junction.")
             }
             guard let candidate = candidates.first else {
-                throw SketchError.unsupportedEntity("\(operationName) requires connected open curve segments.")
+                throw SketchError.disconnectedCurveChain(operation: operationName)
             }
             usedCurveIndexes.insert(candidate.curveIndex)
             segments.append(candidate.segment)
         }
 
-        guard let finalPoint = endPoint(for: segments[segments.index(before: segments.endIndex)]),
-              unmatchedEndpoints.contains(where: { endpoint in
-                  endpoint.curveIndex != startEndpoint.curveIndex
-                      && endpoint.point.isApproximatelyEqual(to: finalPoint, tolerance: tolerance.distance)
-              }) else {
-            throw SketchError.unsupportedEntity("\(operationName) requires connected open curve segments.")
+        guard let finalPoint = endPoint(for: segments[segments.index(before: segments.endIndex)]) else {
+            throw SketchError.unsupportedEntity(
+                "\(operationName) requires one connected, non-branching curve chain."
+            )
+        }
+        if isClosed {
+            guard startEndpoint.point.isApproximatelyEqual(
+                to: finalPoint,
+                tolerance: tolerance.distance
+            ) else {
+                throw SketchError.unsupportedEntity(
+                    "\(operationName) closed curve chain does not close at its selected start."
+                )
+            }
+        } else {
+            guard unmatchedEndpoints.contains(where: { endpoint in
+                endpoint.curveIndex != startEndpoint.curveIndex
+                    && endpoint.point.isApproximatelyEqual(
+                        to: finalPoint,
+                        tolerance: tolerance.distance
+                    )
+            }) else {
+                throw SketchError.disconnectedCurveChain(operation: operationName)
+            }
         }
 
         for segment in segments {
             try segment.validate(tolerance: tolerance)
         }
-        return segments
+        return (segments, isClosed)
     }
 
     private func selectedStartEndpoint(
@@ -140,24 +181,6 @@ package struct EvaluatedCurveChainBuilder: Sendable {
             }
             return first.end.sortOrder < second.end.sortOrder
         } ?? endpoints[0]
-    }
-
-    private func validateSingleOpenCurve(
-        _ curve: EvaluatedCurve,
-        operationName: String
-    ) throws -> EvaluatedCurve {
-        try curve.validate(tolerance: tolerance)
-        guard curve.isClosed == false else {
-            throw SketchError.unsupportedEntity("\(operationName) requires an open curve chain.")
-        }
-        guard let first = curve.points.first,
-              let last = curve.points.last,
-              first.isApproximatelyEqual(to: last, tolerance: tolerance.distance) == false else {
-            throw SketchError.unsupportedEntity(
-                "\(operationName) closed curve chains require closed sweep topology support."
-            )
-        }
-        return curve
     }
 
     private func validateOpenSegments(

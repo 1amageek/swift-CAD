@@ -21,11 +21,15 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     }
 
     private let facePointContainment: any FacePointContainmentTesting
+    private let coincidentFaceOverlapTester: CoincidentFaceOverlapTester
 
     public init(
         facePointContainment: any FacePointContainmentTesting = DefaultFacePointContainmentTester()
     ) {
         self.facePointContainment = facePointContainment
+        self.coincidentFaceOverlapTester = CoincidentFaceOverlapTester(
+            facePointContainment: facePointContainment
+        )
     }
 
     public func splitGraph(
@@ -63,15 +67,16 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
                   let toolFace = model.faces[pair.toolFaceID],
                   let targetSurface = model.geometry.surfaces[targetFace.surfaceID],
                   let toolSurface = model.geometry.surfaces[toolFace.surfaceID],
-                  planeGeometry(targetSurface) == nil
-                      || planeGeometry(toolSurface) == nil else {
+                  try planeGeometry(
+                      targetSurface,
+                      tolerance: tolerance
+                  ) == nil || planeGeometry(
+                      toolSurface,
+                      tolerance: tolerance
+                  ) == nil else {
                 continue
             }
             let pairContacts = contacts(for: pair, in: intersectionGraph)
-            let contactPoints = pairContacts.flatMap { contact -> [Point3D] in
-                guard case let .points(points) = contact.geometry else { return [] }
-                return points.map(\.point)
-            }
             for intersection in intersectionGraph.faceIntersections
             where intersection.facePair == pair {
                 guard case let .curve(curveIntersection) = intersection.geometry else {
@@ -80,7 +85,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
                 do {
                     _ = try registerClipContacts(
                         curveIntersection,
-                        at: contactPoints,
+                        at: pairContacts,
                         pair: pair,
                         targetSurface: targetSurface,
                         toolSurface: toolSurface,
@@ -125,8 +130,13 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
                     message: "Boolean UV splitting references missing face geometry."
                 )
             }
-            guard let targetPlane = planeGeometry(targetSurface),
-                  let toolPlane = planeGeometry(toolSurface) else {
+            guard let targetPlane = try planeGeometry(
+                targetSurface,
+                tolerance: tolerance
+            ), let toolPlane = try planeGeometry(
+                toolSurface,
+                tolerance: tolerance
+            ) else {
                 do {
                     if let curvedSplit = try curvedSplit(
                         pair: pair,
@@ -158,7 +168,13 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             if lineDirection.length <= tolerance.angle {
                 let separation = abs((toolPlane.origin - targetPlane.origin).dot(targetPlane.normal))
                 if separation <= tolerance.distance,
-                   contacts.contains(where: { if case .coincident = $0.geometry { return true }; return false }) {
+                   contacts.contains(where: { if case .coincident = $0.geometry { return true }; return false }),
+                   try coincidentFaceOverlapTester.overlapsOrTouches(
+                       pair.targetFaceID,
+                       pair.toolFaceID,
+                       in: model,
+                       tolerance: tolerance
+                   ) {
                     splits.append(try split(
                         facePair: pair,
                         geometries: [.coincident],
@@ -223,15 +239,17 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         )
     }
 
-    private func planeGeometry(_ surface: Surface3D) -> (origin: Point3D, normal: Vector3D)? {
-        switch surface {
-        case let .plane(plane):
-            return (plane.origin, plane.normal)
-        case let .analytic(.plane(origin, normal)):
-            return (origin, normal)
-        case .cylinder, .analytic, .bSpline:
+    private func planeGeometry(
+        _ surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> (origin: Point3D, normal: Vector3D)? {
+        guard let plane = try DefaultPlanarSurfaceResolver().exactPlane(
+            for: surface,
+            tolerance: tolerance
+        ) else {
             return nil
         }
+        return (plane.origin, plane.normal)
     }
 
     private func contacts(
@@ -274,6 +292,14 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
                     message: "A coincident face pair cannot also contain discrete intersections."
                 )
             }
+            guard try coincidentFaceOverlapTester.overlapsOrTouches(
+                pair.targetFaceID,
+                pair.toolFaceID,
+                in: model,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
             return try split(
                 facePair: pair,
                 geometries: [.coincident],
@@ -282,58 +308,78 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         }
 
         let pairContacts = contacts(for: pair, in: intersectionGraph)
-        let contactPoints = pairContacts.flatMap { contact -> [Point3D] in
-            guard case let .points(points) = contact.geometry else { return [] }
-            return points.map(\.point)
-        }
         var geometries: [BooleanFaceSplitComponentGeometry] = []
         for intersection in intersections {
             switch intersection.geometry {
             case .coincident:
                 break
             case let .point(point):
-                guard try contains(
-                    point.point,
-                    faceID: pair.targetFaceID,
-                    surface: targetSurface,
-                    model: model,
-                    cache: &containmentCache,
-                    preparationCache: &containmentPreparationCache,
-                    tolerance: tolerance
-                ), try contains(
-                    point.point,
-                    faceID: pair.toolFaceID,
-                    surface: toolSurface,
-                    model: model,
-                    cache: &containmentCache,
-                    preparationCache: &containmentPreparationCache,
-                    tolerance: tolerance
-                ) else {
-                    continue
+                do {
+                    guard try containsSurfaceParameter(
+                        SurfaceParameter(
+                            u: point.firstSurfaceParameter.u,
+                            v: point.firstSurfaceParameter.v
+                        ),
+                        fallbackPoint: point.point,
+                        faceID: pair.targetFaceID,
+                        surface: targetSurface,
+                        model: model,
+                        cache: &containmentCache,
+                        preparationCache: &containmentPreparationCache,
+                        tolerance: tolerance
+                    ), try containsSurfaceParameter(
+                        SurfaceParameter(
+                            u: point.secondSurfaceParameter.u,
+                            v: point.secondSurfaceParameter.v
+                        ),
+                        fallbackPoint: point.point,
+                        faceID: pair.toolFaceID,
+                        surface: toolSurface,
+                        model: model,
+                        cache: &containmentCache,
+                        preparationCache: &containmentPreparationCache,
+                        tolerance: tolerance
+                    ) else {
+                        continue
+                    }
+                    geometries.append(.tangent(try booleanUVPoint(
+                        point,
+                        targetSurface: targetSurface,
+                        toolSurface: toolSurface,
+                        tolerance: tolerance
+                    )))
+                } catch {
+                    throw contextualized(
+                        error,
+                        stage: "isolated curved face-pair point classification",
+                        tolerance: tolerance
+                    )
                 }
-                geometries.append(.tangent(try booleanUVPoint(
-                    point.point,
-                    targetSurface: targetSurface,
-                    toolSurface: toolSurface,
-                    inheritedResidual: point.residual,
-                    tolerance: tolerance
-                )))
             case let .curve(curveIntersection):
-                let clipped = try clip(
-                    curveIntersection,
-                    at: contactPoints,
-                    pair: pair,
-                    targetSurface: targetSurface,
-                    toolSurface: toolSurface,
-                    model: model,
-                    containmentCache: &containmentCache,
-                    containmentPreparationCache: &containmentPreparationCache,
-                    curveIdentityRegistry: &curveIdentityRegistry,
-                    contactProjectionCache: &contactProjectionCache,
-                    contactRegistry: &contactRegistry,
-                    registeredPairCurves: &registeredPairCurves,
-                    tolerance: tolerance
-                )
+                let clipped: CurvedClipResult
+                do {
+                    clipped = try clip(
+                        curveIntersection,
+                        at: pairContacts,
+                        pair: pair,
+                        targetSurface: targetSurface,
+                        toolSurface: toolSurface,
+                        model: model,
+                        containmentCache: &containmentCache,
+                        containmentPreparationCache: &containmentPreparationCache,
+                        curveIdentityRegistry: &curveIdentityRegistry,
+                        contactProjectionCache: &contactProjectionCache,
+                        contactRegistry: &contactRegistry,
+                        registeredPairCurves: &registeredPairCurves,
+                        tolerance: tolerance
+                    )
+                } catch {
+                    throw contextualized(
+                        error,
+                        stage: "curved face-pair intersection-curve clipping",
+                        tolerance: tolerance
+                    )
+                }
                 switch clipped {
                 case .empty:
                     break
@@ -642,7 +688,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     // starves earlier pairs of later pairs' crossing boundaries.
     private func registerClipContacts(
         _ intersection: SurfaceSurfaceIntersectionCurve,
-        at contactPoints: [Point3D],
+        at boundaryContacts: [BooleanBoundaryContact],
         pair: BooleanFacePairCandidate,
         targetSurface: Surface3D,
         toolSurface: Surface3D,
@@ -664,40 +710,64 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             return contactRegistry[registryKey] ?? []
         }
         var contacts: [ClipContact] = []
-        for point in contactPoints {
-            let key = ContactProjectionCacheKey(
-                curveID: registryKey,
-                point: point
-            )
-            if let cached = contactProjectionCache[key] {
-                if case let .parameter(parameter) = cached {
-                    contacts.append(ClipContact(parameter: parameter, point: point))
-                }
-                continue
-            }
-            do {
-                let projection = try curve.parameterProjection(of: point, tolerance: tolerance)
-                contactProjectionCache[key] = .parameter(projection.parameter)
-                contacts.append(ClipContact(
-                    parameter: projection.parameter,
+        let contactRefiner = RectangularBooleanClipContactRefiner()
+        for boundaryContact in boundaryContacts {
+            guard case let .points(points) = boundaryContact.geometry else { continue }
+            for pointContact in points {
+                let point = pointContact.point
+                let key = ContactProjectionCacheKey(
+                    curveID: registryKey,
                     point: point
-                ))
-            } catch let error as KernelError where error.code == .intersectionFailure {
-                contactProjectionCache[key] = .noIntersection
-                continue
-            } catch {
-                let wrapped = KernelError.wrapping(
-                    error,
-                    phase: .geometry,
+                )
+                let projectedParameter: Double
+                if let cached = contactProjectionCache[key] {
+                    guard case let .parameter(parameter) = cached else { continue }
+                    projectedParameter = parameter
+                } else {
+                    do {
+                        let projection = try curve.parameterProjection(
+                            of: point,
+                            tolerance: tolerance
+                        )
+                        contactProjectionCache[key] = .parameter(projection.parameter)
+                        projectedParameter = projection.parameter
+                    } catch let error as KernelError where error.code == .intersectionFailure {
+                        contactProjectionCache[key] = .noIntersection
+                        continue
+                    } catch {
+                        let wrapped = KernelError.wrapping(
+                            error,
+                            phase: .geometry,
+                            tolerance: tolerance
+                        )
+                        throw KernelError(
+                            phase: wrapped.phase,
+                            code: wrapped.code,
+                            residual: wrapped.residual,
+                            tolerance: wrapped.tolerance ?? tolerance,
+                            message: "Boolean intersection contact projection failed: \(wrapped.message)"
+                        )
+                    }
+                }
+                if let refined = try contactRefiner.refine(
+                    parameter: projectedParameter,
+                    intersection: intersection,
+                    boundaryFaceID: boundaryContact.curveFaceID,
+                    boundaryEdgeID: boundaryContact.edgeID,
+                    pair: pair,
+                    model: model,
                     tolerance: tolerance
-                )
-                throw KernelError(
-                    phase: wrapped.phase,
-                    code: wrapped.code,
-                    residual: wrapped.residual,
-                    tolerance: wrapped.tolerance ?? tolerance,
-                    message: "Boolean intersection contact projection failed: \(wrapped.message)"
-                )
+                ) {
+                    contacts.append(ClipContact(
+                        parameter: refined.parameter,
+                        point: refined.point
+                    ))
+                } else {
+                    contacts.append(ClipContact(
+                        parameter: projectedParameter,
+                        point: point
+                    ))
+                }
             }
         }
         contacts = deduplicatedContacts(
@@ -705,30 +775,10 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             domain: curve.parameterDomain,
             tolerance: tolerance
         )
-        // A point that is not on this particular curve is not a projection
-        // error for the face pair. Containment transitions independently
-        // recover missing crossing candidates by bisection, so the direct
-        // projection cache is not the only source of clip boundaries.
-        do {
-            let recovered = try containmentTransitionContacts(
-                intersection,
-                pair: pair,
-                targetSurface: targetSurface,
-                toolSurface: toolSurface,
-                model: model,
-                containmentCache: &containmentCache,
-                containmentPreparationCache: &containmentPreparationCache,
-                tolerance: tolerance
-            )
-            for contact in recovered {
-                contacts.append(contact)
-            }
-            contacts = deduplicatedContacts(
-                contacts,
-                domain: curve.parameterDomain,
-                tolerance: tolerance
-            )
-        }
+        // Boundary contacts are certified curve-surface events produced by
+        // BooleanPipeline. A containment-state scan is neither a completeness
+        // proof nor a valid source of topology: it can miss a narrow interval
+        // and manufactures approximate twin contacts around tangencies.
         // Merge with the cross-pair registry so every pair splits this
         // curve at the identical canonical contact set.
         var merged = contactRegistry[registryKey] ?? []
@@ -745,7 +795,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
 
     private func clip(
         _ intersection: SurfaceSurfaceIntersectionCurve,
-        at contactPoints: [Point3D],
+        at boundaryContacts: [BooleanBoundaryContact],
         pair: BooleanFacePairCandidate,
         targetSurface: Surface3D,
         toolSurface: Surface3D,
@@ -761,21 +811,30 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         tolerance: ModelingTolerance
     ) throws -> CurvedClipResult {
         let curve = intersection.curve
-        let contacts = try registerClipContacts(
-            intersection,
-            at: contactPoints,
-            pair: pair,
-            targetSurface: targetSurface,
-            toolSurface: toolSurface,
-            model: model,
-            containmentCache: &containmentCache,
-            containmentPreparationCache: &containmentPreparationCache,
-            curveIdentityRegistry: &curveIdentityRegistry,
-            contactProjectionCache: &contactProjectionCache,
-            contactRegistry: &contactRegistry,
-            registeredPairCurves: &registeredPairCurves,
-            tolerance: tolerance
-        )
+        let contacts: [ClipContact]
+        do {
+            contacts = try registerClipContacts(
+                intersection,
+                at: boundaryContacts,
+                pair: pair,
+                targetSurface: targetSurface,
+                toolSurface: toolSurface,
+                model: model,
+                containmentCache: &containmentCache,
+                containmentPreparationCache: &containmentPreparationCache,
+                curveIdentityRegistry: &curveIdentityRegistry,
+                contactProjectionCache: &contactProjectionCache,
+                contactRegistry: &contactRegistry,
+                registeredPairCurves: &registeredPairCurves,
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "intersection-curve contact registration",
+                tolerance: tolerance
+            )
+        }
         if contacts.count < 2 {
             switch curve.parameterDomain {
             case let .periodic(period):
@@ -838,26 +897,27 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             let (lower, upper) = interval
             guard upper - lower > tolerance.angle else { continue }
             let midpoint = lower + (upper - lower) * 0.5
-            let midpointPoint = try curve.point(at: midpoint, tolerance: tolerance)
-            let targetContains = try contains(
-                midpointPoint,
-                faceID: pair.targetFaceID,
-                surface: targetSurface,
-                model: model,
-                cache: &containmentCache,
-                preparationCache: &containmentPreparationCache,
-                tolerance: tolerance
-            )
-            let toolContains = try contains(
-                midpointPoint,
-                faceID: pair.toolFaceID,
-                surface: toolSurface,
-                model: model,
-                cache: &containmentCache,
-                preparationCache: &containmentPreparationCache,
-                tolerance: tolerance
-            )
-            guard targetContains, toolContains else { continue }
+            let midpointIsContained: Bool
+            do {
+                midpointIsContained = try containsIntersection(
+                    intersection,
+                    atCurveParameter: midpoint,
+                    pair: pair,
+                    targetSurface: targetSurface,
+                    toolSurface: toolSurface,
+                    model: model,
+                    cache: &containmentCache,
+                    preparationCache: &containmentPreparationCache,
+                    tolerance: tolerance
+                )
+            } catch {
+                throw contextualized(
+                    error,
+                    stage: "trimmed intersection interval \(intervalOrdinal) midpoint containment at curve parameter \(midpoint)",
+                    tolerance: tolerance
+                )
+            }
+            guard midpointIsContained else { continue }
             let startContact = try contactPoint(
                 at: lower,
                 contacts: contacts,
@@ -882,31 +942,39 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             } else {
                 endPoint = try curve.point(at: upper, tolerance: tolerance)
             }
-            result.append(TrimmedIntervalRecord(
-                ordinal: intervalOrdinal,
-                segment: try BooleanTrimmedFaceIntersection(
-                    intersection: intersection,
-                    startParameter: lower,
-                    endParameter: upper,
-                    start: try booleanUVPoint(
-                        startPoint,
-                        atCurveParameter: lower,
+            do {
+                result.append(TrimmedIntervalRecord(
+                    ordinal: intervalOrdinal,
+                    segment: try BooleanTrimmedFaceIntersection(
                         intersection: intersection,
-                        targetSurface: targetSurface,
-                        toolSurface: toolSurface,
+                        startParameter: lower,
+                        endParameter: upper,
+                        start: try booleanUVPoint(
+                            startPoint,
+                            atCurveParameter: lower,
+                            intersection: intersection,
+                            targetSurface: targetSurface,
+                            toolSurface: toolSurface,
+                            tolerance: tolerance
+                        ),
+                        end: try booleanUVPoint(
+                            endPoint,
+                            atCurveParameter: upper,
+                            intersection: intersection,
+                            targetSurface: targetSurface,
+                            toolSurface: toolSurface,
+                            tolerance: tolerance
+                        ),
                         tolerance: tolerance
-                    ),
-                    end: try booleanUVPoint(
-                        endPoint,
-                        atCurveParameter: upper,
-                        intersection: intersection,
-                        targetSurface: targetSurface,
-                        toolSurface: toolSurface,
-                        tolerance: tolerance
-                    ),
+                    )
+                ))
+            } catch {
+                throw contextualized(
+                    error,
+                    stage: "trimmed intersection interval \(intervalOrdinal) endpoint construction over [\(lower), \(upper)]",
                     tolerance: tolerance
                 )
-            ))
+            }
         }
         // Containment state cannot change across the artificial seam of a
         // closed loop unless the seam itself is a contact, so a rejected
@@ -972,23 +1040,45 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             result.sort { $0.ordinal < $1.ordinal }
         }
         guard result.isEmpty == false else { return .empty }
-        return .trimmed(try trimmedChains(
-            result,
-            intervalCount: intervals.count,
-            domain: curve.parameterDomain,
-            tolerance: tolerance
-        ))
+        let joinsDomainSeam: Bool
+        switch curve.parameterDomain {
+        case .periodic:
+            joinsDomainSeam = true
+        case let .closed(lower, upper):
+            joinsDomainSeam = try closesAtBoundedDomainBoundary(
+                curve,
+                lower: lower,
+                upper: upper,
+                tolerance: tolerance
+            )
+        case .unbounded:
+            joinsDomainSeam = false
+        }
+        do {
+            return .trimmed(try trimmedChains(
+                result,
+                intervalCount: intervals.count,
+                joinsDomainSeam: joinsDomainSeam,
+                tolerance: tolerance
+            ))
+        } catch {
+            throw contextualized(
+                error,
+                stage: "trimmed intersection chain assembly",
+                tolerance: tolerance
+            )
+        }
     }
 
     private func trimmedChains(
         _ records: [TrimmedIntervalRecord],
         intervalCount: Int,
-        domain: ParameterDomain,
+        joinsDomainSeam: Bool,
         tolerance: ModelingTolerance
     ) throws -> [BooleanTrimmedFaceIntersectionChain] {
         var remaining = records
         var result: [BooleanTrimmedFaceIntersectionChain] = []
-        if case .closed = domain,
+        if joinsDomainSeam,
            remaining.count >= 2,
            remaining.first?.ordinal == 0,
            remaining.last?.ordinal == intervalCount - 1 {
@@ -1019,195 +1109,6 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         return start.isApproximatelyEqual(to: end, tolerance: tolerance.distance)
     }
 
-    private func containmentTransitionContacts(
-        _ intersection: SurfaceSurfaceIntersectionCurve,
-        pair: BooleanFacePairCandidate,
-        targetSurface: Surface3D,
-        toolSurface: Surface3D,
-        model: BRepModel,
-        containmentCache: inout [FacePointContainmentCacheKey: Bool],
-        containmentPreparationCache: inout FacePointContainmentPreparationCache,
-        tolerance: ModelingTolerance
-    ) throws -> [ClipContact] {
-        let curve = intersection.curve
-        let lower: Double
-        let upper: Double
-        switch curve.parameterDomain {
-        case let .closed(domainLower, domainUpper):
-            lower = domainLower
-            upper = domainUpper
-        case let .periodic(period):
-            lower = 0.0
-            upper = period
-        case .unbounded:
-            return []
-        }
-        func isInside(_ point: Point3D) throws -> Bool {
-            return try contains(
-                point,
-                faceID: pair.targetFaceID,
-                surface: targetSurface,
-                model: model,
-                cache: &containmentCache,
-                preparationCache: &containmentPreparationCache,
-                tolerance: tolerance
-            ) && contains(
-                point,
-                faceID: pair.toolFaceID,
-                surface: toolSurface,
-                model: model,
-                cache: &containmentCache,
-                preparationCache: &containmentPreparationCache,
-                tolerance: tolerance
-            )
-        }
-        func inside(_ parameter: Double) throws -> Bool {
-            try isInside(curve.point(at: parameter, tolerance: tolerance))
-        }
-        let sampleCount = 256
-        var states: [Bool] = []
-        var samplePoints: [Point3D] = []
-        for index in 0...sampleCount {
-            let parameter = lower
-                + (upper - lower) * Double(index) / Double(sampleCount)
-            let point = try curve.point(at: parameter, tolerance: tolerance)
-            samplePoints.append(point)
-            states.append(try isInside(point))
-        }
-        guard states.contains(true), states.contains(false) else {
-            return []
-        }
-        // Where the curve grazes a face boundary tangentially, samples at
-        // the touch sit within polygon noise of the boundary and can flip
-        // spuriously, seeding twin contacts around the true tangency. A
-        // pocket of at most two samples whose every sample lies within noise
-        // of a source boundary is such a graze; both of its flips drop.
-        var suppressedFlips: Set<Int> = []
-        do {
-            var flipIndices: [Int] = []
-            for index in 0..<sampleCount where states[index] != states[index + 1] {
-                flipIndices.append(index)
-            }
-            var boundaryEdges: [(curve: Curve3D, lower: Double, upper: Double)] = []
-            for faceID in [pair.targetFaceID, pair.toolFaceID] {
-                guard let face = model.faces[faceID] else { continue }
-                for loopID in face.loops {
-                    guard let loop = model.loops[loopID] else { continue }
-                    for coedge in loop.coedges {
-                        guard let edge = model.edges[coedge.edgeID],
-                              let edgeCurve = model.geometry.curves[edge.curveID],
-                              let trim = edge.trim else {
-                            continue
-                        }
-                        boundaryEdges.append((
-                            curve: edgeCurve,
-                            lower: min(trim.startParameter, trim.endParameter),
-                            upper: max(trim.startParameter, trim.endParameter)
-                        ))
-                    }
-                }
-            }
-            func nearBoundary(_ point: Point3D) throws -> Bool {
-                for boundary in boundaryEdges {
-                    do {
-                        let projection = try boundary.curve.parameterProjection(
-                            of: point,
-                            options: CurveParameterProjectionOptions(
-                                parameterRange: try ScalarInterval(
-                                    lower: boundary.lower,
-                                    upper: boundary.upper
-                                )
-                            ),
-                            tolerance: ModelingTolerance(
-                                distance: tolerance.distance * 8.0,
-                                angle: tolerance.angle,
-                                relative: tolerance.relative
-                            )
-                        )
-                        let foot = try boundary.curve.point(
-                            at: projection.parameter,
-                            tolerance: tolerance
-                        )
-                        if (foot - point).length <= tolerance.distance * 2.0 {
-                            return true
-                        }
-                    } catch let error as KernelError where error.code == .intersectionFailure {
-                        continue
-                    }
-                }
-                return false
-            }
-            if flipIndices.count >= 2, boundaryEdges.isEmpty == false {
-                let isPeriodic: Bool
-                if case .periodic = curve.parameterDomain {
-                    isPeriodic = true
-                } else if let firstPoint = samplePoints.first,
-                          let lastPoint = samplePoints.last {
-                    isPeriodic = firstPoint.isApproximatelyEqual(
-                        to: lastPoint,
-                        tolerance: tolerance.distance
-                    )
-                } else {
-                    isPeriodic = false
-                }
-                let pairLimit = isPeriodic ? flipIndices.count : flipIndices.count - 1
-                for pairIndex in 0..<pairLimit {
-                    let first = flipIndices[pairIndex]
-                    let second = flipIndices[(pairIndex + 1) % flipIndices.count]
-                    let pocketLength = second >= first
-                        ? second - first
-                        : second + sampleCount - first
-                    guard pocketLength <= 2 else { continue }
-                    var pocketNearBoundary = true
-                    var offset = 1
-                    while offset <= pocketLength {
-                        let sampleIndex = (first + offset) % sampleCount
-                        if try nearBoundary(samplePoints[sampleIndex]) == false {
-                            pocketNearBoundary = false
-                            break
-                        }
-                        offset += 1
-                    }
-                    if pocketNearBoundary {
-                        suppressedFlips.insert(first)
-                        suppressedFlips.insert(second)
-                    }
-                }
-            }
-        }
-        var result: [ClipContact] = []
-        for index in 0..<sampleCount
-        where states[index] != states[index + 1] && suppressedFlips.contains(index) == false {
-            var low = lower
-                + (upper - lower) * Double(index) / Double(sampleCount)
-            var high = lower
-                + (upper - lower) * Double(index + 1) / Double(sampleCount)
-            let lowState = states[index]
-            for _ in 0..<48 {
-                let middle = low + (high - low) * 0.5
-                if try inside(middle) == lowState {
-                    low = middle
-                } else {
-                    high = middle
-                }
-                if high - low <= tolerance.relative {
-                    break
-                }
-            }
-            // The raw bisection midpoint keeps full parameter precision;
-            // cross-pair and cross-curve agreement is established by the
-            // contact registry and its canonicalization pass, not by
-            // quantization (a shared 1e-6 grid cost ~1e-5 of 3D accuracy).
-            let parameter = low + (high - low) * 0.5
-            result.append(ClipContact(
-                parameter: parameter,
-                point: try curve.point(at: parameter, tolerance: tolerance),
-                isRecovered: true
-            ))
-        }
-        return result
-    }
-
     private func completeClosedClip(
         _ intersection: SurfaceSurfaceIntersectionCurve,
         lowerParameter: Double,
@@ -1220,68 +1121,137 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         containmentPreparationCache: inout FacePointContainmentPreparationCache,
         tolerance: ModelingTolerance
     ) throws -> CurvedClipResult {
-        let sampleCount = 32
+        // Fewer than two contacts on a closed component means the complete
+        // curve-surface event sets contain no transverse boundary crossing.
+        // These samples materialize a secondary parameter-space index; they
+        // do not establish containment. Their states instead audit the event
+        // completeness contract and must agree globally.
+        let polygonSampleCount = 32
+        let validatedCurve = try ValidatedCurve3D(
+            intersection.curve,
+            tolerance: tolerance
+        )
         var samples: [BooleanCurveUVSample] = []
-        var containedSampleCount = 0
-        for index in 0..<sampleCount {
+        var certifiedContainment: Bool?
+        for index in 0..<polygonSampleCount {
             let parameter = lowerParameter
-                + (upperParameter - lowerParameter) * Double(index) / Double(sampleCount)
-            let point = try intersection.curve.point(at: parameter, tolerance: tolerance)
-            let isContained = try contains(
-                point,
-                faceID: pair.targetFaceID,
-                surface: targetSurface,
-                model: model,
-                cache: &containmentCache,
-                preparationCache: &containmentPreparationCache,
-                tolerance: tolerance
-            ) && contains(
-                point,
-                faceID: pair.toolFaceID,
-                surface: toolSurface,
-                model: model,
-                cache: &containmentCache,
-                preparationCache: &containmentPreparationCache,
-                tolerance: tolerance
-            )
-            if isContained { containedSampleCount += 1 }
-            samples.append(try BooleanCurveUVSample(
-                curveParameter: parameter,
-                uvPoint: booleanUVPoint(
-                    point,
+                + (upperParameter - lowerParameter)
+                    * Double(index) / Double(polygonSampleCount)
+            do {
+                let point = try validatedCurve.point(at: parameter)
+                let isContained = try containsIntersection(
+                    intersection,
                     atCurveParameter: parameter,
-                    intersection: intersection,
+                    pair: pair,
                     targetSurface: targetSurface,
                     toolSurface: toolSurface,
+                    model: model,
+                    cache: &containmentCache,
+                    preparationCache: &containmentPreparationCache,
                     tolerance: tolerance
-                ),
-                tolerance: tolerance
-            ))
+                )
+                if let certifiedContainment,
+                   certifiedContainment != isContained {
+                    throw KernelError(
+                        phase: .topology,
+                        code: .topologyFailure,
+                        tolerance: tolerance,
+                        message: "A complete Boolean boundary-event set was contradicted by closed-component containment."
+                    )
+                }
+                certifiedContainment = isContained
+                samples.append(try BooleanCurveUVSample(
+                    curveParameter: parameter,
+                    uvPoint: booleanUVPoint(
+                        point,
+                        atCurveParameter: parameter,
+                        intersection: intersection,
+                        targetSurface: targetSurface,
+                        toolSurface: toolSurface,
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                ))
+            } catch {
+                throw contextualized(
+                    error,
+                    stage: "closed intersection sample \(index) at curve parameter \(parameter)",
+                    tolerance: tolerance
+                )
+            }
         }
-        // Transition recovery has already split every crossing found at
-        // finer sampling, so a surviving closed loop must be uniformly
-        // contained; partial containment here means sub-resolution arcs
-        // and keeping the whole loop would attach it across faces.
-        guard containedSampleCount == sampleCount else { return .empty }
-        // This path has fewer than two distinct clip parameters. One contained
-        // sample is therefore an isolated shared-boundary contact, not a finite
-        // face interval.
-        if containedSampleCount == 1 {
-            return .empty
-        }
-        guard containedSampleCount == sampleCount else {
-            throw KernelError(
-                phase: .topology,
-                code: .topologyFailure,
-                tolerance: tolerance,
-                message: "Trim boundary contacts are incomplete for a partially contained closed intersection."
-            )
-        }
+        guard certifiedContainment == true else { return .empty }
         return .closed(try BooleanClosedFaceIntersection(
             intersection: intersection,
             samples: samples,
             tolerance: tolerance
         ))
+    }
+
+    private func containsIntersection(
+        _ intersection: SurfaceSurfaceIntersectionCurve,
+        atCurveParameter parameter: Double,
+        pair: BooleanFacePairCandidate,
+        targetSurface: Surface3D,
+        toolSurface: Surface3D,
+        model: BRepModel,
+        cache: inout [FacePointContainmentCacheKey: Bool],
+        preparationCache: inout FacePointContainmentPreparationCache,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        if let parameterContainment =
+            facePointContainment as? any FaceParameterContainmentPreparationCaching {
+            let targetParameter = try intersection.surfaceParameter(
+                on: .first,
+                atCurveParameter: parameter,
+                tolerance: tolerance
+            )
+            guard try parameterContainment.contains(
+                targetParameter,
+                on: pair.targetFaceID,
+                in: model,
+                preparationCache: &preparationCache,
+                tolerance: tolerance
+            ) else {
+                return false
+            }
+            let toolParameter = try intersection.surfaceParameter(
+                on: .second,
+                atCurveParameter: parameter,
+                tolerance: tolerance
+            )
+            return try parameterContainment.contains(
+                toolParameter,
+                on: pair.toolFaceID,
+                in: model,
+                preparationCache: &preparationCache,
+                tolerance: tolerance
+            )
+        }
+        let point = try intersection.curve.point(
+            at: parameter,
+            tolerance: tolerance
+        )
+        guard try contains(
+            point,
+            faceID: pair.targetFaceID,
+            surface: targetSurface,
+            model: model,
+            cache: &cache,
+            preparationCache: &preparationCache,
+            tolerance: tolerance
+        ) else {
+            return false
+        }
+        return try contains(
+            point,
+            faceID: pair.toolFaceID,
+            surface: toolSurface,
+            model: model,
+            cache: &cache,
+            preparationCache: &preparationCache,
+            tolerance: tolerance
+        )
     }
 
     private func deduplicatedParameters(
@@ -1456,10 +1426,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             (point - targetPoint).length,
             (point - toolPoint).length
         )
-        // Contact points snap to canonical junctions on source boundary
-        // geometry, displacing them up to the snap bound from the exact
-        // curve position at the recorded parameter.
-        guard residual <= tolerance.distance * 8.0 else {
+        guard residual <= tolerance.distance else {
             throw KernelError(
                 phase: .topology,
                 code: .topologyFailure,
@@ -1480,21 +1447,68 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     }
 
     private func booleanUVPoint(
-        _ point: Point3D,
+        _ intersection: SurfaceSurfaceIntersectionPoint,
         targetSurface: Surface3D,
         toolSurface: Surface3D,
-        inheritedResidual: Double,
         tolerance: ModelingTolerance
     ) throws -> BooleanUVPoint {
-        let target = try targetSurface.parameterProjection(of: point, tolerance: tolerance)
-        let tool = try toolSurface.parameterProjection(of: point, tolerance: tolerance)
+        let target = intersection.firstSurfaceParameter
+        let tool = intersection.secondSurfaceParameter
+        let targetPoint = try targetSurface.point(
+            u: target.u,
+            v: target.v,
+            tolerance: tolerance
+        )
+        let toolPoint = try toolSurface.point(
+            u: tool.u,
+            v: tool.v,
+            tolerance: tolerance
+        )
+        let residual = max(
+            intersection.residual,
+            max(
+                (intersection.point - targetPoint).length,
+                (intersection.point - toolPoint).length
+            )
+        )
         return try BooleanUVPoint(
-            point: point,
+            point: intersection.point,
             targetU: target.u,
             targetV: target.v,
             toolU: tool.u,
             toolV: tool.v,
-            residual: max(inheritedResidual, target.residual, tool.residual),
+            residual: residual,
+            tolerance: tolerance
+        )
+    }
+
+    private func containsSurfaceParameter(
+        _ parameter: SurfaceParameter,
+        fallbackPoint: Point3D,
+        faceID: FaceID,
+        surface: Surface3D,
+        model: BRepModel,
+        cache: inout [FacePointContainmentCacheKey: Bool],
+        preparationCache: inout FacePointContainmentPreparationCache,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        if let parameterContainment =
+            facePointContainment as? any FaceParameterContainmentPreparationCaching {
+            return try parameterContainment.contains(
+                parameter,
+                on: faceID,
+                in: model,
+                preparationCache: &preparationCache,
+                tolerance: tolerance
+            )
+        }
+        return try contains(
+            fallbackPoint,
+            faceID: faceID,
+            surface: surface,
+            model: model,
+            cache: &cache,
+            preparationCache: &preparationCache,
             tolerance: tolerance
         )
     }

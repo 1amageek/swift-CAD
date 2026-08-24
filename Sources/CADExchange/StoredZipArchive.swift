@@ -7,6 +7,7 @@ public enum ZipArchiveError: Error, Equatable, Sendable {
     case duplicateEntry(String)
     case invalidEntryPath(String)
     case entryPayloadMismatch(String)
+    case invalidCompressedData(String)
     case unsupportedCompressionMethod(UInt16)
     case invalidCentralDirectory
     case localHeaderMismatch(String)
@@ -151,10 +152,16 @@ public struct StoredZipArchive {
 
     static func withBorrowedEntries<Result>(
         from source: any ByteSource,
+        maximumEntryCount: Int = Int(UInt16.max),
+        maximumTotalUncompressedBytes: Int = Int(UInt32.max),
         _ body: ([String: Data]) throws -> Result
     ) throws -> Result {
         try source.withUnsafeBytes { bytes in
-            let entries = try readEntries(from: bytes)
+            let entries = try readEntries(
+                from: bytes,
+                maximumEntryCount: maximumEntryCount,
+                maximumTotalUncompressedBytes: maximumTotalUncompressedBytes
+            )
             return try body(entries)
         }
     }
@@ -166,6 +173,21 @@ public struct StoredZipArchive {
     }
 
     private static func readEntries(from bytes: UnsafeRawBufferPointer) throws -> [String: Data] {
+        try readEntries(
+            from: bytes,
+            maximumEntryCount: Int(UInt16.max),
+            maximumTotalUncompressedBytes: Int(UInt32.max)
+        )
+    }
+
+    private static func readEntries(
+        from bytes: UnsafeRawBufferPointer,
+        maximumEntryCount: Int,
+        maximumTotalUncompressedBytes: Int
+    ) throws -> [String: Data] {
+        guard maximumEntryCount > 0, maximumTotalUncompressedBytes > 0 else {
+            throw ZipArchiveError.entryTooLarge("archive")
+        }
         let endOffset = try findEndOfCentralDirectory(in: bytes)
         let diskNumber = try bytes.littleEndianUInt16(at: endOffset + 4)
         let centralDirectoryDisk = try bytes.littleEndianUInt16(at: endOffset + 6)
@@ -174,6 +196,9 @@ public struct StoredZipArchive {
         let centralDirectorySize32 = try bytes.littleEndianUInt32(at: endOffset + 12)
         let centralDirectoryOffset32 = try bytes.littleEndianUInt32(at: endOffset + 16)
         let commentLength = Int(try bytes.littleEndianUInt16(at: endOffset + 20))
+        guard entryCount <= maximumEntryCount else {
+            throw ZipArchiveError.tooManyEntries
+        }
         let centralDirectoryEnd64 = UInt64(centralDirectoryOffset32) + UInt64(centralDirectorySize32)
         guard centralDirectoryEnd64 <= UInt64(Int.max) else {
             throw ZipArchiveError.invalidCentralDirectory
@@ -193,6 +218,7 @@ public struct StoredZipArchive {
         var entries: [String: Data] = [:]
         var seenPaths: Set<String> = []
         var localRanges: [Range<Int>] = []
+        var totalUncompressedBytes = 0
 
         for _ in 0..<entryCount {
             let nameStart = try checkedOffset(offset, adding: 46)
@@ -203,33 +229,50 @@ public struct StoredZipArchive {
                 throw ZipArchiveError.invalidCentralDirectory
             }
             let flags = try bytes.littleEndianUInt16(at: offset + 8)
-            guard flags == 0 else {
+            guard flags & ~supportedZipGeneralPurposeFlags == 0 else {
                 throw ZipArchiveError.invalidCentralDirectory
             }
             let method = try bytes.littleEndianUInt16(at: offset + 10)
-            guard method == 0 else {
+            guard method == 0 || method == 8 else {
                 throw ZipArchiveError.unsupportedCompressionMethod(method)
             }
             let expectedCRC = try bytes.littleEndianUInt32(at: offset + 16)
-            let compressedSize = try checkedInt(try bytes.littleEndianUInt32(at: offset + 20))
-            let uncompressedSize = try checkedInt(try bytes.littleEndianUInt32(at: offset + 24))
-            guard compressedSize == uncompressedSize else {
+            let compressedSize32 = try bytes.littleEndianUInt32(at: offset + 20)
+            let uncompressedSize32 = try bytes.littleEndianUInt32(at: offset + 24)
+            guard compressedSize32 != UInt32.max,
+                  uncompressedSize32 != UInt32.max else {
+                throw ZipArchiveError.entryTooLarge("ZIP64")
+            }
+            let compressedSize = try checkedInt(compressedSize32)
+            let uncompressedSize = try checkedInt(uncompressedSize32)
+            guard method != 0 || compressedSize == uncompressedSize else {
                 throw ZipArchiveError.invalidCentralDirectory
             }
+            guard uncompressedSize <= maximumTotalUncompressedBytes - totalUncompressedBytes else {
+                throw ZipArchiveError.entryTooLarge("archive")
+            }
+            totalUncompressedBytes += uncompressedSize
             let fileNameLength = Int(try bytes.littleEndianUInt16(at: offset + 28))
             let extraLength = Int(try bytes.littleEndianUInt16(at: offset + 30))
             let commentLength = Int(try bytes.littleEndianUInt16(at: offset + 32))
-            guard extraLength == 0, commentLength == 0 else {
+            let diskStart = try bytes.littleEndianUInt16(at: offset + 34)
+            guard commentLength == 0, diskStart == 0 else {
                 throw ZipArchiveError.invalidCentralDirectory
             }
-            let localOffset = try checkedInt(try bytes.littleEndianUInt32(at: offset + 42))
+            let localOffset32 = try bytes.littleEndianUInt32(at: offset + 42)
+            guard localOffset32 != UInt32.max else {
+                throw ZipArchiveError.entryTooLarge("ZIP64")
+            }
+            let localOffset = try checkedInt(localOffset32)
             let nameEnd = try checkedOffset(nameStart, adding: fileNameLength)
-            let nextOffset = try checkedOffset(try checkedOffset(nameEnd, adding: extraLength), adding: commentLength)
+            let extraEnd = try checkedOffset(nameEnd, adding: extraLength)
+            let nextOffset = try checkedOffset(extraEnd, adding: commentLength)
             let pathData = try bytes.noCopyData(in: nameStart..<nameEnd)
             guard nextOffset <= centralDirectoryEnd,
                   let path = String(data: pathData, encoding: .utf8) else {
                 throw ZipArchiveError.truncatedArchive
             }
+            try validateZipExtraFields(bytes, range: nameEnd..<extraEnd)
             try validateEntryPath(path)
             guard seenPaths.insert(path).inserted else {
                 throw ZipArchiveError.duplicateEntry(path)
@@ -238,7 +281,11 @@ public struct StoredZipArchive {
             let localEntry = try readLocalEntry(
                 path: path,
                 expectedCRC: expectedCRC,
+                flags: flags,
+                method: method,
                 compressedSize: compressedSize,
+                uncompressedSize: uncompressedSize,
+                maximumUncompressedByteCount: maximumTotalUncompressedBytes,
                 localOffset: localOffset,
                 bytes: bytes
             )
@@ -261,7 +308,11 @@ public struct StoredZipArchive {
     private static func readLocalEntry(
         path: String,
         expectedCRC: UInt32,
+        flags: UInt16,
+        method: UInt16,
         compressedSize: Int,
+        uncompressedSize: Int,
+        maximumUncompressedByteCount: Int,
         localOffset: Int,
         bytes: UnsafeRawBufferPointer
     ) throws -> LocalEntry {
@@ -273,21 +324,18 @@ public struct StoredZipArchive {
             throw ZipArchiveError.invalidCentralDirectory
         }
         let localFlags = try bytes.littleEndianUInt16(at: localOffset + 6)
-        guard localFlags == 0 else {
+        guard localFlags == flags else {
             throw ZipArchiveError.invalidCentralDirectory
         }
         let localMethod = try bytes.littleEndianUInt16(at: localOffset + 8)
-        guard localMethod == 0 else {
-            throw ZipArchiveError.unsupportedCompressionMethod(localMethod)
+        guard localMethod == method else {
+            throw ZipArchiveError.localHeaderMismatch(path)
         }
         let localCRC = try bytes.littleEndianUInt32(at: localOffset + 14)
         let localCompressedSize = try checkedInt(try bytes.littleEndianUInt32(at: localOffset + 18))
         let localUncompressedSize = try checkedInt(try bytes.littleEndianUInt32(at: localOffset + 22))
         let localNameLength = Int(try bytes.littleEndianUInt16(at: localOffset + 26))
         let localExtraLength = Int(try bytes.littleEndianUInt16(at: localOffset + 28))
-        guard localExtraLength == 0 else {
-            throw ZipArchiveError.invalidCentralDirectory
-        }
         let nameStart = localHeaderEnd
         let nameEnd = try checkedOffset(nameStart, adding: localNameLength)
         let dataStart = try checkedOffset(nameEnd, adding: localExtraLength)
@@ -298,18 +346,77 @@ public struct StoredZipArchive {
               let localPath = String(data: localPathData, encoding: .utf8) else {
             throw ZipArchiveError.truncatedArchive
         }
+        try validateZipExtraFields(bytes, range: nameEnd..<dataStart)
         try validateEntryPath(localPath)
-        guard localPath == path,
-              localCRC == expectedCRC,
-              localCompressedSize == compressedSize,
-              localUncompressedSize == compressedSize else {
+        guard localPath == path else {
             throw ZipArchiveError.localHeaderMismatch(path)
         }
-        let entryData = try bytes.noCopyData(in: dataStart..<dataEnd)
+        let usesDataDescriptor = flags & zipDataDescriptorFlag != 0
+        if usesDataDescriptor {
+            guard (localCRC == 0 || localCRC == expectedCRC),
+                  (localCompressedSize == 0 || localCompressedSize == compressedSize),
+                  (localUncompressedSize == 0 || localUncompressedSize == uncompressedSize) else {
+                throw ZipArchiveError.localHeaderMismatch(path)
+            }
+        } else {
+            guard localCRC == expectedCRC,
+                  localCompressedSize == compressedSize,
+                  localUncompressedSize == uncompressedSize else {
+                throw ZipArchiveError.localHeaderMismatch(path)
+            }
+        }
+
+        let entryData: Data
+        if method == 0 {
+            entryData = try bytes.noCopyData(in: dataStart..<dataEnd)
+        } else {
+            let compressedBytes = UnsafeRawBufferPointer(rebasing: bytes[dataStart..<dataEnd])
+            do {
+                entryData = try RawDeflateDecoder.decode(
+                    compressedBytes,
+                    expectedByteCount: uncompressedSize,
+                    maximumByteCount: maximumUncompressedByteCount
+                )
+            } catch RawDeflateError.outputLimitExceeded {
+                throw ZipArchiveError.entryTooLarge(path)
+            } catch {
+                throw ZipArchiveError.invalidCompressedData(path)
+            }
+        }
         guard CRC32.checksum(entryData) == expectedCRC else {
             throw ZipArchiveError.crcMismatch(path)
         }
-        return LocalEntry(data: entryData, range: localOffset..<dataEnd)
+        let entryEnd = usesDataDescriptor
+            ? try validateDataDescriptor(
+                at: dataEnd,
+                expectedCRC: expectedCRC,
+                compressedSize: compressedSize,
+                uncompressedSize: uncompressedSize,
+                bytes: bytes
+            )
+            : dataEnd
+        return LocalEntry(data: entryData, range: localOffset..<entryEnd)
+    }
+
+    private static func validateDataDescriptor(
+        at offset: Int,
+        expectedCRC: UInt32,
+        compressedSize: Int,
+        uncompressedSize: Int,
+        bytes: UnsafeRawBufferPointer
+    ) throws -> Int {
+        var valueOffset = offset
+        if try bytes.littleEndianUInt32(at: valueOffset) == zipDataDescriptorSignature {
+            valueOffset = try checkedOffset(valueOffset, adding: 4)
+        }
+        let descriptorEnd = try checkedOffset(valueOffset, adding: 12)
+        guard descriptorEnd <= bytes.count,
+              try bytes.littleEndianUInt32(at: valueOffset) == expectedCRC,
+              try checkedInt(try bytes.littleEndianUInt32(at: valueOffset + 4)) == compressedSize,
+              try checkedInt(try bytes.littleEndianUInt32(at: valueOffset + 8)) == uncompressedSize else {
+            throw ZipArchiveError.invalidCentralDirectory
+        }
+        return descriptorEnd
     }
 
     private static func validateLocalEntryCoverage(
@@ -404,3 +511,34 @@ private func validateEntryPath(_ path: String) throws {
         throw ZipArchiveError.invalidEntryPath(path)
     }
 }
+
+private func validateZipExtraFields(
+    _ bytes: UnsafeRawBufferPointer,
+    range: Range<Int>
+) throws {
+    guard range.lowerBound >= 0, range.upperBound <= bytes.count else {
+        throw ZipArchiveError.truncatedArchive
+    }
+    var offset = range.lowerBound
+    while offset < range.upperBound {
+        guard offset <= range.upperBound - 4 else {
+            throw ZipArchiveError.invalidCentralDirectory
+        }
+        let headerID = try bytes.littleEndianUInt16(at: offset)
+        let payloadLength = Int(try bytes.littleEndianUInt16(at: offset + 2))
+        let payloadStart = offset + 4
+        guard payloadStart <= range.upperBound - payloadLength else {
+            throw ZipArchiveError.invalidCentralDirectory
+        }
+        guard headerID != zip64ExtraFieldID else {
+            throw ZipArchiveError.entryTooLarge("ZIP64")
+        }
+        offset = payloadStart + payloadLength
+    }
+}
+
+private let zipDataDescriptorFlag: UInt16 = 0x0008
+private let zipUTF8Flag: UInt16 = 0x0800
+private let supportedZipGeneralPurposeFlags = zipDataDescriptorFlag | zipUTF8Flag
+private let zipDataDescriptorSignature: UInt32 = 0x08074b50
+private let zip64ExtraFieldID: UInt16 = 0x0001

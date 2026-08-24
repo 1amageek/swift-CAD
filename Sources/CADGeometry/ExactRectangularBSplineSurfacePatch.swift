@@ -5,7 +5,10 @@ package struct ExactRectangularBSplineSurfacePatch: Sendable, Hashable {
     package struct AxisMapping: Sendable, Hashable {
         package enum Kind: Sendable, Hashable {
             case identity
+            case normalized
             case rationalCircularArc(segmentCount: Int)
+            case normalizedRationalCircularArc(segmentCount: Int)
+            case normalizedRationalHyperbola(spanCount: Int)
         }
 
         package let sourceLower: Double
@@ -16,7 +19,9 @@ package struct ExactRectangularBSplineSurfacePatch: Sendable, Hashable {
             switch kind {
             case .identity:
                 sourceLower
-            case .rationalCircularArc:
+            case .normalized, .rationalCircularArc,
+                 .normalizedRationalCircularArc,
+                 .normalizedRationalHyperbola:
                 0.0
             }
         }
@@ -25,8 +30,25 @@ package struct ExactRectangularBSplineSurfacePatch: Sendable, Hashable {
             switch kind {
             case .identity:
                 sourceUpper
+            case .normalized, .normalizedRationalCircularArc,
+                 .normalizedRationalHyperbola:
+                1.0
             case let .rationalCircularArc(segmentCount):
                 Double(segmentCount)
+            }
+        }
+
+        /// Whether the target coordinate is exactly the source coordinate
+        /// throughout this mapping's complete domain.
+        package var preservesSourceParameter: Bool {
+            switch kind {
+            case .identity:
+                true
+            case .normalized:
+                sourceLower == 0.0 && sourceUpper == 1.0
+            case .rationalCircularArc, .normalizedRationalCircularArc,
+                 .normalizedRationalHyperbola:
+                false
             }
         }
 
@@ -52,12 +74,16 @@ package struct ExactRectangularBSplineSurfacePatch: Sendable, Hashable {
             switch kind {
             case .identity:
                 return min(max(sourceParameter, sourceLower), sourceUpper)
-            case let .rationalCircularArc(segmentCount):
+            case .normalized:
+                return (min(max(sourceParameter, sourceLower), sourceUpper) - sourceLower)
+                    / (sourceUpper - sourceLower)
+            case let .rationalCircularArc(segmentCount),
+                 let .normalizedRationalCircularArc(segmentCount):
                 if sourceParameter <= sourceLower + tolerance.angle {
                     return 0.0
                 }
                 if sourceParameter >= sourceUpper - tolerance.angle {
-                    return Double(segmentCount)
+                    return kind.isNormalized ? 1.0 : Double(segmentCount)
                 }
                 let segmentAngle = (sourceUpper - sourceLower) / Double(segmentCount)
                 let rawIndex = Int(floor((sourceParameter - sourceLower) / segmentAngle))
@@ -78,7 +104,35 @@ package struct ExactRectangularBSplineSurfacePatch: Sendable, Hashable {
                     (sourceParameter - segmentMiddle) * 0.5
                 ) / halfAngleTangent
                 let localParameter = (1.0 + projectedCoordinate) * 0.5
-                return Double(segmentIndex) + localParameter
+                let parameter = Double(segmentIndex) + localParameter
+                return kind.isNormalized ? parameter / Double(segmentCount) : parameter
+            case let .normalizedRationalHyperbola(spanCount):
+                if sourceParameter <= sourceLower + tolerance.relative {
+                    return 0.0
+                }
+                if sourceParameter >= sourceUpper - tolerance.relative {
+                    return 1.0
+                }
+                let spanWidth = (sourceUpper - sourceLower) / Double(spanCount)
+                let rawIndex = Int(floor((sourceParameter - sourceLower) / spanWidth))
+                let spanIndex = min(max(rawIndex, 0), spanCount - 1)
+                let spanStart = sourceLower + Double(spanIndex) * spanWidth
+                let spanMiddle = spanStart + spanWidth * 0.5
+                let halfSpanTangent = tanh(spanWidth * 0.25)
+                guard halfSpanTangent.isFinite,
+                      abs(halfSpanTangent) > tolerance.relative else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .singularSystem,
+                        tolerance: tolerance,
+                        message: "The exact hyperbolic curve parameter mapping is singular."
+                    )
+                }
+                let projectedCoordinate = tanh(
+                    (sourceParameter - spanMiddle) * 0.5
+                ) / halfSpanTangent
+                let localParameter = (1.0 + projectedCoordinate) * 0.5
+                return (Double(spanIndex) + localParameter) / Double(spanCount)
             }
         }
     }
@@ -95,5 +149,17 @@ package struct ExactRectangularBSplineSurfacePatch: Sendable, Hashable {
             u: try uMapping.map(sourceParameter.u, tolerance: tolerance),
             v: try vMapping.map(sourceParameter.v, tolerance: tolerance)
         )
+    }
+}
+
+private extension ExactRectangularBSplineSurfacePatch.AxisMapping.Kind {
+    var isNormalized: Bool {
+        switch self {
+        case .normalizedRationalCircularArc:
+            true
+        case .identity, .normalized, .rationalCircularArc,
+             .normalizedRationalHyperbola:
+            false
+        }
     }
 }

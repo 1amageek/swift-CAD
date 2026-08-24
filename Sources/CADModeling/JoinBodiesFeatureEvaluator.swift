@@ -44,7 +44,7 @@ public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             try join.validate()
         }
         try FeatureEvaluationBoundary.validateExactInput(
-            context.brep,
+            context,
             featureID: feature.id,
             tolerance: context.tolerance
         )
@@ -99,7 +99,6 @@ public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             with: replacement,
             in: context.brep
         )
-        try model.validate(level: .volumetric, tolerance: context.tolerance)
 
         let joinedSubshapeID = SubshapeID(
             featureID: feature.id,

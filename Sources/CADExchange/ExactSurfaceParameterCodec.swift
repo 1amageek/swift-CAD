@@ -55,6 +55,18 @@ enum ExactSurfaceParameterCodec {
             }
         case .bSpline:
             return SurfaceParameter(u: parameter.u, v: parameter.v)
+        case let .procedural(procedural):
+            switch procedural {
+            case let .offset(offset):
+                return encode(
+                    parameter,
+                    on: offset.source,
+                    unit: unit,
+                    convention: convention
+                )
+            case .ruled:
+                return parameter
+            }
         }
     }
 
@@ -106,6 +118,19 @@ enum ExactSurfaceParameterCodec {
             }
         case .bSpline:
             return parameter
+        case let .procedural(procedural):
+            switch procedural {
+            case let .offset(offset):
+                return try decode(
+                    parameter,
+                    on: offset.source,
+                    unit: unit,
+                    tolerance: tolerance,
+                    convention: convention
+                )
+            case .ruled:
+                return parameter
+            }
         }
     }
 
@@ -126,6 +151,17 @@ enum ExactSurfaceParameterCodec {
             }
         case .bSpline:
             return max(tolerance.angle, tolerance.distance)
+        case let .procedural(procedural):
+            switch procedural {
+            case let .offset(offset):
+                return encodedTolerance(
+                    on: offset.source,
+                    unit: unit,
+                    tolerance: tolerance
+                )
+            case .ruled:
+                return max(tolerance.angle, tolerance.relative)
+            }
         }
     }
 }

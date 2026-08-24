@@ -160,36 +160,40 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
             for: [.face(sourceFace.id), .face(opposingFace.id)],
             in: sourceSubshapes
         )
+        let preservesParameterOrientation = try parameterOrientationIsPreserved(
+            sourceFace: sourceFace,
+            opposingFace: opposingFace,
+            sourceSurface: sourceSurface,
+            opposingSurface: opposingPatch.surface,
+            model: model,
+            tolerance: tolerance
+        )
         var result: [BooleanFaceArrangementBoundary] = []
         var allProjectedEdges: [BRepSewingEdge] = []
+        var containmentCache = FacePointContainmentPreparationCache()
         var segmentOrdinal = 0
         for (loopIndex, loop) in opposingPatch.loops.enumerated() {
-            let projectedEdges = try loop.edges.enumerated().map { edgeIndex, edge in
-                BRepSewingEdge(
-                    stableID: "coincident-arrangement:\(reference.facePair.targetFaceID):\(reference.facePair.toolFaceID):face:\(sourceFace.id):loop:\(loopIndex):edge:\(edgeIndex)",
-                    curve: edge.curve,
-                    startParameter: edge.startParameter,
-                    endParameter: edge.endParameter,
-                    startPoint: edge.startPoint,
-                    endPoint: edge.endPoint,
-                    surfaceParameterCurve: try ExactFacePcurveBuilder().surfaceParameterCurve(
-                        for: edge.curve,
-                        startParameter: edge.startParameter,
-                        endParameter: edge.endParameter,
-                        on: sourceSurface,
-                        tolerance: tolerance
-                    ),
-                    parentSubshapeIDs: edge.parentSubshapeIDs + faceParents,
-                    startVertexParentSubshapeIDs: edge.startVertexParentSubshapeIDs,
-                    endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs
-                )
-            }
-            allProjectedEdges.append(contentsOf: projectedEdges)
-            let interiorIsLeft = try polygonInteriorIsLeft(
-                projectedEdges,
-                on: sourceSurface,
+            let opposingInteriorIsLeft = try polygonInteriorIsLeft(
+                loop.edges,
+                on: opposingPatch.surface,
                 tolerance: tolerance
             )
+            let interiorIsLeft = preservesParameterOrientation
+                ? opposingInteriorIsLeft
+                : !opposingInteriorIsLeft
+            let projectedEdges = try clippedProjectedEdges(
+                loop.edges,
+                loopIndex: loopIndex,
+                reference: reference,
+                sourceFace: sourceFace,
+                sourcePatch: sourcePatch,
+                sourceSurface: sourceSurface,
+                faceParents: faceParents,
+                model: model,
+                containmentCache: &containmentCache,
+                tolerance: tolerance
+            )
+            allProjectedEdges.append(contentsOf: projectedEdges)
             let materialIsLeft = interiorIsLeft == (loop.role == .outer)
             for edge in projectedEdges {
                 result.append(BooleanFaceArrangementBoundary(
@@ -257,6 +261,134 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
         )
     }
 
+    private func clippedProjectedEdges(
+        _ opposingEdges: [BRepSewingEdge],
+        loopIndex: Int,
+        reference: BooleanFaceSplitComponentReference,
+        sourceFace: Face,
+        sourcePatch: BRepSewingFacePatch,
+        sourceSurface: Surface3D,
+        faceParents: [SubshapeID],
+        model: BRepModel,
+        containmentCache: inout FacePointContainmentPreparationCache,
+        tolerance: ModelingTolerance
+    ) throws -> [BRepSewingEdge] {
+        let sourceEdges = sourcePatch.loops.flatMap(\.edges)
+        let intersector = ExactTrimEdgeIntersector()
+        let subdivider = BRepSewingEdgeSubdivider()
+        let containment = DefaultFacePointContainmentTester()
+        var result: [BRepSewingEdge] = []
+        for (edgeIndex, opposingEdge) in opposingEdges.enumerated() {
+            var subdivisionPoints: [Point3D] = []
+            for sourceEdge in sourceEdges {
+                switch try intersector.intersections(
+                    opposingEdge,
+                    sourceEdge,
+                    tolerance: tolerance
+                ) {
+                case .coincident:
+                    subdivisionPoints.append(sourceEdge.startPoint)
+                    subdivisionPoints.append(sourceEdge.endPoint)
+                case let .subdivisionPoints(points):
+                    subdivisionPoints.append(contentsOf: points)
+                }
+            }
+            let segments = try subdivider.subdivide(
+                opposingEdge,
+                at: subdivisionPoints,
+                tolerance: tolerance
+            )
+            for (segmentIndex, segment) in segments.enumerated() {
+                let midpoint = try segment.curve.point(
+                    at: 0.5 * (segment.startParameter + segment.endParameter),
+                    tolerance: tolerance
+                )
+                guard try containment.contains(
+                    midpoint,
+                    on: sourceFace.id,
+                    in: model,
+                    preparationCache: &containmentCache,
+                    tolerance: tolerance
+                ) else {
+                    continue
+                }
+                result.append(BRepSewingEdge(
+                    stableID: "coincident-arrangement:\(reference.facePair.targetFaceID):\(reference.facePair.toolFaceID):face:\(sourceFace.id):loop:\(loopIndex):edge:\(edgeIndex):segment:\(segmentIndex)",
+                    curve: segment.curve,
+                    startParameter: segment.startParameter,
+                    endParameter: segment.endParameter,
+                    startPoint: segment.startPoint,
+                    endPoint: segment.endPoint,
+                    surfaceParameterCurve: try ExactFacePcurveBuilder().surfaceParameterCurve(
+                        for: segment.curve,
+                        startParameter: segment.startParameter,
+                        endParameter: segment.endParameter,
+                        on: sourceSurface,
+                        tolerance: tolerance
+                    ),
+                    parentSubshapeIDs: segment.parentSubshapeIDs + faceParents,
+                    startVertexParentSubshapeIDs: segment.startVertexParentSubshapeIDs,
+                    endVertexParentSubshapeIDs: segment.endVertexParentSubshapeIDs
+                ))
+            }
+        }
+        return result
+    }
+
+    private func parameterOrientationIsPreserved(
+        sourceFace: Face,
+        opposingFace: Face,
+        sourceSurface: Surface3D,
+        opposingSurface: Surface3D,
+        model: BRepModel,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        guard let witness = try CoincidentFaceOverlapTester(
+            facePointContainment: DefaultFacePointContainmentTester()
+        ).overlapWitness(
+            sourceFace.id,
+            opposingFace.id,
+            in: model,
+            tolerance: tolerance
+        ) else {
+            throw KernelError(
+                phase: .classification,
+                code: .classificationFailure,
+                tolerance: tolerance,
+                message: "Coincident arrangement requires a certified common trim-domain witness."
+            )
+        }
+        let sourceParameter = try sourceSurface.parameterProjection(
+            of: witness,
+            tolerance: tolerance
+        )
+        let opposingParameter = try opposingSurface.parameterProjection(
+            of: witness,
+            tolerance: tolerance
+        )
+        let sourceNormal = try sourceSurface.normal(
+            u: sourceParameter.u,
+            v: sourceParameter.v,
+            tolerance: tolerance
+        )
+        let opposingNormal = try opposingSurface.normal(
+            u: opposingParameter.u,
+            v: opposingParameter.v,
+            tolerance: tolerance
+        )
+        let alignment = sourceNormal.dot(opposingNormal)
+        guard abs(abs(alignment) - 1.0) <= tolerance.angle else {
+            throw KernelError(
+                phase: .classification,
+                code: .classificationFailure,
+                residual: abs(abs(alignment) - 1.0),
+                tolerance: tolerance,
+                message: "Coincident arrangement parameter charts have incompatible normals."
+            )
+        }
+        return alignment > 0.0
+    }
+
     private func hasOnlyNonintersectingLinearBoundaries(
         _ sourceEdges: [BRepSewingEdge],
         _ opposingEdges: [BRepSewingEdge],
@@ -286,20 +418,12 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
     private func linearSegment(
         _ edge: BRepSewingEdge
     ) -> (start: Point2D, end: Point2D)? {
-        let isLinearCurve: Bool
-        switch edge.curve {
-        case .line, .analytic(.line):
-            isLinearCurve = true
-        case .circle,
-             .analytic,
-             .bSpline,
-             .implicit,
-             .surfaceLift,
-             .certifiedIntersection:
-            isLinearCurve = false
-        }
-        guard isLinearCurve else { return nil }
+        guard isLine(edge.curve) else { return nil }
         return linearParameterSegment(edge.surfaceParameterCurve)
+    }
+
+    private func isLine(_ curve: Curve3D) -> Bool {
+        curve.hasExactLinearParameterization
     }
 
     private func linearParameterSegment(
@@ -328,7 +452,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
             )
         case .harmonic, .polyline, .bSpline, .certifiedImplicit,
              .certifiedAnalyticImplicit, .sphericalGreatCircle,
-             .certifiedAnalyticPair, .projectedAnalytic:
+             .certifiedAnalyticPair, .projectedAnalytic, .rigidImage:
             return nil
         case let .periodicTranslation(base, uShift, vShift):
             guard let segment = linearParameterSegment(base) else { return nil }
@@ -342,6 +466,8 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
                     y: segment.end.y + vShift
                 )
             )
+        case let .sameParameterImage(image):
+            return linearParameterSegment(image.source)
         }
     }
 

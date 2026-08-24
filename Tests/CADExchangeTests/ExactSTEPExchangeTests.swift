@@ -625,6 +625,26 @@ struct ExactSTEPExchangeTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(2)))
+    func roundTripsCertifiedSphereConeIntersectionWithExactTwoSurfaceProvenance() throws {
+        for reversed in [false, true] {
+            try assertCertifiedSphereConeRoundTrip(
+                source: ExactExchangeAdvancedAnalyticFixture
+                    .certifiedSphereConeIntersectionSheet(reversed: reversed)
+            )
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func roundTripsRigidImageAsCanonicalCertifiedIntersection() throws {
+        for reversed in [false, true] {
+            try assertCertifiedSphereConeRoundTrip(
+                source: ExactExchangeAdvancedAnalyticFixture
+                    .rigidImageSphereConeIntersectionSheet(reversed: reversed)
+            )
+        }
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func roundTripsCertifiedImplicitIntersectionWithExactSurfaceProvenance() throws {
         for reversed in [false, true] {
@@ -719,6 +739,39 @@ struct ExactSTEPExchangeTests {
         })
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func roundTripsGeneralOffsetSurfaceWithSameParameterChart() throws {
+        let source = try ExactExchangeNURBSFixture.offsetRationalSheet()
+        let sink = DataByteSink()
+        try STEPExchange(tolerance: .standard).write(
+            brep: source,
+            units: .millimeters,
+            to: sink
+        )
+        let text = try #require(String(data: sink.bytes, encoding: .utf8))
+        #expect(text.contains("OFFSET_SURFACE('SWIFTCAD_OFFSET'"))
+        #expect(text.contains("TRIANGULATED_FACE_SET") == false)
+
+        let result = try #require(
+            STEPExchange(tolerance: .standard).import(sink.bytes).brep
+        )
+        try result.validate(level: .exact, tolerance: .standard)
+        let imported = try #require(result.geometry.surfaces.values.first { surface in
+            if case .procedural(.offset) = surface { return true }
+            return false
+        })
+        guard case let .procedural(.offset(offset)) = imported else {
+            Issue.record("STEP must reconstruct an exact procedural offset surface.")
+            return
+        }
+        #expect(abs(offset.distance - 0.003) <= 1.0e-12)
+        #expect({ if case .bSpline = offset.source { return true }; return false }())
+        #expect(result.geometry.curves.values.allSatisfy { curve in
+            if case .surfaceLift = curve { return true }
+            return false
+        })
+    }
+
     private func assertCertifiedAnalyticBSplineIntersectionRoundTrip(
         reversed: Bool
     ) throws {
@@ -747,6 +800,33 @@ struct ExactSTEPExchangeTests {
         })
         #expect(result.loops.values.flatMap(\.coedges).allSatisfy { coedge in
             if case .certifiedAnalyticImplicit = coedge.surfaceParameterCurve { return true }
+            return false
+        })
+    }
+
+    private func assertCertifiedSphereConeRoundTrip(source: BRepModel) throws {
+        let sink = DataByteSink()
+        try STEPExchange(tolerance: .standard).write(
+            brep: source,
+            units: .millimeters,
+            to: sink
+        )
+        let text = try #require(String(data: sink.bytes, encoding: .utf8))
+        #expect(text.contains("SWIFTCAD_CERTIFIED_CURVE"))
+        #expect(text.contains("SPHERICAL_SURFACE"))
+        #expect(text.contains("CONICAL_SURFACE"))
+        #expect(text.contains("TRIANGULATED_FACE_SET") == false)
+
+        let result = try #require(
+            STEPExchange(tolerance: .standard).import(sink.bytes).brep
+        )
+        try result.validate(level: .exact, tolerance: .standard)
+        #expect(result.geometry.curves.values.allSatisfy { curve in
+            if case .certifiedIntersection(.sphereCone) = curve { return true }
+            return false
+        })
+        #expect(result.loops.values.flatMap(\.coedges).allSatisfy { coedge in
+            if case .certifiedAnalyticPair = coedge.surfaceParameterCurve { return true }
             return false
         })
     }

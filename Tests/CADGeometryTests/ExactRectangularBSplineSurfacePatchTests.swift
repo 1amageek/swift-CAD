@@ -56,6 +56,156 @@ struct ExactRectangularBSplineSurfacePatchTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func preservesAPartialRuledSurfaceDomainExactly() throws {
+        let start = Curve3D.line(Line3D(
+            origin: .origin,
+            direction: .unitX
+        ))
+        let end = Curve3D.line(Line3D(
+            origin: Point3D(x: 0.0, y: 2.0, z: 1.0),
+            direction: .unitX
+        ))
+        let source = Surface3D.procedural(.ruled(RuledSurface3D(
+            startBoundary: start,
+            endBoundary: end
+        )))
+        let patch = try ExactRectangularBSplineSurfacePatchBuilder().build(
+            surface: source,
+            lowerU: 0.15,
+            upperU: 0.85,
+            lowerV: 0.2,
+            upperV: 0.7,
+            tolerance: .standard
+        )
+        #expect(patch.uMapping.preservesSourceParameter == false)
+        #expect(patch.vMapping.preservesSourceParameter)
+
+        for u in [0.15, 0.37, 0.85] {
+            for v in [0.2, 0.43, 0.7] {
+                let parameter = try patch.parameter(
+                    for: SurfaceParameter(u: u, v: v),
+                    tolerance: .standard
+                )
+                let expected = try source.point(
+                    u: u,
+                    v: v,
+                    tolerance: .standard
+                )
+                let actual = try patch.surface.point(
+                    u: parameter.u,
+                    v: parameter.v,
+                    tolerance: .standard
+                )
+                #expect((expected - actual).length <= 1.0e-12)
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func recognizesAFullNormalizedRuledDomainAsSameParameter() throws {
+        let source = Surface3D.procedural(.ruled(RuledSurface3D(
+            startBoundary: .line(Line3D(origin: .origin, direction: .unitX)),
+            endBoundary: .line(Line3D(
+                origin: Point3D(x: 0.0, y: 1.0, z: 0.5),
+                direction: .unitX
+            ))
+        )))
+        let patch = try ExactRectangularBSplineSurfacePatchBuilder().build(
+            surface: source,
+            lowerU: 0.0,
+            upperU: 1.0,
+            lowerV: 0.0,
+            upperV: 1.0,
+            tolerance: .standard
+        )
+
+        #expect(patch.uMapping.kind == .normalized)
+        #expect(patch.uMapping.preservesSourceParameter)
+        #expect(patch.vMapping.preservesSourceParameter)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func preservesNonAffineRuledBoundaryParameterizationsExactly() throws {
+        let circularStart = Curve3D.circle(Circle3D(
+            center: .origin,
+            normal: .unitZ,
+            radius: 2.0
+        ))
+        let circularEnd = Curve3D.circle(Circle3D(
+            center: Point3D(x: 0.0, y: 0.0, z: 1.0),
+            normal: .unitZ,
+            radius: 3.0
+        ))
+        try verifyRuledConversion(
+            start: circularStart,
+            end: circularEnd,
+            lowerU: 0.1,
+            upperU: 0.9
+        )
+
+        let hyperbolicStart = Curve3D.analytic(.hyperbola(Hyperbola3D(
+            center: .origin,
+            normal: .unitZ,
+            transverseAxis: .unitX,
+            transverseRadius: 1.4,
+            conjugateRadius: 0.8
+        )))
+        let hyperbolicEnd = Curve3D.analytic(.hyperbola(Hyperbola3D(
+            center: Point3D(x: 0.0, y: 0.0, z: 1.5),
+            normal: .unitZ,
+            transverseAxis: .unitX,
+            transverseRadius: 2.1,
+            conjugateRadius: 1.2
+        )))
+        try verifyRuledConversion(
+            start: hyperbolicStart,
+            end: hyperbolicEnd,
+            lowerU: 0.05,
+            upperU: 0.95
+        )
+    }
+
+    private func verifyRuledConversion(
+        start: Curve3D,
+        end: Curve3D,
+        lowerU: Double,
+        upperU: Double
+    ) throws {
+        let source = Surface3D.procedural(.ruled(RuledSurface3D(
+            startBoundary: start,
+            endBoundary: end
+        )))
+        let patch = try ExactRectangularBSplineSurfacePatchBuilder().build(
+            surface: source,
+            lowerU: lowerU,
+            upperU: upperU,
+            lowerV: 0.15,
+            upperV: 0.9,
+            tolerance: .standard
+        )
+        for uFraction in [0.0, 0.17, 0.5, 0.83, 1.0] {
+            let u = lowerU + (upperU - lowerU) * uFraction
+            for v in [0.15, 0.42, 0.9] {
+                let parameter = try patch.parameter(
+                    for: SurfaceParameter(u: u, v: v),
+                    tolerance: .standard
+                )
+                let expected = try source.point(
+                    u: u,
+                    v: v,
+                    tolerance: .standard
+                )
+                let actual = try patch.surface.point(
+                    u: parameter.u,
+                    v: parameter.v,
+                    tolerance: .standard
+                )
+                #expect((expected - actual).length <= 1.0e-9)
+            }
+        }
+    }
+
     private static let exactSurfaceCases: [ExactPatchSurfaceCase] = [
         ExactPatchSurfaceCase(
             name: "plane",

@@ -9,6 +9,20 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
         public let secondDerivative: Vector3D
     }
 
+    private struct RootLocation: Sendable {
+        let configuration: GeneralTorusTorusSurfaceIntersector.Configuration
+        let majorAngle: Double
+        let minorAngle: Double
+        let parameterScale: Double
+
+        var point: Point3D {
+            configuration.point(
+                majorAngle: majorAngle,
+                minorAngle: minorAngle
+            )
+        }
+    }
+
     private struct Certificate: Hashable, Sendable {
         let trace: GeneralTorusTorusSurfaceIntersector.RootTrace
         let cycles: [[Int]]
@@ -27,11 +41,236 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
         let tolerance: ModelingTolerance
     }
 
+    struct SpatialDifferentialBoundsPreparation: Sendable {
+        private struct BranchPartitionIndex: Sendable {
+            let partitions: [GeneralTorusTorusSurfaceIntersector
+                .BranchSpatialDifferentialPartition]
+            let maximumUpperPrefix: [Double]
+
+            init(
+                _ unsorted: [GeneralTorusTorusSurfaceIntersector
+                    .BranchSpatialDifferentialPartition]
+            ) {
+                partitions = unsorted.sorted { lhs, rhs in
+                    if lhs.majorAngleLower == rhs.majorAngleLower {
+                        return lhs.majorAngleUpper < rhs.majorAngleUpper
+                    }
+                    return lhs.majorAngleLower < rhs.majorAngleLower
+                }
+                var maximum = -Double.infinity
+                maximumUpperPrefix = partitions.map { partition in
+                    maximum = max(maximum, partition.majorAngleUpper)
+                    return maximum
+                }
+            }
+
+            func firstPotentialOverlap(lower: Double) -> Int {
+                var low = 0
+                var high = maximumUpperPrefix.count
+                while low < high {
+                    let middle = low + (high - low) / 2
+                    if maximumUpperPrefix[middle] < lower {
+                        low = middle + 1
+                    } else {
+                        high = middle
+                    }
+                }
+                return low
+            }
+        }
+
+        struct ParameterDifferentialMagnitudeBounds: Sendable {
+            let uFirst: Double
+            let uSecond: Double
+            let uThird: Double
+            let vFirst: Double
+            let vSecond: Double
+            let vThird: Double
+        }
+
+        private let cycle: [Int]
+        private let partitionsByBranch: [BranchPartitionIndex]
+        private let majorRadiusBound: Double
+        private let minorRadius: Double
+        private let parameterScale: Double
+
+        fileprivate init(
+            cycle: [Int],
+            branchCount: Int,
+            partitions: [GeneralTorusTorusSurfaceIntersector
+                .BranchSpatialDifferentialPartition],
+            configuration: GeneralTorusTorusSurfaceIntersector.Configuration
+        ) {
+            self.cycle = cycle
+            var indexed = Array(
+                repeating: [GeneralTorusTorusSurfaceIntersector
+                    .BranchSpatialDifferentialPartition](),
+                count: branchCount
+            )
+            for partition in partitions {
+                indexed[partition.branchIndex].append(partition)
+            }
+            partitionsByBranch = indexed.map(BranchPartitionIndex.init)
+            majorRadiusBound = (
+                configuration.parameterized.majorRadius
+                    + configuration.parameterized.minorRadius
+            ).nextUp
+            minorRadius = configuration.parameterized.minorRadius.nextUp
+            parameterScale = 2.0 * Double.pi * Double(cycle.count)
+        }
+
+        func parameterizedParameterDifferentialMagnitudeBounds(
+            fromNormalizedFraction lowerFraction: Double,
+            toNormalizedFraction upperFraction: Double,
+            tolerance: ModelingTolerance
+        ) throws -> ParameterDifferentialMagnitudeBounds {
+            let minor = try minorDifferentialMagnitudeBounds(
+                fromNormalizedFraction: lowerFraction,
+                toNormalizedFraction: upperFraction,
+                tolerance: tolerance
+            )
+            // The exact chart derivative is constant, but callers recover it
+            // through a surface-metric solve. Include that bounded floating-
+            // point reconstruction noise so the certified upper bound still
+            // encloses the value observed by the production evaluation path.
+            let scale = (
+                parameterScale
+                    + Double.ulpOfOne * max(parameterScale, 1.0) * 64.0
+            ).nextUp
+            let scaleSquared = (scale * scale).nextUp
+            let scaleCubed = (scaleSquared * scale).nextUp
+            return ParameterDifferentialMagnitudeBounds(
+                uFirst: scale,
+                uSecond: 0.0,
+                uThird: 0.0,
+                vFirst: (minor.first * scale).nextUp,
+                vSecond: (minor.second * scaleSquared).nextUp,
+                vThird: (minor.third * scaleCubed).nextUp
+            )
+        }
+
+        func bounds(
+            fromNormalizedFraction lowerFraction: Double,
+            toNormalizedFraction upperFraction: Double,
+            tolerance: ModelingTolerance
+        ) throws -> SpatialDifferentialMagnitudeBounds {
+            let minor = try minorDifferentialMagnitudeBounds(
+                fromNormalizedFraction: lowerFraction,
+                toNormalizedFraction: upperFraction,
+                tolerance: tolerance
+            )
+            let minorFirst = minor.first
+            let minorSecond = minor.second
+            let minorThird = minor.third
+            let totalMajorAngle = parameterScale.nextUp
+            let firstPerMajorAngle = (
+                majorRadiusBound + minorRadius * minorFirst
+            ).nextUp
+            let secondPerMajorAngle = (
+                majorRadiusBound
+                    + 2.0 * minorRadius * minorFirst
+                    + minorRadius * minorFirst * minorFirst
+                    + minorRadius * minorSecond
+            ).nextUp
+            let thirdPerMajorAngle = (
+                majorRadiusBound
+                    + 3.0 * minorRadius * minorFirst
+                    + 3.0 * minorRadius * minorFirst * minorFirst
+                    + minorRadius * minorFirst * minorFirst * minorFirst
+                    + 3.0 * minorRadius * minorSecond
+                    + 3.0 * minorRadius * minorFirst * minorSecond
+                    + minorRadius * minorThird
+            ).nextUp
+            return SpatialDifferentialMagnitudeBounds(
+                first: (firstPerMajorAngle * totalMajorAngle).nextUp,
+                second: (
+                    secondPerMajorAngle * totalMajorAngle * totalMajorAngle
+                ).nextUp,
+                third: (
+                    thirdPerMajorAngle
+                        * totalMajorAngle * totalMajorAngle * totalMajorAngle
+                ).nextUp
+            )
+        }
+
+        private func minorDifferentialMagnitudeBounds(
+            fromNormalizedFraction lowerFraction: Double,
+            toNormalizedFraction upperFraction: Double,
+            tolerance: ModelingTolerance
+        ) throws -> (first: Double, second: Double, third: Double) {
+            try tolerance.validate()
+            guard lowerFraction.isFinite,
+                  upperFraction.isFinite,
+                  lowerFraction >= -tolerance.relative,
+                  upperFraction <= 1.0 + tolerance.relative,
+                  upperFraction > lowerFraction else {
+                throw GeometryError.invalidDistance(
+                    upperFraction - lowerFraction
+                )
+            }
+            let period = 2.0 * Double.pi
+            let lowerMajorAngle = max(lowerFraction, 0.0)
+                * parameterScale
+            let upperMajorAngle = min(upperFraction, 1.0)
+                * parameterScale
+            let lowerCycle = min(
+                Int(floor(lowerMajorAngle / period)),
+                cycle.count - 1
+            )
+            let upperCycle = min(
+                Int(floor(upperMajorAngle / period)),
+                cycle.count - 1
+            )
+            var foundOverlappingPartition = false
+            var minorFirst = 0.0
+            var minorSecond = 0.0
+            var minorThird = 0.0
+            for cycleIndex in lowerCycle...upperCycle {
+                let cycleOffset = Double(cycleIndex) * period
+                let lower = max(lowerMajorAngle - cycleOffset, 0.0)
+                let upper = min(upperMajorAngle - cycleOffset, period)
+                let index = partitionsByBranch[cycle[cycleIndex]]
+                var partitionIndex = index.firstPotentialOverlap(lower: lower)
+                while partitionIndex < index.partitions.count {
+                    let partition = index.partitions[partitionIndex]
+                    guard partition.majorAngleLower <= upper else { break }
+                    if upper > lower,
+                       partition.majorAngleUpper >= lower {
+                        foundOverlappingPartition = true
+                        minorFirst = max(
+                            minorFirst,
+                            partition.minorFirstDerivativeMagnitudeUpperBound
+                        )
+                        minorSecond = max(
+                            minorSecond,
+                            partition.minorSecondDerivativeMagnitudeUpperBound
+                        )
+                        minorThird = max(
+                            minorThird,
+                            partition.minorThirdDerivativeMagnitudeUpperBound
+                        )
+                    }
+                    partitionIndex += 1
+                }
+            }
+            guard foundOverlappingPartition else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .resourceLimitExceeded,
+                    tolerance: tolerance,
+                    message: "General torus-torus differential certification found no partition overlapping the requested source range."
+                )
+            }
+            return (minorFirst, minorSecond, minorThird)
+        }
+
+    }
+
     // Certificate derivation traces the full meridian-quartic root system,
     // and decoding rebuilds the same certificate for identical surfaces on
     // every round trip, so derived certificates are memoized per process.
-    // Platforms without Synchronization.Mutex hold no cache state at all
-    // and derive every certificate, matching the uncached behavior.
+    // Older Apple platforms derive every certificate instead of weakening
+    // the shared-state isolation contract with a target-specific raw cache.
     @available(macOS 15.0, iOS 18.0, visionOS 2.0, *)
     private enum CertificateCache {
         static let storage = Mutex<[CertificateCacheKey: Certificate?]>([:])
@@ -288,6 +527,7 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
                       && $0.majorAngleUpper > $0.majorAngleLower
                       && $0.minorFirstDerivativeMagnitudeUpperBound.isFinite
                       && $0.minorSecondDerivativeMagnitudeUpperBound.isFinite
+                      && $0.minorThirdDerivativeMagnitudeUpperBound.isFinite
               }),
               maximumResidualUpperBound.isFinite,
               maximumResidualUpperBound > 0.0,
@@ -319,16 +559,33 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> Point3D {
-        try differential(
+        try resolvedRoot(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        ).position
+        ).point
     }
 
     public func differential(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
+        let root = try resolvedRoot(
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        )
+        return try Self.differentialGeometry(
+            majorAngle: root.majorAngle,
+            minorAngle: root.minorAngle,
+            parameterScale: root.parameterScale,
+            configuration: root.configuration,
+            tolerance: tolerance
+        )
+    }
+
+    private func resolvedRoot(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> RootLocation {
         try tolerance.validate()
         guard fraction.isFinite,
               fraction >= -tolerance.relative,
@@ -373,25 +630,19 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
             branch: branch,
             certificate: certificate,
             configuration: configuration,
-            referenceSurface: referenceSurface,
             tolerance: tolerance
         ) {
-            let geometry = try Self.differentialGeometry(
+            let root = RootLocation(
+                configuration: configuration,
                 majorAngle: majorAngle,
                 minorAngle: polished,
-                parameterScale: upper,
-                configuration: configuration,
-                tolerance: tolerance
+                parameterScale: upper
             )
-            let parameterizedProjection = try parameterizedSurface
-                .parameterProjection(of: geometry.position, tolerance: tolerance)
-            let referenceProjection = try referenceSurface
-                .parameterProjection(of: geometry.position, tolerance: tolerance)
-            if max(
-                parameterizedProjection.residual,
-                referenceProjection.residual
+            if Self.intersectionResidual(
+                root.point,
+                configuration: configuration
             ) <= maximumResidualUpperBound {
-                return geometry
+                return root
             }
         }
         let roots = try intersector.verifiedRoots(
@@ -425,24 +676,15 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
             period: period,
             tolerance: tolerance
         )
-        let geometry = try Self.differentialGeometry(
+        let root = RootLocation(
+            configuration: configuration,
             majorAngle: majorAngle,
             minorAngle: minorAngle,
-            parameterScale: upper,
-            configuration: configuration,
-            tolerance: tolerance
+            parameterScale: upper
         )
-        let parameterizedProjection = try parameterizedSurface.parameterProjection(
-            of: geometry.position,
-            tolerance: tolerance
-        )
-        let referenceProjection = try referenceSurface.parameterProjection(
-            of: geometry.position,
-            tolerance: tolerance
-        )
-        let residual = max(
-            parameterizedProjection.residual,
-            referenceProjection.residual
+        let residual = Self.intersectionResidual(
+            root.point,
+            configuration: configuration
         )
         guard residual <= maximumResidualUpperBound else {
             throw KernelError(
@@ -453,7 +695,111 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
                 message: "A certified general torus-torus root exceeded its geometric residual bound."
             )
         }
-        return geometry
+        return root
+    }
+
+    private static func intersectionResidual(
+        _ point: Point3D,
+        configuration: GeneralTorusTorusSurfaceIntersector.Configuration
+    ) -> Double {
+        max(
+            torusSurfaceResidual(point, torus: configuration.parameterized),
+            torusSurfaceResidual(point, torus: configuration.reference)
+        )
+    }
+
+    private static func torusSurfaceResidual(
+        _ point: Point3D,
+        torus: GeneralTorusTorusSurfaceIntersector.Torus
+    ) -> Double {
+        let offset = point - torus.center
+        let axialDistance = offset.dot(torus.axis)
+        let radial = offset - torus.axis * axialDistance
+        let tubeDistance = hypot(
+            radial.length - torus.majorRadius,
+            axialDistance
+        )
+        return abs(tubeDistance - torus.minorRadius)
+    }
+
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        let lower = try differential(
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        )
+        let configuration = try Self.cachedConfiguration(
+            parameterizedSurface: parameterizedSurface,
+            referenceSurface: referenceSurface,
+            tolerance: tolerance
+        )
+        let projection = try parameterizedSurface.parameterProjection(
+            of: lower.position,
+            tolerance: tolerance
+        )
+        let surface = try parameterizedSurface.parameterDerivativesThroughThirdOrder(
+            atU: projection.u,
+            v: projection.v,
+            tolerance: tolerance
+        )
+        let firstParameter = try SurfaceParameterFirstDerivativeSolver().solve(
+            tangentU: surface.tangentU,
+            tangentV: surface.tangentV,
+            spatialFirstDerivative: lower.firstDerivative,
+            tolerance: tolerance,
+            diagnosticContext: "General torus-torus curve"
+        )
+        let lowerSurface = try parameterizedSurface.differentialGeometry(
+            atU: projection.u,
+            v: projection.v,
+            tolerance: tolerance
+        )
+        let secondParameter = try SurfaceParameterSecondDerivativeSolver().solve(
+            surface: lowerSurface,
+            firstParameterDerivative: firstParameter,
+            spatialSecondDerivative: lower.secondDerivative,
+            tolerance: tolerance,
+            diagnosticContext: "General torus-torus curve"
+        )
+        let offset = lower.position - configuration.reference.center
+        let gradient = Self.torusGradient(
+            offset: offset,
+            torus: configuration.reference
+        )
+        let thirdParameter = try ImplicitSurfaceParameterThirdDerivativeSolver().solve(
+            surface: surface,
+            firstParameterDerivative: firstParameter,
+            secondParameterDerivative: secondParameter,
+            knownThirdParameterDerivative: Point2D(x: 0.0, y: 0.0),
+            solvedCoordinate: .v,
+            implicitGradient: gradient,
+            implicitHessian: { first, second in
+                Self.torusHessianBilinear(
+                    offset: offset,
+                    first: first,
+                    second: second,
+                    torus: configuration.reference
+                )
+            },
+            implicitThirdDifferential: { first, second, third in
+                Self.torusThirdDifferential(
+                    offset: offset,
+                    first: first,
+                    second: second,
+                    third: third
+                )
+            },
+            tolerance: tolerance,
+            diagnosticContext: "General torus-torus curve"
+        )
+        return SurfaceParameterThirdOrderChainRule.thirdDerivative(
+            surface: surface,
+            firstParameterDerivative: firstParameter,
+            secondParameterDerivative: secondParameter,
+            thirdParameterDerivative: thirdParameter
+        )
     }
 
     public func parameter(
@@ -461,6 +807,18 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
+        try pointAndParameter(
+            on: surface,
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        ).parameter
+    }
+
+    func pointAndParameter(
+        on surface: Surface3D,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> (point: Point3D, parameter: SurfaceParameter) {
         guard surface == parameterizedSurface || surface == referenceSurface else {
             throw KernelError(
                 phase: .geometry,
@@ -469,15 +827,18 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
                 message: "A general torus-torus pcurve was requested on an unrelated surface."
             )
         }
-        let point = try self.point(
+        let point = try resolvedRoot(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        )
+        ).point
         let projection = try surface.parameterProjection(
             of: point,
             tolerance: tolerance
         )
-        return SurfaceParameter(u: projection.u, v: projection.v)
+        return (
+            point,
+            SurfaceParameter(u: projection.u, v: projection.v)
+        )
     }
 
     public func boundingBox(tolerance: ModelingTolerance) throws -> BoundingBox3D {
@@ -508,91 +869,30 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
         toNormalizedFraction upperFraction: Double = 1.0,
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
-        try validate(tolerance: tolerance)
-        guard lowerFraction.isFinite,
-              upperFraction.isFinite,
-              lowerFraction >= -tolerance.relative,
-              upperFraction <= 1.0 + tolerance.relative,
-              upperFraction > lowerFraction else {
-            throw GeometryError.invalidDistance(
-                upperFraction - lowerFraction
-            )
-        }
-        let configuration = try Self.makeConfiguration(
+        let preparation = try prepareSpatialDifferentialBounds(
+            tolerance: tolerance
+        )
+        return try preparation.bounds(
+            fromNormalizedFraction: lowerFraction,
+            toNormalizedFraction: upperFraction,
+            tolerance: tolerance
+        )
+    }
+
+    func prepareSpatialDifferentialBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialBoundsPreparation {
+        try tolerance.validate()
+        let configuration = try Self.cachedConfiguration(
             parameterizedSurface: parameterizedSurface,
             referenceSurface: referenceSurface,
             tolerance: tolerance
         )
-        let period = 2.0 * Double.pi
-        let totalMajorAngle = period * Double(majorAngleWindingCount)
-        let lowerMajorAngle = max(lowerFraction, 0.0) * totalMajorAngle
-        let upperMajorAngle = min(upperFraction, 1.0) * totalMajorAngle
-        let lowerCycle = min(
-            Int(floor(lowerMajorAngle / period)),
-            majorAngleWindingCount - 1
-        )
-        let upperCycle = min(
-            Int(floor(upperMajorAngle / period)),
-            majorAngleWindingCount - 1
-        )
-        let cycle = certificate.cycles[componentIndex]
-        var majorAngleRanges: [
-            (branchIndex: Int, lower: Double, upper: Double)
-        ] = []
-        for cycleIndex in lowerCycle...upperCycle {
-            let cycleOffset = Double(cycleIndex) * period
-            let lower = max(lowerMajorAngle - cycleOffset, 0.0)
-            let upper = min(upperMajorAngle - cycleOffset, period)
-            if upper > lower {
-                majorAngleRanges.append((
-                    branchIndex: cycle[cycleIndex],
-                    lower: lower,
-                    upper: upper
-                ))
-            }
-        }
-        let overlappingPartitions = certificate.branchSpatialDifferential
-            .partitions.filter { partition in
-                majorAngleRanges.contains { range in
-                    partition.branchIndex == range.branchIndex
-                        && partition.majorAngleUpper >= range.lower
-                        && partition.majorAngleLower <= range.upper
-                }
-            }
-        guard overlappingPartitions.isEmpty == false else {
-            throw KernelError(
-                phase: .geometry,
-                code: .resourceLimitExceeded,
-                tolerance: tolerance,
-                message: "General torus-torus differential certification found no partition overlapping the requested source range."
-            )
-        }
-        let minorFirst = overlappingPartitions.map(
-            \.minorFirstDerivativeMagnitudeUpperBound
-        ).max() ?? .infinity
-        let minorSecond = overlappingPartitions.map(
-            \.minorSecondDerivativeMagnitudeUpperBound
-        ).max() ?? .infinity
-        let majorRadiusBound = (
-            configuration.parameterized.majorRadius
-                + configuration.parameterized.minorRadius
-        ).nextUp
-        let minorRadius = configuration.parameterized.minorRadius.nextUp
-        let firstPerMajorAngle = (
-            majorRadiusBound + minorRadius * minorFirst
-        ).nextUp
-        let secondPerMajorAngle = (
-            majorRadiusBound
-                + 2.0 * minorRadius * minorFirst
-                + minorRadius * minorFirst * minorFirst
-                + minorRadius * minorSecond
-        ).nextUp
-        let parameterScale = totalMajorAngle.nextUp
-        return SpatialDifferentialMagnitudeBounds(
-            first: (firstPerMajorAngle * parameterScale).nextUp,
-            second: (
-                secondPerMajorAngle * parameterScale * parameterScale
-            ).nextUp
+        return SpatialDifferentialBoundsPreparation(
+            cycle: certificate.cycles[componentIndex],
+            branchCount: certificate.trace.valuesByBranch.count,
+            partitions: certificate.branchSpatialDifferential.partitions,
+            configuration: configuration
         )
     }
 
@@ -868,6 +1168,19 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
             )
     }
 
+    private static func torusThirdDifferential(
+        offset: Vector3D,
+        first: Vector3D,
+        second: Vector3D,
+        third: Vector3D
+    ) -> Double {
+        8.0 * (
+            first.dot(second) * offset.dot(third)
+                + first.dot(third) * offset.dot(second)
+                + second.dot(third) * offset.dot(first)
+        )
+    }
+
     private static func derivativeThreshold(
         configuration: GeneralTorusTorusSurfaceIntersector.Configuration,
         tolerance: ModelingTolerance
@@ -886,39 +1199,30 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
         branch: Int,
         certificate: Certificate,
         configuration: GeneralTorusTorusSurfaceIntersector.Configuration,
-        referenceSurface: Surface3D,
         tolerance: ModelingTolerance
     ) -> Double? {
-        guard case let .torus(torus) = CanonicalAnalyticSurface(referenceSurface) else {
-            return nil
-        }
-        let axisLength = torus.axis.length
-        guard axisLength > 0.0 else { return nil }
-        let axis = torus.axis / axisLength
-        func implicitValue(_ point: Point3D) -> Double {
-            let q = point - torus.center
-            let height = q.dot(axis)
-            let radialVector = q - axis * height
-            let radius = radialVector.length
-            let ring = radius - torus.majorRadius
-            return ring * ring + height * height
-                - torus.minorRadius * torus.minorRadius
-        }
+        let intersector = GeneralTorusTorusSurfaceIntersector()
+        let derivativeFloor = derivativeThreshold(
+            configuration: configuration,
+            tolerance: tolerance
+        )
         var v = reference
         var converged = false
         for _ in 0..<24 {
-            let point = configuration.point(majorAngle: majorAngle, minorAngle: v)
-            let value = implicitValue(point)
-            let step = max(1.0e-7, abs(v) * 1.0e-7)
-            let forward = implicitValue(
-                configuration.point(majorAngle: majorAngle, minorAngle: v + step)
-            )
-            let backward = implicitValue(
-                configuration.point(majorAngle: majorAngle, minorAngle: v - step)
-            )
-            let derivative = (forward - backward) / (2.0 * step)
-            guard derivative.isFinite, abs(derivative) > 1.0e-14 else { return nil }
-            let delta = value / derivative
+            let valueAndDerivative = intersector
+                .implicitValueAndMinorDerivative(
+                    majorAngle: majorAngle,
+                    minorAngle: v,
+                    configuration: configuration
+                )
+            guard valueAndDerivative.value.isFinite,
+                  valueAndDerivative.minorDerivative.isFinite,
+                  abs(valueAndDerivative.minorDerivative)
+                    > derivativeFloor else {
+                return nil
+            }
+            let delta = valueAndDerivative.value
+                / valueAndDerivative.minorDerivative
             v -= delta
             guard v.isFinite else { return nil }
             if abs(delta) <= 1.0e-13 * (1.0 + abs(v)) {

@@ -9,6 +9,204 @@ struct SurfaceSurfaceIntersectionTests {
     private let tolerance = ModelingTolerance.standard
 
     @Test(.timeLimit(.minutes(1)))
+    func analyticOffsetSurfacesUseTheirExactIntersectionGeometryAndOriginalParameters() throws {
+        let horizontal = Surface3D.procedural(.offset(OffsetSurface3D(
+            source: .plane(Plane3D(origin: .origin, normal: .unitZ)),
+            distance: 1.0
+        )))
+        let vertical = Surface3D.procedural(.offset(OffsetSurface3D(
+            source: .analytic(.plane(origin: .origin, normal: .unitX)),
+            distance: 2.0
+        )))
+        let planeSection = try intersector.intersections(
+            first: horizontal,
+            second: vertical,
+            tolerance: tolerance
+        )
+        guard case let .curve(planeResult) = try #require(planeSection.first),
+              case let .line(line) = planeResult.curve else {
+            Issue.record("Perpendicular analytic offset planes must intersect in one exact line.")
+            return
+        }
+        #expect(planeSection.count == 1)
+        #expect(abs(line.origin.x - 2.0) <= tolerance.distance)
+        #expect(abs(line.origin.z - 1.0) <= tolerance.distance)
+        #expect(planeResult.maximumResidual <= tolerance.distance)
+
+        let cylinder = Surface3D.procedural(.offset(OffsetSurface3D(
+            source: .analytic(.cylinder(
+                origin: .origin,
+                axis: .unitZ,
+                radius: 2.0
+            )),
+            distance: 0.5
+        )))
+        let cylinderSection = try intersector.intersections(
+            first: horizontal,
+            second: cylinder,
+            tolerance: tolerance
+        )
+        guard case let .curve(cylinderResult) = try #require(cylinderSection.first),
+              case let .circle(circle) = cylinderResult.curve else {
+            Issue.record("An offset plane and offset cylinder must retain exact circle geometry.")
+            return
+        }
+        #expect(abs(circle.radius - 2.5) <= tolerance.distance)
+        #expect(abs(circle.center.z - 1.0) <= tolerance.distance)
+        for parameter in [0.0, Double.pi * 0.5, Double.pi] {
+            let curvePoint = try cylinderResult.curve.point(
+                at: parameter,
+                tolerance: tolerance
+            )
+            let firstParameter = try cylinderResult.surfaceParameter(
+                on: .first,
+                atCurveParameter: parameter,
+                tolerance: tolerance
+            )
+            let secondParameter = try cylinderResult.surfaceParameter(
+                on: .second,
+                atCurveParameter: parameter,
+                tolerance: tolerance
+            )
+            let firstPoint = try horizontal.point(
+                u: firstParameter.u,
+                v: firstParameter.v,
+                tolerance: tolerance
+            )
+            let secondPoint = try cylinder.point(
+                u: secondParameter.u,
+                v: secondParameter.v,
+                tolerance: tolerance
+            )
+            #expect(curvePoint.isApproximatelyEqual(
+                to: firstPoint,
+                tolerance: tolerance.distance
+            ))
+            #expect(curvePoint.isApproximatelyEqual(
+                to: secondPoint,
+                tolerance: tolerance.distance
+            ))
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func ruledSurfaceIntersectionUsesExactGeometryAndOriginalParameterChart() throws {
+        let ruled = Surface3D.procedural(.ruled(RuledSurface3D(
+            startBoundary: .line(Line3D(
+                origin: .origin,
+                direction: .unitX
+            )),
+            endBoundary: .line(Line3D(
+                origin: Point3D(x: 0.0, y: 1.0, z: 1.0),
+                direction: .unitX
+            ))
+        )))
+        let sectionPlane = Surface3D.plane(Plane3D(
+            origin: Point3D(x: 0.5, y: 0.0, z: 0.0),
+            normal: .unitX
+        ))
+
+        let forward = try intersector.intersections(
+            first: ruled,
+            second: sectionPlane,
+            tolerance: tolerance
+        )
+        try verifyRuledPlaneSection(
+            forward,
+            ruled: ruled,
+            sectionPlane: sectionPlane,
+            ruledRole: .first
+        )
+        let decodedForward = try JSONDecoder().decode(
+            [SurfaceSurfaceIntersection].self,
+            from: JSONEncoder().encode(forward)
+        )
+        #expect(decodedForward == forward)
+        try verifyRuledPlaneSection(
+            decodedForward,
+            ruled: ruled,
+            sectionPlane: sectionPlane,
+            ruledRole: .first
+        )
+
+        let reverse = try intersector.intersections(
+            first: sectionPlane,
+            second: ruled,
+            tolerance: tolerance
+        )
+        try verifyRuledPlaneSection(
+            reverse,
+            ruled: ruled,
+            sectionPlane: sectionPlane,
+            ruledRole: .second
+        )
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func twoRuledSurfacesIntersectThroughTheirExactRepresentations() throws {
+        let diagonal = Surface3D.procedural(.ruled(RuledSurface3D(
+            startBoundary: .line(Line3D(
+                origin: .origin,
+                direction: .unitX
+            )),
+            endBoundary: .line(Line3D(
+                origin: Point3D(x: 0.0, y: 1.0, z: 1.0),
+                direction: .unitX
+            ))
+        )))
+        let vertical = Surface3D.procedural(.ruled(RuledSurface3D(
+            startBoundary: .line(Line3D(
+                origin: Point3D(x: 0.0, y: 0.5, z: -0.5),
+                direction: .unitX
+            )),
+            endBoundary: .line(Line3D(
+                origin: Point3D(x: 0.0, y: 0.5, z: 1.5),
+                direction: .unitX
+            ))
+        )))
+
+        let intersections = try intersector.intersections(
+            first: diagonal,
+            second: vertical,
+            tolerance: tolerance
+        )
+
+        #expect(intersections.count == 1)
+        guard case let .curve(result) = try #require(intersections.first) else {
+            Issue.record("Two transverse ruled surfaces must produce one curve.")
+            return
+        }
+        for fraction in [0.0, 0.25, 0.5, 0.75, 1.0] {
+            let firstParameter = try result.surfaceParameter(
+                on: .first,
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+            let secondParameter = try result.surfaceParameter(
+                on: .second,
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+            let firstPoint = try diagonal.point(
+                u: firstParameter.u,
+                v: firstParameter.v,
+                tolerance: tolerance
+            )
+            let secondPoint = try vertical.point(
+                u: secondParameter.u,
+                v: secondParameter.v,
+                tolerance: tolerance
+            )
+            #expect(firstPoint.isApproximatelyEqual(
+                to: secondPoint,
+                tolerance: tolerance.distance
+            ))
+            #expect(abs(firstPoint.y - 0.5) <= tolerance.distance)
+            #expect(abs(firstPoint.z - 0.5) <= tolerance.distance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func planePlaneProducesVerifiedLineAndCoincidence() throws {
         let horizontal = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
         let vertical = Surface3D.analytic(.plane(origin: .origin, normal: .unitX))
@@ -906,6 +1104,50 @@ struct SurfaceSurfaceIntersectionTests {
         intersections.compactMap {
             guard case let .curve(result) = $0 else { return nil }
             return result.curve
+        }
+    }
+
+    private func verifyRuledPlaneSection(
+        _ intersections: [SurfaceSurfaceIntersection],
+        ruled: Surface3D,
+        sectionPlane: Surface3D,
+        ruledRole: SurfaceIntersectionSurfaceRole
+    ) throws {
+        #expect(intersections.count == 1)
+        guard case let .curve(result) = try #require(intersections.first) else {
+            Issue.record("A transverse ruled-surface section must produce one curve.")
+            return
+        }
+        let planeRole: SurfaceIntersectionSurfaceRole = ruledRole == .first
+            ? .second
+            : .first
+        for fraction in [0.0, 0.25, 0.5, 0.75, 1.0] {
+            let ruledParameter = try result.surfaceParameter(
+                on: ruledRole,
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+            let planeParameter = try result.surfaceParameter(
+                on: planeRole,
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+            let ruledPoint = try ruled.point(
+                u: ruledParameter.u,
+                v: ruledParameter.v,
+                tolerance: tolerance
+            )
+            let planePoint = try sectionPlane.point(
+                u: planeParameter.u,
+                v: planeParameter.v,
+                tolerance: tolerance
+            )
+            #expect(ruledPoint.isApproximatelyEqual(
+                to: planePoint,
+                tolerance: tolerance.distance
+            ))
+            #expect(abs(ruledPoint.x - 0.5) <= tolerance.distance)
+            #expect(abs(ruledPoint.y - ruledPoint.z) <= tolerance.distance)
         }
     }
 }

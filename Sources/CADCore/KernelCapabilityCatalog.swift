@@ -26,6 +26,15 @@ public struct KernelCapabilityCatalog: Codable, Equatable, Sendable {
                     message: "Capability \(capability.id) must declare typed failure codes."
                 )
             }
+            guard capability.status != .supported
+                    || !capability.failureCodes.contains(.unsupportedCapability) else {
+                throw KernelError(
+                    phase: .validation,
+                    code: .invalidInput,
+                    tolerance: nil,
+                    message: "Supported capability \(capability.id) must not declare an unsupported public-input path."
+                )
+            }
             guard capability.topology != .notApplicable
                 || capability.id.hasPrefix("GEO-") else {
                 throw KernelError(

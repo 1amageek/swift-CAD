@@ -39,8 +39,8 @@ public struct PatchSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
     ) throws -> EvaluationResult {
         guard case let .patchSurface(patch) = feature.operation else {
             throw KernelError(
-                phase: .evaluation,
-                code: .unsupportedCapability,
+                phase: .validation,
+                code: .invalidInput,
                 featureID: feature.id,
                 tolerance: context.tolerance,
                 message: "PatchSurfaceFeatureEvaluator requires a patch surface feature."

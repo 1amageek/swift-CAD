@@ -1,16 +1,21 @@
 import CADCore
 import CADGeometry
 
-struct ExactRectangularPcurveDomain: Sendable, Hashable {
-    let uLower: Double
-    let uUpper: Double
-    let vLower: Double
-    let vUpper: Double
+package struct ExactRectangularPcurveDomain: Sendable, Hashable {
+    package let uLower: Double
+    package let uUpper: Double
+    package let vLower: Double
+    package let vUpper: Double
 }
 
 /// Recognizes an exact four-sided axis-aligned outer pcurve loop.
-struct ExactRectangularPcurveDomainResolver {
-    func resolve(
+package struct ExactRectangularPcurveDomainResolver:
+    ExactRectangularPcurveDomainResolving,
+    Sendable
+{
+    package init() {}
+
+    package func resolve(
         face: Face,
         model: BRepModel,
         tolerance: ModelingTolerance
@@ -148,8 +153,14 @@ struct ExactRectangularPcurveDomainResolver {
              .certifiedImplicit,
              .certifiedAnalyticImplicit,
              .certifiedAnalyticPair,
-             .projectedAnalytic:
+             .projectedAnalytic,
+             .rigidImage:
             return nil
+        case let .sameParameterImage(image):
+            return try axisAlignedVertices(
+                of: image.source,
+                tolerance: tolerance
+            )
         case let .periodicTranslation(base, uShift, vShift):
             return try axisAlignedVertices(
                 of: base,

@@ -9,6 +9,7 @@ public struct EvaluationResult: Sendable {
     public var removedSubshapeIDs: Set<SubshapeID>
     public var generatedCurves: [EvaluatedCurve]
     public var lineage: [SubshapeID: TopologyLineage]
+    package var validatedBRep: ValidatedBRepModel?
 
     public init(
         brep: BRepModel,
@@ -22,5 +23,6 @@ public struct EvaluationResult: Sendable {
         self.removedSubshapeIDs = removedSubshapeIDs
         self.generatedCurves = generatedCurves
         self.lineage = lineage
+        validatedBRep = nil
     }
 }

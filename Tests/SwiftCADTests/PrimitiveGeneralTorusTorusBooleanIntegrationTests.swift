@@ -8,7 +8,7 @@ import SwiftCAD
 @Suite("Primitive general torus-torus Boolean integration", .serialized)
 struct PrimitiveGeneralTorusTorusBooleanIntegrationTests {
     @Test(.timeLimit(.minutes(10)))
-    func intersectionProducesValidatedExactSolid() throws {
+    func generalTorusTorusIntersectionProducesValidatedExactSolid() throws {
         try assertExactResult(
             evaluate(operation: .intersect),
             expectedVolume: 8.810_3
@@ -16,7 +16,7 @@ struct PrimitiveGeneralTorusTorusBooleanIntegrationTests {
     }
 
     @Test(.timeLimit(.minutes(10)))
-    func differenceProducesValidatedExactSolid() throws {
+    func generalTorusTorusDifferenceProducesValidatedExactSolid() throws {
         try assertExactResult(
             evaluate(operation: .difference),
             expectedVolume: 50.407_326_406_536_15
@@ -24,7 +24,7 @@ struct PrimitiveGeneralTorusTorusBooleanIntegrationTests {
     }
 
     @Test(.timeLimit(.minutes(10)))
-    func unionProducesValidatedExactSolid() throws {
+    func generalTorusTorusUnionProducesValidatedExactSolid() throws {
         try assertExactResult(
             evaluate(operation: .union),
             expectedVolume: 83.292_848_270_965_88
@@ -90,7 +90,10 @@ struct PrimitiveGeneralTorusTorusBooleanIntegrationTests {
         let volume = try result.document.brep.volume(tolerance: .standard)
         let volumeTolerance = ModelingTolerance.standard.distance
             * 4.1 * 4.1 * 128.0
-        #expect(abs(volume - expectedVolume) <= volumeTolerance)
+        #expect(
+            abs(volume - expectedVolume) <= volumeTolerance,
+            "Measured volume \(volume) differs from expected volume \(expectedVolume)."
+        )
         let booleanLineage = result.document.lineage.values.filter {
             $0.output.featureID == result.featureID
         }

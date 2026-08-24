@@ -99,7 +99,9 @@ struct ExactAssociatedSurfacePcurveBuilder {
              .bSpline,
              .implicit,
              .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection,
+             .rigidImage,
+             .affineImage:
             return nil
         }
     }

@@ -13,10 +13,16 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
         try first.validate(tolerance: tolerance)
         try second.validate(tolerance: tolerance)
 
-        let firstCanonical = CanonicalAnalyticSurface(first)
-        let secondCanonical = CanonicalAnalyticSurface(second)
+        let firstDispatchSurface = try first.exactSameParameterRepresentation(
+            tolerance: tolerance
+        ) ?? first
+        let secondDispatchSurface = try second.exactSameParameterRepresentation(
+            tolerance: tolerance
+        ) ?? second
+        let firstCanonical = CanonicalAnalyticSurface(firstDispatchSurface)
+        let secondCanonical = CanonicalAnalyticSurface(secondDispatchSurface)
         if case let .plane(plane) = firstCanonical,
-           case let .bSpline(surface) = second {
+           case let .bSpline(surface) = secondDispatchSurface {
             return try PlaneBSplineSurfaceIntersector().intersections(
                 plane: plane,
                 surface: surface,
@@ -28,7 +34,7 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
             )
         }
         if case let .plane(plane) = secondCanonical,
-           case let .bSpline(surface) = first {
+           case let .bSpline(surface) = firstDispatchSurface {
             return try PlaneBSplineSurfaceIntersector().intersections(
                 plane: plane,
                 surface: surface,
@@ -39,7 +45,7 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
                 tolerance: tolerance
             )
         }
-        if case let .bSpline(surface) = second {
+        if case let .bSpline(surface) = secondDispatchSurface {
             switch firstCanonical {
             case .cylinder, .cone, .sphere, .torus:
                 return try AnalyticBSplineSurfaceIntersector().intersections(
@@ -55,7 +61,7 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
                 break
             }
         }
-        if case let .bSpline(surface) = first {
+        if case let .bSpline(surface) = firstDispatchSurface {
             switch secondCanonical {
             case .cylinder, .cone, .sphere, .torus:
                 return try AnalyticBSplineSurfaceIntersector().intersections(
@@ -71,8 +77,8 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
                 break
             }
         }
-        if case let .bSpline(firstSurface) = first,
-           case let .bSpline(secondSurface) = second {
+        if case let .bSpline(firstSurface) = firstDispatchSurface,
+           case let .bSpline(secondSurface) = secondDispatchSurface {
             return try BoundedBSplineSurfaceIntersector().intersections(
                 first: firstSurface,
                 second: secondSurface,

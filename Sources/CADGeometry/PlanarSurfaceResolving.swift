@@ -1,11 +1,11 @@
 import CADCore
 
-struct ResolvedPlaneGeometry: Sendable {
-    let origin: Point3D
-    let normal: Vector3D
+package struct ResolvedPlaneGeometry: Sendable {
+    package let origin: Point3D
+    package let normal: Vector3D
 }
 
-protocol PlanarSurfaceResolving: Sendable {
+package protocol PlanarSurfaceResolving: Sendable {
     func canonicalPlane(
         for surface: Surface3D
     ) -> ResolvedPlaneGeometry?

@@ -1,0 +1,95 @@
+{
+  "title": "Capability coverage and release proof",
+  "charts": [
+    {
+      "id": "capability-status",
+      "type": "stacked-bar",
+      "unit": "capabilities",
+      "series": [
+        {
+          "label": "Supported",
+          "value": 39
+        },
+        {
+          "label": "Partial",
+          "value": 28
+        }
+      ],
+      "note": "This is not an overall completion percentage; dependency-critical partial capabilities dominate complex histories."
+    },
+    {
+      "id": "release-gates",
+      "type": "progress",
+      "unit": "gates",
+      "series": [
+        {
+          "label": "Complete",
+          "value": 0
+        },
+        {
+          "label": "Incomplete",
+          "value": 8
+        }
+      ]
+    },
+    {
+      "id": "public-routes",
+      "type": "bar",
+      "unit": "routes",
+      "series": [
+        {
+          "label": "Features",
+          "value": 44
+        },
+        {
+          "label": "Commands",
+          "value": 45
+        },
+        {
+          "label": "Queries",
+          "value": 7
+        },
+        {
+          "label": "Persistence",
+          "value": 4
+        },
+        {
+          "label": "Exchange",
+          "value": 14
+        }
+      ]
+    },
+    {
+      "id": "curve-validation-performance",
+      "type": "before-after-bar",
+      "unit": "seconds",
+      "series": [
+        {
+          "label": "Before",
+          "value": 104.326
+        },
+        {
+          "label": "After",
+          "value": 20.474
+        }
+      ],
+      "note": "polySplineRoundedPatchNetworkPreservesSharedInteriorTopology; the prior run exceeded its limit while the validated-curve path passed."
+    },
+    {
+      "id": "current-focused-paths",
+      "type": "progress",
+      "unit": "tests",
+      "series": [
+        {
+          "label": "Passed",
+          "value": 6
+        },
+        {
+          "label": "Failed",
+          "value": 0
+        }
+      ],
+      "note": "Latest current-worktree tests cover derivative-bounded chart lift, general torus-torus differential bounds, certified area/flux, and trimmed analytic volume."
+    }
+  ]
+}

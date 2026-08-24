@@ -12,7 +12,7 @@ public struct ProfileRegionAnalyzer: Sendable {
 
     public func summary(for profile: Profile) throws -> ProfileRegionSummary {
         try tolerance.validate()
-        let points = try profile.vertices.map { vertex in
+        let points = try profile.outerLoop.vertices.map { vertex in
             try projectedPoint(vertex, on: profile.plane)
         }
         guard points.count >= 3 else {
@@ -27,16 +27,29 @@ public struct ProfileRegionAnalyzer: Sendable {
         // so the true values are recovered by adding the origin back to the centroid.
         let origin = points[0]
         let localPoints = points.map { rebased($0, by: origin) }
-        var moments: RegionMoments
-        if let exactMoments = try exactBoundaryMoments(for: profile, origin: origin) {
-            moments = exactMoments
-        } else {
-            moments = polygonMoments(for: localPoints)
-            let certifiedArea = try AdaptivePlanarPredicateEvaluator().certifiedSignedArea(
-                of: localPoints,
-                tolerance: tolerance
-            )
-            moments.replaceTwiceArea(with: certifiedArea * 2.0)
+        var moments = try normalizedMoments(
+            for: profile.outerLoop,
+            points: points,
+            plane: profile.plane,
+            origin: origin,
+            roleSign: 1.0
+        )
+        let innerPoints = try profile.innerLoops.map { loop in
+            try loop.vertices.map { vertex in
+                try projectedPoint(vertex, on: profile.plane)
+            }
+        }
+        for (innerLoop, points) in zip(profile.innerLoops, innerPoints) {
+            guard points.count >= 3 else {
+                throw SketchError.degenerateProfile
+            }
+            moments.add(try normalizedMoments(
+                for: innerLoop,
+                points: points,
+                plane: profile.plane,
+                origin: origin,
+                roleSign: -1.0
+            ))
         }
         let twiceArea = moments.twiceArea
         guard abs(twiceArea) * 0.5 > areaTolerance(for: localPoints) else {
@@ -58,8 +71,36 @@ public struct ProfileRegionAnalyzer: Sendable {
         return ProfileRegionSummary(
             center: center,
             areaSquareMeters: abs(twiceArea) * 0.5,
-            points: points
+            points: points,
+            innerPoints: innerPoints
         )
+    }
+
+    private func normalizedMoments(
+        for loop: ProfileLoop,
+        points: [Point2D],
+        plane: SketchPlane,
+        origin: Point2D,
+        roleSign: Double
+    ) throws -> RegionMoments {
+        let localPoints = points.map { rebased($0, by: origin) }
+        var moments: RegionMoments
+        if let exactMoments = try exactBoundaryMoments(
+            for: loop,
+            plane: plane,
+            origin: origin
+        ) {
+            moments = exactMoments
+        } else {
+            moments = polygonMoments(for: localPoints)
+            let certifiedArea = try AdaptivePlanarPredicateEvaluator().certifiedSignedArea(
+                of: localPoints,
+                tolerance: tolerance
+            )
+            moments.replaceTwiceArea(with: certifiedArea * 2.0)
+        }
+        let orientationSign = moments.twiceArea >= 0.0 ? 1.0 : -1.0
+        return moments.scaled(by: roleSign * orientationSign)
     }
 
     private func rebased(_ point: Point2D, by origin: Point2D) -> Point2D {
@@ -86,23 +127,24 @@ public struct ProfileRegionAnalyzer: Sendable {
     }
 
     private func exactBoundaryMoments(
-        for profile: Profile,
+        for loop: ProfileLoop,
+        plane: SketchPlane,
         origin: Point2D
     ) throws -> RegionMoments? {
-        guard profile.boundarySegments.isEmpty == false else {
+        guard loop.boundarySegments.isEmpty == false else {
             return nil
         }
         var moments = RegionMoments()
-        for segment in profile.boundarySegments {
+        for segment in loop.boundarySegments {
             switch segment {
             case .line(let line):
                 moments.addLine(
-                    from: rebased(try projectedPoint(line.start, on: profile.plane), by: origin),
-                    to: rebased(try projectedPoint(line.end, on: profile.plane), by: origin)
+                    from: rebased(try projectedPoint(line.start, on: plane), by: origin),
+                    to: rebased(try projectedPoint(line.end, on: plane), by: origin)
                 )
             case .circularArc(let arc):
-                let center = rebased(try projectedPoint(arc.center, on: profile.plane), by: origin)
-                let start = rebased(try projectedPoint(arc.start, on: profile.plane), by: origin)
+                let center = rebased(try projectedPoint(arc.center, on: plane), by: origin)
+                let start = rebased(try projectedPoint(arc.start, on: plane), by: origin)
                 moments.addCircularArc(
                     center: center,
                     radius: arc.radius,
@@ -153,6 +195,20 @@ private struct RegionMoments {
 
     mutating func replaceTwiceArea(with value: Double) {
         twiceAreaSum = CompensatedSum(value)
+    }
+
+    mutating func add(_ other: RegionMoments) {
+        twiceAreaSum.add(other.twiceArea)
+        firstMomentXSum.add(other.firstMomentX)
+        firstMomentYSum.add(other.firstMomentY)
+    }
+
+    func scaled(by factor: Double) -> RegionMoments {
+        var result = RegionMoments()
+        result.twiceAreaSum.add(twiceArea * factor)
+        result.firstMomentXSum.add(firstMomentX * factor)
+        result.firstMomentYSum.add(firstMomentY * factor)
+        return result
     }
 
     mutating func addLine(from start: Point2D, to end: Point2D) {

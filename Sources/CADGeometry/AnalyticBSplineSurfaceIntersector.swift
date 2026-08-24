@@ -58,6 +58,8 @@ struct AnalyticBSplineSurfaceIntersector {
                     $0,
                     firstSurface: firstSurface,
                     secondSurface: secondSurface,
+                    internalFirstSurface: internalFirst,
+                    internalSecondSurface: internalSecond,
                     analyticIsFirst: analyticIsFirst,
                     periodicSeamOffset: periodicSeamOffset,
                     tolerance: tolerance
@@ -241,6 +243,8 @@ struct AnalyticBSplineSurfaceIntersector {
         _ intersection: SurfaceSurfaceIntersection,
         firstSurface: Surface3D,
         secondSurface: Surface3D,
+        internalFirstSurface: BSplineSurface3D,
+        internalSecondSurface: BSplineSurface3D,
         analyticIsFirst: Bool,
         periodicSeamOffset: Double,
         tolerance: ModelingTolerance
@@ -251,6 +255,8 @@ struct AnalyticBSplineSurfaceIntersector {
                 value,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
+                internalFirstSurface: internalFirstSurface,
+                internalSecondSurface: internalSecondSurface,
                 analyticIsFirst: analyticIsFirst,
                 periodicSeamOffset: periodicSeamOffset,
                 tolerance: tolerance
@@ -280,11 +286,45 @@ struct AnalyticBSplineSurfaceIntersector {
         _ intersection: SurfaceSurfaceIntersectionCurve,
         firstSurface: Surface3D,
         secondSurface: Surface3D,
+        internalFirstSurface: BSplineSurface3D,
+        internalSecondSurface: BSplineSurface3D,
         analyticIsFirst: Bool,
         periodicSeamOffset: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceSurfaceIntersection {
-        if case let .implicit(implicitCurve) = intersection.truth {
+        let implicitCurve: CertifiedImplicitIntersectionCurve?
+        switch intersection.truth {
+        case let .implicit(curve):
+            implicitCurve = curve
+        case .parametric:
+            guard let graph = try ExactAffineBilinearIntersectionGraph.certified(
+                first: internalFirstSurface,
+                second: internalSecondSurface,
+                tolerance: tolerance
+            ), graph.exactAffineSegmentEndpoints != nil else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "Analytic–B-spline remapping could not reproduce graph truth for a parametric intersection."
+                )
+            }
+            implicitCurve = try graph.certifiedImplicitCurve(
+                first: internalFirstSurface,
+                second: internalSecondSurface,
+                tolerance: tolerance
+            )
+        case .quadraticTangency:
+            implicitCurve = nil
+        case .analyticBSpline, .analyticBSplineTangency, .analyticAnalytic:
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "Analytic–B-spline remapping received truth from an unrelated surface adapter."
+            )
+        }
+        if let implicitCurve {
             let analyticSurface = analyticIsFirst ? firstSurface : secondSurface
             let certified = try CertifiedAnalyticBSplineIntersectionCurve(
                 implicitCurve: implicitCurve,

@@ -170,12 +170,14 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         let value: Double
         let first: Double
         let second: Double
+        let third: Double
 
         static func constant(_ value: Double) -> DifferentialMagnitudeEnvelope {
             DifferentialMagnitudeEnvelope(
                 value: abs(value).nextUp,
                 first: 0.0,
-                second: 0.0
+                second: 0.0,
+                third: 0.0
             )
         }
     }
@@ -620,6 +622,121 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         )
     }
 
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        try tolerance.validate()
+        guard fraction.isFinite,
+              fraction >= -tolerance.relative,
+              fraction <= 1.0 + tolerance.relative else {
+            throw GeometryError.invalidDistance(fraction)
+        }
+        let clamped = min(max(fraction, 0.0), 1.0)
+        let configuration = try Self.makeConfiguration(
+            sphereSurface: sphereSurface,
+            torusSurface: torusSurface,
+            tolerance: tolerance
+        )
+        let source = CurveTaylorScalarJet.variable(clamped)
+        let angle = angleTaylorJet(
+            at: source,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let radialOffset = angle.cosine().scaled(
+            by: configuration.radialCosine
+        ) + angle.sine().scaled(by: configuration.radialSine)
+        let cosineCoefficient = radialOffset
+            + CurveTaylorScalarJet(value: configuration.torus.majorRadius)
+        let valueCoefficient = radialOffset.scaled(
+            by: -configuration.torus.majorRadius
+                / configuration.torus.minorRadius
+        ) + CurveTaylorScalarJet(value: (
+            configuration.sphere.radius * configuration.sphere.radius
+                - configuration.centerOffset.dot(configuration.centerOffset)
+                - configuration.torus.majorRadius
+                    * configuration.torus.majorRadius
+                - configuration.torus.minorRadius
+                    * configuration.torus.minorRadius
+        ) / (2.0 * configuration.torus.minorRadius))
+        let axial = CurveTaylorScalarJet(
+            value: configuration.axialCoefficient
+        )
+        let amplitudeSquared = cosineCoefficient * cosineCoefficient
+            + axial * axial
+        let amplitudeFloor = tolerance.distance * tolerance.distance * 1.0e-12
+        guard amplitudeSquared.value > amplitudeFloor else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: sqrt(max(amplitudeSquared.value, 0.0)),
+                tolerance: tolerance,
+                message: "A sphere-torus third-order evaluator reached a singular tube-angle amplitude."
+            )
+        }
+        let discriminant = amplitudeSquared
+            - valueCoefficient * valueCoefficient
+        let signedRoot = try signedSquareRootTaylorJet(
+            discriminant,
+            angle: angle,
+            fraction: source,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let context = "Sphere-torus third derivative"
+        let minorCosine = try (
+            cosineCoefficient * valueCoefficient - axial * signedRoot
+        ).divided(
+            by: amplitudeSquared,
+            tolerance: tolerance,
+            diagnosticContext: context
+        )
+        let minorSine = try (
+            axial * valueCoefficient + cosineCoefficient * signedRoot
+        ).divided(
+            by: amplitudeSquared,
+            tolerance: tolerance,
+            diagnosticContext: context
+        )
+        let radialScale = minorCosine.scaled(
+            by: configuration.torus.minorRadius
+        ) + CurveTaylorScalarJet(value: configuration.torus.majorRadius)
+        let height = minorSine.scaled(by: configuration.torus.minorRadius)
+        let radialU = angle.cosine() * radialScale
+        let radialV = angle.sine() * radialScale
+        let reconstructedFirst = configuration.radialU
+                * radialU.firstDerivative
+            + configuration.radialV * radialV.firstDerivative
+            + configuration.torus.axis * height.firstDerivative
+        let reconstructedSecond = configuration.radialU
+                * radialU.secondDerivative
+            + configuration.radialV * radialV.secondDerivative
+            + configuration.torus.axis * height.secondDerivative
+        let lower = try differential(
+            atNormalizedFraction: clamped,
+            tolerance: tolerance
+        )
+        let firstScale = max(lower.firstDerivative.length, 1.0)
+        let secondScale = max(lower.secondDerivative.length, 1.0)
+        let residual = max(
+            (reconstructedFirst - lower.firstDerivative).length / firstScale,
+            (reconstructedSecond - lower.secondDerivative).length / secondScale
+        )
+        guard residual <= tolerance.relative * 64.0 else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: residual,
+                tolerance: tolerance,
+                message: "Sphere-torus Taylor differentiation disagrees with the certified lower-order differential."
+            )
+        }
+        return configuration.radialU * radialU.thirdDerivative
+            + configuration.radialV * radialV.thirdDerivative
+            + configuration.torus.axis * height.thirdDerivative
+    }
+
     public func parameter(
         on surface: Surface3D,
         atNormalizedFraction fraction: Double,
@@ -771,6 +888,11 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
             period,
             tolerance: tolerance
         )
+        let periodCubed = try upperProduct(
+            periodSquared,
+            period,
+            tolerance: tolerance
+        )
         let radialValue = Self.maximumAbsoluteHarmonic(
             constant: 0.0,
             cosine: configuration.radialCosine,
@@ -796,6 +918,11 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                 radialValue,
                 periodSquared,
                 tolerance: tolerance
+            ),
+            third: try upperProduct(
+                radialAngularFirst,
+                periodCubed,
+                tolerance: tolerance
             )
         )
         let discriminantAngularFirst = Self.maximumAbsolutePolynomial(
@@ -807,6 +934,13 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         let discriminantAngularSecond = Self.maximumAbsolutePolynomial(
             configuration.discriminant.derivativePolynomial
                 .derivativePolynomial,
+            lowerAngle: lowerAngle,
+            upperAngle: upperAngle,
+            tolerance: tolerance
+        )
+        let discriminantAngularThird = Self.maximumAbsolutePolynomial(
+            configuration.discriminant.derivativePolynomial
+                .derivativePolynomial.derivativePolynomial,
             lowerAngle: lowerAngle,
             upperAngle: upperAngle,
             tolerance: tolerance
@@ -827,6 +961,11 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                 discriminantAngularSecond,
                 periodSquared,
                 tolerance: tolerance
+            ),
+            third: try upperProduct(
+                discriminantAngularThird,
+                periodCubed,
+                tolerance: tolerance
             )
         )
         let rootLower = sqrt(minimumDiscriminant).nextDown
@@ -841,6 +980,9 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         ).nextDown
         let rootCubedFactorLower = (
             (4.0 * rootSquaredLower).nextDown * rootLower
+        ).nextDown
+        let rootFifthLower = (
+            rootSquaredLower * rootSquaredLower * rootLower
         ).nextDown
         guard rootCubedFactorLower > 0.0 else {
             throw resourceFailure(
@@ -871,11 +1013,34 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                     tolerance: tolerance
                 ),
                 tolerance: tolerance
+            ),
+            third: try upperSum(
+                upperQuotient(
+                    discriminant.third,
+                    (2.0 * rootLower).nextDown,
+                    tolerance: tolerance
+                ),
+                upperSum(
+                    upperQuotient(
+                        3.0 * discriminant.first * discriminant.second,
+                        rootCubedFactorLower,
+                        tolerance: tolerance
+                    ),
+                    upperQuotient(
+                        3.0 * discriminant.first * discriminant.first
+                            * discriminant.first,
+                        (8.0 * rootFifthLower).nextDown,
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
             )
         )
         return try spatialBounds(
             angleFirst: period,
             angleSecond: 0.0,
+            angleThird: 0.0,
             radialOffset: radialOffset,
             signedRoot: root,
             minimumAmplitude: minimumAmplitude,
@@ -931,6 +1096,11 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
             period,
             tolerance: tolerance
         )
+        let periodCubed = try upperProduct(
+            periodSquared,
+            period,
+            tolerance: tolerance
+        )
         let angleFirst = try upperProduct(
             halfSpan,
             try upperProduct(
@@ -945,6 +1115,15 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
             try upperProduct(
                 periodSquared,
                 cosineMagnitude,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let angleThird = try upperProduct(
+            halfSpan,
+            try upperProduct(
+                periodCubed,
+                sineMagnitude,
                 tolerance: tolerance
             ),
             tolerance: tolerance
@@ -972,6 +1151,15 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                     tolerance: tolerance
                 ),
                 tolerance: tolerance
+            ),
+            third: try upperProduct(
+                halfSpan,
+                try upperProduct(
+                    periodCubed,
+                    cosineMagnitude,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
             )
         )
         let signedRoot = try regularizedSignedRootEnvelope(
@@ -979,6 +1167,7 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
             distanceRoot: distanceRoot,
             angleFirst: angleFirst,
             angleSecond: angleSecond,
+            angleThird: angleThird,
             tolerance: tolerance,
             label: "bounded sphere-torus"
         )
@@ -987,6 +1176,7 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
             upperAngle: angleRange.upper,
             angleFirst: angleFirst,
             angleSecond: angleSecond,
+            angleThird: angleThird,
             signedRoot: signedRoot,
             configuration: configuration,
             tolerance: tolerance
@@ -1042,6 +1232,7 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                 requestedUpper: requestedUpper,
                 angleFirst: angleBounds.first,
                 angleSecond: angleBounds.second,
+                angleThird: angleBounds.third,
                 configuration: configuration,
                 tolerance: tolerance
             )
@@ -1074,10 +1265,16 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                             tolerance: tolerance
                         ),
                         tolerance: tolerance
+                    ),
+                    third: try upperProduct(
+                        distanceScale,
+                        pow(halfPhaseScale, 3.0),
+                        tolerance: tolerance
                     )
                 ),
                 angleFirst: angleBounds.first,
                 angleSecond: angleBounds.second,
+                angleThird: angleBounds.third,
                 tolerance: tolerance,
                 label: "one-sided open sphere-torus"
             )
@@ -1110,10 +1307,16 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                             tolerance: tolerance
                         ),
                         tolerance: tolerance
+                    ),
+                    third: try upperProduct(
+                        halfSpan,
+                        pow(phaseScale, 3.0),
+                        tolerance: tolerance
                     )
                 ),
                 angleFirst: angleBounds.first,
                 angleSecond: angleBounds.second,
+                angleThird: angleBounds.third,
                 tolerance: tolerance,
                 label: "two-root open sphere-torus"
             )
@@ -1123,6 +1326,7 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
             upperAngle: requestedUpper,
             angleFirst: angleBounds.first,
             angleSecond: angleBounds.second,
+            angleThird: angleBounds.third,
             signedRoot: signedRoot,
             configuration: configuration,
             tolerance: tolerance
@@ -1134,10 +1338,10 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         lowerFraction: Double,
         upperFraction: Double,
         span: Double
-    ) -> (first: Double, second: Double) {
+    ) -> (first: Double, second: Double, third: Double) {
         switch structure {
         case .rootFree:
-            return (span, 0.0)
+            return (span, 0.0, 0.0)
         case .lowerSimpleRoot, .upperSimpleRoot:
             let phaseScale = (Double.pi * 0.5).nextUp
             let phaseLower = phaseScale * lowerFraction
@@ -1165,6 +1369,10 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                 (
                     span * phaseScale * phaseScale
                         * secondTrigonometricMagnitude
+                ).nextUp,
+                (
+                    span * phaseScale * phaseScale * phaseScale
+                        * firstTrigonometricMagnitude
                 ).nextUp
             )
         case .twoSimpleRoots:
@@ -1187,6 +1395,10 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                 (
                     halfSpan * phaseScale * phaseScale
                         * cosineMagnitude
+                ).nextUp,
+                (
+                    halfSpan * phaseScale * phaseScale * phaseScale
+                        * sineMagnitude
                 ).nextUp
             )
         }
@@ -1225,6 +1437,11 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                     polynomial.derivativePolynomial.derivativePolynomial
                         .derivativePolynomial
                 ),
+            fourthDerivativeMagnitudeUpperBound:
+                Self.coefficientMagnitudeUpperBound(
+                    polynomial.derivativePolynomial.derivativePolynomial
+                        .derivativePolynomial.derivativePolynomial
+                ),
             arithmeticEnvelope: arithmeticEnvelope,
             orientedValueRange: { rangeLower, rangeUpper in
                 try Self.discriminantRange(
@@ -1245,6 +1462,7 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         requestedUpper: Double,
         angleFirst: Double,
         angleSecond: Double,
+        angleThird: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
     ) throws -> DifferentialMagnitudeEnvelope {
@@ -1278,6 +1496,13 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
             upperAngle: requestedUpper,
             tolerance: tolerance
         )
+        let thirdByAngle = Self.maximumAbsolutePolynomial(
+            polynomial.derivativePolynomial.derivativePolynomial
+                .derivativePolynomial,
+            lowerAngle: requestedLower,
+            upperAngle: requestedUpper,
+            tolerance: tolerance
+        )
         let discriminant = DifferentialMagnitudeEnvelope(
             value: max(abs(range.lower), abs(range.upper)).nextUp,
             first: try upperProduct(
@@ -1301,13 +1526,23 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                     tolerance: tolerance
                 ),
                 tolerance: tolerance
-            )
+            ),
+            third: (
+                thirdByAngle * angleFirst * angleFirst * angleFirst
+                    + 3.0 * secondByAngle * angleFirst * angleSecond
+                    + firstByAngle * angleThird
+            ).nextUp
         )
         let rootLower = sqrt(range.lower).nextDown
         let rootCubedFactorLower = (
             4.0 * range.lower * rootLower
         ).nextDown
-        guard rootLower > 0.0, rootCubedFactorLower > 0.0 else {
+        let rootFifthLower = (
+            range.lower * range.lower * rootLower
+        ).nextDown
+        guard rootLower > 0.0,
+              rootCubedFactorLower > 0.0,
+              rootFifthLower > 0.0 else {
             throw resourceFailure(
                 tolerance: tolerance,
                 message: "A root-free open sphere-torus square-root margin collapsed."
@@ -1333,6 +1568,28 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                         tolerance: tolerance
                     ),
                     rootCubedFactorLower,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            third: try upperSum(
+                upperQuotient(
+                    discriminant.third,
+                    (2.0 * rootLower).nextDown,
+                    tolerance: tolerance
+                ),
+                upperSum(
+                    upperQuotient(
+                        3.0 * discriminant.first * discriminant.second,
+                        rootCubedFactorLower,
+                        tolerance: tolerance
+                    ),
+                    upperQuotient(
+                        3.0 * discriminant.first * discriminant.first
+                            * discriminant.first,
+                        (8.0 * rootFifthLower).nextDown,
+                        tolerance: tolerance
+                    ),
                     tolerance: tolerance
                 ),
                 tolerance: tolerance
@@ -1375,6 +1632,11 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                     polynomial.derivativePolynomial.derivativePolynomial
                         .derivativePolynomial
                 ),
+            fourthDerivativeMagnitudeUpperBound:
+                Self.coefficientMagnitudeUpperBound(
+                    polynomial.derivativePolynomial.derivativePolynomial
+                        .derivativePolynomial.derivativePolynomial
+                ),
             arithmeticEnvelope: arithmeticEnvelope,
             valueRange: { rangeLower, rangeUpper in
                 try Self.discriminantRange(
@@ -1395,6 +1657,7 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         distanceRoot: DifferentialMagnitudeEnvelope,
         angleFirst: Double,
         angleSecond: Double,
+        angleThird: Double,
         tolerance: ModelingTolerance,
         label: String
     ) throws -> DifferentialMagnitudeEnvelope {
@@ -1429,6 +1692,30 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
             ),
             tolerance: tolerance
         )
+        let rootFifthLower = (
+            factor.lower * factor.lower * rootLower
+        ).nextDown
+        let rootThirdByAngle = try upperSum(
+            try upperQuotient(
+                factor.third,
+                (2.0 * rootLower).nextDown,
+                tolerance: tolerance
+            ),
+            try upperSum(
+                upperQuotient(
+                    3.0 * factor.first * factor.second,
+                    (4.0 * rootCubedLower).nextDown,
+                    tolerance: tolerance
+                ),
+                upperQuotient(
+                    3.0 * factor.first * factor.first * factor.first,
+                    (8.0 * rootFifthLower).nextDown,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
         let rootByFraction = DifferentialMagnitudeEnvelope(
             value: rootUpper,
             first: try upperProduct(
@@ -1452,7 +1739,12 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                     tolerance: tolerance
                 ),
                 tolerance: tolerance
-            )
+            ),
+            third: (
+                rootThirdByAngle * angleFirst * angleFirst * angleFirst
+                    + 3.0 * rootSecondByAngle * angleFirst * angleSecond
+                    + rootFirstByAngle * angleThird
+            ).nextUp
         )
         return try multiplied(
             distanceRoot,
@@ -1466,6 +1758,7 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         upperAngle: Double,
         angleFirst: Double,
         angleSecond: Double,
+        angleThird: Double,
         signedRoot: DifferentialMagnitudeEnvelope,
         configuration: Configuration,
         tolerance: ModelingTolerance
@@ -1508,7 +1801,12 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                     tolerance: tolerance
                 ),
                 tolerance: tolerance
-            )
+            ),
+            third: (
+                radialAngularFirst * angleFirst * angleFirst * angleFirst
+                    + 3.0 * radialValue * angleFirst * angleSecond
+                    + radialAngularFirst * angleThird
+            ).nextUp
         )
         let minimumAmplitude = (
             Self.minimumAmplitude(
@@ -1526,6 +1824,7 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         return try spatialBounds(
             angleFirst: angleFirst,
             angleSecond: angleSecond,
+            angleThird: angleThird,
             radialOffset: radialOffset,
             signedRoot: signedRoot,
             minimumAmplitude: minimumAmplitude,
@@ -1537,6 +1836,7 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
     private func spatialBounds(
         angleFirst: Double,
         angleSecond: Double,
+        angleThird: Double,
         radialOffset: DifferentialMagnitudeEnvelope,
         signedRoot: DifferentialMagnitudeEnvelope,
         minimumAmplitude: Double,
@@ -1675,7 +1975,26 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
             ),
             tolerance: tolerance
         )
-        guard first.isFinite, second.isFinite else {
+        let directionSecond = (
+            angleFirst * angleFirst + angleSecond
+        ).nextUp
+        let directionThird = (
+            angleFirst * angleFirst * angleFirst
+                + 3.0 * angleFirst * angleSecond
+                + angleThird
+        ).nextUp
+        let radialThird = (
+            directionThird * radialScale.value
+                + 3.0 * directionSecond * radialScale.first
+                + 3.0 * angleFirst * radialScale.second
+                + radialScale.third
+        ).nextUp
+        let third = try upperSum(
+            radialThird,
+            height.third,
+            tolerance: tolerance
+        )
+        guard first.isFinite, second.isFinite, third.isFinite else {
             throw resourceFailure(
                 tolerance: tolerance,
                 message: "Sphere-torus differential certification exceeded finite arithmetic."
@@ -1683,7 +2002,8 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         }
         return SpatialDifferentialMagnitudeBounds(
             first: first,
-            second: second
+            second: second,
+            third: third
         )
     }
 
@@ -1706,6 +2026,11 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
             second: try upperSum(
                 first.second,
                 second.second,
+                tolerance: tolerance
+            ),
+            third: try upperSum(
+                first.third,
+                second.third,
                 tolerance: tolerance
             )
         )
@@ -1755,6 +2080,35 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                     tolerance: tolerance
                 ),
                 tolerance: tolerance
+            ),
+            third: try upperSum(
+                upperProduct(
+                    first.third,
+                    second.value,
+                    tolerance: tolerance
+                ),
+                upperSum(
+                    upperProduct(
+                        3.0 * first.second,
+                        second.first,
+                        tolerance: tolerance
+                    ),
+                    upperSum(
+                        upperProduct(
+                            3.0 * first.first,
+                            second.second,
+                            tolerance: tolerance
+                        ),
+                        upperProduct(
+                            first.value,
+                            second.third,
+                            tolerance: tolerance
+                        ),
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
             )
         )
     }
@@ -1767,7 +2121,8 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         return DifferentialMagnitudeEnvelope(
             value: (value.value * magnitude).nextUp,
             first: (value.first * magnitude).nextUp,
-            second: (value.second * magnitude).nextUp
+            second: (value.second * magnitude).nextUp,
+            third: (value.third * magnitude).nextUp
         )
     }
 
@@ -1778,7 +2133,10 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
     ) throws -> DifferentialMagnitudeEnvelope {
         let squaredLower = (minimumValue * minimumValue).nextDown
         let cubedLower = (squaredLower * minimumValue).nextDown
-        guard squaredLower > 0.0, cubedLower > 0.0 else {
+        let fourthLower = (cubedLower * minimumValue).nextDown
+        guard squaredLower > 0.0,
+              cubedLower > 0.0,
+              fourthLower > 0.0 else {
             throw resourceFailure(
                 tolerance: tolerance,
                 message: "Sphere-torus reciprocal differential lower bound collapsed."
@@ -1808,6 +2166,39 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                 upperQuotient(
                     value.second,
                     squaredLower,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            third: try upperSum(
+                upperQuotient(
+                    try upperProduct(
+                        6.0 * value.first,
+                        try upperProduct(
+                            value.first,
+                            value.first,
+                            tolerance: tolerance
+                        ),
+                        tolerance: tolerance
+                    ),
+                    fourthLower,
+                    tolerance: tolerance
+                ),
+                try upperSum(
+                    upperQuotient(
+                        try upperProduct(
+                            6.0 * value.first,
+                            value.second,
+                            tolerance: tolerance
+                        ),
+                        cubedLower,
+                        tolerance: tolerance
+                    ),
+                    upperQuotient(
+                        value.third,
+                        squaredLower,
+                        tolerance: tolerance
+                    ),
                     tolerance: tolerance
                 ),
                 tolerance: tolerance
@@ -2036,6 +2427,275 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                 second: span * normalized.second
             )
         }
+    }
+
+    private func angleTaylorJet(
+        at fraction: CurveTaylorScalarJet,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) -> CurveTaylorScalarJet {
+        let period = 2.0 * Double.pi
+        switch componentKind {
+        case .negativeFullBranch, .positiveFullBranch:
+            return fraction.scaled(by: period)
+        case .boundedAngularInterval:
+            let midpoint = lowerAngle + (upperAngle - lowerAngle) * 0.5
+            let halfSpan = (upperAngle - lowerAngle) * 0.5
+            return CurveTaylorScalarJet(value: midpoint)
+                - fraction.scaled(by: period).cosine().scaled(by: halfSpan)
+        case .negativeOpenAngularInterval,
+             .positiveOpenAngularInterval:
+            let classificationTolerance = Self.classificationTolerance(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            let lowerIsSimpleRoot = abs(
+                configuration.discriminant.value(at: lowerAngle)
+            ) <= classificationTolerance * 16.0
+                && abs(
+                    configuration.discriminant.firstDerivative(
+                        at: lowerAngle
+                    )
+                ) > classificationTolerance
+            let upperIsSimpleRoot = abs(
+                configuration.discriminant.value(at: upperAngle)
+            ) <= classificationTolerance * 16.0
+                && abs(
+                    configuration.discriminant.firstDerivative(
+                        at: upperAngle
+                    )
+                ) > classificationTolerance
+            let normalized: CurveTaylorScalarJet
+            switch (lowerIsSimpleRoot, upperIsSimpleRoot) {
+            case (true, true):
+                normalized = CurveTaylorScalarJet(value: 0.5)
+                    - fraction.scaled(by: Double.pi).cosine()
+                        .scaled(by: 0.5)
+            case (true, false):
+                normalized = CurveTaylorScalarJet(value: 1.0)
+                    - fraction.scaled(by: Double.pi * 0.5).cosine()
+            case (false, true):
+                normalized = fraction.scaled(
+                    by: Double.pi * 0.5
+                ).sine()
+            case (false, false):
+                normalized = fraction
+            }
+            return CurveTaylorScalarJet(value: lowerAngle)
+                + normalized.scaled(by: upperAngle - lowerAngle)
+        }
+    }
+
+    private func signedSquareRootTaylorJet(
+        _ discriminant: CurveTaylorScalarJet,
+        angle: CurveTaylorScalarJet,
+        fraction: CurveTaylorScalarJet,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> CurveTaylorScalarJet {
+        let context = "Sphere-torus third derivative"
+        let branchSign: Double
+        switch componentKind {
+        case .negativeFullBranch, .negativeOpenAngularInterval:
+            branchSign = -1.0
+        case .positiveFullBranch, .positiveOpenAngularInterval,
+             .boundedAngularInterval:
+            branchSign = 1.0
+        }
+        if componentKind == .boundedAngularInterval {
+            let factor = try regularizedDiscriminantFactorTaylorJet(
+                angle: angle,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            let distanceRoot = fraction.scaled(
+                by: 2.0 * Double.pi
+            ).sine().scaled(by: (upperAngle - lowerAngle) * 0.5)
+            return try regularizedSquareRootTaylorJet(
+                factor: factor,
+                distanceRoot: distanceRoot,
+                branchSign: 1.0,
+                tolerance: tolerance,
+                diagnosticContext: context
+            )
+        }
+        if componentKind == .negativeOpenAngularInterval
+            || componentKind == .positiveOpenAngularInterval {
+            let structure = openEndpointStructure(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            if structure != .rootFree {
+                return try openRegularizedSquareRootTaylorJet(
+                    structure: structure,
+                    angle: angle,
+                    fraction: fraction,
+                    branchSign: branchSign,
+                    configuration: configuration,
+                    tolerance: tolerance
+                )
+            }
+        }
+        return try discriminant.squareRoot(
+            tolerance: tolerance,
+            diagnosticContext: context
+        ).scaled(by: branchSign).validated(
+            tolerance: tolerance,
+            diagnosticContext: context
+        )
+    }
+
+    private func openRegularizedSquareRootTaylorJet(
+        structure: OpenEndpointStructure,
+        angle: CurveTaylorScalarJet,
+        fraction: CurveTaylorScalarJet,
+        branchSign: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> CurveTaylorScalarJet {
+        let factor: CurveTaylorScalarJet
+        let distanceRoot: CurveTaylorScalarJet
+        switch structure {
+        case .lowerSimpleRoot, .upperSimpleRoot:
+            let rootAtLower = structure == .lowerSimpleRoot
+            let dividedDifference = try Self
+                .trigonometricDividedDifferenceTaylorJet(
+                    configuration.discriminant,
+                    value: angle,
+                    endpoint: rootAtLower ? lowerAngle : upperAngle,
+                    tolerance: tolerance
+                )
+            factor = rootAtLower
+                ? dividedDifference
+                : -dividedDifference
+            let phase = fraction.scaled(by: Double.pi * 0.5)
+            let argument = rootAtLower
+                ? phase.scaled(by: 0.5)
+                : CurveTaylorScalarJet(value: Double.pi * 0.25)
+                    - phase.scaled(by: 0.5)
+            distanceRoot = argument.sine().scaled(
+                by: sqrt(2.0 * (upperAngle - lowerAngle))
+            )
+        case .twoSimpleRoots:
+            factor = try regularizedDiscriminantFactorTaylorJet(
+                angle: angle,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            distanceRoot = fraction.scaled(by: Double.pi).sine()
+                .scaled(by: (upperAngle - lowerAngle) * 0.5)
+        case .rootFree:
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A root-free sphere-torus graph edge does not use endpoint regularization."
+            )
+        }
+        return try regularizedSquareRootTaylorJet(
+            factor: factor,
+            distanceRoot: distanceRoot,
+            branchSign: branchSign,
+            tolerance: tolerance,
+            diagnosticContext: "Open sphere-torus third derivative"
+        )
+    }
+
+    private func regularizedSquareRootTaylorJet(
+        factor: CurveTaylorScalarJet,
+        distanceRoot: CurveTaylorScalarJet,
+        branchSign: Double,
+        tolerance: ModelingTolerance,
+        diagnosticContext: String
+    ) throws -> CurveTaylorScalarJet {
+        try (
+            distanceRoot * factor.squareRoot(
+                tolerance: tolerance,
+                diagnosticContext: diagnosticContext
+            )
+        ).scaled(by: branchSign).validated(
+            tolerance: tolerance,
+            diagnosticContext: diagnosticContext
+        )
+    }
+
+    private func regularizedDiscriminantFactorTaylorJet(
+        angle: CurveTaylorScalarJet,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> CurveTaylorScalarJet {
+        let span = upperAngle - lowerAngle
+        let usesLowerEndpoint = angle.value - lowerAngle
+            <= upperAngle - angle.value
+        let endpoint = usesLowerEndpoint ? lowerAngle : upperAngle
+        let dividedDifference = try Self.trigonometricDividedDifferenceTaylorJet(
+            configuration.discriminant,
+            value: angle,
+            endpoint: endpoint,
+            tolerance: tolerance
+        )
+        let lowerValue = configuration.discriminant.value(at: lowerAngle)
+        let upperValue = configuration.discriminant.value(at: upperAngle)
+        let correctionSlope = (upperValue - lowerValue) / span
+        let numerator = usesLowerEndpoint
+            ? dividedDifference
+                + CurveTaylorScalarJet(value: -correctionSlope)
+            : CurveTaylorScalarJet(value: correctionSlope)
+                - dividedDifference
+        let denominator = usesLowerEndpoint
+            ? CurveTaylorScalarJet(value: upperAngle) - angle
+            : angle - CurveTaylorScalarJet(value: lowerAngle)
+        return try numerator.divided(
+            by: denominator,
+            tolerance: tolerance,
+            diagnosticContext: "Sphere-torus regularized discriminant"
+        ).validated(
+            tolerance: tolerance,
+            diagnosticContext: "Sphere-torus regularized discriminant"
+        )
+    }
+
+    private static func trigonometricDividedDifferenceTaylorJet(
+        _ polynomial: TrigonometricPolynomial,
+        value: CurveTaylorScalarJet,
+        endpoint: Double,
+        tolerance: ModelingTolerance
+    ) throws -> CurveTaylorScalarJet {
+        let context = "Sphere-torus trigonometric divided difference"
+        var result = CurveTaylorScalarJet(value: 0.0)
+        for harmonic in [
+            (
+                order: 1.0,
+                cosine: polynomial.cosine,
+                sine: polynomial.sine
+            ),
+            (
+                order: 2.0,
+                cosine: polynomial.cosineDouble,
+                sine: polynomial.sineDouble
+            ),
+        ] {
+            let halfOrder = harmonic.order * 0.5
+            let difference = (
+                value - CurveTaylorScalarJet(value: endpoint)
+            ).scaled(by: halfOrder)
+            let midpoint = (
+                value + CurveTaylorScalarJet(value: endpoint)
+            ).scaled(by: halfOrder)
+            let sinc = try difference.sinc(
+                tolerance: tolerance,
+                diagnosticContext: context
+            )
+            let amplitude = midpoint.sine().scaled(
+                by: -harmonic.cosine
+            ) + midpoint.cosine().scaled(by: harmonic.sine)
+            result = result
+                + (sinc * amplitude).scaled(by: harmonic.order)
+        }
+        return try result.validated(
+            tolerance: tolerance,
+            diagnosticContext: context
+        )
     }
 
     private func radialOffsetDifferential(

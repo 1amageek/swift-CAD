@@ -247,6 +247,52 @@ struct ExactFacePcurveBuilderTests {
         try pcurve.validate(on: surface, tolerance: tolerance)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func constructsLinearBSplinePcurveOnExactAffineBSplineSurface() throws {
+        let surface = Surface3D.bSpline(BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                [
+                    Point3D(x: 0.0, y: 0.0, z: 0.0),
+                    Point3D(x: 1.0, y: 0.0, z: 0.0),
+                ],
+                [
+                    Point3D(x: 0.0, y: 1.0, z: 0.0),
+                    Point3D(x: 1.0, y: 1.0, z: 0.0),
+                ],
+            ]
+        ))
+        let curve = Curve3D.bSpline(BSplineCurve3D(
+            degree: 1,
+            knots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                Point3D(x: 0.1, y: 0.2, z: 0.0),
+                Point3D(x: 0.9, y: 0.8, z: 0.0),
+            ]
+        ))
+
+        let pcurve = try reconstructedPcurve(
+            surface: surface,
+            curve: curve,
+            startParameter: 0.0,
+            endParameter: 1.0
+        )
+
+        guard case let .bSpline(projected) = pcurve else {
+            Issue.record("An affine B-spline surface must retain an exact B-spline pcurve.")
+            return
+        }
+        #expect(projected.degree == 1)
+        #expect(projected.controlPoints == [
+            Point2D(x: 0.1, y: 0.2),
+            Point2D(x: 0.9, y: 0.8),
+        ])
+        try pcurve.validate(on: surface, tolerance: tolerance)
+    }
+
     private func reconstructedPcurve(
         surface: Surface3D,
         curve: Curve3D,

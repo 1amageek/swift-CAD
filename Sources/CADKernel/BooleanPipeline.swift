@@ -388,20 +388,21 @@ public struct BooleanPipeline: Sendable {
                 in: model,
                 tolerance: tolerance
             ) {
-                guard let targetBounds = try bounds(
+                let targetBounds = try bounds(
                     for: targetFaceID,
                     in: model,
                     tolerance: tolerance
-                ) else {
-                    continue
-                }
+                )
                 for toolFaceID in toolFaceIDs {
-                    guard let toolBounds = try bounds(
+                    let toolBounds = try bounds(
                         for: toolFaceID,
                         in: model,
                         tolerance: tolerance
-                    ),
-                          targetBounds.intersects(toolBounds, tolerance: tolerance.distance) else {
+                    )
+                    guard targetBounds.intersects(
+                        toolBounds,
+                        tolerance: tolerance.distance
+                    ) else {
                         continue
                     }
                     candidates.append(BooleanFacePairCandidate(
@@ -466,25 +467,42 @@ public struct BooleanPipeline: Sendable {
                 guard case let .points(values) = contact.geometry else { return [] }
                 return values.map(\.point)
             }
-            if let boundedIntersections = try boundedSurfaceIntersector.intersections(
-                first: targetSurface,
-                second: toolSurface,
-                boundaryPoints: boundaryPoints,
-                options: .init(),
-                tolerance: tolerance
-            ) {
-                intersections = boundedIntersections
-            } else if let cached = surfaceIntersectionCache[targetSurface]?[toolSurface] {
-                intersections = cached
-            } else {
-                intersections = try surfaceIntersector.intersections(
+            do {
+                if let boundedIntersections = try boundedSurfaceIntersector.intersections(
                     first: targetSurface,
                     second: toolSurface,
+                    boundaryPoints: boundaryPoints,
                     options: .init(),
                     tolerance: tolerance
+                ) {
+                    intersections = boundedIntersections
+                } else if let cached = surfaceIntersectionCache[targetSurface]?[toolSurface] {
+                    intersections = cached
+                } else {
+                    intersections = try surfaceIntersector.intersections(
+                        first: targetSurface,
+                        second: toolSurface,
+                        options: .init(),
+                        tolerance: tolerance
+                    )
+                    surfaceIntersectionCache[targetSurface, default: [:]][toolSurface]
+                        = intersections
+                }
+            } catch {
+                let wrapped = KernelError.wrapping(
+                    error,
+                    phase: .geometry,
+                    tolerance: tolerance
                 )
-                surfaceIntersectionCache[targetSurface, default: [:]][toolSurface]
-                    = intersections
+                throw KernelError(
+                    phase: wrapped.phase,
+                    code: wrapped.code,
+                    featureID: wrapped.featureID,
+                    subshapeID: wrapped.subshapeID,
+                    residual: wrapped.residual,
+                    tolerance: wrapped.tolerance ?? tolerance,
+                    message: "Boolean face-pair intersection failed for target face \(pair.targetFaceID) on surface \(targetFace.surfaceID) and tool face \(pair.toolFaceID) on surface \(toolFace.surfaceID): \(wrapped.message)"
+                )
             }
             faceIntersections.append(contentsOf: intersections.map {
                 BooleanFaceSurfaceIntersection(facePair: pair, geometry: $0)
@@ -612,18 +630,7 @@ public struct BooleanPipeline: Sendable {
                 message: "Boolean edge range references missing vertices."
             )
         }
-        let line: Line3D
-        switch curve {
-        case let .line(value):
-            line = value
-        case let .analytic(.line(origin, direction)):
-            line = Line3D(origin: origin, direction: direction)
-        case .circle,
-             .analytic,
-             .bSpline,
-             .implicit,
-             .surfaceLift,
-             .certifiedIntersection:
+        guard let line = lineGeometry(curve) else {
             throw KernelError(
                 phase: .topology,
                 code: .topologyFailure,
@@ -643,6 +650,30 @@ public struct BooleanPipeline: Sendable {
         let start = (startPoint - line.origin).dot(line.direction) / directionSquared
         let end = (endPoint - line.origin).dot(line.direction) / directionSquared
         return try ScalarInterval(lower: min(start, end), upper: max(start, end))
+    }
+
+    private func lineGeometry(_ curve: Curve3D) -> Line3D? {
+        switch curve {
+        case let .line(line):
+            return line
+        case let .analytic(.line(origin, direction)):
+            return Line3D(origin: origin, direction: direction)
+        case let .rigidImage(image):
+            guard let source = lineGeometry(image.source) else { return nil }
+            return Line3D(
+                origin: image.transform.applying(to: source.origin),
+                direction: image.transform.applying(to: source.direction)
+            )
+        case let .affineImage(image):
+            guard let source = lineGeometry(image.source) else { return nil }
+            return Line3D(
+                origin: image.transform.applying(to: source.origin),
+                direction: image.transform.applying(to: source.direction)
+            )
+        case .circle, .analytic, .bSpline, .implicit, .surfaceLift,
+             .certifiedIntersection:
+            return nil
+        }
     }
 
     private func faceIDs(
@@ -677,7 +708,7 @@ public struct BooleanPipeline: Sendable {
         for faceID: FaceID,
         in model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> BoundingBox3D? {
+    ) throws -> BoundingBox3D {
         try BRepFaceBoundingBoxBuilder().bounds(
             for: faceID,
             in: model,

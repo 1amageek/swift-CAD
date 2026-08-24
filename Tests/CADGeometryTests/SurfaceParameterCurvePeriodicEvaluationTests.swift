@@ -64,6 +64,40 @@ struct SurfaceParameterCurvePeriodicEvaluationTests {
         #expect(abs(parameter.v - 0.5) <= 1.0e-12)
     }
 
+    @Test
+    func periodicConstantPcurveTrimRetainsUpperEndpointLift() throws {
+        let period = 2.0 * Double.pi
+        let pcurve = SurfaceParameterCurve.constantV(
+            v: 0.25,
+            uStart: 0.0,
+            uEnd: period
+        )
+
+        let first = try pcurve.trimmed(
+            from: 0.0,
+            to: Double.pi,
+            curveDomain: .periodic(period: period),
+            tolerance: .standard
+        )
+        let second = try pcurve.trimmed(
+            from: Double.pi,
+            to: period,
+            curveDomain: .periodic(period: period),
+            tolerance: .standard
+        )
+
+        #expect(first == .constantV(
+            v: 0.25,
+            uStart: 0.0,
+            uEnd: Double.pi
+        ))
+        #expect(second == .constantV(
+            v: 0.25,
+            uStart: Double.pi,
+            uEnd: period
+        ))
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func exactPeriodicTranslationPreservesLiftAndDifferentials() throws {
         let base = SurfaceParameterCurve.sphericalGreatCircle(

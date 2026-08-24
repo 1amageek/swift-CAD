@@ -1,0 +1,50 @@
+{
+  "axes": {
+    "x": "Likelihood of failure in complex histories",
+    "y": "Product impact"
+  },
+  "risks": [
+    {
+      "id": "R1",
+      "name": "Representation composition gap",
+      "likelihood": 4,
+      "impact": 5,
+      "evidence": "Ruled surfaces now close through exact same-parameter B-splines; general non-reducible procedural offsets still lack a closed intersection representation path"
+    },
+    {
+      "id": "R2",
+      "name": "General Boolean materialization gaps",
+      "likelihood": 3,
+      "impact": 5,
+      "evidence": "Essential periodic cylinder strips now pass exact validation, but doubly periodic, coincident, procedural, and broader composition matrices remain open"
+    },
+    {
+      "id": "R3",
+      "name": "Residual heuristic Agent selection queries",
+      "likelihood": 3,
+      "impact": 4,
+      "evidence": "B-spline surface closest point is now globally bounded, but curve closest-point and general directional projection still use sampled local refinement"
+    },
+    {
+      "id": "R4",
+      "name": "Narrow downstream feature envelopes",
+      "likelihood": 5,
+      "impact": 4,
+      "evidence": "Sketch/blend/shell/sweep/pattern/direct edits remain partial"
+    },
+    {
+      "id": "R5",
+      "name": "Facade Boolean latency variance",
+      "likelihood": 2,
+      "impact": 4,
+      "evidence": "The complete optimized facade passes 181/181 in 244.344 seconds, but complex Boolean latency still lacks a formal per-operation budget and benchmark manifest"
+    },
+    {
+      "id": "R6",
+      "name": "No external interchange proof",
+      "likelihood": 4,
+      "impact": 4,
+      "evidence": "No manifests or external oracle corpus"
+    }
+  ]
+}

@@ -29,7 +29,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
 
     func certificate(
         curve: Curve3D,
-        surface: BSplineSurface3D,
+        surface: Surface3D,
         cell: ParametricCurveSurfaceRootCell,
         tolerance: ModelingTolerance
     ) throws -> ParametricCurveSurfaceRootCertificate {
@@ -42,6 +42,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
             return .unresolved
         }
         let surfaceDerivative = try surfaceDerivativeRanges(
+            surface: surface,
             patches: cell.surfacePatches,
             uInterval: cell.surfaceU,
             vInterval: cell.surfaceV,
@@ -51,7 +52,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
             at: cell.curve.midpoint,
             tolerance: tolerance
         )
-        let surfaceGeometry = try Surface3D.bSpline(surface).parameterDerivatives(
+        let surfaceGeometry = try surface.parameterDerivatives(
             atU: cell.surfaceU.midpoint,
             v: cell.surfaceV.midpoint,
             tolerance: tolerance
@@ -128,13 +129,19 @@ struct DefaultParametricCurveSurfaceRootCertifier:
             }
             krawczyk.append(component)
         }
+        let certificateSlack = max(
+            tolerance.relative * 16.0,
+            Double.ulpOfOne * 65_536.0
+        )
         if krawczyk.contains(where: {
-            $0.upper < 0.0 || $0.lower > 1.0
+            $0.upper < -certificateSlack
+                || $0.lower > 1.0 + certificateSlack
         }) {
             return .excluded
         }
         if krawczyk.allSatisfy({
-            $0.lower > 0.0 && $0.upper < 1.0
+            $0.lower > certificateSlack
+                && $0.upper < 1.0 - certificateSlack
         }) {
             return .unique
         }
@@ -143,7 +150,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
 
     func boundaryCertificate(
         curve: Curve3D,
-        surface: BSplineSurface3D,
+        surface: Surface3D,
         cell: ParametricCurveSurfaceRootCell,
         witness: CurveSurfaceIntersection,
         tolerance: ModelingTolerance
@@ -166,6 +173,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
         )
         guard let curveDerivative else { return .unresolved }
         let surfaceDerivative = try surfaceDerivativeRanges(
+            surface: surface,
             patches: cell.surfacePatches,
             uInterval: cell.surfaceU,
             vInterval: cell.surfaceV,
@@ -175,7 +183,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
             at: witness.curveParameter,
             tolerance: tolerance
         )
-        let surfaceGeometry = try Surface3D.bSpline(surface).parameterDerivatives(
+        let surfaceGeometry = try surface.parameterDerivatives(
             atU: witness.surfaceU,
             v: witness.surfaceV,
             tolerance: tolerance
@@ -241,11 +249,30 @@ struct DefaultParametricCurveSurfaceRootCertifier:
     }
 
     private func surfaceDerivativeRanges(
+        surface: Surface3D,
         patches: [RationalBezierSurfacePatch3D],
         uInterval: ScalarInterval,
         vInterval: ScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> (u: IntervalVector, v: IntervalVector) {
+        guard case .bSpline = surface else {
+            let jet = try DefaultSurfaceDifferentialEncloser().intervalJet(
+                of: surface,
+                over: SurfaceParameterBox(
+                    u: uInterval,
+                    v: vInterval
+                ),
+                tolerance: tolerance
+            )
+            return (
+                u: try intervalVector(
+                    jet.differentiatedUThroughSecondOrder()
+                ),
+                v: try intervalVector(
+                    jet.differentiatedVThroughSecondOrder()
+                )
+            )
+        }
         let ranges = try surfaceDerivativeRangeResolver.derivativeRanges(
             patches: patches,
             uInterval: uInterval,
@@ -263,6 +290,25 @@ struct DefaultParametricCurveSurfaceRootCertifier:
                 y: ranges.v.y,
                 z: ranges.v.z
             )
+        )
+    }
+
+    private func intervalVector(
+        _ jet: SurfaceIntervalVectorJet
+    ) throws -> IntervalVector {
+        IntervalVector(
+            x: try scalarInterval(jet.x.value),
+            y: try scalarInterval(jet.y.value),
+            z: try scalarInterval(jet.z.value)
+        )
+    }
+
+    private func scalarInterval(
+        _ interval: OutwardScalarInterval
+    ) throws -> ScalarInterval {
+        try ScalarInterval(
+            lower: interval.lower,
+            upper: interval.upper
         )
     }
 

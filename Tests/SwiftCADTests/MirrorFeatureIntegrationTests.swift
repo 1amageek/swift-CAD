@@ -29,6 +29,61 @@ struct MirrorFeatureIntegrationTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func mirrorDuplicatesSphereWithMappedGreatCirclePcurves() throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let sphereID = try builder.sphere(
+            radius: .constant(.length(10.0, unit: .millimeter))
+        )
+        _ = try builder.mirror(
+            sphereID,
+            planeOrigin: Point3D(x: 0.05, y: 0.0, z: 0.0),
+            planeNormal: Vector3D(x: 1.0, y: 1.0, z: 0.5)
+        )
+        let evaluated = try CADPipeline(tolerance: .standard).evaluate(
+            builder.build(name: "Spherical mirror")
+        )
+
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        #expect(evaluated.brep.shells.count == 2)
+        #expect(abs(
+            try evaluated.brep.volume(tolerance: .standard)
+                - 2.0 * 4.0 * Double.pi * 0.010 * 0.010 * 0.010 / 3.0
+        ) <= 1.0e-12)
+        #expect(evaluated.brep.loops.values.allSatisfy { loop in
+            loop.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
+        })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func mirrorUnionsOverlappingBoxExactly() throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let extrudeID = try appendBox(to: &builder)
+        let mirrorID = try builder.mirror(
+            extrudeID,
+            planeOrigin: Point3D(x: 0.010, y: 0.0, z: 0.0),
+            planeNormal: .unitX
+        )
+        let evaluated = try CADPipeline(tolerance: .standard).evaluate(
+            builder.build(name: "Overlapping mirror")
+        )
+
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        #expect(evaluated.brep.shells.count == 1)
+        #expect(evaluated.brep.faces.count == 6)
+        #expect(abs(
+            try evaluated.brep.volume(tolerance: .standard)
+                - 0.060 * 0.020 * 0.010
+        ) <= 1.0e-12)
+        let lineage = evaluated.lineage.values.filter {
+            $0.output.featureID == mirrorID
+        }
+        #expect(lineage.isEmpty == false)
+        #expect(lineage.flatMap(\.parents).allSatisfy {
+            $0.featureID == extrudeID
+        })
+    }
+
     private func appendBox(to builder: inout DocumentBuilder) throws -> FeatureID {
         let profile = try builder.sketch(on: .xy) { sketch in
             sketch.rectangle(

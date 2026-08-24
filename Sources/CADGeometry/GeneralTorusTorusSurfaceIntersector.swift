@@ -83,6 +83,10 @@ struct GeneralTorusTorusSurfaceIntersector {
             lower <= 0.0 && upper >= 0.0
         }
 
+        func isDisjoint(with other: Interval) -> Bool {
+            upper < other.lower || lower > other.upper
+        }
+
         var minimumAbsoluteValue: Double {
             containsZero ? 0.0 : min(abs(lower), abs(upper)).nextDown
         }
@@ -100,13 +104,14 @@ struct GeneralTorusTorusSurfaceIntersector {
         }
 
         func multiplied(by other: Interval) -> Interval {
-            let products = [
-                lower * other.lower,
-                lower * other.upper,
-                upper * other.lower,
-                upper * other.upper,
-            ]
-            return Interval(products.min() ?? 0.0, products.max() ?? 0.0)
+            let lowerLower = lower * other.lower
+            let lowerUpper = lower * other.upper
+            let upperLower = upper * other.lower
+            let upperUpper = upper * other.upper
+            return Interval(
+                min(min(lowerLower, lowerUpper), min(upperLower, upperUpper)),
+                max(max(lowerLower, lowerUpper), max(upperLower, upperUpper))
+            )
         }
 
         func scaled(by scalar: Double) -> Interval {
@@ -145,6 +150,7 @@ struct GeneralTorusTorusSurfaceIntersector {
         let majorAngleUpper: Double
         let minorFirstDerivativeMagnitudeUpperBound: Double
         let minorSecondDerivativeMagnitudeUpperBound: Double
+        let minorThirdDerivativeMagnitudeUpperBound: Double
     }
 
     struct BranchSpatialDifferentialCertificate: Hashable, Sendable {
@@ -404,13 +410,19 @@ struct GeneralTorusTorusSurfaceIntersector {
                     message: "Torus-torus meridian tangency certification exceeded its cell limit."
                 )
             }
-            let values = implicitDifferentialIntervals(
+            let values = implicitAndMinorDerivativeIntervals(
                 majorAngle: cell.majorAngle,
                 minorAngle: cell.minorAngle,
                 configuration: configuration
             )
             if values.implicit.containsZero == false
                 || values.minorDerivative.containsZero == false {
+                continue
+            }
+            if excludesMeridianTangencyWithKrawczyk(
+                cell: cell,
+                configuration: configuration
+            ) {
                 continue
             }
             guard cell.depth < maximumDepth else {
@@ -454,6 +466,180 @@ struct GeneralTorusTorusSurfaceIntersector {
         return MeridianRootCompletenessCertificate(
             processedCellCount: processedCellCount
         )
+    }
+
+    private func excludesMeridianTangencyWithKrawczyk(
+        cell: Cell,
+        configuration: Configuration
+    ) -> Bool {
+        let centerMajor = cell.majorAngle.midpoint
+        let centerMinor = cell.minorAngle.midpoint
+        let center = implicitDifferentialIntervals(
+            majorAngle: .constant(centerMajor),
+            minorAngle: .constant(centerMinor),
+            configuration: configuration
+        )
+        let jacobian00 = center.majorDerivative.midpoint
+        let jacobian01 = center.minorDerivative.midpoint
+        let jacobian10 = center.majorMinorDerivative.midpoint
+        let jacobian11 = center.minorMinorDerivative.midpoint
+        let determinant = jacobian00 * jacobian11
+            - jacobian01 * jacobian10
+        guard determinant.isFinite, determinant != 0.0 else {
+            return false
+        }
+        let inverse00 = jacobian11 / determinant
+        let inverse01 = -jacobian01 / determinant
+        let inverse10 = -jacobian10 / determinant
+        let inverse11 = jacobian00 / determinant
+        guard inverse00.isFinite,
+              inverse01.isFinite,
+              inverse10.isFinite,
+              inverse11.isFinite else {
+            return false
+        }
+
+        let domain = implicitDifferentialIntervals(
+            majorAngle: cell.majorAngle,
+            minorAngle: cell.minorAngle,
+            configuration: configuration
+        )
+        let centerImageMajor = Interval.constant(centerMajor).subtracting(
+            center.implicit.scaled(by: inverse00)
+                .adding(center.minorDerivative.scaled(by: inverse01))
+        )
+        let centerImageMinor = Interval.constant(centerMinor).subtracting(
+            center.implicit.scaled(by: inverse10)
+                .adding(center.minorDerivative.scaled(by: inverse11))
+        )
+        let residual00 = Interval.constant(1.0).subtracting(
+            domain.majorDerivative.scaled(by: inverse00)
+                .adding(domain.majorMinorDerivative.scaled(by: inverse01))
+        )
+        let residual01 = domain.minorDerivative.scaled(by: inverse00)
+            .adding(domain.minorMinorDerivative.scaled(by: inverse01))
+            .scaled(by: -1.0)
+        let residual10 = domain.majorDerivative.scaled(by: inverse10)
+            .adding(domain.majorMinorDerivative.scaled(by: inverse11))
+            .scaled(by: -1.0)
+        let residual11 = Interval.constant(1.0).subtracting(
+            domain.minorDerivative.scaled(by: inverse10)
+                .adding(domain.minorMinorDerivative.scaled(by: inverse11))
+        )
+        let majorDelta = Interval(
+            cell.majorAngle.lower - centerMajor,
+            cell.majorAngle.upper - centerMajor
+        )
+        let minorDelta = Interval(
+            cell.minorAngle.lower - centerMinor,
+            cell.minorAngle.upper - centerMinor
+        )
+        let majorImage = centerImageMajor
+            .adding(residual00.multiplied(by: majorDelta))
+            .adding(residual01.multiplied(by: minorDelta))
+        let minorImage = centerImageMinor
+            .adding(residual10.multiplied(by: majorDelta))
+            .adding(residual11.multiplied(by: minorDelta))
+        return majorImage.isDisjoint(with: cell.majorAngle)
+            || minorImage.isDisjoint(with: cell.minorAngle)
+    }
+
+    private func implicitAndMinorDerivativeIntervals(
+        majorAngle: Interval,
+        minorAngle: Interval,
+        configuration: Configuration
+    ) -> (implicit: Interval, minorDerivative: Interval) {
+        let majorCosine = cosineInterval(majorAngle)
+        let majorSine = sineInterval(majorAngle)
+        let minorCosine = cosineInterval(minorAngle)
+        let minorSine = sineInterval(minorAngle)
+
+        let radialX = radialInterval(
+            zero: configuration.zeroRadial.x,
+            quarter: configuration.quarterRadial.x,
+            cosine: majorCosine,
+            sine: majorSine
+        )
+        let radialY = radialInterval(
+            zero: configuration.zeroRadial.y,
+            quarter: configuration.quarterRadial.y,
+            cosine: majorCosine,
+            sine: majorSine
+        )
+        let radialZ = radialInterval(
+            zero: configuration.zeroRadial.z,
+            quarter: configuration.quarterRadial.z,
+            cosine: majorCosine,
+            sine: majorSine
+        )
+        let radialScale = Interval.constant(
+            configuration.parameterized.majorRadius
+        ).adding(
+            minorCosine.scaled(by: configuration.parameterized.minorRadius)
+        )
+        let axialScale = minorSine.scaled(
+            by: configuration.parameterized.minorRadius
+        )
+        let centerOffset = configuration.parameterized.center
+            - configuration.reference.center
+        let x = Interval.constant(centerOffset.x)
+            .adding(radialX.multiplied(by: radialScale))
+            .adding(axialScale.scaled(by: configuration.parameterized.axis.x))
+        let y = Interval.constant(centerOffset.y)
+            .adding(radialY.multiplied(by: radialScale))
+            .adding(axialScale.scaled(by: configuration.parameterized.axis.y))
+        let z = Interval.constant(centerOffset.z)
+            .adding(radialZ.multiplied(by: radialScale))
+            .adding(axialScale.scaled(by: configuration.parameterized.axis.z))
+
+        let minorRadialScale = minorSine.scaled(
+            by: -configuration.parameterized.minorRadius
+        )
+        let minorAxialScale = minorCosine.scaled(
+            by: configuration.parameterized.minorRadius
+        )
+        let minorTangentX = radialX.multiplied(by: minorRadialScale)
+            .adding(minorAxialScale.scaled(by: configuration.parameterized.axis.x))
+        let minorTangentY = radialY.multiplied(by: minorRadialScale)
+            .adding(minorAxialScale.scaled(by: configuration.parameterized.axis.y))
+        let minorTangentZ = radialZ.multiplied(by: minorRadialScale)
+            .adding(minorAxialScale.scaled(by: configuration.parameterized.axis.z))
+
+        let squaredLength = x.squared().adding(y.squared()).adding(z.squared())
+        let axialDistance = x.scaled(by: configuration.reference.axis.x)
+            .adding(y.scaled(by: configuration.reference.axis.y))
+            .adding(z.scaled(by: configuration.reference.axis.z))
+        let radiusDifference = configuration.reference.majorRadius
+            * configuration.reference.majorRadius
+            - configuration.reference.minorRadius
+                * configuration.reference.minorRadius
+        let q = squaredLength.adding(.constant(radiusDifference))
+        let radialSquared = squaredLength.subtracting(axialDistance.squared())
+        let majorFactor = 4.0 * configuration.reference.majorRadius
+            * configuration.reference.majorRadius
+        let implicit = q.squared().subtracting(
+            radialSquared.scaled(by: majorFactor)
+        )
+
+        let referenceRadialX = x.subtracting(
+            axialDistance.scaled(by: configuration.reference.axis.x)
+        )
+        let referenceRadialY = y.subtracting(
+            axialDistance.scaled(by: configuration.reference.axis.y)
+        )
+        let referenceRadialZ = z.subtracting(
+            axialDistance.scaled(by: configuration.reference.axis.z)
+        )
+        let gradientX = q.multiplied(by: x).scaled(by: 4.0)
+            .subtracting(referenceRadialX.scaled(by: 2.0 * majorFactor))
+        let gradientY = q.multiplied(by: y).scaled(by: 4.0)
+            .subtracting(referenceRadialY.scaled(by: 2.0 * majorFactor))
+        let gradientZ = q.multiplied(by: z).scaled(by: 4.0)
+            .subtracting(referenceRadialZ.scaled(by: 2.0 * majorFactor))
+        let minorDerivative = gradientX.multiplied(by: minorTangentX)
+            .adding(gradientY.multiplied(by: minorTangentY))
+            .adding(gradientZ.multiplied(by: minorTangentZ))
+        return (implicit, minorDerivative)
     }
 
     func certifyBranchSpatialDifferentials(
@@ -569,6 +755,88 @@ struct GeneralTorusTorusSurfaceIntersector {
                         + values.minorMinorDerivative.maximumAbsoluteValue
                             * minorFirstDerivative * minorFirstDerivative
                 ) / denominator).nextUp
+                let minorFirst = Interval(
+                    -minorFirstDerivative,
+                    minorFirstDerivative
+                )
+                let minorSecond = Interval(
+                    -minorSecondDerivative,
+                    minorSecondDerivative
+                )
+                let minorFirstSquared = minorFirst.squared()
+                let minorFirstCubed = minorFirstSquared.multiplied(
+                    by: minorFirst
+                )
+                let minorFirstTimesSecond = minorFirst.multiplied(
+                    by: minorSecond
+                )
+                let spatialFirst = values.majorTangent.indices.map { index in
+                    values.majorTangent[index].adding(
+                        values.minorTangent[index].multiplied(by: minorFirst)
+                    )
+                }
+                let spatialSecond = values.majorSecond.indices.map { index in
+                    values.majorSecond[index]
+                        .adding(
+                            values.majorMinor[index]
+                                .multiplied(by: minorFirst)
+                                .scaled(by: 2.0)
+                        )
+                        .adding(
+                            values.minorSecond[index]
+                                .multiplied(by: minorFirstSquared)
+                        )
+                        .adding(
+                            values.minorTangent[index]
+                                .multiplied(by: minorSecond)
+                        )
+                }
+                let knownSpatialThird = values.majorThird.indices.map { index in
+                    values.majorThird[index]
+                        .adding(
+                            values.majorMajorMinor[index]
+                                .multiplied(by: minorFirst)
+                                .scaled(by: 3.0)
+                        )
+                        .adding(
+                            values.majorMinorMinor[index]
+                                .multiplied(by: minorFirstSquared)
+                                .scaled(by: 3.0)
+                        )
+                        .adding(
+                            values.minorThird[index]
+                                .multiplied(by: minorFirstCubed)
+                        )
+                        .adding(
+                            values.majorMinor[index]
+                                .multiplied(by: minorSecond)
+                                .scaled(by: 3.0)
+                        )
+                        .adding(
+                            values.minorSecond[index]
+                                .multiplied(by: minorFirstTimesSecond)
+                                .scaled(by: 3.0)
+                        )
+                }
+                let knownThirdImplicit = torusThirdDifferentialInterval(
+                    offset: values.offset,
+                    first: spatialFirst,
+                    second: spatialFirst,
+                    third: spatialFirst
+                ).adding(
+                    torusHessianBilinearInterval(
+                        offset: values.offset,
+                        q: values.q,
+                        first: spatialSecond,
+                        second: spatialFirst,
+                        torus: configuration.reference
+                    ).scaled(by: 3.0)
+                ).adding(
+                    dotInterval(values.gradient, knownSpatialThird)
+                )
+                let minorThirdDerivative = (
+                    knownThirdImplicit.maximumAbsoluteValue / denominator
+                ).nextUp
                 partitions.append(BranchSpatialDifferentialPartition(
                     branchIndex: cell.branchIndex,
                     majorAngleLower: cell.majorAngle.lower,
@@ -576,7 +844,9 @@ struct GeneralTorusTorusSurfaceIntersector {
                     minorFirstDerivativeMagnitudeUpperBound:
                         minorFirstDerivative,
                     minorSecondDerivativeMagnitudeUpperBound:
-                        minorSecondDerivative
+                        minorSecondDerivative,
+                    minorThirdDerivativeMagnitudeUpperBound:
+                        minorThirdDerivative
                 ))
                 continue
             }
@@ -625,7 +895,19 @@ struct GeneralTorusTorusSurfaceIntersector {
         minorDerivative: Interval,
         majorMajorDerivative: Interval,
         majorMinorDerivative: Interval,
-        minorMinorDerivative: Interval
+        minorMinorDerivative: Interval,
+        offset: [Interval],
+        q: Interval,
+        gradient: [Interval],
+        majorTangent: [Interval],
+        minorTangent: [Interval],
+        majorSecond: [Interval],
+        majorMinor: [Interval],
+        minorSecond: [Interval],
+        majorThird: [Interval],
+        majorMajorMinor: [Interval],
+        majorMinorMinor: [Interval],
+        minorThird: [Interval]
     ) {
         let majorCosine = cosineInterval(majorAngle)
         let majorSine = sineInterval(majorAngle)
@@ -733,6 +1015,17 @@ struct GeneralTorusTorusSurfaceIntersector {
                     )
                 )
         }
+        let majorThird = majorTangent.map { $0.scaled(by: -1.0) }
+        let majorMajorMinor = radial.map {
+            $0.multiplied(by: minorRadialScale).scaled(by: -1.0)
+        }
+        let majorMinorMinorScale = minorCosine.scaled(
+            by: -configuration.parameterized.minorRadius
+        )
+        let majorMinorMinor = radialFirst.map {
+            $0.multiplied(by: majorMinorMinorScale)
+        }
+        let minorThird = minorTangent.map { $0.scaled(by: -1.0) }
         let squaredLength = coordinates.reduce(Interval.constant(0.0)) {
             $0.adding($1.squared())
         }
@@ -796,7 +1089,19 @@ struct GeneralTorusTorusSurfaceIntersector {
             minorDerivative,
             majorMajorDerivative,
             majorMinorDerivative,
-            minorMinorDerivative
+            minorMinorDerivative,
+            coordinates,
+            q,
+            gradient,
+            majorTangent,
+            minorTangent,
+            majorSecond,
+            majorMinor,
+            minorSecond,
+            majorThird,
+            majorMajorMinor,
+            majorMinorMinor,
+            minorThird
         )
     }
 
@@ -867,7 +1172,7 @@ struct GeneralTorusTorusSurfaceIntersector {
         )
     }
 
-    private func implicitValueAndMinorDerivative(
+    func implicitValueAndMinorDerivative(
         majorAngle: Double,
         minorAngle: Double,
         configuration: Configuration
@@ -1263,6 +1568,25 @@ struct GeneralTorusTorusSurfaceIntersector {
                     firstAxis.multiplied(by: secondAxis)
                 ).scaled(by: 8.0 * torus.majorRadius * torus.majorRadius)
             )
+    }
+
+    private func torusThirdDifferentialInterval(
+        offset: [Interval],
+        first: [Interval],
+        second: [Interval],
+        third: [Interval]
+    ) -> Interval {
+        dotInterval(first, second)
+            .multiplied(by: dotInterval(offset, third))
+            .adding(
+                dotInterval(first, third)
+                    .multiplied(by: dotInterval(offset, second))
+            )
+            .adding(
+                dotInterval(second, third)
+                    .multiplied(by: dotInterval(offset, first))
+            )
+            .scaled(by: 8.0)
     }
 
     private func axisComponent(_ axis: Vector3D, at index: Int) -> Double {

@@ -817,7 +817,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             coefficients = polynomial
             parameterForRoot = { root in root.isFinite ? root : nil }
         case .line, .circle, .analytic, .bSpline, .implicit, .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection, .rigidImage, .affineImage:
             return nil
         }
 
@@ -968,6 +968,30 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             case .planeTorus:
                 return nil
             }
+        case let .rigidImage(image):
+            guard let source = try harmonicCurveGeometry(
+                image.source,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            return (
+                image.transform.applying(to: source.center),
+                image.transform.applying(to: source.cosine),
+                image.transform.applying(to: source.sine)
+            )
+        case let .affineImage(image):
+            guard let source = try harmonicCurveGeometry(
+                image.source,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            return (
+                image.transform.applying(to: source.center),
+                image.transform.applying(to: source.cosine),
+                image.transform.applying(to: source.sine)
+            )
         case .line, .bSpline, .implicit, .surfaceLift, .certifiedIntersection:
             return nil
         }
@@ -1096,6 +1120,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 )
             }
         case .bSpline:
+            return nil
+        case .procedural:
             return nil
         }
     }
@@ -1291,8 +1317,17 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         case let .analytic(.circle(center, normal, radius)),
              let .analytic(.arc(center, normal, radius, _, _)):
             return (center, normal, radius)
+        case let .rigidImage(image):
+            guard let source = circularGeometry(image.source) else {
+                return nil
+            }
+            return (
+                image.transform.applying(to: source.center),
+                image.transform.applying(to: source.normal),
+                source.radius
+            )
         case .line, .analytic, .bSpline, .implicit, .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection, .affineImage:
             return nil
         }
     }
@@ -1303,6 +1338,26 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             return line
         case let .analytic(.line(origin, direction)):
             return Line3D(origin: origin, direction: direction)
+        case let .rigidImage(image):
+            guard let source = lineGeometry(image.source) else {
+                return nil
+            }
+            return Line3D(
+                origin: image.transform.applying(to: source.origin),
+                direction: image.transform.applying(to: source.direction)
+            )
+        case let .affineImage(image):
+            guard let source = lineGeometry(image.source) else {
+                return nil
+            }
+            let direction = image.transform.applying(to: source.direction)
+            guard direction.length > 0.0 else {
+                return nil
+            }
+            return Line3D(
+                origin: image.transform.applying(to: source.origin),
+                direction: direction
+            )
         case .circle, .analytic, .bSpline, .implicit, .surfaceLift,
              .certifiedIntersection:
             return nil
@@ -1349,6 +1404,19 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 )
             }
         case .bSpline:
+            return nil
+        case let .procedural(.offset(offset)):
+            guard let equivalent = try offset.exactSameParameterSurface(
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            return try implicitPolynomial(
+                line: line,
+                surface: equivalent,
+                tolerance: tolerance
+            )
+        case .procedural(.ruled):
             return nil
         }
     }
@@ -2455,17 +2523,6 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 )
             }
         }
-        let certifiesParametricRoots: Bool
-        if case .bSpline = surface {
-            switch curve {
-            case .implicit, .surfaceLift, .certifiedIntersection:
-                certifiesParametricRoots = true
-            case .line, .circle, .analytic, .bSpline:
-                certifiesParametricRoots = false
-            }
-        } else {
-            certifiesParametricRoots = false
-        }
         let bSplineSurfacePatches: [RationalBezierSurfacePatch3D]
         if case let .bSpline(bSplineSurface) = surface {
             bSplineSurfacePatches = try BSplineSurfaceBezierDecomposer()
@@ -2509,65 +2566,55 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             guard curveBounds.intersects(surfaceBounds, tolerance: tolerance.distance) else {
                 continue
             }
-            if certifiesParametricRoots {
-                guard case let .bSpline(bSplineSurface) = surface else {
+            let certificate = try parametricRootCertifier.certificate(
+                curve: curve,
+                surface: surface,
+                cell: ParametricCurveSurfaceRootCell(
+                    curve: cell.t,
+                    surfaceU: cell.u,
+                    surfaceV: cell.v,
+                    surfacePatches: bSplineSurfacePatches
+                ),
+                tolerance: tolerance
+            )
+            switch certificate {
+            case .excluded:
+                continue
+            case .unique:
+                guard remainingCandidates > 0 else {
                     throw KernelError(
                         phase: .geometry,
-                        code: .invalidInput,
+                        code: .resourceLimitExceeded,
                         tolerance: tolerance,
-                        message: "Parametric root certification lost its B-spline surface."
+                        message: "Curve-surface adaptive subdivision exceeded its certified-root refinement budget."
                     )
                 }
-                let certificate = try parametricRootCertifier.certificate(
-                    curve: curve,
-                    surface: bSplineSurface,
-                    cell: ParametricCurveSurfaceRootCell(
-                        curve: cell.t,
-                        surfaceU: cell.u,
-                        surfaceV: cell.v,
-                        surfacePatches: bSplineSurfacePatches
+                remainingCandidates -= 1
+                guard let intersection = try refinedIntersection(
+                    seed: ParameterSeed(
+                        t: cell.t.midpoint,
+                        u: cell.u.midpoint,
+                        v: cell.v.midpoint
                     ),
+                    curve: curve,
+                    surface: surface,
+                    curveRange: curveRange,
+                    uRange: uRange,
+                    vRange: vRange,
+                    maximumIterations: options.maximumIterations,
                     tolerance: tolerance
-                )
-                switch certificate {
-                case .excluded:
-                    continue
-                case .unique:
-                    guard remainingCandidates > 0 else {
-                        throw KernelError(
-                            phase: .geometry,
-                            code: .resourceLimitExceeded,
-                            tolerance: tolerance,
-                            message: "Curve-surface adaptive subdivision exceeded its certified-root refinement budget."
-                        )
-                    }
-                    remainingCandidates -= 1
-                    guard let intersection = try refinedIntersection(
-                        seed: ParameterSeed(
-                            t: cell.t.midpoint,
-                            u: cell.u.midpoint,
-                            v: cell.v.midpoint
-                        ),
-                        curve: curve,
-                        surface: surface,
-                        curveRange: curveRange,
-                        uRange: uRange,
-                        vRange: vRange,
-                        maximumIterations: options.maximumIterations,
-                        tolerance: tolerance
-                    ) else {
-                        throw KernelError(
-                            phase: .geometry,
-                            code: .resourceLimitExceeded,
-                            tolerance: tolerance,
-                            message: "Interval Krawczyk certified a unique parametric root that numerical refinement did not resolve."
-                        )
-                    }
-                    intersections.append(intersection)
-                    continue
-                case .unresolved:
-                    break
+                ) else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .resourceLimitExceeded,
+                        tolerance: tolerance,
+                        message: "Interval Krawczyk certified a unique parametric root that numerical refinement did not resolve."
+                    )
                 }
+                intersections.append(intersection)
+                continue
+            case .unresolved:
+                break
             }
             if cell.depth >= options.maximumSubdivisionDepth {
                 guard remainingCandidates > 0 else {
@@ -2688,63 +2735,53 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 tolerance: tolerance
             ) {
                 intersections.append(intersection)
-                if certifiesParametricRoots {
-                    let witnessCell = try recenteredCertificationCell(
+                let witnessCell = try recenteredCertificationCell(
+                    candidate: candidate,
+                    intersection: intersection,
+                    root: rootCell
+                )
+                let witnessCertificate = try parametricRootCertifier
+                    .certificate(
+                        curve: curve,
+                        surface: surface,
+                        cell: ParametricCurveSurfaceRootCell(
+                            curve: witnessCell.t,
+                            surfaceU: witnessCell.u,
+                            surfaceV: witnessCell.v,
+                            surfacePatches: bSplineSurfacePatches
+                        ),
+                        tolerance: tolerance
+                    )
+                if case .unique = witnessCertificate {
+                    resolutions.append(CandidateResolution(
                         candidate: candidate,
                         intersection: intersection,
-                        root: rootCell
+                        certifiedUnique: true,
+                        witnessResidual: nil
+                    ))
+                    continue
+                }
+                let boundaryCertificate = try parametricRootCertifier
+                    .boundaryCertificate(
+                        curve: curve,
+                        surface: surface,
+                        cell: ParametricCurveSurfaceRootCell(
+                            curve: witnessCell.t,
+                            surfaceU: witnessCell.u,
+                            surfaceV: witnessCell.v,
+                            surfacePatches: bSplineSurfacePatches
+                        ),
+                        witness: intersection,
+                        tolerance: tolerance
                     )
-                    guard case let .bSpline(bSplineSurface) = surface else {
-                        throw KernelError(
-                            phase: .geometry,
-                            code: .invalidInput,
-                            tolerance: tolerance,
-                            message: "Parametric root witness certification lost its B-spline surface."
-                        )
-                    }
-                    let witnessCertificate = try parametricRootCertifier
-                        .certificate(
-                            curve: curve,
-                            surface: bSplineSurface,
-                            cell: ParametricCurveSurfaceRootCell(
-                                curve: witnessCell.t,
-                                surfaceU: witnessCell.u,
-                                surfaceV: witnessCell.v,
-                                surfacePatches: bSplineSurfacePatches
-                            ),
-                            tolerance: tolerance
-                        )
-                    if case .unique = witnessCertificate {
-                        resolutions.append(CandidateResolution(
-                            candidate: candidate,
-                            intersection: intersection,
-                            certifiedUnique: true,
-                            witnessResidual: nil
-                        ))
-                        continue
-                    }
-                    let boundaryCertificate = try parametricRootCertifier
-                        .boundaryCertificate(
-                            curve: curve,
-                            surface: bSplineSurface,
-                            cell: ParametricCurveSurfaceRootCell(
-                                curve: witnessCell.t,
-                                surfaceU: witnessCell.u,
-                                surfaceV: witnessCell.v,
-                                surfacePatches: bSplineSurfacePatches
-                            ),
-                            witness: intersection,
-                            tolerance: tolerance
-                        )
-                    if case .unique = boundaryCertificate {
-                        resolutions.append(CandidateResolution(
-                            candidate: candidate,
-                            intersection: intersection,
-                            certifiedUnique: true,
-                            witnessResidual: nil
-                        ))
-                        continue
-                    }
+                if case .unique = boundaryCertificate {
+                    resolutions.append(CandidateResolution(
+                        candidate: candidate,
+                        intersection: intersection,
+                        certifiedUnique: true,
+                        witnessResidual: nil
+                    ))
+                    continue
                 }
                 let spatialDiameterUpperBound = (
                     boundingBoxDiameterUpperBound(candidate.curveBounds)
@@ -3329,6 +3366,30 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 tolerance: tolerance
             )
         }
+        if case let .rigidImage(image) = curve {
+            let sourceBounds = try bounds(
+                curve: image.source,
+                interval: interval,
+                tolerance: tolerance
+            )
+            return try BoundingBox3D(
+                points: boundingBoxCorners(sourceBounds).map(
+                    image.transform.applying(to:)
+                )
+            )
+        }
+        if case let .affineImage(image) = curve {
+            let sourceBounds = try bounds(
+                curve: image.source,
+                interval: interval,
+                tolerance: tolerance
+            )
+            return try BoundingBox3D(
+                points: boundingBoxCorners(sourceBounds).map(
+                    image.transform.applying(to:)
+                )
+            )
+        }
         let derivativeBound: Double
         switch curve {
         case let .line(line):
@@ -3376,7 +3437,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     + tolerance.distance,
                 tolerance: tolerance
             )
-        case .bSpline, .implicit, .surfaceLift:
+        case .bSpline, .implicit, .surfaceLift, .rigidImage, .affineImage:
             throw KernelError(
                 phase: .geometry,
                 code: .intersectionFailure,
@@ -3390,6 +3451,19 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             radius: derivativeBound * interval.width * 0.5 + tolerance.distance,
             tolerance: tolerance
         )
+    }
+
+    private func boundingBoxCorners(_ box: BoundingBox3D) -> [Point3D] {
+        [
+            Point3D(x: box.minimum.x, y: box.minimum.y, z: box.minimum.z),
+            Point3D(x: box.maximum.x, y: box.minimum.y, z: box.minimum.z),
+            Point3D(x: box.minimum.x, y: box.maximum.y, z: box.minimum.z),
+            Point3D(x: box.maximum.x, y: box.maximum.y, z: box.minimum.z),
+            Point3D(x: box.minimum.x, y: box.minimum.y, z: box.maximum.z),
+            Point3D(x: box.maximum.x, y: box.minimum.y, z: box.maximum.z),
+            Point3D(x: box.minimum.x, y: box.maximum.y, z: box.maximum.z),
+            Point3D(x: box.maximum.x, y: box.maximum.y, z: box.maximum.z),
+        ]
     }
 
     private func surfaceLiftBounds(
@@ -3454,6 +3528,20 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 ),
                 tolerance: tolerance
             )
+        case let .rigidImage(image):
+            let sourceBounds = try surfaceLiftBounds(
+                image.source,
+                interval: try ScalarInterval(
+                    lower: min(image.startFraction, image.endFraction),
+                    upper: max(image.startFraction, image.endFraction)
+                ),
+                tolerance: tolerance
+            )
+            return try BoundingBox3D(
+                points: boundingBoxCorners(sourceBounds).map(image.transform.applying(to:))
+            ).expanded(by: tolerance.distance)
+        case .sameParameterImage:
+            break
         case let .periodicTranslation(base, _, _):
             return try surfaceLiftBounds(
                 SurfaceLiftCurve3D(
@@ -3482,7 +3570,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             }
             return localized
         }
-        return try analyticSurfaceBounds(
+        return try surfaceBounds(
             surface: lift.surface,
             parameters: surfaceParameterBounds(
                 parameterCurve,
@@ -3535,12 +3623,17 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 SurfaceParameter(u: $0.x, v: $0.y)
             })
         case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
-             .certifiedAnalyticPair, .projectedAnalytic:
+             .certifiedAnalyticPair, .projectedAnalytic, .rigidImage:
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,
                 tolerance: tolerance,
                 message: "A structurally certified surface-lift curve reached generic parameter bounds."
+            )
+        case let .sameParameterImage(image):
+            return try surfaceParameterBounds(
+                image.source,
+                tolerance: tolerance
             )
         case let .periodicTranslation(base, uShift, vShift):
             let bounds = try surfaceParameterBounds(
@@ -3577,147 +3670,26 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         )
     }
 
-    private func analyticSurfaceBounds(
+    private func surfaceBounds(
         surface: Surface3D,
         parameters: SurfaceParameterBounds,
         tolerance: ModelingTolerance
     ) throws -> BoundingBox3D {
-        let canonical = CanonicalAnalyticSurface(surface)
-        var coordinates: [ScalarInterval] = []
-        coordinates.reserveCapacity(3)
-        for index in 0..<3 {
-            let coordinate: ScalarInterval
-            switch canonical {
-            case let .plane(plane):
-                let basis = try analyticOrthonormalBasis(
-                    plane.normal,
-                    tolerance: tolerance
-                )
-                coordinate = try added(
-                    constantInterval(component(plane.origin, index: index)),
-                    added(
-                        scaled(parameters.u, by: component(basis.u, index: index)),
-                        scaled(parameters.v, by: component(basis.v, index: index))
-                    )
-                )
-            case let .cylinder(cylinder):
-                let basis = try analyticOrthonormalBasis(
-                    cylinder.axis,
-                    tolerance: tolerance
-                )
-                let radial = try trigonometricRange(
-                    cosineCoefficient: component(basis.u, index: index) * cylinder.radius,
-                    sineCoefficient: component(basis.v, index: index) * cylinder.radius,
-                    parameter: parameters.u
-                )
-                coordinate = try added(
-                    constantInterval(component(cylinder.origin, index: index)),
-                    added(
-                        radial,
-                        scaled(parameters.v, by: component(cylinder.axis, index: index))
-                    )
-                )
-            case let .cone(cone):
-                let basis = try analyticOrthonormalBasis(
-                    cone.axis,
-                    tolerance: tolerance
-                )
-                let radialDirection = try trigonometricRange(
-                    cosineCoefficient: component(basis.u, index: index),
-                    sineCoefficient: component(basis.v, index: index),
-                    parameter: parameters.u
-                )
-                let axial = try scaled(
-                    parameters.v,
-                    by: component(cone.axis, index: index) * cos(cone.halfAngle)
-                )
-                let radial = try scaled(
-                    multiplied(parameters.v, radialDirection),
-                    by: sin(cone.halfAngle)
-                )
-                coordinate = try added(
-                    constantInterval(component(cone.apex, index: index)),
-                    added(axial, radial)
-                )
-            case let .sphere(sphere):
-                let basis = try analyticOrthonormalBasis(.unitZ, tolerance: tolerance)
-                let radial = try trigonometricRange(
-                    cosineCoefficient: component(basis.u, index: index),
-                    sineCoefficient: component(basis.v, index: index),
-                    parameter: parameters.u
-                )
-                let cosineV = try trigonometricRange(
-                    cosineCoefficient: 1.0,
-                    sineCoefficient: 0.0,
-                    parameter: parameters.v
-                )
-                let sineV = try trigonometricRange(
-                    cosineCoefficient: 0.0,
-                    sineCoefficient: 1.0,
-                    parameter: parameters.v
-                )
-                let direction = try added(
-                    multiplied(radial, cosineV),
-                    scaled(sineV, by: component(Vector3D.unitZ, index: index))
-                )
-                coordinate = try added(
-                    constantInterval(component(sphere.center, index: index)),
-                    scaled(direction, by: sphere.radius)
-                )
-            case let .torus(torus):
-                let basis = try analyticOrthonormalBasis(
-                    torus.axis,
-                    tolerance: tolerance
-                )
-                let radial = try trigonometricRange(
-                    cosineCoefficient: component(basis.u, index: index),
-                    sineCoefficient: component(basis.v, index: index),
-                    parameter: parameters.u
-                )
-                let cosineV = try trigonometricRange(
-                    cosineCoefficient: 1.0,
-                    sineCoefficient: 0.0,
-                    parameter: parameters.v
-                )
-                let sineV = try trigonometricRange(
-                    cosineCoefficient: 0.0,
-                    sineCoefficient: 1.0,
-                    parameter: parameters.v
-                )
-                let radialDistance = try added(
-                    constantInterval(torus.majorRadius),
-                    scaled(cosineV, by: torus.minorRadius)
-                )
-                coordinate = try added(
-                    constantInterval(component(torus.center, index: index)),
-                    added(
-                        multiplied(radial, radialDistance),
-                        scaled(
-                            sineV,
-                            by: component(torus.axis, index: index) * torus.minorRadius
-                        )
-                    )
-                )
-            case .unsupported:
-                throw KernelError(
-                    phase: .geometry,
-                    code: .invalidInput,
-                    tolerance: tolerance,
-                    message: "Analytic surface-lift bounds received a non-analytic surface."
-                )
-            }
-            coordinates.append(coordinate)
-        }
+        let enclosure = try DefaultSurfaceDifferentialEncloser().enclosure(
+            of: surface,
+            over: SurfaceParameterBox(u: parameters.u, v: parameters.v),
+            tolerance: tolerance
+        ).position
         return try BoundingBox3D(
             minimum: Point3D(
-                x: coordinates[0].lower,
-                y: coordinates[1].lower,
-                z: coordinates[2].lower
+                x: enclosure.x.lower,
+                y: enclosure.y.lower,
+                z: enclosure.z.lower
             ),
             maximum: Point3D(
-                x: coordinates[0].upper,
-                y: coordinates[1].upper,
-                z: coordinates[2].upper
+                x: enclosure.x.upper,
+                y: enclosure.y.upper,
+                z: enclosure.z.upper
             )
         ).expanded(by: tolerance.distance)
     }
@@ -4087,6 +4059,27 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 tolerance: tolerance,
                 message: "B-spline surface interval bounds failed to use the control hull."
             )
+        case .procedural:
+            let enclosure = try DefaultSurfaceDifferentialEncloser().enclosure(
+                of: surface,
+                over: SurfaceParameterBox(
+                    u: uInterval,
+                    v: vInterval
+                ),
+                tolerance: tolerance
+            ).position
+            return try BoundingBox3D(
+                minimum: Point3D(
+                    x: enclosure.x.lower,
+                    y: enclosure.y.lower,
+                    z: enclosure.z.lower
+                ),
+                maximum: Point3D(
+                    x: enclosure.x.upper,
+                    y: enclosure.y.upper,
+                    z: enclosure.z.upper
+                )
+            ).expanded(by: tolerance.distance)
         }
         let center = try surface.point(
             u: uInterval.midpoint,

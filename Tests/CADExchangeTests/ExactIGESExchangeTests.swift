@@ -653,6 +653,26 @@ struct ExactIGESExchangeTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(2)))
+    func roundTripsCertifiedSphereConeIntersectionThroughNestedCurveOnSurfaceEntities() throws {
+        for reversed in [false, true] {
+            try assertCertifiedSphereConeRoundTrip(
+                source: ExactExchangeAdvancedAnalyticFixture
+                    .certifiedSphereConeIntersectionSheet(reversed: reversed)
+            )
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func roundTripsRigidImageAsCanonicalCertifiedIntersection() throws {
+        for reversed in [false, true] {
+            try assertCertifiedSphereConeRoundTrip(
+                source: ExactExchangeAdvancedAnalyticFixture
+                    .rigidImageSphereConeIntersectionSheet(reversed: reversed)
+            )
+        }
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func roundTripsCertifiedImplicitIntersectionThroughNestedCurveOnSurfaceEntities() throws {
         for reversed in [false, true] {
@@ -765,6 +785,34 @@ struct ExactIGESExchangeTests {
         })
     }
 
+    private func assertCertifiedSphereConeRoundTrip(source: BRepModel) throws {
+        let sink = DataByteSink()
+        try IGESExchange(tolerance: .standard).write(
+            brep: source,
+            units: .millimeters,
+            to: sink
+        )
+        let text = try #require(String(data: sink.bytes, encoding: .utf8))
+        #expect(text.contains("CERTFIRS"))
+        #expect(text.contains("CERTSECO"))
+        #expect(text.contains("ANASPHER"))
+        #expect(text.contains("ANACONE"))
+        #expect(text.contains("TRIANGULATED") == false)
+
+        let result = try #require(
+            IGESExchange(tolerance: .standard).import(sink.bytes).brep
+        )
+        try result.validate(level: .exact, tolerance: .standard)
+        #expect(result.geometry.curves.values.allSatisfy { curve in
+            if case .certifiedIntersection(.sphereCone) = curve { return true }
+            return false
+        })
+        #expect(result.loops.values.flatMap(\.coedges).allSatisfy { coedge in
+            if case .certifiedAnalyticPair = coedge.surfaceParameterCurve { return true }
+            return false
+        })
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func roundTripsRationalNonlinearPcurve() throws {
         let source = try ExactExchangeNURBSFixture.rationalPcurveSheet()
@@ -776,6 +824,38 @@ struct ExactIGESExchangeTests {
             if case let .bSpline(curve) = $0.surfaceParameterCurve {
                 return curve.degree == 2 && curve.isRational
             }
+            return false
+        })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func roundTripsGeneralOffsetSurfaceWithType140Indicator() throws {
+        let source = try ExactExchangeNURBSFixture.offsetRationalSheet()
+        let sink = DataByteSink()
+        try IGESExchange(tolerance: .standard).write(
+            brep: source,
+            units: .millimeters,
+            to: sink
+        )
+        let text = try #require(String(data: sink.bytes, encoding: .utf8))
+        #expect(text.contains("140,"))
+
+        let result = try #require(
+            IGESExchange(tolerance: .standard).import(sink.bytes).brep
+        )
+        try result.validate(level: .exact, tolerance: .standard)
+        let imported = try #require(result.geometry.surfaces.values.first { surface in
+            if case .procedural(.offset) = surface { return true }
+            return false
+        })
+        guard case let .procedural(.offset(offset)) = imported else {
+            Issue.record("IGES must reconstruct an exact Type 140 offset surface.")
+            return
+        }
+        #expect(abs(offset.distance - 0.003) <= 1.0e-12)
+        #expect({ if case .bSpline = offset.source { return true }; return false }())
+        #expect(result.geometry.curves.values.allSatisfy { curve in
+            if case .surfaceLift = curve { return true }
             return false
         })
     }

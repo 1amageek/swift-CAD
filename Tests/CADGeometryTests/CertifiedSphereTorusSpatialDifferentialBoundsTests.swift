@@ -5,6 +5,45 @@ import Testing
 struct CertifiedSphereTorusSpatialDifferentialBoundsTests {
     private let tolerance = ModelingTolerance.standard
 
+    @Test(.timeLimit(.minutes(3)))
+    func thirdDerivativesCoverRootFreeAndRegularizedComponents() throws {
+        let rootFree = try rootFreeCurves()
+        let bounded = try boundedCurves()
+        let open = try poleSplitOpenCurves()
+        #expect(rootFree.count == 2)
+        #expect(bounded.isEmpty == false)
+        #expect(open.count == 3)
+        for exact in rootFree + bounded + open {
+            guard case let .sphereTorus(curve) = exact.definition else {
+                Issue.record("Expected a certified sphere-torus curve.")
+                continue
+            }
+            let bounds = try curve.spatialDifferentialMagnitudeBounds(
+                fromNormalizedFraction: 0.0,
+                toNormalizedFraction: 1.0,
+                tolerance: tolerance
+            )
+            let third = try #require(bounds.third)
+            for fraction in [0.0, 0.23, 0.57, 1.0] {
+                let actual = try curve.thirdDerivative(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                #expect(actual.length <= third)
+                let oracle = try secondDerivativeDifference(
+                    curve: curve,
+                    at: fraction
+                )
+                let scale = max(actual.length, oracle.length, 1.0)
+                #expect(
+                    (actual - oracle).length
+                        <= max(5.0e-4, scale * 3.0e-6),
+                    "component: \(curve.componentKind), fraction: \(fraction), magnitude: \(scale)"
+                )
+            }
+        }
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func rootFreeBranchesEncloseTrimmedSpatialDifferentials() throws {
         let exactCurves = try rootFreeCurves()
@@ -35,6 +74,8 @@ struct CertifiedSphereTorusSpatialDifferentialBoundsTests {
                 )
             #expect(sourceBounds.first.isFinite)
             #expect(sourceBounds.second.isFinite)
+            let sourceThird = try #require(sourceBounds.third)
+            #expect(sourceThird.isFinite)
             for trim in [
                 (start: 0.0, end: 1.0),
                 (start: 0.1, end: 0.7),
@@ -54,6 +95,24 @@ struct CertifiedSphereTorusSpatialDifferentialBoundsTests {
                 #expect(bounds.second.isFinite)
                 #expect(bounds.first > 0.0)
                 #expect(bounds.second > 0.0)
+                let third = try #require(bounds.third)
+                let scale = abs(trim.end - trim.start)
+                let localSourceBounds = try source
+                    .spatialDifferentialMagnitudeBounds(
+                        fromNormalizedFraction: min(trim.start, trim.end),
+                        toNormalizedFraction: max(trim.start, trim.end),
+                        tolerance: tolerance
+                    )
+                let localSourceThird = try #require(localSourceBounds.third)
+                #expect(bounds.first >= localSourceBounds.first * scale)
+                #expect(
+                    bounds.second
+                        >= localSourceBounds.second * scale * scale
+                )
+                #expect(
+                    third
+                        >= localSourceThird * scale * scale * scale
+                )
 
                 let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
                     surface: exact.surface(for: .first),
@@ -67,6 +126,12 @@ struct CertifiedSphereTorusSpatialDifferentialBoundsTests {
                     )
                     #expect(geometry.firstDerivative.length <= bounds.first)
                     #expect(geometry.secondDerivative.length <= bounds.second)
+                    let thirdDerivative = try curve
+                        .parameterDerivativesThroughThirdOrder(
+                            at: fraction,
+                            tolerance: tolerance
+                        ).thirdDerivative
+                    #expect(thirdDerivative.length <= third)
                 }
             }
         }
@@ -470,5 +535,101 @@ struct CertifiedSphereTorusSpatialDifferentialBoundsTests {
             }
             return exact
         }
+    }
+
+    private func boundedCurves()
+        throws -> [CertifiedAnalyticAnalyticIntersectionCurve]
+    {
+        let torus = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: .unitZ,
+            majorRadius: 3.0,
+            minorRadius: 1.0
+        ))
+        let sphere = Surface3D.analytic(.sphere(
+            center: Point3D(x: 0.5, y: 0.0, z: 0.0),
+            radius: 2.0
+        ))
+        return try DefaultSurfaceSurfaceIntersector().intersections(
+            first: sphere,
+            second: torus,
+            tolerance: tolerance
+        ).compactMap { intersection in
+            guard case let .curve(result) = intersection,
+                  case let .analyticAnalytic(exact) = result.truth,
+                  case let .sphereTorus(curve) = exact.definition,
+                  curve.componentKind == .boundedAngularInterval else {
+                return nil
+            }
+            return exact
+        }
+    }
+
+    private func poleSplitOpenCurves()
+        throws -> [CertifiedAnalyticAnalyticIntersectionCurve]
+    {
+        let torus = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: .unitZ,
+            majorRadius: 3.0,
+            minorRadius: 1.0
+        ))
+        let sphere = Surface3D.analytic(.sphere(
+            center: Point3D(x: 4.0, y: 0.0, z: -1.0),
+            radius: 1.0
+        ))
+        return try DefaultSurfaceSurfaceIntersector().intersections(
+            first: sphere,
+            second: torus,
+            tolerance: tolerance
+        ).compactMap { intersection in
+            guard case let .curve(result) = intersection,
+                  case let .analyticAnalytic(exact) = result.truth,
+                  case let .sphereTorus(curve) = exact.definition,
+                  curve.componentKind == .negativeOpenAngularInterval
+                    || curve.componentKind
+                        == .positiveOpenAngularInterval else {
+                return nil
+            }
+            return exact
+        }
+    }
+
+    private func secondDerivativeDifference(
+        curve: CertifiedSphereTorusIntersectionCurve,
+        at fraction: Double
+    ) throws -> Vector3D {
+        let endpointStep = 2.0e-4
+        func second(_ value: Double) throws -> Vector3D {
+            try curve.differential(
+                atNormalizedFraction: value,
+                tolerance: tolerance
+            ).secondDerivative
+        }
+        if fraction == 0.0 {
+            let step = endpointStep
+            return (
+                try second(0.0) * -25.0
+                    + second(step) * 48.0
+                    - second(2.0 * step) * 36.0
+                    + second(3.0 * step) * 16.0
+                    - second(4.0 * step) * 3.0
+            ) / (12.0 * step)
+        }
+        if fraction == 1.0 {
+            let step = endpointStep
+            return (
+                try second(1.0) * 25.0
+                    - second(1.0 - step) * 48.0
+                    + second(1.0 - 2.0 * step) * 36.0
+                    - second(1.0 - 3.0 * step) * 16.0
+                    + second(1.0 - 4.0 * step) * 3.0
+            ) / (12.0 * step)
+        }
+        let interiorStep = 1.0e-5
+        return (
+            try second(fraction + interiorStep)
+                - second(fraction - interiorStep)
+        ) / (2.0 * interiorStep)
     }
 }

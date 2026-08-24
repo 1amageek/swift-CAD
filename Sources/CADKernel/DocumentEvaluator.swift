@@ -2,7 +2,7 @@ import CADCore
 import CADIR
 import CADModeling
 
-public struct DocumentEvaluator: Sendable {
+public struct DocumentEvaluator: Sendable, ExactDocumentEvaluating {
     private static let incrementalEvaluatorIdentity = "swift-cad.document-evaluator-dev"
 
     private let parameterResolver: ParameterResolving
@@ -56,6 +56,14 @@ public struct DocumentEvaluator: Sendable {
     ) throws -> EvaluatedDocument {
         let validatedDocument = try ValidatedCADDocument(document, tolerance: tolerance)
         return try evaluate(validatedDocument, reusing: previous)
+    }
+
+    public func evaluateExact(_ document: CADDocument) throws -> EvaluatedDocument {
+        let validatedDocument = try ValidatedCADDocument(document, tolerance: tolerance)
+        return try makeEngine(artifactPolicy: .deferred).evaluate(
+            validatedDocument,
+            reusing: nil
+        ) { _, _ in }
     }
 
     public func evaluate(
@@ -133,6 +141,12 @@ public struct DocumentEvaluator: Sendable {
     }
 
     private var engine: DocumentEvaluationEngine {
+        makeEngine(artifactPolicy: artifactPolicy)
+    }
+
+    private func makeEngine(
+        artifactPolicy: EvaluationArtifactPolicy
+    ) -> DocumentEvaluationEngine {
         DocumentEvaluationEngine(
             parameterResolver: parameterResolver,
             profileExtractor: profileExtractor,

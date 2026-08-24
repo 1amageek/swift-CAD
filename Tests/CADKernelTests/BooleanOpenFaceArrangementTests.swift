@@ -691,6 +691,46 @@ struct BooleanOpenFaceArrangementTests {
         try patch.validate(tolerance: tolerance)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func periodicCylinderEssentialCurveMaterializesFiniteStripCell() throws {
+        let source = try fullPeriodicCylinderSheet()
+        let body = try #require(source.brep.bodies.values.first)
+        let shell = try #require(source.brep.shells[body.shellIDs[0]])
+        let face = try #require(source.brep.faces[shell.faceIDs[0]])
+        let boundaries = try periodicCylinderCircleBoundaries(face: face)
+
+        let result = try BooleanOpenFaceArrangementBuilder().build(
+            faceID: face.id,
+            boundaries: boundaries,
+            model: source.brep,
+            sourceSubshapes: source.subshapes.entries,
+            tolerance: tolerance
+        )
+
+        #expect(result.isPartitioned)
+        #expect(result.patches.count == 1)
+        let patch = try #require(result.patches.first)
+        #expect(patch.loops.count == 1)
+        #expect(patch.loops[0].edges.filter {
+            $0.stableID.hasPrefix("face-intersection:")
+        }.count == 3)
+        #expect(try signedArea(patch.loops[0]) > 0.0)
+        try patch.validate(tolerance: tolerance)
+        let sewn = try DefaultBRepSewer().sew(BRepSewingRequest(
+            featureID: FeatureID(),
+            bodyKind: .sheet,
+            shells: [BRepSewingShell(
+                stableID: "periodic-strip-result:shell",
+                patches: [patch]
+            )]
+        ), tolerance: tolerance)
+        _ = try ValidatedBRepModel(
+            sewn.brep,
+            tolerance: tolerance,
+            validationLevel: .exact
+        )
+    }
+
     private func decision(
         pair: BooleanFacePairCandidate,
         componentID: BooleanFaceSplitComponentID,
@@ -976,6 +1016,234 @@ struct BooleanOpenFaceArrangementTests {
             brep: sewn.brep,
             subshapes: SubshapeIndex(sewn.subshapes),
             lineage: sewn.lineage
+        )
+    }
+
+    private func fullPeriodicCylinderSheet() throws -> PlanarSheetTestFixture {
+        let surface = Surface3D.cylinder(Cylinder3D(
+            origin: .origin,
+            axis: .unitZ,
+            radius: 1.0
+        ))
+        let period = 2.0 * Double.pi
+        let seamU = 0.4
+        let oppositeU = seamU + Double.pi
+        let upperU = seamU + period
+        let bottomCircle = Curve3D.circle(Circle3D(
+            center: Point3D(x: 0.0, y: 0.0, z: -1.0),
+            normal: .unitZ,
+            radius: 1.0
+        ))
+        let topCircle = Curve3D.circle(Circle3D(
+            center: Point3D(x: 0.0, y: 0.0, z: 1.0),
+            normal: .unitZ,
+            radius: 1.0
+        ))
+        let bottomStart = try surface.point(u: seamU, v: -1.0, tolerance: tolerance)
+        let bottomMiddle = try surface.point(u: oppositeU, v: -1.0, tolerance: tolerance)
+        let topStart = try surface.point(u: seamU, v: 1.0, tolerance: tolerance)
+        let topMiddle = try surface.point(u: oppositeU, v: 1.0, tolerance: tolerance)
+        let seamOffset = topStart - bottomStart
+        let seam = Curve3D.line(Line3D(
+            origin: bottomStart,
+            direction: try seamOffset.normalized(tolerance: tolerance.distance)
+        ))
+        let edges = [
+            BRepSewingEdge(
+                stableID: "full-periodic-cylinder:bottom:0",
+                curve: bottomCircle,
+                startParameter: seamU,
+                endParameter: oppositeU,
+                startPoint: bottomStart,
+                endPoint: bottomMiddle,
+                surfaceParameterCurve: .constantV(
+                    v: -1.0,
+                    uStart: seamU,
+                    uEnd: oppositeU
+                )
+            ),
+            BRepSewingEdge(
+                stableID: "full-periodic-cylinder:bottom:1",
+                curve: bottomCircle,
+                startParameter: oppositeU,
+                endParameter: upperU,
+                startPoint: bottomMiddle,
+                endPoint: bottomStart,
+                surfaceParameterCurve: .constantV(
+                    v: -1.0,
+                    uStart: oppositeU,
+                    uEnd: upperU
+                )
+            ),
+            BRepSewingEdge(
+                stableID: "full-periodic-cylinder:seam:right",
+                curve: seam,
+                startParameter: 0.0,
+                endParameter: seamOffset.length,
+                startPoint: bottomStart,
+                endPoint: topStart,
+                surfaceParameterCurve: .constantU(
+                    u: upperU,
+                    vStart: -1.0,
+                    vEnd: 1.0
+                )
+            ),
+            BRepSewingEdge(
+                stableID: "full-periodic-cylinder:top:1",
+                curve: topCircle,
+                startParameter: upperU,
+                endParameter: oppositeU,
+                startPoint: topStart,
+                endPoint: topMiddle,
+                surfaceParameterCurve: .constantV(
+                    v: 1.0,
+                    uStart: upperU,
+                    uEnd: oppositeU
+                )
+            ),
+            BRepSewingEdge(
+                stableID: "full-periodic-cylinder:top:0",
+                curve: topCircle,
+                startParameter: oppositeU,
+                endParameter: seamU,
+                startPoint: topMiddle,
+                endPoint: topStart,
+                surfaceParameterCurve: .constantV(
+                    v: 1.0,
+                    uStart: oppositeU,
+                    uEnd: seamU
+                )
+            ),
+            BRepSewingEdge(
+                stableID: "full-periodic-cylinder:seam:left",
+                curve: seam,
+                startParameter: seamOffset.length,
+                endParameter: 0.0,
+                startPoint: topStart,
+                endPoint: bottomStart,
+                surfaceParameterCurve: .constantU(
+                    u: seamU,
+                    vStart: 1.0,
+                    vEnd: -1.0
+                )
+            ),
+        ]
+        let sewn = try DefaultBRepSewer().sew(BRepSewingRequest(
+            featureID: FeatureID(),
+            bodyKind: .sheet,
+            shells: [BRepSewingShell(
+                stableID: "full-periodic-cylinder:shell",
+                patches: [BRepSewingFacePatch(
+                    stableID: "full-periodic-cylinder:face",
+                    surface: surface,
+                    orientation: .forward,
+                    loops: [BRepSewingLoop(
+                        stableID: "full-periodic-cylinder:outer",
+                        role: .outer,
+                        edges: edges
+                    )]
+                )]
+            )]
+        ), tolerance: tolerance)
+        return PlanarSheetTestFixture(
+            brep: sewn.brep,
+            subshapes: SubshapeIndex(sewn.subshapes),
+            lineage: sewn.lineage
+        )
+    }
+
+    private func periodicCylinderCircleBoundaries(
+        face: Face
+    ) throws -> [BooleanFaceArrangementBoundary] {
+        let period = 2.0 * Double.pi
+        let circle = Curve3D.circle(Circle3D(
+            center: .origin,
+            normal: .unitZ,
+            radius: 1.0
+        ))
+        let pcurve = SurfaceParameterCurve.constantV(
+            v: 0.0,
+            uStart: 0.0,
+            uEnd: period
+        )
+        let anchorPoint = try circle.point(at: 0.0, tolerance: tolerance)
+        let anchor = try SurfaceParameterProjection(
+            u: 0.0,
+            v: 0.0,
+            point: anchorPoint,
+            residual: 0.0
+        )
+        let intersection = try SurfaceSurfaceIntersectionCurve(
+            truth: .parametric(circle),
+            derivedRepresentation: try SurfaceSurfaceIntersectionDerivedRepresentation(
+                curve: circle,
+                firstSurfaceParameterCurve: pcurve,
+                secondSurfaceParameterCurve: pcurve,
+                maximumResidualUpperBound: 0.0,
+                tolerance: tolerance
+            ),
+            kind: .transverse,
+            firstSurfaceAnchor: anchor,
+            secondSurfaceAnchor: anchor,
+            tolerance: tolerance
+        )
+        let samples = try (0..<32).map { index in
+            let parameter = period * Double(index) / 32.0
+            let point = try circle.point(at: parameter, tolerance: tolerance)
+            return try BooleanCurveUVSample(
+                curveParameter: parameter,
+                uvPoint: BooleanUVPoint(
+                    point: point,
+                    targetU: parameter,
+                    targetV: 0.0,
+                    toolU: parameter,
+                    toolV: 0.0,
+                    residual: 0.0,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            )
+        }
+        let closed = try BooleanClosedFaceIntersection(
+            intersection: intersection,
+            samples: samples,
+            tolerance: tolerance
+        )
+        let pair = BooleanFacePairCandidate(
+            targetFaceID: face.id,
+            toolFaceID: FaceID()
+        )
+        let componentID = BooleanFaceSplitComponentID(ordinal: 0)
+        return try BooleanFaceArrangementBoundary.make(
+            reference: BooleanFaceSplitComponentReference(
+                facePair: pair,
+                componentID: componentID
+            ),
+            geometry: .closedCurve(closed),
+            face: face,
+            surfaceSide: .first,
+            regionSelectionGraph: BooleanRegionSelectionGraph(decisions: [
+                decision(
+                    pair: pair,
+                    componentID: componentID,
+                    faceID: face.id,
+                    oppositeBodyID: BodyID(),
+                    side: .negative,
+                    point: Point3D(x: 1.0, y: 0.0, z: -0.5),
+                    action: .discard
+                ),
+                decision(
+                    pair: pair,
+                    componentID: componentID,
+                    faceID: face.id,
+                    oppositeBodyID: BodyID(),
+                    side: .positive,
+                    point: Point3D(x: 1.0, y: 0.0, z: 0.5),
+                    action: .keep
+                ),
+            ]),
+            parentSubshapeIDs: [],
+            tolerance: tolerance
         )
     }
 

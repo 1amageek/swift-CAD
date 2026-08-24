@@ -111,7 +111,7 @@ struct SphereTorusBooleanVolumeEvaluator {
                     minorRadius: minorRadius
                 )
                 torusFaces.append(face)
-            case .plane, .cylinder, .bSpline, .analytic:
+            case .plane, .cylinder, .bSpline, .analytic, .procedural:
                 return nil
             }
         }
@@ -216,14 +216,12 @@ struct SphereTorusBooleanVolumeEvaluator {
             )
         }
         let centerDistance = hypot(torusMajorRadius, axialOffset)
-        guard centerDistance < sphereRadius + torusMinorRadius - tolerance.distance,
-              centerDistance > abs(sphereRadius - torusMinorRadius) + tolerance.distance else {
-            throw KernelError(
-                phase: .topology,
-                code: .unsupportedCapability,
-                tolerance: tolerance,
-                message: "Sphere-torus analytic volume requires two transverse meridian intersections."
-            )
+        if centerDistance >= sphereRadius + torusMinorRadius - tolerance.distance {
+            return 0.0
+        }
+        if sphereRadius >= centerDistance + torusMinorRadius - tolerance.distance {
+            return 2.0 * Double.pi * Double.pi
+                * torusMajorRadius * torusMinorRadius * torusMinorRadius
         }
         let chordOffset = (
             torusMinorRadius * torusMinorRadius
@@ -233,13 +231,7 @@ struct SphereTorusBooleanVolumeEvaluator {
         let halfChordSquared = torusMinorRadius * torusMinorRadius
             - chordOffset * chordOffset
         guard halfChordSquared > tolerance.distance * tolerance.distance else {
-            throw KernelError(
-                phase: .topology,
-                code: .unsupportedCapability,
-                residual: halfChordSquared,
-                tolerance: tolerance,
-                message: "Sphere-torus analytic volume requires a nondegenerate meridian chord."
-            )
+            return 0.0
         }
         let halfChord = sqrt(halfChordSquared)
         let normalizedOffset = min(max(
@@ -262,15 +254,7 @@ struct SphereTorusBooleanVolumeEvaluator {
     ) throws -> Double {
         let lower = max(-torusMinorRadius, axialOffset - sphereRadius)
         let upper = min(torusMinorRadius, axialOffset + sphereRadius)
-        guard upper - lower > tolerance.distance else {
-            throw KernelError(
-                phase: .topology,
-                code: .unsupportedCapability,
-                residual: max(upper - lower, 0.0),
-                tolerance: tolerance,
-                message: "Offset sphere-torus volume requires a positive axial overlap."
-            )
-        }
+        guard upper - lower > tolerance.distance else { return 0.0 }
 
         var breakpoints = [lower, upper]
         for candidate in [0.0, axialOffset] where

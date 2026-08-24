@@ -17,6 +17,18 @@ struct DeferredArtifactEvaluationTests {
         #expect(evaluated.brep.bodies.isEmpty == false)
         #expect(evaluated.meshes.isEmpty)
     }
+
+    @Test
+    func exactEvaluationOverridesMaterializedEvaluatorPolicy() throws {
+        let evaluated = try DocumentEvaluator(
+            tessellator: RejectingTessellator(),
+            tolerance: .standard,
+            artifactPolicy: .materialized
+        ).evaluateExact(makeRectangleExtrudeDocument())
+
+        #expect(evaluated.brep.bodies.isEmpty == false)
+        #expect(evaluated.meshes.isEmpty)
+    }
 }
 
 private struct RejectingTessellator: Tessellating {

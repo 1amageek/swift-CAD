@@ -40,53 +40,52 @@ struct ParallelOffsetTorusTorusSurfaceIntersector {
         let breaks = (0...segmentCount).map {
             Double($0) / Double(segmentCount)
         }
-        return try proceduralCurves.map { proceduralCurve in
+        var intersections: [SurfaceSurfaceIntersection] = []
+        intersections.reserveCapacity(proceduralCurves.count)
+        for proceduralCurve in proceduralCurves {
             if proceduralCurve.componentKind == .nearNodalClosedLoop {
-                return try exactIntersection(
+                intersections.append(try exactIntersection(
                     proceduralCurve: proceduralCurve,
                     firstSurface: firstSurface,
                     secondSurface: secondSurface,
                     tolerance: tolerance
-                )
+                ))
+                continue
             }
             let kind: CurveSurfaceIntersectionKind =
                 proceduralCurve.componentKind == .nodalSelfLoop
                     ? .mixed
                     : .transverse
+            let evaluationContext = SurfaceIntersectionCurveEvaluationContext(
+                curve: proceduralCurve,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                tolerance: tolerance
+            )
             let derived = try builder.intersection(
                 parameterRange: 0.0...1.0,
                 initialBreaks: breaks,
                 kind: kind,
                 isClosed: proceduralCurve.componentKind == .regularClosed,
                 firstParameterAt: { fraction in
-                    try proceduralCurve.parameter(
-                        on: firstSurface,
-                        atNormalizedFraction: fraction,
-                        tolerance: tolerance
-                    )
+                    try evaluationContext.firstParameter(at: fraction)
                 },
                 secondParameterAt: { fraction in
-                    try proceduralCurve.parameter(
-                        on: secondSurface,
-                        atNormalizedFraction: fraction,
-                        tolerance: tolerance
-                    )
+                    try evaluationContext.secondParameter(at: fraction)
                 },
                 pointAt: { fraction in
-                    try proceduralCurve.point(
-                        atNormalizedFraction: fraction,
-                        tolerance: tolerance
-                    )
+                    try evaluationContext.point(at: fraction)
                 }
             )
-            return try certifiedIntersection(
+            intersections.append(try certifiedIntersection(
                 derived,
                 proceduralCurve: proceduralCurve,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: tolerance
-            )
+            ))
         }
+        return intersections
     }
 
     private func exactIntersection(

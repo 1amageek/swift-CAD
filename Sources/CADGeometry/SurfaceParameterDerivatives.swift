@@ -33,9 +33,27 @@ public extension Surface3D {
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterDerivatives {
+        try validate(tolerance: tolerance)
+        return try parameterDerivativesAssumingValid(
+            atU: u,
+            v: v,
+            tolerance: tolerance
+        )
+    }
+}
+
+package extension Surface3D {
+    func parameterDerivativesAssumingValid(
+        atU u: Double,
+        v: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterDerivatives {
+        guard try uDomain.contains(u, tolerance: tolerance),
+              try vDomain.contains(v, tolerance: tolerance) else {
+            throw GeometryError.invalidDistance(0.0)
+        }
         switch self {
         case let .plane(plane):
-            try validate(tolerance: tolerance)
             let normal = try plane.normal.normalized(
                 tolerance: tolerance.distance
             )
@@ -55,7 +73,6 @@ public extension Surface3D {
                 secondDerivativeVV: .zero
             )
         case let .cylinder(cylinder):
-            try validate(tolerance: tolerance)
             let axis = try cylinder.axis.normalized(
                 tolerance: tolerance.distance
             )
@@ -87,6 +104,12 @@ public extension Surface3D {
                 tolerance: tolerance
             )
         case let .bSpline(surface):
+            return try surface.parameterDerivativesAssumingValid(
+                atU: u,
+                v: v,
+                tolerance: tolerance
+            )
+        case let .procedural(surface):
             return try surface.parameterDerivatives(
                 atU: u,
                 v: v,
@@ -103,6 +126,20 @@ public extension BSplineSurface3D {
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterDerivatives {
         try validate(tolerance: tolerance)
+        return try parameterDerivativesAssumingValid(
+            atU: u,
+            v: v,
+            tolerance: tolerance
+        )
+    }
+}
+
+package extension BSplineSurface3D {
+    func parameterDerivativesAssumingValid(
+        atU u: Double,
+        v: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterDerivatives {
         guard try uDomain.contains(u, tolerance: tolerance),
               try vDomain.contains(v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)

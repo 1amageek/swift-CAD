@@ -118,7 +118,39 @@ package struct AnalyticCurveBSplineBuilder {
                 maximumSpanCount: maximumSpanCount,
                 tolerance: tolerance
             )
-        case .bSpline, .implicit, .certifiedIntersection:
+        case let .rigidImage(image):
+            guard let source = try boundedCurve(
+                curve: image.source,
+                interval: interval,
+                maximumSpanCount: maximumSpanCount,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            return try image.transform.applying(
+                to: source,
+                tolerance: tolerance
+            )
+        case let .affineImage(image):
+            guard let source = try boundedCurve(
+                curve: image.source,
+                interval: interval,
+                maximumSpanCount: maximumSpanCount,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            return try image.transform.applying(
+                to: source,
+                tolerance: tolerance
+            )
+        case let .bSpline(spline):
+            return try spline.trimmed(
+                from: interval.lower,
+                to: interval.upper,
+                tolerance: tolerance
+            )
+        case .implicit, .certifiedIntersection:
             return nil
         }
     }
@@ -322,8 +354,10 @@ package struct AnalyticCurveBSplineBuilder {
             return (uStart, uEnd - uStart, v, 0.0)
         case .harmonic, .sphericalGreatCircle, .polyline, .bSpline,
              .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-             .projectedAnalytic:
+             .projectedAnalytic, .rigidImage:
             return nil
+        case let .sameParameterImage(image):
+            return linearParameterLaw(image.source)
         case let .periodicTranslation(base, uShift, vShift):
             guard let law = linearParameterLaw(base) else { return nil }
             return (

@@ -23,6 +23,25 @@ struct GeneralCylinderCylinderSurfaceIntersectionTests {
         for intersection in intersections {
             try verifyCurve(intersection, first: first, second: second)
         }
+        let truth: [CertifiedAnalyticAnalyticIntersectionCurve] =
+            intersections.compactMap { intersection in
+                guard case let .curve(curve) = intersection,
+                      case let .analyticAnalytic(value) = curve.truth else {
+                    return nil
+                }
+                return value
+            }
+        #expect(truth.count == 2)
+        if truth.count == 2 {
+            #expect(
+                truth[0].componentRelation(to: truth[0])
+                    == .sameEmbeddedComponent(isClosed: true)
+            )
+            #expect(
+                truth[0].componentRelation(to: truth[1])
+                    == .disjointComponents
+            )
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from functools import lru_cache
 import re
 import subprocess
 import sys
@@ -170,6 +171,7 @@ def swift_files(paths: list[Path]) -> list[Path]:
     return sorted(set(files))
 
 
+@lru_cache(maxsize=None)
 def parse_ast(path: Path) -> str:
     result = subprocess.run(
         ["swiftc", "-frontend", "-dump-parse", str(path)],
@@ -185,15 +187,20 @@ def parse_ast(path: Path) -> str:
 
 def scan_swift_ast(paths: list[Path]) -> int:
     violations = 0
-    source_patterns = dict(FORBIDDEN_PATTERNS)
     for path in swift_files(paths):
         source = path.read_text(encoding="utf-8")
         masked = mask_non_code(source)
+        source_locations = {
+            label: list(pattern.finditer(masked))
+            for label, pattern in FORBIDDEN_PATTERNS
+        }
+        if not any(source_locations.values()):
+            continue
         ast = parse_ast(path)
         for label, ast_pattern in AST_FORBIDDEN_PATTERNS:
             if ast_pattern.search(ast) is None:
                 continue
-            locations = list(source_patterns[label].finditer(masked))
+            locations = source_locations[label]
             if not locations:
                 print(f"{path}: {label}")
                 violations += 1
@@ -208,14 +215,15 @@ def scan_swift_ast(paths: list[Path]) -> int:
 def scan_explicit_tolerance_ast(paths: list[Path]) -> int:
     violations = 0
     for path in swift_files(paths):
+        source = path.read_text(encoding="utf-8")
+        masked = mask_non_code(source)
+        source_matches = list(SOURCE_DEFAULT_TOLERANCE_PATTERN.finditer(masked))
+        if not source_matches:
+            continue
         ast = parse_ast(path)
         ast_matches = list(AST_DEFAULT_TOLERANCE_PATTERN.finditer(ast))
         if not ast_matches:
             continue
-
-        source = path.read_text(encoding="utf-8")
-        masked = mask_non_code(source)
-        source_matches = list(SOURCE_DEFAULT_TOLERANCE_PATTERN.finditer(masked))
         for index in range(len(ast_matches)):
             if index < len(source_matches):
                 line = masked.count("\n", 0, source_matches[index].start()) + 1
@@ -244,13 +252,14 @@ def scan_standard_tolerance_ast(paths: list[Path]) -> int:
     for path in swift_files(paths):
         if is_standard_tolerance_boundary(path):
             continue
-        ast = parse_ast(path)
-        if not any(pattern.search(ast) for pattern in AST_STANDARD_TOLERANCE_PATTERNS):
-            continue
-
         source = path.read_text(encoding="utf-8")
         masked = mask_non_code(source)
         source_matches = list(SOURCE_STANDARD_TOLERANCE_PATTERN.finditer(masked))
+        if not source_matches:
+            continue
+        ast = parse_ast(path)
+        if not any(pattern.search(ast) for pattern in AST_STANDARD_TOLERANCE_PATTERNS):
+            continue
         if not source_matches:
             print(f"{path}: standard tolerance is restricted to named boundaries")
             violations += 1

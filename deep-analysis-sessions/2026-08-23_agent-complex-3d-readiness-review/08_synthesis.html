@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent-driven Complex 3D Readiness Review</title>
+<style>
+:root{color-scheme:light dark;--bg:#f4f7fb;--panel:#fff;--ink:#152033;--muted:#5f6b7a;--line:#d8e0ea;--ok:#168c68;--partial:#d98b21;--bad:#c4414b;--accent:#3157d5;--shadow:0 10px 30px rgba(20,32,51,.08)}
+@media(prefers-color-scheme:dark){:root{--bg:#0c111b;--panel:#151d2b;--ink:#edf2fb;--muted:#aab6c8;--line:#2a3648;--ok:#4bd0a5;--partial:#f0ad4e;--bad:#ff7e87;--accent:#89a3ff;--shadow:none}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1180px;margin:auto;padding:44px 24px 80px}.eyebrow{color:var(--accent);font-weight:700;letter-spacing:.08em;text-transform:uppercase}h1{font-size:clamp(2rem,5vw,4.4rem);line-height:1.08;margin:.25rem 0 1.2rem;max-width:17ch}h2{font-size:1.55rem;margin:0 0 1rem}h3{margin:.2rem 0 .5rem}.lead{font-size:1.15rem;max-width:72ch;color:var(--muted)}.verdict{border-left:6px solid var(--partial);padding:18px 22px;background:var(--panel);box-shadow:var(--shadow);border-radius:8px;margin:28px 0}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:18px;margin:26px 0}.card{grid-column:span 6;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:var(--shadow)}.wide{grid-column:1/-1}.metric{font-size:2.7rem;font-weight:800;line-height:1}.sub{color:var(--muted);font-size:.92rem}.pill{display:inline-block;border-radius:999px;padding:4px 10px;font-weight:700;font-size:.8rem}.ok{color:var(--ok);background:color-mix(in srgb,var(--ok) 13%,transparent)}.partial{color:var(--partial);background:color-mix(in srgb,var(--partial) 14%,transparent)}.bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 13%,transparent)}.bar{height:20px;border-radius:999px;overflow:hidden;background:var(--line);display:flex;margin:14px 0}.bar span:first-child{width:58.21%;background:var(--ok)}.bar span:last-child{width:41.79%;background:var(--partial)}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-size:.82rem;text-transform:uppercase;letter-spacing:.06em}.flow{display:grid;grid-template-columns:repeat(7,minmax(100px,1fr));align-items:center;gap:8px;overflow:auto;padding:8px 0}.node{min-height:104px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel);display:flex;flex-direction:column;justify-content:center}.arrow{text-align:center;color:var(--muted);font-weight:800}.root{border:2px solid var(--bad)}.steps{counter-reset:item;display:grid;gap:12px}.step{display:grid;grid-template-columns:42px 1fr;gap:12px;align-items:start}.step:before{counter-increment:item;content:counter(item);display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;font-weight:800}.note{border:1px dashed var(--line);padding:16px;border-radius:12px;color:var(--muted)}a{color:var(--accent)}footer{margin-top:40px;color:var(--muted);font-size:.88rem}@media(max-width:780px){.card{grid-column:1/-1}.flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg)}main{padding:28px 16px 60px}}@media print{:root{--bg:#fff;--panel:#fff;--ink:#000;--muted:#444;--line:#bbb;--shadow:none}main{max-width:none;padding:0}.card,.verdict{break-inside:avoid}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="eyebrow">Evidence-backed readiness review · 2026-08-24</div>
+<h1>Agentによる複雑な3D生成は、どこまで来たか</h1>
+<p class="lead">結論は二層です。Agentが操作できるexact CAD基盤は相当できています。しかし、任意の複雑な製品を長いフィーチャ履歴として安定して完成させる能力とproduction proofは、まだ到達していません。</p>
+<div class="verdict"><strong>現在の位置づけ：</strong> 制約を理解した外部Agent向けの高度なalpha。一般的な自律CAD製品、またはrelease-readyなcomplex-product generatorとはまだ評価できません。</div>
+</header>
+
+<section class="grid" aria-label="Summary metrics">
+<article class="card"><span class="pill ok">Foundation</span><p class="metric">75</p><p>公開routeをinventoryで確認</p><p class="sub">44 features · 6 commands · 7 queries · 4 persistence · 14 exchange</p></article>
+<article class="card"><span class="pill partial">Capability ledger</span><p class="metric">39 / 67</p><p>supported / total</p><div class="bar" aria-label="39 supported and 28 partial"><span></span><span></span></div><p class="sub">28 partial。単純な58%完成とは解釈できません。</p></article>
+<article class="card"><span class="pill bad">Release proof</span><p class="metric">0 / 8</p><p>repository-defined gate完了数</p><p class="sub">evidence manifestも0件です。</p></article>
+<article class="card"><span class="pill ok">Kernel behavior</span><p class="metric">615 / 615</p><p>直近のfull CADKernel run</p><p class="sub">後続変更は46/46 focused regressionと181/181 Release facadeがpass。</p></article>
+</section>
+
+<section class="card wide">
+<h2>End-to-end readiness</h2>
+<div class="flow" role="img" aria-label="External Agent to release evidence flow">
+<div class="node"><strong>External Agent</strong><span class="sub">plannerはrepository外</span></div><div class="arrow">→</div>
+<div class="node"><strong>Command / Query</strong><span class="pill ok">実装済み基盤</span></div><div class="arrow">→</div>
+<div class="node"><strong>Exact BRep history</strong><span class="pill ok">強い基盤</span></div><div class="arrow">→</div>
+<div class="node root"><strong>General composition</strong><span class="pill bad">根本blocker</span></div>
+</div>
+<div class="flow" role="img" aria-label="Composition to output proof flow">
+<div class="node"><strong>Topology validation</strong><span class="pill ok">基盤あり</span></div><div class="arrow">→</div>
+<div class="node"><strong>Complex features</strong><span class="pill partial">多数partial</span></div><div class="arrow">→</div>
+<div class="node"><strong>STEP / IGES</strong><span class="pill partial">exact subset</span></div><div class="arrow">→</div>
+<div class="node root"><strong>Release evidence</strong><span class="pill bad">未成立</span></div>
+</div>
+</section>
+
+<section class="grid">
+<article class="card">
+<h2>できていること</h2>
+<ul>
+<li>Codableなcommand/queryと一貫したdocument editing path</li>
+<li>parameter、incremental invalidation、BRep validation、lineage、cache</li>
+<li>primitive、extrude、revolve、loft、NURBS、基本topology</li>
+<li>native persistence、STL/GLB、STEP/IGESのexact subset</li>
+<li>production module buildと広いkernel test実体</li>
+</ul>
+</article>
+<article class="card">
+<h2>難しいこと</h2>
+<ul>
+<li>任意のsurface表現を跨ぐBoolean合成</li>
+<li>一般fillet/chamfer/G2/shell/sweep</li>
+<li>nested/self-intersecting/mixed sketch regions</li>
+<li>長いdirect-edit chainでのstable selection</li>
+<li>任意STEP/IGES資産とのproduction interoperability</li>
+</ul>
+</article>
+</section>
+
+<section class="card wide">
+<h2>最も重要な根本問題</h2>
+<p><strong>supported output → 次のgeneral operation</strong> の閉包がまだ不完全です。ruled surfaceは同一parameter chartを保つexact rational B-splineへ解決して交差アルゴリズムへ渡し、結果とpcurveでは元のprocedural surface identityとUVを維持する経路まで修正されました。一方、一般の非還元procedural offset surfaceはexact rational representationを持たず、supported宣言されたsurface-surface intersectionの全representation pairをまだ閉じていません。Booleanはface pairごとにそのintersectorを呼ぶため、offset/thickenを含む長い製品履歴には継続不能な経路が残ります。</p>
+<p class="note">これは「未実装featureが28個ある」という表面的な問題より深刻です。capability catalogのsupported昇格条件と、behavioral representation matrixが一致していないことを示します。</p>
+</section>
+
+<section class="card wide">
+<h2>直近の本質的な前進</h2>
+<p>周期 chart の所有権を整理し、Geometry が一曲線内の連続 lift、Topology が coedge 間の整数周期整列だけを担当する形へ修正しました。固定16標本による多周回 alias、奇数分割 midpoint、逐次 interval 加算も、導関数証明・偶数分割・balanced reductionへ置き換えています。さらにこの責務をpair固有でなく特異点のない周期解析chart全体へ一般化し、general cone–torusの残存誤差も閉じました。最適化済みRelease facadeは181/181で成功しました。</p>
+<p class="note">この改善はrepresentation closureとAgent query correctnessを実質的に前進させますが、general procedural offset、curve/directional query、二重周期・coincident Boolean、依存feature全体のbehavioral matrixは未完です。したがって評価は「高度なalpha」のままです。</p>
+</section>
+
+<section class="card wide">
+<h2>Verification matrix</h2>
+<table>
+<thead><tr><th>Area</th><th>Result</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>SwiftCAD product build</td><td><span class="pill ok">Pass</span></td><td>Production moduleはcompileする</td></tr>
+<tr><td>CADKernel full</td><td><span class="pill ok">615 / 615 pass</span></td><td>実装されたkernel pathには相当のbehavioral depthがある</td></tr>
+<tr><td>Latest focused paths</td><td><span class="pill ok">46 / 46 pass</span></td><td>chart lift、cone–torus / torus–torus微分証明、area/flux、trimmed volumeが成立</td></tr>
+<tr><td>SwiftCAD Release facade</td><td><span class="pill ok">181 / 181 pass</span></td><td>69 suitesを244.344秒で完走。general cone–torusとtorus–torusを含む公開経路が成立</td></tr>
+<tr><td>CADExchange tests</td><td><span class="pill ok">237 / 237 pass</span></td><td>宣言されたexchange subsetの内部behavioral proofは成立</td></tr>
+<tr><td>Release gates</td><td><span class="pill bad">0 / 8</span></td><td>repository自身の完了契約が未達</td></tr>
+<tr><td>Evidence manifests</td><td><span class="pill bad">0</span></td><td>clean revisionへ紐づく再現可能証拠がない</td></tr>
+</tbody>
+</table>
+</section>
+
+<section class="card wide">
+<h2>理想形への順序</h2>
+<div class="steps">
+<div class="step"><div><h3>Release evidence baseline</h3><p>回復したfacade/exchangeの全public test baselineを一つのclean commitから再現し、環境と時間をmachine-readable manifestへ固定する。</p></div></div>
+<div class="step"><div><h3>Geometry contract closure</h3><p>validated Surface3D representation pairのbehavioral matrixを作り、実装するかcapabilityを正直にpartialへdemoteする。</p></div></div>
+<div class="step"><div><h3>Topology and Boolean closure</h3><p>intersection、pcurve、arrangement、region classification、sewing、validationをgeneral surfaceで閉じる。</p></div></div>
+<div class="step"><div><h3>Agent edit reliability</h3><p>certified global query、deterministic tie-break、lineage、cache invalidationをadversarial historyで証明する。</p></div></div>
+<div class="step"><div><h3>Feature breadth and interoperability</h3><p>特殊topology依存を除き、external CAD oracle、corpus、fuzz、performance、G0–G7 evidenceを同一release revisionで成立させる。</p></div></div>
+</div>
+</section>
+
+<footer>Assessment scope: pre-commit worktree with 535 entries at main / 10d3416159e40aef24da935ed78be40a29dd3de2 after the current implementation changes. Results are not formal release evidence until reproduced from one clean commit.</footer>
+</main>
+</body>
+</html>

@@ -45,6 +45,22 @@ struct SurfaceParameterProjectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func projectionResultRepresentsVerifiedOffSurfacePointWithoutAnError() throws {
+        let surface = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
+
+        let result = try surface.parameterProjectionResult(
+            of: Point3D(x: 0.0, y: 0.0, z: 1.0),
+            tolerance: .standard
+        )
+
+        guard case let .outsideTolerance(residual) = result else {
+            Issue.record("An off-surface point must be represented as a verified projection miss.")
+            return
+        }
+        #expect(residual == 1.0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func torusAxisPointReturnsVerifiedResidualFailure() throws {
         let surface = Surface3D.analytic(.torus(
             center: .origin,
