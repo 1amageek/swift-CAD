@@ -379,7 +379,7 @@ package struct SurfaceParameterLoopUnwrapper {
                 )
             }
         case let .procedural(.offset(offset)):
-            if let equivalent = try offset.exactSameParameterSurface(
+            if let equivalent = try offset.exactChartPreservingSurface(
                 tolerance: tolerance
             ) {
                 return try parametersCloseAcrossCollapsedBoundary(

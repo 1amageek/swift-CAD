@@ -184,7 +184,7 @@ public struct RuledSurface3D: Codable, Hashable, Sendable {
 }
 
 extension RuledSurface3D {
-    /// Returns the exact same-parameter rational B-spline representation when
+    /// Returns the exact chart-preserving rational B-spline representation when
     /// both boundary curves have an exact bounded rational representation.
     package func exactBSplineRepresentation(
         tolerance: ModelingTolerance

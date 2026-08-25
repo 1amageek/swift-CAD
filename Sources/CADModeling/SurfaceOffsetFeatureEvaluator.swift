@@ -144,7 +144,7 @@ public struct SurfaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             source: target.surface,
             distance: distance * orientationSign
         )
-        let targetSurface = try proceduralOffset.exactSameParameterSurface(
+        let targetSurface = try proceduralOffset.exactChartPreservingSurface(
             tolerance: tolerance
         ) ?? .procedural(.offset(proceduralOffset))
         try DefaultSurfaceRegularityValidator().validate(
@@ -180,8 +180,7 @@ public struct SurfaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 : try use.sourceParameterCurve.reversed(tolerance: tolerance)
             let canonicalTarget = try transported(
                 canonicalSource,
-                sourceSurface: target.surface,
-                targetSurface: targetSurface,
+                through: proceduralOffset,
                 tolerance: tolerance
             )
             let lift = SurfaceLiftCurve3D(
@@ -217,8 +216,7 @@ public struct SurfaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             }
             loop.coedges[use.coedgeIndex].surfaceParameterCurve = try transported(
                 use.sourceParameterCurve,
-                sourceSurface: target.surface,
-                targetSurface: targetSurface,
+                through: proceduralOffset,
                 tolerance: tolerance
             )
             model.loops[use.loopID] = loop
@@ -280,14 +278,11 @@ public struct SurfaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeature
 
     private func transported(
         _ curve: SurfaceParameterCurve,
-        sourceSurface: Surface3D,
-        targetSurface: Surface3D,
+        through offset: OffsetSurface3D,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterCurve {
-        .sameParameterImage(try SameParameterSurfaceParameterCurve(
-            source: curve,
-            sourceSurface: sourceSurface,
-            targetSurface: targetSurface,
+        .offsetSurfaceImage(try offset.parameterCurveImage(
+            transporting: curve,
             tolerance: tolerance
         ))
     }

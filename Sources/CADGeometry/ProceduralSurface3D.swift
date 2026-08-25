@@ -151,14 +151,14 @@ public enum ProceduralSurface3D: Codable, Hashable, Sendable {
         }
     }
 
-    /// Returns an exact surface with the same parameter chart when the
+    /// Returns an exact surface with the preserved parameter chart when the
     /// procedural construction has a closed-form canonical representation.
-    package func exactSameParameterSurface(
+    package func exactChartPreservingSurface(
         tolerance: ModelingTolerance
     ) throws -> Surface3D? {
         switch self {
         case let .offset(surface):
-            return try surface.exactSameParameterSurface(tolerance: tolerance)
+            return try surface.exactChartPreservingSurface(tolerance: tolerance)
         case let .ruled(surface):
             guard let exact = try surface.exactBSplineRepresentation(
                 tolerance: tolerance

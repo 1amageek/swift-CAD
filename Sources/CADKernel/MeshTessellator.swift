@@ -1633,7 +1633,7 @@ public struct MeshTessellator: Tessellating {
             let steps = bSplineStepCount(options: options)
             return (steps, steps)
         case let .procedural(.offset(offset)):
-            if let equivalent = try offset.exactSameParameterSurface(
+            if let equivalent = try offset.exactChartPreservingSurface(
                 tolerance: tolerance
             ) {
                 return try parametricGridStepCounts(
@@ -2193,7 +2193,7 @@ public struct MeshTessellator: Tessellating {
             return .v
         case let .periodicTranslation(base, _, _):
             return rectangularParameterAxis(base)
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return rectangularParameterAxis(image.source)
         case .affine, .harmonic, .polyline, .bSpline, .sphericalGreatCircle,
              .certifiedImplicit, .certifiedAnalyticImplicit,

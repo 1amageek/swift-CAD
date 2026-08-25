@@ -59,8 +59,8 @@ extension SurfaceParameterCurve {
                 to: sourceSupport,
                 tolerance: tolerance
             )
-        case let .sameParameterImage(curve):
-            guard hostingSurface == curve.targetSurface else {
+        case let .offsetSurfaceImage(curve):
+            guard hostingSurface == (try curve.targetSurface(tolerance: tolerance)) else {
                 throw supportSurfaceMismatch(tolerance: tolerance)
             }
             return nil
@@ -121,7 +121,7 @@ extension SurfaceParameterCurve {
                     curve.transform.applying(to:)
                 )
             ).expanded(by: tolerance.distance)
-        case .sameParameterImage:
+        case .offsetSurfaceImage:
             return nil
         case let .periodicTranslation(base, _, _):
             return try base.exactIntersectionBoundingBox(

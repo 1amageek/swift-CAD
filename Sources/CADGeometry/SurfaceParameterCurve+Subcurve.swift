@@ -130,8 +130,8 @@ public extension SurfaceParameterCurve {
                 toNormalizedFraction: upperFraction,
                 tolerance: tolerance
             ))
-        case let .sameParameterImage(curve):
-            return .sameParameterImage(try curve.subcurve(
+        case let .offsetSurfaceImage(curve):
+            return .offsetSurfaceImage(try curve.subcurve(
                 fromNormalizedFraction: lowerFraction,
                 toNormalizedFraction: upperFraction,
                 tolerance: tolerance

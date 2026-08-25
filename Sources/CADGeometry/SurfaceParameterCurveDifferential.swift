@@ -190,7 +190,7 @@ public extension SurfaceParameterCurve {
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
             )
-        case let .sameParameterImage(curve):
+        case let .offsetSurfaceImage(curve):
             return try curve.differential(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance

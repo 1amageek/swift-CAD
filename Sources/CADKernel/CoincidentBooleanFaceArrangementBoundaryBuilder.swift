@@ -466,7 +466,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
                     y: segment.end.y + vShift
                 )
             )
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return linearParameterSegment(image.source)
         }
     }

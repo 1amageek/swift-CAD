@@ -233,7 +233,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                     )
                 )
             }
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try parameterEnclosures(
                 for: image.source,
                 fromNormalizedFraction: boundedLower,
@@ -673,7 +673,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                     v: parameters.v
                 ) * parameters.v.derivative()
             }
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try bounds(
                 for: image.source,
                 integrand: integrand,
@@ -773,7 +773,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 requestedWidth: requestedWidth,
                 tolerance: tolerance
             )
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try periodicBoundaryGaugeBounds(
                 for: image.source,
                 integrand: integrand,
@@ -1522,7 +1522,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
              .projectedAnalytic,
              .rigidImage:
             return nil
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try polynomialBounds(
                 for: image.source,
                 primitive: primitive,
@@ -1739,7 +1739,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 requestedWidth: requestedWidth,
                 tolerance: tolerance
             )
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try rationalSurfaceBounds(
                 for: image.source,
                 field: field,
@@ -1922,7 +1922,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 requestedWidth: requestedWidth,
                 tolerance: tolerance
             )
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try proceduralSurfaceBounds(
                 for: image.source,
                 surface: surface,
@@ -2126,7 +2126,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 requestedWidth: requestedWidth,
                 tolerance: tolerance
             )
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try rationalPlanarAreaBounds(
                 for: image.source,
                 field: field,

@@ -746,7 +746,7 @@ public struct SurfaceQueryEvaluator: Sendable {
         options: SurfaceProjectionOptions
     ) throws -> SurfaceProjectionResult {
         let proceduralSurface = Surface3D.procedural(.offset(offset))
-        if let equivalent = try offset.exactSameParameterSurface(
+        if let equivalent = try offset.exactChartPreservingSurface(
             tolerance: tolerance
         ) {
             let equivalentResult: SurfaceProjectionResult
@@ -858,7 +858,7 @@ public struct SurfaceQueryEvaluator: Sendable {
         options: SurfaceDirectionalProjectionOptions
     ) throws -> SurfaceDirectionalProjectionResult {
         let proceduralSurface = Surface3D.procedural(.offset(offset))
-        if let equivalent = try offset.exactSameParameterSurface(
+        if let equivalent = try offset.exactChartPreservingSurface(
             tolerance: tolerance
         ) {
             let equivalentResult: SurfaceDirectionalProjectionResult

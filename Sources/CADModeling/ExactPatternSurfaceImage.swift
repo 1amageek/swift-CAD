@@ -132,7 +132,7 @@ package struct ExactPatternSurfaceImage: Sendable {
             )
         case .certifiedImplicit,
              .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-             .rigidImage, .sameParameterImage:
+             .rigidImage, .offsetSurfaceImage:
             return try rigidImage(parameterCurve, tolerance: tolerance)
         case let .periodicTranslation(base, uShift, vShift):
             let mappedShift = mapping.applyingVector(

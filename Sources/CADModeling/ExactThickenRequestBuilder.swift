@@ -385,7 +385,7 @@ package struct ExactThickenRequestBuilder: Sendable {
             )
             let resolved: Surface3D
             if case let .procedural(.offset(offset)) = candidate,
-               let exact = try offset.exactSameParameterSurface(
+               let exact = try offset.exactChartPreservingSurface(
                    tolerance: tolerance
                ) {
                 resolved = exact
@@ -875,7 +875,7 @@ package struct ExactThickenRequestBuilder: Sendable {
             )
         case let .periodicTranslation(base, _, _):
             return isExactLineParameterCurve(base, tolerance: tolerance)
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return isExactLineParameterCurve(
                 image.source,
                 tolerance: tolerance

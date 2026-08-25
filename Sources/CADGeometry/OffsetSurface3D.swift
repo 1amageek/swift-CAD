@@ -169,7 +169,7 @@ public struct OffsetSurface3D: Codable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> SurfaceIntervalVectorJet {
         try validate(tolerance: tolerance)
-        if let equivalent = try exactSameParameterSurface(tolerance: tolerance) {
+        if let equivalent = try exactChartPreservingSurface(tolerance: tolerance) {
             return try DefaultSurfaceDifferentialEncloser().intervalJet(
                 of: equivalent,
                 over: parameters,
@@ -194,7 +194,7 @@ public struct OffsetSurface3D: Codable, Hashable, Sendable {
         return sourceJet + normal * .constant(distance)
     }
 
-    package func exactSameParameterSurface(
+    package func exactChartPreservingSurface(
         tolerance: ModelingTolerance
     ) throws -> Surface3D? {
         switch source {
@@ -266,7 +266,7 @@ public struct OffsetSurface3D: Codable, Hashable, Sendable {
             return try OffsetSurface3D(
                 source: nested.source,
                 distance: nested.distance + distance
-            ).exactSameParameterSurface(tolerance: tolerance)
+            ).exactChartPreservingSurface(tolerance: tolerance)
         }
     }
 }

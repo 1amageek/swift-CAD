@@ -356,7 +356,7 @@ package struct AnalyticCurveBSplineBuilder {
              .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
              .projectedAnalytic, .rigidImage:
             return nil
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return linearParameterLaw(image.source)
         case let .periodicTranslation(base, uShift, vShift):
             guard let law = linearParameterLaw(base) else { return nil }

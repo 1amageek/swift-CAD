@@ -278,7 +278,7 @@ public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatur
              .certifiedAnalyticPair,
              .projectedAnalytic,
              .rigidImage,
-             .sameParameterImage:
+             .offsetSurfaceImage:
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,

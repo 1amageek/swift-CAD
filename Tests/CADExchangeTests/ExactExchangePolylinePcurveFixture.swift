@@ -41,7 +41,7 @@ enum ExactExchangePolylinePcurveFixture {
              .projectedAnalytic,
              .rigidImage:
             false
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             isLinear(image.source)
         case let .periodicTranslation(base, _, _):
             isLinear(base)

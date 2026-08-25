@@ -10,7 +10,7 @@ import Foundation
 /// flux primitive, remaining rational rectangles use certified adaptive
 /// quadrature, and analytic faces are composed through their certified
 /// surface-flux integrator. Procedural surfaces first use an exact
-/// same-parameter canonical surface when one exists; remaining procedural
+/// chart-preserving canonical surface when one exists; remaining procedural
 /// trims use a certified boundary-flux enclosure with second-derivative error
 /// bounds. Unsupported trims never enter an approximate success path.
 struct TrimmedParametricSurfaceVolumeEvaluator {
@@ -134,7 +134,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
                 }
                 contribution = bSplineContribution
             case let .procedural(procedural):
-                if let exactSurface = try procedural.exactSameParameterSurface(
+                if let exactSurface = try procedural.exactChartPreservingSurface(
                     tolerance: tolerance
                 ) {
                     switch exactSurface {

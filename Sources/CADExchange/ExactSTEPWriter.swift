@@ -661,7 +661,7 @@ struct ExactSTEPWriter {
                 units: units,
                 table: &table
             )
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             try image.validate(on: surface, tolerance: tolerance)
             return try parameterCurveEntity(
                 image.source,
@@ -728,7 +728,7 @@ struct ExactSTEPWriter {
             return false
         case let .periodicTranslation(base, _, _):
             return try usesModelCurveOnly(base, on: surface)
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             try image.validate(on: surface, tolerance: tolerance)
             return try usesModelCurveOnly(
                 image.source,

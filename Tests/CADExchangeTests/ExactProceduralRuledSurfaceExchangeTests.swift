@@ -12,7 +12,7 @@ struct ExactProceduralRuledSurfaceExchangeTests {
     private let tolerance = ModelingTolerance.standard
 
     @Test(.timeLimit(.minutes(1)))
-    func stepRoundTripUsesAnExactSameParameterNURBSRepresentation() throws {
+    func stepRoundTripUsesAnExactChartPreservingNURBSRepresentation() throws {
         let fixture = try makeFixture()
         let sink = DataByteSink()
         try STEPExchange(tolerance: tolerance).write(
@@ -32,7 +32,7 @@ struct ExactProceduralRuledSurfaceExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func igesRoundTripUsesAnExactSameParameterNURBSRepresentation() throws {
+    func igesRoundTripUsesAnExactChartPreservingNURBSRepresentation() throws {
         let fixture = try makeFixture()
         let sink = DataByteSink()
         try IGESExchange(tolerance: tolerance).write(

@@ -610,7 +610,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
              .projectedAnalytic,
              .rigidImage:
             return nil
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try coordinateVerticalSegments(
                 image.source,
                 tolerance: tolerance
@@ -860,7 +860,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
             case .analytic, .bSpline:
                 return nil
             case let .procedural(.offset(offset)):
-                guard let equivalent = try offset.exactSameParameterSurface(
+                guard let equivalent = try offset.exactChartPreservingSurface(
                     tolerance: tolerance
                 ) else {
                     return nil

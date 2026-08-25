@@ -120,7 +120,7 @@ enum ExactExchangePeriodicTrimAssertions {
                  .projectedAnalytic,
                  .rigidImage:
                 return nil
-            case let .sameParameterImage(image):
+            case let .offsetSurfaceImage(image):
                 return periodicPcurveSpan(image.source)
             case let .periodicTranslation(base, _, _):
                 return periodicPcurveSpan(base)

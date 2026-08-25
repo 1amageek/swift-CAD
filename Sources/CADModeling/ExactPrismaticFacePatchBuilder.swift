@@ -622,7 +622,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
     private func isCylindrical(_ surface: Surface3D) throws -> Bool {
         let classified: Surface3D
         if case let .procedural(.offset(offset)) = surface {
-            classified = try offset.exactSameParameterSurface(
+            classified = try offset.exactChartPreservingSurface(
                 tolerance: tolerance
             ) ?? surface
         } else {

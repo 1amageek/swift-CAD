@@ -708,7 +708,7 @@ struct ExactIGESWriter {
             false
         case let .periodicTranslation(base, _, _):
             isLinear(base)
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             isLinear(image.source)
         }
     }
@@ -739,7 +739,7 @@ struct ExactIGESWriter {
             return false
         case let .periodicTranslation(base, _, _):
             return usesModelCurveOnly(base, on: surface)
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return usesModelCurveOnly(
                 image.source,
                 on: image.sourceSurface
@@ -849,7 +849,7 @@ struct ExactIGESWriter {
                 unit: unit,
                 table: &table
             )
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             try image.validate(on: surface, tolerance: tolerance)
             return try parameterCurveEntity(
                 image.source,

@@ -451,7 +451,7 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                 tolerance: tolerance,
                 "A certificate-backed pcurve must use its interval enclosure path."
             )
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try rationalPatches(
                 for: image.source,
                 tolerance: tolerance
@@ -472,7 +472,7 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
              .certifiedAnalyticImplicit, .certifiedAnalyticPair,
              .projectedAnalytic, .rigidImage:
             true
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             requiresCertifiedEnclosure(image.source)
         case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline:
             false

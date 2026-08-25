@@ -1,7 +1,7 @@
 import CADCore
 import CADGeometry
 
-/// Resolves an exact same-parameter representation that official exchange
+/// Resolves an exact chart-preserving representation that official exchange
 /// schemas can encode without changing any face-local pcurve coordinates.
 struct ExactExchangeSurfaceRepresentationResolver: Sendable {
     func resolve(

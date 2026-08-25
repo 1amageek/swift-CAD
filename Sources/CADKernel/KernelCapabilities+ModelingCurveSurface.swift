@@ -302,10 +302,10 @@ extension KernelCapabilities {
             ],
             outputs: [
                 "validatedExactSheetBRep",
-                "sameParameterExactOffsetSurface",
+                "chartPreservingExactOffsetSurface",
                 "analyticOffsetSimplificationOrCertifiedProceduralOffset",
                 "exactSurfaceLiftBoundaryCurves",
-                "sameParameterFaceLocalPcurves",
+                "chartPreservingFaceLocalPcurves",
                 "preservedOuterAndInnerLoopTopology",
                 "freshFeatureScopedSurfaceAndCurveIdentities",
                 "preservedTopologyLineage",
@@ -315,7 +315,7 @@ extension KernelCapabilities {
             ],
             fixtures: [
                 "SurfaceOffsetFeatureTests",
-                "SameParameterSurfaceParameterCurveTests",
+                "OffsetSurfaceParameterCurveImageTests",
                 "SurfaceOffsetBuilderTests",
                 "DirectEditSchemaTests",
             ],
@@ -330,7 +330,7 @@ extension KernelCapabilities {
                 .topologyFailure,
             ],
             additionalPublicAPIs: [
-                "CADGeometry.SameParameterSurfaceParameterCurve",
+                "CADGeometry.OffsetSurfaceParameterCurveImage",
                 "CADModeling.SurfaceOffsetFeatureEvaluator",
             ]
         ),

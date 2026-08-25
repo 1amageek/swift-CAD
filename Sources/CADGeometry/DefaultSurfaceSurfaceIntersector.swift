@@ -13,10 +13,10 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
         try first.validate(tolerance: tolerance)
         try second.validate(tolerance: tolerance)
 
-        let firstDispatchSurface = try first.exactSameParameterRepresentation(
+        let firstDispatchSurface = try first.exactChartPreservingRepresentation(
             tolerance: tolerance
         ) ?? first
-        let secondDispatchSurface = try second.exactSameParameterRepresentation(
+        let secondDispatchSurface = try second.exactChartPreservingRepresentation(
             tolerance: tolerance
         ) ?? second
         let firstCanonical = CanonicalAnalyticSurface(firstDispatchSurface)

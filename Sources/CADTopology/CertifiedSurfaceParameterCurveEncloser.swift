@@ -171,7 +171,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
                     v: mapped.v
                 )
             }.sorted { $0.lowerFraction < $1.lowerFraction }
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try enclosures(
                 for: image.source,
                 fromNormalizedFraction: boundedLower,
@@ -223,7 +223,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
                     maximumWidth: maximumWidth,
                     tolerance: tolerance
                 )
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try vEnclosures(
                 for: image.source,
                 fromNormalizedFraction: lowerFraction,
@@ -430,7 +430,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
             return (u, v)
         case .sphericalGreatCircle, .certifiedImplicit,
              .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-             .projectedAnalytic, .rigidImage, .sameParameterImage,
+             .projectedAnalytic, .rigidImage, .offsetSurfaceImage,
              .periodicTranslation:
             throw failure(
                 .invalidInput,

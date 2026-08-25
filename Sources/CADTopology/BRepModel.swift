@@ -1164,7 +1164,7 @@ public struct BRepModel: Codable, Equatable, Sendable {
             )
         case .affine, .constantU, .constantV, .harmonic, .sphericalGreatCircle,
              .polyline, .bSpline, .certifiedImplicit, .certifiedAnalyticPair,
-             .projectedAnalytic, .rigidImage, .sameParameterImage:
+             .projectedAnalytic, .rigidImage, .offsetSurfaceImage:
             let parameter = try pcurve.parameter(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
@@ -1301,7 +1301,7 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 source.startParameter + span * image.startFraction,
                 source.startParameter + span * image.endFraction
             )
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return sphericalGreatCircleDefinition(image.source)
         case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline,
              .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
@@ -1496,7 +1496,7 @@ public struct BRepModel: Codable, Equatable, Sendable {
         }
 
         if case let .procedural(.offset(offset)) = surface,
-           let equivalent = try offset.exactSameParameterSurface(
+           let equivalent = try offset.exactChartPreservingSurface(
                tolerance: tolerance
            ) {
             return try validate(

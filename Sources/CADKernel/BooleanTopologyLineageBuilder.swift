@@ -382,7 +382,7 @@ struct BooleanTopologyLineageBuilder {
         case let .analytic(.cylinder(origin, axis, radius)):
             return (origin, axis, radius)
         case let .procedural(.offset(offset)):
-            guard let equivalent = try offset.exactSameParameterSurface(
+            guard let equivalent = try offset.exactChartPreservingSurface(
                 tolerance: tolerance
             ) else {
                 return nil

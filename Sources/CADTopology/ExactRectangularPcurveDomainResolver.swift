@@ -156,7 +156,7 @@ package struct ExactRectangularPcurveDomainResolver:
              .projectedAnalytic,
              .rigidImage:
             return nil
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try axisAlignedVertices(
                 of: image.source,
                 tolerance: tolerance

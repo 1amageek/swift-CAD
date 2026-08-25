@@ -481,7 +481,7 @@ struct SurfaceLiftDifferentialBounder {
             intervalInvariantParameterCurve(base)
         case let .rigidImage(image):
             intervalInvariantParameterCurve(image.source.parameterCurve)
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             intervalInvariantParameterCurve(image.source)
         default:
             false
@@ -553,7 +553,7 @@ struct SurfaceLiftDifferentialBounder {
             normalizedBreaks = sourceBreaks.map {
                 ($0 - image.startFraction) / span
             }
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try breakParameters(
                 lift: SurfaceLiftCurve3D(
                     surface: image.sourceSurface,
@@ -620,7 +620,7 @@ struct SurfaceLiftDifferentialBounder {
         case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
              .projectedAnalytic, .rigidImage:
             return nil
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try parameterBounds(
                 image.source,
                 tolerance: tolerance
@@ -822,7 +822,7 @@ struct SurfaceLiftDifferentialBounder {
         case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
              .projectedAnalytic, .rigidImage:
             return nil
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try parameterDerivativeBounds(
                 image.source,
                 tolerance: tolerance
@@ -927,7 +927,7 @@ struct SurfaceLiftDifferentialBounder {
                 )
             }
             if case let .procedural(procedural) = surface {
-                if let exact = try procedural.exactSameParameterSurface(
+                if let exact = try procedural.exactChartPreservingSurface(
                     tolerance: tolerance
                 ) {
                     return try surfaceDerivativeBounds(

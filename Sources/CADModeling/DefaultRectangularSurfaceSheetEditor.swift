@@ -311,7 +311,7 @@ package struct DefaultRectangularSurfaceSheetEditor: RectangularSurfaceSheetEdit
              .projectedAnalytic,
              .rigidImage:
             return nil
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try axisAlignedSegment(
                 coedgeIndex: coedgeIndex,
                 coedge: coedge,

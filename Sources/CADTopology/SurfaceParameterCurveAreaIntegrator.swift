@@ -147,7 +147,7 @@ package struct SurfaceParameterCurveAreaIntegrator {
                 requestedWidth: requestedWidth,
                 tolerance: tolerance
             )
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try bounds(
                 for: image.source,
                 uShift: uShift,
@@ -195,7 +195,7 @@ package struct SurfaceParameterCurveAreaIntegrator {
                     requestedWidth: requestedWidth,
                     tolerance: tolerance
                 )
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try periodicConeBounds(
                 for: image.source,
                 requestedWidth: requestedWidth,

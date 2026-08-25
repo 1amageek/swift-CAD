@@ -316,7 +316,7 @@ private extension SurfaceParameterCurve {
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
             )
-        case let .sameParameterImage(curve):
+        case let .offsetSurfaceImage(curve):
             return try curve.source.thirdOrderDifferential(
                 atNormalizedFraction: fraction,
                 on: curve.sourceSurface,

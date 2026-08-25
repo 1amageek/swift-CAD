@@ -103,7 +103,7 @@ struct ExactRectangularBSplineSurfacePatchTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func recognizesAFullNormalizedRuledDomainAsSameParameter() throws {
+    func recognizesAFullNormalizedRuledDomainAsChartPreserving() throws {
         let source = Surface3D.procedural(.ruled(RuledSurface3D(
             startBoundary: .line(Line3D(origin: .origin, direction: .unitX)),
             endBoundary: .line(Line3D(

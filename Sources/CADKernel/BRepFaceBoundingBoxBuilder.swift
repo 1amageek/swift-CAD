@@ -548,7 +548,7 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
                 values.u.map { $0 + uShift },
                 values.v.map { $0 + vShift }
             )
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return rectangularBoundaryValues(image.source)
         case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline,
              .certifiedImplicit, .certifiedAnalyticImplicit,

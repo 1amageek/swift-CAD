@@ -1406,7 +1406,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         case .bSpline:
             return nil
         case let .procedural(.offset(offset)):
-            guard let equivalent = try offset.exactSameParameterSurface(
+            guard let equivalent = try offset.exactChartPreservingSurface(
                 tolerance: tolerance
             ) else {
                 return nil
@@ -3540,7 +3540,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             return try BoundingBox3D(
                 points: boundingBoxCorners(sourceBounds).map(image.transform.applying(to:))
             ).expanded(by: tolerance.distance)
-        case .sameParameterImage:
+        case .offsetSurfaceImage:
             break
         case let .periodicTranslation(base, _, _):
             return try surfaceLiftBounds(
@@ -3630,7 +3630,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 tolerance: tolerance,
                 message: "A structurally certified surface-lift curve reached generic parameter bounds."
             )
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try surfaceParameterBounds(
                 image.source,
                 tolerance: tolerance

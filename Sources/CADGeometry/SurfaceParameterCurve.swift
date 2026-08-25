@@ -62,7 +62,7 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
     case certifiedAnalyticPair(CertifiedAnalyticPairSurfaceParameterCurve)
     indirect case projectedAnalytic(ProjectedAnalyticSurfaceParameterCurve)
     indirect case rigidImage(RigidImageSurfaceParameterCurve)
-    indirect case sameParameterImage(SameParameterSurfaceParameterCurve)
+    indirect case offsetSurfaceImage(OffsetSurfaceParameterCurveImage)
     indirect case periodicTranslation(
         base: SurfaceParameterCurve,
         uShift: Double,
@@ -211,7 +211,7 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             try curve.validate(on: surface, tolerance: tolerance)
         case let .rigidImage(curve):
             try curve.validate(on: surface, tolerance: tolerance)
-        case let .sameParameterImage(curve):
+        case let .offsetSurfaceImage(curve):
             try curve.validate(on: surface, tolerance: tolerance)
         case let .periodicTranslation(base, uShift, vShift):
             try base.validate(on: surface, tolerance: tolerance)
@@ -304,7 +304,7 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
             )
-        case let .sameParameterImage(curve):
+        case let .offsetSurfaceImage(curve):
             return try curve.parameter(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
@@ -420,7 +420,7 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 ),
                 tolerance: tolerance
             )
-        case let .sameParameterImage(curve):
+        case let .offsetSurfaceImage(curve):
             return try curve.parameter(
                 atCurveParameter: parameter,
                 curveDomain: curveDomain,
@@ -502,8 +502,8 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             return .projectedAnalytic(try curve.reversed(tolerance: tolerance))
         case let .rigidImage(curve):
             return .rigidImage(try curve.reversed(tolerance: tolerance))
-        case let .sameParameterImage(curve):
-            return .sameParameterImage(try curve.reversed(tolerance: tolerance))
+        case let .offsetSurfaceImage(curve):
+            return .offsetSurfaceImage(try curve.reversed(tolerance: tolerance))
         case let .periodicTranslation(base, uShift, vShift):
             return .periodicTranslation(
                 base: try base.reversed(tolerance: tolerance),
@@ -566,7 +566,7 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             ).materializingPeriodicTranslation()
         case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
              .certifiedAnalyticPair, .projectedAnalytic, .rigidImage,
-             .sameParameterImage:
+             .offsetSurfaceImage:
             return .periodicTranslation(
                 base: base,
                 uShift: uShift,
@@ -704,8 +704,8 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 toNormalizedFraction: upper,
                 tolerance: tolerance
             ))
-        case let .sameParameterImage(curve):
-            return .sameParameterImage(try curve.trimmed(
+        case let .offsetSurfaceImage(curve):
+            return .offsetSurfaceImage(try curve.trimmed(
                 from: startParameter,
                 to: endParameter,
                 curveDomain: curveDomain,
@@ -748,7 +748,7 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case sphericalGreatCircle
         case projectedAnalytic
         case rigidImage
-        case sameParameterImage
+        case offsetSurfaceImage
         case base
         case uShift
         case vShift
@@ -767,7 +767,7 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case sphericalGreatCircle
         case projectedAnalytic
         case rigidImage
-        case sameParameterImage
+        case offsetSurfaceImage
         case periodicTranslation
     }
 
@@ -871,14 +871,14 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 RigidImageSurfaceParameterCurve.self,
                 forKey: .rigidImage
             ))
-        case .sameParameterImage:
+        case .offsetSurfaceImage:
             try container.validateOnlyExpectedKeys(
-                [.kind, .sameParameterImage],
+                [.kind, .offsetSurfaceImage],
                 in: decoder
             )
-            self = .sameParameterImage(try container.decode(
-                SameParameterSurfaceParameterCurve.self,
-                forKey: .sameParameterImage
+            self = .offsetSurfaceImage(try container.decode(
+                OffsetSurfaceParameterCurveImage.self,
+                forKey: .offsetSurfaceImage
             ))
         case .periodicTranslation:
             try container.validateOnlyExpectedKeys(
@@ -946,9 +946,9 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case let .rigidImage(curve):
             try container.encode(Kind.rigidImage, forKey: .kind)
             try container.encode(curve, forKey: .rigidImage)
-        case let .sameParameterImage(curve):
-            try container.encode(Kind.sameParameterImage, forKey: .kind)
-            try container.encode(curve, forKey: .sameParameterImage)
+        case let .offsetSurfaceImage(curve):
+            try container.encode(Kind.offsetSurfaceImage, forKey: .kind)
+            try container.encode(curve, forKey: .offsetSurfaceImage)
         case let .periodicTranslation(base, uShift, vShift):
             try container.encode(Kind.periodicTranslation, forKey: .kind)
             try container.encode(base, forKey: .base)

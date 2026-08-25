@@ -184,7 +184,7 @@ struct SurfaceTrimExtendBuilderTests {
                      .certifiedAnalyticPair,
                      .projectedAnalytic,
                      .rigidImage,
-                     .sameParameterImage,
+                     .offsetSurfaceImage,
                      .periodicTranslation:
                     false
                 }

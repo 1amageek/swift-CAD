@@ -109,23 +109,25 @@ struct SurfaceOffsetFeatureTests {
                 tolerance: 1.0e-8
             ))
         }
-        #expect(result.brep.loops.values.allSatisfy { loop in
-            loop.coedges.allSatisfy { coedge in
-                guard case let .sameParameterImage(image) = coedge.surfaceParameterCurve else {
+        #expect(try result.brep.loops.values.allSatisfy { loop in
+            try loop.coedges.allSatisfy { coedge in
+                guard case let .offsetSurfaceImage(image) = coedge.surfaceParameterCurve else {
                     return false
                 }
+                let imageTarget = try image.targetSurface(tolerance: .standard)
                 return image.sourceSurface == surfaceCase.surface
-                    && image.targetSurface == targetSurface
+                    && imageTarget == targetSurface
             }
         })
-        #expect(result.brep.edges.values.allSatisfy { edge in
+        #expect(try result.brep.edges.values.allSatisfy { edge in
             guard case let .surfaceLift(lift) = result.brep.geometry.curves[edge.curveID],
-                  case let .sameParameterImage(image) = lift.parameterCurve else {
+                  case let .offsetSurfaceImage(image) = lift.parameterCurve else {
                 return false
             }
+            let imageTarget = try image.targetSurface(tolerance: .standard)
             return lift.surface == targetSurface
                 && image.sourceSurface == surfaceCase.surface
-                && image.targetSurface == targetSurface
+                && imageTarget == targetSurface
         })
     }
 

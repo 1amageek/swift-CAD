@@ -120,7 +120,7 @@ extension SurfaceLiftCurve3D {
         switch curve {
         case .affine, .constantU, .constantV, .polyline, .bSpline:
             return true
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return supportsIntervalLocalParameterBounds(image.source)
         case let .periodicTranslation(base, _, _):
             return supportsIntervalLocalParameterBounds(base)

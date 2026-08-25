@@ -35,7 +35,7 @@ struct ExactImplicitIntersectionTransferSource: Sendable {
                     case .affine, .constantU, .constantV, .harmonic,
                          .sphericalGreatCircle, .polyline, .bSpline,
                          .certifiedAnalyticPair, .projectedAnalytic,
-                         .rigidImage, .sameParameterImage, nil:
+                         .rigidImage, .offsetSurfaceImage, nil:
                         continue
                     case .periodicTranslation:
                         continue

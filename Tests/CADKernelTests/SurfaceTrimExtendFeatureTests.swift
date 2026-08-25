@@ -64,7 +64,7 @@ struct SurfaceTrimExtendFeatureTests {
                      .certifiedAnalyticPair,
                      .projectedAnalytic,
                      .rigidImage,
-                     .sameParameterImage,
+                     .offsetSurfaceImage,
                      .periodicTranslation:
                     false
                 }
@@ -675,7 +675,7 @@ struct SurfaceTrimExtendFeatureTests {
                  .certifiedAnalyticPair,
                  .projectedAnalytic,
                  .rigidImage,
-                 .sameParameterImage,
+                 .offsetSurfaceImage,
                  .periodicTranslation:
                 false
             }

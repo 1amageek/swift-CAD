@@ -740,7 +740,7 @@ struct ExactSTEPExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func roundTripsGeneralOffsetSurfaceWithSameParameterChart() throws {
+    func roundTripsGeneralOffsetSurfaceWithPreservedChart() throws {
         let source = try ExactExchangeNURBSFixture.offsetRationalSheet()
         let sink = DataByteSink()
         try STEPExchange(tolerance: .standard).write(

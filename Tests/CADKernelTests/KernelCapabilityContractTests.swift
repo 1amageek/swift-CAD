@@ -667,7 +667,7 @@ struct KernelCapabilityContractTests {
         let step = try partialCapability(operation: "STEP")
         #expect(step.exactOutputs.contains("StandardOffsetSurfaceRoundTrip"))
         #expect(step.testFixtures.contains(
-            "ExactSTEPExchangeTests.roundTripsGeneralOffsetSurfaceWithSameParameterChart"
+            "ExactSTEPExchangeTests.roundTripsGeneralOffsetSurfaceWithPreservedChart"
         ))
 
         let iges = try partialCapability(operation: "IGES")
@@ -756,7 +756,7 @@ struct KernelCapabilityContractTests {
             "everyValidatedSurfaceParameterCurveRepresentation"
         ))
         #expect(capability.exactOutputs.contains(
-            "sameParameterExactOffsetSurface"
+            "chartPreservingExactOffsetSurface"
         ))
         #expect(capability.exactOutputs.contains(
             "preservedOuterAndInnerLoopTopology"

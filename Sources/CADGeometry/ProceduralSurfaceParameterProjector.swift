@@ -60,7 +60,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
         try options.validate(tolerance: tolerance)
         try offset.validate(tolerance: tolerance)
         try point.validate()
-        if let equivalent = try offset.exactSameParameterSurface(
+        if let equivalent = try offset.exactChartPreservingSurface(
             tolerance: tolerance
         ) {
             return try equivalent.parameterProjectionResult(
@@ -134,7 +134,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
         try options.validate(tolerance: tolerance)
         try offset.validate(tolerance: tolerance)
         try point.validate()
-        guard try offset.exactSameParameterSurface(tolerance: tolerance) == nil else {
+        guard try offset.exactChartPreservingSurface(tolerance: tolerance) == nil else {
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,

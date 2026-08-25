@@ -568,7 +568,7 @@ package struct ExactFacePcurveBuilder {
         guard case let .procedural(.offset(offset)) = surface else {
             return surface
         }
-        return try offset.exactSameParameterSurface(tolerance: tolerance)
+        return try offset.exactChartPreservingSurface(tolerance: tolerance)
             ?? surface
     }
 

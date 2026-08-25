@@ -46,7 +46,7 @@ struct RevolvedSolidOperand: Sendable {
             }
             let classifiedSurface: Surface3D
             if case let .procedural(.offset(offset)) = surface {
-                classifiedSurface = try offset.exactSameParameterSurface(
+                classifiedSurface = try offset.exactChartPreservingSurface(
                     tolerance: tolerance
                 ) ?? surface
             } else {

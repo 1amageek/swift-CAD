@@ -859,7 +859,7 @@ struct BooleanOpenFaceArrangementBuilder {
             return false
         case let .periodicTranslation(base, _, _):
             return isLinearParameterCurve(base)
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return isLinearParameterCurve(image.source)
         }
     }
@@ -1856,7 +1856,7 @@ struct BooleanOpenFaceArrangementBuilder {
             )
         case .sphericalGreatCircle, .certifiedImplicit,
              .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-             .projectedAnalytic, .rigidImage, .sameParameterImage:
+             .projectedAnalytic, .rigidImage, .offsetSurfaceImage:
             return .periodicTranslation(
                 base: curve,
                 uShift: uShift,

@@ -831,7 +831,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
             return false
         case let .periodicTranslation(base, _, _):
             return preservesAuthoredWinding(base)
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return preservesAuthoredWinding(image.source)
         }
     }

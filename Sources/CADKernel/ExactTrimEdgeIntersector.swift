@@ -1372,7 +1372,7 @@ struct ExactTrimEdgeIntersector {
             return result
         case let .bSpline(curve):
             return curve
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try exactRationalPcurve(
                 image.source,
                 tolerance: tolerance

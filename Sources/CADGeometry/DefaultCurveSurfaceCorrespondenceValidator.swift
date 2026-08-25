@@ -676,7 +676,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 tolerance: tolerance
             )
             return true
-        case .sameParameterImage:
+        case .offsetSurfaceImage:
             break
         case .affine, .constantU, .constantV, .harmonic, .sphericalGreatCircle, .polyline, .bSpline:
             break
@@ -871,7 +871,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline,
              .certifiedImplicit, .certifiedAnalyticImplicit,
              .certifiedAnalyticPair, .projectedAnalytic, .rigidImage,
-             .sameParameterImage:
+             .offsetSurfaceImage:
             return false
         case .periodicTranslation:
             return false
@@ -1464,7 +1464,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             parameterEnd = uEnd
         case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline,
              .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-             .projectedAnalytic, .rigidImage, .sameParameterImage:
+             .projectedAnalytic, .rigidImage, .offsetSurfaceImage:
             return false
         case .periodicTranslation:
             return false
@@ -2297,7 +2297,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 tolerance: tolerance,
                 message: "A rigid-image pcurve failed its structural source-transform proof."
             )
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try derivativeBounds(
                 for: image.source,
                 surface: image.sourceSurface,
@@ -2452,7 +2452,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             }
             return result
         case let .procedural(.offset(offset)):
-            if let equivalent = try offset.exactSameParameterSurface(
+            if let equivalent = try offset.exactChartPreservingSurface(
                 tolerance: tolerance
             ) {
                 return try liftSecondDerivativeUpperBound(

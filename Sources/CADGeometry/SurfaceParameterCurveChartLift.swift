@@ -235,7 +235,7 @@ package extension SurfaceParameterCurve {
                 )
             }
             return hypot(maximumU, maximumV).nextUp
-        case let .sameParameterImage(image):
+        case let .offsetSurfaceImage(image):
             return try image.source
                 .intrinsicMaximumParameterFirstDerivativeMagnitude(
                     tolerance: tolerance
