@@ -3390,6 +3390,35 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func yzDiagonalCircleProfileExtrudePreservesExactPcurveCorrespondence() throws {
+        let diagonal = 0.5.squareRoot()
+        let document = makeCircleExtrudeDocument(
+            radius: 0.05,
+            depth: 0.2,
+            unit: .meter,
+            documentUnits: .meters,
+            sketchPlane: .plane(Plane3D(
+                origin: Point3D(x: -0.1, y: 0.05, z: 0.0),
+                normal: Vector3D(x: 0.0, y: diagonal, z: diagonal)
+            ))
+        )
+
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.faces.count == 6)
+        #expect(evaluated.brep.edges.count == 12)
+        #expect(evaluated.brep.vertices.count == 8)
+        #expect(evaluated.brep.geometry.curves.values.filter(\.isCircle).count == 8)
+        #expect(evaluated.brep.geometry.surfaces.values.filter(\.isCylinder).count == 4)
+        #expect(evaluated.brep.loops.values.allSatisfy { loop in
+            loop.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
+        })
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        try expectBalancedEdgeOrientations(in: evaluated.brep)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func regionalScaleCircleExtrudeCreatesValidExactCylinderMesh() throws {
         let document = makeCircleExtrudeDocument(
             radius: 25.0,

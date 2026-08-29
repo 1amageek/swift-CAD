@@ -443,8 +443,12 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         } else {
             let startUV = try surface.parameterProjection(of: start, tolerance: tolerance)
             let endUV = try surface.parameterProjection(of: end, tolerance: tolerance)
+            let unwrappedEndU = unwrappedPeriodicParameter(
+                endUV.u,
+                nearest: startUV.u
+            )
             if try isCylindrical(surface),
-               abs(startUV.u - endUV.u) <= tolerance.angle {
+               abs(startUV.u - unwrappedEndU) <= tolerance.angle {
                 pcurve = .constantU(
                     u: startUV.u,
                     vStart: startUV.v,
