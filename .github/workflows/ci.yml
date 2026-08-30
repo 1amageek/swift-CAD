@@ -42,6 +42,7 @@ jobs:
       - name: Build SwiftCAD facade
         env:
           BUILD_LOG: ${{ runner.temp }}/${{ matrix.artifact }}-${{ github.sha }}.log
+          TOOLCHAINS: com.apple.dt.toolchain.XcodeDefault
         run: |
           set -o pipefail
           xcodebuild build \
@@ -94,10 +95,10 @@ jobs:
               -destination 'platform=macOS' \
               -parallel-testing-enabled NO \
               -only-testing:CADGeometryTests \
+              -only-testing:CADCapabilitiesTests/KernelCapabilityContractTests \
               -only-testing:CADIRTests/CADCommandTests \
               -only-testing:CADTopologyTests/BRepValidationLevelTests \
               -only-testing:CADModelingTests \
-              -only-testing:CADKernelTests/KernelCapabilityContractTests \
               -only-testing:CADKernelTests/DeferredArtifactEvaluationTests \
               -only-testing:CADExchangeTests/ExactSTEPExchangeTests \
               -only-testing:CADExchangeTests/ExactIGESExchangeTests \

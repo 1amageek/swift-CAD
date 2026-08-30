@@ -63,10 +63,10 @@ SOURCE_STANDARD_TOLERANCE_PATTERN = re.compile(
 )
 STANDARD_TOLERANCE_BOUNDARIES = (
     Path("Sources/CADIR/CADIRPersistenceValidation.swift"),
-    Path("Sources/CADKernel/KernelCapabilities.swift"),
+    Path("Sources/CADCapabilities/KernelCapabilities.swift"),
 )
 STANDARD_TOLERANCE_BOUNDARY_PREFIXES = (
-    "Sources/CADKernel/KernelCapabilities+",
+    "Sources/CADCapabilities/KernelCapabilities+",
 )
 
 

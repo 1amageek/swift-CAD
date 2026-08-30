@@ -86,6 +86,7 @@ flowchart LR
 ```mermaid
 flowchart LR
     CADCore --> CADGeometry["CADGeometry"]
+    CADCore --> CADCapabilities["CADCapabilities"]
     CADCore --> CADTopology["CADTopology"]
     CADGeometry --> CADTopology
     CADCore --> CADIR["CADIR"]
@@ -103,11 +104,13 @@ flowchart LR
     CADCore --> CADUSD["CADUSD"]
     CADIR --> CADUSD
     CADCore --> CADExchange["CADExchange"]
+    CADGeometry --> CADExchange
     CADTopology --> CADExchange
     CADIR --> CADExchange["CADExchange"]
     CADKernel --> CADExchange
     CADUSD --> CADExchange
     CADCore --> SwiftCAD["SwiftCAD"]
+    CADCapabilities --> SwiftCAD
     CADTopology --> SwiftCAD
     CADIR --> SwiftCAD
     CADModeling --> SwiftCAD
@@ -120,14 +123,30 @@ flowchart LR
 | Target | Responsibility | Public product |
 |---|---|---:|
 | `CADCore` | IDs, schema, units, quantities, math primitives, tolerance, shared errors. | No |
+| `CADCapabilities` | Inventory-derived declarative capability catalog; imports only `CADCore` capability contracts. | Yes |
 | `CADGeometry` | Analytic and rational B-spline geometry, intervals, robust predicates, and differential geometry. | Yes |
 | `CADTopology` | Vertex–edge–coedge–loop–face–shell–body B-rep, exact geometry ownership, independent invariant validation, and analytic volume. | Yes |
 | `CADIR` | Document, parameters, constraints, feature graph, and derived mesh IR. | Yes |
 | `CADModeling` | Feature-evaluation contracts and exact editing algorithms. | Yes |
-| `CADKernel` | Evaluation orchestration, cache, capability discovery, classification, sewing, and tessellation. | Yes |
+| `CADKernel` | Evaluation orchestration, cache, classification, sewing, and tessellation. | Yes |
 | `CADUSD` | Typed swift-OpenUSD scene ingestion and deterministic derived-mesh materialization. | Yes |
 | `CADExchange` | Native save/load and all official import/export formats. | Yes |
 | `SwiftCAD` | Public facade that composes lower-level modules. | Yes |
+
+`CADCapabilities` is metadata, not an implementation owner. `SwiftCAD` combines
+its catalog with the Geometry, Topology, Modeling, Kernel, and Exchange
+implementations at the composition root. Lower implementation targets neither
+import the catalog nor declare the support status of higher-level targets.
+
+Capability input envelopes, rather than the storage width of a dynamic feature
+reference, define the officially executable input contract. A partial
+capability may accept a `CurveOutputReference` or another general reference in
+IR while supporting only the exact representations named by its envelope.
+Evaluation outside that envelope must return a typed failure. Generalizing an
+envelope requires a first-class geometry representation together with
+validation, differential and interval evaluation, projection, topology,
+persistence, exchange, and success/failure fixtures; an evaluator-only branch
+does not constitute support.
 
 ### Naming
 
@@ -494,6 +513,22 @@ raw-determinant tests.
 | Rational B-spline surface pair | Control-hull subdivision, interval-minor-certified rank-three seed gauges, parameterized interval-Krawczyk certification of complete regular graphs or empty cells, interval-Krawczyk-certified midpoint-gauge existence and uniqueness for remaining regular cells, converged damped fallback seeds, four-parameter pseudo-arclength marching for regular transverse components, normal-derivative damped least-squares refinement for isolated tangencies, relative-curvature Hessian contact classification, gauge-corrected continuation for regular second-order rank-one contact curves, Hessian zero-cone branch continuation for regular second-order indefinite contacts, chord-parameterized C1 composite cubic B-spline construction for 3D curves and both pcurves, explicit point and normal verification, outward-rounded Bernstein composition and convex-hull certification for single-span polynomial operands, and outward-rounded adaptive Taylor upper-bound certification over every remaining cubic segment using homogeneous rational derivative control bounds and de Casteljau subdivision. The exact single-span constant-weight quartic plane-height power-sum envelope retains its certified isolated point. Other higher-order-degenerate contacts remain typed diagnostics instead of being collapsed into a regular curve or point. |
 
 Intersection routines return typed geometry, singularity, non-discrete, or resource diagnostics. They never substitute a mesh approximation for an exact intersection result.
+
+#### Operation-Scoped Geometry Preparation
+
+An operation that inspects multiple parameter boxes over the same immutable
+surface or curve must validate and prepare the immutable representation once
+per operation. Exact Bezier decomposition and recursive procedural-source
+preparation belong to an immutable, operation-scoped prepared owner. Each
+requested parameter box remains independently validated and restricted; the
+prepared owner must not retain mutable search state or box-local results.
+
+The public one-shot enclosure remains the untrusted-input boundary. Internal
+entry points that assume a validated representation may only be reached through
+that boundary or an initialized prepared owner. Prepared and one-shot interval
+evaluation must be exactly equivalent for the same representation, parameter
+box, and tolerance. Prepared values are not global caches and must not be reused
+with a different tolerance or representation identity.
 
 ### Geometry Store
 
@@ -1042,7 +1077,6 @@ public struct PolySplineMeshAnalysisResult: Codable, Sendable, Hashable {
 
         public enum Code: String, Codable, Sendable, Hashable {
             case invalidMesh
-            case unsupportedRoundedCorners
             case unsupportedPatchNetwork
             case nonManifoldEdges
             case inconsistentBoundaryWinding
@@ -1051,11 +1085,7 @@ public struct PolySplineMeshAnalysisResult: Codable, Sendable, Hashable {
             case patchGraphIdentified
             case patchGraphPartitioned
             case patchAdjacencyIdentified
-            case patchTangentPlaneDiscontinuity
-            case patchCurvatureContinuityUnresolved
-            case planarPatchNetworkSupported
             case incompletePatchPartition
-            case oversizedPatchPartitionSearch
             case mergePatchesHasNoEffect
         }
 

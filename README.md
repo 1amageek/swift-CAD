@@ -41,6 +41,7 @@ replacement plan and uncompromising completion gates are
 ```mermaid
 flowchart LR
     CADCore --> CADGeometry["CADGeometry"]
+    CADCore --> CADCapabilities["CADCapabilities"]
     CADCore --> CADTopology["CADTopology"]
     CADGeometry --> CADTopology
     CADCore --> CADIR["CADIR"]
@@ -64,6 +65,7 @@ flowchart LR
     CADKernel --> CADExchange
     CADUSD --> CADExchange
     CADCore --> SwiftCAD["SwiftCAD"]
+    CADCapabilities --> SwiftCAD
     CADTopology --> SwiftCAD
     CADIR --> SwiftCAD
     CADModeling --> SwiftCAD
@@ -74,11 +76,12 @@ flowchart LR
 | Target | Responsibility | Product |
 |---|---|---:|
 | `CADCore` | IDs, units, quantities, math primitives, schema, errors, tolerance | No |
+| `CADCapabilities` | Inventory-derived capability declarations and catalog composition; depends only on capability value contracts | Yes |
 | `CADGeometry` | Exact analytic primitives, intervals, robust predicates, differential geometry | Yes |
 | `CADTopology` | Coedge B-rep, exact geometry ownership, invariant validation, analytic volume | Yes |
 | `CADIR` | Document, parameters, constraints, feature graph, derived mesh IR | Yes |
 | `CADModeling` | Feature-evaluation contracts and exact editing algorithms | Yes |
-| `CADKernel` | Evaluation orchestration, cache, capability discovery, classification, sewing, tessellation | Yes |
+| `CADKernel` | Evaluation orchestration, cache, classification, sewing, tessellation | Yes |
 | `CADUSD` | Typed swift-OpenUSD scene ingestion and deterministic derived-mesh materialization | Yes |
 | `CADExchange` | Native package, byte IO, official import/export formats | Yes |
 | `SwiftCAD` | Public facade over the lower-level modules | Yes |
@@ -89,6 +92,19 @@ sewing implementation. `CADKernel` owns `DefaultBRepSewer`, validated topology
 assembly, and the composition root that injects the adapter into modeling
 evaluators. This keeps feature policy independently replaceable and prevents a
 lower package from selecting a higher-level runtime implementation.
+
+`CADCapabilities` owns only declarative capability metadata and depends on
+`CADCore`. It does not import Geometry, Topology, Modeling, Kernel, or Exchange
+implementations. `SwiftCAD` is the composition root that injects this catalog
+beside those implementations; no lower implementation package declares the
+completion state of a higher package.
+
+Dynamic feature references do not imply universal implementation support. The
+capability catalog owns the executable input envelope, and evaluators return a
+typed failure outside it. Geometry algorithms that inspect many parameter boxes
+use immutable operation-scoped prepared owners so validation and exact
+decomposition are performed once while every box keeps independent bounds and
+failure semantics.
 
 ## Requirements
 
@@ -262,12 +278,21 @@ Production code should preserve error meaning with `throws` or `do`/`catch`.
 Build the package test products once, then run only the affected suites with a command-level timeout:
 
 ```bash
-xcodebuild build-for-testing -scheme SwiftCAD-Package -destination 'platform=macOS'
+TOOLCHAINS=com.apple.dt.toolchain.XcodeDefault xcodebuild build-for-testing \
+  -scheme SwiftCAD-Package \
+  -destination 'platform=macOS'
+
+TOOLCHAINS=com.apple.dt.toolchain.XcodeDefault \
 perl -e 'alarm 30; exec @ARGV' xcodebuild test-without-building \
   -scheme SwiftCAD-Package \
   -destination 'platform=macOS' \
   -only-testing:CADExchangeTests/ExactSTEPExchangeTests
 ```
+
+Native Xcode builds and tests always select `XcodeDefault` explicitly. The
+Swift 6.4 development snapshot is reserved for the pinned WASM SDK commands
+below, so a caller's inherited `TOOLCHAINS` value cannot silently change the
+native gate.
 
 Build and execute the release WebAssembly smoke when the configured SDK is installed:
 
@@ -292,10 +317,11 @@ node --no-warnings --experimental-wasi-unstable-preview1 \
 Run the Xcode test runner:
 
 ```bash
+TOOLCHAINS=com.apple.dt.toolchain.XcodeDefault \
 perl -e 'alarm 30; exec @ARGV' xcodebuild test \
   -scheme SwiftCAD-Package \
   -destination 'platform=macOS' \
-  -only-testing:CADKernelTests/KernelCapabilityContractTests
+  -only-testing:CADCapabilitiesTests/KernelCapabilityContractTests
 ```
 
 The current test suite covers:
@@ -303,7 +329,11 @@ The current test suite covers:
 | Suite | Scope |
 |---|---|
 | `CADCoreTests` | IDs, units, expressions, matrices, quantities, tolerance |
+| `CADCapabilitiesTests` | Capability catalog ownership, inventory, status, fixture, and failure-code contracts |
+| `CADGeometryTests` | Exact curve and surface evaluation, certified projection, differential geometry, and intersections |
 | `CADIRTests` | Document, graph, sketch, selection dimension, geometry, topology, mesh validation |
+| `CADModelingTests` | Exact feature evaluators, modeling requests, B-rep construction, and lineage |
+| `CADTopologyTests` | B-rep ownership, invariant scopes, sewing, repair, pcurve agreement, and exact volume |
 | `CADKernelTests` | Parameter resolution, profile extraction, B-rep evaluation, selection queries, tessellation, cache freshness |
 | `CADExchangeTests` | Native package, native selection dimensions, official format matrix, malformed imports, zero-copy IO, atomic writes |
 | `SwiftCADTests` | Public facade workflows, Agent command/query parity, and facade-level edge cases |

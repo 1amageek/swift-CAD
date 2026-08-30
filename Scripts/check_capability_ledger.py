@@ -289,10 +289,10 @@ def main() -> int:
     root = Path(__file__).resolve().parents[1]
     ledger = parse_ledger(root / "CAPABILITY_LEDGER.md")
     catalog = parse_catalog(sorted(
-        (root / "Sources/CADKernel").glob("KernelCapabilities*.swift")
+        (root / "Sources/CADCapabilities").glob("KernelCapabilities*.swift")
     ))
     contract_test_ids = ids_from_contract_test(
-        root / "Tests/CADKernelTests/KernelCapabilityContractTests.swift"
+        root / "Tests/CADCapabilitiesTests/KernelCapabilityContractTests.swift"
     )
 
     ledger_ids = set(ledger.capability_ids)

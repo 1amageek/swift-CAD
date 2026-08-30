@@ -112,7 +112,9 @@ def main() -> int:
     if inventory["schemaVersion"] != 1:
         fail("inventory schemaVersion must be 1")
 
-    catalog = parse_catalog(sorted((root / "Sources" / "CADKernel").glob("KernelCapabilities*.swift")))
+    catalog = parse_catalog(sorted(
+        (root / "Sources" / "CADCapabilities").glob("KernelCapabilities*.swift")
+    ))
     catalog_ids = set(catalog)
     features = require_mapping(
         "featureOperations",
