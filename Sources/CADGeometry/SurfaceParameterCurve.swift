@@ -156,7 +156,11 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             }
             try cosine.validateUnitLength(tolerance: tolerance)
             try sine.validateUnitLength(tolerance: tolerance)
-            guard abs(cosine.dot(sine)) <= tolerance.angle,
+            let representationalAngleTolerance = 8.0 * Double.ulpOfOne
+            guard abs(cosine.dot(sine)) <= max(
+                tolerance.angle,
+                representationalAngleTolerance
+            ),
                   startParameter.isFinite,
                   endParameter.isFinite,
                   abs(endParameter - startParameter) > tolerance.angle,

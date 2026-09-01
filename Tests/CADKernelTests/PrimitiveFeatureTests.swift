@@ -29,6 +29,22 @@ struct PrimitiveFeatureTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func exposesEverySphereSubshapeAsARoundTrippableStableReference() throws {
+        let evaluated = try evaluatePrimitive(named: "sphere").evaluated
+        #expect(evaluated.subshapes.entries.count == 27)
+
+        for entry in evaluated.subshapes.entries.sorted(by: { $0.key < $1.key }) {
+            let reference = try evaluated.stableSubshapeReference(for: entry.key)
+            let data = try JSONEncoder().encode(reference)
+            let decoded = try JSONDecoder().decode(
+                StableSubshapeReference.self,
+                from: data
+            )
+            #expect(decoded == reference)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func buildsTorusAsValidatedExactBRep() throws {
         try validatePrimitive(named: "torus")
     }
@@ -126,6 +142,36 @@ struct PrimitiveFeatureTests {
     }
 
     private func validatePrimitive(named name: String) throws {
+        let result = try evaluatePrimitive(named: name)
+        let fixture = result.fixture
+        let evaluated = result.evaluated
+        #expect(evaluated.brep.bodies.count == 1, "\(fixture.name) body count")
+        #expect(evaluated.brep.shells.count == 1, "\(fixture.name) shell count")
+        #expect(evaluated.brep.faces.count == fixture.faceCount, "\(fixture.name) face count")
+        #expect(evaluated.brep.edges.count == fixture.edgeCount, "\(fixture.name) edge count")
+        #expect(evaluated.brep.vertices.count == fixture.vertexCount, "\(fixture.name) vertex count")
+        #expect(allCoedgesHavePcurves(evaluated.brep), "\(fixture.name) pcurves")
+        let measuredVolume = try evaluated.brep.volume(tolerance: .standard)
+        #expect(
+            abs(measuredVolume - fixture.volume) <= max(1.0, fixture.volume) * 1.0e-10,
+            "\(fixture.name) exact volume"
+        )
+        let generated = evaluated.lineage.values.filter {
+            $0.output.featureID == result.featureID
+        }
+        #expect(generated.count == evaluated.subshapes.entries.values.filter {
+            switch $0 {
+            case .body, .face, .edge, .vertex: return true
+            }
+        }.count)
+        #expect(generated.allSatisfy { $0.relation == .generated && $0.parents.isEmpty })
+    }
+
+    private func evaluatePrimitive(named name: String) throws -> (
+        fixture: PrimitiveCase,
+        featureID: FeatureID,
+        evaluated: EvaluatedDocument
+    ) {
         let fixture = try #require(primitiveCases().first { $0.name == name })
         let featureID = FeatureID()
         let operation = FeatureOperation.primitive(PrimitiveFeature(
@@ -154,26 +200,7 @@ struct PrimitiveFeatureTests {
             Issue.record("Primitive \(fixture.name) failed exact evaluation: \(error)")
             throw error
         }
-        #expect(evaluated.brep.bodies.count == 1, "\(fixture.name) body count")
-        #expect(evaluated.brep.shells.count == 1, "\(fixture.name) shell count")
-        #expect(evaluated.brep.faces.count == fixture.faceCount, "\(fixture.name) face count")
-        #expect(evaluated.brep.edges.count == fixture.edgeCount, "\(fixture.name) edge count")
-        #expect(evaluated.brep.vertices.count == fixture.vertexCount, "\(fixture.name) vertex count")
-        #expect(allCoedgesHavePcurves(evaluated.brep), "\(fixture.name) pcurves")
-        let measuredVolume = try evaluated.brep.volume(tolerance: .standard)
-        #expect(
-            abs(measuredVolume - fixture.volume) <= max(1.0, fixture.volume) * 1.0e-10,
-            "\(fixture.name) exact volume"
-        )
-        let generated = evaluated.lineage.values.filter {
-            $0.output.featureID == featureID
-        }
-        #expect(generated.count == evaluated.subshapes.entries.values.filter {
-            switch $0 {
-            case .body, .face, .edge, .vertex: return true
-            }
-        }.count)
-        #expect(generated.allSatisfy { $0.relation == .generated && $0.parents.isEmpty })
+        return (fixture, featureID, evaluated)
     }
 
     private func allCoedgesHavePcurves(_ model: BRepModel) -> Bool {

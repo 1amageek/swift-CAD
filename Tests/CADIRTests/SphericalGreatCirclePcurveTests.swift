@@ -48,6 +48,117 @@ struct SphericalGreatCirclePcurveTests {
     }
 
     @Test
+    func acceptsGeneratedOrthogonalityAtStrictSignatureTolerance() throws {
+        let cosine = try Vector3D(x: 1.0, y: 1.0, z: 0.0).normalized(tolerance: 1.0e-12)
+        let normal = try Vector3D(x: -1.0, y: 1.0, z: 1.0).normalized(tolerance: 1.0e-12)
+        let sine = try normal.cross(cosine).normalized(tolerance: 1.0e-12)
+        let curve = SurfaceParameterCurve.sphericalGreatCircle(
+            cosine: cosine,
+            sine: sine,
+            startParameter: 0.0,
+            endParameter: Double.pi / 2.0
+        )
+        let strictTolerance = ModelingTolerance(
+            distance: Double.leastNonzeroMagnitude,
+            angle: Double.leastNonzeroMagnitude,
+            relative: Double.leastNonzeroMagnitude
+        )
+
+        try curve.validate(
+            on: .analytic(.sphere(center: .origin, radius: 1.0)),
+            tolerance: strictTolerance
+        )
+    }
+
+    @Test
+    func rejectsMateriallyNonOrthogonalGreatCircleBasis() throws {
+        let curve = SurfaceParameterCurve.sphericalGreatCircle(
+            cosine: .unitX,
+            sine: try Vector3D(x: 1.0e-12, y: 1.0, z: 0.0).normalized(tolerance: 1.0e-15),
+            startParameter: 0.0,
+            endParameter: Double.pi / 2.0
+        )
+
+        #expect(throws: GeometryError.self) {
+            try curve.validate(
+                on: .analytic(.sphere(center: .origin, radius: 1.0)),
+                tolerance: ModelingTolerance(
+                    distance: Double.leastNonzeroMagnitude,
+                    angle: Double.leastNonzeroMagnitude,
+                    relative: Double.leastNonzeroMagnitude
+                )
+            )
+        }
+    }
+
+    @Test
+    func rejectsNonFiniteGreatCircleBasis() throws {
+        let curve = SurfaceParameterCurve.sphericalGreatCircle(
+            cosine: Vector3D(x: .nan, y: 0.0, z: 0.0),
+            sine: .unitY,
+            startParameter: 0.0,
+            endParameter: Double.pi / 2.0
+        )
+
+        #expect(throws: GeometryError.self) {
+            try curve.validate(
+                on: .analytic(.sphere(center: .origin, radius: 1.0)),
+                tolerance: .standard
+            )
+        }
+    }
+
+    @Test
+    func rejectsDegenerateGreatCircleBasis() throws {
+        let curve = SurfaceParameterCurve.sphericalGreatCircle(
+            cosine: .zero,
+            sine: .unitY,
+            startParameter: 0.0,
+            endParameter: Double.pi / 2.0
+        )
+
+        #expect(throws: GeometryError.self) {
+            try curve.validate(
+                on: .analytic(.sphere(center: .origin, radius: 1.0)),
+                tolerance: .standard
+            )
+        }
+    }
+
+    @Test
+    func rejectsGreatCircleOnWrongSurface() throws {
+        let curve = SurfaceParameterCurve.sphericalGreatCircle(
+            cosine: .unitX,
+            sine: .unitY,
+            startParameter: 0.0,
+            endParameter: Double.pi / 2.0
+        )
+
+        #expect(throws: GeometryError.self) {
+            try curve.validate(
+                on: .plane(Plane3D(origin: .origin, normal: .unitZ)),
+                tolerance: .standard
+            )
+        }
+    }
+
+    @Test
+    func rejectsOutOfDomainSurfaceParameters() throws {
+        let curve = SurfaceParameterCurve.constantV(
+            v: Double.pi,
+            uStart: 0.0,
+            uEnd: Double.pi / 2.0
+        )
+
+        #expect(throws: GeometryError.self) {
+            try curve.validate(
+                on: .analytic(.sphere(center: .origin, radius: 1.0)),
+                tolerance: .standard
+            )
+        }
+    }
+
+    @Test
     func preservesTheInteriorLongitudeAtAPoleEndpoint() throws {
         let curve = SurfaceParameterCurve.sphericalGreatCircle(
             cosine: .unitX,
