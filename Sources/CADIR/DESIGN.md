@@ -15,6 +15,13 @@ resource admission: `TessellationOptions` and `TessellationLimits`. It does
 not discover topology, evaluate a document, generate primitives, or choose
 Rupa measurement methods or presentation LOD.
 
+`TessellationLimits` is a target contract with no current implementation: this
+module declares `TessellationOptions` today and no `TessellationLimits` type
+exists anywhere in Swift-CAD source. Every statement about `TessellationLimits`
+in this document, and every dependent statement in the package design and
+`CADKernel`, describes the contract this module must satisfy, not admission
+that Swift-CAD performs today.
+
 ## Related Designs
 
 | Design | Relationship | Contract Used | Summary | Cautions |
