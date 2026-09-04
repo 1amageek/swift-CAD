@@ -11,6 +11,10 @@ let package = Package(
   ],
   products: [
     .library(
+      name: "CADCore",
+      targets: ["CADCore"]
+    ),
+    .library(
       name: "SwiftCAD",
       targets: ["SwiftCAD"]
     ),
