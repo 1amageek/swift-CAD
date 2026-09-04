@@ -9,9 +9,11 @@ design](../../DESIGN.md) and has no children for this change.
 ## Responsibilities and Boundaries
 
 This module owns the value contract for `StableSubshapeReference` and its
-`SubshapeGeometrySignature`, including Codable validation. It does not discover
-topology, evaluate a document, generate primitives, or choose Rupa measurement
-methods.
+`SubshapeGeometrySignature`, including Codable validation. It also owns the
+product-neutral value contracts for tessellation fidelity and generic
+resource admission: `TessellationOptions` and `TessellationLimits`. It does
+not discover topology, evaluate a document, generate primitives, or choose
+Rupa measurement methods or presentation LOD.
 
 ## Related Designs
 
@@ -28,6 +30,8 @@ flowchart LR
     Topology["TopologyReference"] --> Signature["Complete geometry signature"]
     Signature --> Validate["CADIR validation"]
     Validate --> Codable["Deterministic Codable round-trip"]
+    Fidelity["TessellationOptions\nfidelity"] --> Kernel["CADKernel consumer"]
+    Limits["TessellationLimits\nresource admission"] --> Kernel
 ```
 
 ## Contracts and Invariants
@@ -39,6 +43,17 @@ flowchart LR
 3. Encoding validates before writing; decoding validates after reading. A
    successful JSON round-trip preserves the complete signature, not merely its
    topology kind or identity.
+4. `TessellationOptions` contains only geometric fidelity inputs and remains
+   the identity of the requested sampling profile. It is not a viewport or
+   Product policy.
+5. `TessellationLimits` contains only generic checked ceilings for cumulative
+   vertices, indices, triangles, and estimated bytes for one complete
+   tessellation invocation. It validates positive, representable limits but
+   does not select values or estimate CAD-specific geometry.
+6. The hard ceiling and default limit values are selected from measured
+   Swift-CAD fixtures and versioned by the package; this module does not choose
+   product-specific requested values or embed guessed values to make a
+   particular Rupa scene pass.
 
 ## Runtime Flows
 
@@ -55,10 +70,15 @@ the evaluated document after construction.
 
 Validation is pure and deterministic. Codable failures propagate typed
 validation errors; no empty signature or dropped topology entry is returned as
-success.
+success. Tessellation limit validation is likewise pure; exhaustion and
+overflow are reported by `CADKernel`, which owns geometry-aware preflight and
+all-or-nothing emission.
 
 ## Verification and Change Impact
 
 Tests cover all generated sphere subshape signatures, JSON round-trip, invalid
 and out-of-domain signatures, and representative planar/cylindrical topology.
-Changes require rechecking `CADKernel` stable-reference creation and lookup.
+Tessellation value tests cover invalid/nonrepresentable limits and fidelity
+round-trip without coupling the values to viewport policy. Changes require
+rechecking `CADKernel` stable-reference creation, lookup, and tessellation
+preflight consumption.

@@ -12,6 +12,13 @@ The package owns the exact source-to-evaluation path used by RupaCore. It does
 not own Rupa project publication, application sessions, Product metadata,
 Agent transport, or measurement-result presentation.
 
+The package distinguishes tessellation fidelity from resource admission.
+`TessellationOptions` describes the geometric sampling requested by an
+evaluation. A separate generic `TessellationLimits` contract admits or rejects
+the resulting work before collection growth or mesh allocation. Neither value
+knows a viewport, camera, UI state, Agent request, or product-specific level of
+detail policy.
+
 ## Responsibilities and Boundaries
 
 Swift-CAD owns:
@@ -45,6 +52,7 @@ flowchart LR
     Geometry --> Kernel["CADKernel evaluation"]
     Kernel --> BRep["Exact B-rep + lineage"]
     Kernel --> Mesh["Derived presentation Mesh"]
+    Limits["Generic TessellationLimits\nchecked resource admission"] --> Kernel
     BRep --> Signatures["CADIR stable geometry signatures"]
     Signatures --> StableRead["CADKernel snapshot stable references"]
     BRep --> RupaCore["RupaCore evaluated-body measurement"]
@@ -78,6 +86,27 @@ source document.
 6. Invalid inputs remain rejected after any representational-tolerance fix,
    and planar/cylindrical topology keeps its existing stable-reference
    behavior.
+7. `TessellationOptions` is a fidelity input only. It never implies a resource
+   budget, viewport policy, or Product representation choice.
+8. `TessellationLimits` is a generic, caller-lowerable resource contract for
+   one complete tessellation invocation. It covers checked cumulative vertex,
+   index, triangle, and estimated-byte ceilings and is enforced before reserve,
+   allocation, or collection growth. Its hard ceiling and defaults are chosen
+   from measured kernel fixtures and versioned with the package; no guessed
+   presentation number is encoded here.
+9. Tessellation preflight derives a conservative geometry-aware upper bound
+   before output allocation; emission also charges actual counters before every
+   growth so dynamic geometry cannot exceed admission. Both phases use checked
+   arithmetic, observe cooperative cancellation at document/body/face
+   boundaries, and return a typed all-or-nothing failure. A partial mesh is
+   never returned or published.
+10. Exact B-rep incremental evaluation reuse is valid only when source
+    identity, schema/units, parameter and design revisions, evaluator identity,
+    and modeling tolerance match; it never depends on presentation
+    tessellation fidelity. Mesh artifact reuse is a separate cache decision and
+    requires the source fingerprint and full artifact configuration, including
+    tessellation fidelity, plus measured usage within the current limits.
+    Otherwise the caller must retessellate or receive a typed failure.
 
 ## Runtime Flows
 
@@ -87,8 +116,11 @@ sequenceDiagram
     participant M as CADModeling
     participant K as CADKernel
     participant R as Stable-reference reader
+    participant L as TessellationLimits
     S->>M: primitive definition
     M->>K: exact feature evaluation request
+    K->>L: checked preflight for derived Mesh work
+    L-->>K: admitted budget or typed limit failure
     K-->>R: immutable EvaluatedDocument
     R->>R: enumerate every topology entry
     R->>R: build and validate complete geometry signature
@@ -113,6 +145,14 @@ parameters return typed failures. A stable-reference failure does not return a
 partial signature or an empty-success placeholder. No external callback or
 mutable project operation occurs while a signature is being built.
 
+Tessellation is synchronous inside the Swift-CAD call but is never a
+publication boundary. The kernel performs conservative checked preflight before
+output allocation, charges actual usage before every output growth, checks
+cancellation at document/body/face boundaries, and only returns a complete
+validated Mesh map. The caller owns the task that invokes the kernel; Swift-CAD
+has no UI or Agent scheduler and does not retry a failed or cancelled
+tessellation.
+
 ## Verification and Change Impact
 
 The affected module tests must prove every generated sphere body, face, edge,
@@ -122,3 +162,20 @@ degenerate, wrong-surface, and out-of-domain pcurves and representative planar
 and cylindrical topology. Changes to the shared structural predicate require
 rechecking primitive construction, topology signature decoding, stable lookup,
 and RupaCore's evaluated-body measurement path.
+
+Tessellation changes additionally require:
+
+- preflight rejection before reserve/allocation for per-body and cumulative
+  vertex/index/triangle/byte overflow or limit excess;
+- cancellation at every declared checkpoint and all-or-nothing result
+  ownership;
+- exact-B-rep equality when a tessellation failure or limit rejection occurs;
+- exact B-rep reuse acceptance for matching source/evaluator/modeling state
+  without a tessellation-fidelity dependency;
+- Mesh artifact reuse only when source fingerprint, full artifact
+  configuration including fidelity, and measured usage are admitted by the
+  current limit.
+
+These checks are kernel behavior evidence; Rupa viewport responsiveness and
+Product-specific presentation policy are verified by their owning RupaKit
+designs.
