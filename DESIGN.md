@@ -90,22 +90,31 @@ source document.
    budget, viewport policy, or Product representation choice.
 8. `TessellationLimits` is a generic, caller-lowerable resource contract for
    one complete tessellation invocation. It covers checked cumulative vertex,
-   index, triangle, and estimated-byte ceilings and is enforced before reserve,
-   allocation, or collection growth. Its hard ceiling and defaults are chosen
+   index, triangle, and estimated-byte ceilings and is enforced before any
+   output storage is reserved or grown. Preflight itself samples boundary loops
+   to derive the bound, so admission precedes output allocation rather than all
+   allocation. Its hard ceiling and defaults are chosen
    from measured kernel fixtures and versioned with the package; no guessed
    presentation number is encoded here.
-9. Tessellation preflight derives a conservative geometry-aware upper bound
-   before output allocation; emission also charges actual counters before every
-   growth so dynamic geometry cannot exceed admission. Both phases use checked
+9. Tessellation preflight derives a conservative geometry-aware upper bound on
+   the geometric emission before output allocation; emission also charges
+   actual counters before every growth so geometry cannot exceed admission.
+   Corner duplication performed to repair winding is charged against
+   `TessellationLimits` like any other vertex but is excluded from the
+   comparison against the preflight estimate, because the estimate bounds
+   geometry and not winding repair. Both phases use checked
    arithmetic, observe cooperative cancellation at document/body/face
    boundaries, and return a typed all-or-nothing failure. A partial mesh is
    never returned or published.
 10. Exact B-rep incremental evaluation reuse is valid only when source
     identity, schema/units, parameter and design revisions, evaluator identity,
     and modeling tolerance match; it never depends on presentation
-    tessellation fidelity. Mesh artifact reuse is a separate cache decision and
-    requires the source fingerprint and full artifact configuration, including
-    tessellation fidelity, plus measured usage within the current limits.
+    tessellation fidelity. Mesh artifact reuse is a separate cache decision
+    scoped to the requesting `MeshArtifactPurpose`: it requires the source
+    fingerprint, the full artifact configuration including tessellation
+    fidelity, and a matching purpose, and it refuses an artifact whose recorded
+    usage exceeds the requesting `TessellationLimits` instead of inheriting the
+    wider ceiling the artifact was built under.
     Otherwise the caller must retessellate or receive a typed failure.
 
 ## Runtime Flows

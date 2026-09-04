@@ -9,18 +9,24 @@ extension DocumentCaches {
     for document: CADDocument,
     tolerance: ModelingTolerance,
     tessellationOptions: TessellationOptions = .standard,
+    purpose: MeshArtifactPurpose = .unspecified,
+    limits: TessellationLimits = .standard,
     kernelVersion: SchemaVersion = .current
   ) throws {
     try validateMetadataFreshness(
       for: document,
       tolerance: tolerance,
       tessellationOptions: tessellationOptions,
+      purpose: purpose,
+      limits: limits,
       kernelVersion: kernelVersion
     )
 
     let expectedEvaluation = try DocumentEvaluator(
       tolerance: tolerance,
-      tessellationOptions: tessellationOptions
+      tessellationOptions: tessellationOptions,
+      tessellationLimits: limits,
+      meshArtifactPurpose: purpose
     ).evaluateWithoutCacheValidation(document)
 
     guard let brep else {
@@ -35,7 +41,10 @@ extension DocumentCaches {
       )
     }
 
-    let cachedMeshesFromBRep = try MeshTessellator(tolerance: tolerance).tessellate(
+    let cachedMeshesFromBRep = try MeshTessellator(
+      tolerance: tolerance,
+      limits: limits
+    ).tessellate(
       model: brep.model,
       options: tessellationOptions
     )

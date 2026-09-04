@@ -60,6 +60,23 @@ public enum CacheValidationError: Error, Equatable, Sendable {
     case missingBRepCache
     case staleBRepCache(String)
     case staleMeshCache(bodyID: BodyID, reason: String)
+    /// A cached Mesh was produced for a different purpose than the one
+    /// requesting it. The artifact is not stale; it belongs to another
+    /// consumer.
+    case meshCachePurposeMismatch(
+        bodyID: BodyID,
+        cached: MeshArtifactPurpose,
+        requested: MeshArtifactPurpose
+    )
+    /// A cached Mesh records usage the requesting limits do not admit. The
+    /// artifact is not stale; the request is narrower than the one that
+    /// produced it.
+    case meshCacheExceedsLimits(
+        bodyID: BodyID,
+        TessellationResource,
+        recorded: Int,
+        limit: Int
+    )
 }
 
 public enum TopologyError: Error, Equatable, Sendable {
@@ -86,6 +103,15 @@ public enum TessellationError: Error, Equatable, Sendable {
     case invalidTolerance
     case unsupportedFace(FaceID)
     case degenerateFace(FaceID)
+    /// A supplied limit is not a positive representable value, or it widens the
+    /// package hard ceiling instead of lowering it.
+    case invalidLimit(TessellationResource, requested: Int)
+    /// The invocation needs more of a resource than the supplied limits admit.
+    /// `requested` is the cumulative amount the invocation reached or was
+    /// estimated to reach, not the increment that crossed the limit.
+    case resourceExhausted(TessellationResource, requested: Int, limit: Int)
+    /// A recorded usage is not a value any invocation could have produced.
+    case invalidUsage(TessellationResource, recorded: Int)
 }
 
 public enum ExportError: Error, Equatable, Sendable {

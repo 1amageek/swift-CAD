@@ -12,6 +12,8 @@ struct DocumentEvaluationEngine {
     let tessellator: Tessellating
     let tolerance: ModelingTolerance
     let tessellationOptions: TessellationOptions
+    let meshArtifactPurpose: MeshArtifactPurpose
+    let tessellationLimits: TessellationLimits
     let artifactPolicy: EvaluationArtifactPolicy
     let incrementalEvaluatorIdentity: String?
 
@@ -204,7 +206,7 @@ struct DocumentEvaluationEngine {
 
         let caches: DocumentCaches
         if let sourceFingerprint {
-            caches = makeCaches(
+            caches = try makeCaches(
                 document: document,
                 sourceFingerprint: sourceFingerprint,
                 brep: brep,
@@ -225,7 +227,9 @@ struct DocumentEvaluationEngine {
             lineage: lineage.materializedDictionary(),
             configuration: DocumentEvaluationConfiguration(
                 tolerance: tolerance,
-                tessellationOptions: tessellationOptions
+                tessellationOptions: tessellationOptions,
+                meshArtifactPurpose: meshArtifactPurpose,
+                tessellationLimits: tessellationLimits
             ),
             evaluationMetrics: metrics
         )
@@ -662,7 +666,7 @@ struct DocumentEvaluationEngine {
         brep: BRepModel,
         meshes: PersistentMap<BodyID, Mesh>,
         subshapes: SubshapeIndex
-    ) -> DocumentCaches {
+    ) throws -> DocumentCaches {
         let brepCache = BRepCache(
             designRevision: document.designGraph.revision,
             parameterRevision: document.parameters.revision,
@@ -672,11 +676,11 @@ struct DocumentEvaluationEngine {
             model: brep,
             subshapes: subshapes
         )
-        let meshCaches = Dictionary(
+        let meshCaches = try Dictionary(
             uniqueKeysWithValues: meshes.map { bodyID, mesh in
                 (
                     bodyID,
-                    MeshCache(
+                    try MeshCache(
                         bodyID: bodyID,
                         designRevision: document.designGraph.revision,
                         parameterRevision: document.parameters.revision,
@@ -684,6 +688,7 @@ struct DocumentEvaluationEngine {
                         kernelVersion: .current,
                         tolerance: tolerance,
                         tessellationOptions: tessellationOptions,
+                        purpose: meshArtifactPurpose,
                         mesh: mesh
                     )
                 )

@@ -35,11 +35,11 @@ public struct DocumentCacheMaterializer: Sendable {
             model: evaluatedDocument.brep,
             subshapes: evaluatedDocument.subshapes
         )
-        let meshCaches = Dictionary(
+        let meshCaches = try Dictionary(
             uniqueKeysWithValues: evaluatedDocument.meshes.map { bodyID, mesh in
                 (
                     bodyID,
-                    MeshCache(
+                    try MeshCache(
                         bodyID: bodyID,
                         designRevision: document.designGraph.revision,
                         parameterRevision: document.parameters.revision,
@@ -47,6 +47,7 @@ public struct DocumentCacheMaterializer: Sendable {
                         kernelVersion: .current,
                         tolerance: configuration.tolerance,
                         tessellationOptions: configuration.tessellationOptions,
+                        purpose: configuration.meshArtifactPurpose,
                         mesh: mesh
                     )
                 )

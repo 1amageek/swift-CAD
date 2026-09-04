@@ -12,6 +12,8 @@ public struct DocumentEvaluator: Sendable, ExactDocumentEvaluating {
     private let tessellator: Tessellating
     private let tolerance: ModelingTolerance
     private let tessellationOptions: TessellationOptions
+    private let tessellationLimits: TessellationLimits
+    private let meshArtifactPurpose: MeshArtifactPurpose
     private let artifactPolicy: EvaluationArtifactPolicy
     private let supportsIncrementalEvaluation: Bool
 
@@ -27,6 +29,8 @@ public struct DocumentEvaluator: Sendable, ExactDocumentEvaluating {
         tessellator: Tessellating? = nil,
         tolerance: ModelingTolerance,
         tessellationOptions: TessellationOptions = .standard,
+        tessellationLimits: TessellationLimits = .standard,
+        meshArtifactPurpose: MeshArtifactPurpose = .unspecified,
         artifactPolicy: EvaluationArtifactPolicy = .materialized
     ) {
         self.parameterResolver = parameterResolver
@@ -39,9 +43,16 @@ public struct DocumentEvaluator: Sendable, ExactDocumentEvaluating {
             tolerance: tolerance
         )
         self.featureEvaluator = featureEvaluator ?? DefaultFeatureEvaluator(resolver: parameterResolver)
-        self.tessellator = tessellator ?? MeshTessellator(tolerance: tolerance)
+        // An injected tessellator owns whichever limits it was built with, so the
+        // supplied limits configure only the tessellator this evaluator makes.
+        self.tessellator = tessellator ?? MeshTessellator(
+            tolerance: tolerance,
+            limits: tessellationLimits
+        )
         self.tolerance = tolerance
         self.tessellationOptions = tessellationOptions
+        self.tessellationLimits = tessellationLimits
+        self.meshArtifactPurpose = meshArtifactPurpose
         self.artifactPolicy = artifactPolicy
         supportsIncrementalEvaluation = parameterResolver is ParameterResolver
             && profileExtractor == nil
@@ -155,6 +166,8 @@ public struct DocumentEvaluator: Sendable, ExactDocumentEvaluating {
             tessellator: tessellator,
             tolerance: tolerance,
             tessellationOptions: tessellationOptions,
+            meshArtifactPurpose: meshArtifactPurpose,
+            tessellationLimits: tessellationLimits,
             artifactPolicy: artifactPolicy,
             incrementalEvaluatorIdentity: supportsIncrementalEvaluation
                 ? Self.incrementalEvaluatorIdentity

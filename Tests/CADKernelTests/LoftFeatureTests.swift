@@ -323,6 +323,29 @@ func loftSmoothSurfaceModeCreatesCubicSideFacesAndConnectorEdges() throws {
     try evaluated.brep.validate(tolerance: .standard)
 }
 
+/// The smooth closed-section loft drives the tessellator's normal-consistency
+/// fallback, which gives a triangle its own flat-shaded corners. Those corners
+/// are storage the geometric preflight does not estimate, so this fixture is the
+/// regression test for charging them against the limits without mistaking them
+/// for a preflight that under-estimated the geometry.
+@Test(.timeLimit(.minutes(1)))
+func loftSmoothSheetTessellatesUnderTheStandardLimits() throws {
+    let (document, _) = closedSectionLoopLoftDocument(
+        resultKind: .sheet,
+        surfaceMode: .smooth
+    )
+
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+
+    let meshes = evaluated.meshes.materializedDictionary()
+    let mesh = try #require(meshes.values.first)
+    // Distinct vertices sharing a position are the fallback's duplicated
+    // corners. Without them this fixture no longer covers the path, and the
+    // charge under test would go unexercised.
+    let distinctPositions = Set(mesh.positions.map { [$0.x, $0.y, $0.z] })
+    #expect(distinctPositions.count < mesh.positions.count)
+}
+
 @Test(.timeLimit(.minutes(1)))
 func loftSmoothSurfaceModeCreatesCubicClosedSectionLoopSheet() throws {
     let (document, _) = closedSectionLoopLoftDocument(

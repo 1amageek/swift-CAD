@@ -6,9 +6,17 @@ import CADTopology
 
 public struct MeshTessellator: Tessellating {
     private let tolerance: ModelingTolerance
+    private let limits: TessellationLimits
 
-    public init(tolerance: ModelingTolerance) {
+    /// - Parameter limits: The cumulative resource ceilings one invocation may
+    ///   reach. A caller may lower `TessellationLimits.hardCeiling` but never
+    ///   widen it; `TessellationLimits.validate()` rejects a widened value.
+    public init(
+        tolerance: ModelingTolerance,
+        limits: TessellationLimits = .standard
+    ) {
         self.tolerance = tolerance
+        self.limits = limits
     }
 
     public func tessellate(model: BRepModel, options: TessellationOptions = .standard) throws -> [BodyID: Mesh] {
@@ -34,9 +42,37 @@ public struct MeshTessellator: Tessellating {
             throw TessellationError.invalidTolerance
         }
         let model = validatedModel.model
+        let sortedBodies = model.bodies.sorted(by: { $0.key < $1.key })
 
+        // Admit the whole invocation before any output storage is reserved, so a
+        // model that cannot fit within the limits is rejected without allocating
+        // for it.
+        var admitted = try TessellationBudget(limits: limits)
+        for (_, body) in sortedBodies {
+            try Task.checkCancellation()
+            for shellID in body.shellIDs {
+                guard let shell = model.shells[shellID] else {
+                    throw TopologyError.missingReference("Missing shell \(shellID).")
+                }
+                for faceID in shell.faceIDs {
+                    try Task.checkCancellation()
+                    let estimate = try estimatedFaceUsage(
+                        faceID: faceID,
+                        model: model,
+                        options: options
+                    )
+                    try admitted.charge(
+                        vertices: estimate.vertices,
+                        indices: estimate.indices
+                    )
+                }
+            }
+        }
+
+        var emitted = try TessellationBudget(limits: limits)
         var meshes: [BodyID: Mesh] = [:]
-        for (bodyID, body) in model.bodies.sorted(by: { $0.key < $1.key }) {
+        for (bodyID, body) in sortedBodies {
+            try Task.checkCancellation()
             var positions: [Point3D] = []
             var normals: [Vector3D] = []
             var indices: [UInt32] = []
@@ -46,6 +82,10 @@ public struct MeshTessellator: Tessellating {
                     throw TopologyError.missingReference("Missing shell \(shellID).")
                 }
                 for faceID in shell.faceIDs {
+                    try Task.checkCancellation()
+                    let vertexCountBeforeFace = positions.count
+                    let indexCountBeforeFace = indices.count
+                    var duplicatedVertexCount = 0
                     try append(
                         faceID: faceID,
                         shellOrientation: shell.orientation,
@@ -53,8 +93,18 @@ public struct MeshTessellator: Tessellating {
                         options: options,
                         positions: &positions,
                         normals: &normals,
-                        indices: &indices
+                        indices: &indices,
+                        duplicatedVertexCount: &duplicatedVertexCount
                     )
+                    // Charge the face's actual growth before the next face grows,
+                    // and refuse an invocation whose geometric emission outgrew
+                    // what was admitted for it rather than trusting the preflight.
+                    try emitted.charge(
+                        vertices: positions.count - vertexCountBeforeFace,
+                        indices: indices.count - indexCountBeforeFace,
+                        duplicatedVertices: duplicatedVertexCount
+                    )
+                    try emitted.validateEmission(against: admitted)
                 }
             }
 
@@ -68,6 +118,166 @@ public struct MeshTessellator: Tessellating {
             meshes[bodyID] = mesh
         }
         return meshes
+    }
+
+    private struct FaceUsageEstimate {
+        var vertices: Int
+        var indices: Int
+    }
+
+    /// A conservative upper bound on the vertices and indices one face emits.
+    ///
+    /// A rectangular parametric face is bounded exactly by its grid step counts.
+    /// A boundary-driven face is bounded by its sampled boundary: bridging a hole
+    /// into the outer loop duplicates at most two boundary points per hole, a fan
+    /// triangulation adds at most one interior point, and a polygon with `n`
+    /// boundary points yields at most `n` triangles.
+    private func estimatedFaceUsage(
+        faceID: FaceID,
+        model: BRepModel,
+        options: TessellationOptions
+    ) throws -> FaceUsageEstimate {
+        guard let face = model.faces[faceID] else {
+            throw TessellationError.unsupportedFace(faceID)
+        }
+        let outerLoopIDs = face.loops.filter { loopID in
+            model.loops[loopID]?.role == .outer
+        }
+        let innerLoopIDs = face.loops.filter { loopID in
+            model.loops[loopID]?.role == .inner
+        }
+        guard outerLoopIDs.count == 1,
+              outerLoopIDs.count + innerLoopIDs.count == face.loops.count,
+              let firstLoopID = outerLoopIDs.first else {
+            throw TessellationError.unsupportedFace(faceID)
+        }
+        guard let surface = model.geometry.surfaces[face.surfaceID] else {
+            throw TopologyError.missingSurface(face.surfaceID)
+        }
+        guard let loop = model.loops[firstLoopID] else {
+            throw TopologyError.missingReference("Missing loop \(firstLoopID).")
+        }
+
+        if case .plane = surface {
+            var boundaryPointCount = try sampledPoints(
+                for: loop,
+                in: model,
+                options: options
+            ).count
+            for innerLoopID in innerLoopIDs {
+                boundaryPointCount += try sampledPoints(
+                    for: innerLoopID,
+                    in: model,
+                    options: options
+                ).count
+            }
+            return try boundaryUsageEstimate(
+                boundaryPointCount: boundaryPointCount,
+                holeCount: innerLoopIDs.count
+            )
+        }
+
+        try surface.validate(tolerance: tolerance)
+        if innerLoopIDs.isEmpty,
+           let bounds = try rectangularParameterBounds(
+               for: loop,
+               on: surface,
+               in: model,
+               options: options,
+               faceID: faceID
+           ) {
+            let stepCounts = try parametricGridStepCounts(
+                surface: surface,
+                uBounds: bounds.u,
+                vBounds: bounds.v,
+                options: options
+            )
+            return try gridUsageEstimate(uSteps: stepCounts.u, vSteps: stepCounts.v)
+        }
+
+        var boundaryPointCount = try sampledParameters(
+            for: loop,
+            on: surface,
+            in: model,
+            options: options,
+            faceID: faceID
+        ).count
+        for innerLoopID in innerLoopIDs {
+            guard let innerLoop = model.loops[innerLoopID] else {
+                throw TopologyError.missingReference("Missing loop \(innerLoopID).")
+            }
+            boundaryPointCount += try sampledParameters(
+                for: innerLoop,
+                on: surface,
+                in: model,
+                options: options,
+                faceID: faceID
+            ).count
+        }
+        return try boundaryUsageEstimate(
+            boundaryPointCount: boundaryPointCount,
+            holeCount: innerLoopIDs.count
+        )
+    }
+
+    /// The exact emission of a `uSteps` by `vSteps` grid: one vertex per grid
+    /// corner and two triangles per cell.
+    private func gridUsageEstimate(uSteps: Int, vSteps: Int) throws -> FaceUsageEstimate {
+        let uCorners = try incremented(uSteps, as: .vertexCount)
+        let vCorners = try incremented(vSteps, as: .vertexCount)
+        let vertices = try multiplied(uCorners, vCorners, as: .vertexCount)
+        let cells = try multiplied(uSteps, vSteps, as: .triangleCount)
+        let indices = try multiplied(cells, 6, as: .indexCount)
+        return FaceUsageEstimate(vertices: vertices, indices: indices)
+    }
+
+    private func boundaryUsageEstimate(
+        boundaryPointCount: Int,
+        holeCount: Int
+    ) throws -> FaceUsageEstimate {
+        // Each bridged hole duplicates at most two boundary points.
+        let bridgeDuplicates = try multiplied(holeCount, 2, as: .vertexCount)
+        let bridgedPointCount = try added(boundaryPointCount, bridgeDuplicates, as: .vertexCount)
+        // A fan triangulation adds at most one interior point.
+        let vertices = try incremented(bridgedPointCount, as: .vertexCount)
+        let indices = try multiplied(bridgedPointCount, 3, as: .indexCount)
+        return FaceUsageEstimate(vertices: vertices, indices: indices)
+    }
+
+    private func added(
+        _ lhs: Int,
+        _ rhs: Int,
+        as resource: TessellationResource
+    ) throws -> Int {
+        let result = lhs.addingReportingOverflow(rhs)
+        guard !result.overflow else {
+            throw TessellationError.resourceExhausted(
+                resource,
+                requested: Int.max,
+                limit: limits.limit(for: resource)
+            )
+        }
+        return result.partialValue
+    }
+
+    private func incremented(_ value: Int, as resource: TessellationResource) throws -> Int {
+        try added(value, 1, as: resource)
+    }
+
+    private func multiplied(
+        _ lhs: Int,
+        _ rhs: Int,
+        as resource: TessellationResource
+    ) throws -> Int {
+        let result = lhs.multipliedReportingOverflow(by: rhs)
+        guard !result.overflow else {
+            throw TessellationError.resourceExhausted(
+                resource,
+                requested: Int.max,
+                limit: limits.limit(for: resource)
+            )
+        }
+        return result.partialValue
     }
 
     private func compactedMesh(_ mesh: Mesh) throws -> Mesh {
@@ -133,7 +343,8 @@ public struct MeshTessellator: Tessellating {
         options: TessellationOptions,
         positions: inout [Point3D],
         normals: inout [Vector3D],
-        indices: inout [UInt32]
+        indices: inout [UInt32],
+        duplicatedVertexCount: inout Int
     ) throws {
         guard let face = model.faces[faceID] else {
             throw TessellationError.unsupportedFace(faceID)
@@ -191,6 +402,7 @@ public struct MeshTessellator: Tessellating {
                 faceID: faceID,
                 shellOrientation: shellOrientation,
                 model: model,
+                duplicatedVertexCount: &duplicatedVertexCount,
                 options: options,
                 positions: &positions,
                 normals: &normals,
@@ -1392,6 +1604,7 @@ public struct MeshTessellator: Tessellating {
         faceID: FaceID,
         shellOrientation: Orientation,
         model: BRepModel,
+        duplicatedVertexCount: inout Int,
         options: TessellationOptions,
         positions: inout [Point3D],
         normals: inout [Vector3D],
@@ -1416,7 +1629,8 @@ public struct MeshTessellator: Tessellating {
                 options: options,
                 positions: &positions,
                 normals: &normals,
-                indices: &indices
+                indices: &indices,
+                duplicatedVertexCount: &duplicatedVertexCount
             )
             return
         }
@@ -1449,7 +1663,8 @@ public struct MeshTessellator: Tessellating {
             shellOrientation: shellOrientation,
             positions: &positions,
             normals: &normals,
-            indices: &indices
+            indices: &indices,
+            duplicatedVertexCount: &duplicatedVertexCount
         )
     }
 
@@ -1463,7 +1678,8 @@ public struct MeshTessellator: Tessellating {
         options: TessellationOptions,
         positions: inout [Point3D],
         normals: inout [Vector3D],
-        indices: inout [UInt32]
+        indices: inout [UInt32],
+        duplicatedVertexCount: inout Int
     ) throws {
         let stepCounts = try parametricGridStepCounts(
             surface: surface,
@@ -1531,7 +1747,8 @@ public struct MeshTessellator: Tessellating {
                     upperRight,
                     positions: &positions,
                     normals: &normals,
-                    indices: &indices
+                    indices: &indices,
+                    duplicatedVertexCount: &duplicatedVertexCount
                 )
                 let appendedSecond = appendTriangleWithNormalFallback(
                     lowerLeft,
@@ -1539,7 +1756,8 @@ public struct MeshTessellator: Tessellating {
                     upperLeft,
                     positions: &positions,
                     normals: &normals,
-                    indices: &indices
+                    indices: &indices,
+                    duplicatedVertexCount: &duplicatedVertexCount
                 )
                 // A silently skipped quad leaves a hole that mesh compaction
                 // hides from validation; fail loudly instead.
@@ -1854,7 +2072,8 @@ public struct MeshTessellator: Tessellating {
         shellOrientation: Orientation,
         positions: inout [Point3D],
         normals: inout [Vector3D],
-        indices: inout [UInt32]
+        indices: inout [UInt32],
+        duplicatedVertexCount: inout Int
     ) throws {
         guard outerParameters.count >= 3 else {
             throw TessellationError.degenerateFace(faceID)
@@ -1912,7 +2131,8 @@ public struct MeshTessellator: Tessellating {
                     baseIndex + UInt32(next),
                     positions: &positions,
                     normals: &normals,
-                    indices: &indices
+                    indices: &indices,
+                    duplicatedVertexCount: &duplicatedVertexCount
                 )
                 guard appended else {
                     throw TessellationError.degenerateFace(faceID)
@@ -1934,7 +2154,8 @@ public struct MeshTessellator: Tessellating {
                 baseIndex + UInt32(triangle.third),
                 positions: &positions,
                 normals: &normals,
-                indices: &indices
+                indices: &indices,
+                duplicatedVertexCount: &duplicatedVertexCount
             )
             guard appended else {
                 throw TessellationError.degenerateFace(faceID)
@@ -2869,6 +3090,12 @@ public struct MeshTessellator: Tessellating {
         return true
     }
 
+    /// Appends one triangle, giving it its own flat-shaded corners when the
+    /// vertex normals disagree with the face normal.
+    ///
+    /// - Parameter duplicatedVertexCount: Incremented by the corners this call
+    ///   duplicated, so the caller can charge them as storage without counting
+    ///   them as geometric emission the preflight was meant to estimate.
     @discardableResult
     private func appendTriangleWithNormalFallback(
         _ first: UInt32,
@@ -2876,7 +3103,8 @@ public struct MeshTessellator: Tessellating {
         _ third: UInt32,
         positions: inout [Point3D],
         normals: inout [Vector3D],
-        indices: inout [UInt32]
+        indices: inout [UInt32],
+        duplicatedVertexCount: inout Int
     ) -> Bool {
         let firstPoint = positions[Int(first)]
         let secondPoint = positions[Int(second)]
@@ -2915,6 +3143,7 @@ public struct MeshTessellator: Tessellating {
             positions.append(positions[Int(sourceIndex)])
             normals.append(flatNormal)
         }
+        duplicatedVertexCount += ordered.count
         indices.append(baseIndex)
         indices.append(baseIndex + 1)
         indices.append(baseIndex + 2)

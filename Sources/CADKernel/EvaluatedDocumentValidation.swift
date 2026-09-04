@@ -3,7 +3,14 @@ import CADIR
 import CADModeling
 
 public extension EvaluatedDocument {
-    func validate(kernelVersion expectedKernelVersion: SchemaVersion = .current) throws {
+    /// - Parameter limits: The ceiling this self-check re-tessellates under. It
+    ///   defaults to the package maximum because a document that was legitimately
+    ///   admitted under a higher ceiling than the caller's own must not be
+    ///   rejected by its own consistency check.
+    func validate(
+        kernelVersion expectedKernelVersion: SchemaVersion = .current,
+        limits: TessellationLimits = .hardCeiling
+    ) throws {
         guard let brepCache = caches.brep else {
             throw CacheValidationError.missingBRepCache
         }
@@ -11,19 +18,27 @@ public extension EvaluatedDocument {
         try document.validate(tolerance: tolerance)
         try validateResolvedParametersMatchSource()
 
-        let tessellationOptions = firstMeshCache()?.tessellationOptions ?? .standard
+        // The artifact configuration is read back from the cache the document
+        // carries, so a document evaluated for a purpose or fidelity other than
+        // the default is checked against what it actually recorded.
+        let firstMeshCache = firstMeshCache()
+        let tessellationOptions = firstMeshCache?.tessellationOptions ?? .standard
+        let purpose = firstMeshCache?.purpose ?? .unspecified
 
         try caches.validateFreshness(
             for: document,
             tolerance: tolerance,
             tessellationOptions: tessellationOptions,
+            purpose: purpose,
+            limits: limits,
             kernelVersion: expectedKernelVersion
         )
         try validateTopLevelBRepMatchesCache(brepCache)
         try brep.validate(tolerance: tolerance)
         try validateTopLevelMeshesMatchBRep(
             tolerance: tolerance,
-            tessellationOptions: tessellationOptions
+            tessellationOptions: tessellationOptions,
+            limits: limits
         )
         try validateTopLevelMeshesMatchCaches()
         try validateCurveOutputs(tolerance: tolerance)
@@ -56,9 +71,13 @@ public extension EvaluatedDocument {
 
     private func validateTopLevelMeshesMatchBRep(
         tolerance: ModelingTolerance,
-        tessellationOptions: TessellationOptions
+        tessellationOptions: TessellationOptions,
+        limits: TessellationLimits
     ) throws {
-        let expectedMeshes = try MeshTessellator(tolerance: tolerance).tessellate(
+        let expectedMeshes = try MeshTessellator(
+            tolerance: tolerance,
+            limits: limits
+        ).tessellate(
             model: brep,
             options: tessellationOptions
         )
