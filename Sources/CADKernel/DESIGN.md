@@ -79,6 +79,16 @@ flowchart LR
    newly materialized `MeshCache`. `CADIR` owns the cache-boundary value
    contract; see `Sources/CADIR/DESIGN.md`.
 
+8. An `ImportedBRepFeature` retains its exchange IDs as source data, but the
+   evaluator re-identifies every body, shell, face, loop, edge, vertex, curve,
+   and surface with the importing feature's deterministic topology namespace
+   before it enters the document B-rep. The remapped model is merged with the
+   evaluation context using the same duplicate-rejecting combiner as primitive
+   features. This preserves existing independent bodies in both incremental
+   and non-incremental evaluation, permits the same exact source to be
+   imported more than once, and keeps re-evaluation IDs stable for cache and
+   delta reuse.
+
 ### Implemented Admission Mechanism
 
 Limits reach the tessellator through `MeshTessellator.init(tolerance:limits:)`,

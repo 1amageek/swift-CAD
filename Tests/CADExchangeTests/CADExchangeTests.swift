@@ -164,6 +164,45 @@ struct CADExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func binarySTLExporterEnforcesOutputByteLimitBeforeWriting() throws {
+        let mesh = unitTriangleMesh(unit: .meter)
+        let exporter = STLExporter(
+            tolerance: .standard,
+            resourceLimits: ExchangeResourceLimits(maximumBytes: 133)
+        )
+        let sink = DataByteSink()
+
+        do {
+            try exporter.writeBinary(meshes: [BodyID(): mesh], to: sink)
+            Issue.record("Expected the STL output byte limit to reject the triangle.")
+        } catch let error as KernelError {
+            #expect(error.phase == .exchange)
+            #expect(error.code == .resourceLimitExceeded)
+        }
+        #expect(sink.bytes.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func binarySTLExporterObservesCancellationBeforeWriting() async throws {
+        let mesh = unitTriangleMesh(unit: .meter)
+        let exporter = STLExporter(tolerance: .standard)
+        let (gate, opened) = AsyncStream.makeStream(of: Void.self)
+        let task = Task {
+            for await _ in gate { break }
+            let sink = DataByteSink()
+            try exporter.writeBinary(meshes: [BodyID(): mesh], to: sink)
+            return sink.bytes
+        }
+        task.cancel()
+        opened.yield()
+        opened.finish()
+
+        await #expect(throws: CancellationError.self) {
+            _ = try await task.value
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func stlImporterNormalizesOrComputesFacetNormals() throws {
         let nonUnitNormalData = binarySTLWithFacetNormal(Vector3D(x: 0.0, y: 0.0, z: 2.0))
         let computedNormalData = binarySTLWithFacetNormal(.zero)
@@ -200,6 +239,35 @@ struct CADExchangeTests {
         }
         #expect(throws: ImportError.self) {
             _ = try STLExporter(tolerance: .standard).importBinary(truncatedData)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func stlImporterAdmitsDerivedStorageAtExactByteBoundary() throws {
+        let data = binarySTLWithFacetNormal(.zero)
+        let vertexCount = 3
+        let derivedStorage = vertexCount * (
+            MemoryLayout<Point3D>.stride
+                + MemoryLayout<Vector3D>.stride
+                + MemoryLayout<UInt32>.stride
+        ) + vertexCount * MemoryLayout<Point3D>.stride
+        let exactLimit = data.count + derivedStorage
+
+        let accepted = try STLExporter(
+            tolerance: .standard,
+            resourceLimits: ExchangeResourceLimits(maximumBytes: exactLimit)
+        ).importBinary(data)
+        #expect(accepted.meshes.values.first?.positions.count == vertexCount)
+
+        do {
+            _ = try STLExporter(
+                tolerance: .standard,
+                resourceLimits: ExchangeResourceLimits(maximumBytes: exactLimit - 1)
+            ).importBinary(data)
+            Issue.record("Expected the STL derived-storage boundary to reject one byte below the exact limit.")
+        } catch let error as KernelError {
+            #expect(error.phase == .exchange)
+            #expect(error.code == .resourceLimitExceeded)
         }
     }
 
@@ -1416,11 +1484,12 @@ struct CADExchangeTests {
         #expect(ExchangeFileFormat.format(forFileExtension: "igs") == .iges)
         #expect(ExchangeFileFormat.format(forFileExtension: "3mf") == .threeMF)
         #expect(Set(ExchangeFileFormat.allCases.filter { $0.supportsExport }) == Set([
-            .swiftCAD, .stl, .threeMF, .obj, .dxf, .svg, .glb, .usd, .usda, .usdc, .usdz, .pdf
+            .swiftCAD, .step, .stl, .threeMF, .obj, .dxf, .svg, .glb, .usd, .usda, .usdc, .usdz, .pdf
         ]))
 
         var importFormats: Set<ExchangeFileFormat> = [
             .swiftCAD,
+            .step,
             .stl,
             .threeMF,
             .obj,
@@ -1443,7 +1512,10 @@ struct CADExchangeTests {
         for format in ExchangeFileFormat.allCases where format.supportsExport {
             let data = try exchange.export(evaluated, as: format)
             #expect(!data.isEmpty)
-            #expect(try signatureMatches(data, format: format))
+            #expect(
+                try signatureMatches(data, format: format),
+                "\(format.displayName) export did not match its signature."
+            )
         }
     }
 
@@ -1456,9 +1528,13 @@ struct CADExchangeTests {
             let data = try exchange.export(evaluated, as: format)
             let imported = try exchange.import(data, as: format)
             #expect(imported.format == format)
-            if format == .swiftCAD {
+            if format == .swiftCAD || format == .step {
                 #expect(imported.document != nil)
                 #expect(imported.document?.units.length == .millimeter)
+                if format == .step {
+                    #expect(imported.brep != nil)
+                    #expect(imported.meshes.isEmpty)
+                }
             } else {
                 #expect(!imported.meshes.isEmpty)
                 #expect(imported.units.length == .millimeter)
@@ -2435,6 +2511,125 @@ struct CADExchangeTests {
         let extents = try meshExtents(imported.meshes)
         #expect(abs(extents.width - 0.002) < 1.0e-12)
         #expect(abs(extents.height - 0.003) < 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func strictMeshImportRequiresUnitForUnitlessOBJAndSTL() throws {
+        let unitlessOBJ = Data("""
+        v 0 0 0
+        v 1 0 0
+        v 0 1 0
+        f 1 2 3
+        """.utf8)
+        let unitlessSTL = binarySTLWithFacetNormal(.zero)
+
+        #expect(throws: ImportError.self) {
+            _ = try OBJExchange(tolerance: .standard).import(
+                BorrowedBytes(unitlessOBJ),
+                explicitUnit: nil
+            )
+        }
+        #expect(throws: ImportError.self) {
+            _ = try STLExporter(tolerance: .standard).importBinary(
+                BorrowedBytes(unitlessSTL),
+                explicitUnit: nil
+            )
+        }
+
+        let obj = try OBJExchange(tolerance: .standard).import(
+            BorrowedBytes(unitlessOBJ),
+            explicitUnit: .millimeter
+        )
+        let stl = try STLExporter(tolerance: .standard).importBinary(
+            BorrowedBytes(unitlessSTL),
+            explicitUnit: .millimeter
+        )
+        #expect(obj.units.length == .millimeter)
+        #expect(stl.units.length == .millimeter)
+        #expect(obj.meshes.values.first?.positions.contains {
+            abs($0.x - 0.001) < 1.0e-12
+        } == true)
+
+        let millimeterTriangle = Mesh(
+            positions: [
+                .origin,
+                Point3D(x: 0.001, y: 0.0, z: 0.0),
+                Point3D(x: 0.0, y: 0.001, z: 0.0)
+            ],
+            indices: [0, 1, 2]
+        )
+        let exportedSTL = try STLExporter(tolerance: .standard).exportBinary(
+            meshes: [BodyID(): millimeterTriangle],
+            options: STLExportOptions(lengthUnit: .millimeter)
+        )
+        let roundTrippedSTL = try STLExporter(tolerance: .standard).importBinary(
+            BorrowedBytes(exportedSTL),
+            explicitUnit: .meter
+        )
+        #expect(roundTrippedSTL.units.length == .millimeter)
+        #expect(roundTrippedSTL.meshes.values.first?.positions.contains {
+            abs($0.x - 0.001) < 1.0e-12
+        } == true)
+
+        #expect(throws: ImportError.self) {
+            _ = try STLExporter(tolerance: .standard).importBinary(
+                BorrowedBytes(binarySTLWithDegenerateFacet()),
+                explicitUnit: .millimeter
+            )
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func strictMeshImportPreservesFormatUnitMarkerOverCallerFallback() throws {
+        let markedOBJ = Data("""
+        # unit millimeter
+        v 0 0 0
+        v 1 0 0
+        v 0 1 0
+        f 1 2 3
+        """.utf8)
+        let markedSTL = try binarySTLWithUnitHeader("millimeter")
+
+        let obj = try OBJExchange(tolerance: .standard).import(
+            BorrowedBytes(markedOBJ),
+            explicitUnit: .meter
+        )
+        let stl = try STLExporter(tolerance: .standard).importBinary(
+            BorrowedBytes(markedSTL),
+            explicitUnit: .meter
+        )
+        #expect(obj.units.length == .millimeter)
+        #expect(stl.units.length == .millimeter)
+
+        let routed = try OfficialFormatExchange(tolerance: .standard).import(
+            BorrowedBytes(markedOBJ),
+            as: .obj,
+            explicitUnit: .meter
+        )
+        #expect(routed.units.length == .millimeter)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func strictMeshImportKeepsInvalidAndCancelledInputsTyped() async throws {
+        let invalidOBJ = Data("v 0 0 0\nf 1 2\n".utf8)
+        #expect(throws: ImportError.self) {
+            _ = try OBJExchange(tolerance: .standard).import(
+                BorrowedBytes(invalidOBJ),
+                explicitUnit: .meter
+            )
+        }
+
+        let task = Task {
+            try await Task.sleep(for: .milliseconds(10))
+            try OBJExchange(tolerance: .standard).import(
+                BorrowedBytes(Data("v 0 0 0\n".utf8)),
+                explicitUnit: .meter
+            )
+        }
+        task.cancel()
+        await #expect(throws: CancellationError.self) {
+            _ = try await task.value
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -5877,6 +6072,25 @@ private func binarySTLWithFacetNormal(_ normal: Vector3D) -> Data {
     return data
 }
 
+private func binarySTLWithDegenerateFacet() -> Data {
+    var data = Data(count: 80)
+    data.appendLittleEndian(UInt32(1))
+    data.appendLittleEndianFloat32(0.0)
+    data.appendLittleEndianFloat32(0.0)
+    data.appendLittleEndianFloat32(0.0)
+    data.appendLittleEndianFloat32(0.0)
+    data.appendLittleEndianFloat32(0.0)
+    data.appendLittleEndianFloat32(0.0)
+    data.appendLittleEndianFloat32(1.0)
+    data.appendLittleEndianFloat32(0.0)
+    data.appendLittleEndianFloat32(0.0)
+    data.appendLittleEndianFloat32(2.0)
+    data.appendLittleEndianFloat32(0.0)
+    data.appendLittleEndianFloat32(0.0)
+    data.appendLittleEndian(UInt16(0))
+    return data
+}
+
 private func binarySTLHeaderOnly(triangleCount: UInt32) -> Data {
     var data = Data(count: 80)
     data.appendLittleEndian(triangleCount)
@@ -6642,8 +6856,10 @@ private func signatureMatches(_ data: Data, format: ExchangeFileFormat) throws -
     case .step:
         return text.contains("ISO-10303-21")
             && text.contains("FILE_SCHEMA(('AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF'))")
-            && text.contains("CARTESIAN_POINT_LIST_3D")
-            && text.contains("TRIANGULATED_FACE_SET")
+            && text.contains("ADVANCED_FACE")
+            && text.contains("MANIFOLD_SOLID_BREP")
+            && !text.contains("CARTESIAN_POINT_LIST_3D")
+            && !text.contains("TRIANGULATED_FACE_SET")
             && !text.contains(removedArchiveMarker)
     case .iges:
         return text.contains("S      1")

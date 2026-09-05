@@ -24,6 +24,7 @@ struct KernelCapabilityContractTests {
       "TOPO-SEWING-001",
       "TOPO-REPAIR-001",
       "MODEL-SKETCH-001",
+      "MODEL-IMPORTED-BREP-001",
       "MODEL-PRIMITIVE-001",
       "MODEL-EXTRUDE-001",
       "MODEL-REVOLVE-001",
@@ -88,6 +89,9 @@ struct KernelCapabilityContractTests {
       })
     #expect(catalog.capabilities.allSatisfy { $0.publicAPIs.isEmpty == false })
     #expect(catalog.capabilities.allSatisfy { $0.testFixtures.isEmpty == false })
+    let imported = try catalog.requireExecutable(operation: "importedBRep")
+    #expect(imported.status == .partial)
+    #expect(imported.failureCodes.contains(.unsupportedCapability))
   }
 
   @Test

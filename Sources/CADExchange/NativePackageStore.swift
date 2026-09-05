@@ -418,6 +418,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
         objectName: path
     )
     try validateObjectField("sketch", in: object, path: "\(path).sketch", using: validateSketchObject)
+    try validateObjectField("importedBRep", in: object, path: "\(path).importedBRep", using: validateImportedBRepFeatureObject)
     try validateObjectField("primitive", in: object, path: "\(path).primitive", using: validatePrimitiveFeatureObject)
     try validateObjectField("extrude", in: object, path: "\(path).extrude", using: validateExtrudeFeatureObject)
     try validateObjectField("revolve", in: object, path: "\(path).revolve", using: validateRevolveFeatureObject)
@@ -466,6 +467,27 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("surfaceTrim", in: object, path: "\(path).surfaceTrim", using: validateSurfaceTrimFeatureObject)
     try validateObjectField("surfaceExtend", in: object, path: "\(path).surfaceExtend", using: validateSurfaceExtendFeatureObject)
     try validateObjectField("surfaceMatch", in: object, path: "\(path).surfaceMatch", using: validateSurfaceMatchFeatureObject)
+}
+
+private func validateImportedBRepFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["model", "sourceUnits"],
+        objectName: path
+    )
+    try validateObjectField(
+        "sourceUnits",
+        in: object,
+        path: "\(path).sourceUnits",
+        using: validateUnitSystemObject
+    )
+    try validateObjectField("model", in: object, path: "\(path).model") { model, modelPath in
+        try rejectUnsupportedNativeKeys(
+            in: model,
+            supportedKeys: ["geometry", "bodies", "shells", "faces", "loops", "edges", "vertices"],
+            objectName: modelPath
+        )
+    }
 }
 
 private func validatePrimitiveFeatureObject(_ object: [String: Any], path: String) throws {

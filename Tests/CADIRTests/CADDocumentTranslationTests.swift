@@ -1,5 +1,6 @@
 import Testing
 import CADCore
+import CADTopology
 @testable import CADIR
 
 @Suite("CAD document source translation")
@@ -95,6 +96,47 @@ struct CADDocumentTranslationTests {
                 return false
             }
             return kernelError.code == .unsupportedCapability
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsMixedDocumentTranslationWhenImportedBRepCannotBeTranslated() throws {
+        let primitiveID = FeatureID()
+        let importedID = FeatureID()
+        let document = CADDocument(
+            units: .meters,
+            designGraph: DesignGraph(
+                nodes: [
+                    primitiveID: FeatureNode(
+                        id: primitiveID,
+                        operation: .primitive(PrimitiveFeature(definition: .box(BoxPrimitive(
+                            width: .constant(.length(1.0, unit: .meter)),
+                            depth: .constant(.length(1.0, unit: .meter)),
+                            height: .constant(.length(1.0, unit: .meter))
+                        )))),
+                        outputs: [FeatureOutput(role: .body)]
+                    ),
+                    importedID: FeatureNode(
+                        id: importedID,
+                        operation: .importedBRep(ImportedBRepFeature(model: BRepModel())),
+                        outputs: [FeatureOutput(role: .body)]
+                    ),
+                ],
+                order: [primitiveID, importedID]
+            )
+        )
+
+        #expect {
+            try document.translatingSources(
+                by: Vector3D(x: 1.0, y: 0.0, z: 0.0),
+                tolerance: .standard
+            )
+        } throws: { error in
+            guard let kernelError = error as? KernelError else {
+                return false
+            }
+            return kernelError.code == .unsupportedCapability
+                && kernelError.phase == .evaluation
         }
     }
 

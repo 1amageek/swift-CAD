@@ -110,10 +110,53 @@ public struct STEPExchange: Sendable {
             tolerance: tolerance
         ).read()
         try budget.check(format: .step)
+        guard !brep.bodies.isEmpty else {
+            throw ImportError.invalidData("STEP model contains no bodies.")
+        }
+        let bodyExtractor = BRepBodySubmodelExtractor()
+        var nodes: [FeatureID: FeatureNode] = [:]
+        var order: [FeatureID] = []
+        nodes.reserveCapacity(brep.bodies.count)
+        order.reserveCapacity(brep.bodies.count)
+        for (ordinal, bodyID) in brep.bodies.keys.sorted().enumerated() {
+            try Task.checkCancellation()
+            try budget.check(format: .step)
+            let bodyModel = try bodyExtractor.extract(
+                bodyIDs: Set([bodyID]),
+                from: brep
+            )
+            guard let body = bodyModel.bodies[bodyID] else {
+                throw TopologyError.missingReference(
+                    "STEP body extraction did not retain body \(bodyID)."
+                )
+            }
+            let featureID = FeatureID()
+            nodes[featureID] = FeatureNode(
+                id: featureID,
+                name: "STEP Import \(ordinal + 1)",
+                operation: .importedBRep(
+                    ImportedBRepFeature(
+                        model: bodyModel,
+                        sourceUnits: UnitSystem(length: lengthUnit, angle: .radian)
+                    )
+                ),
+                outputs: [FeatureOutput(role: body.kind == .solid ? .body : .sheet)]
+            )
+            order.append(featureID)
+        }
+        let document = CADDocument(
+            units: UnitSystem(length: lengthUnit, angle: .radian),
+            designGraph: DesignGraph(
+                nodes: nodes,
+                order: order
+            )
+        )
+        try document.validate(tolerance: tolerance)
         return ImportedExchangeModel(
             format: .step,
+            document: document,
             brep: brep,
-            units: UnitSystem(length: lengthUnit, angle: .radian)
+            units: document.units
         )
     }
 

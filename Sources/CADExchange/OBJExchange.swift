@@ -101,6 +101,7 @@ public struct OBJExchange: Sendable {
     }
 
     public func `import`(_ source: any ByteSource, unit: LengthUnit = .meter) throws -> ImportedExchangeModel {
+        try Task.checkCancellation()
         var resources = try ExchangeResourceAccountant(limits: resourceLimits, format: .obj)
         try resources.validateInputByteCount(source.count)
         try resources.recordIterations(source.count)
@@ -108,16 +109,38 @@ public struct OBJExchange: Sendable {
             guard let text = String(data: data, encoding: .utf8) else {
                 throw ImportError.invalidData("OBJ data is not UTF-8.")
             }
-            return try importText(text, unit: unit, resources: &resources)
+            return try importText(text, fallbackUnit: unit, resources: &resources)
+        }
+    }
+
+    /// Imports OBJ using an explicit caller unit only when the preamble does
+    /// not declare one. A declared `# unit` marker remains authoritative.
+    public func `import`(
+        _ source: any ByteSource,
+        explicitUnit: LengthUnit?
+    ) throws -> ImportedExchangeModel {
+        try Task.checkCancellation()
+        var resources = try ExchangeResourceAccountant(limits: resourceLimits, format: .obj)
+        try resources.validateInputByteCount(source.count)
+        try resources.recordIterations(source.count)
+        return try source.withNoCopyData { data in
+            guard let text = String(data: data, encoding: .utf8) else {
+                throw ImportError.invalidData("OBJ data is not UTF-8.")
+            }
+            return try importText(
+                text,
+                fallbackUnit: explicitUnit,
+                resources: &resources
+            )
         }
     }
 
     private func importText(
         _ text: String,
-        unit: LengthUnit,
+        fallbackUnit: LengthUnit?,
         resources: inout ExchangeResourceAccountant
     ) throws -> ImportedExchangeModel {
-        let importUnit = try objLengthUnit(in: text, fallback: unit)
+        let importUnit = try objLengthUnit(in: text, fallback: fallbackUnit)
         var sourceVertices: [Point3D] = []
         var sourceTextureCoordinates: [Point2D] = []
         var sourceNormals: [Vector3D] = []
@@ -125,6 +148,7 @@ public struct OBJExchange: Sendable {
         var currentMeshIndex = 0
 
         for rawLine in text.components(separatedBy: .newlines) {
+            try Task.checkCancellation()
             let line = rawLine
                 .split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false)[0]
                 .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -322,7 +346,7 @@ public struct OBJExchange: Sendable {
     }
 }
 
-private func objLengthUnit(in text: String, fallback: LengthUnit) throws -> LengthUnit {
+private func objLengthUnit(in text: String, fallback: LengthUnit?) throws -> LengthUnit {
     var resolvedUnit: LengthUnit?
     for rawLine in text.components(separatedBy: .newlines) {
         let line = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -330,7 +354,12 @@ private func objLengthUnit(in text: String, fallback: LengthUnit) throws -> Leng
             continue
         }
         guard line.hasPrefix("#") else {
-            return resolvedUnit ?? fallback
+            guard let unit = resolvedUnit ?? fallback else {
+                throw ImportError.invalidData(
+                    "OBJ input has no unit marker; the caller must provide an explicit unit."
+                )
+            }
+            return unit
         }
         guard line.hasPrefix("# unit ") else {
             continue
@@ -344,7 +373,12 @@ private func objLengthUnit(in text: String, fallback: LengthUnit) throws -> Leng
         }
         resolvedUnit = unit
     }
-    return resolvedUnit ?? fallback
+    guard let unit = resolvedUnit ?? fallback else {
+        throw ImportError.invalidData(
+            "OBJ input has no unit marker; the caller must provide an explicit unit."
+        )
+    }
+    return unit
 }
 
 private struct OBJFaceVertex: Sendable {

@@ -3,7 +3,8 @@
 ## Purpose and Scope
 
 `CADIR` owns source/evaluation interchange values, topology references, and
-complete geometry signatures. It is a child of the [Swift-CAD package
+complete geometry signatures. It also owns the serialized source value for an
+exact imported B-rep feature. It is a child of the [Swift-CAD package
 design](../../DESIGN.md) and has no children for this change.
 
 ## Responsibilities and Boundaries
@@ -11,9 +12,11 @@ design](../../DESIGN.md) and has no children for this change.
 This module owns the value contract for `StableSubshapeReference` and its
 `SubshapeGeometrySignature`, including Codable validation. It also owns the
 product-neutral value contracts for tessellation fidelity and generic
-resource admission: `TessellationOptions` and `TessellationLimits`. It does
-not discover topology, evaluate a document, generate primitives, or choose
-Rupa measurement methods or presentation LOD.
+resource admission: `TessellationOptions` and `TessellationLimits`. The
+`ImportedBRepFeature` value retains one exact, validated `BRepModel` as a
+source feature; `CADKernel` owns its evaluation and generated topology
+identities. CADIR does not parse exchange files, evaluate a document, generate
+primitives, or choose Rupa measurement methods or presentation LOD.
 
 `TessellationLimits` is implemented in `TessellationLimits.swift`. `CADKernel`
 charges an invocation against the supplied limits; this module owns only the
@@ -34,6 +37,8 @@ flowchart LR
     Topology["TopologyReference"] --> Signature["Complete geometry signature"]
     Signature --> Validate["CADIR validation"]
     Validate --> Codable["Deterministic Codable round-trip"]
+    Imported["ImportedBRepFeature\nexact BRep source"] --> ValidateBRep["BRep validation"]
+    ValidateBRep --> KernelEvaluate["CADKernel evaluation"]
     Fidelity["TessellationOptions\nfidelity"] --> Kernel["CADKernel consumer"]
     Limits["TessellationLimits\nresource admission"] --> Kernel
 ```
@@ -100,9 +105,38 @@ flowchart LR
     independent of tessellation fidelity: the same document evaluated at two
     fidelities yields the same cached model, fingerprint, and revisions while
     yielding different meshes.
-12. Caches are in-memory evaluation state. `CADExchange` writes the source
+12. `ImportedBRepFeature` is a source operation, not a cache or a Mesh
+    artifact. It owns one exact, ownership-closed `BRepModel` and the
+    embedded `sourceUnits` declared by the exchange file. The model's
+    coordinates are already normalized to the kernel's internal frame; the
+    unit value preserves source display semantics for an adapter. The feature
+    accepts no feature inputs and validates the complete model and units at the
+    requested modeling tolerance. Exchange readers publish one imported
+    feature per source body, so each feature has one `.body` output for a
+    solid or one `.sheet` output for a sheet while the exchange result may
+    retain the complete source model separately.
+    CADKernel creates feature-scoped body, face, edge, and vertex identities
+    for evaluation; it never mutates the retained source IDs. The source model
+    is never relabeled as a generated primitive and is never replaced by a
+    tessellated Mesh.
+13. `CADDocument` retains the existing strict schema-version contract. The
+    imported operation is encoded through `FeatureOperation` and therefore
+    participates in the current document source fingerprint; unknown operation
+    kinds or fields remain typed decoding failures. A schema-version migration
+    is not inferred from the new operation and must be introduced explicitly
+    if the package later changes the document envelope.
+14. Caches are in-memory evaluation state. `CADExchange` writes the source
     document, never `DocumentCaches`, so the `Codable` conformance carries no
     on-disk format and adding a recorded field needs no migration.
+15. `CADDocument.translatingSources(by:tolerance:)` must either translate every
+    source-owned geometry value or fail with a typed
+    `KernelErrorCode.unsupportedCapability`. An imported exact B-rep has no
+    complete translation utility at this layer, so it is refused rather than
+    silently left in place. Translation works on a local document copy and
+    publishes only after all operations validate; a mixed document therefore
+    cannot expose a partially translated result.
+    The imported-BRep capability is executable but `partial`: the public source
+    translation path explicitly refuses it until exact translation is implemented.
 
 ### Measured Source of the Limit Constants
 

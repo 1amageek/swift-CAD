@@ -1087,6 +1087,11 @@ struct SwiftCADTests {
             #expect(imported.format == format)
             if format == .swiftCAD {
                 #expect(imported.document?.metadata.name == "Format Matrix")
+            } else if format == .step {
+                #expect(imported.document != nil)
+                #expect(imported.brep != nil)
+                #expect(imported.meshes.isEmpty)
+                #expect(imported.units.length == .millimeter)
             } else {
                 #expect(!imported.meshes.isEmpty)
                 #expect(imported.units.length == .millimeter)

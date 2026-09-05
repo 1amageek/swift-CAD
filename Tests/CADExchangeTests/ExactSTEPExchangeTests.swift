@@ -78,6 +78,215 @@ struct ExactSTEPExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func retainsStepSourceAsEditableExactDocument() throws {
+        let sink = DataByteSink()
+        try STEPExchange(tolerance: .standard).write(
+            brep: try planarSheet(),
+            units: .millimeters,
+            to: sink
+        )
+
+        let imported = try STEPExchange(tolerance: .standard).import(sink.bytes)
+        let document = try #require(imported.document)
+        try document.validate(tolerance: .standard)
+        #expect(document.units == imported.units)
+        #expect(document.designGraph.order.count == 1)
+        let featureID = try #require(document.designGraph.order.first)
+        let feature = try #require(document.designGraph.nodes[featureID])
+        #expect(feature.inputs.isEmpty)
+        #expect(feature.outputs == [FeatureOutput(role: .sheet)])
+        guard case let .importedBRep(source) = feature.operation else {
+            Issue.record("STEP import did not retain an exact imported B-rep source feature.")
+            return
+        }
+        #expect(source.model == imported.brep)
+        #expect(source.sourceUnits == imported.units)
+
+        let evaluated = try DocumentEvaluator(
+            tolerance: .standard,
+            artifactPolicy: .deferred
+        ).evaluateExact(document)
+        #expect(evaluated.brep.bodies.count == source.model.bodies.count)
+        #expect(evaluated.brep.shells.count == source.model.shells.count)
+        #expect(evaluated.brep.faces.count == source.model.faces.count)
+        #expect(evaluated.brep.loops.count == source.model.loops.count)
+        #expect(evaluated.brep.edges.count == source.model.edges.count)
+        #expect(evaluated.brep.vertices.count == source.model.vertices.count)
+        #expect(evaluated.brep.geometry.curves.count == source.model.geometry.curves.count)
+        #expect(evaluated.brep.geometry.surfaces.count == source.model.geometry.surfaces.count)
+        #expect(
+            evaluated.brep.vertices.values.map(\.point).sorted(by: pointOrder)
+                == source.model.vertices.values.map(\.point).sorted(by: pointOrder)
+        )
+        #expect(evaluated.meshes.isEmpty)
+        #expect(!evaluated.subshapes.entries.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func stepImportCreatesOneEditableSourceFeaturePerBody() throws {
+        let source = combine(
+            try planarSheet(featureID: FeatureID()),
+            try planarSheet(featureID: FeatureID())
+        )
+        let sink = DataByteSink()
+        try STEPExchange(tolerance: .standard).write(
+            brep: source,
+            units: .millimeters,
+            to: sink
+        )
+
+        let imported = try STEPExchange(tolerance: .standard).import(sink.bytes)
+        let document = try #require(imported.document)
+        #expect(document.designGraph.order.count == 2)
+        #expect(imported.brep?.bodies.count == 2)
+
+        for (ordinal, featureID) in document.designGraph.order.enumerated() {
+            let feature = try #require(document.designGraph.nodes[featureID])
+            #expect(feature.name == "STEP Import \(ordinal + 1)")
+            guard case let .importedBRep(sourceFeature) = feature.operation else {
+                Issue.record("Each STEP source body must be retained as an imported B-rep feature.")
+                continue
+            }
+            #expect(sourceFeature.model.bodies.count == 1)
+            #expect(sourceFeature.sourceUnits == imported.units)
+            let body = try #require(sourceFeature.model.bodies.values.first)
+            #expect(feature.outputs == [FeatureOutput(role: body.kind == .solid ? .body : .sheet)])
+            try sourceFeature.model.validate(level: .exact, tolerance: .standard)
+        }
+
+        let evaluated = try DocumentEvaluator(
+            tolerance: .standard,
+            artifactPolicy: .deferred
+        ).evaluateExact(document)
+        #expect(evaluated.brep.bodies.count == 2)
+        #expect(Set(evaluated.brep.bodies.keys).count == 2)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func repeatedImportedSourceUsesFeatureScopedTopologyIdentities() throws {
+        let source = try planarSheet(featureID: FeatureID())
+        let firstID = FeatureID()
+        let secondID = FeatureID()
+        let document = CADDocument(
+            units: .millimeters,
+            designGraph: DesignGraph(
+                nodes: [
+                    firstID: FeatureNode(
+                        id: firstID,
+                        operation: .importedBRep(ImportedBRepFeature(
+                            model: source,
+                            sourceUnits: .millimeters
+                        )),
+                        outputs: [FeatureOutput(role: .sheet)]
+                    ),
+                    secondID: FeatureNode(
+                        id: secondID,
+                        operation: .importedBRep(ImportedBRepFeature(
+                            model: source,
+                            sourceUnits: .millimeters
+                        )),
+                        outputs: [FeatureOutput(role: .sheet)]
+                    ),
+                ],
+                order: [firstID, secondID]
+            )
+        )
+
+        let evaluated = try DocumentEvaluator(
+            tolerance: .standard,
+            artifactPolicy: .deferred
+        ).evaluateExact(document)
+        let firstBody = try #require(
+            evaluated.subshapes[SubshapeID(featureID: firstID, role: "body", ordinal: 0)]
+        )
+        let secondBody = try #require(
+            evaluated.subshapes[SubshapeID(featureID: secondID, role: "body", ordinal: 0)]
+        )
+        guard case let .body(firstBodyID) = firstBody,
+              case let .body(secondBodyID) = secondBody else {
+            Issue.record("Imported source outputs must resolve to body topology references.")
+            return
+        }
+        #expect(firstBodyID != secondBodyID)
+        #expect(evaluated.brep.bodies.count == 2)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func cancellationStopsImportedBRepTopologyReidentification() async throws {
+        let source = try planarSheet(featureID: FeatureID())
+        let featureID = FeatureID()
+        let feature = FeatureNode(
+            id: featureID,
+            operation: .importedBRep(ImportedBRepFeature(
+                model: source,
+                sourceUnits: .millimeters
+            )),
+            outputs: [FeatureOutput(role: .sheet)]
+        )
+        let (gate, opened) = AsyncStream.makeStream(of: Void.self)
+        let task = Task {
+            for await _ in gate { break }
+            return try DefaultFeatureEvaluator().evaluate(
+                feature: feature,
+                context: EvaluationContext(
+                    parameters: ResolvedParameterTable(),
+                    brep: BRepModel(),
+                    profiles: [:],
+                    tolerance: .standard
+                )
+            )
+        }
+        task.cancel()
+        opened.yield()
+        opened.finish()
+
+        await #expect(throws: CancellationError.self) {
+            _ = try await task.value
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nonIncrementalImportedEvaluationPreservesExistingBodies() throws {
+        let source = try planarSheet(featureID: FeatureID())
+        let firstID = FeatureID()
+        let secondID = FeatureID()
+        let document = CADDocument(
+            units: .millimeters,
+            designGraph: DesignGraph(
+                nodes: [
+                    firstID: FeatureNode(
+                        id: firstID,
+                        operation: .importedBRep(ImportedBRepFeature(
+                            model: source,
+                            sourceUnits: .millimeters
+                        )),
+                        outputs: [FeatureOutput(role: .sheet)]
+                    ),
+                    secondID: FeatureNode(
+                        id: secondID,
+                        operation: .importedBRep(ImportedBRepFeature(
+                            model: source,
+                            sourceUnits: .millimeters
+                        )),
+                        outputs: [FeatureOutput(role: .sheet)]
+                    ),
+                ],
+                order: [firstID, secondID]
+            )
+        )
+
+        let evaluated = try DocumentEvaluator(
+            featureEvaluator: NonIncrementalFeatureEvaluator(),
+            tolerance: .standard,
+            artifactPolicy: .deferred
+        ).evaluateExact(document)
+        #expect(evaluated.brep.bodies.count == 2)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func roundTripsExactPlanarTopologyInConversionBasedLengthUnits() throws {
         let source = try planarSheet()
         for unit in [LengthUnit.inch, .foot] {
@@ -831,7 +1040,7 @@ struct ExactSTEPExchangeTests {
         })
     }
 
-    private func planarSheet() throws -> BRepModel {
+    private func planarSheet(featureID: FeatureID = FeatureID()) throws -> BRepModel {
         let points = [
             Point3D(x: 0.0, y: 0.0, z: 0.0),
             Point3D(x: 0.040, y: 0.0, z: 0.0),
@@ -859,7 +1068,7 @@ struct ExactSTEPExchangeTests {
             )
         }
         return try DefaultBRepSewer().sew(BRepSewingRequest(
-            featureID: FeatureID(),
+            featureID: featureID,
             bodyKind: .sheet,
             shells: [BRepSewingShell(
                 stableID: "step:shell",
@@ -911,4 +1120,52 @@ struct ExactSTEPExchangeTests {
         if lhs.y != rhs.y { return lhs.y < rhs.y }
         return lhs.z < rhs.z
     }
+}
+
+private struct NonIncrementalFeatureEvaluator: FeatureEvaluating {
+    private let evaluator = DefaultFeatureEvaluator()
+
+    func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+        try evaluator.evaluate(feature: feature, context: context)
+    }
+}
+
+private func combine(_ first: BRepModel, _ second: BRepModel) -> BRepModel {
+    var geometry = GeometryStore()
+    for (id, curve) in first.geometry.curves {
+        geometry.curves[id] = curve
+    }
+    for (id, curve) in second.geometry.curves {
+        geometry.curves[id] = curve
+    }
+    for (id, surface) in first.geometry.surfaces {
+        geometry.surfaces[id] = surface
+    }
+    for (id, surface) in second.geometry.surfaces {
+        geometry.surfaces[id] = surface
+    }
+
+    var bodies: [BodyID: Body] = [:]
+    var shells: [ShellID: Shell] = [:]
+    var faces: [FaceID: Face] = [:]
+    var loops: [LoopID: Loop] = [:]
+    var edges: [EdgeID: Edge] = [:]
+    var vertices: [VertexID: Vertex] = [:]
+    for model in [first, second] {
+        for (id, value) in model.bodies { bodies[id] = value }
+        for (id, value) in model.shells { shells[id] = value }
+        for (id, value) in model.faces { faces[id] = value }
+        for (id, value) in model.loops { loops[id] = value }
+        for (id, value) in model.edges { edges[id] = value }
+        for (id, value) in model.vertices { vertices[id] = value }
+    }
+    return BRepModel(
+        geometry: geometry,
+        bodies: bodies,
+        shells: shells,
+        faces: faces,
+        loops: loops,
+        edges: edges,
+        vertices: vertices
+    )
 }

@@ -173,6 +173,13 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
                 tolerance: context.tolerance,
                 message: "Sketch features do not produce BRep bodies directly."
             )
+        case let .importedBRep(importedBRep):
+            return try evaluateImportedBRep(
+                featureID: feature.id,
+                source: importedBRep,
+                context: context,
+                tolerance: context.tolerance
+            )
         case .primitive:
             return try primitiveEvaluator.evaluateValidated(feature: feature, context: context)
         case .extrude:
@@ -260,6 +267,86 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         case .surfaceMatch:
             return try surfaceMatchEvaluator.evaluateValidated(feature: feature, context: context)
         }
+    }
+
+    private func evaluateImportedBRep(
+        featureID: FeatureID,
+        source: ImportedBRepFeature,
+        context: EvaluationContext,
+        tolerance: ModelingTolerance
+    ) throws -> ValidatedFeatureEvaluation {
+        try source.validate(tolerance: tolerance)
+
+        let reidentified = try ImportedBRepTopologyReidentifier().reidentify(
+            source.model,
+            featureID: featureID
+        )
+        let combined = try BRepModelCombiner().combined([
+            context.brep,
+            reidentified.model,
+        ])
+
+        var subshapes: [SubshapeID: TopologyReference] = [:]
+        var lineage: [SubshapeID: TopologyLineage] = [:]
+        let bodyReferences = try source.model.bodies.keys.sorted().map { sourceID in
+            guard let targetID = reidentified.bodyIDs[sourceID] else {
+                throw TopologyError.missingReference(
+                    "Imported B-rep body mapping was not produced for source ID."
+                )
+            }
+            return (role: GeneratedSubshapeRole.body, reference: TopologyReference.body(targetID))
+        }
+        let faceReferences = try source.model.faces.keys.sorted().map { sourceID in
+            guard let targetID = reidentified.faceIDs[sourceID] else {
+                throw TopologyError.missingReference(
+                    "Imported B-rep face mapping was not produced for source ID."
+                )
+            }
+            return (role: GeneratedSubshapeRole.face, reference: TopologyReference.face(targetID))
+        }
+        let edgeReferences = try source.model.edges.keys.sorted().map { sourceID in
+            guard let targetID = reidentified.edgeIDs[sourceID] else {
+                throw TopologyError.missingReference(
+                    "Imported B-rep edge mapping was not produced for source ID."
+                )
+            }
+            return (role: GeneratedSubshapeRole.edge, reference: TopologyReference.edge(targetID))
+        }
+        let vertexReferences = try source.model.vertices.keys.sorted().map { sourceID in
+            guard let targetID = reidentified.vertexIDs[sourceID] else {
+                throw TopologyError.missingReference(
+                    "Imported B-rep vertex mapping was not produced for source ID."
+                )
+            }
+            return (role: GeneratedSubshapeRole.vertex, reference: TopologyReference.vertex(targetID))
+        }
+        let references = bodyReferences + faceReferences + edgeReferences + vertexReferences
+
+        var ordinals: [GeneratedSubshapeRole: Int] = [:]
+        for entry in references {
+            let ordinal = ordinals[entry.role, default: 0]
+            ordinals[entry.role] = ordinal + 1
+            let output = SubshapeID(
+                featureID: featureID,
+                role: entry.role.rawValue,
+                ordinal: ordinal
+            )
+            subshapes[output] = entry.reference
+            lineage[output] = TopologyLineage(
+                output: output,
+                relation: .generated
+            )
+        }
+
+        return try ValidatedFeatureEvaluation(
+            importedExact: EvaluationResult(
+                brep: combined,
+                subshapes: subshapes,
+                lineage: lineage
+            ),
+            featureID: featureID,
+            tolerance: tolerance
+        )
     }
 
 }

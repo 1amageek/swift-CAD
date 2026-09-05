@@ -23,6 +23,23 @@ public enum FeatureNodeFactory {
                 )
             }
             return try run()
+        case .importedBRep:
+            func run() throws -> FeatureNode {
+                guard case let .importedBRep(importedBRep) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try importedBRep.validate(tolerance: tolerance)
+                let outputRole: FeaturePort = importedBRep.model.bodies.values.first?.kind == .solid
+                    ? .body
+                    : .sheet
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    outputs: [FeatureOutput(role: outputRole)]
+                )
+            }
+            return try run()
         case .primitive:
             func run() throws -> FeatureNode {
                 guard case let .primitive(primitive) = operation else {

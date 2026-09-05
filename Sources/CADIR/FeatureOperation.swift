@@ -2,6 +2,7 @@ import CADCore
 
 public enum FeatureOperation: Codable, Sendable, Hashable {
     case sketch(Sketch)
+    case importedBRep(ImportedBRepFeature)
     case primitive(PrimitiveFeature)
     case extrude(ExtrudeFeature)
     case revolve(RevolveFeature)
@@ -49,6 +50,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     private enum CodingKeys: String, CodingKey {
         case kind
         case sketch
+        case importedBRep
         case primitive
         case extrude
         case revolve
@@ -103,6 +105,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .sketch:
             try container.validateOnlyExpectedKeys([.kind, .sketch], in: decoder)
             self = .sketch(try container.decode(Sketch.self, forKey: .sketch))
+        case .importedBRep:
+            try container.validateOnlyExpectedKeys([.kind, .importedBRep], in: decoder)
+            self = .importedBRep(try container.decode(ImportedBRepFeature.self, forKey: .importedBRep))
         case .primitive:
             try container.validateOnlyExpectedKeys([.kind, .primitive], in: decoder)
             self = .primitive(try container.decode(PrimitiveFeature.self, forKey: .primitive))
@@ -241,6 +246,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .sketch(sketch):
             try container.encode(Kind.sketch, forKey: .kind)
             try container.encode(sketch, forKey: .sketch)
+        case let .importedBRep(importedBRep):
+            try container.encode(Kind.importedBRep, forKey: .kind)
+            try container.encode(importedBRep, forKey: .importedBRep)
         case let .primitive(primitive):
             try container.encode(Kind.primitive, forKey: .kind)
             try container.encode(primitive, forKey: .primitive)

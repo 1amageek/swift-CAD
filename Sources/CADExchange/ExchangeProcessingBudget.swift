@@ -11,6 +11,7 @@ struct ExchangeProcessingBudget: Sendable {
     }
 
     func check(format: ExchangeFileFormat) throws {
+        try Task.checkCancellation()
         guard clock.now < deadline else {
             throw KernelError(
                 phase: .exchange,

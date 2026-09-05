@@ -40,6 +40,15 @@ private extension FeatureOperation {
             return .primitive(PrimitiveFeature(
                 definition: primitive.definition.translatingSources(by: vector)
             ))
+        // FIXME(INCOMPLETE_IMPLEMENTATION):
+        // Imported exact-source translation is unsupported on the workspace
+        // rebase path. Admit it only after complete topology/geometry translation
+        // and mixed-document atomicity are verified; never report a no-op success.
+        case .importedBRep:
+            throw KernelError.unsupportedEvaluation(
+                tolerance: tolerance,
+                message: "Document source translation cannot move an imported exact B-rep without a complete topology translation utility."
+            )
         case .extrude,
              .sweep,
              .loft,

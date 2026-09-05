@@ -7,6 +7,7 @@ struct ExchangeResourceAccountant: Sendable {
 
     private(set) var entityCount = 0
     private(set) var iterationCount = 0
+    private(set) var byteCount = 0
 
     init(limits: ExchangeResourceLimits, format: ExchangeFileFormat) throws {
         try limits.validate()
@@ -20,6 +21,15 @@ struct ExchangeResourceAccountant: Sendable {
         guard byteCount <= limits.maximumBytes else {
             throw resourceError("input exceeds the configured byte limit.")
         }
+    }
+
+    mutating func recordBytes(_ count: Int, label: String = "processed") throws {
+        try budget.check(format: format)
+        let addition = try adding(count, to: byteCount, label: "byte")
+        guard addition <= limits.maximumBytes else {
+            throw resourceError("\(label) bytes exceed the configured byte limit.")
+        }
+        byteCount = addition
     }
 
     mutating func recordEntities(_ count: Int = 1) throws {

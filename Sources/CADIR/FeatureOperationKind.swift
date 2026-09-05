@@ -1,5 +1,6 @@
 public enum FeatureOperationKind: String, Codable, CaseIterable, Hashable, Sendable {
     case sketch
+    case importedBRep
     case primitive
     case extrude
     case revolve

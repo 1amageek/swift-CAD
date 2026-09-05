@@ -106,6 +106,8 @@ public struct DesignGraph: Codable, Sendable {
         switch node.operation {
             case let .sketch(sketch):
                 try sketch.validateExpressions(using: parameters)
+            case .importedBRep:
+                break
             case let .primitive(primitive):
                 try validatePrimitiveExpressions(
                     primitive,
@@ -531,6 +533,8 @@ public struct DesignGraph: Codable, Sendable {
         switch node.operation {
         case .sketch:
             try validateSketchContract(node, outputRoles: outputRoles, tolerance: tolerance)
+        case .importedBRep:
+            try validateImportedBRepContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .primitive:
             try validatePrimitiveContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .extrude:
@@ -655,6 +659,29 @@ public struct DesignGraph: Codable, Sendable {
         }
         guard outputRoles == [.body] else {
             throw FeatureEvaluationError.invalidGraph("Primitive features must declare one body output.")
+        }
+    }
+
+    @inline(never)
+    private func validateImportedBRepContract(
+        _ node: FeatureNode,
+        outputRoles: [FeaturePort],
+        tolerance: ModelingTolerance
+    ) throws {
+        guard case let .importedBRep(importedBRep) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected an imported B-rep operation.")
+        }
+        guard node.inputs.isEmpty else {
+            throw FeatureEvaluationError.invalidGraph("Imported B-rep features must not declare inputs.")
+        }
+        try importedBRep.validate(tolerance: tolerance)
+        let expectedRole: FeaturePort = importedBRep.model.bodies.values.first?.kind == .solid
+            ? .body
+            : .sheet
+        guard outputRoles == [expectedRole] else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Imported B-rep features must declare one \(expectedRole.rawValue) output."
+            )
         }
     }
 

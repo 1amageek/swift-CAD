@@ -296,6 +296,7 @@ struct DocumentEvaluationEngine {
                     curveOutput = extractedCurves
                 }
             case .primitive,
+                 .importedBRep,
                  .extrude,
                  .revolve,
                  .sweep,

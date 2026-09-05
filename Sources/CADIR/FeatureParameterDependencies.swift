@@ -54,7 +54,8 @@ public extension FeatureOperation {
             return extensionRequest.distance.referencedParameterIDs
         case let .surfaceOffset(offset):
             return offset.distance.referencedParameterIDs
-        case .loft,
+        case .importedBRep,
+             .loft,
              .boolean,
              .polySpline,
              .bSplineSurface,

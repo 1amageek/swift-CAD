@@ -30,6 +30,20 @@ package struct ValidatedFeatureEvaluation: Sendable {
         )
     }
 
+    package init(
+        importedExact result: EvaluationResult,
+        featureID: FeatureID,
+        tolerance: ModelingTolerance
+    ) throws {
+        try FeatureTopologyLineageValidator().validate(result, featureID: featureID)
+        try result.brep.validate(level: .exact, tolerance: tolerance)
+        self.result = result
+        brep = try Self.validatedBRep(
+            for: result,
+            tolerance: tolerance
+        )
+    }
+
     private static func exactResult(
         _ result: EvaluationResult,
         tolerance: ModelingTolerance

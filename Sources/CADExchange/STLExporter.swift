@@ -12,21 +12,45 @@ public struct STLExportOptions: Sendable, Hashable {
 
 public struct STLExporter: Sendable {
     private let tolerance: ModelingTolerance
+    private let resourceLimits: ExchangeResourceLimits
 
-    public init(tolerance: ModelingTolerance) {
+    public init(
+        tolerance: ModelingTolerance,
+        resourceLimits: ExchangeResourceLimits = .standard
+    ) {
         self.tolerance = tolerance
+        self.resourceLimits = resourceLimits
     }
 
     public func writeBinary(meshes: [BodyID: Mesh], options: STLExportOptions = STLExportOptions(), to sink: any ByteSink) throws {
+        try Task.checkCancellation()
         guard !meshes.isEmpty else {
             throw ExportError.emptyMesh
         }
-        let triangleCount = try meshes.values.reduce(0) { partial, mesh in
+        let sortedMeshes = meshes.sorted(by: { $0.key.description < $1.key.description })
+        var resources = try ExchangeResourceAccountant(limits: resourceLimits, format: .stl)
+        var triangleCount = 0
+        for (_, mesh) in sortedMeshes {
+            try Task.checkCancellation()
             try mesh.validate(tolerance: tolerance)
-            return partial + mesh.indices.count / 3
+            let meshTriangleCount = mesh.indices.count / 3
+            let addition = triangleCount.addingReportingOverflow(meshTriangleCount)
+            guard !addition.overflow else {
+                throw ExportError.triangleCountOverflow
+            }
+            triangleCount = addition.partialValue
+            try resources.recordEntities(meshTriangleCount)
+            try resources.recordIterations(mesh.indices.count)
         }
         guard UInt64(triangleCount) <= UInt64(UInt32.max) else {
             throw ExportError.triangleCountOverflow
+        }
+        let outputByteCount = UInt64(84) + UInt64(triangleCount) * UInt64(50)
+        guard outputByteCount <= UInt64(resourceLimits.maximumBytes) else {
+            throw exchangeResourceLimitError(
+                format: .stl,
+                detail: "output exceeds the configured byte limit."
+            )
         }
 
         let headerText = "Swift-CAD binary STL unit=\(options.lengthUnit.rawValue)"
@@ -34,12 +58,18 @@ public struct STLExporter: Sendable {
         if data.count < 80 {
             data.append(Data(repeating: 0, count: 80 - data.count))
         }
-        try sink.write(data)
-        try sink.writeLittleEndian(UInt32(triangleCount))
+        let output = try ExchangeBoundedByteSink(
+            downstream: sink,
+            limits: resourceLimits,
+            format: .stl
+        )
+        try output.write(data)
+        try output.writeLittleEndian(UInt32(triangleCount))
 
-        for (_, mesh) in meshes.sorted(by: { $0.key.description < $1.key.description }) {
+        for (_, mesh) in sortedMeshes {
             var index = 0
             while index < mesh.indices.count {
+                try Task.checkCancellation()
                 let firstIndex = Int(mesh.indices[index])
                 let secondIndex = Int(mesh.indices[index + 1])
                 let thirdIndex = Int(mesh.indices[index + 2])
@@ -47,23 +77,41 @@ public struct STLExporter: Sendable {
                 let second = mesh.positions[secondIndex]
                 let third = mesh.positions[thirdIndex]
                 let normal = try normal(for: mesh, firstIndex: firstIndex, first: first, second: second, third: third)
-                try write(vector: normal, to: sink)
-                try write(point: first, unit: options.lengthUnit, to: sink)
-                try write(point: second, unit: options.lengthUnit, to: sink)
-                try write(point: third, unit: options.lengthUnit, to: sink)
-                try sink.writeLittleEndian(UInt16(0))
+                try write(vector: normal, to: output)
+                try write(point: first, unit: options.lengthUnit, to: output)
+                try write(point: second, unit: options.lengthUnit, to: output)
+                try write(point: third, unit: options.lengthUnit, to: output)
+                try output.writeLittleEndian(UInt16(0))
                 index += 3
             }
         }
     }
 
     public func importBinary(_ source: any ByteSource) throws -> ImportedExchangeModel {
-        try source.withUnsafeBytes { bytes in
-            try importBinary(bytes)
+        try Task.checkCancellation()
+        return try source.withUnsafeBytes { bytes in
+            try importBinary(bytes, fallbackUnit: .meter)
         }
     }
 
-    private func importBinary(_ bytes: UnsafeRawBufferPointer) throws -> ImportedExchangeModel {
+    /// Imports STL using an explicit caller unit only when the format header
+    /// does not declare one. A declared marker remains authoritative.
+    public func importBinary(
+        _ source: any ByteSource,
+        explicitUnit: LengthUnit?
+    ) throws -> ImportedExchangeModel {
+        try Task.checkCancellation()
+        return try source.withUnsafeBytes { bytes in
+            try importBinary(bytes, fallbackUnit: explicitUnit)
+        }
+    }
+
+    private func importBinary(
+        _ bytes: UnsafeRawBufferPointer,
+        fallbackUnit: LengthUnit?
+    ) throws -> ImportedExchangeModel {
+        var resources = try ExchangeResourceAccountant(limits: resourceLimits, format: .stl)
+        try resources.recordBytes(bytes.count, label: "input")
         guard bytes.count >= 84 else {
             throw ImportError.invalidData("Binary STL is too short.")
         }
@@ -79,17 +127,63 @@ public struct STLExporter: Sendable {
             throw ImportError.invalidData("Binary STL triangle payload size does not match the header count.")
         }
         let triangleCount = Int(triangleCount32)
+        let vertexCountResult = triangleCount.multipliedReportingOverflow(by: 3)
+        guard !vertexCountResult.overflow else {
+            throw ImportError.invalidData("Binary STL triangle count is too large for mesh storage.")
+        }
+        let vertexCount = vertexCountResult.partialValue
+        let pointStorageResult = vertexCount.multipliedReportingOverflow(
+            by: MemoryLayout<Point3D>.stride
+        )
+        let normalStorageResult = vertexCount.multipliedReportingOverflow(
+            by: MemoryLayout<Vector3D>.stride
+        )
+        let indexStorageResult = vertexCount.multipliedReportingOverflow(
+            by: MemoryLayout<UInt32>.stride
+        )
+        guard !pointStorageResult.overflow,
+              !normalStorageResult.overflow,
+              !indexStorageResult.overflow else {
+            throw ImportError.invalidData("Binary STL derived mesh storage is too large.")
+        }
+        let meshStorage = pointStorageResult.partialValue
+            .addingReportingOverflow(normalStorageResult.partialValue)
+        let meshStorageWithIndices = meshStorage.partialValue.addingReportingOverflow(
+            indexStorageResult.partialValue
+        )
+        let temporaryTriangleStorage = MemoryLayout<Point3D>.stride
+            .multipliedReportingOverflow(by: 3)
+        guard !meshStorage.overflow,
+              !meshStorageWithIndices.overflow,
+              !temporaryTriangleStorage.overflow else {
+            throw ImportError.invalidData("Binary STL derived mesh storage is too large.")
+        }
+        let peakStorage = meshStorageWithIndices.partialValue.addingReportingOverflow(
+            temporaryTriangleStorage.partialValue
+        )
+        guard !peakStorage.overflow else {
+            throw ImportError.invalidData("Binary STL derived mesh storage is too large.")
+        }
+        try resources.recordEntities(triangleCount)
+        try resources.recordEntities(vertexCount)
+        try resources.recordIterations(bytes.count)
+        try resources.recordIterations(triangleCount)
+        try resources.recordIterations(vertexCount)
+        try resources.recordBytes(peakStorage.partialValue, label: "derived mesh storage")
 
-        let unit = try stlLengthUnit(in: bytes, fallback: .meter)
+        let unit = try stlLengthUnit(in: bytes, fallback: fallbackUnit)
         var positions: [Point3D] = []
         var normals: [Vector3D] = []
         var indices: [UInt32] = []
-        positions.reserveCapacity(triangleCount * 3)
-        normals.reserveCapacity(triangleCount * 3)
-        indices.reserveCapacity(triangleCount * 3)
+        positions.reserveCapacity(vertexCount)
+        normals.reserveCapacity(vertexCount)
+        indices.reserveCapacity(vertexCount)
 
         var offset = 84
         for triangleIndex in 0..<triangleCount {
+            if triangleIndex.isMultiple(of: 1_024) {
+                try resources.checkTime()
+            }
             let rawNormal = Vector3D(
                 x: Double(try bytes.littleEndianFloat32(at: offset)),
                 y: Double(try bytes.littleEndianFloat32(at: offset + 4)),
@@ -126,6 +220,7 @@ public struct STLExporter: Sendable {
         let bodyID = BodyID()
         let mesh = Mesh(positions: positions, normals: normals, indices: indices)
         try validateImportedMesh(mesh, formatName: "STL", tolerance: tolerance)
+        try resources.checkTime()
         return ImportedExchangeModel(format: .stl, meshes: [bodyID: mesh], units: UnitSystem(length: unit, angle: .radian))
     }
 
@@ -139,7 +234,9 @@ public struct STLExporter: Sendable {
         if !mesh.normals.isEmpty {
             return mesh.normals[firstIndex]
         }
-        return try (second - first).cross(third - first).normalized(tolerance: tolerance.distance)
+        return try (second - first)
+            .cross(third - first)
+            .normalized(tolerance: tolerance.distance * tolerance.distance)
     }
 
     private func normalForImportedSTLTriangle(rawNormal: Vector3D, points: [Point3D]) throws -> Vector3D {
@@ -152,7 +249,7 @@ public struct STLExporter: Sendable {
         do {
             return try (points[1] - points[0])
                 .cross(points[2] - points[0])
-                .normalized(tolerance: tolerance.distance)
+                .normalized(tolerance: tolerance.distance * tolerance.distance)
         } catch {
             throw ImportError.invalidData("STL triangle normal cannot be derived from degenerate geometry.")
         }
@@ -181,10 +278,18 @@ private func writeSTLFloat32(_ value: Double, label: String, to sink: any ByteSi
 
 private let swiftCADSTLUnitHeaderPrefix = "Swift-CAD binary STL unit="
 
-private func stlLengthUnit(in bytes: UnsafeRawBufferPointer, fallback: LengthUnit) throws -> LengthUnit {
+private func stlLengthUnit(
+    in bytes: UnsafeRawBufferPointer,
+    fallback: LengthUnit?
+) throws -> LengthUnit {
     let prefix = Array(swiftCADSTLUnitHeaderPrefix.utf8)
     guard bytes.count >= 80,
           bytes.starts(with: prefix) else {
+        guard let fallback else {
+            throw ImportError.invalidData(
+                "STL input has no unit marker; the caller must provide an explicit unit."
+            )
+        }
         return fallback
     }
 

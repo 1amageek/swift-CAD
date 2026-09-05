@@ -3,6 +3,33 @@ import CADCore
 extension KernelCapabilities {
   static let modelingFoundationCapabilities: [KernelCapability] = [
     KernelCapability(
+      id: "MODEL-IMPORTED-BREP-001",
+      operation: "importedBRep",
+      status: .partial,
+      topology: .sheetOrSolidBody,
+      acceptedInputs: [
+        "validatedExactBRepSource",
+        "noFeatureInputs",
+      ],
+      exactOutputs: [
+        "editableExactBRepSourceFeature",
+        "featureScopedBodyFaceEdgeVertexReferences",
+        "deterministicGeneratedLineage",
+        "embeddedSourceUnits",
+      ],
+      failureCodes: [.invalidInput, .missingReference, .topologyFailure, .unsupportedCapability],
+      tolerance: .standard,
+      publicAPIs: [
+        "CADIR.ImportedBRepFeature",
+        "CADKernel.DocumentEvaluator",
+        "CADExchange.STEPExchange",
+      ],
+      testFixtures: [
+        "ExactSTEPExchangeTests.retainsStepSourceAsEditableExactDocument",
+        "ExactSTEPExchangeTests.repeatedImportedSourceUsesFeatureScopedTopologyIdentities",
+      ]
+    ),
+    KernelCapability(
       id: "MODEL-SKETCH-001",
       operation: "sketch",
       status: .partial,

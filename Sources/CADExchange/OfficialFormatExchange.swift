@@ -98,6 +98,7 @@ public struct OfficialFormatExchange: Sendable {
     }
 
     public func `import`(_ source: any ByteSource, as format: ExchangeFileFormat) throws -> ImportedExchangeModel {
+        try Task.checkCancellation()
         guard format.supportsImport else {
             throw ImportError.unsupportedFormat(format.displayName)
         }
@@ -123,6 +124,27 @@ public struct OfficialFormatExchange: Sendable {
             return try usdExchange.import(source, as: format)
         case .glb, .pdf:
             throw ImportError.unsupportedFormat(format.displayName)
+        }
+    }
+
+    /// Imports a mesh exchange format with an explicit fallback unit for
+    /// unitless input. Embedded format metadata remains authoritative.
+    public func `import`(
+        _ source: any ByteSource,
+        as format: ExchangeFileFormat,
+        explicitUnit: LengthUnit?
+    ) throws -> ImportedExchangeModel {
+        try Task.checkCancellation()
+        guard format.supportsImport else {
+            throw ImportError.unsupportedFormat(format.displayName)
+        }
+        switch format {
+        case .stl:
+            return try stlExporter.importBinary(source, explicitUnit: explicitUnit)
+        case .obj:
+            return try objExchange.import(source, explicitUnit: explicitUnit)
+        default:
+            return try self.import(source, as: format)
         }
     }
 
@@ -154,6 +176,26 @@ public struct OfficialFormatExchange: Sendable {
         }
         do {
             return try self.import(MappedFileByteSource(url: url), as: format)
+        } catch let error as ByteSourceError {
+            throw ImportError.fileReadFailure(error.localizedDescription)
+        } catch {
+            throw error
+        }
+    }
+
+    public func `import`(
+        from url: URL,
+        explicitUnit: LengthUnit?
+    ) throws -> ImportedExchangeModel {
+        guard let format = ExchangeFileFormat.format(forFileExtension: url.pathExtension) else {
+            throw ImportError.unsupportedFormat(url.pathExtension)
+        }
+        do {
+            return try self.import(
+                MappedFileByteSource(url: url),
+                as: format,
+                explicitUnit: explicitUnit
+            )
         } catch let error as ByteSourceError {
             throw ImportError.fileReadFailure(error.localizedDescription)
         } catch {
