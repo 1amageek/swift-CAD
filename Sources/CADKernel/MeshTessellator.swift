@@ -32,22 +32,42 @@ public struct MeshTessellator: Tessellating {
         validatedModel: ValidatedBRepModel,
         options: TessellationOptions = .standard
     ) throws -> [BodyID: Mesh] {
+        try tessellate(
+            validatedModel: validatedModel,
+            options: options,
+            limits: limits,
+            reserving: .zero
+        )
+    }
+
+    public func tessellate(
+        validatedModel: ValidatedBRepModel,
+        options: TessellationOptions = .standard,
+        limits requestLimits: TessellationLimits,
+        reserving reservation: TessellationUsage
+    ) throws -> [BodyID: Mesh] {
         do {
             try tolerance.validate()
             try options.validate()
         } catch {
             throw TessellationError.invalidTolerance
         }
+        try limits.validate()
+        try requestLimits.validate()
         guard validatedModel.tolerance == tolerance else {
             throw TessellationError.invalidTolerance
         }
+        let effectiveLimits = limits.lowered(to: requestLimits)
         let model = validatedModel.model
         let sortedBodies = model.bodies.sorted(by: { $0.key < $1.key })
 
         // Admit the whole invocation before any output storage is reserved, so a
         // model that cannot fit within the limits is rejected without allocating
         // for it.
-        var admitted = try TessellationBudget(limits: limits)
+        var admitted = try TessellationBudget(
+            limits: effectiveLimits,
+            reserving: reservation
+        )
         for (_, body) in sortedBodies {
             try Task.checkCancellation()
             for shellID in body.shellIDs {
@@ -69,7 +89,10 @@ public struct MeshTessellator: Tessellating {
             }
         }
 
-        var emitted = try TessellationBudget(limits: limits)
+        var emitted = try TessellationBudget(
+            limits: effectiveLimits,
+            reserving: reservation
+        )
         var meshes: [BodyID: Mesh] = [:]
         for (bodyID, body) in sortedBodies {
             try Task.checkCancellation()
@@ -83,9 +106,6 @@ public struct MeshTessellator: Tessellating {
                 }
                 for faceID in shell.faceIDs {
                     try Task.checkCancellation()
-                    let vertexCountBeforeFace = positions.count
-                    let indexCountBeforeFace = indices.count
-                    var duplicatedVertexCount = 0
                     try append(
                         faceID: faceID,
                         shellOrientation: shell.orientation,
@@ -94,15 +114,7 @@ public struct MeshTessellator: Tessellating {
                         positions: &positions,
                         normals: &normals,
                         indices: &indices,
-                        duplicatedVertexCount: &duplicatedVertexCount
-                    )
-                    // Charge the face's actual growth before the next face grows,
-                    // and refuse an invocation whose geometric emission outgrew
-                    // what was admitted for it rather than trusting the preflight.
-                    try emitted.charge(
-                        vertices: positions.count - vertexCountBeforeFace,
-                        indices: indices.count - indexCountBeforeFace,
-                        duplicatedVertices: duplicatedVertexCount
+                        budget: &emitted
                     )
                     try emitted.validateEmission(against: admitted)
                 }
@@ -298,7 +310,10 @@ public struct MeshTessellator: Tessellating {
             throw TessellationError.unsupportedFace(FaceID())
         }
 
-        for index in mesh.indices {
+        for (iteration, index) in mesh.indices.enumerated() {
+            if iteration & 0xFF == 0 {
+                try Task.checkCancellation()
+            }
             let sourceIndex = Int(index)
             guard mesh.positions.indices.contains(sourceIndex) else {
                 throw TessellationError.unsupportedFace(FaceID())
@@ -344,7 +359,7 @@ public struct MeshTessellator: Tessellating {
         positions: inout [Point3D],
         normals: inout [Vector3D],
         indices: inout [UInt32],
-        duplicatedVertexCount: inout Int
+        budget: inout TessellationBudget
     ) throws {
         guard let face = model.faces[faceID] else {
             throw TessellationError.unsupportedFace(faceID)
@@ -389,7 +404,8 @@ public struct MeshTessellator: Tessellating {
                     options: options,
                     positions: &positions,
                     normals: &normals,
-                    indices: &indices
+                    indices: &indices,
+                    budget: &budget
                 )
                 return
             }
@@ -402,11 +418,11 @@ public struct MeshTessellator: Tessellating {
                 faceID: faceID,
                 shellOrientation: shellOrientation,
                 model: model,
-                duplicatedVertexCount: &duplicatedVertexCount,
                 options: options,
                 positions: &positions,
                 normals: &normals,
-                indices: &indices
+                indices: &indices,
+                budget: &budget
             )
             return
         }
@@ -424,7 +440,8 @@ public struct MeshTessellator: Tessellating {
                 shellOrientation: shellOrientation,
                 positions: &positions,
                 normals: &normals,
-                indices: &indices
+                indices: &indices,
+                budget: &budget
             )
             return
         }
@@ -443,6 +460,7 @@ public struct MeshTessellator: Tessellating {
             shellOrientation: shellOrientation
         )
         let baseIndex = UInt32(positions.count)
+        try budget.charge(vertices: tessellationPoints.count, indices: 0)
         positions.append(contentsOf: tessellationPoints)
         normals.append(contentsOf: pointNormals)
 
@@ -451,14 +469,18 @@ public struct MeshTessellator: Tessellating {
             normal: geometricNormal,
             faceID: faceID
         )
-        for triangle in triangles {
-            let appended = appendTriangle(
+        for (iteration, triangle) in triangles.enumerated() {
+            if iteration & 0xFF == 0 {
+                try Task.checkCancellation()
+            }
+            let appended = try appendTriangle(
                 baseIndex + UInt32(triangle.first),
                 baseIndex + UInt32(triangle.second),
                 baseIndex + UInt32(triangle.third),
                 positions: positions,
                 normals: normals,
-                indices: &indices
+                indices: &indices,
+                budget: &budget
             )
             guard appended else {
                 throw TessellationError.degenerateFace(faceID)
@@ -494,7 +516,8 @@ public struct MeshTessellator: Tessellating {
         options: TessellationOptions,
         positions: inout [Point3D],
         normals: inout [Vector3D],
-        indices: inout [UInt32]
+        indices: inout [UInt32],
+        budget: inout TessellationBudget
     ) throws {
         let outerPoints = try sampledPoints(for: outerLoop, in: model, options: options)
         let innerPointLoops = try innerLoops.map { innerLoop in
@@ -531,6 +554,7 @@ public struct MeshTessellator: Tessellating {
             shellOrientation: shellOrientation
         )
         let baseIndex = UInt32(positions.count)
+        try budget.charge(vertices: bridgedPoints.count, indices: 0)
         positions.append(contentsOf: bridgedPoints)
         normals.append(contentsOf: pointNormals)
 
@@ -539,14 +563,18 @@ public struct MeshTessellator: Tessellating {
             normal: geometricNormal,
             faceID: faceID
         )
-        for triangle in triangles {
-            let appended = appendTriangle(
+        for (iteration, triangle) in triangles.enumerated() {
+            if iteration & 0xFF == 0 {
+                try Task.checkCancellation()
+            }
+            let appended = try appendTriangle(
                 baseIndex + UInt32(triangle.first),
                 baseIndex + UInt32(triangle.second),
                 baseIndex + UInt32(triangle.third),
                 positions: positions,
                 normals: normals,
-                indices: &indices
+                indices: &indices,
+                budget: &budget
             )
             guard appended else {
                 throw TessellationError.degenerateFace(faceID)
@@ -1443,7 +1471,8 @@ public struct MeshTessellator: Tessellating {
         shellOrientation: Orientation,
         positions: inout [Point3D],
         normals: inout [Vector3D],
-        indices: inout [UInt32]
+        indices: inout [UInt32],
+        budget: inout TessellationBudget
     ) throws {
         let geometricNormal = try faceNormal(points: points, faceID: faceID)
         let pointNormals = try surfaceNormals(
@@ -1462,14 +1491,19 @@ public struct MeshTessellator: Tessellating {
             let center = centroid(of: points)
             let centerNormal = try averageNormal(pointNormals, faceID: faceID)
             let centerIndex = UInt32(positions.count)
+            try budget.charge(vertices: points.count + 1, indices: 0)
             positions.append(center)
             normals.append(centerNormal)
             let pointBaseIndex = UInt32(positions.count)
             positions.append(contentsOf: points)
             normals.append(contentsOf: pointNormals)
 
-            for index in points.indices {
+            for (iteration, index) in points.indices.enumerated() {
+                if iteration & 0xFF == 0 {
+                    try Task.checkCancellation()
+                }
                 let next = (index + 1) % points.count
+                try budget.charge(vertices: 0, indices: 3)
                 indices.append(centerIndex)
                 if shouldReverse {
                     indices.append(pointBaseIndex + UInt32(next))
@@ -1496,6 +1530,7 @@ public struct MeshTessellator: Tessellating {
             throw TessellationError.unsupportedFace(faceID)
         }
         let pointBaseIndex = UInt32(positions.count)
+        try budget.charge(vertices: tessellationPoints.count, indices: 0)
         positions.append(contentsOf: tessellationPoints)
         normals.append(contentsOf: tessellationNormals)
 
@@ -1504,25 +1539,30 @@ public struct MeshTessellator: Tessellating {
             normal: geometricNormal,
             faceID: faceID
         )
-        for triangle in triangles {
+        for (iteration, triangle) in triangles.enumerated() {
+            if iteration & 0xFF == 0 {
+                try Task.checkCancellation()
+            }
             let appended: Bool
             if shouldReverse {
-                appended = appendTriangle(
+                appended = try appendTriangle(
                     pointBaseIndex + UInt32(triangle.first),
                     pointBaseIndex + UInt32(triangle.third),
                     pointBaseIndex + UInt32(triangle.second),
                     positions: positions,
                     normals: normals,
-                    indices: &indices
+                    indices: &indices,
+                    budget: &budget
                 )
             } else {
-                appended = appendTriangle(
+                appended = try appendTriangle(
                     pointBaseIndex + UInt32(triangle.first),
                     pointBaseIndex + UInt32(triangle.second),
                     pointBaseIndex + UInt32(triangle.third),
                     positions: positions,
                     normals: normals,
-                    indices: &indices
+                    indices: &indices,
+                    budget: &budget
                 )
             }
             guard appended else {
@@ -1604,11 +1644,11 @@ public struct MeshTessellator: Tessellating {
         faceID: FaceID,
         shellOrientation: Orientation,
         model: BRepModel,
-        duplicatedVertexCount: inout Int,
         options: TessellationOptions,
         positions: inout [Point3D],
         normals: inout [Vector3D],
-        indices: inout [UInt32]
+        indices: inout [UInt32],
+        budget: inout TessellationBudget
     ) throws {
         try surface.validate(tolerance: tolerance)
         if innerLoopIDs.isEmpty,
@@ -1630,7 +1670,7 @@ public struct MeshTessellator: Tessellating {
                 positions: &positions,
                 normals: &normals,
                 indices: &indices,
-                duplicatedVertexCount: &duplicatedVertexCount
+                budget: &budget
             )
             return
         }
@@ -1664,7 +1704,7 @@ public struct MeshTessellator: Tessellating {
             positions: &positions,
             normals: &normals,
             indices: &indices,
-            duplicatedVertexCount: &duplicatedVertexCount
+            budget: &budget
         )
     }
 
@@ -1679,7 +1719,7 @@ public struct MeshTessellator: Tessellating {
         positions: inout [Point3D],
         normals: inout [Vector3D],
         indices: inout [UInt32],
-        duplicatedVertexCount: inout Int
+        budget: inout TessellationBudget
     ) throws {
         let stepCounts = try parametricGridStepCounts(
             surface: surface,
@@ -1695,6 +1735,8 @@ public struct MeshTessellator: Tessellating {
         }
 
         let baseIndex = UInt32(positions.count)
+        try budget.charge(vertices: pointCount, indices: 0)
+        var pointIteration = 0
         for vIndex in 0...vSteps {
             let v = interpolatedParameter(
                 lowerBound: vBounds.lower,
@@ -1703,6 +1745,10 @@ public struct MeshTessellator: Tessellating {
                 count: vSteps
             )
             for uIndex in 0...uSteps {
+                if pointIteration & 0xFF == 0 {
+                    try Task.checkCancellation()
+                }
+                pointIteration += 1
                 let u = interpolatedParameter(
                     lowerBound: uBounds.lower,
                     upperBound: uBounds.upper,
@@ -1735,29 +1781,34 @@ public struct MeshTessellator: Tessellating {
             }
         }
 
+        var triangleIteration = 0
         for vIndex in 0..<vSteps {
             for uIndex in 0..<uSteps {
+                if triangleIteration & 0xFF == 0 {
+                    try Task.checkCancellation()
+                }
+                triangleIteration += 1
                 let lowerLeft = baseIndex + UInt32(vIndex * (uSteps + 1) + uIndex)
                 let lowerRight = lowerLeft + 1
                 let upperLeft = lowerLeft + UInt32(uSteps + 1)
                 let upperRight = upperLeft + 1
-                let appendedFirst = appendTriangleWithNormalFallback(
+                let appendedFirst = try appendTriangleWithNormalFallback(
                     lowerLeft,
                     lowerRight,
                     upperRight,
                     positions: &positions,
                     normals: &normals,
                     indices: &indices,
-                    duplicatedVertexCount: &duplicatedVertexCount
+                    budget: &budget
                 )
-                let appendedSecond = appendTriangleWithNormalFallback(
+                let appendedSecond = try appendTriangleWithNormalFallback(
                     lowerLeft,
                     upperRight,
                     upperLeft,
                     positions: &positions,
                     normals: &normals,
                     indices: &indices,
-                    duplicatedVertexCount: &duplicatedVertexCount
+                    budget: &budget
                 )
                 // A silently skipped quad leaves a hole that mesh compaction
                 // hides from validation; fail loudly instead.
@@ -2073,7 +2124,7 @@ public struct MeshTessellator: Tessellating {
         positions: inout [Point3D],
         normals: inout [Vector3D],
         indices: inout [UInt32],
-        duplicatedVertexCount: inout Int
+        budget: inout TessellationBudget
     ) throws {
         guard outerParameters.count >= 3 else {
             throw TessellationError.degenerateFace(faceID)
@@ -2097,7 +2148,11 @@ public struct MeshTessellator: Tessellating {
 
         let parameters = parameterPoints.map(surfaceParameter)
         let baseIndex = UInt32(positions.count)
-        for parameter in parameters {
+        try budget.charge(vertices: parameters.count, indices: 0)
+        for (iteration, parameter) in parameters.enumerated() {
+            if iteration & 0xFF == 0 {
+                try Task.checkCancellation()
+            }
             positions.append(try surface.point(u: parameter.u, v: parameter.v, tolerance: tolerance))
             normals.append(try oriented(
                 surface.normal(u: parameter.u, v: parameter.v, tolerance: tolerance),
@@ -2121,18 +2176,22 @@ public struct MeshTessellator: Tessellating {
                 throw TessellationError.unsupportedFace(faceID)
             }
             let centerIndex = UInt32(positions.count)
+            try budget.charge(vertices: 1, indices: 0)
             positions.append(fanCenter.point)
             normals.append(fanCenter.normal)
-            for index in parameters.indices {
+            for (iteration, index) in parameters.indices.enumerated() {
+                if iteration & 0xFF == 0 {
+                    try Task.checkCancellation()
+                }
                 let next = (index + 1) % parameters.count
-                let appended = appendTriangleWithNormalFallback(
+                let appended = try appendTriangleWithNormalFallback(
                     centerIndex,
                     baseIndex + UInt32(index),
                     baseIndex + UInt32(next),
                     positions: &positions,
                     normals: &normals,
                     indices: &indices,
-                    duplicatedVertexCount: &duplicatedVertexCount
+                    budget: &budget
                 )
                 guard appended else {
                     throw TessellationError.degenerateFace(faceID)
@@ -2147,15 +2206,18 @@ public struct MeshTessellator: Tessellating {
             faceID: faceID,
             physicalPoints: boundaryPhysicalPoints
         )
-        for triangle in triangles {
-            let appended = appendTriangleWithNormalFallback(
+        for (iteration, triangle) in triangles.enumerated() {
+            if iteration & 0xFF == 0 {
+                try Task.checkCancellation()
+            }
+            let appended = try appendTriangleWithNormalFallback(
                 baseIndex + UInt32(triangle.first),
                 baseIndex + UInt32(triangle.second),
                 baseIndex + UInt32(triangle.third),
                 positions: &positions,
                 normals: &normals,
                 indices: &indices,
-                duplicatedVertexCount: &duplicatedVertexCount
+                budget: &budget
             )
             guard appended else {
                 throw TessellationError.degenerateFace(faceID)
@@ -3059,8 +3121,9 @@ public struct MeshTessellator: Tessellating {
         _ third: UInt32,
         positions: [Point3D],
         normals: [Vector3D],
-        indices: inout [UInt32]
-    ) -> Bool {
+        indices: inout [UInt32],
+        budget: inout TessellationBudget
+    ) throws -> Bool {
         let firstPoint = positions[Int(first)]
         let secondPoint = positions[Int(second)]
         let thirdPoint = positions[Int(third)]
@@ -3079,6 +3142,7 @@ public struct MeshTessellator: Tessellating {
             return false
         }
         let referenceNormal = normals[Int(first)] + normals[Int(second)] + normals[Int(third)]
+        try budget.charge(vertices: 0, indices: 3)
         indices.append(first)
         if areaVector.dot(referenceNormal) < 0.0 {
             indices.append(third)
@@ -3093,9 +3157,6 @@ public struct MeshTessellator: Tessellating {
     /// Appends one triangle, giving it its own flat-shaded corners when the
     /// vertex normals disagree with the face normal.
     ///
-    /// - Parameter duplicatedVertexCount: Incremented by the corners this call
-    ///   duplicated, so the caller can charge them as storage without counting
-    ///   them as geometric emission the preflight was meant to estimate.
     @discardableResult
     private func appendTriangleWithNormalFallback(
         _ first: UInt32,
@@ -3104,8 +3165,8 @@ public struct MeshTessellator: Tessellating {
         positions: inout [Point3D],
         normals: inout [Vector3D],
         indices: inout [UInt32],
-        duplicatedVertexCount: inout Int
-    ) -> Bool {
+        budget: inout TessellationBudget
+    ) throws -> Bool {
         let firstPoint = positions[Int(first)]
         let secondPoint = positions[Int(second)]
         let thirdPoint = positions[Int(third)]
@@ -3134,16 +3195,17 @@ public struct MeshTessellator: Tessellating {
             faceNormal: flatNormal,
             normals: normals
         ) {
+            try budget.charge(vertices: 0, indices: 3)
             indices.append(contentsOf: ordered)
             return true
         }
 
         let baseIndex = UInt32(positions.count)
+        try budget.charge(vertices: ordered.count, indices: 3, duplicatedVertices: ordered.count)
         for sourceIndex in ordered {
             positions.append(positions[Int(sourceIndex)])
             normals.append(flatNormal)
         }
-        duplicatedVertexCount += ordered.count
         indices.append(baseIndex)
         indices.append(baseIndex + 1)
         indices.append(baseIndex + 2)

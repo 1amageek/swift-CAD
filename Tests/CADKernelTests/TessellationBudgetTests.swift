@@ -149,6 +149,32 @@ struct TessellationBudgetTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func aRejectedReservationLeavesTheBudgetUnchanged() throws {
+        var limits = TessellationLimits.standard
+        limits.maximumVertexCount = 10
+        var budget = try TessellationBudget(limits: limits)
+        let reservation = TessellationUsage(
+            vertexCount: 11,
+            indexCount: 12,
+            triangleCount: 4,
+            byteCount: 11 * TessellationUsage.bytesPerVertex
+                + 12 * TessellationUsage.bytesPerIndex
+        )
+
+        do {
+            try budget.reserve(reservation)
+            Issue.record("Expected the reservation to exceed the vertex limit.")
+        } catch {
+            let reported = try #require(Self.exhaustion(of: error))
+            #expect(reported.0 == .vertexCount)
+            #expect(reported.requested == 11)
+            #expect(reported.limit == 10)
+        }
+
+        #expect(budget.usage == .zero)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func eachDimensionRejectsOnItsOwnLimit() throws {
         var indexLimits = TessellationLimits.standard
         indexLimits.maximumIndexCount = 6
@@ -268,6 +294,61 @@ struct TessellationBudgetTests {
 
         #expect(meshes.count == 1)
         #expect(Self.usage(of: meshes).vertices > 0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func zeroReservedRequestMatchesLegacyTessellation() throws {
+        let model = try Self.boxModel()
+        let validatedModel = try ValidatedBRepModel(model, tolerance: .standard)
+        let tessellator = MeshTessellator(tolerance: .standard)
+
+        let legacy = try tessellator.tessellate(
+            validatedModel: validatedModel,
+            options: .standard
+        )
+        let requested = try tessellator.tessellate(
+            validatedModel: validatedModel,
+            options: .standard,
+            limits: .standard,
+            reserving: .zero
+        )
+
+        #expect(requested == legacy)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func reservedUsageRejectsBeforeFreshEmissionCanGrow() throws {
+        let model = try Self.boxModel()
+        let validatedModel = try ValidatedBRepModel(model, tolerance: .standard)
+        let tessellator = MeshTessellator(tolerance: .standard)
+        let existingMesh = try #require(
+            tessellator.tessellate(model: model).values.first
+        )
+        let reserved = try TessellationUsage(mesh: existingMesh)
+        let limits = TessellationLimits.standard.lowered(to: TessellationLimits(
+            maximumVertexCount: 30,
+            maximumIndexCount: .max,
+            maximumTriangleCount: .max,
+            maximumByteCount: .max
+        ))
+
+        do {
+            _ = try tessellator.tessellate(
+                validatedModel: validatedModel,
+                options: .standard,
+                limits: limits,
+                reserving: reserved
+            )
+            Issue.record("Expected reserved usage to refuse fresh tessellation before emission.")
+        } catch let error as TessellationError {
+            guard case let .resourceExhausted(resource, requested, limit) = error else {
+                Issue.record("Expected resource exhaustion, got \(error).")
+                return
+            }
+            #expect(resource == .vertexCount)
+            #expect(requested > limit)
+            #expect(limit == 30)
+        }
     }
 
     /// Limits set to the exact emission the model produces are still refused,

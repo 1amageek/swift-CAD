@@ -60,20 +60,24 @@ flowchart LR
    growth. Overflow and limit excess therefore fail before the allocation or
    growth they would exceed.
 6. Preflight and emission check cooperative cancellation at document, body,
-   and face boundaries. Emission is all-or-nothing: a failed or cancelled
-   invocation returns no Mesh map and cannot publish a partial evaluated
-   document.
-7. Exact B-rep incremental reuse is independent of tessellation fidelity. The
-   exact evaluator reuses only compatible source/evaluator/modeling state;
-   Mesh reuse additionally requires matching source fingerprint and full Mesh
-   artifact configuration, including `TessellationOptions` and the requesting
-   `MeshArtifactPurpose`, with recorded usage admitted by the current
-   `TessellationLimits`. `DocumentEvaluationConfiguration` carries the purpose
-   and the limits into every `MeshCache` the evaluator materializes, and
-   `EvaluatedDocument.validate()` reads the purpose back from the cache so a
-   purpose-scoped evaluation is not rejected by its own consistency check.
-   `CADIR` owns the resulting cache-boundary contract; see
-   `Sources/CADIR/DESIGN.md`.
+   face, and bounded inner-loop checkpoints. Emission is all-or-nothing: a
+   failed or cancelled invocation returns no Mesh map and cannot publish a
+   partial evaluated document.
+7. Exact B-rep incremental reuse is independent of tessellation fidelity and
+   mesh artifact purpose. The exact evaluator reuses only compatible
+   source/evaluator/modeling state. Mesh reuse is a separate admission step for
+   each unchanged body: its cache metadata, complete fidelity configuration,
+   purpose, recorded usage, and current limits must be accepted before the mesh
+   enters the new result. A purpose mismatch in `evaluate(reusing:)` is a cache
+   miss: the exact B-rep remains reusable, but that body is re-tessellated under
+   the requesting purpose. The old artifact is never relabeled. A compatible
+   artifact whose usage exceeds current limits is a typed
+   `TessellationError.resourceExhausted`, matching fresh tessellation. The
+   standalone `DocumentCaches.validateFreshness` contract retains typed purpose
+   mismatch refusal for callers validating an artifact table directly.
+   `DocumentEvaluationConfiguration` carries purpose and limits into every
+   newly materialized `MeshCache`. `CADIR` owns the cache-boundary value
+   contract; see `Sources/CADIR/DESIGN.md`.
 
 ### Implemented Admission Mechanism
 
@@ -81,9 +85,15 @@ Limits reach the tessellator through `MeshTessellator.init(tolerance:limits:)`,
 defaulting to `TessellationLimits.standard`, and through
 `DocumentEvaluator.init(tessellationLimits:)`, which configures only the
 tessellator the evaluator constructs; an injected `Tessellating` owns whichever
-limits it was built with. `TessellationBudget` charges an invocation and
-rejects a charge on the first dimension it would exceed, leaving every counter
-unchanged so a refused charge cannot partially advance the budget.
+initializer limits it was built with. `Tessellating` retains its existing
+requirements and adds a request overload carrying `limits` and `reserving`.
+The default overload validates that request and dispatches to the existing
+requirement, preserving source compatibility for legacy conformers. The
+production `MeshTessellator` lowers its initializer ceiling with the request
+ceiling and seeds both preflight and emission budgets with the reserved usage.
+`TessellationBudget` charges an invocation and rejects a charge on the first
+dimension it would exceed, leaving every counter unchanged so a refused charge
+cannot partially advance the budget.
 
 The conservative per-face estimate is exact for a rectangular parametric grid
 face, which emits `(u + 1)(v + 1)` vertices and `6uv` indices for the step
@@ -102,17 +112,19 @@ trusting it.
 The estimate does not model winding repair. When a triangle's vertex normals
 disagree with its face normal, `appendTriangleWithNormalFallback` gives that
 triangle its own flat-shaded corners, adding three vertices — and no indices —
-beyond the geometry the estimate describes. The tessellator reports those
-corners per face, `TessellationBudget.charge(vertices:indices:duplicatedVertices:)`
-charges them against the limits like any other vertex, and
-`validateEmission(against:)` excludes them from the comparison. Storage is
-therefore bounded by the limits on every path, while the preflight is still
-held to the geometry it claims to estimate: an estimate wrong about the
-geometry is rejected, an estimate silent about winding repair is not.
+beyond the geometry the estimate describes. The tessellator charges each
+actual vertex/index growth immediately before the corresponding append, so the
+fallback's three vertices and their bytes are refused before storage can grow.
+`validateEmission(against:)` still excludes those duplicates from the geometric
+estimate comparison. Storage is therefore bounded by the limits on every path,
+while the preflight is still held to the geometry it claims to estimate: an
+estimate wrong about the geometry is rejected, and an estimate silent about
+winding repair cannot bypass the checked output budget.
 
-Cancellation is observed through `Task.checkCancellation()`, so a synchronous
-caller outside a task is unaffected and a cancelled task fails with
-`CancellationError` before the next unit of work.
+Cancellation is observed through `Task.checkCancellation()` at document/body/
+face boundaries and inside bounded grid, triangle, and sampled-output loops, so
+a synchronous caller outside a task is unaffected and a cancelled task fails
+with `CancellationError` before the next bounded unit of work.
 
 Two transients are deliberately outside the charged budget. `compactedMesh`
 allocates one remapping table and the compacted attribute arrays for a body that
@@ -126,6 +138,16 @@ Neither can exceed the package ceiling; the charged ceilings therefore bound
 emitted mesh size, not peak process memory. The measured peak-to-mesh ratio of 3.6x to 4.5x
 recorded in `Sources/CADIR/DESIGN.md` is the basis on which
 `TessellationLimits.hardCeiling` accounts for these transients.
+
+When an evaluator reuses prior meshes, `makeMeshes` computes the checked
+aggregate usage of meshes that remain retained and passes it as `reserving` to
+the changed-body request. The production tessellator rejects any fresh
+preflight or append that would exceed the remaining allowance. A legacy or
+injected `Tessellating` may use the default compatibility overload and cannot
+enforce that allowance before its own allocation, so `makeMeshes` still charges
+the complete final mesh set at the publication boundary. This aggregate guard
+covers reused-only, reused-plus-fresh, and injected-provider output; failure
+discards the local result and publishes no evaluated document.
 
 ## Runtime Flows
 

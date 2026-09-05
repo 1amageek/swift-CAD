@@ -75,6 +75,21 @@ public protocol Tessellating: Sendable {
         validatedModel: ValidatedBRepModel,
         options: TessellationOptions
     ) throws -> [BodyID: Mesh]
+
+    /// Tessellates a validated model under a request-specific ceiling while
+    /// reserving usage already retained by the caller.
+    ///
+    /// The default implementation validates the request and dispatches to the
+    /// existing requirement. Legacy conformers therefore remain source
+    /// compatible, while the evaluator's final aggregate guard still protects
+    /// callers whose old implementation cannot enforce the reservation before
+    /// allocating output.
+    func tessellate(
+        validatedModel: ValidatedBRepModel,
+        options: TessellationOptions,
+        limits: TessellationLimits,
+        reserving: TessellationUsage
+    ) throws -> [BodyID: Mesh]
 }
 
 public extension Tessellating {
@@ -83,6 +98,24 @@ public extension Tessellating {
         options: TessellationOptions
     ) throws -> [BodyID: Mesh] {
         try tessellate(model: validatedModel.model, options: options)
+    }
+
+    func tessellate(
+        validatedModel: ValidatedBRepModel,
+        options: TessellationOptions,
+        limits: TessellationLimits,
+        reserving: TessellationUsage
+    ) throws -> [BodyID: Mesh] {
+        try limits.validate()
+        try reserving.validate()
+        if let exceeded = reserving.firstResourceExceeding(limits) {
+            throw TessellationError.resourceExhausted(
+                exceeded,
+                requested: reserving.amount(for: exceeded),
+                limit: limits.limit(for: exceeded)
+            )
+        }
+        return try tessellate(validatedModel: validatedModel, options: options)
     }
 }
 

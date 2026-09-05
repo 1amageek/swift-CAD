@@ -605,8 +605,11 @@ struct DocumentEvaluationEngine {
         guard let previous else {
             let meshes = try tessellator.tessellate(
                 validatedModel: validatedBRep,
-                options: tessellationOptions
+                options: tessellationOptions,
+                limits: tessellationLimits,
+                reserving: .zero
             )
+            try validateAggregateMeshUsage(PersistentMap(meshes))
             return MeshEvaluationResult(
                 meshes: PersistentMap(meshes),
                 tessellatedBodyCount: brep.bodies.count,
@@ -625,6 +628,31 @@ struct DocumentEvaluationEngine {
             }
         }
 
+        // Exact incremental state establishes which unchanged bodies may be
+        // carried forward. The mesh artifact still has its own admission
+        // contract: purpose and recorded usage must be accepted by this
+        // request before the artifact enters the result. Do not fold these
+        // checks into `reusableState`; that would incorrectly discard exact
+        // B-rep reuse when only the mesh request changed.
+        let reusableBodyIDs = meshes.keys.filter { bodyID in
+            brep.bodies[bodyID] != nil && !bodyIDsToTessellate.contains(bodyID)
+        }
+        for bodyID in reusableBodyIDs {
+            guard let cache = previous.caches.meshes[bodyID] else {
+                throw CacheValidationError.staleMeshCache(
+                    bodyID: bodyID,
+                    reason: "A reused mesh has no cache artifact metadata."
+                )
+            }
+            if try validateReusableMeshCache(cache, bodyID: bodyID) == false {
+                // A previous evaluation is a reuse hint, not an authority for
+                // the requested artifact purpose. Keep its exact B-rep state,
+                // but regenerate this body's mesh under the new purpose rather
+                // than relabeling the old artifact or failing the evaluation.
+                bodyIDsToTessellate.insert(bodyID)
+            }
+        }
+
         if !bodyIDsToTessellate.isEmpty {
             let extractor = BRepBodySubmodelExtractor()
             let changedModel = try extractor.extract(
@@ -639,9 +667,15 @@ struct DocumentEvaluationEngine {
                 as: changedModel,
                 tolerance: tolerance
             )
+            let reservedUsage = try aggregateMeshUsage(
+                meshes,
+                excluding: bodyIDsToTessellate
+            )
             let changedMeshes = try tessellator.tessellate(
                 validatedModel: validatedChangedModel,
-                options: tessellationOptions
+                options: tessellationOptions,
+                limits: tessellationLimits,
+                reserving: reservedUsage
             )
             guard Set(changedMeshes.keys) == bodyIDsToTessellate else {
                 throw FeatureEvaluationError.emptyResult(
@@ -653,11 +687,83 @@ struct DocumentEvaluationEngine {
             }
         }
 
+        try validateAggregateMeshUsage(meshes)
+
         return MeshEvaluationResult(
             meshes: meshes,
             tessellatedBodyCount: bodyIDsToTessellate.count,
             reusedMeshCount: meshes.count - bodyIDsToTessellate.count
         )
+    }
+
+    private func validateReusableMeshCache(
+        _ cache: MeshCache,
+        bodyID: BodyID
+    ) throws -> Bool {
+        try meshArtifactPurpose.validate()
+        try cache.purpose.validate()
+        guard cache.purpose == meshArtifactPurpose else {
+            return false
+        }
+        guard cache.bodyID == bodyID else {
+            throw CacheValidationError.staleMeshCache(
+                bodyID: bodyID,
+                reason: "Mesh cache table key does not match the cached body ID."
+            )
+        }
+        guard cache.tessellationOptions == tessellationOptions else {
+            throw CacheValidationError.staleMeshCache(
+                bodyID: bodyID,
+                reason: "Tessellation options do not match the evaluator."
+            )
+        }
+        try tessellationLimits.validate()
+        try cache.recordedUsage.validate()
+        guard cache.recordedUsage == (try TessellationUsage(mesh: cache.mesh)) else {
+            throw CacheValidationError.staleMeshCache(
+                bodyID: bodyID,
+                reason: "Recorded usage does not describe the cached mesh."
+            )
+        }
+        if let exceeded = cache.recordedUsage.firstResourceExceeding(tessellationLimits) {
+            // The evaluator's public admission path has the same failure
+            // contract as a fresh tessellation. The standalone cache validator
+            // retains `meshCacheExceedsLimits` for callers validating a cache
+            // table without evaluating a document.
+            throw TessellationError.resourceExhausted(
+                exceeded,
+                requested: cache.recordedUsage.amount(for: exceeded),
+                limit: tessellationLimits.limit(for: exceeded)
+            )
+        }
+        return true
+    }
+
+    private func aggregateMeshUsage(
+        _ meshes: PersistentMap<BodyID, Mesh>,
+        excluding excludedBodyIDs: Set<BodyID> = []
+    ) throws -> TessellationUsage {
+        var budget = try TessellationBudget(limits: tessellationLimits)
+        for bodyID in meshes.keys.sorted() where !excludedBodyIDs.contains(bodyID) {
+            guard let mesh = meshes[bodyID] else {
+                throw CacheValidationError.staleMeshCache(
+                    bodyID: bodyID,
+                    reason: "Mesh result lost a body while usage was aggregated."
+                )
+            }
+            try budget.reserve(try TessellationUsage(mesh: mesh))
+        }
+        return budget.usage
+    }
+
+    /// The default `Tessellating` overload preserves legacy conformers that
+    /// cannot enforce a reservation before allocation. Charge the complete
+    /// result at the publication boundary so reused-only, reused-plus-fresh,
+    /// and injected-provider outputs still share one aggregate contract.
+    private func validateAggregateMeshUsage(
+        _ meshes: PersistentMap<BodyID, Mesh>
+    ) throws {
+        _ = try aggregateMeshUsage(meshes)
     }
 
     private func makeCaches(

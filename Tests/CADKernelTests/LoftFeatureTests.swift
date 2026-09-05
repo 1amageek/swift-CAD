@@ -346,6 +346,52 @@ func loftSmoothSheetTessellatesUnderTheStandardLimits() throws {
     #expect(distinctPositions.count < mesh.positions.count)
 }
 
+/// The fallback's duplicated corners are real output storage. A limit one
+/// below the already-materialized artifact must therefore fail during emission,
+/// while a later standard evaluation must remain complete with the same resource
+/// usage.
+@Test(.timeLimit(.minutes(1)))
+func loftSmoothSheetRefusesTheFallbackVertexBoundaryBeforeGrowth() throws {
+    let (document, _) = closedSectionLoopLoftDocument(
+        resultKind: .sheet,
+        surfaceMode: .smooth
+    )
+    let baseline = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+    let mesh = try #require(baseline.meshes.materializedDictionary().values.first)
+    let usage = try TessellationUsage(mesh: mesh)
+    #expect(usage.vertexCount > 0)
+    #expect(Set(mesh.positions.map { [$0.x, $0.y, $0.z] }).count < usage.vertexCount)
+
+    let narrowed = TessellationLimits.standard.lowered(to: TessellationLimits(
+        maximumVertexCount: usage.vertexCount - 1,
+        maximumIndexCount: TessellationLimits.standard.maximumIndexCount,
+        maximumTriangleCount: TessellationLimits.standard.maximumTriangleCount,
+        maximumByteCount: TessellationLimits.standard.maximumByteCount
+    ))
+    do {
+        _ = try DocumentEvaluator(
+            tolerance: .standard,
+            tessellationLimits: narrowed
+        ).evaluate(document)
+        Issue.record("Expected the fallback vertex boundary to be refused.")
+    } catch let error as TessellationError {
+        guard case let .resourceExhausted(resource, requested, limit) = error else {
+            Issue.record("Expected resource exhaustion, got \(error).")
+            return
+        }
+        #expect(resource == .vertexCount)
+        #expect(requested > limit)
+    }
+
+    let reevaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+    let reevaluatedMesh = try #require(reevaluated.meshes.materializedDictionary().values.first)
+    let reevaluatedUsage = try TessellationUsage(mesh: reevaluatedMesh)
+    #expect(reevaluated.brep.bodies.count == baseline.brep.bodies.count)
+    #expect(reevaluated.brep.faces.count == baseline.brep.faces.count)
+    #expect(reevaluatedUsage == usage)
+    #expect(reevaluatedMesh.indices.count == mesh.indices.count)
+}
+
 @Test(.timeLimit(.minutes(1)))
 func loftSmoothSurfaceModeCreatesCubicClosedSectionLoopSheet() throws {
     let (document, _) = closedSectionLoopLoftDocument(

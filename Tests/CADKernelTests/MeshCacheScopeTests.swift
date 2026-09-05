@@ -31,17 +31,25 @@ struct MeshCacheScopeTests {
     private static func document(
         _ definition: PrimitiveDefinition
     ) throws -> CADDocument {
+        try primitiveDocument([definition])
+    }
+
+    private static func primitiveDocument(
+        _ definitions: [PrimitiveDefinition]
+    ) throws -> CADDocument {
         var document = CADDocument(units: .meters)
-        let featureID = FeatureID()
-        let node = try FeatureNodeFactory.make(
-            operation: .primitive(PrimitiveFeature(definition: definition)),
-            id: featureID,
-            name: "cache-scope",
-            in: document,
-            tolerance: .standard
-        )
-        document.designGraph.nodes[featureID] = node
-        document.designGraph.order.append(featureID)
+        for (index, definition) in definitions.enumerated() {
+            let featureID = FeatureID()
+            let node = try FeatureNodeFactory.make(
+                operation: .primitive(PrimitiveFeature(definition: definition)),
+                id: featureID,
+                name: "cache-scope-\(index)",
+                in: document,
+                tolerance: .standard
+            )
+            document.designGraph.nodes[featureID] = node
+            document.designGraph.order.append(featureID)
+        }
         document.designGraph.revision = document.designGraph.revision.advanced()
         return document
     }
@@ -70,11 +78,13 @@ struct MeshCacheScopeTests {
     private static func evaluate(
         _ document: CADDocument,
         purpose: MeshArtifactPurpose,
-        options: TessellationOptions = .standard
+        options: TessellationOptions = .standard,
+        limits: TessellationLimits = .standard
     ) throws -> EvaluatedDocument {
         try DocumentEvaluator(
             tolerance: .standard,
             tessellationOptions: options,
+            tessellationLimits: limits,
             meshArtifactPurpose: purpose
         ).evaluate(document)
     }
@@ -247,5 +257,211 @@ struct MeshCacheScopeTests {
         let standardMesh = try #require(standardFidelity.caches.meshes.values.first)
         let coarseMesh = try #require(coarseFidelity.caches.meshes.values.first)
         #expect(standardMesh.mesh.positions.count != coarseMesh.mesh.positions.count)
+    }
+
+    // MARK: - Incremental evaluator admission
+
+    @Test(.timeLimit(.minutes(1)))
+    func incrementalReuseRegeneratesAPurposeMismatchWithoutRelabelingTheArtifact() throws {
+        let source = try Self.boxDocument()
+        let preview = try Self.evaluate(source, purpose: Self.preview)
+        let exportEvaluator = DocumentEvaluator(
+            tolerance: .standard,
+            meshArtifactPurpose: Self.export
+        )
+
+        let exported = try exportEvaluator.evaluate(source, reusing: preview)
+        #expect(exported.brep == preview.brep)
+        #expect(exported.evaluationMetrics.rebuiltFeatureCount == 0)
+        #expect(exported.evaluationMetrics.tessellatedBodyCount == 1)
+        #expect(exported.evaluationMetrics.reusedMeshCount == 0)
+        let cache = try #require(exported.caches.meshes.values.first)
+        #expect(cache.purpose == Self.export)
+        #expect(cache.purpose != preview.caches.meshes.values.first?.purpose)
+        try exported.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func incrementalReuseUsesTheSameTypedLimitRefusalAsFreshEvaluation() throws {
+        let source = try Self.boxDocument()
+        let preview = try Self.evaluate(source, purpose: Self.preview)
+        let cache = try #require(preview.caches.meshes.values.first)
+        let recordedVertexCount = cache.recordedUsage.vertexCount
+        let narrowed = TessellationLimits.standard.lowered(to: TessellationLimits(
+            maximumVertexCount: recordedVertexCount - 1,
+            maximumIndexCount: .max,
+            maximumTriangleCount: .max,
+            maximumByteCount: .max
+        ))
+        let evaluator = DocumentEvaluator(
+            tolerance: .standard,
+            tessellationLimits: narrowed,
+            meshArtifactPurpose: Self.preview
+        )
+
+        func resourceExhaustion(_ operation: () throws -> Void) throws -> TessellationError {
+            do {
+                try operation()
+                Issue.record("Expected the tessellation limit to be refused.")
+                return .resourceExhausted(.vertexCount, requested: 0, limit: 0)
+            } catch let error as TessellationError {
+                return error
+            }
+        }
+
+        let freshFailure = try resourceExhaustion {
+            _ = try evaluator.evaluate(source)
+        }
+        let reusedFailure = try resourceExhaustion {
+            _ = try evaluator.evaluate(source, reusing: preview)
+        }
+        guard case let .resourceExhausted(freshResource, freshRequested, freshLimit) = freshFailure,
+              case let .resourceExhausted(reusedResource, reusedRequested, reusedLimit) = reusedFailure else {
+            Issue.record("Expected both paths to report resource exhaustion.")
+            return
+        }
+        #expect(freshResource == reusedResource)
+        #expect(freshLimit == reusedLimit)
+        // Fresh admission reports its conservative estimate (25 vertices),
+        // while cache admission reports the recorded artifact usage (24). Both
+        // refuse the same resource against the same requested ceiling.
+        #expect(freshRequested > freshLimit)
+        #expect(reusedRequested > reusedLimit)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func reusedMeshesShareOneAggregateLimit() throws {
+        let source = try Self.primitiveDocument([
+            .box(BoxPrimitive(
+                width: Self.length(2.0),
+                depth: Self.length(3.0),
+                height: Self.length(4.0)
+            )),
+            .box(BoxPrimitive(
+                width: Self.length(2.0),
+                depth: Self.length(3.0),
+                height: Self.length(4.0)
+            )),
+        ])
+        let initial = try Self.evaluate(source, purpose: Self.preview)
+        let limits = TessellationLimits.standard.lowered(to: TessellationLimits(
+            maximumVertexCount: 30,
+            maximumIndexCount: .max,
+            maximumTriangleCount: .max,
+            maximumByteCount: .max
+        ))
+        let evaluator = DocumentEvaluator(
+            tolerance: .standard,
+            tessellationLimits: limits,
+            meshArtifactPurpose: Self.preview
+        )
+
+        do {
+            _ = try evaluator.evaluate(source, reusing: initial)
+            Issue.record("Expected reused meshes to be admitted cumulatively.")
+        } catch let error as TessellationError {
+            guard case let .resourceExhausted(resource, requested, limit) = error else {
+                Issue.record("Expected aggregate resource exhaustion, got \(error).")
+                return
+            }
+            #expect(resource == .vertexCount)
+            #expect(requested > limit)
+            #expect(limit == 30)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func reusedAndChangedMeshesShareOneAggregateLimit() throws {
+        let source = try Self.primitiveDocument([
+            .box(BoxPrimitive(
+                width: Self.length(2.0),
+                depth: Self.length(3.0),
+                height: Self.length(4.0)
+            )),
+            .box(BoxPrimitive(
+                width: Self.length(2.0),
+                depth: Self.length(3.0),
+                height: Self.length(4.0)
+            )),
+        ])
+        let initial = try Self.evaluate(source, purpose: Self.preview)
+        var edited = source
+        let changedFeatureID = try #require(edited.designGraph.order.first)
+        edited.designGraph.nodes[changedFeatureID]?.operation = .primitive(
+            PrimitiveFeature(definition: .box(BoxPrimitive(
+                width: Self.length(5.0),
+                depth: Self.length(3.0),
+                height: Self.length(4.0)
+            ))))
+        edited.designGraph.revision = edited.designGraph.revision.advanced()
+        let limits = TessellationLimits.standard.lowered(to: TessellationLimits(
+            maximumVertexCount: 30,
+            maximumIndexCount: .max,
+            maximumTriangleCount: .max,
+            maximumByteCount: .max
+        ))
+        let evaluator = DocumentEvaluator(
+            tolerance: .standard,
+            tessellationLimits: limits,
+            meshArtifactPurpose: Self.preview
+        )
+
+        do {
+            _ = try evaluator.evaluate(edited, reusing: initial)
+            Issue.record("Expected reused and changed meshes to be admitted cumulatively.")
+        } catch let error as TessellationError {
+            guard case let .resourceExhausted(resource, requested, limit) = error else {
+                Issue.record("Expected aggregate resource exhaustion, got \(error).")
+                return
+            }
+            #expect(resource == .vertexCount)
+            #expect(requested > limit)
+            #expect(limit == 30)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func injectedTessellatorOutputUsesTheAggregateLimit() throws {
+        let source = try Self.boxDocument()
+        let limits = TessellationLimits.standard.lowered(to: TessellationLimits(
+            maximumVertexCount: 30,
+            maximumIndexCount: .max,
+            maximumTriangleCount: .max,
+            maximumByteCount: .max
+        ))
+        let evaluator = DocumentEvaluator(
+            tessellator: OversizedTessellator(),
+            tolerance: .standard,
+            tessellationLimits: limits
+        )
+
+        do {
+            _ = try evaluator.evaluate(source)
+            Issue.record("Expected injected tessellator output to be aggregate-limited.")
+        } catch let error as TessellationError {
+            guard case let .resourceExhausted(resource, requested, limit) = error else {
+                Issue.record("Expected aggregate resource exhaustion, got \(error).")
+                return
+            }
+            #expect(resource == .vertexCount)
+            #expect(requested > limit)
+            #expect(limit == 30)
+        }
+    }
+}
+
+private struct OversizedTessellator: Tessellating {
+    private let base = MeshTessellator(tolerance: .standard)
+
+    func tessellate(
+        model: BRepModel,
+        options: TessellationOptions
+    ) throws -> [BodyID: Mesh] {
+        try base.tessellate(model: model, options: options).mapValues { mesh in
+            var oversized = mesh
+            oversized.positions.append(contentsOf: mesh.positions)
+            oversized.normals.append(contentsOf: mesh.normals)
+            return oversized
+        }
     }
 }

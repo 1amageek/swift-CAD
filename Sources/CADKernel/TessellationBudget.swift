@@ -28,10 +28,60 @@ struct TessellationBudget {
     private(set) var duplicatedVertexCount = 0
 
     /// - Throws: `TessellationError.invalidLimit` when the limits are not
-    ///   positive representable values at or below the package hard ceiling.
-    init(limits: TessellationLimits) throws {
+    ///   positive representable values at or below the package hard ceiling, or
+    ///   `TessellationError.resourceExhausted` when the reservation does not fit.
+    init(
+        limits: TessellationLimits,
+        reserving reservation: TessellationUsage = .zero
+    ) throws {
         try limits.validate()
         self.limits = limits
+        try reserve(reservation)
+    }
+
+    var usage: TessellationUsage {
+        TessellationUsage(
+            vertexCount: vertexCount,
+            indexCount: indexCount,
+            triangleCount: triangleCount,
+            byteCount: byteCount
+        )
+    }
+
+    /// Reserves usage that already exists outside this invocation.
+    ///
+    /// Every dimension is checked before any counter changes, so a refused
+    /// reservation cannot partially advance the budget.
+    mutating func reserve(_ reservation: TessellationUsage) throws {
+        try reservation.validate()
+        let nextVertexCount = try sum(
+            vertexCount,
+            reservation.vertexCount,
+            as: .vertexCount,
+            limit: limits.maximumVertexCount
+        )
+        let nextIndexCount = try sum(
+            indexCount,
+            reservation.indexCount,
+            as: .indexCount,
+            limit: limits.maximumIndexCount
+        )
+        let nextTriangleCount = try sum(
+            triangleCount,
+            reservation.triangleCount,
+            as: .triangleCount,
+            limit: limits.maximumTriangleCount
+        )
+        let nextByteCount = try sum(
+            byteCount,
+            reservation.byteCount,
+            as: .byteCount,
+            limit: limits.maximumByteCount
+        )
+        vertexCount = nextVertexCount
+        indexCount = nextIndexCount
+        triangleCount = nextTriangleCount
+        byteCount = nextByteCount
     }
 
     /// The estimated storage a vertex and index count occupies.

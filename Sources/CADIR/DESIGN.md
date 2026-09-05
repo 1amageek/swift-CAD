@@ -68,6 +68,13 @@ flowchart LR
    by a producer — and `validate()` rejects a value no invocation could have
    produced. `firstResourceExceeding(_:)` names the first dimension a usage
    outgrows, so a request states its ceiling and the usage answers it.
+   The in-flight budget is not a second artifact contract: `CADKernel` charges
+   each actual vertex/index growth immediately before the corresponding output
+   append. An evaluator may reserve this usage for retained meshes when it asks
+   for incremental tessellation; the production tessellator seeds its checked
+   budget with that reservation. A normal-consistency fallback that duplicates
+   three corners is charged as three vertices and their bytes before those
+   corners are appended.
 9. A `MeshCache` entry is scoped to the artifact configuration it records.
    Reuse requires the source fingerprint, the design and parameter revisions,
    the kernel version, the modeling tolerance, the complete
@@ -78,12 +85,22 @@ flowchart LR
    `meshCacheExceedsLimits`, and every other disagreement is `staleMeshCache`
    with the reason. An artifact is therefore never shared across consumers that
    happen to agree on fidelity, and a narrow request never inherits a wider
-   ceiling through the cache.
-10. `BRepCache` records no tessellation input, so exact B-rep reuse is
+   ceiling through the cache. The cache contract is checked by the evaluator
+   only for bodies it is actually reusing; exact B-rep state can remain reusable
+   while a mesh artifact is refused. `DocumentCaches.validateFreshness` remains
+   a standalone artifact-table validator and reports a purpose mismatch; an
+   evaluator receiving that artifact as a reuse hint may instead discard the
+   mesh and regenerate it for the requested purpose.
+10. `MeshArtifactPurpose` is the kernel artifact authority. CADIR does not
+    define or infer a Rupa representation purpose, and no consumer may relabel a
+    cached kernel artifact to satisfy a different purpose. Rupa may deliberately
+    use the same kernel `.unspecified` purpose for its unspecified representation,
+    but that is an adapter decision outside this module.
+11. `BRepCache` records no tessellation input, so exact B-rep reuse is
     independent of tessellation fidelity: the same document evaluated at two
     fidelities yields the same cached model, fingerprint, and revisions while
     yielding different meshes.
-11. Caches are in-memory evaluation state. `CADExchange` writes the source
+12. Caches are in-memory evaluation state. `CADExchange` writes the source
     document, never `DocumentCaches`, so the `Codable` conformance carries no
     on-disk format and adding a recorded field needs no migration.
 
