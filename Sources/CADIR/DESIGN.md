@@ -137,6 +137,21 @@ flowchart LR
     cannot expose a partially translated result.
     The imported-BRep capability is executable but `partial`: the public source
     translation path explicitly refuses it until exact translation is implemented.
+16. `Mesh.faceRuns` is the mesh's record of which B-rep face generated which
+    triangles. It is a value carried with the mesh, not a separately indexed
+    side table, so the provenance cannot be separated from the triangles it
+    describes and cannot be rebuilt per interaction. Runs are ordered by
+    emission and are contiguous: the triangles a run describes are the
+    `indices` triples `[start, start + triangleCount)` where `start` is the
+    sum of the preceding runs' counts, so a consumer resolves triangle `t` by
+    a single ordered scan and needs no dictionary. `validate(tolerance:)`
+    accepts either no run at all or a complete partition, and rejects an empty
+    run, a repeated face, and a covered count other than `indices.count / 3`.
+    A partial partition is refused because it would let a consumer resolve a
+    triangle to the wrong face. No run means the mesh carries no face
+    provenance, which is the truthful state of a mesh an exchange reader built
+    from a triangle soup; it is not a fallback that a CAD consumer may accept
+    silently. `CADKernel` owns which face produced which run.
 
 ### Measured Source of the Limit Constants
 
@@ -207,7 +222,11 @@ package constants, without coupling the values to viewport policy.
 `CADKernelTests/MeshCacheScopeTests` owns the cache-boundary contract, covering
 a matching request, a mismatched purpose, a mismatched fidelity, a usage that
 does not describe its artifact, a usage above the requested limits, and B-rep
-reuse across two fidelities. Changes
+reuse across two fidelities. `CADIRTests/MeshFaceRunTests` owns the
+`Mesh.faceRuns` value contract, covering the absent-provenance mesh, the
+complete partition, the empty run, the repeated face, the short and long
+partitions, and the JSON round-trip that omits and restores the field.
+`CADKernelTests/MeshTessellatorFaceRunTests` owns the emitted runs. Changes
 require rechecking `CADKernel` stable-reference creation, lookup, and
 tessellation admission, and re-measuring the fixtures above whenever the
 constants move.

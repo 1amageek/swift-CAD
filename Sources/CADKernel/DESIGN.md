@@ -88,6 +88,14 @@ flowchart LR
    and non-incremental evaluation, permits the same exact source to be
    imported more than once, and keeps re-evaluation IDs stable for cache and
    delta reuse.
+9. `MeshTessellator` records the generating face of every triangle it emits in
+   `Mesh.faceRuns`. A run is appended for each face that emitted at least one
+   triangle, in the body's `shellIDs` then `faceIDs` traversal order, so the
+   runs partition the emitted triangles in emission order. Index compaction
+   preserves triangle count and order, so it carries the runs unchanged. A
+   body extracted for incremental re-tessellation copies its shells verbatim,
+   so a reused mesh and a freshly tessellated one record the same runs and stay
+   equal. `CADIR` owns the run value contract; see `Sources/CADIR/DESIGN.md`.
 
 ### Implemented Admission Mechanism
 
@@ -196,7 +204,10 @@ conservative estimate first, that a refused charge leaves the budget unchanged,
 that emission beyond the admitted estimate is rejected, that cancellation is
 observed both before an invocation starts and at an interior checkpoint once it
 has started, and that the exact B-rep tessellates to identical meshes after a
-refusal. Per-checkpoint attribution between the body and face boundaries is not
+refusal. `MeshTessellatorFaceRunTests` proves the emitted runs cover every
+triangle of every body in traversal order, name the faces the body owns, and
+are identical whether a body is tessellated fresh or re-tessellated after an
+incremental extraction. Per-checkpoint attribution between the body and face boundaries is not
 separately observable through the public API; the interior-checkpoint test uses
 a fixture whose tessellation is an order of magnitude longer than the delay
 before cancellation. Mesh artifact reuse is separated from exact incremental

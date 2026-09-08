@@ -99,6 +99,7 @@ public struct MeshTessellator: Tessellating {
             var positions: [Point3D] = []
             var normals: [Vector3D] = []
             var indices: [UInt32] = []
+            var faceRuns: [Mesh.FaceRun] = []
 
             for shellID in body.shellIDs {
                 guard let shell = model.shells[shellID] else {
@@ -106,6 +107,7 @@ public struct MeshTessellator: Tessellating {
                 }
                 for faceID in shell.faceIDs {
                     try Task.checkCancellation()
+                    let indexCountBeforeFace = indices.count
                     try append(
                         faceID: faceID,
                         shellOrientation: shell.orientation,
@@ -117,6 +119,15 @@ public struct MeshTessellator: Tessellating {
                         budget: &emitted
                     )
                     try emitted.validateEmission(against: admitted)
+                    // The run is the face's own contribution to this body's
+                    // emission. A face that emitted nothing records no run,
+                    // because no triangle can ever resolve back to it.
+                    let emittedTriangles = (indices.count - indexCountBeforeFace) / 3
+                    if emittedTriangles > 0 {
+                        faceRuns.append(
+                            Mesh.FaceRun(faceID: faceID, triangleCount: emittedTriangles)
+                        )
+                    }
                 }
             }
 
@@ -124,7 +135,8 @@ public struct MeshTessellator: Tessellating {
                 positions: positions,
                 normals: normals,
                 indices: indices,
-                material: body.material
+                material: body.material,
+                faceRuns: faceRuns
             ))
             try mesh.validate(tolerance: tolerance)
             meshes[bodyID] = mesh
@@ -341,13 +353,17 @@ public struct MeshTessellator: Tessellating {
             compactIndices.append(UInt32(remappedIndex))
         }
 
+        // Compaction rewrites vertex indices only. It appends exactly one
+        // compact index per input index in order, so triangle count and order
+        // are preserved and the recorded runs stay valid.
         return Mesh(
             positions: compactPositions,
             normals: compactNormals,
             indices: compactIndices,
             textureCoordinates: compactTextureCoordinates,
             vertexColors: compactVertexColors,
-            material: mesh.material
+            material: mesh.material,
+            faceRuns: mesh.faceRuns
         )
     }
 

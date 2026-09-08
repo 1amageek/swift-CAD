@@ -1,12 +1,31 @@
 import CADCore
 
 public struct Mesh: Codable, Sendable, Hashable {
+    /// The contiguous run of triangles one B-rep face generated.
+    ///
+    /// Runs are recorded in emission order and are contiguous, so the triangles
+    /// a face generated are `indices` triples `[start, start + triangleCount)`
+    /// where `start` is the sum of the preceding runs' counts. A face that
+    /// generated no triangle has no run, and a mesh that was not tessellated
+    /// from a B-rep records no run at all.
+    public struct FaceRun: Codable, Sendable, Hashable {
+        public var faceID: FaceID
+        public var triangleCount: Int
+
+        public init(faceID: FaceID, triangleCount: Int) {
+            self.faceID = faceID
+            self.triangleCount = triangleCount
+        }
+    }
+
     public var positions: [Point3D]
     public var normals: [Vector3D]
     public var indices: [UInt32]
     public var textureCoordinates: [Point2D]
     public var vertexColors: [ColorRGBA]
     public var material: MaterialID?
+    /// The generating B-rep face of every triangle, in emission order.
+    public var faceRuns: [FaceRun]
 
     public init(
         positions: [Point3D] = [],
@@ -14,7 +33,8 @@ public struct Mesh: Codable, Sendable, Hashable {
         indices: [UInt32] = [],
         textureCoordinates: [Point2D] = [],
         vertexColors: [ColorRGBA] = [],
-        material: MaterialID? = nil
+        material: MaterialID? = nil,
+        faceRuns: [FaceRun] = []
     ) {
         self.positions = positions
         self.normals = normals
@@ -22,6 +42,7 @@ public struct Mesh: Codable, Sendable, Hashable {
         self.textureCoordinates = textureCoordinates
         self.vertexColors = vertexColors
         self.material = material
+        self.faceRuns = faceRuns
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -31,6 +52,7 @@ public struct Mesh: Codable, Sendable, Hashable {
         case textureCoordinates
         case vertexColors
         case material
+        case faceRuns
     }
 
     public init(from decoder: any Decoder) throws {
@@ -42,6 +64,7 @@ public struct Mesh: Codable, Sendable, Hashable {
             .textureCoordinates,
             .vertexColors,
             .material,
+            .faceRuns,
         ], in: decoder)
         positions = try container.decode([Point3D].self, forKey: .positions)
         normals = try container.decode([Vector3D].self, forKey: .normals)
@@ -49,6 +72,7 @@ public struct Mesh: Codable, Sendable, Hashable {
         textureCoordinates = try container.decodeIfPresent([Point2D].self, forKey: .textureCoordinates) ?? []
         vertexColors = try container.decodeIfPresent([ColorRGBA].self, forKey: .vertexColors) ?? []
         material = try container.decodeIfPresent(MaterialID.self, forKey: .material)
+        faceRuns = try container.decodeIfPresent([FaceRun].self, forKey: .faceRuns) ?? []
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -63,6 +87,9 @@ public struct Mesh: Codable, Sendable, Hashable {
             try container.encode(vertexColors, forKey: .vertexColors)
         }
         try container.encodeIfPresent(material, forKey: .material)
+        if !faceRuns.isEmpty {
+            try container.encode(faceRuns, forKey: .faceRuns)
+        }
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
@@ -161,6 +188,40 @@ public struct Mesh: Codable, Sendable, Hashable {
         }
         if let unreferencedPosition = positions.indices.first(where: { !referencedPositions.contains($0) }) {
             throw ExportError.invalidMesh("Mesh position \(unreferencedPosition) is not referenced by any triangle.")
+        }
+        try validateFaceRuns()
+    }
+
+    /// Checks that recorded face provenance partitions the triangles exactly.
+    ///
+    /// A mesh that records no run carries no face provenance, which is the
+    /// truthful state of a mesh that was not tessellated from a B-rep. A mesh
+    /// that records any run must partition every triangle, because a partial
+    /// partition would let a consumer resolve a triangle to the wrong face.
+    private func validateFaceRuns() throws {
+        guard !faceRuns.isEmpty else {
+            return
+        }
+        var coveredTriangles = 0
+        var recordedFaceIDs = Set<FaceID>()
+        recordedFaceIDs.reserveCapacity(faceRuns.count)
+        for (runIndex, run) in faceRuns.enumerated() {
+            guard run.triangleCount > 0 else {
+                throw ExportError.invalidMesh("Mesh face run \(runIndex) records no triangle.")
+            }
+            guard recordedFaceIDs.insert(run.faceID).inserted else {
+                throw ExportError.invalidMesh("Mesh face run \(runIndex) repeats face \(run.faceID).")
+            }
+            let (total, overflowed) = coveredTriangles.addingReportingOverflow(run.triangleCount)
+            guard !overflowed else {
+                throw ExportError.invalidMesh("Mesh face runs cover an unrepresentable triangle count.")
+            }
+            coveredTriangles = total
+        }
+        guard coveredTriangles == indices.count / 3 else {
+            throw ExportError.invalidMesh(
+                "Mesh face runs cover \(coveredTriangles) triangles but the mesh has \(indices.count / 3)."
+            )
         }
     }
 }
