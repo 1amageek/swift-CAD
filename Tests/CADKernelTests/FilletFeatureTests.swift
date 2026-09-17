@@ -46,6 +46,30 @@ struct FilletFeatureTests {
             options: .init(linearTolerance: radius / 20, angularTolerance: .pi / 16)
         ).values.first)
         #expect(!mesh.indices.isEmpty)
+        // Increasing boundary samples alone must not leave long interior fans.
+        for sides in [1, 3, 5, 50] {
+            let angle = Double.pi / (2 * Double(sides))
+            let deviation = radius * (1 - cos(angle / 2))
+            let sampled = try #require(MeshTessellator(tolerance: .standard).tessellate(
+                model: evaluated.brep, options: .init(linearTolerance: deviation, angularTolerance: angle)
+            ).values.first)
+            var triangleOffset = 0
+            for run in sampled.faceRuns {
+                defer { triangleOffset += run.triangleCount }
+                let face = try #require(evaluated.brep.faces[run.faceID])
+                guard case let .analytic(.sphere(center, sphereRadius)) = evaluated.brep.geometry.surfaces[face.surfaceID] else { continue }
+                for triangle in triangleOffset..<(triangleOffset + run.triangleCount) {
+                    let vertices = (0..<3).map { Int(sampled.indices[triangle * 3 + $0]) }
+                    let radial = vertices.map { sampled.positions[$0] - center }
+                    let centroid = (radial[0] + radial[1] + radial[2]) / 3
+                    #expect(sphereRadius - centroid.length <= deviation)
+                    for index in vertices {
+                        let expectedNormal = try (sampled.positions[index] - center).normalized(tolerance: 1e-10)
+                        #expect(sampled.normals[index].dot(expectedNormal) > 0.999999)
+                    }
+                }
+            }
+        }
         var quality = TessellationOptions.standard
         quality.featureOverrides[id] = .init(linearTolerance: radius / 5, angularTolerance: .pi / 4)
         let coarse = try DocumentEvaluator(tolerance: .standard, tessellationOptions: quality).evaluate(document)

@@ -127,6 +127,15 @@ planar with holes, or trimmed parametric — with `n` sampled boundary points an
 bridging a hole into the outer loop duplicates at most two boundary points and a
 fan triangulation adds at most one interior point.
 
+Convex trimmed spherical patches instead interpolate radial rings from a physical
+interior point to the unchanged sampled boundary. Their center is computed in
+physical space, not by averaging longitude across a pole or seam. With `k` radial
+steps and `n` boundary samples, admission reserves `nk + 1` vertices and
+`3n(2k - 1)` indices. Step count follows angular, chord and maximum-edge options.
+The exact surface, boundary samples and face-run identity remain unchanged.
+Rounded-box tests check spherical triangle interior error and radial normals,
+not only triangle counts; native rendering checks the mounted output.
+
 Preflight reserves no output storage, but it is not allocation-free: it samples
 each boundary loop to obtain `n`, so a boundary-driven face is sampled once for
 admission and once for emission. The admitted estimate bounds the *geometric*

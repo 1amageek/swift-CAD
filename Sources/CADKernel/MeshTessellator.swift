@@ -156,7 +156,8 @@ public struct MeshTessellator: Tessellating {
     /// A boundary-driven face is bounded by its sampled boundary: bridging a hole
     /// into the outer loop duplicates at most two boundary points per hole, a fan
     /// triangulation adds at most one interior point, and a polygon with `n`
-    /// boundary points yields at most `n` triangles.
+    /// boundary points yields at most `n` triangles. Convex spherical patches
+    /// reserve radial rings instead of a single fan.
     private func estimatedFaceUsage(
         faceID: FaceID,
         model: BRepModel,
@@ -238,6 +239,13 @@ public struct MeshTessellator: Tessellating {
                 options: options,
                 faceID: faceID
             ).count
+        }
+        if innerLoopIDs.isEmpty, case let .analytic(.sphere(_, radius)) = surface {
+            let steps = sphericalRadialSteps(radius: radius, options: options)
+            return FaceUsageEstimate(
+                vertices: try incremented(multiplied(boundaryPointCount, steps, as: .vertexCount), as: .vertexCount),
+                indices: try multiplied(multiplied(boundaryPointCount, 2 * steps - 1, as: .triangleCount), 3, as: .indexCount)
+            )
         }
         return try boundaryUsageEstimate(
             boundaryPointCount: boundaryPointCount,
@@ -1713,6 +1721,7 @@ public struct MeshTessellator: Tessellating {
         }
         try appendTrimmedParametricFace(
             surface: surface,
+            options: options,
             outerParameters: outerParameters,
             innerParameterLoops: innerParameterLoops,
             face: face,
@@ -2133,6 +2142,7 @@ public struct MeshTessellator: Tessellating {
 
     private func appendTrimmedParametricFace(
         surface: Surface3D,
+        options: TessellationOptions,
         outerParameters: [SurfaceParameter],
         innerParameterLoops: [[SurfaceParameter]],
         face: Face,
@@ -2181,6 +2191,70 @@ public struct MeshTessellator: Tessellating {
         let boundaryPhysicalPoints = Array(
             positions[Int(baseIndex)..<(Int(baseIndex) + parameters.count)]
         )
+        if innerParameterLoops.isEmpty,
+           case let .analytic(.sphere(center, radius)) = surface,
+           let interior = try sphericalFanCenter(sphereCenter: center, radius: radius,
+                                                boundaryPoints: boundaryPhysicalPoints) {
+            let steps = sphericalRadialSteps(radius: radius, options: options)
+            let count = parameters.count
+            let centerIndex = UInt32(positions.count)
+            try budget.charge(vertices: 1, indices: 0)
+            positions.append(interior.point)
+            normals.append(oriented(interior.radial, face: face, shellOrientation: shellOrientation))
+            var previousStart = centerIndex
+            for step in 1...steps {
+                try Task.checkCancellation()
+                let ringStart: UInt32
+                if step == steps {
+                    // Reuse the original boundary exactly, including adjacent-face sampling.
+                    ringStart = baseIndex
+                } else {
+                    ringStart = UInt32(positions.count)
+                    try budget.charge(vertices: count, indices: 0)
+                    let fraction = Double(step) / Double(steps)
+                    for (iteration, point) in boundaryPhysicalPoints.enumerated() {
+                        if iteration & 0xFF == 0 { try Task.checkCancellation() }
+                        let radial = try (point - center).normalized(tolerance: tolerance.distance)
+                        let angle = acos(max(-1, min(1, interior.radial.dot(radial))))
+                        let direction: Vector3D
+                        if angle < tolerance.angle {
+                            direction = radial
+                        } else {
+                            direction = (interior.radial * sin((1 - fraction) * angle)
+                                + radial * sin(fraction * angle)) / sin(angle)
+                        }
+                        positions.append(center + direction * radius)
+                        normals.append(oriented(direction, face: face, shellOrientation: shellOrientation))
+                    }
+                }
+                for index in 0..<count {
+                    if index & 0xFF == 0 { try Task.checkCancellation() }
+                    let next = (index + 1) % count
+                    let first = step == 1 ? centerIndex : previousStart + UInt32(index)
+                    let previousNext = previousStart + UInt32(next)
+                    let current = ringStart + UInt32(index)
+                    let currentNext = ringStart + UInt32(next)
+                    // Use the shorter diagonal to avoid long slivers near octant corners.
+                    let alternate = step > 1 &&
+                        (positions[Int(previousNext)] - positions[Int(current)]).length <
+                        (positions[Int(first)] - positions[Int(currentNext)]).length
+                    guard try appendTriangleWithNormalFallback(first, ringStart + UInt32(index),
+                        alternate ? previousNext : currentNext, positions: &positions, normals: &normals,
+                        indices: &indices, budget: &budget) else {
+                        throw TessellationError.degenerateFace(faceID)
+                    }
+                    if step > 1 {
+                        guard try appendTriangleWithNormalFallback(alternate ? current : first, currentNext,
+                            previousNext, positions: &positions, normals: &normals,
+                            indices: &indices, budget: &budget) else {
+                            throw TessellationError.degenerateFace(faceID)
+                        }
+                    }
+                }
+                previousStart = ringStart
+            }
+            return
+        }
         if innerParameterLoops.isEmpty,
            let fanCenter = try parametricFanCenter(
                surface: surface,
@@ -2245,6 +2319,13 @@ public struct MeshTessellator: Tessellating {
     private struct ParametricFanCenter {
         let point: Point3D
         let normal: Vector3D
+    }
+
+    private func sphericalRadialSteps(radius: Double, options: TessellationOptions) -> Int {
+        let chordAngle = 2 * acos(max(-1, min(1, 1 - options.linearTolerance / radius)))
+        var angle = min(options.angularTolerance, chordAngle) / 2
+        if let length = options.maxEdgeLength { angle = min(angle, length / (2 * radius)) }
+        return clampedSampleCount((Double.pi / 2) / angle, minimum: 1, maximum: 65_536)
     }
 
     private func parametricFanCenter(
