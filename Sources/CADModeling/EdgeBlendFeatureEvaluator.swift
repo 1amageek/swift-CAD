@@ -23,7 +23,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         guard case let .fillet(fillet) = feature.operation else {
             throw failure(.invalidInput, featureID: feature.id, tolerance: context.tolerance, "Fillet evaluator requires a fillet feature.")
         }
-        guard fillet.edges.count == 1 else {
+        guard fillet.allEdges || fillet.edges.count == 1 else {
             throw failure(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance, "Current exact fillet supports one selected edge per feature.")
         }
         let radius = try resolvedRadius(fillet.radius, featureID: feature.id, context: context)
@@ -32,6 +32,17 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
               body.kind == .solid,
               body.shellIDs.count == 1 else {
             throw failure(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance, "Current exact fillet requires one single-shell solid body.")
+        }
+        if fillet.allEdges {
+            let scope = try BodyTopologyScope(bodyID: bodyID, model: context.brep)
+            let request = try RoundedBoxFilletBuilder(tolerance: context.tolerance).request(
+                bodyID: bodyID, radius: radius, featureID: feature.id, model: context.brep)
+            let result = try sewer.sew(request, tolerance: context.tolerance)
+            let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID,
+                with: result.bodyID, from: result.brep, in: context.brep)
+            try model.validate(level: .volumetric, tolerance: context.tolerance)
+            return EvaluationResult(brep: model, subshapes: result.subshapes,
+                removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes), lineage: result.lineage)
         }
         let selected = fillet.edges[0]
         let selection = try scopedEdgeSelection(

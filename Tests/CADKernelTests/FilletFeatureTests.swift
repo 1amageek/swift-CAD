@@ -1,4 +1,5 @@
 import Testing
+import Foundation
 import CADCore
 import CADGeometry
 import CADIR
@@ -7,6 +8,60 @@ import CADTopology
 
 @Suite("Fillet feature")
 struct FilletFeatureTests {
+    @Test(.timeLimit(.minutes(1)))
+    func allBoxEdgesProduceExactRoundedSolid() throws {
+        var document = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let sourceID = try #require(document.designGraph.order.last)
+        let source = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+        let points = source.brep.vertices.values.map(\.point)
+        let widths = [points.map(\.x), points.map(\.y), points.map(\.z)].map { $0.max()! - $0.min()! }
+        let radius = widths.min()! / 8
+        let id = FeatureID()
+        let operation = FeatureOperation.fillet(.init(target: .init(featureID: sourceID),
+            edges: [], radius: .constant(.length(radius, unit: .meter)), allEdges: true))
+        let node = try FeatureNodeFactory.make(operation: operation, id: id, in: document, tolerance: .standard)
+        document.designGraph.nodes[id] = node
+        document.designGraph.order.append(id)
+        document.designGraph.dependencies.append(.init(source: sourceID, target: id))
+        document.designGraph.revision = document.designGraph.revision.advanced()
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        #expect(evaluated.brep.faces.count == 26)
+        #expect(evaluated.brep.faces.values.filter {
+            if case .cylinder = evaluated.brep.geometry.surfaces[$0.surfaceID] { return true }; return false
+        }.count == 12)
+        #expect(evaluated.brep.loops.values.flatMap(\.coedges).allSatisfy { $0.surfaceParameterCurve != nil })
+        let inner = widths.map { $0 - 2 * radius }
+        let expected = inner[0] * inner[1] * inner[2]
+            + 2 * radius * (inner[0] * inner[1] + inner[1] * inner[2] + inner[2] * inner[0])
+            + Double.pi * radius * radius * inner.reduce(0, +)
+            + 4 * Double.pi / 3 * radius * radius * radius
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - expected) < 1e-10)
+        let restored = try JSONDecoder().decode(CADDocument.self, from: JSONEncoder().encode(document))
+        let repeated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(restored)
+        #expect(repeated.brep == evaluated.brep)
+        #expect(repeated.subshapes == evaluated.subshapes)
+        let mesh = try #require(MeshTessellator(tolerance: .standard).tessellate(
+            model: evaluated.brep,
+            options: .init(linearTolerance: radius / 20, angularTolerance: .pi / 16)
+        ).values.first)
+        #expect(!mesh.indices.isEmpty)
+        for coordinate in [\Point3D.x, \Point3D.y, \Point3D.z] {
+            #expect(abs(try #require(mesh.positions.map { $0[keyPath: coordinate] }.min())
+                - #require(points.map { $0[keyPath: coordinate] }.min())) < 1e-9)
+            #expect(abs(try #require(mesh.positions.map { $0[keyPath: coordinate] }.max())
+                - #require(points.map { $0[keyPath: coordinate] }.max())) < 1e-9)
+        }
+        for invalidRadius in [0, -radius, widths.min()! / 2, widths.max()!] {
+            document.designGraph.nodes[id]?.operation = .fillet(.init(
+                target: .init(featureID: sourceID), edges: [],
+                radius: .constant(.length(invalidRadius, unit: .meter)), allEdges: true))
+            #expect(throws: (any Error).self) {
+                _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+            }
+        }
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func createsValidatedQuarterCylinderAndSplitLineage() throws {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)

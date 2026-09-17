@@ -417,7 +417,7 @@ struct PrimitiveBRepRequestBuilder: Sendable {
         )
     }
 
-    private func sphereCircleEdge(
+    func sphereCircleEdge(
         stableID: String,
         definition: AnalyticCurve3D,
         center: Point3D,
@@ -510,7 +510,7 @@ struct PrimitiveBRepRequestBuilder: Sendable {
         )
     }
 
-    private func lineEdge(
+    func lineEdge(
         stableID: String,
         from start: Point3D,
         to end: Point3D,
@@ -530,7 +530,7 @@ struct PrimitiveBRepRequestBuilder: Sendable {
         )
     }
 
-    private func circleEdge(
+    func circleEdge(
         stableID: String,
         definition: AnalyticCurve3D,
         startPoint: Point3D,

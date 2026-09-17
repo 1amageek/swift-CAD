@@ -45,6 +45,12 @@ flowchart LR
 
 ## Contracts and Invariants
 
+`FilletFeature.allEdges` selects the complete current target edge set without
+retaining geometry signatures from an earlier dimension. It is mutually exclusive
+with explicit `edges`; omitted data decodes as false for compatibility. The first
+supported all-edge domain is an orthogonal box; other bodies fail explicitly.
+The radius remains exact CAD source. Display subdivisions are not fillet source.
+
 1. A stable signature retains body, shell, face, loop, coedge, edge, vertex,
    surface, curve, trim, orientation, and pcurve data required for comparison.
 2. Validation rejects invalid IDs, empty required collections, malformed

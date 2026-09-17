@@ -34,6 +34,15 @@ flowchart LR
 
 ## Contracts and Invariants
 
+All-edge box fillets retain the original outer bounds and replace a validated
+orthogonal box by six inset planar faces, twelve quarter cylinders, and eight
+spherical octants. Construction owns exact curves, trims and pcurves, not a
+rounded display mesh. The nondegenerate domain is tolerance < radius < half the
+shortest side minus tolerance; collapsed faces and unsupported topology fail
+before publication. Existing single-edge behavior remains unchanged.
+Verification checks volumetric validity, the 26-face topology, analytic volume,
+unchanged bounds, exact-source round-trip, and invalid radius/target rejection.
+
 1. A valid sphere creates one solid body with its complete analytic topology:
    eight faces, twelve edges, and six vertices, with pcurves on every coedge.
 2. Seam and pole topology is a real part of the B-rep and remains available to
