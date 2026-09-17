@@ -183,7 +183,8 @@ struct DocumentEvaluationEngine {
             meshResult = try makeMeshes(
                 for: validatedBRep,
                 reusing: reusableState == nil ? nil : previous,
-                changedBodyIDs: changedBodyIDs
+                changedBodyIDs: changedBodyIDs,
+                subshapes: subshapes
             )
         }
         metrics.tessellatedBodyCount = meshResult.tessellatedBodyCount
@@ -600,14 +601,14 @@ struct DocumentEvaluationEngine {
     private func makeMeshes(
         for validatedBRep: ValidatedBRepModel,
         reusing previous: EvaluatedDocument?,
-        changedBodyIDs requestedChangedBodyIDs: Set<BodyID>
+        changedBodyIDs requestedChangedBodyIDs: Set<BodyID>,
+        subshapes: PersistentMap<SubshapeID, TopologyReference>
     ) throws -> MeshEvaluationResult {
         let brep = validatedBRep.model
         guard let previous else {
-            let meshes = try tessellator.tessellate(
+            let meshes = try tessellate(
                 validatedModel: validatedBRep,
-                options: tessellationOptions,
-                limits: tessellationLimits,
+                subshapes: subshapes,
                 reserving: .zero
             )
             try validateAggregateMeshUsage(PersistentMap(meshes))
@@ -672,10 +673,9 @@ struct DocumentEvaluationEngine {
                 meshes,
                 excluding: bodyIDsToTessellate
             )
-            let changedMeshes = try tessellator.tessellate(
+            let changedMeshes = try tessellate(
                 validatedModel: validatedChangedModel,
-                options: tessellationOptions,
-                limits: tessellationLimits,
+                subshapes: subshapes,
                 reserving: reservedUsage
             )
             guard Set(changedMeshes.keys) == bodyIDsToTessellate else {
@@ -695,6 +695,40 @@ struct DocumentEvaluationEngine {
             tessellatedBodyCount: bodyIDsToTessellate.count,
             reusedMeshCount: meshes.count - bodyIDsToTessellate.count
         )
+    }
+
+    private func tessellate(
+        validatedModel: ValidatedBRepModel,
+        subshapes: PersistentMap<SubshapeID, TopologyReference>,
+        reserving reservation: TessellationUsage
+    ) throws -> [BodyID: Mesh] {
+        guard !tessellationOptions.featureOverrides.isEmpty else {
+            return try tessellator.tessellate(validatedModel: validatedModel,
+                options: tessellationOptions, limits: tessellationLimits, reserving: reservation)
+        }
+        var bodyOptions: [BodyID: TessellationOptions] = [:]
+        for (id, reference) in subshapes {
+            if case .body(let bodyID) = reference,
+               let options = tessellationOptions.featureOverrides[id.featureID] {
+                bodyOptions[bodyID] = options
+            }
+        }
+        var defaults = tessellationOptions
+        defaults.featureOverrides = [:]
+        var result: [BodyID: Mesh] = [:]
+        var budget = try TessellationBudget(limits: tessellationLimits, reserving: reservation)
+        for bodyID in validatedModel.model.bodies.keys.sorted() {
+            let model = try BRepBodySubmodelExtractor().extract(bodyIDs: [bodyID], from: validatedModel.model)
+            let validated = try ValidatedBRepModel(composingValidatedBodies: [bodyID: validatedModel],
+                                                  as: model, tolerance: tolerance)
+            let meshes = try tessellator.tessellate(validatedModel: validated,
+                options: bodyOptions[bodyID] ?? defaults, limits: tessellationLimits, reserving: budget.usage)
+            for (id, mesh) in meshes {
+                try budget.reserve(TessellationUsage(mesh: mesh))
+                result[id] = mesh
+            }
+        }
+        return result
     }
 
     private func validateReusableMeshCache(

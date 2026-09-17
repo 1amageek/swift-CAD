@@ -49,6 +49,7 @@ public struct MeshTessellator: Tessellating {
         do {
             try tolerance.validate()
             try options.validate()
+            guard options.featureOverrides.isEmpty else { throw TessellationError.invalidTolerance }
         } catch {
             throw TessellationError.invalidTolerance
         }

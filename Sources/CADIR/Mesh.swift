@@ -230,11 +230,14 @@ public struct TessellationOptions: Codable, Hashable, Sendable {
     public var linearTolerance: Double
     public var angularTolerance: Double
     public var maxEdgeLength: Double?
+    public var featureOverrides: [FeatureID: TessellationOptions]
 
-    public init(linearTolerance: Double, angularTolerance: Double, maxEdgeLength: Double? = nil) {
+    public init(linearTolerance: Double, angularTolerance: Double, maxEdgeLength: Double? = nil,
+                featureOverrides: [FeatureID: TessellationOptions] = [:]) {
         self.linearTolerance = linearTolerance
         self.angularTolerance = angularTolerance
         self.maxEdgeLength = maxEdgeLength
+        self.featureOverrides = featureOverrides
     }
 
     public static let standard = TessellationOptions(
@@ -243,6 +246,10 @@ public struct TessellationOptions: Codable, Hashable, Sendable {
     )
 
     public func validate() throws {
+        for options in featureOverrides.values {
+            guard options.featureOverrides.isEmpty else { throw TessellationError.invalidTolerance }
+            try options.validate()
+        }
         guard linearTolerance.isFinite,
               linearTolerance > 0.0,
               angularTolerance.isFinite,
@@ -254,5 +261,28 @@ public struct TessellationOptions: Codable, Hashable, Sendable {
                 throw TessellationError.invalidTolerance
             }
         }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case linearTolerance, angularTolerance, maxEdgeLength, featureOverrides
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        linearTolerance = try container.decode(Double.self, forKey: .linearTolerance)
+        angularTolerance = try container.decode(Double.self, forKey: .angularTolerance)
+        maxEdgeLength = try container.decodeIfPresent(Double.self, forKey: .maxEdgeLength)
+        featureOverrides = try container.decodeIfPresent([FeatureID: TessellationOptions].self,
+                                                         forKey: .featureOverrides) ?? [:]
+        try validate()
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        try validate()
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(linearTolerance, forKey: .linearTolerance)
+        try container.encode(angularTolerance, forKey: .angularTolerance)
+        try container.encodeIfPresent(maxEdgeLength, forKey: .maxEdgeLength)
+        if !featureOverrides.isEmpty { try container.encode(featureOverrides, forKey: .featureOverrides) }
     }
 }

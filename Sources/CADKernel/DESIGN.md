@@ -44,6 +44,12 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Per-feature tessellation overrides use live body subshape ownership, never derived
+topology IDs. They change only mesh generation. The complete option set participates
+in cache identity; tessellation reserves prior bodies' usage before the next body.
+Tests must show changed subdivision with identical exact geometry, independent
+body quality, and cumulative resource refusal.
+
 1. Stable-reference creation uses the current immutable `EvaluatedDocument` and
    its topology map, lineage, and tolerance. It creates one complete signature
    and validates it before returning.

@@ -45,6 +45,13 @@ flowchart LR
 
 ## Contracts and Invariants
 
+`TessellationOptions.featureOverrides` is display fidelity keyed by output feature,
+not source geometry. Overrides contain no further overrides. Document evaluation
+resolves live body subshapes to their owning feature, tessellates each requested
+quality under one cumulative resource budget, and records the complete option set
+in cache identity. Direct mesh tessellation requires resolved options without
+feature overrides. Missing serialized overrides mean the existing global quality.
+
 `FilletFeature.allEdges` selects the complete current target edge set without
 retaining geometry signatures from an earlier dimension. It is mutually exclusive
 with explicit `edges`; omitted data decodes as false for compatibility. The first

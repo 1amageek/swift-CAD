@@ -46,6 +46,34 @@ struct FilletFeatureTests {
             options: .init(linearTolerance: radius / 20, angularTolerance: .pi / 16)
         ).values.first)
         #expect(!mesh.indices.isEmpty)
+        var quality = TessellationOptions.standard
+        quality.featureOverrides[id] = .init(linearTolerance: radius / 5, angularTolerance: .pi / 4)
+        let coarse = try DocumentEvaluator(tolerance: .standard, tessellationOptions: quality).evaluate(document)
+        quality.featureOverrides[id] = .init(linearTolerance: radius / 50, angularTolerance: .pi / 16)
+        let fine = try DocumentEvaluator(tolerance: .standard, tessellationOptions: quality).evaluate(document, reusing: coarse)
+        #expect(coarse.brep == fine.brep)
+        #expect(try #require(fine.meshes.values.first).indices.count > #require(coarse.meshes.values.first).indices.count)
+        var pair = document
+        var secondSource = try #require(pair.designGraph.nodes[sourceID])
+        secondSource.id = FeatureID()
+        try pair.appendFeature(secondSource, tolerance: .standard)
+        let secondFillet = try FeatureNodeFactory.make(operation: .fillet(.init(
+            target: .init(featureID: secondSource.id), edges: [],
+            radius: .constant(.length(radius, unit: .meter)), allEdges: true)),
+            id: FeatureID(), in: pair, tolerance: .standard)
+        try pair.appendFeature(secondFillet, tolerance: .standard)
+        quality.linearTolerance = radius / 5
+        quality.angularTolerance = .pi / 4
+        let mixed = try DocumentEvaluator(tolerance: .standard, tessellationOptions: quality).evaluate(pair)
+        let triangleCounts = mixed.meshes.values.map { $0.indices.count }.sorted()
+        #expect(triangleCounts.count == 2)
+        #expect(triangleCounts[0] < triangleCounts[1])
+        var limits = TessellationLimits.standard
+        limits.maximumVertexCount = mixed.meshes.values.reduce(0) { $0 + $1.positions.count } - 1
+        #expect(throws: TessellationError.self) {
+            _ = try DocumentEvaluator(tolerance: .standard, tessellationOptions: quality,
+                                      tessellationLimits: limits).evaluate(pair)
+        }
         for coordinate in [\Point3D.x, \Point3D.y, \Point3D.z] {
             #expect(abs(try #require(mesh.positions.map { $0[keyPath: coordinate] }.min())
                 - #require(points.map { $0[keyPath: coordinate] }.min())) < 1e-9)
