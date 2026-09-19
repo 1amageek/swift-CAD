@@ -34,6 +34,12 @@ private extension FeatureOperation {
         tolerance: ModelingTolerance
     ) throws -> FeatureOperation {
         switch self {
+        case var .spatialPath(path):
+            for index in path.knots.indices {
+                path.knots[index].position = path.knots[index].position + vector
+            }
+            try path.validate(tolerance: tolerance)
+            return .spatialPath(path)
         case .sketch(let sketch):
             return .sketch(try sketch.translatingSources(by: vector, tolerance: tolerance))
         case let .primitive(primitive):

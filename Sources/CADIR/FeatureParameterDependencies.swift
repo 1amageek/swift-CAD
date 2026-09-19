@@ -3,6 +3,8 @@ import CADCore
 public extension FeatureOperation {
     var referencedParameterIDs: Set<ParameterID> {
         switch self {
+        case .spatialPath:
+            return []
         case let .sketch(sketch):
             return sketch.referencedParameterIDs
         case let .primitive(primitive):

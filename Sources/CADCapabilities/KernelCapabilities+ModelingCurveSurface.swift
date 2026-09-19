@@ -3,6 +3,17 @@ import CADCore
 extension KernelCapabilities {
   static let modelingCurveSurfaceCapabilities: [KernelCapability] = [
     feature(
+      id: "MODEL-SPATIALPATH-001",
+      operation: "spatialPath",
+      topology: .curve,
+      inputs: ["orderedSpatialKnots", "polylineOrCubicBezier", "openOrClosed"],
+      outputs: ["validatedExactBSplineCurve", "kernelDerivedDisplaySamples", "stableSourceKnotIdentity"],
+      fixtures: ["SpatialPathTests", "SpatialPathEvaluationTests"],
+      status: .supported,
+      failureCodes: [.invalidInput, .singularGeometry, .resourceLimitExceeded],
+      additionalPublicAPIs: ["CADIR.SpatialPathFeature", "CADModeling.SpatialPathFeatureEvaluator"]
+    ),
+    feature(
       id: "MODEL-BRIDGECURVE-001",
       operation: "bridgeCurve",
       topology: .curve,

@@ -2,6 +2,7 @@ import CADCore
 
 public enum FeatureOperation: Codable, Sendable, Hashable {
     case sketch(Sketch)
+    case spatialPath(SpatialPathFeature)
     case importedBRep(ImportedBRepFeature)
     case primitive(PrimitiveFeature)
     case extrude(ExtrudeFeature)
@@ -50,6 +51,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     private enum CodingKeys: String, CodingKey {
         case kind
         case sketch
+        case spatialPath
         case importedBRep
         case primitive
         case extrude
@@ -102,6 +104,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
         switch kind {
+        case .spatialPath:
+            try container.validateOnlyExpectedKeys([.kind, .spatialPath], in: decoder)
+            self = .spatialPath(try container.decode(SpatialPathFeature.self, forKey: .spatialPath))
         case .sketch:
             try container.validateOnlyExpectedKeys([.kind, .sketch], in: decoder)
             self = .sketch(try container.decode(Sketch.self, forKey: .sketch))
@@ -243,6 +248,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
+        case let .spatialPath(path):
+            try container.encode(Kind.spatialPath, forKey: .kind)
+            try container.encode(path, forKey: .spatialPath)
         case let .sketch(sketch):
             try container.encode(Kind.sketch, forKey: .kind)
             try container.encode(sketch, forKey: .sketch)

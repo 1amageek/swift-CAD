@@ -168,6 +168,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         context: EvaluationContext
     ) throws -> ValidatedFeatureEvaluation {
         switch feature.operation {
+        case .spatialPath:
+            return try SpatialPathFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .sketch:
             throw KernelError.unsupportedEvaluation(
                 tolerance: context.tolerance,

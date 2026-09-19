@@ -2,6 +2,7 @@ public extension FeatureOperation {
     var capabilityOperation: String {
         switch self {
         case .sketch: return "sketch"
+        case .spatialPath: return "spatialPath"
         case .importedBRep: return "importedBRep"
         case .primitive: return "primitive"
         case .extrude: return "extrude"

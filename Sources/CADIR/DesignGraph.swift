@@ -1,7 +1,7 @@
 import CADCore
 import CADTopology
 
-public struct DesignGraph: Codable, Sendable {
+public struct DesignGraph: Codable, Equatable, Sendable {
     public var nodes: PersistentMap<FeatureID, FeatureNode>
     public var order: [FeatureID]
     public var dependencies: [DependencyEdge]
@@ -104,6 +104,8 @@ public struct DesignGraph: Codable, Sendable {
         tolerance: ModelingTolerance
     ) throws {
         switch node.operation {
+            case .spatialPath:
+                break
             case let .sketch(sketch):
                 try sketch.validateExpressions(using: parameters)
             case .importedBRep:
@@ -531,6 +533,11 @@ public struct DesignGraph: Codable, Sendable {
             throw FeatureEvaluationError.invalidGraph("Feature outputs contain duplicate roles.")
         }
         switch node.operation {
+        case let .spatialPath(path):
+            guard node.inputs.isEmpty, outputRoles == [.curve] else {
+                throw FeatureEvaluationError.invalidGraph("Spatial paths have no inputs and exactly one curve output.")
+            }
+            try path.validate(tolerance: tolerance)
         case .sketch:
             try validateSketchContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .importedBRep:

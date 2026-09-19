@@ -9,6 +9,10 @@ design](../../DESIGN.md) and has no children for this change.
 
 ## Responsibilities and Boundaries
 
+Editable spatial path source is owned by the child
+[SpatialPath](SpatialPath/DESIGN.md). Its explicit XYZ model does not change the
+planar Sketch contract.
+
 This module owns the value contract for `StableSubshapeReference` and its
 `SubshapeGeometrySignature`, including Codable validation. It also owns the
 product-neutral value contracts for tessellation fidelity and generic

@@ -8,6 +8,9 @@ package design](../../DESIGN.md) and has no children for this change.
 
 ## Responsibilities and Boundaries
 
+[SpatialPath](SpatialPath/DESIGN.md) evaluates the explicit editable spatial
+source into one exact B-spline curve and its sampled presentation.
+
 The module owns primitive B-rep topology construction, including the sphere's
 analytic surface patches, periodic seams, pole vertices, edge trims, and
 surface parameter curves. It does not own the shared pcurve validation rules,
