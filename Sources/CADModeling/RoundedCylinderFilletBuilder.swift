@@ -15,12 +15,16 @@ struct RoundedCylinderFilletBuilder {
         model: BRepModel
     ) throws -> BRepSewingRequest {
         let source = try sourceCylinder(bodyID: bodyID, model: model)
+        // The rim rides a torus of major radius `source.radius - radius` around minor radius
+        // `radius`, which the kernel only represents while the center circle clears the tube.
+        // That ceiling is half the cylinder radius, not the whole radius, and the fillet
+        // refuses it here so no radius reaches surface construction and fails there.
         guard radius.isFinite,
               radius > tolerance.distance,
-              source.radius - radius > tolerance.distance,
+              source.radius - 2.0 * radius > tolerance.distance,
               source.height - 2.0 * radius > tolerance.distance else {
             throw invalid(
-                "Cylinder fillet radius must be positive, below the cylinder radius, and below half its height."
+                "Cylinder fillet radius must be positive and below half the cylinder radius and half its height."
             )
         }
 

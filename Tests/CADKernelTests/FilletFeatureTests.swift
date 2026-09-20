@@ -215,6 +215,18 @@ struct FilletFeatureTests {
                 _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
             }
         }
+        // The rim torus carries major radius `cylinderRadius - r` around minor radius `r`, and
+        // the kernel does not represent a self-intersecting torus, so half the cylinder radius
+        // is the real ceiling. The builder must refuse it itself: a radius that reaches the
+        // surface and fails there is a body the fillet accepted and then could not build. This
+        // cylinder is taller than it is wide, so its height still leaves room at that radius.
+        #expect(cylinderRadius / 2 < height / 2 - ModelingTolerance.standard.distance)
+        document.designGraph.nodes[id]?.operation = .fillet(.init(
+            target: .init(featureID: sourceID), edges: [],
+            radius: .constant(.length(cylinderRadius / 2, unit: .meter)), allEdges: true))
+        #expect(throws: KernelError.self) {
+            _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))

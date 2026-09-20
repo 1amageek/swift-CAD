@@ -48,10 +48,14 @@ twenty-eight edges and sixteen vertices. The cylinder frame is derived from the
 two caps, so an extrusion that is symmetric or reversed about its sketch plane
 is handled like one that starts at it. Construction owns exact curves, trims and
 pcurves, not a rounded display mesh. The nondegenerate domain is tolerance <
-radius, and for a box radius < half the shortest side minus tolerance, and for a
-cylinder radius < the cylinder radius minus tolerance with twice the radius <
-the height minus tolerance; collapsed faces and unsupported topology fail before
-publication. Existing single-edge behavior remains unchanged. Verification
+radius, and for a box radius < half the shortest side minus tolerance. A box
+rounds its corners with spherical octants, but a cylinder rounds its rims with
+tori whose center circle must clear its own tube, so a cylinder admits twice the
+radius < the cylinder radius minus tolerance with twice the radius < the height
+minus tolerance. A cylinder is therefore bounded by half its own radius, and a
+capsule is outside the domain. Collapsed faces, unsupported topology, and a
+radius the torus cannot carry fail before publication rather than during surface
+construction. Existing single-edge behavior remains unchanged. Verification
 checks volumetric validity, the per-shape topology, analytic volume, unchanged
 bounds, exact-source round-trip, tessellation, and invalid radius/target
 rejection.
