@@ -37,14 +37,24 @@ flowchart LR
 
 ## Contracts and Invariants
 
-All-edge box fillets retain the original outer bounds and replace a validated
-orthogonal box by six inset planar faces, twelve quarter cylinders, and eight
-spherical octants. Construction owns exact curves, trims and pcurves, not a
-rounded display mesh. The nondegenerate domain is tolerance < radius < half the
-shortest side minus tolerance; collapsed faces and unsupported topology fail
-before publication. Existing single-edge behavior remains unchanged.
-Verification checks volumetric validity, the 26-face topology, analytic volume,
-unchanged bounds, exact-source round-trip, and invalid radius/target rejection.
+All-edge fillets retain the original outer bounds and round every edge of a
+validated box or circular cylinder. The two domains are told apart by surface
+kind, not by topology counts, which are identical: six planar faces are a box,
+four coincident cylindrical faces closed by two planar caps are a cylinder.
+A box becomes six inset planar faces, twelve quarter cylinders, and eight
+spherical octants. A cylinder becomes two inset planar caps, four cylindrical
+band quarters, and eight toroidal fillet quarters, a fourteen-face shell with
+twenty-eight edges and sixteen vertices. The cylinder frame is derived from the
+two caps, so an extrusion that is symmetric or reversed about its sketch plane
+is handled like one that starts at it. Construction owns exact curves, trims and
+pcurves, not a rounded display mesh. The nondegenerate domain is tolerance <
+radius, and for a box radius < half the shortest side minus tolerance, and for a
+cylinder radius < the cylinder radius minus tolerance with twice the radius <
+the height minus tolerance; collapsed faces and unsupported topology fail before
+publication. Existing single-edge behavior remains unchanged. Verification
+checks volumetric validity, the per-shape topology, analytic volume, unchanged
+bounds, exact-source round-trip, tessellation, and invalid radius/target
+rejection.
 
 1. A valid sphere creates one solid body with its complete analytic topology:
    eight faces, twelve edges, and six vertices, with pcurves on every coedge.
@@ -73,5 +83,8 @@ vertex, or pcurve cannot be built.
 ## Verification and Change Impact
 
 Primitive tests assert exact topology counts, analytic volume, pcurve presence,
-and stable-reference generation for every sphere subshape. Changes require
-rechecking the shared geometry validation and stable signature owners.
+and stable-reference generation for every sphere subshape. All-edge fillet tests
+drive a rectangle extrusion and a circle extrusion through the evaluator and
+assert the two results the contract above names, plus the typed rejection of a
+body that is neither. Changes require rechecking the shared geometry validation,
+the stable signature owners, and the `CADIR` all-edge fillet domain statement.

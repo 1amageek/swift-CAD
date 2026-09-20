@@ -58,8 +58,9 @@ feature overrides. Missing serialized overrides mean the existing global quality
 
 `FilletFeature.allEdges` selects the complete current target edge set without
 retaining geometry signatures from an earlier dimension. It is mutually exclusive
-with explicit `edges`; omitted data decodes as false for compatibility. The first
-supported all-edge domain is an orthogonal box; other bodies fail explicitly.
+with explicit `edges`; omitted data decodes as false for compatibility. The supported
+all-edge domains are an orthogonal box and a circular cylinder; other bodies
+fail explicitly.
 The radius remains exact CAD source. Display subdivisions are not fillet source.
 
 1. A stable signature retains body, shell, face, loop, coedge, edge, vertex,

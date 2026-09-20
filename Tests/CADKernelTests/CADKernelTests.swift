@@ -8183,7 +8183,7 @@ private func sketchPlaneBasis(
     return (u, v)
 }
 
-private func makeCircleExtrudeDocument(
+func makeCircleExtrudeDocument(
     radius: Double = 12.0,
     depth: Double = 20.0,
     unit: LengthUnit = .millimeter,

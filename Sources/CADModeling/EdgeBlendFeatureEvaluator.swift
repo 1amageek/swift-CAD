@@ -35,7 +35,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         }
         if fillet.allEdges {
             let scope = try BodyTopologyScope(bodyID: bodyID, model: context.brep)
-            let request = try RoundedBoxFilletBuilder(tolerance: context.tolerance).request(
+            let request = try AllEdgeFilletBuilder(tolerance: context.tolerance).request(
                 bodyID: bodyID, radius: radius, featureID: feature.id, model: context.brep)
             let result = try sewer.sew(request, tolerance: context.tolerance)
             let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID,

@@ -602,7 +602,7 @@ struct PrimitiveBRepRequestBuilder: Sendable {
         return (start, best.end)
     }
 
-    private func planarHarmonicPcurve(
+    func planarHarmonicPcurve(
         curve: Curve3D,
         center: Point3D,
         startParameter: Double,

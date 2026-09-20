@@ -115,6 +115,139 @@ struct FilletFeatureTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func allCylinderEdgesProduceExactRoundedSolid() throws {
+        var document = makeCircleExtrudeDocument(documentUnits: .meters)
+        let sourceID = try #require(document.designGraph.order.last)
+        let source = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+        let lateral = source.brep.faces.values.compactMap { face -> Cylinder3D? in
+            guard case let .cylinder(cylinder) = source.brep.geometry.surfaces[face.surfaceID] else { return nil }
+            return cylinder
+        }
+        let caps = source.brep.faces.values.compactMap { face -> Plane3D? in
+            guard case let .plane(plane) = source.brep.geometry.surfaces[face.surfaceID] else { return nil }
+            return plane
+        }
+        #expect(lateral.count == 4)
+        #expect(caps.count == 2)
+        let sourceCylinder = try #require(lateral.first)
+        let axis = sourceCylinder.axis
+        let cylinderRadius = sourceCylinder.radius
+        let capHeights = caps.map { ($0.origin - sourceCylinder.origin).dot(axis) }
+        let height = abs(capHeights[1] - capHeights[0])
+        let base = sourceCylinder.origin + axis * capHeights.min()!
+        let radius = min(cylinderRadius, height / 2) / 4
+        let id = FeatureID()
+        let operation = FeatureOperation.fillet(.init(target: .init(featureID: sourceID),
+            edges: [], radius: .constant(.length(radius, unit: .meter)), allEdges: true))
+        let node = try FeatureNodeFactory.make(operation: operation, id: id, in: document, tolerance: .standard)
+        document.designGraph.nodes[id] = node
+        document.designGraph.order.append(id)
+        document.designGraph.dependencies.append(.init(source: sourceID, target: id))
+        document.designGraph.revision = document.designGraph.revision.advanced()
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        #expect(evaluated.brep.faces.count == 14)
+        #expect(evaluated.brep.edges.count == 28)
+        #expect(evaluated.brep.vertices.count == 16)
+        #expect(evaluated.brep.faces.values.filter {
+            if case .plane = evaluated.brep.geometry.surfaces[$0.surfaceID] { return true }; return false
+        }.count == 2)
+        #expect(evaluated.brep.faces.values.filter {
+            if case .cylinder = evaluated.brep.geometry.surfaces[$0.surfaceID] { return true }; return false
+        }.count == 4)
+        #expect(evaluated.brep.faces.values.filter {
+            if case .analytic(.torus) = evaluated.brep.geometry.surfaces[$0.surfaceID] { return true }; return false
+        }.count == 8)
+        #expect(evaluated.brep.loops.values.flatMap(\.coedges).allSatisfy { $0.surfaceParameterCurve != nil })
+        let expected = Double.pi * cylinderRadius * cylinderRadius * height
+            - 2 * Double.pi * radius * radius * (2 * cylinderRadius - radius)
+            + Double.pi * Double.pi * radius * radius * (cylinderRadius - radius)
+            + 4 * Double.pi / 3 * radius * radius * radius
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - expected) < 1e-12)
+        // The fillet keeps the source silhouette: the band still reaches the full radius
+        // between the two caps, and the caps still sit on the original end planes.
+        let filleted = evaluated.brep.vertices.values.map(\.point)
+        let radialReach = filleted.map { point -> Double in
+            let offset = point - base
+            return (offset - axis * offset.dot(axis)).length
+        }
+        let axialReach = filleted.map { ($0 - base).dot(axis) }
+        #expect(abs(try #require(radialReach.max()) - cylinderRadius) < 1e-12)
+        #expect(abs(try #require(axialReach.min())) < 1e-12)
+        #expect(abs(try #require(axialReach.max()) - height) < 1e-12)
+        let restored = try JSONDecoder().decode(CADDocument.self, from: JSONEncoder().encode(document))
+        let repeated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(restored)
+        #expect(repeated.brep == evaluated.brep)
+        #expect(repeated.subshapes == evaluated.subshapes)
+        // Toroidal fillet faces must honor the requested chordal and angular budgets.
+        let angle = Double.pi / 16
+        let deviation = radius * (1 - cos(angle / 2))
+        let mesh = try #require(MeshTessellator(tolerance: .standard).tessellate(
+            model: evaluated.brep, options: .init(linearTolerance: deviation, angularTolerance: angle)
+        ).values.first)
+        var triangleOffset = 0
+        var toroidalTriangles = 0
+        for run in mesh.faceRuns {
+            defer { triangleOffset += run.triangleCount }
+            let face = try #require(evaluated.brep.faces[run.faceID])
+            guard case let .analytic(.torus(center, torusAxis, majorRadius, minorRadius)) =
+                evaluated.brep.geometry.surfaces[face.surfaceID] else { continue }
+            toroidalTriangles += run.triangleCount
+            for triangle in triangleOffset..<(triangleOffset + run.triangleCount) {
+                let vertices = (0..<3).map { Int(mesh.indices[triangle * 3 + $0]) }
+                for index in vertices {
+                    let offset = mesh.positions[index] - center
+                    let radial = offset - torusAxis * offset.dot(torusAxis)
+                    let tubeCenter = center + (try radial.normalized(tolerance: 1e-10)) * majorRadius
+                    let tube = mesh.positions[index] - tubeCenter
+                    #expect(abs(tube.length - minorRadius) < 1e-9)
+                    let expectedNormal = try tube.normalized(tolerance: 1e-10)
+                    #expect(mesh.normals[index].dot(expectedNormal) > 0.999999)
+                }
+            }
+        }
+        #expect(toroidalTriangles > 0)
+        for invalidRadius in [0, -radius, cylinderRadius, height / 2] {
+            document.designGraph.nodes[id]?.operation = .fillet(.init(
+                target: .init(featureID: sourceID), edges: [],
+                radius: .constant(.length(invalidRadius, unit: .meter)), allEdges: true))
+            #expect(throws: (any Error).self) {
+                _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func allEdgeFilletRejectsABodyThatIsNeitherABoxNorACylinder() throws {
+        var document = CADDocument(units: .meters)
+        let sourceID = FeatureID()
+        let primitive = FeatureOperation.primitive(PrimitiveFeature(definition: .sphere(
+            SpherePrimitive(radius: .constant(.length(1.0, unit: .meter)))
+        )))
+        let sourceNode = try FeatureNodeFactory.make(
+            operation: primitive, id: sourceID, name: "sphere", in: document, tolerance: .standard)
+        document.designGraph.nodes[sourceID] = sourceNode
+        document.designGraph.order = [sourceID]
+        document.designGraph.revision = document.designGraph.revision.advanced()
+        let id = FeatureID()
+        let operation = FeatureOperation.fillet(.init(target: .init(featureID: sourceID),
+            edges: [], radius: .constant(.length(0.1, unit: .meter)), allEdges: true))
+        let node = try FeatureNodeFactory.make(operation: operation, id: id, in: document, tolerance: .standard)
+        document.designGraph.nodes[id] = node
+        document.designGraph.order.append(id)
+        document.designGraph.dependencies.append(.init(source: sourceID, target: id))
+        document.designGraph.revision = document.designGraph.revision.advanced()
+        var raised: (any Error)?
+        do {
+            _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+        } catch {
+            raised = error
+        }
+        let kernelError = try #require(raised as? KernelError)
+        #expect(kernelError.code == .invalidInput)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func createsValidatedQuarterCylinderAndSplitLineage() throws {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let sourceFeatureID = try #require(document.designGraph.order.last)
