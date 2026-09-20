@@ -9,7 +9,6 @@ struct IncrementalEvaluationState: Sendable {
     let units: UnitSystem
     let parameterRevision: DocumentRevision
     let tolerance: ModelingTolerance
-    let tessellationOptions: TessellationOptions
     let graph: IncrementalEvaluationGraphState
     let featureEntries: PersistentMap<FeatureID, FeatureEvaluationCacheEntry>
     let profiles: [FeatureID: [Profile]]

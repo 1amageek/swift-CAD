@@ -74,9 +74,13 @@ body quality, and cumulative resource refusal.
    source/evaluator/modeling state. Mesh reuse is a separate admission step for
    each unchanged body: its cache metadata, complete fidelity configuration,
    purpose, recorded usage, and current limits must be accepted before the mesh
-   enters the new result. A purpose mismatch in `evaluate(reusing:)` is a cache
-   miss: the exact B-rep remains reusable, but that body is re-tessellated under
-   the requesting purpose. The old artifact is never relabeled. A compatible
+   enters the new result. A purpose or fidelity mismatch in `evaluate(reusing:)`
+   is a cache miss, never an evaluation failure: the exact B-rep remains
+   reusable, but that body is re-tessellated under the requested purpose and
+   fidelity. The old artifact is never relabeled. Because a `MeshCache` records
+   the whole `TessellationOptions` it was produced under, including its
+   per-feature overrides, changing the fidelity of one feature re-tessellates
+   every body while rebuilding no feature. A compatible
    artifact whose usage exceeds current limits is a typed
    `TessellationError.resourceExhausted`, matching fresh tessellation. The
    standalone `DocumentCaches.validateFreshness` contract retains typed purpose
@@ -222,7 +226,10 @@ has started, and that the exact B-rep tessellates to identical meshes after a
 refusal. `MeshTessellatorFaceRunTests` proves the emitted runs cover every
 triangle of every body in traversal order, name the faces the body owns, and
 are identical whether a body is tessellated fresh or re-tessellated after an
-incremental extraction. Per-checkpoint attribution between the body and face boundaries is not
+incremental extraction. `MeshCacheScopeTests` proves that a change confined to
+the mesh request rebuilds no feature: a purpose change and a fidelity change
+each retain the exact B-rep, re-tessellate the affected bodies, and record the
+requested configuration on the new artifact. Per-checkpoint attribution between the body and face boundaries is not
 separately observable through the public API; the interior-checkpoint test uses
 a fixture whose tessellation is an order of magnitude longer than the delay
 before cancellation. Mesh artifact reuse is separated from exact incremental

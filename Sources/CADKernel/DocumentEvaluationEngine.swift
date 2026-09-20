@@ -242,7 +242,6 @@ struct DocumentEvaluationEngine {
                 units: document.units,
                 parameterRevision: document.parameters.revision,
                 tolerance: tolerance,
-                tessellationOptions: tessellationOptions,
                 graph: graphState,
                 featureEntries: featureEntries,
                 profiles: profiles,
@@ -449,6 +448,13 @@ struct DocumentEvaluationEngine {
         )
     }
 
+    /// The prior exact state this request may continue from.
+    ///
+    /// Admission is source, evaluator, and modeling state only. The mesh
+    /// request -- fidelity, purpose, limits -- never appears here: it selects
+    /// artifacts, not topology, and folding it in would discard exact B-rep
+    /// reuse whenever only the mesh request changed. `makeMeshes` owns that
+    /// admission per body.
     private func reusableState(
         for document: CADDocument,
         from previous: EvaluatedDocument?
@@ -459,8 +465,7 @@ struct DocumentEvaluationEngine {
               state.documentID == document.id,
               state.schemaVersion == document.schemaVersion,
               state.units == document.units,
-              state.tolerance == tolerance,
-              state.tessellationOptions == tessellationOptions else {
+              state.tolerance == tolerance else {
             return nil
         }
         return state
@@ -633,10 +638,10 @@ struct DocumentEvaluationEngine {
 
         // Exact incremental state establishes which unchanged bodies may be
         // carried forward. The mesh artifact still has its own admission
-        // contract: purpose and recorded usage must be accepted by this
-        // request before the artifact enters the result. Do not fold these
-        // checks into `reusableState`; that would incorrectly discard exact
-        // B-rep reuse when only the mesh request changed.
+        // contract: fidelity, purpose, and recorded usage must be accepted by
+        // this request before the artifact enters the result. Do not fold
+        // these checks into `reusableState`; that would incorrectly discard
+        // exact B-rep reuse when only the mesh request changed.
         let reusableBodyIDs = meshes.keys.filter { bodyID in
             brep.bodies[bodyID] != nil && !bodyIDsToTessellate.contains(bodyID)
         }
@@ -649,9 +654,10 @@ struct DocumentEvaluationEngine {
             }
             if try validateReusableMeshCache(cache, bodyID: bodyID) == false {
                 // A previous evaluation is a reuse hint, not an authority for
-                // the requested artifact purpose. Keep its exact B-rep state,
-                // but regenerate this body's mesh under the new purpose rather
-                // than relabeling the old artifact or failing the evaluation.
+                // the requested artifact. Keep its exact B-rep state, but
+                // regenerate this body's mesh under the requested fidelity and
+                // purpose rather than relabeling the old artifact or failing
+                // the evaluation.
                 bodyIDsToTessellate.insert(bodyID)
             }
         }
@@ -748,10 +754,7 @@ struct DocumentEvaluationEngine {
             )
         }
         guard cache.tessellationOptions == tessellationOptions else {
-            throw CacheValidationError.staleMeshCache(
-                bodyID: bodyID,
-                reason: "Tessellation options do not match the evaluator."
-            )
+            return false
         }
         try tessellationLimits.validate()
         try cache.recordedUsage.validate()

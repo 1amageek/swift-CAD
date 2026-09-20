@@ -281,6 +281,34 @@ struct MeshCacheScopeTests {
         try exported.validate()
     }
 
+    /// Fidelity is a mesh request, so a coarser one must cost a tessellation
+    /// and not a rebuild. A cylinder is the fixture because its mesh actually
+    /// responds to the angular tolerance, which is what makes the retained
+    /// B-rep evidence rather than an unchanged input.
+    @Test(.timeLimit(.minutes(1)))
+    func incrementalReuseRetainsTheExactBRepAcrossAFidelityChange() throws {
+        let source = try Self.cylinderDocument()
+        let standard = try Self.evaluate(source, purpose: Self.preview)
+        let coarseEvaluator = DocumentEvaluator(
+            tolerance: .standard,
+            tessellationOptions: Self.coarse,
+            meshArtifactPurpose: Self.preview
+        )
+
+        let coarse = try coarseEvaluator.evaluate(source, reusing: standard)
+        #expect(coarse.brep == standard.brep)
+        #expect(coarse.evaluationMetrics.rebuiltFeatureCount == 0)
+        #expect(coarse.evaluationMetrics.tessellatedBodyCount == 1)
+        #expect(coarse.evaluationMetrics.reusedMeshCount == 0)
+
+        let coarseMesh = try #require(coarse.meshes.values.first)
+        let standardMesh = try #require(standard.meshes.values.first)
+        #expect(coarseMesh.positions.count != standardMesh.positions.count)
+        let cache = try #require(coarse.caches.meshes.values.first)
+        #expect(cache.tessellationOptions == Self.coarse)
+        try coarse.validate()
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func incrementalReuseUsesTheSameTypedLimitRefusalAsFreshEvaluation() throws {
         let source = try Self.boxDocument()
