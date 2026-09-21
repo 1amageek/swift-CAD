@@ -38,8 +38,8 @@ flowchart LR
 ## Contracts and Invariants
 
 All-edge fillets retain the original outer bounds and round every edge of a
-validated box or circular cylinder. The two domains are told apart by surface
-kind, not by topology counts, which are identical: six planar faces are a box,
+validated box, circular cylinder, or convex prism. A box and a cylinder are told
+apart by surface kind, not by topology counts, which are identical: six planar faces are a box,
 four coincident cylindrical faces closed by two planar caps are a cylinder.
 A box becomes six inset planar faces, twelve quarter cylinders, and eight
 spherical octants. A cylinder becomes two inset planar caps, four cylindrical
@@ -53,12 +53,44 @@ rounds its corners with spherical octants, but a cylinder rounds its rims with
 tori whose center circle must clear its own tube, so a cylinder admits twice the
 radius < the cylinder radius minus tolerance with twice the radius < the height
 minus tolerance. A cylinder is therefore bounded by half its own radius, and a
-capsule is outside the domain. Collapsed faces, unsupported topology, and a
+capsule is outside the domain.
+
+Every other body reaches the general prism domain: a convex prism extruded
+perpendicular to its cap, whose cap profile is one closed loop of straight
+segments and circular arcs with every arc meeting its neighbours tangentially.
+Its axis comes from a lateral cylinder when one exists and otherwise from a
+plane normal that leaves exactly two caps and no oblique lateral face. A body
+admitting two non-parallel such normals has only a, b and a x b as normals,
+which is a rectangular box, and one rolling ball rounds a box to the same solid
+down any of its three axes, so the candidates are signed canonically and the
+smallest is taken. The frame is then read from the two caps rather than from
+their order: the axis keeps that signed direction and the base is whichever cap
+lies lower along it, so the same body yields the same solid however its faces
+are enumerated. The profile is read from the bottom cap's outer loop, wound
+counterclockwise about that axis and started at its lexicographically smallest
+vertex, so one body yields the same stable identifiers on every evaluation. A profile of m segments
+with C non-tangent corners becomes m inset lateral faces, two inset caps, C
+vertical fillet cylinders, 2m cap fillet surfaces, and 2C corner spheres: a
+regular N-gon prism is 6N + 2 faces and a straight stadium prism is twenty. A
+tangent seam between an arc and its neighbour carries no corner and is left
+unrounded. The domain excludes a reflex corner, a corner where either side is an
+arc, an arc sweeping more than half a turn, and a lateral face that is neither a
+plane containing its segment nor a cylinder coaxial with its arc. Its radius is
+bounded by twice the radius < the height minus tolerance, by each segment
+keeping trimmed length above tolerance once both its corners consume the radius
+times the tangent of half their turn, and by each arc carrying its own torus
+with twice the radius < the arc radius minus tolerance. A quadrilateral prism of
+six planes is rounded as an orthogonal box before this domain is reached, so a
+non-orthogonal quadrilateral is refused with the box message rather than
+admitted here. Collapsed faces, unsupported topology, and a
 radius the torus cannot carry fail before publication rather than during surface
 construction. Existing single-edge behavior remains unchanged. Verification
 checks volumetric validity, the per-shape topology, analytic volume, unchanged
 bounds, exact-source round-trip, tessellation, and invalid radius/target
-rejection.
+rejection. A box and a cylinder routed through this domain are compared vertex
+for vertex against their own builders, which is what ties the three
+constructions to one contract, and one document evaluated twice is compared
+against itself, which is what holds the frame independent of face order.
 
 1. A valid sphere creates one solid body with its complete analytic topology:
    eight faces, twelve edges, and six vertices, with pcurves on every coedge.
@@ -89,6 +121,9 @@ vertex, or pcurve cannot be built.
 Primitive tests assert exact topology counts, analytic volume, pcurve presence,
 and stable-reference generation for every sphere subshape. All-edge fillet tests
 drive a rectangle extrusion and a circle extrusion through the evaluator and
-assert the two results the contract above names, plus the typed rejection of a
-body that is neither. Changes require rechecking the shared geometry validation,
+assert the two results the contract above names. Prism fillet tests drive a
+hexagonal and a slot extrusion and assert the counts, surface kinds and Steiner
+volume the contract names, reproduce both of the other two solids through the
+general builder vertex for vertex, and assert the typed rejection of an
+oversized radius, a non-convex profile, and a body outside every domain. Changes require rechecking the shared geometry validation,
 the stable signature owners, and the `CADIR` all-edge fillet domain statement.

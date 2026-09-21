@@ -7,7 +7,9 @@ import CADTopology
 /// Routes an all-edge fillet to the exact builder for the source shape.
 ///
 /// A box and a circular cylinder carry identical topology counts, so the two
-/// domains are told apart by surface kind rather than by counts.
+/// domains are told apart by surface kind rather than by counts. Every other
+/// prism of planes and axis-parallel cylinders reaches the general builder,
+/// which reads its cap profile rather than assuming one.
 struct AllEdgeFilletBuilder {
     let tolerance: ModelingTolerance
 
@@ -31,7 +33,8 @@ struct AllEdgeFilletBuilder {
             }
         }
         guard others == 0 else {
-            throw invalid("All-edge fillet supports an orthogonal box or a circular cylinder.")
+            throw invalid(
+                "All-edge fillet supports a prism of planes and axis-parallel cylinders.")
         }
         if planes == 6, cylinders == 0 {
             return try RoundedBoxFilletBuilder(tolerance: tolerance).request(
@@ -49,7 +52,12 @@ struct AllEdgeFilletBuilder {
                 model: model
             )
         }
-        throw invalid("All-edge fillet supports an orthogonal box or a circular cylinder.")
+        return try RoundedPrismFilletBuilder(tolerance: tolerance).request(
+            bodyID: bodyID,
+            radius: radius,
+            featureID: featureID,
+            model: model
+        )
     }
 
     private func invalid(_ message: String) -> KernelError {

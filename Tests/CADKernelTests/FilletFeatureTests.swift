@@ -230,7 +230,7 @@ struct FilletFeatureTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func allEdgeFilletRejectsABodyThatIsNeitherABoxNorACylinder() throws {
+    func allEdgeFilletRejectsABodyOutsideThePrismDomain() throws {
         var document = CADDocument(units: .meters)
         let sourceID = FeatureID()
         let primitive = FeatureOperation.primitive(PrimitiveFeature(definition: .sphere(
