@@ -710,8 +710,15 @@ public struct DesignGraph: Codable, Equatable, Sendable {
               source.outputs.contains(where: { $0.role == .profile }) else {
             throw FeatureEvaluationError.invalidGraph("Extrude profile source must declare a profile output.")
         }
-        guard outputRoles == [.body] else {
-            throw FeatureEvaluationError.invalidGraph("Extrude features must declare one body output.")
+        switch extrude.resultKind {
+        case .solid:
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Solid extrude features must declare one body output.")
+            }
+        case .sheet:
+            guard outputRoles == [.sheet] else {
+                throw FeatureEvaluationError.invalidGraph("Sheet extrude features must declare one sheet output.")
+            }
         }
         if case let .vector(vector) = extrude.direction {
             try vector.validate()

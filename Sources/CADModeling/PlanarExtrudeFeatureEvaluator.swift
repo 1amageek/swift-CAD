@@ -48,17 +48,32 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             extrude.distance,
             context: context
         )
-        let result = try ExactProfileExtrudeBodyBuilder(
-            featureID: feature.id,
-            context: context,
-            sewer: sewer
-        ).build(
-            from: profiles[extrude.profile.profileIndex],
-            direction: extrude.direction,
-            distance: distance,
-            bodyKind: .solid,
-            includesCaps: true
-        )
+        let profile = profiles[extrude.profile.profileIndex]
+        // Both kinds sweep the same wall from the same profile, and the result kind decides only
+        // whether the two ends are sewn onto it.
+        let result: EvaluationResult
+        switch extrude.resultKind {
+        case .solid:
+            result = try ExactProfileExtrudeBodyBuilder(
+                featureID: feature.id,
+                context: context,
+                sewer: sewer
+            ).build(
+                from: profile,
+                direction: extrude.direction,
+                distance: distance,
+                bodyKind: .solid,
+                includesCaps: true
+            )
+        case .sheet:
+            result = try evaluateSheet(
+                from: profile,
+                featureID: feature.id,
+                direction: extrude.direction,
+                distance: distance,
+                context: context
+            )
+        }
         return try ValidatedFeatureEvaluation(
             planarExtrusion: result,
             tolerance: context.tolerance

@@ -64,6 +64,21 @@ extruded perpendicular to a cap profile of straight segments and tangentially
 joined circular arcs; other bodies fail explicitly.
 The radius remains exact CAD source. Display subdivisions are not fillet source.
 
+`ExtrudeFeature.resultKind` selects which body a linear extrusion of a closed
+profile builds, and it is the only thing that separates the two: a `.solid`
+extrusion caps both ends of the swept wall and sews a solid, a `.sheet`
+extrusion leaves both ends open and sews the wall alone. The profile is the
+same value in both cases, so the flag lives on the feature rather than on the
+profile it consumes. Omitted data decodes as `.solid`, which is the body every
+document written before the flag existed carries. The graph contract follows
+the flag the way the sweep's does: a `.solid` extrusion declares exactly one
+`.body` output and a `.sheet` extrusion exactly one `.sheet` output, so the
+role a consumer reads from the node and the body the evaluator builds cannot
+disagree. A `.sheet` extrusion of a profile with more than one boundary loop
+builds one sheet body of disjoint shells, one per loop, and that is a valid
+body rather than a defect: the shells bound no volume between them and none is
+claimed.
+
 1. A stable signature retains body, shell, face, loop, coedge, edge, vertex,
    surface, curve, trim, orientation, and pcurve data required for comparison.
 2. Validation rejects invalid IDs, empty required collections, malformed
