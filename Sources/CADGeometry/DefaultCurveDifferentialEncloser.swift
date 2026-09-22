@@ -135,7 +135,10 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
           second: secondMagnitude,
           third: thirdMagnitude
         ),
-        tolerance: tolerance
+        tolerance: tolerance,
+        positionEnclosure: try surfaceLiftPositionEnclosure(
+          lift, parameters: parameters, tolerance: tolerance
+        )
       )
     case .certifiedIntersection(let intersection):
       let bounds = try intersection.spatialDifferentialMagnitudeBounds(
@@ -163,7 +166,8 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
     of curve: Curve3D,
     over parameters: ScalarInterval,
     bounds: SpatialDifferentialMagnitudeBounds,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    positionEnclosure: CoordinateEnclosure3D? = nil
   ) throws -> SurfaceIntervalVectorJet {
     guard bounds.first.isFinite,
       bounds.second.isFinite,
@@ -191,7 +195,8 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
         positionRadius: (bounds.first * halfWidth).nextUp,
         firstRadius: (bounds.second * halfWidth).nextUp,
         secondRadius: (thirdMagnitude * halfWidth).nextUp,
-        thirdMagnitude: thirdMagnitude
+        thirdMagnitude: thirdMagnitude,
+        positionEnclosure: positionEnclosure?.x
       ),
       y: thirdOrderJet(
         position: center.position.y,
@@ -200,7 +205,8 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
         positionRadius: (bounds.first * halfWidth).nextUp,
         firstRadius: (bounds.second * halfWidth).nextUp,
         secondRadius: (thirdMagnitude * halfWidth).nextUp,
-        thirdMagnitude: thirdMagnitude
+        thirdMagnitude: thirdMagnitude,
+        positionEnclosure: positionEnclosure?.y
       ),
       z: thirdOrderJet(
         position: center.position.z,
@@ -209,7 +215,8 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
         positionRadius: (bounds.first * halfWidth).nextUp,
         firstRadius: (bounds.second * halfWidth).nextUp,
         secondRadius: (thirdMagnitude * halfWidth).nextUp,
-        thirdMagnitude: thirdMagnitude
+        thirdMagnitude: thirdMagnitude,
+        positionEnclosure: positionEnclosure?.z
       )
     )
   }
@@ -221,11 +228,13 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
     positionRadius: Double,
     firstRadius: Double,
     secondRadius: Double,
-    thirdMagnitude: Double
+    thirdMagnitude: Double,
+    positionEnclosure: ScalarInterval?
   ) -> SurfaceIntervalJet {
     let zero = OutwardScalarInterval(0.0)
     return SurfaceIntervalJet(
-      value: centeredInterval(position, radius: positionRadius),
+      value: positionEnclosure.map { OutwardScalarInterval(lower: $0.lower, upper: $0.upper) }
+        ?? centeredInterval(position, radius: positionRadius),
       derivativeU: centeredInterval(first, radius: firstRadius),
       derivativeV: zero,
       secondDerivativeUU: centeredInterval(second, radius: secondRadius),

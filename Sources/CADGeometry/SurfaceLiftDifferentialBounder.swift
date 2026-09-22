@@ -946,17 +946,17 @@ struct SurfaceLiftDifferentialBounder {
                     domain: surface.vDomain,
                     tolerance: tolerance
                 )
-                let bounds = try DefaultSurfaceDifferentialEncloser().tessellationBounds(
+                let jet = try DefaultSurfaceDifferentialEncloser().intervalJet(
                     of: surface,
                     over: SurfaceParameterBox(u: uRange, v: vRange),
                     tolerance: tolerance
                 )
                 return SurfaceDerivativeBounds(
-                    firstU: bounds.tangentUMagnitudeUpperBound,
-                    firstV: bounds.tangentVMagnitudeUpperBound,
-                    secondUU: bounds.secondDerivativeUUMagnitudeUpperBound,
-                    secondUV: bounds.secondDerivativeUVMagnitudeUpperBound,
-                    secondVV: bounds.secondDerivativeVVMagnitudeUpperBound
+                    firstU: magnitudeUpperBound(x: jet.x.derivativeU, y: jet.y.derivativeU, z: jet.z.derivativeU),
+                    firstV: magnitudeUpperBound(x: jet.x.derivativeV, y: jet.y.derivativeV, z: jet.z.derivativeV),
+                    secondUU: magnitudeUpperBound(x: jet.x.secondDerivativeUU, y: jet.y.secondDerivativeUU, z: jet.z.secondDerivativeUU),
+                    secondUV: magnitudeUpperBound(x: jet.x.secondDerivativeUV, y: jet.y.secondDerivativeUV, z: jet.z.secondDerivativeUV),
+                    secondVV: magnitudeUpperBound(x: jet.x.secondDerivativeVV, y: jet.y.secondDerivativeVV, z: jet.z.secondDerivativeVV)
                 )
             }
             throw KernelError(

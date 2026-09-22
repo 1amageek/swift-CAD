@@ -126,9 +126,9 @@ extension DefaultSurfaceDifferentialEncloser {
     let tangentU = jet.differentiatedUThroughSecondOrder()
     let tangentV = jet.differentiatedVThroughSecondOrder()
     let normal = tangentU.cross(tangentV)
-    let tangentUSquared = tangentU.dot(tangentU).value
-    let tangentVSquared = tangentV.dot(tangentV).value
-    let normalSquared = normal.dot(normal).value
+    let tangentUSquared = squaredMagnitudeBounds(tangentU)
+    let tangentVSquared = squaredMagnitudeBounds(tangentV)
+    let normalSquared = squaredMagnitudeBounds(normal)
     let tangentUUpper = squareRootUpper(tangentUSquared)
     let tangentVUpper = squareRootUpper(tangentVSquared)
     let normalLower = squareRootLower(normalSquared)
@@ -199,10 +199,9 @@ extension DefaultSurfaceDifferentialEncloser {
       )
       let tangentU = jet.differentiatedUThroughSecondOrder()
       let tangentV = jet.differentiatedVThroughSecondOrder()
-      let tangentUSquared = tangentU.dot(tangentU).value
-      let tangentVSquared = tangentV.dot(tangentV).value
-      let normalSquared = tangentU.cross(tangentV)
-        .dot(tangentU.cross(tangentV)).value
+      let tangentUSquared = squaredMagnitudeBounds(tangentU)
+      let tangentVSquared = squaredMagnitudeBounds(tangentV)
+      let normalSquared = squaredMagnitudeBounds(tangentU.cross(tangentV))
       let sineTolerance = max(
         sin(min(tolerance.angle, Double.pi * 0.5)),
         tolerance.relative,
@@ -248,7 +247,17 @@ extension DefaultSurfaceDifferentialEncloser {
   }
 
   private func magnitudeUpper(_ jet: SurfaceIntervalVectorJet) -> Double {
-    squareRootUpper(jet.dot(jet).value)
+    squareRootUpper(squaredMagnitudeBounds(jet))
+  }
+
+  private func squaredMagnitudeBounds(_ jet: SurfaceIntervalVectorJet) -> OutwardScalarInterval {
+    let bounds = IntervalVector3DBounds(x: jet.x.value, y: jet.y.value, z: jet.z.value)
+    let lower = bounds.lengthLowerBound
+    let upper = bounds.lengthUpperBound
+    return OutwardScalarInterval(
+      lower: max(0, (lower * lower).nextDown),
+      upper: (upper * upper).nextUp
+    )
   }
 
   private func squareRootUpper(_ interval: OutwardScalarInterval) -> Double {

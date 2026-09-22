@@ -33,6 +33,20 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Surface-lift derivative magnitudes use certified interval derivatives of their
+support surface, not tessellation's tangent-frame admission and subdivision.
+The consuming ruled-surface certifier owns subdivision and its existing cell
+budget. An unprovable source interval throws its typed certification failure;
+it never supplies sampled or zero derivative bounds. This prevents nested
+tessellation certification when thickened sheet walls lift offset boundaries.
+Third-order surface-lift jets retain the existing certified coordinate-wise
+position enclosure. An isotropic speed radius must not replace that support
+enclosure and introduce artificial uncertainty in a constant coordinate;
+derivative magnitudes remain outward bounds, independently of position bounds.
+Tessellation's tangent/normal norm bounds use IntervalVector3DBounds length
+bounds. A self dot-product with independent interval factors can introduce a
+negative squared-norm lower bound and must not drive regularity subdivision.
+
 Bounded rotation coefficients use outward interval arithmetic and a Taylor
 remainder, rather than treating rounded libm values as exact trigonometry.
 Their consumer is [CertifiedTwist](../CADModeling/CertifiedTwist/DESIGN.md).
@@ -72,3 +86,5 @@ Tests cover valid sphere great-circle curves at seam and pole endpoints,
 slightly perturbed valid floating-point bases, non-orthogonal bases,
 nonfinite/degenerate values, and wrong surfaces. Changes require rechecking
 primitive B-rep generation and CADIR signature round-trips.
+Surface-lift changes also require offset-boundary derivative enclosure tests
+and the application's complete Thicken reevaluation/tessellation path.
