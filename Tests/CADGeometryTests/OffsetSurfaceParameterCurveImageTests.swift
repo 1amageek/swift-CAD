@@ -71,6 +71,64 @@ final class OffsetSurfaceParameterCurveImageTests: XCTestCase {
         ))
     }
 
+    func testPullbackEvaluatesOriginalCurvedSurfaceAndRetainsDerivativesAndDirection() throws {
+        let surface = Surface3D.bSpline(BSplineSurface3D(
+            uDegree: 1, vDegree: 1,
+            uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+            controlPoints: [
+                [Point3D(x: 0, y: 0, z: 0), Point3D(x: 1, y: 0, z: 0)],
+                [Point3D(x: 0, y: 1, z: 0), Point3D(x: 1, y: 1, z: 1)]
+            ], weights: [[1, 1], [1, 1]]
+        ))
+        let offset = OffsetSurface3D(source: surface, distance: 0.3)
+        let image = try offset.parameterCurvePullback(
+            transporting: .affine(origin: Point2D(x: 0.1, y: 0.2),
+                                 direction: Point2D(x: 0.6, y: 0.4),
+                                 startParameter: 0, endParameter: 1),
+            tolerance: tolerance
+        )
+        XCTAssertTrue(image.isPullback)
+        XCTAssertEqual(try image.targetSurface(tolerance: tolerance), surface)
+        let pcurve = SurfaceParameterCurve.offsetSurfaceImage(image)
+        let restored = try JSONDecoder().decode(SurfaceParameterCurve.self,
+                                                from: JSONEncoder().encode(pcurve))
+        XCTAssertEqual(restored, pcurve)
+        try restored.validate(on: surface, tolerance: tolerance)
+        XCTAssertThrowsError(try restored.validate(on: .procedural(.offset(offset)), tolerance: tolerance))
+        let lift = SurfaceLiftCurve3D(surface: surface, parameterCurve: restored)
+        for t in [0.0, 0.25, 0.7, 1.0] {
+            let u = 0.1 + 0.6 * t
+            let v = 0.2 + 0.4 * t
+            let value = try lift.differentialGeometry(atNormalizedFraction: t, tolerance: tolerance)
+            XCTAssertLessThanOrEqual((value.position - Point3D(x: u, y: v, z: u * v)).length,
+                                     tolerance.distance)
+            XCTAssertLessThanOrEqual((value.firstDerivative - Vector3D(x: 0.6, y: 0.4, z: 0.6 * v + 0.4 * u)).length,
+                                     tolerance.distance)
+            XCTAssertLessThanOrEqual((value.secondDerivative - Vector3D(x: 0, y: 0, z: 0.48)).length,
+                                     tolerance.distance)
+        }
+        let middle = try image.subcurve(fromNormalizedFraction: 0.25, toNormalizedFraction: 0.75,
+                                        tolerance: tolerance).reversed(tolerance: tolerance)
+        XCTAssertTrue(middle.isPullback)
+        try middle.validate(on: surface, tolerance: tolerance)
+        let start = try middle.parameter(atNormalizedFraction: 0, tolerance: tolerance)
+        XCTAssertEqual(start.u, 0.55, accuracy: tolerance.distance)
+        XCTAssertEqual(start.v, 0.5, accuracy: tolerance.distance)
+    }
+
+    func testPullbackDirectionCannotDecodeInvalidValuesAsForward() throws {
+        let offset = OffsetSurface3D(source: .plane(Plane3D(origin: .origin, normal: .unitZ)), distance: 1)
+        let image = try offset.parameterCurvePullback(
+            transporting: .constantV(v: 0, uStart: 0, uEnd: 1), tolerance: tolerance
+        )
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(image)) as? [String: Any])
+        for invalid in [NSNull(), "false"] as [Any] {
+            object["isPullback"] = invalid
+            let data = try JSONSerialization.data(withJSONObject: object)
+            XCTAssertThrowsError(try JSONDecoder().decode(OffsetSurfaceParameterCurveImage.self, from: data))
+        }
+    }
+
     func testReversalAndSubdivisionRetainTheOffsetRelation() throws {
         let sourceSurface = Surface3D.cylinder(Cylinder3D(
             origin: .origin,

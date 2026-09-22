@@ -37,6 +37,17 @@ flowchart LR
 
 ## Contracts and Invariants
 
+`OffsetSurfaceParameterCurveImage` transports UV correspondence in either
+direction across one known offset relation. Forward transport targets the
+existing exact chart-preserving offset representation. Pullback validates the
+input pcurve on `.procedural(.offset(offset))` and targets `offset.source`
+without applying a second geometric offset or changing the UV curve. Position
+and spatial derivatives are evaluated on the destination surface by the
+existing surface-lift owner. Reversal, trimming and Codable retain direction;
+the optional `isPullback` field is omitted for forward images and defaults to
+false only when absent, preserving the existing forward encoding. Invalid
+field values and unrelated destination surfaces remain errors.
+
 Parameter derivatives of unit-weight, single-span clamped cubic B-splines
 use scalar de Casteljau interpolation and quadratic/linear derivative
 polynomials. This path allocates no basis tables and retains domain validation,
@@ -113,3 +124,8 @@ nonfinite/degenerate values, and wrong surfaces. Changes require rechecking
 primitive B-rep generation and CADIR signature round-trips.
 Surface-lift changes also require offset-boundary derivative enclosure tests
 and the application's complete Thicken reevaluation/tessellation path.
+Offset chart pullback is checked by `OffsetSurfaceParameterCurveImageTests`
+against a bilinear curved surface's analytic position and first/second
+derivatives, direction-preserving reversal/subdivision/JSON and invalid targets.
+The existing kernel offset-image integration test retains forward behavior;
+`RollingBallSectionTests` checks the offset-intersection-to-contact-rail path.

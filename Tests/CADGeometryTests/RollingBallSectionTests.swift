@@ -56,6 +56,67 @@ struct RollingBallSectionTests {
     }
 
     @Test
+    func contactRailsStayOnOriginalSurfacesThroughTrimmingAndPersistence() throws {
+        let sphere = OffsetSurface3D(
+            source: .analytic(.sphere(center: .origin, radius: 2)), distance: -0.2
+        )
+        let plane = OffsetSurface3D(
+            source: .plane(Plane3D(origin: .origin, normal: .unitZ)), distance: 0.2
+        )
+        let component = try intersection(sphere, plane)
+        let evaluator: any RollingBallSectionEvaluating = try RollingBallSectionEvaluator(
+            first: sphere, second: plane, intersection: component, tolerance: tolerance
+        )
+        let options = CurveSurfaceCorrespondenceValidationOptions(
+            maximumSubdivisionDepth: 20, maximumCellCount: 65_536
+        )
+        for role in [SurfaceIntersectionSurfaceRole.first, .second] {
+            let lift = try evaluator.contactCurve(
+                on: role, fromCurveParameter: 0.7, toCurveParameter: 4.0, options: options
+            )
+            let curve = Curve3D.surfaceLift(lift)
+            let restored = try JSONDecoder().decode(Curve3D.self, from: JSONEncoder().encode(curve))
+            #expect(restored == curve)
+            try restored.validate(tolerance: tolerance)
+            for fraction in [0.0, 0.25, 0.5, 0.75, 1.0] {
+                let section = try evaluator.section(atCurveParameter: 0.7 + 3.3 * fraction)
+                let expected = role == .first ? section.firstContactPoint : section.secondContactPoint
+                let point = try restored.point(at: fraction, tolerance: tolerance)
+                #expect((point - expected).length <= tolerance.distance)
+                #expect(abs((point - section.center).length - 0.2) <= tolerance.distance)
+                let normal = role == .first ? (point - .origin) / 2 : .unitZ
+                let differential = try lift.differentialGeometry(
+                    atNormalizedFraction: fraction, tolerance: tolerance
+                )
+                #expect(abs(differential.firstDerivative.dot(normal)) <= tolerance.distance)
+                #expect(differential.firstDerivative.length > tolerance.distance)
+            }
+        }
+        #expect(throws: (any Error).self) {
+            try evaluator.contactCurve(on: .first, fromCurveParameter: 4, toCurveParameter: 0.7,
+                                       options: options)
+        }
+        #expect(throws: KernelError.self) {
+            try evaluator.contactCurve(
+                on: .first, fromCurveParameter: 0.7, toCurveParameter: 4,
+                options: .init(maximumSubdivisionDepth: 20, maximumCellCount: 65_536,
+                               maximumDeviation: tolerance.distance * 2)
+            )
+        }
+        let unrelated = try RollingBallSectionEvaluator(
+            first: sphere,
+            second: OffsetSurface3D(
+                source: .plane(Plane3D(origin: Point3D(x: 0, y: 0, z: 1), normal: .unitZ)),
+                distance: 0.2
+            ), intersection: component, tolerance: tolerance
+        )
+        #expect(throws: KernelError.self) {
+            try unrelated.contactCurve(on: .second, fromCurveParameter: 0.7, toCurveParameter: 4,
+                                       options: options)
+        }
+    }
+
+    @Test
     func invalidRadiusParametersAndUnrelatedCorrespondenceAreRejected() throws {
         let first = OffsetSurface3D(
             source: .analytic(.sphere(center: .origin, radius: 2)), distance: -0.2

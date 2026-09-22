@@ -1,22 +1,24 @@
 import CADCore
 
-/// The exact image of a source pcurve on the chart-preserving surface produced
-/// by one offset operation.
+/// The exact UV transfer across one chart-preserving offset relation.
 public struct OffsetSurfaceParameterCurveImage: Codable, Hashable, Sendable {
     public let source: SurfaceParameterCurve
     public let offset: OffsetSurface3D
+    public let isPullback: Bool
 
     public var sourceSurface: Surface3D {
-        offset.source
+        isPullback ? .procedural(.offset(offset)) : offset.source
     }
 
     fileprivate init(
         source: SurfaceParameterCurve,
         offset: OffsetSurface3D,
+        isPullback: Bool = false,
         tolerance: ModelingTolerance
     ) throws {
         self.source = source
         self.offset = offset
+        self.isPullback = isPullback
         try validate(
             on: targetSurface(tolerance: tolerance),
             tolerance: tolerance
@@ -26,7 +28,8 @@ public struct OffsetSurfaceParameterCurveImage: Codable, Hashable, Sendable {
     public func targetSurface(
         tolerance: ModelingTolerance
     ) throws -> Surface3D {
-        try offset.exactChartPreservingSurface(tolerance: tolerance)
+        if isPullback { return offset.source }
+        return try offset.exactChartPreservingSurface(tolerance: tolerance)
             ?? .procedural(.offset(offset))
     }
 
@@ -46,7 +49,7 @@ public struct OffsetSurfaceParameterCurveImage: Codable, Hashable, Sendable {
                 phase: .geometry,
                 code: .invalidInput,
                 tolerance: tolerance,
-                message: "An offset-surface pcurve image requires the exact chart-preserving surface derived from its offset operation."
+                message: "An offset-surface pcurve image requires the destination of its directed offset chart relation."
             )
         }
     }
@@ -89,6 +92,7 @@ public struct OffsetSurfaceParameterCurveImage: Codable, Hashable, Sendable {
         try OffsetSurfaceParameterCurveImage(
             source: source.reversed(tolerance: tolerance),
             offset: offset,
+            isPullback: isPullback,
             tolerance: tolerance
         )
     }
@@ -105,6 +109,7 @@ public struct OffsetSurfaceParameterCurveImage: Codable, Hashable, Sendable {
                 tolerance: tolerance
             ),
             offset: offset,
+            isPullback: isPullback,
             tolerance: tolerance
         )
     }
@@ -123,6 +128,7 @@ public struct OffsetSurfaceParameterCurveImage: Codable, Hashable, Sendable {
                 tolerance: tolerance
             ),
             offset: offset,
+            isPullback: isPullback,
             tolerance: tolerance
         )
     }
@@ -130,23 +136,38 @@ public struct OffsetSurfaceParameterCurveImage: Codable, Hashable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case source
         case offset
+        case isPullback
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.source, .offset], in: decoder)
+        try container.validateOnlyExpectedKeys([.source, .offset, .isPullback], in: decoder)
         source = try container.decode(SurfaceParameterCurve.self, forKey: .source)
         offset = try container.decode(OffsetSurface3D.self, forKey: .offset)
+        isPullback = container.contains(.isPullback)
+            ? try container.decode(Bool.self, forKey: .isPullback) : false
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(source, forKey: .source)
         try container.encode(offset, forKey: .offset)
+        if isPullback { try container.encode(true, forKey: .isPullback) }
     }
 }
 
 extension OffsetSurface3D {
+    /// Pulls UV correspondence off this procedural offset onto its source.
+    /// This is a chart transfer, not a geometric offset by the negative distance.
+    package func parameterCurvePullback(
+        transporting source: SurfaceParameterCurve,
+        tolerance: ModelingTolerance
+    ) throws -> OffsetSurfaceParameterCurveImage {
+        try OffsetSurfaceParameterCurveImage(
+            source: source, offset: self, isPullback: true, tolerance: tolerance
+        )
+    }
+
     package func parameterCurveImage(
         transporting source: SurfaceParameterCurve,
         tolerance: ModelingTolerance

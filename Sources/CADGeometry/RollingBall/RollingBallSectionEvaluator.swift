@@ -7,12 +7,14 @@ public struct RollingBallSectionEvaluator: RollingBallSectionEvaluating {
     private let second: OffsetSurface3D
     private let intersection: SurfaceSurfaceIntersectionCurve
     private let tolerance: ModelingTolerance
+    private let correspondenceValidator: any CurveSurfaceCorrespondenceValidating
 
     public init(
         first: OffsetSurface3D,
         second: OffsetSurface3D,
         intersection: SurfaceSurfaceIntersectionCurve,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        correspondenceValidator: any CurveSurfaceCorrespondenceValidating = DefaultCurveSurfaceCorrespondenceValidator()
     ) throws {
         try tolerance.validate()
         try first.validate(tolerance: tolerance)
@@ -29,6 +31,39 @@ public struct RollingBallSectionEvaluator: RollingBallSectionEvaluating {
         self.second = second
         self.intersection = intersection
         self.tolerance = tolerance
+        self.correspondenceValidator = correspondenceValidator
+    }
+
+    public func contactCurve(
+        on role: SurfaceIntersectionSurfaceRole,
+        fromCurveParameter lower: Double,
+        toCurveParameter upper: Double,
+        options: CurveSurfaceCorrespondenceValidationOptions
+    ) throws -> SurfaceLiftCurve3D {
+        try options.validate(tolerance: tolerance)
+        guard options.maximumDeviation.map({ $0 <= tolerance.distance }) ?? true else {
+            throw KernelError(
+                phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                message: "Contact-rail correspondence cannot exceed the rolling-ball modeling tolerance."
+            )
+        }
+        let offset = role == .first ? first : second
+        let source = role == .first
+            ? intersection.firstSurfaceParameterCurve : intersection.secondSurfaceParameterCurve
+        let trimmed = try source.trimmed(
+            from: lower, to: upper, curveDomain: intersection.curve.parameterDomain,
+            tolerance: tolerance
+        )
+        try correspondenceValidator.validate(
+            curve: intersection.curve, from: lower, to: upper,
+            surface: .procedural(.offset(offset)), parameterCurve: trimmed,
+            options: options, tolerance: tolerance
+        )
+        let image = try offset.parameterCurvePullback(transporting: trimmed, tolerance: tolerance)
+        // The image factory already validated this exact destination and pcurve.
+        return SurfaceLiftCurve3D(
+            surface: offset.source, parameterCurve: .offsetSurfaceImage(image)
+        )
     }
 
     public func section(atCurveParameter parameter: Double) throws -> RollingBallSection {

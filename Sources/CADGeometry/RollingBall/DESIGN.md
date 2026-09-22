@@ -54,6 +54,20 @@ they fail explicitly. Nonfinite or ill-conditioned controls fail rather than
 returning an arbitrary arc. The returned maximum contact residual is a local
 measurement, not an interval guarantee over the spine or the section.
 
+`contactCurve` restricts the intersection pcurve using native curve parameters,
+then uses CADGeometry's offset pcurve pullback and existing `SurfaceLiftCurve3D`
+to produce a normalized contact rail on the original surface. It does not
+reuse the spatial offset intersection as the contact rail, project sampled
+points, or claim that the rail alone certifies fillet feasibility. Both contact
+rails retain the same requested spine interval and original surface charts.
+The caller supplies correspondence validation budgets, but cannot widen the
+allowed deviation beyond the evaluator's modeling tolerance. Before transfer, the
+existing injected `CurveSurfaceCorrespondenceValidating` service proves the
+trimmed interval against the selected offset surface; unrelated correspondence
+or exhausted proof budgets must not produce a rail. The default service retains
+its own immutable-input cache and synchronization contract; this component adds
+no cache or shared mutable state.
+
 ## State, Ownership, and Lifecycle
 
 All inputs are immutable value-owned, Sendable geometry. Evaluation retains no
