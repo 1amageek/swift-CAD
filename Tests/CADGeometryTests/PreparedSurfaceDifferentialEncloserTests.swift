@@ -14,6 +14,12 @@ struct PreparedSurfaceDifferentialEncloserTests {
   @Test(.timeLimit(.minutes(1)))
   func preparedEvaluationIsExactlyEquivalentToOneShotEvaluation() throws {
     let bSpline = Surface3D.bSpline(makeCurvedSurface())
+    let source = makeCurvedSurface()
+    let rational = Surface3D.bSpline(BSplineSurface3D(
+      uDegree: source.uDegree, vDegree: source.vDegree,
+      uKnots: source.uKnots, vKnots: source.vKnots,
+      controlPoints: source.controlPoints,
+      weights: [[1, 0.9, 1], [0.9, 0.8, 0.9], [1, 0.9, 1]]))
     let ruled = Surface3D.procedural(
       .ruled(
         RuledSurface3D(
@@ -23,6 +29,7 @@ struct PreparedSurfaceDifferentialEncloserTests {
     let surfaces: [Surface3D] = [
       .analytic(.sphere(center: .origin, radius: 2.0)),
       bSpline,
+      rational,
       ruled,
       .procedural(
         .offset(
@@ -37,22 +44,50 @@ struct PreparedSurfaceDifferentialEncloserTests {
     )
 
     for surface in surfaces {
-      let expected = try DefaultSurfaceDifferentialEncloser().intervalJet(
-        of: surface,
-        over: parameters,
-        tolerance: tolerance
-      )
       let prepared = try PreparedSurfaceDifferentialEncloser(
-        surface: surface,
-        tolerance: tolerance
-      )
-      let actual = try prepared.intervalJet(
-        over: parameters,
-        tolerance: tolerance
-      )
+        surface: surface, tolerance: tolerance)
+      for parameters in [parameters,
+        SurfaceParameterBox(u: try ScalarInterval(lower: 0.65, upper: 0.85),
+                            v: try ScalarInterval(lower: 0.1, upper: 0.2)), parameters] {
+        let expected = try DefaultSurfaceDifferentialEncloser().intervalJet(
+          of: surface,
+          over: parameters,
+          tolerance: tolerance
+        )
+        let actual = try prepared.intervalJet(
+          over: parameters,
+          tolerance: tolerance
+        )
 
-      expectExactlyEqual(actual, expected)
+        expectExactlyEqual(actual, expected)
+      }
     }
+  }
+
+  @Test(.timeLimit(.minutes(1)))
+  func preparedDerivativeNetsAreReusedAcrossRepeatedBoxes() throws {
+    let surface = makeCurvedSurface()
+    let patch = RationalBezierSurfacePatch3D(controlPoints: surface.controlPoints,
+      weights: surface.weights, uLower: 0, uUpper: 1, vLower: 0, vUpper: 1)
+    let encloser = RationalBezierSurfaceJetEncloser()
+    let prepared = try encloser.prepare(patch, tolerance: tolerance)
+    let u = try ScalarInterval(lower: 0.2, upper: 0.4)
+    let v = try ScalarInterval(lower: 0.6, upper: 0.8)
+    let clock = ContinuousClock()
+    var directSum = 0.0, preparedSum = 0.0
+    let start = clock.now
+    for _ in 0..<100 {
+      directSum += try encloser.enclosure(of: patch, u: u, v: v,
+                                        tolerance: tolerance).x.value.lower
+    }
+    let middle = clock.now
+    for _ in 0..<100 {
+      preparedSum += try encloser.enclosure(of: prepared, u: u, v: v,
+                                          tolerance: tolerance).x.value.lower
+    }
+    let end = clock.now
+    #expect(directSum == preparedSum)
+    print("100 patch jets: direct=\(start.duration(to: middle)), prepared=\(middle.duration(to: end))")
   }
 
   @Test(.timeLimit(.minutes(1)))

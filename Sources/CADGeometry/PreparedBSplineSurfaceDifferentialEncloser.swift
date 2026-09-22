@@ -4,7 +4,7 @@ import CADCore
 /// while independently restricting interval jets to each requested box.
 package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
   package let surface: BSplineSurface3D
-  private let patches: [RationalBezierSurfacePatch3D]
+  private let patches: [RationalBezierSurfaceJetEncloser.PreparedPatch]
 
   package init(
     surface: BSplineSurface3D,
@@ -12,10 +12,11 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
   ) throws {
     try surface.validate(tolerance: tolerance)
     self.surface = surface
+    let encloser = RationalBezierSurfaceJetEncloser()
     patches = try BSplineSurfaceBezierDecomposer().surfacePatches(
       surface: surface,
       tolerance: tolerance
-    )
+    ).map { try encloser.prepare($0, tolerance: tolerance) }
   }
 
   func intervalJet(

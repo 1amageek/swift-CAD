@@ -1,7 +1,7 @@
 import CADCore
 
 struct RationalBezierSurfaceJetEncloser: Sendable {
-    private struct HomogeneousJetControls {
+    fileprivate struct HomogeneousJetControls: Sendable {
         let value: [[IntervalHomogeneousSurfaceControl]]
         let derivativeU: [[IntervalHomogeneousSurfaceControl]]
         let derivativeV: [[IntervalHomogeneousSurfaceControl]]
@@ -12,6 +12,14 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
         let thirdDerivativeUUV: [[IntervalHomogeneousSurfaceControl]]
         let thirdDerivativeUVV: [[IntervalHomogeneousSurfaceControl]]
         let thirdDerivativeVVV: [[IntervalHomogeneousSurfaceControl]]
+    }
+
+    struct PreparedPatch: Sendable {
+        let uLower: Double
+        let uUpper: Double
+        let vLower: Double
+        let vUpper: Double
+        fileprivate let controls: HomogeneousJetControls
     }
 
     func enclosure(
@@ -32,6 +40,11 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
         v: ScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> SurfaceIntervalVectorJet {
+        try enclosure(of: prepare(patch, tolerance: tolerance), u: u, v: v, tolerance: tolerance)
+    }
+
+    func prepare(_ patch: RationalBezierSurfacePatch3D,
+                 tolerance: ModelingTolerance) throws -> PreparedPatch {
         guard patch.controlPoints.isEmpty == false,
               patch.controlPoints.count == patch.weights.count,
               let uCount = patch.controlPoints.first?.count,
@@ -39,11 +52,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
               patch.controlPoints.indices.allSatisfy({
                   patch.controlPoints[$0].count == uCount
                       && patch.weights[$0].count == uCount
-              }),
-              u.lower >= patch.uLower,
-              u.upper <= patch.uUpper,
-              v.lower >= patch.vLower,
-              v.upper <= patch.vUpper else {
+              }) else {
             throw invalidPatchError(tolerance: tolerance)
         }
         var controls: [[IntervalHomogeneousSurfaceControl]] = []
@@ -67,13 +76,26 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
             }
             controls.append(row)
         }
-        let localized = try localizedJetControls(
-            try derivativeJetControls(
+        return try PreparedPatch(
+            uLower: patch.uLower, uUpper: patch.uUpper,
+            vLower: patch.vLower, vUpper: patch.vUpper,
+            controls: derivativeJetControls(
                 controls,
                 uSpan: patch.uUpper - patch.uLower,
                 vSpan: patch.vUpper - patch.vLower,
                 tolerance: tolerance
-            ),
+            )
+        )
+    }
+
+    func enclosure(of patch: PreparedPatch, u: ScalarInterval, v: ScalarInterval,
+                   tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+        guard u.lower >= patch.uLower, u.upper <= patch.uUpper,
+              v.lower >= patch.vLower, v.upper <= patch.vUpper else {
+            throw invalidPatchError(tolerance: tolerance)
+        }
+        let localized = try localizedJetControls(
+            patch.controls,
             sourceULower: patch.uLower,
             sourceUUpper: patch.uUpper,
             sourceVLower: patch.vLower,
@@ -423,7 +445,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
     }
 }
 
-private struct IntervalHomogeneousSurfaceControl: Sendable {
+fileprivate struct IntervalHomogeneousSurfaceControl: Sendable {
     let x: OutwardScalarInterval
     let y: OutwardScalarInterval
     let z: OutwardScalarInterval

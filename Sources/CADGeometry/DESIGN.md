@@ -130,6 +130,14 @@ nonfinite or degenerate data.
 
 ## Verification and Change Impact
 
+Prepared B-spline differential enclosers own immutable homogeneous derivative
+control nets through third order for each Bezier span. Preparation occurs once
+per surface operation; requested boxes only restrict those same nets. The direct
+path prepares transiently and follows identical interval arithmetic. No result
+cache, shared mutation, tolerance change, or cross-request lifetime is introduced.
+Prepared/direct interval equality, disjoint successive boxes and invalid span
+rejection verify this reuse contract.
+
 Tests cover valid sphere great-circle curves at seam and pole endpoints,
 slightly perturbed valid floating-point bases, non-orthogonal bases,
 nonfinite/degenerate values, and wrong surfaces. Changes require rechecking
