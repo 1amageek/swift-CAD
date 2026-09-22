@@ -120,6 +120,24 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
         )
     }
 
+    package func buildCertifiedTwist(
+        _ plan: CertifiedTwistSweepPlan,
+        resultKind: SweepResultKind
+    ) throws -> EvaluationResult {
+        let request = try ExactLinearSectionSweepFacePatchBuilder(tolerance: context.tolerance).request(
+            profileSpanLoops: plan.profileSpanLoops, pathSpans: plan.pathSpans,
+            profilePlane: plan.profilePlane, sectionIsClosed: true, resultKind: resultKind,
+            featureID: featureID, certifiedTwist: plan
+        )
+        let sewn = try sewer.sew(request, tolerance: context.tolerance)
+        let combined = try BRepModelCombiner().combined([context.brep, sewn.brep])
+        let subshapes = try semanticSubshapes(sewn: sewn,
+            profileSpanCounts: plan.profileSpanLoops.map(\.count), pathSpanCount: plan.pathSpans.count,
+            includesCaps: resultKind == .solid)
+        return EvaluationResult(brep: combined, subshapes: subshapes,
+            lineage: try GeneratedTopologyLineageBuilder().build(featureID: featureID, subshapes: subshapes))
+    }
+
     private func semanticSubshapes(
         sewn: BRepSewingResult,
         profileSpanCounts: [Int],

@@ -37,6 +37,39 @@ flowchart LR
 
 ## Contracts and Invariants
 
+### Bounded rotational Sweep construction
+
+The implementation contract is owned by
+[CertifiedTwist](CertifiedTwist/DESIGN.md), a child component of this module.
+
+The precision-modeling extension retains the input profile exactly and stores
+an explicit positional approximation allowance in Sweep source, separate from
+modeling tolerance and presentation tessellation. A straight, profile-normal
+path with unit section scale and no guides may use a piecewise-linear angle
+law. The law includes both endpoints, has increasing normalized path positions,
+and may reverse angular velocity at an explicit source knot; this represents a
+double-helical construction without internal caps or a Boolean union.
+
+Each constant-rate interval is subdivided into cubic Hermite rotation patches.
+The rational profile basis/weights are retained in a tensor-product B-spline
+surface. Numerical coefficient error and the whole-interval Hermite remainder
+must together fit the explicit positional allowance. Sampled agreement alone
+is not a certificate. Shared endpoint values and physical derivatives keep
+artificial subdivision seams C1; a source-law velocity discontinuity is not
+advertised as C1 or G2. No general C2 guarantee is made.
+
+Admission verifies source-path straightness from exact span/control geometry,
+not sampled frames, and rejects a singular rotation approximation or exhausted
+patch/control-point budget before allocating the complete topology. Unsupported
+scaling, guides, curved paths or unprovable numerical bounds fail explicitly.
+The existing unannotated twist route does not silently acquire approximation.
+Sewing, pcurves, caps, stable identity and exact validation remain the existing
+kernel responsibilities. Success additionally requires source round-trip,
+parameter re-evaluation, a closed double-helical solid and actual tessellation.
+
+This subsection is an implementation acceptance contract, not a statement that
+the extension has passed those tests.
+
 All-edge fillets retain the original outer bounds and round every edge of a
 validated box, circular cylinder, or convex prism. A box and a cylinder are told
 apart by surface kind, not by topology counts, which are identical: six planar faces are a box,

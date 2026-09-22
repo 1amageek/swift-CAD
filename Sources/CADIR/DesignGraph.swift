@@ -141,6 +141,13 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                     throw FeatureEvaluationError.invalidDistance(angle.value)
                 }
             case let .sweep(sweep):
+                try sweep.options.validate()
+                if let expression = sweep.options.approximationTolerance {
+                    let allowance = try parameters.resolvedValue(for: expression)
+                    guard allowance.kind == .length, allowance.value.isFinite, allowance.value > 0 else {
+                        throw FeatureEvaluationError.invalidGraph("Sweep approximation tolerance must resolve to a finite positive length.")
+                    }
+                }
                 let twistAngle = try parameters.resolvedValue(for: sweep.options.twistAngle)
                 guard twistAngle.kind == .angle else {
                     throw UnitError.expectedQuantity(
@@ -150,6 +157,13 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                     )
                 }
                 let endScale = try parameters.resolvedValue(for: sweep.options.endScale)
+                if let law = sweep.options.twistLaw {
+                    let angles = try law.map { try parameters.resolvedValue(for: $0.angle) }
+                    guard angles.allSatisfy({ $0.kind == .angle && $0.value.isFinite }),
+                          angles.first?.value == 0, angles.last?.value == twistAngle.value else {
+                        throw FeatureEvaluationError.invalidGraph("Sweep law must contain finite angles starting at zero and ending at twistAngle.")
+                    }
+                }
                 guard endScale.kind == .scalar else {
                     throw UnitError.expectedQuantity(
                         operation: "sweep.options.endScale",

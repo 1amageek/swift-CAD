@@ -44,6 +44,11 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Certified straight twist preflight and evaluation use the same
+[CertifiedTwist admission](../CADModeling/CertifiedTwist/DESIGN.md). Exact BRep
+validation certifies the represented spline topology, not zero deviation from
+the ideal rotation law; that deviation has a separate operation allowance.
+
 Per-feature tessellation overrides use live body subshape ownership, never derived
 topology IDs. They change only mesh generation. The complete option set participates
 in cache identity; tessellation reserves prior bodies' usage before the next body.

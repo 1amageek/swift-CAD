@@ -38,7 +38,8 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         sectionIsClosed: Bool,
         resultKind: SweepResultKind,
         endTransform: ExactSectionTransform2D = .identity,
-        featureID: FeatureID
+        featureID: FeatureID,
+        certifiedTwist: CertifiedTwistSweepPlan? = nil
     ) throws -> BRepSewingRequest {
         try tolerance.validate()
         guard profileSpanLoops.isEmpty == false,
@@ -104,7 +105,10 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                 desiredNormalSign: -advanceSign,
                 outerWindingSign: windingSigns[0],
                 reversedBoundary: true,
-                stableID: "sweep:cap:start"
+                stableID: "sweep:cap:start",
+                suppliedCurves: try certifiedTwist?.surfaces.map { loop in
+                    try loop[0].map { try $0.uIsoparametricCurve(atV: 0, tolerance: tolerance) }
+                }
             ))
             capPatches.append(try capPatch(
                 profileSpanLoops: profileSpanLoops,
@@ -115,7 +119,10 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                 desiredNormalSign: advanceSign,
                 outerWindingSign: windingSigns[0],
                 reversedBoundary: false,
-                stableID: "sweep:cap:end"
+                stableID: "sweep:cap:end",
+                suppliedCurves: try certifiedTwist?.surfaces.map { loop in
+                    try loop[loop.count - 1].map { try $0.uIsoparametricCurve(atV: 1, tolerance: tolerance) }
+                }
             ))
         }
         var sidePatchesByLoop: [[BRepSewingFacePatch]] = []
@@ -143,7 +150,8 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                             pathIndex: pathIndex,
                             loopIndex: loopIndex,
                             profileIndex: profileIndex
-                        )
+                        ),
+                        suppliedSurface: certifiedTwist?.surfaces[loopIndex][pathIndex][profileIndex]
                     ))
                 }
             }
@@ -191,8 +199,12 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         transformLaw: ExactLinearSectionTransformLaw,
         sectionPlane: ExactSweepSectionPlane,
         orientation: Orientation,
-        stableID: String
+        stableID: String,
+        suppliedSurface: BSplineSurface3D? = nil
     ) throws -> BRepSewingFacePatch {
+        if let suppliedSurface {
+            return try tensorSidePatch(surface: suppliedSurface, orientation: orientation, stableID: stableID)
+        }
         let surface = try transformedSurface(
             profileCurve: profileSpan.curve,
             pathCurve: pathSpan.curve,
@@ -290,7 +302,8 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         desiredNormalSign: Double,
         outerWindingSign: Double,
         reversedBoundary: Bool,
-        stableID: String
+        stableID: String,
+        suppliedCurves: [[BSplineCurve3D]]? = nil
     ) throws -> BRepSewingFacePatch {
         guard let first = profileSpanLoops.first?.first else {
             throw FeatureEvaluationError.emptyResult(
@@ -300,7 +313,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         let boundaryNormalSign = reversedBoundary
             ? -outerWindingSign
             : outerWindingSign
-        let firstCurve = try transformedProfileCurve(
+        let firstCurve = try suppliedCurves?.first?.first ?? transformedProfileCurve(
             first.curve,
             at: pathPoint,
             pathAnchor: pathAnchor,
@@ -322,7 +335,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                 ? stableID
                 : "\(stableID):inner:\(loopIndex - 1)"
             let edges = try ordered.map { profileIndex in
-                let curve = try transformedProfileCurve(
+                let curve = try suppliedCurves?[loopIndex][profileIndex] ?? transformedProfileCurve(
                     profileSpans[profileIndex].curve,
                     at: pathPoint,
                     pathAnchor: pathAnchor,
@@ -354,6 +367,29 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                 : .reversed,
             loops: loops
         )
+        try patch.validate(tolerance: tolerance)
+        return patch
+    }
+
+    private func tensorSidePatch(
+        surface: BSplineSurface3D,
+        orientation: Orientation,
+        stableID: String
+    ) throws -> BRepSewingFacePatch {
+        let u = try closedBounds(surface.uDomain)
+        let v = try closedBounds(surface.vDomain)
+        let edges = [
+            try exactEdge(surface.uIsoparametricCurve(atV: v.lower, tolerance: tolerance), reversed: false,
+                surfaceParameterCurve: .constantV(v: v.lower, uStart: u.lower, uEnd: u.upper), stableID: "\(stableID):bottom"),
+            try exactEdge(surface.vIsoparametricCurve(atU: u.upper, tolerance: tolerance), reversed: false,
+                surfaceParameterCurve: .constantU(u: u.upper, vStart: v.lower, vEnd: v.upper), stableID: "\(stableID):end"),
+            try exactEdge(surface.uIsoparametricCurve(atV: v.upper, tolerance: tolerance), reversed: true,
+                surfaceParameterCurve: .constantV(v: v.upper, uStart: u.upper, uEnd: u.lower), stableID: "\(stableID):top"),
+            try exactEdge(surface.vIsoparametricCurve(atU: u.lower, tolerance: tolerance), reversed: true,
+                surfaceParameterCurve: .constantU(u: u.lower, vStart: v.upper, vEnd: v.lower), stableID: "\(stableID):start")
+        ]
+        let patch = BRepSewingFacePatch(stableID: stableID, surface: .bSpline(surface), orientation: orientation,
+            loops: [BRepSewingLoop(stableID: "\(stableID):loop", role: .outer, edges: edges)])
         try patch.validate(tolerance: tolerance)
         return patch
     }

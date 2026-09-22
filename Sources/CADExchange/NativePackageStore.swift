@@ -2086,6 +2086,8 @@ private func validateSweepOptionsObject(_ object: [String: Any], path: String) t
         in: object,
         supportedKeys: [
             "twistAngle",
+            "approximationTolerance",
+            "twistLaw",
             "endScale",
             "alignment",
             "distanceFraction",
@@ -2099,6 +2101,11 @@ private func validateSweepOptionsObject(_ object: [String: Any], path: String) t
         objectName: path
     )
     try validateObjectField("twistAngle", in: object, path: "\(path).twistAngle", using: validateExpressionObject)
+    try validateObjectField("approximationTolerance", in: object, path: "\(path).approximationTolerance", using: validateExpressionObject)
+    try validateArrayField("twistLaw", in: object, path: "\(path).twistLaw") { knot, knotPath in
+        try rejectUnsupportedNativeKeys(in: knot, supportedKeys: ["position", "angle"], objectName: knotPath)
+        try validateObjectField("angle", in: knot, path: "\(knotPath).angle", using: validateExpressionObject)
+    }
     try validateObjectField("endScale", in: object, path: "\(path).endScale", using: validateExpressionObject)
     try validateObjectField("distanceFraction", in: object, path: "\(path).distanceFraction", using: validateExpressionObject)
 }

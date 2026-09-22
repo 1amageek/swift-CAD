@@ -97,6 +97,15 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             operationName: "Sweep path",
             preferredStartPlane: preferredStartPlane
         )
+        if CertifiedTwistSweepPlan.requested(sweep.options) {
+            guard case let .profile(profile, _) = section else {
+                throw CertifiedTwistSweepPlan.failure("Certified twist initially requires a closed profile section.", context.tolerance)
+            }
+            let plan = try CertifiedTwistSweepPlan(profile: profile, pathSegments: pathSegments,
+                sweep: sweep, values: optionValues, tolerance: context.tolerance)
+            return try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
+                .buildCertifiedTwist(plan, resultKind: sweep.options.resultKind)
+        }
         let exactCircularPath = try ExactCircularSweepPath(
             segments: pathSegments,
             distanceFraction: optionValues.distanceFraction,
@@ -277,7 +286,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 endTransform = pointGuideEndTransform
             case .exactTranslationalSweep:
                 endTransform = .identity
-            case .exactStraightExtrude, .exactCircularPathRevolve:
+            case .exactStraightExtrude, .exactCircularPathRevolve, .certifiedStraightTwist:
                 throw KernelError(
                     phase: .evaluation,
                     code: .unsupportedCapability,

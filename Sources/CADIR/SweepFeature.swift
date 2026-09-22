@@ -279,6 +279,8 @@ public struct SweepTargetReference: Codable, Hashable, Sendable {
 }
 
 public struct SweepOptions: Codable, Hashable, Sendable {
+    public var approximationTolerance: CADExpression?
+    public var twistLaw: [SweepTwistKnot]?
     public var twistAngle: CADExpression
     public var endScale: CADExpression
     public var alignment: SweepAlignment
@@ -292,6 +294,8 @@ public struct SweepOptions: Codable, Hashable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case twistAngle
+        case approximationTolerance
+        case twistLaw
         case endScale
         case alignment
         case distanceFraction
@@ -313,8 +317,12 @@ public struct SweepOptions: Codable, Hashable, Sendable {
         booleanOperation: SweepBooleanOperation = .newBody,
         keepTools: Bool = false,
         simplify: Bool = false,
-        resultKind: SweepResultKind = .solid
+        resultKind: SweepResultKind = .solid,
+        approximationTolerance: CADExpression? = nil,
+        twistLaw: [SweepTwistKnot]? = nil
     ) {
+        self.approximationTolerance = approximationTolerance
+        self.twistLaw = twistLaw
         self.twistAngle = twistAngle
         self.endScale = endScale
         self.alignment = alignment
@@ -331,6 +339,8 @@ public struct SweepOptions: Codable, Hashable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([
             .twistAngle,
+            .approximationTolerance,
+            .twistLaw,
             .endScale,
             .alignment,
             .distanceFraction,
@@ -342,6 +352,8 @@ public struct SweepOptions: Codable, Hashable, Sendable {
             .resultKind,
         ], in: decoder)
         twistAngle = try container.decode(CADExpression.self, forKey: .twistAngle)
+        approximationTolerance = try container.decodeIfPresent(CADExpression.self, forKey: .approximationTolerance)
+        twistLaw = try container.decodeIfPresent([SweepTwistKnot].self, forKey: .twistLaw)
         endScale = try container.decode(CADExpression.self, forKey: .endScale)
         alignment = try container.decode(SweepAlignment.self, forKey: .alignment)
         distanceFraction = try container.decode(CADExpression.self, forKey: .distanceFraction)
@@ -355,6 +367,17 @@ public struct SweepOptions: Codable, Hashable, Sendable {
 
     public func validate() throws {
         try twistAngle.validateLiteralQuantities()
+        try approximationTolerance?.validateLiteralQuantities()
+        if let twistLaw {
+            guard (2...257).contains(twistLaw.count),
+                  twistLaw.first?.position == 0,
+                  twistLaw.last?.position == 1,
+                  twistLaw.allSatisfy({ $0.position.isFinite && (0...1).contains($0.position) }),
+                  zip(twistLaw, twistLaw.dropFirst()).allSatisfy({ $0.position < $1.position }) else {
+                throw FeatureEvaluationError.invalidGraph("Sweep twist law requires 2...257 strictly increasing positions from zero to one.")
+            }
+            for knot in twistLaw { try knot.angle.validateLiteralQuantities() }
+        }
         try endScale.validateLiteralQuantities()
         try distanceFraction.validateLiteralQuantities()
     }

@@ -59,6 +59,7 @@ public struct SweepEvaluationCapabilities: Sendable {
     }
 
     public enum EvaluationKind: String, Codable, Equatable, Hashable, Sendable {
+        case certifiedStraightTwist
         case exactStraightExtrude
         case exactTranslationalSweep
         case exactLinearScaleSweep
@@ -67,6 +68,8 @@ public struct SweepEvaluationCapabilities: Sendable {
     }
 
     public enum OutputTopologyKind: String, Codable, Equatable, Hashable, Sendable {
+        case certifiedTwistSolid
+        case certifiedTwistSheet
         case exactStraightSolid
         case exactStraightSheet
         case exactTranslationalSolid
@@ -111,17 +114,20 @@ public struct SweepEvaluationCapabilities: Sendable {
         public var sectionState: SectionState
         public var guideConstraintCount: Int
         public var tolerance: ModelingTolerance
+        public var certifiedTwistAvailable: Bool
 
         public init(
             pathShape: PathShape,
             sectionState: SectionState,
             guideConstraintCount: Int = 0,
-            tolerance: ModelingTolerance
+            tolerance: ModelingTolerance,
+            certifiedTwistAvailable: Bool = false
         ) {
             self.pathShape = pathShape
             self.sectionState = sectionState
             self.guideConstraintCount = guideConstraintCount
             self.tolerance = tolerance
+            self.certifiedTwistAvailable = certifiedTwistAvailable
         }
     }
 
@@ -155,6 +161,8 @@ public struct SweepEvaluationCapabilities: Sendable {
         public init(kind: EvaluationKind) {
             let outputTopologyKind: OutputTopologyKind
             switch kind {
+            case .certifiedStraightTwist:
+                outputTopologyKind = .certifiedTwistSolid
             case .exactStraightExtrude:
                 outputTopologyKind = .exactStraightSolid
             case .exactTranslationalSweep:
@@ -235,6 +243,13 @@ public struct SweepEvaluationCapabilities: Sendable {
         }
         if let unsupportedCase = staticUnsupportedCase(for: options) {
             return .unsupported(unsupportedCase)
+        }
+        if CertifiedTwistSweepPlan.requested(options) {
+            guard geometry.certifiedTwistAvailable else {
+                return .unsupported(UnsupportedCase(code: .sweepTwistUnavailable,
+                    message: "Certified twist requires successful source geometry and error-budget admission."))
+            }
+            return .supported(try supportedPlan(kind: .certifiedStraightTwist, options: options))
         }
         let componentTolerance = max(
             geometry.tolerance.relative,
@@ -390,6 +405,10 @@ public struct SweepEvaluationCapabilities: Sendable {
         resultKind: SweepResultKind
     ) throws -> OutputTopologyKind {
         switch (kind, resultKind) {
+        case (.certifiedStraightTwist, .solid):
+            return .certifiedTwistSolid
+        case (.certifiedStraightTwist, .sheet):
+            return .certifiedTwistSheet
         case (.exactStraightExtrude, .solid):
             return .exactStraightSolid
         case (.exactStraightExtrude, .sheet):
@@ -483,6 +502,8 @@ private extension KernelErrorCode {
 private extension SweepEvaluationCapabilities.EvaluationKind {
     var message: String {
         switch self {
+        case .certifiedStraightTwist:
+            return "Sweep uses certified cubic rotation surfaces with an explicit positional allowance."
         case .exactStraightExtrude:
             return "Sweep can evaluate as a profile-plane-preserving exact straight extrusion."
         case .exactTranslationalSweep:

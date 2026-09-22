@@ -33,6 +33,10 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Bounded rotation coefficients use outward interval arithmetic and a Taylor
+remainder, rather than treating rounded libm values as exact trigonometry.
+Their consumer is [CertifiedTwist](../CADModeling/CertifiedTwist/DESIGN.md).
+
 1. Validation first checks finite values, correct surface kind, non-degenerate
    curve extent, and parameter-domain membership.
 2. A spherical great-circle curve requires finite unit basis vectors and a

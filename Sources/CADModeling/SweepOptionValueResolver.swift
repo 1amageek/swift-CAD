@@ -5,6 +5,9 @@ package struct SweepOptionValues: Equatable, Sendable {
     package var twistAngle: Double
     package var endScale: Double
     package var distanceFraction: Double
+    package var approximationTolerance: Double? = nil
+    package var twistPositions: [Double] = [0, 1]
+    package var twistAngles: [Double] = []
 }
 
 package struct SweepOptionValueResolver: Sendable {
@@ -19,6 +22,7 @@ package struct SweepOptionValueResolver: Sendable {
         parameters: ResolvedParameterTable,
         tolerance: ModelingTolerance
     ) throws -> SweepOptionValues {
+        try sweep.options.validate()
         guard sweep.sections.count == 1 else {
             throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Sweep evaluation currently supports exactly one section."
@@ -58,10 +62,29 @@ package struct SweepOptionValueResolver: Sendable {
               distanceFraction <= 1.0 else {
             throw FeatureEvaluationError.invalidDistance(distanceFraction)
         }
+        let allowance: Double?
+        if let expression = sweep.options.approximationTolerance {
+            let quantity = try resolver.evaluate(expression, parameters: parameters, variables: [:])
+            guard quantity.kind == .length, quantity.value.isFinite, quantity.value > 0 else {
+                throw FeatureEvaluationError.invalidGraph("Sweep approximation tolerance must be a finite positive length.")
+            }
+            allowance = quantity.value
+        } else {
+            allowance = nil
+        }
+        let angles = try sweep.options.twistLaw?.map {
+            try resolvedAngle($0.angle, operation: "sweep.twistLaw.angle", parameters: parameters)
+        } ?? [0, twistAngle]
+        guard angles.allSatisfy(\.isFinite), angles.first == 0, angles.last == twistAngle else {
+            throw FeatureEvaluationError.invalidGraph("Sweep twist law must start at zero and end at twistAngle.")
+        }
         return SweepOptionValues(
             twistAngle: twistAngle,
             endScale: endScale,
-            distanceFraction: distanceFraction
+            distanceFraction: distanceFraction,
+            approximationTolerance: allowance,
+            twistPositions: sweep.options.twistLaw?.map(\.position) ?? [0, 1],
+            twistAngles: angles
         )
     }
 

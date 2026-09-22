@@ -148,6 +148,33 @@ public struct SweepEvaluationPlanService: Sendable {
             operationName: "Sweep path",
             preferredStartPlane: preferredStartPlane
         )
+        if CertifiedTwistSweepPlan.requested(options) {
+            do {
+                guard case let .profile(profile) = section else {
+                    throw CertifiedTwistSweepPlan.failure("Certified twist initially requires a closed profile section.", tolerance)
+                }
+                let certified = try CertifiedTwistSweepPlan(profile: profile, pathSegments: pathSegments,
+                    sweep: sweep, values: optionValues, tolerance: tolerance)
+                let geometry = SweepEvaluationCapabilities.Geometry(pathShape: .straight(profileNormalComponent: 1),
+                    sectionState: .twisted, guideConstraintCount: guides.count, tolerance: tolerance,
+                    certifiedTwistAvailable: true)
+                let supported = try SweepEvaluationCapabilities().supportedPlan(options, geometry: geometry, tolerance: tolerance)
+                return SweepEvaluationPlanResult(status: .supported, sectionCount: sections.count,
+                    pathSegmentCount: pathSegments.count, guideCount: guides.count, targetCount: targets.count,
+                    pathShape: geometry.pathShape, sectionState: .twisted, evaluationKind: supported.kind,
+                    outputTopologyKind: supported.outputTopologyKind, booleanSupportKind: supported.booleanSupportKind,
+                    unsupportedCode: nil,
+                    message: "Certified twist positional error <= \(certified.positionErrorUpperBound) meters.",
+                    checks: checks + [SweepEvaluationPreflightCheck(kind: .capabilityDecision,
+                        status: .passed, message: supported.message)])
+            } catch let error as KernelError {
+                return unsupportedResult(sectionCount: sections.count, pathSegmentCount: pathSegments.count,
+                    guideCount: guides.count, targetCount: targets.count, pathShape: .curved, sectionState: .twisted,
+                    unsupportedCase: SweepEvaluationCapabilities.UnsupportedCase(code: error.code, message: error.message),
+                    checks: checks + [SweepEvaluationPreflightCheck(kind: .capabilityDecision,
+                        status: .unsupported, message: error.message)])
+            }
+        }
         let exactCircularPath = try ExactCircularSweepPath(
             segments: pathSegments,
             distanceFraction: optionValues.distanceFraction,

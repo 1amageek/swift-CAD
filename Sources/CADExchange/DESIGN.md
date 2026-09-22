@@ -43,6 +43,10 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Native Sweep package shape validation accepts the optional approximation
+allowance and normalized angle law defined by [CADIR](../CADIR/DESIGN.md).
+Unknown nested knot or expression keys remain rejected.
+
 1. `supportsImport` and `supportsExport` are the authoritative format gates;
    an unsupported format returns `ImportError.unsupportedFormat` or the typed
    export failure before parsing or writing.

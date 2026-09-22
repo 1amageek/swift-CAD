@@ -17,6 +17,10 @@ public extension FeatureOperation {
             return sweep.options.twistAngle.referencedParameterIDs
                 .union(sweep.options.endScale.referencedParameterIDs)
                 .union(sweep.options.distanceFraction.referencedParameterIDs)
+                .union(sweep.options.approximationTolerance?.referencedParameterIDs ?? [])
+                .union((sweep.options.twistLaw ?? []).reduce(into: Set<ParameterID>()) {
+                    $0.formUnion($1.angle.referencedParameterIDs)
+                })
         case let .faceLoopOffset(offset):
             return offset.distance.referencedParameterIDs
         case let .edgeOffset(offset):

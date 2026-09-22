@@ -49,6 +49,14 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Sweep source optionally retains a length-valued `approximationTolerance` and
+`twistLaw` containing `SweepTwistKnot(position:angle:)` values. Omission preserves
+the previous exact-only behavior. Positions are finite and strictly increasing
+from 0 to 1; resolved angles start at 0 and end at the resolved `twistAngle`.
+All expressions participate in dependency tracking and canonical source encoding.
+Construction and proof belong to
+[CertifiedTwist](../CADModeling/CertifiedTwist/DESIGN.md).
+
 `TessellationOptions.featureOverrides` is display fidelity keyed by output feature,
 not source geometry. Overrides contain no further overrides. Document evaluation
 resolves live body subshapes to their owning feature, tessellates each requested
