@@ -7,6 +7,23 @@ import Testing
 struct CurveParameterProjectionTests {
     private let tolerance = ModelingTolerance.standard
 
+    @Test func smallCurvedSpanDoesNotInventMultipleProjectionRoots() throws {
+        let precision = ModelingTolerance(distance: 8e-8, angle: 1e-10, relative: 1e-10)
+        let curve = Curve3D.bSpline(BSplineCurve3D(
+            degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
+            controlPoints: [
+                .init(x: 0, y: 0, z: 0),
+                .init(x: 0.001, y: 0, z: 0.005 / 3),
+                .init(x: 0.002, y: 0.0001, z: 0.01 / 3),
+                .init(x: 0.003, y: 0.0003, z: 0.005)]))
+        for expected in [0.0096924074573, 0.25, 0.71, 0.9903075925427] {
+            let target = try curve.point(at: expected, tolerance: precision)
+            let result = try curve.parameterProjection(of: target, tolerance: precision)
+            #expect(abs(result.parameter - expected) <= precision.relative)
+            #expect(result.residual <= precision.distance)
+        }
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func closestProjectionCertifiesTrimmedEndpointMinimum() throws {
         let curve = Curve3D.line(Line3D(

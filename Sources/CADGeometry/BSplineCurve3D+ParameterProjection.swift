@@ -390,6 +390,11 @@ extension BSplineCurve3D {
         var parameter = initialParameter
         var iterations = 0
         var damping = max(tolerance.relative, Double.ulpOfOne.squareRoot())
+        let parameterScale = max(1.0, abs(bounds.lower), abs(bounds.upper), bounds.upper - bounds.lower)
+        let parameterResolution = max(
+            tolerance.relative * parameterScale,
+            Double.ulpOfOne * parameterScale * 128.0
+        )
         for iteration in 0..<options.maximumIterations {
             iterations = iteration + 1
             let geometry = try differentialGeometryAssumingValid(
@@ -404,12 +409,16 @@ extension BSplineCurve3D {
                 tolerance.distance * tolerance.relative * derivativeScale,
                 Double.ulpOfOne * derivativeScale * 128.0
             )
-            if residual <= tolerance.distance,
-               abs(gradient) <= stationarityTolerance {
-                break
-            }
             let hessian = geometry.firstDerivative.dot(geometry.firstDerivative)
                 + offset.dot(geometry.secondDerivative)
+            // World-space stationarity alone leaves distinct numerical copies
+            // of the same root on small curves. Resolve the undamped Newton
+            // correction within the parameter-space root-identity threshold.
+            if residual <= tolerance.distance,
+               abs(gradient) <= stationarityTolerance,
+               abs(gradient) <= abs(hessian) * parameterResolution * 0.25 {
+                break
+            }
             let scale = max(1.0, abs(hessian))
             var accepted = false
             var nextParameter = parameter
@@ -437,7 +446,7 @@ extension BSplineCurve3D {
             guard accepted else { break }
             let change = abs(nextParameter - parameter)
             parameter = nextParameter
-            if change <= max(tolerance.relative, Double.ulpOfOne * 64.0) {
+            if change <= parameterResolution * 0.25 {
                 break
             }
         }

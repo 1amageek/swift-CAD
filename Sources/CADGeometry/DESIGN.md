@@ -37,6 +37,12 @@ flowchart LR
 
 ## Contracts and Invariants
 
+B-spline inverse projection refines candidate stationary points to the same
+parameter resolution used to distinguish roots. A small world-space residual
+or gradient alone is insufficient for small-scale curves. Self-overlapping
+curves retain explicit ambiguous-selection failure; no distance-based root
+merging replaces parameter uniqueness.
+
 `OffsetSurfaceParameterCurveImage` transports UV correspondence in either
 direction across one known offset relation. Forward transport targets the
 existing exact chart-preserving offset representation. Pullback validates the
