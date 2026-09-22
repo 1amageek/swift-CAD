@@ -7,6 +7,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
     private let extrudeEvaluator: PlanarExtrudeFeatureEvaluator
     private let revolveEvaluator: PlanarRevolveFeatureEvaluator
     private let sweepEvaluator: PlanarSweepFeatureEvaluator
+    private let involuteGearEvaluator: InvoluteGearFeatureEvaluator
     private let loftEvaluator: LoftFeatureEvaluator
     private let booleanEvaluator: BooleanFeatureEvaluator
     private let polySplineEvaluator: PolySplineFeatureEvaluator
@@ -70,6 +71,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             revolveEvaluator: revolveEvaluator,
             booleanApplicator: ExactSweepBooleanApplicator()
         )
+        self.involuteGearEvaluator = InvoluteGearFeatureEvaluator(sweep: sweepEvaluator, resolver: resolver)
         self.loftEvaluator = LoftFeatureEvaluator()
         self.booleanEvaluator = BooleanFeatureEvaluator(
             applicator: ExactBooleanOperationApplicator()
@@ -168,6 +170,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         context: EvaluationContext
     ) throws -> ValidatedFeatureEvaluation {
         switch feature.operation {
+        case .involuteGear:
+            return try involuteGearEvaluator.evaluateValidated(feature: feature, context: context)
         case .spatialPath:
             return try SpatialPathFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .sketch:

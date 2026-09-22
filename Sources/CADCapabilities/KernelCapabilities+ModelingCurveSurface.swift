@@ -3,6 +3,19 @@ import CADCore
 extension KernelCapabilities {
   static let modelingCurveSurfaceCapabilities: [KernelCapability] = [
     feature(
+      id: "MODEL-INVOLUTEGEAR-001",
+      operation: "involuteGear",
+      topology: .solidBody,
+      inputs: ["externalCircularFilletedInvoluteProfile", "dimensionalExpressions",
+        "straightAxialSpurHelicalOrDoubleHelicalSweep", "explicitApproximationAllowances"],
+      outputs: ["validatedSolidBRep", "boundedInvoluteFlanks", "persistentNativeGearSource"],
+      fixtures: ["InvoluteGearCommandTests", "InvoluteGearProfileTests"],
+      status: .partial,
+      failureCodes: [.invalidInput, .missingReference, .unsupportedCapability,
+        .topologyFailure, .resourceLimitExceeded],
+      additionalPublicAPIs: ["CADIR.InvoluteGearFeature", "CADModeling.InvoluteGearFeatureEvaluator"]
+    ),
+    feature(
       id: "MODEL-SPATIALPATH-001",
       operation: "spatialPath",
       topology: .curve,

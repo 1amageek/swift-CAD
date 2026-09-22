@@ -85,6 +85,16 @@ public struct DocumentBuilder {
     }
 
     @discardableResult
+    public mutating func involuteGear(
+        _ gear: InvoluteGearFeature,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .involuteGear(gear))
+        return featureID
+    }
+
+    @discardableResult
     public mutating func primitive(
         _ definition: PrimitiveDefinition,
         named name: String? = nil

@@ -9,6 +9,9 @@ public enum FeatureNodeFactory {
         tolerance: ModelingTolerance
     ) throws -> FeatureNode {
         switch operation {
+        case let .involuteGear(gear):
+            try gear.validate(tolerance: tolerance)
+            return FeatureNode(id: id, name: name, operation: operation, outputs: [FeatureOutput(role: .body)])
         case let .spatialPath(path):
             try path.validate(tolerance: tolerance)
             return FeatureNode(id: id, name: name, operation: operation, outputs: [FeatureOutput(role: .curve)])

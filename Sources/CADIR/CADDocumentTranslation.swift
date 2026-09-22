@@ -34,6 +34,10 @@ private extension FeatureOperation {
         tolerance: ModelingTolerance
     ) throws -> FeatureOperation {
         switch self {
+        case var .involuteGear(gear):
+            gear.origin = gear.origin + vector
+            try gear.validate(tolerance: tolerance)
+            return .involuteGear(gear)
         case var .spatialPath(path):
             for index in path.knots.indices {
                 path.knots[index].position = path.knots[index].position + vector

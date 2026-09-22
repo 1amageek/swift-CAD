@@ -1,4 +1,5 @@
 public enum FeatureOperationKind: String, Codable, CaseIterable, Hashable, Sendable {
+    case involuteGear
     case sketch
     case spatialPath
     case importedBRep

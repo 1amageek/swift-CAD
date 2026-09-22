@@ -104,6 +104,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         tolerance: ModelingTolerance
     ) throws {
         switch node.operation {
+            case let .involuteGear(gear):
+                _ = try gear.resolvedDimensions { try parameters.resolvedValue(for: $0) }
             case .spatialPath:
                 break
             case let .sketch(sketch):
@@ -547,6 +549,11 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             throw FeatureEvaluationError.invalidGraph("Feature outputs contain duplicate roles.")
         }
         switch node.operation {
+        case let .involuteGear(gear):
+            guard node.inputs.isEmpty, outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Gear source requires no feature inputs and one body output.")
+            }
+            try gear.validate(tolerance: tolerance)
         case let .spatialPath(path):
             guard node.inputs.isEmpty, outputRoles == [.curve] else {
                 throw FeatureEvaluationError.invalidGraph("Spatial paths have no inputs and exactly one curve output.")

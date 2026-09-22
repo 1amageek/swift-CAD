@@ -295,7 +295,8 @@ struct DocumentEvaluationEngine {
                     curves[feature.id] = extractedCurves
                     curveOutput = extractedCurves
                 }
-            case .primitive,
+            case .involuteGear,
+                 .primitive,
                  .spatialPath,
                  .importedBRep,
                  .extrude,

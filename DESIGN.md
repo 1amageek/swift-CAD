@@ -47,6 +47,9 @@ or bounds data.
 
 ## Architecture
 
+The [capability catalog](Sources/CADCapabilities/DESIGN.md) owns public command
+admission; registration never replaces the evaluator's geometric validation.
+
 ```mermaid
 flowchart LR
     Exchange["CADExchange bounded reader"] --> Source["CADIR source document"]

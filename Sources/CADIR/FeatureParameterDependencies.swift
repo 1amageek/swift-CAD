@@ -3,6 +3,10 @@ import CADCore
 public extension FeatureOperation {
     var referencedParameterIDs: Set<ParameterID> {
         switch self {
+        case let .involuteGear(gear):
+            return gear.dimensions.values.reduce(into: Set<ParameterID>()) {
+                $0.formUnion($1.referencedParameterIDs)
+            }
         case .spatialPath:
             return []
         case let .sketch(sketch):

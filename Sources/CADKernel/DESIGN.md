@@ -114,6 +114,45 @@ body quality, and cumulative resource refusal.
 
 ### Implemented Admission Mechanism
 
+Sewing connectivity compares endpoint-slot pairs before loading full edge uses.
+The request-local slot table owns points; curve and pcurve values are read only
+for endpoint-compatible candidates. Pair ordering, endpoint tolerance, exact
+curve-span proof and union ordering remain unchanged. Storage is O(n) and the
+pair scan remains O(n²); this removes repeated large-value copies, not the
+quadratic search. Existing sewing success/refusal tests and the complete gear
+path verify the change; phase timing separates sewing/evaluation from meshing.
+
+Planar boundary simplification retains an invocation-local circular index list.
+Removing a point invalidates only its two neighbors' chord checks; traversal
+returns to the previous neighbor instead of restarting at the loop origin.
+Every replacement chord still checks all covered original samples against the
+same deviation allowance. Storage is O(n); this removes index-array shifts
+and unconditional prefix rescans, but does not claim linear runtime for
+covered-sample checks. Cancellation is checked
+at candidate and bounded covered-sample checkpoints. The complete 32-tooth
+involute double-helical kernel test exercises this path without loosening
+geometry or tessellation tolerances.
+
+For nonperiodic surfaces, a four-edge parameter rectangle made of constant-U/V
+curves has its extrema at the eight edge endpoints. Rectangle bounds evaluate
+those endpoints directly, without tessellating spatial boundary curves. Periodic
+surfaces retain sampled unwrapping; this optimization must not alter seam choice
+or interpret a full-period edge as a zero-length interval.
+
+Ear clipping resumes at the removed ear's previous neighbor rather than the
+first polygon vertex. Every candidate still checks all surviving points using
+the original geometric predicates; a full unsuccessful cycle remains a typed
+failure. Each clipping iteration checks cancellation.
+
+Ear containment uses robust orientation signs with zero determinant tolerance:
+topological membership must not expand the triangle by a modeling-distance
+band, which can reject every ear of a finely sampled concave boundary.
+Exact boundary points still block an ear; indeterminate arithmetic throws
+instead of accepting a triangle. Geometric degeneracy gates remain separate.
+The exact coordinate bounding box rejects points before robust orientation
+evaluation. Its bounds use only min/max of the same stored triangle vertices,
+so it cannot discard an interior or boundary point and needs no tolerance.
+
 Limits reach the tessellator through `MeshTessellator.init(tolerance:limits:)`,
 defaulting to `TessellationLimits.standard`, and through
 `DocumentEvaluator.init(tessellationLimits:)`, which configures only the
@@ -145,9 +184,13 @@ The exact surface, boundary samples and face-run identity remain unchanged.
 Rounded-box tests check spherical triangle interior error and radial normals,
 not only triangle counts; native rendering checks the mounted output.
 
-Preflight reserves no output storage, but it is not allocation-free: it samples
-each boundary loop to obtain `n`, so a boundary-driven face is sampled once for
-admission and once for emission. The admitted estimate bounds the *geometric*
+Preflight reserves no output storage, but it is not allocation-free. Planar
+boundary samples are retained only after their face passes cumulative admission
+and are passed unchanged to emission. This request-local preparation is bounded
+by the admitted vertex count (one Point3D per sampled boundary vertex, plus loop
+and face container overhead), and is released with the invocation on success,
+failure or cancellation. It is not a persistent geometry cache. Nonplanar
+sampling retains its existing path. The admitted estimate bounds the *geometric*
 emission, and emission revalidates against it after every face rather than
 trusting it.
 
@@ -168,7 +211,7 @@ face boundaries and inside bounded grid, triangle, and sampled-output loops, so
 a synchronous caller outside a task is unaffected and a cancelled task fails
 with `CancellationError` before the next bounded unit of work.
 
-Two transients are deliberately outside the charged budget. `compactedMesh`
+Besides the bounded planar preparation above, two transients remain outside the charged budget. `compactedMesh`
 allocates one remapping table and the compacted attribute arrays for a body that
 has already been admitted and emitted, and `DocumentCacheValidation` and
 `EvaluatedDocumentValidation` re-tessellate to compare against the cache.

@@ -9,6 +9,8 @@ design](../../DESIGN.md) and has no children for this change.
 
 ## Responsibilities and Boundaries
 
+Editable gear dimensions are owned by [InvoluteGear](InvoluteGear/DESIGN.md).
+
 Editable spatial path source is owned by the child
 [SpatialPath](SpatialPath/DESIGN.md). Its explicit XYZ model does not change the
 planar Sketch contract.

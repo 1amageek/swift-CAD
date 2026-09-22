@@ -261,44 +261,50 @@ public struct DefaultBRepSewer: BRepSewing {
       }
     }
 
-    for firstIndex in uses.indices {
-      for secondIndex in uses.indices where secondIndex > firstIndex {
-        let first = uses[firstIndex]
-        let second = uses[secondIndex]
+    // ponytail: O(n²) endpoint scan; use a conservative spatial index if
+    // endpoint comparisons dominate after eliminating full edge-value copies.
+    let pairs = uses.map(\.slots)
+    for firstIndex in pairs.indices {
+      try Task.checkCancellation()
+      let first = pairs[firstIndex]
+      for secondIndex in (firstIndex + 1)..<pairs.count {
+        let second = pairs[secondIndex]
         let forwardEndpointsAgree = endpointsAgree(
-          first.edge,
-          second.edge,
+          first,
+          second,
+          slots: slots,
           orientation: .forward,
           tolerance: tolerance
         )
         if forwardEndpointsAgree,
           try isProvablySameCurveSpan(
-            CurveSpanDefinition(second.edge),
-            record: CurveSpanDefinition(first.edge),
+            CurveSpanDefinition(uses[secondIndex].edge),
+            record: CurveSpanDefinition(uses[firstIndex].edge),
             orientation: .forward,
             tolerance: tolerance
           )
         {
-          disjointSet.union(first.slots.start, second.slots.start)
-          disjointSet.union(first.slots.end, second.slots.end)
+          disjointSet.union(first.start, second.start)
+          disjointSet.union(first.end, second.end)
           continue
         }
         let reversedEndpointsAgree = endpointsAgree(
-          first.edge,
-          second.edge,
+          first,
+          second,
+          slots: slots,
           orientation: .reversed,
           tolerance: tolerance
         )
         if reversedEndpointsAgree,
           try isProvablySameCurveSpan(
-            CurveSpanDefinition(second.edge),
-            record: CurveSpanDefinition(first.edge),
+            CurveSpanDefinition(uses[secondIndex].edge),
+            record: CurveSpanDefinition(uses[firstIndex].edge),
             orientation: .reversed,
             tolerance: tolerance
           )
         {
-          disjointSet.union(first.slots.start, second.slots.end)
-          disjointSet.union(first.slots.end, second.slots.start)
+          disjointSet.union(first.start, second.end)
+          disjointSet.union(first.end, second.start)
         }
       }
     }
@@ -361,28 +367,29 @@ public struct DefaultBRepSewer: BRepSewing {
   }
 
   private func endpointsAgree(
-    _ first: BRepSewingEdge,
-    _ second: BRepSewingEdge,
+    _ first: EndpointSlotPair,
+    _ second: EndpointSlotPair,
+    slots: [EndpointSlot],
     orientation: Orientation,
     tolerance: ModelingTolerance
   ) -> Bool {
     switch orientation {
     case .forward:
-      return first.startPoint.isApproximatelyEqual(
-        to: second.startPoint,
+      return slots[first.start].point.isApproximatelyEqual(
+        to: slots[second.start].point,
         tolerance: tolerance.distance
       )
-        && first.endPoint.isApproximatelyEqual(
-          to: second.endPoint,
+        && slots[first.end].point.isApproximatelyEqual(
+          to: slots[second.end].point,
           tolerance: tolerance.distance
         )
     case .reversed:
-      return first.startPoint.isApproximatelyEqual(
-        to: second.endPoint,
+      return slots[first.start].point.isApproximatelyEqual(
+        to: slots[second.end].point,
         tolerance: tolerance.distance
       )
-        && first.endPoint.isApproximatelyEqual(
-          to: second.startPoint,
+        && slots[first.end].point.isApproximatelyEqual(
+          to: slots[second.start].point,
           tolerance: tolerance.distance
         )
     }

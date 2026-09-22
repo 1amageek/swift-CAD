@@ -4,7 +4,9 @@
 
 `CADModeling` owns feature-evaluation requests and exact construction policies
 for primitive and derived B-rep geometry. It is a child of the [Swift-CAD
-package design](../../DESIGN.md) and has no children for this change.
+package design](../../DESIGN.md). Children include
+[InvoluteGear](InvoluteGear/DESIGN.md), [CertifiedTwist](CertifiedTwist/DESIGN.md)
+and [SpatialPath](SpatialPath/DESIGN.md).
 
 ## Responsibilities and Boundaries
 
@@ -23,6 +25,7 @@ stable signature serialization, evaluation caching, or Rupa project authority.
 | [Swift-CAD package](../../DESIGN.md) | parent | exact source-to-B-rep flow | Places modeling above geometry and below kernel orchestration. | Keep generated topology complete. |
 | [CADGeometry](../CADGeometry/DESIGN.md) | depends on | analytic pcurve validation | Supplies the common structural contract. | Do not add a sphere-specific bypass. |
 | [CADKernel](../CADKernel/DESIGN.md) | used by | evaluation and stable topology reads | Consumes the generated B-rep. | Stable reads must see every generated subshape. |
+| [InvoluteGear](InvoluteGear/DESIGN.md) | child | closed gear section | Composes flanks and analytic circular roots into Profile. | Resolved geometry only; no source or manufacturing certification. |
 
 ## Architecture
 

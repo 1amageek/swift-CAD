@@ -1,6 +1,7 @@
 import CADCore
 
 public enum FeatureOperation: Codable, Sendable, Hashable {
+    case involuteGear(InvoluteGearFeature)
     case sketch(Sketch)
     case spatialPath(SpatialPathFeature)
     case importedBRep(ImportedBRepFeature)
@@ -49,6 +50,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case surfaceMatch(SurfaceMatchFeature)
 
     private enum CodingKeys: String, CodingKey {
+        case involuteGear
         case kind
         case sketch
         case spatialPath
@@ -104,6 +106,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
         switch kind {
+        case .involuteGear:
+            try container.validateOnlyExpectedKeys([.kind, .involuteGear], in: decoder)
+            self = .involuteGear(try container.decode(InvoluteGearFeature.self, forKey: .involuteGear))
         case .spatialPath:
             try container.validateOnlyExpectedKeys([.kind, .spatialPath], in: decoder)
             self = .spatialPath(try container.decode(SpatialPathFeature.self, forKey: .spatialPath))
@@ -248,6 +253,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
+        case let .involuteGear(gear):
+            try container.encode(Kind.involuteGear, forKey: .kind)
+            try container.encode(gear, forKey: .involuteGear)
         case let .spatialPath(path):
             try container.encode(Kind.spatialPath, forKey: .kind)
             try container.encode(path, forKey: .spatialPath)

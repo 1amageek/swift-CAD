@@ -69,6 +69,7 @@ public struct MeshTessellator: Tessellating {
             limits: effectiveLimits,
             reserving: reservation
         )
+        var planarBoundaries: [FaceID: PlanarBoundary] = [:]
         for (_, body) in sortedBodies {
             try Task.checkCancellation()
             for shellID in body.shellIDs {
@@ -86,6 +87,9 @@ public struct MeshTessellator: Tessellating {
                         vertices: estimate.vertices,
                         indices: estimate.indices
                     )
+                    if let boundary = estimate.planarBoundary {
+                        planarBoundaries[faceID] = boundary
+                    }
                 }
             }
         }
@@ -111,6 +115,7 @@ public struct MeshTessellator: Tessellating {
                     let indexCountBeforeFace = indices.count
                     try append(
                         faceID: faceID,
+                        planarBoundary: planarBoundaries[faceID],
                         shellOrientation: shell.orientation,
                         model: model,
                         options: options,
@@ -148,6 +153,12 @@ public struct MeshTessellator: Tessellating {
     private struct FaceUsageEstimate {
         var vertices: Int
         var indices: Int
+        var planarBoundary: PlanarBoundary? = nil
+    }
+
+    private struct PlanarBoundary {
+        let outer: [Point3D]
+        let inner: [[Point3D]]
     }
 
     /// A conservative upper bound on the vertices and indices one face emits.
@@ -185,22 +196,28 @@ public struct MeshTessellator: Tessellating {
         }
 
         if case .plane = surface {
-            var boundaryPointCount = try sampledPoints(
+            let outer = try sampledPoints(
                 for: loop,
                 in: model,
                 options: options
-            ).count
+            )
+            var inner: [[Point3D]] = []
+            var boundaryPointCount = outer.count
             for innerLoopID in innerLoopIDs {
-                boundaryPointCount += try sampledPoints(
+                let points = try sampledPoints(
                     for: innerLoopID,
                     in: model,
                     options: options
-                ).count
+                )
+                boundaryPointCount += points.count
+                inner.append(points)
             }
-            return try boundaryUsageEstimate(
+            var estimate = try boundaryUsageEstimate(
                 boundaryPointCount: boundaryPointCount,
                 holeCount: innerLoopIDs.count
             )
+            estimate.planarBoundary = PlanarBoundary(outer: outer, inner: inner)
+            return estimate
         }
 
         try surface.validate(tolerance: tolerance)
@@ -378,6 +395,7 @@ public struct MeshTessellator: Tessellating {
 
     private func append(
         faceID: FaceID,
+        planarBoundary: PlanarBoundary?,
         shellOrientation: Orientation,
         model: BRepModel,
         options: TessellationOptions,
@@ -407,25 +425,21 @@ public struct MeshTessellator: Tessellating {
             throw TopologyError.missingReference("Missing loop \(firstLoopID).")
         }
         if case .plane = surface {
+            guard let planarBoundary else {
+                throw TessellationError.unsupportedFace(faceID)
+            }
             if innerLoopIDs.isEmpty == false {
-                let innerLoops = try innerLoopIDs.map { innerLoopID in
-                    guard let innerLoop = model.loops[innerLoopID] else {
-                        throw TopologyError.missingReference("Missing loop \(innerLoopID).")
-                    }
-                    return innerLoop
-                }
                 guard case let .plane(plane) = surface else {
                     throw TessellationError.unsupportedFace(faceID)
                 }
                 try appendPlanarFaceWithHoles(
-                    outerLoop: loop,
-                    innerLoops: innerLoops,
+                    outerPoints: planarBoundary.outer,
+                    innerPointLoops: planarBoundary.inner,
                     plane: plane,
                     surface: surface,
                     face: face,
                     faceID: faceID,
                     shellOrientation: shellOrientation,
-                    model: model,
                     options: options,
                     positions: &positions,
                     normals: &normals,
@@ -452,7 +466,9 @@ public struct MeshTessellator: Tessellating {
             return
         }
 
-        let points = try sampledPoints(for: loop, in: model, options: options)
+        guard let points = planarBoundary?.outer else {
+            throw TessellationError.unsupportedFace(faceID)
+        }
         guard points.count >= 3 else {
             throw TessellationError.degenerateFace(faceID)
         }
@@ -530,24 +546,19 @@ public struct MeshTessellator: Tessellating {
     }
 
     private func appendPlanarFaceWithHoles(
-        outerLoop: Loop,
-        innerLoops: [Loop],
+        outerPoints: [Point3D],
+        innerPointLoops: [[Point3D]],
         plane: Plane3D,
         surface: Surface3D,
         face: Face,
         faceID: FaceID,
         shellOrientation: Orientation,
-        model: BRepModel,
         options: TessellationOptions,
         positions: inout [Point3D],
         normals: inout [Vector3D],
         indices: inout [UInt32],
         budget: inout TessellationBudget
     ) throws {
-        let outerPoints = try sampledPoints(for: outerLoop, in: model, options: options)
-        let innerPointLoops = try innerLoops.map { innerLoop in
-            try sampledPoints(for: innerLoop, in: model, options: options)
-        }
         let maximumDeviation = max(tolerance.distance, options.linearTolerance)
         let simplifiedOuterPoints = try simplifiedPlanarPoints(
             outerPoints,
@@ -1001,29 +1012,40 @@ public struct MeshTessellator: Tessellating {
         // it collapses near-collinear arc-sample runs (the sliver seeds that
         // break ear clipping) while bounding the Hausdorff deviation of the
         // simplified loop by maximumDeviation.
-        var survivors = Array(points.indices)
-        var didRemove = true
-        while didRemove, survivors.count > 3 {
-            didRemove = false
-            for index in survivors.indices {
-                let previousOriginal = survivors[(index + survivors.count - 1) % survivors.count]
-                let nextOriginal = survivors[(index + 1) % survivors.count]
-                if chordCoversOriginalPoints(
-                    from: previousOriginal,
-                    to: nextOriginal,
-                    within: maximumDeviation,
-                    points: points
-                ) {
-                    survivors.remove(at: index)
-                    didRemove = true
-                    break
-                }
-            }
-        }
-        guard survivors.count >= 3 else {
+        guard points.count >= 3 else {
             throw TessellationError.degenerateFace(faceID)
         }
-        let simplified = survivors.map { points[$0] }
+        var previous = points.indices.map { ($0 + points.count - 1) % points.count }
+        var next = points.indices.map { ($0 + 1) % points.count }
+        var remaining = points.count
+        var candidate = 0
+        var unchanged = 0
+        while remaining > 3, unchanged < remaining {
+            try Task.checkCancellation()
+            let before = previous[candidate]
+            let after = next[candidate]
+            if try chordCoversOriginalPoints(
+                from: before, to: after, within: maximumDeviation, points: points
+            ) {
+                next[before] = after
+                previous[after] = before
+                remaining -= 1
+                // Only adjacent candidates have changed chords. Retest the
+                // previous one, then continue forward through the live ring.
+                candidate = before
+                unchanged = 0
+            } else {
+                candidate = after
+                unchanged += 1
+            }
+        }
+        var simplified: [Point3D] = []
+        simplified.reserveCapacity(remaining)
+        let first = candidate
+        repeat {
+            simplified.append(points[candidate])
+            candidate = next[candidate]
+        } while candidate != first
         _ = try faceNormal(points: simplified, faceID: faceID)
         return simplified
     }
@@ -1036,11 +1058,12 @@ public struct MeshTessellator: Tessellating {
         to endIndex: Int,
         within limit: Double,
         points: [Point3D]
-    ) -> Bool {
+    ) throws -> Bool {
         let start = points[startIndex]
         let end = points[endIndex]
         var index = (startIndex + 1) % points.count
         while index != endIndex {
+            if index.isMultiple(of: 256) { try Task.checkCancellation() }
             guard distance(of: points[index], toSegmentFrom: start, to: end) <= limit else {
                 return false
             }
@@ -1102,18 +1125,21 @@ public struct MeshTessellator: Tessellating {
         let windingSign = signedArea >= 0.0 ? 1.0 : -1.0
         var triangles: [TriangleIndex] = []
         var guardCount = 0
+        var firstCandidate = 0
         while remaining.count > 3 {
+            try Task.checkCancellation()
             guardCount += 1
             guard guardCount <= points.count * points.count else {
                 throw TessellationError.unsupportedFace(faceID)
             }
 
             var didClipEar = false
-            for localIndex in remaining.indices {
+            for offset in remaining.indices {
+                let localIndex = (firstCandidate + offset) % remaining.count
                 let previousIndex = remaining[(localIndex + remaining.count - 1) % remaining.count]
                 let currentIndex = remaining[localIndex]
                 let nextIndex = remaining[(localIndex + 1) % remaining.count]
-                guard isEar(
+                guard try isEar(
                     previousIndex: previousIndex,
                     currentIndex: currentIndex,
                     nextIndex: nextIndex,
@@ -1130,6 +1156,7 @@ public struct MeshTessellator: Tessellating {
                     third: nextIndex
                 ))
                 remaining.remove(at: localIndex)
+                firstCandidate = (localIndex + remaining.count - 1) % remaining.count
                 didClipEar = true
                 break
             }
@@ -1182,7 +1209,7 @@ public struct MeshTessellator: Tessellating {
         points: [PlanarPoint2D],
         physicalPoints: [Point3D]?,
         windingSign: Double
-    ) -> Bool {
+    ) throws -> Bool {
         let previous = points[previousIndex]
         let current = points[currentIndex]
         let next = points[nextIndex]
@@ -1207,6 +1234,10 @@ public struct MeshTessellator: Tessellating {
             return false
         }
 
+        let minX = min(previous.x, current.x, next.x)
+        let maxX = max(previous.x, current.x, next.x)
+        let minY = min(previous.y, current.y, next.y)
+        let maxY = max(previous.y, current.y, next.y)
         for candidateIndex in remaining {
             guard candidateIndex != previousIndex,
                   candidateIndex != currentIndex,
@@ -1214,12 +1245,16 @@ public struct MeshTessellator: Tessellating {
                 continue
             }
             let candidate = points[candidateIndex]
+            // Exact coordinate bounds reject exterior points without changing
+            // robust triangle membership or excluding boundary points.
+            guard candidate.x >= minX, candidate.x <= maxX,
+                  candidate.y >= minY, candidate.y <= maxY else { continue }
             if point(candidate, matches: previous)
                 || point(candidate, matches: current)
                 || point(candidate, matches: next) {
                 continue
             }
-            if point(
+            if try point(
                 candidate,
                 isInsideOrOnTriangleWith: previous,
                 current,
@@ -1264,23 +1299,22 @@ public struct MeshTessellator: Tessellating {
         isInsideOrOnTriangleWith first: PlanarPoint2D,
         _ second: PlanarPoint2D,
         _ third: PlanarPoint2D
-    ) -> Bool {
-        // planarCross(a, b, p) == |b - a| * signedDistance(p, line(a, b)), so
-        // scaling the band by the edge length turns the former absolute
-        // distance^2 area band into a proper distance-from-edge test.
-        let bandFloor = tolerance.distance * tolerance.distance
-        let firstBand = max(bandFloor, tolerance.distance * planarDistance(first, to: second))
-        let secondBand = max(bandFloor, tolerance.distance * planarDistance(second, to: third))
-        let thirdBand = max(bandFloor, tolerance.distance * planarDistance(third, to: first))
-        let firstCross = planarCross(first, second, point)
-        let secondCross = planarCross(second, third, point)
-        let thirdCross = planarCross(third, first, point)
-        let hasNegative = firstCross < -firstBand
-            || secondCross < -secondBand
-            || thirdCross < -thirdBand
-        let hasPositive = firstCross > firstBand
-            || secondCross > secondBand
-            || thirdCross > thirdBand
+    ) throws -> Bool {
+        func sign(_ a: PlanarPoint2D, _ b: PlanarPoint2D) throws -> RobustSign {
+            let result = try RobustPredicates.orientation2D(
+                Point2D(x: a.x, y: a.y), Point2D(x: b.x, y: b.y),
+                relativeTo: Point2D(x: point.x, y: point.y), determinantTolerance: 0)
+            guard result != .indeterminate else {
+                throw KernelError(phase: .classification, code: .classificationFailure,
+                    tolerance: tolerance, message: "Triangle containment orientation is indeterminate.")
+            }
+            return result
+        }
+        let firstSign = try sign(first, second)
+        let secondSign = try sign(second, third)
+        let thirdSign = try sign(third, first)
+        let hasNegative = firstSign == .negative || secondSign == .negative || thirdSign == .negative
+        let hasPositive = firstSign == .positive || secondSign == .positive || thirdSign == .positive
         return !(hasNegative && hasPositive)
     }
 
@@ -2523,13 +2557,26 @@ public struct MeshTessellator: Tessellating {
                 return nil
             }
         }
-        let parameters = try sampledParameters(
-            for: loop,
-            on: surface,
-            in: model,
-            options: options,
-            faceID: faceID
-        )
+        let periodic: Bool
+        switch (surface.uDomain, surface.vDomain) {
+        case (.periodic, _), (_, .periodic): periodic = true
+        default: periodic = false
+        }
+        let parameters: [SurfaceParameter]
+        if periodic {
+            parameters = try sampledParameters(for: loop, on: surface, in: model,
+                options: options, faceID: faceID)
+        } else {
+            // Constant-coordinate parameter curves are affine, so extrema
+            // occur at endpoints regardless of spatial curve complexity.
+            parameters = try loop.edges.flatMap { edge -> [SurfaceParameter] in
+                guard let curve = edge.surfaceParameterCurve else {
+                    throw TessellationError.unsupportedFace(faceID)
+                }
+                return [try curve.parameter(atNormalizedFraction: 0, tolerance: tolerance),
+                    try curve.parameter(atNormalizedFraction: 1, tolerance: tolerance)]
+            }
+        }
         guard hasConstantU, hasConstantV,
               let first = parameters.first else {
             return nil
@@ -2924,6 +2971,9 @@ public struct MeshTessellator: Tessellating {
         let maximumSegmentCount = 65_536
         var processedIntervalCount = 0
         while let current = pending.popLast() {
+            if processedIntervalCount & 0xFF == 0 {
+                try Task.checkCancellation()
+            }
             processedIntervalCount += 1
             guard processedIntervalCount <= maximumSegmentCount * 2 - 1 else {
                 throw KernelError(
