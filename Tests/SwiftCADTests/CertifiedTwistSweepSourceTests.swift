@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 import CADCore
+import CADGeometry
 import CADIR
 import CADKernel
 import CADModeling
@@ -9,6 +10,61 @@ import SwiftCAD
 
 @Suite("Certified twist source and planning")
 struct CertifiedTwistSweepSourceTests {
+    @Test(.timeLimit(.minutes(1)))
+    func involuteFlankSurvivesSketchPersistenceAndParametricTwist() throws {
+        let tolerance = ModelingTolerance(distance: 1e-8, angle: 1e-10, relative: 1e-10)
+        let flank = try CertifiedInvoluteCurveApproximator().approximate(
+            baseRadius: 1, rollRange: 0.2...0.8, maximumError: 1e-5,
+            maximumSegments: 256, tolerance: tolerance)
+        var controls = try #require(flank.spans.first).controlPoints
+        for span in flank.spans.dropFirst() { controls.append(contentsOf: span.controlPoints.dropFirst()) }
+        var builder = DocumentBuilder(units: .meters, tolerance: tolerance)
+        let radius = try builder.lengthParameter(named: "baseRadius", 0.02, .meter)
+        let sketchPoints = controls.map { p in
+            SketchPoint(x: .multiply(.reference(radius), .constant(.scalar(p.x))),
+                y: .multiply(.reference(radius), .constant(.scalar(p.y))))
+        }
+        let start = try #require(sketchPoints.first)
+        let end = try #require(sketchPoints.last)
+        // A flank-sector interoperability fixture, not a complete gear tooth.
+        let profile = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.line(from: point(0, 0), to: start)
+            _ = sketch.spline(SketchSpline(controlPoints: sketchPoints))
+            _ = sketch.line(from: end, to: point(0, 0))
+        }
+        let path = try builder.sketch(on: .yz) { sketch in
+            _ = sketch.line(from: point(0, 0), to: point(0, 0.04))
+        }
+        _ = try builder.sweep(profile, along: path.featureID,
+            options: SweepOptions(twistAngle: .constant(.angle(0, unit: .radian)),
+                approximationTolerance: .constant(.length(1e-6, unit: .meter)), twistLaw: [
+                    .init(position: 0, angle: .constant(.angle(0, unit: .radian))),
+                    .init(position: 0.5, angle: .constant(.angle(0.1, unit: .radian))),
+                    .init(position: 1, angle: .constant(.angle(0, unit: .radian)))
+                ]))
+        let document = try builder.build()
+        var restored = try JSONDecoder().decode(CADDocument.self, from: JSONEncoder().encode(document))
+        #expect(try restored.sourceFingerprint(tolerance: tolerance) == document.sourceFingerprint(tolerance: tolerance))
+        let first = try DocumentEvaluator(tolerance: tolerance).evaluate(restored)
+        #expect(first.brep.bodies.count == 1)
+        #expect(first.meshes.count == 1)
+        try first.brep.validate(level: .exact, tolerance: tolerance)
+        let firstRadius = try #require(first.brep.vertices.values.map {
+            hypot($0.point.x, $0.point.y)
+        }.max())
+        #expect(abs(firstRadius - 0.02 * sqrt(1 + 0.8 * 0.8)) < 2e-6)
+        restored.parameters.parameters[radius]?.expression = .constant(.length(0.025, unit: .meter))
+        let resized = try DocumentEvaluator(tolerance: tolerance).evaluate(restored)
+        #expect(resized.brep.bodies.count == 1)
+        #expect(resized.meshes.count == 1)
+        #expect(resized.brep != first.brep)
+        try resized.brep.validate(level: .exact, tolerance: tolerance)
+        let resizedRadius = try #require(resized.brep.vertices.values.map {
+            hypot($0.point.x, $0.point.y)
+        }.max())
+        #expect(abs(resizedRadius - 0.025 * sqrt(1 + 0.8 * 0.8)) < 2e-6)
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func sourceRoundTripDependencyReevaluationAndPlannerParity() throws {
         let tolerance = ModelingTolerance(distance: 1e-8, angle: 1e-10, relative: 1e-10)

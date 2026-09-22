@@ -58,3 +58,12 @@ roll endpoints, joined span positions, JSON round-trip and invalid/exhausted
 requests. Any future gear consumer must separately verify tooth/root geometry,
 dimension reevaluation and composition with Sweep; this contract alone does
 not establish manufactured gear accuracy or engineering CAD completion.
+
+`SwiftCADTests/CertifiedTwistSweepSourceTests` also checks a flank-sector through
+persisted cubic sketch controls, parameter-driven radius scaling, certified
+double-helical Sweep, exact topology and actual tessellation. The evaluated
+radial bounds follow r*sqrt(1+t^2) before and after the parameter change.
+This confirms the existing downstream route; it does not preserve a complete
+gear's design intent. A gear source must retain tooth count, pressure angle,
+root conditions and allowance and regenerate geometry after dimension changes,
+rather than treating a frozen control polygon as a parametric gear definition.
