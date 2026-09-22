@@ -66,9 +66,9 @@ and real tessellation. Run only after shared compilation clearance. Source,
 planner and evaluator changes must preserve this same admission contract.
 
 The multi-tooth construction fixture verifies actual sewn surface coordinates
-against the retained profile and angle law, closure and tessellation. It does
-not establish downstream Boolean/classification support: the generic solid
-point classifier currently reaches its curve/surface intersection resource
-limit on this fixture. That failure must remain explicit, not become an inside
-or outside answer. It is not evidence that a manufactured involute gear has
-been validated.
+against the retained profile and angle law, closure and tessellation. Native
+solid classification also verifies the center, a remote exterior point, a cap
+boundary, and tooth-interior/gap-exterior points at three axial positions.
+The earlier recorded classifier resource-limit failure is not reproduced on
+the current kernel; these nine checks now guard that path. They do not prove
+arbitrary Boolean operations or validate a manufactured involute gear.

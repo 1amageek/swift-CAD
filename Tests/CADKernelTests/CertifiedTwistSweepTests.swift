@@ -156,6 +156,23 @@ struct CertifiedTwistSweepTests {
         let meshes = try MeshTessellator(tolerance: tolerance).tessellate(model: result.brep)
         #expect(meshes.count == 1)
         for mesh in meshes.values { try mesh.validate(tolerance: tolerance) }
+        let classifier = DefaultBRepSolidPointClassifier()
+        #expect(try classifier.classify(Point3D(x: 0, y: 0, z: 0.025),
+            in: body.id, model: result.brep, tolerance: tolerance) == .inside)
+        #expect(try classifier.classify(Point3D(x: 0.04, y: 0, z: 0.025),
+            in: body.id, model: result.brep, tolerance: tolerance) == .outside)
+        #expect(try classifier.classify(.origin,
+            in: body.id, model: result.brep, tolerance: tolerance) == .boundary)
+        for z in [0.0125, 0.025, 0.0375] {
+            let rotation = 0.12 * (z <= 0.025 ? z / 0.025 : (0.05 - z) / 0.025)
+            for (phase, expected) in [(3.0 / 8, SolidPointClassification.inside),
+                                      (7.0 / 8, SolidPointClassification.outside)] {
+                let angle = pitch * phase + rotation
+                let point = Point3D(x: 0.024 * cos(angle), y: 0.024 * sin(angle), z: z)
+                #expect(try classifier.classify(point, in: body.id,
+                    model: result.brep, tolerance: tolerance) == expected)
+            }
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
