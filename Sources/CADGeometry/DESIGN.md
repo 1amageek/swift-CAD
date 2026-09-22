@@ -6,6 +6,8 @@
 surface-parameter curves used by all higher Swift-CAD modules. It is a child of
 the [Swift-CAD package design](../../DESIGN.md). Its
 [Involute](Involute/DESIGN.md) child owns certified involute flank approximation.
+The [RollingBall](RollingBall/DESIGN.md) child owns local contact sections for
+curved-surface fillets, not their topology or feature publication.
 
 ## Responsibilities and Boundaries
 
@@ -22,6 +24,7 @@ measurement policy.
 | [CADModeling](../CADModeling/DESIGN.md) | used by | generated primitive pcurve values | Supplies valid sphere seam/pole curves. | Construction cannot rely on a sphere-only validation bypass. |
 | [CADIR](../CADIR/DESIGN.md) | used by | signature validation | Validates retained geometry through this module. | Do not loosen Codable/signature rules independently. |
 | [Involute](Involute/DESIGN.md) | child | certified flank approximation | Converts analytic involute intervals to bounded B-spline spans. | Does not own gear dimensions or root geometry. |
+| [RollingBall](RollingBall/DESIGN.md) | child | local contact section | Resolves source contacts from offset-intersection correspondence. | A local section is not a certified complete blend surface. |
 
 ## Architecture
 
