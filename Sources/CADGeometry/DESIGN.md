@@ -4,8 +4,8 @@
 
 `CADGeometry` owns exact analytic curves, surfaces, parameter domains, and
 surface-parameter curves used by all higher Swift-CAD modules. It is a child of
-the [Swift-CAD package design](../../DESIGN.md) and has no children for this
-change.
+the [Swift-CAD package design](../../DESIGN.md). Its
+[Involute](Involute/DESIGN.md) child owns certified involute flank approximation.
 
 ## Responsibilities and Boundaries
 
@@ -21,6 +21,7 @@ measurement policy.
 | [Swift-CAD package](../../DESIGN.md) | parent | package exact-geometry contract | Places geometry below modeling and above core values. | Keep the shared predicate contract authoritative. |
 | [CADModeling](../CADModeling/DESIGN.md) | used by | generated primitive pcurve values | Supplies valid sphere seam/pole curves. | Construction cannot rely on a sphere-only validation bypass. |
 | [CADIR](../CADIR/DESIGN.md) | used by | signature validation | Validates retained geometry through this module. | Do not loosen Codable/signature rules independently. |
+| [Involute](Involute/DESIGN.md) | child | certified flank approximation | Converts analytic involute intervals to bounded B-spline spans. | Does not own gear dimensions or root geometry. |
 
 ## Architecture
 
