@@ -312,53 +312,35 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
   ) throws -> CurveIntervalJet {
     let count = Double(curve.cells.count)
     let cell = curve.cells[cellIndex]
-    let localLower = max(
+    var localLower = max(
       0.0,
       min(1.0, globalInterval.lower * count - Double(cellIndex))
     )
-    let localUpper = max(
+    var localUpper = max(
       0.0,
       min(1.0, globalInterval.upper * count - Double(cellIndex))
     )
-    let preparedParentDerivatives: [ScalarInterval]?
-    if let preparedSurfaces,
-      preparedSurfaces.first.surface == curve.firstSurface,
-      preparedSurfaces.second.surface == curve.secondSurface,
-      preparedSurfaces.parameterDerivativeBounds.indices.contains(cellIndex)
-    {
-      preparedParentDerivatives =
-        preparedSurfaces
-        .parameterDerivativeBounds[cellIndex]
-    } else {
-      preparedParentDerivatives = nil
+    if localUpper - localLower <= tolerance.relative {
+      // Enclose the requested interval without reverting to the whole cell.
+      // The restriction contract needs a representable span above resolution.
+      let width = min(1.0, max(4 * tolerance.relative, Double.ulpOfOne * 4_096).nextUp)
+      localLower = max(0, min(localLower, localUpper - width).nextDown)
+      localUpper = min(1, max(localUpper, localLower + width).nextUp)
     }
-    let parameterBox: SurfaceIntersectionParameterBox
-    let localFirstDerivatives: [ScalarInterval]
-    if localUpper - localLower > tolerance.relative {
-      let subcell = try restrictedBounds(
-        of: curve,
-        cellIndex: cellIndex,
-        fromNormalizedFraction: localLower,
-        toNormalizedFraction: localUpper,
-        tolerance: tolerance
+    let subcell = try restrictedBounds(
+      of: curve,
+      cellIndex: cellIndex,
+      fromNormalizedFraction: localLower,
+      toNormalizedFraction: localUpper,
+      tolerance: tolerance
+    )
+    let parameterBox = subcell.parameterBox
+    let localSpan = localUpper - localLower
+    let localFirstDerivatives = try subcell.parameterDerivativeBounds.map {
+      try ScalarInterval(
+        lower: ($0.lower / localSpan).nextDown,
+        upper: ($0.upper / localSpan).nextUp
       )
-      parameterBox = subcell.parameterBox
-      let localSpan = localUpper - localLower
-      localFirstDerivatives = try subcell.parameterDerivativeBounds.map {
-        try ScalarInterval(
-          lower: ($0.lower / localSpan).nextDown,
-          upper: ($0.upper / localSpan).nextUp
-        )
-      }
-    } else {
-      parameterBox = cell.parameterBox
-      localFirstDerivatives =
-        try preparedParentDerivatives
-        ?? cell.parameterDerivativeBounds(
-          firstSurface: curve.firstSurface,
-          secondSurface: curve.secondSurface,
-          tolerance: tolerance
-        )
     }
     let firstDerivatives = localFirstDerivatives.map {
       OutwardScalarInterval(lower: $0.lower, upper: $0.upper)

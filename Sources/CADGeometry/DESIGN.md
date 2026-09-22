@@ -37,6 +37,12 @@ flowchart LR
 
 ## Contracts and Invariants
 
+At the graph restriction resolution floor, interval jets use a containing
+local interval wide enough for certified restriction, not the entire parent
+cell. Derivatives are rescaled by that containing interval's actual width.
+This preserves conservative bounds without undoing adaptive refinement;
+endpoint and interior tiny-interval checks cover prepared and unprepared paths.
+
 B-spline inverse projection refines candidate stationary points to the same
 parameter resolution used to distinguish roots. A small world-space residual
 or gradient alone is insufficient for small-scale curves. Self-overlapping

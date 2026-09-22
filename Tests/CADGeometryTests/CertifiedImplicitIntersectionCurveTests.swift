@@ -8,6 +8,24 @@ import Testing
 struct CertifiedImplicitIntersectionCurveTests {
   private let tolerance = ModelingTolerance.standard
 
+  @Test func tinyImplicitIntervalsRetainLocalPositionBounds() throws {
+    let curve = try certifiedLineCurve()
+    for encloser in [ImplicitCurveIntervalJetEncloser(),
+                     try ImplicitCurveIntervalJetEncloser(intersection: curve, tolerance: tolerance)] {
+      for lower in [0.0, 0.5, 1.0 - tolerance.relative * 0.5] {
+        let interval = try ScalarInterval(lower: lower, upper: min(1, lower + tolerance.relative * 0.5))
+        let jet = try encloser.parameterIntervalJet(of: curve, over: interval, tolerance: tolerance)
+        let free = jet[.firstV]
+        #expect(free.value.contains(interval.lower))
+        #expect(free.value.contains(interval.upper))
+        #expect(free.value.width < tolerance.relative * 32)
+        #expect(free.firstDerivative.contains(1))
+        #expect(free.secondDerivative.contains(0))
+        #expect(free.thirdDerivative.contains(0))
+      }
+    }
+  }
+
   @Test(.timeLimit(.minutes(1)))
   func evaluatesTheUniqueRootOfARevalidatedKrawczykGraph() throws {
     let first = horizontalSurface()
