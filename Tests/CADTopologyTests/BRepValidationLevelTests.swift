@@ -68,6 +68,26 @@ struct BRepValidationLevelTests {
     }
   }
 
+  @Test(.timeLimit(.minutes(1)))
+  func singleBodyCertificateCompositionPreservesSourceAndRejectsChanges() throws {
+    let certificate = try ValidatedBRepModel(
+      makePlanarSheet(includePcurves: true), tolerance: .standard)
+    let bodyID = try #require(certificate.model.bodies.keys.first)
+    let result = try ValidatedBRepModel(
+      composingValidatedBodies: [bodyID: certificate], as: certificate.model,
+      tolerance: .standard)
+    #expect(result.model == certificate.model)
+    #expect(result.validationLevel == .exact)
+    var changed = certificate.model
+    var body = try #require(changed.bodies[bodyID])
+    body.name = "Changed source"
+    changed.bodies[bodyID] = body
+    #expect(throws: KernelError.self) {
+      try ValidatedBRepModel(composingValidatedBodies: [bodyID: certificate],
+        as: changed, tolerance: .standard)
+    }
+  }
+
   @Test
   func exactBodyCertificateCompositionRejectsMismatchedIdentity() throws {
     let certified = try ValidatedBRepModel(

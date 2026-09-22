@@ -65,17 +65,21 @@ public struct ValidatedBRepModel: Sendable {
                 bodyIDs: Set([bodyID]),
                 from: certificate.model
             )
-            let outputBody = try extractor.extract(
-                bodyIDs: Set([bodyID]),
-                from: model
-            )
+            // Equal source models have the same ownership-closed extraction.
+            // Keep the final union check: a certificate can contain unowned data.
+            let outputBody = certificate.model == model ? certifiedBody : try extractor.extract(
+                bodyIDs: Set([bodyID]), from: model)
             guard certifiedBody == outputBody else {
                 throw Self.compositionError(
                     tolerance: tolerance,
                     message: "A composed body differs from its exact validation certificate."
                 )
             }
-            try Self.insert(certifiedBody, into: &composed, tolerance: tolerance)
+            if composed.bodies.isEmpty {
+                composed = certifiedBody
+            } else {
+                try Self.insert(certifiedBody, into: &composed, tolerance: tolerance)
+            }
         }
         guard composed == model else {
             throw Self.compositionError(
