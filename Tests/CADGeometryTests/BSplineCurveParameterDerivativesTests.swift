@@ -3,6 +3,21 @@ import CADCore
 @testable import CADGeometry
 
 @Test(.timeLimit(.minutes(1)))
+func nearlyUnitWeightsRetainRationalDerivativeCertificate() throws {
+    let spline = BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
+        controlPoints: [.origin, Point3D(x: 1, y: 0, z: 0),
+            Point3D(x: 2, y: 0, z: 0), Point3D(x: 3, y: 0, z: 0)],
+        weights: [1, 1 + 5e-13, 1, 1])
+    let bounds = try Curve3D.bSpline(spline).tessellationIntervalBounds(
+        ScalarInterval(lower: 0, upper: 1), tolerance: .standard)
+    for parameter in [0.0, 0.25, 0.5, 0.75, 1] {
+        let derivative = try spline.parameterDerivatives(at: parameter, tolerance: .standard)
+        #expect(derivative.secondDerivative.length <= bounds.secondDerivativeMagnitudeUpperBound)
+    }
+    #expect(bounds.secondDerivativeMagnitudeUpperBound > 1e-12)
+}
+
+@Test(.timeLimit(.minutes(1)))
 func quadraticBasisMatchesGeneralRecurrenceAndRationalCurve() throws {
     let knots: [Double] = [2, 2, 2, 5, 5, 5]
     for index in 0...100 {

@@ -137,12 +137,12 @@ fileprivate extension Curve3D {
         guard case let .bSpline(curve) = self,
               curve.degree == 3,
               curve.controlPointCount == 4,
-              curve.isRational == false,
               case let .closed(domainLower, domainUpper) = curve.domain,
-              curve.knots == [
-                  domainLower, domainLower, domainLower, domainLower,
-                  domainUpper, domainUpper, domainUpper, domainUpper,
-              ] else {
+              (interval.lower == domainLower && curve.controlPoints[0] == curve.controlPoints[1])
+                || (interval.upper == domainUpper && curve.controlPoints[2] == curve.controlPoints[3]),
+              curve.weights.allSatisfy({ $0 == 1 }),
+              curve.knots.count == 8,
+              curve.knots[0] == domainLower, curve.knots[7] == domainUpper else {
             return nil
         }
         let domainWidth = domainUpper - domainLower
@@ -391,12 +391,10 @@ fileprivate extension Curve3D {
     ) -> Double? {
         guard curve.degree == 3,
               curve.controlPointCount == 4,
-              curve.isRational == false,
+              curve.weights.allSatisfy({ $0 == 1 }),
               case let .closed(lower, upper) = curve.domain,
-              curve.knots == [
-                  lower, lower, lower, lower,
-                  upper, upper, upper, upper,
-              ] else {
+              curve.knots.count == 8,
+              curve.knots[0] == lower, curve.knots[7] == upper else {
             return nil
         }
         let parameterWidth = upper - lower

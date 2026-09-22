@@ -38,6 +38,10 @@ Parameter derivatives of unit-weight, single-span clamped cubic B-splines
 use scalar de Casteljau interpolation and quadratic/linear derivative
 polynomials. This path allocates no basis tables and retains domain validation,
 parameter scaling, finite-result refusal and stationary endpoint behavior.
+Polynomial tessellation derivative certificates require weights exactly equal
+to one, not the approximate `isRational` display classification. Stationary
+endpoint certificates are considered only on intervals touching a repeated
+endpoint control point; interior intervals perform no knot-array construction.
 Single-span clamped quadratic basis evaluation uses Bernstein polynomials
 through derivative order two, avoiding recursive basis-table construction for
 analytic conic spans in both 2D and 3D. Rational weight accumulation and finite
