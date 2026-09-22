@@ -3,6 +3,54 @@ import CADCore
 @testable import CADGeometry
 
 @Test(.timeLimit(.minutes(1)))
+func quadraticBasisMatchesGeneralRecurrenceAndRationalCurve() throws {
+    let knots: [Double] = [2, 2, 2, 5, 5, 5]
+    for index in 0...100 {
+        let t = 2 + 3 * Double(index) / 100
+        for order in 0...3 {
+            let actual = BSplineBasis.nonzeroValues(parameter: t, degree: 2,
+                derivativeOrder: order, knots: knots, count: 3)
+            let expected = BSplineBasis.derivativeValues(parameter: t, degree: 2,
+                derivativeOrder: order, knots: knots, count: 3)
+            #expect(actual.startIndex == 0)
+            for (a, b) in zip(actual.values, expected) { #expect(abs(a - b) < 1e-13) }
+        }
+    }
+    let curve = BSplineCurve3D(degree: 2, knots: knots,
+        controlPoints: [Point3D(x: 1, y: 0, z: 0), Point3D(x: 1, y: 1, z: 0),
+            Point3D(x: 0, y: 1, z: 0)], weights: [1, 0.5.squareRoot(), 1])
+    let general = try curve.insertingKnot(3.5, tolerance: .standard)
+    for index in 0...100 {
+        let t = 2 + 3 * Double(index) / 100
+        let actual = try curve.parameterDerivatives(at: t, tolerance: .standard)
+        let expected = try general.parameterDerivatives(at: t, tolerance: .standard)
+        #expect((actual.position - expected.position).length < 1e-12)
+        #expect((actual.firstDerivative - expected.firstDerivative).length < 1e-12)
+        #expect((actual.secondDerivative - expected.secondDerivative).length < 1e-12)
+    }
+}
+
+@Test(.timeLimit(.minutes(1)))
+func cubicParameterDerivativesMatchRationalBasis() throws {
+    let polynomial = BSplineCurve3D(degree: 3, knots: [2, 2, 2, 2, 5, 5, 5, 5],
+        controlPoints: [Point3D(x: 1, y: -2, z: 3), Point3D(x: 2, y: 4, z: -1),
+            Point3D(x: -3, y: 1, z: 2), Point3D(x: 5, y: -2, z: 1)])
+    var rational = polynomial
+    rational.weights = [2, 2, 2, 2]
+    for index in 0...100 {
+        let t = 2 + 3 * Double(index) / 100
+        let actual = try polynomial.parameterDerivatives(at: t, tolerance: .standard)
+        let expected = try rational.parameterDerivatives(at: t, tolerance: .standard)
+        #expect((actual.position - expected.position).length < 1e-12)
+        #expect((actual.firstDerivative - expected.firstDerivative).length < 1e-12)
+        #expect((actual.secondDerivative - expected.secondDerivative).length < 1e-12)
+    }
+    #expect(throws: GeometryError.self) {
+        try polynomial.parameterDerivatives(at: 6, tolerance: .standard)
+    }
+}
+
+@Test(.timeLimit(.minutes(1)))
 func bSplineRawParameterDerivativesAllowStationaryEndpoint() throws {
     let curve = BSplineCurve3D(
         degree: 3,

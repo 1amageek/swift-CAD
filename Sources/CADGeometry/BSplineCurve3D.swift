@@ -262,6 +262,31 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
             knots: knots,
             degree: degree
         )
+        if degree == 3, controlPointCount == 4, knots.count == 8,
+           weights.allSatisfy({ $0 == 1 }),
+           knots[0] == knots[3], knots[4] == knots[7] {
+            let width = knots[4] - knots[3]
+            let t = (clamped - knots[3]) / width
+            let s = 1 - t
+            let a = controlPoints[0] + (controlPoints[1] - controlPoints[0]) * t
+            let b = controlPoints[1] + (controlPoints[2] - controlPoints[1]) * t
+            let c = controlPoints[2] + (controlPoints[3] - controlPoints[2]) * t
+            let d = a + (b - a) * t
+            let e = b + (c - b) * t
+            let position = d + (e - d) * t
+            let v0 = controlPoints[1] - controlPoints[0]
+            let v1 = controlPoints[2] - controlPoints[1]
+            let v2 = controlPoints[3] - controlPoints[2]
+            let first = (v0 * (s * s) + v1 * (2 * s * t) + v2 * (t * t)) * (3 / width)
+            let second = ((v1 - v0) * s + (v2 - v1) * t) * (6 / width / width)
+            guard position.isFinite, first.isFinite, second.isFinite else {
+                throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
+                    tolerance: tolerance,
+                    message: "Polynomial B-spline parameter differentiation exceeded the finite numeric range.")
+            }
+            return CurveParameterDerivatives(position: position,
+                firstDerivative: first, secondDerivative: second)
+        }
         let basis = BSplineBasis.nonzeroDerivativeValues(
             parameter: clamped,
             degree: degree,

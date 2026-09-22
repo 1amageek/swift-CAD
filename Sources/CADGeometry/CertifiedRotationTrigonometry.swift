@@ -3,6 +3,44 @@ import CADCore
 /// Bounded Taylor evaluation on [-1, 1], followed by four double-angle steps.
 /// Inputs are enclosed real angles, not unverified libm outputs.
 package enum CertifiedRotationTrigonometry {
+    package static func inverseTangent(
+        _ value: OutwardScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> OutwardScalarInterval {
+        guard value.isFinite, value.lower >= 0, value.upper <= 16 else {
+            throw KernelError(phase: .geometry, code: .invalidInput,
+                tolerance: tolerance, message: "Certified inverse tangent requires an interval in [0, 16].")
+        }
+        if value.upper == 0 { return .exact(0) }
+        var x = value
+        for _ in 0..<5 {
+            let squared = .exact(1) + x * x
+            let root = OutwardScalarInterval(lower: squared.lower.squareRoot().nextDown,
+                upper: squared.upper.squareRoot().nextUp)
+            guard let reduced = x.divided(by: .exact(1) + root), reduced.isFinite else {
+                throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
+                    tolerance: tolerance, message: "Inverse tangent range reduction is not certifiable.")
+            }
+            x = reduced
+        }
+        guard x.absoluteUpperBound <= 0.0625 else {
+            throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
+                tolerance: tolerance, message: "Inverse tangent series argument exceeds its certified range.")
+        }
+        let negativeSquare = -(x * x)
+        var power = x
+        var sum = x
+        for index in 1..<20 {
+            power = power * negativeSquare
+            guard let term = power.divided(by: .exact(Double(2 * index + 1))) else {
+                throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
+                    tolerance: tolerance, message: "Inverse tangent series denominator is invalid.")
+            }
+            sum = sum + term
+        }
+        return (sum + OutwardScalarInterval(lower: -0x1p-164, upper: 0x1p-164)) * .exact(32)
+    }
+
     package static func evaluate(
         _ angle: OutwardScalarInterval,
         tolerance: ModelingTolerance

@@ -34,6 +34,18 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Parameter derivatives of unit-weight, single-span clamped cubic B-splines
+use scalar de Casteljau interpolation and quadratic/linear derivative
+polynomials. This path allocates no basis tables and retains domain validation,
+parameter scaling, finite-result refusal and stationary endpoint behavior.
+Single-span clamped quadratic basis evaluation uses Bernstein polynomials
+through derivative order two, avoiding recursive basis-table construction for
+analytic conic spans in both 2D and 3D. Rational weight accumulation and finite
+result validation stay with the existing curve evaluator. Other knot structures
+and higher derivative orders retain the general basis path.
+Differential tests compare against equal non-unit rational weights on
+non-unit parameter domains; tessellation tolerances are not changed.
+
 Surface-lift derivative magnitudes use certified interval derivatives of their
 support surface, not tessellation's tangent-frame admission and subdivision.
 The consuming ruled-surface certifier owns subdivision and its existing cell
@@ -51,6 +63,11 @@ negative squared-norm lower bound and must not drive regularity subdivision.
 Bounded rotation coefficients use outward interval arithmetic and a Taylor
 remainder, rather than treating rounded libm values as exact trigonometry.
 Their consumer is [CertifiedTwist](../CADModeling/CertifiedTwist/DESIGN.md).
+Inverse tangent for finite nonnegative intervals up to 16 uses five applications
+of atan(x)=2*atan(x/(1+sqrt(1+x²))), outward square-root endpoints, and twenty
+alternating-series terms. The reduced argument is checked against 1/16;
+the omitted term is below 2^-164 before rescaling by 32. Gear dimension-to-angle
+construction consumes this enclosure rather than certifying a rounded libm angle.
 
 1. Validation first checks finite values, correct surface kind, non-degenerate
    curve extent, and parameter-domain membership.

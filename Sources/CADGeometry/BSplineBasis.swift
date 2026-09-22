@@ -105,6 +105,25 @@ public struct BSplineBasis {
         let requestedOrder = max(derivativeOrder, 0)
         let evaluatedOrder = min(requestedOrder, degree)
         let clamped = clampedParameter(parameter, knots: knots, degree: degree)
+        if degree == 2, count == 3, knots.count == 6, requestedOrder <= 2,
+           knots[0] == knots[2], knots[3] == knots[5] {
+            let width = knots[3] - knots[2]
+            if width.isFinite, width > 0 {
+                let t = (clamped - knots[2]) / width
+                let s = 1 - t
+                return (0...requestedOrder).map { order in
+                    let values: [Double]
+                    switch order {
+                    case 0: values = [s * s, 2 * s * t, t * t]
+                    case 1: values = [-2 * s / width, 2 * (s - t) / width, 2 * t / width]
+                    default:
+                        let scale = 2 / width / width
+                        values = [scale, -2 * scale, scale]
+                    }
+                    return NonzeroValues(startIndex: 0, values: values)
+                }
+            }
+        }
         let span = knotSpan(
             parameter: clamped,
             degree: degree,
