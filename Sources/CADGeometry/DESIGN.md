@@ -37,6 +37,21 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Loft may request stationary outer-boundary parameterization admission from the
+existing B-spline regularity and embedding validators. For unit-weight Bezier
+patches only, exactly repeated boundary controls identify factors u, (1-u), v
+or (1-v) in the corresponding directional derivative. Divide those Bernstein
+derivative nets by the known factors with outward arithmetic before bounding
+tangents and normals. Factors are removable only at the requested domain's
+outer boundary and only in their own derivative direction. Their integrals
+define strictly increasing independent parameter changes; the stored surface
+and its geometry remain unchanged. Positive bounds for the reduced Jacobian
+establish regularity in those coordinates, including the limiting boundary.
+Interior singularities, collapsed boundary curves and rational stationary
+boundaries do not acquire an exemption. Default validator behavior remains strict.
+Failed enclosure still requires subdivision or explicit failure; boundary samples
+with declared stationary speed cannot replace a complete reduced-Jacobian proof.
+
 Exact Coons construction owns polynomial and rational transfinite interpolation
 for every modeling consumer. Exactly unit-weight boundaries use the common
 normalized basis and Greville linear-coordinate coefficients without rational

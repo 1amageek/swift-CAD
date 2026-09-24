@@ -4,6 +4,45 @@ import CADCore
 
 @Suite("B-spline surface embedding certification")
 struct BSplineSurfaceEmbeddingValidatorTests {
+    @Test(arguments: [[0.0, 0.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0], [0.0, 1.0, 1.0, 1.0]])
+    func stationaryOuterParametersRetainARegularEmbeddedSheet(coordinates: [Double]) throws {
+        let surface = BSplineSurface3D(uDegree: 3, vDegree: 3,
+            uKnots: [0, 0, 0, 0, 1, 1, 1, 1], vKnots: [0, 0, 0, 0, 1, 1, 1, 1],
+            controlPoints: coordinates.map { y in coordinates.map { x in Point3D(x: x, y: y, z: x + y) } })
+        let regularity = BSplineSurfaceRegularityValidator(maximumSubdivisionDepth: 0, maximumCellCount: 1)
+        let embedding = BSplineSurfaceEmbeddingValidator(maximumLocalSubdivisionDepth: 0, maximumCellCount: 1)
+        #expect(throws: (any Error).self) {
+            try regularity.validate(surface, uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: .standard)
+        }
+        #expect(throws: (any Error).self) {
+            try embedding.validate(surface, uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: .standard)
+        }
+        try regularity.validate(surface, uDomain: surface.uDomain, vDomain: surface.vDomain,
+            tolerance: .standard, allowStationaryBoundaryParameterization: true)
+        try embedding.validate(surface, uDomain: surface.uDomain, vDomain: surface.vDomain,
+            tolerance: .standard, allowStationaryBoundaryParameterization: true)
+    }
+
+    @Test(arguments: [0, 1, 2, 3])
+    func stationaryBoundaryAdmissionCannotHideInteriorOrCollapsedGeometry(kind: Int) throws {
+        let x: [Double] = kind == 3 ? [0, 0, 0, 0] : (kind == 0 ? [0, 1, 0, 1] : [0, 2, -1, 1])
+        let points = kind == 2
+            ? [Array(repeating: Point3D.origin, count: 4), x.map { Point3D(x: $0, y: 1, z: 0) }]
+            : [0.0, 1.0].map { y in x.map { Point3D(x: $0, y: y, z: 0) } }
+        let surface = BSplineSurface3D(uDegree: 3, vDegree: 1,
+            uKnots: [0, 0, 0, 0, 1, 1, 1, 1], vKnots: [0, 0, 1, 1], controlPoints: points)
+        #expect(throws: (any Error).self) {
+            try BSplineSurfaceRegularityValidator(maximumSubdivisionDepth: 0).validate(surface,
+                uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: .standard,
+                allowStationaryBoundaryParameterization: true)
+        }
+        #expect(throws: (any Error).self) {
+            try BSplineSurfaceEmbeddingValidator(maximumLocalSubdivisionDepth: 0).validate(surface,
+                uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: .standard,
+                allowStationaryBoundaryParameterization: true)
+        }
+    }
+
     @Test func coarseSeparationRetainsTheRequestPairBudget() throws {
         let surface = BSplineSurface3D(uDegree: 1, vDegree: 1,
             uKnots: [0, 0, 1, 2, 3, 4, 4], vKnots: [0, 0, 1, 1],

@@ -17,7 +17,8 @@ public struct BSplineSurfaceRegularityValidator: Sendable {
         _ surface: BSplineSurface3D,
         uDomain: ParameterDomain,
         vDomain: ParameterDomain,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        allowStationaryBoundaryParameterization: Bool = false
     ) throws {
         try tolerance.validate()
         try surface.validate(tolerance: tolerance)
@@ -85,13 +86,18 @@ public struct BSplineSurfaceRegularityValidator: Sendable {
                     message: "B-spline surface regularity exhausted its certified cell budget."
                 )
             }
-            if try certificate(for: cell.patch, tolerance: tolerance).isRegular {
+            let stationaryBoundaries = allowStationaryBoundaryParameterization
+                ? RationalBezierSurfaceDifferentialBounds.outerBoundaries(of: cell.patch,
+                    uDomain: uDomain, vDomain: vDomain) : []
+            if try certificate(for: cell.patch, tolerance: tolerance,
+                stationaryBoundaries: stationaryBoundaries).isRegular {
                 continue
             }
             try rejectSampledSingularity(
                 in: cell.patch,
                 surface: surface,
-                tolerance: tolerance
+                tolerance: tolerance,
+                stationaryBoundaries: stationaryBoundaries
             )
             guard cell.depth < maximumSubdivisionDepth else {
                 throw resourceLimit(
@@ -117,7 +123,8 @@ public struct BSplineSurfaceRegularityValidator: Sendable {
 
     private func certificate(
         for patch: RationalBezierSurfacePatch3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        stationaryBoundaries: Set<SurfaceParameterBoundary>
     ) throws -> Certificate {
         let weights = patch.weights.flatMap { $0 }
         guard let minimumWeight = weights.min(),
@@ -127,7 +134,8 @@ public struct BSplineSurfaceRegularityValidator: Sendable {
               maximumWeightValue.isFinite else {
             return Certificate(isRegular: false)
         }
-        let differentialBounds = RationalBezierSurfaceDifferentialBounds(patch: patch)
+        let differentialBounds = RationalBezierSurfaceDifferentialBounds(patch: patch,
+            stationaryBoundaries: stationaryBoundaries)
         let maximumWeight = maximumWeightValue.nextUp
         let maximumWeightSquared = (maximumWeight * maximumWeight).nextUp
         let tangentULower = max(
@@ -166,11 +174,16 @@ public struct BSplineSurfaceRegularityValidator: Sendable {
     private func rejectSampledSingularity(
         in patch: RationalBezierSurfacePatch3D,
         surface: BSplineSurface3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        stationaryBoundaries: Set<SurfaceParameterBoundary>
     ) throws {
         for uFraction in [0.0, 0.5, 1.0] {
             let u = patch.uLower + (patch.uUpper - patch.uLower) * uFraction
             for vFraction in [0.0, 0.5, 1.0] {
+                if (uFraction == 0 && stationaryBoundaries.contains(.uLower))
+                    || (uFraction == 1 && stationaryBoundaries.contains(.uUpper))
+                    || (vFraction == 0 && stationaryBoundaries.contains(.vLower))
+                    || (vFraction == 1 && stationaryBoundaries.contains(.vUpper)) { continue }
                 let v = patch.vLower + (patch.vUpper - patch.vLower) * vFraction
                 do {
                     _ = try surface.normal(u: u, v: v, tolerance: tolerance)

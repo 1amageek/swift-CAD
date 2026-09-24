@@ -22,7 +22,8 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         _ surface: BSplineSurface3D,
         uDomain: ParameterDomain,
         vDomain: ParameterDomain,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        allowStationaryBoundaryParameterization: Bool = false
     ) throws {
         try tolerance.validate()
         try surface.validate(tolerance: tolerance)
@@ -68,7 +69,8 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
             throw resourceLimit(residual: Double(patches.count), tolerance: tolerance,
                 message: "B-spline surface embedding exhausted its local cell budget.")
         }
-        var cells = try patches.map { try Cell(patch: $0, depth: 0) }
+        var cells = try patches.map { try Cell(patch: $0, depth: 0,
+            stationaryDomain: allowStationaryBoundaryParameterization ? bounds : nil) }
 
         try certifyLocalInjectivity(
             cells: &cells,
@@ -94,11 +96,19 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         let depth: Int
         let differentialBounds: RationalBezierSurfaceDifferentialBounds
         let bounds: BoundingBox3D
+        let stationaryDomain: RetainedBounds?
+        let stationaryBoundaries: Set<SurfaceParameterBoundary>
 
-        init(patch: RationalBezierSurfacePatch3D, depth: Int) throws {
+        init(patch: RationalBezierSurfacePatch3D, depth: Int, stationaryDomain: RetainedBounds?) throws {
             self.patch = patch
             self.depth = depth
-            self.differentialBounds = RationalBezierSurfaceDifferentialBounds(patch: patch)
+            self.stationaryDomain = stationaryDomain
+            self.stationaryBoundaries = stationaryDomain.map {
+                RationalBezierSurfaceDifferentialBounds.outerBoundaries(of: patch,
+                    uDomain: .closed($0.uLower, $0.uUpper), vDomain: .closed($0.vLower, $0.vUpper))
+            } ?? []
+            self.differentialBounds = RationalBezierSurfaceDifferentialBounds(patch: patch,
+                stationaryBoundaries: stationaryBoundaries)
             self.bounds = try patch.boundingBox()
         }
     }
@@ -202,7 +212,8 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                 try rejectSampledSingularity(
                     in: cells[index].patch,
                     surface: surface,
-                    tolerance: tolerance
+                    tolerance: tolerance,
+                    stationaryBoundaries: cells[index].stationaryBoundaries
                 )
                 try subdivide(
                     indexes: [index],
@@ -225,7 +236,8 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                 try rejectSampledSingularity(
                     in: cells[index].patch,
                     surface: surface,
-                    tolerance: tolerance
+                    tolerance: tolerance,
+                    stationaryBoundaries: cells[index].stationaryBoundaries
                 )
             }
             try subdivide(
@@ -239,10 +251,15 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
     private func rejectSampledSingularity(
         in patch: RationalBezierSurfacePatch3D,
         surface: BSplineSurface3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        stationaryBoundaries: Set<SurfaceParameterBoundary>
     ) throws {
         for uFraction in [0.0, 0.5, 1.0] {
             for vFraction in [0.0, 0.5, 1.0] {
+                if (uFraction == 0 && stationaryBoundaries.contains(.uLower))
+                    || (uFraction == 1 && stationaryBoundaries.contains(.uUpper))
+                    || (vFraction == 0 && stationaryBoundaries.contains(.vLower))
+                    || (vFraction == 1 && stationaryBoundaries.contains(.vUpper)) { continue }
                 let sample = parameter(
                     in: patch,
                     uFraction: uFraction,
@@ -323,7 +340,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                     message: "B-spline surface embedding exhausted its local cell budget.")
             }
             let children = try cell.patch.subdivided().map {
-                try Cell(patch: $0, depth: cell.depth + 1)
+                try Cell(patch: $0, depth: cell.depth + 1, stationaryDomain: cell.stationaryDomain)
             }
             cells.remove(at: index)
             cells.insert(contentsOf: children, at: index)

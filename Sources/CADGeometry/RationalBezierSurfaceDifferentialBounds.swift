@@ -8,7 +8,59 @@ struct RationalBezierSurfaceDifferentialBounds: Sendable {
     let tangentVNumerator: IntervalVector3DBounds
     let normalNumerator: IntervalVector3DBounds
 
-    init(patch: RationalBezierSurfacePatch3D) {
+    static func outerBoundaries(of patch: RationalBezierSurfacePatch3D,
+        uDomain: ParameterDomain, vDomain: ParameterDomain) -> Set<SurfaceParameterBoundary> {
+        guard case let .closed(u0, u1) = uDomain, case let .closed(v0, v1) = vDomain else { return [] }
+        var result: Set<SurfaceParameterBoundary> = []
+        if patch.uLower == u0 { result.insert(.uLower) }
+        if patch.uUpper == u1 { result.insert(.uUpper) }
+        if patch.vLower == v0 { result.insert(.vLower) }
+        if patch.vUpper == v1 { result.insert(.vUpper) }
+        return result
+    }
+
+    init(patch: RationalBezierSurfacePatch3D,
+         stationaryBoundaries: Set<SurfaceParameterBoundary> = []) {
+        if !stationaryBoundaries.isEmpty,
+           patch.weights.allSatisfy({ $0.allSatisfy { $0 == 1 } }),
+           let h = BernsteinVector4Surface(patch: patch),
+           var u = h.xyz.derivativeU(parameterSpan: patch.uUpper - patch.uLower),
+           var v = h.xyz.derivativeV(parameterSpan: patch.vUpper - patch.vLower) {
+            let points = patch.controlPoints
+            let nu = points[0].count - 1, nv = points.count - 1
+            // Exact repeated controls, not small derivative samples, identify
+            // factors of the corresponding independent parameter only.
+            for side in [SurfaceParameterBoundary.uLower, .uUpper, .vLower, .vUpper]
+                where stationaryBoundaries.contains(side) {
+                var count = 0
+                switch side {
+                case .uLower:
+                    while count < nu - 1 && points.allSatisfy({ $0[count + 1] == $0[0] }) { count += 1 }
+                case .uUpper:
+                    while count < nu - 1 && points.allSatisfy({ $0[nu - count - 1] == $0[nu] }) { count += 1 }
+                case .vLower:
+                    while count < nv - 1 && points[count + 1] == points[0] { count += 1 }
+                case .vUpper:
+                    while count < nv - 1 && points[nv - count - 1] == points[nv] { count += 1 }
+                }
+                for _ in 0..<count {
+                    // A constant zero derivative cannot be divided further;
+                    // keeping its zero enclosure forces admission to fail.
+                    switch side {
+                    case .uLower, .uUpper:
+                        if let reduced = u.removingKnownBoundaryFactor(side) { u = reduced }
+                    case .vLower, .vUpper:
+                        if let reduced = v.removingKnownBoundaryFactor(side) { v = reduced }
+                    }
+                }
+            }
+            if let normal = u.cross(v) {
+                tangentUNumerator = u.enclosure
+                tangentVNumerator = v.enclosure
+                normalNumerator = normal.enclosure
+                return
+            }
+        }
         if let exactBounds = ExactBernsteinDifferentialBounds(patch: patch) {
             tangentUNumerator = exactBounds.tangentUNumerator
             tangentVNumerator = exactBounds.tangentVNumerator
@@ -254,6 +306,12 @@ private struct BernsteinVector3Surface {
     let y: BernsteinScalarSurface
     let z: BernsteinScalarSurface
 
+    func removingKnownBoundaryFactor(_ side: SurfaceParameterBoundary) -> Self? {
+        guard let x = x.removingKnownBoundaryFactor(side), let y = y.removingKnownBoundaryFactor(side),
+              let z = z.removingKnownBoundaryFactor(side) else { return nil }
+        return Self(x: x, y: y, z: z)
+    }
+
     func derivativeU(parameterSpan: Double) -> BernsteinVector3Surface? {
         guard let x = x.derivativeU(parameterSpan: parameterSpan),
               let y = y.derivativeU(parameterSpan: parameterSpan),
@@ -324,6 +382,36 @@ private struct BernsteinScalarSurface {
     let coefficients: [[OutwardScalarInterval]]
     let uDegree: Int
     let vDegree: Int
+
+    func removingKnownBoundaryFactor(_ side: SurfaceParameterBoundary) -> Self? {
+        // B(n,i)/t = n/i * B(n-1,i-1); the opposite endpoint is symmetric.
+        // The caller establishes exact vanishing from the original control net.
+        let result: [[OutwardScalarInterval]]
+        switch side {
+        case .uLower:
+            guard uDegree > 0 else { return nil }
+            result = coefficients.map { row in (1...uDegree).map {
+                row[$0] * OutwardScalarInterval(Double(uDegree) / Double($0))
+            } }
+        case .uUpper:
+            guard uDegree > 0 else { return nil }
+            result = coefficients.map { row in (0..<uDegree).map {
+                row[$0] * OutwardScalarInterval(Double(uDegree) / Double(uDegree - $0))
+            } }
+        case .vLower:
+            guard vDegree > 0 else { return nil }
+            result = (1...vDegree).map { j in coefficients[j].map {
+                $0 * OutwardScalarInterval(Double(vDegree) / Double(j))
+            } }
+        case .vUpper:
+            guard vDegree > 0 else { return nil }
+            result = (0..<vDegree).map { j in coefficients[j].map {
+                $0 * OutwardScalarInterval(Double(vDegree) / Double(vDegree - j))
+            } }
+        }
+        // Removing a known factor keeps a nonempty rectangular coefficient net.
+        return Self(coefficients: result)
+    }
 
     init?(coefficients: [[OutwardScalarInterval]]) {
         guard coefficients.isEmpty == false,
