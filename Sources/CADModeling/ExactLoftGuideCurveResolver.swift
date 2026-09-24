@@ -173,27 +173,31 @@ package struct ExactLoftGuideCurveResolver {
             )
         }
         var contacts: [(point: Point3D, parameter: Double)] = []
+        let resolution = max(
+            tolerance.relative * max(abs(lower), abs(upper), 1.0),
+            Double.ulpOfOne * max(abs(lower), abs(upper), 1.0) * 512.0
+        )
         contacts.reserveCapacity(sections.count)
         contacts.append((
             try curve.point(at: lower, tolerance: tolerance),
             lower
         ))
         for section in sections.dropFirst().dropLast() {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Loft guide resolution accepts exact
-            // spatial endpoint boundaries, but intermediate spatial boundaries need
-            // certified curve/curve intersections before they can be admitted.
-            guard let support = section.plane else {
-                throw KernelError.unsupportedEvaluation(tolerance: tolerance,
-                    message: "Spatial intermediate Loft guide contacts require curve/curve intersection support.")
+            let intersections: [(point: Point3D, curveParameter: Double)]
+            if let support = section.plane {
+                intersections = try DefaultCurveSurfaceIntersector().intersections(
+                    curve: .bSpline(curve),
+                    surface: .plane(try plane(for: support, tolerance: tolerance)),
+                    options: CurveSurfaceIntersectionOptions(
+                        curveRange: try ScalarInterval(lower: lower, upper: upper)
+                    ),
+                    tolerance: tolerance
+                ).map { ($0.point, $0.curveParameter) }
+            } else {
+                intersections = try section.loops[boundaryLoopIndex].flatMap {
+                    try spatialContacts(guide: curve, boundary: $0.curve, tolerance: tolerance)
+                }
             }
-            let intersections = try DefaultCurveSurfaceIntersector().intersections(
-                curve: .bSpline(curve),
-                surface: .plane(try plane(for: support, tolerance: tolerance)),
-                options: CurveSurfaceIntersectionOptions(
-                    curveRange: try ScalarInterval(lower: lower, upper: upper)
-                ),
-                tolerance: tolerance
-            )
             var candidates: [(point: Point3D, parameter: Double)] = []
             for intersection in intersections {
                 guard try boundaryContains(
@@ -204,7 +208,8 @@ package struct ExactLoftGuideCurveResolver {
                     continue
                 }
                 if candidates.contains(where: { candidate in
-                    candidate.point.isApproximatelyEqual(
+                    abs(candidate.parameter - intersection.curveParameter) <= resolution
+                    && candidate.point.isApproximatelyEqual(
                         to: intersection.point,
                         tolerance: tolerance.distance
                     )
@@ -232,10 +237,6 @@ package struct ExactLoftGuideCurveResolver {
             try curve.point(at: upper, tolerance: tolerance),
             upper
         ))
-        let resolution = max(
-            tolerance.relative * max(abs(lower), abs(upper), 1.0),
-            Double.ulpOfOne * max(abs(lower), abs(upper), 1.0) * 512.0
-        )
         guard zip(contacts, contacts.dropFirst()).allSatisfy({ pair in
             pair.1.parameter > pair.0.parameter + resolution
         }) else {
@@ -248,6 +249,71 @@ package struct ExactLoftGuideCurveResolver {
             )
         }
         return contacts
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Loft's spatial guide path resolves discrete
+    // projected roots, but general coincident/tangent spatial loci can exhaust the
+    // certified solver. Complete their classification before claiming all guide inputs.
+    private func spatialContacts(
+        guide: BSplineCurve3D, boundary: BSplineCurve3D, tolerance: ModelingTolerance
+    ) throws -> [(point: Point3D, curveParameter: Double)] {
+        guard case .closed(let a, let b) = guide.domain,
+              case .closed(let c, let d) = boundary.domain else {
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance,
+                message: "Spatial Loft contacts require bounded exact curves.")
+        }
+        // Coordinate selection only steers convergence. All roots and spatial
+        // distances still require interval certification; no sampled contact is admitted.
+        let normal = try guide.differentialGeometry(at: a + (b - a) * 0.5, tolerance: tolerance)
+            .firstDerivative.cross(boundary.differentialGeometry(at: c + (d - c) * 0.5,
+                tolerance: tolerance).firstDerivative)
+        let axis = abs(normal.x) >= max(abs(normal.y), abs(normal.z)) ? 0
+            : abs(normal.y) >= abs(normal.z) ? 1 : 2
+        func projected(_ curve: BSplineCurve3D) -> BSplineCurve2D {
+            BSplineCurve2D(degree: curve.degree, knots: curve.knots,
+                controlPoints: curve.controlPoints.map {
+                    switch axis {
+                    case 0: Point2D(x: $0.y, y: $0.z)
+                    case 1: Point2D(x: $0.x, y: $0.z)
+                    default: Point2D(x: $0.x, y: $0.y)
+                    }
+                }, weights: curve.weights)
+        }
+        let encloser = DefaultCurveDifferentialEncloser()
+        let limit = OutwardScalarInterval.exact(tolerance.distance) * .exact(tolerance.distance)
+        func squaredDistance(_ root: RationalBSplineCurveIntersection2D) throws -> OutwardScalarInterval {
+            // The root solver rounds its affine parameter map outward even at
+            // a domain endpoint. Intersect with the known source domains before
+            // enclosing curve values; this does not extrapolate either curve.
+            let first = try encloser.enclosure(of: .bSpline(guide),
+                over: ScalarInterval(lower: max(a, root.firstParameterEnclosure.lower),
+                    upper: min(b, root.firstParameterEnclosure.upper)), tolerance: tolerance).position
+            let second = try encloser.enclosure(of: .bSpline(boundary),
+                over: ScalarInterval(lower: max(c, root.secondParameterEnclosure.lower),
+                    upper: min(d, root.secondParameterEnclosure.upper)), tolerance: tolerance).position
+            func squared(_ a: ScalarInterval, _ b: ScalarInterval) -> OutwardScalarInterval {
+                let delta = OutwardScalarInterval(lower: a.lower, upper: a.upper)
+                    - OutwardScalarInterval(lower: b.lower, upper: b.upper)
+                let low = max(0, delta.absoluteLowerBound)
+                let high = delta.absoluteUpperBound
+                return OutwardScalarInterval(lower: max(0, (low * low).nextDown),
+                    upper: (high * high).nextUp)
+            }
+            return squared(first.x, second.x) + squared(first.y, second.y) + squared(first.z, second.z)
+        }
+        let roots = try RationalBSplineCurveIntersector2D().intersections(
+            first: projected(guide), second: projected(boundary),
+            maximumSubdivisionDepth: 32, maximumSubdivisionCells: 1_048_576,
+            accepting: { root in
+                let distance = try squaredDistance(root)
+                return distance.upper <= limit.lower || distance.lower > limit.upper
+            }, tolerance: tolerance)
+        return try roots.compactMap { root in
+            guard try squaredDistance(root).upper <= limit.lower else { return nil }
+            let parameter = try ScalarInterval(lower: max(a, root.firstParameterEnclosure.lower),
+                upper: min(b, root.firstParameterEnclosure.upper)).midpoint
+            return (try guide.point(at: parameter, tolerance: tolerance), parameter)
+        }
     }
 
     private func boundaryLoopIndex(

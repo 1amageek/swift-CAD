@@ -8,6 +8,39 @@ import CADModeling
 @Suite("Exact curve section Loft", .timeLimit(.minutes(1)))
 struct CurveLoftFeatureTests {
     @Test(arguments: [false, true])
+    func spatialIntermediateGuideContactsRequireThreeDimensionalAgreement(separated: Bool) throws {
+        let sections = try [0.0, 1.0, 2.0].map { z in
+            let offset = separated && z == 1 ? 0.1 : 0.0
+            return try section(BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
+                controlPoints: [Point3D(x: 0, y: offset, z: z), Point3D(x: 1, y: 1 + offset, z: z + 0.2),
+                    Point3D(x: 2, y: -1 + offset, z: z - 0.2), Point3D(x: 3, y: offset, z: z)]))
+        }
+        let guide = try section(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+            controlPoints: [.origin, Point3D(x: 0, y: 0, z: 2)]))
+        if separated {
+            do {
+                _ = try evaluate(sections, mode: .ruled, guides: [guide])
+                Issue.record("A projected crossing separated in 3D must not be admitted.")
+            } catch let error as KernelError {
+                #expect(error.code == .intersectionFailure)
+            }
+        } else {
+            let result = try evaluate(sections, mode: .ruled, guides: [guide])
+            try result.brep.validate(level: .exact, tolerance: .standard)
+            #expect(result.brep.faces.count == 2)
+            #expect(result.brep.vertices.values.contains { ($0.point - Point3D(x: 0, y: 0, z: 1)).length < 1e-8 })
+            let repeated = try section(BSplineCurve3D(degree: 1, knots: [0, 0, 0.25, 0.5, 0.75, 1, 1],
+                controlPoints: [0.0, 1.2, 0.8, 1.2, 2.0].map { Point3D(x: 0, y: 0, z: $0) }))
+            do {
+                _ = try evaluate(sections, mode: .ruled, guides: [repeated])
+                Issue.record("Repeated visits to the same section point are distinct guide contacts.")
+            } catch let error as KernelError {
+                #expect(error.code == .ambiguousSelection)
+            }
+        }
+    }
+
+    @Test(arguments: [false, true])
     func closedCurveSeamUsesOriginalSampleBeforeReversal(reversed: Bool) throws {
         let parameters = [0.0, Double.pi / 4, Double.pi, 2 * Double.pi]
         let sections = try [0.0, 2.0].map { z in

@@ -100,9 +100,18 @@ Guide contact resolution consumes exact boundary loops (`ExactLoftGuideSection`)
 not display vertices or an artificial closed Profile. The profile entry point
 extracts spans once per section and delegates to the same resolver. Guide
 endpoints can contact spatial boundaries without a supporting plane. Intermediate
-contacts currently use a declared section plane plus exact boundary projection;
-nonplanar intermediate sections require a general curve/curve intersection
-contract before they can be admitted. Missing or ambiguous contacts remain errors.
+contacts use a declared section plane plus exact boundary projection when one is
+available. Spatial sections use coordinate projection of exact rational curves,
+the existing certified 2D root solver, and outward-rounded 3D enclosure distances.
+Each projected root must be proved separated or within the distance tolerance;
+unresolved roots and search exhaustion propagate failure. Chart choice affects
+convergence only, never admission. This admits discrete transverse contacts, not
+general coincident/tangent spatial loci. Missing or ambiguous contacts remain errors.
+The spatial search uses the existing certified pcurve solver's 32-level,
+1,048,576-cell envelope; exhaustion is an error, not a sampled fallback.
+Repeated visits to the same spatial point remain distinct when guide parameters
+differ beyond the resolver's parameter resolution; merging requires both position
+and parameter agreement, including duplicates at shared span boundaries.
 
 Curve/mixed Loft partitions use guide contacts as ordered correspondence anchors.
 Each section maps its exact boundary progress piecewise to the first section's
@@ -110,7 +119,7 @@ anchors; the union of mapped span boundaries preserves every exact source span.
 Inverse mapping selects exact subcurves, and the existing connector builder uses
 the exact guide curves. Endpoint/interior classification and guide order must
 agree across sections; inconsistent correspondence is rejected before topology
-publication. Spatial intermediate contact solving remains an unfinished contract.
+publication. General coincident/tangent spatial contact solving remains unfinished.
 
 Explicit section start indexes address the original source samples, before curve
 restriction or reversal. The selected point must lie on the retained exact curve;
