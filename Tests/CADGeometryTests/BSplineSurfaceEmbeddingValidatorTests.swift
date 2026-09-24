@@ -4,6 +4,52 @@ import CADCore
 
 @Suite("B-spline surface embedding certification")
 struct BSplineSurfaceEmbeddingValidatorTests {
+    @Test(.timeLimit(.minutes(1)), arguments: [1.0, 1.7])
+    func differentSurfaceChartsRequireCompletePairSeparation(weight: Double) throws {
+        func plane(offset: Double) -> BSplineSurface3D {
+            BSplineSurface3D(uDegree: 1, vDegree: 1,
+                uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+                controlPoints: [0.0, 1.0].map { y in
+                    [0.0, 1.0].map { x in Point3D(x: x, y: y, z: x + offset) }
+                }, weights: [[1, weight], [weight, 1]])
+        }
+        let first = plane(offset: 0)
+        // Overlapping Cartesian hulls require subdivision, not chart adjacency.
+        try BSplineSurfaceEmbeddingValidator().validateSeparation(
+            first: first, second: plane(offset: 0.5), tolerance: .standard)
+        try BSplineSurfaceEmbeddingValidator(maximumPairSubdivisionDepth: 0, maximumPairCellCount: 1)
+            .validateSeparation(first: first, second: plane(offset: 2), tolerance: .standard)
+        for second in [first, plane(offset: 0.5)] {
+            do {
+                try BSplineSurfaceEmbeddingValidator(maximumPairSubdivisionDepth: 0)
+                    .validateSeparation(first: first, second: second, tolerance: .standard)
+                Issue.record("Unresolved chart pairs must not pass separation.")
+            } catch let error as KernelError {
+                #expect(error.code == .resourceLimitExceeded)
+            }
+        }
+    }
+
+    @Test func separateSurfacePairsShareOneRequestBudget() throws {
+        func strip(z: Double) -> BSplineSurface3D {
+            BSplineSurface3D(uDegree: 1, vDegree: 1,
+                uKnots: [0, 0, 1, 2, 2], vKnots: [0, 0, 1, 1],
+                controlPoints: [0.0, 1.0].map { y in
+                    [0.0, 1.0, 2.0].map { x in Point3D(x: x, y: y, z: z) }
+                })
+        }
+        let first = strip(z: 0), second = strip(z: 1)
+        try BSplineSurfaceEmbeddingValidator(maximumPairCellCount: 4)
+            .validateSeparation(first: first, second: second, tolerance: .standard)
+        do {
+            try BSplineSurfaceEmbeddingValidator(maximumPairCellCount: 3)
+                .validateSeparation(first: first, second: second, tolerance: .standard)
+            Issue.record("Every root pair must consume the common budget, including hull exclusions.")
+        } catch let error as KernelError {
+            #expect(error.code == .resourceLimitExceeded)
+        }
+    }
+
     @Test(arguments: [[0.0, 0.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0], [0.0, 1.0, 1.0, 1.0]])
     func stationaryOuterParametersRetainARegularEmbeddedSheet(coordinates: [Double]) throws {
         let surface = BSplineSurface3D(uDegree: 3, vDegree: 3,

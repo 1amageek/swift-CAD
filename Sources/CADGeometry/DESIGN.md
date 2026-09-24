@@ -86,6 +86,14 @@ absolute minima, with outward-rounded products, sums and square root. It retains
 the largest-component bound when underflow or overflow makes the sum weaker.
 This avoids orientation-dependent refusal of short but regular tangents.
 
+`BSplineSurfaceEmbeddingValidator.validateSeparation` certifies that two complete
+finite spline domains are disjoint using the same outward Bernstein difference
+exclusion and subdivision budget as embedding. Parameter coordinates belong to
+different charts and never imply adjacency. Failure to prove separation is a
+typed resource failure, not a positive intersection certificate. Touching domains
+are not admissible to this strict separation contract; topology must separately
+own shared-boundary admission. This contract does not establish regularity.
+
 B-spline embedding first certifies local cells with a forward work cursor; a
 later split must not repeat local projection proofs for earlier accepted cells.
 After that pass, touching-region refinement restricts already injective patches,

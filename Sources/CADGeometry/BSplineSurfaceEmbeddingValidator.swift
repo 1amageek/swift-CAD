@@ -446,6 +446,68 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         return result.isFinite ? result : nil
     }
 
+    /// Certifies separation over both complete finite parameter domains.
+    /// Shared edges or points require a different, topology-aware contract.
+    public func validateSeparation(
+        first: BSplineSurface3D,
+        second: BSplineSurface3D,
+        tolerance: ModelingTolerance
+    ) throws {
+        try tolerance.validate()
+        try first.validate(tolerance: tolerance)
+        try second.validate(tolerance: tolerance)
+        guard maximumPairSubdivisionDepth >= 0, maximumPairCellCount > 0,
+              maximumCellCount > 0 else {
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                message: "Surface separation requires positive cell budgets and a nonnegative subdivision depth.")
+        }
+        let firstPatches = try BSplineSurfaceBezierDecomposer().surfacePatches(surface: first, tolerance: tolerance)
+        let secondPatches = try BSplineSurfaceBezierDecomposer().surfacePatches(surface: second, tolerance: tolerance)
+        guard !firstPatches.isEmpty, !secondPatches.isEmpty,
+              firstPatches.count <= maximumCellCount, secondPatches.count <= maximumCellCount else {
+            throw resourceLimit(residual: Double(max(firstPatches.count, secondPatches.count)), tolerance: tolerance,
+                message: "Surface separation requires nonempty patch sets within the cell budget.")
+        }
+        let firstBounds = try firstPatches.map { try $0.boundingBox() }
+        let secondBounds = try secondPatches.map { try $0.boundingBox() }
+        var visited = 0
+        for i in firstPatches.indices {
+            for j in secondPatches.indices {
+                try consumeSeparationCell(&visited, tolerance: tolerance)
+                guard firstBounds[i].intersects(secondBounds[j], tolerance: tolerance.distance) else { continue }
+                try certifyPairSeparation(first: firstPatches[i], second: secondPatches[j],
+                    visited: &visited, tolerance: tolerance)
+            }
+        }
+    }
+
+    private func consumeSeparationCell(_ visited: inout Int, tolerance: ModelingTolerance) throws {
+        guard visited < maximumPairCellCount else {
+            throw resourceLimit(residual: Double(visited), tolerance: tolerance,
+                message: "B-spline surface separation exhausted its pair cell budget.")
+        }
+        visited += 1
+    }
+
+    private func certifyPairSeparation(
+        first: RationalBezierSurfacePatch3D, second: RationalBezierSurfacePatch3D,
+        visited: inout Int, tolerance: ModelingTolerance
+    ) throws {
+        var pending = [PairCell(difference: try RationalBezierSurfaceSurfaceDifferencePatch(
+            first: first, second: second, tolerance: tolerance), depth: 0)]
+        while let pair = pending.popLast() {
+            if pair.depth > 0 { try consumeSeparationCell(&visited, tolerance: tolerance) }
+            if pair.difference.excludesZero() { continue }
+            guard pair.depth < maximumPairSubdivisionDepth else {
+                throw resourceLimit(residual: Double(pair.depth), tolerance: tolerance,
+                    message: "B-spline surface separation could not exclude intersection within the subdivision limit.")
+            }
+            let parameterIndex = widestParameterIndex(pair.difference)
+            pending.append(contentsOf: pair.difference.subdivided(parameterIndex: parameterIndex)
+                .map { PairCell(difference: $0, depth: pair.depth + 1) })
+        }
+    }
+
     private func certifySeparatedCells(
         _ cells: [Cell],
         surface: BSplineSurface3D,
@@ -454,19 +516,12 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         guard cells.count > 1 else { return }
         let globallyInjective = projectionProvesInjective(bounds: cells.map(\.differentialBounds))
         var visitedPairCells = 0
-        func consumePairCell() throws {
-            visitedPairCells += 1
-            guard visitedPairCells <= maximumPairCellCount else {
-                throw resourceLimit(residual: Double(visitedPairCells), tolerance: tolerance,
-                    message: "B-spline surface embedding exhausted its separated-cell pair budget.")
-            }
-        }
         for firstIndex in 0..<(cells.count - 1) {
             for secondIndex in (firstIndex + 1)..<cells.count {
                 let first = cells[firstIndex].patch
                 let second = cells[secondIndex].patch
                 guard touches(first, second) == false else { continue }
-                try consumePairCell()
+                try consumeSeparationCell(&visitedPairCells, tolerance: tolerance)
                 if globallyInjective { continue }
                 guard cells[firstIndex].bounds.intersects(cells[secondIndex].bounds,
                     tolerance: tolerance.distance) else { continue }
@@ -476,31 +531,8 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                     surface: surface,
                     tolerance: tolerance
                 )
-                var pending = [PairCell(
-                    difference: try RationalBezierSurfaceSurfaceDifferencePatch(
-                        first: first,
-                        second: second,
-                        tolerance: tolerance
-                    ),
-                    depth: 0
-                )]
-                while let pair = pending.popLast() {
-                    if pair.depth > 0 { try consumePairCell() }
-                    if pair.difference.excludesZero() {
-                        continue
-                    }
-                    guard pair.depth < maximumPairSubdivisionDepth else {
-                        throw resourceLimit(
-                            residual: Double(pair.depth),
-                            tolerance: tolerance,
-                            message: "B-spline surface embedding could not exclude a global self-intersection within the subdivision limit."
-                        )
-                    }
-                    let parameterIndex = widestParameterIndex(pair.difference)
-                    pending.append(contentsOf: pair.difference
-                        .subdivided(parameterIndex: parameterIndex)
-                        .map { PairCell(difference: $0, depth: pair.depth + 1) })
-                }
+                try certifyPairSeparation(first: first, second: second,
+                    visited: &visitedPairCells, tolerance: tolerance)
             }
         }
     }
