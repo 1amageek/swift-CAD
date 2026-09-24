@@ -299,12 +299,11 @@ package struct ExactLoftBodyBuilder {
         }
 
         let sideSurfaceBuilder = ExactLoftSideSurfaceBuilder()
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Loft evaluation currently publishes side patches
-        // after structural BRep validation without a whole-domain embedding proof.
-        // Profile admission rejects opposing parallel ruled sections, but does not
-        // prove absence of intersections for general spatial, guided or smooth Loft.
-        // Certify patch regularity and cross-patch separation, including the existing
-        // zero-tangent boundary contract, before claiming complete admission.
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Loft evaluation certifies each linearly
+        // connected ruled patch but does not yet prove cross-patch separation.
+        // Certify general smooth/guided patch embedding, including the existing
+        // zero-tangent boundary contract, and global separation before claiming
+        // complete admission; structural BRep validation alone is insufficient.
         var sideFaceOrdinal = 0
         for loopIndex in partitions.indices {
             let partition = partitions[loopIndex]

@@ -159,6 +159,13 @@ matched rings drive exact boundary traversal and cap/shell orientation. Reversed
 correspondence that produces singular or intersecting geometry is a failure,
 not permission to silently restore automatic traversal.
 
+Every ruled side patch with linear connector parameterization passes the existing
+B-spline regularity and embedding validators over its complete parameter domain
+before entering the result BRep. This applies to profile, curve and mixed inputs.
+Interior collapsed rows and single-patch self-overlap are failures, even when
+the edge/face graph is structurally valid. This is not cross-patch separation
+or admission of general smooth patches with stationary boundary parameterization.
+
 For unguided ruled profile Loft, parallel section planes require equal traversal
 orientation on each matched loop. Every intermediate ruled section is planar;
 opposite endpoint winding cannot interpolate through simple closed boundaries

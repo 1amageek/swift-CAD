@@ -61,6 +61,19 @@ absolute minima, with outward-rounded products, sums and square root. It retains
 the largest-component bound when underflow or overflow makes the sum weaker.
 This avoids orientation-dependent refusal of short but regular tangents.
 
+B-spline embedding first certifies local cells with a forward work cursor; a
+later split must not repeat local projection proofs for earlier accepted cells.
+After that pass, touching-region refinement restricts already injective patches,
+so their children retain local injectivity. Region-wide and separated-cell pair
+proofs remain mandatory, and all existing depth/cell failure limits remain active.
+Each immutable cell retains its three differential interval-vector bounds once;
+touching-region checks reuse them instead of rebuilding Bernstein products per
+pair. The cache is request-local and bounded by the existing cell-count limit.
+Initial count and subdivision growth are checked before materializing cell caches.
+Separated-cell pairs first compare retained positive-weight control hulls. A
+disjoint hull pair needs no point-coincidence search or four-parameter difference
+patch. Coarse exclusions and detailed subdivision both consume the pair budget.
+
 At the graph restriction resolution floor, interval jets use a containing
 local interval wide enough for certified restriction, not the entire parent
 cell. Derivatives are rescaled by that containing interval's actual width.

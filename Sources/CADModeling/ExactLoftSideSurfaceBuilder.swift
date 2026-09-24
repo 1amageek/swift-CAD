@@ -26,11 +26,16 @@ package struct ExactLoftSideSurfaceBuilder: Sendable {
         try tolerance.validate()
         if hasLinearConnectorParameterization(uMinimumBoundary),
            hasLinearConnectorParameterization(uMaximumBoundary) {
-            return try ruledBuilder.build(
+            let surface = try ruledBuilder.build(
                 startBoundary: vMinimumBoundary,
                 endBoundary: vMaximumBoundary,
                 tolerance: tolerance
             )
+            try BSplineSurfaceRegularityValidator().validate(surface,
+                uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: tolerance)
+            try BSplineSurfaceEmbeddingValidator().validate(surface,
+                uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: tolerance)
+            return surface
         }
 
         if boundariesArePolynomial(

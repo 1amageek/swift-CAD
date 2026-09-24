@@ -4,6 +4,40 @@ import CADCore
 
 @Suite("B-spline surface embedding certification")
 struct BSplineSurfaceEmbeddingValidatorTests {
+    @Test func coarseSeparationRetainsTheRequestPairBudget() throws {
+        let surface = BSplineSurface3D(uDegree: 1, vDegree: 1,
+            uKnots: [0, 0, 1, 2, 3, 4, 4], vKnots: [0, 0, 1, 1],
+            controlPoints: [0.0, 1.0].map { y in
+                (0...4).map { Point3D(x: Double($0), y: y, z: 0) }
+            })
+        try BSplineSurfaceEmbeddingValidator(maximumLocalSubdivisionDepth: 0,
+            maximumCellCount: 4, maximumPairSubdivisionDepth: 0, maximumPairCellCount: 3)
+            .validate(surface, uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: .standard)
+        do {
+            try BSplineSurfaceEmbeddingValidator(maximumLocalSubdivisionDepth: 0,
+                maximumCellCount: 4, maximumPairSubdivisionDepth: 0, maximumPairCellCount: 2)
+                .validate(surface, uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: .standard)
+            Issue.record("The third nonadjacent pair must consume the shared proof budget.")
+        } catch let error as KernelError {
+            #expect(error.code == .resourceLimitExceeded)
+        }
+    }
+
+    @Test func locallyRegularCrossingStripsFailGlobalSeparation() throws {
+        let path = [Point3D(x: 0, y: 0, z: 0), Point3D(x: 1, y: 1, z: 0),
+            Point3D(x: 0, y: 1, z: 0), Point3D(x: 1, y: 0, z: 0)]
+        let surface = BSplineSurface3D(uDegree: 1, vDegree: 1,
+            uKnots: [0, 0, 1, 2, 3, 3], vKnots: [0, 0, 1, 1],
+            controlPoints: [path, path.map { $0 + Vector3D(x: 0, y: 0, z: 1) }])
+        do {
+            try BSplineSurfaceEmbeddingValidator().validate(surface,
+                uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: .standard)
+            Issue.record("A local regularity certificate cannot admit crossing nonadjacent strips.")
+        } catch let error as KernelError {
+            #expect(error.code == .singularGeometry)
+        }
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func rationalBezierGraphsCertifyWithoutSubdivision() throws {
         let validator = BSplineSurfaceEmbeddingValidator(

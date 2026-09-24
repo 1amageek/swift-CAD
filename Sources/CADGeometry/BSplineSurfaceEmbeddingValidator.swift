@@ -51,12 +51,12 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
             vDomain: vDomain,
             tolerance: tolerance
         )
-        var cells = try clippedPatches(
+        let patches = try clippedPatches(
             surface: surface,
             bounds: bounds,
             tolerance: tolerance
-        ).map { Cell(patch: $0, depth: 0) }
-        guard cells.isEmpty == false else {
+        )
+        guard patches.isEmpty == false else {
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,
@@ -64,6 +64,11 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                 message: "The requested B-spline surface domain contains no non-degenerate knot span."
             )
         }
+        guard patches.count <= maximumCellCount else {
+            throw resourceLimit(residual: Double(patches.count), tolerance: tolerance,
+                message: "B-spline surface embedding exhausted its local cell budget.")
+        }
+        var cells = try patches.map { try Cell(patch: $0, depth: 0) }
 
         try certifyLocalInjectivity(
             cells: &cells,
@@ -87,6 +92,15 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
     private struct Cell: Sendable {
         let patch: RationalBezierSurfacePatch3D
         let depth: Int
+        let differentialBounds: RationalBezierSurfaceDifferentialBounds
+        let bounds: BoundingBox3D
+
+        init(patch: RationalBezierSurfacePatch3D, depth: Int) throws {
+            self.patch = patch
+            self.depth = depth
+            self.differentialBounds = RationalBezierSurfaceDifferentialBounds(patch: patch)
+            self.bounds = try patch.boundingBox()
+        }
     }
 
     private struct ProjectionAxes: Sendable {
@@ -173,7 +187,8 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         surface: BSplineSurface3D,
         tolerance: ModelingTolerance
     ) throws {
-        while true {
+        var index = 0
+        while index < cells.count {
             guard cells.count <= maximumCellCount else {
                 throw resourceLimit(
                     residual: Double(cells.count),
@@ -181,9 +196,9 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                     message: "B-spline surface embedding exhausted its local cell budget."
                 )
             }
-            if let index = cells.indices.first(where: {
-                projectionProvesInjective(patches: [cells[$0].patch]) == false
-            }) {
+            if projectionProvesInjective(bounds: [cells[index].differentialBounds]) {
+                index += 1
+            } else {
                 try rejectSampledSingularity(
                     in: cells[index].patch,
                     surface: surface,
@@ -194,7 +209,14 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                     cells: &cells,
                     tolerance: tolerance
                 )
-                continue
+            }
+        }
+        // Restriction preserves the local injectivity proved above. Refining a
+        // touching region does not invalidate proofs for the unchanged cells.
+        while true {
+            guard cells.count <= maximumCellCount else {
+                throw resourceLimit(residual: Double(cells.count), tolerance: tolerance,
+                    message: "B-spline surface embedding exhausted its local cell budget.")
             }
             guard let unresolved = firstUnresolvedTouchingRegion(in: cells) else {
                 return
@@ -265,8 +287,8 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                         vUpper: vUpper
                     )
                 }
-                let regionPatches = regionIndexes.map { cells[$0].patch }
-                if projectionProvesInjective(patches: regionPatches) == false {
+                let regionBounds = regionIndexes.map { cells[$0].differentialBounds }
+                if projectionProvesInjective(bounds: regionBounds) == false {
                     return regionIndexes
                 }
             }
@@ -296,8 +318,12 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                     message: "B-spline surface embedding could not certify local injectivity within the subdivision limit."
                 )
             }
+            guard cells.count <= maximumCellCount - 3 else {
+                throw resourceLimit(residual: Double(cells.count) + 3, tolerance: tolerance,
+                    message: "B-spline surface embedding exhausted its local cell budget.")
+            }
             let children = try cell.patch.subdivided().map {
-                Cell(patch: $0, depth: cell.depth + 1)
+                try Cell(patch: $0, depth: cell.depth + 1)
             }
             cells.remove(at: index)
             cells.insert(contentsOf: children, at: index)
@@ -305,10 +331,9 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
     }
 
     private func projectionProvesInjective(
-        patches: [RationalBezierSurfacePatch3D]
+        bounds: [RationalBezierSurfaceDifferentialBounds]
     ) -> Bool {
-        guard patches.isEmpty == false else { return false }
-        let bounds = patches.map(RationalBezierSurfaceDifferentialBounds.init)
+        guard bounds.isEmpty == false else { return false }
         for axes in projectionCandidates(from: bounds) {
             var firstSign: Int?
             var secondSign: Int?
@@ -411,11 +436,21 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
     ) throws {
         guard cells.count > 1 else { return }
         var visitedPairCells = 0
+        func consumePairCell() throws {
+            visitedPairCells += 1
+            guard visitedPairCells <= maximumPairCellCount else {
+                throw resourceLimit(residual: Double(visitedPairCells), tolerance: tolerance,
+                    message: "B-spline surface embedding exhausted its separated-cell pair budget.")
+            }
+        }
         for firstIndex in 0..<(cells.count - 1) {
             for secondIndex in (firstIndex + 1)..<cells.count {
                 let first = cells[firstIndex].patch
                 let second = cells[secondIndex].patch
                 guard touches(first, second) == false else { continue }
+                try consumePairCell()
+                guard cells[firstIndex].bounds.intersects(cells[secondIndex].bounds,
+                    tolerance: tolerance.distance) else { continue }
                 try rejectSampledCoincidence(
                     first: first,
                     second: second,
@@ -431,14 +466,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                     depth: 0
                 )]
                 while let pair = pending.popLast() {
-                    visitedPairCells += 1
-                    guard visitedPairCells <= maximumPairCellCount else {
-                        throw resourceLimit(
-                            residual: Double(visitedPairCells),
-                            tolerance: tolerance,
-                            message: "B-spline surface embedding exhausted its separated-cell pair budget."
-                        )
-                    }
+                    if pair.depth > 0 { try consumePairCell() }
                     if pair.difference.excludesZero() {
                         continue
                     }

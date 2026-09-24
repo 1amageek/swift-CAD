@@ -7,14 +7,23 @@ import CADModeling
 
 @Suite("Exact curve section Loft", .timeLimit(.minutes(1)))
 struct CurveLoftFeatureTests {
+    @Test func opposingOpenSectionsRejectTheInteriorCollapsedRow() throws {
+        let first = try section(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+            controlPoints: [.origin, Point3D(x: 1, y: 0, z: 0)]))
+        let second = try section(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+            controlPoints: [Point3D(x: 1, y: 0, z: 1), Point3D(x: 0, y: 0, z: 1)]))
+        #expect(throws: KernelError.self) { try evaluate([first, second], mode: .ruled) }
+    }
+
     @Test(arguments: [false, true])
     func isolatedGuideContactDoesNotDependOnParallelMidpointTangents(stationaryEndpoints: Bool) throws {
         let x = [0.0, 0.25, 0.0, 0.25]
+        let y = [0.0, 4.0 / 3, 4.0 / 3, 0.0]
         let sections = try [0.0, 1.0, 2.0].map { z in
             try section(BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
                 controlPoints: x.indices.map { index in
                     let fraction = Double(index) / 3
-                    return Point3D(x: x[index], y: (z - 1) * fraction, z: z + 0.1 * fraction)
+                    return Point3D(x: x[index], y: (z - 1) * y[index], z: z + 0.1 * fraction)
                 }))
         }
         let guide = try section(stationaryEndpoints
@@ -32,6 +41,21 @@ struct CurveLoftFeatureTests {
                 #expect(abs(point.x) < 1e-8 && abs(point.y) < 1e-8)
             }
         }
+    }
+
+    @Test func transverseGuideContactDoesNotAuthorizeASingularRuledPatch() throws {
+        let x = [0.0, 0.25, 0.0, 0.25]
+        let sections = try [0.0, 1.0, 2.0].map { z in
+            try section(BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
+                controlPoints: x.indices.map { index in
+                    let fraction = Double(index) / 3
+                    return Point3D(x: x[index], y: (z - 1) * fraction, z: z + 0.1 * fraction)
+                }))
+        }
+        let guide = try section(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+            controlPoints: [.origin, Point3D(x: 0, y: 0, z: 2)]))
+        // The second patch loses rank at u=0.5, v=0.05, away from the guide.
+        #expect(throws: KernelError.self) { try evaluate(sections, mode: .ruled, guides: [guide]) }
     }
 
     @Test func guideMayLieInTheIntermediateSectionSupportPlane() throws {
