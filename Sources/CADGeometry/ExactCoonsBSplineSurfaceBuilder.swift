@@ -80,8 +80,10 @@ public struct ExactCoonsBSplineSurfaceBuilder: TransfiniteBSplineSurfaceBuilding
                 message: "Exact Coons construction exceeded its tensor patch budget."
             )
         }
-        let uDegree = horizontal.first.degree * 2 + 1
-        let vDegree = vertical.first.degree * 2 + 1
+        let polynomial = [horizontal.first, horizontal.second, vertical.first, vertical.second]
+            .allSatisfy { $0.weights.allSatisfy { $0 == 1.0 } }
+        let uDegree = polynomial ? horizontal.first.degree : horizontal.first.degree * 2 + 1
+        let vDegree = polynomial ? vertical.first.degree : vertical.first.degree * 2 + 1
         guard uDegree <= maximumResultDegree, vDegree <= maximumResultDegree else {
             throw diagnostic(
                 code: .resourceLimitExceeded,
@@ -89,6 +91,11 @@ public struct ExactCoonsBSplineSurfaceBuilder: TransfiniteBSplineSurfaceBuilding
                 tolerance: tolerance,
                 message: "Exact Coons construction exceeded its result-degree budget."
             )
+        }
+
+        if polynomial {
+            return try polynomialSurface(horizontal: horizontal, vertical: vertical,
+                corners: corners, tolerance: tolerance)
         }
 
         var tensorPatches: [[TensorPatch]] = []
@@ -118,6 +125,47 @@ public struct ExactCoonsBSplineSurfaceBuilder: TransfiniteBSplineSurfaceBuilding
             vDegree: vDegree,
             tolerance: tolerance
         )
+    }
+
+    private func polynomialSurface(
+        horizontal: BSplineCurveCommonBasisPair,
+        vertical: BSplineCurveCommonBasisPair,
+        corners: Corners,
+        tolerance: ModelingTolerance
+    ) throws -> BSplineSurface3D {
+        // In the normalized common basis, Greville coefficients represent the
+        // linear coordinates exactly; no rational products or degree growth occur.
+        func parameters(_ curve: BSplineCurve3D) -> [Double] {
+            (0..<curve.controlPointCount).map { index in
+                curve.knots[(index + 1)...(index + curve.degree)].reduce(0, +)
+                    / Double(curve.degree)
+            }
+        }
+        let us = parameters(horizontal.first)
+        let vs = parameters(vertical.first)
+        var points = Array(repeating: Array(repeating: Point3D.origin, count: us.count), count: vs.count)
+        for j in vs.indices {
+            for i in us.indices {
+                if j == 0 { points[j][i] = horizontal.first.controlPoints[i]; continue }
+                if j == vs.count - 1 { points[j][i] = horizontal.second.controlPoints[i]; continue }
+                if i == 0 { points[j][i] = vertical.first.controlPoints[j]; continue }
+                if i == us.count - 1 { points[j][i] = vertical.second.controlPoints[j]; continue }
+                let u = us[i]
+                let v = vs[j]
+                let bottom = corners.minimumMinimum + (corners.maximumMinimum - corners.minimumMinimum) * u
+                let top = corners.minimumMaximum + (corners.maximumMaximum - corners.minimumMaximum) * u
+                let bilinear = bottom + (top - bottom) * v
+                let across = horizontal.first.controlPoints[i]
+                    + (horizontal.second.controlPoints[i] - horizontal.first.controlPoints[i]) * v
+                let along = vertical.first.controlPoints[j]
+                    + (vertical.second.controlPoints[j] - vertical.first.controlPoints[j]) * u
+                points[j][i] = across + (along - bilinear)
+            }
+        }
+        let surface = BSplineSurface3D(uDegree: horizontal.first.degree, vDegree: vertical.first.degree,
+            uKnots: horizontal.first.knots, vKnots: vertical.first.knots, controlPoints: points)
+        try surface.validate(tolerance: tolerance)
+        return surface
     }
 
     private struct Corners: Sendable {

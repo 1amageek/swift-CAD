@@ -243,8 +243,10 @@ struct SurfaceFeatureEvaluatorTests {
         }
 
         try result.brep.validate(level: .exact, tolerance: .standard)
-        #expect(surface.uDegree == 3)
-        #expect(surface.vDegree == 3)
+        #expect(surface.uDegree == 1)
+        #expect(surface.vDegree == 1)
+        #expect(try (surface.point(u: 0.5, v: 0.5, tolerance: .standard)
+            - Point3D(x: 1, y: 1, z: 0.125)).length <= ModelingTolerance.standard.distance)
         #expect(surface.isRational == false)
         #expect(result.lineage.values.allSatisfy { $0.output.featureID == featureID })
     }

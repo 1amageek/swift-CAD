@@ -37,6 +37,16 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Exact Coons construction owns polynomial and rational transfinite interpolation
+for every modeling consumer. Exactly unit-weight boundaries use the common
+normalized basis and Greville linear-coordinate coefficients without rational
+degree inflation. Any non-unit weight retains the rational construction; an
+approximate `isRational` classification cannot discard input weights. Both routes
+enforce corner, patch-count and result-degree contracts before tensor allocation.
+Construction does not itself certify embedding; feature admission owns that gate.
+`ExactCoonsBSplineSurfaceBuilderTests` verifies interior formula agreement,
+boundary interpolation, non-unit weights and resource-limit refusal.
+
 Certified rational 2D curve intersections refine a unique root enclosure until
 the consumer's precision condition is met. Padding a refinement stays within
 half the remaining distance to the proof-domain boundary, so padding cannot

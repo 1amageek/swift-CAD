@@ -7,6 +7,25 @@ import CADModeling
 
 @Suite("Exact curve section Loft", .timeLimit(.minutes(1)))
 struct CurveLoftFeatureTests {
+    @Test func transfiniteLoftDoesNotDiscardNearUnitBoundaryWeights() throws {
+        let lower = BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+            controlPoints: [.origin, Point3D(x: 1, y: 0, z: 1e9), Point3D(x: 2, y: 0, z: 0)],
+            weights: [1, 1 + 5e-13, 1])
+        let upper = BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+            controlPoints: [Point3D(x: 0, y: 1, z: 0), Point3D(x: 2, y: 1, z: 0)])
+        func connector(_ x: Double) -> BSplineCurve3D {
+            BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+                controlPoints: [Point3D(x: x, y: 0, z: 0), Point3D(x: x, y: 0.5, z: 0),
+                    Point3D(x: x, y: 1, z: 0)])
+        }
+        let surface = try ExactLoftSideSurfaceBuilder().build(vMinimumBoundary: lower,
+            vMaximumBoundary: upper, uMinimumBoundary: connector(0), uMaximumBoundary: connector(2),
+            tolerance: .standard)
+        let actual = try surface.point(u: 0.5, v: 0, tolerance: .standard)
+        #expect(try (actual - lower.point(at: 0.5, tolerance: .standard)).length < 1e-6)
+        #expect(abs(actual.z - 5e8) > 1e-5)
+    }
+
     @Test func opposingOpenSectionsRejectTheInteriorCollapsedRow() throws {
         let first = try section(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
             controlPoints: [.origin, Point3D(x: 1, y: 0, z: 0)]))

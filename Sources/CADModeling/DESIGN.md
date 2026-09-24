@@ -166,6 +166,10 @@ Interior collapsed rows and single-patch self-overlap are failures, even when
 the edge/face graph is structurally valid. This is not cross-patch separation
 or admission of general smooth patches with stationary boundary parameterization.
 
+Loft delegates all non-linear-connector transfinite construction to CADGeometry's
+shared Coons builder, including its exact unit-weight low-degree path. It does not
+own a second polynomial interpolation or approximate rational-weight classifier.
+
 For unguided ruled profile Loft, parallel section planes require equal traversal
 orientation on each matched loop. Every intermediate ruled section is planar;
 opposite endpoint winding cannot interpolate through simple closed boundaries
