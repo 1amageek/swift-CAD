@@ -7,6 +7,15 @@ import CADModeling
 
 @Suite("Exact curve section Loft", .timeLimit(.minutes(1)))
 struct CurveLoftFeatureTests {
+    @Test func incidentLoftSidesMustNotOverlapBeyondTheirSharedSection() throws {
+        let sections = try [0.0, 1.0, 0.5].map { z in
+            try section(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+                controlPoints: [Point3D(x: 0, y: 0, z: z), Point3D(x: 1, y: 0, z: z)]))
+        }
+        // Both ruled patches are regular; their interiors overlap for 0.5 < z < 1.
+        #expect(throws: KernelError.self) { _ = try evaluate(sections, mode: .ruled) }
+    }
+
     @Test(.timeLimit(.minutes(1)), arguments: [false, true])
     func nonincidentLoftSidesRequireSeparation(crosses: Bool) throws {
         let positions: [(Double, Double)] = crosses

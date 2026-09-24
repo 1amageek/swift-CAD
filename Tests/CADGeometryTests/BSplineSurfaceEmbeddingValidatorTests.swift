@@ -4,6 +4,32 @@ import CADCore
 
 @Suite("B-spline surface embedding certification")
 struct BSplineSurfaceEmbeddingValidatorTests {
+    @Test(arguments: [false, true])
+    func permittedCornerDoesNotExemptOtherSurfaceContacts(rational: Bool) throws {
+        func square(_ lower: Double, _ upper: Double) -> BSplineSurface3D {
+            BSplineSurface3D(uDegree: 1, vDegree: 1,
+                uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+                controlPoints: [lower, upper].map { y in
+                    [lower, upper].map { x in Point3D(x: x, y: y, z: 0) }
+                }, weights: rational ? [[1, 0.7], [1.3, 1]] : [[1, 1], [1, 1]])
+        }
+        let first = square(-1, 0), second = square(0, 1)
+        let zero = Point2D(x: 0, y: 0)
+        let validator = BSplineSurfaceEmbeddingValidator(maximumPairSubdivisionDepth: 8, maximumPairCellCount: 1024)
+        try validator.validateSeparation(first: first, second: second, tolerance: .standard,
+            allowedCornerContact: (Point2D(x: 1, y: 1), zero))
+        try validator.validateSeparation(first: second, second: first, tolerance: .standard,
+            allowedCornerContact: (zero, Point2D(x: 1, y: 1)))
+        #expect(throws: KernelError.self) {
+            try validator.validateSeparation(first: first, second: square(0, -0.5), tolerance: .standard,
+                allowedCornerContact: (Point2D(x: 1, y: 1), zero))
+        }
+        #expect(throws: KernelError.self) {
+            try validator.validateSeparation(first: first, second: second, tolerance: .standard,
+                allowedCornerContact: (zero, zero))
+        }
+    }
+
     @Test func polynomialInteriorBoundsDoNotDependOnBoundaryRequests() {
         let patch = RationalBezierSurfacePatch3D(
             controlPoints: [[.origin, Point3D(x: 2, y: 0, z: 0)],
@@ -27,6 +53,88 @@ struct BSplineSurfaceEmbeddingValidatorTests {
         #expect(interior.normalNumerator.z.lower <= 1)
         #expect(interior.normalNumerator.z.upper >= 1)
         #expect(interior.normalNumerator.z.lower > 0)
+    }
+
+    @Test
+    func curvedCommonSeamRefinesCoarseNeighborsBeforeFineCells() throws {
+        let seam = [Point3D(x: 0.002, y: -0.001, z: 0), Point3D(x: 0.005, y: -0.001, z: 0.0025),
+            Point3D(x: 0.005, y: -0.001, z: 0.0075), Point3D(x: 0.002, y: -0.001, z: 0.01)]
+        let heights = [0.0, 0.01 / 3, 0.02 / 3, 0.01]
+        let first = BSplineSurface3D(uDegree: 3, vDegree: 1,
+            uKnots: [0, 0, 0, 0, 1, 1, 1, 1], vKnots: [0, 0, 1, 1],
+            controlPoints: [heights.map { Point3D(x: 0.002, y: 0.001, z: $0) }, seam])
+        let second = BSplineSurface3D(uDegree: 3, vDegree: 1,
+            uKnots: first.uKnots, vKnots: first.vKnots,
+            controlPoints: [seam, heights.map { Point3D(x: -0.002, y: -0.001, z: $0) }])
+        try BSplineSurfaceEmbeddingValidator().validateAdjacent(first: first, firstBoundary: .vUpper,
+            second: second, secondBoundary: .vLower, tolerance: .standard)
+    }
+    @Test(arguments: [false, true], [false, true])
+    func differentDegreeStraightSeamsRequireGeometricAdjacency(reversed: Bool, rational: Bool) throws {
+        let first = BSplineSurface3D(uDegree: 1, vDegree: 1,
+            uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+            controlPoints: [0.0, 1.0].map { y in
+                [0.0, 1.0].map { x in Point3D(x: x, y: y, z: 0) }
+            })
+        func second(outerX: Double) -> BSplineSurface3D {
+            let ordinates = [0.0, 1.0 / 3, 2.0 / 3, 1.0]
+            let weights = rational ? [1.0, 0.7, 1.3, 1.0] : [1, 1, 1, 1]
+            return BSplineSurface3D(uDegree: 1, vDegree: 3,
+                uKnots: [0, 0, 1, 1], vKnots: [0, 0, 0, 0, 1, 1, 1, 1],
+                controlPoints: (reversed ? Array(ordinates.reversed()) : ordinates).map { y in
+                    [1.0, outerX].map { x in Point3D(x: x, y: y, z: 0) }
+                }, weights: weights.map { [$0, $0] })
+        }
+        try BSplineSurfaceEmbeddingValidator().validateAdjacent(first: first, firstBoundary: .uUpper,
+            second: second(outerX: 2), secondBoundary: .uLower, tolerance: .standard)
+        #expect(throws: KernelError.self) {
+            try BSplineSurfaceEmbeddingValidator().validateAdjacent(first: first, firstBoundary: .uUpper,
+                second: second(outerX: 0.5), secondBoundary: .uLower, tolerance: .standard)
+        }
+    }
+    @Test(arguments: SurfaceParameterBoundary.allCases, [false, true])
+    func adjacentChartsUseTheirActualParameterSide(boundary: SurfaceParameterBoundary, reversed: Bool) throws {
+        let knots = [0.0, 0, 1, 1]
+        let first = BSplineSurface3D(uDegree: 1, vDegree: 1, uKnots: knots, vKnots: knots,
+            controlPoints: [[.origin, Point3D(x: 1, y: 0, z: 0)],
+                            [Point3D(x: 0, y: 1, z: 0), Point3D(x: 1, y: 1, z: 0)]])
+        var points = [[Point3D(x: 0, y: 1, z: 0), Point3D(x: 1, y: 1, z: 0)],
+                      [Point3D(x: 0, y: 1, z: 1), Point3D(x: 1, y: 1, z: 1)]]
+        if reversed { points = points.map { Array($0.reversed()) } }
+        if boundary == .vUpper || boundary == .uUpper { points.reverse() }
+        if boundary == .uLower || boundary == .uUpper {
+            points = points[0].indices.map { i in points.map { $0[i] } }
+        }
+        let second = BSplineSurface3D(uDegree: 1, vDegree: 1, uKnots: knots, vKnots: knots,
+            controlPoints: points)
+        try BSplineSurfaceEmbeddingValidator().validateAdjacent(first: first, firstBoundary: .vUpper,
+            second: second, secondBoundary: boundary, tolerance: .standard)
+        try BSplineSurfaceEmbeddingValidator().validateAdjacent(first: second, firstBoundary: boundary,
+            second: first, secondBoundary: .vUpper, tolerance: .standard)
+    }
+
+    @Test func adjacencyDoesNotSnapASeamOrAcceptFoldback() throws {
+        func strip(_ lower: Double, _ upper: Double) -> BSplineSurface3D {
+            BSplineSurface3D(uDegree: 1, vDegree: 1,
+                uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+                controlPoints: [lower, upper].map { y in
+                    [Point3D(x: 0, y: y, z: 0), Point3D(x: 1, y: y, z: 0)]
+                })
+        }
+        let first = strip(0, 1)
+        try BSplineSurfaceEmbeddingValidator().validateAdjacent(first: first, firstBoundary: .vUpper,
+            second: strip(1, 2), secondBoundary: .vLower, tolerance: .standard)
+        for second in [strip(1, 0.5), strip(1.nextUp, 2)] {
+            #expect(throws: KernelError.self) {
+                try BSplineSurfaceEmbeddingValidator().validateAdjacent(first: first, firstBoundary: .vUpper,
+                    second: second, secondBoundary: .vLower, tolerance: .standard)
+            }
+        }
+        #expect(throws: KernelError.self) {
+            try BSplineSurfaceEmbeddingValidator(maximumCellCount: 1)
+                .validateAdjacent(first: first, firstBoundary: .vUpper,
+                    second: strip(1, 2), secondBoundary: .vLower, tolerance: .standard)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)), arguments: [1.0, 1.7])
@@ -116,22 +224,22 @@ struct BSplineSurfaceEmbeddingValidatorTests {
         }
     }
 
-    @Test func coarseSeparationRetainsTheRequestPairBudget() throws {
+    @Test func globalProjectionAvoidsRedundantPairEnumeration() throws {
         let surface = BSplineSurface3D(uDegree: 1, vDegree: 1,
             uKnots: [0, 0, 1, 2, 3, 4, 4], vKnots: [0, 0, 1, 1],
             controlPoints: [0.0, 1.0].map { y in
                 (0...4).map { Point3D(x: Double($0), y: y, z: 0) }
             })
         try BSplineSurfaceEmbeddingValidator(maximumLocalSubdivisionDepth: 0,
-            maximumCellCount: 4, maximumPairSubdivisionDepth: 0, maximumPairCellCount: 3)
+            maximumCellCount: 4, maximumPairSubdivisionDepth: 0, maximumPairCellCount: 1)
             .validate(surface, uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: .standard)
         do {
             try BSplineSurfaceEmbeddingValidator(maximumLocalSubdivisionDepth: 0,
-                maximumCellCount: 4, maximumPairSubdivisionDepth: 0, maximumPairCellCount: 2)
+                maximumCellCount: 4, maximumPairSubdivisionDepth: 0, maximumPairCellCount: 0)
                 .validate(surface, uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: .standard)
-            Issue.record("The third nonadjacent pair must consume the shared proof budget.")
+            Issue.record("A global certificate must not bypass invalid budget validation.")
         } catch let error as KernelError {
-            #expect(error.code == .resourceLimitExceeded)
+            #expect(error.code == .invalidInput)
         }
     }
 

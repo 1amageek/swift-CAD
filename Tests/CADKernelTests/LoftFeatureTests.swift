@@ -812,7 +812,11 @@ func loftMultipleCurvedGuidesCreateDistinctRailConstrainedVertices() throws {
             loftID: loftID,
             in: evaluated
         )
-        return curve.degree > 1 ? curve : nil
+        let midpoint = try curve.point(at: 0.5, tolerance: .standard)
+        let start = try curve.point(at: 0, tolerance: .standard)
+        let end = try curve.point(at: 1, tolerance: .standard)
+        return (midpoint - (start + (end - start) * 0.5)).length > ModelingTolerance.standard.distance
+            ? curve : nil
     }
     let railMiddlePoints = try nonlinearRails.map {
         try $0.point(at: 0.5, tolerance: .standard)

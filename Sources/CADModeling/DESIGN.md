@@ -185,8 +185,14 @@ topological vertex) additionally require finite-domain separation before publica
 Positive-weight control hulls exclude distant pairs; remaining pairs use
 CADGeometry's certified separation contract. Root comparisons share its standard
 pair-count ceiling; each unresolved pair retains the geometry subdivision budget.
-Incident side patches and cap/side intersections still require topology-aware
-admission and remain explicitly incomplete. Stationary outer parameters use CADGeometry's explicit
+Side patches sharing exactly one generated edge pass that edge's parameter-side
+identity into adjacent-chart admission; a topological edge alone never proves
+their interiors disjoint. Exactly one shared vertex with no common edge passes
+its two parameter corners to the geometry point-contact separation proof;
+topological vertex identity alone does not establish separation.
+Multiple shared edges, multiple isolated shared vertices and
+cap/side intersections still require topology-aware admission and remain
+explicitly incomplete. Stationary outer parameters use CADGeometry's explicit
 unit-weight factor-removal contract; unresolved cases fail rather than skipping
 admission for the entire smooth construction branch.
 Conic span construction preserves the source's signed sweep before adding the
@@ -196,6 +202,12 @@ preserves full-turn topology without repeated trigonometric endpoint evaluation.
 The conic section may cover at most one turn: zero, nonfinite and repeated-turn
 sweeps fail before allocation. Quarter-turn subdivision therefore needs at most
 four spans, independent of the magnitude of an invalid requested sweep.
+
+After applying guides, Loft resolves one common connector basis per section
+connection before creating edges or faces. Both incident faces consume those
+same stored connector curves, rather than independently degree-elevating a
+shared line against different opposite boundaries. Existing common-basis
+validation and span limits apply; already aligned connector groups are unchanged.
 
 
 Loft delegates all non-linear-connector transfinite construction to CADGeometry's

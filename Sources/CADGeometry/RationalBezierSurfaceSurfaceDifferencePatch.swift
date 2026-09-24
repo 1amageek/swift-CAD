@@ -313,7 +313,23 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
     }
 
     /// Candidate directions are heuristic; every coefficient box must prove its sign.
-    func excludesZeroAlongSurfaceDirections() -> Bool {
+    /// The caller must establish exact equality at the nominated source corners.
+    func excludesZeroAlongSurfaceDirections(
+        allowedCornerContact: (first: Point2D, second: Point2D)? = nil
+    ) -> Bool {
+        func endpoint(_ value: Double, _ lower: Double, _ upper: Double, _ degree: Int) -> Int? {
+            if value == lower { return 0 }
+            if value == upper { return degree }
+            return nil
+        }
+        var corner: (Int, Int, Int, Int)? = nil
+        if let contact = allowedCornerContact,
+           let av = endpoint(contact.first.y, firstVLower, firstVUpper, controlNet.count - 1),
+           let au = endpoint(contact.first.x, firstULower, firstUUpper, controlNet[0].count - 1),
+           let bv = endpoint(contact.second.y, secondVLower, secondVUpper, controlNet[0][0].count - 1),
+           let bu = endpoint(contact.second.x, secondULower, secondUUpper, controlNet[0][0][0].count - 1) {
+            corner = (av, au, bv, bu)
+        }
         var direction = Vector3D.zero
         for slab in controlNet {
             for plane in slab {
@@ -325,24 +341,28 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
                 }
             }
         }
-        if provesSeparation(along: direction) { return true }
+        if provesSeparation(along: direction, excludingCorner: corner) { return true }
         let columns = derivativeColumns().map { Vector3D(x: $0.x.midpoint, y: $0.y.midpoint, z: $0.z.midpoint) }
         for first in columns.indices {
             for second in (first + 1)..<columns.count {
-                if provesSeparation(along: columns[first].cross(columns[second])) { return true }
+                if provesSeparation(along: columns[first].cross(columns[second]), excludingCorner: corner) { return true }
             }
         }
         return false
     }
 
-    private func provesSeparation(along direction: Vector3D) -> Bool {
+    private func provesSeparation(along direction: Vector3D, excludingCorner: (Int, Int, Int, Int)?) -> Bool {
         guard direction.x.isFinite, direction.y.isFinite, direction.z.isFinite else { return false }
         let x = OutwardInterval(direction.x), y = OutwardInterval(direction.y), z = OutwardInterval(direction.z)
         var positive = true, negative = true
-        for slab in controlNet {
-            for plane in slab {
-                for row in plane {
-                    for coefficient in row {
+        var checked = false
+        for (av, slab) in controlNet.enumerated() {
+            for (au, plane) in slab.enumerated() {
+                for (bv, row) in plane.enumerated() {
+                    for (bu, coefficient) in row.enumerated() {
+                        if let corner = excludingCorner,
+                           av == corner.0, au == corner.1, bv == corner.2, bu == corner.3 { continue }
+                        checked = true
                         let projection = coefficient.x * x + coefficient.y * y + coefficient.z * z
                         positive = positive && projection.lower > 0
                         negative = negative && projection.upper < 0
@@ -351,7 +371,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
                 }
             }
         }
-        return positive || negative
+        return checked && (positive || negative)
     }
 
     func rankThreeCertificate() -> JacobianRankCertificate {

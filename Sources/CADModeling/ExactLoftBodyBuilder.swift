@@ -301,13 +301,14 @@ package struct ExactLoftBodyBuilder {
         let sideSurfaceBuilder = ExactLoftSideSurfaceBuilder()
         // FIXME(INCOMPLETE_IMPLEMENTATION): Loft evaluation requires individual
         // patch admission but general corner-only/rational stationary guide
-        // parameterization, incident-patch and cap/side separation remain unresolved.
+        // parameterization, multiple-contact and cap/side separation remain unresolved.
         // Complete those contracts before claiming general smooth/guided Loft;
         // structural BRep validation alone is insufficient.
         var sideFaceOrdinal = 0
         let separation = BSplineSurfaceEmbeddingValidator()
         var comparedPairs = 0
-        var admittedPatches: [(surface: BSplineSurface3D, vertices: Set<VertexID>, bounds: BoundingBox3D)] = []
+        var admittedPatches: [(surface: BSplineSurface3D, vertices: [VertexID: Point2D], bounds: BoundingBox3D,
+                              edges: [(id: EdgeID, boundary: SurfaceParameterBoundary)])] = []
         for loopIndex in partitions.indices {
             let partition = partitions[loopIndex]
             let boundarySpanCount = partition.breaks.count - 1
@@ -326,15 +327,24 @@ package struct ExactLoftBodyBuilder {
                         ringEdgeIDsByLoop[loopIndex][connectionIndex][spanIndex],
                         ringEdgeIDsByLoop[loopIndex][nextSectionIndex][spanIndex]
                     ]
-                    var vertices: Set<VertexID> = []
-                    for edgeID in boundaryEdges {
+                    guard case let .closed(u0, u1) = surface.uDomain,
+                          case let .closed(v0, v1) = surface.vDomain else {
+                        throw invalidGeometry("Loft sides require finite parameter domains.")
+                    }
+                    var vertices: [VertexID: Point2D] = [:]
+                    for (index, edgeID) in boundaryEdges.enumerated() {
                         guard let edge = model.edges[edgeID] else {
                             throw invalidGeometry("Loft side admission requires its generated boundary edges.")
                         }
-                        vertices.insert(edge.startVertexID)
-                        vertices.insert(edge.endVertexID)
+                        vertices[edge.startVertexID] = Point2D(x: u0, y: index == 0 ? v0 : v1)
+                        vertices[edge.endVertexID] = Point2D(x: u1, y: index == 0 ? v0 : v1)
                     }
                     let bounds = try BoundingBox3D(points: surface.controlPoints.joined())
+                    let edges: [(id: EdgeID, boundary: SurfaceParameterBoundary)] = [
+                        (boundaryEdges[0], .vLower), (boundaryEdges[1], .vUpper),
+                        (connectorEdgeIDsByLoop[loopIndex][connectionIndex][spanIndex], .uLower),
+                        (connectorEdgeIDsByLoop[loopIndex][connectionIndex][nextSpanIndex], .uUpper)
+                    ]
                     // ponytail: quadratic broad phase; use a spatial sweep if measured pair scanning dominates.
                     for previous in admittedPatches {
                         guard comparedPairs < separation.maximumPairCellCount else {
@@ -343,12 +353,32 @@ package struct ExactLoftBodyBuilder {
                                 message: "Loft side separation exhausted its patch-pair budget.")
                         }
                         comparedPairs += 1
-                        guard vertices.isDisjoint(with: previous.vertices),
+                        let commonEdges = previous.edges.compactMap { previousEdge in
+                            edges.first { $0.id == previousEdge.id }.map {
+                                (previousEdge.boundary, $0.boundary)
+                            }
+                        }
+                        if commonEdges.count == 1 {
+                            try separation.validateAdjacent(first: previous.surface,
+                                firstBoundary: commonEdges[0].0, second: surface,
+                                secondBoundary: commonEdges[0].1, tolerance: context.tolerance)
+                            continue
+                        }
+                        let commonVertices = vertices.keys.filter { previous.vertices[$0] != nil }
+                        if commonEdges.isEmpty, commonVertices.count == 1,
+                           let vertex = commonVertices.first,
+                           let firstCorner = previous.vertices[vertex], let secondCorner = vertices[vertex] {
+                            try separation.validateSeparation(first: previous.surface, second: surface,
+                                tolerance: context.tolerance,
+                                allowedCornerContact: (firstCorner, secondCorner))
+                            continue
+                        }
+                        guard commonVertices.isEmpty,
                               bounds.intersects(previous.bounds, tolerance: context.tolerance.distance) else { continue }
                         try separation.validateSeparation(first: previous.surface, second: surface,
                             tolerance: context.tolerance)
                     }
-                    admittedPatches.append((surface, vertices, bounds))
+                    admittedPatches.append((surface, vertices, bounds, edges))
                     faceIDsByLoop[loopIndex].append(addSideFace(
                         index: sideFaceOrdinal,
                         orientation: faceOrientation,
@@ -942,6 +972,22 @@ package struct ExactLoftBodyBuilder {
             rings: rings,
             to: &result
         )
+        let resolver = DefaultBSplineCurveCommonBasisResolver()
+        for connection in result.indices {
+            guard let first = result[connection].first else { continue }
+            guard result[connection].contains(where: {
+                $0.degree != first.degree || $0.knots != first.knots
+            }) else { continue }
+            var basis = first
+            for curve in result[connection].dropFirst() {
+                basis = try resolver.resolve(first: basis, second: curve,
+                    tolerance: context.tolerance).first
+            }
+            for index in result[connection].indices {
+                result[connection][index] = try resolver.resolve(first: result[connection][index],
+                    second: basis, tolerance: context.tolerance).first
+            }
+        }
         return result
     }
 

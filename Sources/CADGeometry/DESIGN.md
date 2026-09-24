@@ -108,6 +108,33 @@ different charts and never imply adjacency. Failure to prove separation is a
 typed resource failure, not a positive intersection certificate. Touching domains
 are not admissible to this strict separation contract; topology must separately
 own shared-boundary admission. This contract does not establish regularity.
+Adjacent spline charts use a separate admission contract: orient the nominated
+boundaries into a common rectangular chart, require clamped ends and identical
+seam basis, control points and weights, then certify injectivity over both complete
+charts with the existing local-cell, touching-region and separated-cell
+certificates. A global projection is only an early sufficient certificate.
+Sampled coincidence may reject distinct parameters, but never proves admission.
+No snapping or sampled
+agreement establishes continuity. Incompatible seam representations and an
+inconclusive bounded refinement fail explicitly. General basis reconciliation
+remains incomplete; this is not general face sewing.
+An axis-aligned straight seam can instead be admitted independently of degree
+or parameter speed. Clamped boundary control polygons must share exact endpoints,
+have two identical constant coordinates and monotone remaining coordinates.
+Positive rational weights then keep each boundary on that same segment. A plane
+through that line must strictly separate every non-boundary control point of
+the two charts, certified with outward interval projections. This excludes any
+cross-chart contact away from the seam. Each chart must also pass independent
+embedding admission using half the request's local and pair-cell budgets. A candidate plane is
+only a search heuristic; inconclusive signs retain the general-chart path.
+Point-contact separation may nominate one pair of clamped parameter corners
+whose stored positions are exactly identical. Only that tensor-product corner
+coefficient is exempt from strict signed difference projection. Every other
+coefficient must retain the same strict sign, so positive Bernstein weights
+exclude zeros everywhere except the nominated corner pair. Subdivision retains
+the exemption only in cells containing that same parameter corner; all other
+cells require ordinary separation. No tolerance snapping or whole-face exemption
+is allowed. Existing depth and pair-cell budgets bound inconclusive proofs.
 Oblique candidate axes from coefficient-box means and crosses of midpoint
 derivative columns supplement Cartesian axes.
 Only uniform strict signs of outward-rounded projections of every coefficient
@@ -116,6 +143,19 @@ failure continues bounded subdivision without increasing its budget.
 
 B-spline embedding first certifies local cells with a forward work cursor; a
 later split must not repeat local projection proofs for earlier accepted cells.
+Touching-region refinement splits only its least-refined cells, so a fine cell
+does not exhaust its depth budget while a coarse neighbor still determines the
+unresolved rectangle. The complete rectangle retains the same injectivity proof
+and cell/depth ceilings.
+Touching-region searches build a request-local balanced index over scalar UV
+rectangles. Subtree hulls exclude disjoint candidates before reading differential
+bounds; closed overlap finds contacts and strict overlap covers region interiors.
+The index is rebuilt after subdivision, uses O(cellCount) storage, and preserves
+original cell ordering and the complete-region proof.
+The same request retains proved rectangle certificates across refinement because
+restriction preserves injectivity. Retention is capped by the existing pair-cell
+budget; once full, subsequent proofs are recomputed rather than cached. Neither
+cache presence nor capacity changes admission, precision or failure conditions.
 After that pass, touching-region refinement restricts already injective patches,
 so their children retain local injectivity. Region-wide and separated-cell pair
 proofs remain mandatory, and all existing depth/cell failure limits remain active.
@@ -125,12 +165,15 @@ pair. The cache is request-local and bounded by the existing cell-count limit.
 Initial count and subdivision growth are checked before materializing cell caches.
 Separated-cell pairs first compare retained positive-weight control hulls. A
 disjoint hull pair needs no point-coincidence search or four-parameter difference
-patch. Coarse exclusions and detailed subdivision both consume the pair budget.
+patch. A coordinate-sorted sweep excludes disjoint ranges before pair creation;
+each remaining candidate and detailed subdivision consume the pair budget.
+Axis selection minimizes total cell width relative to the covered coordinate
+range, a search heuristic only. Sorting uses O(cellCount) index storage; worst-case
+overlap remains bounded by the existing pair budget, not a larger configured limit.
 After local refinement, a consistent projection certificate over all cells also
 proves separation globally. Reuse the same existing projection criterion, covering
-the complete parameter rectangle rather than only two disjoint patches. Each
-nonadjacent pair still consumes its request budget but needs no difference patch
-when this global certificate exists.
+the complete parameter rectangle rather than only two disjoint patches. This
+certificate finishes the proof without enumerating redundant cell pairs.
 
 At the graph restriction resolution floor, interval jets use a containing
 local interval wide enough for certified restriction, not the entire parent

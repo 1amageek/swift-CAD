@@ -74,17 +74,17 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
 
         try certifyLocalInjectivity(
             cells: &cells,
-            surface: surface,
+            normalAt: { try surface.normal(u: $0, v: $1, tolerance: tolerance) },
             tolerance: tolerance
         )
         try certifySeparatedCells(
             cells,
-            surface: surface,
+            pointAt: { try surface.point(u: $0, v: $1, tolerance: tolerance) },
             tolerance: tolerance
         )
     }
 
-    private struct RetainedBounds: Sendable {
+    private struct RetainedBounds: Sendable, Hashable {
         let uLower: Double
         let uUpper: Double
         let vLower: Double
@@ -194,7 +194,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
 
     private func certifyLocalInjectivity(
         cells: inout [Cell],
-        surface: BSplineSurface3D,
+        normalAt: (Double, Double) throws -> Vector3D,
         tolerance: ModelingTolerance
     ) throws {
         var index = 0
@@ -211,7 +211,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
             } else {
                 try rejectSampledSingularity(
                     in: cells[index].patch,
-                    surface: surface,
+                    normalAt: normalAt,
                     tolerance: tolerance,
                     stationaryBoundaries: cells[index].stationaryBoundaries
                 )
@@ -224,24 +224,26 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         }
         // Restriction preserves the local injectivity proved above. Refining a
         // touching region does not invalidate proofs for the unchanged cells.
+        var certifiedRegions: Set<RetainedBounds> = []
         while true {
             guard cells.count <= maximumCellCount else {
                 throw resourceLimit(residual: Double(cells.count), tolerance: tolerance,
                     message: "B-spline surface embedding exhausted its local cell budget.")
             }
-            guard let unresolved = firstUnresolvedTouchingRegion(in: cells) else {
+            guard let unresolved = firstUnresolvedTouchingRegion(in: cells, certifiedRegions: &certifiedRegions) else {
                 return
             }
             for index in unresolved {
                 try rejectSampledSingularity(
                     in: cells[index].patch,
-                    surface: surface,
+                    normalAt: normalAt,
                     tolerance: tolerance,
                     stationaryBoundaries: cells[index].stationaryBoundaries
                 )
             }
+            let coarsestDepth = unresolved.map { cells[$0].depth }.min()!
             try subdivide(
-                indexes: unresolved,
+                indexes: unresolved.filter { cells[$0].depth == coarsestDepth },
                 cells: &cells,
                 tolerance: tolerance
             )
@@ -250,7 +252,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
 
     private func rejectSampledSingularity(
         in patch: RationalBezierSurfacePatch3D,
-        surface: BSplineSurface3D,
+        normalAt: (Double, Double) throws -> Vector3D,
         tolerance: ModelingTolerance,
         stationaryBoundaries: Set<SurfaceParameterBoundary>
     ) throws {
@@ -266,11 +268,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                     vFraction: vFraction
                 )
                 do {
-                    _ = try surface.normal(
-                        u: sample.x,
-                        v: sample.y,
-                        tolerance: tolerance
-                    )
+                    _ = try normalAt(sample.x, sample.y)
                 } catch let error as KernelError where error.code == .singularSystem {
                     throw KernelError(
                         phase: .geometry,
@@ -284,30 +282,72 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         }
     }
 
-    private func firstUnresolvedTouchingRegion(in cells: [Cell]) -> [Int]? {
+    private func firstUnresolvedTouchingRegion(in cells: [Cell],
+        certifiedRegions: inout Set<RetainedBounds>) -> [Int]? {
         guard cells.count > 1 else { return nil }
+        let domains = cells.map { RetainedBounds(uLower: $0.patch.uLower, uUpper: $0.patch.uUpper,
+            vLower: $0.patch.vLower, vUpper: $0.patch.vUpper) }
+        let order = domains.indices.sorted {
+            domains[$0].uLower == domains[$1].uLower ? $0 < $1 : domains[$0].uLower < domains[$1].uLower
+        }
+        var hulls = domains
+        func build(_ lower: Int, _ upper: Int) -> RetainedBounds {
+            let middle = (lower + upper) / 2
+            var hull = domains[order[middle]]
+            for range in [lower..<middle, (middle + 1)..<upper] where !range.isEmpty {
+                let child = build(range.lowerBound, range.upperBound)
+                hull = RetainedBounds(uLower: min(hull.uLower, child.uLower),
+                    uUpper: max(hull.uUpper, child.uUpper), vLower: min(hull.vLower, child.vLower),
+                    vUpper: max(hull.vUpper, child.vUpper))
+            }
+            hulls[middle] = hull
+            return hull
+        }
+        _ = build(0, order.count)
+        func candidates(_ region: RetainedBounds, strict: Bool) -> [Int] {
+            func overlaps(_ bounds: RetainedBounds) -> Bool {
+                let du = min(bounds.uUpper, region.uUpper) - max(bounds.uLower, region.uLower)
+                let dv = min(bounds.vUpper, region.vUpper) - max(bounds.vLower, region.vLower)
+                return strict ? du > 0 && dv > 0 : du >= 0 && dv >= 0
+            }
+            var result: [Int] = []
+            func visit(_ lower: Int, _ upper: Int) {
+                guard lower < upper else { return }
+                let middle = (lower + upper) / 2
+                guard overlaps(hulls[middle]) else { return }
+                let index = order[middle]
+                if overlaps(domains[index]) { result.append(index) }
+                visit(lower, middle)
+                visit(middle + 1, upper)
+            }
+            visit(0, order.count)
+            return result.sorted()
+        }
         for firstIndex in 0..<(cells.count - 1) {
-            for secondIndex in (firstIndex + 1)..<cells.count {
-                let first = cells[firstIndex].patch
-                let second = cells[secondIndex].patch
-                guard touches(first, second) else { continue }
-                let uLower = min(first.uLower, second.uLower)
-                let uUpper = max(first.uUpper, second.uUpper)
-                let vLower = min(first.vLower, second.vLower)
-                let vUpper = max(first.vUpper, second.vUpper)
-                let regionIndexes = cells.indices.filter { index in
-                    hasPositiveAreaIntersection(
-                        cells[index].patch,
-                        uLower: uLower,
-                        uUpper: uUpper,
-                        vLower: vLower,
-                        vUpper: vUpper
-                    )
+            let first = domains[firstIndex]
+            for secondIndex in candidates(first, strict: false) where secondIndex > firstIndex {
+                let second = domains[secondIndex]
+                let region = RetainedBounds(uLower: min(first.uLower, second.uLower),
+                    uUpper: max(first.uUpper, second.uUpper), vLower: min(first.vLower, second.vLower),
+                    vUpper: max(first.vUpper, second.vUpper))
+                if certifiedRegions.contains(region) { continue }
+                let regionIndexes: [Int]
+                // Two cells sharing a full side already cover their bounding
+                // rectangle. Corner contacts and unequal sides still need every
+                // cell in that rectangle to avoid proving a disconnected domain.
+                if (first.uLower == second.uLower && first.uUpper == second.uUpper
+                    && (first.vUpper == second.vLower || second.vUpper == first.vLower))
+                    || (first.vLower == second.vLower && first.vUpper == second.vUpper
+                        && (first.uUpper == second.uLower || second.uUpper == first.uLower)) {
+                    regionIndexes = [firstIndex, secondIndex]
+                } else {
+                    regionIndexes = candidates(region, strict: true)
                 }
                 let regionBounds = regionIndexes.map { cells[$0].differentialBounds }
                 if projectionProvesInjective(bounds: regionBounds) == false {
                     return regionIndexes
                 }
+                if certifiedRegions.count < maximumPairCellCount { certifiedRegions.insert(region) }
             }
         }
         return nil
@@ -447,15 +487,33 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
     }
 
     /// Certifies separation over both complete finite parameter domains.
-    /// Shared edges or points require a different, topology-aware contract.
+    /// An optional exact corner pair permits only that single point contact.
     public func validateSeparation(
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        allowedCornerContact: (first: Point2D, second: Point2D)? = nil
     ) throws {
         try tolerance.validate()
         try first.validate(tolerance: tolerance)
         try second.validate(tolerance: tolerance)
+        if let contact = allowedCornerContact {
+            func corner(_ surface: BSplineSurface3D, _ uv: Point2D) -> Point3D? {
+                guard case let .closed(u0, u1) = surface.uDomain,
+                      case let .closed(v0, v1) = surface.vDomain,
+                      (uv.x == u0 || uv.x == u1), (uv.y == v0 || uv.y == v1),
+                      surface.uKnots.prefix(surface.uDegree + 1).allSatisfy({ $0 == u0 }),
+                      surface.uKnots.suffix(surface.uDegree + 1).allSatisfy({ $0 == u1 }),
+                      surface.vKnots.prefix(surface.vDegree + 1).allSatisfy({ $0 == v0 }),
+                      surface.vKnots.suffix(surface.vDegree + 1).allSatisfy({ $0 == v1 }) else { return nil }
+                let row = surface.controlPoints[uv.y == v0 ? 0 : surface.vControlPointCount - 1]
+                return row[uv.x == u0 ? 0 : surface.uControlPointCount - 1]
+            }
+            guard let a = corner(first, contact.first), let b = corner(second, contact.second), a == b else {
+                throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                    message: "Permitted point contact requires exactly identical clamped surface corners.")
+            }
+        }
         guard maximumPairSubdivisionDepth >= 0, maximumPairCellCount > 0,
               maximumCellCount > 0 else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
@@ -476,9 +534,183 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                 try consumeSeparationCell(&visited, tolerance: tolerance)
                 guard firstBounds[i].intersects(secondBounds[j], tolerance: tolerance.distance) else { continue }
                 try certifyPairSeparation(first: firstPatches[i], second: secondPatches[j],
-                    visited: &visited, tolerance: tolerance)
+                    visited: &visited, tolerance: tolerance, allowedCornerContact: allowedCornerContact)
             }
         }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Loft single-edge admission uses this
+    // exact common-basis path. General seam basis reconciliation must be
+    // implemented before claiming general adjacency.
+    public func validateAdjacent(
+        first: BSplineSurface3D,
+        firstBoundary: SurfaceParameterBoundary,
+        second: BSplineSurface3D,
+        secondBoundary: SurfaceParameterBoundary,
+        tolerance: ModelingTolerance
+    ) throws {
+        try tolerance.validate()
+        try first.validate(tolerance: tolerance)
+        try second.validate(tolerance: tolerance)
+        guard maximumCellCount > 0, maximumLocalSubdivisionDepth >= 0,
+              maximumPairSubdivisionDepth >= 0, maximumPairCellCount > 0 else {
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                message: "Adjacent surface admission requires a positive cell budget.")
+        }
+        func chart(_ source: BSplineSurface3D, boundary: SurfaceParameterBoundary,
+                   atUpper: Bool) -> BSplineSurface3D {
+            let transpose = boundary == .uLower || boundary == .uUpper
+            let reverse = (boundary == .uUpper || boundary == .vUpper) != atUpper
+            func oriented<T>(_ values: [[T]]) -> [[T]] {
+                let rows = transpose ? values[0].indices.map { i in values.map { $0[i] } } : values
+                return reverse ? Array(rows.reversed()) : rows
+            }
+            let vKnots = transpose ? source.uKnots : source.vKnots
+            let sum = vKnots[0] + vKnots[vKnots.count - 1]
+            return BSplineSurface3D(uDegree: transpose ? source.vDegree : source.uDegree,
+                vDegree: transpose ? source.uDegree : source.vDegree,
+                uKnots: transpose ? source.vKnots : source.uKnots,
+                vKnots: reverse ? vKnots.reversed().map { sum - $0 } : vKnots,
+                controlPoints: oriented(source.controlPoints), weights: oriented(source.weights))
+        }
+        let a = chart(first, boundary: firstBoundary, atUpper: true)
+        var b = chart(second, boundary: secondBoundary, atUpper: false)
+        func clamped(_ s: BSplineSurface3D) -> Bool {
+            s.uKnots.prefix(s.uDegree + 1).allSatisfy { $0 == s.uKnots[0] }
+                && s.uKnots.suffix(s.uDegree + 1).allSatisfy { $0 == s.uKnots.last }
+                && s.vKnots.prefix(s.vDegree + 1).allSatisfy { $0 == s.vKnots[0] }
+                && s.vKnots.suffix(s.vDegree + 1).allSatisfy { $0 == s.vKnots.last }
+        }
+        if clamped(a), clamped(b), straightSeamSeparates(a, b) {
+            guard maximumCellCount >= 2, maximumPairCellCount >= 2 else {
+                throw resourceLimit(residual: 2, tolerance: tolerance,
+                    message: "Adjacent charts require local and pair budgets for both surfaces.")
+            }
+            let local = Self(maximumLocalSubdivisionDepth: maximumLocalSubdivisionDepth,
+                maximumCellCount: maximumCellCount / 2,
+                maximumPairSubdivisionDepth: maximumPairSubdivisionDepth,
+                maximumPairCellCount: maximumPairCellCount / 2)
+            for surface in [a, b] {
+                try local.validate(surface, uDomain: surface.uDomain, vDomain: surface.vDomain,
+                    tolerance: tolerance, allowStationaryBoundaryParameterization: true)
+            }
+            return
+        }
+        func seamResidual(_ points: [Point3D]) -> Double {
+            guard let seam = a.controlPoints.last, seam.count == points.count else { return .infinity }
+            return zip(seam, points).reduce(0) { max($0, ($1.0 - $1.1).length) }
+        }
+        let directResidual = seamResidual(b.controlPoints[0])
+        let reversedResidual = seamResidual(Array(b.controlPoints[0].reversed()))
+        if reversedResidual < directResidual {
+            let sum = b.uKnots[0] + b.uKnots[b.uKnots.count - 1]
+            b = BSplineSurface3D(uDegree: b.uDegree, vDegree: b.vDegree,
+                uKnots: b.uKnots.reversed().map { sum - $0 }, vKnots: b.vKnots,
+                controlPoints: b.controlPoints.map { Array($0.reversed()) },
+                weights: b.weights.map { Array($0.reversed()) })
+        }
+        guard clamped(a), clamped(b), a.uDegree == b.uDegree, a.uKnots == b.uKnots,
+              a.controlPoints.last == b.controlPoints.first, a.weights.last == b.weights.first else {
+            throw resourceLimit(residual: min(directResidual, reversedResidual), tolerance: tolerance,
+                message: "Adjacent spline charts require an exact common clamped boundary representation (degrees \(a.uDegree)/\(b.uDegree), knots equal: \(a.uKnots == b.uKnots), points equal: \(a.controlPoints.last == b.controlPoints.first), weights equal: \(a.weights.last == b.weights.first)).")
+        }
+        var cells: [Cell] = []
+        for (index, surface) in [a, b].enumerated() {
+            guard case let .closed(vLower, vUpper) = surface.vDomain,
+                  case let .closed(uLower, uUpper) = surface.uDomain else {
+                throw resourceLimit(residual: 0, tolerance: tolerance,
+                    message: "Adjacent charts require finite parameter domains.")
+            }
+            let offset = Double(index)
+            func mappedV(_ v: Double) -> Double { offset + (v - vLower) / (vUpper - vLower) }
+            let patches = try BSplineSurfaceBezierDecomposer().surfacePatches(surface: surface, tolerance: tolerance)
+            guard patches.count <= maximumCellCount - cells.count else {
+                throw resourceLimit(residual: Double(patches.count), tolerance: tolerance,
+                    message: "Adjacent spline charts exhausted the cell budget.")
+            }
+            let stationaryDomain = RetainedBounds(uLower: uLower, uUpper: uUpper,
+                vLower: offset, vUpper: offset + 1)
+            cells.append(contentsOf: try patches.map { patch in
+                try Cell(patch: RationalBezierSurfacePatch3D(controlPoints: patch.controlPoints,
+                    weights: patch.weights, uLower: patch.uLower, uUpper: patch.uUpper,
+                    vLower: mappedV(patch.vLower), vUpper: mappedV(patch.vUpper)),
+                    depth: 0, stationaryDomain: stationaryDomain)
+            })
+        }
+        if projectionProvesInjective(bounds: cells.map(\.differentialBounds)) { return }
+        func sourceParameter(_ v: Double) -> (BSplineSurface3D, Double) {
+            let surface = v <= 1 ? a : b
+            let lower = surface.vKnots[surface.vDegree]
+            let upper = surface.vKnots[surface.vKnots.count - surface.vDegree - 1]
+            return (surface, lower + (v <= 1 ? v : v - 1) * (upper - lower))
+        }
+        func pointAt(_ u: Double, _ v: Double) throws -> Point3D {
+            let (surface, parameter) = sourceParameter(v)
+            return try surface.point(u: u, v: parameter, tolerance: tolerance)
+        }
+        var comparisons = 0
+        for i in cells.indices {
+            for j in cells.indices where j > i {
+                try consumeSeparationCell(&comparisons, tolerance: tolerance)
+                try rejectSampledCoincidence(first: cells[i].patch, second: cells[j].patch,
+                    pointAt: pointAt, tolerance: tolerance)
+            }
+        }
+        try certifyLocalInjectivity(cells: &cells, normalAt: { u, v in
+            let (surface, parameter) = sourceParameter(v)
+            return try surface.normal(u: u, v: parameter, tolerance: tolerance)
+        }, tolerance: tolerance)
+        try certifySeparatedCells(cells, pointAt: pointAt, tolerance: tolerance)
+    }
+
+    private func straightSeamSeparates(_ a: BSplineSurface3D, _ b: BSplineSurface3D) -> Bool {
+        let first = a.controlPoints[a.controlPoints.count - 1]
+        let second = b.controlPoints[0]
+        guard let start = first.first, let end = first.last, start != end,
+              (second.first == start && second.last == end)
+                || (second.first == end && second.last == start) else { return false }
+        func coordinate(_ p: Point3D, _ axis: Int) -> Double {
+            switch axis { case 0: p.x; case 1: p.y; default: p.z }
+        }
+        for axis in 0..<3 {
+            let c1 = (axis + 1) % 3, c2 = (axis + 2) % 3
+            guard coordinate(start, axis) != coordinate(end, axis) else { continue }
+            func isStraight(_ points: [Point3D]) -> Bool {
+                let increasing = coordinate(points[0], axis) < coordinate(points[points.count - 1], axis)
+                for i in points.indices {
+                    guard coordinate(points[i], c1) == coordinate(start, c1),
+                          coordinate(points[i], c2) == coordinate(start, c2) else { return false }
+                    if i > 0 {
+                        let previous = coordinate(points[i - 1], axis), value = coordinate(points[i], axis)
+                        if increasing ? value < previous : value > previous { return false }
+                    }
+                }
+                return true
+            }
+            guard isStraight(first), isStraight(second) else { continue }
+            // This normal is only a candidate. Every off-seam control must pass
+            // the strict interval proof; samples never admit a chart pair.
+            let pa = a.controlPoints[0][a.controlPoints[0].count / 2]
+            let pb = b.controlPoints[b.controlPoints.count - 1][b.controlPoints[0].count / 2]
+            let n1 = coordinate(pa, c1) - coordinate(pb, c1)
+            let n2 = coordinate(pa, c2) - coordinate(pb, c2)
+            guard n1.isFinite, n2.isFinite, n1 != 0 || n2 != 0 else { continue }
+            func sign(_ p: Point3D) -> Int? {
+                let d1 = OutwardScalarInterval.exact(coordinate(p, c1)) - .exact(coordinate(start, c1))
+                let d2 = OutwardScalarInterval.exact(coordinate(p, c2)) - .exact(coordinate(start, c2))
+                let projected = d1 * .exact(n1) + d2 * .exact(n2)
+                return projected.isFinite ? projected.sign : nil
+            }
+            guard let side = sign(pa), sign(pb) == -side else { continue }
+            let firstSeparated = a.controlPoints.dropLast().allSatisfy { row in
+                row.allSatisfy { sign($0) == side }
+            }
+            let secondSeparated = b.controlPoints.dropFirst().allSatisfy { row in
+                row.allSatisfy { sign($0) == -side }
+            }
+            if firstSeparated && secondSeparated { return true }
+        }
+        return false
     }
 
     private func consumeSeparationCell(_ visited: inout Int, tolerance: ModelingTolerance) throws {
@@ -491,14 +723,15 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
 
     private func certifyPairSeparation(
         first: RationalBezierSurfacePatch3D, second: RationalBezierSurfacePatch3D,
-        visited: inout Int, tolerance: ModelingTolerance
+        visited: inout Int, tolerance: ModelingTolerance,
+        allowedCornerContact: (first: Point2D, second: Point2D)? = nil
     ) throws {
         var pending = [PairCell(difference: try RationalBezierSurfaceSurfaceDifferencePatch(
             first: first, second: second, tolerance: tolerance), depth: 0)]
         while let pair = pending.popLast() {
             if pair.depth > 0 { try consumeSeparationCell(&visited, tolerance: tolerance) }
             if pair.difference.excludesZero() { continue }
-            if pair.difference.excludesZeroAlongSurfaceDirections() { continue }
+            if pair.difference.excludesZeroAlongSurfaceDirections(allowedCornerContact: allowedCornerContact) { continue }
             guard pair.depth < maximumPairSubdivisionDepth else {
                 throw resourceLimit(residual: Double(pair.depth), tolerance: tolerance,
                     message: "B-spline surface separation could not exclude intersection within the subdivision limit.")
@@ -511,25 +744,47 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
 
     private func certifySeparatedCells(
         _ cells: [Cell],
-        surface: BSplineSurface3D,
+        pointAt: (Double, Double) throws -> Point3D,
         tolerance: ModelingTolerance
     ) throws {
         guard cells.count > 1 else { return }
-        let globallyInjective = projectionProvesInjective(bounds: cells.map(\.differentialBounds))
+        if projectionProvesInjective(bounds: cells.map(\.differentialBounds)) { return }
+        let axes: [KeyPath<Point3D, Double>] = [\.x, \.y, \.z]
+        var axis = axes[0]
+        var bestScore = Double.infinity
+        for candidate in axes {
+            var lower = Double.infinity, upper = -Double.infinity, width = 0.0
+            for cell in cells {
+                let minimum = cell.bounds.minimum[keyPath: candidate]
+                let maximum = cell.bounds.maximum[keyPath: candidate]
+                lower = min(lower, minimum)
+                upper = max(upper, maximum)
+                width += maximum - minimum
+            }
+            let score = upper > lower ? width / (upper - lower) : .infinity
+            if score < bestScore { axis = candidate; bestScore = score }
+        }
+        let ordered = cells.indices.sorted {
+            let a = cells[$0].bounds.minimum[keyPath: axis], b = cells[$1].bounds.minimum[keyPath: axis]
+            return a == b ? $0 < $1 : a < b
+        }
         var visitedPairCells = 0
-        for firstIndex in 0..<(cells.count - 1) {
-            for secondIndex in (firstIndex + 1)..<cells.count {
+        for firstOffset in 0..<(ordered.count - 1) {
+            let firstIndex = ordered[firstOffset]
+            for secondOffset in (firstOffset + 1)..<ordered.count {
+                let secondIndex = ordered[secondOffset]
+                guard cells[secondIndex].bounds.minimum[keyPath: axis]
+                        <= cells[firstIndex].bounds.maximum[keyPath: axis] + tolerance.distance else { break }
+                try consumeSeparationCell(&visitedPairCells, tolerance: tolerance)
                 let first = cells[firstIndex].patch
                 let second = cells[secondIndex].patch
                 guard touches(first, second) == false else { continue }
-                try consumeSeparationCell(&visitedPairCells, tolerance: tolerance)
-                if globallyInjective { continue }
                 guard cells[firstIndex].bounds.intersects(cells[secondIndex].bounds,
                     tolerance: tolerance.distance) else { continue }
                 try rejectSampledCoincidence(
                     first: first,
                     second: second,
-                    surface: surface,
+                    pointAt: pointAt,
                     tolerance: tolerance
                 )
                 try certifyPairSeparation(first: first, second: second,
@@ -541,7 +796,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
     private func rejectSampledCoincidence(
         first: RationalBezierSurfacePatch3D,
         second: RationalBezierSurfacePatch3D,
-        surface: BSplineSurface3D,
+        pointAt: (Double, Double) throws -> Point3D,
         tolerance: ModelingTolerance
     ) throws {
         let fractions = [0.0, 0.5, 1.0]
@@ -552,11 +807,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                     uFraction: firstU,
                     vFraction: firstV
                 )
-                let firstPoint = try surface.point(
-                    u: firstParameter.x,
-                    v: firstParameter.y,
-                    tolerance: tolerance
-                )
+                let firstPoint = try pointAt(firstParameter.x, firstParameter.y)
                 for secondU in fractions {
                     for secondV in fractions {
                         let secondParameter = parameter(
@@ -564,11 +815,8 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                             uFraction: secondU,
                             vFraction: secondV
                         )
-                        let secondPoint = try surface.point(
-                            u: secondParameter.x,
-                            v: secondParameter.y,
-                            tolerance: tolerance
-                        )
+                        if firstParameter == secondParameter { continue }
+                        let secondPoint = try pointAt(secondParameter.x, secondParameter.y)
                         let residual = (firstPoint - secondPoint).length
                         guard residual > tolerance.distance else {
                             throw KernelError(
@@ -623,17 +871,6 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
     ) -> Bool {
         max(first.uLower, second.uLower) <= min(first.uUpper, second.uUpper)
             && max(first.vLower, second.vLower) <= min(first.vUpper, second.vUpper)
-    }
-
-    private func hasPositiveAreaIntersection(
-        _ patch: RationalBezierSurfacePatch3D,
-        uLower: Double,
-        uUpper: Double,
-        vLower: Double,
-        vUpper: Double
-    ) -> Bool {
-        max(patch.uLower, uLower) < min(patch.uUpper, uUpper)
-            && max(patch.vLower, vLower) < min(patch.vUpper, vUpper)
     }
 
     private func resourceLimit(
