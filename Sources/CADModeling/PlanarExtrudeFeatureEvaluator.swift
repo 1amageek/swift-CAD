@@ -82,37 +82,25 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         distance: Double,
         context: EvaluationContext
     ) throws -> EvaluationResult {
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Extrude evaluation currently requires a planar
-        // curve section. Spatial-curve extrusion needs exact translational surface construction
-        // without plane metadata before this path represents the full Surface Creation contract.
-        guard let sourcePlane = curve.plane else {
-            throw KernelError.unsupportedEvaluation(
-                tolerance: context.tolerance,
-                message: "Curve extrusion requires source plane metadata."
-            )
-        }
-        let plane = try ExactSweepSectionPlane(sourcePlane, tolerance: context.tolerance).plane
         let axis: Vector3D
         switch direction {
-        case .normal, .symmetric: axis = plane.normal
+        case .normal, .symmetric:
+            guard let sourcePlane = curve.plane else {
+                throw KernelError(phase: .validation, code: .invalidInput,
+                    featureID: featureID, tolerance: context.tolerance,
+                    message: "A spatial curve has no source-plane normal; specify an extrusion vector.")
+            }
+            axis = try ExactSweepSectionPlane(sourcePlane, tolerance: context.tolerance).plane.normal
         case .vector(let vector):
             do { axis = try vector.normalized(tolerance: context.tolerance.distance) }
             catch GeometryError.invalidVectorLength {
                 throw FeatureEvaluationError.invalidDirection(vector)
             }
         }
-        let start = direction == .symmetric
-            ? plane.origin + axis * (-0.5 * distance)
-            : plane.origin
-        let end = start + axis * distance
-        let path = EvaluatedCurve(
-            sourceFeatureID: featureID, source: .generatedFeature, kind: .line,
-            points: [start, end], exactCurve: .line(Line3D(origin: start, direction: axis)),
-            exactParameterDomain: .closed(0, distance), exactPointParameters: [0, distance]
-        )
+        let start = direction == .symmetric ? axis * (-0.5 * distance) : .zero
         return try ExactLinearSectionSweepBodyBuilder(
             featureID: featureID, context: context, sewer: sewer
-        ).buildSheet(section: curve, pathSegments: [EvaluatedCurvePathSegment(curve: path)], pathEndPoint: end)
+        ).buildTranslatedSheet(section: curve, startOffset: start, endOffset: start + axis * distance)
     }
 
     package func evaluateSheet(

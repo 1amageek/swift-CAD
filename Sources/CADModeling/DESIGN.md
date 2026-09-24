@@ -48,6 +48,18 @@ provide general boundary constraints or certify G1/G2 fitting. The approved
 eleven-operation implementation remains incomplete until each actual evaluator,
 source contract and application route meets its acceptance criteria.
 
+### Curve translation
+
+Curve Extrude supplies start/end displacement vectors to the existing exact
+Sweep patch builder. The builder constructs ruled surfaces between translated
+exact spans and reuses tensor boundaries, sewing, lineage and independent BRep
+admission. Translation does not need a section plane or a synthetic path.
+Only implicit normal/symmetric direction resolution requires source plane data.
+No plane or display polyline is inferred for a spatial curve. Open and closed
+sections preserve their boundary connectivity; neither receives solid caps.
+Each translated surface must pass whole-domain interval regularity validation
+before sewing; tangent-parallel translation must not publish a collapsed sheet.
+
 ### Revolve construction and closure
 
 The existing rational surface-of-revolution builder owns both solid and sheet

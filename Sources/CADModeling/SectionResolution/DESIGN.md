@@ -43,12 +43,14 @@ evaluated source arrays + reference
 - These rules and Sendable conformances are unconditional across targets.
 
 Extrude admits a shared section before construction. Closed profiles retain the
-existing prismatic builder and topology roles. Planar curve sheets reuse the
-exact linear-section Sweep builder with a single analytic line path; normal,
-explicit vector and symmetric placement use the source plane, never display
-samples. Generated geometry passes the existing exact BRep admission before
-publication. Spatial curves without plane metadata remain an explicit incomplete
-construction path, not a fabricated planar profile.
+existing prismatic builder and topology roles. Curve sheets reuse the exact
+Sweep patch/sewing path with ruled surfaces between translated exact spans.
+Explicit vectors work for spatial curves without plane metadata. Normal and
+symmetric directions require a source plane because an arbitrary spatial curve
+has no unique plane normal; missing metadata fails instead of inventing a plane.
+Translation retains rational weights and boundary parameters. Generated geometry
+passes whole-domain interval regularity validation and existing exact BRep
+admission before publication.
 
 ## Failure, Concurrency, and Constraints
 

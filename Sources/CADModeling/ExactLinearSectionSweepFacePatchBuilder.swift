@@ -11,6 +11,39 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         self.tolerance = tolerance
     }
 
+    package func translatedSheetRequest(
+        spans: [ExactBSplineCurveSpan], isClosed: Bool,
+        startOffset: Vector3D, endOffset: Vector3D, featureID: FeatureID
+    ) throws -> BRepSewingRequest {
+        try tolerance.validate()
+        try startOffset.validate()
+        try endOffset.validate()
+        guard !spans.isEmpty, (endOffset - startOffset).length > tolerance.distance else {
+            throw FeatureEvaluationError.invalidGraph("A curve extrusion requires spans and nonzero translation.")
+        }
+        try validateSectionContinuity(spans, isClosed: isClosed)
+        let builder = ExactRuledBSplineSurfaceBuilder()
+        let patches = try spans.enumerated().map { index, span in
+            func translated(_ offset: Vector3D) -> BSplineCurve3D {
+                BSplineCurve3D(degree: span.curve.degree, knots: span.curve.knots,
+                    controlPoints: span.curve.controlPoints.map { $0 + offset }, weights: span.curve.weights)
+            }
+            let surface = try builder.build(startBoundary: translated(startOffset),
+                endBoundary: translated(endOffset), tolerance: tolerance)
+            let u = try closedBounds(surface.uDomain)
+            let v = try closedBounds(surface.vDomain)
+            try DefaultSurfaceRegularityValidator().validate(.bSpline(surface),
+                over: SurfaceParameterBox(
+                    u: try ScalarInterval(lower: u.lower, upper: u.upper),
+                    v: try ScalarInterval(lower: v.lower, upper: v.upper)),
+                tolerance: tolerance)
+            return try tensorSidePatch(surface: surface, orientation: .forward,
+                stableID: sideStableID(pathIndex: 0, loopIndex: 0, profileIndex: index))
+        }
+        return BRepSewingRequest(featureID: featureID, bodyKind: .sheet,
+            shells: [BRepSewingShell(stableID: "sweep:shell", patches: patches)])
+    }
+
     package func request(
         profileSpans: [ExactBSplineCurveSpan],
         pathSpans: [ExactBSplineCurveSpan],
