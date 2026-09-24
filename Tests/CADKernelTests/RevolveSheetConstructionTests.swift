@@ -52,6 +52,69 @@ struct RevolveSheetConstructionTests {
         }
     }
 
+    @Test(arguments: [Double.pi, -Double.pi, 2 * Double.pi], [false, true])
+    func spatialGeneratorRevolvesWithoutInventingPlane(angle: Double, rational: Bool) throws {
+        let curve = BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
+            controlPoints: [Point3D(x: 0.02, y: 0, z: 0), Point3D(x: 0.025, y: 0.01, z: 0.006),
+                Point3D(x: 0.03, y: 0.03, z: -0.004), Point3D(x: 0.02, y: 0.04, z: 0.003)],
+            weights: rational ? [1, 0.8, 1.2, 1] : nil)
+        var input = try section(curve)
+        input.plane = nil
+        let feature = FeatureNode(operation: .revolve(RevolveFeature(
+            section: .curve(CurveSectionReference(featureID: input.sourceFeatureID)),
+            axis: RevolveAxis(origin: .origin, direction: .unitY),
+            angle: .constant(.angle(angle, unit: .radian)), resultKind: .sheet)),
+            inputs: [FeatureInput(featureID: input.sourceFeatureID, role: .curve)], outputs: [FeatureOutput(role: .sheet)])
+        let result = try PlanarRevolveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(feature: feature,
+            context: EvaluationContext(parameters: ResolvedParameterTable(), brep: BRepModel(), profiles: [:],
+                curves: [input.sourceFeatureID: [input]], tolerance: .standard))
+        try result.brep.validate(level: .exact, tolerance: .standard)
+        #expect(result.brep.faces.count == (abs(angle) > .pi ? 4 : 2))
+        #expect(result.brep.bodies.values.allSatisfy { $0.kind == .sheet })
+        for surface in result.brep.geometry.surfaces.values {
+            for u in [0.0, 0.5, 1.0] {
+                let start = try surface.point(u: u, v: 0, tolerance: .standard)
+                let rotation = try RigidTransform3D.rotated(around: .origin, direction: .unitY,
+                    angle: -atan2(start.z, start.x), tolerance: .standard)
+                for v in [0.17, 0.5, 0.83, 1.0] {
+                    let expected = rotation.applying(to: try curve.point(at: v, tolerance: .standard))
+                    #expect((try surface.point(u: u, v: v, tolerance: .standard) - expected).length < 1e-8)
+                }
+            }
+        }
+    }
+
+    @Test func spatialAxisCrossingAndNonmonotoneGeneratorsDoNotPublish() throws {
+        for points in [
+            [Point3D(x: -0.02, y: 0, z: 0), Point3D(x: 0.02, y: 0.04, z: 0)],
+            [Point3D(x: 0.02, y: 0, z: 0), Point3D(x: 0.025, y: 0.1, z: 0.01),
+             Point3D(x: 0.03, y: -0.1, z: 0), Point3D(x: 0.02, y: 0.04, z: 0.01)]
+        ] {
+            let degree = points.count - 1
+            var input = try section(BSplineCurve3D(degree: degree,
+                knots: Array(repeating: 0, count: degree + 1) + Array(repeating: 1, count: degree + 1),
+                controlPoints: points))
+            input.plane = nil
+            #expect(throws: (any Error).self) { try build(input, angle: .pi) }
+        }
+    }
+
+    @Test func planarCurveCanRotateAroundAxisOutsideItsPlane() throws {
+        let input = try section(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+            controlPoints: [Point3D(x: 0.02, y: 0, z: 0), Point3D(x: 0.02, y: 0.04, z: 0)]))
+        let axis = RevolveAxis(origin: Point3D(x: 0, y: 0, z: 0.01), direction: .unitY)
+        let result = try CurvedRevolveBodyBuilder.buildSheet(axis: axis, angle: .pi / 2,
+            section: input, featureID: FeatureID(),
+            context: EvaluationContext(parameters: ResolvedParameterTable(), brep: BRepModel(),
+                profiles: [:], tolerance: .standard), sewer: DefaultBRepSewer())
+        try result.brep.validate(level: .exact, tolerance: .standard)
+        let surface = try #require(result.brep.geometry.surfaces.values.first)
+        let rotation = try RigidTransform3D.rotated(around: axis.origin, direction: .unitY,
+            angle: .pi / 4, tolerance: .standard)
+        let expected = rotation.applying(to: Point3D(x: 0.02, y: 0.02, z: 0))
+        #expect((try surface.point(u: 0.5, v: 0.5, tolerance: .standard) - expected).length < 1e-8)
+    }
+
     @Test func offsetObliqueAxisPreservesRationalGeometryAndBoundaries() throws {
         let placement = try RigidTransform3D.rotated(around: Point3D(x: 0.2, y: -0.1, z: 0.3),
             direction: Vector3D(x: 1, y: 2, z: 3), angle: 0.7, tolerance: .standard)

@@ -13,8 +13,8 @@ struct CurvedRevolveBodyBuilder {
     private let sewer: any BRepSewing
     private let parameterBasisU: Vector3D
     private let parameterBasisV: Vector3D
-    private let profileRadialDirection: Vector3D
-    private let angleOffset: Double
+    private let profileRadialDirection: Vector3D?
+    private let angleOffset: Double?
     private let isFullTurn: Bool
     private let angleBreaks: [Double]
 
@@ -39,12 +39,16 @@ struct CurvedRevolveBodyBuilder {
         context: EvaluationContext,
         sewer: any BRepSewing
     ) throws -> EvaluationResult {
-        // FIXME(INCOMPLETE_IMPLEMENTATION): The curve-sheet builder admits planar generators.
-        // Feature evaluation must not claim spatial-generator Revolve support until exact
-        // nonplanar rotational construction and its global validity checks are implemented.
-        guard let plane = section.plane else {
-            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
-                message: "Revolve curve sections require source plane metadata.")
+        try axis.validate(tolerance: context.tolerance)
+        var generatorPlane: SketchPlane?
+        if let sourcePlane = section.plane {
+            let plane = try Self.plane(for: sourcePlane, tolerance: context.tolerance)
+            let normal = try plane.normal.normalized(tolerance: context.tolerance.distance)
+            let direction = try axis.normalizedDirection(tolerance: context.tolerance)
+            if abs((axis.origin - plane.origin).dot(normal)) <= context.tolerance.distance,
+               abs(direction.dot(normal)) <= max(context.tolerance.angle, context.tolerance.distance) {
+                generatorPlane = sourcePlane
+            }
         }
         let spans = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance).sectionSpans(from: section)
         var witnesses: [Point3D] = []
@@ -57,8 +61,11 @@ struct CurvedRevolveBodyBuilder {
             witnesses.append(try span.curve.point(at: 0.5 * (lower + upper), tolerance: context.tolerance))
             witnesses.append(span.endPoint)
         }
-        let builder = try Self(axis: axis, angle: angle, plane: plane, sectionPoints: witnesses,
+        let builder = try Self(axis: axis, angle: angle, plane: generatorPlane, sectionPoints: witnesses,
             featureID: featureID, context: context, sewer: sewer)
+        if generatorPlane == nil {
+            try builder.validateSpatialGenerator(spans, isClosed: section.isClosed)
+        }
         let segments = try spans.enumerated().map { index, span in
             try builder.makeSegment(curve: span.curve, boundaryIndex: index, spanIndex: 0)
         }
@@ -69,7 +76,7 @@ struct CurvedRevolveBodyBuilder {
     private init(
         axis: RevolveAxis,
         angle: Double,
-        plane: SketchPlane,
+        plane: SketchPlane?,
         sectionPoints: [Point3D],
         featureID: FeatureID,
         context: EvaluationContext,
@@ -86,18 +93,14 @@ struct CurvedRevolveBodyBuilder {
             for: direction,
             tolerance: context.tolerance
         )
-        let profilePlane = try Self.plane(
-            for: plane,
-            tolerance: context.tolerance
-        )
-        let frame = try Self.profileFrame(
+        let frame = try plane.map { sourcePlane in try Self.profileFrame(
             axis: axis,
             axisDirection: direction,
             parameterBasis: basis,
             sectionPoints: sectionPoints,
-            profilePlane: profilePlane,
+            profilePlane: Self.plane(for: sourcePlane, tolerance: context.tolerance),
             tolerance: context.tolerance
-        )
+        ) }
         let fullTurn = abs(abs(angle) - 2.0 * Double.pi) <= context.tolerance.angle
         self.axisOrigin = axis.origin
         self.axisDirection = direction
@@ -109,10 +112,64 @@ struct CurvedRevolveBodyBuilder {
         self.sewer = sewer
         self.parameterBasisU = basis.u
         self.parameterBasisV = basis.v
-        self.profileRadialDirection = frame.radialDirection
-        self.angleOffset = frame.angleOffset
+        self.profileRadialDirection = frame?.radialDirection
+        self.angleOffset = frame?.angleOffset
         self.isFullTurn = fullTurn
         self.angleBreaks = Self.angleBreaks(for: self.angle, isFullTurn: fullTurn)
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Spatial curve Revolve currently certifies
+    // only open, axially monotone generators. Feature evaluation must retain explicit
+    // failure for nonmonotone/closed generators until general orbit-overlap proof exists.
+    private func validateSpatialGenerator(_ spans: [ExactBSplineCurveSpan], isClosed: Bool) throws {
+        guard !isClosed, let first = spans.first else {
+            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
+                message: "Spatial Revolve requires an open, axially monotone generator.")
+        }
+        let advance = (first.endPoint - first.startPoint).dot(axisDirection)
+        guard abs(advance) > context.tolerance.distance else {
+            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
+                message: "Spatial Revolve cannot yet certify a nonmonotone axial generator.")
+        }
+        let sign = advance > 0 ? 1.0 : -1.0
+        let encloser = DefaultCurveDifferentialEncloser()
+        var remainingCells = 65_536
+        var previousEnd = first.startPoint
+        for span in spans {
+            guard span.startPoint.isApproximatelyEqual(to: previousEnd, tolerance: context.tolerance.distance),
+                case let .closed(lower, upper) = span.curve.domain else {
+                throw FeatureEvaluationError.invalidGraph("Spatial Revolve requires continuous bounded spans.")
+            }
+            previousEnd = span.endPoint
+            var pending = [(try ScalarInterval(lower: lower, upper: upper), 0)]
+            while let (parameters, depth) = pending.popLast() {
+                guard remainingCells > 0 else {
+                    throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
+                        tolerance: context.tolerance, message: "Spatial Revolve exhausted its axial proof budget.")
+                }
+                remainingCells -= 1
+                let derivative = try encloser.enclosure(of: .bSpline(span.curve),
+                    over: parameters, tolerance: context.tolerance).firstDerivative
+                func scaled(_ interval: ScalarInterval, _ coefficient: Double) -> OutwardScalarInterval {
+                    OutwardScalarInterval(lower: interval.lower, upper: interval.upper) * .exact(coefficient)
+                }
+                let projection = (scaled(derivative.x, axisDirection.x)
+                    + scaled(derivative.y, axisDirection.y)
+                    + scaled(derivative.z, axisDirection.z)) * .exact(sign)
+                if projection.lower > 0 { continue }
+                guard projection.upper > 0 else {
+                    throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
+                        message: "Spatial Revolve cannot certify this nonmonotone axial generator.")
+                }
+                let middle = parameters.midpoint
+                guard depth < 32, middle > parameters.lower, middle < parameters.upper else {
+                    throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
+                        tolerance: context.tolerance, message: "Spatial Revolve axial monotonicity remains unresolved.")
+                }
+                pending.append((try ScalarInterval(lower: middle, upper: parameters.upper), depth + 1))
+                pending.append((try ScalarInterval(lower: parameters.lower, upper: middle), depth + 1))
+            }
+        }
     }
 
     func build(from profile: Profile, resultKind: BodyKind = .solid) throws -> EvaluationResult {
@@ -361,14 +418,18 @@ struct CurvedRevolveBodyBuilder {
         guard case let .closed(lower, upper) = curve.domain else {
             throw GeometryError.invalidDistance(0.0)
         }
-        for point in curve.controlPoints {
-            _ = try coordinates(for: point, requireNonnegativeRadius: false)
+        if profileRadialDirection != nil {
+            for point in curve.controlPoints {
+                _ = try coordinates(for: point, requireNonnegativeRadius: false)
+            }
+            try validateNonnegativeRadius(curve)
         }
-        try validateNonnegativeRadius(curve)
         let start = try curve.point(at: lower, tolerance: context.tolerance)
         let end = try curve.point(at: upper, tolerance: context.tolerance)
-        _ = try coordinates(for: start, requireNonnegativeRadius: true)
-        _ = try coordinates(for: end, requireNonnegativeRadius: true)
+        if profileRadialDirection != nil {
+            _ = try coordinates(for: start, requireNonnegativeRadius: true)
+            _ = try coordinates(for: end, requireNonnegativeRadius: true)
+        }
         return RevolveProfileSegment(
             curve: curve,
             startPoint: start,
@@ -443,6 +504,12 @@ struct CurvedRevolveBodyBuilder {
         guard case let .closed(vLower, vUpper) = segment.curve.domain else {
             throw GeometryError.invalidDistance(0.0)
         }
+        if profileRadialDirection == nil {
+            try DefaultSurfaceRegularityValidator().validate(surface,
+                over: SurfaceParameterBox(u: try ScalarInterval(lower: 0, upper: 1),
+                    v: try ScalarInterval(lower: vLower, upper: vUpper)),
+                tolerance: context.tolerance)
+        }
         let prefix = sideStableID(
             loopIndex: loopIndex,
             segmentIndex: segmentIndex,
@@ -513,7 +580,7 @@ struct CurvedRevolveBodyBuilder {
         role: GeneratedSubshapeRole
     ) throws -> BRepSewingFacePatch {
         let sweepSign = self.angle >= 0.0 ? 1.0 : -1.0
-        let tangent = axisDirection.cross(rotatedRadialDirection(angle: angle))
+        let tangent = try axisDirection.cross(rotatedRadialDirection(angle: angle))
         let normal: Vector3D
         let reversesBoundary: Bool
         switch role {
@@ -579,7 +646,7 @@ struct CurvedRevolveBodyBuilder {
         angle: Double,
         normal: Vector3D
     ) throws -> RevolveCapSurface {
-        let uAxis = rotatedRadialDirection(angle: angle)
+        let uAxis = try rotatedRadialDirection(angle: angle)
         let vAxis = try normal.cross(uAxis).normalized(
             tolerance: context.tolerance.distance
         )
@@ -692,8 +759,8 @@ struct CurvedRevolveBodyBuilder {
         pcurve: SurfaceParameterCurve,
         stableID: String
     ) throws -> BRepSewingEdge? {
-        let coordinate = try coordinates(for: point, requireNonnegativeRadius: true)
-        guard coordinate.radius > context.tolerance.distance else {
+        let axisPoint = axisOrigin + axisDirection * (point - axisOrigin).dot(axisDirection)
+        guard (point - axisPoint).length > context.tolerance.distance else {
             return nil
         }
         let rows = try rotatedControlRows([point], startAngle: startAngle, endAngle: endAngle)
@@ -850,11 +917,8 @@ struct CurvedRevolveBodyBuilder {
 
     private func isAxisSegment(_ segment: RevolveProfileSegment) throws -> Bool {
         for point in segment.curve.controlPoints {
-            let coordinate = try coordinates(
-                for: point,
-                requireNonnegativeRadius: false
-            )
-            if abs(coordinate.radius) > context.tolerance.distance {
+            let axisPoint = axisOrigin + axisDirection * (point - axisOrigin).dot(axisDirection)
+            if (point - axisPoint).length > context.tolerance.distance {
                 return false
             }
         }
@@ -893,6 +957,9 @@ struct CurvedRevolveBodyBuilder {
         for point: Point3D,
         requireNonnegativeRadius: Bool
     ) throws -> RevolveCoordinate {
+        guard let profileRadialDirection else {
+            throw FeatureEvaluationError.invalidGraph("A spatial revolution has no planar profile frame.")
+        }
         try point.validate()
         let offset = point - axisOrigin
         let axial = offset.dot(axisDirection)
@@ -925,7 +992,10 @@ struct CurvedRevolveBodyBuilder {
         )
     }
 
-    private func rotatedRadialDirection(angle: Double) -> Vector3D {
+    private func rotatedRadialDirection(angle: Double) throws -> Vector3D {
+        guard let angleOffset else {
+            throw FeatureEvaluationError.invalidGraph("A spatial revolution cannot construct planar caps.")
+        }
         let parameter = angleOffset + angle
         return parameterBasisU * cos(parameter) + parameterBasisV * sin(parameter)
     }

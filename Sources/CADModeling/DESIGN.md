@@ -67,15 +67,26 @@ construction using RigidTransform3D. Rotation coefficients are computed once
 per angular patch, not per generator control point. Profile-plane admission
 remains separate from this geometric construction; removing that admission
 requires whole-surface regularity and global overlap validation for spatial
-generators, not merely successful Cartesian rotation.
+generators, not merely successful Cartesian rotation. Open spatial generators
+with a certified strictly monotone axial coordinate use Cartesian construction.
+The axial derivative sign is enclosed over every exact span using outward
+interval arithmetic; all spans must have the same sign and remain continuous.
+Distinct generator parameters then have distinct axial coordinates, excluding
+cross-patch overlap independently of angular subdivision. Each resulting patch
+must also pass whole-domain regularity validation. A full turn identifies only
+its angular seam. The adaptive axial proof allows 32 subdivision levels and
+65,536 cells per request; exhaustion is a typed resource failure. Nonmonotone
+spatial generators remain explicitly incomplete, not inferred safe by samples.
 
 The existing rational surface-of-revolution builder owns both solid and sheet
-construction. It consumes exact planar generator spans and the rotation axis;
+construction. It consumes exact generator spans and the rotation axis;
 curve sheets do not fabricate a closed Profile. One span construction path owns
 surfaces, oriented pcurves, sewing and lineage. The requested body kind decides
 whether partial-turn caps and solid shell ownership are built. Open generators
-never receive caps. Angular seam splitting and whole-span radial half-space
-validation remain common to both outputs. A sampled point may choose the radial
+never receive caps. A curve whose plane does not contain the axis uses the
+spatial proof path; solid profiles still require an axis in their plane.
+Angular seam splitting is shared; whole-span radial half-space validation
+applies to planar generators. A sampled point may choose the radial
 frame but cannot certify that the generator stays on one side of the axis.
 
 `CurvedRevolveFeatureTests` owns solid regression; `RevolveSheetConstructionTests`
