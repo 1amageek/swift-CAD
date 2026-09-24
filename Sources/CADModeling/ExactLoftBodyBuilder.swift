@@ -679,6 +679,14 @@ package struct ExactLoftBodyBuilder {
                 for intersection in intersections {
                     switch intersection {
                     case .curve(let contact):
+                        if commonEdges.isEmpty,
+                           planeResolver.canonicalPlane(for: surface) != nil,
+                           planeResolver.canonicalPlane(for: sideSurface) != nil,
+                           case .line = contact.curve {
+                            try validateNonincidentPlanarContact(cap: face, side: side,
+                                line: contact.curve, model: model)
+                            continue
+                        }
                         var shared = false
                         if case let .closed(lower, upper) = contact.curve.parameterDomain {
                             let candidate = try CurveSpanDefinition(
@@ -747,6 +755,100 @@ package struct ExactLoftBodyBuilder {
                     }
                 }
             }
+        }
+    }
+
+    private func validateNonincidentPlanarContact(
+        cap: Face, side: Face, line: Curve3D, model: BRepModel
+    ) throws {
+        let tolerance = context.tolerance
+        guard case .line(let support) = line else {
+            throw invalidGeometry("Loft planar contact requires a line support.")
+        }
+        let origin = support.origin
+        let direction = support.direction
+        let denominator = direction.dot(direction)
+        guard denominator.isFinite, denominator > 0 else {
+            throw invalidGeometry("Loft planar intersection has no finite direction.")
+        }
+        let faces = [cap, side]
+        let surfaces = try faces.map { face -> Surface3D in
+            guard let surface = model.geometry.surfaces[face.surfaceID] else {
+                throw TopologyError.missingReference("Loft planar support is missing.")
+            }
+            return surface
+        }
+        var regions: [[(role: LoopRole, predicate: CertifiedSurfaceParameterLoopPredicate)]] = []
+        var cuts: [Double] = []
+        var vertices: [Set<VertexID>] = []
+        for index in faces.indices {
+            var faceRegions: [(role: LoopRole, predicate: CertifiedSurfaceParameterLoopPredicate)] = []
+            var faceVertices: Set<VertexID> = []
+            for loopID in faces[index].loops {
+                guard let loop = model.loops[loopID] else {
+                    throw TopologyError.missingReference("Loft planar trim is missing.")
+                }
+                var pcurves: [SurfaceParameterCurve] = []
+                for coedge in loop.coedges {
+                    guard let edge = model.edges[coedge.edgeID], let trim = edge.trim,
+                          let curve = model.geometry.curves[edge.curveID],
+                          let pcurve = coedge.surfaceParameterCurve else {
+                        throw TopologyError.missingReference("Loft planar edge is missing.")
+                    }
+                    pcurves.append(pcurve)
+                    faceVertices.insert(edge.startVertexID)
+                    faceVertices.insert(edge.endVertexID)
+                    for parameter in [trim.startParameter, trim.endParameter] {
+                        let point = try curve.point(at: parameter, tolerance: tolerance)
+                        cuts.append((point - origin).dot(direction) / denominator)
+                    }
+                    let events = try DefaultCurveSurfaceIntersector().intersections(curve: curve,
+                        surface: surfaces[1 - index], options: .init(curveRange: ScalarInterval(
+                            lower: min(trim.startParameter, trim.endParameter),
+                            upper: max(trim.startParameter, trim.endParameter))), tolerance: tolerance)
+                    for event in events { cuts.append((event.point - origin).dot(direction) / denominator) }
+                }
+                faceRegions.append((loop.role, try CertifiedSurfaceParameterLoopPredicate(
+                    curves: pcurves, tolerance: tolerance)))
+            }
+            regions.append(faceRegions)
+            vertices.append(faceVertices)
+        }
+        guard cuts.allSatisfy(\.isFinite), !cuts.isEmpty else {
+            throw invalidGeometry("Loft planar trims require finite intersection parameters.")
+        }
+        cuts = Array(Set(cuts)).sorted()
+        let sharedVertices = vertices[0].intersection(vertices[1])
+        func contains(_ point: Point3D, index: Int) throws -> Bool {
+            let uv = try surfaces[index].parameterProjection(of: point, tolerance: tolerance)
+            var outer = false
+            for region in regions[index] {
+                let result = try region.predicate.classify(Point2D(x: uv.u, y: uv.v), tolerance: tolerance)
+                if region.role == .outer { outer = outer || result != .outside }
+                else if result == .inside { return false }
+            }
+            return outer
+        }
+        func check(_ parameter: Double, allowsSharedVertex: Bool) throws {
+            let point = try line.point(at: parameter, tolerance: tolerance)
+            guard try contains(point, index: 0), try contains(point, index: 1) else { return }
+            if allowsSharedVertex && sharedVertices.contains(where: {
+                model.vertices[$0]?.point.isApproximatelyEqual(to: point, tolerance: tolerance.distance) == true
+            }) { return }
+            throw invalidGeometry("Nonincident Loft planar faces intersect within their finite trims.")
+        }
+        for cut in cuts { try check(cut, allowsSharedVertex: true) }
+        // Complete boundary/plane events partition the support line into cells
+        // of constant region membership. These are cell witnesses, not samples
+        // used to infer separation of an unsplit intersection curve.
+        for index in cuts.indices.dropFirst() {
+            let middle = cuts[index - 1] * 0.5 + cuts[index] * 0.5
+            guard middle > cuts[index - 1], middle < cuts[index] else {
+                throw KernelError(phase: .geometry, code: .classificationFailure,
+                    featureID: featureID, tolerance: tolerance,
+                    message: "Loft planar intersection intervals exceed numeric resolution.")
+            }
+            try check(middle, allowsSharedVertex: false)
         }
     }
 

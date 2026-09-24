@@ -7,6 +7,42 @@ import Testing
 
 @Suite("Loft finite cap contacts")
 struct LoftCapContactTests {
+    @Test(.timeLimit(.minutes(1)), arguments: [0.0, 1.5, 3.0])
+    func nonincidentPlanarSidesUseBothFiniteTrims(centerX: Double) throws {
+        var context = EvaluationContext(parameters: ResolvedParameterTable(),
+            brep: BRepModel(), profiles: [:], tolerance: .standard)
+        let evaluator = BSplineSurfaceFeatureEvaluator()
+        func add(_ patch: BSplineSurface3D) throws -> BRepModel {
+            try evaluator.evaluate(feature: FeatureNode(
+                operation: .bSplineSurface(BSplineSurfaceFeature(surface: patch)),
+                outputs: [FeatureOutput(role: .sheet)]), context: context).brep
+        }
+        var model = try add(.bilinearPatch(bottomLeft: Point3D(x: -1, y: -1, z: 0),
+            bottomRight: Point3D(x: 1, y: -1, z: 0), topRight: Point3D(x: 1, y: 1, z: 0),
+            topLeft: Point3D(x: -1, y: 1, z: 0)))
+        let cap = try #require(model.faces.values.first)
+        context.brep = model
+        let x = centerX
+        model = try add(.bilinearPatch(bottomLeft: Point3D(x: x - 0.5, y: 0, z: -1),
+            bottomRight: Point3D(x: x + 0.5, y: 0, z: -1), topRight: Point3D(x: x + 0.5, y: 0, z: 1),
+            topLeft: Point3D(x: x - 0.5, y: 0, z: 1)))
+        let side = try #require(model.faces.values.first { $0.id != cap.id })
+        model.geometry.surfaces[cap.surfaceID] = .plane(Plane3D(origin: .origin, normal: .unitZ))
+        model.geometry.surfaces[side.surfaceID] = .plane(Plane3D(origin: .origin, normal: .unitY))
+        for id in model.loops.keys {
+            var loop = try #require(model.loops[id])
+            for index in loop.coedges.indices { loop.coedges[index].surfaceParameterCurve = nil }
+            model.loops[id] = loop
+        }
+        try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: .standard)
+        let operation = {
+            try ExactLoftBodyBuilder(featureID: FeatureID(), context: context).validateCapContacts(
+                capFaceIDs: [cap.id], sideFaceIDs: [side.id], edgeIDs: Array(model.edges.keys), model: model)
+        }
+        if centerX <= 1.5 { #expect(throws: KernelError.self, performing: operation) }
+        else { try operation() }
+    }
+
     @Test(.timeLimit(.minutes(1)), arguments: [false, true], [false, true])
     func coplanarSharedEdgeRequiresOppositeRegions(overlap: Bool, shared: Bool) throws {
         var context = EvaluationContext(parameters: ResolvedParameterTable(),

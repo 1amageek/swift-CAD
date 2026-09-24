@@ -292,6 +292,13 @@ topological edge. Otherwise, boundary-disjoint intersection components are
 classified against finite cap loops; an interior component is invalid. Contacts
 with unresolved trim crossings or coplanar regions remain explicit failures,
 not successful separation. Existing intersection budgets bound support search.
+For nonincident nonparallel planar faces, the support line is partitioned by
+both faces' trimmed boundary/plane intersection events. Classification must use
+both finite regions, including holes, rather than the cap alone. Boundary
+events and every intervening interval are checked; no shared edge is inferred
+from coincident positions. Intersection failures remain failures. The finite
+trim regression is owned by LoftCapContactTests.
+
 Before support intersection search, a cap boundary control hull and side
 surface control hull may prove spatial disjointness. Exact midpoint
 isoparametric curves may provide interior-contact witnesses; their failure to
