@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 import Testing
@@ -72,6 +73,32 @@ struct SectionResolutionTests {
         #expect(throws: FeatureEvaluationError.self) { try section.plane() }
         #expect(throws: FeatureEvaluationError.self) { try section.profileReference() }
         #expect(try ResolvedModelingSection.curve(curve(source: source, plane: .xy)).plane() == .xy)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func reversedConicPreservesLocusClosureAndSource(trimmed: Bool) throws {
+        let id = FeatureID()
+        let exact = Curve3D.circle(Circle3D(center: .origin, normal: .unitZ, radius: 1))
+        let parameters = [0.0, Double.pi, Double.pi * 2]
+        let source = EvaluatedCurve(sourceFeatureID: id, source: .sketchEntity(SketchEntityID()), kind: .circle,
+            points: try parameters.map { try exact.point(at: $0, tolerance: .standard) },
+            isClosed: true, plane: .xy, exactCurve: exact,
+            exactParameterDomain: .closed(0, 2 * .pi), exactPointParameters: parameters)
+        let reference = CurveSectionReference(featureID: id,
+            parameterDomain: trimmed ? .closed(0, .pi) : nil, isReversed: true)
+        let result = try ResolvedModelingSection.resolveCurve(reference, from: [source], tolerance: .standard)
+        #expect(result.sourceFeatureID == id)
+        #expect(result.source == source.source)
+        #expect(result.plane == .xy)
+        #expect(result.isClosed == !trimmed)
+        #expect(result.points[0].isApproximatelyEqual(
+            to: try exact.point(at: trimmed ? .pi : 2 * .pi, tolerance: .standard), tolerance: 1e-9))
+        #expect(result.points[1].y * (trimmed ? 1 : -1) > 0)
+        for point in result.points {
+            #expect(abs(point.x * point.x + point.y * point.y - 1) < 1e-9)
+            #expect(abs(point.z) < 1e-9)
+        }
+        try result.validate(tolerance: .standard)
     }
 
     private func profile(source: FeatureID, plane: SketchPlane = .xy) -> Profile {

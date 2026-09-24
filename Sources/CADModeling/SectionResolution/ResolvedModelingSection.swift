@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 
 /// Source admission shared by modeling evaluators and their preflight consumers.
@@ -35,10 +36,31 @@ package enum ResolvedModelingSection: Sendable {
         guard curve.sourceFeatureID == reference.featureID else {
             throw FeatureEvaluationError.invalidGraph("Section curve belongs to a different source feature.")
         }
-        guard let domain = reference.parameterDomain else { return curve }
+        guard reference.parameterDomain != nil || reference.isReversed else { return curve }
         try curve.validate(tolerance: tolerance)
-        return try CurveTrimFeatureEvaluator().trimmedCurve(featureID: reference.featureID,
-            source: curve, domain: domain, tolerance: tolerance)
+        var selected = curve
+        if let domain = reference.parameterDomain {
+            selected = try CurveTrimFeatureEvaluator().trimmedCurve(featureID: reference.featureID,
+                source: curve, domain: domain, tolerance: tolerance)
+        }
+        guard reference.isReversed else { return selected }
+        let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).sectionSpans(from: selected)
+        let composite = try spans.count == 1 ? spans[0].curve
+            : ExactCompositeBSplineCurveBuilder().build(spans: spans.map(\.curve), tolerance: tolerance)
+        let reversed = try composite.reversed(tolerance: tolerance)
+        guard case .closed(let lower, let upper) = reversed.domain else {
+            throw FeatureEvaluationError.invalidGraph("Reversed curve sections require a bounded exact curve.")
+        }
+        let parameters = (0...32).map { index in
+            index == 32 ? upper : lower + (upper - lower) * Double(index) / 32
+        }
+        selected.source = curve.source
+        selected.exactCurve = .bSpline(reversed)
+        selected.exactParameterDomain = reversed.domain
+        selected.exactPointParameters = parameters
+        selected.points = try parameters.map { try reversed.point(at: $0, tolerance: tolerance) }
+        try selected.validate(tolerance: tolerance)
+        return selected
     }
 
     package func plane() throws -> SketchPlane {

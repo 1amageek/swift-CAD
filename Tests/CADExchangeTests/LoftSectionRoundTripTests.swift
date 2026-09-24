@@ -20,7 +20,8 @@ struct LoftSectionRoundTripTests {
             sourceIDs.append(node.id)
         }
         var loft = LoftFeature(sections: sourceIDs.map {
-            LoftSectionReference(section: .curve(CurveSectionReference(featureID: $0)))
+            LoftSectionReference(section: .curve(CurveSectionReference(featureID: $0,
+                parameterDomain: .closed(0.01, 0.03), isReversed: true)))
         }, options: LoftOptions(resultKind: .sheet))
         let feature = try FeatureNodeFactory.make(operation: .loft(loft), in: document, tolerance: .standard)
         document.designGraph.nodes[feature.id] = feature
@@ -31,11 +32,13 @@ struct LoftSectionRoundTripTests {
         let sink = DataByteSink()
         try store.writePackage(for: document, to: sink)
         var restored = try store.loadDocument(from: BorrowedBytes(sink.bytes))
+        #expect(restored.designGraph.nodes[feature.id]?.operation == .loft(loft))
         let evaluator = DocumentEvaluator(tolerance: .standard)
         let result = try evaluator.evaluateExact(restored)
         #expect(result.brep.bodies.count == 1)
         #expect(result.brep.bodies.values.allSatisfy { $0.kind == .sheet })
         #expect(result.brep.faces.count == 2)
+        #expect(result.brep.vertices.values.allSatisfy { abs($0.point.x - 0.01) < 1e-10 || abs($0.point.x - 0.03) < 1e-10 })
         loft.options.surfaceMode = .smooth
         restored.designGraph.nodes[feature.id]?.operation = .loft(loft)
         let edited = try evaluator.evaluateExact(restored)

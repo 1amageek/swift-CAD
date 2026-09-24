@@ -50,18 +50,19 @@ struct SpatialCurveExtrudeTests {
         }
     }
 
-    @Test func exactSectionIntervalControlsExtrudedBoundary() throws {
+    @Test(arguments: [false, true])
+    func exactSectionIntervalControlsExtrudedBoundary(reversed: Bool) throws {
         let curve = BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
             controlPoints: [.origin, Point3D(x: 0.2, y: 0.1, z: 0.1),
                 Point3D(x: 0.8, y: 0.2, z: -0.1), Point3D(x: 1, y: 0, z: 0)],
             weights: [1, 0.8, 1.2, 1])
         let input = try section(curve)
-        let result = try evaluate(input, direction: .vector(.unitZ), domain: .closed(0.2, 0.8))
+        let result = try evaluate(input, direction: .vector(.unitZ), domain: .closed(0.2, 0.8), reversed: reversed)
         try result.brep.validate(level: .exact, tolerance: .standard)
         let surface = try #require(result.brep.geometry.surfaces.values.first)
         for u in [0.0, 0.2, 0.5, 1.0] {
             for v in [0.0, 0.5, 1.0] {
-                let expected = try curve.point(at: 0.2 + 0.6 * u, tolerance: .standard)
+                let expected = try curve.point(at: reversed ? 0.8 - 0.6 * u : 0.2 + 0.6 * u, tolerance: .standard)
                     + Vector3D(x: 0, y: 0, z: 2 * v)
                 #expect((try surface.point(u: u, v: v, tolerance: .standard) - expected).length < 1e-8)
             }
@@ -78,10 +79,10 @@ struct SpatialCurveExtrudeTests {
     }
 
     private func evaluate(_ section: EvaluatedCurve, direction: ExtrudeDirection,
-        domain: ParameterDomain? = nil
+        domain: ParameterDomain? = nil, reversed: Bool = false
     ) throws -> EvaluationResult {
         let feature = FeatureNode(operation: .extrude(ExtrudeFeature(
-            section: .curve(CurveSectionReference(featureID: section.sourceFeatureID, parameterDomain: domain)),
+            section: .curve(CurveSectionReference(featureID: section.sourceFeatureID, parameterDomain: domain, isReversed: reversed)),
             distance: .constant(.length(2, unit: .meter)), direction: direction, resultKind: .sheet)),
             inputs: [FeatureInput(featureID: section.sourceFeatureID, role: .curve)],
             outputs: [FeatureOutput(role: .sheet)])

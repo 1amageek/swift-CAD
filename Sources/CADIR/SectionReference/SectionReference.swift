@@ -52,18 +52,19 @@ public enum SectionReference: Codable, Hashable, Sendable {
         case featureID
         case profileIndex
         case parameterDomain
+        case isReversed
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.kind, .featureID, .profileIndex, .parameterDomain], in: decoder)
+        try container.validateOnlyExpectedKeys([.kind, .featureID, .profileIndex, .parameterDomain, .isReversed], in: decoder)
         let kind = try container.decode(Kind.self, forKey: .kind)
         let featureID = try container.decode(FeatureID.self, forKey: .featureID)
         switch kind {
         case .profile:
-            guard !container.contains(.parameterDomain) else {
+            guard !container.contains(.parameterDomain), !container.contains(.isReversed) else {
                 throw DecodingError.dataCorruptedError(forKey: .parameterDomain, in: container,
-                    debugDescription: "Profile sections must not contain a curve parameter domain.")
+                    debugDescription: "Profile sections must not contain curve interval or direction fields.")
             }
             let profileIndex = try container.decode(Int.self, forKey: .profileIndex)
             self = .profile(ProfileReference(featureID: featureID, profileIndex: profileIndex))
@@ -76,7 +77,8 @@ public enum SectionReference: Codable, Hashable, Sendable {
                 )
             }
             self = .curve(CurveSectionReference(featureID: featureID,
-                parameterDomain: try container.decodeIfPresent(ParameterDomain.self, forKey: .parameterDomain)))
+                parameterDomain: try container.decodeIfPresent(ParameterDomain.self, forKey: .parameterDomain),
+                isReversed: try container.decode(Bool.self, forKey: .isReversed)))
         }
         try validate()
     }
@@ -93,6 +95,7 @@ public enum SectionReference: Codable, Hashable, Sendable {
             try container.encode(Kind.curve, forKey: .kind)
             try container.encode(curve.featureID, forKey: .featureID)
             try container.encodeIfPresent(curve.parameterDomain, forKey: .parameterDomain)
+            try container.encode(curve.isReversed, forKey: .isReversed)
         }
     }
 }

@@ -22,6 +22,10 @@ remain authoritative when present and are not silently relabeled. This module
 does not create a Rupa scene object, choose a presentation representation, or
 mutate a project.
 
+Native section-reference admission follows the [CADIR section contract](../CADIR/SectionReference/DESIGN.md):
+curve intervals and explicit traversal direction survive save/load, profile inputs
+reject curve-only controls, and missing direction fields are not silently migrated.
+
 ## Related Designs
 
 | Design | Relationship | Contract Used | Summary | Cautions |

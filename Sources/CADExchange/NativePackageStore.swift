@@ -1368,7 +1368,7 @@ private func validateSweepFeatureObject(_ object: [String: Any], path: String) t
 private func validateSectionReferenceObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["kind", "featureID", "profileIndex"],
+        supportedKeys: ["kind", "featureID", "profileIndex", "parameterDomain", "isReversed"],
         objectName: path
     )
     guard let kind = object["kind"] as? String else {
@@ -1380,6 +1380,9 @@ private func validateSectionReferenceObject(_ object: [String: Any], path: Strin
     }
     switch kind {
     case "profile":
+        guard object["parameterDomain"] == nil, object["isReversed"] == nil else {
+            throw SchemaError.invalidPackage("Native \(path) profile sections cannot carry curve interval or direction fields.")
+        }
         guard let index = object["profileIndex"] as? Int,
               index >= 0 else {
             throw SchemaError.invalidPackage("Native \(path).profileIndex must be a non-negative integer.")
@@ -1388,6 +1391,10 @@ private func validateSectionReferenceObject(_ object: [String: Any], path: Strin
         guard object["profileIndex"] == nil else {
             throw SchemaError.invalidPackage("Native \(path).profileIndex is only valid for profile sections.")
         }
+        guard object["isReversed"] is Bool else {
+            throw SchemaError.invalidPackage("Native \(path).isReversed must be an explicit boolean.")
+        }
+        try validateObjectField("parameterDomain", in: object, path: "\(path).parameterDomain", using: validateParameterDomainObject)
     default:
         throw SchemaError.invalidPackage("Native \(path).kind must be profile or curve.")
     }

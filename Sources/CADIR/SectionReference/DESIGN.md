@@ -45,5 +45,9 @@ cardinality and identity checks. Sweep evaluation/preflight, Rupa commands,
 selection, remapping, Agent and Automation all consume this one value contract.
 Curve intervals survive both standalone and SectionReference encoding, and source
 ID remapping preserves the interval. Missing intervals mean the whole curve.
-Adding face or orientation semantics requires updating those consumers
+Curve references additionally own `isReversed`. Resolution restricts the original
+parameter domain before reversing traversal; stored bounds always name the original
+source, not the derived reverse parameterization. The boolean is required on decode;
+old curve-reference payloads without explicit direction are rejected.
+Adding face semantics requires updating those consumers
 before publishing the changed contract; those capabilities are not implied here.

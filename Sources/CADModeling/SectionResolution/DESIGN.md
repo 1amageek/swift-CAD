@@ -9,7 +9,7 @@ profiles and curves for feature evaluation and preflight. It has no children.
 
 Own profile-index admission, source identity agreement, curve cardinality and
 the distinction between resolving geometry and requiring a planar section.
-Do not extract sketches, evaluate documents, construct geometry, infer a plane
+Do not extract sketches, evaluate documents, create source features or bodies, infer a plane
 from tessellation, or choose which input the user intended.
 
 ## Related Designs
@@ -18,6 +18,7 @@ from tessellation, or choose which input the user intended.
 |---|---|---|---|---|
 | [CADModeling](../DESIGN.md) | parent | FeatureEvaluating | Supplies admitted sections to existing builders. | Resolution is not geometric construction or whole-shape validation. |
 | [CADIR](../../CADIR/DESIGN.md) | depends on | ProfileReference, EvaluatedCurve | Reads exact source values. | Identity and array position are different concepts. |
+| [CADGeometry](../../CADGeometry/DESIGN.md) | depends on | Exact rational composite construction and reversal | Retains curve locus while changing traversal. | Derived parameters are not source-reference parameters. |
 | [CADKernel](../../CADKernel/DESIGN.md) | used by | Sweep preflight | Uses the same admission as evaluation. | Preflight still owns fetching source geometry. |
 
 ## Architecture
@@ -43,8 +44,14 @@ evaluated source arrays + reference
   curve geometry while updating display samples, closure and parameter domain.
   No display polyline is used to reconstruct the selected curve. Extrude,
   Revolve, Loft and Sweep evaluation/preflight consume the same restricted value.
-- Input arrays and values retain Swift value semantics; the resolver does not
-  map, filter, copy buffers manually, store state or cache results.
+- Reversed sections are restricted first, then converted by the existing exact
+  span builder and reversed as rational B-splines. Multiple spans use the existing
+  bounded exact composite builder. The derived parameterization may differ from
+  the source; reference bounds remain in source coordinates. Generated display
+  points retain their exact parameters. Plane, closure and source identity survive.
+- Input arrays and values retain Swift value semantics; whole-section admission
+  returns the original value. Interval/reversal results own derived sample and
+  exact spline buffers without mutating the source. The resolver stores no state.
 - These rules and Sendable conformances are unconditional across targets.
 
 Extrude admits a shared section before construction. Closed profiles retain the
@@ -62,6 +69,8 @@ admission before publication.
 Resolution is synchronous and stateless, with no I/O, callbacks,
 locks or cancellation ownership. Whole-curve admission is constant-time; an
 explicit trim owns the bounded sample allocation of the existing trim evaluator.
+Reversal owns exact spline buffers and the existing composite patch/degree limits;
+it is performed during section evaluation, never during hover.
 Missing and mismatched
 inputs remain explicit failures. The construction owner validates geometric
 regularity and topology; resolution does not claim these properties.
