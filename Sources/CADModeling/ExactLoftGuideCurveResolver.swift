@@ -252,9 +252,22 @@ package struct ExactLoftGuideCurveResolver {
         }
         // Coordinate selection only steers convergence. All roots and spatial
         // distances still require interval certification; no sampled contact is admitted.
-        let normal = try guide.differentialGeometry(at: a + (b - a) * 0.5, tolerance: tolerance)
-            .firstDerivative.cross(boundary.differentialGeometry(at: c + (d - c) * 0.5,
-                tolerance: tolerance).firstDerivative)
+        let guideTangents = try [a, a + (b - a) * 0.5, b].map {
+            try guide.parameterDerivatives(at: $0, tolerance: tolerance).firstDerivative
+        }
+        let boundaryTangents = try [c, c + (d - c) * 0.5, d].map {
+            try boundary.parameterDerivatives(at: $0, tolerance: tolerance).firstDerivative
+        }
+        var normal = Vector3D(x: 0, y: 0, z: 0)
+        for first in guideTangents {
+            for second in boundaryTangents {
+                let candidate = first.cross(second)
+                if max(abs(candidate.x), abs(candidate.y), abs(candidate.z))
+                    > max(abs(normal.x), abs(normal.y), abs(normal.z)) {
+                    normal = candidate
+                }
+            }
+        }
         let axis = abs(normal.x) >= max(abs(normal.y), abs(normal.z)) ? 0
             : abs(normal.y) >= abs(normal.z) ? 1 : 2
         func projected(_ curve: BSplineCurve3D) -> BSplineCurve2D {

@@ -7,6 +7,33 @@ import CADModeling
 
 @Suite("Exact curve section Loft", .timeLimit(.minutes(1)))
 struct CurveLoftFeatureTests {
+    @Test(arguments: [false, true])
+    func isolatedGuideContactDoesNotDependOnParallelMidpointTangents(stationaryEndpoints: Bool) throws {
+        let x = [0.0, 0.25, 0.0, 0.25]
+        let sections = try [0.0, 1.0, 2.0].map { z in
+            try section(BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
+                controlPoints: x.indices.map { index in
+                    let fraction = Double(index) / 3
+                    return Point3D(x: x[index], y: (z - 1) * fraction, z: z + 0.1 * fraction)
+                }))
+        }
+        let guide = try section(stationaryEndpoints
+            ? BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
+                controlPoints: [.origin, .origin, Point3D(x: 0, y: 0, z: 2), Point3D(x: 0, y: 0, z: 2)])
+            : BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+                controlPoints: [.origin, Point3D(x: 0, y: 0, z: 2)]))
+        let result = try evaluate(sections, mode: .ruled, guides: [guide])
+        try result.brep.validate(level: .exact, tolerance: .standard)
+        #expect(result.brep.faces.count == 2)
+        #expect(result.brep.vertices.values.contains { ($0.point - Point3D(x: 0, y: 0, z: 1)).length < 1e-8 })
+        for surface in result.brep.geometry.surfaces.values {
+            for v in [0.0, 0.5, 1.0] {
+                let point = try surface.point(u: 0, v: v, tolerance: .standard)
+                #expect(abs(point.x) < 1e-8 && abs(point.y) < 1e-8)
+            }
+        }
+    }
+
     @Test func guideMayLieInTheIntermediateSectionSupportPlane() throws {
         var sections = try [0.0, 1.0, 2.0].map { z in
             try section(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],

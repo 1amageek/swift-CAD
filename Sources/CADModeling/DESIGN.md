@@ -122,7 +122,12 @@ use coordinate projection of exact rational curves,
 the existing certified 2D root solver, and outward-rounded 3D enclosure distances.
 Each projected root must be proved separated or within the distance tolerance;
 unresolved roots and search exhaustion propagate failure. Chart choice affects
-convergence only, never admission. This admits discrete transverse contacts, not
+convergence only, never admission. It considers endpoint and midpoint tangent
+pairs so parallel midpoint tangents cannot alone select a degenerate projection.
+The largest cross-product component chooses the chart; it is not contact evidence.
+Raw parameter derivatives supply these candidates without requiring nonzero
+endpoint speed; chart selection does not impose a separate curvature contract.
+This admits discrete transverse contacts, not
 general coincident/tangent spatial loci. Missing or ambiguous contacts remain errors.
 The spatial search uses the existing certified pcurve solver's 32-level,
 1,048,576-cell envelope; exhaustion is an error, not a sampled fallback.
