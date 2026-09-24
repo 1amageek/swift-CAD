@@ -56,7 +56,8 @@ package struct ExactLoftBodyBuilder {
     }
 
     package func build(
-        loft: LoftFeature, boundarySpans: [[ExactBSplineCurveSpan]], isClosed: Bool
+        loft: LoftFeature, boundarySpans: [[ExactBSplineCurveSpan]], isClosed: Bool,
+        guideCurves: [ExactLoftGuideCurve] = []
     ) throws -> EvaluationResult {
         try context.tolerance.validate()
         try loft.validate()
@@ -66,14 +67,19 @@ package struct ExactLoftBodyBuilder {
             throw invalidGeometry("Boundary Loft requires Sheet output and nonempty section spans.")
         }
         // FIXME(INCOMPLETE_IMPLEMENTATION): Curve-section Loft shares exact construction,
-        // but feature evaluation must not claim guide or seam controls until their exact
-        // correspondence resolution is connected for open and spatial curve sections.
-        guard loft.guides.isEmpty, loft.sections.allSatisfy({ $0.startSampleIndex == nil }) else {
+        // but feature evaluation must not claim explicit seam controls until exact seam
+        // correspondence is connected for open and spatial curve sections.
+        guard loft.sections.allSatisfy({ $0.startSampleIndex == nil }) else {
             throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
-                message: "Curve Loft guide and seam correspondence is not implemented.")
+                message: "Curve Loft explicit seam correspondence is not implemented.")
         }
         let sections = try boundarySpans.map(parameterizedSpans)
-        let sortedBreaks = (sections.flatMap { $0.map(\.lowerProgress) } + [1.0]).sorted()
+        let anchors = try guideAnchors(guideCurves, sections: sections, closed: isClosed)
+        let sortedBreaks = (try sections.indices.flatMap { index in
+            try sections[index].map {
+                try mappedProgress($0.lowerProgress, from: anchors[index], to: anchors[0])
+            }
+        } + anchors[0]).sorted()
         var breaks: [Double] = []
         for value in sortedBreaks {
             // Reversed rational spans can differ only by rounding at a shared knot.
@@ -81,9 +87,11 @@ package struct ExactLoftBodyBuilder {
             breaks.append(value)
         }
         breaks[breaks.count - 1] = 1.0
-        let curves = try sections.map { spans in
+        let curves = try sections.indices.map { sectionIndex in
             try (0..<(breaks.count - 1)).map { index in
-                try curve(from: spans, lowerProgress: breaks[index], upperProgress: breaks[index + 1])
+                try curve(from: sections[sectionIndex],
+                    lowerProgress: mappedProgress(breaks[index], from: anchors[0], to: anchors[sectionIndex]),
+                    upperProgress: mappedProgress(breaks[index + 1], from: anchors[0], to: anchors[sectionIndex]))
             }
         }
         let vertices = try curves.map { spans in
@@ -98,7 +106,54 @@ package struct ExactLoftBodyBuilder {
             partitions: [SectionPartition(breaks: breaks, curves: curves, rings: vertices)],
             sectionTangentScales: loft.sections.map { $0.smoothTangentScale ?? loft.options.smoothTangentScale },
             sectionTangentModes: loft.sections.map(\.smoothTangentMode),
-            guideCurves: [], faceOrientation: .forward)
+            guideCurves: guideCurves, faceOrientation: .forward)
+    }
+
+    private func guideAnchors(
+        _ guides: [ExactLoftGuideCurve], sections: [[OrientedSpan]], closed: Bool
+    ) throws -> [[Double]] {
+        let resolution = max(context.tolerance.relative * 64, Double.ulpOfOne * 4_096)
+        var contacts = try sections.indices.map { sectionIndex in
+            try guides.map { guide in
+                guard guide.boundaryLoopIndex == 0, guide.sectionPoints.count == sections.count else {
+                    throw invalidGeometry("A boundary Loft guide must contact every section once.")
+                }
+                return try boundaryProgress(of: guide.sectionPoints[sectionIndex],
+                    in: sections[sectionIndex], closed: closed)
+            }
+        }
+        let order = guides.indices.sorted { contacts[0][$0] < contacts[0][$1] }
+        for index in sections.indices {
+            contacts[index] = order.map { contacts[index][$0] }
+            guard zip(contacts[index], contacts[index].dropFirst()).allSatisfy({ $1 - $0 > resolution }) else {
+                throw invalidGeometry("Loft guides must have distinct, consistently ordered section contacts.")
+            }
+        }
+        var anchors = Array(repeating: [0.0], count: sections.count)
+        for guideIndex in guides.indices {
+            let first = contacts[0][guideIndex]
+            let atStart = first <= resolution
+            let atEnd = first >= 1 - resolution
+            for index in sections.indices {
+                let value = contacts[index][guideIndex]
+                guard (value <= resolution) == atStart, (value >= 1 - resolution) == atEnd else {
+                    throw invalidGeometry("Loft guide contacts must agree on endpoint or interior correspondence.")
+                }
+                if !atStart && !atEnd { anchors[index].append(value) }
+            }
+        }
+        for index in sections.indices { anchors[index].append(1) }
+        return anchors
+    }
+
+    private func mappedProgress(_ value: Double, from source: [Double], to target: [Double]) throws -> Double {
+        guard source.count == target.count,
+              let index = source.indices.dropLast().first(where: { value >= source[$0] && value <= source[$0 + 1] }),
+              source[index + 1] > source[index] else {
+            throw invalidGeometry("Loft correspondence cannot map an exact boundary parameter.")
+        }
+        let fraction = (value - source[index]) / (source[index + 1] - source[index])
+        return target[index] + fraction * (target[index + 1] - target[index])
     }
 
     private func build(
@@ -597,7 +652,8 @@ package struct ExactLoftBodyBuilder {
 
     private func boundaryProgress(
         of point: Point3D,
-        in spans: [OrientedSpan]
+        in spans: [OrientedSpan],
+        closed: Bool = true
     ) throws -> Double {
         var best: (progress: Double, residual: Double)?
         for span in spans {
@@ -634,7 +690,7 @@ package struct ExactLoftBodyBuilder {
             context.tolerance.relative * 64.0,
             Double.ulpOfOne * 4_096.0
         )
-        return best.progress >= 1.0 - resolution ? 0.0 : best.progress
+        return closed && best.progress >= 1.0 - resolution ? 0.0 : best.progress
     }
 
     private func curve(

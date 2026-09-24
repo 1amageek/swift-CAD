@@ -104,6 +104,15 @@ contacts currently use a declared section plane plus exact boundary projection;
 nonplanar intermediate sections require a general curve/curve intersection
 contract before they can be admitted. Missing or ambiguous contacts remain errors.
 
+Curve/mixed Loft partitions use guide contacts as ordered correspondence anchors.
+Each section maps its exact boundary progress piecewise to the first section's
+anchors; the union of mapped span boundaries preserves every exact source span.
+Inverse mapping selects exact subcurves, and the existing connector builder uses
+the exact guide curves. Endpoint/interior classification and guide order must
+agree across sections; inconsistent correspondence is rejected before topology
+publication. Explicit curve seams and spatial intermediate contact solving remain
+separate unfinished contracts, not implicit approximations.
+
 Explicit profile traversal is applied to exact spans before correspondence.
 Automatic alignment may rotate a seam but must not undo a locked direction.
 The source Profile, hole classification and plane remain unchanged. The final

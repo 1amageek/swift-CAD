@@ -7,6 +7,49 @@ import CADModeling
 
 @Suite("Exact curve section Loft", .timeLimit(.minutes(1)))
 struct CurveLoftFeatureTests {
+    @Test(arguments: [false, true])
+    func curveLoftUsesExactGuideAtInteriorOrEnd(endpoint: Bool) throws {
+        let sections = try [0.0, 2.0].map { z in
+            try section(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+                controlPoints: [Point3D(x: 0, y: 0, z: z), Point3D(x: 1, y: 0, z: z)]))
+        }
+        let exactGuide = BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+            controlPoints: [Point3D(x: endpoint ? 1 : 0.25, y: 0, z: 0),
+                Point3D(x: endpoint ? 1 : 0.4, y: 0.3, z: 1),
+                Point3D(x: endpoint ? 1 : 0.7, y: 0, z: 2)])
+        let guide = try section(exactGuide)
+        let result = try evaluate(sections, mode: .ruled, guides: [guide])
+        try result.brep.validate(level: .exact, tolerance: .standard)
+        #expect(result.brep.faces.count == (endpoint ? 1 : 2))
+        let surfaces = Array(result.brep.geometry.surfaces.values)
+        for t in [0.0, 0.2, 0.5, 0.8, 1.0] {
+            let expected = try exactGuide.point(at: t, tolerance: .standard)
+            let contacts = try surfaces.flatMap { surface in
+                try [0.0, 1.0].map { try surface.point(u: $0, v: t, tolerance: .standard) }
+            }
+            #expect(contacts.filter { ($0 - expected).length < 1e-8 }.count == (endpoint ? 1 : 2))
+        }
+    }
+
+    @Test(arguments: [false, true])
+    func curveLoftRejectsInconsistentGuideCorrespondence(endpointMismatch: Bool) throws {
+        let sections = try [0.0, 2.0].map { z in
+            try section(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+                controlPoints: [Point3D(x: 0, y: 0, z: z), Point3D(x: 1, y: 0, z: z)]))
+        }
+        let pairs: [(Double, Double)] = endpointMismatch ? [(1, 0.7)] : [(0.25, 0.7), (0.7, 0.25)]
+        let guides = try pairs.map { start, end in
+            try section(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+                controlPoints: [Point3D(x: start, y: 0, z: 0), Point3D(x: end, y: 0, z: 2)]))
+        }
+        do {
+            _ = try evaluate(sections, mode: .ruled, guides: guides)
+            Issue.record("Inconsistent guide correspondence must not publish a Loft.")
+        } catch let error as KernelError {
+            #expect(error.message.contains(endpointMismatch ? "endpoint or interior" : "consistently ordered"))
+        }
+    }
+
     @Test func guideContactsUseExactSpatialBoundariesAndRejectAmbiguity() throws {
         let first = BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
             controlPoints: [Point3D(x: 0, y: 0, z: 0), Point3D(x: 1, y: 0, z: 0.5),
@@ -164,15 +207,18 @@ struct CurveLoftFeatureTests {
         #expect(throws: FeatureEvaluationError.self) { try evaluate(curve) }
     }
 
-    private func evaluate(_ sections: [EvaluatedCurve], mode: LoftSurfaceMode) throws -> EvaluationResult {
+    private func evaluate(_ sections: [EvaluatedCurve], mode: LoftSurfaceMode,
+        guides: [EvaluatedCurve] = []) throws -> EvaluationResult {
         let operation = LoftFeature(sections: sections.map {
             LoftSectionReference(section: .curve(CurveSectionReference(featureID: $0.sourceFeatureID)))
-        }, options: LoftOptions(resultKind: .sheet, surfaceMode: mode))
+        }, guides: guides.map { LoftGuideReference(featureID: $0.sourceFeatureID) },
+            options: LoftOptions(resultKind: .sheet, surfaceMode: mode))
+        let inputs = sections + guides
         let feature = FeatureNode(operation: .loft(operation),
-            inputs: sections.map { FeatureInput(featureID: $0.sourceFeatureID, role: .curve) },
+            inputs: inputs.map { FeatureInput(featureID: $0.sourceFeatureID, role: .curve) },
             outputs: [FeatureOutput(role: .sheet)])
         let context = EvaluationContext(parameters: ResolvedParameterTable(), brep: BRepModel(),
-            profiles: [:], curves: Dictionary(uniqueKeysWithValues: sections.map { ($0.sourceFeatureID, [$0]) }),
+            profiles: [:], curves: Dictionary(uniqueKeysWithValues: inputs.map { ($0.sourceFeatureID, [$0]) }),
             tolerance: .standard)
         return try LoftFeatureEvaluator().evaluate(feature: feature, context: context)
     }
