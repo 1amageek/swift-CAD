@@ -52,6 +52,35 @@ struct RevolveSheetConstructionTests {
         }
     }
 
+    @Test func offsetObliqueAxisPreservesRationalGeometryAndBoundaries() throws {
+        let placement = try RigidTransform3D.rotated(around: Point3D(x: 0.2, y: -0.1, z: 0.3),
+            direction: Vector3D(x: 1, y: 2, z: 3), angle: 0.7, tolerance: .standard)
+        let curve = BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+            controlPoints: [Point3D(x: 0.02, y: 0, z: 0), Point3D(x: 0.03, y: 0.02, z: 0),
+                Point3D(x: 0.02, y: 0.04, z: 0)], weights: [1, 0.7, 1])
+        let placed = BSplineCurve3D(degree: curve.degree, knots: curve.knots,
+            controlPoints: curve.controlPoints.map { placement.applying(to: $0) }, weights: curve.weights)
+        var input = try section(placed)
+        let origin = placement.applying(to: Point3D.origin)
+        input.plane = .plane(Plane3D(origin: origin, normal: placement.applying(to: Vector3D.unitZ)))
+        let result = try CurvedRevolveBodyBuilder.buildSheet(
+            axis: RevolveAxis(origin: origin, direction: placement.applying(to: Vector3D.unitY)),
+            angle: .pi / 2, section: input, featureID: FeatureID(),
+            context: EvaluationContext(parameters: ResolvedParameterTable(), brep: BRepModel(),
+                profiles: [:], tolerance: .standard), sewer: DefaultBRepSewer())
+        try result.brep.validate(level: .exact, tolerance: .standard)
+        let surface = try #require(result.brep.geometry.surfaces.values.first)
+        for (u, angle) in [(0.0, 0.0), (0.5, Double.pi / 4), (1.0, Double.pi / 2)] {
+            let rotation = try RigidTransform3D.rotated(around: .origin, direction: .unitY,
+                angle: angle, tolerance: .standard)
+            for v in [0.0, 0.27, 0.8, 1.0] {
+                let expected = placement.applying(to: rotation.applying(to: try curve.point(at: v, tolerance: .standard)))
+                let actual = try surface.point(u: u, v: v, tolerance: .standard)
+                #expect((actual - expected).length < 1e-8)
+            }
+        }
+    }
+
     private func section(_ curve: BSplineCurve3D) throws -> EvaluatedCurve {
         EvaluatedCurve(sourceFeatureID: FeatureID(), source: .generatedFeature, kind: .spline,
             points: [try curve.point(at: 0, tolerance: .standard), try curve.point(at: 1, tolerance: .standard)],

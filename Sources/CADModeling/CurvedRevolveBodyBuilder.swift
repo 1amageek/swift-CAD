@@ -639,8 +639,25 @@ struct CurvedRevolveBodyBuilder {
         startAngle: Double,
         endAngle: Double
     ) throws -> Surface3D {
-        let halfSpan = 0.5 * (endAngle - startAngle)
-        let middleWeight = cos(halfSpan)
+        let rows = try rotatedControlRows(segment.curve.controlPoints,
+            startAngle: startAngle, endAngle: endAngle)
+        let weights = segment.curve.weights.map { [$0, $0 * rows.middleWeight, $0] }
+        let surface = BSplineSurface3D(
+            uDegree: 2,
+            vDegree: segment.curve.degree,
+            uKnots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            vKnots: segment.curve.knots,
+            controlPoints: rows.points,
+            weights: weights
+        )
+        try surface.validate(tolerance: context.tolerance)
+        return .bSpline(surface)
+    }
+
+    private func rotatedControlRows(
+        _ points: [Point3D], startAngle: Double, endAngle: Double
+    ) throws -> (points: [[Point3D]], middleWeight: Double) {
+        let middleWeight = cos(0.5 * (endAngle - startAngle))
         guard middleWeight > Double.ulpOfOne else {
             throw KernelError(
                 phase: .geometry,
@@ -649,37 +666,21 @@ struct CurvedRevolveBodyBuilder {
                 message: "Revolve angle patch produced a singular rational weight."
             )
         }
-        let middleAngle = 0.5 * (startAngle + endAngle)
-        var controlPoints: [[Point3D]] = []
-        var weights: [[Double]] = []
-        for (point, profileWeight) in zip(segment.curve.controlPoints, segment.curve.weights) {
-            let coordinate = try coordinates(
-                for: point,
-                requireNonnegativeRadius: false
-            )
-            let axisPoint = axisOrigin + axisDirection * coordinate.axial
-            controlPoints.append([
-                pointAt(coordinate, angle: startAngle),
-                axisPoint + rotatedRadialDirection(angle: middleAngle)
-                    * (coordinate.radius / middleWeight),
-                pointAt(coordinate, angle: endAngle),
-            ])
-            weights.append([
-                profileWeight,
-                profileWeight * middleWeight,
-                profileWeight,
-            ])
+        let start = try rotation(at: startAngle)
+        let middle = try rotation(at: 0.5 * (startAngle + endAngle))
+        let end = try rotation(at: endAngle)
+        let rows = points.map { point in
+            let axisPoint = axisOrigin + axisDirection * (point - axisOrigin).dot(axisDirection)
+            return [start.applying(to: point),
+                axisPoint + middle.applying(to: point - axisPoint) / middleWeight,
+                end.applying(to: point)]
         }
-        let surface = BSplineSurface3D(
-            uDegree: 2,
-            vDegree: segment.curve.degree,
-            uKnots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
-            vKnots: segment.curve.knots,
-            controlPoints: controlPoints,
-            weights: weights
-        )
-        try surface.validate(tolerance: context.tolerance)
-        return .bSpline(surface)
+        return (rows, middleWeight)
+    }
+
+    private func rotation(at angle: Double) throws -> RigidTransform3D {
+        try RigidTransform3D.rotated(around: axisOrigin, direction: axisDirection,
+            angle: angle, tolerance: context.tolerance)
     }
 
     private func rotationEdge(
@@ -695,19 +696,12 @@ struct CurvedRevolveBodyBuilder {
         guard coordinate.radius > context.tolerance.distance else {
             return nil
         }
-        let middleAngle = 0.5 * (startAngle + endAngle)
-        let middleWeight = cos(0.5 * (endAngle - startAngle))
-        let axisPoint = axisOrigin + axisDirection * coordinate.axial
+        let rows = try rotatedControlRows([point], startAngle: startAngle, endAngle: endAngle)
         let curve = BSplineCurve3D(
             degree: 2,
             knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
-            controlPoints: [
-                pointAt(coordinate, angle: startAngle),
-                axisPoint + rotatedRadialDirection(angle: middleAngle)
-                    * (coordinate.radius / middleWeight),
-                pointAt(coordinate, angle: endAngle),
-            ],
-            weights: [1.0, middleWeight, 1.0]
+            controlPoints: rows.points[0],
+            weights: [1.0, rows.middleWeight, 1.0]
         )
         try curve.validate(tolerance: context.tolerance)
         return try bSplineEdge(
@@ -766,16 +760,11 @@ struct CurvedRevolveBodyBuilder {
         _ curve: BSplineCurve3D,
         angle: Double
     ) throws -> BSplineCurve3D {
+        let rotation = try rotation(at: angle)
         let transformed = BSplineCurve3D(
             degree: curve.degree,
             knots: curve.knots,
-            controlPoints: try curve.controlPoints.map { point in
-                let coordinate = try coordinates(
-                    for: point,
-                    requireNonnegativeRadius: false
-                )
-                return pointAt(coordinate, angle: angle)
-            },
+            controlPoints: curve.controlPoints.map { rotation.applying(to: $0) },
             weights: curve.weights
         )
         try transformed.validate(tolerance: context.tolerance)
@@ -934,12 +923,6 @@ struct CurvedRevolveBodyBuilder {
             axial: axial,
             radius: requireNonnegativeRadius ? max(0.0, radius) : radius
         )
-    }
-
-    private func pointAt(_ point: RevolveCoordinate, angle: Double) -> Point3D {
-        axisOrigin
-            + axisDirection * point.axial
-            + rotatedRadialDirection(angle: angle) * point.radius
     }
 
     private func rotatedRadialDirection(angle: Double) -> Vector3D {

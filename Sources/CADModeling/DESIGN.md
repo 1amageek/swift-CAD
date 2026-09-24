@@ -62,6 +62,13 @@ before sewing; tangent-parallel translation must not publish a collapsed sheet.
 
 ### Revolve construction and closure
 
+Rotational tensor control rows and boundary arcs share one Cartesian rotation
+construction using RigidTransform3D. Rotation coefficients are computed once
+per angular patch, not per generator control point. Profile-plane admission
+remains separate from this geometric construction; removing that admission
+requires whole-surface regularity and global overlap validation for spatial
+generators, not merely successful Cartesian rotation.
+
 The existing rational surface-of-revolution builder owns both solid and sheet
 construction. It consumes exact planar generator spans and the rotation axis;
 curve sheets do not fabricate a closed Profile. One span construction path owns
