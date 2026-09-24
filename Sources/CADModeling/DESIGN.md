@@ -187,10 +187,10 @@ CADGeometry's certified separation contract. Root comparisons share its standard
 pair-count ceiling; each unresolved pair retains the geometry subdivision budget.
 Side patches sharing exactly one generated edge pass that edge's parameter-side
 identity into adjacent-chart admission; a topological edge alone never proves
-their interiors disjoint. Exactly one shared vertex with no common edge passes
-its two parameter corners to the geometry point-contact separation proof;
+their interiors disjoint. Shared vertices with no common edge pass their paired
+parameter corners to the geometry point-contact separation proof;
 topological vertex identity alone does not establish separation.
-Multiple shared edges, multiple isolated shared vertices and
+Multiple shared edges and
 cap/side intersections still require topology-aware admission and remain
 explicitly incomplete. Stationary outer parameters use CADGeometry's explicit
 unit-weight factor-removal contract; unresolved cases fail rather than skipping

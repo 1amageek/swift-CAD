@@ -5,6 +5,32 @@ import CADCore
 @Suite("B-spline surface embedding certification")
 struct BSplineSurfaceEmbeddingValidatorTests {
     @Test(arguments: [false, true])
+    func multipleCornerContactsDoNotAuthorizeAnEntireSharedEdge(rational: Bool) throws {
+        let weights = rational ? [[1.0, 0.7], [1.3, 1]] : [[1, 1], [1, 1]]
+        func surface(_ heights: [[Double]]) -> BSplineSurface3D {
+            BSplineSurface3D(uDegree: 1, vDegree: 1,
+                uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+                controlPoints: (0..<2).map { v in (0..<2).map { u in
+                    Point3D(x: Double(u), y: Double(v), z: heights[v][u])
+                } }, weights: weights)
+        }
+        let first = surface([[0, 0], [0, 0]])
+        let zero = Point2D(x: 0, y: 0), one = Point2D(x: 1, y: 1)
+        let validator = BSplineSurfaceEmbeddingValidator(maximumPairSubdivisionDepth: 16, maximumPairCellCount: 4096)
+        try validator.validateSeparation(first: first, second: surface([[0, 1], [1, 0]]),
+            tolerance: .standard, allowedCornerContacts: [(zero, zero), (one, one)])
+        let edgeEnd = Point2D(x: 1, y: 0)
+        #expect(throws: KernelError.self) {
+            try validator.validateSeparation(first: first, second: surface([[0, 0], [1, 1]]),
+                tolerance: .standard, allowedCornerContacts: [(zero, zero), (edgeEnd, edgeEnd)])
+        }
+        #expect(throws: KernelError.self) {
+            try validator.validateSeparation(first: first, second: first, tolerance: .standard,
+                allowedCornerContacts: [(zero, zero), (zero, zero)])
+        }
+    }
+
+    @Test(arguments: [false, true])
     func permittedCornerDoesNotExemptOtherSurfaceContacts(rational: Bool) throws {
         func square(_ lower: Double, _ upper: Double) -> BSplineSurface3D {
             BSplineSurface3D(uDegree: 1, vDegree: 1,
@@ -17,16 +43,16 @@ struct BSplineSurfaceEmbeddingValidatorTests {
         let zero = Point2D(x: 0, y: 0)
         let validator = BSplineSurfaceEmbeddingValidator(maximumPairSubdivisionDepth: 8, maximumPairCellCount: 1024)
         try validator.validateSeparation(first: first, second: second, tolerance: .standard,
-            allowedCornerContact: (Point2D(x: 1, y: 1), zero))
+            allowedCornerContacts: [(Point2D(x: 1, y: 1), zero)])
         try validator.validateSeparation(first: second, second: first, tolerance: .standard,
-            allowedCornerContact: (zero, Point2D(x: 1, y: 1)))
+            allowedCornerContacts: [(zero, Point2D(x: 1, y: 1))])
         #expect(throws: KernelError.self) {
             try validator.validateSeparation(first: first, second: square(0, -0.5), tolerance: .standard,
-                allowedCornerContact: (Point2D(x: 1, y: 1), zero))
+                allowedCornerContacts: [(Point2D(x: 1, y: 1), zero)])
         }
         #expect(throws: KernelError.self) {
             try validator.validateSeparation(first: first, second: second, tolerance: .standard,
-                allowedCornerContact: (zero, zero))
+                allowedCornerContacts: [(zero, zero)])
         }
     }
 

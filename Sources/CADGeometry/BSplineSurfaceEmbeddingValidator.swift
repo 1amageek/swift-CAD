@@ -487,17 +487,23 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
     }
 
     /// Certifies separation over both complete finite parameter domains.
-    /// An optional exact corner pair permits only that single point contact.
+    /// Exact corner pairs permit only the nominated isolated point contacts.
     public func validateSeparation(
         first: BSplineSurface3D,
         second: BSplineSurface3D,
         tolerance: ModelingTolerance,
-        allowedCornerContact: (first: Point2D, second: Point2D)? = nil
+        allowedCornerContacts: [(first: Point2D, second: Point2D)] = []
     ) throws {
         try tolerance.validate()
         try first.validate(tolerance: tolerance)
         try second.validate(tolerance: tolerance)
-        if let contact = allowedCornerContact {
+        guard allowedCornerContacts.count <= 4,
+              Set(allowedCornerContacts.map(\.first)).count == allowedCornerContacts.count,
+              Set(allowedCornerContacts.map(\.second)).count == allowedCornerContacts.count else {
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                message: "Permitted point contacts must use each source corner at most once.")
+        }
+        for contact in allowedCornerContacts {
             func corner(_ surface: BSplineSurface3D, _ uv: Point2D) -> Point3D? {
                 guard case let .closed(u0, u1) = surface.uDomain,
                       case let .closed(v0, v1) = surface.vDomain,
@@ -534,7 +540,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                 try consumeSeparationCell(&visited, tolerance: tolerance)
                 guard firstBounds[i].intersects(secondBounds[j], tolerance: tolerance.distance) else { continue }
                 try certifyPairSeparation(first: firstPatches[i], second: secondPatches[j],
-                    visited: &visited, tolerance: tolerance, allowedCornerContact: allowedCornerContact)
+                    visited: &visited, tolerance: tolerance, allowedCornerContacts: allowedCornerContacts)
             }
         }
     }
@@ -724,14 +730,14 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
     private func certifyPairSeparation(
         first: RationalBezierSurfacePatch3D, second: RationalBezierSurfacePatch3D,
         visited: inout Int, tolerance: ModelingTolerance,
-        allowedCornerContact: (first: Point2D, second: Point2D)? = nil
+        allowedCornerContacts: [(first: Point2D, second: Point2D)] = []
     ) throws {
         var pending = [PairCell(difference: try RationalBezierSurfaceSurfaceDifferencePatch(
             first: first, second: second, tolerance: tolerance), depth: 0)]
         while let pair = pending.popLast() {
             if pair.depth > 0 { try consumeSeparationCell(&visited, tolerance: tolerance) }
             if pair.difference.excludesZero() { continue }
-            if pair.difference.excludesZeroAlongSurfaceDirections(allowedCornerContact: allowedCornerContact) { continue }
+            if pair.difference.excludesZeroAlongSurfaceDirections(allowedCornerContacts: allowedCornerContacts) { continue }
             guard pair.depth < maximumPairSubdivisionDepth else {
                 throw resourceLimit(residual: Double(pair.depth), tolerance: tolerance,
                     message: "B-spline surface separation could not exclude intersection within the subdivision limit.")

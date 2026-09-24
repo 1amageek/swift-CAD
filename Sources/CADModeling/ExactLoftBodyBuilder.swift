@@ -301,7 +301,7 @@ package struct ExactLoftBodyBuilder {
         let sideSurfaceBuilder = ExactLoftSideSurfaceBuilder()
         // FIXME(INCOMPLETE_IMPLEMENTATION): Loft evaluation requires individual
         // patch admission but general corner-only/rational stationary guide
-        // parameterization, multiple-contact and cap/side separation remain unresolved.
+        // parameterization, multiple-edge and cap/side separation remain unresolved.
         // Complete those contracts before claiming general smooth/guided Loft;
         // structural BRep validation alone is insufficient.
         var sideFaceOrdinal = 0
@@ -365,12 +365,16 @@ package struct ExactLoftBodyBuilder {
                             continue
                         }
                         let commonVertices = vertices.keys.filter { previous.vertices[$0] != nil }
-                        if commonEdges.isEmpty, commonVertices.count == 1,
-                           let vertex = commonVertices.first,
-                           let firstCorner = previous.vertices[vertex], let secondCorner = vertices[vertex] {
+                        if commonEdges.isEmpty, !commonVertices.isEmpty {
+                            let contacts = try commonVertices.map { vertex -> (Point2D, Point2D) in
+                                guard let first = previous.vertices[vertex], let second = vertices[vertex] else {
+                                    throw invalidGeometry("Loft point contacts require both source parameter corners.")
+                                }
+                                return (first, second)
+                            }
                             try separation.validateSeparation(first: previous.surface, second: surface,
                                 tolerance: context.tolerance,
-                                allowedCornerContact: (firstCorner, secondCorner))
+                                allowedCornerContacts: contacts)
                             continue
                         }
                         guard commonVertices.isEmpty,

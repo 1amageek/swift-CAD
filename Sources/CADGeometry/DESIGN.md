@@ -127,12 +127,15 @@ the two charts, certified with outward interval projections. This excludes any
 cross-chart contact away from the seam. Each chart must also pass independent
 embedding admission using half the request's local and pair-cell budgets. A candidate plane is
 only a search heuristic; inconclusive signs retain the general-chart path.
-Point-contact separation may nominate one pair of clamped parameter corners
-whose stored positions are exactly identical. Only that tensor-product corner
-coefficient is exempt from strict signed difference projection. Every other
+Point-contact separation may nominate up to four pairs of clamped parameter
+corners whose stored positions are exactly identical. Each source corner may
+occur only once. Only those tensor-product corner coefficients are exempt from
+strict signed difference projection. Any two exempt corners differ in at least
+two parameter coordinates, so no tensor-product edge has both endpoints exempt.
+Thus no positive-dimensional boundary face can vanish identically. Every other
 coefficient must retain the same strict sign, so positive Bernstein weights
-exclude zeros everywhere except the nominated corner pair. Subdivision retains
-the exemption only in cells containing that same parameter corner; all other
+exclude zeros everywhere except the nominated corner pairs. Subdivision retains
+each exemption only in cells containing that same parameter corner; all other
 cells require ordinary separation. No tolerance snapping or whole-face exemption
 is allowed. Existing depth and pair-cell budgets bound inconclusive proofs.
 Oblique candidate axes from coefficient-box means and crosses of midpoint
