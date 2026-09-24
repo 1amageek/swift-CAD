@@ -118,6 +118,12 @@ No snapping or sampled
 agreement establishes continuity. Incompatible seam representations and an
 inconclusive bounded refinement fail explicitly. General basis reconciliation
 remains incomplete; this is not general face sewing.
+Two opposite shared boundaries are admitted by bisecting both source charts
+between those boundaries. Every cross-chart half-pair is checked: matching outer
+halves use single-boundary adjacency, and the other pairs require strict
+separation. Trimming uses the existing spline trim owner and retains source
+coordinates; it does not add topology. Four pair proofs divide the request's
+cell budgets, and unmatched or non-opposite boundary declarations fail explicitly.
 An axis-aligned straight seam can instead be admitted independently of degree
 or parameter speed. Clamped boundary control polygons must share exact endpoints,
 have two identical constant coordinates and monotone remaining coordinates.

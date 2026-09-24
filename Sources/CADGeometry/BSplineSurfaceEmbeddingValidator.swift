@@ -545,6 +545,60 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         }
     }
 
+    /// Certifies cross-surface separation except at two paired opposite boundaries.
+    public func validateOppositeBoundaryContacts(
+        first: BSplineSurface3D, firstBoundaries: [SurfaceParameterBoundary],
+        second: BSplineSurface3D, secondBoundaries: [SurfaceParameterBoundary],
+        tolerance: ModelingTolerance
+    ) throws {
+        try tolerance.validate()
+        try first.validate(tolerance: tolerance)
+        try second.validate(tolerance: tolerance)
+        func opposite(_ sides: [SurfaceParameterBoundary]) -> Bool {
+            Set(sides) == Set([.uLower, .uUpper]) || Set(sides) == Set([.vLower, .vUpper])
+        }
+        guard firstBoundaries.count == 2, secondBoundaries.count == 2,
+              opposite(firstBoundaries), opposite(secondBoundaries),
+              maximumLocalSubdivisionDepth >= 0, maximumPairSubdivisionDepth >= 0,
+              maximumCellCount >= 4, maximumPairCellCount >= 4 else {
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                message: "Opposite-boundary admission requires two paired opposite sides and budgets for four chart pairs.")
+        }
+        func halves(_ surface: BSplineSurface3D, _ sides: [SurfaceParameterBoundary]) throws -> [BSplineSurface3D] {
+            guard case let .closed(u0, u1) = surface.uDomain,
+                  case let .closed(v0, v1) = surface.vDomain else {
+                throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                    message: "Opposite-boundary admission requires finite charts.")
+            }
+            return try sides.map { side in
+                switch side {
+                case .uLower: return try surface.trimmed(uFrom: u0, uTo: u0 + (u1 - u0) * 0.5,
+                    vFrom: v0, vTo: v1, tolerance: tolerance)
+                case .uUpper: return try surface.trimmed(uFrom: u0 + (u1 - u0) * 0.5, uTo: u1,
+                    vFrom: v0, vTo: v1, tolerance: tolerance)
+                case .vLower: return try surface.trimmed(uFrom: u0, uTo: u1,
+                    vFrom: v0, vTo: v0 + (v1 - v0) * 0.5, tolerance: tolerance)
+                case .vUpper: return try surface.trimmed(uFrom: u0, uTo: u1,
+                    vFrom: v0 + (v1 - v0) * 0.5, vTo: v1, tolerance: tolerance)
+                }
+            }
+        }
+        let a = try halves(first, firstBoundaries), b = try halves(second, secondBoundaries)
+        let proof = Self(maximumLocalSubdivisionDepth: maximumLocalSubdivisionDepth,
+            maximumCellCount: maximumCellCount / 4, maximumPairSubdivisionDepth: maximumPairSubdivisionDepth,
+            maximumPairCellCount: maximumPairCellCount / 4)
+        for i in a.indices {
+            for j in b.indices {
+                if i == j {
+                    try proof.validateAdjacent(first: a[i], firstBoundary: firstBoundaries[i],
+                        second: b[j], secondBoundary: secondBoundaries[j], tolerance: tolerance)
+                } else {
+                    try proof.validateSeparation(first: a[i], second: b[j], tolerance: tolerance)
+                }
+            }
+        }
+    }
+
     // FIXME(INCOMPLETE_IMPLEMENTATION): Loft single-edge admission uses this
     // exact common-basis path. General seam basis reconciliation must be
     // implemented before claiming general adjacency.

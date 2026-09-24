@@ -4,6 +4,27 @@ import CADCore
 
 @Suite("B-spline surface embedding certification")
 struct BSplineSurfaceEmbeddingValidatorTests {
+    @Test(arguments: [false, true], [false, true])
+    func oppositeSharedBoundariesStillRequireInteriorSeparation(reversed: Bool, rational: Bool) throws {
+        func strip(_ height: Double) -> BSplineSurface3D {
+            let rows = [0.0, 1.0].map { z in
+                [Point3D(x: -1, y: 0, z: z), Point3D(x: 0, y: height, z: z), Point3D(x: 1, y: 0, z: z)]
+            }
+            return BSplineSurface3D(uDegree: 2, vDegree: 1,
+                uKnots: [0, 0, 0, 1, 1, 1], vKnots: [0, 0, 1, 1],
+                controlPoints: reversed ? rows.map { Array($0.reversed()) } : rows,
+                weights: Array(repeating: rational ? [1, 0.7, 1] : [1, 1, 1], count: 2))
+        }
+        let sides: [SurfaceParameterBoundary] = [.uLower, .uUpper]
+        let validator = BSplineSurfaceEmbeddingValidator()
+        try validator.validateOppositeBoundaryContacts(first: strip(1), firstBoundaries: sides,
+            second: strip(-1), secondBoundaries: sides, tolerance: .standard)
+        #expect(throws: KernelError.self) {
+            try validator.validateOppositeBoundaryContacts(first: strip(1), firstBoundaries: sides,
+                second: strip(1), secondBoundaries: sides, tolerance: .standard)
+        }
+    }
+
     @Test(arguments: [false, true])
     func multipleCornerContactsDoNotAuthorizeAnEntireSharedEdge(rational: Bool) throws {
         let weights = rational ? [[1.0, 0.7], [1.3, 1]] : [[1, 1], [1, 1]]

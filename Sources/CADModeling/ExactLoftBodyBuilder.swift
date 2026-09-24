@@ -364,6 +364,12 @@ package struct ExactLoftBodyBuilder {
                                 secondBoundary: commonEdges[0].1, tolerance: context.tolerance)
                             continue
                         }
+                        if commonEdges.count == 2 {
+                            try separation.validateOppositeBoundaryContacts(first: previous.surface,
+                                firstBoundaries: commonEdges.map(\.0), second: surface,
+                                secondBoundaries: commonEdges.map(\.1), tolerance: context.tolerance)
+                            continue
+                        }
                         let commonVertices = vertices.keys.filter { previous.vertices[$0] != nil }
                         if commonEdges.isEmpty, !commonVertices.isEmpty {
                             let contacts = try commonVertices.map { vertex -> (Point2D, Point2D) in
