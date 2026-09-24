@@ -452,6 +452,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         tolerance: ModelingTolerance
     ) throws {
         guard cells.count > 1 else { return }
+        let globallyInjective = projectionProvesInjective(bounds: cells.map(\.differentialBounds))
         var visitedPairCells = 0
         func consumePairCell() throws {
             visitedPairCells += 1
@@ -466,6 +467,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                 let second = cells[secondIndex].patch
                 guard touches(first, second) == false else { continue }
                 try consumePairCell()
+                if globallyInjective { continue }
                 guard cells[firstIndex].bounds.intersects(cells[secondIndex].bounds,
                     tolerance: tolerance.distance) else { continue }
                 try rejectSampledCoincidence(

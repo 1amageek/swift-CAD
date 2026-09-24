@@ -98,6 +98,11 @@ Initial count and subdivision growth are checked before materializing cell cache
 Separated-cell pairs first compare retained positive-weight control hulls. A
 disjoint hull pair needs no point-coincidence search or four-parameter difference
 patch. Coarse exclusions and detailed subdivision both consume the pair budget.
+After local refinement, a consistent projection certificate over all cells also
+proves separation globally. Reuse the same existing projection criterion, covering
+the complete parameter rectangle rather than only two disjoint patches. Each
+nonadjacent pair still consumes its request budget but needs no difference patch
+when this global certificate exists.
 
 At the graph restriction resolution floor, interval jets use a containing
 local interval wide enough for certified restriction, not the entire parent

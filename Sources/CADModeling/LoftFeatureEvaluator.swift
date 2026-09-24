@@ -610,6 +610,11 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         }
     }
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Profile Loft automatic correspondence
+    // scores every ring against the first, which can reverse a valid rotating
+    // closed section loop. Explicit traversal remains available, and patch
+    // admission rejects invalid results. Account for adjacent section transport
+    // and closure before claiming general automatic closed-loop correspondence.
     private func matchedEqualCountRings(
         _ rings: [[Point3D]],
         lockedSectionIndexes: Set<Int>,

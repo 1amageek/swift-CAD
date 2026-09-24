@@ -21,27 +21,30 @@ package struct ExactLoftSideSurfaceBuilder: Sendable {
         tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
         try tolerance.validate()
+        let surface: BSplineSurface3D
         if hasLinearConnectorParameterization(uMinimumBoundary),
            hasLinearConnectorParameterization(uMaximumBoundary) {
-            let surface = try ruledBuilder.build(
+            surface = try ruledBuilder.build(
                 startBoundary: vMinimumBoundary,
                 endBoundary: vMaximumBoundary,
                 tolerance: tolerance
             )
-            try BSplineSurfaceRegularityValidator().validate(surface,
-                uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: tolerance)
-            try BSplineSurfaceEmbeddingValidator().validate(surface,
-                uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: tolerance)
-            return surface
+        } else {
+            surface = try transfiniteBuilder.build(
+                vMinimumBoundary: vMinimumBoundary,
+                vMaximumBoundary: vMaximumBoundary,
+                uMinimumBoundary: uMinimumBoundary,
+                uMaximumBoundary: uMaximumBoundary,
+                tolerance: tolerance
+            )
         }
-
-        return try transfiniteBuilder.build(
-            vMinimumBoundary: vMinimumBoundary,
-            vMaximumBoundary: vMaximumBoundary,
-            uMinimumBoundary: uMinimumBoundary,
-            uMaximumBoundary: uMaximumBoundary,
-            tolerance: tolerance
-        )
+        try BSplineSurfaceRegularityValidator().validate(surface,
+            uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: tolerance,
+            allowStationaryBoundaryParameterization: true)
+        try BSplineSurfaceEmbeddingValidator().validate(surface,
+            uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: tolerance,
+            allowStationaryBoundaryParameterization: true)
+        return surface
     }
 
     private func hasLinearConnectorParameterization(_ curve: BSplineCurve3D) -> Bool {

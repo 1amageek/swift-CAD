@@ -70,7 +70,7 @@ package struct ExactLoftGuideCurveResolver {
                 tolerance: context.tolerance
             )
             let oriented = try oriented(
-                source,
+                canonicalGuide(source),
                 guideFeatureID: guide.featureID,
                 firstSection: sections[0],
                 lastSection: sections[sections.index(before: sections.endIndex)],
@@ -90,6 +90,38 @@ package struct ExactLoftGuideCurveResolver {
                 sectionParameters: contacts.map(\.parameter)
             )
         }
+    }
+
+    private func canonicalGuide(_ curve: BSplineCurve3D) throws -> BSplineCurve3D {
+        guard curve.controlPointCount == curve.degree + 1,
+              curve.weights.allSatisfy({ $0 == 1 }),
+              case let .closed(lower, upper) = curve.domain,
+              curve.knots.prefix(curve.degree + 1).allSatisfy({ $0 == lower }),
+              curve.knots.suffix(curve.degree + 1).allSatisfy({ $0 == upper }),
+              let start = curve.controlPoints.first, let end = curve.controlPoints.last,
+              start != end else { return curve }
+        let chord = end - start
+        let axis = abs(chord.x) >= max(abs(chord.y), abs(chord.z)) ? 0 : (abs(chord.y) >= abs(chord.z) ? 1 : 2)
+        func coordinate(_ point: Point3D) -> Double { axis == 0 ? point.x : (axis == 1 ? point.y : point.z) }
+        let increasing = coordinate(end) > coordinate(start)
+        var previous = coordinate(start)
+        for point in curve.controlPoints {
+            let current = coordinate(point)
+            guard increasing ? current >= previous : current <= previous else { return curve }
+            for projection in [0, 1, 2] {
+                func projected(_ p: Point3D) -> Point2D {
+                    switch projection {
+                    case 0: return Point2D(x: p.x, y: p.y)
+                    case 1: return Point2D(x: p.x, y: p.z)
+                    default: return Point2D(x: p.y, y: p.z)
+                    }
+                }
+                guard try RobustPredicates.orientation2D(projected(start), projected(end),
+                    relativeTo: projected(point), determinantTolerance: 0) == .zero else { return curve }
+            }
+            previous = current
+        }
+        return BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1], controlPoints: [start, end])
     }
 
     private func oriented(

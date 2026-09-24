@@ -55,6 +55,14 @@ struct CurveLoftFeatureTests {
         #expect(result.brep.faces.count == 2)
         #expect(result.brep.vertices.values.contains { ($0.point - Point3D(x: 0, y: 0, z: 1)).length < 1e-8 })
         for surface in result.brep.geometry.surfaces.values {
+            let level = try surface.point(u: 0, v: 0, tolerance: .standard).z
+            for u in [0.25, 0.5, 0.75] {
+                for v in [0.25, 0.5, 0.75] {
+                    let expected = Point3D(x: 0.75 * u * (1 - u) * (1 - u) + 0.25 * u * u * u,
+                        y: (level + v - 1) * 4 * u * (1 - u), z: level + v + 0.1 * u)
+                    #expect(try (surface.point(u: u, v: v, tolerance: .standard) - expected).length < 1e-8)
+                }
+            }
             for v in [0.0, 0.5, 1.0] {
                 let point = try surface.point(u: 0, v: v, tolerance: .standard)
                 #expect(abs(point.x) < 1e-8 && abs(point.y) < 1e-8)

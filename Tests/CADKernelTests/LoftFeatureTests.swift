@@ -360,11 +360,8 @@ func loftSmoothSurfaceModeCreatesCubicSideFacesAndConnectorEdges() throws {
     try evaluated.brep.validate(tolerance: .standard)
 }
 
-/// The smooth closed-section loft drives the tessellator's normal-consistency
-/// fallback, which gives a triangle its own flat-shaded corners. Those corners
-/// are storage the geometric preflight does not estimate, so this fixture is the
-/// regression test for charging them against the limits without mistaking them
-/// for a preflight that under-estimated the geometry.
+/// A valid curved closed-section sheet must retain all emitted vertex storage,
+/// including distinct vertices at shared positions, within the standard limits.
 @Test(.timeLimit(.minutes(1)))
 func loftSmoothSheetTessellatesUnderTheStandardLimits() throws {
     let (document, _) = closedSectionLoopLoftDocument(
@@ -376,17 +373,14 @@ func loftSmoothSheetTessellatesUnderTheStandardLimits() throws {
 
     let meshes = evaluated.meshes.materializedDictionary()
     let mesh = try #require(meshes.values.first)
-    // Distinct vertices sharing a position are the fallback's duplicated
-    // corners. Without them this fixture no longer covers the path, and the
-    // charge under test would go unexercised.
+    // Retained vertices at shared positions are real storage, not unique points.
     let distinctPositions = Set(mesh.positions.map { [$0.x, $0.y, $0.z] })
     #expect(distinctPositions.count < mesh.positions.count)
 }
 
-/// The fallback's duplicated corners are real output storage. A limit one
-/// below the already-materialized artifact must therefore fail during emission,
-/// while a later standard evaluation must remain complete with the same resource
-/// usage.
+/// A limit below the emitted artifact's vertex count must fail, while a later
+/// standard evaluation remains complete with the same resource usage. This
+/// integration check does not assert which tessellation stage consumes the limit.
 @Test(.timeLimit(.minutes(1)))
 func loftSmoothSheetRefusesTheFallbackVertexBoundaryBeforeGrowth() throws {
     let (document, _) = closedSectionLoopLoftDocument(
@@ -455,6 +449,15 @@ func loftSmoothSurfaceModeCreatesCubicClosedSectionLoopSheet() throws {
         #expect(curve.controlPointCount == 4)
     }
     try evaluated.brep.validate(tolerance: .standard)
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftRejectsParallelSectionsTurningThroughATangentPlane() throws {
+    let (document, _) = closedSectionLoopLoftDocument(surfaceMode: .smooth, rotatesSections: false)
+    // The second connection rises from z=4 to z=8 but has negative terminal
+    // z velocity. Its interior height maximum makes the longitudinal tangent
+    // parallel to an X-directed section edge, so the side surface loses rank.
+    #expect(throws: KernelError.self) { try DocumentEvaluator(tolerance: .standard).evaluate(document) }
 }
 
 @Test(.timeLimit(.minutes(1)))
@@ -1686,17 +1689,24 @@ private func loftConnectorCurve(
 
 private func closedSectionLoopLoftDocument(
     resultKind: LoftResultKind = .sheet,
-    surfaceMode: LoftSurfaceMode = .ruled
+    surfaceMode: LoftSurfaceMode = .ruled,
+    rotatesSections: Bool = true
 ) -> (CADDocument, FeatureID) {
+    let h = 3.0.squareRoot() / 2
+    let planes: [SketchPlane] = rotatesSections ? [
+        .plane(Plane3D(origin: Point3D(x: 0.02, y: 0, z: 0), normal: .unitZ)),
+        .plane(Plane3D(origin: Point3D(x: -0.01, y: 0, z: 0.02 * h), normal: Vector3D(x: -h, y: 0, z: -0.5))),
+        .plane(Plane3D(origin: Point3D(x: -0.01, y: 0, z: -0.02 * h), normal: Vector3D(x: h, y: 0, z: -0.5)))
+    ] : [.xy, loftTranslatedPlane(x: 6, z: 4), loftTranslatedPlane(x: 0, z: 8)]
     let firstProfileID = FeatureID()
     let secondProfileID = FeatureID()
     let thirdProfileID = FeatureID()
     let loftID = FeatureID()
     let loft = LoftFeature(
         sections: [
-            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
-            LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
-            LoftSectionReference(profile: ProfileReference(featureID: thirdProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID), profileDirection: .forward),
+            LoftSectionReference(profile: ProfileReference(featureID: secondProfileID), profileDirection: .forward),
+            LoftSectionReference(profile: ProfileReference(featureID: thirdProfileID), profileDirection: .forward),
         ],
         options: LoftOptions(
             resultKind: resultKind,
@@ -1710,7 +1720,7 @@ private func closedSectionLoopLoftDocument(
             nodes: [
                 firstProfileID: FeatureNode(
                     id: firstProfileID,
-                    operation: .sketch(loftRectangleSketch(width: 4.0, height: 2.0, plane: .xy)),
+                    operation: .sketch(loftRectangleSketch(width: 4.0, height: 2.0, plane: planes[0])),
                     outputs: [FeatureOutput(role: .profile)]
                 ),
                 secondProfileID: FeatureNode(
@@ -1718,7 +1728,7 @@ private func closedSectionLoopLoftDocument(
                     operation: .sketch(loftRectangleSketch(
                         width: 4.0,
                         height: 2.0,
-                        plane: loftTranslatedPlane(x: 6.0, z: 4.0)
+                        plane: planes[1]
                     )),
                     outputs: [FeatureOutput(role: .profile)]
                 ),
@@ -1727,7 +1737,7 @@ private func closedSectionLoopLoftDocument(
                     operation: .sketch(loftRectangleSketch(
                         width: 4.0,
                         height: 2.0,
-                        plane: loftTranslatedPlane(x: 0.0, z: 8.0)
+                        plane: planes[2]
                     )),
                     outputs: [FeatureOutput(role: .profile)]
                 ),

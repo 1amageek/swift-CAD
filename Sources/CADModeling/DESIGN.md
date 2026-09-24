@@ -159,16 +159,28 @@ matched rings drive exact boundary traversal and cap/shell orientation. Reversed
 correspondence that produces singular or intersecting geometry is a failure,
 not permission to silently restore automatic traversal.
 
-Every ruled side patch with linear connector parameterization passes the existing
+Every Loft side patch passes the existing
 B-spline regularity and embedding validators over its complete parameter domain
 before entering the result BRep. This applies to profile, curve and mixed inputs.
 Interior collapsed rows and single-patch self-overlap are failures, even when
 the edge/face graph is structurally valid. This is not cross-patch separation
-or admission of general smooth patches with stationary boundary parameterization.
+between distinct patches. Stationary outer parameters use CADGeometry's explicit
+unit-weight factor-removal contract; unresolved cases fail rather than skipping
+admission for the entire smooth construction branch.
 
 Loft delegates all non-linear-connector transfinite construction to CADGeometry's
 shared Coons builder, including its exact unit-weight low-degree path. It does not
 own a second polynomial interpolation or approximate rational-weight classifier.
+
+Guide constraints own their geometric locus, not the input curve's traversal
+speed. A single clamped unit-weight Bezier guide whose control points are exactly
+collinear and ordered along its nonzero chord uses that chord's affine parameter
+before contact resolution. Exact planar predicates certify all three projections;
+ordered Bernstein controls prove strictly monotone interior traversal. The source
+feature is unchanged and no fitted tolerance is spent. General curved, rational,
+multi-span or reversing guides keep their original curve and admission path.
+This prevents stationary endpoints of an otherwise identical straight guide from
+changing or folding the Coons interior. CurveLoftFeatureTests owns this regression.
 
 For unguided ruled profile Loft, parallel section planes require equal traversal
 orientation on each matched loop. Every intermediate ruled section is planar;
