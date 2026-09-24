@@ -5,6 +5,41 @@ import Testing
 
 @Suite("Curve-Surface Intersection")
 struct CurveSurfaceIntersectionTests {
+    @Test(.timeLimit(.minutes(1)))
+    func planeEndpointDeflationPreservesNearbyDistinctRoot() throws {
+        let delta = 0.0001
+        let curve = BSplineCurve3D(
+            degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
+            controlPoints: [.origin, Point3D(x: 1.0 / 3, y: 0, z: 0),
+                            Point3D(x: 2.0 / 3, y: 0, z: -delta / 3),
+                            Point3D(x: 1, y: 0, z: 1 - delta)],
+            weights: [1, 1, 1, 1])
+        let events = try DefaultCurveSurfaceIntersector().intersections(
+            curve: .bSpline(curve), surface: .plane(Plane3D(origin: .origin, normal: .unitZ)),
+            options: .init(), tolerance: .standard)
+        #expect(events.count == 2)
+        #expect(events.contains { abs($0.curveParameter) < 1e-9 })
+        #expect(events.contains { abs($0.curveParameter - delta) < 1e-9 })
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func stationaryEndpointRetainsGeometricIntersection(reversed: Bool) throws {
+        let source = BSplineCurve3D(
+            degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
+            controlPoints: [.origin, .origin, Point3D(x: 0, y: 0, z: 0.001),
+                            Point3D(x: 0, y: 0, z: 0.001)],
+            weights: [1, 2, 2, 1])
+        let curve = reversed ? try source.reversed(tolerance: .standard) : source
+        let events = try DefaultCurveSurfaceIntersector().intersections(
+            curve: .bSpline(curve), surface: .plane(Plane3D(origin: .origin, normal: .unitZ)),
+            options: .init(), tolerance: .standard)
+        let event = try #require(events.first)
+        #expect(events.count == 1)
+        #expect(event.kind == .transverse)
+        #expect(event.point.isApproximatelyEqual(to: .origin, tolerance: 1e-6))
+        #expect(abs(event.curveParameter - (reversed ? 1 : 0)) < 1e-6)
+    }
+
     private let tolerance = ModelingTolerance(
         distance: 1.0e-9,
         angle: 1.0e-10

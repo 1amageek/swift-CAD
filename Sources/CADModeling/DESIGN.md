@@ -266,6 +266,18 @@ The implementation contract is owned by
 [CertifiedTwist](CertifiedTwist/DESIGN.md), a child component of this module.
 
 The precision-modeling extension retains the input profile exactly and stores
+Before Solid publication, each generated edge not belonging to a cap is
+intersected with that cap's support over its actual trimmed parameter range.
+Discrete events strictly inside the outer trim and outside every hole are
+invalid geometry. Authored oriented pcurves and the existing certified loop
+predicate own finite-region classification; support-plane crossings outside
+the cap are not rejected. Shared cap edges are excluded by topological identity,
+not endpoint similarity. Intersection/classification failures propagate.
+This edge-event check does not establish separation of side interiors or
+continuous coplanar contacts; general cap-side admission remains incomplete.
+LoftFeatureTests owns the tilted-end piercing regression and normal Solid/Sheet
+construction checks.
+
 an explicit positional approximation allowance in Sweep source, separate from
 modeling tolerance and presentation tessellation. A straight, profile-normal
 path with unit section scale and no guides may use a piecewise-linear angle

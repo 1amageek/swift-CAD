@@ -73,16 +73,39 @@ struct BSplineCurveAnalyticSurfaceIntersector {
                     Double.ulpOfOne * 64.0
                 )
             )
-            for localRoot in try solver.realRoots(
-                coefficients: implicit.coefficients
-            ) {
+            var rootCoefficients = implicit.coefficients
+            var endpointRoots: [Double] = []
+            if case .plane(let plane) = canonicalSurface {
+                let coefficients = span.controlPoints.indices.map {
+                    (span.controlPoints[$0] - plane.origin).dot(plane.normal) * span.weights[$0]
+                }
+                if let first = coefficients.firstIndex(where: { $0 != 0 }),
+                   let last = coefficients.lastIndex(where: { $0 != 0 }) {
+                    // Remove exact endpoint factors in Bernstein form before
+                    // power conversion can split a multiple endpoint root.
+                    let degree = coefficients.count - 1
+                    let reducedDegree = last - first
+                    var reduced: [Double] = []
+                    for index in first...last {
+                        reduced.append(try coefficients[index]
+                            * binomialCoefficient(degree, index)
+                            / binomialCoefficient(reducedDegree, index - first))
+                    }
+                    rootCoefficients = try bernsteinToPower(reduced)
+                    if first > 0 { endpointRoots.append(0) }
+                    if last < degree { endpointRoots.append(1) }
+                }
+            }
+            let roots = try solver.realRoots(coefficients: rootCoefficients)
+            for localRoot in roots + endpointRoots {
                 guard localRoot >= -localRootTolerance,
                       localRoot <= 1.0 + localRootTolerance else {
                     continue
                 }
-                let refinement = refinedLocalRoot(
+                let refinement = endpointRoots.contains(localRoot)
+                    ? RefinedRoot(value: localRoot, iterations: 0) : refinedLocalRoot(
                     localRoot,
-                    coefficients: implicit.coefficients,
+                    coefficients: rootCoefficients,
                     maximumIterations: options.maximumIterations
                 )
                 let boundedRoot = min(max(refinement.value, 0.0), 1.0)
@@ -95,10 +118,31 @@ struct BSplineCurveAnalyticSurfaceIntersector {
                 ) else {
                     continue
                 }
-                let geometry = try curve.differentialGeometry(
+                let geometry = try curve.parameterDerivatives(
                     at: parameter,
                     tolerance: tolerance
                 )
+                var direction = geometry.firstDerivative
+                if direction.length == 0, boundedRoot == 0 || boundedRoot == 1 {
+                    // Positive rational weights preserve the first nonzero
+                    // endpoint control difference's tangent direction.
+                    let controls = span.controlPoints
+                    let endpoint = boundedRoot == 0 ? controls[0] : controls[controls.count - 1]
+                    for offset in controls.indices {
+                        let index = boundedRoot == 0 ? offset : controls.count - 1 - offset
+                        guard controls[index] != endpoint else { continue }
+                        direction = boundedRoot == 0
+                            ? controls[index] - endpoint : endpoint - controls[index]
+                        break
+                    }
+                }
+                let speed = direction.length
+                guard speed.isFinite, speed > 0 else {
+                    throw KernelError(
+                        phase: .geometry, code: .singularGeometry, tolerance: tolerance,
+                        message: "The curve intersection has no resolved tangent direction.")
+                }
+                let tangent = direction / speed
                 let projection = try surface.parameterProjection(
                     of: geometry.position,
                     tolerance: tolerance
@@ -138,7 +182,7 @@ struct BSplineCurveAnalyticSurfaceIntersector {
                     curveParameter: parameter,
                     surfaceU: surfaceU,
                     surfaceV: surfaceV,
-                    kind: abs(geometry.tangent.dot(surfaceNormal)) <= tolerance.angle
+                    kind: abs(tangent.dot(surfaceNormal)) <= tolerance.angle
                         ? .tangent
                         : .transverse,
                     residual: residual,

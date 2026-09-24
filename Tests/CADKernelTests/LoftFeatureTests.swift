@@ -3,6 +3,34 @@ import CADCore
 import CADIR
 @testable import CADKernel
 
+@Test(.timeLimit(.minutes(1)), arguments: [LoftResultKind.sheet, .solid])
+func tiltedLoftEndMustNotPierceTheStartCap(resultKind: LoftResultKind) throws {
+    var (document, loftID) = ruledRectangleLoftDocument(resultKind: resultKind)
+    guard case .loft(let loft) = document.designGraph.nodes[loftID]?.operation else {
+        Issue.record("Expected Loft fixture."); return
+    }
+    document.designGraph.nodes[loft.sections[0].featureID]?.operation = .sketch(
+        loftRectangleSketch(width: 8, height: 8, plane: .xy))
+    document.designGraph.nodes[loft.sections[1].featureID]?.operation = .sketch(
+        loftRectangleSketch(width: 2, height: 2, plane: .plane(Plane3D(
+            origin: Point3D(x: 0, y: 0, z: 0.0002),
+            normal: Vector3D(x: 0, y: -Double(3).squareRoot() / 2, z: 0.5)))))
+    let evaluator = DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred)
+    if resultKind == .solid {
+        do {
+            _ = try evaluator.evaluateExact(document)
+            Issue.record("A cap-piercing Loft must not publish a Solid.")
+        } catch let error as KernelError {
+            #expect(error.code == .invalidInput)
+            #expect(error.message == "A Loft edge intersects a cap interior.")
+        }
+    } else {
+        let result = try evaluator.evaluateExact(document)
+        try result.brep.validate(level: .exact, tolerance: .standard)
+        #expect(result.brep.faces.count == 4)
+    }
+}
+
 @Test(.timeLimit(.minutes(1)))
 func loftCreatesClosedRuledSolidBRep() throws {
     let (document, loftID) = ruledRectangleLoftDocument(resultKind: .solid)

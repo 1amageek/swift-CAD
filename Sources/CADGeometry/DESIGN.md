@@ -1,5 +1,15 @@
 # CADGeometry
 
+Rational B-spline/analytic-surface intersection evaluates position and parameter
+derivatives, not curvature. A nonzero parameter speed is normalized independently
+of modeling distance tolerance. At a stationary Bezier endpoint, the first
+distinct control point supplies the exact one-sided tangent direction (positive
+weights); a constant span or unresolved stationary interior remains an explicit
+failure. CurveSurfaceIntersectionTests owns endpoint/reversal regressions.
+Plane intersections remove exact zero endpoint factors in Bernstein form
+before power conversion, retaining each endpoint once without merging nearby
+distinct roots by a widened numerical tolerance.
+
 ## Purpose and Scope
 
 `CADGeometry` owns exact analytic curves, surfaces, parameter domains, and

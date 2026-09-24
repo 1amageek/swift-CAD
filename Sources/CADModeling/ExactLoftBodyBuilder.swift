@@ -244,6 +244,7 @@ package struct ExactLoftBodyBuilder {
         }
 
         var faceIDsByLoop = Array(repeating: [FaceID](), count: partitions.count)
+        var capFaceIDs: [FaceID] = []
         if loft.options.resultKind == .solid {
             let startNormal = try -ringWindingNormal(
                 outerPartition.rings[0]
@@ -296,6 +297,7 @@ package struct ExactLoftBodyBuilder {
                 generatedSubshapes: &generatedSubshapes
             )
             faceIDsByLoop[0].append(endFaceID)
+            capFaceIDs = [startFaceID, endFaceID]
         }
 
         let sideSurfaceBuilder = ExactLoftSideSurfaceBuilder()
@@ -440,6 +442,14 @@ package struct ExactLoftBodyBuilder {
             in: &model,
             tolerance: context.tolerance
         )
+        if !capFaceIDs.isEmpty {
+            try validateCapEdgeEvents(
+                capFaceIDs: capFaceIDs,
+                edgeIDs: ringEdgeIDsByLoop.flatMap { $0.flatMap { $0 } }
+                    + connectorEdgeIDsByLoop.flatMap { $0.flatMap { $0 } },
+                model: model
+            )
+        }
         try model.validate(tolerance: context.tolerance)
         return EvaluationResult(
             brep: model,
@@ -449,6 +459,67 @@ package struct ExactLoftBodyBuilder {
                 subshapes: generatedSubshapes
             )
         )
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): The production Loft builder rejects
+    // discrete edge events in cap interiors here. Side-interior intersections
+    // and continuous coplanar contacts still require finite-face admission;
+    // this check alone must not be reported as complete cap-side separation.
+    private func validateCapEdgeEvents(
+        capFaceIDs: [FaceID], edgeIDs: [EdgeID], model: BRepModel
+    ) throws {
+        let tolerance = context.tolerance
+        let intersector = DefaultCurveSurfaceIntersector()
+        for faceID in capFaceIDs {
+            guard let face = model.faces[faceID],
+                  let surface = model.geometry.surfaces[face.surfaceID] else {
+                throw TopologyError.missingReference("Loft cap geometry is missing.")
+            }
+            var boundaryEdges: Set<EdgeID> = []
+            var regions: [(role: LoopRole, predicate: CertifiedSurfaceParameterLoopPredicate)] = []
+            for loopID in face.loops {
+                guard let loop = model.loops[loopID] else {
+                    throw TopologyError.missingReference("Loft cap loop is missing.")
+                }
+                let curves = try loop.coedges.map { coedge -> SurfaceParameterCurve in
+                    boundaryEdges.insert(coedge.edgeID)
+                    guard let curve = coedge.surfaceParameterCurve else {
+                        throw TopologyError.missingReference("Loft cap pcurve is missing.")
+                    }
+                    return curve
+                }
+                regions.append((loop.role, try CertifiedSurfaceParameterLoopPredicate(
+                    curves: curves, tolerance: tolerance)))
+            }
+            for edgeID in edgeIDs where !boundaryEdges.contains(edgeID) {
+                guard let edge = model.edges[edgeID], let trim = edge.trim,
+                      let curve = model.geometry.curves[edge.curveID] else {
+                    throw TopologyError.missingReference("Loft edge geometry is missing.")
+                }
+                let events = try intersector.intersections(
+                    curve: curve, surface: surface,
+                    options: CurveSurfaceIntersectionOptions(curveRange: ScalarInterval(
+                        lower: min(trim.startParameter, trim.endParameter),
+                        upper: max(trim.startParameter, trim.endParameter))),
+                    tolerance: tolerance)
+                for event in events {
+                    let point = Point2D(x: event.surfaceU, y: event.surfaceV)
+                    var insideOuter = false
+                    var excluded = false
+                    for region in regions {
+                        let classification = try region.predicate.classify(point, tolerance: tolerance)
+                        if region.role == .outer {
+                            insideOuter = insideOuter || classification == .inside
+                        } else if classification != .outside {
+                            excluded = true
+                        }
+                    }
+                    if insideOuter && !excluded {
+                        throw invalidGeometry("A Loft edge intersects a cap interior.")
+                    }
+                }
+            }
+        }
     }
 
     private struct OrientedSpan {
