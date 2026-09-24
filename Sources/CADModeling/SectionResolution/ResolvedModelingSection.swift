@@ -25,6 +25,7 @@ package enum ResolvedModelingSection: Sendable {
         from curves: [EvaluatedCurve]?,
         tolerance: ModelingTolerance
     ) throws -> EvaluatedCurve {
+        try reference.validate()
         guard let curves, curves.count == 1, let curve = curves.first else {
             throw KernelError.unsupportedEvaluation(
                 tolerance: tolerance,
@@ -34,7 +35,10 @@ package enum ResolvedModelingSection: Sendable {
         guard curve.sourceFeatureID == reference.featureID else {
             throw FeatureEvaluationError.invalidGraph("Section curve belongs to a different source feature.")
         }
-        return curve
+        guard let domain = reference.parameterDomain else { return curve }
+        try curve.validate(tolerance: tolerance)
+        return try CurveTrimFeatureEvaluator().trimmedCurve(featureID: reference.featureID,
+            source: curve, domain: domain, tolerance: tolerance)
     }
 
     package func plane() throws -> SketchPlane {

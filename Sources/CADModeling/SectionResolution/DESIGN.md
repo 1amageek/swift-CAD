@@ -38,6 +38,11 @@ evaluated source arrays + reference
 - A curve reference without a segment index requires exactly one source curve;
   empty or ambiguous input is rejected, never truncated to its first element.
 - Plane metadata is required by planar consumers, not invented by resolution.
+- Curve interval selection reuses CurveTrimFeatureEvaluator's exact restriction
+  and source-domain admission. It preserves source identity, plane and exact
+  curve geometry while updating display samples, closure and parameter domain.
+  No display polyline is used to reconstruct the selected curve. Extrude,
+  Revolve, Loft and Sweep evaluation/preflight consume the same restricted value.
 - Input arrays and values retain Swift value semantics; the resolver does not
   map, filter, copy buffers manually, store state or cache results.
 - These rules and Sendable conformances are unconditional across targets.
@@ -54,8 +59,10 @@ admission before publication.
 
 ## Failure, Concurrency, and Constraints
 
-Resolution is synchronous, stateless and constant-time, with no I/O, callbacks,
-allocation loops, locks or cancellation ownership. Missing and mismatched
+Resolution is synchronous and stateless, with no I/O, callbacks,
+locks or cancellation ownership. Whole-curve admission is constant-time; an
+explicit trim owns the bounded sample allocation of the existing trim evaluator.
+Missing and mismatched
 inputs remain explicit failures. The construction owner validates geometric
 regularity and topology; resolution does not claim these properties.
 

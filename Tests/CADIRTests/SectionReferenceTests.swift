@@ -11,6 +11,7 @@ struct SectionReferenceTests {
         let references: [SectionReference] = [
             .profile(ProfileReference(featureID: source, profileIndex: 3)),
             .curve(CurveSectionReference(featureID: source)),
+            .curve(CurveSectionReference(featureID: source, parameterDomain: .closed(0.2, 0.8))),
         ]
         for reference in references {
             let data = try JSONEncoder().encode(reference)
@@ -19,6 +20,17 @@ struct SectionReferenceTests {
             #expect(restored.featureID == source)
             #expect(restored.inputRole == (reference.isProfile ? .profile : .curve))
         }
+    }
+
+    @Test func rejectsInvalidCurveIntervalsOnBothPersistencePaths() throws {
+        for domain in [ParameterDomain.unbounded, .periodic(period: 1), .closed(1, 0), .closed(0, 0), .closed(0, .infinity)] {
+            let reference = CurveSectionReference(featureID: FeatureID(), parameterDomain: domain)
+            #expect(throws: FeatureEvaluationError.self) { try JSONEncoder().encode(reference) }
+            #expect(throws: FeatureEvaluationError.self) { try JSONEncoder().encode(SectionReference.curve(reference)) }
+        }
+        let reference = CurveSectionReference(featureID: FeatureID(), parameterDomain: .closed(2, 3))
+        #expect(try JSONDecoder().decode(CurveSectionReference.self,
+            from: JSONEncoder().encode(reference)) == reference)
     }
 
     @Test

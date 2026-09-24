@@ -9,7 +9,9 @@ between a closed profile and a source curve used as a modeling section.
 
 `SectionReference` owns source identity, input role and strict Codable shape.
 `CurveSectionReference` identifies a source whose evaluation must produce exactly
-one curve. Resolution, coordinates, geometry and output body kind are not owned
+one curve and optionally a finite closed `parameterDomain` in that exact curve's
+native parameterization. The interval must have positive extent; containment is
+checked against the evaluated source, never clamped. Resolution, coordinates, geometry and output body kind are not owned
 here. A curve is not implicitly converted into a closed profile.
 
 ## Related Designs
@@ -41,5 +43,7 @@ section source value -> strict encoding/decoding -> graph input role
 indexes and mixed reference fields. `SectionResolutionTests` owns runtime source
 cardinality and identity checks. Sweep evaluation/preflight, Rupa commands,
 selection, remapping, Agent and Automation all consume this one value contract.
-Adding face, orientation or range semantics requires updating those consumers
+Curve intervals survive both standalone and SectionReference encoding, and source
+ID remapping preserves the interval. Missing intervals mean the whole curve.
+Adding face or orientation semantics requires updating those consumers
 before publishing the changed contract; those capabilities are not implied here.

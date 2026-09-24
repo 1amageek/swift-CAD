@@ -51,15 +51,20 @@ public enum SectionReference: Codable, Hashable, Sendable {
         case kind
         case featureID
         case profileIndex
+        case parameterDomain
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.kind, .featureID, .profileIndex], in: decoder)
+        try container.validateOnlyExpectedKeys([.kind, .featureID, .profileIndex, .parameterDomain], in: decoder)
         let kind = try container.decode(Kind.self, forKey: .kind)
         let featureID = try container.decode(FeatureID.self, forKey: .featureID)
         switch kind {
         case .profile:
+            guard !container.contains(.parameterDomain) else {
+                throw DecodingError.dataCorruptedError(forKey: .parameterDomain, in: container,
+                    debugDescription: "Profile sections must not contain a curve parameter domain.")
+            }
             let profileIndex = try container.decode(Int.self, forKey: .profileIndex)
             self = .profile(ProfileReference(featureID: featureID, profileIndex: profileIndex))
         case .curve:
@@ -70,7 +75,8 @@ public enum SectionReference: Codable, Hashable, Sendable {
                     debugDescription: "Curve sections must not contain a profile index."
                 )
             }
-            self = .curve(CurveSectionReference(featureID: featureID))
+            self = .curve(CurveSectionReference(featureID: featureID,
+                parameterDomain: try container.decodeIfPresent(ParameterDomain.self, forKey: .parameterDomain)))
         }
         try validate()
     }
@@ -86,6 +92,7 @@ public enum SectionReference: Codable, Hashable, Sendable {
         case .curve(let curve):
             try container.encode(Kind.curve, forKey: .kind)
             try container.encode(curve.featureID, forKey: .featureID)
+            try container.encodeIfPresent(curve.parameterDomain, forKey: .parameterDomain)
         }
     }
 }

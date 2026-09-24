@@ -73,7 +73,7 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         return curve
     }
 
-    private func trimmedCurve(
+    package func trimmedCurve(
         featureID: FeatureID,
         source: EvaluatedCurve,
         domain: ParameterDomain,
@@ -93,7 +93,7 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         ) else {
             throw kernelError(.invalidInput, featureID: featureID, tolerance: tolerance, "Curve trim domain must be contained in the source curve domain.")
         }
-        let points = try samplePoints(
+        let samples = try samplePoints(
             exactCurve,
             lowerBound: lowerBound,
             upperBound: upperBound,
@@ -110,7 +110,7 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             sourceFeatureID: featureID,
             source: .generatedFeature,
             kind: kind,
-            points: points,
+            points: samples.points,
             isClosed: trimmedCurveIsClosed(
                 source: source,
                 exactCurve: exactCurve,
@@ -120,7 +120,8 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             ),
             plane: source.plane,
             exactCurve: exactCurve,
-            exactParameterDomain: domain
+            exactParameterDomain: domain,
+            exactPointParameters: samples.parameters
         )
         try evaluated.validate(tolerance: tolerance)
         return evaluated
@@ -155,13 +156,13 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         lowerBound: Double,
         upperBound: Double,
         tolerance: ModelingTolerance
-    ) throws -> [Point3D] {
+    ) throws -> (points: [Point3D], parameters: [Double]) {
         let span = upperBound - lowerBound
-        guard span > tolerance.distance else {
+        guard span.isFinite, span > 0 else {
             throw GeometryError.invalidDistance(span)
         }
         let sampleCount = 33
-        return try (0..<sampleCount).map { index in
+        let parameters = (0..<sampleCount).map { index in
             let parameter: Double
             if index == 0 {
                 parameter = lowerBound
@@ -171,11 +172,9 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
                 parameter = lowerBound
                     + span * Double(index) / Double(sampleCount - 1)
             }
-            return try curve.point(
-                at: parameter,
-                tolerance: tolerance
-            )
+            return parameter
         }
+        return (try parameters.map { try curve.point(at: $0, tolerance: tolerance) }, parameters)
     }
 
     private func trimmedKind(
