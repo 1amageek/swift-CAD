@@ -10,6 +10,38 @@ struct ExactRuledBSplineSurfaceBuilderTests {
         relative: 1.0e-11
     )
 
+    @Test(arguments: [false, true])
+    func commonDenominatorsPreserveCurvesAndEnforceDegreeBudget(split: Bool) throws {
+        var curves = [0.5, 0.75, 0.5].enumerated().map { index, weight in
+            BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+                controlPoints: [Point3D(x: 0, y: Double(index), z: 0),
+                    Point3D(x: 0.5, y: Double(index), z: 0.25),
+                    Point3D(x: 1, y: Double(index), z: 0)], weights: [1, weight, 1])
+        }
+        if split { curves = try curves.map { try $0.insertingKnot(0.5, tolerance: tolerance) } }
+        let builder = ExactRuledBSplineSurfaceBuilder(maximumResultDegree: 4)
+        let converted = try builder.commonDenominatorBoundaries(curves, tolerance: tolerance)
+        #expect(converted.count == curves.count)
+        #expect(converted.allSatisfy { $0.degree == 4 && $0.weights == converted[0].weights })
+        for index in curves.indices {
+            for sample in 0...32 {
+                let u = Double(sample) / 32
+                #expect(try (converted[index].point(at: u, tolerance: tolerance)
+                    - curves[index].point(at: u, tolerance: tolerance)).length < tolerance.distance)
+            }
+        }
+        #expect(throws: KernelError.self) {
+            try ExactRuledBSplineSurfaceBuilder(maximumResultDegree: 3)
+                .commonDenominatorBoundaries(curves, tolerance: tolerance)
+        }
+        #expect(throws: KernelError.self) {
+            try ExactRuledBSplineSurfaceBuilder(maximumResultDegree: 1)
+                .commonDenominatorBoundaries([curves[0]], tolerance: tolerance)
+        }
+        let unchanged = try builder.commonDenominatorBoundaries([curves[0]], tolerance: tolerance)
+        #expect(unchanged[0] == curves[0])
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func differentRationalWeightFunctionsPreserveEveryEuclideanRuling() throws {
         let start = BSplineCurve3D(

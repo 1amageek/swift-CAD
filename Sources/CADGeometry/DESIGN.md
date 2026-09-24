@@ -65,6 +65,14 @@ flowchart LR
 
 ## Contracts and Invariants
 
+The ruled builder owns common-denominator conversion for aligned rational
+boundary columns consumed by Loft. Each distinct positive Bernstein weight
+polynomial contributes once to the shared denominator; each curve's homogeneous
+numerator is multiplied by the other factors. Degree limits and finite positive
+weight checks apply before publishing any converted curve. Existing shared-seam
+admission remains independent and unchanged. CurveLoftFeatureTests verifies the
+authored middle boundary through the actual evaluator in ruled and smooth modes.
+
 Loft construction may retain a unit-weight clamped bilinear parameter map with
 one collinear polygon corner. Exact spatial coplanarity and planar turn signs
 must establish a convex, nondegenerate boundary with no repeated vertices.

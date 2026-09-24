@@ -174,17 +174,21 @@ package struct ExactLoftBodyBuilder {
             var curves = partition.curves
             for span in curves[0].indices {
                 var basis = curves[0][span]
-                guard curves.dropFirst().contains(where: {
+                if curves.dropFirst().contains(where: {
                     $0[span].degree != basis.degree || $0[span].knots != basis.knots
-                }) else { continue }
-                for section in curves.indices.dropFirst() {
-                    basis = try basisResolver.resolve(first: basis, second: curves[section][span],
-                        tolerance: context.tolerance).first
+                }) {
+                    for section in curves.indices.dropFirst() {
+                        basis = try basisResolver.resolve(first: basis, second: curves[section][span],
+                            tolerance: context.tolerance).first
+                    }
+                    for section in curves.indices {
+                        curves[section][span] = try basisResolver.resolve(first: curves[section][span], second: basis,
+                            tolerance: context.tolerance).first
+                    }
                 }
-                for section in curves.indices {
-                    curves[section][span] = try basisResolver.resolve(first: curves[section][span], second: basis,
-                        tolerance: context.tolerance).first
-                }
+                let common = try ExactRuledBSplineSurfaceBuilder().commonDenominatorBoundaries(
+                    curves.map { $0[span] }, tolerance: context.tolerance)
+                for section in curves.indices { curves[section][span] = common[section] }
             }
             return SectionPartition(breaks: partition.breaks, curves: curves, rings: partition.rings)
         }
@@ -322,8 +326,8 @@ package struct ExactLoftBodyBuilder {
 
         let sideSurfaceBuilder = ExactLoftSideSurfaceBuilder()
         // FIXME(INCOMPLETE_IMPLEMENTATION): Loft evaluation requires individual
-        // patch admission; distinct rational shared-seam denominators, stationary
-        // guide parameterization and general cap/side separation remain unresolved.
+        // patch admission; stationary guide parameterization and general
+        // cap/side separation remain unresolved.
         // Complete those contracts before claiming general smooth/guided Loft;
         // structural BRep validation alone is insufficient.
         var sideFaceOrdinal = 0

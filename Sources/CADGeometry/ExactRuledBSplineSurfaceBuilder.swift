@@ -97,6 +97,84 @@ public struct ExactRuledBSplineSurfaceBuilder: RuledBSplineSurfaceBuilding {
         )
     }
 
+    /// Reexpresses an aligned column with one positive rational denominator.
+    /// Callers retain these curves as the shared boundaries of incident faces.
+    package func commonDenominatorBoundaries(
+        _ curves: [BSplineCurve3D],
+        tolerance: ModelingTolerance
+    ) throws -> [BSplineCurve3D] {
+        try tolerance.validate()
+        guard let first = curves.first else { return [] }
+        for curve in curves { try curve.validate(tolerance: tolerance) }
+        guard curves.allSatisfy({ $0.degree == first.degree && $0.knots == first.knots }),
+              maximumResultDegree > 0 else {
+            throw diagnostic(code: .invalidInput, tolerance: tolerance,
+                message: "Common rational boundaries require aligned bases and a positive degree budget.")
+        }
+        guard first.degree <= maximumResultDegree else {
+            throw diagnostic(code: .resourceLimitExceeded, tolerance: tolerance,
+                message: "Common rational boundaries exceeded the result-degree budget.")
+        }
+        guard curves.contains(where: { $0.weights != first.weights }) else { return curves }
+        var factors: [BSplineCurve3D] = []
+        var factorIndices: [Int] = []
+        for curve in curves {
+            if let index = factors.firstIndex(where: { $0.weights == curve.weights }) {
+                factorIndices.append(index)
+            } else {
+                factorIndices.append(factors.count)
+                factors.append(curve)
+            }
+        }
+        guard first.degree <= maximumResultDegree / factors.count else {
+            throw diagnostic(code: .resourceLimitExceeded, tolerance: tolerance,
+                message: "Common rational boundaries exceeded the result-degree budget.")
+        }
+        let degree = first.degree * factors.count
+        let sourcePatches = try curves.map { try patches(of: $0, tolerance: tolerance) }
+        let factorPatches = try factors.map { try patches(of: $0, tolerance: tolerance) }
+        guard let initial = sourcePatches[0].first,
+              sourcePatches.allSatisfy({ $0.count == sourcePatches[0].count }) else {
+            throw diagnostic(code: .invalidInput, tolerance: tolerance,
+                message: "Common rational boundaries require a complete aligned span sequence.")
+        }
+        let breaks = [initial.lower] + sourcePatches[0].map(\.upper)
+        var points = Array(repeating: [Point3D](), count: curves.count)
+        var previous = Array<HomogeneousControl?>(repeating: nil, count: curves.count)
+        var weights: [Double] = []
+        for span in sourcePatches[0].indices {
+            var denominator = [1.0]
+            for factor in factorPatches {
+                denominator = try product(denominator, factor[span].weights, tolerance: tolerance)
+            }
+            let localIndices = span == 0 ? 0...degree : 1...degree
+            weights.append(contentsOf: localIndices.map { denominator[$0] })
+            for curve in curves.indices {
+                var numerator = homogeneousNumerators(sourcePatches[curve][span])
+                for factor in factorPatches.indices where factor != factorIndices[curve] {
+                    numerator = try vectorTimesScalar(numerator, factorPatches[factor][span].weights,
+                        tolerance: tolerance)
+                }
+                let converted = try controls(numerators: numerator, weights: denominator, tolerance: tolerance)
+                if let prior = previous[curve] {
+                    try validateSharedControl(prior, converted[0], tolerance: tolerance)
+                }
+                previous[curve] = converted[degree]
+                for index in localIndices {
+                    let control = converted[index]
+                    points[curve].append(Point3D(x: control.numerator.x / control.weight,
+                        y: control.numerator.y / control.weight, z: control.numerator.z / control.weight))
+                }
+            }
+        }
+        return try points.map { controls in
+            let curve = BSplineCurve3D(degree: degree, knots: knotVector(breaks: breaks, degree: degree),
+                controlPoints: controls, weights: weights)
+            try curve.validate(tolerance: tolerance)
+            return curve
+        }
+    }
+
     private struct HomogeneousControl: Sendable {
         let numerator: Vector3D
         let weight: Double

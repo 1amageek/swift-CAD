@@ -219,8 +219,11 @@ All incident faces consume the same stored elevated section curve. This avoids
 independent pairwise degree elevation of a shared curved section; already
 aligned columns and two-section stacks retain their existing representation.
 The existing curve basis resolver owns conversion and span limits. Different
-rational denominators are not made identical by this polynomial basis alignment
-and remain subject to the existing exact shared-boundary admission contract.
+rational denominators require a shared homogeneous representation before face
+construction. CADGeometry's ruled builder owns the positive Bernstein denominator
+products and degree budget; Loft supplies the whole incident section column.
+Identical denominator factors are reused once. This conversion must preserve
+each authored curve and must not relax exact shared-boundary admission.
 
 
 Loft delegates all non-linear-connector transfinite construction to CADGeometry's

@@ -89,6 +89,28 @@ struct CurveLoftFeatureTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(1)), arguments: [LoftSurfaceMode.ruled, .smooth])
+    func rationalSectionsShareTheirAuthoredCurvedBoundary(mode: LoftSurfaceMode) throws {
+        let source = [0.5, 0.75, 1.0].enumerated().map { index, weight in
+            BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+                controlPoints: [Point3D(x: 0, y: Double(index), z: 0),
+                    Point3D(x: 0.5, y: Double(index), z: 0.25),
+                    Point3D(x: 1, y: Double(index), z: 0)],
+                weights: [1, weight, 1])
+        }
+        let result = try evaluate(try source.map { try section($0) }, mode: mode)
+        try result.brep.validate(level: .exact, tolerance: .standard)
+        #expect(result.brep.faces.count == 2)
+        for surface in result.brep.geometry.surfaces.values {
+            let atLower = try surface.point(u: 0.5, v: 0, tolerance: .standard)
+            let v = abs(atLower.y - 1) < 1e-9 ? 0.0 : 1.0
+            for u in [0.0, 0.25, 0.5, 0.75, 1.0] {
+                let point = try surface.point(u: u, v: v, tolerance: .standard)
+                #expect(try (point - source[1].point(at: u, tolerance: .standard)).length < 1e-9)
+            }
+        }
+    }
+
     @Test func transfiniteLoftDoesNotDiscardNearUnitBoundaryWeights() throws {
         let lower = BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
             controlPoints: [.origin, Point3D(x: 1, y: 0, z: 1e9), Point3D(x: 2, y: 0, z: 0)],
