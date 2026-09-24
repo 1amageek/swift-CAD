@@ -40,6 +40,14 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Surface Creation expands the existing feature-evaluation path; it does not add
+a second geometry authority. Extrude, Revolve, Loft, Sweep and Sweep preflight
+share the source-section admission contract in
+[SectionResolution](SectionResolution/DESIGN.md). This foundation does not yet
+provide general boundary constraints or certify G1/G2 fitting. The approved
+eleven-operation implementation remains incomplete until each actual evaluator,
+source contract and application route meets its acceptance criteria.
+
 ### Bounded rotational Sweep construction
 
 The implementation contract is owned by

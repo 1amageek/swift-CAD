@@ -150,7 +150,7 @@ public struct SweepEvaluationPlanService: Sendable {
         )
         if CertifiedTwistSweepPlan.requested(options) {
             do {
-                guard case let .profile(profile) = section else {
+                guard case let .profile(profile, _) = section else {
                     throw CertifiedTwistSweepPlan.failure("Certified twist initially requires a closed profile section.", tolerance)
                 }
                 let certified = try CertifiedTwistSweepPlan(profile: profile, pathSegments: pathSegments,
@@ -461,7 +461,7 @@ public struct SweepEvaluationPlanService: Sendable {
         parameters: ResolvedParameterTable,
         evaluatedDocument: EvaluatedDocument?,
         tolerance: ModelingTolerance
-    ) throws -> SweepEvaluationResolvedSection {
+    ) throws -> ResolvedModelingSection {
         switch section {
         case .profile(let profileReference):
             let sourceProfiles = try profiles(
@@ -470,13 +470,10 @@ public struct SweepEvaluationPlanService: Sendable {
                 parameters: parameters,
                 tolerance: tolerance
             )
-            guard sourceProfiles.indices.contains(profileReference.profileIndex) else {
-                throw FeatureEvaluationError.missingProfile(
-                    profileReference.featureID,
-                    profileReference.profileIndex
-                )
-            }
-            return .profile(sourceProfiles[profileReference.profileIndex])
+            return .profile(
+                try ResolvedModelingSection.resolveProfile(profileReference, from: sourceProfiles),
+                profileReference
+            )
         case .curve(let curveReference):
             let sourceCurves = try curves(
                 for: curveReference.featureID,
@@ -485,17 +482,11 @@ public struct SweepEvaluationPlanService: Sendable {
                 evaluatedDocument: evaluatedDocument,
                 tolerance: tolerance
             )
-            guard sourceCurves.count == 1,
-                  let curve = sourceCurves.first else {
-                throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                    "Sweep curve section currently requires one curve from the section feature."
-                )
-            }
-            guard curve.plane != nil else {
-                throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                    "Sweep curve section requires source curve plane metadata."
-                )
-            }
+            let curve = try ResolvedModelingSection.resolveCurve(
+                curveReference,
+                from: sourceCurves,
+                tolerance: tolerance
+            )
             return .curve(curve)
         }
     }
@@ -643,7 +634,7 @@ public struct SweepEvaluationPlanService: Sendable {
     }
 
     private func exactPointGuideTransform(
-        section: SweepEvaluationResolvedSection,
+        section: ResolvedModelingSection,
         pathStart: Point3D,
         pathEnd: Point3D,
         guide: EvaluatedCurve,
@@ -654,7 +645,7 @@ public struct SweepEvaluationPlanService: Sendable {
             tolerance: tolerance
         )
         switch section {
-        case .profile(let profile):
+        case .profile(let profile, _):
             return try resolver.resolve(
                 profile: profile,
                 pathStart: pathStart,
@@ -675,23 +666,4 @@ public struct SweepEvaluationPlanService: Sendable {
         }
     }
 
-}
-
-private enum SweepEvaluationResolvedSection {
-    case profile(Profile)
-    case curve(EvaluatedCurve)
-
-    func plane() throws -> SketchPlane {
-        switch self {
-        case .profile(let profile):
-            return profile.plane
-        case .curve(let curve):
-            guard let plane = curve.plane else {
-                throw FeatureEvaluationError.invalidGraph(
-                    "Resolved sweep curve sections must carry plane metadata."
-                )
-            }
-            return plane
-        }
-    }
 }

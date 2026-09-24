@@ -37,18 +37,14 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 message: "PlanarExtrudeFeatureEvaluator only supports newBody extrude."
             )
         }
-        guard let profiles = context.profiles[extrude.profile.featureID],
-              profiles.indices.contains(extrude.profile.profileIndex) else {
-            throw FeatureEvaluationError.missingProfile(
-                extrude.profile.featureID,
-                extrude.profile.profileIndex
-            )
-        }
+        let profile = try ResolvedModelingSection.resolveProfile(
+            extrude.profile,
+            from: context.profiles[extrude.profile.featureID]
+        )
         let distance = try resolvedDistance(
             extrude.distance,
             context: context
         )
-        let profile = profiles[extrude.profile.profileIndex]
         // Both kinds sweep the same wall from the same profile, and the result kind decides only
         // whether the two ends are sewn onto it.
         let result: EvaluationResult

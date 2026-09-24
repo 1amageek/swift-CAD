@@ -63,6 +63,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 "PlanarSweepFeatureEvaluator received a non-sweep feature."
             )
         }
+        try sweep.validate()
         let capabilities = SweepEvaluationCapabilities()
         try capabilities.validateStaticOptions(
             sweep.options,
@@ -388,33 +389,26 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
     private func resolvedSection(
         _ section: SweepSectionReference,
         context: EvaluationContext
-    ) throws -> ResolvedSweepSection {
+    ) throws -> ResolvedModelingSection {
         switch section {
         case .profile(let profileReference):
-            guard let profile = context.profiles[profileReference.featureID]?[profileReference.profileIndex] else {
-                throw FeatureEvaluationError.missingProfile(
-                    profileReference.featureID,
-                    profileReference.profileIndex
-                )
-            }
+            let profile = try ResolvedModelingSection.resolveProfile(
+                profileReference,
+                from: context.profiles[profileReference.featureID]
+            )
             return .profile(profile, profileReference)
         case .curve(let curveReference):
-            guard let curve = context.curves[curveReference.featureID]?.onlyElement else {
-                throw KernelError.unsupportedEvaluation(tolerance: context.tolerance, message:
-                    "Sweep curve section currently requires one curve from the section feature."
-                )
-            }
-            guard curve.plane != nil else {
-                throw KernelError.unsupportedEvaluation(tolerance: context.tolerance, message:
-                    "Sweep curve section requires source curve plane metadata."
-                )
-            }
+            let curve = try ResolvedModelingSection.resolveCurve(
+                curveReference,
+                from: context.curves[curveReference.featureID],
+                tolerance: context.tolerance
+            )
             return .curve(curve)
         }
     }
 
     private func buildExactLinearSectionSweep(
-        section: ResolvedSweepSection,
+        section: ResolvedModelingSection,
         pathSegments: [EvaluatedCurvePathSegment],
         pathEndPoint: Point3D,
         resultKind: SweepResultKind,
@@ -459,7 +453,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
     }
 
     private func exactPointGuideTransform(
-        section: ResolvedSweepSection,
+        section: ResolvedModelingSection,
         pathStart: Point3D,
         pathEnd: Point3D,
         guide: EvaluatedCurve,
@@ -543,34 +537,6 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             throw FeatureEvaluationError.invalidGraph("Sweep boolean target subshape is not a body.")
         }
         return bodyID
-    }
-}
-
-private enum ResolvedSweepSection {
-    case profile(Profile, ProfileReference)
-    case curve(EvaluatedCurve)
-
-    func plane() throws -> SketchPlane {
-        switch self {
-        case .profile(let profile, _):
-            return profile.plane
-        case .curve(let curve):
-            guard let plane = curve.plane else {
-                throw FeatureEvaluationError.invalidGraph(
-                    "Resolved sweep curve sections must carry plane metadata."
-                )
-            }
-            return plane
-        }
-    }
-
-    func profileReference() throws -> ProfileReference {
-        switch self {
-        case .profile(_, let profileReference):
-            return profileReference
-        case .curve:
-            throw FeatureEvaluationError.invalidGraph("Curve-section sweeps cannot be evaluated as solid extrusions.")
-        }
     }
 }
 

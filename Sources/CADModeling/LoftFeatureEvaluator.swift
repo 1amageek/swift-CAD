@@ -136,14 +136,10 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
     ) throws -> [Profile] {
         try loft.sections.map { section in
             let reference = section.profile
-            guard let profiles = context.profiles[reference.featureID],
-                  profiles.indices.contains(reference.profileIndex) else {
-                throw FeatureEvaluationError.missingProfile(
-                    reference.featureID,
-                    reference.profileIndex
-                )
-            }
-            return profiles[reference.profileIndex]
+            return try ResolvedModelingSection.resolveProfile(
+                reference,
+                from: context.profiles[reference.featureID]
+            )
         }
     }
 

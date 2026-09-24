@@ -54,13 +54,10 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             )
         }
         try revolve.validate(tolerance: context.tolerance)
-        guard let profiles = context.profiles[revolve.profile.featureID],
-              profiles.indices.contains(revolve.profile.profileIndex) else {
-            throw FeatureEvaluationError.missingProfile(
-                revolve.profile.featureID,
-                revolve.profile.profileIndex
-            )
-        }
+        let profile = try ResolvedModelingSection.resolveProfile(
+            revolve.profile,
+            from: context.profiles[revolve.profile.featureID]
+        )
         let resolvedAngle = try resolver.evaluate(
             revolve.angle,
             parameters: context.parameters,
@@ -95,7 +92,6 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             )
         }
 
-        let profile = profiles[revolve.profile.profileIndex]
         // Multi-loop regions require one topology authority for cap holes,
         // detached void shells, pcurves, and volume ownership. The general
         // exact sewing path provides that contract even when every boundary is
