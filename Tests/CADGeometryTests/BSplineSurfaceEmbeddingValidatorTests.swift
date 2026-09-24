@@ -118,25 +118,38 @@ struct BSplineSurfaceEmbeddingValidatorTests {
     }
     @Test(arguments: [false, true], [false, true])
     func differentDegreeStraightSeamsRequireGeometricAdjacency(reversed: Bool, rational: Bool) throws {
-        let first = BSplineSurface3D(uDegree: 1, vDegree: 1,
-            uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
-            controlPoints: [0.0, 1.0].map { y in
-                [0.0, 1.0].map { x in Point3D(x: x, y: y, z: 0) }
-            })
-        func second(outerX: Double) -> BSplineSurface3D {
-            let ordinates = [0.0, 1.0 / 3, 2.0 / 3, 1.0]
-            let weights = rational ? [1.0, 0.7, 1.3, 1.0] : [1, 1, 1, 1]
-            return BSplineSurface3D(uDegree: 1, vDegree: 3,
-                uKnots: [0, 0, 1, 1], vKnots: [0, 0, 0, 0, 1, 1, 1, 1],
-                controlPoints: (reversed ? Array(ordinates.reversed()) : ordinates).map { y in
-                    [1.0, outerX].map { x in Point3D(x: x, y: y, z: 0) }
-                }, weights: weights.map { [$0, $0] })
-        }
-        try BSplineSurfaceEmbeddingValidator().validateAdjacent(first: first, firstBoundary: .uUpper,
-            second: second(outerX: 2), secondBoundary: .uLower, tolerance: .standard)
-        #expect(throws: KernelError.self) {
+        for oblique in [false, true] {
+            func point(_ x: Double, _ y: Double) -> Point3D {
+                oblique ? Point3D(x: x + y, y: x - y, z: 2 * y) : Point3D(x: x, y: y, z: 0)
+            }
+            let first = BSplineSurface3D(uDegree: 1, vDegree: 1,
+                uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+                controlPoints: [0.0, 1.0].map { y in
+                    [0.0, 1.0].map { x in point(x, y) }
+                })
+            func second(outerX: Double, bent: Bool = false) -> BSplineSurface3D {
+                let ordinates = oblique ? [0.0, 0.25, 0.75, 1.0] : [0.0, 1.0 / 3, 2.0 / 3, 1.0]
+                let weights = rational ? [1.0, 0.7, 1.3, 1.0] : [1, 1, 1, 1]
+                return BSplineSurface3D(uDegree: 1, vDegree: 3,
+                    uKnots: [0, 0, 1, 1], vKnots: [0, 0, 0, 0, 1, 1, 1, 1],
+                    controlPoints: (reversed ? Array(ordinates.reversed()) : ordinates).map { y in
+                        [1.0, outerX].map { x in
+                            let p = point(x, y)
+                            return bent && x == 1 && y == ordinates[1]
+                                ? Point3D(x: p.x, y: p.y, z: p.z + 1e-12) : p
+                        }
+                    }, weights: weights.map { [$0, $0] })
+            }
             try BSplineSurfaceEmbeddingValidator().validateAdjacent(first: first, firstBoundary: .uUpper,
-                second: second(outerX: 0.5), secondBoundary: .uLower, tolerance: .standard)
+                second: second(outerX: 2), secondBoundary: .uLower, tolerance: .standard)
+            #expect(throws: KernelError.self) {
+                try BSplineSurfaceEmbeddingValidator().validateAdjacent(first: first, firstBoundary: .uUpper,
+                    second: second(outerX: 0.5), secondBoundary: .uLower, tolerance: .standard)
+            }
+            #expect(throws: KernelError.self) {
+                try BSplineSurfaceEmbeddingValidator().validateAdjacent(first: first, firstBoundary: .uUpper,
+                    second: second(outerX: 2, bent: true), secondBoundary: .uLower, tolerance: .standard)
+            }
         }
     }
     @Test(arguments: SurfaceParameterBoundary.allCases, [false, true])

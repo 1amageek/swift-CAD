@@ -152,12 +152,14 @@ halves use single-boundary adjacency, and the other pairs require strict
 separation. Trimming uses the existing spline trim owner and retains source
 coordinates; it does not add topology. Four pair proofs divide the request's
 cell budgets, and unmatched or non-opposite boundary declarations fail explicitly.
-An axis-aligned straight seam can instead be admitted independently of degree
+An arbitrarily oriented straight seam can instead be admitted independently of degree
 or parameter speed. Clamped boundary control polygons must share exact endpoints,
-have two identical constant coordinates and monotone remaining coordinates.
+be exactly collinear in two independent coordinate projections and monotone
+along a nonconstant coordinate. Zero-tolerance robust orientation predicates
+establish collinearity; near-collinearity does not authorize snapping.
 Positive rational weights then keep each boundary on that same segment. A plane
 through that line must strictly separate every non-boundary control point of
-the two charts, certified with outward interval projections. This excludes any
+the two charts, certified with robust spatial orientation predicates. This excludes any
 cross-chart contact away from the seam. Each chart must also pass independent
 embedding admission using half the request's local and pair-cell budgets. A candidate plane is
 only a search heuristic; inconclusive signs retain the general-chart path.

@@ -641,7 +641,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                 && s.vKnots.prefix(s.vDegree + 1).allSatisfy { $0 == s.vKnots[0] }
                 && s.vKnots.suffix(s.vDegree + 1).allSatisfy { $0 == s.vKnots.last }
         }
-        if clamped(a), clamped(b), straightSeamSeparates(a, b) {
+        if clamped(a), clamped(b), try straightSeamSeparates(a, b) {
             guard maximumCellCount >= 2, maximumPairCellCount >= 2 else {
                 throw resourceLimit(residual: 2, tolerance: tolerance,
                     message: "Adjacent charts require local and pair budgets for both surfaces.")
@@ -723,7 +723,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         try certifySeparatedCells(cells, pointAt: pointAt, tolerance: tolerance)
     }
 
-    private func straightSeamSeparates(_ a: BSplineSurface3D, _ b: BSplineSurface3D) -> Bool {
+    private func straightSeamSeparates(_ a: BSplineSurface3D, _ b: BSplineSurface3D) throws -> Bool {
         let first = a.controlPoints[a.controlPoints.count - 1]
         let second = b.controlPoints[0]
         guard let start = first.first, let end = first.last, start != end,
@@ -735,11 +735,16 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         for axis in 0..<3 {
             let c1 = (axis + 1) % 3, c2 = (axis + 2) % 3
             guard coordinate(start, axis) != coordinate(end, axis) else { continue }
-            func isStraight(_ points: [Point3D]) -> Bool {
+            func isStraight(_ points: [Point3D]) throws -> Bool {
                 let increasing = coordinate(points[0], axis) < coordinate(points[points.count - 1], axis)
                 for i in points.indices {
-                    guard coordinate(points[i], c1) == coordinate(start, c1),
-                          coordinate(points[i], c2) == coordinate(start, c2) else { return false }
+                    for other in [c1, c2] {
+                        func projected(_ p: Point3D) -> Point2D {
+                            Point2D(x: coordinate(p, axis), y: coordinate(p, other))
+                        }
+                        guard try RobustPredicates.orientation2D(projected(start), projected(end),
+                            relativeTo: projected(points[i]), determinantTolerance: 0) == .zero else { return false }
+                    }
                     if i > 0 {
                         let previous = coordinate(points[i - 1], axis), value = coordinate(points[i], axis)
                         if increasing ? value < previous : value > previous { return false }
@@ -747,26 +752,26 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                 }
                 return true
             }
-            guard isStraight(first), isStraight(second) else { continue }
-            // This normal is only a candidate. Every off-seam control must pass
-            // the strict interval proof; samples never admit a chart pair.
+            guard try isStraight(first), try isStraight(second) else { continue }
+            // This third point only proposes a plane through the exact seam.
+            // Every off-seam control must pass a strict orientation proof.
             let pa = a.controlPoints[0][a.controlPoints[0].count / 2]
             let pb = b.controlPoints[b.controlPoints.count - 1][b.controlPoints[0].count / 2]
-            let n1 = coordinate(pa, c1) - coordinate(pb, c1)
-            let n2 = coordinate(pa, c2) - coordinate(pb, c2)
-            guard n1.isFinite, n2.isFinite, n1 != 0 || n2 != 0 else { continue }
-            func sign(_ p: Point3D) -> Int? {
-                let d1 = OutwardScalarInterval.exact(coordinate(p, c1)) - .exact(coordinate(start, c1))
-                let d2 = OutwardScalarInterval.exact(coordinate(p, c2)) - .exact(coordinate(start, c2))
-                let projected = d1 * .exact(n1) + d2 * .exact(n2)
-                return projected.isFinite ? projected.sign : nil
+            let third = start + (end - start).cross(pa - pb)
+            guard third.x.isFinite, third.y.isFinite, third.z.isFinite else { return false }
+            func sign(_ p: Point3D) throws -> RobustSign {
+                try RobustPredicates.orientation3D(start, end, third,
+                    relativeTo: p, determinantTolerance: 0)
             }
-            guard let side = sign(pa), sign(pb) == -side else { continue }
-            let firstSeparated = a.controlPoints.dropLast().allSatisfy { row in
-                row.allSatisfy { sign($0) == side }
+            let side = try sign(pa)
+            guard side == .positive || side == .negative else { return false }
+            let opposite: RobustSign = side == .positive ? .negative : .positive
+            guard try sign(pb) == opposite else { return false }
+            let firstSeparated = try a.controlPoints.dropLast().allSatisfy { row in
+                try row.allSatisfy { try sign($0) == side }
             }
-            let secondSeparated = b.controlPoints.dropFirst().allSatisfy { row in
-                row.allSatisfy { sign($0) == -side }
+            let secondSeparated = try b.controlPoints.dropFirst().allSatisfy { row in
+                try row.allSatisfy { try sign($0) == opposite }
             }
             if firstSeparated && secondSeparated { return true }
         }
