@@ -3,6 +3,27 @@ import CADCore
 import CADIR
 @testable import CADKernel
 
+@Test(.timeLimit(.minutes(1)))
+func loftSolidRetainsACoplanarCapContinuation() throws {
+    var (document, loftID) = ruledRectangleLoftDocument(resultKind: .solid,
+        firstSectionStartSampleIndex: 0, secondSectionStartSampleIndex: 0)
+    guard case .loft(let loft) = document.designGraph.nodes[loftID]?.operation else {
+        Issue.record("Expected Loft fixture."); return
+    }
+    document.designGraph.nodes[loft.sections[0].featureID]?.operation = .sketch(
+        loftRectangleSketch(width: 2, height: 2, plane: .xy))
+    document.designGraph.nodes[loft.sections[1].featureID]?.operation = .sketch(
+        loftRectangleSketch(width: 2, height: 2, plane: .plane(Plane3D(
+            origin: Point3D(x: 0, y: -0.002, z: 0.001),
+            normal: Vector3D(x: 0, y: -1, z: 0)))))
+    let result = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluateExact(document)
+    try result.brep.validate(level: .exact, tolerance: .standard)
+    #expect(result.brep.bodies.values.first?.kind == .solid)
+    #expect(result.brep.faces.count == 6)
+    #expect(result.brep.geometry.surfaces.values.filter(\.isPlaneSurface).count == 4)
+    #expect(abs(try result.brep.volume(tolerance: .standard) - 6e-9) < 1e-12)
+}
+
 @Test(.timeLimit(.minutes(1)), arguments: [LoftResultKind.sheet, .solid])
 func tiltedLoftEndMustNotPierceTheStartCap(resultKind: LoftResultKind) throws {
     var (document, loftID) = ruledRectangleLoftDocument(resultKind: resultKind)

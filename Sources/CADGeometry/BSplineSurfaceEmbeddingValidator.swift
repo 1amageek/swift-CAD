@@ -18,6 +18,48 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         self.maximumPairCellCount = maximumPairCellCount
     }
 
+    package static func stationaryPlanarSupport(
+        for surface: BSplineSurface3D, tolerance: ModelingTolerance
+    ) throws -> Plane3D? {
+        try surface.validate(tolerance: tolerance)
+        guard surface.uDegree == 1, surface.vDegree == 1,
+              surface.controlPoints.count == 2, surface.controlPoints[0].count == 2,
+              surface.uKnots.count == 4, surface.vKnots.count == 4,
+              surface.uKnots[0] == surface.uKnots[1], surface.uKnots[2] == surface.uKnots[3],
+              surface.vKnots[0] == surface.vKnots[1], surface.vKnots[2] == surface.vKnots[3],
+              surface.weights.allSatisfy({ $0.allSatisfy { $0 == 1 } }),
+              let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: .bSpline(surface), tolerance: tolerance)
+        else { return nil }
+        let points = [surface.controlPoints[0][0], surface.controlPoints[0][1],
+                      surface.controlPoints[1][1], surface.controlPoints[1][0]]
+        guard Set(points).count == 4 else { return nil }
+        let n = plane.normal
+        func projected(_ p: Point3D) -> Point2D {
+            if abs(n.x) >= max(abs(n.y), abs(n.z)) { return Point2D(x: p.y, y: p.z) }
+            if abs(n.y) >= abs(n.z) { return Point2D(x: p.z, y: p.x) }
+            return Point2D(x: p.x, y: p.y)
+        }
+        var orientation: RobustSign?
+        var zeroCount = 0
+        var noncollinearIndex = 0
+        for i in points.indices {
+            let sign = try RobustPredicates.orientation2D(projected(points[i]),
+                projected(points[(i + 1) % 4]), relativeTo: projected(points[(i + 2) % 4]),
+                determinantTolerance: 0)
+            if sign == .zero { zeroCount += 1; continue }
+            guard sign == .positive || sign == .negative else { return nil }
+            if let orientation, sign != orientation { return nil }
+            orientation = sign
+            noncollinearIndex = i
+        }
+        guard zeroCount == 1, orientation != nil else { return nil }
+        let i = noncollinearIndex
+        guard try RobustPredicates.orientation3D(points[i], points[(i + 1) % 4],
+            points[(i + 2) % 4], relativeTo: points[(i + 3) % 4], determinantTolerance: 0) == .zero
+        else { return nil }
+        return Plane3D(origin: plane.origin, normal: plane.normal)
+    }
+
     public func validate(
         _ surface: BSplineSurface3D,
         uDomain: ParameterDomain,
@@ -52,6 +94,11 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
             vDomain: vDomain,
             tolerance: tolerance
         )
+        if allowStationaryBoundaryParameterization,
+           uDomain == surface.uDomain, vDomain == surface.vDomain,
+           try Self.stationaryPlanarSupport(for: surface, tolerance: tolerance) != nil {
+            return
+        }
         let patches = try clippedPatches(
             surface: surface,
             bounds: bounds,
@@ -763,17 +810,29 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                 try RobustPredicates.orientation3D(start, end, third,
                     relativeTo: p, determinantTolerance: 0)
             }
-            let side = try sign(pa)
+            let firstSign = try sign(pa), secondSign = try sign(pb)
+            let side = firstSign == .zero
+                ? (secondSign == .positive ? RobustSign.negative : RobustSign.positive) : firstSign
             guard side == .positive || side == .negative else { return false }
             let opposite: RobustSign = side == .positive ? .negative : .positive
-            guard try sign(pb) == opposite else { return false }
+            var firstStrict = true, secondStrict = true
             let firstSeparated = try a.controlPoints.dropLast().allSatisfy { row in
-                try row.allSatisfy { try sign($0) == side }
+                try row.allSatisfy {
+                    let value = try sign($0)
+                    if value == .zero { firstStrict = false }
+                    return value == side || value == .zero
+                }
             }
             let secondSeparated = try b.controlPoints.dropFirst().allSatisfy { row in
-                try row.allSatisfy { try sign($0) == opposite }
+                try row.allSatisfy {
+                    let value = try sign($0)
+                    if value == .zero { secondStrict = false }
+                    return value == opposite || value == .zero
+                }
             }
-            if firstSeparated && secondSeparated { return true }
+            // Strictness on either chart confines its contact with the plane
+            // to the shared seam; weak separation suffices for the other chart.
+            if firstSeparated && secondSeparated && (firstStrict || secondStrict) { return true }
         }
         return false
     }

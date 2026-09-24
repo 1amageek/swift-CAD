@@ -395,7 +395,7 @@ package struct ExactLoftBodyBuilder {
                             tolerance: context.tolerance)
                     }
                     admittedPatches.append((surface, vertices, bounds, edges))
-                    faceIDsByLoop[loopIndex].append(addSideFace(
+                    faceIDsByLoop[loopIndex].append(try addSideFace(
                         index: sideFaceOrdinal,
                         orientation: faceOrientation,
                         surface: surface,
@@ -443,8 +443,9 @@ package struct ExactLoftBodyBuilder {
             tolerance: context.tolerance
         )
         if !capFaceIDs.isEmpty {
-            try validateCapEdgeEvents(
+            try validateCapContacts(
                 capFaceIDs: capFaceIDs,
+                sideFaceIDs: faceIDsByLoop.flatMap { $0 }.filter { !capFaceIDs.contains($0) },
                 edgeIDs: ringEdgeIDsByLoop.flatMap { $0.flatMap { $0 } }
                     + connectorEdgeIDsByLoop.flatMap { $0.flatMap { $0 } },
                 model: model
@@ -462,11 +463,11 @@ package struct ExactLoftBodyBuilder {
     }
 
     // FIXME(INCOMPLETE_IMPLEMENTATION): The production Loft builder rejects
-    // discrete edge events in cap interiors here. Side-interior intersections
-    // and continuous coplanar contacts still require finite-face admission;
-    // this check alone must not be reported as complete cap-side separation.
-    private func validateCapEdgeEvents(
-        capFaceIDs: [FaceID], edgeIDs: [EdgeID], model: BRepModel
+    // discrete edge events and boundary-disjoint side intersection components.
+    // Trim-crossing components and general touching coplanar boundaries still require
+    // finite-face clipping before general cap-side admission is complete.
+    func validateCapContacts(
+        capFaceIDs: [FaceID], sideFaceIDs: [FaceID], edgeIDs: [EdgeID], model: BRepModel
     ) throws {
         let tolerance = context.tolerance
         let intersector = DefaultCurveSurfaceIntersector()
@@ -491,7 +492,100 @@ package struct ExactLoftBodyBuilder {
                 regions.append((loop.role, try CertifiedSurfaceParameterLoopPredicate(
                     curves: curves, tolerance: tolerance)))
             }
-            for edgeID in edgeIDs where !boundaryEdges.contains(edgeID) {
+            func isInterior(_ point: Point2D) throws -> Bool {
+                var insideOuter = false
+                for region in regions {
+                    let classification = try region.predicate.classify(point, tolerance: tolerance)
+                    if region.role == .outer {
+                        insideOuter = insideOuter || classification == .inside
+                    } else if classification != .outside {
+                        return false
+                    }
+                }
+                return insideOuter
+            }
+            var capControls: [Point3D] = []
+            var boundedCap = true
+            for edgeID in boundaryEdges {
+                guard let edge = model.edges[edgeID], let trim = edge.trim,
+                      let curve = model.geometry.curves[edge.curveID] else {
+                    throw TopologyError.missingReference("Loft cap boundary geometry is missing.")
+                }
+                switch curve {
+                case .bSpline(let curve): capControls.append(contentsOf: curve.controlPoints)
+                case .line:
+                    capControls.append(try curve.point(at: trim.startParameter, tolerance: tolerance))
+                    capControls.append(try curve.point(at: trim.endParameter, tolerance: tolerance))
+                default: boundedCap = false
+                }
+            }
+            let capBounds = try boundedCap ? BoundingBox3D(points: capControls) : nil
+            var coplanarSides: Set<FaceID> = []
+            var coplanarEdges: Set<EdgeID> = []
+            let planeResolver = DefaultPlanarSurfaceResolver()
+            guard let capPlane = try planeResolver.exactPlane(for: surface, tolerance: tolerance) else {
+                throw invalidGeometry("Loft caps require a planar support.")
+            }
+            for sideID in sideFaceIDs {
+                guard let side = model.faces[sideID],
+                      let sideSurface = model.geometry.surfaces[side.surfaceID] else {
+                    throw TopologyError.missingReference("Loft side geometry is missing.")
+                }
+                guard let plane = try planeResolver.exactPlane(for: sideSurface, tolerance: tolerance),
+                      plane.normal.cross(capPlane.normal).length <= tolerance.angle,
+                      abs((plane.origin - capPlane.origin).dot(capPlane.normal)) <= tolerance.distance else {
+                    continue
+                }
+                // Generated Loft sides have one untrimmed rectangular loop.
+                guard side.loops.count == 1, let loopID = side.loops.first,
+                      let loop = model.loops[loopID] else {
+                    throw invalidGeometry("Loft sides require one boundary loop.")
+                }
+                let curves = try loop.coedges.map { coedge -> SurfaceParameterCurve in
+                    guard let edge = model.edges[coedge.edgeID], let trim = edge.trim,
+                          let curve = model.geometry.curves[edge.curveID] else {
+                        throw TopologyError.missingReference("Coplanar Loft edge geometry is missing.")
+                    }
+                    return try ExactFacePcurveBuilder().surfaceParameterCurve(for: curve,
+                        startParameter: coedge.orientation == .forward ? trim.startParameter : trim.endParameter,
+                        endParameter: coedge.orientation == .forward ? trim.endParameter : trim.startParameter,
+                        on: surface, tolerance: tolerance)
+                }
+                let sideRegion = try CertifiedSurfaceParameterLoopPredicate(curves: curves, tolerance: tolerance)
+                if let sides = try sharedStraightBoundarySides(cap: face, sideLoop: loop, sideCurves: curves, model: model),
+                   let second = sides.second, sides.first != second {
+                    coplanarSides.insert(sideID)
+                    for coedge in loop.coedges { coplanarEdges.insert(coedge.edgeID) }
+                    continue
+                }
+                for region in regions {
+                    if try region.predicate.boundaryIntersectsOrTouches(sideRegion, tolerance: tolerance) {
+                        throw KernelError(phase: .geometry, code: .classificationFailure,
+                            featureID: featureID, tolerance: tolerance,
+                            message: "Coplanar Loft boundary contacts require a shared-boundary arrangement.")
+                    }
+                }
+                guard let first = curves.first else {
+                    throw invalidGeometry("Coplanar Loft side boundary is empty.")
+                }
+                let anchor = try first.startParameter(tolerance: tolerance)
+                if try isInterior(Point2D(x: anchor.u, y: anchor.v)) {
+                    throw invalidGeometry("A coplanar Loft side overlaps a cap interior.")
+                }
+                for capLoopID in face.loops {
+                    guard let capLoop = model.loops[capLoopID],
+                          let pcurve = capLoop.coedges.first?.surfaceParameterCurve else {
+                        throw TopologyError.missingReference("Loft cap boundary is missing.")
+                    }
+                    let point = try pcurve.startParameter(tolerance: tolerance)
+                    if try sideRegion.containsStrictly(Point2D(x: point.u, y: point.v), tolerance: tolerance) {
+                        throw invalidGeometry("A coplanar Loft side overlaps a cap interior.")
+                    }
+                }
+                coplanarSides.insert(sideID)
+                for coedge in loop.coedges { coplanarEdges.insert(coedge.edgeID) }
+            }
+            for edgeID in edgeIDs where !boundaryEdges.contains(edgeID) && !coplanarEdges.contains(edgeID) {
                 guard let edge = model.edges[edgeID], let trim = edge.trim,
                       let curve = model.geometry.curves[edge.curveID] else {
                     throw TopologyError.missingReference("Loft edge geometry is missing.")
@@ -504,22 +598,210 @@ package struct ExactLoftBodyBuilder {
                     tolerance: tolerance)
                 for event in events {
                     let point = Point2D(x: event.surfaceU, y: event.surfaceV)
-                    var insideOuter = false
-                    var excluded = false
-                    for region in regions {
-                        let classification = try region.predicate.classify(point, tolerance: tolerance)
-                        if region.role == .outer {
-                            insideOuter = insideOuter || classification == .inside
-                        } else if classification != .outside {
-                            excluded = true
-                        }
-                    }
-                    if insideOuter && !excluded {
+                    if try isInterior(point) {
                         throw invalidGeometry("A Loft edge intersects a cap interior.")
                     }
                 }
             }
+            for sideID in sideFaceIDs where !coplanarSides.contains(sideID) {
+                guard let side = model.faces[sideID],
+                      let sideSurface = model.geometry.surfaces[side.surfaceID] else {
+                    throw TopologyError.missingReference("Loft side geometry is missing.")
+                }
+                if let plane = planeResolver.canonicalPlane(for: sideSurface),
+                   plane.normal.cross(capPlane.normal).length > tolerance.angle,
+                   side.loops.count == 1, let loopID = side.loops.first, let loop = model.loops[loopID],
+                   try sharedStraightBoundarySides(cap: face, sideLoop: loop, sideCurves: nil, model: model) != nil {
+                    continue
+                }
+                if case .bSpline(let spline) = sideSurface {
+                    let sideBounds = try BoundingBox3D(points: spline.controlPoints.joined())
+                    if let capBounds, !capBounds.intersects(sideBounds, tolerance: tolerance.distance) {
+                        continue
+                    }
+                    guard case let .closed(u0, u1) = spline.uDomain,
+                          case let .closed(v0, v1) = spline.vDomain else {
+                        throw invalidGeometry("Loft sides require bounded parameter domains.")
+                    }
+                    let sections = try [
+                        spline.uIsoparametricCurve(atV: v0 + (v1 - v0) * 0.5, tolerance: tolerance),
+                        spline.vIsoparametricCurve(atU: u0 + (u1 - u0) * 0.5, tolerance: tolerance)
+                    ]
+                    for section in sections {
+                        let events = try intersector.intersections(curve: .bSpline(section),
+                            surface: surface, options: .init(), tolerance: tolerance)
+                        for event in events where try isInterior(Point2D(x: event.surfaceU, y: event.surfaceV)) {
+                            throw invalidGeometry("A Loft side intersects a cap interior.")
+                        }
+                    }
+                }
+                var commonEdges: [EdgeID] = []
+                var sideVertices: Set<VertexID> = []
+                for loopID in side.loops {
+                    guard let loop = model.loops[loopID] else {
+                        throw TopologyError.missingReference("Loft side loop is missing.")
+                    }
+                    for coedge in loop.coedges {
+                        guard let edge = model.edges[coedge.edgeID] else {
+                            throw TopologyError.missingReference("Loft side edge is missing.")
+                        }
+                        sideVertices.insert(edge.startVertexID)
+                        sideVertices.insert(edge.endVertexID)
+                        if boundaryEdges.contains(coedge.edgeID) { commonEdges.append(coedge.edgeID) }
+                    }
+                }
+                let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+                    first: surface, second: sideSurface, tolerance: tolerance)
+                for intersection in intersections {
+                    switch intersection {
+                    case .curve(let contact):
+                        var shared = false
+                        if case let .closed(lower, upper) = contact.curve.parameterDomain {
+                            let candidate = try CurveSpanDefinition(
+                                curve: contact.curve, startParameter: lower, endParameter: upper,
+                                startPoint: contact.curve.point(at: lower, tolerance: tolerance),
+                                endPoint: contact.curve.point(at: upper, tolerance: tolerance))
+                            for edgeID in commonEdges {
+                                guard let edge = model.edges[edgeID], let trim = edge.trim,
+                                      let curve = model.geometry.curves[edge.curveID],
+                                      let start = model.vertices[edge.startVertexID]?.point,
+                                      let end = model.vertices[edge.endVertexID]?.point else {
+                                    throw TopologyError.missingReference("Loft common edge is missing.")
+                                }
+                                let existing = CurveSpanDefinition(curve: curve,
+                                    startParameter: trim.startParameter, endParameter: trim.endParameter,
+                                    startPoint: start, endPoint: end)
+                                let matcher = CurveSpanCoincidenceMatcher()
+                                shared = try matcher.matches(candidate, existing, orientation: .forward,
+                                    tolerance: tolerance) || matcher.matches(candidate, existing,
+                                        orientation: .reversed, tolerance: tolerance)
+                                if shared { break }
+                            }
+                        }
+                        if shared { continue }
+                        let pcurve = contact.firstSurfaceParameterCurve
+                        let trace = try CertifiedSurfaceParameterLoopPredicate(curve: pcurve, tolerance: tolerance)
+                        for region in regions {
+                            if try region.predicate.boundaryIntersectsOrTouches(trace, tolerance: tolerance) {
+                                throw KernelError(phase: .geometry, code: .classificationFailure,
+                                    featureID: featureID, tolerance: tolerance,
+                                    message: "Loft cap intersection requires finite trim clipping.")
+                            }
+                        }
+                        // Classification is constant only after the complete
+                        // connected trace has been separated from every trim.
+                        let point = try pcurve.parameter(atNormalizedFraction: 0.5, tolerance: tolerance)
+                        if try isInterior(Point2D(x: point.u, y: point.v)) {
+                            throw invalidGeometry("A Loft side intersects a cap interior.")
+                        }
+                    case .point(let contact):
+                        let point = contact.firstSurfaceParameter
+                        let uv = Point2D(x: point.u, y: point.v)
+                        if try isInterior(uv) {
+                            throw invalidGeometry("A Loft side touches a cap interior.")
+                        }
+                        let touchesBoundary = try regions.contains {
+                            try $0.predicate.classify(uv, tolerance: tolerance) == .boundary
+                        }
+                        if touchesBoundary {
+                            let sharedVertex = boundaryEdges.contains { edgeID in
+                                guard let edge = model.edges[edgeID] else { return false }
+                                return [edge.startVertexID, edge.endVertexID].contains { vertexID in
+                                    sideVertices.contains(vertexID)
+                                        && model.vertices[vertexID]?.point.isApproximatelyEqual(
+                                            to: contact.point, tolerance: tolerance.distance) == true
+                                }
+                            }
+                            guard sharedVertex else {
+                                throw invalidGeometry("A Loft side touches a cap at an unrelated boundary point.")
+                            }
+                        }
+                    case .coincident:
+                        throw KernelError(phase: .geometry, code: .classificationFailure,
+                            featureID: featureID, tolerance: tolerance,
+                            message: "Loft coplanar cap contacts require finite region clipping.")
+                    }
+                }
+            }
         }
+    }
+
+    private func sharedStraightBoundarySides(
+        cap: Face, sideLoop: Loop, sideCurves: [SurfaceParameterCurve]?, model: BRepModel
+    ) throws -> (first: RobustSign, second: RobustSign?)? {
+        let tolerance = context.tolerance
+        var capCoedges: [Coedge] = []
+        for id in cap.loops {
+            guard let loop = model.loops[id] else {
+                throw TopologyError.missingReference("Loft cap loop is missing.")
+            }
+            capCoedges.append(contentsOf: loop.coedges)
+        }
+        let common = capCoedges.filter { capEdge in sideLoop.coedges.contains { $0.edgeID == capEdge.edgeID } }
+        guard common.count == 1, let shared = common.first,
+              let sharedCurve = shared.surfaceParameterCurve,
+              let sharedEdge = model.edges[shared.edgeID] else { return nil }
+        func spline(_ curve: SurfaceParameterCurve) throws -> BSplineCurve2D? {
+            switch curve {
+            case .bSpline(let value): return value
+            case .affine, .constantU, .constantV:
+                let a = try curve.startParameter(tolerance: tolerance)
+                let b = try curve.endParameter(tolerance: tolerance)
+                return BSplineCurve2D(degree: 1, knots: [0, 0, 1, 1],
+                    controlPoints: [Point2D(x: a.u, y: a.v), Point2D(x: b.u, y: b.v)])
+            default: return nil
+            }
+        }
+        guard let boundary = try spline(sharedCurve) else { return nil }
+        let a = try sharedCurve.startParameter(tolerance: tolerance)
+        let b = try sharedCurve.endParameter(tolerance: tolerance)
+        let start = Point2D(x: a.u, y: a.v), end = Point2D(x: b.u, y: b.v)
+        guard start != end else { return nil }
+        func sign(_ point: Point2D) throws -> RobustSign {
+            try RobustPredicates.orientation2D(start, end, relativeTo: point, determinantTolerance: 0)
+        }
+        guard try boundary.controlPoints.allSatisfy({ try sign($0) == .zero }) else { return nil }
+        let lower = start.x != end.x ? min(start.x, end.x) : min(start.y, end.y)
+        let upper = start.x != end.x ? max(start.x, end.x) : max(start.y, end.y)
+        guard boundary.controlPoints.allSatisfy({ point in
+            let value = start.x != end.x ? point.x : point.y
+            return value >= lower && value <= upper
+        }) else { return nil }
+        let startID = shared.orientation == .forward ? sharedEdge.startVertexID : sharedEdge.endVertexID
+        let endID = shared.orientation == .forward ? sharedEdge.endVertexID : sharedEdge.startVertexID
+        func regionSide(_ edges: [Coedge], _ curves: [SurfaceParameterCurve]) throws -> RobustSign? {
+            var side: RobustSign?
+            for (coedge, curve) in zip(edges, curves) where coedge.edgeID != shared.edgeID {
+                guard let edge = model.edges[coedge.edgeID], let source = try spline(curve) else { return nil }
+                for patch in try source.rationalBezierPatches(tolerance: tolerance) {
+                    var strict = false
+                    for point in patch.controlPoints {
+                        let value = try sign(point)
+                        if value == .zero {
+                            let ownsStart = edge.startVertexID == startID || edge.endVertexID == startID
+                            let ownsEnd = edge.startVertexID == endID || edge.endVertexID == endID
+                            guard (point == start && ownsStart) || (point == end && ownsEnd) else { return nil }
+                        } else {
+                            guard value == .positive || value == .negative else { return nil }
+                            if let side, value != side { return nil }
+                            side = value
+                            strict = true
+                        }
+                    }
+                    guard strict else { return nil }
+                }
+            }
+            return side
+        }
+        let capCurves = try capCoedges.map { coedge -> SurfaceParameterCurve in
+            guard let curve = coedge.surfaceParameterCurve else {
+                throw TopologyError.missingReference("Loft cap pcurve is missing.")
+            }
+            return curve
+        }
+        guard let first = try regionSide(capCoedges, capCurves) else { return nil }
+        let second = try sideCurves.flatMap { try regionSide(sideLoop.coedges, $0) }
+        return (first, second)
     }
 
     private struct OrientedSpan {
@@ -1256,11 +1538,13 @@ package struct ExactLoftBodyBuilder {
         to model: inout BRepModel,
         geometry: inout GeometryStore,
         generatedSubshapes: inout [SubshapeID: TopologyReference]
-    ) -> FaceID {
+    ) throws -> FaceID {
         let surfaceID = SurfaceID()
         let loopID = LoopID()
         let faceID = FaceID()
-        geometry.surfaces[surfaceID] = .bSpline(surface)
+        let planarSupport = try BSplineSurfaceEmbeddingValidator.stationaryPlanarSupport(
+            for: surface, tolerance: context.tolerance)
+        geometry.surfaces[surfaceID] = planarSupport.map(Surface3D.plane) ?? .bSpline(surface)
         model.loops[loopID] = Loop(
             id: loopID,
             role: .outer,
@@ -1303,6 +1587,10 @@ package struct ExactLoftBodyBuilder {
                 ),
             ]
         )
+        if planarSupport != nil, var loop = model.loops[loopID] {
+            for index in loop.coedges.indices { loop.coedges[index].surfaceParameterCurve = nil }
+            model.loops[loopID] = loop
+        }
         model.faces[faceID] = Face(
             id: faceID,
             surfaceID: surfaceID,

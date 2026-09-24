@@ -4,6 +4,32 @@ import CADCore
 
 @Suite("B-spline surface embedding certification")
 struct BSplineSurfaceEmbeddingValidatorTests {
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func planarCornerDegeneracyRequiresAnExactConvexBoundary(oblique: Bool) throws {
+        func point(_ x: Double, _ y: Double) -> Point3D {
+            oblique ? Point3D(x: x + y, y: y, z: 2 * x - y) : Point3D(x: x, y: y, z: 0)
+        }
+        let surface = BSplineSurface3D.bilinearPatch(bottomLeft: point(0, 0),
+            bottomRight: point(1, 0), topRight: point(2, 0), topLeft: point(0, 1))
+        let support = try #require(try BSplineSurfaceEmbeddingValidator.stationaryPlanarSupport(
+            for: surface, tolerance: .standard))
+        for control in surface.controlPoints.joined() {
+            #expect(abs((control - support.origin).dot(support.normal)) <= ModelingTolerance.standard.distance)
+        }
+        try BSplineSurfaceEmbeddingValidator().validate(surface, uDomain: surface.uDomain,
+            vDomain: surface.vDomain, tolerance: .standard, allowStationaryBoundaryParameterization: true)
+        #expect(throws: KernelError.self) {
+            try BSplineSurfaceRegularityValidator(maximumSubdivisionDepth: 0).validate(surface,
+                uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: .standard)
+        }
+        var folded = surface
+        folded.controlPoints[1][1] = point(0.5, 0)
+        #expect(try BSplineSurfaceEmbeddingValidator.stationaryPlanarSupport(for: folded, tolerance: .standard) == nil)
+        var nonplanar = surface
+        nonplanar.controlPoints[1][1].z += 1e-12
+        #expect(try BSplineSurfaceEmbeddingValidator.stationaryPlanarSupport(for: nonplanar, tolerance: .standard) == nil)
+    }
+
     @Test(arguments: [false, true], [false, true])
     func oppositeSharedBoundariesStillRequireInteriorSeparation(reversed: Bool, rational: Bool) throws {
         func strip(_ height: Double) -> BSplineSurface3D {

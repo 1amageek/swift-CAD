@@ -38,9 +38,13 @@ package struct ExactLoftSideSurfaceBuilder: Sendable {
                 tolerance: tolerance
             )
         }
-        try BSplineSurfaceRegularityValidator().validate(surface,
-            uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: tolerance,
-            allowStationaryBoundaryParameterization: true)
+        // The returned tensor chart is a construction map. The body builder
+        // publishes the certified planar support for a collinear corner.
+        if try BSplineSurfaceEmbeddingValidator.stationaryPlanarSupport(for: surface, tolerance: tolerance) == nil {
+            try BSplineSurfaceRegularityValidator().validate(surface,
+                uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: tolerance,
+                allowStationaryBoundaryParameterization: true)
+        }
         try BSplineSurfaceEmbeddingValidator().validate(surface,
             uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: tolerance,
             allowStationaryBoundaryParameterization: true)

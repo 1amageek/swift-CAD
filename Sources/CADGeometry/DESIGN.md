@@ -65,6 +65,15 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Loft construction may retain a unit-weight clamped bilinear parameter map with
+one collinear polygon corner. Exact spatial coplanarity and planar turn signs
+must establish a convex, nondegenerate boundary with no repeated vertices.
+`BSplineSurfaceEmbeddingValidator.stationaryPlanarSupport` returns the planar
+support for this case; it is not a regularity certificate for the tensor chart.
+The stationary-boundary embedding option admits this homeomorphic construction
+map. Consumers must publish the planar support with exact trims, not the
+singular tensor chart. General curved or folded boundaries retain existing checks.
+
 Unit-weight Bezier differential bounds use the polynomial derivative nets for
 both interior and boundary cells. The weight polynomial is exactly one, so
 rational numerator products are unnecessary. Stationary-boundary requests only
@@ -158,8 +167,11 @@ be exactly collinear in two independent coordinate projections and monotone
 along a nonconstant coordinate. Zero-tolerance robust orientation predicates
 establish collinearity; near-collinearity does not authorize snapping.
 Positive rational weights then keep each boundary on that same segment. A plane
-through that line must strictly separate every non-boundary control point of
-the two charts, certified with robust spatial orientation predicates. This excludes any
+through that line must weakly separate every non-boundary control point of
+the two charts and strictly separate all such controls on at least one chart,
+certified with robust spatial orientation predicates. The strict chart meets
+the plane only on its shared boundary, even if the other chart has vertices on
+the boundary's extension. This excludes any
 cross-chart contact away from the seam. Each chart must also pass independent
 embedding admission using half the request's local and pair-cell budgets. A candidate plane is
 only a search heuristic; inconclusive signs retain the general-chart path.

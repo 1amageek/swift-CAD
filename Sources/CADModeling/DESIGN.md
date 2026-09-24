@@ -275,8 +275,42 @@ the cap are not rejected. Shared cap edges are excluded by topological identity,
 not endpoint similarity. Intersection/classification failures propagate.
 This edge-event check does not establish separation of side interiors or
 continuous coplanar contacts; general cap-side admission remains incomplete.
+Side-support intersections are also enumerated before publication. A curve
+may be excluded as shared only after whole-span coincidence with a common
+topological edge. Otherwise, boundary-disjoint intersection components are
+classified against finite cap loops; an interior component is invalid. Contacts
+with unresolved trim crossings or coplanar regions remain explicit failures,
+not successful separation. Existing intersection budgets bound support search.
+Before support intersection search, a cap boundary control hull and side
+surface control hull may prove spatial disjointness. Exact midpoint
+isoparametric curves may provide interior-contact witnesses; their failure to
+find contact never proves separation. Remaining pairs use support intersection.
+Coplanar side regions are projected into the cap's exact chart before discrete
+edge intersection. Disjoint loop boundaries permit containment classification
+in both directions, including cap holes. Disjoint finite regions are admitted;
+nested overlap is rejected. Boundary-touching coplanar regions still require
+general arrangement. A shared straight topological edge may be admitted when
+exact chart predicates prove that every remaining rational Bezier boundary span
+lies strictly on the opposite side for each face. Zero controls are permitted
+only at shared endpoint vertices. This is a sufficient finite-region separation
+proof, not endpoint sampling or an overlap waiver; other contacts retain the
+unresolved arrangement failure.
+For distinct planar supports, the same one-sided boundary certificate on the
+cap alone confines their line of intersection to the shared straight edge.
+The other face may extend beyond that segment on the support line; its infinite
+support is not the finite cap. Parallel/coplanar supports still require both
+region certificates, and no shared-edge identity is inferred from proximity.
 LoftFeatureTests owns the tilted-end piercing regression and normal Solid/Sheet
 construction checks.
+ExactLoftSideSurfaceBuilder retains the tensor chart as a construction map.
+For a convex unit-weight bilinear planar boundary with one collinear corner,
+the geometry owner's certificate proves embedding without claiming regularity
+of that chart. Side publication uses the certified plane instead and rebuilds
+pcurves from the unchanged exact edges. All other sides retain spline support
+and regularity admission. The authored `loftSolidRetainsACoplanarCapContinuation`
+regression proves Solid publication, exact BRep validation, planar side support
+and the analytic prism volume. This establishes straight planar continuation,
+not general curved trace clipping or arbitrary coplanar arrangements.
 
 an explicit positional approximation allowance in Sweep source, separate from
 modeling tolerance and presentation tessellation. A straight, profile-normal
