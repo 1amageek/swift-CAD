@@ -97,6 +97,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             sections: loft.sections,
             guides: guideCurves,
             smoothTangentScale: loft.options.smoothTangentScale,
+            closesSectionLoop: loft.options.closesSectionLoop,
             tolerance: context.tolerance
         )
         guard let outerMatched = matchedLoops.loops.first else {
@@ -141,6 +142,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         sections: [LoftSectionReference],
         guides: [ExactLoftGuideCurve],
         smoothTangentScale: Double,
+        closesSectionLoop: Bool,
         tolerance: ModelingTolerance
     ) throws -> LoftMatchedLoopSet {
         guard let loopCount = profiles.first?.boundaryLoops.count,
@@ -182,6 +184,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 sections: loopSections,
                 guides: guides.filter { $0.boundaryLoopIndex == loopIndex },
                 smoothTangentScale: smoothTangentScale,
+                closesSectionLoop: closesSectionLoop,
                 tolerance: tolerance
             )
         }
@@ -208,6 +211,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         sections: [LoftSectionReference],
         guides: [ExactLoftGuideCurve],
         smoothTangentScale: Double,
+        closesSectionLoop: Bool,
         tolerance: ModelingTolerance
     ) throws -> LoftMatchedRings {
         guard let first = profiles.first else {
@@ -269,6 +273,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 rings,
                 lockedSectionIndexes: lockedSectionIndexes,
                 directions: sections.map(\.profileDirection),
+                closesSectionLoop: closesSectionLoop,
                 tolerance: tolerance
             )
         } else {
@@ -610,57 +615,115 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         }
     }
 
-    // FIXME(INCOMPLETE_IMPLEMENTATION): Profile Loft automatic correspondence
-    // scores every ring against the first, which can reverse a valid rotating
-    // closed section loop. Explicit traversal remains available, and patch
-    // admission rejects invalid results. Account for adjacent section transport
-    // and closure before claiming general automatic closed-loop correspondence.
     private func matchedEqualCountRings(
         _ rings: [[Point3D]],
         lockedSectionIndexes: Set<Int>,
         directions: [LoftProfileDirection],
+        closesSectionLoop: Bool,
         tolerance: ModelingTolerance
     ) throws -> [[Point3D]] {
-        guard let reference = rings.first,
+        guard let reference = rings.first, reference.count >= 3,
+              directions.count == rings.count,
               rings.allSatisfy({ $0.count == reference.count }) else {
-            throw FeatureEvaluationError.invalidGraph(
-                "Exact Loft correspondence rings require one common sample count."
-            )
+            throw FeatureEvaluationError.invalidGraph("Exact Loft correspondence requires equal nonempty rings and directions.")
         }
-        var matched = [reference]
-        for index in rings.dropFirst().indices {
-            let ring = rings[index]
-            if lockedSectionIndexes.contains(index) {
-                guard directions[index] == .automatic else { matched.append(ring); continue }
-                let reversed = [ring[0]] + Array(ring.dropFirst().reversed())
-                let forwardScore = cyclicMatchScore(ring, reference: reference)
-                let reversedScore = cyclicMatchScore(reversed, reference: reference)
-                matched.append(
-                    reversedScore < forwardScore - tolerance.distance * tolerance.distance
-                        ? reversed
-                        : ring
-                )
-                continue
+        let count = reference.count
+        struct Alignment {
+            let offset: Int
+            let reversed: Bool
+
+            func index(_ vertex: Int, count: Int) -> Int {
+                (offset + (reversed ? count - vertex : vertex)) % count
             }
-            let candidates = directions[index] == .automatic ? [ring, Array(ring.reversed())] : [ring]
-            var best: [Point3D] = []
-            var bestScore = Double.infinity
-            for candidate in candidates {
-                for offset in candidate.indices {
-                    let rotated = rotatedRing(candidate, offset: offset)
-                    let score = cyclicMatchScore(rotated, reference: reference)
-                    if score < bestScore - tolerance.distance * tolerance.distance {
-                        best = rotated
-                        bestScore = score
+        }
+        let centers = rings.map { ring in
+            ring.reduce(Point3D.origin) { sum, point in
+                sum + (point - Point3D.origin) / Double(count)
+            }
+        }
+        let advances = try rings.indices.map { index -> Double in
+            let previous = index == 0 ? (closesSectionLoop ? rings.count - 1 : 0) : index - 1
+            let next = index == rings.count - 1 ? (closesSectionLoop ? 0 : index) : index + 1
+            return try ringWindingNormal(rings[index], tolerance: tolerance)
+                .dot(centers[next] - centers[previous])
+        }
+        var candidates = [[Alignment(offset: 0, reversed: false)]]
+        for index in rings.indices.dropFirst() {
+            let reversals: [Bool]
+            if directions[index] != .automatic {
+                reversals = [false]
+            } else if closesSectionLoop,
+                      abs(advances[0]) > tolerance.distance, abs(advances[index]) > tolerance.distance {
+                reversals = [(advances[0] > 0) != (advances[index] > 0)]
+            } else {
+                reversals = [false, true]
+            }
+            let offsets = lockedSectionIndexes.contains(index) ? 0..<1 : 0..<count
+            candidates.append(reversals.flatMap { reversed in
+                offsets.map { Alignment(offset: $0, reversed: reversed) }
+            })
+        }
+        func edgeCosts(from first: Int, to second: Int) throws -> [Double] {
+            var costs = Array(repeating: 0.0, count: count * 2)
+            for reversed in [false, true] {
+                for offset in 0..<count {
+                    let alignment = Alignment(offset: offset, reversed: reversed)
+                    var cost = 0.0
+                    for vertex in 0..<count {
+                        let delta = rings[second][alignment.index(vertex, count: count)] - rings[first][vertex]
+                        cost += delta.dot(delta)
+                    }
+                    guard cost.isFinite else {
+                        throw FeatureEvaluationError.invalidGraph("Loft correspondence distance exceeds the finite numeric range.")
+                    }
+                    costs[(reversed ? count : 0) + offset] = cost
+                }
+            }
+            return costs
+        }
+        func cost(_ first: Alignment, _ second: Alignment, values: [Double]) -> Double {
+            let reversed = first.reversed != second.reversed
+            let offset = (second.offset + (reversed ? first.offset : count - first.offset)) % count
+            return values[(reversed ? count : 0) + offset]
+        }
+        var previousCosts = [0.0]
+        var predecessors = [[Int]](repeating: [], count: rings.count)
+        let tieTolerance = tolerance.distance * tolerance.distance
+        for index in rings.indices.dropFirst() {
+            let values = try edgeCosts(from: index - 1, to: index)
+            var nextCosts = Array(repeating: Double.infinity, count: candidates[index].count)
+            predecessors[index] = Array(repeating: 0, count: candidates[index].count)
+            for next in candidates[index].indices {
+                for previous in candidates[index - 1].indices {
+                    let score = previousCosts[previous] + cost(candidates[index - 1][previous],
+                        candidates[index][next], values: values)
+                    if score < nextCosts[next] - tieTolerance {
+                        nextCosts[next] = score
+                        predecessors[index][next] = previous
                     }
                 }
             }
-            guard best.isEmpty == false else {
-                throw FeatureEvaluationError.invalidGraph(
-                    "Exact Loft section matching found no correspondence candidate."
-                )
+            previousCosts = nextCosts
+        }
+        if closesSectionLoop {
+            let values = try edgeCosts(from: rings.count - 1, to: 0)
+            for index in previousCosts.indices {
+                previousCosts[index] += cost(candidates[rings.count - 1][index],
+                    candidates[0][0], values: values)
             }
-            matched.append(best)
+        }
+        var selected = 0
+        for index in previousCosts.indices where previousCosts[index] < previousCosts[selected] - tieTolerance {
+            selected = index
+        }
+        guard previousCosts[selected].isFinite else {
+            throw FeatureEvaluationError.invalidGraph("Exact Loft correspondence has no finite candidate path.")
+        }
+        var matched = rings
+        for index in rings.indices.reversed() {
+            let alignment = candidates[index][selected]
+            matched[index] = (0..<count).map { rings[index][alignment.index($0, count: count)] }
+            if index > 0 { selected = predecessors[index][selected] }
         }
         return matched
     }
@@ -728,7 +791,8 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             let next = ring[(index + 1) % ring.count] - origin
             areaVector = areaVector + current.cross(next)
         }
-        return try areaVector.normalized(tolerance: tolerance.distance)
+        // Cross products measure area, so compare them with a squared length.
+        return try areaVector.normalized(tolerance: tolerance.distance * tolerance.distance)
     }
 
     private func averageRingOffset(
@@ -770,22 +834,6 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             counts[entry.index] += 1
         }
         return counts
-    }
-
-    private func rotatedRing(_ ring: [Point3D], offset: Int) -> [Point3D] {
-        guard ring.isEmpty == false else {
-            return ring
-        }
-        return ring.indices.map { index in
-            ring[(index + offset) % ring.count]
-        }
-    }
-
-    private func cyclicMatchScore(_ ring: [Point3D], reference: [Point3D]) -> Double {
-        zip(ring, reference).reduce(0.0) { score, pair in
-            let delta = pair.0 - pair.1
-            return score + delta.dot(delta)
-        }
     }
 
     private func validateClosedRing(

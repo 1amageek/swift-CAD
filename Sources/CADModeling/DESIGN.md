@@ -159,6 +159,23 @@ matched rings drive exact boundary traversal and cap/shell orientation. Reversed
 correspondence that produces singular or intersecting geometry is a failure,
 not permission to silently restore automatic traversal.
 
+Unguided profile correspondence optimizes the sum of adjacent ring distances,
+including the final-to-first connection of closed Lofts. The first ring anchors
+the parameter origin. Explicit seams and traversal remain fixed. For closed-loop
+automatic traversal, a resolvable signed advance along each winding normal aligns traversal
+with the first section's advance; tangential/ambiguous advance retains both
+orientations for geometric scoring. Open stacks retain both automatic directions.
+Advance uses adjacent section centers, not
+the first section's normal. This chooses correspondence, not shape admission.
+Winding cross products are area quantities; their normalization threshold is
+the squared distance tolerance, not the distance tolerance.
+Dynamic programming operates on offset/direction indexes, materializing only
+the selected rings. Relative-offset edge costs are computed once per connection;
+time is O(sectionCount * ringCount^2), storage O(sectionCount * ringCount).
+Finite scores and deterministic ties are required; failed geometry still goes
+through the same patch admission. LoftFeatureTests covers automatic rotating
+closure, explicit traversal/seams, open stacks and invalid correspondence.
+
 Every Loft side patch passes the existing
 B-spline regularity and embedding validators over its complete parameter domain
 before entering the result BRep. This applies to profile, curve and mixed inputs.

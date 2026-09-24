@@ -423,11 +423,12 @@ func loftSmoothSheetRefusesTheFallbackVertexBoundaryBeforeGrowth() throws {
     #expect(reevaluatedMesh.indices.count == mesh.indices.count)
 }
 
-@Test(.timeLimit(.minutes(1)))
-func loftSmoothSurfaceModeCreatesCubicClosedSectionLoopSheet() throws {
+@Test(.timeLimit(.minutes(1)), arguments: [false, true])
+func loftSmoothSurfaceModeCreatesCubicClosedSectionLoopSheet(reversesMiddlePlane: Bool) throws {
     let (document, _) = closedSectionLoopLoftDocument(
         resultKind: .sheet,
-        surfaceMode: .smooth
+        surfaceMode: .smooth,
+        reversesMiddlePlane: reversesMiddlePlane
     )
 
     let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
@@ -458,6 +459,14 @@ func loftRejectsParallelSectionsTurningThroughATangentPlane() throws {
     // z velocity. Its interior height maximum makes the longitudinal tangent
     // parallel to an X-directed section edge, so the side surface loses rank.
     #expect(throws: KernelError.self) { try DocumentEvaluator(tolerance: .standard).evaluate(document) }
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftAutomaticClosedCorrespondencePreservesSmallSections() throws {
+    let (document, _) = closedSectionLoopLoftDocument(surfaceMode: .smooth, sectionScale: 0.1)
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+    #expect(evaluated.brep.faces.count == 12)
+    try evaluated.brep.validate(tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
@@ -1690,12 +1699,15 @@ private func loftConnectorCurve(
 private func closedSectionLoopLoftDocument(
     resultKind: LoftResultKind = .sheet,
     surfaceMode: LoftSurfaceMode = .ruled,
-    rotatesSections: Bool = true
+    rotatesSections: Bool = true,
+    reversesMiddlePlane: Bool = false,
+    sectionScale: Double = 1
 ) -> (CADDocument, FeatureID) {
     let h = 3.0.squareRoot() / 2
     let planes: [SketchPlane] = rotatesSections ? [
         .plane(Plane3D(origin: Point3D(x: 0.02, y: 0, z: 0), normal: .unitZ)),
-        .plane(Plane3D(origin: Point3D(x: -0.01, y: 0, z: 0.02 * h), normal: Vector3D(x: -h, y: 0, z: -0.5))),
+        .plane(Plane3D(origin: Point3D(x: -0.01, y: 0, z: 0.02 * h),
+            normal: Vector3D(x: reversesMiddlePlane ? h : -h, y: 0, z: reversesMiddlePlane ? 0.5 : -0.5))),
         .plane(Plane3D(origin: Point3D(x: -0.01, y: 0, z: -0.02 * h), normal: Vector3D(x: h, y: 0, z: -0.5)))
     ] : [.xy, loftTranslatedPlane(x: 6, z: 4), loftTranslatedPlane(x: 0, z: 8)]
     let firstProfileID = FeatureID()
@@ -1704,9 +1716,9 @@ private func closedSectionLoopLoftDocument(
     let loftID = FeatureID()
     let loft = LoftFeature(
         sections: [
-            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID), profileDirection: .forward),
-            LoftSectionReference(profile: ProfileReference(featureID: secondProfileID), profileDirection: .forward),
-            LoftSectionReference(profile: ProfileReference(featureID: thirdProfileID), profileDirection: .forward),
+            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: thirdProfileID)),
         ],
         options: LoftOptions(
             resultKind: resultKind,
@@ -1720,14 +1732,14 @@ private func closedSectionLoopLoftDocument(
             nodes: [
                 firstProfileID: FeatureNode(
                     id: firstProfileID,
-                    operation: .sketch(loftRectangleSketch(width: 4.0, height: 2.0, plane: planes[0])),
+                    operation: .sketch(loftRectangleSketch(width: 4.0 * sectionScale, height: 2.0 * sectionScale, plane: planes[0])),
                     outputs: [FeatureOutput(role: .profile)]
                 ),
                 secondProfileID: FeatureNode(
                     id: secondProfileID,
                     operation: .sketch(loftRectangleSketch(
-                        width: 4.0,
-                        height: 2.0,
+                        width: 4.0 * sectionScale,
+                        height: 2.0 * sectionScale,
                         plane: planes[1]
                     )),
                     outputs: [FeatureOutput(role: .profile)]
@@ -1735,8 +1747,8 @@ private func closedSectionLoopLoftDocument(
                 thirdProfileID: FeatureNode(
                     id: thirdProfileID,
                     operation: .sketch(loftRectangleSketch(
-                        width: 4.0,
-                        height: 2.0,
+                        width: 4.0 * sectionScale,
+                        height: 2.0 * sectionScale,
                         plane: planes[2]
                     )),
                     outputs: [FeatureOutput(role: .profile)]
