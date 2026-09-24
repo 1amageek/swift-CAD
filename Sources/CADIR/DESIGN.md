@@ -18,7 +18,9 @@ planar Sketch contract.
 Operation-independent profile/curve section references belong to
 [SectionReference](SectionReference/DESIGN.md). Sweep and Extrude consume this
 contract. Revolve adopts the same section contract and explicit topology body
-kind; Loft still retains profile-only fields.
+kind. Loft section controls wrap the same reference rather than a profile-only
+field. Curve sections require Sheet output; the original profile-only Loft
+payload is rejected rather than silently migrated.
 
 This module owns the value contract for `StableSubshapeReference` and its
 `SubshapeGeometrySignature`, including Codable validation. It also owns the

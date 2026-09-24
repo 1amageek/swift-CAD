@@ -43,6 +43,9 @@ public struct LoftFeature: Codable, Hashable, Sendable {
         for section in sections {
             try section.validate()
         }
+        guard options.resultKind == .sheet || sections.allSatisfy({ $0.section.isProfile }) else {
+            throw FeatureEvaluationError.invalidGraph("Curve Loft sections require Sheet output.")
+        }
         let uniqueSections = Set(sections)
         guard uniqueSections.count == sections.count else {
             throw FeatureEvaluationError.invalidGraph("Loft profile sections must be unique.")
@@ -94,13 +97,13 @@ public struct LoftGuideReference: Codable, Hashable, Sendable {
 }
 
 public struct LoftSectionReference: Codable, Hashable, Sendable {
-    public var profile: ProfileReference
+    public var section: SectionReference
     public var startSampleIndex: Int?
     public var smoothTangentScale: Double?
     public var smoothTangentMode: LoftSectionSmoothTangentMode
 
     private enum CodingKeys: String, CodingKey {
-        case profile
+        case section
         case startSampleIndex
         case smoothTangentScale
         case smoothTangentMode
@@ -112,7 +115,17 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
         smoothTangentScale: Double? = nil,
         smoothTangentMode: LoftSectionSmoothTangentMode = .automatic
     ) {
-        self.profile = profile
+        self.init(section: .profile(profile), startSampleIndex: startSampleIndex,
+            smoothTangentScale: smoothTangentScale, smoothTangentMode: smoothTangentMode)
+    }
+
+    public init(
+        section: SectionReference,
+        startSampleIndex: Int? = nil,
+        smoothTangentScale: Double? = nil,
+        smoothTangentMode: LoftSectionSmoothTangentMode = .automatic
+    ) {
+        self.section = section
         self.startSampleIndex = startSampleIndex
         self.smoothTangentScale = smoothTangentScale
         self.smoothTangentMode = smoothTangentMode
@@ -121,31 +134,33 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([
-            .profile,
+            .section,
             .startSampleIndex,
             .smoothTangentScale,
             .smoothTangentMode,
         ], in: decoder)
-        profile = try container.decode(ProfileReference.self, forKey: .profile)
+        section = try container.decode(SectionReference.self, forKey: .section)
         startSampleIndex = try container.decodeIfPresent(Int.self, forKey: .startSampleIndex)
         smoothTangentScale = try container.decodeIfPresent(Double.self, forKey: .smoothTangentScale)
         smoothTangentMode = try container.decode(LoftSectionSmoothTangentMode.self, forKey: .smoothTangentMode)
+        try validate()
     }
 
     public func encode(to encoder: Encoder) throws {
+        try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(profile, forKey: .profile)
+        try container.encode(section, forKey: .section)
         try container.encodeIfPresent(startSampleIndex, forKey: .startSampleIndex)
         try container.encodeIfPresent(smoothTangentScale, forKey: .smoothTangentScale)
         try container.encode(smoothTangentMode, forKey: .smoothTangentMode)
     }
 
     public var featureID: FeatureID {
-        profile.featureID
+        section.featureID
     }
 
     public func validate() throws {
-        try profile.validate()
+        try section.validate()
         if let startSampleIndex {
             guard startSampleIndex >= 0 else {
                 throw FeatureEvaluationError.invalidGraph("Loft section start sample indexes must be zero or greater.")

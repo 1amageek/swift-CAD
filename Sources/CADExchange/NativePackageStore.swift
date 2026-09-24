@@ -2134,10 +2134,10 @@ private func validateLoftGuideReferenceObject(_ object: [String: Any], path: Str
 private func validateLoftSectionReferenceObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["profile", "startSampleIndex", "smoothTangentScale", "smoothTangentMode"],
+        supportedKeys: ["section", "startSampleIndex", "smoothTangentScale", "smoothTangentMode"],
         objectName: path
     )
-    try validateObjectField("profile", in: object, path: "\(path).profile", using: validateProfileReferenceObject)
+    try validateObjectField("section", in: object, path: "\(path).section", using: validateSectionReferenceObject)
     if let value = object["startSampleIndex"] {
         guard let index = value as? Int,
               index >= 0 else {

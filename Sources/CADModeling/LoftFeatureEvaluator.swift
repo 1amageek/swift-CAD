@@ -36,6 +36,21 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             )
         }
         try loft.validate()
+        if loft.sections.contains(where: { !$0.section.isProfile }) {
+            let curves = try loft.sections.map { section in
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Curve Loft evaluation is connected,
+                // but mixed profile/curve boundaries need common loop correspondence before
+                // the full mixed-section contract can be reported as implemented.
+                guard case .curve(let reference) = section.section else {
+                    throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
+                        message: "Mixed profile and curve Loft correspondence is not implemented.")
+                }
+                return try ResolvedModelingSection.resolveCurve(reference,
+                    from: context.curves[reference.featureID], tolerance: context.tolerance)
+            }
+            return try ExactLoftBodyBuilder(featureID: feature.id, context: context)
+                .build(loft: loft, curveSections: curves)
+        }
         let profiles = try resolvedProfiles(for: loft, context: context)
         let guideCurves = try ExactLoftGuideCurveResolver().resolve(
             guides: loft.guides,
@@ -111,7 +126,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             }
             let loopSections = sections.map { section in
                 LoftSectionReference(
-                    profile: section.profile,
+                    section: section.section,
                     startSampleIndex: loopIndex == 0
                         ? section.startSampleIndex
                         : nil,
@@ -135,7 +150,9 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         context: EvaluationContext
     ) throws -> [Profile] {
         try loft.sections.map { section in
-            let reference = section.profile
+            guard case .profile(let reference) = section.section else {
+                throw FeatureEvaluationError.invalidGraph("Profile Loft dispatch requires profile sections.")
+            }
             return try ResolvedModelingSection.resolveProfile(
                 reference,
                 from: context.profiles[reference.featureID]

@@ -835,18 +835,18 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         }
         try loft.validate()
         let expectedInputs = loft.sections.map { section in
-            FeatureInput(featureID: section.featureID, role: .profile)
+            FeatureInput(featureID: section.featureID, role: section.section.inputRole)
         } + loft.guides.map { guide in
             FeatureInput(featureID: guide.featureID, role: .guide)
         }
         guard Set(node.inputs) == Set(expectedInputs),
               node.inputs.count == expectedInputs.count else {
-            throw FeatureEvaluationError.invalidGraph("Loft features must consume the declared profile section and guide inputs.")
+            throw FeatureEvaluationError.invalidGraph("Loft features must consume the declared section and guide inputs.")
         }
         for section in loft.sections {
             guard let source = nodes[section.featureID],
-                  source.outputs.contains(where: { $0.role == .profile }) else {
-                throw FeatureEvaluationError.invalidGraph("Loft section source must declare a profile output.")
+                  source.outputs.contains(where: { $0.role == section.section.inputRole }) else {
+                throw FeatureEvaluationError.invalidGraph("Loft section source must declare its requested output kind.")
             }
         }
         for guide in loft.guides {

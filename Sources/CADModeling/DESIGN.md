@@ -64,6 +64,23 @@ owns uncapped open-generator geometry, full-turn seams and invalid generators.
 Source/API adoption is separately required before this builder is an exposed
 Surface Creation operation.
 
+### Loft section topology
+
+Loft resolves exact curve sections without manufacturing a closed Profile.
+The existing exact builder partitions section curves and owns both open-strip
+and closed-loop topology. Open partitions have one more vertex than edge;
+closed partitions wrap the final edge to the first vertex. Section closure is
+independent of closing the sequence of sections. Only closed profiles admit
+Solid output and planar caps. Common side-surface, connector, pcurve and lineage
+construction is shared, including smooth connector generation.
+
+Curve partitions retain each source span, subdividing at the union of normalized
+boundary-progress breaks. Partitioning must preserve rational geometry, source
+orientation and both open endpoints. Different closure kinds, disconnected
+spans and degenerate correspondence are explicit failures. No triangulated or
+sampled section substitutes for exact input. Advanced guide/continuity controls
+remain separately tracked until connected to this same path.
+
 ### Bounded rotational Sweep construction
 
 The implementation contract is owned by

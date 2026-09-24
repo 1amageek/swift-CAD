@@ -130,7 +130,10 @@ public enum FeatureNodeFactory {
                 }
                 try loft.validate()
                 for section in loft.sections {
-                    try validateProfileSource(section.profile, in: document)
+                    switch section.section {
+                    case .profile(let reference): try validateProfileSource(reference, in: document)
+                    case .curve(let reference): try validateCurveSource(reference.featureID, owner: "Loft", in: document)
+                    }
                 }
                 for guide in loft.guides {
                     try validateCurveSource(guide.featureID, owner: "Loft guide", in: document)
@@ -730,7 +733,7 @@ public enum FeatureNodeFactory {
     }
 
     private static func loftInputs(for loft: LoftFeature) -> [FeatureInput] {
-        loft.sections.map { FeatureInput(featureID: $0.featureID, role: .profile) }
+        loft.sections.map { FeatureInput(featureID: $0.featureID, role: $0.section.inputRole) }
             + loft.guides.map { FeatureInput(featureID: $0.featureID, role: .guide) }
     }
 

@@ -49,6 +49,60 @@ package struct ExactLoftBodyBuilder {
                 }
             )
         }
+        return try build(loft: loft, partitions: partitions,
+            sectionTangentScales: sectionTangentScales,
+            sectionTangentModes: sectionTangentModes, guideCurves: guideCurves,
+            faceOrientation: faceOrientation)
+    }
+
+    package func build(
+        loft: LoftFeature, curveSections: [EvaluatedCurve]
+    ) throws -> EvaluationResult {
+        try context.tolerance.validate()
+        try loft.validate()
+        guard loft.options.resultKind == .sheet,
+              curveSections.count == loft.sections.count,
+              let first = curveSections.first,
+              curveSections.allSatisfy({ $0.isClosed == first.isClosed }) else {
+            throw invalidGeometry("Curve Loft requires Sheet output and matching section closure.")
+        }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Curve-section Loft shares exact construction,
+        // but feature evaluation must not claim guide or seam controls until their exact
+        // correspondence resolution is connected for open and spatial curve sections.
+        guard loft.guides.isEmpty, loft.sections.allSatisfy({ $0.startSampleIndex == nil }) else {
+            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
+                message: "Curve Loft guide and seam correspondence is not implemented.")
+        }
+        let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: context.tolerance)
+        let sections = try curveSections.map { section in
+            try parameterizedSpans(spanBuilder.sectionSpans(from: section))
+        }
+        let breaks = Array(Set(sections.flatMap { $0.map(\.lowerProgress) } + [1.0])).sorted()
+        let curves = try sections.map { spans in
+            try (0..<(breaks.count - 1)).map { index in
+                try curve(from: spans, lowerProgress: breaks[index], upperProgress: breaks[index + 1])
+            }
+        }
+        let vertices = try curves.map { spans in
+            var points = try spans.map { try $0.point(at: 0, tolerance: context.tolerance) }
+            if !first.isClosed, let last = spans.last {
+                points.append(try last.point(at: 1, tolerance: context.tolerance))
+            }
+            return points
+        }
+        try validatePartition(curves: curves, rings: vertices, closed: first.isClosed)
+        return try build(loft: loft,
+            partitions: [SectionPartition(breaks: breaks, curves: curves, rings: vertices)],
+            sectionTangentScales: loft.sections.map { $0.smoothTangentScale ?? loft.options.smoothTangentScale },
+            sectionTangentModes: loft.sections.map(\.smoothTangentMode),
+            guideCurves: [], faceOrientation: .forward)
+    }
+
+    private func build(
+        loft: LoftFeature, partitions: [SectionPartition],
+        sectionTangentScales: [Double], sectionTangentModes: [LoftSectionSmoothTangentMode],
+        guideCurves: [ExactLoftGuideCurve], faceOrientation: Orientation
+    ) throws -> EvaluationResult {
         guard let outerPartition = partitions.first else {
             throw SketchError.openProfile
         }
@@ -130,7 +184,7 @@ package struct ExactLoftBodyBuilder {
         var faceIDsByLoop = Array(repeating: [FaceID](), count: partitions.count)
         if loft.options.resultKind == .solid {
             let startNormal = try -ringWindingNormal(
-                matchedLoopRings[0][0]
+                outerPartition.rings[0]
             )
             let startFaceID = addPlanarFace(
                 role: .startFace,
@@ -158,7 +212,7 @@ package struct ExactLoftBodyBuilder {
 
             let endSectionIndex = sectionCount - 1
             let endNormal = try ringWindingNormal(
-                matchedLoopRings[0][endSectionIndex]
+                outerPartition.rings[endSectionIndex]
             )
             let endFaceID = addPlanarFace(
                 role: .endFace,
@@ -190,7 +244,7 @@ package struct ExactLoftBodyBuilder {
             for connectionIndex in 0..<connectionCount {
                 let nextSectionIndex = (connectionIndex + 1) % sectionCount
                 for spanIndex in 0..<boundarySpanCount {
-                    let nextSpanIndex = (spanIndex + 1) % boundarySpanCount
+                    let nextSpanIndex = (spanIndex + 1) % partition.rings[connectionIndex].count
                     let surface = try sideSurfaceBuilder.build(
                         vMinimumBoundary: partition.curves[connectionIndex][spanIndex],
                         vMaximumBoundary: partition.curves[nextSectionIndex][spanIndex],
@@ -400,20 +454,24 @@ package struct ExactLoftBodyBuilder {
             }
         }
 
-        let weights = rotated.map(spanProgressWeight)
+        return try parameterizedSpans(rotated)
+    }
+
+    private func parameterizedSpans(_ spans: [ExactBSplineCurveSpan]) throws -> [OrientedSpan] {
+        let weights = spans.map(spanProgressWeight)
         let total = weights.reduce(0.0, +)
         guard total.isFinite, total > context.tolerance.distance else {
             throw SketchError.degenerateProfile
         }
         var lower = 0.0
         var result: [OrientedSpan] = []
-        result.reserveCapacity(rotated.count)
-        for index in rotated.indices {
-            let upper = index == rotated.index(before: rotated.endIndex)
+        result.reserveCapacity(spans.count)
+        for index in spans.indices {
+            let upper = index == spans.index(before: spans.endIndex)
                 ? 1.0
                 : lower + weights[index] / total
             result.append(OrientedSpan(
-                curve: try normalized(rotated[index].curve),
+                curve: try normalized(spans[index].curve),
                 lowerProgress: lower,
                 upperProgress: upper
             ))
@@ -648,18 +706,19 @@ package struct ExactLoftBodyBuilder {
 
     private func validatePartition(
         curves: [[BSplineCurve3D]],
-        rings: [[Point3D]]
+        rings: [[Point3D]],
+        closed: Bool = true
     ) throws {
         guard let spanCount = curves.first?.count,
-              spanCount >= 2,
+              spanCount >= (closed ? 2 : 1),
               curves.allSatisfy({ $0.count == spanCount }),
-              rings.allSatisfy({ $0.count == spanCount }) else {
+              rings.allSatisfy({ $0.count == spanCount + (closed ? 0 : 1) }) else {
             throw invalidGeometry(
                 "Exact Loft sections did not resolve to one common boundary partition."
             )
         }
         for sectionIndex in curves.indices {
-            for spanIndex in 0..<spanCount {
+            for spanIndex in 0..<(closed ? spanCount : spanCount - 1) {
                 let nextSpanIndex = (spanIndex + 1) % spanCount
                 guard case let .closed(_, upper) = curves[sectionIndex][spanIndex].domain,
                       case let .closed(nextLower, _) = curves[sectionIndex][nextSpanIndex].domain else {
@@ -723,7 +782,7 @@ package struct ExactLoftBodyBuilder {
                 let edgeID = try addSectionCurveEdge(
                     curve: curves[sectionIndex][spanIndex],
                     startVertexID: vertexIDs[sectionIndex][spanIndex],
-                    endVertexID: vertexIDs[sectionIndex][(spanIndex + 1) % spanCount],
+                    endVertexID: vertexIDs[sectionIndex][(spanIndex + 1) % vertexIDs[sectionIndex].count],
                     to: &model,
                     geometry: &geometry
                 )
