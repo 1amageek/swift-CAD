@@ -48,6 +48,22 @@ provide general boundary constraints or certify G1/G2 fitting. The approved
 eleven-operation implementation remains incomplete until each actual evaluator,
 source contract and application route meets its acceptance criteria.
 
+### Revolve construction and closure
+
+The existing rational surface-of-revolution builder owns both solid and sheet
+construction. It consumes exact planar generator spans and the rotation axis;
+curve sheets do not fabricate a closed Profile. One span construction path owns
+surfaces, oriented pcurves, sewing and lineage. The requested body kind decides
+whether partial-turn caps and solid shell ownership are built. Open generators
+never receive caps. Angular seam splitting and whole-span radial half-space
+validation remain common to both outputs. A sampled point may choose the radial
+frame but cannot certify that the generator stays on one side of the axis.
+
+`CurvedRevolveFeatureTests` owns solid regression; `RevolveSheetConstructionTests`
+owns uncapped open-generator geometry, full-turn seams and invalid generators.
+Source/API adoption is separately required before this builder is an exposed
+Surface Creation operation.
+
 ### Bounded rotational Sweep construction
 
 The implementation contract is owned by

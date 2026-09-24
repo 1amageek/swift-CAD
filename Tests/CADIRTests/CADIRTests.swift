@@ -3208,7 +3208,7 @@ struct CADIRTests {
             Issue.record("Revolve operation must round-trip with its discriminator.")
             return
         }
-        #expect(revolve.profile == ProfileReference(featureID: profileID))
+        #expect(revolve.section == .profile(ProfileReference(featureID: profileID)))
         #expect(revolve.axis == axis)
         #expect(revolve.angle == .constant(.angle(270.0, unit: .degree)))
         #expect(revolve.operation == SolidOperation.newBody)

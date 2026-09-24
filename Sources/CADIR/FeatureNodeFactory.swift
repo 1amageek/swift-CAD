@@ -84,14 +84,17 @@ public enum FeatureNodeFactory {
                 guard case let .revolve(revolve) = operation else {
                     throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
                 }
-                try validateProfileSource(revolve.profile, in: document)
                 try revolve.validate(tolerance: tolerance)
+                switch revolve.section {
+                case .profile(let reference): try validateProfileSource(reference, in: document)
+                case .curve(let reference): try validateCurveSource(reference.featureID, owner: "Revolve", in: document)
+                }
                 return FeatureNode(
                     id: id,
                     name: name,
                     operation: operation,
-                    inputs: [FeatureInput(featureID: revolve.profile.featureID, role: .profile)],
-                    outputs: [FeatureOutput(role: .body)]
+                    inputs: [FeatureInput(featureID: revolve.section.featureID, role: revolve.section.inputRole)],
+                    outputs: [FeatureOutput(role: revolve.resultKind == .solid ? .body : .sheet)]
                 )
             }
             return try run()

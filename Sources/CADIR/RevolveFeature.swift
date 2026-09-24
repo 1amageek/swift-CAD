@@ -1,25 +1,68 @@
 import CADCore
+import CADTopology
 
 public struct RevolveFeature: Codable, Hashable, Sendable {
-    public var profile: ProfileReference
+    public var section: SectionReference
     public var axis: RevolveAxis
     public var angle: CADExpression
     public var operation: SolidOperation
+    public var resultKind: BodyKind
 
     public init(
         profile: ProfileReference,
         axis: RevolveAxis,
         angle: CADExpression = .constant(.angle(360.0, unit: .degree)),
-        operation: SolidOperation = .newBody
+        operation: SolidOperation = .newBody,
+        resultKind: BodyKind = .solid
     ) {
-        self.profile = profile
+        self.init(section: .profile(profile), axis: axis, angle: angle,
+                  operation: operation, resultKind: resultKind)
+    }
+
+    public init(section: SectionReference, axis: RevolveAxis,
+                angle: CADExpression = .constant(.angle(360, unit: .degree)),
+                operation: SolidOperation = .newBody, resultKind: BodyKind) {
+        self.section = section
         self.axis = axis
         self.angle = angle
         self.operation = operation
+        self.resultKind = resultKind
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case section, axis, angle, operation, resultKind
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.section, .axis, .angle, .operation, .resultKind], in: decoder)
+        section = try container.decode(SectionReference.self, forKey: .section)
+        axis = try container.decode(RevolveAxis.self, forKey: .axis)
+        angle = try container.decode(CADExpression.self, forKey: .angle)
+        operation = try container.decode(SolidOperation.self, forKey: .operation)
+        resultKind = try container.decode(BodyKind.self, forKey: .resultKind)
+        try validateSection()
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        try validateSection()
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(section, forKey: .section)
+        try container.encode(axis, forKey: .axis)
+        try container.encode(angle, forKey: .angle)
+        try container.encode(operation, forKey: .operation)
+        try container.encode(resultKind, forKey: .resultKind)
+    }
+
+    private func validateSection() throws {
+        try section.validate()
+        guard resultKind == .sheet || section.isProfile else {
+            throw FeatureEvaluationError.invalidGraph("A curve revolution requires sheet output.")
+        }
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try profile.validate()
+        try validateSection()
         try axis.validate(tolerance: tolerance)
         try angle.validateLiteralQuantities()
     }

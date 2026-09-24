@@ -755,15 +755,15 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a revolve operation.")
         }
         try revolve.validate(tolerance: tolerance)
-        guard node.inputs == [FeatureInput(featureID: revolve.profile.featureID, role: .profile)] else {
-            throw FeatureEvaluationError.invalidGraph("Revolve features must consume the referenced profile input.")
+        guard node.inputs == [FeatureInput(featureID: revolve.section.featureID, role: revolve.section.inputRole)] else {
+            throw FeatureEvaluationError.invalidGraph("Revolve features must consume the referenced section input.")
         }
-        guard let source = nodes[revolve.profile.featureID],
-              source.outputs.contains(where: { $0.role == .profile }) else {
-            throw FeatureEvaluationError.invalidGraph("Revolve profile source must declare a profile output.")
+        guard let source = nodes[revolve.section.featureID],
+              source.outputs.contains(where: { $0.role == revolve.section.inputRole }) else {
+            throw FeatureEvaluationError.invalidGraph("Revolve source must declare the section input role.")
         }
-        guard outputRoles == [.body] else {
-            throw FeatureEvaluationError.invalidGraph("Revolve features must declare one body output.")
+        guard outputRoles == [revolve.resultKind == .solid ? .body : .sheet] else {
+            throw FeatureEvaluationError.invalidGraph("Revolve output must agree with its body kind.")
         }
     }
 

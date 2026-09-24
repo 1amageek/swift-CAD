@@ -54,10 +54,6 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             )
         }
         try revolve.validate(tolerance: context.tolerance)
-        let profile = try ResolvedModelingSection.resolveProfile(
-            revolve.profile,
-            from: context.profiles[revolve.profile.featureID]
-        )
         let resolvedAngle = try resolver.evaluate(
             revolve.angle,
             parameters: context.parameters,
@@ -92,11 +88,23 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             )
         }
 
+        let profile: Profile
+        switch revolve.section {
+        case .curve(let reference):
+            let section = try ResolvedModelingSection.resolveCurve(reference,
+                from: context.curves[reference.featureID], tolerance: context.tolerance)
+            return try CurvedRevolveBodyBuilder.buildSheet(axis: revolve.axis, angle: angle,
+                section: section, featureID: feature.id, context: context, sewer: sewer)
+        case .profile(let reference):
+            profile = try ResolvedModelingSection.resolveProfile(reference,
+                from: context.profiles[reference.featureID])
+        }
+
         // Multi-loop regions require one topology authority for cap holes,
         // detached void shells, pcurves, and volume ownership. The general
         // exact sewing path provides that contract even when every boundary is
         // linear; the analytic fast path remains specialized for one loop.
-        let requiresGeneralTopology = profile.innerLoops.isEmpty == false
+        let requiresGeneralTopology = revolve.resultKind == .sheet || profile.innerLoops.isEmpty == false
             || profile.boundaryLoops.flatMap(\.boundarySegments).contains(where: { segment in
             switch segment {
             case .line:
@@ -113,7 +121,7 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 featureID: feature.id,
                 context: context,
                 sewer: sewer
-            ).build(from: profile)
+            ).build(from: profile, resultKind: revolve.resultKind)
         }
         return try RevolveBodyBuilder(
             axis: revolve.axis,

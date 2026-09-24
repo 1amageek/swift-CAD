@@ -17,7 +17,8 @@ planar Sketch contract.
 
 Operation-independent profile/curve section references belong to
 [SectionReference](SectionReference/DESIGN.md). Sweep and Extrude consume this
-contract. Revolve and Loft still retain profile-only fields.
+contract. Revolve adopts the same section contract and explicit topology body
+kind; Loft still retains profile-only fields.
 
 This module owns the value contract for `StableSubshapeReference` and its
 `SubshapeGeometrySignature`, including Codable validation. It also owns the
@@ -66,6 +67,12 @@ not permission to close the curve. The canonical payload requires `section` and
 `resultKind`. The former profile-only payload is rejected explicitly rather than
 decoded into a default section. The profile initializer remains an authoring
 convenience that constructs `.profile`, not a second source representation.
+
+Revolve likewise persists `section` and required `resultKind` (`BodyKind`).
+Curve sections require Sheet output. Graph input/output roles, native package
+validation and evaluated topology must agree with those values; old profile-only
+Revolve payloads are explicitly rejected. A profile authoring initializer builds
+the same canonical value, with Solid as its default output.
 
 Sweep source optionally retains a length-valued `approximationTolerance` and
 `twistLaw` containing `SweepTwistKnot(position:angle:)` values. Omission preserves

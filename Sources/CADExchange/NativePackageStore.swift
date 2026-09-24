@@ -1014,10 +1014,10 @@ private func validateExtrudeFeatureObject(_ object: [String: Any], path: String)
 private func validateRevolveFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["profile", "axis", "angle", "operation"],
+        supportedKeys: ["section", "axis", "angle", "operation", "resultKind"],
         objectName: path
     )
-    try validateObjectField("profile", in: object, path: "\(path).profile", using: validateProfileReferenceObject)
+    try validateObjectField("section", in: object, path: "\(path).section", using: validateSectionReferenceObject)
     try validateObjectField("axis", in: object, path: "\(path).axis", using: validateRevolveAxisObject)
     try validateObjectField("angle", in: object, path: "\(path).angle", using: validateExpressionObject)
 }

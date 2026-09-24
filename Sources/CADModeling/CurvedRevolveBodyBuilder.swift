@@ -26,20 +26,75 @@ struct CurvedRevolveBodyBuilder {
         context: EvaluationContext,
         sewer: any BRepSewing
     ) throws {
+        try self.init(axis: axis, angle: angle, plane: profile.plane,
+            sectionPoints: profile.boundaryLoops.flatMap(\.vertices),
+            featureID: featureID, context: context, sewer: sewer)
+    }
+
+    static func buildSheet(
+        axis: RevolveAxis,
+        angle: Double,
+        section: EvaluatedCurve,
+        featureID: FeatureID,
+        context: EvaluationContext,
+        sewer: any BRepSewing
+    ) throws -> EvaluationResult {
+        // FIXME(INCOMPLETE_IMPLEMENTATION): The curve-sheet builder admits planar generators.
+        // Feature evaluation must not claim spatial-generator Revolve support until exact
+        // nonplanar rotational construction and its global validity checks are implemented.
+        guard let plane = section.plane else {
+            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
+                message: "Revolve curve sections require source plane metadata.")
+        }
+        let spans = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance).sectionSpans(from: section)
+        var witnesses: [Point3D] = []
+        witnesses.reserveCapacity(spans.count * 3)
+        for span in spans {
+            guard case let .closed(lower, upper) = span.curve.domain else {
+                throw SketchError.degenerateProfile
+            }
+            witnesses.append(span.startPoint)
+            witnesses.append(try span.curve.point(at: 0.5 * (lower + upper), tolerance: context.tolerance))
+            witnesses.append(span.endPoint)
+        }
+        let builder = try Self(axis: axis, angle: angle, plane: plane, sectionPoints: witnesses,
+            featureID: featureID, context: context, sewer: sewer)
+        let segments = try spans.enumerated().map { index, span in
+            try builder.makeSegment(curve: span.curve, boundaryIndex: index, spanIndex: 0)
+        }
+        return try builder.build(
+            loopData: [CurvedRevolveLoopData(segments: segments, areaSign: 1)], resultKind: .sheet)
+    }
+
+    private init(
+        axis: RevolveAxis,
+        angle: Double,
+        plane: SketchPlane,
+        sectionPoints: [Point3D],
+        featureID: FeatureID,
+        context: EvaluationContext,
+        sewer: any BRepSewing
+    ) throws {
+        try context.tolerance.validate()
+        guard angle.isFinite, abs(angle) > context.tolerance.angle,
+              abs(angle) <= 2 * Double.pi + context.tolerance.angle else {
+            throw KernelError(phase: .validation, code: .invalidInput,
+                tolerance: context.tolerance, message: "Revolve requires a nonzero angle within one full turn.")
+        }
         let direction = try axis.normalizedDirection(tolerance: context.tolerance)
         let basis = try Self.parameterBasis(
             for: direction,
             tolerance: context.tolerance
         )
         let profilePlane = try Self.plane(
-            for: profile.plane,
+            for: plane,
             tolerance: context.tolerance
         )
         let frame = try Self.profileFrame(
             axis: axis,
             axisDirection: direction,
             parameterBasis: basis,
-            profile: profile,
+            sectionPoints: sectionPoints,
             profilePlane: profilePlane,
             tolerance: context.tolerance
         )
@@ -60,7 +115,7 @@ struct CurvedRevolveBodyBuilder {
         self.angleBreaks = Self.angleBreaks(for: self.angle, isFullTurn: fullTurn)
     }
 
-    func build(from profile: Profile) throws -> EvaluationResult {
+    func build(from profile: Profile, resultKind: BodyKind = .solid) throws -> EvaluationResult {
         let loopData = try profile.boundaryLoops.map { loop in
             let segments = try exactSegments(from: loop)
             try validateClosure(segments)
@@ -69,6 +124,10 @@ struct CurvedRevolveBodyBuilder {
                 areaSign: try signedProfileAreaSign(loop.vertices)
             )
         }
+        return try build(loopData: loopData, resultKind: resultKind)
+    }
+
+    private func build(loopData: [CurvedRevolveLoopData], resultKind: BodyKind) throws -> EvaluationResult {
         guard let outerAreaSign = loopData.first?.areaSign else {
             throw SketchError.openProfile
         }
@@ -103,7 +162,8 @@ struct CurvedRevolveBodyBuilder {
             }
         }
         var capPatches: [BRepSewingFacePatch] = []
-        if isFullTurn == false {
+        let includesCaps = resultKind == .solid && !isFullTurn
+        if includesCaps {
             capPatches.append(try capPatch(
                 loopData: loopData,
                 angle: angleBreaks[0],
@@ -117,7 +177,12 @@ struct CurvedRevolveBodyBuilder {
         }
 
         let request: BRepSewingRequest
-        if isFullTurn {
+        if resultKind == .sheet {
+            request = BRepSewingRequest(featureID: featureID, bodyKind: .sheet,
+                shells: sidePatchesByLoop.enumerated().map { index, patches in
+                    BRepSewingShell(stableID: shellStableID(loopIndex: index), patches: patches)
+                })
+        } else if isFullTurn {
             let shells = sidePatchesByLoop.enumerated().map { loopIndex, patches in
                 BRepSewingShell(
                     stableID: shellStableID(loopIndex: loopIndex),
@@ -152,7 +217,8 @@ struct CurvedRevolveBodyBuilder {
         let combined = try BRepModelCombiner().combined([context.brep, sewn.brep])
         let subshapes = try semanticSubshapes(
             sewn: sewn,
-            sideSegmentIndices: sideSegmentIndices
+            sideSegmentIndices: sideSegmentIndices,
+            includesCaps: includesCaps
         )
         return EvaluationResult(
             brep: combined,
@@ -742,7 +808,8 @@ struct CurvedRevolveBodyBuilder {
 
     private func semanticSubshapes(
         sewn: BRepSewingResult,
-        sideSegmentIndices: [(loopIndex: Int, segmentIndex: Int)]
+        sideSegmentIndices: [(loopIndex: Int, segmentIndex: Int)],
+        includesCaps: Bool
     ) throws -> [SubshapeID: TopologyReference] {
         var result: [SubshapeID: TopologyReference] = [
             subshapeID(role: .body, ordinal: 0): .body(sewn.bodyID),
@@ -768,7 +835,7 @@ struct CurvedRevolveBodyBuilder {
                 sideFaceOrdinal += 1
             }
         }
-        if isFullTurn == false {
+        if includesCaps {
             for role in [GeneratedSubshapeRole.startFace, .endFace] {
                 let stableID = "revolve:cap:\(role.rawValue)"
                 guard let reference = sewn.stableReferences[.face(stableID)] else {
@@ -943,7 +1010,7 @@ struct CurvedRevolveBodyBuilder {
         axis: RevolveAxis,
         axisDirection: Vector3D,
         parameterBasis: (u: Vector3D, v: Vector3D),
-        profile: Profile,
+        sectionPoints: [Point3D],
         profilePlane: Plane3D,
         tolerance: ModelingTolerance
     ) throws -> (radialDirection: Vector3D, angleOffset: Double) {
@@ -964,7 +1031,7 @@ struct CurvedRevolveBodyBuilder {
             tolerance: tolerance.distance
         )
         var observedSign: Double?
-        for point in profile.boundaryLoops.flatMap(\.vertices) {
+        for point in sectionPoints {
             let offset = point - axis.origin
             let axial = offset.dot(axisDirection)
             let radial = point - (axis.origin + axisDirection * axial)
