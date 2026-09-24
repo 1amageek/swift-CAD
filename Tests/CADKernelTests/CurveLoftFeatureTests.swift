@@ -80,6 +80,50 @@ struct CurveLoftFeatureTests {
             exactCurve: .bSpline(curve), exactParameterDomain: .closed(0, 1), exactPointParameters: [0, 1])
     }
 
+    @Test(arguments: [LoftSurfaceMode.ruled, .smooth], [false, true])
+    func mixedProfileAndClosedCurveUseExactBoundaries(mode: LoftSurfaceMode, reversedOrder: Bool) throws {
+        let profileID = FeatureID()
+        let curveID = FeatureID()
+        let base = Curve3D.circle(Circle3D(center: .origin, normal: .unitZ, radius: 1))
+        let start = try base.point(at: 0, tolerance: .standard)
+        let profile = Profile(sourceFeatureID: profileID, plane: .xy,
+            vertices: try [0.0, .pi / 2, .pi, .pi * 1.5].map { try base.point(at: $0, tolerance: .standard) },
+            boundarySegments: [.circularArc(ProfileCircularArcSegment(center: .origin, normal: .unitZ,
+                radius: 1, start: start, end: start, sweepAngle: 2 * .pi))])
+        let exact = Curve3D.circle(Circle3D(center: Point3D(x: 0, y: 0, z: 2), normal: .unitZ, radius: 1))
+        let parameters = [0.0, Double.pi, 2 * .pi]
+        var curve = EvaluatedCurve(sourceFeatureID: curveID, source: .generatedFeature, kind: .spline,
+            points: try parameters.map { try exact.point(at: $0, tolerance: .standard) }, isClosed: true,
+            exactCurve: exact, exactParameterDomain: .closed(0, 2 * .pi), exactPointParameters: parameters)
+        var sections = [LoftSectionReference(section: .profile(ProfileReference(featureID: profileID))),
+            LoftSectionReference(section: .curve(CurveSectionReference(featureID: curveID)))]
+        if reversedOrder { sections.reverse() }
+        let feature = FeatureNode(operation: .loft(LoftFeature(sections: sections,
+            options: LoftOptions(resultKind: .sheet, surfaceMode: mode))),
+            inputs: sections.map { FeatureInput(featureID: $0.featureID, role: $0.section.inputRole) },
+            outputs: [FeatureOutput(role: .sheet)])
+        func evaluate(_ curve: EvaluatedCurve) throws -> EvaluationResult {
+            try LoftFeatureEvaluator().evaluate(feature: feature,
+                context: EvaluationContext(parameters: ResolvedParameterTable(), brep: BRepModel(),
+                    profiles: [profileID: [profile]], curves: [curveID: [curve]], tolerance: .standard))
+        }
+        let result = try evaluate(curve)
+        try result.brep.validate(level: .exact, tolerance: .standard)
+        #expect(result.brep.faces.count == 4)
+        #expect(result.brep.bodies.values.allSatisfy { $0.kind == .sheet })
+        for surface in result.brep.geometry.surfaces.values {
+            for u in [0.17, 0.5, 0.83] {
+                for v in [0.0, 0.5, 1.0] {
+                    let point = try surface.point(u: u, v: v, tolerance: .standard)
+                    #expect(abs(point.x * point.x + point.y * point.y - 1) < 1e-8)
+                    #expect(abs(point.z - (reversedOrder ? 2 * (1 - v) : 2 * v)) < 1e-8)
+                }
+            }
+        }
+        curve.isClosed = false
+        #expect(throws: FeatureEvaluationError.self) { try evaluate(curve) }
+    }
+
     private func evaluate(_ sections: [EvaluatedCurve], mode: LoftSurfaceMode) throws -> EvaluationResult {
         let operation = LoftFeature(sections: sections.map {
             LoftSectionReference(section: .curve(CurveSectionReference(featureID: $0.sourceFeatureID)))

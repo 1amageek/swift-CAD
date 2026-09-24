@@ -96,6 +96,14 @@ Surface Creation operation.
 
 ### Loft section topology
 
+When any Loft section is a curve, the evaluator resolves every section to exact
+B-spline boundary spans before correspondence. A profile contributes its outer
+loop directly, without an intermediate display polyline or composite curve.
+All sections must have the same closure and one loop; a profile with holes
+cannot correspond to a single curve loop. Profile-only multi-loop construction
+retains its existing matched-loop path. Shared partitioning owns knot/span
+alignment and uses the same topology constructor for mixed and curve sections.
+
 Loft resolves exact curve sections without manufacturing a closed Profile.
 The existing exact builder partitions section curves and owns both open-strip
 and closed-loop topology. Open partitions have one more vertex than edge;

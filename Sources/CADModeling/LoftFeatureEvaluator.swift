@@ -37,19 +37,30 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         }
         try loft.validate()
         if loft.sections.contains(where: { !$0.section.isProfile }) {
-            let curves = try loft.sections.map { section in
-                // FIXME(INCOMPLETE_IMPLEMENTATION): Curve Loft evaluation is connected,
-                // but mixed profile/curve boundaries need common loop correspondence before
-                // the full mixed-section contract can be reported as implemented.
-                guard case .curve(let reference) = section.section else {
-                    throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
-                        message: "Mixed profile and curve Loft correspondence is not implemented.")
+            let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: context.tolerance)
+            let boundaries = try loft.sections.map { section -> (spans: [ExactBSplineCurveSpan], closed: Bool) in
+                switch section.section {
+                case .curve(let reference):
+                    let curve = try ResolvedModelingSection.resolveCurve(reference,
+                        from: context.curves[reference.featureID], tolerance: context.tolerance)
+                    return (try spanBuilder.sectionSpans(from: curve), curve.isClosed)
+                case .profile(let reference):
+                    let profile = try ResolvedModelingSection.resolveProfile(reference,
+                        from: context.profiles[reference.featureID])
+                    let loops = try spanBuilder.profileLoopSpans(from: profile)
+                    guard loops.count == 1, let spans = loops.first else {
+                        throw KernelError(phase: .topology, code: .nonManifoldResult,
+                            tolerance: context.tolerance,
+                            message: "A single curve cannot match a Loft profile with multiple boundary loops.")
+                    }
+                    return (spans, true)
                 }
-                return try ResolvedModelingSection.resolveCurve(reference,
-                    from: context.curves[reference.featureID], tolerance: context.tolerance)
+            }
+            guard let closed = boundaries.first?.closed, boundaries.allSatisfy({ $0.closed == closed }) else {
+                throw FeatureEvaluationError.invalidGraph("Loft sections must have matching boundary closure.")
             }
             return try ExactLoftBodyBuilder(featureID: feature.id, context: context)
-                .build(loft: loft, curveSections: curves)
+                .build(loft: loft, boundarySpans: boundaries.map(\.spans), isClosed: closed)
         }
         let profiles = try resolvedProfiles(for: loft, context: context)
         let guideCurves = try ExactLoftGuideCurveResolver().resolve(

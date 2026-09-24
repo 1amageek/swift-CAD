@@ -56,15 +56,14 @@ package struct ExactLoftBodyBuilder {
     }
 
     package func build(
-        loft: LoftFeature, curveSections: [EvaluatedCurve]
+        loft: LoftFeature, boundarySpans: [[ExactBSplineCurveSpan]], isClosed: Bool
     ) throws -> EvaluationResult {
         try context.tolerance.validate()
         try loft.validate()
         guard loft.options.resultKind == .sheet,
-              curveSections.count == loft.sections.count,
-              let first = curveSections.first,
-              curveSections.allSatisfy({ $0.isClosed == first.isClosed }) else {
-            throw invalidGeometry("Curve Loft requires Sheet output and matching section closure.")
+              boundarySpans.count == loft.sections.count,
+              boundarySpans.allSatisfy({ !$0.isEmpty }) else {
+            throw invalidGeometry("Boundary Loft requires Sheet output and nonempty section spans.")
         }
         // FIXME(INCOMPLETE_IMPLEMENTATION): Curve-section Loft shares exact construction,
         // but feature evaluation must not claim guide or seam controls until their exact
@@ -73,10 +72,7 @@ package struct ExactLoftBodyBuilder {
             throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
                 message: "Curve Loft guide and seam correspondence is not implemented.")
         }
-        let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: context.tolerance)
-        let sections = try curveSections.map { section in
-            try parameterizedSpans(spanBuilder.sectionSpans(from: section))
-        }
+        let sections = try boundarySpans.map(parameterizedSpans)
         let breaks = Array(Set(sections.flatMap { $0.map(\.lowerProgress) } + [1.0])).sorted()
         let curves = try sections.map { spans in
             try (0..<(breaks.count - 1)).map { index in
@@ -85,12 +81,12 @@ package struct ExactLoftBodyBuilder {
         }
         let vertices = try curves.map { spans in
             var points = try spans.map { try $0.point(at: 0, tolerance: context.tolerance) }
-            if !first.isClosed, let last = spans.last {
+            if !isClosed, let last = spans.last {
                 points.append(try last.point(at: 1, tolerance: context.tolerance))
             }
             return points
         }
-        try validatePartition(curves: curves, rings: vertices, closed: first.isClosed)
+        try validatePartition(curves: curves, rings: vertices, closed: isClosed)
         return try build(loft: loft,
             partitions: [SectionPartition(breaks: breaks, curves: curves, rings: vertices)],
             sectionTangentScales: loft.sections.map { $0.smoothTangentScale ?? loft.options.smoothTangentScale },
