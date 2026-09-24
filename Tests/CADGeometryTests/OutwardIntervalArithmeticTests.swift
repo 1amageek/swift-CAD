@@ -1,4 +1,4 @@
-import CADGeometry
+@testable import CADGeometry
 import Foundation
 import Testing
 
@@ -48,5 +48,22 @@ struct OutwardIntervalArithmeticTests {
         let denominator = OutwardScalarInterval(lower: -1.0, upper: 1.0)
 
         #expect(numerator.divided(by: denominator) == nil)
+    }
+
+    @Test func vectorMagnitudeRetainsEuclideanLowerBoundsAcrossSignsAndScales() {
+        for scale in [1e-200, 1e-8, 1.0, 1e200] {
+            let bounds = IntervalVector3DBounds(
+                x: OutwardScalarInterval(lower: 3 * scale, upper: 6 * scale),
+                y: OutwardScalarInterval(lower: -8 * scale, upper: -4 * scale),
+                z: OutwardScalarInterval(lower: -scale, upper: scale))
+            #expect(bounds.lengthLowerBound <= 5 * scale)
+            #expect(bounds.lengthLowerBound >= (4 * scale).nextDown)
+            if scale >= 1e-8, scale <= 1 {
+                #expect(bounds.lengthLowerBound > 4.99 * scale)
+            }
+            #expect(bounds.lengthUpperBound >= hypot(6 * scale, hypot(8 * scale, scale)))
+        }
+        let zero = IntervalVector3DBounds(x: .exact(0), y: .exact(0), z: .exact(0))
+        #expect(zero.lengthLowerBound == 0)
     }
 }

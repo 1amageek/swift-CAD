@@ -111,13 +111,13 @@ struct RevolveSheetConstructionTests {
         }
     }
 
-    @Test func spatialAxisCrossingAndNonmonotoneGeneratorsDoNotPublish() throws {
+    @Test func spatialAxisCrossingAndRepeatedOrbitsDoNotPublish() throws {
         for points in [
             [Point3D(x: -0.02, y: 0, z: 0), Point3D(x: 0.02, y: 0.04, z: 0)],
             [Point3D(x: 0.02, y: 0, z: 0), Point3D(x: 0.025, y: 0.1, z: 0.01),
              Point3D(x: 0.03, y: -0.1, z: 0), Point3D(x: 0.02, y: 0.04, z: 0.01)],
-            [Point3D(x: 0.02, y: 0, z: 0), Point3D(x: 0.08, y: 0.01, z: 0.01),
-             Point3D(x: 0.001, y: -0.01, z: 0.002), Point3D(x: 0.04, y: 0, z: 0.003)]
+            // Both ends generate the same orbit; the midpoint reverses radial traversal.
+            [Point3D(x: 0.02, y: 0, z: -0.01), Point3D(x: 0.02, y: 0, z: 0.01)]
         ] {
             let degree = points.count - 1
             var input = try section(BSplineCurve3D(degree: degree,
@@ -125,6 +125,51 @@ struct RevolveSheetConstructionTests {
                 controlPoints: points))
             input.plane = nil
             #expect(throws: (any Error).self) { try build(input, angle: .pi) }
+        }
+    }
+
+    @Test(arguments: [Double.pi, -Double.pi, 2 * Double.pi])
+    func closedOffsetCircleHasDisjointRotationOrbits(angle: Double) throws {
+        let curve = Curve3D.circle(Circle3D(center: Point3D(x: 0.03, y: 0, z: 0.004),
+            normal: .unitZ, radius: 0.01))
+        let parameters = [0.0, Double.pi / 2, Double.pi, 1.5 * Double.pi, 2 * Double.pi]
+        let input = EvaluatedCurve(sourceFeatureID: FeatureID(), source: .generatedFeature, kind: .spline,
+            points: try parameters.map { try curve.point(at: $0, tolerance: .standard) },
+            isClosed: true, exactCurve: curve, exactParameterDomain: .closed(0, 2 * Double.pi),
+            exactPointParameters: parameters)
+        let result = try build(input, angle: angle)
+        try result.brep.validate(level: .exact, tolerance: .standard)
+        #expect(result.brep.faces.count == (abs(angle) > .pi ? 16 : 8))
+        for surface in result.brep.geometry.surfaces.values {
+            for u in [0.0, 0.3, 0.7, 1.0] {
+                for v in [0.0, 0.3, 0.7, 1.0] {
+                    let point = try surface.point(u: u, v: v, tolerance: .standard)
+                    let sourceX = sqrt(point.x * point.x + point.z * point.z - 0.004 * 0.004)
+                    #expect(abs((sourceX - 0.03) * (sourceX - 0.03) + point.y * point.y - 0.0001) < 1e-10)
+                }
+            }
+        }
+    }
+
+    @Test func nonmonotoneSpatialGeneratorProducesExactRegularSheet() throws {
+        let curve = BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
+            controlPoints: [Point3D(x: 0.02, y: 0, z: 0), Point3D(x: 0.08, y: 0.01, z: 0.01),
+                Point3D(x: 0.001, y: -0.01, z: 0.002), Point3D(x: 0.04, y: 0, z: 0.003)])
+        var input = try section(curve)
+        input.plane = nil
+        let result = try build(input, angle: .pi)
+        try result.brep.validate(level: .exact, tolerance: .standard)
+        #expect(result.brep.faces.count == 2)
+        for surface in result.brep.geometry.surfaces.values {
+            for u in [0.0, 0.3, 0.7, 1.0] {
+                let start = try surface.point(u: u, v: 0, tolerance: .standard)
+                let rotation = try RigidTransform3D.rotated(around: .origin, direction: .unitY,
+                    angle: -atan2(start.z, start.x), tolerance: .standard)
+                for v in [0.0, 0.17, 0.5, 0.83, 1.0] {
+                    let expected = rotation.applying(to: try curve.point(at: v, tolerance: .standard))
+                    #expect((try surface.point(u: u, v: v, tolerance: .standard) - expected).length < 1e-8)
+                }
+            }
         }
     }
 

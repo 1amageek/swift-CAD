@@ -118,77 +118,135 @@ struct CurvedRevolveBodyBuilder {
         self.angleBreaks = Self.angleBreaks(for: self.angle, isFullTurn: fullTurn)
     }
 
-    // FIXME(INCOMPLETE_IMPLEMENTATION): Spatial curve Revolve currently certifies
-    // open generators with axial monotonicity, or radial monotonicity when axial
-    // endpoint advance vanishes. Feature evaluation must retain explicit failure
-    // for other/closed generators until general orbit-overlap proof exists.
+    private struct OrbitCell {
+        let span: Int
+        let parameters: ScalarInterval
+        let depth: Int
+        let axial: OutwardScalarInterval
+        let radial: OutwardScalarInterval
+        let axialDerivative: OutwardScalarInterval
+        let radialDerivative: OutwardScalarInterval
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Feature evaluation currently requires
+    // disjoint complete rotation orbits, even for a partial-turn sheet. Admit
+    // repeated orbits only after proving their swept angular intervals disjoint;
+    // this sufficient embedding proof is not full partial-turn input support.
     private func validateSpatialGenerator(_ spans: [ExactBSplineCurveSpan], isClosed: Bool) throws {
-        guard !isClosed, let first = spans.first, let last = spans.last else {
-            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
-                message: "Spatial Revolve requires an open generator with certified orbit separation.")
+        guard let first = spans.first, let last = spans.last, spans.count <= 65_536 else {
+            throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
+                tolerance: context.tolerance, message: "Spatial Revolve requires bounded generator spans.")
         }
-        let axialAdvance = (last.endPoint - first.startPoint).dot(axisDirection)
-        let useRadius = abs(axialAdvance) <= context.tolerance.distance
-        func radiusSquared(_ point: Point3D) -> Double {
-            let relative = point - axisOrigin
-            let u = relative.dot(parameterBasisU)
-            let v = relative.dot(parameterBasisV)
-            return u * u + v * v
-        }
-        let advance = useRadius ? radiusSquared(last.endPoint) - radiusSquared(first.startPoint) : axialAdvance
-        guard advance.isFinite, advance != 0 else {
-            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
-                message: "Spatial Revolve requires distinct endpoint orbit coordinates.")
-        }
-        let sign = advance > 0 ? 1.0 : -1.0
-        let originU = OutwardScalarInterval.exact(axisOrigin.x) * .exact(parameterBasisU.x)
-            + .exact(axisOrigin.y) * .exact(parameterBasisU.y) + .exact(axisOrigin.z) * .exact(parameterBasisU.z)
-        let originV = OutwardScalarInterval.exact(axisOrigin.x) * .exact(parameterBasisV.x)
-            + .exact(axisOrigin.y) * .exact(parameterBasisV.y) + .exact(axisOrigin.z) * .exact(parameterBasisV.z)
-        let encloser = DefaultCurveDifferentialEncloser()
-        var remainingCells = 65_536
         var previousEnd = first.startPoint
-        for span in spans {
+        let domains = try spans.map { span in
             guard span.startPoint.isApproximatelyEqual(to: previousEnd, tolerance: context.tolerance.distance),
-                case let .closed(lower, upper) = span.curve.domain else {
+                  case let .closed(lower, upper) = span.curve.domain else {
                 throw FeatureEvaluationError.invalidGraph("Spatial Revolve requires continuous bounded spans.")
             }
             previousEnd = span.endPoint
-            var pending = [(try ScalarInterval(lower: lower, upper: upper), 0)]
-            while let (parameters, depth) = pending.popLast() {
-                guard remainingCells > 0 else {
-                    throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
-                        tolerance: context.tolerance, message: "Spatial Revolve exhausted its orbit-separation proof budget.")
+            return try ScalarInterval(lower: lower, upper: upper)
+        }
+        if isClosed, !last.endPoint.isApproximatelyEqual(to: first.startPoint, tolerance: context.tolerance.distance) {
+            throw FeatureEvaluationError.invalidGraph("A closed Revolve generator must close at its declared seam.")
+        }
+        func dot(_ value: CoordinateEnclosure3D, _ direction: Vector3D) -> OutwardScalarInterval {
+            func scaled(_ interval: ScalarInterval, _ coefficient: Double) -> OutwardScalarInterval {
+                OutwardScalarInterval(lower: interval.lower, upper: interval.upper) * .exact(coefficient)
+            }
+            return scaled(value.x, direction.x) + scaled(value.y, direction.y) + scaled(value.z, direction.z)
+        }
+        func originProjection(_ direction: Vector3D) -> OutwardScalarInterval {
+            .exact(axisOrigin.x) * .exact(direction.x) + .exact(axisOrigin.y) * .exact(direction.y)
+                + .exact(axisOrigin.z) * .exact(direction.z)
+        }
+        let originA = originProjection(axisDirection)
+        let originU = originProjection(parameterBasisU)
+        let originV = originProjection(parameterBasisV)
+        let encloser = DefaultCurveDifferentialEncloser()
+        func cell(span: Int, parameters: ScalarInterval, depth: Int) throws -> OrbitCell {
+            let enclosure = try encloser.enclosure(of: .bSpline(spans[span].curve),
+                over: parameters, tolerance: context.tolerance)
+            let u = dot(enclosure.position, parameterBasisU) - originU
+            let v = dot(enclosure.position, parameterBasisV) - originV
+            return OrbitCell(span: span, parameters: parameters, depth: depth,
+                axial: dot(enclosure.position, axisDirection) - originA,
+                radial: u * u + v * v,
+                axialDerivative: dot(enclosure.firstDerivative, axisDirection),
+                radialDerivative: (u * dot(enclosure.firstDerivative, parameterBasisU)
+                    + v * dot(enclosure.firstDerivative, parameterBasisV)) * .exact(2))
+        }
+        func monotone(_ a: OrbitCell, _ b: OrbitCell) -> Bool {
+            let axial = a.axialDerivative.union(b.axialDerivative)
+            let radial = a.radialDerivative.union(b.radialDerivative)
+            if axial.excludesZero || radial.excludesZero { return true }
+            // Rounded coefficients choose a candidate functional, not a proof.
+            // Outward derivative bounds certify strict monotonicity independently.
+            let h = axial.midpoint
+            let r = radial.midpoint
+            guard h.isFinite, r.isFinite else { return false }
+            return (a.axialDerivative * .exact(h) + a.radialDerivative * .exact(r)).lower > 0
+                && (b.axialDerivative * .exact(h) + b.radialDerivative * .exact(r)).lower > 0
+        }
+        func adjacent(_ a: OrbitCell, _ b: OrbitCell) -> Bool {
+            if a.span == b.span, a.parameters.upper == b.parameters.lower { return true }
+            if a.span + 1 == b.span, a.parameters.upper == domains[a.span].upper,
+               b.parameters.lower == domains[b.span].lower { return true }
+            return isClosed && a.span == 0 && b.span == spans.count - 1
+                && a.parameters.lower == domains[0].lower
+                && b.parameters.upper == domains[b.span].upper
+        }
+        func split(_ value: OrbitCell) throws -> (OrbitCell, OrbitCell) {
+            let middle = value.parameters.midpoint
+            guard value.depth < 32, middle > value.parameters.lower, middle < value.parameters.upper else {
+                throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
+                    tolerance: context.tolerance, message: "Spatial Revolve orbit separation remains unresolved.")
+            }
+            return try (cell(span: value.span,
+                parameters: ScalarInterval(lower: value.parameters.lower, upper: middle), depth: value.depth + 1),
+                cell(span: value.span, parameters: ScalarInterval(lower: middle, upper: value.parameters.upper),
+                    depth: value.depth + 1))
+        }
+        let initial = try spans.indices.map { try cell(span: $0, parameters: domains[$0], depth: 0) }
+        let minimumRadiusSquared = OutwardScalarInterval.exact(context.tolerance.distance)
+            * .exact(context.tolerance.distance)
+        var remainingPairs = 65_536
+        // ponytail: quadratic span-pair traversal is capped by the request budget;
+        // use an orbit-box hierarchy if large valid generators exhaust that budget.
+        for firstIndex in spans.indices {
+            for secondIndex in firstIndex..<spans.count {
+                var pending = [(initial[firstIndex], initial[secondIndex])]
+                while let (a, b) = pending.popLast() {
+                    guard remainingPairs > 0 else {
+                        throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
+                            tolerance: context.tolerance, message: "Spatial Revolve exhausted its orbit-pair proof budget.")
+                    }
+                    remainingPairs -= 1
+                    let diagonal = a.span == b.span && a.parameters == b.parameters
+                    if diagonal {
+                        guard a.radial.upper > minimumRadiusSquared.lower else {
+                            throw KernelError(phase: .geometry, code: .invalidInput,
+                                tolerance: context.tolerance,
+                                message: "Spatial Revolve generator reaches the rotation axis within tolerance.")
+                        }
+                        if a.radial.lower > minimumRadiusSquared.upper, monotone(a, a) { continue }
+                        let (left, right) = try split(a)
+                        pending.append((left, left))
+                        pending.append((left, right))
+                        pending.append((right, right))
+                    } else {
+                        if !a.axial.intersects(b.axial) || !a.radial.intersects(b.radial) { continue }
+                        if adjacent(a, b), monotone(a, b) { continue }
+                        if a.parameters.width / domains[a.span].width >= b.parameters.width / domains[b.span].width {
+                            let (left, right) = try split(a)
+                            pending.append((left, b))
+                            pending.append((right, b))
+                        } else {
+                            let (left, right) = try split(b)
+                            pending.append((a, left))
+                            pending.append((a, right))
+                        }
+                    }
                 }
-                remainingCells -= 1
-                let enclosure = try encloser.enclosure(of: .bSpline(span.curve),
-                    over: parameters, tolerance: context.tolerance)
-                let derivative = enclosure.firstDerivative
-                func scaled(_ interval: ScalarInterval, _ coefficient: Double) -> OutwardScalarInterval {
-                    OutwardScalarInterval(lower: interval.lower, upper: interval.upper) * .exact(coefficient)
-                }
-                func dot(_ value: CoordinateEnclosure3D, _ direction: Vector3D) -> OutwardScalarInterval {
-                    scaled(value.x, direction.x) + scaled(value.y, direction.y) + scaled(value.z, direction.z)
-                }
-                let projection: OutwardScalarInterval
-                if useRadius {
-                    projection = ((dot(enclosure.position, parameterBasisU) - originU) * dot(derivative, parameterBasisU)
-                        + (dot(enclosure.position, parameterBasisV) - originV) * dot(derivative, parameterBasisV)) * .exact(2 * sign)
-                } else {
-                    projection = dot(derivative, axisDirection) * .exact(sign)
-                }
-                if projection.lower > 0 { continue }
-                guard projection.upper > 0 else {
-                    throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
-                        message: "Spatial Revolve cannot certify this nonmonotone orbit coordinate.")
-                }
-                let middle = parameters.midpoint
-                guard depth < 32, middle > parameters.lower, middle < parameters.upper else {
-                    throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
-                        tolerance: context.tolerance, message: "Spatial Revolve orbit separation remains unresolved.")
-                }
-                pending.append((try ScalarInterval(lower: middle, upper: parameters.upper), depth + 1))
-                pending.append((try ScalarInterval(lower: parameters.lower, upper: middle), depth + 1))
             }
         }
     }

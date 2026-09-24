@@ -219,7 +219,14 @@ package struct IntervalVector3DBounds: Sendable {
     }
 
     package var lengthLowerBound: Double {
-        max(x.absoluteLowerBound, y.absoluteLowerBound, z.absoluteLowerBound)
+        let xLower = x.absoluteLowerBound
+        let yLower = y.absoluteLowerBound
+        let zLower = z.absoluteLowerBound
+        let xSquared = max(0, (xLower * xLower).nextDown)
+        let ySquared = max(0, (yLower * yLower).nextDown)
+        let zSquared = max(0, (zLower * zLower).nextDown)
+        let squared = max(0, ((xSquared + ySquared).nextDown + zSquared).nextDown)
+        return max(xLower, yLower, zLower, sqrt(squared).nextDown)
     }
 
     package var lengthUpperBound: Double {

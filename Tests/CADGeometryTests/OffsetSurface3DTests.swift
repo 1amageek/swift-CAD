@@ -478,6 +478,31 @@ struct OffsetSurface3DTests {
     }
   }
 
+  @Test func regularityUsesNonnegativeSquaredNormBoundsWithoutSubdivision() throws {
+    let coordinates = [-0.5, 0.0, 0.5]
+    let heights = [0.25, -0.25, 0.25]
+    let surface = Surface3D.bSpline(BSplineSurface3D(
+      uDegree: 2, vDegree: 2,
+      uKnots: [0, 0, 0, 1, 1, 1], vKnots: [0, 0, 0, 1, 1, 1],
+      controlPoints: coordinates.indices.map { v in
+        coordinates.indices.map { u in
+          Point3D(x: coordinates[u], y: coordinates[v], z: heights[u] + heights[v])
+        }
+      }))
+    // S=(u-1/2,v-1/2,(u-1/2)^2+(v-1/2)^2). Both tangents and
+    // their cross product have a unit component throughout the entire domain.
+    try DefaultSurfaceRegularityValidator(maximumCellCount: 1).validate(surface,
+      over: SurfaceParameterBox(u: try ScalarInterval(lower: 0, upper: 1),
+        v: try ScalarInterval(lower: 0, upper: 1)), tolerance: tolerance)
+  }
+
+  @Test func regularityRefinesAngularVariationInsteadOfUnvaryingAxialExtent() throws {
+    let surface = Surface3D.analytic(.cylinder(origin: .origin, axis: .unitZ, radius: 1))
+    try DefaultSurfaceRegularityValidator(maximumCellCount: 128).validate(surface,
+      over: SurfaceParameterBox(u: try ScalarInterval(lower: 0, upper: 2 * .pi),
+        v: try ScalarInterval(lower: 0, upper: 1_000_000)), tolerance: tolerance)
+  }
+
   private func makeCurvedSurface() -> BSplineSurface3D {
     let zValues: [[Double]] = [
       [0.0, 0.05, 0.20],

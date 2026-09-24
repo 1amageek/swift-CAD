@@ -89,7 +89,7 @@ public struct DefaultSurfaceRegularityValidator: SurfaceRegularityValidating, Se
           message: "Surface regularity could not certify a cell within the subdivision limit."
         )
       }
-      stack.append(contentsOf: try subdivided(cell).reversed())
+      stack.append(contentsOf: try subdivided(cell, domain: parameters).reversed())
     }
   }
 
@@ -97,16 +97,12 @@ public struct DefaultSurfaceRegularityValidator: SurfaceRegularityValidating, Se
     _ jet: SurfaceIntervalVectorJet,
     tolerance: ModelingTolerance
   ) -> Bool {
-    let tangentU = jet.differentiatedUThroughSecondOrder()
-    let tangentV = jet.differentiatedVThroughSecondOrder()
-    let tangentUSquared = tangentU.dot(tangentU).value
-    let tangentVSquared = tangentV.dot(tangentV).value
-    let normalSquared = tangentU.cross(tangentV).dot(
-      tangentU.cross(tangentV)
-    ).value
-    let minimumTangentSquared = (tolerance.distance * tolerance.distance).nextUp
-    guard tangentUSquared.lower > minimumTangentSquared,
-      tangentVSquared.lower > minimumTangentSquared
+    let tangentU = IntervalVector3DBounds(
+      x: jet.x.derivativeU, y: jet.y.derivativeU, z: jet.z.derivativeU)
+    let tangentV = IntervalVector3DBounds(
+      x: jet.x.derivativeV, y: jet.y.derivativeV, z: jet.z.derivativeV)
+    guard tangentU.lengthLowerBound > tolerance.distance,
+      tangentV.lengthLowerBound > tolerance.distance
     else {
       return false
     }
@@ -115,9 +111,9 @@ public struct DefaultSurfaceRegularityValidator: SurfaceRegularityValidating, Se
       tolerance.relative,
       Double.ulpOfOne * 256.0
     )
-    let maximumMetricProduct = (tangentUSquared.upper * tangentVSquared.upper).nextUp
-    let minimumNormalSquared = (sineTolerance * sineTolerance * maximumMetricProduct).nextUp
-    return normalSquared.lower > minimumNormalSquared
+    let maximumMetricProduct = (tangentU.lengthUpperBound * tangentV.lengthUpperBound).nextUp
+    let minimumNormal = (sineTolerance * maximumMetricProduct).nextUp
+    return tangentU.cross(tangentV).lengthLowerBound > minimumNormal
   }
 
   private func isSingular(
@@ -142,14 +138,14 @@ public struct DefaultSurfaceRegularityValidator: SurfaceRegularityValidating, Se
     return sine.isFinite == false || sine <= sineTolerance
   }
 
-  private func subdivided(_ cell: Cell) throws -> [Cell] {
+  private func subdivided(_ cell: Cell, domain: SurfaceParameterBox) throws -> [Cell] {
     let u = cell.parameters.u
     let v = cell.parameters.v
     let middleU = u.midpoint
     let middleV = v.midpoint
-    guard middleU > u.lower, middleU < u.upper,
-      middleV > v.lower, middleV < v.upper
-    else {
+    let canSplitU = middleU > u.lower && middleU < u.upper
+    let canSplitV = middleV > v.lower && middleV < v.upper
+    guard canSplitU || canSplitV else {
       throw KernelError(
         phase: .geometry,
         code: .resourceLimitExceeded,
@@ -157,16 +153,17 @@ public struct DefaultSurfaceRegularityValidator: SurfaceRegularityValidating, Se
         message: "Surface regularity reached the representable parameter resolution."
       )
     }
-    let lowerU = try ScalarInterval(lower: u.lower, upper: middleU)
-    let upperU = try ScalarInterval(lower: middleU, upper: u.upper)
-    let lowerV = try ScalarInterval(lower: v.lower, upper: middleV)
-    let upperV = try ScalarInterval(lower: middleV, upper: v.upper)
     let depth = cell.depth + 1
+    // Normalize to the original domain so parameter units cannot starve an axis.
+    if canSplitU && (!canSplitV || u.width / domain.u.width >= v.width / domain.v.width) {
+      return [
+        Cell(parameters: SurfaceParameterBox(u: try ScalarInterval(lower: u.lower, upper: middleU), v: v), depth: depth),
+        Cell(parameters: SurfaceParameterBox(u: try ScalarInterval(lower: middleU, upper: u.upper), v: v), depth: depth),
+      ]
+    }
     return [
-      Cell(parameters: SurfaceParameterBox(u: lowerU, v: lowerV), depth: depth),
-      Cell(parameters: SurfaceParameterBox(u: upperU, v: lowerV), depth: depth),
-      Cell(parameters: SurfaceParameterBox(u: lowerU, v: upperV), depth: depth),
-      Cell(parameters: SurfaceParameterBox(u: upperU, v: upperV), depth: depth),
+      Cell(parameters: SurfaceParameterBox(u: u, v: try ScalarInterval(lower: v.lower, upper: middleV)), depth: depth),
+      Cell(parameters: SurfaceParameterBox(u: u, v: try ScalarInterval(lower: middleV, upper: v.upper)), depth: depth),
     ]
   }
 }

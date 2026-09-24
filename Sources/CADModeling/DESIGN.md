@@ -67,22 +67,25 @@ construction using RigidTransform3D. Rotation coefficients are computed once
 per angular patch, not per generator control point. Profile-plane admission
 remains separate from this geometric construction; removing that admission
 requires whole-surface regularity and global overlap validation for spatial
-generators, not merely successful Cartesian rotation. Open spatial generators
-with a certified strictly monotone axial coordinate use Cartesian construction.
-When the axial endpoint advance is within distance tolerance, the same bounded
-proof instead certifies squared radial distance using the rotation frame's two
-radial basis vectors. Its derivative is enclosed from position and derivative
-intervals, not sampled radii. Strict radial ordering likewise distinguishes every
-orbit, allowing axial reversals without orbit overlap. This is an alternative
-sufficient condition, not general closed-generator embedding admission.
-The axial derivative sign is enclosed over every exact span using outward
-interval arithmetic; all spans must have the same sign and remain continuous.
-Distinct generator parameters then have distinct axial coordinates, excluding
-cross-patch overlap independently of angular subdivision. Each resulting patch
-must also pass whole-domain regularity validation. A full turn identifies only
-its angular seam. The adaptive axial proof allows 32 subdivision levels and
-65,536 cells per request; exhaustion is a typed resource failure. Nonmonotone
-spatial generators remain explicitly incomplete, not inferred safe by samples.
+generators, not merely successful Cartesian rotation. Spatial generators are
+certified in orbit coordinates (axial position, squared radial distance), using
+outward position/derivative enclosures in the rotation frame. Distinct orbit
+coordinates exclude overlap at every rotation angle. A cell with a strictly
+monotone linear functional of those coordinates is locally injective. Two cells
+are admitted when their orbit boxes are separated, or when they are adjacent
+(including a declared closed seam) and one functional is strictly monotone
+through both. All other pairs subdivide until admitted or explicitly unresolved.
+Only declared adjacent endpoints may coincide; nonadjacent coincident orbits
+cannot be admitted by topology proximity or samples. Original spans must be
+continuous and a closed section must close within modeling tolerance.
+Each generator cell must also prove radial clearance beyond the distance
+tolerance before surface construction; a cell wholly inside the axis tolerance
+is rejected, and unresolved clearance subdivides under the same proof budget.
+Each resulting surface patch must independently pass whole-domain regularity
+validation. The orbit proof processes source-span pairs without allocating a
+quadratic pair array, retaining bounded local subdivision work. Its request-wide
+budget is 65,536 visited pairs and 32 levels per cell; exhaustion is a typed
+resource failure, never permission to construct an unchecked result.
 
 The existing rational surface-of-revolution builder owns both solid and sheet
 construction. It consumes exact generator spans and the rotation axis;

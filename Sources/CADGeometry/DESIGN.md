@@ -45,6 +45,22 @@ enclosure remains contained; depth/cell exhaustion is still an explicit error.
 RationalBSplineCurveIntersector2DTests owns the nonlinear/endpoint refinement case;
 Loft and exact trim-edge consumers retain their independent spatial admission.
 
+Regularity subdivision bisects the larger fraction of the original parameter
+domain. Refinement must not starve the coordinate carrying derivative variation
+because another coordinate has a large spatial extent or a midpoint tangent is
+small. Acceptance still requires the complete cell's outward interval proof;
+depth and cell budgets remain hard failure limits.
+Regularity measures the first-derivative interval vectors and their cross product
+with the shared IntervalVector3DBounds magnitude bounds. Independent self-dot
+products must not introduce negative squared lengths and force unnecessary
+subdivision. The proof compares lower tangent lengths with distance tolerance
+and the lower normal length with an outward upper tangent-product angle bound;
+it does not require higher derivatives merely to test those magnitudes.
+The shared vector lower magnitude encloses the Euclidean norm of component-wise
+absolute minima, with outward-rounded products, sums and square root. It retains
+the largest-component bound when underflow or overflow makes the sum weaker.
+This avoids orientation-dependent refusal of short but regular tangents.
+
 At the graph restriction resolution floor, interval jets use a containing
 local interval wide enough for certified restriction, not the entire parent
 cell. Derivatives are rescaled by that containing interval's actual width.
