@@ -43,7 +43,7 @@ struct SectionResolutionTests {
     @Test(.timeLimit(.minutes(1)))
     func curveResolutionRejectsAmbiguityAndForeignSource() throws {
         let source = FeatureID()
-        let reference = SweepCurveSectionReference(featureID: source)
+        let reference = CurveSectionReference(featureID: source)
         let selected = curve(source: source, plane: .xy)
         #expect(try ResolvedModelingSection.resolveCurve(
             reference, from: [selected], tolerance: .standard
@@ -66,7 +66,7 @@ struct SectionResolutionTests {
         let source = FeatureID()
         let selected = curve(source: source, plane: nil)
         let resolved = try ResolvedModelingSection.resolveCurve(
-            SweepCurveSectionReference(featureID: source), from: [selected], tolerance: .standard
+            CurveSectionReference(featureID: source), from: [selected], tolerance: .standard
         )
         let section = ResolvedModelingSection.curve(resolved)
         #expect(throws: FeatureEvaluationError.self) { try section.plane() }

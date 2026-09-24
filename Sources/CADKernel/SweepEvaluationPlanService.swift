@@ -29,7 +29,7 @@ public struct SweepEvaluationPlanService: Sendable {
 
     public func plan(
         document: CADDocument,
-        sections: [SweepSectionReference],
+        sections: [SectionReference],
         path: SweepPathReference,
         guides: [SweepGuideReference] = [],
         targets: [SweepTargetReference] = [],
@@ -456,7 +456,7 @@ public struct SweepEvaluationPlanService: Sendable {
     }
 
     private func resolvedSection(
-        _ section: SweepSectionReference,
+        _ section: SectionReference,
         document: CADDocument,
         parameters: ResolvedParameterTable,
         evaluatedDocument: EvaluatedDocument?,
@@ -517,7 +517,7 @@ public struct SweepEvaluationPlanService: Sendable {
     }
 
     private func requiredEvaluationFeatureIDs(
-        sections: [SweepSectionReference],
+        sections: [SectionReference],
         path: SweepPathReference,
         guides: [SweepGuideReference],
         targets: [SweepTargetReference],

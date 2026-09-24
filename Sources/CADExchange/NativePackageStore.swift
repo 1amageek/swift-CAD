@@ -1003,7 +1003,7 @@ private func validateSurfaceTrimKnotReferenceObject(_ object: [String: Any], pat
 private func validateExtrudeFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["profile", "distance", "direction", "operation"],
+        supportedKeys: ["profile", "distance", "direction", "operation", "resultKind"],
         objectName: path
     )
     try validateObjectField("profile", in: object, path: "\(path).profile", using: validateProfileReferenceObject)
@@ -1358,14 +1358,14 @@ private func validateSweepFeatureObject(_ object: [String: Any], path: String) t
         supportedKeys: ["sections", "path", "guides", "targets", "options"],
         objectName: path
     )
-    try validateArrayField("sections", in: object, path: "\(path).sections", using: validateSweepSectionReferenceObject)
+    try validateArrayField("sections", in: object, path: "\(path).sections", using: validateSectionReferenceObject)
     try validateObjectField("path", in: object, path: "\(path).path", using: validateSweepPathReferenceObject)
     try validateArrayField("guides", in: object, path: "\(path).guides", using: validateSweepGuideReferenceObject)
     try validateArrayField("targets", in: object, path: "\(path).targets", using: validateSweepTargetReferenceObject)
     try validateObjectField("options", in: object, path: "\(path).options", using: validateSweepOptionsObject)
 }
 
-private func validateSweepSectionReferenceObject(_ object: [String: Any], path: String) throws {
+private func validateSectionReferenceObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
         supportedKeys: ["kind", "featureID", "profileIndex"],

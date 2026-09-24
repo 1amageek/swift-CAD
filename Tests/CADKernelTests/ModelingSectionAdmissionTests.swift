@@ -50,7 +50,7 @@ struct ModelingSectionAdmissionTests {
         try result.brep.validate(level: .exact, tolerance: .standard)
     }
 
-    private func node(sections: [SweepSectionReference], path: FeatureID) -> FeatureNode {
+    private func node(sections: [SectionReference], path: FeatureID) -> FeatureNode {
         FeatureNode(operation: .sweep(SweepFeature(
             sections: sections, path: SweepPathReference(featureID: path)
         )), inputs: sections.map { FeatureInput(featureID: $0.featureID, role: $0.inputRole) }

@@ -21,7 +21,7 @@ package enum ResolvedModelingSection: Sendable {
     }
 
     package static func resolveCurve(
-        _ reference: SweepCurveSectionReference,
+        _ reference: CurveSectionReference,
         from curves: [EvaluatedCurve]?,
         tolerance: ModelingTolerance
     ) throws -> EvaluatedCurve {

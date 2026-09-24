@@ -387,7 +387,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
     }
 
     private func resolvedSection(
-        _ section: SweepSectionReference,
+        _ section: SectionReference,
         context: EvaluationContext
     ) throws -> ResolvedModelingSection {
         switch section {

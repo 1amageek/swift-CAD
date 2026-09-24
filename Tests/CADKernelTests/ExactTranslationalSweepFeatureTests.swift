@@ -273,7 +273,7 @@ struct ExactTranslationalSweepFeatureTests {
         let result = try PlanarSweepFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: sweepFeature(
                 id: sweepFeatureID,
-                section: .curve(SweepCurveSectionReference(
+                section: .curve(CurveSectionReference(
                     featureID: sectionFeatureID
                 )),
                 pathFeatureID: pathFeatureID,
@@ -390,7 +390,7 @@ struct ExactTranslationalSweepFeatureTests {
 
     private func sweepFeature(
         id: FeatureID,
-        section: SweepSectionReference,
+        section: SectionReference,
         pathFeatureID: FeatureID,
         resultKind: SweepResultKind
     ) -> FeatureNode {

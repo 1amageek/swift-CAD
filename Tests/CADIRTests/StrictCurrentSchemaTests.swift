@@ -26,10 +26,10 @@ struct StrictCurrentSchemaTests {
         }
 
         var sectionObject = try encodedObject(
-            SweepSectionReference.profile(ProfileReference(featureID: FeatureID()))
+            SectionReference.profile(ProfileReference(featureID: FeatureID()))
         )
         _ = sectionObject.removeValue(forKey: "profileIndex")
-        try expectDecodingFailure(SweepSectionReference.self, from: sectionObject)
+        try expectDecodingFailure(SectionReference.self, from: sectionObject)
 
         var optionsObject = try encodedObject(SweepOptions())
         _ = optionsObject.removeValue(forKey: "guideMethod")

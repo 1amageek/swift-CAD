@@ -71,7 +71,7 @@ public enum FeatureNodeFactory {
                     name: name,
                     operation: operation,
                     inputs: [FeatureInput(featureID: extrude.profile.featureID, role: .profile)],
-                    outputs: [FeatureOutput(role: .body)]
+                    outputs: [FeatureOutput(role: extrude.resultKind == .solid ? .body : .sheet)]
                 )
             }
             return try run()

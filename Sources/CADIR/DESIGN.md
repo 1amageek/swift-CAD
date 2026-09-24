@@ -5,7 +5,7 @@
 `CADIR` owns source/evaluation interchange values, topology references, and
 complete geometry signatures. It also owns the serialized source value for an
 exact imported B-rep feature. It is a child of the [Swift-CAD package
-design](../../DESIGN.md) and has no children for this change.
+design](../../DESIGN.md); its children are indexed below.
 
 ## Responsibilities and Boundaries
 
@@ -14,6 +14,11 @@ Editable gear dimensions are owned by [InvoluteGear](InvoluteGear/DESIGN.md).
 Editable spatial path source is owned by the child
 [SpatialPath](SpatialPath/DESIGN.md). Its explicit XYZ model does not change the
 planar Sketch contract.
+
+Operation-independent profile/curve section references belong to
+[SectionReference](SectionReference/DESIGN.md). Sweep consumes this contract;
+Extrude, Revolve and Loft will adopt it as their construction paths gain curve
+inputs. Their current profile-only fields do not claim that capability.
 
 This module owns the value contract for `StableSubshapeReference` and its
 `SubshapeGeometrySignature`, including Codable validation. It also owns the
@@ -50,6 +55,11 @@ flowchart LR
 ```
 
 ## Contracts and Invariants
+
+`FeatureNodeFactory` derives Extrude output roles from `resultKind`: `.solid`
+produces `.body`, and `.sheet` produces `.sheet`. The native package shape
+validator must preserve that field through save/load, as verified by
+`ExtrudeSourceRoundTripTests` using exact document reevaluation.
 
 Sweep source optionally retains a length-valued `approximationTolerance` and
 `twistLaw` containing `SweepTwistKnot(position:angle:)` values. Omission preserves

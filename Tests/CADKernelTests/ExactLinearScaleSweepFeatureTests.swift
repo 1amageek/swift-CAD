@@ -170,7 +170,7 @@ struct ExactLinearScaleSweepFeatureTests {
         let feature = FeatureNode(
             id: sweepFeatureID,
             operation: .sweep(SweepFeature(
-                sections: [.curve(SweepCurveSectionReference(
+                sections: [.curve(CurveSectionReference(
                     featureID: sectionFeatureID
                 ))],
                 path: SweepPathReference(featureID: pathFeatureID),
