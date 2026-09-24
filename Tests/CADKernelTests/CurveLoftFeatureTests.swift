@@ -7,6 +7,45 @@ import CADModeling
 
 @Suite("Exact curve section Loft", .timeLimit(.minutes(1)))
 struct CurveLoftFeatureTests {
+    @Test func guideContactsUseExactSpatialBoundariesAndRejectAmbiguity() throws {
+        let first = BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
+            controlPoints: [Point3D(x: 0, y: 0, z: 0), Point3D(x: 1, y: 0, z: 0.5),
+                Point3D(x: 1, y: 1, z: -0.5), Point3D(x: 2, y: 1, z: 0)])
+        let second = BSplineCurve3D(degree: first.degree, knots: first.knots,
+            controlPoints: first.controlPoints.map { $0 + Vector3D(x: 0, y: 0, z: 2) })
+        let boundaries = try [first, second].map {
+            ExactLoftGuideSection(loops: [[try ExactBSplineCurveSpan(curve: $0, tolerance: .standard)]], plane: nil)
+        }
+        let guide = try section(BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+            controlPoints: [Point3D(x: 0, y: 0, z: 2), Point3D(x: -0.5, y: 0, z: 1), .origin]))
+        let context = EvaluationContext(parameters: ResolvedParameterTable(), brep: BRepModel(),
+            profiles: [:], curves: [guide.sourceFeatureID: [guide]], tolerance: .standard)
+        let references = [LoftGuideReference(featureID: guide.sourceFeatureID)]
+        let resolver = ExactLoftGuideCurveResolver()
+        let resolved = try resolver.resolve(guides: references, sections: boundaries, context: context)
+        let result = try #require(resolved.first)
+        #expect(result.sectionPoints == [.origin, Point3D(x: 0, y: 0, z: 2)])
+        #expect(try #require(result.sectionParameters.first) < #require(result.sectionParameters.last))
+        #expect(try result.curve.point(at: 0.5, tolerance: .standard).x < 0)
+        let ambiguous = boundaries.map { ExactLoftGuideSection(loops: $0.loops + $0.loops, plane: nil) }
+        do {
+            _ = try resolver.resolve(guides: references, sections: ambiguous, context: context)
+            Issue.record("Guide contact on multiple boundary loops must be rejected.")
+        } catch let error as KernelError {
+            #expect(error.code == .ambiguousSelection)
+        }
+        let coincidentGuide = try section(first)
+        let coincidentContext = EvaluationContext(parameters: ResolvedParameterTable(), brep: BRepModel(),
+            profiles: [:], curves: [coincidentGuide.sourceFeatureID: [coincidentGuide]], tolerance: .standard)
+        do {
+            _ = try resolver.resolve(guides: [LoftGuideReference(featureID: coincidentGuide.sourceFeatureID)],
+                sections: [boundaries[0], boundaries[0]], context: coincidentContext)
+            Issue.record("A guide with both valid traversal directions must be rejected.")
+        } catch let error as KernelError {
+            #expect(error.code == .ambiguousSelection)
+        }
+    }
+
     @Test(arguments: [LoftSurfaceMode.ruled, .smooth], [false, true])
     func openSpatialSectionsPreserveBothBoundaries(mode: LoftSurfaceMode, rational: Bool) throws {
         let source = BSplineCurve3D(degree: rational ? 3 : 1,

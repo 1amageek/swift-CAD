@@ -18,15 +18,27 @@ package struct ExactLoftGuideCurveResolver {
         context: EvaluationContext
     ) throws -> [ExactLoftGuideCurve] {
         guard guides.isEmpty == false else { return [] }
-        guard profiles.count >= 2 else {
+        let builder = ExactBSplineCurveSpanBuilder(tolerance: context.tolerance)
+        return try resolve(guides: guides, sections: profiles.map {
+            ExactLoftGuideSection(loops: try builder.profileLoopSpans(from: $0), plane: $0.plane)
+        }, context: context)
+    }
+
+    package func resolve(
+        guides: [LoftGuideReference],
+        sections: [ExactLoftGuideSection],
+        context: EvaluationContext
+    ) throws -> [ExactLoftGuideCurve] {
+        guard guides.isEmpty == false else { return [] }
+        guard sections.count >= 2 else {
             throw FeatureEvaluationError.invalidGraph(
-                "Exact Loft guides require at least two profile sections."
+                "Exact Loft guides require at least two sections."
             )
         }
-        guard let boundaryLoopCount = profiles.first?.boundaryLoops.count,
+        guard let boundaryLoopCount = sections.first?.loops.count,
               boundaryLoopCount > 0,
-              profiles.allSatisfy({
-                  $0.boundaryLoops.count == boundaryLoopCount
+              sections.allSatisfy({
+                  $0.loops.count == boundaryLoopCount && $0.loops.allSatisfy { !$0.isEmpty }
               }) else {
             throw KernelError(
                 phase: .topology,
@@ -60,15 +72,15 @@ package struct ExactLoftGuideCurveResolver {
             let oriented = try oriented(
                 source,
                 guideFeatureID: guide.featureID,
-                firstProfile: profiles[0],
-                lastProfile: profiles[profiles.index(before: profiles.endIndex)],
+                firstSection: sections[0],
+                lastSection: sections[sections.index(before: sections.endIndex)],
                 tolerance: context.tolerance
             )
             let contacts = try sectionContacts(
                 curve: oriented.curve,
                 boundaryLoopIndex: oriented.boundaryLoopIndex,
                 guideFeatureID: guide.featureID,
-                profiles: profiles,
+                sections: sections,
                 tolerance: context.tolerance
             )
             return ExactLoftGuideCurve(
@@ -83,8 +95,8 @@ package struct ExactLoftGuideCurveResolver {
     private func oriented(
         _ curve: BSplineCurve3D,
         guideFeatureID: FeatureID,
-        firstProfile: Profile,
-        lastProfile: Profile,
+        firstSection: ExactLoftGuideSection,
+        lastSection: ExactLoftGuideSection,
         tolerance: ModelingTolerance
     ) throws -> (curve: BSplineCurve3D, boundaryLoopIndex: Int) {
         guard case let .closed(lower, upper) = curve.domain else {
@@ -98,30 +110,36 @@ package struct ExactLoftGuideCurveResolver {
         }
         let start = try curve.point(at: lower, tolerance: tolerance)
         let end = try curve.point(at: upper, tolerance: tolerance)
-        let forwardStartLoop = try profileBoundaryLoopIndex(
+        let forwardStartLoop = try boundaryLoopIndex(
             containing: start,
-            profile: firstProfile,
+            section: firstSection,
             tolerance: tolerance
         )
-        let forwardEndLoop = try profileBoundaryLoopIndex(
+        let forwardEndLoop = try boundaryLoopIndex(
             containing: end,
-            profile: lastProfile,
+            section: lastSection,
             tolerance: tolerance
         )
-        if let forwardStartLoop,
-           forwardStartLoop == forwardEndLoop {
+        let reverseStartLoop = try boundaryLoopIndex(
+            containing: end,
+            section: firstSection,
+            tolerance: tolerance
+        )
+        let reverseEndLoop = try boundaryLoopIndex(
+            containing: start,
+            section: lastSection,
+            tolerance: tolerance
+        )
+        let forwardMatches = forwardStartLoop != nil && forwardStartLoop == forwardEndLoop
+        let reverseMatches = reverseStartLoop != nil && reverseStartLoop == reverseEndLoop
+        guard !(forwardMatches && reverseMatches) else {
+            throw KernelError(phase: .geometry, code: .ambiguousSelection,
+                featureID: guideFeatureID, tolerance: tolerance,
+                message: "Loft guide endpoints admit both traversal directions.")
+        }
+        if forwardMatches, let forwardStartLoop {
             return (curve, forwardStartLoop)
         }
-        let reverseStartLoop = try profileBoundaryLoopIndex(
-            containing: end,
-            profile: firstProfile,
-            tolerance: tolerance
-        )
-        let reverseEndLoop = try profileBoundaryLoopIndex(
-            containing: start,
-            profile: lastProfile,
-            tolerance: tolerance
-        )
         if let reverseStartLoop,
            reverseStartLoop == reverseEndLoop {
             return (
@@ -142,7 +160,7 @@ package struct ExactLoftGuideCurveResolver {
         curve: BSplineCurve3D,
         boundaryLoopIndex: Int,
         guideFeatureID: FeatureID,
-        profiles: [Profile],
+        sections: [ExactLoftGuideSection],
         tolerance: ModelingTolerance
     ) throws -> [(point: Point3D, parameter: Double)] {
         guard case let .closed(lower, upper) = curve.domain else {
@@ -155,15 +173,22 @@ package struct ExactLoftGuideCurveResolver {
             )
         }
         var contacts: [(point: Point3D, parameter: Double)] = []
-        contacts.reserveCapacity(profiles.count)
+        contacts.reserveCapacity(sections.count)
         contacts.append((
             try curve.point(at: lower, tolerance: tolerance),
             lower
         ))
-        for profile in profiles.dropFirst().dropLast() {
+        for section in sections.dropFirst().dropLast() {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Loft guide resolution accepts exact
+            // spatial endpoint boundaries, but intermediate spatial boundaries need
+            // certified curve/curve intersections before they can be admitted.
+            guard let support = section.plane else {
+                throw KernelError.unsupportedEvaluation(tolerance: tolerance,
+                    message: "Spatial intermediate Loft guide contacts require curve/curve intersection support.")
+            }
             let intersections = try DefaultCurveSurfaceIntersector().intersections(
                 curve: .bSpline(curve),
-                surface: .plane(try plane(for: profile.plane, tolerance: tolerance)),
+                surface: .plane(try plane(for: support, tolerance: tolerance)),
                 options: CurveSurfaceIntersectionOptions(
                     curveRange: try ScalarInterval(lower: lower, upper: upper)
                 ),
@@ -171,9 +196,9 @@ package struct ExactLoftGuideCurveResolver {
             )
             var candidates: [(point: Point3D, parameter: Double)] = []
             for intersection in intersections {
-                guard try profileBoundaryContains(
+                guard try boundaryContains(
                     intersection.point,
-                    loop: profile.boundaryLoops[boundaryLoopIndex],
+                    spans: section.loops[boundaryLoopIndex],
                     tolerance: tolerance
                 ) else {
                     continue
@@ -225,16 +250,16 @@ package struct ExactLoftGuideCurveResolver {
         return contacts
     }
 
-    private func profileBoundaryLoopIndex(
+    private func boundaryLoopIndex(
         containing point: Point3D,
-        profile: Profile,
+        section: ExactLoftGuideSection,
         tolerance: ModelingTolerance
     ) throws -> Int? {
         var match: Int?
-        for loopIndex in profile.boundaryLoops.indices {
-            guard try profileBoundaryContains(
+        for loopIndex in section.loops.indices {
+            guard try boundaryContains(
                 point,
-                loop: profile.boundaryLoops[loopIndex],
+                spans: section.loops[loopIndex],
                 tolerance: tolerance
             ) else {
                 continue
@@ -252,14 +277,11 @@ package struct ExactLoftGuideCurveResolver {
         return match
     }
 
-    private func profileBoundaryContains(
+    private func boundaryContains(
         _ point: Point3D,
-        loop: ProfileLoop,
+        spans: [ExactBSplineCurveSpan],
         tolerance: ModelingTolerance
     ) throws -> Bool {
-        let spans = try ExactBSplineCurveSpanBuilder(
-            tolerance: tolerance
-        ).profileSpans(from: loop)
         for span in spans {
             do {
                 let projection = try Curve3D.bSpline(span.curve)

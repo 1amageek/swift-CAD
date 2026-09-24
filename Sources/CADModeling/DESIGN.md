@@ -96,6 +96,14 @@ Surface Creation operation.
 
 ### Loft section topology
 
+Guide contact resolution consumes exact boundary loops (`ExactLoftGuideSection`),
+not display vertices or an artificial closed Profile. The profile entry point
+extracts spans once per section and delegates to the same resolver. Guide
+endpoints can contact spatial boundaries without a supporting plane. Intermediate
+contacts currently use a declared section plane plus exact boundary projection;
+nonplanar intermediate sections require a general curve/curve intersection
+contract before they can be admitted. Missing or ambiguous contacts remain errors.
+
 Explicit profile traversal is applied to exact spans before correspondence.
 Automatic alignment may rotate a seam but must not undo a locked direction.
 The source Profile, hole classification and plane remain unchanged. The final
