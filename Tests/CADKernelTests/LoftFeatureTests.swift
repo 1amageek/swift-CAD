@@ -27,6 +27,43 @@ func loftCreatesClosedRuledSolidBRep() throws {
     try evaluated.brep.validate(level: .exact, tolerance: .standard)
 }
 
+@Test(.timeLimit(.minutes(1)), arguments: [LoftResultKind.sheet, .solid])
+func loftExplicitProfileTraversalSurvivesAutomaticAlignment(resultKind: LoftResultKind) throws {
+    let (original, id) = ruledRectangleLoftDocument(resultKind: resultKind,
+        firstSectionStartSampleIndex: 0, secondSectionStartSampleIndex: 0)
+    let evaluator = DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred)
+    let forward = try evaluator.evaluateExact(original)
+    var reversedDocument = original
+    guard case .loft(var loft) = original.designGraph.nodes[id]?.operation else {
+        Issue.record("Expected Loft fixture."); return
+    }
+    for index in loft.sections.indices { loft.sections[index].profileDirection = .reversed }
+    reversedDocument.designGraph.nodes[id]?.operation = .loft(loft)
+    let reversed = try evaluator.evaluateExact(reversedDocument)
+    try reversed.brep.validate(level: .exact, tolerance: .standard)
+    #expect(reversed.brep.faces.count == forward.brep.faces.count)
+    for section in 0..<2 {
+        let next = SubshapeID(featureID: id, role: GeneratedSubshapeRole.vertex.rawValue, ordinal: section * 4 + 1)
+        let prior = SubshapeID(featureID: id, role: GeneratedSubshapeRole.vertex.rawValue, ordinal: section * 4 + 3)
+        guard case .vertex(let nextID) = reversed.subshapes[next],
+              case .vertex(let priorID) = forward.subshapes[prior] else {
+            Issue.record("Missing exact section vertex."); return
+        }
+        #expect(reversed.brep.vertices[nextID]?.point == forward.brep.vertices[priorID]?.point)
+    }
+    let curve = LoftSectionReference(section: .curve(CurveSectionReference(featureID: FeatureID())),
+        profileDirection: .reversed)
+    #expect(throws: FeatureEvaluationError.self) { try curve.validate() }
+    loft.sections[1].profileDirection = .forward
+    reversedDocument.designGraph.nodes[id]?.operation = .loft(loft)
+    do {
+        _ = try evaluator.evaluateExact(reversedDocument)
+        Issue.record("Opposing parallel ruled sections must fail.")
+    } catch let error as KernelError {
+        #expect(error.code == .singularGeometry)
+    }
+}
+
 @Test(.timeLimit(.minutes(1)))
 func loftCreatesOpenRuledSheetBRepWhenResultKindIsSheet() throws {
     let (document, _) = ruledRectangleLoftDocument(resultKind: .sheet)

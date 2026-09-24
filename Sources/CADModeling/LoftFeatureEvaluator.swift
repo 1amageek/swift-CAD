@@ -53,7 +53,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                             tolerance: context.tolerance,
                             message: "A single curve cannot match a Loft profile with multiple boundary loops.")
                     }
-                    return (spans, true)
+                    return (try directedProfileSpans(spans, direction: section.profileDirection, tolerance: context.tolerance), true)
                 }
             }
             guard let closed = boundaries.first?.closed, boundaries.allSatisfy({ $0.closed == closed }) else {
@@ -81,6 +81,13 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             )
         }
         let rings = outerMatched.rings
+        if loft.options.surfaceMode == .ruled, guideCurves.isEmpty {
+            for loop in matchedLoops.loops {
+                try validateParallelSectionTraversal(loop.rings,
+                    closesSectionLoop: loft.options.closesSectionLoop,
+                    tolerance: context.tolerance)
+            }
+        }
         let includesCaps = loft.options.resultKind == .solid
         let closesSectionLoop = loft.options.closesSectionLoop
         let faceOrientation = try sectionAdvanceFaceOrientation(
@@ -138,6 +145,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             let loopSections = sections.map { section in
                 LoftSectionReference(
                     section: section.section,
+                    profileDirection: section.profileDirection,
                     startSampleIndex: loopIndex == 0
                         ? section.startSampleIndex
                         : nil,
@@ -208,12 +216,13 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             let guidePoints = guides.map { $0.sectionPoints[sectionIndex] }
             let seamPoint = section.startSampleIndex.map { profile.vertices[$0] }
                 ?? guidePoints.first
-            exactSections.append(try exactMatchingSpans(
+            let spans = try exactMatchingSpans(
                 profile: profile,
                 seamPoint: seamPoint,
                 partitionPoints: guidePoints,
                 tolerance: tolerance
-            ))
+            )
+            exactSections.append(try directedProfileSpans(spans, direction: section.profileDirection, tolerance: tolerance))
         }
         let sectionTangentScales = sections.map { section in
             section.smoothTangentScale ?? smoothTangentScale
@@ -235,6 +244,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             matched = try matchedEqualCountRings(
                 rings,
                 lockedSectionIndexes: lockedSectionIndexes,
+                directions: sections.map(\.profileDirection),
                 tolerance: tolerance
             )
         } else {
@@ -553,9 +563,33 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         return result
     }
 
+    private func directedProfileSpans(_ spans: [ExactBSplineCurveSpan], direction: LoftProfileDirection,
+        tolerance: ModelingTolerance) throws -> [ExactBSplineCurveSpan] {
+        guard direction == .reversed else { return spans }
+        return try spans.reversed().map {
+            try ExactBSplineCurveSpan(curve: $0.curve.reversed(tolerance: tolerance), tolerance: tolerance)
+        }
+    }
+
+    private func validateParallelSectionTraversal(_ rings: [[Point3D]],
+        closesSectionLoop: Bool, tolerance: ModelingTolerance) throws {
+        let normals = try rings.map { try ringWindingNormal($0, tolerance: tolerance) }
+        let connectionCount = normals.count - (closesSectionLoop ? 0 : 1)
+        for index in 0..<connectionCount {
+            let next = normals[(index + 1) % normals.count]
+            if normals[index].cross(next).length <= tolerance.angle,
+               normals[index].dot(next) < 0 {
+                throw KernelError(phase: .geometry, code: .singularGeometry,
+                    tolerance: tolerance,
+                    message: "Parallel ruled Loft sections have opposing traversal; their interpolation must collapse or self-intersect.")
+            }
+        }
+    }
+
     private func matchedEqualCountRings(
         _ rings: [[Point3D]],
         lockedSectionIndexes: Set<Int>,
+        directions: [LoftProfileDirection],
         tolerance: ModelingTolerance
     ) throws -> [[Point3D]] {
         guard let reference = rings.first,
@@ -568,6 +602,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         for index in rings.dropFirst().indices {
             let ring = rings[index]
             if lockedSectionIndexes.contains(index) {
+                guard directions[index] == .automatic else { matched.append(ring); continue }
                 let reversed = [ring[0]] + Array(ring.dropFirst().reversed())
                 let forwardScore = cyclicMatchScore(ring, reference: reference)
                 let reversedScore = cyclicMatchScore(reversed, reference: reference)
@@ -578,7 +613,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 )
                 continue
             }
-            let candidates = [ring, Array(ring.reversed())]
+            let candidates = directions[index] == .automatic ? [ring, Array(ring.reversed())] : [ring]
             var best: [Point3D] = []
             var bestScore = Double.infinity
             for candidate in candidates {

@@ -95,8 +95,9 @@ struct CurveLoftFeatureTests {
         var curve = EvaluatedCurve(sourceFeatureID: curveID, source: .generatedFeature, kind: .spline,
             points: try parameters.map { try exact.point(at: $0, tolerance: .standard) }, isClosed: true,
             exactCurve: exact, exactParameterDomain: .closed(0, 2 * .pi), exactPointParameters: parameters)
-        var sections = [LoftSectionReference(section: .profile(ProfileReference(featureID: profileID))),
-            LoftSectionReference(section: .curve(CurveSectionReference(featureID: curveID)))]
+        var sections = [LoftSectionReference(section: .profile(ProfileReference(featureID: profileID)),
+            profileDirection: reversedOrder ? .reversed : .forward),
+            LoftSectionReference(section: .curve(CurveSectionReference(featureID: curveID, isReversed: reversedOrder)))]
         if reversedOrder { sections.reverse() }
         let feature = FeatureNode(operation: .loft(LoftFeature(sections: sections,
             options: LoftOptions(resultKind: .sheet, surfaceMode: mode))),

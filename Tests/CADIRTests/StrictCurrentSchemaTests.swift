@@ -46,9 +46,11 @@ struct StrictCurrentSchemaTests {
         _ = featureObject.removeValue(forKey: "guides")
         try expectDecodingFailure(LoftFeature.self, from: featureObject)
 
-        var sectionObject = try encodedObject(feature.sections[0])
-        _ = sectionObject.removeValue(forKey: "smoothTangentMode")
-        try expectDecodingFailure(LoftSectionReference.self, from: sectionObject)
+        for key in ["smoothTangentMode", "profileDirection"] {
+            var sectionObject = try encodedObject(feature.sections[0])
+            _ = sectionObject.removeValue(forKey: key)
+            try expectDecodingFailure(LoftSectionReference.self, from: sectionObject)
+        }
 
         for key in ["closesSectionLoop", "surfaceMode", "smoothTangentScale"] {
             var optionsObject = try encodedObject(LoftOptions())

@@ -73,7 +73,14 @@ package struct ExactLoftBodyBuilder {
                 message: "Curve Loft guide and seam correspondence is not implemented.")
         }
         let sections = try boundarySpans.map(parameterizedSpans)
-        let breaks = Array(Set(sections.flatMap { $0.map(\.lowerProgress) } + [1.0])).sorted()
+        let sortedBreaks = (sections.flatMap { $0.map(\.lowerProgress) } + [1.0]).sorted()
+        var breaks: [Double] = []
+        for value in sortedBreaks {
+            // Reversed rational spans can differ only by rounding at a shared knot.
+            if let previous = breaks.last, value - previous <= Double.ulpOfOne * 1_024 { continue }
+            breaks.append(value)
+        }
+        breaks[breaks.count - 1] = 1.0
         let curves = try sections.map { spans in
             try (0..<(breaks.count - 1)).map { index in
                 try curve(from: spans, lowerProgress: breaks[index], upperProgress: breaks[index + 1])
@@ -233,6 +240,12 @@ package struct ExactLoftBodyBuilder {
         }
 
         let sideSurfaceBuilder = ExactLoftSideSurfaceBuilder()
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Loft evaluation currently publishes side patches
+        // after structural BRep validation without a whole-domain embedding proof.
+        // Profile admission rejects opposing parallel ruled sections, but does not
+        // prove absence of intersections for general spatial, guided or smooth Loft.
+        // Certify patch regularity and cross-patch separation, including the existing
+        // zero-tangent boundary contract, before claiming complete admission.
         var sideFaceOrdinal = 0
         for loopIndex in partitions.indices {
             let partition = partitions[loopIndex]

@@ -22,6 +22,12 @@ kind. Loft section controls wrap the same reference rather than a profile-only
 field. Curve sections require Sheet output; the original profile-only Loft
 payload is rejected rather than silently migrated.
 
+Loft's required `profileDirection` controls correspondence, not Profile winding:
+`automatic` permits alignment to choose traversal, while `forward` and `reversed`
+lock traversal relative to the source loop. Curves use their shared reference's
+direction and require `profileDirection == automatic`. Native persistence must
+retain this distinction; a missing direction field is not silently defaulted.
+
 This module owns the value contract for `StableSubshapeReference` and its
 `SubshapeGeometrySignature`, including Codable validation. It also owns the
 product-neutral value contracts for tessellation fidelity and generic

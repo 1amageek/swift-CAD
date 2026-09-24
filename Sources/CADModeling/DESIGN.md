@@ -96,6 +96,21 @@ Surface Creation operation.
 
 ### Loft section topology
 
+Explicit profile traversal is applied to exact spans before correspondence.
+Automatic alignment may rotate a seam but must not undo a locked direction.
+The source Profile, hole classification and plane remain unchanged. The final
+matched rings drive exact boundary traversal and cap/shell orientation. Reversed
+correspondence that produces singular or intersecting geometry is a failure,
+not permission to silently restore automatic traversal.
+
+For unguided ruled profile Loft, parallel section planes require equal traversal
+orientation on each matched loop. Every intermediate ruled section is planar;
+opposite endpoint winding cannot interpolate through simple closed boundaries
+without a collapsed or self-intersecting section. This necessary admission check
+applies equally to Sheet and Solid. It does not establish global embedding for
+nonparallel, guided, smooth, or arbitrary spatial sections; their general
+self-intersection proof remains a separate incomplete admission requirement.
+
 When any Loft section is a curve, the evaluator resolves every section to exact
 B-spline boundary spans before correspondence. A profile contributes its outer
 loop directly, without an intermediate display polyline or composite curve.

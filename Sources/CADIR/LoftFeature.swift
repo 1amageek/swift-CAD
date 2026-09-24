@@ -98,12 +98,14 @@ public struct LoftGuideReference: Codable, Hashable, Sendable {
 
 public struct LoftSectionReference: Codable, Hashable, Sendable {
     public var section: SectionReference
+    public var profileDirection: LoftProfileDirection
     public var startSampleIndex: Int?
     public var smoothTangentScale: Double?
     public var smoothTangentMode: LoftSectionSmoothTangentMode
 
     private enum CodingKeys: String, CodingKey {
         case section
+        case profileDirection
         case startSampleIndex
         case smoothTangentScale
         case smoothTangentMode
@@ -111,21 +113,24 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
 
     public init(
         profile: ProfileReference,
+        profileDirection: LoftProfileDirection = .automatic,
         startSampleIndex: Int? = nil,
         smoothTangentScale: Double? = nil,
         smoothTangentMode: LoftSectionSmoothTangentMode = .automatic
     ) {
-        self.init(section: .profile(profile), startSampleIndex: startSampleIndex,
+        self.init(section: .profile(profile), profileDirection: profileDirection, startSampleIndex: startSampleIndex,
             smoothTangentScale: smoothTangentScale, smoothTangentMode: smoothTangentMode)
     }
 
     public init(
         section: SectionReference,
+        profileDirection: LoftProfileDirection = .automatic,
         startSampleIndex: Int? = nil,
         smoothTangentScale: Double? = nil,
         smoothTangentMode: LoftSectionSmoothTangentMode = .automatic
     ) {
         self.section = section
+        self.profileDirection = profileDirection
         self.startSampleIndex = startSampleIndex
         self.smoothTangentScale = smoothTangentScale
         self.smoothTangentMode = smoothTangentMode
@@ -135,11 +140,13 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([
             .section,
+            .profileDirection,
             .startSampleIndex,
             .smoothTangentScale,
             .smoothTangentMode,
         ], in: decoder)
         section = try container.decode(SectionReference.self, forKey: .section)
+        profileDirection = try container.decode(LoftProfileDirection.self, forKey: .profileDirection)
         startSampleIndex = try container.decodeIfPresent(Int.self, forKey: .startSampleIndex)
         smoothTangentScale = try container.decodeIfPresent(Double.self, forKey: .smoothTangentScale)
         smoothTangentMode = try container.decode(LoftSectionSmoothTangentMode.self, forKey: .smoothTangentMode)
@@ -150,6 +157,7 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(section, forKey: .section)
+        try container.encode(profileDirection, forKey: .profileDirection)
         try container.encodeIfPresent(startSampleIndex, forKey: .startSampleIndex)
         try container.encodeIfPresent(smoothTangentScale, forKey: .smoothTangentScale)
         try container.encode(smoothTangentMode, forKey: .smoothTangentMode)
@@ -161,6 +169,9 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
 
     public func validate() throws {
         try section.validate()
+        guard section.isProfile || profileDirection == .automatic else {
+            throw FeatureEvaluationError.invalidGraph("Curve Loft traversal belongs to its curve reference, not profileDirection.")
+        }
         if let startSampleIndex {
             guard startSampleIndex >= 0 else {
                 throw FeatureEvaluationError.invalidGraph("Loft section start sample indexes must be zero or greater.")
