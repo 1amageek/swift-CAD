@@ -20,6 +20,7 @@ struct PlaneBSplineBoundarySurfaceIntersector {
         surface: BSplineSurface3D,
         firstSurface: Surface3D,
         secondSurface: Surface3D,
+        planeIsFirst: Bool,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection]? {
         let distances = surface.controlPoints.flatMap { row in
@@ -87,12 +88,23 @@ struct PlaneBSplineBoundarySurfaceIntersector {
                 tolerance: tolerance
             )
             let sampleParameters = try samples(curve.domain, tolerance: tolerance)
+            let boundary: SurfaceParameterBoundary
+            switch candidate.boundary {
+            case .uLower: boundary = .uLower
+            case .uUpper: boundary = .uUpper
+            case .vLower: boundary = .vLower
+            case .vUpper: boundary = .vUpper
+            }
+            let pcurve = try SurfaceParameterCurve.boundary(
+                boundary, on: .bSpline(surface), tolerance: tolerance)
             return try verifier.curve(
                 .bSpline(curve),
                 kind: contactKind(for: candidate, among: candidates),
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 sampleParameters: sampleParameters,
+                firstParameterCurve: planeIsFirst ? nil : pcurve,
+                secondParameterCurve: planeIsFirst ? pcurve : nil,
                 tolerance: tolerance
             )
         }

@@ -33,6 +33,8 @@ struct SurfaceSurfaceIntersectionVerifier {
         firstSurface: Surface3D,
         secondSurface: Surface3D,
         sampleParameters: [Double],
+        firstParameterCurve: SurfaceParameterCurve? = nil,
+        secondParameterCurve: SurfaceParameterCurve? = nil,
         tolerance: ModelingTolerance
     ) throws -> SurfaceSurfaceIntersection {
         guard sampleParameters.isEmpty == false else {
@@ -47,12 +49,14 @@ struct SurfaceSurfaceIntersectionVerifier {
             for: curve,
             on: firstSurface,
             initialParameters: sampleParameters,
+            prescribed: firstParameterCurve,
             tolerance: tolerance
         )
         let secondParameterCurve = try parameterCurve(
             for: curve,
             on: secondSurface,
             initialParameters: sampleParameters,
+            prescribed: secondParameterCurve,
             tolerance: tolerance
         )
         let maximumResidual = max(
@@ -79,8 +83,28 @@ struct SurfaceSurfaceIntersectionVerifier {
         for curve: Curve3D,
         on surface: Surface3D,
         initialParameters: [Double],
+        prescribed: SurfaceParameterCurve? = nil,
         tolerance: ModelingTolerance
     ) throws -> ParameterCurveResult {
+        if let prescribed {
+            guard case let .closed(lower, upper) = curve.parameterDomain else {
+                throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                    message: "An authored intersection pcurve requires a bounded curve.")
+            }
+            try prescribed.validate(on: surface, tolerance: tolerance)
+            try DefaultCurveSurfaceCorrespondenceValidator().validate(
+                curve: curve, from: lower, to: upper, surface: surface,
+                parameterCurve: prescribed,
+                options: .init(maximumSubdivisionDepth: 20, maximumCellCount: 65_536),
+                tolerance: tolerance)
+            let uv = try prescribed.parameter(atNormalizedFraction: 0, tolerance: tolerance)
+            let point = try surface.point(u: uv.u, v: uv.v, tolerance: tolerance)
+            let source = try curve.point(at: lower, tolerance: tolerance)
+            return ParameterCurveResult(curve: prescribed,
+                anchor: try SurfaceParameterProjection(u: uv.u, v: uv.v, point: point,
+                    residual: (point - source).length, iterations: 0),
+                maximumResidual: tolerance.distance)
+        }
         if let exactGreatCircle = try sphericalGreatCircleParameterCurve(
             for: curve,
             on: surface,

@@ -15,6 +15,7 @@ struct PlaneBSplineSurfaceIntersector {
             surface: surface,
             firstSurface: firstSurface,
             secondSurface: secondSurface,
+            planeIsFirst: planeIsFirst,
             tolerance: tolerance
         ) {
             return boundaryIntersections

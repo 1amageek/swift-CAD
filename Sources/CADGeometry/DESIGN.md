@@ -1,5 +1,11 @@
 # CADGeometry
 
+Surface intersection construction may supply an authored exact pcurve. The
+intersection verifier validates whole-span correspondence before retaining it
+and constructs its anchor by forward evaluation, without inverse projection.
+Plane/B-spline boundary intersections supply their known isoparametric chart
+on the B-spline support; the other support retains its existing projection path.
+
 Rational B-spline/analytic-surface intersection evaluates position and parameter
 derivatives, not curvature. A nonzero parameter speed is normalized independently
 of modeling distance tolerance. At a stationary Bezier endpoint, the first
