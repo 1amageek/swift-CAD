@@ -70,6 +70,16 @@ struct BSplineCurveBezierDecomposer {
                 message: "B-spline Bezier extraction requires a positive finite knot span."
             )
         }
+        if curve.controlPointCount == curve.degree + 1,
+           curve.knots.prefix(curve.degree + 1).allSatisfy({ $0 == lower }),
+           curve.knots.suffix(curve.degree + 1).allSatisfy({ $0 == upper }) {
+            return RationalBezierCurvePatch3D(
+                controlPoints: curve.controlPoints,
+                weights: curve.weights,
+                lower: lower,
+                upper: upper
+            )
+        }
         var derivatives: [HomogeneousVector] = []
         derivatives.reserveCapacity(curve.degree + 1)
         for derivativeOrder in 0...curve.degree {

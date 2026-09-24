@@ -48,12 +48,26 @@ struct RationalBezierCurvePatch3D: Sendable {
             controls = split(controls, parameter: parameter).lower
             currentUpper = targetUpper
         }
-        return try Self.patch(
+        let result = try Self.patch(
             controls: controls,
             lower: currentLower,
             upper: currentUpper,
             tolerance: tolerance
         )
+        if targetLower == lower, targetUpper == upper { return self }
+        // Subdivision leaves these source controls unchanged; avoid a lossy
+        // homogeneous multiply/divide round-trip at retained boundaries.
+        var points = result.controlPoints
+        var resultWeights = result.weights
+        if targetLower == lower {
+            points[0] = controlPoints[0]
+            resultWeights[0] = weights[0]
+        }
+        if targetUpper == upper {
+            points[points.count - 1] = controlPoints[controlPoints.count - 1]
+            resultWeights[resultWeights.count - 1] = weights[weights.count - 1]
+        }
+        return Self(controlPoints: points, weights: resultWeights, lower: currentLower, upper: currentUpper)
     }
 
     func subdivided(tolerance: ModelingTolerance) throws -> [RationalBezierCurvePatch3D] {

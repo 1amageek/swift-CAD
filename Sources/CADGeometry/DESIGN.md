@@ -224,6 +224,12 @@ cache, shared mutation, tolerance change, or cross-request lifetime is introduce
 Prepared/direct interval equality, disjoint successive boxes and invalid span
 rejection verify this reuse contract.
 
+Curve decomposition preserves an already-clamped single Bezier span
+after source validation. Trimming preserves source endpoint controls and weights
+at unchanged bounds; only newly created endpoints are evaluated by subdivision.
+The contract is exact stored identity, not tolerance-based snapping. Rational,
+non-clamped and partial-domain regression checks remain in BSplineCurveTrimmingTests.
+
 Tests cover valid sphere great-circle curves at seam and pole endpoints,
 slightly perturbed valid floating-point bases, non-orthogonal bases,
 nonfinite/degenerate values, and wrong surfaces. Changes require rechecking
