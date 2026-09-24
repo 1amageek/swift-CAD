@@ -4,6 +4,18 @@ import CADCore
 
 @Suite("Exact common B-spline curve basis")
 struct BSplineCurveCommonBasisResolverTests {
+    @Test(arguments: [0.001, 0.002, 0.003, 0.1, 0.7])
+    func degreeElevationPreservesConstantCoordinates(value: Double) throws {
+        let line = BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+            controlPoints: [Point3D(x: value, y: -value, z: 0), Point3D(x: value, y: -value, z: 1)])
+        let cubic = BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
+            controlPoints: [0.0, 0.2, 0.8, 1.0].map { Point3D(x: 1, y: 0, z: $0) })
+        let pair = try DefaultBSplineCurveCommonBasisResolver().resolve(first: line, second: cubic,
+            tolerance: .standard)
+        #expect(pair.first.degree == 3)
+        #expect(pair.first.controlPoints.allSatisfy { $0.x == value && $0.y == -value })
+        #expect(pair.first.weights.allSatisfy { $0 == 1 })
+    }
     @Test(arguments: [false, true])
     func existingNormalizedBasisPreservesEveryControlAndWeight(multipleSpans: Bool) throws {
         let first = BSplineCurve3D(degree: 3,

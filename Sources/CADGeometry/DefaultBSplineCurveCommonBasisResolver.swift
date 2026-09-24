@@ -118,15 +118,19 @@ public struct DefaultBSplineCurveCommonBasisResolver: BSplineCurveCommonBasisRes
             self.weight = weight
         }
 
-        static func + (
+        static func blended(
             lhs: HomogeneousControl,
-            rhs: HomogeneousControl
+            rhs: HomogeneousControl,
+            lhsWeight: Double
         ) -> HomogeneousControl {
-            HomogeneousControl(
-                x: lhs.x + rhs.x,
-                y: lhs.y + rhs.y,
-                z: lhs.z + rhs.z,
-                weight: lhs.weight + rhs.weight
+            func blend(_ a: Double, _ b: Double) -> Double {
+                a == b ? a : a * lhsWeight + b * (1 - lhsWeight)
+            }
+            return HomogeneousControl(
+                x: blend(lhs.x, rhs.x),
+                y: blend(lhs.y, rhs.y),
+                z: blend(lhs.z, rhs.z),
+                weight: blend(lhs.weight, rhs.weight)
             )
         }
 
@@ -320,8 +324,7 @@ public struct DefaultBSplineCurveCommonBasisResolver: BSplineCurveCommonBasisRes
             if degree > 0 {
                 for index in 1...degree {
                     let alpha = Double(index) / Double(degree + 1)
-                    next[index] = result[index - 1] * alpha
-                        + result[index] * (1.0 - alpha)
+                    next[index] = .blended(lhs: result[index - 1], rhs: result[index], lhsWeight: alpha)
                 }
             }
             result = next

@@ -91,6 +91,9 @@ bases verbatim after validating both curves and counting their positive knot
 spans against the existing limit. It must not reconstruct these controls from
 derivatives or round-trip their homogeneous coordinates. Different bases still
 use the existing normalization, span alignment and degree elevation path.
+Degree elevation retains exactly equal homogeneous components during blending.
+This preserves constant coordinates and weights instead of introducing a false
+variation through two rounded products; unequal components retain weighted blending.
 
 `BSplineSurfaceEmbeddingValidator.validateSeparation` certifies that two complete
 finite spline domains are disjoint using the same outward Bernstein difference
