@@ -52,7 +52,7 @@ enum ConvexHullSeparation3D {
         return false
     }
 
-    private static func provesSeparatingPlane(
+    static func provesSeparatingPlane(
         normal: Vector3D,
         points: [Vector3D],
         tolerance: Double
@@ -62,11 +62,14 @@ enum ConvexHullSeparation3D {
               lengthUpperBound > 0.0 else {
             return false
         }
-        let threshold = FloatingPointExpansion.product(
-            [tolerance],
-            [lengthUpperBound]
-        )
+        let thresholdInterval = OutwardScalarInterval(tolerance * lengthUpperBound)
         return points.allSatisfy { point in
+            let dotInterval = OutwardScalarInterval(normal.x * point.x)
+                + OutwardScalarInterval(normal.y * point.y)
+                + OutwardScalarInterval(normal.z * point.z)
+            if dotInterval.lower > thresholdInterval.upper { return true }
+            if dotInterval.upper <= thresholdInterval.lower { return false }
+            let threshold = FloatingPointExpansion.product([tolerance], [lengthUpperBound])
             let dotProduct = FloatingPointExpansion.sum(
                 FloatingPointExpansion.sum(
                     FloatingPointExpansion.product([normal.x], [point.x]),

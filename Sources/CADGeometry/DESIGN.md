@@ -1,5 +1,11 @@
 # CADGeometry
 
+Convex-hull separating-plane predicates first enclose the dot product and
+distance threshold using outward-rounded scalar intervals. A strict interval
+sign decides the result; uncertain signs use the existing expansion predicate.
+The search directions, iteration budget and accepted separation are unchanged.
+ConvexHullSeparationTests compares filtered signs with the expansion reference.
+
 Surface intersection construction may supply an authored exact pcurve. The
 intersection verifier validates whole-span correspondence before retaining it
 and constructs its anchor by forward evaluation, without inverse projection.
