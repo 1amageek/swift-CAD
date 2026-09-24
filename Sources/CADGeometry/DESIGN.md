@@ -37,6 +37,12 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Unit-weight Bezier differential bounds use the polynomial derivative nets for
+both interior and boundary cells. The weight polynomial is exactly one, so
+rational numerator products are unnecessary. Stationary-boundary requests only
+control removal of known boundary factors; they do not select the polynomial
+representation. Non-unit weights retain the rational path.
+
 Loft may request stationary outer-boundary parameterization admission from the
 existing B-spline regularity and embedding validators. For unit-weight Bezier
 patches only, exactly repeated boundary controls identify factors u, (1-u), v

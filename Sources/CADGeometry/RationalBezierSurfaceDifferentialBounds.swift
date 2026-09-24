@@ -21,8 +21,9 @@ struct RationalBezierSurfaceDifferentialBounds: Sendable {
 
     init(patch: RationalBezierSurfacePatch3D,
          stationaryBoundaries: Set<SurfaceParameterBoundary> = []) {
-        if !stationaryBoundaries.isEmpty,
-           patch.weights.allSatisfy({ $0.allSatisfy { $0 == 1 } }),
+        // Unit weights make the rational denominator identically one, including
+        // interior subdivision cells without stationary boundary factors.
+        if patch.weights.allSatisfy({ $0.allSatisfy { $0 == 1 } }),
            let h = BernsteinVector4Surface(patch: patch),
            var u = h.xyz.derivativeU(parameterSpan: patch.uUpper - patch.uLower),
            var v = h.xyz.derivativeV(parameterSpan: patch.vUpper - patch.vLower) {

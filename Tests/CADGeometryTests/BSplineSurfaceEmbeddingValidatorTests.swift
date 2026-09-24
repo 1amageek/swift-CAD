@@ -4,6 +4,31 @@ import CADCore
 
 @Suite("B-spline surface embedding certification")
 struct BSplineSurfaceEmbeddingValidatorTests {
+    @Test func polynomialInteriorBoundsDoNotDependOnBoundaryRequests() {
+        let patch = RationalBezierSurfacePatch3D(
+            controlPoints: [[.origin, Point3D(x: 2, y: 0, z: 0)],
+                            [Point3D(x: 0, y: 3, z: 0), Point3D(x: 2, y: 3, z: 6)]],
+            weights: [[1, 1], [1, 1]], uLower: 0, uUpper: 2, vLower: 0, vUpper: 3)
+        let interior = RationalBezierSurfaceDifferentialBounds(patch: patch)
+        let boundary = RationalBezierSurfaceDifferentialBounds(patch: patch,
+            stationaryBoundaries: Set(SurfaceParameterBoundary.allCases))
+        for (a, b) in [(interior.tangentUNumerator, boundary.tangentUNumerator),
+                       (interior.tangentVNumerator, boundary.tangentVNumerator),
+                       (interior.normalNumerator, boundary.normalNumerator)] {
+            for (x, y) in [(a.x, b.x), (a.y, b.y), (a.z, b.z)] {
+                #expect(x.lower == y.lower && x.upper == y.upper)
+            }
+        }
+        // S(u,v) = (u,v,u*v), hence Su x Sv = (-v,-u,1).
+        #expect(interior.normalNumerator.x.lower <= -3)
+        #expect(interior.normalNumerator.x.upper >= 0)
+        #expect(interior.normalNumerator.y.lower <= -2)
+        #expect(interior.normalNumerator.y.upper >= 0)
+        #expect(interior.normalNumerator.z.lower <= 1)
+        #expect(interior.normalNumerator.z.upper >= 1)
+        #expect(interior.normalNumerator.z.lower > 0)
+    }
+
     @Test(.timeLimit(.minutes(1)), arguments: [1.0, 1.7])
     func differentSurfaceChartsRequireCompletePairSeparation(weight: Double) throws {
         func plane(offset: Double) -> BSplineSurface3D {
