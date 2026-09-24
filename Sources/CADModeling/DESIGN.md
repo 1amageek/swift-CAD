@@ -213,6 +213,14 @@ connection before creating edges or faces. Both incident faces consume those
 same stored connector curves, rather than independently degree-elevating a
 shared line against different opposite boundaries. Existing common-basis
 validation and span limits apply; already aligned connector groups are unchanged.
+For stacks with more than two sections, each boundary span also resolves one
+section basis across the entire stack before generating any edge or side face.
+All incident faces consume the same stored elevated section curve. This avoids
+independent pairwise degree elevation of a shared curved section; already
+aligned columns and two-section stacks retain their existing representation.
+The existing curve basis resolver owns conversion and span limits. Different
+rational denominators are not made identical by this polynomial basis alignment
+and remain subject to the existing exact shared-boundary admission contract.
 
 
 Loft delegates all non-linear-connector transfinite construction to CADGeometry's

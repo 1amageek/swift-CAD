@@ -168,6 +168,26 @@ package struct ExactLoftBodyBuilder {
         guard let outerPartition = partitions.first else {
             throw SketchError.openProfile
         }
+        let basisResolver = DefaultBSplineCurveCommonBasisResolver()
+        let partitions = try partitions.map { partition -> SectionPartition in
+            guard partition.curves.count > 2 else { return partition }
+            var curves = partition.curves
+            for span in curves[0].indices {
+                var basis = curves[0][span]
+                guard curves.dropFirst().contains(where: {
+                    $0[span].degree != basis.degree || $0[span].knots != basis.knots
+                }) else { continue }
+                for section in curves.indices.dropFirst() {
+                    basis = try basisResolver.resolve(first: basis, second: curves[section][span],
+                        tolerance: context.tolerance).first
+                }
+                for section in curves.indices {
+                    curves[section][span] = try basisResolver.resolve(first: curves[section][span], second: basis,
+                        tolerance: context.tolerance).first
+                }
+            }
+            return SectionPartition(breaks: partition.breaks, curves: curves, rings: partition.rings)
+        }
         let sectionCount = outerPartition.curves.count
         let closesSectionLoop = loft.options.closesSectionLoop
         let connectionCount = sectionCount - 1 + (closesSectionLoop ? 1 : 0)
@@ -302,8 +322,8 @@ package struct ExactLoftBodyBuilder {
 
         let sideSurfaceBuilder = ExactLoftSideSurfaceBuilder()
         // FIXME(INCOMPLETE_IMPLEMENTATION): Loft evaluation requires individual
-        // patch admission but general corner-only/rational stationary guide
-        // parameterization and cap/side separation remain unresolved.
+        // patch admission; distinct rational shared-seam denominators, stationary
+        // guide parameterization and general cap/side separation remain unresolved.
         // Complete those contracts before claiming general smooth/guided Loft;
         // structural BRep validation alone is insufficient.
         var sideFaceOrdinal = 0

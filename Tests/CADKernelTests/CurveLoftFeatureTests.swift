@@ -58,6 +58,37 @@ struct CurveLoftFeatureTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(1)), arguments: [LoftSurfaceMode.ruled, .smooth], [false, true])
+    func mixedDegreeSectionsShareTheirAuthoredCurvedBoundary(mode: LoftSurfaceMode, insertKnot: Bool) throws {
+        var source = [
+            BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+                controlPoints: [Point3D(x: 0, y: 0, z: 0), Point3D(x: 1, y: 0, z: 0)]),
+            BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+                controlPoints: [Point3D(x: 0, y: 1, z: 0), Point3D(x: 0.5, y: 1, z: 0.25), Point3D(x: 1, y: 1, z: 0)]),
+            BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
+                controlPoints: [Point3D(x: 0, y: 2, z: 0), Point3D(x: 1.0 / 3, y: 2, z: 0.5),
+                    Point3D(x: 2.0 / 3, y: 2, z: 0.5), Point3D(x: 1, y: 2, z: 0)])
+        ]
+        if insertKnot { source[2] = try source[2].insertingKnot(0.5, tolerance: .standard) }
+        let sections = try source.map { try section($0) }
+        let result = try evaluate(sections, mode: mode)
+        try result.brep.validate(level: .exact, tolerance: .standard)
+        #expect(result.brep.faces.count == (insertKnot ? 4 : 2))
+        let surfaces = result.brep.geometry.surfaces.values.compactMap { surface -> BSplineSurface3D? in
+            if case .bSpline(let spline) = surface { return spline }
+            return nil
+        }
+        #expect(surfaces.count == result.brep.faces.count)
+        for surface in surfaces {
+            let atLower = try surface.point(u: 0.5, v: 0, tolerance: .standard)
+            let v = abs(atLower.y - 1) < 1e-9 ? 0.0 : 1.0
+            for u in [0.0, 0.25, 0.5, 0.75, 1.0] {
+                let point = try surface.point(u: u, v: v, tolerance: .standard)
+                #expect(try (point - source[1].point(at: point.x, tolerance: .standard)).length < 1e-9)
+            }
+        }
+    }
+
     @Test func transfiniteLoftDoesNotDiscardNearUnitBoundaryWeights() throws {
         let lower = BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
             controlPoints: [.origin, Point3D(x: 1, y: 0, z: 1e9), Point3D(x: 2, y: 0, z: 0)],
