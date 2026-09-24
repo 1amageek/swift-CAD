@@ -7,8 +7,10 @@ import CADModeling
 
 @Suite("Exact curve section Loft", .timeLimit(.minutes(1)))
 struct CurveLoftFeatureTests {
-    @Test func twoSpanClosedSectionsRetainBothSharedConnectors() throws {
-        let sections = try [0.0, 1.0].map { z in
+    @Test(arguments: [2, 3])
+    func twoSpanClosedSectionsRetainBothSharedConnectors(sectionCount: Int) throws {
+        let sections = try (0..<sectionCount).map { index in
+            let z = Double(index)
             let curve = BSplineCurve3D(degree: 2, knots: [0, 0, 0, 0.5, 0.5, 1, 1, 1],
                 controlPoints: [Point3D(x: -1, y: 0, z: z), Point3D(x: 0, y: 1, z: z),
                     Point3D(x: 1, y: 0, z: z), Point3D(x: 0, y: -1, z: z), Point3D(x: -1, y: 0, z: z)])
@@ -20,8 +22,8 @@ struct CurveLoftFeatureTests {
         }
         let result = try evaluate(sections, mode: .ruled)
         try result.brep.validate(level: .exact, tolerance: .standard)
-        #expect(result.brep.faces.count == 2)
-        #expect(result.brep.edges.count == 6)
+        #expect(result.brep.faces.count == 2 * (sectionCount - 1))
+        #expect(result.brep.edges.count == 4 * sectionCount - 2)
     }
 
     @Test func incidentLoftSidesMustNotOverlapBeyondTheirSharedSection() throws {

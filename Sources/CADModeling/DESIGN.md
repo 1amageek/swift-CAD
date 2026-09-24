@@ -190,9 +190,13 @@ identity into adjacent-chart admission; a topological edge alone never proves
 their interiors disjoint. Shared vertices with no common edge pass their paired
 parameter corners to the geometry point-contact separation proof;
 topological vertex identity alone does not establish separation.
-Two opposite shared edges use the geometry half-chart admission path; other
-multiple-edge configurations and
-cap/side intersections still require topology-aware admission and remain
+Two opposite shared edges use the geometry half-chart admission path.
+Section edges are unique per loop/section/span and connectors per
+loop/connection/vertex. Closed partitions have at least two spans; closed section
+loops have at least three sections. Consequently two distinct generated side
+faces can share no edge, one edge, or two opposite edges, never adjacent edges
+or three/four edges. Unexpected incidence fails instead of bypassing admission.
+Cap/side intersections still require topology-aware admission and remain
 explicitly incomplete. Stationary outer parameters use CADGeometry's explicit
 unit-weight factor-removal contract; unresolved cases fail rather than skipping
 admission for the entire smooth construction branch.

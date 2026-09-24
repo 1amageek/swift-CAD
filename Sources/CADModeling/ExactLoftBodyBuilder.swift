@@ -301,7 +301,7 @@ package struct ExactLoftBodyBuilder {
         let sideSurfaceBuilder = ExactLoftSideSurfaceBuilder()
         // FIXME(INCOMPLETE_IMPLEMENTATION): Loft evaluation requires individual
         // patch admission but general corner-only/rational stationary guide
-        // parameterization, multiple-edge and cap/side separation remain unresolved.
+        // parameterization and cap/side separation remain unresolved.
         // Complete those contracts before claiming general smooth/guided Loft;
         // structural BRep validation alone is insufficient.
         var sideFaceOrdinal = 0
@@ -370,8 +370,13 @@ package struct ExactLoftBodyBuilder {
                                 secondBoundaries: commonEdges.map(\.1), tolerance: context.tolerance)
                             continue
                         }
+                        // The validated section grid has unique ring/connector
+                        // edges; distinct side faces share at most opposite edges.
+                        guard commonEdges.isEmpty else {
+                            throw invalidGeometry("Loft side incidence violates the generated section grid.")
+                        }
                         let commonVertices = vertices.keys.filter { previous.vertices[$0] != nil }
-                        if commonEdges.isEmpty, !commonVertices.isEmpty {
+                        if !commonVertices.isEmpty {
                             let contacts = try commonVertices.map { vertex -> (Point2D, Point2D) in
                                 guard let first = previous.vertices[vertex], let second = vertices[vertex] else {
                                     throw invalidGeometry("Loft point contacts require both source parameter corners.")
@@ -383,8 +388,7 @@ package struct ExactLoftBodyBuilder {
                                 allowedCornerContacts: contacts)
                             continue
                         }
-                        guard commonVertices.isEmpty,
-                              bounds.intersects(previous.bounds, tolerance: context.tolerance.distance) else { continue }
+                        guard bounds.intersects(previous.bounds, tolerance: context.tolerance.distance) else { continue }
                         try separation.validateSeparation(first: previous.surface, second: surface,
                             tolerance: context.tolerance)
                     }
