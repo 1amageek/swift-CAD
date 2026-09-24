@@ -45,7 +45,7 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                     curve: exactCircle,
                     center: circle.center,
                     lower: start,
-                    upper: start + arc.sweepAngle
+                    sweep: arc.sweepAngle
                 ))
             case let .spline(spline):
                 result.append(contentsOf: try bSplineSpans(
@@ -279,7 +279,7 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                 curve: curve,
                 center: circle.center,
                 lower: lower,
-                upper: upper
+                sweep: upper - lower
             )
         case let .analytic(analytic):
             let center: Point3D
@@ -317,7 +317,7 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                 curve: curve,
                 center: center,
                 lower: lower,
-                upper: upper
+                sweep: upper - lower
             )
         case let .bSpline(spline):
             return try bSplineSpans(
@@ -378,10 +378,20 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
         curve: Curve3D,
         center: Point3D,
         lower: Double,
-        upper: Double
+        sweep: Double
     ) throws -> [ExactBSplineCurveSpan] {
-        let sweep = upper - lower
-        let count = max(1, Int(ceil(abs(sweep) / (0.5 * Double.pi))))
+        guard lower.isFinite, sweep.isFinite, abs(sweep) > 0, abs(sweep) <= 2 * Double.pi else {
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                message: "Conic spans require a finite nonzero sweep covering at most one turn.")
+        }
+        let count = Int(ceil(abs(sweep) / (0.5 * Double.pi)))
+        let firstPoint = try curve.point(at: lower, tolerance: tolerance)
+        let closesPeriod: Bool
+        if case let .periodic(period) = curve.parameterDomain {
+            closesPeriod = abs(sweep) == period
+        } else {
+            closesPeriod = false
+        }
         return try (0..<count).map { index in
             let start = lower + sweep * Double(index) / Double(count)
             let end = lower + sweep * Double(index + 1) / Double(count)
@@ -404,9 +414,10 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                     degree: 2,
                     knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
                     controlPoints: [
-                        try curve.point(at: start, tolerance: tolerance),
+                        index == 0 ? firstPoint : try curve.point(at: start, tolerance: tolerance),
                         center + (middlePoint - center) / weight,
-                        try curve.point(at: end, tolerance: tolerance),
+                        index == count - 1 && closesPeriod
+                            ? firstPoint : try curve.point(at: end, tolerance: tolerance),
                     ],
                     weights: [1.0, weight, 1.0]
                 ),

@@ -189,6 +189,14 @@ Incident side patches and cap/side intersections still require topology-aware
 admission and remain explicitly incomplete. Stationary outer parameters use CADGeometry's explicit
 unit-weight factor-removal contract; unresolved cases fail rather than skipping
 admission for the entire smooth construction branch.
+Conic span construction preserves the source's signed sweep before adding the
+start angle. A sweep equal to one declared period reuses the first point as the
+last span endpoint; near-full partial arcs do not close by tolerance. This
+preserves full-turn topology without repeated trigonometric endpoint evaluation.
+The conic section may cover at most one turn: zero, nonfinite and repeated-turn
+sweeps fail before allocation. Quarter-turn subdivision therefore needs at most
+four spans, independent of the magnitude of an invalid requested sweep.
+
 
 Loft delegates all non-linear-connector transfinite construction to CADGeometry's
 shared Coons builder, including its exact unit-weight low-degree path. It does not
