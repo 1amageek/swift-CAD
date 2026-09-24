@@ -8,6 +8,22 @@ struct RationalBSplineCurveIntersector2DTests {
     private let tolerance = ModelingTolerance.standard
 
     @Test(.timeLimit(.minutes(1)))
+    func nonlinearParameterRefinementContractsAtAnEndpointContact() throws {
+        let first = BSplineCurve2D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
+            controlPoints: [0.0, 0.0025, 0.0075, 0.01].map { Point2D(x: -0.001, y: $0) })
+        let second = BSplineCurve2D(degree: 1, knots: [0, 0, 1, 1],
+            controlPoints: [Point2D(x: -0.001, y: 0.005), Point2D(x: 0.001, y: 0.005)])
+        let roots = try RationalBSplineCurveIntersector2D().intersections(
+            first: first, second: second, maximumSubdivisionDepth: 24, maximumSubdivisionCells: 4_096,
+            accepting: { $0.firstParameterEnclosure.width <= 1e-8 && $0.pointEnclosure.maximumWidth <= 1e-10 },
+            tolerance: tolerance)
+        let root = try #require(roots.only)
+        #expect(root.firstParameterEnclosure.contains(0.5))
+        #expect(root.secondParameterEnclosure.contains(0))
+        #expect(root.firstParameterEnclosure.width <= 1e-8)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func transverseLinearCurvesProduceOneCertifiedIntersection() throws {
         let first = BSplineCurve2D(
             degree: 1,

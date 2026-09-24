@@ -37,6 +37,14 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Certified rational 2D curve intersections refine a unique root enclosure until
+the consumer's precision condition is met. Padding a refinement stays within
+half the remaining distance to the proof-domain boundary, so padding cannot
+restore the entire previous domain and prevent precision convergence. The root
+enclosure remains contained; depth/cell exhaustion is still an explicit error.
+RationalBSplineCurveIntersector2DTests owns the nonlinear/endpoint refinement case;
+Loft and exact trim-edge consumers retain their independent spatial admission.
+
 At the graph restriction resolution floor, interval jets use a containing
 local interval wide enough for certified restriction, not the entire parent
 cell. Derivatives are rescaled by that containing interval's actual width.

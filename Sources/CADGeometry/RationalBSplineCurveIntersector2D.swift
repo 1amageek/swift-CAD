@@ -884,7 +884,10 @@ private struct DifferencePatch {
     private func paddedRootRange(
         _ root: OutwardScalarInterval
     ) -> OutwardScalarInterval {
-        let padding = max(root.width, Double.ulpOfOne)
+        // A unique root is strictly inside the unit proof domain. Do not let
+        // padding restore that entire domain: precision refinement must contract.
+        let padding = min(max(root.width, Double.ulpOfOne),
+            min(root.lower, 1.0 - root.upper) * 0.5)
         return OutwardScalarInterval(
             lower: max(0.0, (root.lower - padding).nextDown),
             upper: min(1.0, (root.upper + padding).nextUp)

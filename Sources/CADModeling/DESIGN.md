@@ -100,8 +100,9 @@ Guide contact resolution consumes exact boundary loops (`ExactLoftGuideSection`)
 not display vertices or an artificial closed Profile. The profile entry point
 extracts spans once per section and delegates to the same resolver. Guide
 endpoints can contact spatial boundaries without a supporting plane. Intermediate
-contacts use a declared section plane plus exact boundary projection when one is
-available. Spatial sections use coordinate projection of exact rational curves,
+contacts use exact boundary curves regardless of supporting-plane metadata; a
+guide may lie in that plane while meeting its boundary only once. All sections
+use coordinate projection of exact rational curves,
 the existing certified 2D root solver, and outward-rounded 3D enclosure distances.
 Each projected root must be proved separated or within the distance tolerance;
 unresolved roots and search exhaustion propagate failure. Chart choice affects

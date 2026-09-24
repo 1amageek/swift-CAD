@@ -7,6 +7,20 @@ import CADModeling
 
 @Suite("Exact curve section Loft", .timeLimit(.minutes(1)))
 struct CurveLoftFeatureTests {
+    @Test func guideMayLieInTheIntermediateSectionSupportPlane() throws {
+        var sections = try [0.0, 1.0, 2.0].map { z in
+            try section(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+                controlPoints: [Point3D(x: 0, y: 0, z: z), Point3D(x: 1, y: 0, z: z)]))
+        }
+        sections[1].plane = .zx
+        let guide = try section(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+            controlPoints: [.origin, Point3D(x: 0, y: 0, z: 2)]))
+        let result = try evaluate(sections, mode: .ruled, guides: [guide])
+        try result.brep.validate(level: .exact, tolerance: .standard)
+        #expect(result.brep.faces.count == 2)
+        #expect(result.brep.vertices.values.contains { ($0.point - Point3D(x: 0, y: 0, z: 1)).length < 1e-8 })
+    }
+
     @Test(arguments: [false, true])
     func spatialIntermediateGuideContactsRequireThreeDimensionalAgreement(separated: Bool) throws {
         let sections = try [0.0, 1.0, 2.0].map { z in
@@ -132,7 +146,7 @@ struct CurveLoftFeatureTests {
         let second = BSplineCurve3D(degree: first.degree, knots: first.knots,
             controlPoints: first.controlPoints.map { $0 + Vector3D(x: 0, y: 0, z: 2) })
         let boundaries = try [first, second].map {
-            ExactLoftGuideSection(loops: [[try ExactBSplineCurveSpan(curve: $0, tolerance: .standard)]], plane: nil)
+            ExactLoftGuideSection(loops: [[try ExactBSplineCurveSpan(curve: $0, tolerance: .standard)]])
         }
         let guide = try section(BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
             controlPoints: [Point3D(x: 0, y: 0, z: 2), Point3D(x: -0.5, y: 0, z: 1), .origin]))
@@ -145,7 +159,7 @@ struct CurveLoftFeatureTests {
         #expect(result.sectionPoints == [.origin, Point3D(x: 0, y: 0, z: 2)])
         #expect(try #require(result.sectionParameters.first) < #require(result.sectionParameters.last))
         #expect(try result.curve.point(at: 0.5, tolerance: .standard).x < 0)
-        let ambiguous = boundaries.map { ExactLoftGuideSection(loops: $0.loops + $0.loops, plane: nil) }
+        let ambiguous = boundaries.map { ExactLoftGuideSection(loops: $0.loops + $0.loops) }
         do {
             _ = try resolver.resolve(guides: references, sections: ambiguous, context: context)
             Issue.record("Guide contact on multiple boundary loops must be rejected.")

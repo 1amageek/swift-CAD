@@ -20,7 +20,7 @@ package struct ExactLoftGuideCurveResolver {
         guard guides.isEmpty == false else { return [] }
         let builder = ExactBSplineCurveSpanBuilder(tolerance: context.tolerance)
         return try resolve(guides: guides, sections: profiles.map {
-            ExactLoftGuideSection(loops: try builder.profileLoopSpans(from: $0), plane: $0.plane)
+            ExactLoftGuideSection(loops: try builder.profileLoopSpans(from: $0))
         }, context: context)
     }
 
@@ -183,20 +183,8 @@ package struct ExactLoftGuideCurveResolver {
             lower
         ))
         for section in sections.dropFirst().dropLast() {
-            let intersections: [(point: Point3D, curveParameter: Double)]
-            if let support = section.plane {
-                intersections = try DefaultCurveSurfaceIntersector().intersections(
-                    curve: .bSpline(curve),
-                    surface: .plane(try plane(for: support, tolerance: tolerance)),
-                    options: CurveSurfaceIntersectionOptions(
-                        curveRange: try ScalarInterval(lower: lower, upper: upper)
-                    ),
-                    tolerance: tolerance
-                ).map { ($0.point, $0.curveParameter) }
-            } else {
-                intersections = try section.loops[boundaryLoopIndex].flatMap {
-                    try spatialContacts(guide: curve, boundary: $0.curve, tolerance: tolerance)
-                }
+            let intersections = try section.loops[boundaryLoopIndex].flatMap {
+                try spatialContacts(guide: curve, boundary: $0.curve, tolerance: tolerance)
             }
             var candidates: [(point: Point3D, parameter: Double)] = []
             for intersection in intersections {
@@ -362,24 +350,4 @@ package struct ExactLoftGuideCurveResolver {
         return false
     }
 
-    private func plane(
-        for sketchPlane: SketchPlane,
-        tolerance: ModelingTolerance
-    ) throws -> Plane3D {
-        let value: Plane3D = switch sketchPlane {
-        case .xy:
-            Plane3D(origin: .origin, normal: .unitZ)
-        case .yz:
-            Plane3D(origin: .origin, normal: .unitX)
-        case .zx:
-            Plane3D(origin: .origin, normal: .unitY)
-        case let .plane(plane):
-            plane
-        }
-        try value.validate(tolerance: tolerance)
-        return Plane3D(
-            origin: value.origin,
-            normal: try value.normal.normalized(tolerance: tolerance.distance)
-        )
-    }
 }

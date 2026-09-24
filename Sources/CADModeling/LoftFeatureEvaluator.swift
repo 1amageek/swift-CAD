@@ -39,7 +39,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         if loft.sections.contains(where: { !$0.section.isProfile }) {
             let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: context.tolerance)
             var seamPoints: [Point3D?] = []
-            let boundaries = try loft.sections.map { section -> (spans: [ExactBSplineCurveSpan], closed: Bool, plane: SketchPlane?) in
+            let boundaries = try loft.sections.map { section -> (spans: [ExactBSplineCurveSpan], closed: Bool) in
                 switch section.section {
                 case .curve(let reference):
                     if let index = section.startSampleIndex {
@@ -55,7 +55,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                     }
                     let curve = try ResolvedModelingSection.resolveCurve(reference,
                         from: context.curves[reference.featureID], tolerance: context.tolerance)
-                    return (try spanBuilder.sectionSpans(from: curve), curve.isClosed, curve.plane)
+                    return (try spanBuilder.sectionSpans(from: curve), curve.isClosed)
                 case .profile(let reference):
                     let profile = try ResolvedModelingSection.resolveProfile(reference,
                         from: context.profiles[reference.featureID])
@@ -73,14 +73,14 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                             tolerance: context.tolerance,
                             message: "A single curve cannot match a Loft profile with multiple boundary loops.")
                     }
-                    return (try directedProfileSpans(spans, direction: section.profileDirection, tolerance: context.tolerance), true, profile.plane)
+                    return (try directedProfileSpans(spans, direction: section.profileDirection, tolerance: context.tolerance), true)
                 }
             }
             guard let closed = boundaries.first?.closed, boundaries.allSatisfy({ $0.closed == closed }) else {
                 throw FeatureEvaluationError.invalidGraph("Loft sections must have matching boundary closure.")
             }
             let guides = try ExactLoftGuideCurveResolver().resolve(guides: loft.guides,
-                sections: boundaries.map { ExactLoftGuideSection(loops: [$0.spans], plane: $0.plane) },
+                sections: boundaries.map { ExactLoftGuideSection(loops: [$0.spans]) },
                 context: context)
             return try ExactLoftBodyBuilder(featureID: feature.id, context: context)
                 .build(loft: loft, boundarySpans: boundaries.map(\.spans), isClosed: closed,
