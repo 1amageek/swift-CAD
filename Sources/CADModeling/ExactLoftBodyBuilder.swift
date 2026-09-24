@@ -57,23 +57,27 @@ package struct ExactLoftBodyBuilder {
 
     package func build(
         loft: LoftFeature, boundarySpans: [[ExactBSplineCurveSpan]], isClosed: Bool,
-        guideCurves: [ExactLoftGuideCurve] = []
+        guideCurves: [ExactLoftGuideCurve], seamPoints: [Point3D?]
     ) throws -> EvaluationResult {
         try context.tolerance.validate()
         try loft.validate()
         guard loft.options.resultKind == .sheet,
               boundarySpans.count == loft.sections.count,
+              seamPoints.count == boundarySpans.count,
+              guideCurves.allSatisfy({ $0.sectionPoints.count == boundarySpans.count }),
               boundarySpans.allSatisfy({ !$0.isEmpty }) else {
             throw invalidGeometry("Boundary Loft requires Sheet output and nonempty section spans.")
         }
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Curve-section Loft shares exact construction,
-        // but feature evaluation must not claim explicit seam controls until exact seam
-        // correspondence is connected for open and spatial curve sections.
-        guard loft.sections.allSatisfy({ $0.startSampleIndex == nil }) else {
-            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
-                message: "Curve Loft explicit seam correspondence is not implemented.")
+        let sections = try boundarySpans.indices.map { index in
+            let spans = boundarySpans[index]
+            if let seam = seamPoints[index] ?? (isClosed ? guideCurves.first?.sectionPoints[index] : nil) {
+                if isClosed { return try parameterizedSpans(spansRotated(spans, toStartAt: seam)) }
+                guard seam.isApproximatelyEqual(to: spans[0].startPoint, tolerance: context.tolerance.distance) else {
+                    throw invalidGeometry("An open Loft boundary can start only at its retained curve endpoint.")
+                }
+            }
+            return try parameterizedSpans(spans)
         }
-        let sections = try boundarySpans.map(parameterizedSpans)
         let anchors = try guideAnchors(guideCurves, sections: sections, closed: isClosed)
         let sortedBreaks = (try sections.indices.flatMap { index in
             try sections[index].map {
@@ -578,7 +582,7 @@ package struct ExactLoftBodyBuilder {
                 continue
             }
         }
-        guard let match,
+        guard let match, match.projection.residual <= context.tolerance.distance,
               case let .closed(lower, upper) = spans[match.index].curve.domain else {
             throw invalidGeometry(
                 "Loft section seam sample does not lie on its exact profile boundary."

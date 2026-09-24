@@ -8,6 +8,48 @@ import CADModeling
 @Suite("Exact curve section Loft", .timeLimit(.minutes(1)))
 struct CurveLoftFeatureTests {
     @Test(arguments: [false, true])
+    func closedCurveSeamUsesOriginalSampleBeforeReversal(reversed: Bool) throws {
+        let parameters = [0.0, Double.pi / 4, Double.pi, 2 * Double.pi]
+        let sections = try [0.0, 2.0].map { z in
+            let exact = Curve3D.circle(Circle3D(center: Point3D(x: 0, y: 0, z: z), normal: .unitZ, radius: 1))
+            return EvaluatedCurve(sourceFeatureID: FeatureID(), source: .generatedFeature, kind: .spline,
+                points: try parameters.map { try exact.point(at: $0, tolerance: .standard) },
+                isClosed: true, exactCurve: exact, exactParameterDomain: .closed(0, 2 * Double.pi),
+                exactPointParameters: parameters)
+        }
+        let result = try evaluate(sections, mode: .ruled, startSampleIndex: 1, reversed: reversed)
+        try result.brep.validate(level: .exact, tolerance: .standard)
+        let expected = sections[0].points[1]
+        let surface = try #require(result.brep.geometry.surfaces.values.first {
+            try $0.point(u: 0, v: 0, tolerance: .standard).isApproximatelyEqual(to: expected, tolerance: 1e-8)
+        })
+        for v in [0.0, 0.3, 0.7, 1.0] {
+            #expect(try (surface.point(u: 0, v: v, tolerance: .standard)
+                - (expected + Vector3D(x: 0, y: 0, z: 2 * v))).length < 1e-8)
+        }
+        #expect(throws: FeatureEvaluationError.self) {
+            try evaluate(sections, mode: .ruled, startSampleIndex: Int.max)
+        }
+        var invalid = sections
+        invalid[0].points[1] = Point3D(x: 100, y: 100, z: 100)
+        #expect(throws: KernelError.self) { try evaluate(invalid, mode: .ruled, startSampleIndex: 1) }
+    }
+
+    @Test func openCurveSeamCannotWrapTheBoundary() throws {
+        let sections = try [0.0, 2.0].map { z in
+            try section(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+                controlPoints: [Point3D(x: 0, y: 0, z: z), Point3D(x: 1, y: 0, z: z)]))
+        }
+        _ = try evaluate(sections, mode: .ruled, startSampleIndex: 0)
+        _ = try evaluate(sections, mode: .ruled, startSampleIndex: 1, reversed: true)
+        #expect(throws: KernelError.self) { try evaluate(sections, mode: .ruled, startSampleIndex: 1) }
+        #expect(throws: KernelError.self) { try evaluate(sections, mode: .ruled, startSampleIndex: 0, reversed: true) }
+        #expect(throws: KernelError.self) {
+            try evaluate(sections, mode: .ruled, startSampleIndex: 0, parameterDomain: .closed(0.2, 0.8))
+        }
+    }
+
+    @Test(arguments: [false, true])
     func curveLoftUsesExactGuideAtInteriorOrEnd(endpoint: Bool) throws {
         let sections = try [0.0, 2.0].map { z in
             try section(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
@@ -208,9 +250,12 @@ struct CurveLoftFeatureTests {
     }
 
     private func evaluate(_ sections: [EvaluatedCurve], mode: LoftSurfaceMode,
-        guides: [EvaluatedCurve] = []) throws -> EvaluationResult {
+        guides: [EvaluatedCurve] = [], startSampleIndex: Int? = nil, reversed: Bool = false,
+        parameterDomain: ParameterDomain? = nil) throws -> EvaluationResult {
         let operation = LoftFeature(sections: sections.map {
-            LoftSectionReference(section: .curve(CurveSectionReference(featureID: $0.sourceFeatureID)))
+            LoftSectionReference(section: .curve(CurveSectionReference(featureID: $0.sourceFeatureID,
+                parameterDomain: parameterDomain, isReversed: reversed)),
+                startSampleIndex: startSampleIndex)
         }, guides: guides.map { LoftGuideReference(featureID: $0.sourceFeatureID) },
             options: LoftOptions(resultKind: .sheet, surfaceMode: mode))
         let inputs = sections + guides

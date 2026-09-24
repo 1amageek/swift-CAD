@@ -38,15 +38,35 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         try loft.validate()
         if loft.sections.contains(where: { !$0.section.isProfile }) {
             let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: context.tolerance)
+            var seamPoints: [Point3D?] = []
             let boundaries = try loft.sections.map { section -> (spans: [ExactBSplineCurveSpan], closed: Bool, plane: SketchPlane?) in
                 switch section.section {
                 case .curve(let reference):
+                    if let index = section.startSampleIndex {
+                        let source = try ResolvedModelingSection.resolveCurve(
+                            CurveSectionReference(featureID: reference.featureID),
+                            from: context.curves[reference.featureID], tolerance: context.tolerance)
+                        guard source.points.indices.contains(index) else {
+                            throw FeatureEvaluationError.invalidGraph("Loft start index must reference an existing source curve sample.")
+                        }
+                        seamPoints.append(source.points[index])
+                    } else {
+                        seamPoints.append(nil)
+                    }
                     let curve = try ResolvedModelingSection.resolveCurve(reference,
                         from: context.curves[reference.featureID], tolerance: context.tolerance)
                     return (try spanBuilder.sectionSpans(from: curve), curve.isClosed, curve.plane)
                 case .profile(let reference):
                     let profile = try ResolvedModelingSection.resolveProfile(reference,
                         from: context.profiles[reference.featureID])
+                    if let index = section.startSampleIndex {
+                        guard profile.vertices.indices.contains(index) else {
+                            throw FeatureEvaluationError.invalidGraph("Loft start index must reference an existing source profile sample.")
+                        }
+                        seamPoints.append(profile.vertices[index])
+                    } else {
+                        seamPoints.append(nil)
+                    }
                     let loops = try spanBuilder.profileLoopSpans(from: profile)
                     guard loops.count == 1, let spans = loops.first else {
                         throw KernelError(phase: .topology, code: .nonManifoldResult,
@@ -64,7 +84,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 context: context)
             return try ExactLoftBodyBuilder(featureID: feature.id, context: context)
                 .build(loft: loft, boundarySpans: boundaries.map(\.spans), isClosed: closed,
-                    guideCurves: guides)
+                    guideCurves: guides, seamPoints: seamPoints)
         }
         let profiles = try resolvedProfiles(for: loft, context: context)
         let guideCurves = try ExactLoftGuideCurveResolver().resolve(

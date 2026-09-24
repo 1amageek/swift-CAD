@@ -110,8 +110,16 @@ anchors; the union of mapped span boundaries preserves every exact source span.
 Inverse mapping selects exact subcurves, and the existing connector builder uses
 the exact guide curves. Endpoint/interior classification and guide order must
 agree across sections; inconsistent correspondence is rejected before topology
-publication. Explicit curve seams and spatial intermediate contact solving remain
-separate unfinished contracts, not implicit approximations.
+publication. Spatial intermediate contact solving remains an unfinished contract.
+
+Explicit section start indexes address the original source samples, before curve
+restriction or reversal. The selected point must lie on the retained exact curve;
+it is not used to reconstruct geometry. Closed boundaries rotate/split exact spans
+at that point, or at the first guide contact when no explicit seam is supplied.
+Open boundaries admit only their current start point: changing their start means
+restriction or reversal, not wrapping an open chain. Invalid indexes and points
+outside the retained boundary fail before publication. CurveLoftFeatureTests owns
+exact seam location, traversal and invalid-source/interval admission checks.
 
 Explicit profile traversal is applied to exact spans before correspondence.
 Automatic alignment may rotate a seam but must not undo a locked direction.
