@@ -86,6 +86,12 @@ absolute minima, with outward-rounded products, sums and square root. It retains
 the largest-component bound when underflow or overflow makes the sum weaker.
 This avoids orientation-dependent refusal of short but regular tangents.
 
+Common curve-basis resolution preserves already-identical normalized clamped
+bases verbatim after validating both curves and counting their positive knot
+spans against the existing limit. It must not reconstruct these controls from
+derivatives or round-trip their homogeneous coordinates. Different bases still
+use the existing normalization, span alignment and degree elevation path.
+
 `BSplineSurfaceEmbeddingValidator.validateSeparation` certifies that two complete
 finite spline domains are disjoint using the same outward Bernstein difference
 exclusion and subdivision budget as embedding. Parameter coordinates belong to

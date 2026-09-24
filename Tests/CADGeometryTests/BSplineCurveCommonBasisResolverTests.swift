@@ -4,6 +4,27 @@ import CADCore
 
 @Suite("Exact common B-spline curve basis")
 struct BSplineCurveCommonBasisResolverTests {
+    @Test(arguments: [false, true])
+    func existingNormalizedBasisPreservesEveryControlAndWeight(multipleSpans: Bool) throws {
+        let first = BSplineCurve3D(degree: 3,
+            knots: multipleSpans ? [0, 0, 0, 0, 0.5, 1, 1, 1, 1] : [0, 0, 0, 0, 1, 1, 1, 1],
+            controlPoints: [Point3D(x: 0.003, y: 0, z: 0), Point3D(x: 0.001, y: 1, z: 0),
+                Point3D(x: -0.002, y: 2, z: 0), Point3D(x: 0.0005, y: 3, z: 0)]
+                + (multipleSpans ? [Point3D(x: 0.0007, y: 4, z: 0)] : []),
+            weights: [1, 0.7, 1.3, 1] + (multipleSpans ? [1.2] : []))
+        var second = first
+        second.controlPoints = first.controlPoints.map { $0 + Vector3D(x: 0, y: 0, z: 2) }
+        let result = try DefaultBSplineCurveCommonBasisResolver(maximumSpanCount: multipleSpans ? 2 : 1)
+            .resolve(first: first, second: second, tolerance: .standard)
+        #expect(result.first == first)
+        #expect(result.second == second)
+        second.weights[1] = 0
+        #expect(throws: (any Error).self) {
+            _ = try DefaultBSplineCurveCommonBasisResolver()
+                .resolve(first: first, second: second, tolerance: .standard)
+        }
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func differentDegreesDomainsAndKnotSpansRetainBothExactCurves() throws {
         let first = BSplineCurve3D(

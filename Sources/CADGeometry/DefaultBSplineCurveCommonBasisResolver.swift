@@ -24,6 +24,24 @@ public struct DefaultBSplineCurveCommonBasisResolver: BSplineCurveCommonBasisRes
             )
         }
 
+        if first.degree == second.degree, first.knots == second.knots,
+           first.knots.first == 0, first.knots.last == 1,
+           first.domain == .closed(0, 1) {
+            var spanCount = 0
+            var previous = 0.0
+            for knot in first.knots where knot > previous {
+                spanCount += 1
+                previous = knot
+                guard spanCount <= maximumSpanCount else {
+                    throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
+                        residual: Double(spanCount), tolerance: tolerance,
+                        message: "Common B-spline basis resolution exceeded its span budget.")
+                }
+            }
+            // An existing common basis is already the result. Reconstructing it
+            // through derivatives introduces avoidable boundary roundoff.
+            return BSplineCurveCommonBasisPair(first: first, second: second)
+        }
         let firstSource = try normalizedSource(first, tolerance: tolerance)
         let secondSource = try normalizedSource(second, tolerance: tolerance)
         let breaks = mergedBreaks(
