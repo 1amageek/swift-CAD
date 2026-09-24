@@ -1,5 +1,11 @@
 # CADGeometry
 
+Analytic/B-spline intersection retries vary periodic charts only. A plane has
+one chart and therefore one attempt, independent of the periodic retry limit;
+its original intersection/resource failure propagates without repeating the
+same bounded problem. Periodic surfaces retain their existing seam search.
+AnalyticBSplineSurfaceIntersectionTests owns chart-selection and failure checks.
+
 Convex-hull separating-plane predicates first enclose the dot product and
 distance threshold using outward-rounded scalar intervals. A strict interval
 sign decides the result; uncertain signs use the existing expansion predicate.

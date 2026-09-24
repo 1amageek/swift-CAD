@@ -77,12 +77,15 @@ struct AnalyticBSplineSurfaceIntersector {
         )
     }
 
-    private func periodicSeamOffsets(
+    func periodicSeamOffsets(
         analytic: CanonicalAnalyticSurface,
         reference: BSplineSurface3D,
         count: Int,
         tolerance: ModelingTolerance
     ) throws -> [Double] {
+        // Plane conversion does not consume a seam offset. Retrying it would
+        // repeat the identical bounded intersection after a deterministic failure.
+        if case .plane = analytic { return [0.0] }
         let initialOffset = Double.pi * 0.125
         let goldenAngle = Double.pi * (3.0 - sqrt(5.0))
         let candidates = (0..<count).map {

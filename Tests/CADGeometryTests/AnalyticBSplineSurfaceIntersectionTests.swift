@@ -8,6 +8,55 @@ struct AnalyticBSplineSurfaceIntersectionTests {
     private let tolerance = ModelingTolerance.standard
 
     @Test(.timeLimit(.minutes(1)))
+    func planeIntersectionPreservesResourceFailure() throws {
+        let scalars = [1.0, -1.0, 1.0]
+        let patch = BSplineSurface3D(uDegree: 2, vDegree: 2,
+            uKnots: [0, 0, 0, 1, 1, 1], vKnots: [0, 0, 0, 1, 1, 1],
+            controlPoints: (0..<3).map { row in
+                (0..<3).map { column in
+                    Point3D(x: Double(column - 1), y: Double(row - 1),
+                        z: scalars[column] + scalars[row] - 0.25)
+                }
+            })
+        let plane = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
+        do {
+            _ = try AnalyticBSplineSurfaceIntersector().intersections(
+                analytic: CanonicalAnalyticSurface(plane), surface: patch,
+                firstSurface: plane, secondSurface: .bSpline(patch), analyticIsFirst: true,
+                options: .init(maximumSubdivisionCells: 1, maximumPeriodicSeamAttempts: 64),
+                tolerance: tolerance)
+            Issue.record("An exhausted intersection budget must not produce success.")
+        } catch let error as KernelError {
+            #expect(error.code == .resourceLimitExceeded)
+            #expect(!error.message.contains("periodic seam retry"))
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [1, 16, 64])
+    func planeHasOneChartWhilePeriodicSurfacesRetainSeamAttempts(attempts: Int) throws {
+        let reference = BSplineSurface3D.bilinearPatch(
+            bottomLeft: Point3D(x: -1, y: -1, z: -1),
+            bottomRight: Point3D(x: 1, y: -1, z: 1),
+            topRight: Point3D(x: 1, y: 1, z: -1),
+            topLeft: Point3D(x: -1, y: 1, z: 1))
+        let plane = CanonicalAnalyticSurface(.plane(Plane3D(origin: .origin, normal: .unitZ)))
+        let owner = AnalyticBSplineSurfaceIntersector()
+        let offsets = try owner.periodicSeamOffsets(analytic: plane, reference: reference,
+            count: attempts, tolerance: tolerance)
+        #expect(offsets == [0])
+        let builder = AnalyticSurfaceBSplineBuilder()
+        let original = try builder.surface(for: plane, boundedBy: reference,
+            periodicSeamOffset: Double.pi * 0.125, tolerance: tolerance)
+        #expect(try builder.surface(for: plane, boundedBy: reference,
+            periodicSeamOffset: offsets[0], tolerance: tolerance) == original)
+        let cylinder = CanonicalAnalyticSurface(.analytic(
+            .cylinder(origin: .origin, axis: .unitZ, radius: 1)))
+        let periodic = try owner.periodicSeamOffsets(analytic: cylinder, reference: reference,
+            count: attempts, tolerance: tolerance)
+        #expect(Set(periodic).count == attempts)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func sphereAndRationalPlaneProduceVerifiedClosedIntersectionInBothOrders() throws {
         let sphere = Surface3D.analytic(.sphere(
             center: .origin,
