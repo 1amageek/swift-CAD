@@ -224,7 +224,8 @@ cache, shared mutation, tolerance change, or cross-request lifetime is introduce
 Prepared/direct interval equality, disjoint successive boxes and invalid span
 rejection verify this reuse contract.
 
-Curve decomposition preserves an already-clamped single Bezier span
+Curve decomposition preserves existing Bezier spans, including composite curves
+whose span boundaries have at least degree-fold knot multiplicity,
 after source validation. Trimming preserves source endpoint controls and weights
 at unchanged bounds; only newly created endpoints are evaluated by subdivision.
 The contract is exact stored identity, not tolerance-based snapping. Rational,

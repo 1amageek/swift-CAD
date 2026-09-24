@@ -70,12 +70,15 @@ struct BSplineCurveBezierDecomposer {
                 message: "B-spline Bezier extraction requires a positive finite knot span."
             )
         }
-        if curve.controlPointCount == curve.degree + 1,
-           curve.knots.prefix(curve.degree + 1).allSatisfy({ $0 == lower }),
-           curve.knots.suffix(curve.degree + 1).allSatisfy({ $0 == upper }) {
+        // Degree-fold boundary knots already isolate a Bezier control polygon.
+        if let upperIndex = curve.knots.firstIndex(of: upper),
+           upperIndex > curve.degree, upperIndex <= curve.controlPointCount,
+           curve.knots[(upperIndex - curve.degree)..<upperIndex].allSatisfy({ $0 == lower }),
+           curve.knots[upperIndex..<(upperIndex + curve.degree)].allSatisfy({ $0 == upper }) {
+            let controls = (upperIndex - curve.degree - 1)..<upperIndex
             return RationalBezierCurvePatch3D(
-                controlPoints: curve.controlPoints,
-                weights: curve.weights,
+                controlPoints: Array(curve.controlPoints[controls]),
+                weights: Array(curve.weights[controls]),
                 lower: lower,
                 upper: upper
             )

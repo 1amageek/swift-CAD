@@ -8,6 +8,21 @@ struct BSplineCurveTrimmingTests {
     private let tolerance = ModelingTolerance.standard
 
     @Test
+    func compositeBezierExtractionPreservesEverySpanControl() throws {
+        let points = (0..<7).map { Point3D(x: Double($0) * 0.13, y: Double($0 % 3) * 0.7, z: 0) }
+        let weights = [0.7, 1.3, 0.9, 1.0, 0.8, 1.2, 0.6]
+        let curve = BSplineCurve3D(degree: 3,
+            knots: [0, 0, 0, 0, 0.4, 0.4, 0.4, 1, 1, 1, 1],
+            controlPoints: points, weights: weights)
+        let patches = try BSplineCurveBezierDecomposer().curvePatches(curve: curve, tolerance: tolerance)
+        #expect(patches.count == 2)
+        for (index, patch) in patches.enumerated() {
+            #expect(patch.controlPoints == Array(points[(index * 3)...(index * 3 + 3)]))
+            #expect(patch.weights == Array(weights[(index * 3)...(index * 3 + 3)]))
+        }
+    }
+
+    @Test
     func bezierExtractionAndTrimsPreserveUnchangedControls() throws {
         let curve = BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
             controlPoints: [Point3D(x: 0.1, y: 0.3, z: 0.7),
