@@ -19,7 +19,9 @@ struct BSplineSurfaceEmbeddingValidatorTests {
             first: first, second: plane(offset: 0.5), tolerance: .standard)
         try BSplineSurfaceEmbeddingValidator(maximumPairSubdivisionDepth: 0, maximumPairCellCount: 1)
             .validateSeparation(first: first, second: plane(offset: 2), tolerance: .standard)
-        for second in [first, plane(offset: 0.5)] {
+        try BSplineSurfaceEmbeddingValidator(maximumPairSubdivisionDepth: 0)
+            .validateSeparation(first: first, second: plane(offset: 0.5), tolerance: .standard)
+        for second in [first] {
             do {
                 try BSplineSurfaceEmbeddingValidator(maximumPairSubdivisionDepth: 0)
                     .validateSeparation(first: first, second: second, tolerance: .standard)

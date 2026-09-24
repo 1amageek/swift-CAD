@@ -301,10 +301,13 @@ package struct ExactLoftBodyBuilder {
         let sideSurfaceBuilder = ExactLoftSideSurfaceBuilder()
         // FIXME(INCOMPLETE_IMPLEMENTATION): Loft evaluation requires individual
         // patch admission but general corner-only/rational stationary guide
-        // parameterization and cross-patch separation remain unresolved.
+        // parameterization, incident-patch and cap/side separation remain unresolved.
         // Complete those contracts before claiming general smooth/guided Loft;
         // structural BRep validation alone is insufficient.
         var sideFaceOrdinal = 0
+        let separation = BSplineSurfaceEmbeddingValidator()
+        var comparedPairs = 0
+        var admittedPatches: [(surface: BSplineSurface3D, vertices: Set<VertexID>, bounds: BoundingBox3D)] = []
         for loopIndex in partitions.indices {
             let partition = partitions[loopIndex]
             let boundarySpanCount = partition.breaks.count - 1
@@ -319,6 +322,33 @@ package struct ExactLoftBodyBuilder {
                         uMaximumBoundary: connectorCurvesByLoop[loopIndex][connectionIndex][nextSpanIndex],
                         tolerance: context.tolerance
                     )
+                    let boundaryEdges = [
+                        ringEdgeIDsByLoop[loopIndex][connectionIndex][spanIndex],
+                        ringEdgeIDsByLoop[loopIndex][nextSectionIndex][spanIndex]
+                    ]
+                    var vertices: Set<VertexID> = []
+                    for edgeID in boundaryEdges {
+                        guard let edge = model.edges[edgeID] else {
+                            throw invalidGeometry("Loft side admission requires its generated boundary edges.")
+                        }
+                        vertices.insert(edge.startVertexID)
+                        vertices.insert(edge.endVertexID)
+                    }
+                    let bounds = try BoundingBox3D(points: surface.controlPoints.joined())
+                    // ponytail: quadratic broad phase; use a spatial sweep if measured pair scanning dominates.
+                    for previous in admittedPatches {
+                        guard comparedPairs < separation.maximumPairCellCount else {
+                            throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
+                                featureID: featureID, tolerance: context.tolerance,
+                                message: "Loft side separation exhausted its patch-pair budget.")
+                        }
+                        comparedPairs += 1
+                        guard vertices.isDisjoint(with: previous.vertices),
+                              bounds.intersects(previous.bounds, tolerance: context.tolerance.distance) else { continue }
+                        try separation.validateSeparation(first: previous.surface, second: surface,
+                            tolerance: context.tolerance)
+                    }
+                    admittedPatches.append((surface, vertices, bounds))
                     faceIDsByLoop[loopIndex].append(addSideFace(
                         index: sideFaceOrdinal,
                         orientation: faceOrientation,

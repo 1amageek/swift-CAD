@@ -180,8 +180,13 @@ Every Loft side patch passes the existing
 B-spline regularity and embedding validators over its complete parameter domain
 before entering the result BRep. This applies to profile, curve and mixed inputs.
 Interior collapsed rows and single-patch self-overlap are failures, even when
-the edge/face graph is structurally valid. This is not cross-patch separation
-between distinct patches. Stationary outer parameters use CADGeometry's explicit
+the edge/face graph is structurally valid. Nonincident side patches (no shared
+topological vertex) additionally require finite-domain separation before publication.
+Positive-weight control hulls exclude distant pairs; remaining pairs use
+CADGeometry's certified separation contract. Root comparisons share its standard
+pair-count ceiling; each unresolved pair retains the geometry subdivision budget.
+Incident side patches and cap/side intersections still require topology-aware
+admission and remain explicitly incomplete. Stationary outer parameters use CADGeometry's explicit
 unit-weight factor-removal contract; unresolved cases fail rather than skipping
 admission for the entire smooth construction branch.
 

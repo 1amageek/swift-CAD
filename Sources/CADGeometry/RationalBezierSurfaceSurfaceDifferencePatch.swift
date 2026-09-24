@@ -312,6 +312,48 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         )
     }
 
+    /// Candidate directions are heuristic; every coefficient box must prove its sign.
+    func excludesZeroAlongSurfaceDirections() -> Bool {
+        var direction = Vector3D.zero
+        for slab in controlNet {
+            for plane in slab {
+                for row in plane {
+                    for coefficient in row {
+                        direction = direction + Vector3D(x: coefficient.x.midpoint,
+                            y: coefficient.y.midpoint, z: coefficient.z.midpoint)
+                    }
+                }
+            }
+        }
+        if provesSeparation(along: direction) { return true }
+        let columns = derivativeColumns().map { Vector3D(x: $0.x.midpoint, y: $0.y.midpoint, z: $0.z.midpoint) }
+        for first in columns.indices {
+            for second in (first + 1)..<columns.count {
+                if provesSeparation(along: columns[first].cross(columns[second])) { return true }
+            }
+        }
+        return false
+    }
+
+    private func provesSeparation(along direction: Vector3D) -> Bool {
+        guard direction.x.isFinite, direction.y.isFinite, direction.z.isFinite else { return false }
+        let x = OutwardInterval(direction.x), y = OutwardInterval(direction.y), z = OutwardInterval(direction.z)
+        var positive = true, negative = true
+        for slab in controlNet {
+            for plane in slab {
+                for row in plane {
+                    for coefficient in row {
+                        let projection = coefficient.x * x + coefficient.y * y + coefficient.z * z
+                        positive = positive && projection.lower > 0
+                        negative = negative && projection.upper < 0
+                        if !positive && !negative { return false }
+                    }
+                }
+            }
+        }
+        return positive || negative
+    }
+
     func rankThreeCertificate() -> JacobianRankCertificate {
         rankThreeCertificate(columns: derivativeColumns())
     }

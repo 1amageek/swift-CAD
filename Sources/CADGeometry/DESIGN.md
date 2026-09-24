@@ -93,6 +93,11 @@ different charts and never imply adjacency. Failure to prove separation is a
 typed resource failure, not a positive intersection certificate. Touching domains
 are not admissible to this strict separation contract; topology must separately
 own shared-boundary admission. This contract does not establish regularity.
+Oblique candidate axes from coefficient-box means and crosses of midpoint
+derivative columns supplement Cartesian axes.
+Only uniform strict signs of outward-rounded projections of every coefficient
+box certify separation. The mean is a search heuristic, never proof by sampling;
+failure continues bounded subdivision without increasing its budget.
 
 B-spline embedding first certifies local cells with a forward work cursor; a
 later split must not repeat local projection proofs for earlier accepted cells.

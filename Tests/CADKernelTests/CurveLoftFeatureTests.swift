@@ -7,6 +7,29 @@ import CADModeling
 
 @Suite("Exact curve section Loft", .timeLimit(.minutes(1)))
 struct CurveLoftFeatureTests {
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func nonincidentLoftSidesRequireSeparation(crosses: Bool) throws {
+        let positions: [(Double, Double)] = crosses
+            ? [(0, 0), (1, 1), (0, 1), (1, 0)]
+            : [(0, 0), (1, 1), (2, 1), (3, 0)]
+        let sections = try positions.map { x, z in
+            try section(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+                controlPoints: [Point3D(x: x, y: 0, z: z), Point3D(x: x, y: 1, z: z)]))
+        }
+        if crosses {
+            do {
+                _ = try evaluate(sections, mode: .ruled)
+                Issue.record("Individually regular strips must not admit an intersecting Loft.")
+            } catch let error as KernelError {
+                #expect(error.code == .resourceLimitExceeded)
+            }
+        } else {
+            let result = try evaluate(sections, mode: .ruled)
+            #expect(result.brep.faces.count == 3)
+            try result.brep.validate(level: .exact, tolerance: .standard)
+        }
+    }
+
     @Test func transfiniteLoftDoesNotDiscardNearUnitBoundaryWeights() throws {
         let lower = BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
             controlPoints: [.origin, Point3D(x: 1, y: 0, z: 1e9), Point3D(x: 2, y: 0, z: 0)],

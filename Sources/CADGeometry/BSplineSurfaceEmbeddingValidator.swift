@@ -498,6 +498,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         while let pair = pending.popLast() {
             if pair.depth > 0 { try consumeSeparationCell(&visited, tolerance: tolerance) }
             if pair.difference.excludesZero() { continue }
+            if pair.difference.excludesZeroAlongSurfaceDirections() { continue }
             guard pair.depth < maximumPairSubdivisionDepth else {
                 throw resourceLimit(residual: Double(pair.depth), tolerance: tolerance,
                     message: "B-spline surface separation could not exclude intersection within the subdivision limit.")
