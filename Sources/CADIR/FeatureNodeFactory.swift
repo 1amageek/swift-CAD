@@ -65,12 +65,16 @@ public enum FeatureNodeFactory {
                 guard case let .extrude(extrude) = operation else {
                     throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
                 }
-                try validateProfileSource(extrude.profile, in: document)
+                try extrude.validate()
+                switch extrude.section {
+                case .profile(let reference): try validateProfileSource(reference, in: document)
+                case .curve(let reference): try validateCurveSource(reference.featureID, owner: "Extrude", in: document)
+                }
                 return FeatureNode(
                     id: id,
                     name: name,
                     operation: operation,
-                    inputs: [FeatureInput(featureID: extrude.profile.featureID, role: .profile)],
+                    inputs: [FeatureInput(featureID: extrude.section.featureID, role: extrude.section.inputRole)],
                     outputs: [FeatureOutput(role: extrude.resultKind == .solid ? .body : .sheet)]
                 )
             }

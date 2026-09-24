@@ -722,14 +722,13 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         guard case let .extrude(extrude) = node.operation else {
             throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a extrude operation.")
         }
-        try extrude.profile.validate()
-        try extrude.distance.validateLiteralQuantities()
-        guard node.inputs == [FeatureInput(featureID: extrude.profile.featureID, role: .profile)] else {
-            throw FeatureEvaluationError.invalidGraph("Extrude features must consume the referenced profile input.")
+        try extrude.validate()
+        guard node.inputs == [FeatureInput(featureID: extrude.section.featureID, role: extrude.section.inputRole)] else {
+            throw FeatureEvaluationError.invalidGraph("Extrude features must consume the referenced section input.")
         }
-        guard let source = nodes[extrude.profile.featureID],
-              source.outputs.contains(where: { $0.role == .profile }) else {
-            throw FeatureEvaluationError.invalidGraph("Extrude profile source must declare a profile output.")
+        guard let source = nodes[extrude.section.featureID],
+              source.outputs.contains(where: { $0.role == extrude.section.inputRole }) else {
+            throw FeatureEvaluationError.invalidGraph("Extrude source must declare the section input role.")
         }
         switch extrude.resultKind {
         case .solid:

@@ -42,6 +42,14 @@ evaluated source arrays + reference
   map, filter, copy buffers manually, store state or cache results.
 - These rules and Sendable conformances are unconditional across targets.
 
+Extrude admits a shared section before construction. Closed profiles retain the
+existing prismatic builder and topology roles. Planar curve sheets reuse the
+exact linear-section Sweep builder with a single analytic line path; normal,
+explicit vector and symmetric placement use the source plane, never display
+samples. Generated geometry passes the existing exact BRep admission before
+publication. Spatial curves without plane metadata remain an explicit incomplete
+construction path, not a fabricated planar profile.
+
 ## Failure, Concurrency, and Constraints
 
 Resolution is synchronous, stateless and constant-time, with no I/O, callbacks,

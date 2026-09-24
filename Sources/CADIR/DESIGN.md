@@ -16,9 +16,8 @@ Editable spatial path source is owned by the child
 planar Sketch contract.
 
 Operation-independent profile/curve section references belong to
-[SectionReference](SectionReference/DESIGN.md). Sweep consumes this contract;
-Extrude, Revolve and Loft will adopt it as their construction paths gain curve
-inputs. Their current profile-only fields do not claim that capability.
+[SectionReference](SectionReference/DESIGN.md). Sweep and Extrude consume this
+contract. Revolve and Loft still retain profile-only fields.
 
 This module owns the value contract for `StableSubshapeReference` and its
 `SubshapeGeometrySignature`, including Codable validation. It also owns the
@@ -60,6 +59,13 @@ flowchart LR
 produces `.body`, and `.sheet` produces `.sheet`. The native package shape
 validator must preserve that field through save/load, as verified by
 `ExtrudeSourceRoundTripTests` using exact document reevaluation.
+
+Extrude owns one `section`, whose input port is derived from its reference kind.
+A curve section produces only a sheet; requesting a solid is an invalid graph,
+not permission to close the curve. The canonical payload requires `section` and
+`resultKind`. The former profile-only payload is rejected explicitly rather than
+decoded into a default section. The profile initializer remains an authoring
+convenience that constructs `.profile`, not a second source representation.
 
 Sweep source optionally retains a length-valued `approximationTolerance` and
 `twistLaw` containing `SweepTwistKnot(position:angle:)` values. Omission preserves

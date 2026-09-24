@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 
 public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
@@ -37,19 +38,17 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 message: "PlanarExtrudeFeatureEvaluator only supports newBody extrude."
             )
         }
-        let profile = try ResolvedModelingSection.resolveProfile(
-            extrude.profile,
-            from: context.profiles[extrude.profile.featureID]
-        )
+        try extrude.validate()
         let distance = try resolvedDistance(
             extrude.distance,
             context: context
         )
-        // Both kinds sweep the same wall from the same profile, and the result kind decides only
-        // whether the two ends are sewn onto it.
         let result: EvaluationResult
-        switch extrude.resultKind {
-        case .solid:
+        switch extrude.section {
+        case .profile(let reference):
+            let profile = try ResolvedModelingSection.resolveProfile(
+                reference, from: context.profiles[reference.featureID]
+            )
             result = try ExactProfileExtrudeBodyBuilder(
                 featureID: feature.id,
                 context: context,
@@ -58,22 +57,62 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 from: profile,
                 direction: extrude.direction,
                 distance: distance,
-                bodyKind: .solid,
-                includesCaps: true
+                bodyKind: extrude.resultKind == .solid ? .solid : .sheet,
+                includesCaps: extrude.resultKind == .solid
             )
-        case .sheet:
-            result = try evaluateSheet(
-                from: profile,
-                featureID: feature.id,
-                direction: extrude.direction,
-                distance: distance,
-                context: context
+        case .curve(let reference):
+            let curve = try ResolvedModelingSection.resolveCurve(
+                reference, from: context.curves[reference.featureID], tolerance: context.tolerance
+            )
+            result = try evaluateCurveSheet(
+                curve, featureID: feature.id, direction: extrude.direction,
+                distance: distance, context: context
             )
         }
         return try ValidatedFeatureEvaluation(
             planarExtrusion: result,
             tolerance: context.tolerance
         )
+    }
+
+    private func evaluateCurveSheet(
+        _ curve: EvaluatedCurve,
+        featureID: FeatureID,
+        direction: ExtrudeDirection,
+        distance: Double,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Extrude evaluation currently requires a planar
+        // curve section. Spatial-curve extrusion needs exact translational surface construction
+        // without plane metadata before this path represents the full Surface Creation contract.
+        guard let sourcePlane = curve.plane else {
+            throw KernelError.unsupportedEvaluation(
+                tolerance: context.tolerance,
+                message: "Curve extrusion requires source plane metadata."
+            )
+        }
+        let plane = try ExactSweepSectionPlane(sourcePlane, tolerance: context.tolerance).plane
+        let axis: Vector3D
+        switch direction {
+        case .normal, .symmetric: axis = plane.normal
+        case .vector(let vector):
+            do { axis = try vector.normalized(tolerance: context.tolerance.distance) }
+            catch GeometryError.invalidVectorLength {
+                throw FeatureEvaluationError.invalidDirection(vector)
+            }
+        }
+        let start = direction == .symmetric
+            ? plane.origin + axis * (-0.5 * distance)
+            : plane.origin
+        let end = start + axis * distance
+        let path = EvaluatedCurve(
+            sourceFeatureID: featureID, source: .generatedFeature, kind: .line,
+            points: [start, end], exactCurve: .line(Line3D(origin: start, direction: axis)),
+            exactParameterDomain: .closed(0, distance), exactPointParameters: [0, distance]
+        )
+        return try ExactLinearSectionSweepBodyBuilder(
+            featureID: featureID, context: context, sewer: sewer
+        ).buildSheet(section: curve, pathSegments: [EvaluatedCurvePathSegment(curve: path)], pathEndPoint: end)
     }
 
     package func evaluateSheet(

@@ -164,12 +164,9 @@ struct DocumentEvaluatorIncrementalTests {
             Issue.record("Expected an extrusion feature.")
             return
         }
-        replacement.operation = .extrude(ExtrudeFeature(
-            profile: extrude.profile,
-            distance: .constant(.length(12.0, unit: .millimeter)),
-            direction: extrude.direction,
-            operation: extrude.operation
-        ))
+        var updated = extrude
+        updated.distance = .constant(.length(12.0, unit: .millimeter))
+        replacement.operation = .extrude(updated)
         let editedSource = try source.replacingGraphStableFeature(replacement)
 
         let incremental = try evaluator.evaluate(editedSource, reusing: initial)
@@ -537,11 +534,8 @@ private func replacingExtrudeDistance(
     guard case let .extrude(extrude) = replacement.operation else {
         throw FeatureEvaluationError.invalidGraph("Expected an extrusion feature.")
     }
-    replacement.operation = .extrude(ExtrudeFeature(
-        profile: extrude.profile,
-        distance: .constant(.length(distance, unit: .millimeter)),
-        direction: extrude.direction,
-        operation: extrude.operation
-    ))
+    var updated = extrude
+    updated.distance = .constant(.length(distance, unit: .millimeter))
+    replacement.operation = .extrude(updated)
     return try source.replacingGraphStableFeature(replacement)
 }

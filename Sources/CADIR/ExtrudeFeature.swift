@@ -1,7 +1,7 @@
 import CADCore
 
 public struct ExtrudeFeature: Codable, Sendable, Hashable {
-    public var profile: ProfileReference
+    public var section: SectionReference
     public var distance: CADExpression
     public var direction: ExtrudeDirection
     public var operation: SolidOperation
@@ -14,7 +14,18 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         operation: SolidOperation = .newBody,
         resultKind: ExtrudeResultKind = .solid
     ) {
-        self.profile = profile
+        self.init(section: .profile(profile), distance: distance, direction: direction,
+                  operation: operation, resultKind: resultKind)
+    }
+
+    public init(
+        section: SectionReference,
+        distance: CADExpression,
+        direction: ExtrudeDirection = .normal,
+        operation: SolidOperation = .newBody,
+        resultKind: ExtrudeResultKind
+    ) {
+        self.section = section
         self.distance = distance
         self.direction = direction
         self.operation = operation
@@ -22,7 +33,7 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case profile
+        case section
         case distance
         case direction
         case operation
@@ -32,31 +43,42 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
-            [.profile, .distance, .direction, .operation, .resultKind],
+            [.section, .distance, .direction, .operation, .resultKind],
             in: decoder
         )
-        profile = try container.decode(ProfileReference.self, forKey: .profile)
+        section = try container.decode(SectionReference.self, forKey: .section)
         distance = try container.decode(CADExpression.self, forKey: .distance)
         direction = try container.decode(ExtrudeDirection.self, forKey: .direction)
         operation = try container.decode(SolidOperation.self, forKey: .operation)
-        resultKind = try container.decodeIfPresent(ExtrudeResultKind.self, forKey: .resultKind) ?? .solid
+        resultKind = try container.decode(ExtrudeResultKind.self, forKey: .resultKind)
+        try validate()
     }
 
     public func encode(to encoder: Encoder) throws {
+        try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(profile, forKey: .profile)
+        try container.encode(section, forKey: .section)
         try container.encode(distance, forKey: .distance)
         try container.encode(direction, forKey: .direction)
         try container.encode(operation, forKey: .operation)
-        if resultKind != .solid { try container.encode(resultKind, forKey: .resultKind) }
+        try container.encode(resultKind, forKey: .resultKind)
+    }
+
+    public func validate() throws {
+        try section.validate()
+        try distance.validateLiteralQuantities()
+        guard resultKind == .sheet || section.isProfile else {
+            throw FeatureEvaluationError.invalidGraph("A curve extrusion requires sheet output.")
+        }
+        if case .vector(let vector) = direction { try vector.validate() }
     }
 }
 
-/// Which body a linear extrusion of a closed profile builds.
+/// Which body a linear extrusion builds.
 ///
 /// A solid extrusion caps both ends of the swept wall; a sheet extrusion leaves them open and
 /// sews the wall alone. The profile is the same value in both cases, so the choice belongs to the
-/// feature rather than to the profile it consumes.
+/// feature rather than to the profile it consumes. Open curves produce sheets only.
 public enum ExtrudeResultKind: String, Codable, Sendable, Hashable {
     case solid
     case sheet

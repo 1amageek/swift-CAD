@@ -1003,10 +1003,10 @@ private func validateSurfaceTrimKnotReferenceObject(_ object: [String: Any], pat
 private func validateExtrudeFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["profile", "distance", "direction", "operation", "resultKind"],
+        supportedKeys: ["section", "distance", "direction", "operation", "resultKind"],
         objectName: path
     )
-    try validateObjectField("profile", in: object, path: "\(path).profile", using: validateProfileReferenceObject)
+    try validateObjectField("section", in: object, path: "\(path).section", using: validateSectionReferenceObject)
     try validateObjectField("distance", in: object, path: "\(path).distance", using: validateExpressionObject)
     try validateObjectField("direction", in: object, path: "\(path).direction", using: validateExtrudeDirectionObject)
 }
