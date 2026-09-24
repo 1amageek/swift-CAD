@@ -84,11 +84,40 @@ struct RevolveSheetConstructionTests {
         }
     }
 
+    @Test(arguments: [Double.pi, -Double.pi, 2 * Double.pi], [false, true])
+    func radialOrderingAdmitsAxiallyReversingSpatialGenerators(angle: Double, rational: Bool) throws {
+        var curve = BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
+            controlPoints: [Point3D(x: 0.02, y: 0, z: 0), Point3D(x: 0.03, y: 0.01, z: 0.003),
+                Point3D(x: 0.04, y: -0.01, z: 0.006), Point3D(x: 0.05, y: 0, z: 0.01)],
+            weights: rational ? [1, 0.8, 1.2, 1] : nil)
+        if angle < 0 { curve = try curve.reversed(tolerance: .standard) }
+        let sourceStart = try curve.point(at: 0, tolerance: .standard)
+        var input = try section(curve)
+        input.plane = nil
+        let result = try build(input, angle: angle)
+        try result.brep.validate(level: .exact, tolerance: .standard)
+        #expect(result.brep.bodies.values.allSatisfy { $0.kind == .sheet })
+        #expect(result.brep.faces.count == (abs(angle) > .pi ? 4 : 2))
+        for surface in result.brep.geometry.surfaces.values {
+            for u in [0.0, 0.5, 1.0] {
+                let start = try surface.point(u: u, v: 0, tolerance: .standard)
+                let rotation = try RigidTransform3D.rotated(around: .origin, direction: .unitY,
+                    angle: atan2(sourceStart.z, sourceStart.x) - atan2(start.z, start.x), tolerance: .standard)
+                for v in [0.17, 0.5, 0.83, 1.0] {
+                    let expected = rotation.applying(to: try curve.point(at: v, tolerance: .standard))
+                    #expect((try surface.point(u: u, v: v, tolerance: .standard) - expected).length < 1e-8)
+                }
+            }
+        }
+    }
+
     @Test func spatialAxisCrossingAndNonmonotoneGeneratorsDoNotPublish() throws {
         for points in [
             [Point3D(x: -0.02, y: 0, z: 0), Point3D(x: 0.02, y: 0.04, z: 0)],
             [Point3D(x: 0.02, y: 0, z: 0), Point3D(x: 0.025, y: 0.1, z: 0.01),
-             Point3D(x: 0.03, y: -0.1, z: 0), Point3D(x: 0.02, y: 0.04, z: 0.01)]
+             Point3D(x: 0.03, y: -0.1, z: 0), Point3D(x: 0.02, y: 0.04, z: 0.01)],
+            [Point3D(x: 0.02, y: 0, z: 0), Point3D(x: 0.08, y: 0.01, z: 0.01),
+             Point3D(x: 0.001, y: -0.01, z: 0.002), Point3D(x: 0.04, y: 0, z: 0.003)]
         ] {
             let degree = points.count - 1
             var input = try section(BSplineCurve3D(degree: degree,

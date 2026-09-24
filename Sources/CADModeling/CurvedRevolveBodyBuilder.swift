@@ -119,19 +119,32 @@ struct CurvedRevolveBodyBuilder {
     }
 
     // FIXME(INCOMPLETE_IMPLEMENTATION): Spatial curve Revolve currently certifies
-    // only open, axially monotone generators. Feature evaluation must retain explicit
-    // failure for nonmonotone/closed generators until general orbit-overlap proof exists.
+    // open generators with axial monotonicity, or radial monotonicity when axial
+    // endpoint advance vanishes. Feature evaluation must retain explicit failure
+    // for other/closed generators until general orbit-overlap proof exists.
     private func validateSpatialGenerator(_ spans: [ExactBSplineCurveSpan], isClosed: Bool) throws {
-        guard !isClosed, let first = spans.first else {
+        guard !isClosed, let first = spans.first, let last = spans.last else {
             throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
-                message: "Spatial Revolve requires an open, axially monotone generator.")
+                message: "Spatial Revolve requires an open generator with certified orbit separation.")
         }
-        let advance = (first.endPoint - first.startPoint).dot(axisDirection)
-        guard abs(advance) > context.tolerance.distance else {
+        let axialAdvance = (last.endPoint - first.startPoint).dot(axisDirection)
+        let useRadius = abs(axialAdvance) <= context.tolerance.distance
+        func radiusSquared(_ point: Point3D) -> Double {
+            let relative = point - axisOrigin
+            let u = relative.dot(parameterBasisU)
+            let v = relative.dot(parameterBasisV)
+            return u * u + v * v
+        }
+        let advance = useRadius ? radiusSquared(last.endPoint) - radiusSquared(first.startPoint) : axialAdvance
+        guard advance.isFinite, advance != 0 else {
             throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
-                message: "Spatial Revolve cannot yet certify a nonmonotone axial generator.")
+                message: "Spatial Revolve requires distinct endpoint orbit coordinates.")
         }
         let sign = advance > 0 ? 1.0 : -1.0
+        let originU = OutwardScalarInterval.exact(axisOrigin.x) * .exact(parameterBasisU.x)
+            + .exact(axisOrigin.y) * .exact(parameterBasisU.y) + .exact(axisOrigin.z) * .exact(parameterBasisU.z)
+        let originV = OutwardScalarInterval.exact(axisOrigin.x) * .exact(parameterBasisV.x)
+            + .exact(axisOrigin.y) * .exact(parameterBasisV.y) + .exact(axisOrigin.z) * .exact(parameterBasisV.z)
         let encloser = DefaultCurveDifferentialEncloser()
         var remainingCells = 65_536
         var previousEnd = first.startPoint
@@ -145,26 +158,34 @@ struct CurvedRevolveBodyBuilder {
             while let (parameters, depth) = pending.popLast() {
                 guard remainingCells > 0 else {
                     throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
-                        tolerance: context.tolerance, message: "Spatial Revolve exhausted its axial proof budget.")
+                        tolerance: context.tolerance, message: "Spatial Revolve exhausted its orbit-separation proof budget.")
                 }
                 remainingCells -= 1
-                let derivative = try encloser.enclosure(of: .bSpline(span.curve),
-                    over: parameters, tolerance: context.tolerance).firstDerivative
+                let enclosure = try encloser.enclosure(of: .bSpline(span.curve),
+                    over: parameters, tolerance: context.tolerance)
+                let derivative = enclosure.firstDerivative
                 func scaled(_ interval: ScalarInterval, _ coefficient: Double) -> OutwardScalarInterval {
                     OutwardScalarInterval(lower: interval.lower, upper: interval.upper) * .exact(coefficient)
                 }
-                let projection = (scaled(derivative.x, axisDirection.x)
-                    + scaled(derivative.y, axisDirection.y)
-                    + scaled(derivative.z, axisDirection.z)) * .exact(sign)
+                func dot(_ value: CoordinateEnclosure3D, _ direction: Vector3D) -> OutwardScalarInterval {
+                    scaled(value.x, direction.x) + scaled(value.y, direction.y) + scaled(value.z, direction.z)
+                }
+                let projection: OutwardScalarInterval
+                if useRadius {
+                    projection = ((dot(enclosure.position, parameterBasisU) - originU) * dot(derivative, parameterBasisU)
+                        + (dot(enclosure.position, parameterBasisV) - originV) * dot(derivative, parameterBasisV)) * .exact(2 * sign)
+                } else {
+                    projection = dot(derivative, axisDirection) * .exact(sign)
+                }
                 if projection.lower > 0 { continue }
                 guard projection.upper > 0 else {
                     throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
-                        message: "Spatial Revolve cannot certify this nonmonotone axial generator.")
+                        message: "Spatial Revolve cannot certify this nonmonotone orbit coordinate.")
                 }
                 let middle = parameters.midpoint
                 guard depth < 32, middle > parameters.lower, middle < parameters.upper else {
                     throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
-                        tolerance: context.tolerance, message: "Spatial Revolve axial monotonicity remains unresolved.")
+                        tolerance: context.tolerance, message: "Spatial Revolve orbit separation remains unresolved.")
                 }
                 pending.append((try ScalarInterval(lower: middle, upper: parameters.upper), depth + 1))
                 pending.append((try ScalarInterval(lower: parameters.lower, upper: middle), depth + 1))

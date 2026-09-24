@@ -69,6 +69,12 @@ remains separate from this geometric construction; removing that admission
 requires whole-surface regularity and global overlap validation for spatial
 generators, not merely successful Cartesian rotation. Open spatial generators
 with a certified strictly monotone axial coordinate use Cartesian construction.
+When the axial endpoint advance is within distance tolerance, the same bounded
+proof instead certifies squared radial distance using the rotation frame's two
+radial basis vectors. Its derivative is enclosed from position and derivative
+intervals, not sampled radii. Strict radial ordering likewise distinguishes every
+orbit, allowing axial reversals without orbit overlap. This is an alternative
+sufficient condition, not general closed-generator embedding admission.
 The axial derivative sign is enclosed over every exact span using outward
 interval arithmetic; all spans must have the same sign and remain continuous.
 Distinct generator parameters then have distinct axial coordinates, excluding
