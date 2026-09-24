@@ -124,14 +124,12 @@ struct CurvedRevolveBodyBuilder {
         let depth: Int
         let axial: OutwardScalarInterval
         let radial: OutwardScalarInterval
+        let radialU: OutwardScalarInterval
+        let radialV: OutwardScalarInterval
         let axialDerivative: OutwardScalarInterval
         let radialDerivative: OutwardScalarInterval
     }
 
-    // FIXME(INCOMPLETE_IMPLEMENTATION): Feature evaluation currently requires
-    // disjoint complete rotation orbits, even for a partial-turn sheet. Admit
-    // repeated orbits only after proving their swept angular intervals disjoint;
-    // this sufficient embedding proof is not full partial-turn input support.
     private func validateSpatialGenerator(_ spans: [ExactBSplineCurveSpan], isClosed: Bool) throws {
         guard let first = spans.first, let last = spans.last, spans.count <= 65_536 else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
@@ -162,6 +160,9 @@ struct CurvedRevolveBodyBuilder {
         let originA = originProjection(axisDirection)
         let originU = originProjection(parameterBasisU)
         let originV = originProjection(parameterBasisV)
+        let sweepCosineLower = abs(angle) < Double.pi
+            ? try CertifiedRotationTrigonometry.evaluate(.exact(abs(angle)),
+                tolerance: context.tolerance).cosine.lower : nil
         let encloser = DefaultCurveDifferentialEncloser()
         func cell(span: Int, parameters: ScalarInterval, depth: Int) throws -> OrbitCell {
             let enclosure = try encloser.enclosure(of: .bSpline(spans[span].curve),
@@ -171,6 +172,7 @@ struct CurvedRevolveBodyBuilder {
             return OrbitCell(span: span, parameters: parameters, depth: depth,
                 axial: dot(enclosure.position, axisDirection) - originA,
                 radial: u * u + v * v,
+                radialU: u, radialV: v,
                 axialDerivative: dot(enclosure.firstDerivative, axisDirection),
                 radialDerivative: (u * dot(enclosure.firstDerivative, parameterBasisU)
                     + v * dot(enclosure.firstDerivative, parameterBasisV)) * .exact(2))
@@ -194,6 +196,16 @@ struct CurvedRevolveBodyBuilder {
             return isClosed && a.span == 0 && b.span == spans.count - 1
                 && a.parameters.lower == domains[0].lower
                 && b.parameters.upper == domains[b.span].upper
+        }
+        func angularlySeparated(_ a: OrbitCell, _ b: OrbitCell) -> Bool {
+            guard let sweepCosineLower, a.radial.lower > 0, b.radial.lower > 0 else { return false }
+            let radiusA = OutwardScalarInterval(lower: a.radial.lower.squareRoot().nextDown,
+                upper: a.radial.upper.squareRoot().nextUp)
+            let radiusB = OutwardScalarInterval(lower: b.radial.lower.squareRoot().nextDown,
+                upper: b.radial.upper.squareRoot().nextUp)
+            guard let cosine = (a.radialU * b.radialU + a.radialV * b.radialV)
+                .divided(by: radiusA * radiusB), cosine.isFinite else { return false }
+            return cosine.upper < sweepCosineLower
         }
         func split(_ value: OrbitCell) throws -> (OrbitCell, OrbitCell) {
             let middle = value.parameters.midpoint
@@ -236,6 +248,7 @@ struct CurvedRevolveBodyBuilder {
                     } else {
                         if !a.axial.intersects(b.axial) || !a.radial.intersects(b.radial) { continue }
                         if adjacent(a, b), monotone(a, b) { continue }
+                        if angularlySeparated(a, b) { continue }
                         if a.parameters.width / domains[a.span].width >= b.parameters.width / domains[b.span].width {
                             let (left, right) = try split(a)
                             pending.append((left, b))

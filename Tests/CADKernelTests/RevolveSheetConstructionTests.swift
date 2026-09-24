@@ -173,6 +173,34 @@ struct RevolveSheetConstructionTests {
         }
     }
 
+    @Test(arguments: [0.1, -0.1, 0.5, -0.5], [0.0, 3.4])
+    func repeatedOrbitsRequireDisjointSweptAngularIntervals(angle: Double, phase: Double) throws {
+        let placement = try RigidTransform3D.rotated(around: .origin, direction: .unitY,
+            angle: phase, tolerance: .standard)
+        let curve = BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
+            controlPoints: [Point3D(x: 0.02, y: 0, z: 0), Point3D(x: 0.025, y: 0.1, z: 0.01),
+                Point3D(x: 0.03, y: -0.1, z: 0), Point3D(x: 0.02, y: 0.04, z: 0.01)]
+                .map { placement.applying(to: $0) })
+        var input = try section(curve)
+        input.plane = nil
+        if abs(angle) > 0.1 {
+            #expect(throws: KernelError.self) { try build(input, angle: angle) }
+            return
+        }
+        let result = try build(input, angle: angle)
+        try result.brep.validate(level: .exact, tolerance: .standard)
+        #expect(result.brep.faces.count == 1)
+        let surface = try #require(result.brep.geometry.surfaces.values.first)
+        for u in [0.0, 0.5, 1.0] {
+            let rotation = try RigidTransform3D.rotated(around: .origin, direction: .unitY,
+                angle: angle * u, tolerance: .standard)
+            for v in [0.0, 0.17, 0.5, 0.83, 1.0] {
+                let expected = rotation.applying(to: try curve.point(at: v, tolerance: .standard))
+                #expect((try surface.point(u: u, v: v, tolerance: .standard) - expected).length < 1e-8)
+            }
+        }
+    }
+
     @Test func planarCurveCanRotateAroundAxisOutsideItsPlane() throws {
         let input = try section(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
             controlPoints: [Point3D(x: 0.02, y: 0, z: 0), Point3D(x: 0.02, y: 0.04, z: 0)]))

@@ -76,8 +76,15 @@ are admitted when their orbit boxes are separated, or when they are adjacent
 (including a declared closed seam) and one functional is strictly monotone
 through both. All other pairs subdivide until admitted or explicitly unresolved.
 Only declared adjacent endpoints may coincide; nonadjacent coincident orbits
-cannot be admitted by topology proximity or samples. Original spans must be
-continuous and a closed section must close within modeling tolerance.
+cannot be admitted by topology proximity or samples. For a sweep shorter than
+half a turn, cells may instead prove angular separation: the upper enclosed
+cosine between their radial vectors must be below the certified lower cosine
+of the absolute sweep angle. Their entire swept angular intervals are then
+disjoint, including negative rotation and crossing an angular chart seam.
+The sweep cosine is computed once; no sampled or inverse-angle chart decides
+admission. At half a turn or more, repeated orbits cannot use this exclusion.
+Original spans must be continuous and a closed section must close within
+modeling tolerance.
 Each generator cell must also prove radial clearance beyond the distance
 tolerance before surface construction; a cell wholly inside the axis tolerance
 is rejected, and unresolved clearance subdivides under the same proof budget.
