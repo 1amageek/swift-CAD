@@ -18,6 +18,15 @@ or publish Rupa project state. Tessellation consumes the generic
 `TessellationOptions` and `TessellationLimits` values from `CADIR`; it does not
 interpret viewport, camera, UI, Agent, or Product LOD policy.
 
+`SweepEvaluationPlanService.orderedPathSegments` exposes the existing section-
+anchored path ordering for read-only consumers. The supplied evaluated document
+must match the supplied source document; this method performs no evaluation.
+It uses the same section resolver, exact section plane and open-chain builder
+as sweep planning. Missing sources, closed/disconnected paths and unsupported
+section planes remain typed failures. Placement measurements consume these
+oriented segments so fractional lengths follow the constructed end of a sweep.
+Core's placed sweep tests own the cross-package ordering/measurement check.
+
 ## Related Designs
 
 | Design | Relationship | Contract Used | Summary | Cautions |

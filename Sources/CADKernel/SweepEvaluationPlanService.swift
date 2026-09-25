@@ -27,6 +27,29 @@ public struct SweepEvaluationPlanService: Sendable {
         self.makePathSampler = pathSamplerFactory
     }
 
+    /// Resolves the oriented source path used by sweep construction without evaluating again.
+    public func orderedPathSegments(
+        for sweep: SweepFeature,
+        document: CADDocument,
+        evaluatedDocument: EvaluatedDocument,
+        tolerance: ModelingTolerance
+    ) throws -> [EvaluatedCurvePathSegment] {
+        try tolerance.validate()
+        try sweep.validate()
+        guard let reference = sweep.sections.first else {
+            throw FeatureEvaluationError.missingInput("Sweep path ordering requires a section.")
+        }
+        let parameters = try resolver.resolve(document.parameters)
+        let section = try resolvedSection(reference, document: document, parameters: parameters,
+            evaluatedDocument: evaluatedDocument, tolerance: tolerance)
+        let pathCurves = try curves(for: sweep.path.featureID, document: document, parameters: parameters,
+            evaluatedDocument: evaluatedDocument, tolerance: tolerance)
+        let plane = try ExactSweepSectionPlane(section.plane(), tolerance: tolerance).plane
+        return try EvaluatedCurveChainBuilder(tolerance: tolerance).openSegments(
+            from: pathCurves, operationName: "Sweep path", preferredStartPlane: plane
+        )
+    }
+
     public func plan(
         document: CADDocument,
         sections: [SectionReference],
