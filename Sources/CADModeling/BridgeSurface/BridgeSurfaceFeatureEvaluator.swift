@@ -89,7 +89,7 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             featureID: feature.id,
             context: context
         )
-        guard startEdgeID != endEdgeID,
+        guard (startEdgeID != endEdgeID || bridge.startTransform != bridge.endTransform),
               boundaryLoopResolver.loop(
                 startingAt: startEdgeID,
                 in: body,
@@ -107,7 +107,7 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             )
         }
 
-        let startBoundary = try boundaryCurveResolver.curve(
+        var startBoundary = try boundaryCurveResolver.curve(
             edgeID: startEdgeID,
             followsStoredDirection: true,
             model: context.brep,
@@ -121,6 +121,12 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             tolerance: context.tolerance,
             featureID: feature.id
         )
+        if let transform = bridge.startTransform {
+            startBoundary = try transform.applying(to: startBoundary, tolerance: context.tolerance)
+        }
+        if let transform = bridge.endTransform {
+            endBoundary = try transform.applying(to: endBoundary, tolerance: context.tolerance)
+        }
         if bridge.endOrientation == .reversed {
             endBoundary = try endBoundary.reversed(tolerance: context.tolerance)
         }

@@ -9,6 +9,9 @@ design](../../DESIGN.md); its children are indexed below.
 
 ## Responsibilities and Boundaries
 
+[BoundaryContinuity](BoundaryContinuity/DESIGN.md) owns whole-boundary continuity
+certification using the existing G0/G1/G2 vocabulary.
+
 Editable gear dimensions are owned by [InvoluteGear](InvoluteGear/DESIGN.md).
 
 Editable spatial path source is owned by the child
@@ -324,3 +327,11 @@ partitions, and the JSON round-trip that omits and restores the field.
 require rechecking `CADKernel` stable-reference creation, lookup, and
 tessellation admission, and re-measuring the fixtures above whenever the
 constants move.
+
+### Boundary coordinate maps
+
+BridgeSurfaceFeature retains optional source-to-output affine maps beside its
+stable boundaries. Absence denotes the existing common source frame. Maps are
+finite and nonsingular and participate in persistence, equality and source
+fingerprints. The application owns live occurrence bindings and map refresh;
+CADIR owns no scene-node identity. See [BridgeSurface](../CADModeling/BridgeSurface/DESIGN.md).

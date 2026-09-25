@@ -1127,7 +1127,7 @@ struct SurfaceLiftDifferentialBounder {
         )
     }
 
-    private func nondegenerateRange(
+    func nondegenerateRange(
         _ interval: ScalarInterval,
         domain: ParameterDomain,
         tolerance: ModelingTolerance

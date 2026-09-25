@@ -30,6 +30,9 @@ distinct roots by a widened numerical tolerance.
 
 ## Purpose and Scope
 
+[SurfaceBoundaryCertification](SurfaceBoundaryCertification/DESIGN.md) owns
+independent whole-boundary position, normal and shape-operator certification.
+
 [SurfaceFitting](SurfaceFitting/DESIGN.md) owns the shared constrained-surface
 numerical construction component and its rank/finite-arithmetic contracts.
 

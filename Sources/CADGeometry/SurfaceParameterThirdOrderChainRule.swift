@@ -1,6 +1,39 @@
 import CADCore
 
 enum SurfaceParameterThirdOrderChainRule {
+    /// Pulls a surface jet back to one normalized curve parameter, stored in U.
+    static func intervalJet(
+        surface: SurfaceIntervalVectorJet,
+        u: SurfaceIntervalJet,
+        v: SurfaceIntervalJet
+    ) -> SurfaceIntervalVectorJet {
+        let a = u.derivativeU, b = v.derivativeU
+        let c = u.secondDerivativeUU, d = v.secondDerivativeUU
+        let three = OutwardScalarInterval(3)
+        let zero = OutwardScalarInterval(0)
+        func coordinate(_ s: SurfaceIntervalJet) -> SurfaceIntervalJet {
+            let first = s.derivativeU * a + s.derivativeV * b
+            let second = s.secondDerivativeUU * a * a
+                + OutwardScalarInterval(2) * s.secondDerivativeUV * a * b
+                + s.secondDerivativeVV * b * b + s.derivativeU * c + s.derivativeV * d
+            let third = s.thirdDerivativeUUU * a * a * a
+                + three * s.thirdDerivativeUUV * a * a * b
+                + three * s.thirdDerivativeUVV * a * b * b
+                + s.thirdDerivativeVVV * b * b * b
+                + three * s.secondDerivativeUU * a * c
+                + three * s.secondDerivativeUV * (c * b + a * d)
+                + three * s.secondDerivativeVV * b * d
+                + s.derivativeU * u.thirdDerivativeUUU + s.derivativeV * v.thirdDerivativeUUU
+            return SurfaceIntervalJet(value: s.value,
+                derivativeU: first, derivativeV: zero,
+                secondDerivativeUU: second, secondDerivativeUV: zero, secondDerivativeVV: zero,
+                thirdDerivativeUUU: third, thirdDerivativeUUV: zero,
+                thirdDerivativeUVV: zero, thirdDerivativeVVV: zero)
+        }
+        return SurfaceIntervalVectorJet(x: coordinate(surface.x),
+            y: coordinate(surface.y), z: coordinate(surface.z))
+    }
+
     static func firstDerivative(
         surface: SurfaceParameterThirdOrderDerivatives,
         parameter: Point2D

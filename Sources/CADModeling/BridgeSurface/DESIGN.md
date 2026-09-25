@@ -29,6 +29,7 @@ UI state, gap fitting, or G1/G2 optimization.
 two stable source edge references
     -> current exact topology resolution
     -> exact trimmed B-spline boundaries
+    -> persisted source-to-output affine maps
     -> persisted second-edge orientation
     -> ExactRuledBSplineSurfaceBuilder
     -> B-spline surface evaluator
@@ -38,7 +39,9 @@ two stable source edge references
 ## Contracts and Invariants
 
 - Both stable references name distinct edges and resolve to open boundary edges
-  of their respective current source bodies, in a common coordinate frame.
+  of their respective current source bodies. Each persisted source-to-output
+  affine map converts its exact boundary into the output frame. Coincident
+  source IDs are allowed only when their maps differ.
 - Every distinct source feature is an explicit graph input, in boundary order.
   The output is one `.sheet`; both input bodies and topology remain unchanged.
 - Boundary curves come from current exact B-rep curves and trims. Display
@@ -63,15 +66,16 @@ not discard its validation evidence and validate the same B-rep a second time.
 
 ## State, Ownership, and Lifecycle
 
-The feature graph owns the stable references and orientation. The evaluation
+The feature graph owns the stable references, affine maps and orientation. The evaluation
 context owns the immutable B-rep snapshot. The component is stateless.
 
 ## Failure, Concurrency, and Constraints
 
 Evaluation is synchronous and request-local. Exact conversion and basis
-alignment resource limits are those of their existing builders. The first
-application route requires equal accumulated occurrence transforms so the CAD
-source coordinate frame is unambiguous. Different frames are refused by Core.
+alignment resource limits are those of their existing builders. Maps must be
+finite and nonsingular; rational weights, knot domains and traversal are retained.
+Core owns occurrence identities and atomically refreshes these maps when placement
+changes. The kernel never reads presentation metadata or guesses a scene occurrence.
 
 ## Verification and Change Impact
 

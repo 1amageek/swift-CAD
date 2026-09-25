@@ -1,5 +1,6 @@
 import CADCore
 import CADIR
+import CADGeometry
 
 public extension DocumentBuilder {
     @discardableResult
@@ -7,12 +8,16 @@ public extension DocumentBuilder {
         startBoundary: StableSubshapeReference,
         endBoundary: StableSubshapeReference,
         endOrientation: BridgeSurfaceFeature.EndOrientation = .forward,
+        startTransform: AffineTransform3D? = nil,
+        endTransform: AffineTransform3D? = nil,
         named name: String? = nil
     ) throws -> FeatureID {
         let bridge = BridgeSurfaceFeature(
             startBoundary: startBoundary,
             endBoundary: endBoundary,
-            endOrientation: endOrientation
+            endOrientation: endOrientation,
+            startTransform: startTransform,
+            endTransform: endTransform
         )
         let featureID = FeatureID()
         try append(

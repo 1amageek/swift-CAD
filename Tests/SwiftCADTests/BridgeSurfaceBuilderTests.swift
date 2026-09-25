@@ -79,8 +79,8 @@ struct BridgeSurfaceBuilderTests {
         #expect(surface.vDegree == 1)
     }
 
-    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
-    func rationalBoundaryReferencesPreserveBothOrientations(reverseEnd: Bool) throws {
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true], [false, true])
+    func rationalBoundaryReferencesPreserveBothOrientations(reverseEnd: Bool, affine: Bool) throws {
         let start = BSplineCurve3D(
             degree: 2, knots: [0, 0, 0, 1, 1, 1],
             controlPoints: [Point3D(x: 0, y: 0, z: 0), Point3D(x: 1, y: 0, z: 0.5), Point3D(x: 2, y: 0, z: 0)],
@@ -115,9 +115,12 @@ struct BridgeSurfaceBuilderTests {
             })
             return try source.stableSubshapeReference(for: entry.key)
         }
+        let map = try affine ? AffineTransform3D(basisX: Vector3D(x: 1.2, y: 0, z: 0),
+            basisY: Vector3D(x: 0.2, y: 2, z: 0), basisZ: .unitZ,
+            translation: Vector3D(x: 0, y: 1, z: 0.2)) : nil
         let bridgeID = try builder.bridgeSurface(
             startBoundary: reference(startID, y: 0), endBoundary: reference(endID, y: 2),
-            endOrientation: reverseEnd ? .reversed : .forward
+            endOrientation: reverseEnd ? .reversed : .forward, endTransform: map
         )
         let document = try replayCodableCommands(from: builder.build())
         let result = try evaluator.evaluate(document)
@@ -137,7 +140,8 @@ struct BridgeSurfaceBuilderTests {
         for index in 0...16 {
             let u = Double(index) / 16
             let a = try start.point(at: u, tolerance: Self.testTolerance)
-            let b = try end.point(at: u, tolerance: Self.testTolerance)
+            let sourcePoint = try end.point(at: u, tolerance: Self.testTolerance)
+            let b = map?.applying(to: sourcePoint) ?? sourcePoint
             for v in [0.0, 0.37, 1.0] {
                 let actual = try surface.point(u: u, v: v, tolerance: Self.testTolerance)
                 #expect((actual - (a + (b - a) * v)).length <= Self.testTolerance.distance)
