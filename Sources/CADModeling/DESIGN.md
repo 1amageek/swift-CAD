@@ -53,12 +53,6 @@ provide general boundary constraints or certify G1/G2 fitting. The approved
 eleven-operation implementation remains incomplete until each actual evaluator,
 source contract and application route meets its acceptance criteria.
 
-Lifted sewing spans with distinct definitions require the existing whole-span
-curve/surface correspondence proof on the restricted, oriented destination
-pcurve. Matching endpoints alone cannot authorize reuse. The matcher reports
-proved geometric mismatch as false and propagates inconclusive/resource errors.
-CADKernel validates the resulting canonical edge against every incident face.
-
 ### Extrude extents
 
 The evaluator consumes CADIR's validated signed axial range. It translates the
