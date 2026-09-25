@@ -7,8 +7,9 @@ construction of constrained surfaces, not BRep publication or UI state.
 Column-pivoted Householder QR supports equality-constrained least squares.
 A bounded dogleg trust-region primitive handles nonlinear least squares. A
 sequential equality-constrained least-squares solver handles hard nonlinear
-constraints and objectives. Geometric certification and feature consumers remain
-pending SC1.8 work.
+constraints and objectives. Independent geometric admission is owned by
+[SurfaceBoundaryCertification](../SurfaceBoundaryCertification/DESIGN.md);
+feature consumers own their geometric constraint assembly and authoring contracts.
 
 ## Responsibilities and Boundaries
 
