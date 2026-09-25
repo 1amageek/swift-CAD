@@ -4,6 +4,35 @@ import Testing
 
 @Suite("Surface fitting equality constrained least squares", .timeLimit(.minutes(1)))
 struct SurfaceFittingLeastSquaresTests {
+    @Test func sharedFactorizationMatchesIndependentCoordinates() throws {
+        let targets = [[2.0, 0], [0, 4], [-3, 1]]
+        let values = [[1.0, 2], [2, 4], [-1, -2]]
+        let result = try SurfaceFittingLeastSquares.solve(
+            objective: [1, 0, 0, 1], targets: targets,
+            constraints: [1, 1, 2, 2], values: values, columns: 2,
+            relativeRankTolerance: 1e-12, constraintTolerance: 1e-11, maximumElements: 100)
+        for rhs in result.indices {
+            let independent = try solve([1, 0, 0, 1], targets[rhs], [1, 1, 2, 2], values[rhs])
+            for column in 0..<2 { #expect(abs(result[rhs][column] - independent[column]) < 1e-12) }
+        }
+        #expect(abs(result[0][0] - 1.5) < 1e-12)
+        #expect(abs(result[1][1] - 3) < 1e-12)
+        #expect(abs(result[2][0] + 2.5) < 1e-12)
+    }
+
+    @Test func batchedDimensionsAndStorageAreChecked() {
+        func batch(_ targets: [[Double]], _ values: [[Double]], budget: Int = 100) throws {
+            _ = try SurfaceFittingLeastSquares.solve(objective: [1, 0, 0, 1], targets: targets,
+                constraints: [1, 1], values: values, columns: 2,
+                relativeRankTolerance: 1e-12, constraintTolerance: 1e-11, maximumElements: budget)
+        }
+        #expect(throws: KernelError.self) { try batch([], []) }
+        #expect(throws: KernelError.self) { try batch([[0, 0]], [[1], [2]]) }
+        #expect(throws: KernelError.self) { try batch([[0, 0], [0]], [[1], [2]]) }
+        #expect(throws: KernelError.self) { try batch([[0, 0], [0, 0]], [[1], [.nan]]) }
+        #expect(throws: KernelError.self) { try batch([[0, 0], [0, 0]], [[1], [2]], budget: 15) }
+    }
+
     private func solve(_ a: [Double], _ b: [Double], _ c: [Double], _ d: [Double],
                        columns: Int = 2, tolerance: Double = 1e-11, budget: Int = 100) throws -> [Double] {
         try SurfaceFittingLeastSquares.solve(objective: a, target: b, constraints: c, values: d,

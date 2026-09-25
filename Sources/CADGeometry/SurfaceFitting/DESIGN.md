@@ -5,8 +5,10 @@
 Child of [CADGeometry](../DESIGN.md), with no children. Owns the numerical
 construction of constrained surfaces, not BRep publication or UI state.
 Column-pivoted Householder QR supports equality-constrained least squares.
-A bounded dogleg trust-region primitive handles nonlinear least squares. Nonlinear
-equality/fairness composition and geometric consumers remain pending SC1.8 work.
+A bounded dogleg trust-region primitive handles nonlinear least squares. A
+sequential equality-constrained least-squares solver handles hard nonlinear
+constraints and objectives. Geometric certification and feature consumers remain
+pending SC1.8 work.
 
 ## Responsibilities and Boundaries
 
@@ -35,6 +37,25 @@ equality matrix C and target d
 
 ## Contracts and Invariants
 
+- Fixed-basis point interpolation preserves the supplied degrees, knots and
+  positive rational weights. Point constraints specify UV locations and world
+  positions, not control points. The equality matrix is the normalized rational
+  tensor-product basis. Out-of-domain UVs are rejected rather than clamped.
+- A positive reference weight minimizes control-point displacement from the
+  supplied template; a separate nonnegative control-net fairness weight adds
+  second finite differences along each grid direction. This discrete objective
+  is not a geometric curvature integral, G1/G2 constraint or accuracy tolerance.
+  Neither weight relaxes the positional equalities. Callers own both weights.
+- The numerical solver factors common equality and reduced objective matrices
+  once for multiple coordinate right-hand sides. Its element budget includes
+  coefficient matrices, right-hand sides and returned solutions before allocating
+  scratch storage. Individual right-hand sides must have matching dimensions.
+- The interpolator checks every resulting point using the actual rational
+  surface evaluator and a Euclidean positional tolerance. This verifies discrete
+  point interpolation only: surface regularity, boundary-wide continuity, BRep
+  admission and automatic parameterization remain separate required contracts.
+  Invalid input, conflicting constraints and exhausted arithmetic/storage fail
+  without returning a surface. The template is immutable input.
 - Factorization uses `A P = scale Q R`; R is stored at normalized matrix scale.
 - Columns are pivoted using freshly computed trailing norms. Rank is a numerical
   decision relative to the largest initial column norm and caller-supplied
@@ -57,8 +78,8 @@ equality matrix C and target d
   than silently choosing an arbitrary control net. No penalty weight relaxes C.
 - Zero equality rows reduce to ordinary least squares. Zero objective rows are
   allowed only when equalities uniquely determine the solution. Matrix dimensions
-  and combined input matrix element budget are checked before scratch allocation.
-  Scratch storage is a constant multiple of that budget plus vector dimensions;
+  and combined coefficient/right-hand-side/output element budget are checked
+  before scratch allocation. Scratch storage is a constant multiple of that budget;
   the orthogonal null-space matrix is never materialized. Residual checking is
   numerical, not interval-certified boundary-wide geometric verification.
 - Nonlinear fitting accepts analytic residuals and a row-major Jacobian from a
@@ -73,6 +94,28 @@ equality matrix C and target d
   propagate, including cancellation. At most one evaluation occurs per trial.
   Each trial uses at most 64 scalar bisections to locate the dogleg boundary.
   No penalty residual implicitly stands in for a hard geometric constraint.
+
+- Nonlinear equality fitting composes the existing QR-constrained least-squares
+  step with an Armijo L1 merit line search. Analytic objective and constraint
+  Jacobians have fixed dimensions. The caller owns residual/constraint scaling,
+  absolute constraint tolerance, projected-gradient tolerance, maximum step
+  radius and evaluation/storage budgets. The objective may encode fairness;
+  constraint values always encode hard equalities to zero.
+- A result requires actual equality residuals within tolerance and the objective
+  gradient projected onto the equality Jacobian's null space within the requested
+  relative tolerance. The projected gradient is normalized by the larger of one
+  and the full gradient norm, in caller-scaled coordinates. This is local first-order stationarity, not a global minimum
+  or geometric certificate. Inconsistent linearizations and undetermined free
+  directions fail explicitly. A feasible stationary initial input is admissible.
+- The merit weight only selects trial steps; it never changes the final feasibility
+  test. The actual improvement relative to directional prediction shrinks or
+  grows the step radius within the caller limit. Merit differences use a difference
+  of squares to retain small changes near a nonzero-residual optimum. Rejected
+  trials retain the accepted state. Every trial evaluation counts
+  toward the finite budget; evaluator failures, including cancellation, propagate.
+  All coefficients and arithmetic must remain finite. Scratch storage is a
+  constant multiple of the combined matrix/vector element budget. State is local
+  to one synchronous invocation; no conditional isolation or shared state exists.
 
 ## Failure, Concurrency, and Constraints
 
@@ -101,3 +144,16 @@ Dogleg algorithm context: [MINPACK dogleg](https://www.netlib.org/minpack/dogleg
 Algorithm reference: [LAPACK QR with column pivoting](https://www.netlib.org/lapack/lug/node42.html).
 Minimum-norm rank-deficient solving requires additional orthogonal factorization,
 as described in [LAPACK complete orthogonal factorization](https://www.netlib.org/lapack/lug/node43.html).
+
+[SurfaceFittingPointInterpolationTests](../../../Tests/CADGeometryTests/SurfaceFittingPointInterpolationTests.swift)
+verifies actual off-control-grid point interpolation, nonunit rational weights,
+objective/constraint separation, contradictory UV constraints, input preservation
+and explicit resource/domain refusal. The primitive has no UI or feature entry
+yet and does not establish completion of Constrained Surface.
+
+[SurfaceFittingNonlinearEqualityTests](../../../Tests/CADGeometryTests/SurfaceFittingNonlinearEqualityTests.swift)
+checks hard nonlinear feasibility against competing objectives, constrained
+stationarity, redundant/conflicting constraints, rejection, resource ceilings and
+propagated evaluator failures. The line-search formulation follows the
+[NTNU SQP notes](https://wiki.math.ntnu.no/_media/tma4180/2019v/sqp.pdf);
+the local quadratic model uses the least-squares Jacobian rather than BFGS.
