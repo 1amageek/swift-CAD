@@ -30,6 +30,9 @@ distinct roots by a widened numerical tolerance.
 
 ## Purpose and Scope
 
+[SurfaceFitting](SurfaceFitting/DESIGN.md) owns the shared constrained-surface
+numerical construction component and its rank/finite-arithmetic contracts.
+
 `CADGeometry` owns exact analytic curves, surfaces, parameter domains, and
 surface-parameter curves used by all higher Swift-CAD modules. It is a child of
 the [Swift-CAD package design](../../DESIGN.md). Its
