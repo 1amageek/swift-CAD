@@ -43,7 +43,7 @@ or bounds data.
 | [CADIR](Sources/CADIR/DESIGN.md) | child | stable signature value and Codable contract | Owns serialized geometry signatures and their rejection rules. | Signatures retain geometry; they do not identify a new body by themselves. |
 | [CADKernel](Sources/CADKernel/DESIGN.md) | child | evaluated snapshot topology reads | Owns snapshot-scoped stable-reference creation and lookup. | Reads use the supplied immutable evaluation; no second authority is created. |
 | [CADExchange](Sources/CADExchange/DESIGN.md) | child | bounded exchange parse/write and typed format support | Publishes exact STEP source documents and mesh exchange results at the CADIR boundary. | Exchange format support is explicit; unsupported entities never become partial source. |
-| [RupaCore](../RupaKit/Sources/RupaCore/DESIGN.md) | used by | evaluated solid and Mesh-backed presentation measurement | Consumes exact B-rep volume and derived Mesh area/bounds. | RupaCore does not construct or approximate CAD geometry. |
+| [RupaCore](../RupaKit/Sources/RupaCore/DESIGN.md) | used by | evaluated solid and Mesh-backed presentation measurement | Consumes exact B-rep volume and derived Mesh area/bounds. | RupaCore does not construct or approximate CAD geometry; a capability it needs is published here, per the [system kernel/application boundary](../DESIGN.md#kernel-and-application-boundary). |
 
 ## Architecture
 
