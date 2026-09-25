@@ -71,6 +71,22 @@ flowchart LR
 
 ## Contracts and Invariants
 
+### Feature references
+
+`FeatureOperation.mapFeatureReferences` is the single enumeration of the feature
+references an operation carries: sections, curve outputs (including Bridge
+Curve endpoints), Boolean/sweep/pattern/topology targets, paths, guides and
+stable subshape references. `referencedFeatureIDs` and
+`remappingFeatureIDs(_:)` derive from it, and `FeatureNode.remappingFeatureReferences`
+adds the node inputs. The switch is exhaustive per operation; self-contained
+source geometry (sketch, spatial path, PolySpline, constrained and B-spline
+surfaces, imported B-rep, primitive, patch surface, involute gear) names no
+feature. Every non-reference field is carried over unchanged, and a reference
+without a replacement is a typed `FeatureEvaluationError`. Consumers that clone,
+fingerprint or trace graphs use this contract instead of enumerating payload
+fields. `FeatureOperationReferenceTests` proves enumeration, round-trip
+preservation, Bridge Curve endpoints and refusal.
+
 `FeatureNodeFactory` derives Extrude output roles from `resultKind`: `.solid`
 produces `.body`, and `.sheet` produces `.sheet`. The native package shape
 validator must preserve that field through save/load, as verified by
