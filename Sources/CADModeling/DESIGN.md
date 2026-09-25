@@ -53,6 +53,22 @@ provide general boundary constraints or certify G1/G2 fitting. The approved
 eleven-operation implementation remains incomplete until each actual evaluator,
 source contract and application route meets its acceptance criteria.
 
+Lifted sewing spans with distinct definitions require the existing whole-span
+curve/surface correspondence proof on the restricted, oriented destination
+pcurve. Matching endpoints alone cannot authorize reuse. The matcher reports
+proved geometric mismatch as false and propagates inconclusive/resource errors.
+CADKernel validates the resulting canonical edge against every incident face.
+
+### Extrude extents
+
+The evaluator consumes CADIR's validated signed axial range. It translates the
+exact input boundary to the lower endpoint, then uses the existing prismatic or
+translated-sheet builder with the positive interval span. This retains one
+sewing, stable-subshape and BRep admission path without copied source features.
+`TwoSidedExtrudeTests` covers straddling, same-side and reverse-only endpoints,
+parameter changes, replay and degenerate/unit failure. Core/UI consumers must
+adopt the same range before exposing this control.
+
 ### Curve translation
 
 Curve Extrude supplies start/end displacement vectors to the existing exact

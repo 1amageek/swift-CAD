@@ -195,6 +195,7 @@ public struct DocumentBuilder {
     public mutating func extrude(
         _ profile: ProfileReference,
         distance: CADExpression,
+        startDistance: CADExpression? = nil,
         direction: ExtrudeDirection = .normal,
         named name: String? = nil
     ) throws -> FeatureID {
@@ -206,6 +207,7 @@ public struct DocumentBuilder {
                 ExtrudeFeature(
                     profile: profile,
                     distance: distance,
+                    startDistance: startDistance,
                     direction: direction,
                     operation: .newBody
                 )

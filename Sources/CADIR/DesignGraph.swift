@@ -119,16 +119,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                     tolerance: tolerance
                 )
             case let .extrude(extrude):
-                let distance = try parameters.resolvedValue(for: extrude.distance)
-                guard distance.kind == .length else {
-                    throw UnitError.expectedQuantity(
-                        operation: "extrude.distance",
-                        expected: .length,
-                        actual: distance.kind
-                    )
-                }
-                guard distance.value > 0.0 else {
-                    throw FeatureEvaluationError.invalidDistance(distance.value)
+                _ = try extrude.resolvedAxialRange(tolerance: tolerance) {
+                    try parameters.resolvedValue(for: $0)
                 }
             case let .revolve(revolve):
                 let angle = try parameters.resolvedValue(for: revolve.angle)

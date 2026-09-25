@@ -83,6 +83,15 @@ not permission to close the curve. The canonical payload requires `section` and
 decoded into a default section. The profile initializer remains an authoring
 convenience that constructs `.profile`, not a second source representation.
 
+Extrude retains a signed end position in `distance` and an optional signed
+`startDistance` (zero when absent), measured along its resolved extrusion axis.
+Its shared `resolvedAxialRange` resolves units, finite coordinates and a span
+above modeling tolerance, including reverse-only and same-side intervals.
+Symmetric mode retains its positive total-distance meaning and rejects an
+explicit start position. Both expressions participate in dependency invalidation
+and native package replay. Geometry, measurement and editing consume this same
+range contract; draft and wall offsets are separate controls.
+
 Revolve likewise persists `section` and required `resultKind` (`BodyKind`).
 Curve sections require Sheet output. Graph input/output roles, native package
 validation and evaluated topology must agree with those values; old profile-only

@@ -3,6 +3,7 @@ import CADCore
 public struct ExtrudeFeature: Codable, Sendable, Hashable {
     public var section: SectionReference
     public var distance: CADExpression
+    public var startDistance: CADExpression?
     public var direction: ExtrudeDirection
     public var operation: SolidOperation
     public var resultKind: ExtrudeResultKind
@@ -10,23 +11,26 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
     public init(
         profile: ProfileReference,
         distance: CADExpression,
+        startDistance: CADExpression? = nil,
         direction: ExtrudeDirection = .normal,
         operation: SolidOperation = .newBody,
         resultKind: ExtrudeResultKind = .solid
     ) {
-        self.init(section: .profile(profile), distance: distance, direction: direction,
+        self.init(section: .profile(profile), distance: distance, startDistance: startDistance, direction: direction,
                   operation: operation, resultKind: resultKind)
     }
 
     public init(
         section: SectionReference,
         distance: CADExpression,
+        startDistance: CADExpression? = nil,
         direction: ExtrudeDirection = .normal,
         operation: SolidOperation = .newBody,
         resultKind: ExtrudeResultKind
     ) {
         self.section = section
         self.distance = distance
+        self.startDistance = startDistance
         self.direction = direction
         self.operation = operation
         self.resultKind = resultKind
@@ -35,6 +39,7 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
     private enum CodingKeys: String, CodingKey {
         case section
         case distance
+        case startDistance
         case direction
         case operation
         case resultKind
@@ -43,11 +48,12 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
-            [.section, .distance, .direction, .operation, .resultKind],
+            [.section, .distance, .startDistance, .direction, .operation, .resultKind],
             in: decoder
         )
         section = try container.decode(SectionReference.self, forKey: .section)
         distance = try container.decode(CADExpression.self, forKey: .distance)
+        startDistance = try container.decodeIfPresent(CADExpression.self, forKey: .startDistance)
         direction = try container.decode(ExtrudeDirection.self, forKey: .direction)
         operation = try container.decode(SolidOperation.self, forKey: .operation)
         resultKind = try container.decode(ExtrudeResultKind.self, forKey: .resultKind)
@@ -59,6 +65,7 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(section, forKey: .section)
         try container.encode(distance, forKey: .distance)
+        try container.encodeIfPresent(startDistance, forKey: .startDistance)
         try container.encode(direction, forKey: .direction)
         try container.encode(operation, forKey: .operation)
         try container.encode(resultKind, forKey: .resultKind)
@@ -67,10 +74,44 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
     public func validate() throws {
         try section.validate()
         try distance.validateLiteralQuantities()
+        try startDistance?.validateLiteralQuantities()
+        guard direction != .symmetric || startDistance == nil else {
+            throw FeatureEvaluationError.invalidGraph("Symmetric extrusion cannot also specify a start position.")
+        }
         guard resultKind == .sheet || section.isProfile else {
             throw FeatureEvaluationError.invalidGraph("A curve extrusion requires sheet output.")
         }
         if case .vector(let vector) = direction { try vector.validate() }
+    }
+
+    /// Resolves signed axial endpoints once for geometry, measurement and editing.
+    public func resolvedAxialRange(
+        tolerance: ModelingTolerance,
+        resolve: (CADExpression) throws -> Quantity
+    ) throws -> ClosedRange<Double> {
+        try validate()
+        try tolerance.validate()
+        func length(_ expression: CADExpression) throws -> Double {
+            let quantity = try resolve(expression)
+            guard quantity.kind == .length else {
+                throw UnitError.expectedQuantity(operation: "extrude.extent", expected: .length, actual: quantity.kind)
+            }
+            guard quantity.value.isFinite else {
+                throw FeatureEvaluationError.invalidDistance(quantity.value)
+            }
+            return quantity.value
+        }
+        let end = try length(distance)
+        if direction == .symmetric {
+            guard end > tolerance.distance else { throw FeatureEvaluationError.invalidDistance(end) }
+            return (-end / 2)...(end / 2)
+        }
+        let start = try startDistance.map(length) ?? 0
+        let span = abs(end - start)
+        guard span.isFinite, span > tolerance.distance else {
+            throw FeatureEvaluationError.invalidDistance(span)
+        }
+        return min(start, end)...max(start, end)
     }
 }
 

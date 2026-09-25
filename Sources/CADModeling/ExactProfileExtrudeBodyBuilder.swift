@@ -21,6 +21,7 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
         from profile: Profile,
         direction: ExtrudeDirection,
         distance: Double,
+        startOffset: Double = 0,
         bodyKind: BodyKind,
         includesCaps: Bool
     ) throws -> EvaluationResult {
@@ -28,7 +29,7 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
         guard profile.vertices.count >= 3 else {
             throw SketchError.openProfile
         }
-        guard distance > context.tolerance.distance else {
+        guard distance.isFinite, startOffset.isFinite, distance > context.tolerance.distance else {
             throw FeatureEvaluationError.invalidDistance(distance)
         }
         let profileNormal = try normal(for: profile.plane)
@@ -42,7 +43,7 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
         case .symmetric:
             bottomOffset = axis * (-0.5 * distance)
         case .normal, .vector:
-            bottomOffset = .zero
+            bottomOffset = axis * startOffset
         }
         let boundaries = try ExactProfileBoundaryConverter(
             tolerance: context.tolerance

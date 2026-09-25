@@ -39,10 +39,10 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             )
         }
         try extrude.validate()
-        let distance = try resolvedDistance(
-            extrude.distance,
-            context: context
-        )
+        let range = try extrude.resolvedAxialRange(tolerance: context.tolerance) {
+            try resolver.evaluate($0, parameters: context.parameters, variables: [:])
+        }
+        let span = range.upperBound - range.lowerBound
         let result: EvaluationResult
         switch extrude.section {
         case .profile(let reference):
@@ -56,7 +56,8 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             ).build(
                 from: profile,
                 direction: extrude.direction,
-                distance: distance,
+                distance: span,
+                startOffset: range.lowerBound,
                 bodyKind: extrude.resultKind == .solid ? .solid : .sheet,
                 includesCaps: extrude.resultKind == .solid
             )
@@ -66,7 +67,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             )
             result = try evaluateCurveSheet(
                 curve, featureID: feature.id, direction: extrude.direction,
-                distance: distance, context: context
+                distance: span, startOffset: range.lowerBound, context: context
             )
         }
         return try ValidatedFeatureEvaluation(
@@ -80,6 +81,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         featureID: FeatureID,
         direction: ExtrudeDirection,
         distance: Double,
+        startOffset: Double,
         context: EvaluationContext
     ) throws -> EvaluationResult {
         let axis: Vector3D
@@ -97,7 +99,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 throw FeatureEvaluationError.invalidDirection(vector)
             }
         }
-        let start = direction == .symmetric ? axis * (-0.5 * distance) : .zero
+        let start = axis * (direction == .symmetric ? -0.5 * distance : startOffset)
         return try ExactLinearSectionSweepBodyBuilder(
             featureID: featureID, context: context, sewer: sewer
         ).buildTranslatedSheet(section: curve, startOffset: start, endOffset: start + axis * distance)
@@ -123,25 +125,4 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         )
     }
 
-    private func resolvedDistance(
-        _ expression: CADExpression,
-        context: EvaluationContext
-    ) throws -> Double {
-        let quantity = try resolver.evaluate(
-            expression,
-            parameters: context.parameters,
-            variables: [:]
-        )
-        guard quantity.kind == .length else {
-            throw UnitError.expectedQuantity(
-                operation: "extrude.distance",
-                expected: .length,
-                actual: quantity.kind
-            )
-        }
-        guard quantity.value > context.tolerance.distance else {
-            throw FeatureEvaluationError.invalidDistance(quantity.value)
-        }
-        return quantity.value
-    }
 }
