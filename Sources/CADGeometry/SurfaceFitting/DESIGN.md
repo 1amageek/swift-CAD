@@ -5,7 +5,8 @@
 Child of [CADGeometry](../DESIGN.md), with no children. Owns the numerical
 construction of constrained surfaces, not BRep publication or UI state.
 Column-pivoted Householder QR supports equality-constrained least squares.
-Nonlinear trust-region fitting remains pending SC1.8 work.
+A bounded dogleg trust-region primitive handles nonlinear least squares. Nonlinear
+equality/fairness composition and geometric consumers remain pending SC1.8 work.
 
 ## Responsibilities and Boundaries
 
@@ -60,6 +61,18 @@ equality matrix C and target d
   Scratch storage is a constant multiple of that budget plus vector dimensions;
   the orthogonal null-space matrix is never materialized. Residual checking is
   numerical, not interval-certified boundary-wide geometric verification.
+- Nonlinear fitting accepts analytic residuals and a row-major Jacobian from a
+  synchronous throwing evaluator; dimensions remain fixed after initialization.
+  The caller owns coordinate/residual units and supplies radii, tolerances,
+  evaluation and matrix budgets. QR computes a full-rank Gauss-Newton step;
+  dogleg limits it to the trust region. Actual versus predicted decrease decides
+  acceptance. Rejected candidates never replace the last accepted iterate.
+- Termination distinguishes residual satisfaction from first-order stationarity;
+  neither certifies geometric constraints or a global minimum. Rank deficiency,
+  finite-range failure, stagnation and budget exhaustion throw. Evaluator errors
+  propagate, including cancellation. At most one evaluation occurs per trial.
+  Each trial uses at most 64 scalar bisections to locate the dogleg boundary.
+  No penalty residual implicitly stands in for a hard geometric constraint.
 
 ## Failure, Concurrency, and Constraints
 
@@ -79,6 +92,11 @@ dependent least-squares and trust-region solvers when those are implemented.
 [SurfaceFittingLeastSquaresTests](../../../Tests/CADGeometryTests/SurfaceFittingLeastSquaresTests.swift)
 checks constrained optima, redundant and inconsistent equalities, unique and
 nonunique solutions, zero-row cases, scaling, and invalid/resource-limited input.
+
+[SurfaceFittingTrustRegionTests](../../../Tests/CADGeometryTests/SurfaceFittingTrustRegionTests.swift)
+checks nonlinear convergence, rejected trials, nonzero-residual stationarity,
+budgets, malformed evaluation and propagated evaluator failure.
+Dogleg algorithm context: [MINPACK dogleg](https://www.netlib.org/minpack/dogleg.f).
 
 Algorithm reference: [LAPACK QR with column pivoting](https://www.netlib.org/lapack/lug/node42.html).
 Minimum-norm rank-deficient solving requires additional orthogonal factorization,
