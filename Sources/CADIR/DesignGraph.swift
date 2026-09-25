@@ -726,12 +726,18 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a extrude operation.")
         }
         try extrude.validate()
-        guard node.inputs == [FeatureInput(featureID: extrude.section.featureID, role: extrude.section.inputRole)] else {
+        guard node.inputs == [FeatureInput(featureID: extrude.section.featureID, role: extrude.section.inputRole)]
+            + extrude.targets.map({ FeatureInput(featureID: $0.featureID, role: .target) }) else {
             throw FeatureEvaluationError.invalidGraph("Extrude features must consume the referenced section input.")
         }
         guard let source = nodes[extrude.section.featureID],
               source.outputs.contains(where: { $0.role == extrude.section.inputRole }) else {
             throw FeatureEvaluationError.invalidGraph("Extrude source must declare the section input role.")
+        }
+        for target in extrude.targets {
+            guard nodes[target.featureID]?.outputs.contains(where: { $0.role == .body }) == true else {
+                throw FeatureEvaluationError.invalidGraph("Extrude Boolean target must declare a solid body output.")
+            }
         }
         switch extrude.resultKind {
         case .solid:

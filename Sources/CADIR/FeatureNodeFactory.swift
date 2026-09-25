@@ -70,11 +70,15 @@ public enum FeatureNodeFactory {
                 case .profile(let reference): try validateProfileSource(reference, in: document)
                 case .curve(let reference): try validateCurveSource(reference.featureID, owner: "Extrude", in: document)
                 }
+                for target in extrude.targets {
+                    try validateSource(target.featureID, role: .body, in: document)
+                }
                 return FeatureNode(
                     id: id,
                     name: name,
                     operation: operation,
-                    inputs: [FeatureInput(featureID: extrude.section.featureID, role: extrude.section.inputRole)],
+                    inputs: [FeatureInput(featureID: extrude.section.featureID, role: extrude.section.inputRole)]
+                        + extrude.targets.map { FeatureInput(featureID: $0.featureID, role: .target) },
                     outputs: [FeatureOutput(role: extrude.resultKind == .solid ? .body : .sheet)]
                 )
             }

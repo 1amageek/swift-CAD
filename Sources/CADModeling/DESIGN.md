@@ -464,3 +464,15 @@ oversized radius, a non-convex profile, and a body outside every domain. Changes
 the stable signature owners, and the `CADIR` all-edge fillet domain statement.
 
 [ConstrainedSurface](ConstrainedSurface/DESIGN.md) owns point-constrained sheet construction and its bounded fitting contract.
+
+### Extrusion Boolean composition
+
+Extrude owns its retained target references and operation, while the existing
+`SweepBooleanApplying` contract owns Boolean topology construction. The evaluator
+first constructs the exact signed-span tool, then applies the selected Boolean
+with the input subshape lineage. New-body extrusion requires no targets and no
+Keep Tools. Boolean extrusion requires solid output and unique solid targets;
+failures propagate before publication. The exact result is admitted through the
+existing validated BRep path. Legacy source omitting targets and Keep Tools
+retains new-body behavior. Verification covers intersecting solid volume, source
+replay, target/tool retention and invalid target or sheet requests.

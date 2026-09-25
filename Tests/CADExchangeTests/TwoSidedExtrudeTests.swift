@@ -71,6 +71,44 @@ struct TwoSidedExtrudeTests {
         }
     }
 
+    @Test(arguments: [SolidOperation.union, .difference, .intersect, .slice], [false, true])
+    func booleanExtrusionRetainsTargetsAndReplays(operation: SolidOperation, keepTools: Bool) throws {
+        var (document, targetID) = try fixture(curve: false)
+        guard case let .extrude(target) = document.designGraph.nodes[targetID]?.operation else {
+            Issue.record("Expected target extrusion"); return
+        }
+        let source = ExtrudeFeature(section: target.section,
+            distance: .constant(.length(0.04, unit: .meter)),
+            operation: operation, targets: [.init(featureID: targetID)], keepTools: keepTools,
+            resultKind: .solid)
+        let node = try FeatureNodeFactory.make(operation: .extrude(source), in: document, tolerance: .standard)
+        document.designGraph.nodes[node.id] = node
+        document.designGraph.order.append(node.id)
+        document.designGraph.dependencies += node.inputs.map { DependencyEdge(source: $0.featureID, target: node.id) }
+        let store = NativePackageStore(tolerance: .standard)
+        let sink = DataByteSink()
+        try store.writePackage(for: document, to: sink)
+        let restored = try store.loadDocument(from: BorrowedBytes(sink.bytes))
+        #expect(restored.designGraph.nodes[node.id] == node)
+        let result = try DocumentEvaluator(tolerance: .standard).evaluateExact(restored)
+        let span: Double
+        switch operation {
+        case .union: span = 0.05
+        case .difference: span = 0.01
+        case .intersect: span = 0.03
+        case .slice: span = 0.04
+        case .newBody: Issue.record("Expected Boolean operation"); return
+        }
+        let expected = 0.02 * 0.01 * (span + (keepTools ? 0.08 : 0))
+        #expect(abs(try result.brep.volume(tolerance: .standard) - expected) < 1e-11)
+        var invalid = source
+        invalid.resultKind = .sheet
+        #expect(throws: FeatureEvaluationError.self) { try invalid.validate() }
+        invalid = source
+        invalid.targets = []
+        #expect(throws: FeatureEvaluationError.self) { try invalid.validate() }
+    }
+
     private func fixture(curve: Bool) throws -> (CADDocument, FeatureID) {
         var document = CADDocument(units: .meters)
         let points = [(0.0, 0.0), (0.02, 0.0), (0.02, 0.01), (0.0, 0.01)].map { x, y in

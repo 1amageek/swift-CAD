@@ -5,13 +5,16 @@ import CADIR
 public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let resolver: ParameterResolving
     private let sewer: any BRepSewing
+    private let booleanApplicator: (any SweepBooleanApplying)?
 
     public init(
         sewer: any BRepSewing,
-        resolver: ParameterResolving = ParameterResolver()
+        resolver: ParameterResolving = ParameterResolver(),
+        booleanApplicator: (any SweepBooleanApplying)? = nil
     ) {
         self.resolver = resolver
         self.sewer = sewer
+        self.booleanApplicator = booleanApplicator
     }
 
     public func evaluate(
@@ -32,18 +35,12 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 message: "PlanarExtrudeFeatureEvaluator only supports extrude."
             )
         }
-        guard extrude.operation == .newBody else {
-            throw KernelError.unsupportedEvaluation(
-                tolerance: context.tolerance,
-                message: "PlanarExtrudeFeatureEvaluator only supports newBody extrude."
-            )
-        }
         try extrude.validate()
         let range = try extrude.resolvedAxialRange(tolerance: context.tolerance) {
             try resolver.evaluate($0, parameters: context.parameters, variables: [:])
         }
         let span = range.upperBound - range.lowerBound
-        let result: EvaluationResult
+        var result: EvaluationResult
         switch extrude.section {
         case .profile(let reference):
             let profile = try ResolvedModelingSection.resolveProfile(
@@ -69,6 +66,23 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 curve, featureID: feature.id, direction: extrude.direction,
                 distance: span, startOffset: range.lowerBound, context: context
             )
+        }
+        if extrude.operation != .newBody {
+            guard let booleanApplicator,
+                  let operation = SweepBooleanOperation(rawValue: extrude.operation.rawValue) else {
+                throw KernelError.unsupportedEvaluation(tolerance: context.tolerance,
+                    message: "Extrusion Boolean evaluation requires a Boolean applicator.")
+            }
+            let toolReference = SubshapeID(featureID: feature.id,
+                role: GeneratedSubshapeRole.body.rawValue, ordinal: 0)
+            guard case let .body(toolID) = result.subshapes[toolReference] else {
+                throw FeatureEvaluationError.missingInput("Extrusion tool body was not generated.")
+            }
+            result = try booleanApplicator.apply(operation: operation,
+                targetBodyIDs: try extrude.targets.map { try context.bodyID(generatedBy: $0.featureID) },
+                toolBodyID: toolID, keepTools: extrude.keepTools, featureID: feature.id,
+                toolResult: result, targetSubshapes: context.subshapes.entries,
+                inputLineage: context.lineage, tolerance: context.tolerance)
         }
         return try ValidatedFeatureEvaluation(
             planarExtrusion: result,

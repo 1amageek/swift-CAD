@@ -353,3 +353,8 @@ It has no input feature ports and produces a Sheet. The original values, not a
 cached fitted net, are the source authority. CADModeling's
 [ConstrainedSurface](../CADModeling/ConstrainedSurface/DESIGN.md) owns fitting and
 independent residual checks; existing B-spline admission owns regularity and BRep.
+
+Extrude Boolean inputs retain target feature references after the section input.
+The target list, operation and Keep Tools are source-owned and round-trip with
+legacy defaults. Target outputs must be solid bodies; geometry admission is owned
+by [CADModeling](../CADModeling/DESIGN.md#extrusion-boolean-composition).
