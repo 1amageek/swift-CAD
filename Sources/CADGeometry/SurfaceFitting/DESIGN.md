@@ -4,8 +4,8 @@
 
 Child of [CADGeometry](../DESIGN.md), with no children. Owns the numerical
 construction of constrained surfaces, not BRep publication or UI state.
-The first implemented primitive is column-pivoted Householder QR. Constrained
-least squares and nonlinear trust-region fitting remain pending SC1.8 work.
+Column-pivoted Householder QR supports equality-constrained least squares.
+Nonlinear trust-region fitting remains pending SC1.8 work.
 
 ## Responsibilities and Boundaries
 
@@ -27,6 +27,9 @@ finite matrix + explicit rank tolerance + element budget
     -> scaled column-pivoted Householder QR
         -> orthogonal transforms / triangular coefficients / numerical rank
             -> full-column-rank least-squares solve
+equality matrix C and target d
+    -> QR of transpose(C) -> particular solution + implicit null space
+        -> least squares in free coordinates -> verify every original equality
 ```
 
 ## Contracts and Invariants
@@ -45,6 +48,18 @@ finite matrix + explicit rank tolerance + element budget
   applied without constructing Q; each transform owns one vector result.
 - State is immutable after initialization and unconditionally Sendable. There
   is no shared mutable state, I/O, callback or target-specific synchronization.
+- Equality-constrained least squares minimizes `||A x - b||` subject to `C x = d`.
+  Redundant consistent equalities are accepted; every original equality is
+  checked against a caller-owned absolute residual tolerance before returning.
+  QR of transposed C supplies the constrained and free coordinates. The reduced
+  objective must have full column rank; nonunique minima fail as singular rather
+  than silently choosing an arbitrary control net. No penalty weight relaxes C.
+- Zero equality rows reduce to ordinary least squares. Zero objective rows are
+  allowed only when equalities uniquely determine the solution. Matrix dimensions
+  and combined input matrix element budget are checked before scratch allocation.
+  Scratch storage is a constant multiple of that budget plus vector dimensions;
+  the orthogonal null-space matrix is never materialized. Residual checking is
+  numerical, not interval-certified boundary-wide geometric verification.
 
 ## Failure, Concurrency, and Constraints
 
@@ -60,6 +75,10 @@ checks reconstruction, orthogonality, pivoting, least-squares residuals, numeric
 rank, extreme scaling and invalid/resource-limited inputs. These tests do not
 establish a complete constrained surface feature. Changes require rechecking
 dependent least-squares and trust-region solvers when those are implemented.
+
+[SurfaceFittingLeastSquaresTests](../../../Tests/CADGeometryTests/SurfaceFittingLeastSquaresTests.swift)
+checks constrained optima, redundant and inconsistent equalities, unique and
+nonunique solutions, zero-row cases, scaling, and invalid/resource-limited input.
 
 Algorithm reference: [LAPACK QR with column pivoting](https://www.netlib.org/lapack/lug/node42.html).
 Minimum-norm rank-deficient solving requires additional orthogonal factorization,
