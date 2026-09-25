@@ -6,7 +6,8 @@
 for primitive and derived B-rep geometry. It is a child of the [Swift-CAD
 package design](../../DESIGN.md). Children include
 [InvoluteGear](InvoluteGear/DESIGN.md), [CertifiedTwist](CertifiedTwist/DESIGN.md)
-and [SpatialPath](SpatialPath/DESIGN.md).
+and [SpatialPath](SpatialPath/DESIGN.md), with
+[SurfaceFill](SurfaceFill/DESIGN.md) owning source-boundary surface filling.
 
 ## Responsibilities and Boundaries
 
@@ -26,6 +27,8 @@ stable signature serialization, evaluation caching, or Rupa project authority.
 | [CADGeometry](../CADGeometry/DESIGN.md) | depends on | analytic pcurve validation | Supplies the common structural contract. | Do not add a sphere-specific bypass. |
 | [CADKernel](../CADKernel/DESIGN.md) | used by | evaluation and stable topology reads | Consumes the generated B-rep. | Stable reads must see every generated subshape. |
 | [InvoluteGear](InvoluteGear/DESIGN.md) | child | closed gear section | Composes flanks and analytic circular roots into Profile. | Resolved geometry only; no source or manufacturing certification. |
+| [SurfaceFill](SurfaceFill/DESIGN.md) | child | exact G0 surface fill from an open B-rep boundary loop | Reuses exact curve conversion, composite curves and Coons construction. | Does not claim G1/G2 optimization or guide-curve constraints. |
+| [CADTopology OpenBoundaryLoop](../CADTopology/OpenBoundaryLoop/DESIGN.md) | depends on | ordered exact boundary edge cycle | Supplies the shared loop containing the selected seed. | It does not choose corners or surface quality. |
 
 ## Architecture
 

@@ -210,6 +210,22 @@ public enum FeatureNodeFactory {
                 )
             }
             return try run()
+        case .surfaceFill:
+            func run() throws -> FeatureNode {
+                guard case let .surfaceFill(fill) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try fill.validate()
+                _ = try bodyOrSheetSourceRole(fill.targetFeatureID, owner: "Surface fill target", in: document)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: [FeatureInput(featureID: fill.targetFeatureID, role: .target)],
+                    outputs: [FeatureOutput(role: .sheet)]
+                )
+            }
+            return try run()
         case .bridgeSurface:
             func run() throws -> FeatureNode {
                 guard case let .bridgeSurface(bridge) = operation else {

@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 import CADTopology
@@ -50,6 +51,207 @@ struct FaceDeleteFeatureTests {
         #expect(evaluated.subshapes == repeated.subshapes)
         #expect(evaluated.lineage == repeated.lineage)
         try evaluated.brep.validate(level: .exact, tolerance: .standard)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [1.0, 0.01])
+    func fillsTheOpeningLeftByDeletedSolidFaceAndRetainsTheExactSourceShell(scale: Double) throws {
+        var document = makeRectangleExtrudeDocument(
+            width: 40 * scale, height: 20 * scale, depth: 10 * scale,
+            documentUnits: .meters
+        )
+        let solidFeatureID = try #require(document.designGraph.order.last)
+        let evaluator = DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred)
+        let solid = try evaluator.evaluate(document)
+        let deletedFaceID = SubshapeID(
+            featureID: solidFeatureID,
+            role: GeneratedSubshapeRole.startFace.rawValue,
+            ordinal: 0
+        )
+        let deleteFeatureID = FeatureID()
+        try appendFaceDelete(
+            featureID: deleteFeatureID,
+            sourceFeatureID: solidFeatureID,
+            faces: [try solid.stableSubshapeReference(for: deletedFaceID)],
+            to: &document
+        )
+        let opening = try evaluator.evaluate(document)
+        let sourceBodyID = try #require(opening.brep.bodies.keys.first)
+        #expect(opening.subshapes.entries.contains {
+            $0.key.featureID == deleteFeatureID && $0.value == .body(sourceBodyID)
+        })
+        let sourceBody = try #require(opening.brep.bodies[sourceBodyID])
+        let boundary = try #require(OpenBoundaryLoopResolver().loops(
+            in: sourceBody,
+            model: opening.brep
+        ).first { $0.traversals.count == 4 })
+        #expect(OpenBoundaryLoopResolver().isFillableSurfaceBoundary(
+            boundary,
+            in: sourceBody,
+            model: opening.brep
+        ))
+        let seed = boundary.traversals[0].edgeID
+        let seedSubshapeID = try #require(opening.subshapes.entries.first {
+            $0.key.featureID == deleteFeatureID && $0.value == .edge(seed)
+        }?.key)
+        let fillFeatureID = FeatureID()
+        let fillOperation = FeatureOperation.surfaceFill(SurfaceFillFeature(
+            targetFeatureID: deleteFeatureID,
+            boundarySeed: try opening.stableSubshapeReference(for: seedSubshapeID)
+        ))
+        let fillFeature = try FeatureNodeFactory.make(
+            operation: fillOperation,
+            id: fillFeatureID,
+            name: "Opening Fill",
+            in: document,
+            tolerance: .standard
+        )
+        document.designGraph.nodes[fillFeatureID] = fillFeature
+        document.designGraph.order.append(fillFeatureID)
+        document.designGraph.dependencies.append(DependencyEdge(
+            source: deleteFeatureID,
+            target: fillFeatureID
+        ))
+        document.designGraph.revision = document.designGraph.revision.advanced()
+
+        let filled = try evaluator.evaluate(document)
+        let repeated = try evaluator.evaluate(document)
+        let fillFaceReference = try #require(filled.subshapes.entries.first {
+            guard $0.key.featureID == fillFeatureID,
+                  case .face = $0.value else { return false }
+            return true
+        }?.value)
+        let fillFaceID: FaceID
+        guard case .face(let resolvedFillFaceID) = fillFaceReference else {
+            Issue.record("The generated Surface Fill output must identify a face.")
+            return
+        }
+        fillFaceID = resolvedFillFaceID
+        let fillFace = try #require(filled.brep.faces[fillFaceID])
+        let fillLoopID = try #require(fillFace.loops.first)
+        let fillLoop = try #require(filled.brep.loops[fillLoopID])
+        var fillEdgeSamples = try fillLoop.coedges.map {
+            try sampledEdge($0.edgeID, in: filled.brep)
+        }
+        let openingEdgeSamples = try boundary.traversals.map {
+            try sampledEdge($0.edgeID, in: opening.brep)
+        }
+
+        #expect(opening.brep.bodies.count == 1)
+        #expect(opening.brep.faces.count == 5)
+        #expect(filled.brep.bodies.count == 2)
+        #expect(filled.brep.faces.count == 6)
+        #expect(filled.brep.bodies[sourceBodyID] == sourceBody)
+        #expect(opening.brep.faces.allSatisfy { filled.brep.faces[$0.key] == $0.value })
+        #expect(fillLoop.coedges.count == 4)
+        for sourceSamples in openingEdgeSamples {
+            let match = try #require(fillEdgeSamples.indices.min(by: { first, second in
+                edgeDeviation(sourceSamples, fillEdgeSamples[first])
+                    < edgeDeviation(sourceSamples, fillEdgeSamples[second])
+            }))
+            #expect(edgeDeviation(sourceSamples, fillEdgeSamples[match]) <= ModelingTolerance.standard.distance)
+            fillEdgeSamples.remove(at: match)
+        }
+        #expect(fillEdgeSamples.isEmpty)
+        #expect(filled.brep == repeated.brep)
+        try filled.brep.validate(level: .exact, tolerance: .standard)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func fillsCircularOpeningAfterDeletingCylinderCap() throws {
+        var document = try makeCylinderDocument()
+        let cylinderFeatureID = try #require(document.designGraph.order.last)
+        let evaluator = DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred)
+        let cylinder = try evaluator.evaluate(document)
+        let capFace = try #require(cylinder.brep.faces.values.first { face in
+            guard let surface = cylinder.brep.geometry.surfaces[face.surfaceID] else {
+                return false
+            }
+            if case .plane = surface { return true }
+            return false
+        })
+        let deletedFaceID = try #require(cylinder.subshapes.entries.first {
+            $0.key.featureID == cylinderFeatureID && $0.value == .face(capFace.id)
+        }?.key)
+        let deleteFeatureID = FeatureID()
+        try appendFaceDelete(
+            featureID: deleteFeatureID,
+            sourceFeatureID: cylinderFeatureID,
+            faces: [try cylinder.stableSubshapeReference(for: deletedFaceID)],
+            to: &document
+        )
+        let opening = try evaluator.evaluate(document)
+        let openingBody = try #require(opening.brep.bodies.values.first)
+        let loop = try #require(OpenBoundaryLoopResolver().loops(
+            in: openingBody,
+            model: opening.brep
+        ).first { $0.traversals.count == 4 })
+        #expect(OpenBoundaryLoopResolver().isFillableSurfaceBoundary(
+            loop,
+            in: openingBody,
+            model: opening.brep
+        ))
+        let seedID = try #require(opening.subshapes.entries.first {
+            $0.key.featureID == deleteFeatureID && $0.value == .edge(loop.traversals[0].edgeID)
+        }?.key)
+        let fillFeatureID = FeatureID()
+        let fillFeature = try FeatureNodeFactory.make(
+            operation: .surfaceFill(SurfaceFillFeature(
+                targetFeatureID: deleteFeatureID,
+                boundarySeed: try opening.stableSubshapeReference(for: seedID)
+            )),
+            id: fillFeatureID,
+            name: "Circular Opening Fill",
+            in: document,
+            tolerance: .standard
+        )
+        document.designGraph.nodes[fillFeatureID] = fillFeature
+        document.designGraph.order.append(fillFeatureID)
+        document.designGraph.dependencies.append(DependencyEdge(
+            source: deleteFeatureID,
+            target: fillFeatureID
+        ))
+        document.designGraph.revision = document.designGraph.revision.advanced()
+
+        let filled = try evaluator.evaluate(document)
+        let repeated = try evaluator.evaluate(document)
+        let fillFaceID: FaceID
+        guard case let .face(resolvedFaceID) = try #require(filled.subshapes.entries.first {
+            guard $0.key.featureID == fillFeatureID,
+                  case .face = $0.value else { return false }
+            return true
+        }?.value) else {
+            Issue.record("A filled circular opening must produce one exact surface face.")
+            return
+        }
+        fillFaceID = resolvedFaceID
+        let fillFace = try #require(filled.brep.faces[fillFaceID])
+        let fillLoopID = try #require(fillFace.loops.first)
+        let fillLoop = try #require(filled.brep.loops[fillLoopID])
+        let fillEdgeSamples = try fillLoop.coedges.map {
+            try sampledEdge($0.edgeID, in: filled.brep, subdivisions: 4)
+        }
+        let sourceEdge = try #require(opening.brep.edges[loop.traversals[0].edgeID])
+        let sourceCurve = try #require(opening.brep.geometry.curves[sourceEdge.curveID])
+        guard case let .circle(circle) = sourceCurve else {
+            Issue.record("A cylindrical cap opening must retain its exact circular boundary.")
+            return
+        }
+
+        #expect(opening.brep.faces.count == 5)
+        #expect(filled.brep.faces.count == 6)
+        #expect(filled.brep.bodies.count == 2)
+        #expect(filled.brep.bodies.values.contains(openingBody))
+        #expect(fillLoop.coedges.count == 4)
+        guard case .plane = filled.brep.geometry.surfaces[fillFace.surfaceID] else {
+            Issue.record("A coplanar circular boundary must use the exact planar fill path.")
+            return
+        }
+        for point in fillEdgeSamples.flatMap({ $0 }) {
+            #expect(abs((point - circle.center).length - circle.radius) <= ModelingTolerance.standard.distance)
+            #expect(abs((point - circle.center).dot(circle.normal)) <= ModelingTolerance.standard.distance)
+        }
+        #expect(filled.brep == repeated.brep)
+        try filled.brep.validate(level: .exact, tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -451,5 +653,35 @@ struct FaceDeleteFeatureTests {
             lineage: lineage,
             tolerance: .standard
         )
+    }
+
+    private func sampledEdge(
+        _ edgeID: EdgeID,
+        in model: BRepModel,
+        subdivisions: Int = 4
+    ) throws -> [Point3D] {
+        let edge = try #require(model.edges[edgeID])
+        let curve = try #require(model.geometry.curves[edge.curveID])
+        let start = try #require(model.vertices[edge.startVertexID])
+        let end = try #require(model.vertices[edge.endVertexID])
+        let validated = try ValidatedCurve3D(curve, tolerance: .standard)
+        let startParameter = try edge.trim?.startParameter
+            ?? validated.parameterProjection(of: start.point).parameter
+        let endParameter = try edge.trim?.endParameter
+            ?? validated.parameterProjection(of: end.point).parameter
+        return try (0...subdivisions).map { index in
+            let fraction = Double(index) / Double(subdivisions)
+            return try validated.point(at: startParameter + (endParameter - startParameter) * fraction)
+        }
+    }
+
+    private func edgeDeviation(_ first: [Point3D], _ second: [Point3D]) -> Double {
+        let forward = zip(first, second).map { first, second in
+            (first - second).length
+        }.max() ?? .infinity
+        let reversed = zip(first, second.reversed()).map { first, second in
+            (first - second).length
+        }.max() ?? .infinity
+        return min(forward, reversed)
     }
 }

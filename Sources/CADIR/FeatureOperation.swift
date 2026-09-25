@@ -14,6 +14,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case polySpline(PolySplineFeature)
     case bSplineSurface(BSplineSurfaceFeature)
     case patchSurface(PatchSurfaceFeature)
+    case surfaceFill(SurfaceFillFeature)
     case faceLoopOffset(FaceLoopOffsetFeature)
     case edgeOffset(EdgeOffsetFeature)
     case faceKnife(FaceKnifeFeature)
@@ -64,6 +65,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case polySpline
         case bSplineSurface
         case patchSurface
+        case surfaceFill
         case faceLoopOffset
         case edgeOffset
         case faceKnife
@@ -145,6 +147,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .patchSurface:
             try container.validateOnlyExpectedKeys([.kind, .patchSurface], in: decoder)
             self = .patchSurface(try container.decode(PatchSurfaceFeature.self, forKey: .patchSurface))
+        case .surfaceFill:
+            try container.validateOnlyExpectedKeys([.kind, .surfaceFill], in: decoder)
+            self = .surfaceFill(try container.decode(SurfaceFillFeature.self, forKey: .surfaceFill))
         case .faceLoopOffset:
             try container.validateOnlyExpectedKeys([.kind, .faceLoopOffset], in: decoder)
             self = .faceLoopOffset(try container.decode(FaceLoopOffsetFeature.self, forKey: .faceLoopOffset))
@@ -292,6 +297,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .patchSurface(patch):
             try container.encode(Kind.patchSurface, forKey: .kind)
             try container.encode(patch, forKey: .patchSurface)
+        case let .surfaceFill(surfaceFill):
+            try container.encode(Kind.surfaceFill, forKey: .kind)
+            try container.encode(surfaceFill, forKey: .surfaceFill)
         case let .faceLoopOffset(faceLoopOffset):
             try container.encode(Kind.faceLoopOffset, forKey: .kind)
             try container.encode(faceLoopOffset, forKey: .faceLoopOffset)

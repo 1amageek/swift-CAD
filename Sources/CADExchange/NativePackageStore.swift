@@ -433,6 +433,12 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
         path: "\(path).patchSurface",
         using: validatePatchSurfaceFeatureObject
     )
+    try validateObjectField(
+        "surfaceFill",
+        in: object,
+        path: "\(path).surfaceFill",
+        using: validateSurfaceFillFeatureObject
+    )
     try validateObjectField("faceLoopOffset", in: object, path: "\(path).faceLoopOffset", using: validateFaceLoopOffsetFeatureObject)
     try validateObjectField("edgeOffset", in: object, path: "\(path).edgeOffset", using: validateEdgeOffsetFeatureObject)
     try validateObjectField("faceKnife", in: object, path: "\(path).faceKnife", using: validateFaceKnifeFeatureObject)
@@ -1130,6 +1136,20 @@ private func validatePatchSurfaceFeatureObject(_ object: [String: Any], path: St
         in: object,
         path: "\(path).uMaximumBoundary",
         using: validateBSplineCurve3DObject
+    )
+}
+
+private func validateSurfaceFillFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["targetFeatureID", "boundarySeed"],
+        objectName: path
+    )
+    try validateObjectField(
+        "boundarySeed",
+        in: object,
+        path: "\(path).boundarySeed",
+        using: validateStableSubshapeReferenceObject
     )
 }
 

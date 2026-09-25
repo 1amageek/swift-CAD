@@ -41,7 +41,7 @@ package struct DefaultPlanarSurfaceResolver: PlanarSurfaceResolving {
         }
         if case let .bSpline(surface) = surface {
             return try plane(
-                forControlPoints: surface.controlPoints.flatMap { $0 },
+                forControlPoints: surface.controlPoints.joined(),
                 tolerance: tolerance
             )
         }
@@ -58,10 +58,10 @@ package struct DefaultPlanarSurfaceResolver: PlanarSurfaceResolving {
         return nil
     }
 
-    private func plane(
-        forControlPoints points: [Point3D],
+    package func plane<Points: Collection>(
+        forControlPoints points: Points,
         tolerance: ModelingTolerance
-    ) throws -> ResolvedPlaneGeometry? {
+    ) throws -> ResolvedPlaneGeometry? where Points.Element == Point3D {
         guard let origin = points.first else { return nil }
         guard let first = points.dropFirst().first(where: {
             ($0 - origin).length > tolerance.distance

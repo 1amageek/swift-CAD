@@ -70,6 +70,7 @@ public extension FeatureOperation {
              .polySpline,
              .bSplineSurface,
              .patchSurface,
+             .surfaceFill,
              .faceKnife,
              .faceDelete,
              .bridgeCurve,

@@ -208,6 +208,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 try surface.validate(tolerance: tolerance)
             case let .patchSurface(patch):
                 try patch.validate(tolerance: tolerance)
+            case .surfaceFill:
+                break
             case let .faceLoopOffset(faceLoopOffset):
                 let distance = try parameters.resolvedValue(for: faceLoopOffset.distance)
                 guard distance.kind == .length else {
@@ -581,6 +583,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             try validateBSplineSurfaceContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .patchSurface:
             try validatePatchSurfaceContract(node, outputRoles: outputRoles, tolerance: tolerance)
+        case .surfaceFill:
+            try validateSurfaceFillContract(node, outputRoles: outputRoles)
         case .faceLoopOffset:
             try validateFaceLoopOffsetContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .edgeOffset:
@@ -952,6 +956,23 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         }
         guard outputRoles == [.sheet] else {
             throw FeatureEvaluationError.invalidGraph("Patch surface features must declare one sheet output.")
+        }
+    }
+
+    @inline(never)
+    private func validateSurfaceFillContract(
+        _ node: FeatureNode,
+        outputRoles: [FeaturePort]
+    ) throws {
+        guard case let .surfaceFill(fill) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a surfaceFill operation.")
+        }
+        try fill.validate()
+        guard node.inputs == [FeatureInput(featureID: fill.targetFeatureID, role: .target)],
+              let source = nodes[fill.targetFeatureID],
+              source.outputs.filter({ $0.role == .body || $0.role == .sheet }).count == 1,
+              outputRoles == [.sheet] else {
+            throw FeatureEvaluationError.invalidGraph("Surface fill requires one body target input and one sheet output.")
         }
     }
 

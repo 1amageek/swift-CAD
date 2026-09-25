@@ -313,6 +313,7 @@ struct DocumentEvaluationEngine {
                  .polySpline,
                  .bSplineSurface,
                  .patchSurface,
+                 .surfaceFill,
                  .faceLoopOffset,
                  .edgeOffset,
                  .faceKnife,

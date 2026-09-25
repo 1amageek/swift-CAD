@@ -58,6 +58,8 @@ flowchart LR
     Validate --> Codable["Deterministic Codable round-trip"]
     Imported["ImportedBRepFeature\nexact BRep source"] --> ValidateBRep["BRep validation"]
     ValidateBRep --> KernelEvaluate["CADKernel evaluation"]
+    SurfaceFill["SurfaceFillFeature\nsource + boundary seed"] --> Validate
+    SurfaceFill --> KernelEvaluate
     Fidelity["TessellationOptions\nfidelity"] --> Kernel["CADKernel consumer"]
     Limits["TessellationLimits\nresource admission"] --> Kernel
 ```
@@ -104,6 +106,14 @@ all-edge domains are an orthogonal box, a circular cylinder, and a convex prism
 extruded perpendicular to a cap profile of straight segments and tangentially
 joined circular arcs; other bodies fail explicitly.
 The radius remains exact CAD source. Display subdivisions are not fillet source.
+
+`SurfaceFillFeature` retains a source feature and one stable reference to an
+edge on that source. Evaluation resolves the complete open boundary loop from
+current exact topology and produces one separate `.sheet` output; it never
+replaces the source body. The edge is only a loop seed, not a tessellated
+approximation of the boundary. Boundary order is resolved from vertex
+connectivity. Unsupported, stale, ambiguous, or non-closed boundaries fail
+explicitly.
 
 `ExtrudeFeature.resultKind` selects which body a linear extrusion of a closed
 profile builds, and it is the only thing that separates the two: a `.solid`

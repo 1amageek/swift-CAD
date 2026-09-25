@@ -13,6 +13,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
     private let polySplineEvaluator: PolySplineFeatureEvaluator
     private let bSplineSurfaceEvaluator: BSplineSurfaceFeatureEvaluator
     private let patchSurfaceEvaluator: PatchSurfaceFeatureEvaluator
+    private let surfaceFillEvaluator: SurfaceFillFeatureEvaluator
     private let faceLoopOffsetEvaluator: FaceLoopOffsetFeatureEvaluator
     private let edgeOffsetEvaluator: EdgeOffsetFeatureEvaluator
     private let faceKnifeEvaluator: FaceKnifeFeatureEvaluator
@@ -79,6 +80,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.polySplineEvaluator = PolySplineFeatureEvaluator()
         self.bSplineSurfaceEvaluator = BSplineSurfaceFeatureEvaluator()
         self.patchSurfaceEvaluator = PatchSurfaceFeatureEvaluator()
+        self.surfaceFillEvaluator = SurfaceFillFeatureEvaluator(sewer: sewer)
         self.faceLoopOffsetEvaluator = FaceLoopOffsetFeatureEvaluator(resolver: resolver)
         self.edgeOffsetEvaluator = EdgeOffsetFeatureEvaluator(resolver: resolver)
         self.faceKnifeEvaluator = FaceKnifeFeatureEvaluator()
@@ -204,6 +206,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             return try bSplineSurfaceEvaluator.evaluateValidated(feature: feature, context: context)
         case .patchSurface:
             return try patchSurfaceEvaluator.evaluateValidated(feature: feature, context: context)
+        case .surfaceFill:
+            return try surfaceFillEvaluator.evaluateValidated(feature: feature, context: context)
         case .faceLoopOffset:
             return try faceLoopOffsetEvaluator.evaluateValidated(feature: feature, context: context)
         case .edgeOffset:

@@ -12,6 +12,7 @@ public enum FeatureOperationKind: String, Codable, CaseIterable, Hashable, Senda
     case polySpline
     case bSplineSurface
     case patchSurface
+    case surfaceFill
     case faceLoopOffset
     case edgeOffset
     case faceKnife

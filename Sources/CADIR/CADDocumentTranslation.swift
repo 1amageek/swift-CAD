@@ -88,7 +88,8 @@ private extension FeatureOperation {
              .surfaceOffset,
              .surfaceTrim,
              .surfaceExtend,
-             .surfaceMatch:
+             .surfaceMatch,
+             .surfaceFill:
             return self
         case .revolve(var revolve):
             revolve.axis.origin = revolve.axis.origin + vector

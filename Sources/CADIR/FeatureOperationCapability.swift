@@ -14,6 +14,7 @@ public extension FeatureOperation {
         case .polySpline: return "polySpline"
         case .bSplineSurface: return "bSplineSurface"
         case .patchSurface: return "patchSurface"
+        case .surfaceFill: return "surfaceFill"
         case .faceLoopOffset: return "faceLoopOffset"
         case .edgeOffset: return "edgeOffset"
         case .faceKnife: return "faceKnife"
