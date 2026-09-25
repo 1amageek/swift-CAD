@@ -27,6 +27,21 @@ section planes remain typed failures. Placement measurements consume these
 oriented segments so fractional lengths follow the constructed end of a sweep.
 Core's placed sweep tests own the cross-package ordering/measurement check.
 
+`SketchCurveIntersector` is the public sketch curve intersection. It converts
+each `SketchCurveGeometry2D` (line, circle, arc, cubic Bezier chain) to its exact
+rational B-spline, intersects the pair with the certified two-dimensional curve
+intersector and reports every root once with both curves' natural parameters:
+the line fraction, the polar angle, or the chain parameter profile extraction
+uses. Each root is refined by Newton steps confined to its certified enclosure,
+which holds exactly one root; a step leaving it or a singular (tangent) Jacobian
+keeps the certified midpoint. The second curve may reach its unbounded line or
+full circle; a chain has no extension and is refused as an unsupported
+capability. A root the proof budget (depth 32, 16,384 cells) cannot certify, such
+as an inexact tangency or an overlap, is a typed `resourceLimitExceeded`
+failure, and invalid geometry is `invalidInput`. `SketchCurveIntersectorTests`
+own the parameters, reach, dedup and failure contracts; RupaCore Cut Curve tests
+own the command-level cuts.
+
 ## Related Designs
 
 | Design | Relationship | Contract Used | Summary | Cautions |
@@ -34,7 +49,7 @@ Core's placed sweep tests own the cross-package ordering/measurement check.
 | [Swift-CAD package](../../DESIGN.md) | parent | immutable exact evaluation | Defines kernel composition and Mesh separation. | Do not re-evaluate during a read. |
 | [CADIR](../CADIR/DESIGN.md) | depends on | complete stable signature value | Provides validated reference values. | Every topology entry is eligible for a reference. |
 | [CADModeling](../CADModeling/DESIGN.md) | depends on | exact generated B-rep | Supplies source topology and lineage. | Seam/pole topology remains present. |
-| [RupaCore](../../../RupaKit/Sources/RupaCore/DESIGN.md) | used by | evaluated body and Mesh measurements | Consumes the same snapshot outputs. | Volume authority stays in exact B-rep. |
+| [RupaCore](../../../RupaKit/Sources/RupaCore/DESIGN.md) | used by | evaluated body and Mesh measurements; edge queries; sketch curve intersections | Consumes the same snapshot outputs and certified sketch intersections. | Volume authority stays in exact B-rep; Core computes no intersection itself. |
 
 ## Architecture
 
