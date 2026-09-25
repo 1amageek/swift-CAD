@@ -131,6 +131,9 @@ private extension FeatureOperation {
                 return translated
             }
             return .polySpline(polySpline)
+        case .constrainedSurface(var surface):
+            for i in surface.points.indices { surface.points[i].position = surface.points[i].position + vector }
+            return .constrainedSurface(surface)
         case .bSplineSurface(var surfaceFeature):
             surfaceFeature.surface.controlPoints = surfaceFeature.surface.controlPoints.map { row in
                 row.map { $0 + vector }

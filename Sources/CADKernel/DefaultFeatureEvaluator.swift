@@ -202,6 +202,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             return try booleanEvaluator.evaluateValidated(feature: feature, context: context)
         case .polySpline:
             return try polySplineEvaluator.evaluateValidated(feature: feature, context: context)
+        case .constrainedSurface:
+            return try ConstrainedSurfaceFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .bSplineSurface:
             return try bSplineSurfaceEvaluator.evaluateValidated(feature: feature, context: context)
         case .patchSurface:

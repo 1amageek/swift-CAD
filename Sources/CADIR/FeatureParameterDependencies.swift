@@ -69,6 +69,7 @@ public extension FeatureOperation {
              .loft,
              .boolean,
              .polySpline,
+             .constrainedSurface,
              .bSplineSurface,
              .patchSurface,
              .surfaceFill,

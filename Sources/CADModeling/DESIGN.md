@@ -462,3 +462,5 @@ volume the contract names, reproduce both of the other two solids through the
 general builder vertex for vertex, and assert the typed rejection of an
 oversized radius, a non-convex profile, and a body outside every domain. Changes require rechecking the shared geometry validation,
 the stable signature owners, and the `CADIR` all-edge fillet domain statement.
+
+[ConstrainedSurface](ConstrainedSurface/DESIGN.md) owns point-constrained sheet construction and its bounded fitting contract.

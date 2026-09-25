@@ -344,3 +344,12 @@ stable boundaries. Absence denotes the existing common source frame. Maps are
 finite and nonsingular and participate in persistence, equality and source
 fingerprints. The application owns live occurrence bindings and map refresh;
 CADIR owns no scene-node identity. See [BridgeSurface](../CADModeling/BridgeSurface/DESIGN.md).
+
+### Constrained Surface source
+
+`ConstrainedSurfaceFeature` retains ordered point positions in meters,
+positional/angular tolerances and Performance/Smoothness mode.
+It has no input feature ports and produces a Sheet. The original values, not a
+cached fitted net, are the source authority. CADModeling's
+[ConstrainedSurface](../CADModeling/ConstrainedSurface/DESIGN.md) owns fitting and
+independent residual checks; existing B-spline admission owns regularity and BRep.

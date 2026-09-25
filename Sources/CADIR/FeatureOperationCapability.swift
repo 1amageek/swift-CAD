@@ -12,6 +12,7 @@ public extension FeatureOperation {
         case .loft: return "loft"
         case .boolean: return "boolean"
         case .polySpline: return "polySpline"
+        case .constrainedSurface: return "constrainedSurface"
         case .bSplineSurface: return "bSplineSurface"
         case .patchSurface: return "patchSurface"
         case .surfaceFill: return "surfaceFill"

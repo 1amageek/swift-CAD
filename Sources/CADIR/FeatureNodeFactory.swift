@@ -182,6 +182,9 @@ public enum FeatureNodeFactory {
                 )
             }
             return try run()
+        case .constrainedSurface(let surface):
+            try surface.validate(tolerance: tolerance)
+            return FeatureNode(id: id, name: name, operation: operation, outputs: [FeatureOutput(role: .sheet)])
         case .bSplineSurface:
             func run() throws -> FeatureNode {
                 guard case let .bSplineSurface(surface) = operation else {

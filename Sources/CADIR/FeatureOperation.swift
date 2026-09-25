@@ -12,6 +12,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case loft(LoftFeature)
     case boolean(BooleanFeature)
     case polySpline(PolySplineFeature)
+    case constrainedSurface(ConstrainedSurfaceFeature)
     case bSplineSurface(BSplineSurfaceFeature)
     case patchSurface(PatchSurfaceFeature)
     case surfaceFill(SurfaceFillFeature)
@@ -63,6 +64,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case loft
         case boolean
         case polySpline
+        case constrainedSurface
         case bSplineSurface
         case patchSurface
         case surfaceFill
@@ -141,6 +143,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .polySpline:
             try container.validateOnlyExpectedKeys([.kind, .polySpline], in: decoder)
             self = .polySpline(try container.decode(PolySplineFeature.self, forKey: .polySpline))
+        case .constrainedSurface:
+            try container.validateOnlyExpectedKeys([.kind, .constrainedSurface], in: decoder)
+            self = .constrainedSurface(try container.decode(ConstrainedSurfaceFeature.self, forKey: .constrainedSurface))
         case .bSplineSurface:
             try container.validateOnlyExpectedKeys([.kind, .bSplineSurface], in: decoder)
             self = .bSplineSurface(try container.decode(BSplineSurfaceFeature.self, forKey: .bSplineSurface))
@@ -291,6 +296,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .polySpline(polySpline):
             try container.encode(Kind.polySpline, forKey: .kind)
             try container.encode(polySpline, forKey: .polySpline)
+        case let .constrainedSurface(surface):
+            try container.encode(Kind.constrainedSurface, forKey: .kind)
+            try container.encode(surface, forKey: .constrainedSurface)
         case let .bSplineSurface(surface):
             try container.encode(Kind.bSplineSurface, forKey: .kind)
             try container.encode(surface, forKey: .bSplineSurface)

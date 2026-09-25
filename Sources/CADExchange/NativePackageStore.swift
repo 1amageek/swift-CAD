@@ -426,6 +426,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("loft", in: object, path: "\(path).loft", using: validateLoftFeatureObject)
     try validateObjectField("boolean", in: object, path: "\(path).boolean", using: validateBooleanFeatureObject)
     try validateObjectField("polySpline", in: object, path: "\(path).polySpline", using: validatePolySplineFeatureObject)
+    try validateObjectField("constrainedSurface", in: object, path: "\(path).constrainedSurface", using: validateConstrainedSurfaceFeatureObject)
     try validateObjectField("bSplineSurface", in: object, path: "\(path).bSplineSurface", using: validateBSplineSurfaceFeatureObject)
     try validateObjectField(
         "patchSurface",
@@ -2654,6 +2655,21 @@ private struct JSONDuplicateKeyScanner {
     private mutating func advance(count: Int) {
         for _ in 0..<count {
             index = text.index(after: index)
+        }
+    }
+}
+
+private func validateConstrainedSurfaceFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object,
+        supportedKeys: ["points", "positionTolerance", "angularTolerance", "optimization"], objectName: path)
+    if let points = object["points"] as? [[String: Any]] {
+        for (index, point) in points.enumerated() {
+            try rejectUnsupportedNativeKeys(in: point, supportedKeys: ["position"], objectName: "\(path).points[\(index)]")
+            for key in ["position"] {
+                if let vector = point[key] as? [String: Any] {
+                    try rejectUnsupportedNativeKeys(in: vector, supportedKeys: ["x", "y", "z"], objectName: "\(path).points[\(index)].\(key)")
+                }
+            }
         }
     }
 }

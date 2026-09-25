@@ -311,6 +311,7 @@ struct DocumentEvaluationEngine {
                  .shell,
                  .thicken,
                  .polySpline,
+                 .constrainedSurface,
                  .bSplineSurface,
                  .patchSurface,
                  .surfaceFill,

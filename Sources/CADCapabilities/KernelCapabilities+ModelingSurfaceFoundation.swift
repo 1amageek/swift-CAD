@@ -3,6 +3,20 @@ import CADCore
 extension KernelCapabilities {
   static let modelingSurfaceFoundationCapabilities: [KernelCapability] = [
     feature(
+      id: "MODEL-CONSTRAINEDSURFACE-001",
+      operation: "constrainedSurface",
+      topology: .sheetBody,
+      inputs: ["finiteNoncollinearPointConstraints", "admissibleHeightGraphProjection",
+        "positivePositionAndAngularTolerances", "boundedFittingMatrices"],
+      outputs: ["validatedExactSheetBRep", "retainedPointSource",
+        "wholePatchHeightGradientNormalChangeBound", "generatedTopologyLineage"],
+      fixtures: ["ConstrainedSurfaceTests", "ConstrainedSurfaceRoundTripTests"],
+      status: .supported,
+      failureCodes: [.invalidInput, .conflictingConstraints, .singularGeometry,
+        .resourceLimitExceeded, .topologyFailure],
+      additionalPublicAPIs: ["CADModeling.ConstrainedSurfaceFeatureEvaluator"]
+    ),
+    feature(
       id: "MODEL-POLYSPLINE-001",
       operation: "polySpline",
       topology: .sheetBody,

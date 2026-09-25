@@ -33,6 +33,7 @@ struct KernelCapabilityContractTests {
       "MODEL-BOOLEAN-001",
       "MODEL-POLYSPLINE-001",
       "MODEL-BSPLINESURFACE-001",
+      "MODEL-CONSTRAINEDSURFACE-001",
       "MODEL-BRIDGESURFACE-001",
       "MODEL-PATCHSURFACE-001",
       "MODEL-FACELOOPOFFSET-001",
@@ -110,6 +111,14 @@ struct KernelCapabilityContractTests {
       capability.exactOutputs.contains(
         "curveEdgeAndSurfaceProjectionResults"
       ))
+  }
+
+  @Test
+  func constrainedSurfaceHasExecutablePointAndAngularContracts() throws {
+    let capability = try KernelCapabilities.current.requireExecutable(operation: "constrainedSurface")
+    #expect(capability.id == "MODEL-CONSTRAINEDSURFACE-001")
+    #expect(capability.exactOutputs.contains("wholePatchHeightGradientNormalChangeBound"))
+    #expect(capability.failureCodes.contains(.conflictingConstraints))
   }
 
   @Test

@@ -10,6 +10,7 @@ public enum FeatureOperationKind: String, Codable, CaseIterable, Hashable, Senda
     case loft
     case boolean
     case polySpline
+    case constrainedSurface
     case bSplineSurface
     case patchSurface
     case surfaceFill

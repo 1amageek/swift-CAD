@@ -196,6 +196,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 try boolean.validate()
             case let .polySpline(polySpline):
                 try polySpline.validate(tolerance: tolerance)
+            case let .constrainedSurface(surface):
+                try surface.validate(tolerance: tolerance)
             case let .bSplineSurface(surface):
                 try surface.validate(tolerance: tolerance)
             case let .patchSurface(patch):
@@ -571,6 +573,11 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             try validateBooleanContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .polySpline:
             try validatePolySplineContract(node, outputRoles: outputRoles, tolerance: tolerance)
+        case .constrainedSurface(let surface):
+            try surface.validate(tolerance: tolerance)
+            guard node.inputs.isEmpty, outputRoles == [.sheet] else {
+                throw FeatureEvaluationError.invalidGraph("Constrained Surface requires no inputs and one Sheet output.")
+            }
         case .bSplineSurface:
             try validateBSplineSurfaceContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .patchSurface:
