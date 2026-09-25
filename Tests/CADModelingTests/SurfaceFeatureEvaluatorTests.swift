@@ -186,34 +186,39 @@ struct SurfaceFeatureEvaluatorTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func bridgeSurfaceProducesExactRationalRuledSheet() throws {
+    func bridgeSurfaceRejectsMissingLiveSourceTopology() throws {
+        let sourceID = FeatureID()
         let featureID = FeatureID()
+        let start = StableSubshapeReference(
+            subshapeID: SubshapeID(featureID: sourceID, role: "edge", ordinal: 0),
+            geometrySignature: try .lineEdge(
+                startPoint: .origin,
+                endPoint: Point3D(x: 1.0, y: 0.0, z: 0.0)
+            )
+        )
+        let end = StableSubshapeReference(
+            subshapeID: SubshapeID(featureID: sourceID, role: "edge", ordinal: 1),
+            geometrySignature: try .lineEdge(
+                startPoint: Point3D(x: 0.0, y: 2.0, z: 0.0),
+                endPoint: Point3D(x: 1.0, y: 2.0, z: 0.0)
+            )
+        )
         let feature = FeatureNode(
             id: featureID,
             operation: .bridgeSurface(BridgeSurfaceFeature(
-                startBoundary: rationalBoundary(y: 0.0),
-                endBoundary: rationalBoundary(y: 2.0)
+                startBoundary: start,
+                endBoundary: end
             )),
+            inputs: [FeatureInput(featureID: sourceID, role: .target)],
             outputs: [FeatureOutput(role: .sheet)]
         )
 
-        let result = try BridgeSurfaceFeatureEvaluator().evaluate(
-            feature: feature,
-            context: context()
-        )
-        let face = try #require(result.brep.faces.values.first)
-        guard case let .bSpline(surface) = try #require(
-            result.brep.geometry.surfaces[face.surfaceID]
-        ) else {
-            Issue.record("Bridge surface must retain exact B-spline geometry.")
-            return
+        do {
+            _ = try BridgeSurfaceFeatureEvaluator().evaluate(feature: feature, context: context())
+            Issue.record("Bridge surface must not synthesize geometry from stale display-independent signatures.")
+        } catch let error as KernelError {
+            #expect(error.code == .missingReference)
         }
-
-        try result.brep.validate(level: .exact, tolerance: .standard)
-        #expect(surface.uDegree == 2)
-        #expect(surface.vDegree == 1)
-        #expect(surface.isRational)
-        #expect(result.lineage.values.allSatisfy { $0.output.featureID == featureID })
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -285,19 +290,6 @@ struct SurfaceFeatureEvaluatorTests {
             brep: BRepModel(),
             profiles: [:],
             tolerance: .standard
-        )
-    }
-
-    private func rationalBoundary(y: Double) -> BSplineCurve3D {
-        BSplineCurve3D(
-            degree: 2,
-            knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
-            controlPoints: [
-                Point3D(x: 0.0, y: y, z: 0.0),
-                Point3D(x: 1.0, y: y, z: 0.5),
-                Point3D(x: 2.0, y: y, z: 0.0),
-            ],
-            weights: [1.0, 0.75, 1.0]
         )
     }
 

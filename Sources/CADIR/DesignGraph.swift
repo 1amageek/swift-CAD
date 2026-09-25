@@ -1526,8 +1526,18 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a bridgeSurface operation.")
         }
         try bridgeSurface.validate(tolerance: tolerance)
-        guard node.inputs.isEmpty else {
-            throw FeatureEvaluationError.invalidGraph("Bridge surface inline boundaries must not declare inputs.")
+        guard node.inputs == bridgeSurface.sourceInputs else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Bridge surface must consume every source feature owning its boundary edges."
+            )
+        }
+        for input in bridgeSurface.sourceInputs {
+            guard let source = nodes[input.featureID],
+                  source.outputs.filter({ $0.role == .body || $0.role == .sheet }).count == 1 else {
+                throw FeatureEvaluationError.invalidGraph(
+                    "Bridge surface source must declare exactly one body or sheet output."
+                )
+            }
         }
         guard outputRoles == [.sheet] else {
             throw FeatureEvaluationError.invalidGraph("Bridge surface features must declare one sheet output.")

@@ -1868,20 +1868,20 @@ private func validateBridgeCurveEndpointObject(_ object: [String: Any], path: St
 private func validateBridgeSurfaceFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["startBoundary", "endBoundary", "endOrientation", "material"],
+        supportedKeys: ["startBoundary", "endBoundary", "endOrientation"],
         objectName: path
     )
     try validateObjectField(
         "startBoundary",
         in: object,
         path: "\(path).startBoundary",
-        using: validateBSplineCurve3DObject
+        using: validateStableSubshapeReferenceObject
     )
     try validateObjectField(
         "endBoundary",
         in: object,
         path: "\(path).endBoundary",
-        using: validateBSplineCurve3DObject
+        using: validateStableSubshapeReferenceObject
     )
 }
 

@@ -232,10 +232,18 @@ public enum FeatureNodeFactory {
                     throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
                 }
                 try bridge.validate(tolerance: tolerance)
+                for input in bridge.sourceInputs {
+                    _ = try bodyOrSheetSourceRole(
+                        input.featureID,
+                        owner: "Bridge surface source",
+                        in: document
+                    )
+                }
                 return FeatureNode(
                     id: id,
                     name: name,
                     operation: operation,
+                    inputs: bridge.sourceInputs,
                     outputs: [FeatureOutput(role: .sheet)]
                 )
             }

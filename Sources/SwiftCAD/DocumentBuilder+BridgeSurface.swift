@@ -4,17 +4,15 @@ import CADIR
 public extension DocumentBuilder {
     @discardableResult
     mutating func bridgeSurface(
-        startBoundary: BSplineCurve3D,
-        endBoundary: BSplineCurve3D,
+        startBoundary: StableSubshapeReference,
+        endBoundary: StableSubshapeReference,
         endOrientation: BridgeSurfaceFeature.EndOrientation = .forward,
-        material: MaterialID? = nil,
         named name: String? = nil
     ) throws -> FeatureID {
         let bridge = BridgeSurfaceFeature(
             startBoundary: startBoundary,
             endBoundary: endBoundary,
-            endOrientation: endOrientation,
-            material: material
+            endOrientation: endOrientation
         )
         let featureID = FeatureID()
         try append(

@@ -60,6 +60,8 @@ flowchart LR
     ValidateBRep --> KernelEvaluate["CADKernel evaluation"]
     SurfaceFill["SurfaceFillFeature\nsource + boundary seed"] --> Validate
     SurfaceFill --> KernelEvaluate
+    Bridge["BridgeSurfaceFeature\nsource + two stable boundary edges"] --> Validate
+    Bridge --> KernelEvaluate
     Fidelity["TessellationOptions\nfidelity"] --> Kernel["CADKernel consumer"]
     Limits["TessellationLimits\nresource admission"] --> Kernel
 ```
@@ -114,6 +116,13 @@ replaces the source body. The edge is only a loop seed, not a tessellated
 approximation of the boundary. Boundary order is resolved from vertex
 connectivity. Unsupported, stale, ambiguous, or non-closed boundaries fail
 explicitly.
+
+`BridgeSurfaceFeature` retains two stable edge references and the orientation
+choice for the second edge. Every distinct source is a declared graph input in
+boundary order. References resolve to distinct current open-boundary edges of
+their respective evaluated bodies in a common coordinate frame.
+Evaluation derives exact trimmed curves from the current B-rep and emits a
+dependent `.sheet`; inline copied curves are not source authority.
 
 `ExtrudeFeature.resultKind` selects which body a linear extrusion of a closed
 profile builds, and it is the only thing that separates the two: a `.solid`

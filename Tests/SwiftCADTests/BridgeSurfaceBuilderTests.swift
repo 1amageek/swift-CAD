@@ -14,127 +14,141 @@ struct BridgeSurfaceBuilderTests {
     )
 
     @Test(.timeLimit(.minutes(1)))
-    func differentBoundaryBasesProduceExactRuledSurface() throws {
+    func bridgesTwoLiveSheetEdgesAndSurvivesCodableReplay() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: Self.testTolerance)
-        _ = try builder.bridgeSurface(
-            startBoundary: startBoundary(),
-            endBoundary: BSplineCurve3D(
-                degree: 1,
-                knots: [2.0, 2.0, 3.0, 5.0, 5.0],
-                controlPoints: [
-                    Point3D(x: 0.0, y: 3.0, z: 0.0),
-                    Point3D(x: 0.75, y: 3.0, z: 0.0),
-                    Point3D(x: 2.0, y: 3.0, z: 0.0),
-                ]
-            )
-        )
-        let evaluated = try DocumentEvaluator(
+        let sourceFeatureID = try builder.bSplineSurface(sourceSurface(), named: "Source sheet")
+        let sourceDocument = try builder.build()
+        let evaluator = DocumentEvaluator(
             tolerance: Self.testTolerance,
             artifactPolicy: .deferred
-        ).evaluate(try builder.build())
-        let face = try #require(evaluated.brep.faces.values.first)
-        guard case let .bSpline(surface) = try #require(
-            evaluated.brep.geometry.surfaces[face.surfaceID]
-        ) else {
-            Issue.record("Bridge surface must retain exact B-spline geometry.")
+        )
+        let source = try evaluator.evaluate(sourceDocument)
+        let sourceBoundaries = try source.subshapes.entries.compactMap {
+            subshapeID, topology -> StableSubshapeReference? in
+            guard subshapeID.featureID == sourceFeatureID,
+                  case .edge = topology else { return nil }
+            return try source.stableSubshapeReference(for: subshapeID)
+        }.sorted { $0.subshapeID < $1.subshapeID }
+        let boundaries = Array(sourceBoundaries.prefix(2))
+        #expect(boundaries.count == 2)
+        let firstBoundary = try #require(boundaries.first)
+        let secondBoundary = try #require(boundaries.dropFirst().first)
+
+        let bridgeFeatureID = try builder.bridgeSurface(
+            startBoundary: firstBoundary,
+            endBoundary: secondBoundary,
+            endOrientation: .reversed,
+            named: "Exact boundary bridge"
+        )
+        let document = try builder.build(name: "Bridge surface")
+        let replayed = try replayCodableCommands(from: document)
+        #expect(
+            try replayed.sourceFingerprint(tolerance: Self.testTolerance)
+                == document.sourceFingerprint(tolerance: Self.testTolerance)
+        )
+
+        let evaluated = try evaluator.evaluate(replayed)
+        try evaluated.brep.validate(level: .exact, tolerance: Self.testTolerance)
+        #expect(evaluated.brep.bodies.count == 2)
+        #expect(evaluated.brep.faces.count == 2)
+        #expect(evaluated.brep.bodies.values.allSatisfy { $0.kind == .sheet })
+        #expect(source.brep.faces.allSatisfy { evaluated.brep.faces[$0.key] == $0.value })
+        guard case let .bridgeSurface(bridge)? = replayed.designGraph.nodes[bridgeFeatureID]?.operation else {
+            Issue.record("The persisted bridge must retain its two stable source boundaries.")
             return
         }
-        try evaluated.brep.validate(level: .exact, tolerance: Self.testTolerance)
-        #expect(surface.uDegree == 4)
-        #expect(surface.uKnots.contains(1.0 / 3.0))
+        #expect(bridge.startBoundary == firstBoundary)
+        #expect(bridge.endBoundary == secondBoundary)
+        #expect(bridge.endOrientation == .reversed)
+
+        let bridgeFaceID = try #require(evaluated.subshapes.entries.first { key, value in
+            guard key.featureID == bridgeFeatureID else { return false }
+            if case .face = value { return true }
+            return false
+        }.flatMap { _, value -> FaceID? in
+            if case let .face(faceID) = value { return faceID }
+            return nil
+        })
+        let bridgeFace = try #require(evaluated.brep.faces[bridgeFaceID])
+        guard case let .bSpline(surface) = try #require(
+            evaluated.brep.geometry.surfaces[bridgeFace.surfaceID]
+        ) else {
+            Issue.record("A bridge between exact source boundaries must remain an exact B-spline sheet.")
+            return
+        }
+        #expect(surface.vDegree == 1)
     }
 
-    @Test(.timeLimit(.minutes(1)))
-    func builderAndCodableCommandProduceExactRationalRuledSheet() throws {
-        let start = startBoundary()
-        let end = endBoundary()
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func rationalBoundaryReferencesPreserveBothOrientations(reverseEnd: Bool) throws {
+        let start = BSplineCurve3D(
+            degree: 2, knots: [0, 0, 0, 1, 1, 1],
+            controlPoints: [Point3D(x: 0, y: 0, z: 0), Point3D(x: 1, y: 0, z: 0.5), Point3D(x: 2, y: 0, z: 0)],
+            weights: [1, 0.6, 1]
+        )
+        let end = BSplineCurve3D(
+            degree: 2, knots: [0, 0, 0, 1, 1, 1],
+            controlPoints: [Point3D(x: 0, y: 2, z: 0), Point3D(x: 1, y: 2, z: 0.8), Point3D(x: 2, y: 2, z: 0)],
+            weights: [0.8, 1.7, 1.2]
+        )
+        let sourceEnd = try reverseEnd ? end.reversed(tolerance: Self.testTolerance) : end
+        func strip(_ curve: BSplineCurve3D, offset: Double) -> BSplineSurface3D {
+            BSplineSurface3D(
+                uDegree: curve.degree, vDegree: 1,
+                uKnots: curve.knots, vKnots: [0, 0, 1, 1],
+                controlPoints: [curve.controlPoints, curve.controlPoints.map { $0 + Vector3D(x: 0, y: offset, z: 0) }],
+                weights: [curve.weights, curve.weights]
+            )
+        }
         var builder = DocumentBuilder(units: .meters, tolerance: Self.testTolerance)
-        let featureID = try builder.bridgeSurface(
-            startBoundary: start,
-            endBoundary: end,
-            endOrientation: .reversed,
-            named: "Rational ruled bridge"
+        let startID = try builder.bSplineSurface(strip(start, offset: -0.25))
+        let endID = try builder.bSplineSurface(strip(sourceEnd, offset: 0.25))
+        let evaluator = DocumentEvaluator(tolerance: Self.testTolerance, artifactPolicy: .deferred)
+        let source = try evaluator.evaluate(builder.build())
+        func reference(_ featureID: FeatureID, y: Double) throws -> StableSubshapeReference {
+            let entry = try #require(source.subshapes.entries.first { key, value in
+                guard key.featureID == featureID, case let .edge(id) = value,
+                      let edge = source.brep.edges[id],
+                      let first = source.brep.vertices[edge.startVertexID]?.point,
+                      let last = source.brep.vertices[edge.endVertexID]?.point else { return false }
+                return first.y == y && last.y == y
+            })
+            return try source.stableSubshapeReference(for: entry.key)
+        }
+        let bridgeID = try builder.bridgeSurface(
+            startBoundary: reference(startID, y: 0), endBoundary: reference(endID, y: 2),
+            endOrientation: reverseEnd ? .reversed : .forward
         )
-        let builderDocument = try builder.build(name: "Bridge surface")
-        let replayedDocument = try replayCodableCommands(from: builderDocument)
-        #expect(
-            try replayedDocument.sourceFingerprint(tolerance: Self.testTolerance)
-                == builderDocument.sourceFingerprint(tolerance: Self.testTolerance)
-        )
-
-        let evaluated = try DocumentEvaluator(
-            tolerance: Self.testTolerance,
-            artifactPolicy: .deferred
-        ).evaluate(replayedDocument)
-        try evaluated.brep.validate(level: .exact, tolerance: Self.testTolerance)
-        #expect(evaluated.brep.bodies.count == 1)
-        #expect(evaluated.brep.bodies.values.first?.kind == .sheet)
-        #expect(evaluated.brep.faces.count == 1)
-        #expect(evaluated.brep.loops.values.allSatisfy { loop in
-            loop.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
-        })
-
-        let face = try #require(evaluated.brep.faces.values.first)
-        guard case let .bSpline(surface) = try #require(
-            evaluated.brep.geometry.surfaces[face.surfaceID]
-        ) else {
-            Issue.record("Bridge surface must retain exact rational B-spline geometry.")
+        let document = try replayCodableCommands(from: builder.build())
+        let result = try evaluator.evaluate(document)
+        #expect(result.brep.bodies.count == 3)
+        #expect(source.brep.bodies.allSatisfy { result.brep.bodies[$0.key] == $0.value })
+        let topology = try #require(result.subshapes.entries.first { key, value in
+            guard key.featureID == bridgeID, case .face = value else { return false }
+            return true
+        }?.value)
+        guard case let .face(faceID) = topology,
+              let face = result.brep.faces[faceID],
+              case let .bSpline(surface)? = result.brep.geometry.surfaces[face.surfaceID] else {
+            Issue.record("A rational bridge must retain an exact B-spline surface.")
             return
         }
-        #expect(surface.uDegree == 4)
-        #expect(surface.vDegree == 1)
         #expect(surface.isRational)
-        let orientedEnd = try end.reversed(tolerance: Self.testTolerance)
         for index in 0...16 {
-            let fraction = Double(index) / 16.0
-            let startParameter = fraction
-            let endParameter = 2.0 + 3.0 * fraction
-            let startPoint = try start.point(
-                at: startParameter,
-                tolerance: Self.testTolerance
-            )
-            let endPoint = try orientedEnd.point(
-                at: endParameter,
-                tolerance: Self.testTolerance
-            )
-            let startResidual = try (
-                surface.point(u: startParameter, v: 0.0, tolerance: Self.testTolerance)
-                    - startPoint
-            ).length
-            let endResidual = try (
-                surface.point(u: startParameter, v: 1.0, tolerance: Self.testTolerance)
-                    - endPoint
-            ).length
-            let interiorFraction = 0.37
-            let interiorResidual = try (
-                surface.point(
-                    u: startParameter,
-                    v: interiorFraction,
-                    tolerance: Self.testTolerance
-                )
-                    - (startPoint + (endPoint - startPoint) * interiorFraction)
-            ).length
-            #expect(startResidual <= Self.testTolerance.distance)
-            #expect(endResidual <= Self.testTolerance.distance)
-            #expect(interiorResidual <= Self.testTolerance.distance)
+            let u = Double(index) / 16
+            let a = try start.point(at: u, tolerance: Self.testTolerance)
+            let b = try end.point(at: u, tolerance: Self.testTolerance)
+            for v in [0.0, 0.37, 1.0] {
+                let actual = try surface.point(u: u, v: v, tolerance: Self.testTolerance)
+                #expect((actual - (a + (b - a) * v)).length <= Self.testTolerance.distance)
+            }
         }
-
-        let lineage = evaluated.lineage.values.filter {
-            $0.output.featureID == featureID
-        }
-        #expect(lineage.isEmpty == false)
-        #expect(lineage.allSatisfy { $0.parents.isEmpty })
-        #expect(evaluated.subshapes.entries.keys.contains { key in
-            key.featureID == featureID && key.role == GeneratedSubshapeRole.body.rawValue
-        })
+        try result.brep.validate(level: .exact, tolerance: Self.testTolerance)
     }
 
     private func replayCodableCommands(from source: CADDocument) throws -> CADDocument {
         let editor = DocumentEditor()
-        var result = CADDocument(
-            units: source.units,
-            metadata: source.metadata
-        )
+        var result = CADDocument(units: source.units, metadata: source.metadata)
         for featureID in source.designGraph.order {
             let node = try #require(source.designGraph.nodes[featureID])
             let command = CADCommand.appendFeature(FeatureRequest(
@@ -150,29 +164,12 @@ struct BridgeSurfaceBuilderTests {
         return result
     }
 
-    private func startBoundary() -> BSplineCurve3D {
-        BSplineCurve3D(
-            degree: 2,
-            knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
-            controlPoints: [
-                Point3D(x: 0.0, y: 0.0, z: 0.0),
-                Point3D(x: 1.0, y: 0.0, z: 1.0),
-                Point3D(x: 2.0, y: 0.0, z: 0.0),
-            ],
-            weights: [1.0, 0.6, 1.0]
-        )
-    }
-
-    private func endBoundary() -> BSplineCurve3D {
-        BSplineCurve3D(
-            degree: 2,
-            knots: [2.0, 2.0, 2.0, 5.0, 5.0, 5.0],
-            controlPoints: [
-                Point3D(x: 2.0, y: 3.0, z: 0.0),
-                Point3D(x: 1.0, y: 3.0, z: 1.0),
-                Point3D(x: 0.0, y: 3.0, z: 0.0),
-            ],
-            weights: [0.8, 1.7, 1.2]
+    private func sourceSurface() -> BSplineSurface3D {
+        BSplineSurface3D.cubicBezierPatch(
+            bottomLeft: .origin,
+            bottomRight: Point3D(x: 2.0, y: 0.0, z: 0.0),
+            topRight: Point3D(x: 2.0, y: 1.0, z: 0.5),
+            topLeft: Point3D(x: 0.0, y: 1.0, z: 0.0)
         )
     }
 }

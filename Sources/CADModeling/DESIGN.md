@@ -7,7 +7,8 @@ for primitive and derived B-rep geometry. It is a child of the [Swift-CAD
 package design](../../DESIGN.md). Children include
 [InvoluteGear](InvoluteGear/DESIGN.md), [CertifiedTwist](CertifiedTwist/DESIGN.md)
 and [SpatialPath](SpatialPath/DESIGN.md), with
-[SurfaceFill](SurfaceFill/DESIGN.md) owning source-boundary surface filling.
+[SurfaceFill](SurfaceFill/DESIGN.md) owning source-boundary surface filling,
+and [BridgeSurface](BridgeSurface/DESIGN.md) owning exact source-edge bridging.
 
 ## Responsibilities and Boundaries
 
@@ -28,6 +29,7 @@ stable signature serialization, evaluation caching, or Rupa project authority.
 | [CADKernel](../CADKernel/DESIGN.md) | used by | evaluation and stable topology reads | Consumes the generated B-rep. | Stable reads must see every generated subshape. |
 | [InvoluteGear](InvoluteGear/DESIGN.md) | child | closed gear section | Composes flanks and analytic circular roots into Profile. | Resolved geometry only; no source or manufacturing certification. |
 | [SurfaceFill](SurfaceFill/DESIGN.md) | child | exact G0 surface fill from an open B-rep boundary loop | Reuses exact curve conversion, composite curves and Coons construction. | Does not claim G1/G2 optimization or guide-curve constraints. |
+| [BridgeSurface](BridgeSurface/DESIGN.md) | child | exact G0 ruled sheet between two source boundary edges | Resolves current stable edge references and reuses the exact ruled-surface builder. | Sources must share a coordinate frame; this is not full XNURBS fitting. |
 | [CADTopology OpenBoundaryLoop](../CADTopology/OpenBoundaryLoop/DESIGN.md) | depends on | ordered exact boundary edge cycle | Supplies the shared loop containing the selected seed. | It does not choose corners or surface quality. |
 
 ## Architecture

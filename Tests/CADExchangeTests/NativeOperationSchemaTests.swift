@@ -39,24 +39,7 @@ struct NativeOperationSchemaTests {
                     ]
                 )
             ))),
-            singleFeatureDocument(operation: .bridgeSurface(BridgeSurfaceFeature(
-                startBoundary: BSplineCurve3D(
-                    degree: 1,
-                    knots: [0.0, 0.0, 1.0, 1.0],
-                    controlPoints: [
-                        .origin,
-                        Point3D(x: 1.0, y: 0.0, z: 0.0),
-                    ]
-                ),
-                endBoundary: BSplineCurve3D(
-                    degree: 1,
-                    knots: [0.0, 0.0, 1.0, 1.0],
-                    controlPoints: [
-                        Point3D(x: 0.0, y: 1.0, z: 0.0),
-                        Point3D(x: 1.0, y: 1.0, z: 0.0),
-                    ]
-                )
-            ))),
+            bridgeSurfaceDocument(),
             patchDocument(),
         ]
 
@@ -143,6 +126,51 @@ struct NativeOperationSchemaTests {
         return document
     }
 
+    private func bridgeSurfaceDocument() throws -> CADDocument {
+        var document = CADDocument(units: .meters)
+        let sourceID = FeatureID()
+        let source = FeatureNode(
+            id: sourceID,
+            name: "Source sheet",
+            operation: .bSplineSurface(BSplineSurfaceFeature(surface: .bilinearPatch(
+                bottomLeft: .origin,
+                bottomRight: Point3D(x: 1.0, y: 0.0, z: 0.0),
+                topRight: Point3D(x: 1.0, y: 1.0, z: 0.0),
+                topLeft: Point3D(x: 0.0, y: 1.0, z: 0.0)
+            ))),
+            outputs: [FeatureOutput(role: .sheet)]
+        )
+        document.designGraph.nodes[sourceID] = source
+        document.designGraph.order = [sourceID]
+
+        let bridge = BridgeSurfaceFeature(
+            startBoundary: StableSubshapeReference(
+                subshapeID: SubshapeID(featureID: sourceID, role: "edge", ordinal: 0),
+                geometrySignature: try .lineEdge(
+                    startPoint: .origin,
+                    endPoint: Point3D(x: 1.0, y: 0.0, z: 0.0)
+                )
+            ),
+            endBoundary: StableSubshapeReference(
+                subshapeID: SubshapeID(featureID: sourceID, role: "edge", ordinal: 1),
+                geometrySignature: try .lineEdge(
+                    startPoint: Point3D(x: 0.0, y: 1.0, z: 0.0),
+                    endPoint: Point3D(x: 1.0, y: 1.0, z: 0.0)
+                )
+            )
+        )
+        let feature = try FeatureNodeFactory.make(
+            operation: .bridgeSurface(bridge),
+            in: document,
+            tolerance: Self.testTolerance
+        )
+        document.designGraph.nodes[feature.id] = feature
+        document.designGraph.order.append(feature.id)
+        document.designGraph.dependencies.append(DependencyEdge(source: sourceID, target: feature.id))
+        document.designGraph.revision = document.designGraph.revision.advanced()
+        return document
+    }
+
     private func surfaceFillDocument() throws -> CADDocument {
         var document = CADDocument(units: .meters)
         let sourceID = FeatureID()
@@ -181,7 +209,6 @@ struct NativeOperationSchemaTests {
         document.designGraph.revision = document.designGraph.revision.advanced()
         return document
     }
-
 
     private func revolveDocument() throws -> CADDocument {
         let sketchID = FeatureID()

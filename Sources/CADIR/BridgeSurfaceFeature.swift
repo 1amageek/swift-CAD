@@ -6,49 +6,38 @@ public struct BridgeSurfaceFeature: Codable, Sendable, Hashable {
         case reversed
     }
 
-    public var startBoundary: BSplineCurve3D
-    public var endBoundary: BSplineCurve3D
-    public var endOrientation: EndOrientation
-    public var material: MaterialID?
+    public let startBoundary: StableSubshapeReference
+    public let endBoundary: StableSubshapeReference
+    public let endOrientation: EndOrientation
 
     public init(
-        startBoundary: BSplineCurve3D,
-        endBoundary: BSplineCurve3D,
-        endOrientation: EndOrientation = .forward,
-        material: MaterialID? = nil
+        startBoundary: StableSubshapeReference,
+        endBoundary: StableSubshapeReference,
+        endOrientation: EndOrientation = .forward
     ) {
         self.startBoundary = startBoundary
         self.endBoundary = endBoundary
         self.endOrientation = endOrientation
-        self.material = material
     }
 
     private enum CodingKeys: String, CodingKey {
         case startBoundary
         case endBoundary
         case endOrientation
-        case material
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
-            [.startBoundary, .endBoundary, .endOrientation, .material],
+            [.startBoundary, .endBoundary, .endOrientation],
             in: decoder
         )
-        startBoundary = try container.decode(
-            BSplineCurve3D.self,
-            forKey: .startBoundary
-        )
-        endBoundary = try container.decode(
-            BSplineCurve3D.self,
-            forKey: .endBoundary
-        )
+        startBoundary = try container.decode(StableSubshapeReference.self, forKey: .startBoundary)
+        endBoundary = try container.decode(StableSubshapeReference.self, forKey: .endBoundary)
         endOrientation = try container.decode(
             EndOrientation.self,
             forKey: .endOrientation
         )
-        material = try container.decodeIfPresent(MaterialID.self, forKey: .material)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
 
@@ -58,12 +47,28 @@ public struct BridgeSurfaceFeature: Codable, Sendable, Hashable {
         try container.encode(startBoundary, forKey: .startBoundary)
         try container.encode(endBoundary, forKey: .endBoundary)
         try container.encode(endOrientation, forKey: .endOrientation)
-        try container.encodeIfPresent(material, forKey: .material)
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
-        try startBoundary.validate(tolerance: tolerance)
-        try endBoundary.validate(tolerance: tolerance)
+        try startBoundary.validate()
+        try endBoundary.validate()
+        guard startBoundary.subshapeID != endBoundary.subshapeID,
+              case .edge = startBoundary.geometrySignature,
+              case .edge = endBoundary.geometrySignature else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Bridge surface requires two distinct edge references."
+            )
+        }
+    }
+
+    public var targetFeatureID: FeatureID { startBoundary.subshapeID.featureID }
+
+    public var sourceInputs: [FeatureInput] {
+        let first = FeatureInput(featureID: targetFeatureID, role: .target)
+        let secondID = endBoundary.subshapeID.featureID
+        return secondID == targetFeatureID
+            ? [first]
+            : [first, FeatureInput(featureID: secondID, role: .target)]
     }
 }

@@ -147,13 +147,7 @@ private extension FeatureOperation {
             return .faceKnife(faceKnife)
         case let .bridgeCurve(bridgeCurve):
             return .bridgeCurve(bridgeCurve)
-        case .bridgeSurface(var bridgeSurface):
-            bridgeSurface.startBoundary.controlPoints = bridgeSurface.startBoundary.controlPoints.map {
-                $0 + vector
-            }
-            bridgeSurface.endBoundary.controlPoints = bridgeSurface.endBoundary.controlPoints.map {
-                $0 + vector
-            }
+        case let .bridgeSurface(bridgeSurface):
             return .bridgeSurface(bridgeSurface)
         case .curveEdit(var curveEdit):
             curveEdit.edits = curveEdit.edits.map { $0.translatingSources(by: vector) }
