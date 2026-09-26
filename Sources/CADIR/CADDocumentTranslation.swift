@@ -114,7 +114,9 @@ private extension FeatureOperation {
             return .mirror(MirrorFeature(
                 target: mirror.target,
                 planeOrigin: mirror.planeOrigin + vector,
-                planeNormal: mirror.planeNormal
+                planeNormal: mirror.planeNormal,
+                output: mirror.output,
+                cutsAtPlane: mirror.cutsAtPlane
             ))
         case let .projectCurve(projectCurve):
             return .projectCurve(ProjectCurveFeature(

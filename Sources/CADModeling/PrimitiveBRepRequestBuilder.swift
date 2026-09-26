@@ -3,10 +3,14 @@ import CADCore
 import CADGeometry
 import CADIR
 
-struct PrimitiveBRepRequestBuilder: Sendable {
+package struct PrimitiveBRepRequestBuilder: Sendable {
     let tolerance: ModelingTolerance
 
-    func box(
+    package init(tolerance: ModelingTolerance) {
+        self.tolerance = tolerance
+    }
+
+    package func box(
         _ primitive: BoxPrimitive,
         width: Double,
         depth: Double,

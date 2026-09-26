@@ -1446,7 +1446,7 @@ private func validateSweepTargetReferenceObject(_ object: [String: Any], path: S
 private func validateBooleanFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["targets", "tool", "operation", "keepTools"],
+        supportedKeys: ["targets", "tool", "operation", "keepTools", "toolPlacement"],
         objectName: path
     )
     try validateArrayField("targets", in: object, path: "\(path).targets", using: validateBooleanTargetReferenceObject)
@@ -1673,7 +1673,7 @@ private func validateCurveDrivenPatternPathReferenceObject(_ object: [String: An
 private func validateMirrorFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["target", "planeOrigin", "planeNormal"],
+        supportedKeys: ["target", "planeOrigin", "planeNormal", "output", "cutsAtPlane"],
         objectName: path
     )
     try validateObjectField("target", in: object, path: "\(path).target", using: validatePatternTargetReferenceObject)

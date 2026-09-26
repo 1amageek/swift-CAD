@@ -302,7 +302,9 @@ extension FeatureOperation {
             return .mirror(MirrorFeature(
                 target: try pattern(feature.target),
                 planeOrigin: feature.planeOrigin,
-                planeNormal: feature.planeNormal
+                planeNormal: feature.planeNormal,
+                output: feature.output,
+                cutsAtPlane: feature.cutsAtPlane
             ))
         case .joinBodies(let feature):
             return .joinBodies(JoinBodiesFeature(targets: try feature.targets.map(pattern)))

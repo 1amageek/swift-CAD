@@ -59,6 +59,128 @@ package struct DefaultExactBodyPatternRebuilder: ExactBodyPatternRebuilding {
         )
     }
 
+    package func glueReflection(
+        featureID: FeatureID,
+        sourceBodyID: BodyID,
+        reflection: ExactPatternTransform,
+        planeOrigin: Point3D,
+        planeNormal: Vector3D,
+        stablePrefix: String,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
+        let model = context.brep
+        let tolerance = context.tolerance
+        let normal = try planeNormal.normalized(tolerance: tolerance.distance)
+        guard let body = model.bodies[sourceBodyID],
+              let components = body.solidComponents,
+              components.count == 1, let component = components.first else {
+            throw error(.invalidInput, featureID: featureID, tolerance: tolerance,
+                        "Joining a reflection needs one exact solid.")
+        }
+        let resolver = DefaultPlanarSurfaceResolver()
+        func liesOnPlane(_ faceID: FaceID) throws -> Bool {
+            guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
+                throw TopologyError.missingReference("Joined reflection face surface is missing.")
+            }
+            guard let plane = try resolver.exactPlane(for: surface, tolerance: tolerance) else { return false }
+            let parallel = abs(abs(try plane.normal.normalized(tolerance: tolerance.distance).dot(normal)) - 1) <= tolerance.angle
+            return parallel && abs((plane.origin - planeOrigin).dot(normal)) <= tolerance.distance
+        }
+        func shell(_ shellID: ShellID, index: Int, instances: [(Int, ExactPatternTransform)], dropsPlane: Bool) throws -> BRepSewingShell {
+            guard let shell = model.shells[shellID] else {
+                throw TopologyError.missingReference("Joined reflection shell is missing.")
+            }
+            var patches: [BRepSewingFacePatch] = []
+            for (instance, transform) in instances {
+                for (faceIndex, faceID) in shell.faceIDs.enumerated() {
+                    let onPlane = try liesOnPlane(faceID)
+                    if onPlane {
+                        guard dropsPlane else {
+                            throw error(.invalidInput, featureID: featureID, tolerance: tolerance,
+                                        "A void of the joined body touches the mirror plane.")
+                        }
+                        continue
+                    }
+                    let image = try patch(
+                        stableID: "\(stablePrefix):instance:\(instance):shell:\(index):face:\(faceIndex)",
+                        faceID: faceID, transform: transform, model: model, context: context
+                    )
+                    // A reflection reverses the turn of every loop about the face's outward normal.
+                    // Sewn beside unreflected faces, each reflected loop is traversed back the other
+                    // way so both halves turn the same way about their outward normals.
+                    patches.append(instance == 0 ? image : try reversingLoops(of: image, tolerance: tolerance))
+                }
+            }
+            let suffix = instances.count == 1 ? ":instance:\(instances[0].0)" : ":joined"
+            return BRepSewingShell(stableID: "\(stablePrefix)\(suffix):shell:\(index)", patches: patches, orientation: shell.orientation)
+        }
+        let both: [(Int, ExactPatternTransform)] = [(0, .translated(by: .zero)), (1, reflection)]
+        guard let outerIndex = body.shellIDs.firstIndex(of: component.outerShellID) else {
+            throw TopologyError.missingReference("Joined reflection outer shell is missing.")
+        }
+        let outer = try shell(component.outerShellID, index: outerIndex, instances: both, dropsPlane: true)
+        var voids: [BRepSewingShell] = []
+        for voidID in component.voidShellIDs {
+            guard let index = body.shellIDs.firstIndex(of: voidID) else {
+                throw TopologyError.missingReference("Joined reflection void shell is missing.")
+            }
+            for instance in both {
+                voids.append(try shell(voidID, index: index, instances: [instance], dropsPlane: false))
+            }
+        }
+        guard outer.patches.count < 2 * (model.shells[component.outerShellID]?.faceIDs.count ?? 0) else {
+            throw error(.invalidInput, featureID: featureID, tolerance: tolerance,
+                        "Joining a reflection needs the body to lie against the mirror plane.")
+        }
+        let request = BRepSewingRequest(
+            featureID: featureID,
+            bodyTopology: .solid(components: [BRepSewingSolidComponent(
+                outerShellStableID: outer.stableID,
+                voidShellStableIDs: voids.map(\.stableID)
+            )]),
+            shells: [outer] + voids,
+            bodyParentSubshapeIDs: subshapeIDs(for: .body(sourceBodyID), context: context)
+        )
+        let sewn = try sewer.sew(request, tolerance: tolerance)
+        let replacementBodyIDs = Set(sewn.subshapes.values.compactMap { reference -> BodyID? in
+            guard case let .body(bodyID) = reference else { return nil }
+            return bodyID
+        })
+        guard replacementBodyIDs.count == 1, let replacementBodyID = replacementBodyIDs.first else {
+            throw error(.topologyFailure, featureID: featureID, tolerance: tolerance,
+                        "Joining a reflection did not sew exactly one body.")
+        }
+        let replacedSubshapeIDs = try BodyTopologyScope(bodyID: sourceBodyID, model: model).subshapeIDs(in: context.subshapes)
+        let replaced = try BRepBodyModelReplacer().replacing(
+            bodyID: sourceBodyID, with: replacementBodyID, from: sewn.brep, in: model
+        )
+        try replaced.validate(level: .volumetric, tolerance: tolerance)
+        return EvaluationResult(
+            brep: replaced,
+            subshapes: sewn.subshapes,
+            removedSubshapeIDs: replacedSubshapeIDs,
+            lineage: sewn.lineage.withRelationsDerivedFromParents()
+        )
+    }
+
+    private func reversingLoops(of patch: BRepSewingFacePatch, tolerance: ModelingTolerance) throws -> BRepSewingFacePatch {
+        // Reorienting reverses every loop and flips the face; the face keeps its own orientation.
+        let reoriented = try BRepSewingPatchOrientationAdapter().reorient(
+            patch,
+            to: patch.orientation == .forward ? .reversed : .forward,
+            tolerance: tolerance
+        )
+        let result = BRepSewingFacePatch(
+            stableID: patch.stableID,
+            surface: patch.surface,
+            orientation: patch.orientation,
+            loops: reoriented.loops,
+            parentSubshapeIDs: patch.parentSubshapeIDs
+        )
+        try result.validate(tolerance: tolerance)
+        return result
+    }
+
     private func reconstruct(
         featureID: FeatureID,
         sourceBodyID: BodyID,
@@ -90,7 +212,7 @@ package struct DefaultExactBodyPatternRebuilder: ExactBodyPatternRebuilding {
             union = EvaluationResult(
                 brep: instance.brep,
                 subshapes: instance.subshapes,
-                lineage: instance.lineage
+                lineage: instance.lineage.withRelationsDerivedFromParents()
             )
         } else {
             union = try unionReducer.reduce(

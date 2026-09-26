@@ -616,12 +616,16 @@ public struct DocumentBuilder {
         _ target: FeatureID,
         planeOrigin: Point3D,
         planeNormal: Vector3D,
+        output: MirrorFeature.Output = .combined,
+        cutsAtPlane: Bool = false,
         named name: String? = nil
     ) throws -> FeatureID {
         let mirror = MirrorFeature(
             target: PatternTargetReference(featureID: target),
             planeOrigin: planeOrigin,
-            planeNormal: planeNormal
+            planeNormal: planeNormal,
+            output: output,
+            cutsAtPlane: cutsAtPlane
         )
         try mirror.validate(tolerance: tolerance)
         let featureID = FeatureID()

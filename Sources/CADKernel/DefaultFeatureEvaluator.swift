@@ -125,7 +125,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.mirrorEvaluator = MirrorFeatureEvaluator(
             sewer: sewer,
             unionApplicator: ExactBooleanOperationApplicator(),
-            separationValidator: ExactBodyJoinValidator()
+            separationValidator: ExactBodyJoinValidator(),
+            cutter: BRepBodyHalfSpaceCutter(sewer: sewer, applicator: ExactBooleanOperationApplicator())
         )
         self.joinBodiesEvaluator = JoinBodiesFeatureEvaluator(
             validator: ExactBodyJoinValidator()

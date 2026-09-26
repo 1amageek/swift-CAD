@@ -195,3 +195,22 @@ struct FeatureOperationReferenceTests {
         }
     }
 }
+
+@Test func remappingAndTranslatingAMirrorKeepItsOutputAndCut() throws {
+    let source = FeatureID()
+    let copy = FeatureID()
+    let mirror = FeatureOperation.mirror(MirrorFeature(
+        target: PatternTargetReference(featureID: source),
+        planeOrigin: Point3D(x: 1, y: 0, z: 0),
+        planeNormal: .unitX,
+        output: .reflection,
+        cutsAtPlane: true
+    ))
+    guard case .mirror(let remapped) = try mirror.remappingFeatureIDs([source: copy]) else {
+        Issue.record("Remapping must keep the mirror operation.")
+        return
+    }
+    #expect(remapped.target.featureID == copy)
+    #expect(remapped.output == .reflection)
+    #expect(remapped.cutsAtPlane)
+}

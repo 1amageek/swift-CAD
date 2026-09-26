@@ -19,4 +19,17 @@ package protocol ExactBodyPatternRebuilding: Sendable {
         stablePrefix: String,
         context: EvaluationContext
     ) throws -> EvaluationResult
+
+    /// The source body joined with its `reflection` across the plane it lies against, replacing the
+    /// source body. The source lies on one side of the plane, so the two meet only on it: their
+    /// faces on the plane are dropped and the rest are sewn into one shell.
+    func glueReflection(
+        featureID: FeatureID,
+        sourceBodyID: BodyID,
+        reflection: ExactPatternTransform,
+        planeOrigin: Point3D,
+        planeNormal: Vector3D,
+        stablePrefix: String,
+        context: EvaluationContext
+    ) throws -> EvaluationResult
 }

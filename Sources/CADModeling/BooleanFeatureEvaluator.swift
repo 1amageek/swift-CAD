@@ -189,7 +189,7 @@ public struct BooleanFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
                 }
             }
             return TopologyLineage(output: entry.output, parents: parents.sorted(), relation: entry.relation)
-        }
+        }.withRelationsDerivedFromParents()
         return result
     }
 

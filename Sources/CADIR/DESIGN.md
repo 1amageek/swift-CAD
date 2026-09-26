@@ -380,3 +380,9 @@ in the targets' frame. It round-trips as an optional field (absent means the
 tool is combined where it was evaluated) and requires Keep Tools off, because
 the moved tool is consumed. Geometry is owned by
 [CADModeling](../CADModeling/DESIGN.md#placed-boolean-tools).
+
+A mirror's `output` (combined, reflection or kept) and `cutsAtPlane` round-trip
+with the legacy defaults combined and uncut; keeping only the source material
+requires the cut. Feature-reference remapping and document translation carry
+both. Geometry is owned by
+[CADModeling](../CADModeling/DESIGN.md#mirror-output-and-cut).

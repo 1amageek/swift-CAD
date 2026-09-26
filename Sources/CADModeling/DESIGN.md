@@ -490,3 +490,22 @@ evaluator without a relocator refuses a placed tool as an unsupported
 capability. `PlacedBooleanToolTests` prove exact union, difference and intersect
 volumes of a placed tool and that no temporary identity reaches the evaluated
 subshapes or lineage.
+
+### Mirror output and cut
+
+A mirror reflects its target across its plane onto the side the normal points to.
+With `cutsAtPlane`, the target is first intersected with a box covering its
+bounds on the other side, whose top face lies on the plane, through the injected
+`BodyHalfSpaceCutting` (CADKernel's `BRepBodyHalfSpaceCutter`) under a
+`mirrorCut` stage identity; a target already on the kept side is not cut, and one
+with nothing on it is refused. `output` then publishes the kept material joined
+with its reflection (`combined`), the reflection alone (`reflection`, through
+`relocate`) or the kept material alone (`kept`). A cut, combined mirror does not
+intersect the two halves: they meet only on the plane, so
+`glueReflection` drops both halves' faces on the plane and sews the rest into
+one shell, reversing the reflected loops so both halves turn the same way about
+their outward normals. Cut stage identities are consumed like a placed tool's,
+and every stage that rewrites lineage parents re-derives each relation from its
+parents (`withRelationsDerivedFromParents`). `MirrorFeatureIntegrationTests`
+prove each output's volume and extent for boxes, the cut-and-join of a
+cylinder, the refusals and the native package round trip.
