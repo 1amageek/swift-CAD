@@ -313,6 +313,15 @@ construction consumes this enclosure rather than certifying a rounded libm angle
 4. Model tolerance controls modeling decisions; it is not a blanket substitute
    for structural validity.
 
+`BSplineSurface3D.elevatingDegree(direction:tolerance:)` raises one clamped
+direction's degree by one and gives every distinct knot one more multiplicity,
+so continuity at each knot is kept and the surface is represented exactly. Each
+control line is interpolated in homogeneous coordinates at the Greville
+abscissae of the raised knot vector, factored once per direction; a raised line
+over 1,024 control points, an unclamped direction or a nonpositive raised weight
+throws. `BSplineSurfaceDegreeElevationTests` proves a rational surface with a
+doubled interior knot is unchanged in both directions.
+
 ## Runtime Flows
 
 An evaluator constructs the analytic curve, validates it against its surface,
