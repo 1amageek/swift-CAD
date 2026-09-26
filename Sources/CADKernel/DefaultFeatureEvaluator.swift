@@ -76,7 +76,12 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.involuteGearEvaluator = InvoluteGearFeatureEvaluator(sweep: sweepEvaluator, resolver: resolver)
         self.loftEvaluator = LoftFeatureEvaluator()
         self.booleanEvaluator = BooleanFeatureEvaluator(
-            applicator: ExactBooleanOperationApplicator()
+            applicator: ExactBooleanOperationApplicator(),
+            toolRelocator: DefaultExactBodyPatternRebuilder(
+                sewer: sewer,
+                unionApplicator: ExactBooleanOperationApplicator(),
+                separationValidator: ExactBodyJoinValidator()
+            )
         )
         self.polySplineEvaluator = PolySplineFeatureEvaluator()
         self.bSplineSurfaceEvaluator = BSplineSurfaceFeatureEvaluator()

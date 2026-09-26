@@ -34,6 +34,38 @@ package struct DefaultExactBodyPatternRebuilder: ExactBodyPatternRebuilding {
                 "Exact pattern reconstruction requires at least two instances."
             )
         }
+        return try reconstruct(
+            featureID: featureID,
+            sourceBodyID: sourceBodyID,
+            transforms: transforms,
+            stablePrefix: stablePrefix,
+            context: context
+        )
+    }
+
+    package func relocate(
+        featureID: FeatureID,
+        sourceBodyID: BodyID,
+        transform: ExactPatternTransform,
+        stablePrefix: String,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
+        try reconstruct(
+            featureID: featureID,
+            sourceBodyID: sourceBodyID,
+            transforms: [transform],
+            stablePrefix: stablePrefix,
+            context: context
+        )
+    }
+
+    private func reconstruct(
+        featureID: FeatureID,
+        sourceBodyID: BodyID,
+        transforms: [ExactPatternTransform],
+        stablePrefix: String,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
         let uniqueTransforms = uniqueTransformsPreservingOrder(transforms)
         var instances: [BRepSewingResult] = []
         instances.reserveCapacity(uniqueTransforms.count)

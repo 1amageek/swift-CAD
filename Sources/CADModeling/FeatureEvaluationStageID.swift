@@ -3,6 +3,7 @@ import CADCore
 package enum FeatureEvaluationStageDomain: UInt64, Sendable {
     case patternInstance = 0x4D7A_20B5_9E31_C641
     case patternUnion = 0xA6C9_73E2_148F_5B0D
+    case booleanToolPlacement = 0x3F18_C5D2_7A94_E063
 }
 
 /// Derives a deterministic, non-published identity for one internal evaluation stage.

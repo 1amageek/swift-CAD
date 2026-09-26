@@ -374,3 +374,9 @@ Extrude Boolean inputs retain target feature references after the section input.
 The target list, operation and Keep Tools are source-owned and round-trip with
 legacy defaults. Target outputs must be solid bodies; geometry admission is owned
 by [CADModeling](../CADModeling/DESIGN.md#extrusion-boolean-composition).
+
+A Boolean's optional `toolPlacement` is the rigid motion placing the tool body
+in the targets' frame. It round-trips as an optional field (absent means the
+tool is combined where it was evaluated) and requires Keep Tools off, because
+the moved tool is consumed. Geometry is owned by
+[CADModeling](../CADModeling/DESIGN.md#placed-boolean-tools).

@@ -1,21 +1,28 @@
 import CADCore
+import CADGeometry
 
 public struct BooleanFeature: Codable, Hashable, Sendable {
     public var targets: [BooleanTargetReference]
     public var tool: BooleanToolReference
     public var operation: BooleanOperation
     public var keepTools: Bool
+    /// Where the tool body sits in the targets' frame. A placed tool is moved rigidly onto the
+    /// targets before combining and is consumed by the Boolean; `nil` combines the bodies where
+    /// they were evaluated.
+    public var toolPlacement: RigidTransform3D?
 
     public init(
         targets: [BooleanTargetReference],
         tool: BooleanToolReference,
         operation: BooleanOperation,
-        keepTools: Bool = false
+        keepTools: Bool = false,
+        toolPlacement: RigidTransform3D? = nil
     ) {
         self.targets = targets
         self.tool = tool
         self.operation = operation
         self.keepTools = keepTools
+        self.toolPlacement = toolPlacement
     }
 
     public func validate() throws {
@@ -30,6 +37,9 @@ public struct BooleanFeature: Codable, Hashable, Sendable {
         try tool.validate()
         guard targetFeatureIDs.contains(tool.featureID) == false else {
             throw FeatureEvaluationError.invalidGraph("Boolean tool must be distinct from every target.")
+        }
+        guard toolPlacement == nil || keepTools == false else {
+            throw FeatureEvaluationError.invalidGraph("A placed Boolean tool is consumed and cannot be kept.")
         }
     }
 }

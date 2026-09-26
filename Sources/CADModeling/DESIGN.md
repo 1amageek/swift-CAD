@@ -476,3 +476,17 @@ failures propagate before publication. The exact result is admitted through the
 existing validated BRep path. Legacy source omitting targets and Keep Tools
 retains new-body behavior. Verification covers intersecting solid volume, source
 replay, target/tool retention and invalid target or sheet requests.
+
+### Placed Boolean tools
+
+A Boolean with a `toolPlacement` first rebuilds the tool body once at that rigid
+placement through the exact pattern rebuilder's `relocate` (the same exact face
+images and sewing as patterns), under a `booleanToolPlacement` stage identity,
+then combines the moved tool with the targets. The published result is the one
+the original tool would give: the stage identities are consumed with the tool
+and never published, the original tool subshapes are removed, and lineage that
+ran through the moved tool is traced back to the original tool subshapes. An
+evaluator without a relocator refuses a placed tool as an unsupported
+capability. `PlacedBooleanToolTests` prove exact union, difference and intersect
+volumes of a placed tool and that no temporary identity reaches the evaluated
+subshapes or lineage.
