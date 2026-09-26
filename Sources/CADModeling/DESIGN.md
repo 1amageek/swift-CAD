@@ -435,6 +435,18 @@ against itself, which is what holds the frame independent of face order.
 3. Primitive construction delegates parameter validity to `CADGeometry` and
    returns typed failure for invalid dimensions or malformed requests.
 
+`EdgeMoveFeatureEvaluator` moves a straight edge of a line-only planar solid by
+re-solving its planar faces, and a circular edge with `CircularEdgeCapTranslator`:
+the planar cap the circle bounds moves along the circle's axis with every edge
+and vertex on it, the faces around the cap must contain that direction (a
+coaxial cylinder or a plane parallel to the axis) and keep their surfaces, and
+the straight edges joining the cap to the rest of the body are rebuilt between
+their moved ends. The circle keeps its radius. A sideways move, a neighbour that
+would change shape, and a move that shrinks or turns over a joining edge (the cap
+passing through the body) are unsupported capabilities. Solids validate
+volumetrically and sheets exactly. `CircularEdgeMoveFeatureTests` owns the
+lengthened cylinder and both refusals.
+
 ## Runtime Flows
 
 Primitive evaluation builds exact topology, validates it at the kernel

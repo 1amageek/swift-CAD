@@ -64,22 +64,42 @@ public struct EdgeMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalu
         )
         let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
         var model = context.brep
-        try translateEdge(
-            edgeID,
-            bodyID: bodyID,
-            displacement: direction * distance,
-            featureID: feature.id,
-            model: &model,
-            tolerance: context.tolerance
-        )
-        try geometryRebuilder.rebuild(
-            featureID: feature.id,
-            bodyID: bodyID,
-            in: &model,
-            tolerance: context.tolerance
-        )
+        let isCircular: Bool
+        if let edge = model.edges[edgeID], case .circle = model.geometry.curves[edge.curveID] {
+            isCircular = true
+        } else {
+            isCircular = false
+        }
+        if isCircular {
+            // A circular edge moves along its axis with the flat face it bounds, keeping the
+            // analytic surfaces around it; solids and sheets alike.
+            try CircularEdgeCapTranslator().translate(
+                capBoundedBy: edgeID,
+                bodyID: bodyID,
+                displacement: direction * distance,
+                featureID: feature.id,
+                model: &model,
+                tolerance: context.tolerance
+            )
+        } else {
+            try translateEdge(
+                edgeID,
+                bodyID: bodyID,
+                displacement: direction * distance,
+                featureID: feature.id,
+                model: &model,
+                tolerance: context.tolerance
+            )
+            try geometryRebuilder.rebuild(
+                featureID: feature.id,
+                bodyID: bodyID,
+                in: &model,
+                tolerance: context.tolerance
+            )
+        }
         try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: context.tolerance)
-        try model.validate(level: .volumetric, tolerance: context.tolerance)
+        let isSolid = model.bodies[bodyID]?.kind == .solid
+        try model.validate(level: isSolid ? .volumetric : .exact, tolerance: context.tolerance)
         let identity = try identityBuilder.identity(
             featureID: feature.id,
             bodyID: bodyID,

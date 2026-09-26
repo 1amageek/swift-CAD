@@ -384,6 +384,7 @@ extension KernelCapabilities {
       inputs: [
         "oneLineOnlyPlanarSolid",
         "oneTargetBodyOwnedStraightEdge",
+        "orOneCircularEdgeBoundingAPlanarCapMovedAlongItsAxisBetweenCoaxialCylindersAndAxisParallelPlanes",
         "finiteDirection",
         "finiteSignedDistancePreservingPlanarityAndVolume",
       ],
