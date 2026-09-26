@@ -275,6 +275,19 @@ claimed.
     from a triangle soup; it is not a fallback that a CAD consumer may accept
     silently. `CADKernel` owns which face produced which run.
 
+### Materials
+
+`Material` is a physically based appearance: base color, metallic, roughness
+and opacity, plus index of refraction, clearcoat (and its roughness), sheen (color
+and roughness), specular color and intensity, iridescence (and its film IOR),
+thickness, transmission and an optional density in kg/m³. Every layer defaults to
+no effect with the three.js physical-material defaults (IOR 1.5, sheen roughness
+1, specular intensity 1, iridescence IOR 1.3, the rest 0), so a material written
+before the layers existed decodes to the appearance it had. Fractions are in
+[0, 1], both IORs in [1, 3], thickness is finite and non-negative, and a density
+is finite and positive. `MaterialPhysicalLayersTests` prove the round trip,
+legacy decoding and each range.
+
 ### Measured Source of the Limit Constants
 
 Measured on Mac16,6 (36 GB) at `TessellationOptions.standard`
