@@ -42,6 +42,12 @@ failure, and invalid geometry is `invalidInput`. `SketchCurveIntersectorTests`
 own the parameters, reach, dedup and failure contracts; RupaCore Cut Curve tests
 own the command-level cuts.
 
+`SurfaceQueryEvaluator.outwardFrame` returns a face point (the nearest point to
+a query, or the point at a surface parameter) with the face's outward normal:
+the surface normal oriented by the face's sense in its shell. Face orientation
+is owned here; applications ask instead of reading `Face.orientation`.
+`SurfaceOutwardFrameTests` prove every box face points out of the body.
+
 ## Related Designs
 
 | Design | Relationship | Contract Used | Summary | Cautions |
