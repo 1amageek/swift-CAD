@@ -183,6 +183,67 @@ struct LocalDirectEditTests {
         #expect(abs(try model.volume(tolerance: .standard) - expected) < 1e-12)
     }
 
+    /// A 40 × 20 mm rectangle with 5 mm round corners, extruded 10 mm.
+    private func roundedBox(_ builder: inout DocumentBuilder) throws -> FeatureID {
+        let profile = try builder.sketch(on: .xy) { sketch in
+            let r = 5.0
+            _ = sketch.line(from: point(-15, -10), to: point(15, -10))
+            _ = sketch.line(from: point(20, -5), to: point(20, 5))
+            _ = sketch.line(from: point(15, 10), to: point(-15, 10))
+            _ = sketch.line(from: point(-20, 5), to: point(-20, -5))
+            for (cx, cy, start) in [(15.0, -5.0, -90.0), (15.0, 5.0, 0.0), (-15.0, 5.0, 90.0), (-15.0, -5.0, 180.0)] {
+                _ = sketch.arc(
+                    center: point(cx, cy), radius: millimeters(r),
+                    startAngle: .constant(.angle(start * .pi / 180, unit: .radian)),
+                    endAngle: .constant(.angle((start + 90) * .pi / 180, unit: .radian))
+                )
+            }
+        }
+        return try builder.extrude(profile, distance: millimeters(10))
+    }
+
+    private func topFace(of featureID: FeatureID, in builder: DocumentBuilder, z: Double) throws -> StableSubshapeReference {
+        try reference(in: builder, of: featureID) { value, model in
+            guard case let .face(id) = value, let face = model.faces[id],
+                  case let .plane(plane) = model.geometry.surfaces[face.surfaceID] else { return false }
+            return abs(abs(plane.normal.z) - 1) < 1e-9 && near(plane.origin.z, z)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func theTopOfARoundedBoxPullsUpWithItsRoundCornersAndCannotSlideSideways() throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let extrudeID = try roundedBox(&builder)
+        let top = try topFace(of: extrudeID, in: builder, z: 0.010)
+        var sideways = builder
+        _ = try builder.moveFace(target: extrudeID, face: top, direction: .unitZ, distance: millimeters(5))
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+
+        try model.validate(level: .volumetric, tolerance: .standard)
+        let area = 0.040 * 0.020 - (4 - Double.pi) * 0.005 * 0.005
+        #expect(abs(try model.volume(tolerance: .standard) - area * 0.015) < 1e-12)
+        #expect(model.geometry.curves.values.filter { if case .circle = $0 { return true }; return false }.count == 8)
+
+        // Sliding the top sideways would slant the round corners' cylinders.
+        _ = try sideways.moveFace(target: extrudeID, face: top, direction: .unitX, distance: millimeters(5))
+        #expect(throws: (any Error).self) {
+            _ = try CADPipeline(tolerance: .standard).evaluate(sideways.build())
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aCylinderCapMovesAsAFace() throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let cylinderID = try builder.cylinder(radius: millimeters(10), height: millimeters(20))
+        let evaluated = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        let topZ = evaluated.vertices.values.map(\.point.z).max() ?? 0
+        let top = try topFace(of: cylinderID, in: builder, z: topZ)
+        _ = try builder.moveFace(target: cylinderID, face: top, direction: .unitZ, distance: millimeters(-5))
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        try model.validate(level: .volumetric, tolerance: .standard)
+        #expect(abs(try model.volume(tolerance: .standard) - Double.pi * 0.010 * 0.010 * 0.015) < 1e-12)
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func aVertexOnAHoledFaceIsRefused() throws {
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)

@@ -490,6 +490,7 @@ extension KernelCapabilities {
       topology: .sheetOrSolidBody,
       inputs: [
         "oneSolidOrSheetWhoseFacesAroundTheMovedFaceArePlanarAndStraightEdged",
+        "orAPlanarFaceWithCircularOrBSplineEdgesTranslatedAlongTheAxisOfItsNeighbouringCylinders",
         "oneTargetBodyOwnedPlanarFace",
         "finiteDirection",
         "finiteSignedDistanceKeepingEveryFaceFromTurningOver",

@@ -56,14 +56,41 @@ package struct LocalVertexDisplacementRebuilder: Sendable {
                 return loop.coedges.contains { movedEdges.contains($0.edgeID) }
             }
         }.sorted()
-        var previousNormals: [FaceID: Vector3D] = [:]
-        for faceID in affectedFaces {
-            guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID],
-                  let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) else {
-                throw failure(.unsupportedCapability, featureID, tolerance,
-                              "A direct edit reshapes only planar faces around the moved vertices.")
+        // The one displacement every moved vertex of a face receives, when they share one.
+        func sharedDisplacement(of faceID: FaceID) throws -> (displacement: Vector3D, movesEveryVertex: Bool)? {
+            guard let face = model.faces[faceID] else {
+                throw TopologyError.missingReference("A direct edit face is missing.")
             }
-            previousNormals[faceID] = try plane.normal.normalized(tolerance: tolerance.distance)
+            var moved: [Vector3D] = []
+            var movesEveryVertex = true
+            for loopID in face.loops {
+                for vertexID in try model.orderedVertexIDs(for: loopID) {
+                    if let displacement = displacements[vertexID] { moved.append(displacement) } else { movesEveryVertex = false }
+                }
+            }
+            guard let first = moved.first,
+                  moved.allSatisfy({ ($0 - first).length <= tolerance.distance }) else { return nil }
+            return (first, movesEveryVertex)
+        }
+        var previousPlanes: [FaceID: Plane3D] = [:]
+        var sweptFaces: Set<FaceID> = []
+        for faceID in affectedFaces {
+            guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
+                throw TopologyError.missingReference("A direct edit face is missing.")
+            }
+            if let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) {
+                previousPlanes[faceID] = Plane3D(origin: plane.origin, normal: try plane.normal.normalized(tolerance: tolerance.distance))
+                continue
+            }
+            // A cylinder whose moved vertices all slide along its axis keeps its surface: its
+            // boundary only lengthens or shortens along the rulings.
+            if case let .cylinder(cylinder) = surface, let shared = try sharedDisplacement(of: faceID),
+               cylinder.axis.cross(shared.displacement).length <= tolerance.distance * max(1, cylinder.axis.length) {
+                sweptFaces.insert(faceID)
+                continue
+            }
+            throw failure(.unsupportedCapability, featureID, tolerance,
+                          "A direct edit reshapes planar faces, and cylinders only along their axis, around the moved vertices.")
         }
 
         for (vertexID, displacement) in displacements {
@@ -83,36 +110,60 @@ package struct LocalVertexDisplacementRebuilder: Sendable {
                   let end = model.vertices[edge.endVertexID]?.point else {
                 throw TopologyError.missingReference("A direct edit edge is missing.")
             }
-            guard case .line = model.geometry.curves[edge.curveID] else {
-                throw failure(.unsupportedCapability, featureID, tolerance,
-                              "A direct edit moves only straight edges at the moved vertices.")
-            }
-            let delta = end - start
-            guard delta.length > tolerance.distance else {
-                throw failure(.topologyFailure, featureID, tolerance, "A direct edit collapsed an edge.")
-            }
+            let startDisplacement = displacements[edge.startVertexID] ?? .zero
+            let endDisplacement = displacements[edge.endVertexID] ?? .zero
             let curveID = nextCurveID(&ids, model)
-            model.geometry.curves[curveID] = .line(Line3D(origin: start, direction: try delta.normalized(tolerance: tolerance.distance)))
+            switch model.geometry.curves[edge.curveID] {
+            case .line:
+                let delta = end - start
+                // A straight edge keeps its sense: one that shrinks to nothing or turns over means
+                // its ends passed each other.
+                let previousDelta = delta - endDisplacement + startDisplacement
+                guard delta.length > tolerance.distance, delta.dot(previousDelta) > 0 else {
+                    throw failure(.topologyFailure, featureID, tolerance, "A direct edit collapsed or reversed an edge.")
+                }
+                model.geometry.curves[curveID] = .line(Line3D(origin: start, direction: try delta.normalized(tolerance: tolerance.distance)))
+                edge.trim = CurveTrim(startParameter: 0, endParameter: delta.length)
+            case let curve? where (startDisplacement - endDisplacement).length <= tolerance.distance
+                && displacements[edge.startVertexID] != nil && displacements[edge.endVertexID] != nil:
+                // A curved edge whose ends move together translates rigidly, keeping its parameters.
+                model.geometry.curves[curveID] = try translated(curve, by: startDisplacement, featureID: featureID, tolerance: tolerance)
+            default:
+                throw failure(.unsupportedCapability, featureID, tolerance,
+                              "A direct edit moves a curved edge only when both its ends move together.")
+            }
             edge.curveID = curveID
-            edge.trim = CurveTrim(startParameter: 0, endParameter: delta.length)
             model.edges[edgeID] = edge
         }
 
-        for faceID in affectedFaces {
-            guard var face = model.faces[faceID], let previousNormal = previousNormals[faceID] else {
+        for faceID in sweptFaces {
+            // The surface stays; its parameter curves follow the edges that moved.
+            for loopID in model.faces[faceID]?.loops ?? [] { try clearPcurves(of: loopID, in: &model) }
+        }
+        for faceID in affectedFaces where !sweptFaces.contains(faceID) {
+            guard var face = model.faces[faceID], let previousPlane = previousPlanes[faceID] else {
                 throw TopologyError.missingReference("A direct edit face is missing.")
             }
+            let previousNormal = previousPlane.normal
             let loopPoints = try face.loops.map { try model.orderedPoints(for: $0) }
             let outer = loopPoints[0]
-            let normal = newellNormal(outer)
-            guard normal.length > tolerance.distance * tolerance.distance else {
-                throw failure(.topologyFailure, featureID, tolerance, "A direct edit collapsed a face.")
+            let plane: Plane3D
+            if let shared = try sharedDisplacement(of: faceID), shared.movesEveryVertex {
+                // The whole face translates, so it keeps its plane, moved.
+                plane = Plane3D(origin: previousPlane.origin + shared.displacement, normal: previousNormal)
+            } else {
+                let normal = newellNormal(outer)
+                guard normal.length > tolerance.distance * tolerance.distance else {
+                    throw failure(.unsupportedCapability, featureID, tolerance,
+                                  "A direct edit cannot re-solve a face its moved vertices do not span.")
+                }
+                let unitNormal = try normal.normalized(tolerance: tolerance.distance)
+                guard unitNormal.dot(previousNormal) > 0 else {
+                    throw failure(.topologyFailure, featureID, tolerance, "A direct edit would turn a face over.")
+                }
+                plane = Plane3D(origin: outer[0], normal: unitNormal)
             }
-            let unitNormal = try normal.normalized(tolerance: tolerance.distance)
-            guard unitNormal.dot(previousNormal) > 0 else {
-                throw failure(.topologyFailure, featureID, tolerance, "A direct edit would turn a face over.")
-            }
-            let plane = Plane3D(origin: outer[0], normal: unitNormal)
+            let unitNormal = plane.normal
             var isFlat = loopPoints.joined().allSatisfy { abs(($0 - plane.origin).dot(unitNormal)) <= tolerance.distance }
             for loopID in face.loops where isFlat {
                 isFlat = try curvedEdgesLie(onPlane: plane, loopID: loopID, movedEdges: movedEdges, model: model, tolerance: tolerance)
@@ -196,6 +247,27 @@ package struct LocalVertexDisplacementRebuilder: Sendable {
             }
         }
         return true
+    }
+
+    /// `curve` moved rigidly by `displacement`, with the same parameterization.
+    private func translated(
+        _ curve: Curve3D,
+        by displacement: Vector3D,
+        featureID: FeatureID,
+        tolerance: ModelingTolerance
+    ) throws -> Curve3D {
+        switch curve {
+        case let .line(line):
+            return .line(Line3D(origin: line.origin + displacement, direction: line.direction))
+        case let .circle(circle):
+            return .circle(Circle3D(center: circle.center + displacement, normal: circle.normal, radius: circle.radius))
+        case var .bSpline(spline):
+            spline.controlPoints = spline.controlPoints.map { $0 + displacement }
+            return .bSpline(spline)
+        default:
+            throw failure(.unsupportedCapability, featureID, tolerance,
+                          "A direct edit translates straight, circular and B-spline edges only.")
+        }
     }
 
     private func clearPcurves(of loopID: LoopID, in model: inout BRepModel) throws {

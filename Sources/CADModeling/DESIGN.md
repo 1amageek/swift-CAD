@@ -440,11 +440,15 @@ straight edge's two ends (`EdgeMoveFeatureEvaluator`), a planar face's boundary
 (`FaceMoveFeatureEvaluator`), and a vertex of any body other than a single-shell
 polyhedral solid (`VertexMoveFeatureEvaluator`, which keeps re-sewing and
 triangulating that polyhedral case). Only the faces around the moved vertices are
-re-solved, so solids and sheets with curved faces elsewhere can be edited. Every
-edge ending at a moved vertex must be straight and becomes the line through its
-moved ends. Every face bounded by such an edge must be planar. It becomes the
-plane through its moved boundary when that stays flat, with any curved edge it
-keeps still on that plane. Otherwise, when the face is one loop of four straight
+re-solved, so solids and sheets with curved faces elsewhere can be edited. A
+straight edge at a moved vertex becomes the line through its moved ends and must
+keep its sense. A curved edge (circle or B-spline) moves only when both its ends
+move by one displacement, and then translates rigidly. Every face bounded by a
+moved edge must be planar, or a cylinder whose moved vertices all slide along
+its axis, which keeps its surface. A planar face whose vertices all move by one
+displacement keeps its plane, translated. Otherwise it becomes the plane through
+its moved boundary when that stays flat, with any curved edge it keeps still on
+that plane. Otherwise, when the face is one loop of four straight
 edges, it becomes the degree-1 B-spline patch of its corners, which contains each
 edge as a boundary isoline and takes explicit coordinate pcurves. Topology and
 identities are unchanged. A face that is neither, and a face whose outward side
