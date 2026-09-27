@@ -387,5 +387,30 @@ extension KernelCapabilities {
         "StrictCurrentTopologySchemaTests",
       ]
     ),
+    KernelCapability(
+      id: "TOPO-FACEAREA-001",
+      operation: "faceAreaMeasurement",
+      status: .partial,
+      topology: .anyBRep,
+      acceptedInputs: [
+        "planarFaceWithAffineCoordinatePolylineHarmonicOrNonRationalBSplinePcurves",
+        "cylindricalFaceWithAffineCoordinateOrPolylinePcurves",
+        "periodicallyTranslatedSupportedPcurves",
+      ],
+      exactOutputs: [
+        "closedFormGreenIntegralFaceArea",
+        "closedFormGreenIntegralFaceAreaCentroid",
+        "typedRefusalOfOtherSupportsAndPcurves",
+      ],
+      failureCodes: [.missingReference, .topologyFailure, .unsupportedCapability],
+      tolerance: .standard,
+      publicAPIs: [
+        "CADTopology.BRepModel.faceAreaMeasurement",
+        "CADTopology.FaceAreaMeasurement",
+      ],
+      testFixtures: [
+        "FaceAreaMeasurementTests",
+      ]
+    ),
   ]
 }

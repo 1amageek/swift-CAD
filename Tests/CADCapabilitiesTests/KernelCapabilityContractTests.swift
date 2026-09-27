@@ -23,6 +23,7 @@ struct KernelCapabilityContractTests {
       "TOPO-BREP-001",
       "TOPO-SEWING-001",
       "TOPO-REPAIR-001",
+      "TOPO-FACEAREA-001",
       "MODEL-SKETCH-001",
       "MODEL-IMPORTED-BREP-001",
       "MODEL-PRIMITIVE-001",
