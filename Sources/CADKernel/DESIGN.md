@@ -71,6 +71,16 @@ on the reversed span. A degenerate end tangent, a length not above the modeling
 distance, a malformed chain or a length not reached is `invalidInput`.
 `CubicBezierChainExtensionTests` check it against the known pieces of one cubic.
 
+`CubicBezierChainOffset.offset(of:distance:)` offsets a chain to its left (the
+tangent turned counterclockwise; a negative distance goes right) as a cubic chain
+within the modeling distance: each span's offset O = B + d·N is fitted by cubic
+Hermite pieces taking O and its exact derivative O′ = B′ + d·N′ at their ends, and
+a piece whose eight interior samples stray further than the modeling distance is
+halved. A fold (O′ turning against B′ where d·κ reaches 1), a span without a
+tangent and a corner joint (whose offsets do not meet, which needs gap fill) are
+`invalidInput`. `CubicBezierChainOffsetTests` own these; RupaCore's Offset Planar
+Curve on splines consumes it.
+
 `SurfaceQueryEvaluator.outwardFrame` returns a face point (the nearest point to
 a query, or the point at a surface parameter) with the face's outward normal:
 the surface normal oriented by the face's sense in its shell. Face orientation
