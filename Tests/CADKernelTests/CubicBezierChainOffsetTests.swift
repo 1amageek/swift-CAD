@@ -64,3 +64,75 @@ import CADCore
         #expect(throws: KernelError.self) { _ = try offsetter.offset(of: tight, distance: 0.05) }
     }
 }
+
+/// Corners: the offsets are trimmed where they cross and joined by the gap fill where they part.
+@Suite struct CubicBezierChainOffsetGapFillTests {
+    private let offsetter = CubicBezierChainOffset(tolerance: .standard)
+
+    private func straight(_ a: Point2D, _ b: Point2D) -> [Point2D] {
+        [a, Point2D(x: a.x + (b.x - a.x) / 3, y: a.y + (b.y - a.y) / 3),
+         Point2D(x: a.x + 2 * (b.x - a.x) / 3, y: a.y + 2 * (b.y - a.y) / 3), b]
+    }
+
+    private func polyline(_ points: [Point2D]) -> [Point2D] {
+        var chain = [points[0]]
+        for (a, b) in zip(points, points.dropFirst()) { chain += straight(a, b).dropFirst() }
+        return chain
+    }
+
+    private func near(_ a: Point2D, _ x: Double, _ y: Double) -> Bool {
+        abs(a.x - x) < 1e-9 && abs(a.y - y) < 1e-9
+    }
+
+    /// Every point the chain's control points include at a span joint.
+    private func joints(_ chain: [Point2D]) -> [Point2D] {
+        stride(from: 0, to: chain.count, by: 3).map { chain[$0] }
+    }
+
+    @Test func theInsideOfATurnIsTrimmedWhereItsOffsetsCross() throws {
+        let l = polyline([Point2D(x: 0, y: 0), Point2D(x: 3, y: 0), Point2D(x: 3, y: 3)])
+        let inside = try offsetter.offset(of: l, distance: 0.5, gapFill: .round)
+        #expect(near(inside[0], 0, 0.5))
+        #expect(near(inside[inside.count - 1], 2.5, 3))
+        #expect(joints(inside).contains { near($0, 2.5, 0.5) })
+    }
+
+    @Test func theOutsideOfATurnIsFilledRoundOrLinear() throws {
+        let l = polyline([Point2D(x: 0, y: 0), Point2D(x: 3, y: 0), Point2D(x: 3, y: 3)])
+        let round = try offsetter.offset(of: l, distance: -0.5, gapFill: .round)
+        #expect(near(round[0], 0, -0.5) && near(round[round.count - 1], 3.5, 3))
+        // Every point of the round fill lies at the distance from the corner.
+        let fill = joints(round).filter { $0.x > 3 - 1e-9 && $0.y < 1e-9 }
+        #expect(!fill.isEmpty && fill.allSatisfy { abs(hypot($0.x - 3, $0.y) - 0.5) < 1e-9 })
+        let linear = try offsetter.offset(of: l, distance: -0.5, gapFill: .linear)
+        #expect(joints(linear).contains { near($0, 3.5, -0.5) })
+        #expect(throws: KernelError.self) { _ = try offsetter.offset(of: l, distance: -0.5, gapFill: nil) }
+    }
+
+    @Test func aClosedSquareStaysClosedInsideAndOutside() throws {
+        let square = polyline([Point2D(x: 0, y: 0), Point2D(x: 2, y: 0), Point2D(x: 2, y: 2), Point2D(x: 0, y: 2), Point2D(x: 0, y: 0)])
+        let inside = try offsetter.offset(of: square, distance: 0.25, gapFill: .linear)
+        #expect(inside.first == inside.last)
+        for corner in [(0.25, 0.25), (1.75, 0.25), (1.75, 1.75), (0.25, 1.75)] {
+            #expect(joints(inside).contains { near($0, corner.0, corner.1) })
+        }
+        let outside = try offsetter.offset(of: square, distance: -0.25, gapFill: .linear)
+        #expect(outside.first == outside.last)
+        for corner in [(-0.25, -0.25), (2.25, -0.25), (2.25, 2.25), (-0.25, 2.25)] {
+            #expect(joints(outside).contains { near($0, corner.0, corner.1) })
+        }
+    }
+
+    /// A closed loop smooth everywhere but at its seam keeps one corner, which is joined too.
+    @Test func aLoopWithOneCornerAtItsSeamIsJoinedThere() throws {
+        let leaf = [
+            Point2D(x: 0, y: 0), Point2D(x: 1, y: 2), Point2D(x: 3, y: 2), Point2D(x: 4, y: 0),
+            Point2D(x: 5, y: -2), Point2D(x: 1, y: -3), Point2D(x: 0, y: 0),
+        ]
+        for distance in [0.1, -0.1] {
+            let offset = try offsetter.offset(of: leaf, distance: distance, gapFill: .round)
+            #expect(offset.first == offset.last)
+            #expect((offset.count - 1).isMultiple(of: 3))
+        }
+    }
+}

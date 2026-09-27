@@ -77,9 +77,17 @@ within the modeling distance: each span's offset O = B + d·N is fitted by cubic
 Hermite pieces taking O and its exact derivative O′ = B′ + d·N′ at their ends, and
 a piece whose eight interior samples stray further than the modeling distance is
 halved. A fold (O′ turning against B′ where d·κ reaches 1), a span without a
-tangent and a corner joint (whose offsets do not meet, which needs gap fill) are
-`invalidInput`. `CubicBezierChainOffsetTests` own these; RupaCore's Offset Planar
-Curve on splines consumes it.
+tangent and a corner joint (whose offsets do not meet) without a gap fill are
+`invalidInput`. With a gap fill (`offset(of:distance:gapFill:)`), spans whose
+offsets meet form runs, and at each corner the two runs' offsets are intersected
+by `SketchCurveIntersector`: where they cross both end at the crossing (the inside
+of a turn), and where they part the `.round` fill is an arc about the corner at
+the distance (cubic spans checked against the circle to the modeling distance)
+and the `.linear` fill their end tangents continued until they meet (refused if
+parallel or meeting behind). A closed chain stays closed; a closed chain of one
+run joins its seam by intersecting its last third with its first third.
+`CubicBezierChainOffsetTests` and `CubicBezierChainOffsetGapFillTests` own these;
+RupaCore's Offset Planar Curve on splines consumes it.
 
 `SurfaceQueryEvaluator.outwardFrame` returns a face point (the nearest point to
 a query, or the point at a surface parameter) with the face's outward normal:
