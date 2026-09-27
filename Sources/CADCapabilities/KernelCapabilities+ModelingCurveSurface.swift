@@ -140,6 +140,39 @@ extension KernelCapabilities {
       ]
     ),
     feature(
+      id: "MODEL-SURFACEFILL-001",
+      operation: "surfaceFill",
+      topology: .sheetBody,
+      inputs: [
+        "oneStableSeedEdgeOfTheDeclaredSourceBody",
+        "completeOneFaceOpenBoundaryCycleThroughTheSeed",
+        "exactBoundaryCurvesConvertibleToBoundedBSplines",
+      ],
+      outputs: [
+        "validatedExactSheetBRep",
+        "exactPlanarTrimForCoplanarLoops",
+        "exactFourSidedCoonsSheetForNonPlanarLoops",
+        "certifiedArcLengthSplitOfThreeEdgeLoops",
+        "retainedSourceBody",
+        "faceLocalPcurves",
+        "strictRequestDecoding",
+        "deterministicGeneratedTopologyLineage",
+      ],
+      fixtures: [
+        "SurfaceFillFeatureTests",
+        "NativeOperationSchemaTests",
+      ],
+      status: .partial,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .unsupportedCapability,
+        .resourceLimitExceeded,
+        .topologyFailure,
+      ],
+      additionalPublicAPIs: ["CADModeling.SurfaceFillFeatureEvaluator"]
+    ),
+    feature(
       id: "MODEL-CURVEEDIT-001",
       operation: "curveEdit",
       topology: .curve,
