@@ -71,6 +71,13 @@ package struct DefaultExactBodyPatternRebuilder: ExactBodyPatternRebuilding {
         let model = context.brep
         let tolerance = context.tolerance
         let normal = try planeNormal.normalized(tolerance: tolerance.distance)
+        if let sheetShellIDs = model.bodies[sourceBodyID]?.sheetShellIDs {
+            return try glueSheetReflection(
+                featureID: featureID, sourceBodyID: sourceBodyID, shellIDs: sheetShellIDs,
+                reflection: reflection, planeOrigin: planeOrigin, planeNormal: normal,
+                stablePrefix: stablePrefix, context: context
+            )
+        }
         guard let body = model.bodies[sourceBodyID],
               let components = body.solidComponents,
               components.count == 1, let component = components.first else {
@@ -163,6 +170,114 @@ package struct DefaultExactBodyPatternRebuilder: ExactBodyPatternRebuilding {
         )
     }
 
+    /// Joins a sheet to its reflection across the plane it meets along boundary edges: each shell
+    /// that reaches the plane is sewn to its reflection there into one shell, and every other shell
+    /// is kept beside its own reflection. A face lying in the plane would overlap its reflection,
+    /// so it is refused, as is a sheet that does not reach the plane at all.
+    private func glueSheetReflection(
+        featureID: FeatureID,
+        sourceBodyID: BodyID,
+        shellIDs: [ShellID],
+        reflection: ExactPatternTransform,
+        planeOrigin: Point3D,
+        planeNormal normal: Vector3D,
+        stablePrefix: String,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
+        let model = context.brep
+        let tolerance = context.tolerance
+        let resolver = DefaultPlanarSurfaceResolver()
+        func onPlane(_ point: Point3D) -> Bool {
+            abs((point - planeOrigin).dot(normal)) <= tolerance.distance
+        }
+        func edgeLiesOnPlane(_ edgeID: EdgeID) throws -> Bool {
+            guard let edge = model.edges[edgeID],
+                  let start = model.vertices[edge.startVertexID]?.point,
+                  let end = model.vertices[edge.endVertexID]?.point else {
+                throw TopologyError.missingReference("Joined sheet edge is missing.")
+            }
+            guard onPlane(start), onPlane(end) else { return false }
+            guard let trim = edge.trim, let curve = model.geometry.curves[edge.curveID] else { return true }
+            return onPlane(try curve.point(at: (trim.startParameter + trim.endParameter) / 2, tolerance: tolerance))
+        }
+        var patchesByShell: [BRepSewingShell] = []
+        var joinedCount = 0
+        for (index, shellID) in shellIDs.enumerated() {
+            guard let shell = model.shells[shellID] else {
+                throw TopologyError.missingReference("Joined sheet shell is missing.")
+            }
+            var edgeUses: [EdgeID: Int] = [:]
+            for faceID in shell.faceIDs {
+                guard let face = model.faces[faceID] else {
+                    throw TopologyError.missingReference("Joined sheet face is missing.")
+                }
+                if let surface = model.geometry.surfaces[face.surfaceID],
+                   let plane = try resolver.exactPlane(for: surface, tolerance: tolerance),
+                   abs(abs(try plane.normal.normalized(tolerance: tolerance.distance).dot(normal)) - 1) <= tolerance.angle,
+                   onPlane(plane.origin) {
+                    throw error(.invalidInput, featureID: featureID, tolerance: tolerance,
+                                "A sheet face lying in the mirror plane would overlap its reflection.")
+                }
+                for loopID in face.loops {
+                    for coedge in model.loops[loopID]?.coedges ?? [] { edgeUses[coedge.edgeID, default: 0] += 1 }
+                }
+            }
+            let touchesPlane = try edgeUses.contains { edgeID, uses in uses == 1 ? try edgeLiesOnPlane(edgeID) : false }
+            let instanceSets: [[(Int, ExactPatternTransform)]] = touchesPlane
+                ? [[(0, .translated(by: .zero)), (1, reflection)]]
+                : [[(0, .translated(by: .zero))], [(1, reflection)]]
+            if touchesPlane { joinedCount += 1 }
+            for instances in instanceSets {
+                var patches: [BRepSewingFacePatch] = []
+                for (instance, transform) in instances {
+                    for (faceIndex, faceID) in shell.faceIDs.enumerated() {
+                        let image = try patch(
+                            stableID: "\(stablePrefix):instance:\(instance):shell:\(index):face:\(faceIndex)",
+                            faceID: faceID, transform: transform, model: model, context: context
+                        )
+                        // As for solids: the reflected half's loops are traversed back the other way
+                        // so both halves turn the same way about their fronts across the seam.
+                        patches.append(instance == 0 ? image : try reversingLoops(of: image, tolerance: tolerance))
+                    }
+                }
+                let suffix = instances.count == 1 ? ":instance:\(instances[0].0)" : ":joined"
+                patchesByShell.append(BRepSewingShell(
+                    stableID: "\(stablePrefix)\(suffix):shell:\(index)", patches: patches, orientation: shell.orientation
+                ))
+            }
+        }
+        guard joinedCount > 0 else {
+            throw error(.invalidInput, featureID: featureID, tolerance: tolerance,
+                        "Joining a sheet's reflection needs the sheet to meet the mirror plane along an edge.")
+        }
+        let request = BRepSewingRequest(
+            featureID: featureID,
+            bodyTopology: .sheet(shellStableIDs: patchesByShell.map(\.stableID)),
+            shells: patchesByShell,
+            bodyParentSubshapeIDs: subshapeIDs(for: .body(sourceBodyID), context: context)
+        )
+        let sewn = try sewer.sew(request, tolerance: tolerance)
+        let replacementBodyIDs = Set(sewn.subshapes.values.compactMap { reference -> BodyID? in
+            guard case let .body(bodyID) = reference else { return nil }
+            return bodyID
+        })
+        guard replacementBodyIDs.count == 1, let replacementBodyID = replacementBodyIDs.first else {
+            throw error(.topologyFailure, featureID: featureID, tolerance: tolerance,
+                        "Joining a sheet's reflection did not sew exactly one body.")
+        }
+        let replacedSubshapeIDs = try BodyTopologyScope(bodyID: sourceBodyID, model: model).subshapeIDs(in: context.subshapes)
+        let replaced = try BRepBodyModelReplacer().replacing(
+            bodyID: sourceBodyID, with: replacementBodyID, from: sewn.brep, in: model
+        )
+        try replaced.validate(level: .exact, tolerance: tolerance)
+        return EvaluationResult(
+            brep: replaced,
+            subshapes: sewn.subshapes,
+            removedSubshapeIDs: replacedSubshapeIDs,
+            lineage: sewn.lineage.withRelationsDerivedFromParents()
+        )
+    }
+
     private func reversingLoops(of patch: BRepSewingFacePatch, tolerance: ModelingTolerance) throws -> BRepSewingFacePatch {
         // Reorienting reverses every loop and flips the face; the face keeps its own orientation.
         let reoriented = try BRepSewingPatchOrientationAdapter().reorient(
@@ -189,6 +304,16 @@ package struct DefaultExactBodyPatternRebuilder: ExactBodyPatternRebuilding {
         context: EvaluationContext
     ) throws -> EvaluationResult {
         let uniqueTransforms = uniqueTransformsPreservingOrder(transforms)
+        guard context.brep.bodies[sourceBodyID]?.kind != .sheet || uniqueTransforms.count == 1 else {
+            // Instances are united, and uniting sheets is not a union of volumes: a pattern whose
+            // instances might cross cannot be settled here.
+            throw error(
+                .unsupportedCapability,
+                featureID: featureID,
+                tolerance: context.tolerance,
+                "Patterns unite solid instances; a sheet is placed apart only by a mirror."
+            )
+        }
         var instances: [BRepSewingResult] = []
         instances.reserveCapacity(uniqueTransforms.count)
         for (index, transform) in uniqueTransforms.enumerated() {
@@ -221,6 +346,44 @@ package struct DefaultExactBodyPatternRebuilder: ExactBodyPatternRebuilding {
                 tolerance: context.tolerance
             )
         }
+        return try replacingSource(sourceBodyID: sourceBodyID, featureID: featureID, union: union, context: context)
+    }
+
+    package func placeSheetInstancesApart(
+        featureID: FeatureID,
+        sourceBodyID: BodyID,
+        transforms: [ExactPatternTransform],
+        stablePrefix: String,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
+        guard context.brep.bodies[sourceBodyID]?.kind == .sheet else {
+            throw error(
+                .invalidInput,
+                featureID: featureID,
+                tolerance: context.tolerance,
+                "Only a sheet's instances are placed apart without uniting them."
+            )
+        }
+        let request = try sewingRequest(
+            featureID: featureID, bodyID: sourceBodyID,
+            transforms: uniqueTransformsPreservingOrder(transforms),
+            stablePrefix: stablePrefix, context: context
+        )
+        let sewn = try sewer.sew(request, tolerance: context.tolerance)
+        return try replacingSource(
+            sourceBodyID: sourceBodyID, featureID: featureID,
+            union: EvaluationResult(brep: sewn.brep, subshapes: sewn.subshapes,
+                                    lineage: sewn.lineage.withRelationsDerivedFromParents()),
+            context: context
+        )
+    }
+
+    private func replacingSource(
+        sourceBodyID: BodyID,
+        featureID: FeatureID,
+        union: EvaluationResult,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
         let replacementBodyIDs = Set(union.subshapes.values.compactMap { reference -> BodyID? in
             guard case let .body(bodyID) = reference else { return nil }
             return bodyID
@@ -243,7 +406,8 @@ package struct DefaultExactBodyPatternRebuilder: ExactBodyPatternRebuilding {
             from: union.brep,
             in: context.brep
         )
-        try model.validate(level: .volumetric, tolerance: context.tolerance)
+        let isSolid = context.brep.bodies[sourceBodyID]?.kind == .solid
+        try model.validate(level: isSolid ? .volumetric : .exact, tolerance: context.tolerance)
         return EvaluationResult(
             brep: model,
             subshapes: union.subshapes,
@@ -260,13 +424,12 @@ package struct DefaultExactBodyPatternRebuilder: ExactBodyPatternRebuilding {
         context: EvaluationContext
     ) throws -> BRepSewingRequest {
         let model = context.brep
-        guard let body = model.bodies[bodyID],
-              let sourceComponents = body.solidComponents else {
+        guard let body = model.bodies[bodyID] else {
             throw error(
                 .invalidInput,
                 featureID: featureID,
                 tolerance: context.tolerance,
-                "Exact pattern body input must resolve to exact solid topology."
+                "Exact pattern body input must resolve to exact solid or sheet topology."
             )
         }
         var sewingShells: [BRepSewingShell] = []
@@ -294,6 +457,22 @@ package struct DefaultExactBodyPatternRebuilder: ExactBodyPatternRebuilding {
                     orientation: shell.orientation
                 ))
             }
+        }
+        if body.sheetShellIDs != nil {
+            return BRepSewingRequest(
+                featureID: featureID,
+                bodyTopology: .sheet(shellStableIDs: sewingShells.map(\.stableID)),
+                shells: sewingShells,
+                bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context)
+            )
+        }
+        guard let sourceComponents = body.solidComponents else {
+            throw error(
+                .invalidInput,
+                featureID: featureID,
+                tolerance: context.tolerance,
+                "Exact pattern body input must resolve to exact solid or sheet topology."
+            )
         }
         let shellIndices = Dictionary(uniqueKeysWithValues: body.shellIDs.enumerated().map {
             ($0.element, $0.offset)

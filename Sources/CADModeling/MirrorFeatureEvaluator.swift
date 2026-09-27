@@ -4,6 +4,7 @@ import CADIR
 public struct MirrorFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let rebuilder: any ExactBodyPatternRebuilding
     private let cutter: (any BodyHalfSpaceCutting)?
+    private let sideClassifier: (any BodyPlaneSideClassifying)?
 
     /// An evaluator for mirrors that do not cut at their plane.
     public init(
@@ -17,14 +18,17 @@ public struct MirrorFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             separationValidator: separationValidator
         )
         self.cutter = nil
+        self.sideClassifier = nil
     }
 
-    /// An evaluator that also cuts the target at the mirror plane with `cutter`.
+    /// An evaluator that also cuts the target at the mirror plane with `cutter`, and combines a
+    /// sheet with its reflection where `sideClassifier` proves the sheet keeps to one side.
     package init(
         sewer: any BRepSewing,
         unionApplicator: any BooleanOperationApplying,
         separationValidator: any BodyJoinValidating,
-        cutter: any BodyHalfSpaceCutting
+        cutter: any BodyHalfSpaceCutting,
+        sideClassifier: any BodyPlaneSideClassifying
     ) {
         self.rebuilder = DefaultExactBodyPatternRebuilder(
             sewer: sewer,
@@ -32,6 +36,7 @@ public struct MirrorFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             separationValidator: separationValidator
         )
         self.cutter = cutter
+        self.sideClassifier = sideClassifier
     }
 
     public func evaluate(
@@ -76,6 +81,19 @@ public struct MirrorFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
         let bodyID = try targetBodyID(mirror.target.featureID, featureID: feature.id, context: context)
         guard mirror.cutsAtPlane else {
             return try reflect(mirror, bodyID: bodyID, featureID: feature.id, context: context)
+        }
+        guard context.brep.bodies[bodyID]?.kind != .sheet else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): cutting a sheet at the mirror plane needs the sheet's
+            // faces split along their exact intersection with the plane, which no evaluator does
+            // yet; the half-space cutter intersects solids only. Every sheet mirror with a cut is
+            // refused here, and a sheet mirror with a cut is not complete until this path splits
+            // the sheet and keeps the faces on the kept side, with its own tests.
+            throw error(
+                .unsupportedCapability,
+                featureID: feature.id,
+                tolerance: context.tolerance,
+                "Mirror cannot cut a sheet at its plane yet."
+            )
         }
         guard let cutter else {
             throw error(
@@ -175,6 +193,51 @@ public struct MirrorFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             tolerance: context.tolerance
         )
         switch mirror.output {
+        case .combined where context.brep.bodies[bodyID]?.kind == .sheet:
+            // A sheet is never united with its reflection: clear of the plane it is kept beside it
+            // as a second shell, and meeting the plane along an edge it is sewn to it there. A
+            // sheet that may cross the plane would meet its reflection in a curve, so it is refused.
+            guard let sideClassifier else {
+                throw error(
+                    .unsupportedCapability,
+                    featureID: featureID,
+                    tolerance: context.tolerance,
+                    "This evaluator cannot place a sheet against the mirror plane."
+                )
+            }
+            switch try sideClassifier.side(
+                of: bodyID,
+                planeOrigin: mirror.planeOrigin,
+                planeNormal: mirror.planeNormal,
+                in: context.brep,
+                tolerance: context.tolerance
+            ) {
+            case .clear:
+                return try rebuilder.placeSheetInstancesApart(
+                    featureID: featureID,
+                    sourceBodyID: bodyID,
+                    transforms: [.translated(by: .zero), reflection],
+                    stablePrefix: "mirror",
+                    context: context
+                )
+            case .oneSided:
+                return try rebuilder.glueReflection(
+                    featureID: featureID,
+                    sourceBodyID: bodyID,
+                    reflection: reflection,
+                    planeOrigin: mirror.planeOrigin,
+                    planeNormal: mirror.planeNormal,
+                    stablePrefix: "mirror",
+                    context: context
+                )
+            case .undetermined:
+                throw error(
+                    .unsupportedCapability,
+                    featureID: featureID,
+                    tolerance: context.tolerance,
+                    "A sheet that crosses the mirror plane cannot be combined with its reflection."
+                )
+            }
         case .combined:
             return try rebuilder.rebuild(
                 featureID: featureID,

@@ -681,10 +681,11 @@ extension KernelCapabilities {
     feature(
       id: "MODEL-MIRROR-001",
       operation: "mirror",
-      topology: .solidBody,
+      topology: .sheetOrSolidBody,
       inputs: [
         "oneLineOnlyPlanarSolid",
         "parameterPreservingRationalBSplineSolid",
+        "oneSheetProvenClearOfOrOneSidedAgainstTheMirrorPlane",
         "finiteNonzeroMirrorPlaneNormal",
         "twoInstancesWithinExactBooleanUnionDomain",
       ],
@@ -699,9 +700,11 @@ extension KernelCapabilities {
         "typedAmbiguousSourceSelection",
         "preservedUnrelatedBodiesAndSelections",
         "exactUnionOfOverlappingOrCoincidentInstances",
+        "sheetPlacedBesideOrSewnToItsReflection",
       ],
       fixtures: [
         "MirrorFeatureIntegrationTests",
+        "SheetMirrorIntegrationTests",
         "LinearPatternFeatureTests.mirrorsParameterPreservingBSplineBodyGeometry",
         "ExactPatternTransformTests",
       ],

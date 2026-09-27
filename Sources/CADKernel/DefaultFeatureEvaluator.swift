@@ -126,7 +126,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             sewer: sewer,
             unionApplicator: ExactBooleanOperationApplicator(),
             separationValidator: ExactBodyJoinValidator(),
-            cutter: BRepBodyHalfSpaceCutter(sewer: sewer, applicator: ExactBooleanOperationApplicator())
+            cutter: BRepBodyHalfSpaceCutter(sewer: sewer, applicator: ExactBooleanOperationApplicator()),
+            sideClassifier: BRepBodyPlaneSideClassifier()
         )
         self.joinBodiesEvaluator = JoinBodiesFeatureEvaluator(
             validator: ExactBodyJoinValidator()

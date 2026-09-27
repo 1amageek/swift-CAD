@@ -521,3 +521,19 @@ and every stage that rewrites lineage parents re-derives each relation from its
 parents (`withRelationsDerivedFromParents`). `MirrorFeatureIntegrationTests`
 prove each output's volume and extent for boxes, the cut-and-join of a
 cylinder, the refusals and the native package round trip.
+
+A sheet mirrors to a sheet: `FeatureNodeFactory` gives the mirror its target's
+output role and `DesignGraph` requires the two to match. Sheets are never
+united, so a combined sheet mirror first asks the injected
+`BodyPlaneSideClassifying` (CADKernel's `BRepBodyPlaneSideClassifier`) where
+the sheet lies. The classifier encloses each face's signed distance by its
+bounding box, narrowed by the boundary edges of a planar face or the control
+hull of a B-spline patch, and never by samples. A sheet `clear` of the plane is
+placed beside its reflection as a second shell (`placeSheetInstancesApart`).
+A `oneSided` sheet is sewn to its reflection along its boundary edges on the
+plane (`glueReflection`), and a face lying in the plane is refused. An
+`undetermined` sheet may cross the plane and is refused, as is every sheet
+mirror with a cut, because no evaluator splits a sheet at the plane yet.
+`rebuild` refuses sheet patterns with more than one instance, since uniting
+sheets is not a union of volumes. `SheetMirrorIntegrationTests` prove the
+clear, sewn, crossing, reflection-only and cut cases.

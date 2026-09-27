@@ -20,6 +20,17 @@ package protocol ExactBodyPatternRebuilding: Sendable {
         context: EvaluationContext
     ) throws -> EvaluationResult
 
+    /// The source sheet placed at every one of `transforms`, each instance its own shell of one
+    /// sheet body replacing the source. Sheets are never united, so the caller proves the
+    /// instances do not meet.
+    func placeSheetInstancesApart(
+        featureID: FeatureID,
+        sourceBodyID: BodyID,
+        transforms: [ExactPatternTransform],
+        stablePrefix: String,
+        context: EvaluationContext
+    ) throws -> EvaluationResult
+
     /// The source body joined with its `reflection` across the plane it lies against, replacing the
     /// source body. The source lies on one side of the plane, so the two meet only on it: their
     /// faces on the plane are dropped and the rest are sewn into one shell.
