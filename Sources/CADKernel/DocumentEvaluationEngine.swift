@@ -324,6 +324,7 @@ struct DocumentEvaluationEngine {
                  .faceMove,
                  .edgeMove,
                  .vertexMove,
+                 .topologyTransform,
                  .linearPattern,
                  .radialPattern,
                  .gridPattern,

@@ -372,6 +372,23 @@ public enum FeatureNodeFactory {
                 )
             }
             return try run()
+        case .topologyTransform:
+            func run() throws -> FeatureNode {
+                guard case let .topologyTransform(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate(tolerance: tolerance)
+                // A direct edit keeps its target's kind: a solid stays a solid and a sheet a sheet.
+                let outputRole = try bodyOrSheetSourceRole(feature.target.featureID, owner: "Topology transform target", in: document)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                    outputs: [FeatureOutput(role: outputRole)]
+                )
+            }
+            return try run()
         case .linearPattern:
             func run() throws -> FeatureNode {
                 guard case let .linearPattern(feature) = operation else {

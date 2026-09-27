@@ -462,6 +462,25 @@ public struct DocumentBuilder {
         return featureID
     }
 
+    /// Moves faces, edges and vertices of one body together by one translation, rotation or scale.
+    @discardableResult
+    public mutating func transformTopology(
+        target targetFeatureID: FeatureID,
+        subshapes: [StableSubshapeReference],
+        motion: TopologyMotion,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let transform = TopologyTransformFeature(
+            target: TopologyTransformTargetReference(featureID: targetFeatureID),
+            subshapes: subshapes,
+            motion: motion
+        )
+        try transform.validate(tolerance: tolerance)
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .topologyTransform(transform))
+        return featureID
+    }
+
     @discardableResult
     public mutating func linearPattern(
         target targetFeatureID: FeatureID,

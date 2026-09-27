@@ -23,6 +23,7 @@ public enum FeatureOperationKind: String, Codable, CaseIterable, Hashable, Senda
     case faceMove
     case edgeMove
     case vertexMove
+    case topologyTransform
     case linearPattern
     case radialPattern
     case gridPattern

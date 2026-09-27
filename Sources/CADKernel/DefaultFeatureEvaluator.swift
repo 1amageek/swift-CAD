@@ -23,6 +23,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
     private let faceMoveEvaluator: FaceMoveFeatureEvaluator
     private let edgeMoveEvaluator: EdgeMoveFeatureEvaluator
     private let vertexMoveEvaluator: VertexMoveFeatureEvaluator
+    private let topologyTransformEvaluator: TopologyTransformFeatureEvaluator
     private let linearPatternEvaluator: LinearPatternFeatureEvaluator
     private let radialPatternEvaluator: RadialPatternFeatureEvaluator
     private let gridPatternEvaluator: GridPatternFeatureEvaluator
@@ -95,6 +96,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.faceOffsetEvaluator = FaceOffsetFeatureEvaluator(resolver: resolver)
         self.faceMoveEvaluator = FaceMoveFeatureEvaluator(resolver: resolver)
         self.edgeMoveEvaluator = EdgeMoveFeatureEvaluator(resolver: resolver)
+        self.topologyTransformEvaluator = TopologyTransformFeatureEvaluator(resolver: resolver)
         self.vertexMoveEvaluator = VertexMoveFeatureEvaluator(
             sewer: sewer,
             resolver: resolver
@@ -236,6 +238,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             return try edgeMoveEvaluator.evaluateValidated(feature: feature, context: context)
         case .vertexMove:
             return try vertexMoveEvaluator.evaluateValidated(feature: feature, context: context)
+        case .topologyTransform:
+            return try topologyTransformEvaluator.evaluateValidated(feature: feature, context: context)
         case .linearPattern:
             return try linearPatternEvaluator.evaluateValidated(feature: feature, context: context)
         case .radialPattern:

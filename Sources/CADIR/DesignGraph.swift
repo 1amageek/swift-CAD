@@ -286,6 +286,27 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 guard distance.value.isFinite, distance.value != 0.0 else {
                     throw FeatureEvaluationError.invalidDistance(distance.value)
                 }
+            case let .topologyTransform(transform):
+                try transform.validate(tolerance: tolerance)
+                let expected: QuantityKind
+                switch transform.motion {
+                case .translation: expected = .length
+                case .rotation: expected = .angle
+                case .scale: expected = .scalar
+                }
+                for expression in transform.motion.expressions {
+                    let value = try parameters.resolvedValue(for: expression)
+                    guard value.kind == expected else {
+                        throw UnitError.expectedQuantity(
+                            operation: "topologyTransform.motion",
+                            expected: expected,
+                            actual: value.kind
+                        )
+                    }
+                    guard value.value.isFinite else {
+                        throw FeatureEvaluationError.invalidDistance(value.value)
+                    }
+                }
             case let .linearPattern(pattern):
                 try pattern.validate(tolerance: tolerance)
                 let spacing = try parameters.resolvedValue(for: pattern.spacing)
@@ -602,6 +623,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             try validateEdgeMoveContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .vertexMove:
             try validateVertexMoveContract(node, outputRoles: outputRoles, tolerance: tolerance)
+        case .topologyTransform:
+            try validateTopologyTransformContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .linearPattern:
             try validateLinearPatternContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .radialPattern:
@@ -1185,6 +1208,31 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         }
         guard outputRoles == [targetRole] else {
             throw FeatureEvaluationError.invalidGraph("Vertex move features must declare the output role of their target.")
+        }
+    }
+
+    @inline(never)
+    private func validateTopologyTransformContract(
+        _ node: FeatureNode,
+        outputRoles: [FeaturePort],
+        tolerance: ModelingTolerance
+    ) throws {
+        guard case let .topologyTransform(transform) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a topologyTransform operation.")
+        }
+        try transform.validate(tolerance: tolerance)
+        guard node.inputs == [FeatureInput(featureID: transform.target.featureID, role: .target)] else {
+            throw FeatureEvaluationError.invalidGraph("Topology transform features must consume the referenced target body input.")
+        }
+        guard let targetSource = nodes[transform.target.featureID] else {
+            throw FeatureEvaluationError.invalidGraph("Topology transform target source must declare a body or sheet output.")
+        }
+        let targetRoles = targetSource.outputs.map(\.role).filter { $0 == .body || $0 == .sheet }
+        guard targetRoles.count == 1, let targetRole = targetRoles.first else {
+            throw FeatureEvaluationError.invalidGraph("Topology transform target source must declare a body or sheet output.")
+        }
+        guard outputRoles == [targetRole] else {
+            throw FeatureEvaluationError.invalidGraph("Topology transform features must declare the output role of their target.")
         }
     }
 

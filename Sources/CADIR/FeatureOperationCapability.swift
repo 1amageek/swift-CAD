@@ -25,6 +25,7 @@ public extension FeatureOperation {
         case .faceMove: return "faceMove"
         case .edgeMove: return "edgeMove"
         case .vertexMove: return "vertexMove"
+        case .topologyTransform: return "topologyTransform"
         case .linearPattern: return "linearPattern"
         case .radialPattern: return "radialPattern"
         case .gridPattern: return "gridPattern"

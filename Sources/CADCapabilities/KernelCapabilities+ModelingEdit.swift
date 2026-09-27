@@ -485,6 +485,41 @@ extension KernelCapabilities {
       additionalPublicAPIs: ["CADModeling.FaceOffsetFeatureEvaluator"]
     ),
     feature(
+      id: "MODEL-TOPOLOGYTRANSFORM-001",
+      operation: "topologyTransform",
+      topology: .sheetOrSolidBody,
+      inputs: [
+        "facesEdgesAndVerticesOfOneSolidOrSheet",
+        "translationRotationOrPositiveFrameScale",
+        "planarStraightEdgedFacesAroundTheMovedVertices",
+        "curvedEdgesMovedOnlyByTranslation",
+      ],
+      outputs: [
+        "validatedExactBRep",
+        "sharedVerticesMovedOnce",
+        "locallyResolvedPlanarOrBilinearIncidentFaces",
+        "wholeMovedFacesKeepTheirMappedOutwardSide",
+        "faceLocalPcurves",
+        "analyticVolume",
+        "strictRequestDecoding",
+        "strictCurrentSchemaNativePersistence",
+        "targetBodyScopedIdentityReplacement",
+        "targetBodyScopedLineageParents",
+        "dimensionPreservingTopologyLineage",
+        "preservedUnrelatedBodiesAndSelections",
+      ],
+      fixtures: ["TopologyTransformTests"],
+      status: .partial,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .unsupportedCapability,
+        .topologyFailure,
+        .nonManifoldResult,
+      ],
+      additionalPublicAPIs: ["CADModeling.TopologyTransformFeatureEvaluator"]
+    ),
+    feature(
       id: "MODEL-FACEMOVE-001",
       operation: "faceMove",
       topology: .sheetOrSolidBody,

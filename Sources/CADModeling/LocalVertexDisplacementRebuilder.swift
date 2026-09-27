@@ -15,8 +15,13 @@ import CADTopology
 package struct LocalVertexDisplacementRebuilder: Sendable {
     package init() {}
 
+    /// Moves each vertex in `displacements` by its displacement. `motion`, when given, is the
+    /// affine map those displacements come from; a face all of whose vertices move then keeps its
+    /// outward side as the map carries it, so it may turn past a right angle. Curved edges move
+    /// only under a translation.
     package func displace(
         _ displacements: [VertexID: Vector3D],
+        motion: AffineTransform3D? = nil,
         bodyID: BodyID,
         featureID: FeatureID,
         model: inout BRepModel,
@@ -103,6 +108,10 @@ package struct LocalVertexDisplacementRebuilder: Sendable {
             model.vertices[vertexID] = vertex
         }
 
+        let isTranslation = motion.map { m in
+            (m.basisX - .unitX).length <= tolerance.angle && (m.basisY - .unitY).length <= tolerance.angle
+                && (m.basisZ - .unitZ).length <= tolerance.angle
+        } ?? true
         var ids = FeatureTopologyIDAllocator(featureID: featureID)
         for edgeID in movedEdges.sorted() {
             guard var edge = model.edges[edgeID],
@@ -124,13 +133,13 @@ package struct LocalVertexDisplacementRebuilder: Sendable {
                 }
                 model.geometry.curves[curveID] = .line(Line3D(origin: start, direction: try delta.normalized(tolerance: tolerance.distance)))
                 edge.trim = CurveTrim(startParameter: 0, endParameter: delta.length)
-            case let curve? where (startDisplacement - endDisplacement).length <= tolerance.distance
+            case let curve? where isTranslation && (startDisplacement - endDisplacement).length <= tolerance.distance
                 && displacements[edge.startVertexID] != nil && displacements[edge.endVertexID] != nil:
                 // A curved edge whose ends move together translates rigidly, keeping its parameters.
                 model.geometry.curves[curveID] = try translated(curve, by: startDisplacement, featureID: featureID, tolerance: tolerance)
             default:
                 throw failure(.unsupportedCapability, featureID, tolerance,
-                              "A direct edit moves a curved edge only when both its ends move together.")
+                              "A direct edit moves a curved edge only by a translation of both its ends.")
             }
             edge.curveID = curveID
             model.edges[edgeID] = edge
@@ -144,11 +153,23 @@ package struct LocalVertexDisplacementRebuilder: Sendable {
             guard var face = model.faces[faceID], let previousPlane = previousPlanes[faceID] else {
                 throw TopologyError.missingReference("A direct edit face is missing.")
             }
-            let previousNormal = previousPlane.normal
+            var previousNormal = previousPlane.normal
             let loopPoints = try face.loops.map { try model.orderedPoints(for: $0) }
             let outer = loopPoints[0]
+            let shared = try sharedDisplacement(of: faceID)
+            let movesEveryVertex = try face.loops.allSatisfy { loopID in
+                try model.orderedVertexIDs(for: loopID).allSatisfy { displacements[$0] != nil }
+            }
+            if movesEveryVertex, let motion, !isTranslation {
+                // The face moves whole under the map, so its outward side is the map's image of
+                // the previous one.
+                let seed: Vector3D = abs(previousNormal.x) < 0.9 ? .unitX : .unitY
+                let tangent = try previousNormal.cross(seed).normalized(tolerance: tolerance.distance)
+                let mapped = motion.applying(to: tangent).cross(motion.applying(to: previousNormal.cross(tangent)))
+                previousNormal = try mapped.normalized(tolerance: tolerance.distance)
+            }
             let plane: Plane3D
-            if let shared = try sharedDisplacement(of: faceID), shared.movesEveryVertex {
+            if let shared, shared.movesEveryVertex {
                 // The whole face translates, so it keeps its plane, moved.
                 plane = Plane3D(origin: previousPlane.origin + shared.displacement, normal: previousNormal)
             } else {

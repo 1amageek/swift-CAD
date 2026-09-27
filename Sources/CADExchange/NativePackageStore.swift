@@ -449,6 +449,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("faceMove", in: object, path: "\(path).faceMove", using: validateFaceMoveFeatureObject)
     try validateObjectField("edgeMove", in: object, path: "\(path).edgeMove", using: validateEdgeMoveFeatureObject)
     try validateObjectField("vertexMove", in: object, path: "\(path).vertexMove", using: validateVertexMoveFeatureObject)
+    try validateObjectField("topologyTransform", in: object, path: "\(path).topologyTransform", using: validateTopologyTransformFeatureObject)
     try validateObjectField("linearPattern", in: object, path: "\(path).linearPattern", using: validateLinearPatternFeatureObject)
     try validateObjectField("radialPattern", in: object, path: "\(path).radialPattern", using: validateRadialPatternFeatureObject)
     try validateObjectField("gridPattern", in: object, path: "\(path).gridPattern", using: validateGridPatternFeatureObject)
@@ -1604,6 +1605,35 @@ private func validateVertexMoveFeatureObject(_ object: [String: Any], path: Stri
 
 private func validateVertexMoveTargetReferenceObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID"], objectName: path)
+}
+
+private func validateTopologyTransformFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["target", "subshapes", "motion"], objectName: path)
+    try validateObjectField("target", in: object, path: "\(path).target", using: validateVertexMoveTargetReferenceObject)
+    try validateArrayField("subshapes", in: object, path: "\(path).subshapes", using: validateStableSubshapeReferenceObject)
+    try validateObjectField("motion", in: object, path: "\(path).motion", using: validateTopologyMotionObject)
+}
+
+private func validateTopologyMotionObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["kind", "translation", "rotation", "scale"], objectName: path)
+    try validateObjectField("translation", in: object, path: "\(path).translation", using: validateDirectMoveVectorObject)
+    try validateObjectField("rotation", in: object, path: "\(path).rotation", using: validateDirectRotationObject)
+    try validateObjectField("scale", in: object, path: "\(path).scale", using: validateDirectScaleObject)
+}
+
+private func validateDirectRotationObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["origin", "axis", "angle"], objectName: path)
+    try validateObjectField("origin", in: object, path: "\(path).origin", using: validatePoint3DObject)
+    try validateObjectField("axis", in: object, path: "\(path).axis", using: validateVector3DObject)
+    try validateObjectField("angle", in: object, path: "\(path).angle", using: validateExpressionObject)
+}
+
+private func validateDirectScaleObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["origin", "xAxis", "yAxis", "factors"], objectName: path)
+    try validateObjectField("origin", in: object, path: "\(path).origin", using: validatePoint3DObject)
+    try validateObjectField("xAxis", in: object, path: "\(path).xAxis", using: validateVector3DObject)
+    try validateObjectField("yAxis", in: object, path: "\(path).yAxis", using: validateVector3DObject)
+    try validateArrayField("factors", in: object, path: "\(path).factors", using: validateExpressionObject)
 }
 
 private func validateLinearPatternFeatureObject(_ object: [String: Any], path: String) throws {

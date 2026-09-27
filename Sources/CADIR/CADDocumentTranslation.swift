@@ -71,6 +71,7 @@ private extension FeatureOperation {
              .faceMove,
              .edgeMove,
              .vertexMove,
+             .topologyTransform,
              .linearPattern,
              .gridPattern,
              .joinBodies,

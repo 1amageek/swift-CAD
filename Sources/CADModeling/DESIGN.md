@@ -435,6 +435,15 @@ against itself, which is what holds the frame independent of face order.
 3. Primitive construction delegates parameter validity to `CADGeometry` and
    returns typed failure for invalid dimensions or malformed requests.
 
+`TopologyTransformFeatureEvaluator` moves faces, edges and vertices of one body
+together by one translation, rotation or positive frame scale
+(`TopologyTransformFeature`, `TopologyMotion`). It gathers every vertex the
+targets bound, so a vertex shared by two targets moves once, and hands the
+motion's affine map to `LocalVertexDisplacementRebuilder`. A face moved whole
+then keeps the outward side the map carries it to, and a curved edge moves only
+under a translation. `TopologyTransformTests` prove shared corners, a tilted
+face and a frustum by exact volumes, and the refusals.
+
 `LocalVertexDisplacementRebuilder` owns the direct edits that move vertices: a
 straight edge's two ends (`EdgeMoveFeatureEvaluator`), a planar face's boundary
 (`FaceMoveFeatureEvaluator`), and a vertex of any body other than a single-shell

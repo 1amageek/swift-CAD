@@ -25,6 +25,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case faceMove(FaceMoveFeature)
     case edgeMove(EdgeMoveFeature)
     case vertexMove(VertexMoveFeature)
+    case topologyTransform(TopologyTransformFeature)
     case linearPattern(LinearPatternFeature)
     case radialPattern(RadialPatternFeature)
     case gridPattern(GridPatternFeature)
@@ -77,6 +78,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case faceMove
         case edgeMove
         case vertexMove
+        case topologyTransform
         case linearPattern
         case radialPattern
         case gridPattern
@@ -182,6 +184,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .vertexMove:
             try container.validateOnlyExpectedKeys([.kind, .vertexMove], in: decoder)
             self = .vertexMove(try container.decode(VertexMoveFeature.self, forKey: .vertexMove))
+        case .topologyTransform:
+            try container.validateOnlyExpectedKeys([.kind, .topologyTransform], in: decoder)
+            self = .topologyTransform(try container.decode(TopologyTransformFeature.self, forKey: .topologyTransform))
         case .linearPattern:
             try container.validateOnlyExpectedKeys([.kind, .linearPattern], in: decoder)
             self = .linearPattern(try container.decode(LinearPatternFeature.self, forKey: .linearPattern))
@@ -335,6 +340,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .vertexMove(vertexMove):
             try container.encode(Kind.vertexMove, forKey: .kind)
             try container.encode(vertexMove, forKey: .vertexMove)
+        case let .topologyTransform(transform):
+            try container.encode(Kind.topologyTransform, forKey: .kind)
+            try container.encode(transform, forKey: .topologyTransform)
         case let .linearPattern(linearPattern):
             try container.encode(Kind.linearPattern, forKey: .kind)
             try container.encode(linearPattern, forKey: .linearPattern)

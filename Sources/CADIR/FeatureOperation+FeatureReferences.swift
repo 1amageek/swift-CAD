@@ -183,6 +183,12 @@ extension FeatureOperation {
                 vertex: try subshape(feature.vertex),
                 translation: feature.translation
             ))
+        case .topologyTransform(let feature):
+            return .topologyTransform(TopologyTransformFeature(
+                target: TopologyTransformTargetReference(featureID: try transform(feature.target.featureID)),
+                subshapes: try feature.subshapes.map { try subshape($0) },
+                motion: feature.motion
+            ))
         case .linearPattern(let feature):
             return .linearPattern(LinearPatternFeature(
                 target: try pattern(feature.target),

@@ -40,6 +40,8 @@ public extension FeatureOperation {
             return move.translation.distance.referencedParameterIDs
         case let .vertexMove(move):
             return move.translation.distance.referencedParameterIDs
+        case let .topologyTransform(transform):
+            return transform.motion.expressions.reduce(into: Set()) { $0.formUnion($1.referencedParameterIDs) }
         case let .linearPattern(pattern):
             return pattern.spacing.referencedParameterIDs
         case let .radialPattern(pattern):
