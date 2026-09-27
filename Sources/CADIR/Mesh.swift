@@ -240,9 +240,12 @@ public struct TessellationOptions: Codable, Hashable, Sendable {
         self.featureOverrides = featureOverrides
     }
 
+    /// A 0.1 mm chord bound with at most 2π/64 of turning per segment or facet. The turn is
+    /// divided by 63.5 so a span that is an exact fraction of a turn does not round up to one more
+    /// segment. The selection rule and its feasibility are recorded in the CADIR design.
     public static let standard = TessellationOptions(
         linearTolerance: 1.0e-4,
-        angularTolerance: 1.0e-3
+        angularTolerance: 2.0 * Double.pi / 63.5
     )
 
     public func validate() throws {

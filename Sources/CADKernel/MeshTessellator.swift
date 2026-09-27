@@ -1133,6 +1133,24 @@ public struct MeshTessellator: Tessellating {
                 throw TessellationError.unsupportedFace(faceID)
             }
 
+            // The tip of a spike — the boundary doubles back along a sliver narrower than the
+            // modeling resolution — bounds no area, so it leaves the polygon without a triangle
+            // before any ear is clipped. Kept, it would end among the last three vertices as a
+            // triangle `appendTriangle` must refuse. A vertex the boundary passes straight
+            // through stays: triangles already clipped may use it, and ears around it keep the
+            // triangulation conforming.
+            if let localIndex = remaining.indices.first(where: { localIndex in
+                isSpikeTip(
+                    previous: projectedPoints[remaining[(localIndex + remaining.count - 1) % remaining.count]],
+                    current: projectedPoints[remaining[localIndex]],
+                    next: projectedPoints[remaining[(localIndex + 1) % remaining.count]]
+                )
+            }) {
+                remaining.remove(at: localIndex)
+                firstCandidate = (localIndex + remaining.count - 1) % remaining.count
+                continue
+            }
+
             var didClipEar = false
             for offset in remaining.indices {
                 let localIndex = (firstCandidate + offset) % remaining.count
@@ -1199,6 +1217,28 @@ public struct MeshTessellator: Tessellating {
                 y: offset.dot(vAxis)
             )
         }
+    }
+
+    /// True when the boundary doubles back at `current`: the triangle it forms with its
+    /// neighbors has no area at the modeling resolution — its turn lies within the gate `isEar`
+    /// and `appendTriangle` apply — and the outgoing edge runs back along the incoming one.
+    /// Removing it changes the polygon by less than the resolution.
+    private func isSpikeTip(
+        previous: PlanarPoint2D,
+        current: PlanarPoint2D,
+        next: PlanarPoint2D
+    ) -> Bool {
+        let gate = max(
+            tolerance.distance * tolerance.distance,
+            minimumMeaningfulCross(
+                planarDistance(previous, to: current),
+                planarDistance(previous, to: next)
+            )
+        )
+        guard abs(planarCross(previous, current, next)) <= gate else { return false }
+        let incoming = (x: current.x - previous.x, y: current.y - previous.y)
+        let outgoing = (x: next.x - current.x, y: next.y - current.y)
+        return incoming.x * outgoing.x + incoming.y * outgoing.y <= 0
     }
 
     private func isEar(
@@ -1932,32 +1972,39 @@ public struct MeshTessellator: Tessellating {
                     linearStepCount(length: vSpan, options: options)
                 )
             case let .sphere(_, radius):
+                let perDirection = boundsPerCurvedDirection(options)
                 return (
                     try circularStepCount(
                         radius: radius,
                         angleSpan: uSpan,
-                        options: options
+                        options: perDirection
                     ),
                     try circularStepCount(
                         radius: radius,
                         angleSpan: vSpan,
-                        options: options
+                        options: perDirection
                     )
                 )
             case let .torus(_, _, majorRadius, minorRadius):
+                let perDirection = boundsPerCurvedDirection(options)
                 return (
                     try circularStepCount(
                         radius: majorRadius + minorRadius,
                         angleSpan: uSpan,
-                        options: options
+                        options: perDirection
                     ),
                     try circularStepCount(
                         radius: minorRadius,
                         angleSpan: vSpan,
-                        options: options
+                        options: perDirection
                     )
                 )
             }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): a rectangular B-spline face takes a fixed step count
+        // (or one derived from the maximum edge length), not one refined against the chord and
+        // turning bounds. Production path: every untrimmed B-spline face. Not covered by the
+        // tessellation fidelity contract until the steps come from certified surface bounds, as
+        // the procedural grids' do, with tests that measure the deviation.
         case .bSpline:
             let steps = bSplineStepCount(options: options)
             return (steps, steps)
@@ -2087,6 +2134,7 @@ public struct MeshTessellator: Tessellating {
                 radius: radius,
                 angleSpan: angleSpan,
                 angularTolerance: options.angularTolerance,
+                linearTolerance: options.linearTolerance,
                 modelingTolerance: tolerance
             )
         guard let maxEdgeLength = options.maxEdgeLength else {
@@ -2098,6 +2146,17 @@ public struct MeshTessellator: Tessellating {
             maximum: 65_536
         )
         return max(angularSteps, edgeLengthSteps)
+    }
+
+    /// The bounds each direction of a grid curved along both directions receives. A facet
+    /// spanning both accumulates the two sagittas and the two normal turns, so each direction
+    /// takes half of each budget and the facet meets the whole.
+    private func boundsPerCurvedDirection(_ options: TessellationOptions) -> TessellationOptions {
+        TessellationOptions(
+            linearTolerance: options.linearTolerance / 2,
+            angularTolerance: options.angularTolerance / 2,
+            maxEdgeLength: options.maxEdgeLength
+        )
     }
 
     private func linearStepCount(
@@ -2289,6 +2348,12 @@ public struct MeshTessellator: Tessellating {
             }
             return
         }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): a trimmed non-spherical parametric face is triangulated
+        // from its sampled boundary alone, as a fan here or by ear clipping below, so its interior
+        // is not refined against the chord, turning or edge-length bounds. Production path: every
+        // trimmed cylinder, cone, torus, B-spline and procedural face that is not a rectangular
+        // grid. Not covered by the tessellation fidelity contract until the interior refines
+        // against all three bounds with tests that measure interior deviation.
         if innerParameterLoops.isEmpty,
            let fanCenter = try parametricFanCenter(
                surface: surface,
@@ -2798,6 +2863,7 @@ public struct MeshTessellator: Tessellating {
                     radius: circle.radius,
                     angleSpan: abs(span),
                     angularTolerance: options.angularTolerance,
+                    linearTolerance: options.linearTolerance,
                     modelingTolerance: tolerance
                 )
             return try (0...segmentCount).map { index in
@@ -2850,6 +2916,7 @@ public struct MeshTessellator: Tessellating {
                     radius: radius,
                     angleSpan: abs(span),
                     angularTolerance: options.angularTolerance,
+                    linearTolerance: options.linearTolerance,
                     modelingTolerance: tolerance
                 )
             return try (0...segmentCount).map { index in

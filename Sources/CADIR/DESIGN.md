@@ -176,7 +176,31 @@ claimed.
    topology kind or identity.
 4. `TessellationOptions` contains only geometric fidelity inputs and remains
    the identity of the requested sampling profile. It is not a viewport or
-   Product policy.
+   Product policy. `linearTolerance` is the accuracy bound: the distance from
+   an emitted segment or facet to the exact curve or surface it samples.
+   `angularTolerance` bounds how far the exact tangent or normal turns across
+   one segment or facet; it keeps features that are small against the chord
+   bound round, and never stands in for the chord bound. `maxEdgeLength`
+   bounds a segment's or facet side's length. A refining path satisfies all
+   three together (see [CADKernel](../CADKernel/DESIGN.md#tessellation-fidelity)).
+   `TessellationOptions.standard` pairs a 0.1 mm chord bound (`1.0e-4`) with
+   an angular bound of one turn divided by 63.5: at most 2π/64 of turning per
+   segment or facet, 64 per full turn. The turn is divided by 63.5 rather than
+   64 so a span that is an exact fraction of a turn does not round up to one
+   more segment. Above a radius of about 8.3 cm the chord bound governs; below
+   it the angular floor keeps small round features round. Accuracy never
+   depends on this floor, so any feasible value is correct; 64 per turn is the
+   chosen default, and a caller that needs smaller features finer passes its
+   own options or per-feature overrides. The value must be
+   feasible: a facet whose normal turns by at most θ covers at most a solid
+   angle of order θ², so a closed doubly curved surface needs on the order of
+   4π/θ² vertices under any triangulation. The former `1.0e-3` needed about
+   12.6 M vertices for one sphere, beyond `TessellationLimits.standard`, and
+   appeared to fit only while trimmed spherical faces were fanned from one
+   interior point without refining their interior. `.standard` must admit
+   twelve complete spheres of 1 m radius under `TessellationLimits.standard`,
+   the assembly size the limits were sized for; a change to either default
+   re-runs `TessellationStandardFeasibilityTests`.
 5. `TessellationLimits` contains only generic checked ceilings for cumulative
    vertices, indices, triangles, and estimated bytes for one complete
    tessellation invocation. It validates positive, representable limits but
@@ -290,8 +314,11 @@ legacy decoding and each range.
 
 ### Measured Source of the Limit Constants
 
-Measured on Mac16,6 (36 GB) at `TessellationOptions.standard`
-(`angularTolerance` 1.0e-3), evaluating each fixture in its own process:
+Measured on Mac16,6 (36 GB) at the former `TessellationOptions.standard`
+(`angularTolerance` 1.0e-3, before circular sampling enforced the chord
+bound), evaluating each fixture in its own process. The rows record the
+resource ratios the limits were derived from; they are not the current
+standard's emission:
 
 | Fixture | Bodies | Faces | Vertices | Indices | Triangles | Mesh bytes | Peak RSS |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -318,7 +345,7 @@ a rectangular parametric grid face:
 Two properties follow from the measurements and set the constants. Successive
 tolerance halvings multiply the emission by 3.76, 3.94, 3.97, and 3.97,
 converging on 4.00, so a rectangular grid face grows quadratically and the same
-torus at `TessellationOptions.standard` projects to roughly 39.5 M vertices and
+torus at angular tolerance 1.0e-3 projects to roughly 39.5 M vertices and
 2.85 GB of mesh storage, which the reference machine cannot hold. The measured
 peak-resident-to-mesh-byte ratio is 3.6x to 4.5x.
 

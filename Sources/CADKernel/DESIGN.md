@@ -183,6 +183,18 @@ The exact coordinate bounding box rejects points before robust orientation
 evaluation. Its bounds use only min/max of the same stored triangle vertices,
 so it cannot discard an interior or boundary point and needs no tolerance.
 
+Before each ear is sought, the tip of a spike leaves the polygon without a
+triangle: the boundary doubles back there along a sliver narrower than the
+modeling resolution, its turn lies within the same gate ear adoption and
+`appendTriangle` apply, and removing it changes the polygon by less than the
+resolution. Exact containment can accept an ear whose edge passes a vertex by a
+rounding residue (an arc-line intersection a few ulps off the line), leaving
+such a spike; kept, it ended among the last three vertices as a triangle the
+adoption gate refused, failing the face. A vertex the boundary passes straight
+through stays, because triangles already clipped may use it and removing it
+would leave a T-junction. The cylindrical union tests exercise the spike, and
+the concave extrude test the pass-through.
+
 Limits reach the tessellator through `MeshTessellator.init(tolerance:limits:)`,
 defaulting to `TessellationLimits.standard`, and through
 `DocumentEvaluator.init(tessellationLimits:)`, which configures only the
@@ -263,6 +275,40 @@ enforce that allowance before its own allocation, so `makeMeshes` still charges
 the complete final mesh set at the publication boundary. This aggregate guard
 covers reused-only, reused-plus-fresh, and injected-provider output; failure
 discards the local result and publishes no evaluated document.
+
+### Tessellation Fidelity
+
+A refining path meets every bound of `TessellationOptions` together: the chord
+bound (`linearTolerance`, the distance from a segment or facet to the exact
+geometry), the turning bound (`angularTolerance`, how far the exact tangent or
+normal turns across it) and `maxEdgeLength`. No path relies on a fine turning
+bound to deliver the chord bound: a circle of radius `r` split into steps of
+angle φ deviates by `r(1 − cos(φ/2))`, which grows with `r`, so circular
+sampling takes the larger of the turning count and the chord count.
+
+| Path | Chord | Turning | Edge length |
+|---|---|---|---|
+| Circle, arc and ellipse edges (`CircularCurveSamplingPolicy`; an ellipse by its major radius) | enforced | enforced | — |
+| Cylinder and cone grids (curved along `u` at the largest radius; straight along `v`) | enforced | enforced | enforced |
+| Sphere and torus grids (curved along both directions) | each direction takes half | each direction takes half | enforced |
+| Offset, ruled and rolling-ball grids | certified combined bound | certified combined bound | enforced |
+| Bounded curves (B-spline, lifts, intersections, conics) | certified | certified | enforced |
+| Planar faces | boundary simplified within the bound | flat | — |
+| Convex trimmed spherical patches | radial rings | radial rings | enforced |
+| Other trimmed parametric faces | boundary only | boundary only | boundary only |
+| Rectangular B-spline grids | not refined | not refined | step count only |
+
+A facet spanning two curved directions accumulates both: its sagitta adds the
+two directions' `a²/8ρ` terms and its normal turns by at most the sum of the two
+turns, so a sphere or torus grid gives each direction half of each budget and
+the facet meets the whole. Adjacent faces may sample a shared edge differently;
+each stays within the chord bound of the exact edge, so a gap between them is at
+most twice the bound. The last two rows do not refine the interior of the face,
+and their branches carry `FIXME(INCOMPLETE_IMPLEMENTATION)`; they are not
+covered by the fidelity contract until they refine against all three bounds.
+`TessellationFidelityTests` prove the chord bound on large circles and on
+doubly curved grids, and `TessellationStandardFeasibilityTests` prove that
+`TessellationOptions.standard` admits the assembly its selection rule names.
 
 ## Runtime Flows
 

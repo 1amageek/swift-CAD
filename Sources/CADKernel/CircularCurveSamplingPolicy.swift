@@ -39,10 +39,18 @@ struct CircularCurveSamplingPolicy: Sendable {
         return min(max(segmentCount, 2), maximumSegmentCount)
     }
 
+    /// The segment count that samples an arc of `radius` and `angleSpan` within both tessellation
+    /// bounds: each segment turns by at most `angularTolerance` and deviates from the arc by at
+    /// most `linearTolerance`. A step of angle φ deviates by `radius · (1 − cos(φ/2))`, which grows
+    /// with the radius, so the turning bound alone cannot deliver the chord bound.
+    ///
+    /// The count never exceeds the modeling resolution: segments stay longer than the modeling
+    /// distance, where the chord deviation is already far inside it.
     func boundedTessellationArcSegmentCount(
         radius: Double,
         angleSpan: Double,
         angularTolerance: Double,
+        linearTolerance: Double,
         modelingTolerance: ModelingTolerance,
         maximumSegmentCount: Int = 65_536
     ) throws -> Int {
@@ -52,13 +60,16 @@ struct CircularCurveSamplingPolicy: Sendable {
             throw GeometryError.invalidRadius(radius)
         }
         guard angleSpan.isFinite,
-              angleSpan > modelingTolerance.angle,
-              angularTolerance.isFinite,
-              angularTolerance > 0.0 else {
+              angleSpan > modelingTolerance.angle else {
             throw GeometryError.invalidAngle(angleSpan)
         }
+        guard angularTolerance.isFinite, angularTolerance > 0.0,
+              linearTolerance.isFinite, linearTolerance > 0.0 else {
+            throw GeometryError.invalidTolerance(distance: linearTolerance, angle: angularTolerance)
+        }
 
-        let requested = ceil(angleSpan / angularTolerance)
+        let chordAngle = maxSegmentAngle(radius: radius, deviation: linearTolerance)
+        let requested = max(ceil(angleSpan / angularTolerance), ceil(angleSpan / chordAngle))
         guard requested.isFinite,
               requested <= Double(Int.max) else {
             throw SketchError.unsupportedProfile(
@@ -87,7 +98,7 @@ struct CircularCurveSamplingPolicy: Sendable {
             throw SketchError.degenerateProfile
         }
 
-        let maxAngle = maxSegmentAngle(radius: radius, tolerance: tolerance)
+        let maxAngle = maxSegmentAngle(radius: radius, deviation: tolerance.distance)
         let required = ceil(angleSpan / maxAngle)
         guard required.isFinite, required <= Double(Int.max) else {
             throw SketchError.unsupportedProfile(
@@ -97,8 +108,10 @@ struct CircularCurveSamplingPolicy: Sendable {
         return max(Int(required), minimumSegmentCount)
     }
 
-    private func maxSegmentAngle(radius: Double, tolerance: ModelingTolerance) -> Double {
-        let ratio = tolerance.distance / radius
+    /// The largest step angle whose chord deviates from a circle of `radius` by at most
+    /// `deviation`.
+    private func maxSegmentAngle(radius: Double, deviation: Double) -> Double {
+        let ratio = deviation / radius
         if ratio < 1.0e-4 {
             return 2.0 * sqrt(2.0 * ratio)
         }

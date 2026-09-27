@@ -474,13 +474,15 @@ struct TessellationBudgetTests {
     /// Cancellation delivered after the invocation has started is observed at an
     /// interior checkpoint: the fixture takes far longer to tessellate than the
     /// delay before the cancellation, so a completed result would mean no
-    /// interior checkpoint ran.
+    /// interior checkpoint ran. The fixture names its own fine turning bound
+    /// (6,283 segments per turn) rather than relying on the standard options.
     @Test(.timeLimit(.minutes(1)))
     func cancellationDuringAnInvocationAbandonsTheRemainingWork() async throws {
         let model = try Self.slowModel()
+        let fine = TessellationOptions(linearTolerance: 1.0e-4, angularTolerance: 1.0e-3)
 
         let task = Task {
-            try MeshTessellator(tolerance: .standard).tessellate(model: model)
+            try MeshTessellator(tolerance: .standard).tessellate(model: model, options: fine)
         }
         try await Task.sleep(for: .milliseconds(5))
         task.cancel()

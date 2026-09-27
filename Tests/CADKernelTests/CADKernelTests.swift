@@ -496,11 +496,11 @@ struct CADKernelTests {
 
         // Inner wall faces must be reversed so the divergence volume of the
         // hollow revolve equals pi * (R^2 - r^2) * h instead of silently
-        // inflating by (4/3) * pi * r^2 * h.
+        // inflating by (4/3) * pi * r^2 * h, far outside the chord band.
         let expected = Double.pi * (0.025 * 0.025 - 0.015 * 0.015) * 0.03
         let actual = abs(signedMeshVolume(mesh))
         #expect(
-            abs(actual - expected) <= 1.0e-9,
+            abs(actual - expected) <= chordBoundVolumeBand(surfaceArea: ringRevolveSurfaceArea()),
             "Expected mesh volume \(expected), got \(actual)."
         )
         try evaluated.brep.validate(tolerance: .standard)
@@ -516,13 +516,12 @@ struct CADKernelTests {
         let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let mesh = try #require(evaluated.meshes.values.first)
 
-        // Walls sample arcs at the angular tolerance; caps are
-        // sagitta-simplified to the distance tolerance. Both chord-error
-        // budgets stay well inside the 1e-9 band used by the sibling tests.
+        // Walls and caps both stay within the chord bound of the exact
+        // surface, so the volume stays within the chord band.
         let expected = Double.pi * (0.025 * 0.025 - 0.015 * 0.015) * 0.03
         let actual = abs(signedMeshVolume(mesh))
         #expect(
-            abs(actual - expected) <= 1.0e-9,
+            abs(actual - expected) <= chordBoundVolumeBand(surfaceArea: ringRevolveSurfaceArea()),
             "Expected mesh volume \(expected), got \(actual)."
         )
         try mesh.validate(tolerance: .standard)
@@ -556,7 +555,8 @@ struct CADKernelTests {
         let mesh = try #require(evaluated.meshes.values.first)
 
         let expected = Double.pi * (0.025 * 0.025 - 0.015 * 0.015) * 0.03 / 2.0
-        #expect(abs(abs(signedMeshVolume(mesh)) - expected) <= 1.0e-9)
+        let area = ringRevolveSurfaceArea() / 2.0 + 2.0 * (0.025 - 0.015) * 0.03
+        #expect(abs(abs(signedMeshVolume(mesh)) - expected) <= chordBoundVolumeBand(surfaceArea: area))
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -569,8 +569,9 @@ struct CADKernelTests {
 
         let expected = Double.pi * 0.02 * 0.02 * 0.04
         let actual = abs(signedMeshVolume(mesh))
+        let area = 2.0 * Double.pi * 0.02 * 0.04 + 2.0 * Double.pi * 0.02 * 0.02
         #expect(
-            abs(actual - expected) <= 1.0e-9,
+            abs(actual - expected) <= chordBoundVolumeBand(surfaceArea: area),
             "Expected mesh volume \(expected), got \(actual)."
         )
     }
@@ -6586,6 +6587,21 @@ private func makeAxisAlignedRectangleRevolveDocument(
             revision: DocumentRevision(2)
         )
     )
+}
+
+/// The volume a mesh may differ from its exact solid by when every point of it lies within the
+/// chord bound of the exact surface: the tube of that half-width around the surface.
+private func chordBoundVolumeBand(
+    surfaceArea: Double,
+    options: TessellationOptions = .standard
+) -> Double {
+    2.0 * surfaceArea * options.linearTolerance
+}
+
+/// Walls of radii 0.025 and 0.015 and height 0.03, plus the two annular caps.
+private func ringRevolveSurfaceArea() -> Double {
+    2.0 * Double.pi * (0.025 + 0.015) * 0.03
+        + 2.0 * Double.pi * (0.025 * 0.025 - 0.015 * 0.015)
 }
 
 private func signedMeshVolume(_ mesh: Mesh) -> Double {
