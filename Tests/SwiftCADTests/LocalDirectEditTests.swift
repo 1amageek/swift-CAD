@@ -232,6 +232,36 @@ struct LocalDirectEditTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func aRoundedBoxTopOffsetsAlongItsNormalAndAnOpenBoxWallOffsets() throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let extrudeID = try roundedBox(&builder)
+        let top = try topFace(of: extrudeID, in: builder, z: 0.010)
+        _ = try builder.offsetFace(target: extrudeID, face: top, distance: millimeters(4))
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        try model.validate(level: .volumetric, tolerance: .standard)
+        let area = 0.040 * 0.020 - (4 - Double.pi) * 0.005 * 0.005
+        #expect(abs(try model.volume(tolerance: .standard) - area * 0.014) < 1e-12)
+
+        var sheet = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let boxID = try box(&sheet)
+        let lid = try topFace(of: boxID, in: sheet, z: 0.010)
+        let openID = try sheet.faceDelete(target: boxID, faces: [lid])
+        let wall = try reference(in: sheet, of: openID) { value, model in
+            guard case let .face(id) = value, let face = model.faces[id],
+                  case let .plane(plane) = model.geometry.surfaces[face.surfaceID] else { return false }
+            return abs(abs(plane.normal.x) - 1) < 1e-9 && near(plane.origin.x, 0.020)
+        }
+        _ = try sheet.offsetFace(target: openID, face: wall, distance: millimeters(3))
+        let open = try CADPipeline(tolerance: .standard).evaluate(sheet.build()).brep
+        try open.validate(level: .exact, tolerance: .standard)
+        #expect(open.bodies.values.first?.kind == .sheet)
+        // The wall's front faces out of the box, so it moves outward.
+        let xs = open.vertices.values.map(\.point.x)
+        #expect(abs((xs.max() ?? 0) - 0.023) < 1e-9)
+        #expect(abs((xs.min() ?? 0) + 0.020) < 1e-9)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func aCylinderCapMovesAsAFace() throws {
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
         let cylinderID = try builder.cylinder(radius: millimeters(10), height: millimeters(20))

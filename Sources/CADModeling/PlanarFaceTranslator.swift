@@ -79,8 +79,8 @@ package struct PlanarFaceTranslator: Sendable {
         model: BRepModel,
         tolerance: ModelingTolerance
     ) throws -> (face: Face, shellOrientation: Orientation, surfaceNormal: Vector3D) {
-        guard let body = model.bodies[bodyID], body.kind == .solid else {
-            throw unsupported(featureID: featureID, tolerance: tolerance, "Direct face editing requires one solid body.")
+        guard let body = model.bodies[bodyID] else {
+            throw unsupported(featureID: featureID, tolerance: tolerance, "Direct face editing requires one solid or sheet body.")
         }
         var owningShell: Shell?
         for shellID in body.shellIDs {

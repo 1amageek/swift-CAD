@@ -1127,12 +1127,15 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         guard node.inputs == [FeatureInput(featureID: offset.target.featureID, role: .target)] else {
             throw FeatureEvaluationError.invalidGraph("Face offset features must consume the referenced target body input.")
         }
-        guard let targetSource = nodes[offset.target.featureID],
-              targetSource.outputs.contains(where: { $0.role == .body }) else {
-            throw FeatureEvaluationError.invalidGraph("Face offset target source must declare a body output.")
+        guard let targetSource = nodes[offset.target.featureID] else {
+            throw FeatureEvaluationError.invalidGraph("Face offset target source must declare a body or sheet output.")
         }
-        guard outputRoles == [.body] else {
-            throw FeatureEvaluationError.invalidGraph("Face offset features must declare one body output.")
+        let targetRoles = targetSource.outputs.map(\.role).filter { $0 == .body || $0 == .sheet }
+        guard targetRoles.count == 1, let targetRole = targetRoles.first else {
+            throw FeatureEvaluationError.invalidGraph("Face offset target source must declare a body or sheet output.")
+        }
+        guard outputRoles == [targetRole] else {
+            throw FeatureEvaluationError.invalidGraph("Face offset features must declare the output role of their target.")
         }
     }
 

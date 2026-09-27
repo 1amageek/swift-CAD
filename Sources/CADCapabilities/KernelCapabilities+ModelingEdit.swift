@@ -454,11 +454,11 @@ extension KernelCapabilities {
     feature(
       id: "MODEL-FACEOFFSET-001",
       operation: "faceOffset",
-      topology: .solidBody,
+      topology: .sheetOrSolidBody,
       inputs: [
-        "oneConvexLineOnlyPlanarSolid",
+        "oneSolidOrSheetWhoseFacesAroundTheOffsetFaceArePlanarOrCylindersAlongItsNormal",
         "oneTargetBodyOwnedPlanarFace",
-        "finiteSignedNormalDistancePreservingConvexPositiveVolume",
+        "finiteSignedNormalDistanceKeepingEveryFaceFromTurningOver",
       ],
       outputs: [
         "validatedExactBRep",
@@ -472,8 +472,9 @@ extension KernelCapabilities {
         "stableOffsetFaceSelection",
         "dimensionPreservingTopologyLineage",
         "preservedUnrelatedBodiesAndSelections",
+        "locallyResolvedPlanarOrBilinearIncidentFaces",
       ],
-      fixtures: ["FaceOffsetFeatureTests", "FaceOffsetBuilderTests", "DirectEditSchemaTests"],
+      fixtures: ["FaceOffsetFeatureTests", "FaceOffsetBuilderTests", "DirectEditSchemaTests", "LocalDirectEditTests"],
       status: .partial,
       failureCodes: [
         .invalidInput,

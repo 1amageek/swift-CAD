@@ -1121,7 +1121,7 @@ struct KernelCapabilityContractTests {
   func boundedFaceDirectEditsAreExecutableAsPartial() throws {
     let faceOffset = try partialCapability(operation: "faceOffset")
     #expect(faceOffset.status == .partial)
-    #expect(faceOffset.topology == .solidBody)
+    #expect(faceOffset.topology == .sheetOrSolidBody)
     #expect(faceOffset.acceptedInputs.contains("oneTargetBodyOwnedPlanarFace"))
     #expect(faceOffset.exactOutputs.contains("targetBodyScopedIdentityReplacement"))
     #expect(faceOffset.exactOutputs.contains("targetBodyScopedLineageParents"))

@@ -448,7 +448,8 @@ face and a frustum by exact volumes, and the refusals.
 straight edge's two ends (`EdgeMoveFeatureEvaluator`), a planar face's boundary
 (`FaceMoveFeatureEvaluator`), and a vertex of any body other than a single-shell
 polyhedral solid (`VertexMoveFeatureEvaluator`, which keeps re-sewing and
-triangulating that polyhedral case). Only the faces around the moved vertices are
+triangulating that polyhedral case), and a planar face moved along its outward
+normal (`FaceOffsetFeatureEvaluator`). Only the faces around the moved vertices are
 re-solved, so solids and sheets with curved faces elsewhere can be edited. A
 straight edge at a moved vertex becomes the line through its moved ends and must
 keep its sense. A curved edge (circle or B-spline) moves only when both its ends
