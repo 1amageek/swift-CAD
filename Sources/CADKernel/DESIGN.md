@@ -62,6 +62,15 @@ joint (a kink, a bend, a zero handle) is nil; a chain without that joint or with
 non-finite points is `invalidInput`. `CubicBezierChainJointsTests` own these;
 RupaCore's Delete Redundant Topology consumes it.
 
+`CubicBezierChainExtension.naturalSpan(of:at:length:)` is Extend Curve's Natural
+shape on a chain: the end span's own cubic continued past the end as one new
+span, whose control points are the blossom values f(1,1,1), f(1,1,s), f(1,s,s),
+f(s,s,s) of the end span, with s solving ∫₁ˢ |B′(u)| du = length by Newton steps on
+the arc length (composite five-point Gauss–Legendre). The start end is the same
+on the reversed span. A degenerate end tangent, a length not above the modeling
+distance, a malformed chain or a length not reached is `invalidInput`.
+`CubicBezierChainExtensionTests` check it against the known pieces of one cubic.
+
 `SurfaceQueryEvaluator.outwardFrame` returns a face point (the nearest point to
 a query, or the point at a surface parameter) with the face's outward normal:
 the surface normal oriented by the face's sense in its shell. Face orientation
