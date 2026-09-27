@@ -2,7 +2,8 @@ import Foundation
 import Testing
 @testable import SwiftCAD
 
-/// Face area and area centroid of planar and cylindrical faces, integrated over their pcurves.
+/// Face area and area centroid of planar, cylindrical, conical, spherical and toroidal faces,
+/// integrated over their pcurves.
 @Suite("Face area measurement")
 struct FaceAreaMeasurementTests {
     private func millimeters(_ value: Double) -> CADExpression { .constant(.length(value, unit: .millimeter)) }
@@ -132,6 +133,111 @@ struct FaceAreaMeasurementTests {
         #expect(abs(centroid.x) < 1e-12)
         #expect(abs(centroid.y - 2 * 0.010 / .pi) < 1e-12)
         #expect(abs(centroid.z - 0.010) < 1e-12)
+    }
+
+    /// Area-weighted centroid and total area of the faces `include` accepts.
+    private func combined(
+        _ model: BRepModel,
+        where include: (Surface3D) -> Bool
+    ) throws -> (area: Double, centroid: Point3D, faces: [FaceAreaMeasurement]) {
+        var area = 0.0
+        var moment = Vector3D.zero
+        var faces: [FaceAreaMeasurement] = []
+        for (faceID, face) in model.faces {
+            guard let surface = model.geometry.surfaces[face.surfaceID], include(surface) else { continue }
+            let measurement = try model.faceAreaMeasurement(of: faceID, tolerance: .standard)
+            faces.append(measurement)
+            area += measurement.area
+            moment = moment + (measurement.centroid - .origin) * measurement.area
+        }
+        return (area, .origin + moment * (1 / area), faces)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func eachSphereOctantMeasuresAnEighthCenteredHalfARadiusAlongEachAxis() throws {
+        // An octant bounded by three great-circle quarters: area πR²/2, and its area centroid lies
+        // R/2 from the center along each of the three axes it spans.
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        _ = try builder.sphere(radius: millimeters(10))
+        let model = try evaluate(builder)
+        let radius = 0.010
+        let sphere = try combined(model) { if case .analytic(.sphere) = $0 { return true }; return false }
+        #expect(sphere.faces.count == 8)
+        for face in sphere.faces {
+            #expect(abs(face.area - .pi * radius * radius / 2) < 1e-16)
+            for component in [face.centroid.x, face.centroid.y, face.centroid.z] {
+                #expect(abs(abs(component) - radius / 2) < 1e-15)
+            }
+        }
+        #expect(abs(sphere.area - 4 * .pi * radius * radius) < 1e-15)
+        #expect((sphere.centroid - .origin).length < 1e-15)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aConesSideCentersAThirdOfItsHeightAboveItsBase() throws {
+        // A right cone's lateral surface has area πrl and its area centroid on the axis a third of
+        // the height above the base.
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        _ = try builder.cone(baseRadius: millimeters(10), height: millimeters(20))
+        let model = try evaluate(builder)
+        let (radius, height) = (0.010, 0.020)
+        let side = try combined(model) { if case .analytic(.cone) = $0 { return true }; return false }
+        let base = try combined(model) { if case .analytic(.cone) = $0 { return false }; return true }
+        #expect(abs(side.area - .pi * radius * (radius * radius + height * height).squareRoot()) < 1e-15)
+        #expect(abs(base.area - .pi * radius * radius) < 1e-15)
+        #expect(abs((side.centroid - base.centroid).length - height / 3) < 1e-14)
+        let apex = try #require(model.vertices.values.map(\.point).max {
+            ($0 - base.centroid).length < ($1 - base.centroid).length
+        })
+        #expect(abs((apex - side.centroid).length - 2 * height / 3) < 1e-14)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aTorusMeasuresFourPiSquaredRrCenteredOnItsCenter() throws {
+        // Sixteen quarter-by-quarter faces: those on the outer half measure r·π/2·(Rπ/2 + r), those
+        // on the inner half r·π/2·(Rπ/2 − r); together 4π²Rr, centered on the torus center.
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        _ = try builder.torus(majorRadius: millimeters(20), minorRadius: millimeters(5))
+        let model = try evaluate(builder)
+        let (major, minor) = (0.020, 0.005)
+        let torus = try combined(model) { if case .analytic(.torus) = $0 { return true }; return false }
+        #expect(torus.faces.count == 16)
+        let outer = minor * .pi / 2 * (major * .pi / 2 + minor)
+        let inner = minor * .pi / 2 * (major * .pi / 2 - minor)
+        #expect(torus.faces.filter { abs($0.area - outer) < 1e-16 }.count == 8)
+        #expect(torus.faces.filter { abs($0.area - inner) < 1e-16 }.count == 8)
+        #expect(abs(torus.area - 4 * .pi * .pi * major * minor) < 1e-15)
+        #expect((torus.centroid - .origin).length < 1e-15)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aRoundedBoxMeasuresItsFlatsQuarterCylindersAndSphericalCorners() throws {
+        // Every edge of a 40 × 20 × 10 mm box rounded at 2 mm: six inset flats, twelve quarter
+        // cylinders and eight sphere octants, whose areas sum to
+        // 2 Σ aᵢaⱼ + 2πr Σ aᵢ + 4πr² over the inset sides aᵢ, centered on the box center.
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let box = try builder.box(width: millimeters(40), depth: millimeters(20), height: millimeters(10))
+        try builder.append(id: FeatureID(), name: nil, operation: .fillet(FilletFeature(
+            target: FilletTargetReference(featureID: box), edges: [], radius: millimeters(2), allEdges: true
+        )))
+        let model = try evaluate(builder)
+        let radius = 0.002
+        let sides = [0.040, 0.020, 0.010].map { $0 - 2 * radius }
+        let all = try combined(model) { _ in true }
+        #expect(all.faces.count == 26)
+        let expected = 2 * (sides[0] * sides[1] + sides[1] * sides[2] + sides[2] * sides[0])
+            + 2 * .pi * radius * sides.reduce(0, +) + 4 * .pi * radius * radius
+        #expect(abs(all.area - expected) < 1e-15)
+        let corners = try combined(model) { if case .analytic(.sphere) = $0 { return true }; return false }
+        #expect(corners.faces.count == 8)
+        #expect(abs(corners.area - 4 * .pi * radius * radius) < 1e-16)
+        let points = model.vertices.values.map(\.point)
+        let center = Point3D(
+            x: (points.map(\.x).max()! + points.map(\.x).min()!) / 2,
+            y: (points.map(\.y).max()! + points.map(\.y).min()!) / 2,
+            z: (points.map(\.z).max()! + points.map(\.z).min()!) / 2
+        )
+        #expect((all.centroid - center).length < 1e-14)
     }
 
     @Test(.timeLimit(.minutes(1)))

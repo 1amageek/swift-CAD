@@ -395,11 +395,15 @@ extension KernelCapabilities {
       acceptedInputs: [
         "planarFaceWithAffineCoordinatePolylineHarmonicOrNonRationalBSplinePcurves",
         "cylindricalFaceWithAffineCoordinateOrPolylinePcurves",
+        "conicalOrRingToroidalFaceWithAffineCoordinateOrPolylinePcurves",
+        "sphericalFaceWithGreatCircleMeridianOrLatitudePcurvesNotWindingTheAxis",
         "periodicallyTranslatedSupportedPcurves",
       ],
       exactOutputs: [
         "closedFormGreenIntegralFaceArea",
         "closedFormGreenIntegralFaceAreaCentroid",
+        "gaussLegendreGreenIntegralBelowRoundingOnConesAndTori",
+        "gaussBonnetAndVectorAreaClosedFormOnSpheres",
         "typedRefusalOfOtherSupportsAndPcurves",
       ],
       failureCodes: [.missingReference, .topologyFailure, .unsupportedCapability],

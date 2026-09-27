@@ -16,9 +16,12 @@ public struct FaceAreaMeasurement: Sendable, Equatable {
 }
 
 extension BRepModel {
-    /// The area and area centroid of `faceID`, integrated in closed form over the face's boundary
-    /// pcurves. Planar and cylindrical faces are measured; other supports, and boundaries whose
-    /// pcurves have no closed form for the support, throw `unsupportedCapability`.
+    /// The area and area centroid of `faceID`, integrated over the face's boundary pcurves. Planar
+    /// and cylindrical faces are measured in closed form; conical and toroidal faces bounded by
+    /// pcurves straight in the parameter domain by a Gauss–Legendre rule whose remainder lies below
+    /// double rounding; spherical faces bounded by great circles and circles of latitude in closed
+    /// form. Other supports, and boundaries these methods do not cover, throw
+    /// `unsupportedCapability`.
     public func faceAreaMeasurement(
         of faceID: FaceID,
         tolerance: ModelingTolerance
@@ -53,10 +56,23 @@ struct BRepFaceAreaMeasurementEvaluator {
         }
         let integrands: [Integrand]
         switch surface {
-        case .plane: integrands = [.one, .u, .v]
-        case .cylinder: integrands = [.one, .cosineU, .sineU, .v]
+        case .plane, .analytic(.plane): integrands = [.one, .u, .v]
+        case .cylinder, .analytic(.cylinder): integrands = [.one, .cosineU, .sineU, .v]
+        case let .analytic(analytic) where analytic.isConeOrTorus:
+            return try RevolvedSurfaceFaceAreaIntegrator().measurement(
+                of: face, on: analytic, in: model, tolerance: tolerance
+            )
+        case let .analytic(.sphere(center, radius)):
+            return try SphericalFaceAreaIntegrator().measurement(
+                of: face, center: center, radius: radius, in: model, tolerance: tolerance
+            )
+        // FIXME(INCOMPLETE_IMPLEMENTATION): B-spline, offset, ruled and rolling-ball faces are not
+        // measured: their area element |S_u × S_v| has no closed form and needs a certified
+        // enclosure. Production path: every face-area and face-center query on such a face, which
+        // is refused here with unsupportedCapability. Not complete until those supports are
+        // measured with certified bounds and tests that check them against known areas.
         default:
-            throw unsupported("Face area is measured on planar and cylindrical faces only.", tolerance)
+            throw unsupported("Face area is measured on planes, cylinders, cones, spheres and tori only.", tolerance)
         }
         var totals = [Double](repeating: 0, count: integrands.count)
         for loopID in face.loops {
@@ -85,7 +101,7 @@ struct BRepFaceAreaMeasurementEvaluator {
         // Moments over the signed area: the loops' traversal sense cancels.
         let origin = try surface.point(u: 0, v: 0, tolerance: tolerance)
         switch surface {
-        case .plane:
+        case .plane, .analytic(.plane):
             let alongU = try surface.point(u: 1, v: 0, tolerance: tolerance) - origin
             let alongV = try surface.point(u: 0, v: 1, tolerance: tolerance) - origin
             let element = alongU.cross(alongV).length
@@ -93,21 +109,27 @@ struct BRepFaceAreaMeasurementEvaluator {
                 area: abs(parameterArea) * element,
                 centroid: origin + alongU * (totals[1] / parameterArea) + alongV * (totals[2] / parameterArea)
             )
-        case let .cylinder(cylinder):
+        case .cylinder, .analytic(.cylinder):
             // S(u, v) = C + R_U cos u + R_V sin u + a v, with the area element |R_U| |a|.
-            let radialU = origin - cylinder.origin
-            let radialV = try surface.point(u: .pi / 2, v: 0, tolerance: tolerance) - cylinder.origin
+            let axisOrigin: Point3D
+            switch surface {
+            case let .cylinder(cylinder): axisOrigin = cylinder.origin
+            case let .analytic(.cylinder(origin, _, _)): axisOrigin = origin
+            default: throw unsupported("Face area lost the cylinder it measures.", tolerance)
+            }
+            let radialU = origin - axisOrigin
+            let radialV = try surface.point(u: .pi / 2, v: 0, tolerance: tolerance) - axisOrigin
             let axial = try surface.point(u: 0, v: 1, tolerance: tolerance) - origin
             let element = radialU.length * axial.length
             return FaceAreaMeasurement(
                 area: abs(parameterArea) * element,
-                centroid: cylinder.origin
+                centroid: axisOrigin
                     + radialU * (totals[1] / parameterArea)
                     + radialV * (totals[2] / parameterArea)
                     + axial * (totals[3] / parameterArea)
             )
         default:
-            throw unsupported("Face area is measured on planar and cylindrical faces only.", tolerance)
+            throw unsupported("Face area is measured on planes, cylinders, cones, spheres and tori only.", tolerance)
         }
     }
 
@@ -241,16 +263,14 @@ struct BRepFaceAreaMeasurementEvaluator {
             throw unsupported("Face area has no closed form for a rational B-spline pcurve.", tolerance)
         }
         let degree = spline.degree
-        let nodeCount = (3 * degree + 1) / 2
-        let (nodes, weights) = gaussLegendre(nodeCount)
+        let rule = GaussLegendreRule(count: (3 * degree + 1) / 2)
         let spans = zip(spline.knots, spline.knots.dropFirst()).filter { $1 > $0 }
         var sum = 0.0
         for (low, high) in spans {
-            let half = (high - low) / 2, middle = (high + low) / 2
-            for (node, weight) in zip(nodes, weights) {
-                let geometry = try spline.differentialGeometry(at: middle + half * node, tolerance: tolerance)
+            sum += try rule.integrate(from: low, to: high) { parameter in
+                let geometry = try spline.differentialGeometry(at: parameter, tolerance: tolerance)
                 let u = geometry.position.x + uShift, v = geometry.position.y + vShift
-                sum += weight * half * primitive(integrand, u: u, v: v) * geometry.firstDerivative.x
+                return primitive(integrand, u: u, v: v) * geometry.firstDerivative.x
             }
         }
         return sum
@@ -266,32 +286,6 @@ struct BRepFaceAreaMeasurementEvaluator {
         }
     }
 
-    /// Gauss–Legendre nodes and weights on [−1, 1], by Newton iteration on Pₙ.
-    private func gaussLegendre(_ count: Int) -> ([Double], [Double]) {
-        var nodes: [Double] = [], weights: [Double] = []
-        for index in 1...count {
-            var x = cos(.pi * (Double(index) - 0.25) / (Double(count) + 0.5))
-            var derivative = 0.0
-            for _ in 0..<100 {
-                var p0 = 1.0, p1 = x
-                if count == 1 { p1 = x } else {
-                    for order in 2...count {
-                        let p2 = ((2 * Double(order) - 1) * x * p1 - (Double(order) - 1) * p0) / Double(order)
-                        p0 = p1
-                        p1 = p2
-                    }
-                }
-                derivative = Double(count) * (x * p1 - p0) / (x * x - 1)
-                let step = p1 / derivative
-                x -= step
-                if abs(step) < 1e-16 { break }
-            }
-            nodes.append(x)
-            weights.append(2 / ((1 - x * x) * derivative * derivative))
-        }
-        return (nodes, weights)
-    }
-
     private func unsupported(_ message: String, _ tolerance: ModelingTolerance) -> KernelError {
         KernelError(phase: .topology, code: .unsupportedCapability, tolerance: tolerance, message: message)
     }
@@ -299,7 +293,18 @@ struct BRepFaceAreaMeasurementEvaluator {
 
 private extension Surface3D {
     var isCylinder: Bool {
-        if case .cylinder = self { return true }
-        return false
+        switch self {
+        case .cylinder, .analytic(.cylinder): true
+        default: false
+        }
+    }
+}
+
+private extension AnalyticSurface3D {
+    var isConeOrTorus: Bool {
+        switch self {
+        case .cone, .torus: true
+        default: false
+        }
     }
 }
