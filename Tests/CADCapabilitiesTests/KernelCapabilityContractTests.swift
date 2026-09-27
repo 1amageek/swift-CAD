@@ -1093,7 +1093,8 @@ struct KernelCapabilityContractTests {
   func boundedDirectMovesAreExecutableAsPartial() throws {
     let edgeMove = try partialCapability(operation: "edgeMove")
     #expect(edgeMove.status == .partial)
-    #expect(edgeMove.topology == .solidBody)
+    #expect(edgeMove.topology == .sheetOrSolidBody)
+    #expect(edgeMove.exactOutputs.contains("locallyResolvedPlanarOrBilinearIncidentFaces"))
     #expect(edgeMove.acceptedInputs.contains("oneTargetBodyOwnedStraightEdge"))
     #expect(edgeMove.exactOutputs.contains("targetBodyScopedIdentityReplacement"))
     #expect(edgeMove.exactOutputs.contains("targetBodyScopedLineageParents"))
@@ -1104,7 +1105,8 @@ struct KernelCapabilityContractTests {
 
     let vertexMove = try partialCapability(operation: "vertexMove")
     #expect(vertexMove.status == .partial)
-    #expect(vertexMove.topology == .solidBody)
+    #expect(vertexMove.topology == .sheetOrSolidBody)
+    #expect(vertexMove.exactOutputs.contains("locallyResolvedPlanarOrBilinearIncidentFaces"))
     #expect(vertexMove.acceptedInputs.contains("oneTargetBodyOwnedVertex"))
     #expect(vertexMove.exactOutputs.contains("targetBodyScopedIdentityReplacement"))
     #expect(vertexMove.exactOutputs.contains("targetBodyScopedLineageParents"))
@@ -1129,7 +1131,8 @@ struct KernelCapabilityContractTests {
 
     let faceMove = try partialCapability(operation: "faceMove")
     #expect(faceMove.status == .partial)
-    #expect(faceMove.topology == .solidBody)
+    #expect(faceMove.topology == .sheetOrSolidBody)
+    #expect(faceMove.exactOutputs.contains("locallyResolvedPlanarOrBilinearIncidentFaces"))
     #expect(faceMove.acceptedInputs.contains("oneTargetBodyOwnedPlanarFace"))
     #expect(faceMove.exactOutputs.contains("targetBodyScopedIdentityReplacement"))
     #expect(faceMove.exactOutputs.contains("targetBodyScopedLineageParents"))

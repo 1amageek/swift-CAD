@@ -63,6 +63,35 @@ public struct VertexMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             context: context
         )
         let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
+        guard try isPolyhedralSingleShellSolid(bodyID, model: context.brep) else {
+            // Sheets and bodies with curved faces keep their topology: only the faces around the
+            // vertex are re-solved, as planes or, where a four-sided face warps, bilinear patches.
+            var model = context.brep
+            try LocalVertexDisplacementRebuilder().displace(
+                [vertexID: direction * distance],
+                bodyID: bodyID,
+                featureID: feature.id,
+                model: &model,
+                tolerance: context.tolerance
+            )
+            try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: context.tolerance)
+            let isSolid = model.bodies[bodyID]?.kind == .solid
+            try model.validate(level: isSolid ? .volumetric : .exact, tolerance: context.tolerance)
+            let identity = try DefaultCarriedTopologyIdentityBuilder().identity(
+                featureID: feature.id,
+                bodyID: bodyID,
+                model: model,
+                context: context
+            )
+            return EvaluationResult(
+                brep: model,
+                subshapes: identity.subshapes,
+                removedSubshapeIDs: replacedSubshapeIDs,
+                lineage: identity.lineage
+            )
+        }
+        // A single-shell solid of flat, straight-edged faces is re-sewn, and a face the vertex
+        // warps is split into planar triangles around it.
         let request = try sewingRequest(
             featureID: feature.id,
             bodyID: bodyID,
@@ -221,6 +250,23 @@ public struct VertexMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             shells: [BRepSewingShell(stableID: "vertexMove:shell", patches: patches)],
             bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context)
         )
+    }
+
+    /// Whether the body is one solid shell of planar faces, each one outer loop of straight edges.
+    private func isPolyhedralSingleShellSolid(_ bodyID: BodyID, model: BRepModel) throws -> Bool {
+        guard let body = model.bodies[bodyID], body.kind == .solid, body.shellIDs.count == 1,
+              let shell = model.shells[body.shellIDs[0]] else { return false }
+        for faceID in shell.faceIDs {
+            guard let face = model.faces[faceID], face.loops.count == 1,
+                  case .plane = model.geometry.surfaces[face.surfaceID],
+                  let loop = model.loops[face.loops[0]], loop.role == .outer else { return false }
+            for coedge in loop.coedges {
+                guard let edge = model.edges[coedge.edgeID], case .line = model.geometry.curves[edge.curveID] else {
+                    return false
+                }
+            }
+        }
+        return true
     }
 
     private func sourceEdgeMap(shell: Shell, model: BRepModel) throws -> [VertexPair: EdgeID] {

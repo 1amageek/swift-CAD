@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADTopology
 
@@ -6,8 +7,6 @@ public struct FaceMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalu
     private let resolver: ParameterResolving
     private let subshapeResolver: any StableSubshapeResolving
     private let identityBuilder: any CarriedTopologyIdentityBuilding
-    private let geometryRebuilder: any PlanarBodyGeometryRebuilding
-    private let translator: PlanarFaceTranslator
 
     public init(
         resolver: ParameterResolving = ParameterResolver(),
@@ -16,8 +15,6 @@ public struct FaceMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalu
         self.resolver = resolver
         self.subshapeResolver = subshapeResolver
         identityBuilder = DefaultCarriedTopologyIdentityBuilder()
-        geometryRebuilder = DefaultPlanarBodyGeometryRebuilder()
-        translator = PlanarFaceTranslator()
     }
 
     public func evaluate(
@@ -61,26 +58,30 @@ public struct FaceMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalu
             featureID: feature.id,
             context: context
         )
-        _ = try ConvexPlanarSolidOperand(bodyID: bodyID, model: context.brep, tolerance: context.tolerance)
         let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
         var model = context.brep
-        try translator.translate(
-            faceID: faceID,
+        // The face's vertices all move by the displacement; the face keeps its plane and only the
+        // faces around it are re-solved, as planes or bilinear patches where a quad warps.
+        guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID],
+              try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: context.tolerance) != nil else {
+            throw kernelError(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance,
+                              "Face move requires a planar face on the target body.")
+        }
+        var vertexIDs = Set<VertexID>()
+        for loopID in face.loops {
+            vertexIDs.formUnion(try model.orderedVertexIDs(for: loopID))
+        }
+        let displacement = direction * distance
+        try LocalVertexDisplacementRebuilder().displace(
+            Dictionary(uniqueKeysWithValues: vertexIDs.map { ($0, displacement) }),
             bodyID: bodyID,
-            displacement: direction * distance,
             featureID: feature.id,
             model: &model,
             tolerance: context.tolerance
         )
-        try geometryRebuilder.rebuild(
-            featureID: feature.id,
-            bodyID: bodyID,
-            in: &model,
-            tolerance: context.tolerance
-        )
         try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: context.tolerance)
-        try model.validate(level: .volumetric, tolerance: context.tolerance)
-        _ = try ConvexPlanarSolidOperand(bodyID: bodyID, model: model, tolerance: context.tolerance)
+        let isSolid = model.bodies[bodyID]?.kind == .solid
+        try model.validate(level: isSolid ? .volumetric : .exact, tolerance: context.tolerance)
         let identity = try identityBuilder.identity(
             featureID: feature.id,
             bodyID: bodyID,

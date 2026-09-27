@@ -435,8 +435,25 @@ against itself, which is what holds the frame independent of face order.
 3. Primitive construction delegates parameter validity to `CADGeometry` and
    returns typed failure for invalid dimensions or malformed requests.
 
-`EdgeMoveFeatureEvaluator` moves a straight edge of a line-only planar solid by
-re-solving its planar faces, and a circular edge with `CircularEdgeCapTranslator`:
+`LocalVertexDisplacementRebuilder` owns the direct edits that move vertices: a
+straight edge's two ends (`EdgeMoveFeatureEvaluator`), a planar face's boundary
+(`FaceMoveFeatureEvaluator`), and a vertex of any body other than a single-shell
+polyhedral solid (`VertexMoveFeatureEvaluator`, which keeps re-sewing and
+triangulating that polyhedral case). Only the faces around the moved vertices are
+re-solved, so solids and sheets with curved faces elsewhere can be edited. Every
+edge ending at a moved vertex must be straight and becomes the line through its
+moved ends. Every face bounded by such an edge must be planar. It becomes the
+plane through its moved boundary when that stays flat, with any curved edge it
+keeps still on that plane. Otherwise, when the face is one loop of four straight
+edges, it becomes the degree-1 B-spline patch of its corners, which contains each
+edge as a boundary isoline and takes explicit coordinate pcurves. Topology and
+identities are unchanged. A face that is neither, and a face whose outward side
+would turn over, are refused. The edit output keeps the target's role, solid or
+sheet (`FeatureNodeFactory`, `DesignGraph`). `LocalDirectEditTests` prove a box
+with a hole, a non-convex solid, an open-box sheet, bilinear warping with an
+exact volume, and the refusal of a holed face that warps.
+
+`EdgeMoveFeatureEvaluator` moves a circular edge with `CircularEdgeCapTranslator`:
 the planar cap the circle bounds moves along the circle's axis with every edge
 and vertex on it, the faces around the cap must contain that direction (a
 coaxial cylinder or a plane parallel to the axis) and keep their surfaces, and

@@ -6,7 +6,6 @@ public struct EdgeMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalu
     private let resolver: ParameterResolving
     private let subshapeResolver: any StableSubshapeResolving
     private let identityBuilder: any CarriedTopologyIdentityBuilding
-    private let geometryRebuilder: any PlanarBodyGeometryRebuilding
 
     public init(
         resolver: ParameterResolving = ParameterResolver(),
@@ -15,7 +14,6 @@ public struct EdgeMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalu
         self.resolver = resolver
         self.subshapeResolver = subshapeResolver
         identityBuilder = DefaultCarriedTopologyIdentityBuilder()
-        geometryRebuilder = DefaultPlanarBodyGeometryRebuilder()
     }
 
     public func evaluate(
@@ -82,18 +80,18 @@ public struct EdgeMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalu
                 tolerance: context.tolerance
             )
         } else {
-            try translateEdge(
-                edgeID,
+            // A straight edge moves its two ends; only the faces around it are re-solved, as
+            // planes or, where a four-sided face warps, as the bilinear patch of its corners.
+            guard let edge = model.edges[edgeID], case .line = model.geometry.curves[edge.curveID] else {
+                throw error(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance,
+                            "Edge move requires a straight or circular edge on the target body.")
+            }
+            let displacement = direction * distance
+            try LocalVertexDisplacementRebuilder().displace(
+                [edge.startVertexID: displacement, edge.endVertexID: displacement],
                 bodyID: bodyID,
-                displacement: direction * distance,
                 featureID: feature.id,
                 model: &model,
-                tolerance: context.tolerance
-            )
-            try geometryRebuilder.rebuild(
-                featureID: feature.id,
-                bodyID: bodyID,
-                in: &model,
                 tolerance: context.tolerance
             )
         }
@@ -170,48 +168,6 @@ public struct EdgeMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalu
             )
         }
         return edgeID
-    }
-
-    private func translateEdge(
-        _ edgeID: EdgeID,
-        bodyID: BodyID,
-        displacement: Vector3D,
-        featureID: FeatureID,
-        model: inout BRepModel,
-        tolerance: ModelingTolerance
-    ) throws {
-        guard let body = model.bodies[bodyID], body.kind == .solid else {
-            throw error(.unsupportedCapability, featureID: featureID, tolerance: tolerance, "Edge move currently requires one solid body.")
-        }
-        let bodyEdgeIDs = try body.shellIDs.reduce(into: Set<EdgeID>()) { result, shellID in
-            guard let shell = model.shells[shellID] else {
-                throw TopologyError.missingReference("Edge move shell is missing.")
-            }
-            for faceID in shell.faceIDs {
-                guard let face = model.faces[faceID] else {
-                    throw TopologyError.missingReference("Edge move face is missing.")
-                }
-                for loopID in face.loops {
-                    guard let loop = model.loops[loopID] else {
-                        throw TopologyError.missingReference("Edge move loop is missing.")
-                    }
-                    result.formUnion(loop.coedges.map(\.edgeID))
-                }
-            }
-        }
-        guard bodyEdgeIDs.contains(edgeID),
-              let edge = model.edges[edgeID],
-              case .line = model.geometry.curves[edge.curveID] else {
-            throw error(.unsupportedCapability, featureID: featureID, tolerance: tolerance, "Edge move requires one straight edge on the target body.")
-        }
-        for vertexID in [edge.startVertexID, edge.endVertexID] {
-            guard var vertex = model.vertices[vertexID] else {
-                throw TopologyError.missingReference("Edge move vertex is missing.")
-            }
-            vertex.point = vertex.point + displacement
-            try vertex.point.validate()
-            model.vertices[vertexID] = vertex
-        }
     }
 
     private func error(

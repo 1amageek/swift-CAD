@@ -380,9 +380,10 @@ extension KernelCapabilities {
     feature(
       id: "MODEL-EDGEMOVE-001",
       operation: "edgeMove",
-      topology: .solidBody,
+      topology: .sheetOrSolidBody,
       inputs: [
         "oneLineOnlyPlanarSolid",
+        "oneSolidOrSheetWhoseFacesAroundTheMovedVerticesArePlanarAndStraightEdged",
         "oneTargetBodyOwnedStraightEdge",
         "orOneCircularEdgeBoundingAPlanarCapMovedAlongItsAxisBetweenCoaxialCylindersAndAxisParallelPlanes",
         "finiteDirection",
@@ -400,8 +401,9 @@ extension KernelCapabilities {
         "stableMovedEdgeSelection",
         "dimensionPreservingTopologyLineage",
         "preservedUnrelatedBodiesAndSelections",
+        "locallyResolvedPlanarOrBilinearIncidentFaces",
       ],
-      fixtures: ["EdgeMoveFeatureTests", "EdgeMoveBuilderTests", "DirectEditSchemaTests"],
+      fixtures: ["EdgeMoveFeatureTests", "EdgeMoveBuilderTests", "DirectEditSchemaTests", "LocalDirectEditTests"],
       status: .partial,
       failureCodes: [
         .invalidInput,
@@ -415,9 +417,10 @@ extension KernelCapabilities {
     feature(
       id: "MODEL-VERTEXMOVE-001",
       operation: "vertexMove",
-      topology: .solidBody,
+      topology: .sheetOrSolidBody,
       inputs: [
         "oneSingleShellLineOnlyPlanarSolid",
+        "oneSolidOrSheetWhoseFacesAroundTheMovedVertexArePlanarAndStraightEdged",
         "oneTargetBodyOwnedVertex",
         "finiteDirection",
         "finiteSignedDistancePreservingPositiveVolume",
@@ -435,8 +438,9 @@ extension KernelCapabilities {
         "stableMovedVertexSelection",
         "splitAndPreservedTopologyLineage",
         "preservedUnrelatedBodiesAndSelections",
+        "locallyResolvedPlanarOrBilinearIncidentFaces",
       ],
-      fixtures: ["VertexMoveFeatureTests", "VertexMoveBuilderTests", "DirectEditSchemaTests"],
+      fixtures: ["VertexMoveFeatureTests", "VertexMoveBuilderTests", "DirectEditSchemaTests", "LocalDirectEditTests"],
       status: .partial,
       failureCodes: [
         .invalidInput,
@@ -483,12 +487,12 @@ extension KernelCapabilities {
     feature(
       id: "MODEL-FACEMOVE-001",
       operation: "faceMove",
-      topology: .solidBody,
+      topology: .sheetOrSolidBody,
       inputs: [
-        "oneConvexLineOnlyPlanarSolid",
+        "oneSolidOrSheetWhoseFacesAroundTheMovedFaceArePlanarAndStraightEdged",
         "oneTargetBodyOwnedPlanarFace",
         "finiteDirection",
-        "finiteSignedDistancePreservingConvexPositiveVolume",
+        "finiteSignedDistanceKeepingEveryFaceFromTurningOver",
       ],
       outputs: [
         "validatedExactBRep",
@@ -502,8 +506,9 @@ extension KernelCapabilities {
         "stableMovedFaceSelection",
         "dimensionPreservingTopologyLineage",
         "preservedUnrelatedBodiesAndSelections",
+        "locallyResolvedPlanarOrBilinearIncidentFaces",
       ],
-      fixtures: ["FaceMoveFeatureTests", "FaceMoveBuilderTests", "DirectEditSchemaTests"],
+      fixtures: ["FaceMoveFeatureTests", "FaceMoveBuilderTests", "DirectEditSchemaTests", "LocalDirectEditTests"],
       status: .partial,
       failureCodes: [
         .invalidInput,

@@ -327,8 +327,15 @@ public enum FeatureNodeFactory {
                     throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
                 }
                 try feature.validate(tolerance: tolerance)
-                try validateSource(feature.target.featureID, role: .body, in: document)
-                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+                // A direct edit keeps its target's kind: a solid stays a solid and a sheet a sheet.
+                let outputRole = try bodyOrSheetSourceRole(feature.target.featureID, owner: "Face move target", in: document)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                    outputs: [FeatureOutput(role: outputRole)]
+                )
             }
             return try run()
         case .edgeMove:
@@ -337,8 +344,15 @@ public enum FeatureNodeFactory {
                     throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
                 }
                 try feature.validate(tolerance: tolerance)
-                try validateSource(feature.target.featureID, role: .body, in: document)
-                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+                // A direct edit keeps its target's kind: a solid stays a solid and a sheet a sheet.
+                let outputRole = try bodyOrSheetSourceRole(feature.target.featureID, owner: "Edge move target", in: document)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                    outputs: [FeatureOutput(role: outputRole)]
+                )
             }
             return try run()
         case .vertexMove:
@@ -347,8 +361,15 @@ public enum FeatureNodeFactory {
                     throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
                 }
                 try feature.validate(tolerance: tolerance)
-                try validateSource(feature.target.featureID, role: .body, in: document)
-                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+                // A direct edit keeps its target's kind: a solid stays a solid and a sheet a sheet.
+                let outputRole = try bodyOrSheetSourceRole(feature.target.featureID, owner: "Vertex move target", in: document)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                    outputs: [FeatureOutput(role: outputRole)]
+                )
             }
             return try run()
         case .linearPattern:
