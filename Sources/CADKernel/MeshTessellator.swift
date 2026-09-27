@@ -1184,14 +1184,28 @@ public struct MeshTessellator: Tessellating {
             }
         }
 
-        if let physicalPoints,
-           triangleHasUsableArea(
-               first: remaining[0],
-               second: remaining[1],
-               third: remaining[2],
-               points: physicalPoints
-           ) == false {
-            throw TessellationError.unsupportedFace(faceID)
+        // The last three vertices are what the clipped ears left. When they bound no area at the
+        // modeling resolution — an ear accepted beside a vertex a rounding residue off its edge
+        // leaves such a sliver — the region is thinner than the resolution and is not emitted.
+        let previous = projectedPoints[remaining[0]]
+        let current = projectedPoints[remaining[1]]
+        let next = projectedPoints[remaining[2]]
+        let lastGate = max(
+            tolerance.distance * tolerance.distance,
+            minimumMeaningfulCross(
+                planarDistance(previous, to: current),
+                planarDistance(previous, to: next)
+            )
+        )
+        let lastBoundsArea = abs(planarCross(previous, current, next)) > lastGate
+            && physicalPoints.map {
+                triangleHasUsableArea(first: remaining[0], second: remaining[1], third: remaining[2], points: $0)
+            } ?? true
+        guard lastBoundsArea else {
+            guard !triangles.isEmpty else {
+                throw TessellationError.unsupportedFace(faceID)
+            }
+            return triangles
         }
         triangles.append(TriangleIndex(
             first: remaining[0],

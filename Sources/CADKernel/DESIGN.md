@@ -192,8 +192,11 @@ rounding residue (an arc-line intersection a few ulps off the line), leaving
 such a spike; kept, it ended among the last three vertices as a triangle the
 adoption gate refused, failing the face. A vertex the boundary passes straight
 through stays, because triangles already clipped may use it and removing it
-would leave a T-junction. The cylindrical union tests exercise the spike, and
-the concave extrude test the pass-through.
+would leave a T-junction. The same residue can leave the last three vertices
+without area at the resolution, in the plane or on the surface; that sliver is
+not emitted, and a face whose every triangle is such a sliver still fails. The
+cylindrical union tests exercise the spike, the concave extrude test the
+pass-through, and Rupa's trimmed-sheet automation test the last sliver.
 
 Limits reach the tessellator through `MeshTessellator.init(tolerance:limits:)`,
 defaulting to `TessellationLimits.standard`, and through
