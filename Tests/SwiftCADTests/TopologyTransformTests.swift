@@ -104,6 +104,61 @@ struct TopologyTransformTests {
         #expect(abs(try model.volume(tolerance: .standard) - frustum) < 1e-12)
     }
 
+    /// The box with a 3 mm boss 5 mm tall standing on its top at the origin.
+    private func plateWithBoss(_ builder: inout DocumentBuilder) throws -> FeatureID {
+        let boxID = try box(&builder)
+        // Sunk into the plate, so the union meets it along a circle on the top face.
+        let bossID = try builder.cylinder(
+            placement: PrimitivePlacement(origin: Point3D(x: 0, y: 0, z: 0.005), axis: .unitZ, referenceDirection: .unitX),
+            radius: millimeters(3), height: millimeters(10)
+        )
+        return try builder.boolean(targets: [boxID], tool: bossID, operation: .union)
+    }
+
+    private func bossFaces(in builder: DocumentBuilder, of featureID: FeatureID) throws -> [StableSubshapeReference] {
+        try references(in: builder, of: featureID) { value, model in
+            guard case let .face(id) = value, let face = model.faces[id] else { return false }
+            switch model.geometry.surfaces[face.surfaceID] {
+            case .cylinder: return true
+            case let .plane(plane)?: return abs(plane.origin.z - 0.015) < 1e-9 && abs(abs(plane.normal.z) - 1) < 1e-9
+            default: return false
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aBossSlidesAcrossThePlateAndTurnsAboutAnAxis() throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let bodyID = try plateWithBoss(&builder)
+        let boss = try bossFaces(in: builder, of: bodyID)
+        #expect(boss.count >= 2)
+        let volume = 0.040 * 0.020 * 0.010 + Double.pi * 0.003 * 0.003 * 0.005
+
+        var slid = builder
+        _ = try slid.transformTopology(
+            target: bodyID, subshapes: boss,
+            motion: .translation(DirectMoveVector(direction: .unitX, distance: millimeters(8)))
+        )
+        let slidModel = try CADPipeline(tolerance: .standard).evaluate(slid.build()).brep
+        try slidModel.validate(level: .volumetric, tolerance: .standard)
+        #expect(abs(try slidModel.volume(tolerance: .standard) - volume) < 1e-12)
+        #expect(slidModel.geometry.surfaces.values.contains { surface in
+            guard case let .cylinder(cylinder) = surface else { return false }
+            return abs(cylinder.origin.x - 0.008) < 1e-9 && abs(cylinder.origin.y) < 1e-9
+        })
+
+        var turned = builder
+        _ = try turned.transformTopology(
+            target: bodyID, subshapes: boss,
+            motion: .rotation(DirectRotation(
+                origin: Point3D(x: 0.005, y: 0, z: 0), axis: .unitZ, angle: .constant(.angle(.pi / 2, unit: .radian))
+            ))
+        )
+        let turnedModel = try CADPipeline(tolerance: .standard).evaluate(turned.build()).brep
+        try turnedModel.validate(level: .volumetric, tolerance: .standard)
+        #expect(abs(try turnedModel.volume(tolerance: .standard) - volume) < 1e-12)
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func aRotationOfACurvedEdgeIsRefusedAndNothingIsNotAMotion() throws {
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)

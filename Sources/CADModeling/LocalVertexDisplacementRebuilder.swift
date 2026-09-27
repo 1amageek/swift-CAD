@@ -1,3 +1,4 @@
+import Foundation
 import CADCore
 import CADGeometry
 import CADIR
@@ -77,11 +78,45 @@ package struct LocalVertexDisplacementRebuilder: Sendable {
                   moved.allSatisfy({ ($0 - first).length <= tolerance.distance }) else { return nil }
             return (first, movesEveryVertex)
         }
+        func movesEveryVertex(of faceID: FaceID) throws -> Bool {
+            guard let face = model.faces[faceID] else {
+                throw TopologyError.missingReference("A direct edit face is missing.")
+            }
+            return try face.loops.allSatisfy { loopID in
+                try model.orderedVertexIDs(for: loopID).allSatisfy { displacements[$0] != nil }
+            }
+        }
+        // The rigid motion the displacements come from, when they come from one: the given map if
+        // it keeps lengths and handedness, or the one translation every vertex receives.
+        let rigid: RigidTransform3D? = try {
+            if let motion {
+                let columns = [motion.basisX, motion.basisY, motion.basisZ]
+                let orthonormal = (0..<3).allSatisfy { i in
+                    (0..<3).allSatisfy { j in abs(columns[i].dot(columns[j]) - (i == j ? 1 : 0)) <= 1e-12 }
+                }
+                guard orthonormal, columns[0].dot(columns[1].cross(columns[2])) > 0 else { return nil }
+                return RigidTransform3D(
+                    validatedBasisX: motion.basisX, basisY: motion.basisY, basisZ: motion.basisZ,
+                    translation: motion.translation
+                )
+            }
+            guard let first = displacements.values.first,
+                  displacements.values.allSatisfy({ ($0 - first).length <= tolerance.distance }) else { return nil }
+            try first.validate()
+            return .translated(by: first)
+        }()
         var previousPlanes: [FaceID: Plane3D] = [:]
         var sweptFaces: Set<FaceID> = []
+        var carriedFaces: Set<FaceID> = []
         for faceID in affectedFaces {
             guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference("A direct edit face is missing.")
+            }
+            // A face whose every vertex moves rigidly is carried whole: its surface's image is exact
+            // whatever the surface is.
+            if rigid != nil, try movesEveryVertex(of: faceID) {
+                carriedFaces.insert(faceID)
+                continue
             }
             if let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) {
                 previousPlanes[faceID] = Plane3D(origin: plane.origin, normal: try plane.normal.normalized(tolerance: tolerance.distance))
@@ -137,19 +172,45 @@ package struct LocalVertexDisplacementRebuilder: Sendable {
                 && displacements[edge.startVertexID] != nil && displacements[edge.endVertexID] != nil:
                 // A curved edge whose ends move together translates rigidly, keeping its parameters.
                 model.geometry.curves[curveID] = try translated(curve, by: startDisplacement, featureID: featureID, tolerance: tolerance)
+            case let curve? where rigid != nil && displacements[edge.startVertexID] != nil && displacements[edge.endVertexID] != nil:
+                // A curved edge carried by a rigid motion becomes its exact image, parameters kept.
+                guard let rigid else { throw TopologyError.missingReference("A direct edit lost its rigid motion.") }
+                model.geometry.curves[curveID] = try rigid.applying(to: curve, tolerance: tolerance)
             default:
                 throw failure(.unsupportedCapability, featureID, tolerance,
-                              "A direct edit moves a curved edge only by a translation of both its ends.")
+                              "A direct edit moves a curved edge only by a rigid motion of both its ends.")
             }
             edge.curveID = curveID
             model.edges[edgeID] = edge
         }
 
+        for faceID in carriedFaces {
+            guard let rigid, var face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
+                throw TopologyError.missingReference("A direct edit face is missing.")
+            }
+            let image = try rigid.applying(to: surface, tolerance: tolerance)
+            let surfaceID = nextSurfaceID(&ids, model)
+            model.geometry.surfaces[surfaceID] = image
+            face.surfaceID = surfaceID
+            model.faces[faceID] = face
+            // The motion acts on a plane's or cylinder's parameters as an affine map, which
+            // carries the face's parameter curves exactly; other surfaces rebuild them.
+            let map = try carriedParameterMap(from: surface, to: image, rigid: rigid, faceID: faceID, model: model, tolerance: tolerance)
+            for loopID in face.loops {
+                guard var loop = model.loops[loopID] else {
+                    throw TopologyError.missingReference("A direct edit loop is missing.")
+                }
+                for index in loop.coedges.indices {
+                    loop.coedges[index].surfaceParameterCurve = loop.coedges[index].surfaceParameterCurve.flatMap { map?.applying(to: $0) }
+                }
+                model.loops[loopID] = loop
+            }
+        }
         for faceID in sweptFaces {
             // The surface stays; its parameter curves follow the edges that moved.
             for loopID in model.faces[faceID]?.loops ?? [] { try clearPcurves(of: loopID, in: &model) }
         }
-        for faceID in affectedFaces where !sweptFaces.contains(faceID) {
+        for faceID in affectedFaces where !sweptFaces.contains(faceID) && !carriedFaces.contains(faceID) {
             guard var face = model.faces[faceID], let previousPlane = previousPlanes[faceID] else {
                 throw TopologyError.missingReference("A direct edit face is missing.")
             }
@@ -188,6 +249,30 @@ package struct LocalVertexDisplacementRebuilder: Sendable {
             var isFlat = loopPoints.joined().allSatisfy { abs(($0 - plane.origin).dot(unitNormal)) <= tolerance.distance }
             for loopID in face.loops where isFlat {
                 isFlat = try curvedEdgesLie(onPlane: plane, loopID: loopID, movedEdges: movedEdges, model: model, tolerance: tolerance)
+            }
+            if isFlat, unitNormal.cross(previousPlane.normal).length <= tolerance.angle,
+               abs((plane.origin - previousPlane.origin).dot(previousPlane.normal)) <= tolerance.distance,
+               let previousSurface = model.geometry.surfaces[face.surfaceID] {
+                // The face stays in its plane: it keeps its surface and parameters. Its unmoved
+                // edges keep their parameter curves, edges a rigid motion carries within the plane
+                // take the motion's image, and the rest are rebuilt.
+                let inPlane = try rigid.map { try parameterMap(on: previousSurface, carriedBy: $0, onto: previousSurface, tolerance: tolerance) }
+                for loopID in face.loops {
+                    guard var loop = model.loops[loopID] else {
+                        throw TopologyError.missingReference("A direct edit loop is missing.")
+                    }
+                    for index in loop.coedges.indices where movedEdges.contains(loop.coedges[index].edgeID) {
+                        guard let edge = model.edges[loop.coedges[index].edgeID] else {
+                            throw TopologyError.missingReference("A direct edit edge is missing.")
+                        }
+                        let carried = displacements[edge.startVertexID] != nil && displacements[edge.endVertexID] != nil
+                        loop.coedges[index].surfaceParameterCurve = carried
+                            ? loop.coedges[index].surfaceParameterCurve.flatMap { inPlane?.applying(to: $0) }
+                            : nil
+                    }
+                    model.loops[loopID] = loop
+                }
+                continue
             }
             let surfaceID = nextSurfaceID(&ids, model)
             if isFlat {
@@ -263,11 +348,78 @@ package struct LocalVertexDisplacementRebuilder: Sendable {
                 guard onPlane(circle.center), abs(abs(axis.dot(plane.normal)) - 1) <= tolerance.angle else { return false }
             case let .bSpline(spline):
                 guard spline.controlPoints.allSatisfy(onPlane) else { return false }
+            case let .analytic(.ellipse(center, normal, _, _, _)):
+                let axis = try normal.normalized(tolerance: tolerance.distance)
+                guard onPlane(center), abs(abs(axis.dot(plane.normal)) - 1) <= tolerance.angle else { return false }
             default:
                 return false
             }
         }
         return true
+    }
+
+    /// The affine map of parameters that `rigid` induces from a face on `surface` to the same face
+    /// on `image`, for planes and cylinders, or `nil` for other surfaces. A cylinder's map is a
+    /// turn in u, brought into the period that holds the face's least u.
+    private func carriedParameterMap(
+        from surface: Surface3D,
+        to image: Surface3D,
+        rigid: RigidTransform3D,
+        faceID: FaceID,
+        model: BRepModel,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterAffineMap? {
+        switch (surface, image) {
+        case (.plane, .plane):
+            return try parameterMap(on: surface, carriedBy: rigid, onto: image, tolerance: tolerance)
+        case let (.cylinder(source), .cylinder(target)):
+            let radial = rigid.applying(to: try surface.point(u: 0, v: 0, tolerance: tolerance) - source.origin)
+            let u = try image.point(u: 0, v: 0, tolerance: tolerance) - target.origin
+            let v = try image.point(u: .pi / 2, v: 0, tolerance: tolerance) - target.origin
+            var turn = atan2(radial.dot(v), radial.dot(u))
+            let carriedOrigin = rigid.applying(to: source.origin)
+            let slide = (carriedOrigin - target.origin).dot(target.axis) / target.axis.dot(target.axis)
+            // Keep the face's parameters in the period its least u falls in.
+            var leastU = Double.infinity
+            for loopID in model.faces[faceID]?.loops ?? [] {
+                for coedge in model.loops[loopID]?.coedges ?? [] {
+                    guard let pcurve = coedge.surfaceParameterCurve else { continue }
+                    for fraction in [0.0, 1.0] {
+                        leastU = min(leastU, try pcurve.parameter(atNormalizedFraction: fraction, tolerance: tolerance).u)
+                    }
+                }
+            }
+            if leastU.isFinite {
+                let period = 2 * Double.pi
+                turn -= ((leastU + turn) / period).rounded(.down) * period
+            }
+            return SurfaceParameterAffineMap(uu: 1, uv: 0, vu: 0, vv: 1, du: turn, dv: slide)
+        default:
+            return nil
+        }
+    }
+
+    /// The affine map of a plane's parameters that carries a point on `surface` to its image
+    /// under `rigid`, read in `image`'s parameters.
+    private func parameterMap(
+        on surface: Surface3D,
+        carriedBy rigid: RigidTransform3D,
+        onto image: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterAffineMap {
+        let origin = try surface.point(u: 0, v: 0, tolerance: tolerance)
+        let u = try surface.point(u: 1, v: 0, tolerance: tolerance) - origin
+        let v = try surface.point(u: 0, v: 1, tolerance: tolerance) - origin
+        let imageOrigin = try image.point(u: 0, v: 0, tolerance: tolerance)
+        let imageU = try image.point(u: 1, v: 0, tolerance: tolerance) - imageOrigin
+        let imageV = try image.point(u: 0, v: 1, tolerance: tolerance) - imageOrigin
+        let carriedU = rigid.applying(to: u), carriedV = rigid.applying(to: v)
+        let offset = rigid.applying(to: origin) - imageOrigin
+        return SurfaceParameterAffineMap(
+            uu: carriedU.dot(imageU), uv: carriedV.dot(imageU),
+            vu: carriedU.dot(imageV), vv: carriedV.dot(imageV),
+            du: offset.dot(imageU), dv: offset.dot(imageV)
+        )
     }
 
     /// `curve` moved rigidly by `displacement`, with the same parameterization.

@@ -493,7 +493,7 @@ extension KernelCapabilities {
         "facesEdgesAndVerticesOfOneSolidOrSheet",
         "translationRotationOrPositiveFrameScale",
         "planarStraightEdgedFacesAroundTheMovedVertices",
-        "curvedEdgesMovedOnlyByTranslation",
+        "curvedEdgesAndWholeFacesMovedByARigidMotion",
       ],
       outputs: [
         "validatedExactBRep",

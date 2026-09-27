@@ -453,9 +453,17 @@ normal (`FaceOffsetFeatureEvaluator`). Only the faces around the moved vertices 
 re-solved, so solids and sheets with curved faces elsewhere can be edited. A
 straight edge at a moved vertex becomes the line through its moved ends and must
 keep its sense. A curved edge (circle or B-spline) moves only when both its ends
-move by one displacement, and then translates rigidly. Every face bounded by a
-moved edge must be planar, or a cylinder whose moved vertices all slide along
-its axis, which keeps its surface. A planar face whose vertices all move by one
+move by one displacement, and then translates rigidly. Under a rigid motion (the
+edit's map when it keeps lengths, or one shared translation) a curved edge with
+both ends moved takes its exact image. A face whose every vertex moves is
+carried whole: its surface takes its image, and its parameter curves take the
+affine map the motion induces on a plane's or cylinder's parameters
+(`SurfaceParameterAffineMap`), so a boss or hole slides or turns with its faces.
+Every other face bounded by a moved edge must be planar, or a cylinder whose
+moved vertices all slide along its axis, which keeps its surface. A planar face
+that stays in its plane keeps its surface and parameters. Its unmoved edges keep
+their parameter curves, and edges carried within the plane take the mapped
+ones. A planar face whose vertices all move by one
 displacement keeps its plane, translated. Otherwise it becomes the plane through
 its moved boundary when that stays flat, with any curved edge it keeps still on
 that plane. Otherwise, when the face is one loop of four straight
