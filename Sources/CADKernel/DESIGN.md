@@ -53,6 +53,15 @@ Non-finite input, a line no longer than the modeling distance and a radius at or
 below it are `invalidInput`. `SketchCurveProjectorTests` own the line, circle,
 arc-end, chain-foot and failure cases; RupaCore Trim and Split Segment consume it.
 
+`CubicBezierChainJoints.mergedSpan(of:atJoint:)` says whether the two spans that
+meet at a chain joint are the halves of one cubic, and returns it: halves of Q
+split at t meet with collinear handles in the ratio t : 1 − t, so t is read from
+the joint's handles, Q's inner points follow from the outer handles, and Q split
+at t must give back all seven points within the modeling distance. Any other
+joint (a kink, a bend, a zero handle) is nil; a chain without that joint or with
+non-finite points is `invalidInput`. `CubicBezierChainJointsTests` own these;
+RupaCore's Delete Redundant Topology consumes it.
+
 `SurfaceQueryEvaluator.outwardFrame` returns a face point (the nearest point to
 a query, or the point at a surface parameter) with the face's outward normal:
 the surface normal oriented by the face's sense in its shell. Face orientation
