@@ -42,6 +42,17 @@ failure, and invalid geometry is `invalidInput`. `SketchCurveIntersectorTests`
 own the parameters, reach, dedup and failure contracts; RupaCore Cut Curve tests
 own the command-level cuts.
 
+`SketchCurveProjector` is the public nearest point on a sketch curve, reported in
+the intersector's natural parameters so a caller converts a projection and an
+intersection alike. A line projects in closed form clamped to its ends; a circle
+along the ray from its center; an arc along that ray while it crosses the arc,
+otherwise at its nearer end. Each span of a cubic Bezier chain starts from its
+nearest of 65 samples and converges by clamped Newton steps on
+(B(t) − p) · B′(t) = 0, and the nearest of the spans' feet and ends is reported.
+Non-finite input, a line no longer than the modeling distance and a radius at or
+below it are `invalidInput`. `SketchCurveProjectorTests` own the line, circle,
+arc-end, chain-foot and failure cases; RupaCore Trim and Split Segment consume it.
+
 `SurfaceQueryEvaluator.outwardFrame` returns a face point (the nearest point to
 a query, or the point at a surface parameter) with the face's outward normal:
 the surface normal oriented by the face's sense in its shell. Face orientation
