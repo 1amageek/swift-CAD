@@ -178,6 +178,15 @@ transverse segment as a line, a closed intersection over its period or closed
 domain, a trimmed chain segment over its parameters; tangent points and coincident
 areas give none. `BodySectionCurveEvaluatorTests` own it.
 
+`PlanarCurveExtrusionIntersector.trace(first:second:)` is where two planar curves'
+extrusions (each along its plane's normal) meet, the curve projecting onto both
+(Project Curve Curve): over the first curve's parameter it is P₁(w) + s·n₁ with its
+projection on the second plane on the second curve. The trace starts on the second
+curve's first crossing (in its parameter) at the first curve's lower end and follows
+that branch by continuation over 256 steps; `point(at:)` solves by Newton from the
+nearest step. Parallel planes and a first curve whose extrusion leaves the second's
+partway fail. `PlanarCurveExtrusionIntersectorTests` own it.
+
 ## Related Designs
 
 | Design | Relationship | Contract Used | Summary | Cautions |
