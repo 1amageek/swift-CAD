@@ -155,6 +155,13 @@ private struct ParameterValidationState {
                 throw UnitError.incompatibleQuantity(operation: "subtract", lhs: lhsKind, rhs: rhsKind)
             }
             return lhsKind
+        case let .hypot(lhs, rhs):
+            let lhsKind = try kind(for: lhs)
+            let rhsKind = try kind(for: rhs)
+            guard lhsKind == rhsKind else {
+                throw UnitError.incompatibleQuantity(operation: "hypot", lhs: lhsKind, rhs: rhsKind)
+            }
+            return lhsKind
         case let .multiply(lhs, rhs):
             let lhsKind = try kind(for: lhs)
             let rhsKind = try kind(for: rhs)
@@ -258,6 +265,13 @@ private struct ParameterValueValidationState {
                 return try validated(.scalar(lhsValue.value / rhsValue.value))
             }
             throw UnitError.incompatibleQuantity(operation: "divide", lhs: lhsValue.kind, rhs: rhsValue.kind)
+        case let .hypot(lhs, rhs):
+            let lhsValue = try value(for: lhs)
+            let rhsValue = try value(for: rhs)
+            guard lhsValue.kind == rhsValue.kind else {
+                throw UnitError.incompatibleQuantity(operation: "hypot", lhs: lhsValue.kind, rhs: rhsValue.kind)
+            }
+            return try validated(Quantity(value: hypot(lhsValue.value, rhsValue.value), kind: lhsValue.kind))
         case let .sin(argument):
             return try trigonometricValue("sin", argument, sin)
         case let .cos(argument):

@@ -196,3 +196,8 @@ Tessellation changes additionally require:
 These checks are kernel behavior evidence; Rupa viewport responsiveness and
 Product-specific presentation policy are verified by their owning RupaKit
 designs.
+
+## Expression Magnitude Contract
+
+Expression consumers follow the [CADCore expression contract](Sources/CADCore/DESIGN.md), including
+unit-preserving hypot, dependency discovery, serialization and explicit failure.

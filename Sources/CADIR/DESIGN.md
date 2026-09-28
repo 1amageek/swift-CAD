@@ -474,3 +474,8 @@ with the legacy defaults combined and uncut; keeping only the source material
 requires the cut. Feature-reference remapping and document translation carry
 both. Geometry is owned by
 [CADModeling](../CADModeling/DESIGN.md#mirror-output-and-cut).
+
+## Expression Magnitude Contract
+
+Expression consumers follow the [CADCore expression contract](../CADCore/DESIGN.md), including
+unit-preserving hypot, dependency discovery, serialization and explicit failure.

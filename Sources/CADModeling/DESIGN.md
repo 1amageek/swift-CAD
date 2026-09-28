@@ -596,3 +596,8 @@ plane (`glueReflection`), and a face lying in the plane is refused. An
 `rebuild` refuses sheet patterns with more than one instance, since uniting
 sheets is not a union of volumes. `SheetMirrorIntegrationTests` prove the
 clear, sewn, crossing, reflection-only and cut cases.
+
+## Expression Magnitude Contract
+
+Expression consumers follow the [CADCore expression contract](../CADCore/DESIGN.md), including
+unit-preserving hypot, dependency discovery, serialization and explicit failure.

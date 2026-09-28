@@ -6,6 +6,7 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
     case subtract(CADExpression, CADExpression)
     case multiply(CADExpression, CADExpression)
     case divide(CADExpression, CADExpression)
+    case hypot(CADExpression, CADExpression)
     case sin(CADExpression)
     case cos(CADExpression)
     case tan(CADExpression)
@@ -29,6 +30,7 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
         case subtract
         case multiply
         case divide
+        case hypot
         case sin
         case cos
         case tan
@@ -74,6 +76,12 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
                 try container.decode(CADExpression.self, forKey: .left),
                 try container.decode(CADExpression.self, forKey: .right)
             )
+        case .hypot:
+            try container.validateOnlyExpectedKeys([.kind, .left, .right], in: decoder)
+            self = .hypot(
+                try container.decode(CADExpression.self, forKey: .left),
+                try container.decode(CADExpression.self, forKey: .right)
+            )
         case .sin:
             try container.validateOnlyExpectedKeys([.kind, .argument], in: decoder)
             self = .sin(try container.decode(CADExpression.self, forKey: .argument))
@@ -107,6 +115,8 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
             try encodeBinary(.multiply, left, right, into: &container)
         case let .divide(left, right):
             try encodeBinary(.divide, left, right, into: &container)
+        case let .hypot(left, right):
+            try encodeBinary(.hypot, left, right, into: &container)
         case let .sin(argument):
             try encodeUnary(.sin, argument, into: &container)
         case let .cos(argument):
@@ -145,7 +155,8 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
         case let .add(left, right),
              let .subtract(left, right),
              let .multiply(left, right),
-             let .divide(left, right):
+             let .divide(left, right),
+             let .hypot(left, right):
             try left.validateLiteralQuantities()
             try right.validateLiteralQuantities()
         case let .sin(argument),

@@ -139,6 +139,13 @@ private func evaluateExpression(
             return try validatedQuantity(.scalar(lhsValue.value / rhsValue.value))
         }
         throw UnitError.incompatibleQuantity(operation: "divide", lhs: lhsValue.kind, rhs: rhsValue.kind)
+    case let .hypot(lhs, rhs):
+        let lhsValue = try evaluateExpression(lhs, parameterValue: parameterValue, variableValue: variableValue)
+        let rhsValue = try evaluateExpression(rhs, parameterValue: parameterValue, variableValue: variableValue)
+        guard lhsValue.kind == rhsValue.kind else {
+            throw UnitError.incompatibleQuantity(operation: "hypot", lhs: lhsValue.kind, rhs: rhsValue.kind)
+        }
+        return try validatedQuantity(Quantity(value: hypot(lhsValue.value, rhsValue.value), kind: lhsValue.kind))
     case let .sin(argument):
         return try evaluateTrigonometry("sin", argument, parameterValue: parameterValue, variableValue: variableValue, sin)
     case let .cos(argument):

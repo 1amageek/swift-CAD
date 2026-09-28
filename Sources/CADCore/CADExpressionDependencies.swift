@@ -8,7 +8,8 @@ public extension CADExpression {
         case let .add(left, right),
              let .subtract(left, right),
              let .multiply(left, right),
-             let .divide(left, right):
+             let .divide(left, right),
+             let .hypot(left, right):
             return left.referencedParameterIDs.union(right.referencedParameterIDs)
         case let .sin(argument),
              let .cos(argument),
