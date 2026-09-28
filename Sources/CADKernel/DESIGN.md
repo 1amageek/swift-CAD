@@ -65,7 +65,8 @@ halving until each segment's interior points lie within the modeling distance of
 its chord), while a cubic chain keeps `CubicBezierSplineTessellator` and so its
 exact earlier samples. `SketchCurveGeometry2D.sketchSpline` carries it to the
 projector and the intersector with the B-spline parameter as its natural
-parameter. `SketchCurveSampler.splineSamples(for:)` and `splineSample(for:parameter:)`
+parameter. `SketchCurveSampler.splineSamples(for:)`, `splineSample(for:parameter:)` and
+`splineSegmentSample(for:segmentIndex:t:)`
 sample it with the parameter normalized over the knot domain, the convention a
 cubic chain already uses, and `turnBoundedSplineSamples` halves every step whose
 tangents turn by more than a bound, so a curvature comb follows a tight bend.

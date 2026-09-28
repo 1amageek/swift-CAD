@@ -93,6 +93,23 @@ struct SketchSplineCurveTests {
         }
     }
 
+    @Test func segmentSamplesOfACubicChainMatchTheCubicSampler() throws {
+        let points = [Point2D(x: 0, y: 0), Point2D(x: 1, y: 2), Point2D(x: 2, y: 2), Point2D(x: 3, y: 0),
+                      Point2D(x: 4, y: -2), Point2D(x: 5, y: -1), Point2D(x: 6, y: 0)]
+        let curve = try SketchSplineCurve(degree: 3, knots: nil, controlPoints: points, tolerance: .standard)
+        let sampler = SketchCurveSampler()
+        for segment in 0..<2 {
+            for t in [0.0, 0.3, 1.0] {
+                let general = try #require(sampler.splineSegmentSample(for: curve, segmentIndex: segment, t: t))
+                let cubic = try #require(sampler.splineSegmentSample(for: points, segmentIndex: segment, t: t))
+                #expect(abs(general.parameter - cubic.parameter) <= 1e-12)
+                #expect(hypot(general.point.x - cubic.point.x, general.point.y - cubic.point.y) <= 1e-12)
+                #expect(abs(general.curvature - cubic.curvature) <= 1e-9 * max(1, abs(cubic.curvature)))
+            }
+        }
+        #expect(sampler.splineSegmentSample(for: curve, segmentIndex: 2, t: 0) == nil)
+    }
+
     /// The Bridge Curve whose comb crossed itself: a hook of radius about 0.5 mm at each end.
     @Test func turnBoundedSamplesFollowATightHook() throws {
         let points = [(0.0, 0.0), (-14.142, 0.0), (6.667, 6.667), (10.0, 10.0), (13.333, 13.333), (20.0, 34.142), (20.0, 20.0)]

@@ -205,6 +205,14 @@ public struct SketchCurveSampler: Sendable {
         return segmentSample(curve, segment, t: span > 0 ? (u - segment.lowerParameter) / span : 0)
     }
 
+    /// The sample at `t` in [0, 1] on Bezier segment `segmentIndex` of a sketch spline, its
+    /// parameter normalized over the knot domain; nil for an index outside the spline or a point
+    /// where the curve does not move.
+    public func splineSegmentSample(for curve: SketchSplineCurve, segmentIndex: Int, t: Double) -> CurveEvaluationSample? {
+        guard curve.segments.indices.contains(segmentIndex) else { return nil }
+        return segmentSample(curve, curve.segments[segmentIndex], t: clampedUnit(t))
+    }
+
     /// Samples dense enough that the tangent turns by at most `maximumTurn` radians between
     /// neighbours: each segment starts from `samplesPerSegment` uniform steps and every step whose
     /// tangents turn further is halved, down to `minimumStep` in the segment parameter. A curvature
