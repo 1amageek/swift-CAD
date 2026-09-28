@@ -53,6 +53,27 @@ provide general boundary constraints or certify G1/G2 fitting. The approved
 eleven-operation implementation remains incomplete until each actual evaluator,
 source contract and application route meets its acceptance criteria.
 
+### Bridge curve construction
+
+`CurveBridgeSolver` bridges two curve ends with one Bezier whose degree is
+k₁ + k₂ + 1 for end continuities k (G0 = 0 through G3 = 3), so each end fixes
+exactly its own control points: G0 one, G1 two, G2 three, G3 four. From an end
+frame with unit tangent T, curvature vector K and its arc-length derivative K′,
+the leading points follow B′ = sT, B″ = σ₂T + s²K and
+B‴ = σ₃T + 3sσ₂K + s³K′ with s the end speed (the derivative magnitude, the
+chord length by default), σ₂ = (n − 1)(tension₂ − 1)s and
+σ₃ = (n − 1)(n − 2)(tension₃ − 1)s. The first tension is the speed, so it moves
+control points one to three; the second slides point two (and three) along the
+tangent and the third slides point three, each within the continuity it serves,
+as the official Bridge Curve describes; tensions of 1 give the natural spacing
+the earlier cubic and quintic had. The end is the start of the reversed bridge
+(tangent and K′ negated). G3 needs K′, which a frame has only for a curve with an
+exact third derivative (`Curve3D.thirdParameterDerivative`: lines, circles,
+non-rational B-splines and their rigid and affine images); another curve is
+refused as an unsupported capability. The result is verified against every
+required level with `CurveContinuityEvaluator`. `CurveBridgeContinuityTests` own
+G3, the mixed-level degree and the tensions.
+
 ### Extrude extents
 
 The evaluator consumes CADIR's validated signed axial range. It translates the

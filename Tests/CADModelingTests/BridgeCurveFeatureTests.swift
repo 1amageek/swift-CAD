@@ -35,6 +35,8 @@ struct BridgeCurveFeatureTests {
                 expectedDegree = 3
             case .curvature:
                 expectedDegree = 5
+            case .curvatureVariation:
+                expectedDegree = 7
             }
             #expect(bridge.degree == expectedDegree)
 

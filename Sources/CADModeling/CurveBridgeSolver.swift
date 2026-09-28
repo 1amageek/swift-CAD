@@ -28,26 +28,26 @@ public struct CurveBridgeSolver: Sendable {
                 message: "Bridge curve endpoints must be separated by more than the modeling distance tolerance."
             )
         }
-        let degree = degree(for: request)
-        let curve: BSplineCurve3D
-        switch degree {
-        case 1:
-            curve = lineBridge(startFrame: startFrame, endFrame: endFrame)
-        case 3:
-            curve = try cubicBridge(
-                request: request,
-                startFrame: startFrame,
-                endFrame: endFrame,
-                chordLength: chordLength
-            )
-        default:
-            curve = try quinticBridge(
-                request: request,
-                startFrame: startFrame,
-                endFrame: endFrame,
-                chordLength: chordLength
-            )
-        }
+        // One Bezier whose degree gives each end exactly the control points its continuity
+        // fixes: G0 one, G1 two, G2 three, G3 four, so degree = k₁ + k₂ + 1.
+        let degree = request.start.requiredLevel.rawValue + request.end.requiredLevel.rawValue + 1
+        let startPoints = try leadingControlPoints(request.start, frame: startFrame, degree: degree, chordLength: chordLength, owner: "start")
+        // The end is the start of the reversed bridge: its tangent leaves the end backwards, the
+        // curvature vector is unchanged and d(κN)/ds changes sign.
+        let reversedEndFrame = CurveContinuityFrame(
+            parameter: endFrame.parameter,
+            position: endFrame.position,
+            tangent: -endFrame.tangent,
+            curvatureVector: endFrame.curvatureVector,
+            curvature: endFrame.curvature,
+            curvatureDerivativeVector: endFrame.curvatureDerivativeVector.map { -$0 }
+        )
+        let endPoints = try leadingControlPoints(request.end, frame: reversedEndFrame, degree: degree, chordLength: chordLength, owner: "end")
+        let curve = BSplineCurve3D(
+            degree: degree,
+            knots: bezierKnots(degree: degree),
+            controlPoints: startPoints + endPoints.reversed()
+        )
         try curve.validate(tolerance: modelingTolerance)
         let bridgeCurve = Curve3D.bSpline(curve)
         let evaluator = CurveContinuityEvaluator(modelingTolerance: modelingTolerance)
@@ -83,7 +83,7 @@ public struct CurveBridgeSolver: Sendable {
                     code: .invalidInput,
                     residual: derivativeMagnitude,
                     tolerance: modelingTolerance,
-                    message: "Bridge curve \(owner) derivative magnitude requires G1 or G2 continuity."
+                    message: "Bridge curve \(owner) derivative magnitude requires G1 or higher continuity."
                 )
             }
             guard derivativeMagnitude.isFinite,
@@ -94,6 +94,17 @@ public struct CurveBridgeSolver: Sendable {
                     residual: derivativeMagnitude,
                     tolerance: modelingTolerance,
                     message: "Bridge curve \(owner) derivative magnitude must exceed the modeling distance tolerance."
+                )
+            }
+        }
+        for (name, tension) in [("second", constraint.secondTension), ("third", constraint.thirdTension)] {
+            guard tension.isFinite, tension > 0 else {
+                throw KernelError(
+                    phase: .validation,
+                    code: .invalidInput,
+                    residual: tension,
+                    tolerance: modelingTolerance,
+                    message: "Bridge curve \(owner) \(name) tension must be positive and finite."
                 )
             }
         }
@@ -131,6 +142,24 @@ public struct CurveBridgeSolver: Sendable {
                 limit: tolerances.curvatureVector
             )
         }
+        if result.requiredLevel >= .curvatureVariation {
+            guard let derivativeDistance = deviation.curvatureDerivativeDistance else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .unsupportedCapability,
+                    tolerance: modelingTolerance,
+                    message: "Bridge curve \(owner) curve has no exact third derivative, so it cannot take G3 continuity."
+                )
+            }
+            if derivativeDistance > tolerances.curvatureVariation {
+                throw continuityError(
+                    owner: owner,
+                    quantity: "curvature variation",
+                    residual: derivativeDistance,
+                    limit: tolerances.curvatureVariation
+                )
+            }
+        }
     }
 
     private func continuityError(
@@ -148,108 +177,46 @@ public struct CurveBridgeSolver: Sendable {
         )
     }
 
-    private func degree(for request: CurveBridgeRequest) -> Int {
-        let level = max(request.start.requiredLevel, request.end.requiredLevel)
-        switch level {
-        case .positional:
-            return 1
-        case .tangent:
-            return 3
-        case .curvature:
-            return 5
-        }
-    }
-
-    private func lineBridge(
-        startFrame: CurveContinuityFrame,
-        endFrame: CurveContinuityFrame
-    ) -> BSplineCurve3D {
-        BSplineCurve3D(
-            degree: 1,
-            knots: bezierKnots(degree: 1),
-            controlPoints: [startFrame.position, endFrame.position]
-        )
-    }
-
-    private func cubicBridge(
-        request: CurveBridgeRequest,
-        startFrame: CurveContinuityFrame,
-        endFrame: CurveContinuityFrame,
-        chordLength: Double
-    ) throws -> BSplineCurve3D {
-        let startDerivative = try derivative(
-            frame: startFrame,
-            requestedMagnitude: request.start.derivativeMagnitude,
-            defaultMagnitude: chordLength
-        )
-        let endDerivative = try derivative(
-            frame: endFrame,
-            requestedMagnitude: request.end.derivativeMagnitude,
-            defaultMagnitude: chordLength
-        )
-        return BSplineCurve3D(
-            degree: 3,
-            knots: bezierKnots(degree: 3),
-            controlPoints: [
-                startFrame.position,
-                startFrame.position + startDerivative / 3.0,
-                endFrame.position + (-endDerivative / 3.0),
-                endFrame.position,
-            ]
-        )
-    }
-
-    private func quinticBridge(
-        request: CurveBridgeRequest,
-        startFrame: CurveContinuityFrame,
-        endFrame: CurveContinuityFrame,
-        chordLength: Double
-    ) throws -> BSplineCurve3D {
-        let startMagnitude = try derivativeMagnitude(
-            request.start.derivativeMagnitude,
-            defaultMagnitude: chordLength
-        )
-        let endMagnitude = try derivativeMagnitude(
-            request.end.derivativeMagnitude,
-            defaultMagnitude: chordLength
-        )
-        let startDerivative = startFrame.tangent * startMagnitude
-        let endDerivative = endFrame.tangent * endMagnitude
-        let startSecondDerivative = startFrame.curvatureVector * (startMagnitude * startMagnitude)
-        let endSecondDerivative = endFrame.curvatureVector * (endMagnitude * endMagnitude)
-        let firstControl = startFrame.position + startDerivative / 5.0
-        let secondControl = point(
-            from: startSecondDerivative / 20.0 +
-                vector(from: firstControl) * 2.0 -
-                vector(from: startFrame.position)
-        )
-        let fourthControl = endFrame.position + (-endDerivative / 5.0)
-        let thirdControl = point(
-            from: endSecondDerivative / 20.0 -
-                vector(from: endFrame.position) +
-                vector(from: fourthControl) * 2.0
-        )
-        return BSplineCurve3D(
-            degree: 5,
-            knots: bezierKnots(degree: 5),
-            controlPoints: [
-                startFrame.position,
-                firstControl,
-                secondControl,
-                thirdControl,
-                fourthControl,
-                endFrame.position,
-            ]
-        )
-    }
-
-    private func derivative(
+    /// The first k + 1 control points of a degree-n Bezier leaving `frame` with continuity
+    /// k: B′ = sT with s the end speed, B″ = σ₂T + s²K, B‴ = σ₃T + 3sσ₂K + s³K′, where K is the
+    /// curvature vector, K′ its arc-length derivative, σ₂ = (n − 1)(tension₂ − 1)s and
+    /// σ₃ = (n − 1)(n − 2)(tension₃ − 1)s — so the second and third tensions slide control
+    /// points two and three along the tangent and default to the natural spacing.
+    private func leadingControlPoints(
+        _ constraint: CurveBridgeEndpointConstraint,
         frame: CurveContinuityFrame,
-        requestedMagnitude: Double?,
-        defaultMagnitude: Double
-    ) throws -> Vector3D {
+        degree n: Int,
+        chordLength: Double,
+        owner: String
+    ) throws -> [Point3D] {
+        let k = constraint.requiredLevel.rawValue
+        var points = [frame.position]
+        guard k >= 1 else { return points }
         try frame.tangent.validateUnitLength(tolerance: modelingTolerance)
-        return try frame.tangent * derivativeMagnitude(requestedMagnitude, defaultMagnitude: defaultMagnitude)
+        let s = try derivativeMagnitude(constraint.derivativeMagnitude, defaultMagnitude: chordLength)
+        let degree = Double(n)
+        let p1 = frame.position + frame.tangent * (s / degree)
+        points.append(p1)
+        guard k >= 2 else { return points }
+        let sigma2 = (degree - 1) * (constraint.secondTension - 1) * s
+        let second = frame.tangent * sigma2 + frame.curvatureVector * (s * s)
+        let p2 = point(from: vector(from: p1) * 2 - vector(from: frame.position) + second / (degree * (degree - 1)))
+        points.append(p2)
+        guard k >= 3 else { return points }
+        guard let curvatureDerivative = frame.curvatureDerivativeVector else {
+            throw KernelError(
+                phase: .geometry,
+                code: .unsupportedCapability,
+                tolerance: modelingTolerance,
+                message: "Bridge curve \(owner) curve has no exact third derivative, so it cannot take G3 continuity."
+            )
+        }
+        let sigma3 = (degree - 1) * (degree - 2) * (constraint.thirdTension - 1) * s
+        let third = frame.tangent * sigma3 + frame.curvatureVector * (3 * s * sigma2) + curvatureDerivative * (s * s * s)
+        let p3 = point(from: vector(from: p2) * 3 - vector(from: p1) * 3 + vector(from: frame.position)
+            + third / (degree * (degree - 1) * (degree - 2)))
+        points.append(p3)
+        return points
     }
 
     private func derivativeMagnitude(

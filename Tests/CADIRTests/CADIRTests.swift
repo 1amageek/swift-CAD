@@ -2186,7 +2186,9 @@ struct CADIRTests {
 
         let result = try CurveContinuityEvaluator(modelingTolerance: .standard).evaluate(request)
 
-        #expect(result.achievedLevel == .curvature)
+        // Collinear lines also share a zero curvature change, so they reach G3.
+        #expect(result.achievedLevel == .curvatureVariation)
+        #expect(result.deviation.curvatureDerivativeDistance == 0)
         #expect(result.isSatisfied)
         #expect(abs(result.deviation.positionDistance) <= 1.0e-12)
         #expect(abs(result.deviation.tangentAngle) <= 1.0e-12)

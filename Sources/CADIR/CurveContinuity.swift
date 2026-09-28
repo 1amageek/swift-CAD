@@ -5,6 +5,8 @@ public enum CurveContinuityLevel: Int, Codable, Sendable, Hashable, Comparable, 
     case positional = 0
     case tangent = 1
     case curvature = 2
+    /// G3: the curvature vector also changes at the same rate along arc length.
+    case curvatureVariation = 3
 
     public static func < (lhs: CurveContinuityLevel, rhs: CurveContinuityLevel) -> Bool {
         lhs.rawValue < rhs.rawValue
@@ -20,6 +22,10 @@ public struct CurveContinuityTolerances: Codable, Sendable, Hashable {
     public var positionDistance: Double
     public var tangentAngle: Double
     public var curvatureVector: Double
+
+    /// G3 compares the arc-length derivatives of the curvature vectors within the curvature
+    /// tolerance's value, so stored tolerances need no new field.
+    public var curvatureVariation: Double { curvatureVector }
 
     public init(positionDistance: Double, tangentAngle: Double, curvatureVector: Double) {
         self.positionDistance = positionDistance
@@ -55,19 +61,23 @@ public struct CurveContinuityFrame: Codable, Sendable, Hashable {
     public var tangent: Vector3D
     public var curvatureVector: Vector3D
     public var curvature: Double
+    /// d(κN)/ds along `tangent`, or nil where the curve has no exact third derivative.
+    public var curvatureDerivativeVector: Vector3D?
 
     public init(
         parameter: Double,
         position: Point3D,
         tangent: Vector3D,
         curvatureVector: Vector3D,
-        curvature: Double
+        curvature: Double,
+        curvatureDerivativeVector: Vector3D? = nil
     ) {
         self.parameter = parameter
         self.position = position
         self.tangent = tangent
         self.curvatureVector = curvatureVector
         self.curvature = curvature
+        self.curvatureDerivativeVector = curvatureDerivativeVector
     }
 }
 
@@ -100,8 +110,33 @@ public struct CurveContinuityTarget: Codable, Sendable, Hashable {
             position: geometry.position,
             tangent: tangent,
             curvatureVector: geometry.curvatureVector,
-            curvature: geometry.curvature
+            curvature: geometry.curvature,
+            curvatureDerivativeVector: try curvatureDerivativeVector(geometry, tolerance: tolerance)
         )
+    }
+
+    /// d(κN)/ds from C′, C″ and C‴: with S = |C′|², D = C′·C″ and K = (C″S − DC′)/S²,
+    /// dK/du = (C‴S + DC″ − (C‴·C′ + |C″|²)C′)/S² − 4D(C″S − DC′)/S³ and d/ds = (1/|C′|) d/du,
+    /// negated for a reversed orientation. Nil for a curve whose third derivative is not exact.
+    private func curvatureDerivativeVector(
+        _ geometry: Curve3D.DifferentialGeometry,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D? {
+        let third: Vector3D
+        do {
+            third = try curve.thirdParameterDerivative(at: parameter, tolerance: tolerance)
+        } catch let error as KernelError where error.code == .unsupportedCapability {
+            return nil
+        }
+        let first = geometry.firstDerivative, second = geometry.secondDerivative
+        let s = first.dot(first)
+        guard s > tolerance.distance * tolerance.distance else { return nil }
+        let d = first.dot(second)
+        let numerator = second * s - first * d
+        let numeratorDerivative = third * s + second * d - first * (third.dot(first) + second.dot(second))
+        let perParameter = numeratorDerivative / (s * s) - numerator * (4 * d / (s * s * s))
+        let perLength = perParameter / s.squareRoot()
+        return orientation == .forward ? perLength : -perLength
     }
 }
 
@@ -128,15 +163,19 @@ public struct CurveContinuityDeviation: Codable, Sendable, Hashable {
     public var positionDistance: Double
     public var tangentAngle: Double
     public var curvatureVectorDistance: Double
+    /// |Δ d(κN)/ds|, or nil where either frame has no exact third derivative.
+    public var curvatureDerivativeDistance: Double?
 
     public init(
         positionDistance: Double,
         tangentAngle: Double,
-        curvatureVectorDistance: Double
+        curvatureVectorDistance: Double,
+        curvatureDerivativeDistance: Double? = nil
     ) {
         self.positionDistance = positionDistance
         self.tangentAngle = tangentAngle
         self.curvatureVectorDistance = curvatureVectorDistance
+        self.curvatureDerivativeDistance = curvatureDerivativeDistance
     }
 }
 
@@ -205,10 +244,15 @@ public struct CurveContinuityEvaluator: Sendable {
               curvatureVectorDistance.isFinite else {
             throw GeometryError.invalidDistance(positionDistance)
         }
+        var curvatureDerivativeDistance: Double?
+        if let first = firstFrame.curvatureDerivativeVector, let second = secondFrame.curvatureDerivativeVector {
+            curvatureDerivativeDistance = (first - second).length
+        }
         return CurveContinuityDeviation(
             positionDistance: positionDistance,
             tangentAngle: tangentAngle,
-            curvatureVectorDistance: curvatureVectorDistance
+            curvatureVectorDistance: curvatureVectorDistance,
+            curvatureDerivativeDistance: curvatureDerivativeDistance
         )
     }
 
@@ -225,6 +269,10 @@ public struct CurveContinuityEvaluator: Sendable {
         guard deviation.curvatureVectorDistance <= tolerances.curvatureVector else {
             return .tangent
         }
-        return .curvature
+        guard let derivativeDistance = deviation.curvatureDerivativeDistance,
+              derivativeDistance <= tolerances.curvatureVariation else {
+            return .curvature
+        }
+        return .curvatureVariation
     }
 }

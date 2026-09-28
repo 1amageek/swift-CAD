@@ -135,8 +135,9 @@ struct CADKernelTests {
         ))
 
         #expect(result.curve.degree == 5)
-        #expect(result.startContinuity.achievedLevel == .curvature)
-        #expect(result.endContinuity.achievedLevel == .curvature)
+        // At least G2 is achieved; between two lines d(κN)/ds also matches, so it reports G3.
+        #expect((result.startContinuity.achievedLevel ?? .positional) >= .curvature)
+        #expect((result.endContinuity.achievedLevel ?? .positional) >= .curvature)
         #expect(result.startContinuity.isSatisfied)
         #expect(result.endContinuity.isSatisfied)
         #expect(abs(result.startContinuity.deviation.curvatureVectorDistance) <= 1.0e-12)

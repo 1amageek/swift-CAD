@@ -299,6 +299,18 @@ claimed.
     from a triangle soup; it is not a fallback that a CAD consumer may accept
     silently. `CADKernel` owns which face produced which run.
 
+### Curve continuity levels
+
+`CurveContinuityLevel` runs G0 (position), G1 (tangent), G2 (curvature vector)
+and G3 (`curvatureVariation`: the curvature vector's arc-length derivative).
+`CurveContinuityTarget.frame` adds that derivative, d(κN)/ds along the frame's
+oriented tangent, wherever the curve has an exact third derivative and leaves it
+nil elsewhere; a frame without it never counts as G3. G3 compares the two
+derivatives within the curvature tolerance's value
+(`CurveContinuityTolerances.curvatureVariation`), so stored tolerances need no new
+field, and the deviation's `curvatureDerivativeDistance` is optional for the same
+reason.
+
 ### Sketch spline form
 
 A `SketchSpline` is a clamped, non-rational B-spline in the sketch plane given by
