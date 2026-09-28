@@ -171,6 +171,13 @@ session in the surface's own parameters (`requireInsideFaceTrim`). A line meetin
 the part of the support the face does not cover. `DirectionalProjectionTrimTests`
 own this.
 
+`BodySectionCurveEvaluator.sections(between:and:in:)` is where two bodies' faces
+meet: the Boolean pipeline's union intersection graph (disjoint bodies give no face
+pair) split and trimmed to both faces by its UV split graph, as curve pieces: a
+transverse segment as a line, a closed intersection over its period or closed
+domain, a trimmed chain segment over its parameters; tangent points and coincident
+areas give none. `BodySectionCurveEvaluatorTests` own it.
+
 ## Related Designs
 
 | Design | Relationship | Contract Used | Summary | Cautions |
