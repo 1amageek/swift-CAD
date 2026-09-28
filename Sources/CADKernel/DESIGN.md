@@ -81,6 +81,15 @@ the segments are joined at their parameter breaks with knots of multiplicity n +
 so shape and parameter are unchanged and a former smooth knot becomes a joint.
 `SketchSplineDegreeElevationTests` own it.
 
+`SketchSplineLeastSquaresFit.fit(_:degree:controlPointCount:)` refits a sketch
+spline as a clamped uniform B-spline of any degree with a chosen number of
+control points (Rebuild's Points): the original is sampled on its own parameter,
+the samples take chord-length parameters, the ends are the original's ends and
+the interior points solve the least-squares normal equations by Cholesky; an
+underdetermined system is `invalidInput`. The deviation reported is measured by
+exact projection of further samples onto the fit.
+`SketchSplineLeastSquaresFitTests` own it.
+
 `CubicBezierChainJoints.mergedSpan(of:atJoint:)` says whether the two spans that
 meet at a chain joint are the halves of one cubic, and returns it: halves of Q
 split at t meet with collinear handles in the ratio t : 1 − t, so t is read from
