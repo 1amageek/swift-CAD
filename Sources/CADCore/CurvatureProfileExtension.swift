@@ -1,5 +1,4 @@
 import Foundation
-import CADCore
 
 /// A planar curve continuing a curve end by a curvature profile over its arc length, as Bezier
 /// spans: Extend Curve's Arc (the end's curvature held) and Soft (that curvature fading linearly
@@ -31,6 +30,46 @@ public struct CurvatureProfileExtension: Sendable {
         length: Double,
         profile: Profile
     ) throws -> [Point2D] {
+        for spanCount in 1...Self.maximumSpanCount {
+            let fitted = try spans(from: start, direction: direction, curvature: curvature, length: length, profile: profile, spanCount: spanCount)
+            if fitted.deviation <= tolerance.distance { return fitted.points }
+        }
+        throw invalid("The extension did not fit the modeling distance.")
+    }
+
+    /// The most spans an extension is built with.
+    public static let maximumSpanCount = 256
+
+    /// The extension as exactly `spanCount` cubic spans, built as `cubicSpans` builds them; a
+    /// persisted extension keeps its span count, so if these spans stray further than the
+    /// modeling distance from the profile the extension fails instead of changing its count.
+    public func cubicSpans(
+        from start: Point2D,
+        direction: Point2D,
+        curvature: Double,
+        length: Double,
+        profile: Profile,
+        spanCount: Int
+    ) throws -> [Point2D] {
+        let fitted = try spans(from: start, direction: direction, curvature: curvature, length: length, profile: profile, spanCount: spanCount)
+        guard fitted.deviation <= tolerance.distance else {
+            throw KernelError(phase: .geometry, code: .resourceLimitExceeded, residual: fitted.deviation, tolerance: tolerance,
+                message: "The extension's \(spanCount) spans stray \(fitted.deviation) from its profile; extend the curve again for more spans.")
+        }
+        return fitted.points
+    }
+
+    private func spans(
+        from start: Point2D,
+        direction: Point2D,
+        curvature: Double,
+        length: Double,
+        profile: Profile,
+        spanCount: Int
+    ) throws -> (points: [Point2D], deviation: Double) {
+        guard (1...Self.maximumSpanCount).contains(spanCount) else {
+            throw invalid("An extension has 1 to \(Self.maximumSpanCount) spans.")
+        }
         guard length.isFinite, length > tolerance.distance else {
             throw invalid("An extension length must be finite and above the modeling distance.")
         }
@@ -77,7 +116,7 @@ public struct CurvatureProfileExtension: Sendable {
             }
             return level[0]
         }
-        for spanCount in 1...256 {
+        do {
             let h = length / Double(spanCount)
             var points: [Point2D] = []
             var previous = start
@@ -126,9 +165,8 @@ public struct CurvatureProfileExtension: Sendable {
                 previousSecond = p2
                 previous = p3
             }
-            if worst <= tolerance.distance { return points }
+            return (points, worst)
         }
-        throw invalid("The extension did not fit the modeling distance.")
     }
 
     private func invalid(_ message: String) -> KernelError {

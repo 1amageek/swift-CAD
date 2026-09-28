@@ -143,6 +143,11 @@ private func evaluateExpression(
         return try NaturalBezierContinuation(tolerance: .standard).coordinate(
             coordinates.map { try evaluateExpression($0, parameterValue: parameterValue, variableValue: variableValue) },
             length: evaluateExpression(length, parameterValue: parameterValue, variableValue: variableValue), index: index)
+    case let .bezierShapedExtension(shape, coordinates, length, index):
+        return try BezierShapedExtension(tolerance: .standard).coordinate(
+            shape: shape,
+            coordinates: coordinates.map { try evaluateExpression($0, parameterValue: parameterValue, variableValue: variableValue) },
+            length: evaluateExpression(length, parameterValue: parameterValue, variableValue: variableValue), index: index)
     case let .hypot(lhs, rhs):
         let lhsValue = try evaluateExpression(lhs, parameterValue: parameterValue, variableValue: variableValue)
         let rhsValue = try evaluateExpression(rhs, parameterValue: parameterValue, variableValue: variableValue)

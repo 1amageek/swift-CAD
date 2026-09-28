@@ -164,6 +164,15 @@ private struct ParameterValidationState {
                 }
             }
             return .length
+        case let .bezierShapedExtension(shape, coordinates, length, index):
+            try BezierShapedExtension.validateCoordinateForm(shape: shape, count: coordinates.count, index: index)
+            for expression in coordinates + [length] {
+                let actual = try kind(for: expression)
+                guard actual == .length else {
+                    throw UnitError.expectedQuantity(operation: "bezierShapedExtension", expected: .length, actual: actual)
+                }
+            }
+            return .length
         case let .hypot(lhs, rhs):
             let lhsKind = try kind(for: lhs)
             let rhsKind = try kind(for: rhs)
@@ -277,6 +286,9 @@ private struct ParameterValueValidationState {
         case let .bezierNaturalExtension(coordinates, length, index):
             return try NaturalBezierContinuation(tolerance: .standard).coordinate(
                 coordinates.map { try value(for: $0) }, length: value(for: length), index: index)
+        case let .bezierShapedExtension(shape, coordinates, length, index):
+            return try BezierShapedExtension(tolerance: .standard).coordinate(
+                shape: shape, coordinates: coordinates.map { try value(for: $0) }, length: value(for: length), index: index)
         case let .hypot(lhs, rhs):
             let lhsValue = try value(for: lhs)
             let rhsValue = try value(for: rhs)

@@ -8,6 +8,9 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
     case divide(CADExpression, CADExpression)
     case hypot(CADExpression, CADExpression)
     case bezierNaturalExtension(coordinates: [CADExpression], length: CADExpression, coordinateIndex: Int)
+    /// One coordinate of Extend Curve's Arc, Soft or Reflective shape, evaluated from the curve's
+    /// own Bezier control points (`BezierShapedExtension`).
+    case bezierShapedExtension(shape: BezierExtensionShape, coordinates: [CADExpression], length: CADExpression, coordinateIndex: Int)
     case sin(CADExpression)
     case cos(CADExpression)
     case tan(CADExpression)
@@ -22,6 +25,7 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
         case right
         case argument
         case coordinates, length, coordinateIndex
+        case shape
     }
 
     private enum Kind: String, Codable {
@@ -34,6 +38,7 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
         case divide
         case hypot
         case bezierNaturalExtension
+        case bezierShapedExtension
         case sin
         case cos
         case tan
@@ -92,6 +97,14 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
             try NaturalBezierContinuation.validateCoordinateForm(count: coordinates.count, index: index)
             self = .bezierNaturalExtension(coordinates: coordinates,
                 length: try container.decode(CADExpression.self, forKey: .length), coordinateIndex: index)
+        case .bezierShapedExtension:
+            try container.validateOnlyExpectedKeys([.kind, .shape, .coordinates, .length, .coordinateIndex], in: decoder)
+            let shape = try container.decode(BezierExtensionShape.self, forKey: .shape)
+            let coordinates = try container.decode([CADExpression].self, forKey: .coordinates)
+            let index = try container.decode(Int.self, forKey: .coordinateIndex)
+            try BezierShapedExtension.validateCoordinateForm(shape: shape, count: coordinates.count, index: index)
+            self = .bezierShapedExtension(shape: shape, coordinates: coordinates,
+                length: try container.decode(CADExpression.self, forKey: .length), coordinateIndex: index)
         case .sin:
             try container.validateOnlyExpectedKeys([.kind, .argument], in: decoder)
             self = .sin(try container.decode(CADExpression.self, forKey: .argument))
@@ -130,6 +143,13 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
         case let .bezierNaturalExtension(coordinates, length, index):
             try NaturalBezierContinuation.validateCoordinateForm(count: coordinates.count, index: index)
             try container.encode(Kind.bezierNaturalExtension, forKey: .kind)
+            try container.encode(coordinates, forKey: .coordinates)
+            try container.encode(length, forKey: .length)
+            try container.encode(index, forKey: .coordinateIndex)
+        case let .bezierShapedExtension(shape, coordinates, length, index):
+            try BezierShapedExtension.validateCoordinateForm(shape: shape, count: coordinates.count, index: index)
+            try container.encode(Kind.bezierShapedExtension, forKey: .kind)
+            try container.encode(shape, forKey: .shape)
             try container.encode(coordinates, forKey: .coordinates)
             try container.encode(length, forKey: .length)
             try container.encode(index, forKey: .coordinateIndex)
@@ -177,6 +197,10 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
             try right.validateLiteralQuantities()
         case let .bezierNaturalExtension(coordinates, length, index):
             try NaturalBezierContinuation.validateCoordinateForm(count: coordinates.count, index: index)
+            for coordinate in coordinates { try coordinate.validateLiteralQuantities() }
+            try length.validateLiteralQuantities()
+        case let .bezierShapedExtension(shape, coordinates, length, index):
+            try BezierShapedExtension.validateCoordinateForm(shape: shape, count: coordinates.count, index: index)
             for coordinate in coordinates { try coordinate.validateLiteralQuantities() }
             try length.validateLiteralQuantities()
         case let .sin(argument),

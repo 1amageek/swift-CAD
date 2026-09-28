@@ -11,7 +11,8 @@ public extension CADExpression {
              let .divide(left, right),
              let .hypot(left, right):
             return left.referencedParameterIDs.union(right.referencedParameterIDs)
-        case let .bezierNaturalExtension(coordinates, length, _):
+        case let .bezierNaturalExtension(coordinates, length, _),
+             let .bezierShapedExtension(_, coordinates, length, _):
             return coordinates.reduce(length.referencedParameterIDs) { $0.union($1.referencedParameterIDs) }
         case let .sin(argument),
              let .cos(argument),
