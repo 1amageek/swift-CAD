@@ -203,3 +203,6 @@ Expression consumers follow the [CADCore expression contract](Sources/CADCore/DE
 unit-preserving hypot, dependency discovery, serialization and explicit failure.
 
 Natural Bezier extension expressions use the shared numeric and unit contract in [CADCore](Sources/CADCore/DESIGN.md). Both expression evaluators retain dependencies and propagate continuation errors.
+
+Authored spline refinement is owned by [CADIR](Sources/CADIR/DESIGN.md#symbolic-spline-refinement):
+coordinate expressions survive affine refinement and are evaluated only by consumers.

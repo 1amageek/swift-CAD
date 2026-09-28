@@ -481,3 +481,18 @@ Expression consumers follow the [CADCore expression contract](../CADCore/DESIGN.
 unit-preserving hypot, dependency discovery, serialization and explicit failure.
 
 Natural Bezier extension expressions use the shared numeric and unit contract in [CADCore](../CADCore/DESIGN.md). Both expression evaluators retain dependencies and propagate continuation errors.
+
+### Symbolic spline refinement
+
+`SketchSplineRefinement` owns affine knot insertion, Bezier degree elevation and
+parameter-domain splitting of authored non-rational splines. It operates on
+`SketchPoint` expressions without parameter evaluation. Outputs preserve the source
+parameter domain and closure where applicable; invalid forms, non-interior splits
+and unsupported degree growth throw before returning any output. Knot insertion
+and degree elevation use affine combinations of expressions, so changing a source
+parameter commutes with refinement. The numeric geometry implementation remains
+the differential oracle, not the authoring representation. Storage is bounded by
+the source spans times degree; no dense control-point transformation matrix is built.
+RupaCore consumes this contract for source edits and owns reference migration and
+transaction rollback. Kernel and Rupa regression tests compare reevaluated curves,
+including explicit knots, changed parameters, endpoints and serialized expressions.
