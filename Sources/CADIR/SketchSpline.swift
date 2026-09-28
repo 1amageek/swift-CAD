@@ -38,13 +38,33 @@ public struct SketchSpline: Codable, Sendable, Hashable {
         return (controlPoints.count - 1) / degree
     }
 
-    /// The control point indices the curve passes through: every `degree`-th one in chain form,
-    /// the two ends otherwise.
+    /// The control point indices the curve passes through, in order: every `degree`-th one in
+    /// chain form; with explicit knots, the ends and one per interior knot of multiplicity
+    /// `degree`. Empty when the knot vector cannot be resolved.
     public var jointIndices: [Int] {
-        if let spanCount {
-            return (0...spanCount).map { $0 * degree }
+        guard let knots = knotVector else { return [] }
+        return Self.jointIndices(controlPointCount: controlPoints.count, degree: degree, knots: knots)
+    }
+
+    /// The control points a clamped B-spline of `degree` on `knots` passes through: its ends and,
+    /// for every interior knot run of multiplicity `degree` starting at knot index s, control
+    /// point s − 1.
+    public static func jointIndices(controlPointCount: Int, degree: Int, knots: [Double]) -> [Int] {
+        guard controlPointCount > 0 else { return [] }
+        guard degree >= 1, knots.count == controlPointCount + degree + 1 else {
+            return controlPointCount > 1 ? [0, controlPointCount - 1] : [0]
         }
-        return controlPoints.isEmpty ? [] : [0, controlPoints.count - 1]
+        var result = [0]
+        var index = degree + 1
+        let end = knots.count - degree - 1
+        while index < end {
+            var run = 1
+            while index + run < end, knots[index + run] == knots[index] { run += 1 }
+            if run == degree { result.append(index - 1) }
+            index += run
+        }
+        if controlPointCount > 1 { result.append(controlPointCount - 1) }
+        return result
     }
 
     /// The resolved knot vector of either form, or nil when the chain form's count is invalid.

@@ -311,7 +311,9 @@ interior knot of multiplicity `degree` and the curve passing through every
 holds is the form with degree 3 and no knots. With explicit knots the vector has
 `controlPoints.count + degree + 1` finite, non-decreasing values, clamped (the
 first and last `degree + 1` equal), a positive domain and no interior knot of
-multiplicity above `degree`; such a curve has joints only at its ends. A closed
+multiplicity above `degree`; it passes through its end control points and, at each
+interior knot of multiplicity `degree`, the control point before that knot run
+(`jointIndices`; every `degree`-th point of a chain). A closed
 spline starts and ends at one point: its last control point equals its first.
 
 `knotVector` is the resolved knot vector of either form; `isBezierChain`,

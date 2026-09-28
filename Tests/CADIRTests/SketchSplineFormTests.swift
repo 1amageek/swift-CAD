@@ -29,6 +29,8 @@ struct SketchSplineFormTests {
     @Test func explicitKnotsAreClampedNonDecreasingAndOfLimitedMultiplicity() throws {
         try SketchSpline(controlPoints: points(5), knots: [0, 0, 0, 0, 0.4, 1, 1, 1, 1]).validateForm()
         #expect(SketchSpline(controlPoints: points(5), knots: [0, 0, 0, 0, 0.4, 1, 1, 1, 1]).jointIndices == [0, 4])
+        // A full-multiplicity interior knot passes through the control point before its run.
+        #expect(SketchSpline(controlPoints: points(7), knots: [0, 0, 0, 0, 0.5, 0.5, 0.5, 1, 1, 1, 1]).jointIndices == [0, 3, 6])
         // Wrong count, not clamped, decreasing, empty domain, interior multiplicity above degree.
         for knots: [Double] in [
             [0, 0, 0, 0, 1, 1, 1, 1],
