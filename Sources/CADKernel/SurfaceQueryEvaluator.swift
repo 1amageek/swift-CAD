@@ -1442,16 +1442,21 @@ public struct SurfaceQueryEvaluator: Sendable {
         let (basisU, basisV) = try planeBasis(for: normal)
         let offset = projectedPoint - plane.origin
         let projected = PlanarTrimPoint2D(u: offset.dot(basisU), v: offset.dot(basisV))
-        if options.respectsTrimBounds,
-           let trimDomain = try planarLineTrimDomain(
-            for: resolved.faceID,
-            plane: plane,
-            model: model,
-            basisU: basisU,
-            basisV: basisV
-           ),
-           trimDomain.contains(projected, tolerance: tolerance) == false {
-            throw FeatureEvaluationError.emptyResult("Projection point lies outside the face trim bounds.")
+        if options.respectsTrimBounds {
+            if let trimDomain = try planarLineTrimDomain(
+                for: resolved.faceID,
+                plane: plane,
+                model: model,
+                basisU: basisU,
+                basisV: basisV
+            ) {
+                guard trimDomain.contains(projected, tolerance: tolerance) else {
+                    throw FeatureEvaluationError.emptyResult("Projection point lies outside the face trim bounds.")
+                }
+            } else {
+                // A trim with curved edges is read in the surface's own parameters.
+                try requireInsideFaceTrim(projectedPoint, surface: .plane(plane), resolved: resolved, model: model)
+            }
         }
         return try directionalProjectionResult(
             sourcePoint: point,
@@ -1624,11 +1629,13 @@ public struct SurfaceQueryEvaluator: Sendable {
                 model: model,
                 basisU: basisU,
                 basisV: basisV
-            ), trimDomain.contains(
-                PlanarTrimPoint2D(u: parameter.u, v: parameter.v),
-                tolerance: tolerance
-            ) == false {
-                throw FeatureEvaluationError.emptyResult("Projection point lies outside the face trim bounds.")
+            ) {
+                guard trimDomain.contains(PlanarTrimPoint2D(u: parameter.u, v: parameter.v), tolerance: tolerance) else {
+                    throw FeatureEvaluationError.emptyResult("Projection point lies outside the face trim bounds.")
+                }
+            } else {
+                // A trim with curved edges is read in the surface's own parameters.
+                try requireInsideFaceTrim(projectedPoint, surface: .analytic(surface), resolved: resolved, model: model)
             }
         }
 
@@ -1723,6 +1730,20 @@ public struct SurfaceQueryEvaluator: Sendable {
                 tolerance: tolerance,
                 message: "B-spline surface projection requires finite bounded parameter domains."
             )
+        }
+    }
+
+    /// Throws the projection's empty result unless `point`, on the face's support surface, lies
+    /// inside the face's trim.
+    private func requireInsideFaceTrim(
+        _ point: Point3D, surface: Surface3D, resolved: ResolvedSurface, model: BRepModel
+    ) throws {
+        let parameter = try surface.parameterProjection(of: point, tolerance: tolerance)
+        let containment = try faceDomainResolver.makeContainmentSession(
+            for: resolved.faceID, in: model, tolerance: tolerance
+        )
+        guard try containment.contains(SurfaceParameter(u: parameter.u, v: parameter.v), on: resolved.faceID) else {
+            throw FeatureEvaluationError.emptyResult("Projection point lies outside the face trim bounds.")
         }
     }
 

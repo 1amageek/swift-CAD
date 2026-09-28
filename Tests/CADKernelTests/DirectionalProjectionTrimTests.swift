@@ -55,4 +55,38 @@ struct DirectionalProjectionTrimTests {
                                             options: SurfaceDirectionalProjectionOptions(range: .ray, respectsTrimBounds: false))
         #expect(support.projectedPoint.z < 0)
     }
+
+    /// A planar face bounded by a circle (a cylinder's cap) is hit only inside the circle.
+    @Test(.timeLimit(.minutes(1)))
+    func aDiscTakesOnlyPointsInsideItsCircle() throws {
+        var document = CADDocument(units: .meters)
+        let sketch = FeatureID()
+        try document.appendFeatures([
+            FeatureNode(id: sketch, operation: .sketch(Sketch(plane: .xy, entities: [
+                SketchEntityID(): .circle(SketchCircle(
+                    center: SketchPoint(x: .constant(.length(0, unit: .meter)), y: .constant(.length(0, unit: .meter))),
+                    radius: .constant(.length(1, unit: .meter))
+                )),
+            ])), outputs: [FeatureOutput(role: .profile)]),
+            FeatureNode(id: FeatureID(), operation: .extrude(ExtrudeFeature(
+                profile: ProfileReference(featureID: sketch), distance: .constant(.length(1, unit: .meter))
+            )), inputs: [FeatureInput(featureID: sketch, role: .profile)], outputs: [FeatureOutput(role: .body)]),
+        ], tolerance: .standard)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let evaluator = SurfaceQueryEvaluator(tolerance: .standard)
+        var top: SurfaceReference?
+        for (subshapeID, topology) in evaluated.subshapes.entries {
+            guard case .face = topology else { continue }
+            let reference = SurfaceReference(subshape: try evaluated.stableSubshapeReference(for: subshapeID))
+            let frame = try evaluator.outwardFrame(nearestTo: Point3D(x: 0.2, y: 0.1, z: 2), on: reference, in: evaluated)
+            if frame.outwardNormal.z > 0.5 { top = reference }
+        }
+        let cap = try #require(top)
+        let down = Vector3D(x: 0, y: 0, z: -1)
+        let inside = try evaluator.project(Point3D(x: 0.5, y: 0.5, z: 3), along: down, onto: cap, in: evaluated)
+        #expect(abs(inside.projectedPoint.z - 1) < 1.0e-12)
+        #expect(throws: (any Error).self) {
+            try evaluator.project(Point3D(x: 0.9, y: 0.9, z: 3), along: down, onto: cap, in: evaluated)
+        }
+    }
 }

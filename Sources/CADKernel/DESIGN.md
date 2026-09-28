@@ -166,7 +166,8 @@ with the support surface in the requested range, only those inside the face's
 trim when `respectsTrimBounds` (the default), for every surface kind: B-spline and
 procedural faces through the face containment session, cylinders and non-planar
 analytic surfaces the same way (`trimContainedDistances`), planes through their
-trim domain. A line meeting a sphere or cylinder twice therefore never lands on
+straight-edged trim domain or, when a trim edge is curved (a disc), the containment
+session in the surface's own parameters (`requireInsideFaceTrim`). A line meeting a sphere or cylinder twice therefore never lands on
 the part of the support the face does not cover. `DirectionalProjectionTrimTests`
 own this.
 
