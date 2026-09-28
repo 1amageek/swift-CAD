@@ -24,6 +24,7 @@ public struct BooleanRegionSelectionGraph: Codable, Hashable, Sendable {
     public func validate(
         operation: BooleanOperation,
         classificationGraph: BooleanClassificationGraph,
+        rule: BooleanRegionSelectionRule,
         tolerance: ModelingTolerance
     ) throws {
         try tolerance.validate()
@@ -31,7 +32,7 @@ public struct BooleanRegionSelectionGraph: Codable, Hashable, Sendable {
               Set(decisions.map(\.sample)) == Set(classificationGraph.samples),
               Set(decisions).count == decisions.count,
               decisions.allSatisfy({ decision in
-                  decision.action == BooleanRegionSelectionRule().action(
+                  decision.action == rule.action(
                       operation: operation,
                       sample: decision.sample
                   )

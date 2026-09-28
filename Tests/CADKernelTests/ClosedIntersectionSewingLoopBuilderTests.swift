@@ -188,6 +188,7 @@ struct ClosedIntersectionSewingLoopBuilderTests {
             targetBodyIDs: [targetBody.id],
             toolBodyID: toolBody.id,
             model: model,
+            operands: .volumes(targetBodyIDs: [targetBody.id], toolBodyID: toolBody.id),
             tolerance: tolerance
         )
         #expect(requirement == .required)
@@ -210,6 +211,7 @@ struct ClosedIntersectionSewingLoopBuilderTests {
                     toolExteriorDecision,
                 ]
             ),
+            operands: .volumes(targetBodyIDs: [targetBody.id], toolBodyID: toolBody.id),
             tolerance: tolerance
         )
         let classificationGraph = BooleanClassificationGraph(samples: [
@@ -222,6 +224,7 @@ struct ClosedIntersectionSewingLoopBuilderTests {
             operation: .intersect,
             featureID: featureID,
             classificationGraph: classificationGraph,
+            operands: .volumes(targetBodyIDs: [targetBody.id], toolBodyID: toolBody.id),
             tolerance: tolerance
         )
         let intersectionGraph = BooleanIntersectionGraph(
@@ -248,6 +251,7 @@ struct ClosedIntersectionSewingLoopBuilderTests {
             uvSplitGraph: uvSplitGraph,
             classificationGraph: classificationGraph,
             exactRegionSelectionGraph: exactSelection,
+            operands: .volumes(targetBodyIDs: [targetBody.id], toolBodyID: toolBody.id),
             tolerance: tolerance
         )
 

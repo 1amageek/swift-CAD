@@ -1447,7 +1447,7 @@ private func validateSweepTargetReferenceObject(_ object: [String: Any], path: S
 private func validateBooleanFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["targets", "tools", "operation", "keepTools", "tool", "toolPlacement"],
+        supportedKeys: ["targets", "tools", "operation", "keepTools", "targetMaterial", "toolMaterial", "tool", "toolPlacement"],
         objectName: path
     )
     try validateArrayField("targets", in: object, path: "\(path).targets", using: validateBooleanTargetReferenceObject)

@@ -25,6 +25,7 @@ public protocol BRepBooleanEvaluating: Sendable {
         targetBodyIDs: [BodyID],
         toolBodyID: BodyID,
         model: BRepModel,
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> BooleanIntersectionRequirement
 
@@ -37,6 +38,7 @@ public protocol BRepBooleanEvaluating: Sendable {
         subshapes: [SubshapeID: TopologyReference],
         uvSplitGraph: BooleanUVSplitGraph,
         regionSelectionGraph: BooleanRegionSelectionGraph,
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> BooleanExactRegionSelectionGraph
 
@@ -53,6 +55,7 @@ public protocol BRepBooleanEvaluating: Sendable {
         uvSplitGraph: BooleanUVSplitGraph,
         classificationGraph: BooleanClassificationGraph,
         exactRegionSelectionGraph: BooleanExactRegionSelectionGraph,
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> EvaluationResult
 }
@@ -63,6 +66,7 @@ public extension BRepBooleanEvaluating {
         targetBodyIDs: [BodyID],
         toolBodyID: BodyID,
         model: BRepModel,
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> BooleanIntersectionRequirement {
         .required

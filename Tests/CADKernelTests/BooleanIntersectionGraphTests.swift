@@ -197,6 +197,7 @@ struct BooleanIntersectionGraphTests {
         try selections.validate(
             operation: .difference,
             classificationGraph: classifications,
+            rule: BooleanRegionSelectionRule(solidities: .volumes),
             tolerance: .standard
         )
         if let firstDecision = selections.decisions.first {
@@ -213,6 +214,7 @@ struct BooleanIntersectionGraphTests {
                 try invalidSelections.validate(
                     operation: .difference,
                     classificationGraph: classifications,
+                    rule: BooleanRegionSelectionRule(solidities: .volumes),
                     tolerance: .standard
                 )
             }
@@ -227,12 +229,14 @@ struct BooleanIntersectionGraphTests {
             subshapes: [:],
             uvSplitGraph: firstUV,
             regionSelectionGraph: selections,
+            operands: .volumes(targetBodyIDs: [targetBodyID], toolBodyID: toolBodyID),
             tolerance: .standard
         )
         try exactSelection.validate(
             operation: .difference,
             featureID: exactFeatureID,
             classificationGraph: classifications,
+            operands: .volumes(targetBodyIDs: [targetBodyID], toolBodyID: toolBodyID),
             tolerance: .standard
         )
         #expect(exactSelection.sewingRequest.shells.isEmpty == false)
@@ -552,6 +556,7 @@ struct BooleanIntersectionGraphTests {
             subshapes: [SubshapeID: TopologyReference],
             uvSplitGraph: BooleanUVSplitGraph,
             regionSelectionGraph: BooleanRegionSelectionGraph,
+            operands: BooleanOperandContext,
             tolerance: ModelingTolerance
         ) throws -> BooleanExactRegionSelectionGraph {
             throw unusedPhase(tolerance: tolerance)
@@ -570,6 +575,7 @@ struct BooleanIntersectionGraphTests {
             uvSplitGraph: BooleanUVSplitGraph,
             classificationGraph: BooleanClassificationGraph,
             exactRegionSelectionGraph: BooleanExactRegionSelectionGraph,
+            operands: BooleanOperandContext,
             tolerance: ModelingTolerance
         ) throws -> EvaluationResult {
             throw unusedPhase(tolerance: tolerance)

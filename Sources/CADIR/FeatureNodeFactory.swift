@@ -157,11 +157,9 @@ public enum FeatureNodeFactory {
                     throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
                 }
                 try boolean.validate()
-                for target in boolean.targets {
-                    try validateSource(target.featureID, role: .body, in: document)
-                }
+                let targetPorts = try boolean.targets.map { try bodyOrSheetPort(of: $0.featureID, in: document) }
                 for tool in boolean.tools {
-                    try validateSource(tool.featureID, role: .body, in: document)
+                    _ = try bodyOrSheetPort(of: tool.featureID, in: document)
                 }
                 let inputs = boolean.targets.map { FeatureInput(featureID: $0.featureID, role: .target) }
                     + boolean.tools.map { FeatureInput(featureID: $0.featureID, role: .body) }
@@ -170,7 +168,7 @@ public enum FeatureNodeFactory {
                     name: name,
                     operation: operation,
                     inputs: inputs,
-                    outputs: [FeatureOutput(role: .body)]
+                    outputs: [FeatureOutput(role: try boolean.resultPort(targetPorts: targetPorts))]
                 )
             }
             return try run()
@@ -828,6 +826,19 @@ public enum FeatureNodeFactory {
 
     private static func sweepOutputRole(for resultKind: SweepResultKind) -> FeaturePort {
         resultKind == .solid ? .body : .sheet
+    }
+
+    /// Whether a Boolean operand's source publishes a solid (`body`) or a sheet.
+    private static func bodyOrSheetPort(of featureID: FeatureID, in document: CADDocument) throws -> FeaturePort {
+        guard let source = document.designGraph.nodes[featureID] else {
+            throw FeatureEvaluationError.missingInput("Feature source \(featureID) was not found.")
+        }
+        guard let port = source.bodyOrSheetOutput else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Feature source \(featureID) does not declare a body or sheet output."
+            )
+        }
+        return port
     }
 
     private static func loftOutputRole(for resultKind: LoftResultKind) -> FeaturePort {

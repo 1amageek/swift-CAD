@@ -322,6 +322,7 @@ struct BooleanOpenFaceArrangementTests {
             sourceSubshapes: sourceSubshapes,
             uvSplitGraph: uvSplitGraph,
             regionSelectionGraph: selectionGraph,
+            operands: .volumes(targetBodyIDs: [targetBodyID], toolBodyID: toolBodyID),
             tolerance: tolerance
         )
 

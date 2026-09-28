@@ -11,8 +11,11 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         targetBodyIDs: [BodyID],
         toolBodyID: BodyID,
         model: BRepModel,
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> BooleanIntersectionRequirement {
+        // The special-case plans assume two solids taken as their volumes.
+        guard operands.solidities.areVolumes else { return .required }
         let operationPlan: BRepBooleanOperationPlan
         do {
             operationPlan = try makePlan(
@@ -61,18 +64,11 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         subshapes: [SubshapeID: TopologyReference],
         uvSplitGraph: BooleanUVSplitGraph,
         regionSelectionGraph: BooleanRegionSelectionGraph,
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> BooleanExactRegionSelectionGraph {
-        let operationPlan: BRepBooleanOperationPlan
-        do {
-            operationPlan = try makePlan(
-                operation: operation,
-                targetBodyIDs: targetBodyIDs,
-                toolBodyID: toolBodyID,
-                model: model,
-                tolerance: tolerance
-            )
-        } catch let error as KernelError where error.code == .unsupportedCapability {
+        // The general exact path: materialize the selected regions of the split faces.
+        func generalSelection() throws -> BooleanExactRegionSelectionGraph {
             let request: BRepSewingRequest
             if operation == .slice {
                 request = try BooleanSliceSewingRequestBuilder().materialize(
@@ -83,6 +79,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                     sourceSubshapes: subshapes,
                     uvSplitGraph: uvSplitGraph,
                     sliceRegionSelectionGraph: regionSelectionGraph,
+                    operands: operands,
                     tolerance: tolerance
                 )
             } else {
@@ -95,6 +92,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                     sourceSubshapes: subshapes,
                     uvSplitGraph: uvSplitGraph,
                     regionSelectionGraph: regionSelectionGraph,
+                    operands: operands,
                     tolerance: tolerance
                 )
             }
@@ -102,6 +100,22 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 decisions: regionSelectionGraph,
                 sewingRequest: request
             )
+        }
+        // The special-case plans assume two solids taken as their volumes.
+        guard operands.solidities.areVolumes else {
+            return try generalSelection()
+        }
+        let operationPlan: BRepBooleanOperationPlan
+        do {
+            operationPlan = try makePlan(
+                operation: operation,
+                targetBodyIDs: targetBodyIDs,
+                toolBodyID: toolBodyID,
+                model: model,
+                tolerance: tolerance
+            )
+        } catch let error as KernelError where error.code == .unsupportedCapability {
+            return try generalSelection()
         }
         switch operationPlan.shape {
         case let .orthogonal(resultShape):
@@ -207,6 +221,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         uvSplitGraph: BooleanUVSplitGraph,
         classificationGraph: BooleanClassificationGraph,
         exactRegionSelectionGraph: BooleanExactRegionSelectionGraph,
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> EvaluationResult {
         // BooleanPipeline owns the fixed phase order. Each phase validates its
@@ -217,6 +232,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             operation: operation,
             featureID: featureID,
             classificationGraph: classificationGraph,
+            operands: operands,
             tolerance: tolerance
         )
         var resultModel = model

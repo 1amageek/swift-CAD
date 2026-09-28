@@ -12,6 +12,8 @@ struct CoincidentBooleanFaceOwnershipResolver {
 
     struct PartiallyCoincidentPair {
         let split: BooleanFaceSplit
+        /// Whether the two faces' material-outward directions agree: their oriented normals,
+        /// each turned when its operand's material lies in front of its faces.
         let sameOutwardDirection: Bool
     }
 
@@ -19,6 +21,7 @@ struct CoincidentBooleanFaceOwnershipResolver {
         operation: BooleanOperation,
         uvSplitGraph: BooleanUVSplitGraph,
         model: BRepModel,
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> Resolution {
         try tolerance.validate()
@@ -31,6 +34,19 @@ struct CoincidentBooleanFaceOwnershipResolver {
         guard coincidentSplits.isEmpty == false else {
             return Resolution(forcedActions: [:], partiallyCoincidentPairs: [])
         }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): an operand without material (an empty shell) has no
+        // side to own a face it coincides with. Every Boolean pass reaches this when an empty
+        // operand's face lies on the other operand's face; it is refused here as unsupported and
+        // must stay refused until coincident ownership for empty shells is defined and tested.
+        guard operands.solidities.target != .none, operands.solidities.tool != .none else {
+            throw KernelError(
+                phase: .classification,
+                code: .unsupportedCapability,
+                tolerance: tolerance,
+                message: "Faces of an empty-shell Boolean operand that coincide with the other operand are not supported."
+            )
+        }
+        let turnsOutward = operands.solidities.target.isInverted != operands.solidities.tool.isInverted
 
         var result: [FaceID: BooleanRegionSelectionAction] = [:]
         var resolvedFaces: Set<FaceID> = []
@@ -68,7 +84,7 @@ struct CoincidentBooleanFaceOwnershipResolver {
                         toolFaceID,
                         model: model,
                         tolerance: tolerance
-                    )
+                    ) != turnsOutward
                 ))
                 continue
             }
@@ -86,13 +102,13 @@ struct CoincidentBooleanFaceOwnershipResolver {
                 toolFaceID,
                 model: model,
                 tolerance: tolerance
-            )
+            ) != turnsOutward
             let actions = actions(
                 operation: operation,
                 sameOutwardDirection: sameOutwardDirection
             )
-            result[targetFaceID] = actions.target
-            result[toolFaceID] = actions.tool
+            result[targetFaceID] = operands.rule.oriented(actions.target, isToolFace: false)
+            result[toolFaceID] = operands.rule.oriented(actions.tool, isToolFace: true)
         }
         let partitionedFaceIDs = Set(uvSplitGraph.splits.flatMap { split -> [FaceID] in
             let isPartitioning = split.components.contains { component in

@@ -14,6 +14,7 @@ struct ExactIntersectionFacePatchMaterializer {
         sourceSubshapes: [SubshapeID: TopologyReference],
         uvSplitGraph: BooleanUVSplitGraph,
         regionSelectionGraph: BooleanRegionSelectionGraph,
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> BRepSewingRequest {
         var hasOpenComponent = false
@@ -51,6 +52,7 @@ struct ExactIntersectionFacePatchMaterializer {
                     operation: operation,
                     uvSplitGraph: uvSplitGraph,
                     model: model,
+                    operands: operands,
                     tolerance: tolerance
                 )
             } catch {
@@ -73,6 +75,7 @@ struct ExactIntersectionFacePatchMaterializer {
                 pairs: coincidenceResolution.partiallyCoincidentPairs,
                 model: model,
                 sourceSubshapes: sourceSubshapes,
+                operands: operands,
                 tolerance: tolerance
             )
         } catch {
@@ -104,6 +107,7 @@ struct ExactIntersectionFacePatchMaterializer {
                 model: model,
                 sourceSubshapes: sourceSubshapes,
                 hasBoundaryContact: hasBoundaryContact,
+                operands: operands,
                 tolerance: tolerance
             )
         }
@@ -125,6 +129,7 @@ struct ExactIntersectionFacePatchMaterializer {
                 regionSelectionGraph: regionSelectionGraph,
                 coincidentArrangementBoundaries: coincidentArrangement.boundaries,
                 coincidentFaceActions: coincidentFaceActions,
+                operands: operands,
                 tolerance: tolerance
             )
         }
@@ -138,6 +143,7 @@ struct ExactIntersectionFacePatchMaterializer {
             uvSplitGraph: uvSplitGraph,
             regionSelectionGraph: regionSelectionGraph,
             coincidentFaceActions: coincidentFaceActions,
+            operands: operands,
             tolerance: tolerance
         )
     }

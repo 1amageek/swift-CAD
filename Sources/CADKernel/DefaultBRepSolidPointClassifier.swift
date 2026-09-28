@@ -77,6 +77,10 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying,
         )
     }
 
+    private var crossings: BRepRayFaceCrossings {
+        BRepRayFaceCrossings(intersector: intersector, facePointContainment: facePointContainment)
+    }
+
     private func classify(
         _ point: Point3D,
         model: BRepModel,
@@ -87,42 +91,18 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying,
         tolerance: ModelingTolerance
     ) throws -> SolidPointClassification {
         try point.validate()
-        for faceID in faceIDs {
-            if let faceBounds = faceBounds[faceID],
-               faceBounds.contains(point, tolerance: tolerance.distance) == false {
-                continue
-            }
-            do {
-                if try contains(
-                    point,
-                    on: faceID,
-                    model: model,
-                    containmentSession: containmentSession,
-                    tolerance: tolerance
-                ) {
-                    return .boundary
-                }
-            } catch let error as KernelError where error.code == .intersectionFailure {
-                continue
-            } catch GeometryError.invalidVectorLength {
-                continue
-            }
+        if try crossings.liesOnFace(
+            point, faceIDs: faceIDs, faceBounds: faceBounds, model: model,
+            containmentSession: containmentSession, tolerance: tolerance
+        ) {
+            return .boundary
         }
-
-        let rayUpperBound = try rayUpperBound(
-            from: point,
-            bounds: bounds,
-            tolerance: tolerance
-        )
-        let directions = try [
-            Vector3D(x: 1.0, y: 0.371_390_676_354, z: 0.618_033_988_750),
-            Vector3D(x: 0.414_213_562_373, y: 1.0, z: 0.732_050_807_569),
-            Vector3D(x: 0.577_215_664_902, y: 0.693_147_180_560, z: 1.0),
-        ].map { try $0.normalized(tolerance: tolerance.distance) }
+        let rayUpperBound = crossings.upperBound(from: point, bounds: bounds, tolerance: tolerance)
+        let directions = try BRepRayFaceCrossings.directions(tolerance: tolerance)
         var classifications: [SolidPointClassification] = []
         for direction in directions {
             do {
-                let crossingCount = try crossingCount(
+                let crossingCount = try crossings.crossings(
                     from: point,
                     direction: direction,
                     upperBound: rayUpperBound,
@@ -130,7 +110,7 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying,
                     model: model,
                     containmentSession: containmentSession,
                     tolerance: tolerance
-                )
+                ).count
                 classifications.append(crossingCount.isMultiple(of: 2) ? .outside : .inside)
             } catch let error as KernelError where error.code == .nonDiscreteIntersection {
                 continue
@@ -156,124 +136,6 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying,
             residual: Double(classifications.count),
             tolerance: tolerance,
             message: "Independent analytic ray casts did not produce a majority solid classification."
-        )
-    }
-
-    private func crossingCount(
-        from point: Point3D,
-        direction: Vector3D,
-        upperBound: Double,
-        faceIDs: [FaceID],
-        model: BRepModel,
-        containmentSession: (any FacePointContainmentSession)?,
-        tolerance: ModelingTolerance
-    ) throws -> Int {
-        let ray = Curve3D.line(Line3D(origin: point, direction: direction))
-        let range = try ScalarInterval(
-            lower: tolerance.distance * 2.0,
-            upper: upperBound
-        )
-        var crossings: [Point3D] = []
-        for faceID in faceIDs {
-            guard let face = model.faces[faceID],
-                  let surface = model.geometry.surfaces[face.surfaceID] else {
-                throw KernelError(
-                    phase: .classification,
-                    code: .missingReference,
-                    tolerance: tolerance,
-                    message: "Ray classification references missing face geometry."
-                )
-            }
-            let intersections = try intersector.intersections(
-                curve: ray,
-                surface: surface,
-                options: CurveSurfaceIntersectionOptions(
-                    curveRange: range,
-                    surfaceURange: try finiteInterval(surface.uDomain),
-                    surfaceVRange: try finiteInterval(surface.vDomain)
-                ),
-                tolerance: tolerance
-            )
-            for intersection in intersections where intersection.kind == .transverse {
-                let isContained = try containsSurfaceParameter(
-                    SurfaceParameter(
-                        u: intersection.surfaceU,
-                        v: intersection.surfaceV
-                    ),
-                    fallbackPoint: intersection.point,
-                    on: faceID,
-                    model: model,
-                    containmentSession: containmentSession,
-                    tolerance: tolerance
-                )
-                guard isContained else {
-                    continue
-                }
-                if crossings.contains(where: {
-                    ($0 - intersection.point).length <= tolerance.distance
-                }) == false {
-                    crossings.append(intersection.point)
-                }
-            }
-        }
-        return crossings.count
-    }
-
-    private func rayUpperBound(
-        from point: Point3D,
-        bounds: BoundingBox3D,
-        tolerance: ModelingTolerance
-    ) throws -> Double {
-        let corners = [
-            Point3D(x: bounds.minimum.x, y: bounds.minimum.y, z: bounds.minimum.z),
-            Point3D(x: bounds.minimum.x, y: bounds.minimum.y, z: bounds.maximum.z),
-            Point3D(x: bounds.minimum.x, y: bounds.maximum.y, z: bounds.minimum.z),
-            Point3D(x: bounds.minimum.x, y: bounds.maximum.y, z: bounds.maximum.z),
-            Point3D(x: bounds.maximum.x, y: bounds.minimum.y, z: bounds.minimum.z),
-            Point3D(x: bounds.maximum.x, y: bounds.minimum.y, z: bounds.maximum.z),
-            Point3D(x: bounds.maximum.x, y: bounds.maximum.y, z: bounds.minimum.z),
-            Point3D(x: bounds.maximum.x, y: bounds.maximum.y, z: bounds.maximum.z),
-        ]
-        let maximumDistance = corners.map { ($0 - point).length }.max() ?? 0.0
-        return max(maximumDistance * 2.0, tolerance.distance * 16.0)
-    }
-
-    private func contains(
-        _ point: Point3D,
-        on faceID: FaceID,
-        model: BRepModel,
-        containmentSession: (any FacePointContainmentSession)?,
-        tolerance: ModelingTolerance
-    ) throws -> Bool {
-        if let containmentSession {
-            return try containmentSession.contains(point, on: faceID)
-        }
-        return try facePointContainment.contains(
-            point,
-            on: faceID,
-            in: model,
-            tolerance: tolerance
-        )
-    }
-
-    private func containsSurfaceParameter(
-        _ parameter: SurfaceParameter,
-        fallbackPoint: Point3D,
-        on faceID: FaceID,
-        model: BRepModel,
-        containmentSession: (any FacePointContainmentSession)?,
-        tolerance: ModelingTolerance
-    ) throws -> Bool {
-        if let parameterSession = containmentSession
-            as? any FaceParameterContainmentSession {
-            return try parameterSession.contains(parameter, on: faceID)
-        }
-        return try contains(
-            fallbackPoint,
-            on: faceID,
-            model: model,
-            containmentSession: containmentSession,
-            tolerance: tolerance
         )
     }
 
@@ -303,17 +165,6 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying,
             )
         }
         return result
-    }
-
-    private func finiteInterval(_ domain: ParameterDomain) throws -> ScalarInterval? {
-        switch domain {
-        case let .closed(lower, upper):
-            return try ScalarInterval(lower: lower, upper: upper)
-        case let .periodic(period):
-            return try ScalarInterval(lower: 0.0, upper: period)
-        case .unbounded:
-            return nil
-        }
     }
 
     private struct Session: SolidPointClassificationSession {

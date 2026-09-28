@@ -7,6 +7,7 @@ public struct DefaultBooleanResultRegionSelector: BooleanResultRegionSelecting {
     public func selectionGraph(
         operation: BooleanOperation,
         classificationGraph: BooleanClassificationGraph,
+        rule: BooleanRegionSelectionRule,
         tolerance: ModelingTolerance
     ) throws -> BooleanRegionSelectionGraph {
         try tolerance.validate()
@@ -21,7 +22,7 @@ public struct DefaultBooleanResultRegionSelector: BooleanResultRegionSelecting {
         let decisions = classificationGraph.samples.map { sample in
             return BooleanRegionSelectionGraph.Decision(
                 sample: sample,
-                action: BooleanRegionSelectionRule().action(
+                action: rule.action(
                     operation: operation,
                     sample: sample
                 )
@@ -31,6 +32,7 @@ public struct DefaultBooleanResultRegionSelector: BooleanResultRegionSelecting {
         try graph.validate(
             operation: operation,
             classificationGraph: classificationGraph,
+            rule: rule,
             tolerance: tolerance
         )
         return graph

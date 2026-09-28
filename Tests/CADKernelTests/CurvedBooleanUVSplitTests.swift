@@ -254,25 +254,23 @@ struct CurvedBooleanUVSplitTests {
     #expect(closedCurve.intersection.firstSurfaceParameterCurve == parameterCurve)
     #expect(closedCurve.intersection.secondSurfaceParameterCurve == parameterCurve)
 
-    let classificationGraph = try DefaultBooleanRegionClassifier(
-      pointClassifier: BoundaryBandSolidPointClassifier()
-    ).classificationGraph(
+    let classificationGraph = try DefaultBooleanRegionClassifier().classificationGraph(
       uvSplitGraph: splitGraph,
       targetBodyIDs: [targetBody.id],
       toolBodyID: toolBody.id,
       model: model,
+      operands: BooleanOperandContext(solidities: .volumes, pointClassifier: BoundaryBandSolidPointClassifier()),
       tolerance: tolerance
     )
     #expect(classificationGraph.samples.count == 4)
     #expect(classificationGraph.samples.allSatisfy { $0.classification == .outside })
     do {
-      _ = try DefaultBooleanRegionClassifier(
-        pointClassifier: AlwaysBoundarySolidPointClassifier()
-      ).classificationGraph(
+      _ = try DefaultBooleanRegionClassifier().classificationGraph(
         uvSplitGraph: splitGraph,
         targetBodyIDs: [targetBody.id],
         toolBodyID: toolBody.id,
         model: model,
+        operands: BooleanOperandContext(solidities: .volumes, pointClassifier: AlwaysBoundarySolidPointClassifier()),
         tolerance: tolerance
       )
       Issue.record("Persistent boundary classifications must return a typed failure.")

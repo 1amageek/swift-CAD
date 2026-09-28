@@ -117,11 +117,7 @@ struct ClosedIntersectionExteriorMaterializerTests {
         let toolParent = SubshapeID(featureID: FeatureID(), role: "face", ordinal: 0)
         sourceSubshapes[carriedParent] = .face(carriedFace.id)
         sourceSubshapes[toolParent] = .face(toolFace.id)
-        let materializer = ClosedIntersectionFacePatchMaterializer(
-            unsplitFaceMaterializer: ClosedIntersectionUnsplitFaceMaterializer(
-                pointClassifier: ConstantPointClassifier(classification: .outside)
-            )
-        )
+        let materializer = ClosedIntersectionFacePatchMaterializer()
         let resultFeatureID = FeatureID()
         let request = try materializer.materialize(
             operation: .difference,
@@ -138,6 +134,7 @@ struct ClosedIntersectionExteriorMaterializerTests {
                 )]
             )]),
             regionSelectionGraph: decisions,
+            operands: BooleanOperandContext(solidities: .volumes, pointClassifier: ConstantPointClassifier(classification: .outside)),
             tolerance: tolerance
         )
 
@@ -340,11 +337,7 @@ struct ClosedIntersectionExteriorMaterializerTests {
                 ordinal: index
             )] = .face(face.id)
         }
-        let request = try ClosedIntersectionFacePatchMaterializer(
-            unsplitFaceMaterializer: ClosedIntersectionUnsplitFaceMaterializer(
-                pointClassifier: ConstantPointClassifier(classification: .outside)
-            )
-        ).materialize(
+        let request = try ClosedIntersectionFacePatchMaterializer().materialize(
             operation: .difference,
             targetBodyIDs: [targetBody.id],
             toolBodyID: toolBody.id,
@@ -353,6 +346,7 @@ struct ClosedIntersectionExteriorMaterializerTests {
             sourceSubshapes: sourceSubshapes,
             uvSplitGraph: BooleanUVSplitGraph(splits: splits),
             regionSelectionGraph: BooleanRegionSelectionGraph(decisions: decisions),
+            operands: BooleanOperandContext(solidities: .volumes, pointClassifier: ConstantPointClassifier(classification: .outside)),
             tolerance: tolerance
         )
 

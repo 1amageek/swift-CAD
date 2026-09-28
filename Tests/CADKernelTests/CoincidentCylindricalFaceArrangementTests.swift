@@ -45,6 +45,7 @@ struct CoincidentCylindricalFaceArrangementTests {
             operation: .intersect,
             uvSplitGraph: BooleanUVSplitGraph(splits: [split]),
             model: model,
+            operands: .volumes(targetBodyIDs: [], toolBodyID: BodyID()),
             tolerance: tolerance
         )
         #expect(resolution.forcedActions.isEmpty)
@@ -57,6 +58,7 @@ struct CoincidentCylindricalFaceArrangementTests {
             pairs: resolution.partiallyCoincidentPairs,
             model: model,
             sourceSubshapes: sourceSubshapes,
+            operands: .volumes(targetBodyIDs: [], toolBodyID: BodyID()),
             tolerance: tolerance
         )
         #expect(arrangement.constantActions[toolFaceID] == .discard)

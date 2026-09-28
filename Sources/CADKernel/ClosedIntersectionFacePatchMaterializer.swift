@@ -23,6 +23,7 @@ struct ClosedIntersectionFacePatchMaterializer {
         uvSplitGraph: BooleanUVSplitGraph,
         regionSelectionGraph: BooleanRegionSelectionGraph,
         coincidentFaceActions: [FaceID: BooleanRegionSelectionAction] = [:],
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> BRepSewingRequest {
         try tolerance.validate()
@@ -85,6 +86,7 @@ struct ClosedIntersectionFacePatchMaterializer {
             forcedActions: coincidentFaceActions,
             model: model,
             sourceSubshapes: sourceSubshapes,
+            operands: operands,
             tolerance: tolerance
         )
         let patches = splitPatches + carriedPatches
@@ -103,7 +105,7 @@ struct ClosedIntersectionFacePatchMaterializer {
         )
         let request = BRepSewingRequest(
             featureID: featureID,
-            bodyKind: .solid,
+            bodyKind: operands.resultBodyKind,
             shells: shells,
             bodyParentSubshapeIDs: (targetBodyIDs + [toolBodyID]).flatMap {
                 parentSubshapeIDs(for: .body($0), in: sourceSubshapes)

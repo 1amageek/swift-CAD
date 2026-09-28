@@ -115,3 +115,11 @@ public struct FeatureOutput: Codable, Sendable, Hashable {
         try container.encode(role, forKey: .role)
     }
 }
+
+extension FeatureNode {
+    /// The solid (`body`) or sheet output this feature declares, if it declares exactly one.
+    public var bodyOrSheetOutput: FeaturePort? {
+        let ports = Set(outputs.map(\.role)).intersection([.body, .sheet])
+        return ports.count == 1 ? ports.first : nil
+    }
+}

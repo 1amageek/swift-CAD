@@ -66,9 +66,21 @@ public struct BooleanPipeline: Sendable {
         subshapes: [SubshapeID: TopologyReference],
         toolSubshapes: [SubshapeID: TopologyReference],
         inputLineage: [SubshapeID: TopologyLineage] = [:],
+        materials: BooleanMaterials = .default,
         tolerance: ModelingTolerance
     ) throws -> EvaluationResult {
         do {
+            let operands = BooleanOperandContext(
+                targetBodyIDs: targetBodyIDs,
+                toolBodyID: toolBodyID,
+                solidities: try BooleanOperandSolidities.resolve(
+                    materials,
+                    targetBodyIDs: targetBodyIDs,
+                    toolBodyID: toolBodyID,
+                    model: model,
+                    tolerance: tolerance
+                )
+            )
             let intersectionGraph: BooleanIntersectionGraph
             do {
                 intersectionGraph = try self.intersectionGraph(
@@ -76,6 +88,7 @@ public struct BooleanPipeline: Sendable {
                     toolBodyID: toolBodyID,
                     operation: operation,
                     model: model,
+                    operands: operands,
                     tolerance: tolerance
                 )
             } catch {
@@ -106,6 +119,7 @@ public struct BooleanPipeline: Sendable {
                     targetBodyIDs: targetBodyIDs,
                     toolBodyID: toolBodyID,
                     model: model,
+                    operands: operands,
                     tolerance: tolerance
                 )
             } catch {
@@ -120,6 +134,7 @@ public struct BooleanPipeline: Sendable {
                 regionSelectionGraph = try self.regionSelectionGraph(
                     operation: operation,
                     classificationGraph: classificationGraph,
+                    rule: operands.rule,
                     tolerance: tolerance
                 )
             } catch {
@@ -140,6 +155,7 @@ public struct BooleanPipeline: Sendable {
                     subshapes: subshapes,
                     uvSplitGraph: uvSplitGraph,
                     regionSelectionGraph: regionSelectionGraph,
+                    operands: operands,
                     tolerance: tolerance
                 )
             } catch {
@@ -166,6 +182,7 @@ public struct BooleanPipeline: Sendable {
                     uvSplitGraph: uvSplitGraph,
                     classificationGraph: classificationGraph,
                     exactRegionSelectionGraph: exactRegionSelectionGraph,
+                    operands: operands,
                     tolerance: tolerance
                 )
             } catch {
@@ -229,11 +246,13 @@ public struct BooleanPipeline: Sendable {
         )
     }
 
+    /// The intersection graph of one pass; `operands` default to both taken as solid volumes.
     public func intersectionGraph(
         targetBodyIDs: [BodyID],
         toolBodyID: BodyID,
         operation: BooleanOperation,
         model: BRepModel,
+        operands: BooleanOperandContext? = nil,
         tolerance: ModelingTolerance
     ) throws -> BooleanIntersectionGraph {
         try operandValidation(
@@ -247,6 +266,7 @@ public struct BooleanPipeline: Sendable {
             targetBodyIDs: targetBodyIDs,
             toolBodyID: toolBodyID,
             model: model,
+            operands: operands ?? .volumes(targetBodyIDs: targetBodyIDs, toolBodyID: toolBodyID),
             tolerance: tolerance
         )
         if case .provenEmpty = requirement {
@@ -315,11 +335,13 @@ public struct BooleanPipeline: Sendable {
         )
     }
 
+    /// The classification graph of one pass; `operands` default to both taken as solid volumes.
     public func classificationGraph(
         uvSplitGraph: BooleanUVSplitGraph,
         targetBodyIDs: [BodyID],
         toolBodyID: BodyID,
         model: BRepModel,
+        operands: BooleanOperandContext? = nil,
         tolerance: ModelingTolerance
     ) throws -> BooleanClassificationGraph {
         try regionClassifier.classificationGraph(
@@ -327,18 +349,22 @@ public struct BooleanPipeline: Sendable {
             targetBodyIDs: targetBodyIDs,
             toolBodyID: toolBodyID,
             model: model,
+            operands: operands ?? .volumes(targetBodyIDs: targetBodyIDs, toolBodyID: toolBodyID),
             tolerance: tolerance
         )
     }
 
+    /// The region selection of one pass; `rule` defaults to both operands taken as solid volumes.
     public func regionSelectionGraph(
         operation: BooleanOperation,
         classificationGraph: BooleanClassificationGraph,
+        rule: BooleanRegionSelectionRule = BooleanRegionSelectionRule(solidities: .volumes),
         tolerance: ModelingTolerance
     ) throws -> BooleanRegionSelectionGraph {
         try regionSelector.selectionGraph(
             operation: operation,
             classificationGraph: classificationGraph,
+            rule: rule,
             tolerance: tolerance
         )
     }

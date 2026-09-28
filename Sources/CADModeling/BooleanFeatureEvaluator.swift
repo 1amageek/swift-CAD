@@ -106,17 +106,32 @@ public struct BooleanFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         var tools = try zip(toolBodyIDs, boolean.tools).enumerated().map { ordinal, pair in
             try relocated(pair.0, placement: pair.1.placement, ordinal: targetBodyIDs.count + ordinal)
         }
-        // The tools act as one region: unite them, one after another.
+        // The tools act as one region: unite them, one after another. Their union is a volume,
+        // so several tools are solids taken as their volumes.
+        if tools.count > 1 {
+            guard boolean.toolMaterial == .default || boolean.toolMaterial == .inside,
+                  tools.allSatisfy({ stages.context.brep.bodies[$0]?.kind == .solid }) else {
+                throw KernelError(
+                    phase: .evaluation,
+                    code: .invalidInput,
+                    featureID: featureID,
+                    tolerance: context.tolerance,
+                    message: "Several Boolean tools act as their union, so they must be solids taken as their volumes."
+                )
+            }
+        }
         var unionOrdinal: UInt64 = 0
         while tools.count > 1 {
             let stageID = featureEvaluationStageID(featureID: featureID, domain: .booleanToolUnion, ordinal: unionOrdinal)
             unionOrdinal += 1
-            let united = try combine(.union, targets: [tools[0]], tool: tools[1], featureID: stageID, context: stages.context)
+            let united = try combine(.union, targets: [tools[0]], tool: tools[1], materials: .default, featureID: stageID, context: stages.context)
             stages.apply(united)
             tools = [try stages.publishedBody(of: united, featureID: featureID, what: "Uniting the Boolean tools")] + tools.dropFirst(2)
         }
         let final = try combine(
-            boolean.operation, targets: targets, tool: tools[0], featureID: featureID, context: stages.context
+            boolean.operation, targets: targets, tool: tools[0],
+            materials: BooleanMaterials(target: boolean.targetMaterial, tool: boolean.toolMaterial),
+            featureID: featureID, context: stages.context
         )
         let published = try stages.publish(final, featureID: featureID)
         guard boolean.keepTools else { return published }
@@ -128,6 +143,7 @@ public struct BooleanFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         _ operation: BooleanOperation,
         targets: [BodyID],
         tool: BodyID,
+        materials: BooleanMaterials,
         featureID: FeatureID,
         context: EvaluationContext
     ) throws -> EvaluationResult {
@@ -145,6 +161,7 @@ public struct BooleanFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
                 subshapes: context.subshapes.entries,
                 toolSubshapes: toolSubshapes,
                 inputLineage: context.lineage,
+                materials: materials,
                 tolerance: context.tolerance
             )
         }

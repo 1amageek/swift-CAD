@@ -1,25 +1,51 @@
 import CADCore
 import CADGeometry
 
-/// Combines target bodies with tool bodies. The tools act together as one region, their union;
-/// the result lives in the frame of the operands without a placement.
+/// Combines target bodies with tool bodies, solids or sheets. The tools act together as one
+/// region, their union; the result lives in the frame of the operands without a placement.
 public struct BooleanFeature: Hashable, Sendable {
     public var targets: [BooleanTargetReference]
     public var tools: [BooleanToolReference]
     public var operation: BooleanOperation
     /// Keeps every tool body, where it was evaluated, beside the result.
     public var keepTools: Bool
+    /// How the targets' material is taken.
+    public var targetMaterial: BooleanMaterial
+    /// How the tools' material is taken.
+    public var toolMaterial: BooleanMaterial
 
     public init(
         targets: [BooleanTargetReference],
         tools: [BooleanToolReference],
         operation: BooleanOperation,
-        keepTools: Bool = false
+        keepTools: Bool = false,
+        targetMaterial: BooleanMaterial = .default,
+        toolMaterial: BooleanMaterial = .default
     ) {
         self.targets = targets
         self.tools = tools
         self.operation = operation
         self.keepTools = keepTools
+        self.targetMaterial = targetMaterial
+        self.toolMaterial = toolMaterial
+    }
+
+    /// The output the Boolean publishes, from what its targets are: a sheet when the targets'
+    /// material is empty (Empty, or Default on sheets), otherwise a body. Targets are all solids
+    /// or all sheets.
+    public func resultPort(targetPorts: [FeaturePort]) throws -> FeaturePort {
+        guard let first = targetPorts.first, targetPorts.allSatisfy({ $0 == first }),
+              first == .body || first == .sheet else {
+            throw FeatureEvaluationError.invalidGraph("Boolean targets must all be solids or all be sheets.")
+        }
+        switch targetMaterial {
+        case .empty:
+            return .sheet
+        case .default:
+            return first
+        case .inside, .outside:
+            return .body
+        }
     }
 
     public func validate() throws {
@@ -45,7 +71,7 @@ public struct BooleanFeature: Hashable, Sendable {
 
 extension BooleanFeature: Codable {
     private enum CodingKeys: String, CodingKey {
-        case targets, tools, operation, keepTools
+        case targets, tools, operation, keepTools, targetMaterial, toolMaterial
         // The single-tool form written before `tools`.
         case tool, toolPlacement
     }
@@ -55,8 +81,13 @@ extension BooleanFeature: Codable {
         targets = try container.decode([BooleanTargetReference].self, forKey: .targets)
         operation = try container.decode(BooleanOperation.self, forKey: .operation)
         keepTools = try container.decode(Bool.self, forKey: .keepTools)
+        // Booleans written before materials took every operand as it is.
+        targetMaterial = try container.decodeIfPresent(BooleanMaterial.self, forKey: .targetMaterial) ?? .default
+        toolMaterial = try container.decodeIfPresent(BooleanMaterial.self, forKey: .toolMaterial) ?? .default
         if container.contains(.tools) {
-            try container.validateOnlyExpectedKeys([.targets, .tools, .operation, .keepTools], in: decoder)
+            try container.validateOnlyExpectedKeys(
+                [.targets, .tools, .operation, .keepTools, .targetMaterial, .toolMaterial], in: decoder
+            )
             tools = try container.decode([BooleanToolReference].self, forKey: .tools)
         } else {
             try container.validateOnlyExpectedKeys([.targets, .tool, .toolPlacement, .operation, .keepTools], in: decoder)
@@ -72,6 +103,8 @@ extension BooleanFeature: Codable {
         try container.encode(tools, forKey: .tools)
         try container.encode(operation, forKey: .operation)
         try container.encode(keepTools, forKey: .keepTools)
+        try container.encode(targetMaterial, forKey: .targetMaterial)
+        try container.encode(toolMaterial, forKey: .toolMaterial)
     }
 }
 
@@ -101,6 +134,32 @@ public struct BooleanToolReference: Codable, Hashable, Sendable {
     }
 
     public func validate() throws {}
+}
+
+/// How a Boolean takes an operand's material.
+public enum BooleanMaterial: String, Codable, CaseIterable, Hashable, Sendable {
+    /// A solid's volume; a sheet tool facing solid targets takes the side behind its normals
+    /// (as `inside`); any other sheet is an empty shell.
+    case `default`
+    /// An empty shell: no material, only its faces.
+    case empty
+    /// Solid behind its faces' normals: a solid's volume, the side behind a sheet.
+    case inside
+    /// Solid in front of its faces' normals: everything outside a solid, the side a sheet faces.
+    case outside
+}
+
+/// The Materials of one Boolean pass.
+public struct BooleanMaterials: Hashable, Sendable {
+    public var target: BooleanMaterial
+    public var tool: BooleanMaterial
+
+    public init(target: BooleanMaterial = .default, tool: BooleanMaterial = .default) {
+        self.target = target
+        self.tool = tool
+    }
+
+    public static let `default` = BooleanMaterials()
 }
 
 public enum BooleanOperation: String, Codable, CaseIterable, Hashable, Sendable {

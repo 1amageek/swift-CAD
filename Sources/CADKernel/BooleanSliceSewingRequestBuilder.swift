@@ -4,8 +4,9 @@ import CADIR
 import CADModeling
 import CADTopology
 
-/// Materializes a slice as the disjoint material components `target \ tool`
-/// and `target ∩ tool` while reusing one certified intersection graph.
+/// Materializes a slice as the disjoint components `target \ tool` and `target ∩ tool` while
+/// reusing one certified intersection graph: solid components for a target with material,
+/// sheet shells for an empty target.
 struct BooleanSliceSewingRequestBuilder {
     func materialize(
         targetBodyIDs: [BodyID],
@@ -15,6 +16,7 @@ struct BooleanSliceSewingRequestBuilder {
         sourceSubshapes: [SubshapeID: TopologyReference],
         uvSplitGraph: BooleanUVSplitGraph,
         sliceRegionSelectionGraph: BooleanRegionSelectionGraph,
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> BRepSewingRequest {
         try tolerance.validate()
@@ -28,7 +30,7 @@ struct BooleanSliceSewingRequestBuilder {
                 decisions: sliceRegionSelectionGraph.decisions.map { decision in
                     BooleanRegionSelectionGraph.Decision(
                         sample: decision.sample,
-                        action: BooleanRegionSelectionRule().action(
+                        action: operands.rule.action(
                             operation: component.operation,
                             sample: decision.sample
                         )
@@ -45,6 +47,7 @@ struct BooleanSliceSewingRequestBuilder {
                     sourceSubshapes: sourceSubshapes,
                     uvSplitGraph: uvSplitGraph,
                     regionSelectionGraph: selectionGraph,
+                    operands: operands,
                     tolerance: tolerance
                 )
                 requests.append((component.namespace, request))
@@ -63,33 +66,40 @@ struct BooleanSliceSewingRequestBuilder {
 
         var shells: [BRepSewingShell] = []
         var solidComponents: [BRepSewingSolidComponent] = []
+        var sheetShellStableIDs: [String] = []
         var bodyParentSubshapeIDs = Set<SubshapeID>()
         for entry in requests {
             let prefix = "slice:\(entry.namespace)"
-            guard case let .solid(components) = entry.request.bodyTopology else {
+            switch entry.request.bodyTopology {
+            case let .solid(components) where operands.resultBodyKind == .solid:
+                solidComponents.append(contentsOf: components.map {
+                    BRepSewingSolidComponent(
+                        outerShellStableID: namespaced($0.outerShellStableID, prefix: prefix),
+                        voidShellStableIDs: $0.voidShellStableIDs.map {
+                            namespaced($0, prefix: prefix)
+                        }
+                    )
+                })
+            case let .sheet(shellStableIDs) where operands.resultBodyKind == .sheet:
+                sheetShellStableIDs.append(contentsOf: shellStableIDs.map { namespaced($0, prefix: prefix) })
+            default:
                 throw KernelError(
                     phase: .topology,
                     code: .topologyFailure,
                     tolerance: tolerance,
-                    message: "Boolean slice component materialization must produce solid topology."
+                    message: "Boolean slice component materialization must produce the pass's body kind."
                 )
             }
             shells.append(contentsOf: entry.request.shells.map {
                 namespaced($0, prefix: prefix)
             })
-            solidComponents.append(contentsOf: components.map {
-                BRepSewingSolidComponent(
-                    outerShellStableID: namespaced($0.outerShellStableID, prefix: prefix),
-                    voidShellStableIDs: $0.voidShellStableIDs.map {
-                        namespaced($0, prefix: prefix)
-                    }
-                )
-            })
             bodyParentSubshapeIDs.formUnion(entry.request.bodyParentSubshapeIDs)
         }
         let request = BRepSewingRequest(
             featureID: featureID,
-            bodyTopology: .solid(components: solidComponents),
+            bodyTopology: operands.resultBodyKind == .solid
+                ? .solid(components: solidComponents)
+                : .sheet(shellStableIDs: sheetShellStableIDs),
             shells: shells,
             bodyParentSubshapeIDs: Array(bodyParentSubshapeIDs)
         )

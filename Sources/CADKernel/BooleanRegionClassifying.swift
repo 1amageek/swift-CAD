@@ -8,6 +8,7 @@ public protocol BooleanRegionClassifying: Sendable {
         targetBodyIDs: [BodyID],
         toolBodyID: BodyID,
         model: BRepModel,
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> BooleanClassificationGraph
 }

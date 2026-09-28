@@ -144,6 +144,7 @@ struct CoincidentBooleanGeneralPipelineTests {
             sourceSubshapes: sourceSubshapes,
             uvSplitGraph: uvSplitGraph,
             regionSelectionGraph: selectionGraph,
+            operands: .volumes(targetBodyIDs: [targetBodyID], toolBodyID: toolBodyID),
             tolerance: tolerance
         )
         return try DefaultBRepSewer().sew(request, tolerance: tolerance)

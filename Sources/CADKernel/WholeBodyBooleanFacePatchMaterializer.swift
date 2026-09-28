@@ -4,20 +4,15 @@ import CADIR
 import CADModeling
 import CADTopology
 
+/// Materializes a Boolean whose operands do not cross: each operand lies wholly inside or outside
+/// the other's material (or they coincide), so the region rule keeps, turns or drops each body
+/// whole.
 struct WholeBodyBooleanFacePatchMaterializer {
     private enum Relation: Equatable {
         case disjoint
         case targetInsideTool
         case toolInsideTarget
         case coincident
-    }
-
-    private let pointClassifier: any SolidPointClassifying
-
-    init(
-        pointClassifier: any SolidPointClassifying = DefaultBRepSolidPointClassifier()
-    ) {
-        self.pointClassifier = pointClassifier
     }
 
     func materialize(
@@ -28,6 +23,7 @@ struct WholeBodyBooleanFacePatchMaterializer {
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
         hasBoundaryContact: Bool,
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> BRepSewingRequest {
         try tolerance.validate()
@@ -41,7 +37,7 @@ struct WholeBodyBooleanFacePatchMaterializer {
         }
         let classificationSessions = try SolidPointClassificationSessionSet(
             bodyIDs: targetBodyIDs + [toolBodyID],
-            pointClassifier: pointClassifier,
+            pointClassifier: operands.pointClassifier,
             model: model,
             tolerance: tolerance
         )
@@ -54,7 +50,6 @@ struct WholeBodyBooleanFacePatchMaterializer {
                 tolerance: tolerance
             )
         }
-        let selected: [(bodyID: BodyID, reversedShells: Bool)]
         switch operation {
         case .union:
             if hasBoundaryContact,
@@ -66,14 +61,6 @@ struct WholeBodyBooleanFacePatchMaterializer {
                     message: "Union of externally contacting solids would create a non-manifold result."
                 )
             }
-            var bodies = zip(targetBodyIDs, relations).compactMap { bodyID, relation in
-                relation == .targetInsideTool || relation == .coincident ? nil : bodyID
-            }
-            if relations.contains(.toolInsideTarget) == false,
-               relations.contains(.coincident) == false {
-                bodies.append(toolBodyID)
-            }
-            selected = bodies.map { ($0, false) }
         case .difference:
             if hasBoundaryContact,
                relations.contains(.toolInsideTarget) {
@@ -84,23 +71,50 @@ struct WholeBodyBooleanFacePatchMaterializer {
                     message: "A contained tool touching its target boundary would create a non-manifold cavity."
                 )
             }
-            var bodies = zip(targetBodyIDs, relations).compactMap { bodyID, relation in
-                relation == .targetInsideTool || relation == .coincident ? nil : bodyID
-            }.map { ($0, false) }
-            if relations.contains(.toolInsideTarget) {
-                bodies.append((toolBodyID, true))
+        case .intersect, .slice:
+            break
+        }
+        let selected: [(bodyID: BodyID, reversedShells: Bool)]
+        if relations.contains(.coincident) {
+            guard operands.solidities.areVolumes else {
+                throw KernelError(
+                    phase: .classification,
+                    code: .unsupportedCapability,
+                    tolerance: tolerance,
+                    message: "Operands that coincide whole are combined only as solid volumes."
+                )
             }
-            selected = bodies
-        case .intersect:
-            if relations.contains(.coincident) || relations.contains(.toolInsideTarget) {
+            // Coinciding volumes: union and difference keep nothing of a coinciding target (a
+            // difference still hollows another target around the tool), intersect keeps the
+            // tool once.
+            let uncovered = zip(targetBodyIDs, relations).compactMap { bodyID, relation in
+                relation == .targetInsideTool || relation == .coincident ? nil : (bodyID, false)
+            }
+            switch operation {
+            case .union:
+                selected = uncovered
+            case .difference:
+                selected = uncovered + (relations.contains(.toolInsideTarget) ? [(toolBodyID, true)] : [])
+            case .intersect:
                 selected = [(toolBodyID, false)]
-            } else {
-                selected = zip(targetBodyIDs, relations).compactMap { bodyID, relation in
-                    relation == .targetInsideTool ? (bodyID, false) : nil
+            case .slice:
+                selected = targetBodyIDs.map { ($0, false) }
+            }
+        } else {
+            // Each body lies wholly on one side of the other's material: the rule decides it
+            // like any face region there.
+            func selection(_ bodyID: BodyID, _ classification: SolidPointClassification, isToolFace: Bool) -> (BodyID, Bool)? {
+                switch operands.rule.action(operation: operation, classification: classification, isToolFace: isToolFace) {
+                case .keep: (bodyID, false)
+                case .keepReversed: (bodyID, true)
+                case .discard, .partitionBoundary: nil
                 }
             }
-        case .slice:
-            selected = targetBodyIDs.map { ($0, false) }
+            let targets = zip(targetBodyIDs, relations).compactMap { bodyID, relation in
+                selection(bodyID, relation == .targetInsideTool ? .inside : .outside, isToolFace: false)
+            }
+            let tool = selection(toolBodyID, relations.contains(.toolInsideTarget) ? .inside : .outside, isToolFace: true)
+            selected = operation == .slice ? targetBodyIDs.map { ($0, false) } : targets + (tool.map { [$0] } ?? [])
         }
         guard !selected.isEmpty else {
             throw KernelError(
@@ -129,7 +143,7 @@ struct WholeBodyBooleanFacePatchMaterializer {
         }
         let request = BRepSewingRequest(
             featureID: featureID,
-            bodyKind: .solid,
+            bodyKind: operands.resultBodyKind,
             shells: shells,
             bodyParentSubshapeIDs: parentBodyIDs
         )
@@ -231,12 +245,12 @@ struct WholeBodyBooleanFacePatchMaterializer {
         model: BRepModel,
         tolerance: ModelingTolerance
     ) throws -> [Point3D] {
-        guard let body = model.bodies[bodyID], body.kind == .solid else {
+        guard let body = model.bodies[bodyID] else {
             throw KernelError(
                 phase: .topology,
                 code: .missingReference,
                 tolerance: tolerance,
-                message: "Whole-body Boolean classification requires a solid body."
+                message: "Whole-body Boolean classification references a missing body."
             )
         }
         var points: [Point3D] = []

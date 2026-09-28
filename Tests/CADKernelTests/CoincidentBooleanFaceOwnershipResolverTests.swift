@@ -49,6 +49,7 @@ struct CoincidentBooleanFaceOwnershipResolverTests {
             forcedActions: ownership,
             model: fixture.model,
             sourceSubshapes: fixture.sourceSubshapes,
+            operands: .volumes(targetBodyIDs: [fixture.targetBodyID], toolBodyID: fixture.toolBodyID),
             tolerance: tolerance
         )
 
@@ -73,6 +74,7 @@ struct CoincidentBooleanFaceOwnershipResolverTests {
                 )]
             )]),
             model: fixture.model,
+            operands: .volumes(targetBodyIDs: [], toolBodyID: BodyID()),
             tolerance: tolerance
         ).forcedActions
     }

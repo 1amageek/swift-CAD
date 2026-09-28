@@ -15,6 +15,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
         pairs: [CoincidentBooleanFaceOwnershipResolver.PartiallyCoincidentPair],
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> Result {
         try tolerance.validate()
@@ -47,16 +48,16 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
                 model: model,
                 tolerance: tolerance
             )
-            let targetActions = regionActions(
+            let targetActions = oriented(regionActions(
                 operation: operation,
                 sourceIsToolFace: false,
                 sameOutwardDirection: pair.sameOutwardDirection
-            )
-            let toolActions = regionActions(
+            ), isToolFace: false, rule: operands.rule)
+            let toolActions = oriented(regionActions(
                 operation: operation,
                 sourceIsToolFace: true,
                 sameOutwardDirection: pair.sameOutwardDirection
-            )
+            ), isToolFace: true, rule: operands.rule)
             let targetProjection = try projectedBoundaries(
                 reference: reference,
                 sourceFace: target,
@@ -559,6 +560,14 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
             tolerance: tolerance,
             message: "Certified pcurve integration could not prove coincident trim orientation."
         )
+    }
+
+    private func oriented(
+        _ actions: (inside: BooleanRegionSelectionAction, outside: BooleanRegionSelectionAction),
+        isToolFace: Bool,
+        rule: BooleanRegionSelectionRule
+    ) -> (inside: BooleanRegionSelectionAction, outside: BooleanRegionSelectionAction) {
+        (rule.oriented(actions.inside, isToolFace: isToolFace), rule.oriented(actions.outside, isToolFace: isToolFace))
     }
 
     private func regionActions(

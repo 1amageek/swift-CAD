@@ -3,16 +3,13 @@ import CADIR
 import CADModeling
 import CADTopology
 
+/// Carries the faces no intersection splits, each kept, turned or dropped whole by the region
+/// rule from where it lies against the other operand's material.
 struct ClosedIntersectionUnsplitFaceMaterializer {
     private let pointSampler: BRepFaceInteriorPointSampler
-    private let pointClassifier: any SolidPointClassifying
 
-    init(
-        pointSampler: BRepFaceInteriorPointSampler = BRepFaceInteriorPointSampler(),
-        pointClassifier: any SolidPointClassifying = DefaultBRepSolidPointClassifier()
-    ) {
+    init(pointSampler: BRepFaceInteriorPointSampler = BRepFaceInteriorPointSampler()) {
         self.pointSampler = pointSampler
-        self.pointClassifier = pointClassifier
     }
 
     func patches(
@@ -23,6 +20,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         forcedActions: [FaceID: BooleanRegionSelectionAction] = [:],
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> [BRepSewingFacePatch] {
         try tolerance.validate()
@@ -69,7 +67,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         } else {
             classificationSessions = try SolidPointClassificationSessionSet(
                 bodyIDs: classificationBodyIDs,
-                pointClassifier: pointClassifier,
+                pointClassifier: operands.pointClassifier,
                 model: model,
                 tolerance: tolerance
             )
@@ -85,6 +83,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
             model: model,
             sourceSubshapes: sourceSubshapes,
             classificationSessions: classificationSessions,
+            operands: operands,
             tolerance: tolerance
         )
         let toolPatches = try carriedPatches(
@@ -98,6 +97,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
             model: model,
             sourceSubshapes: sourceSubshapes,
             classificationSessions: classificationSessions,
+            operands: operands,
             tolerance: tolerance
         )
         return targetPatches + toolPatches
@@ -114,6 +114,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
         classificationSessions: SolidPointClassificationSessionSet?,
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> [BRepSewingFacePatch] {
         var patches: [BRepSewingFacePatch] = []
@@ -149,7 +150,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
                         message: "An unsplit Boolean face resolved to the opposite operand boundary without explicit coincident ownership."
                     )
                 }
-                action = BooleanRegionSelectionRule().action(
+                action = operands.rule.action(
                     operation: operation,
                     classification: classification,
                     isToolFace: isToolFace

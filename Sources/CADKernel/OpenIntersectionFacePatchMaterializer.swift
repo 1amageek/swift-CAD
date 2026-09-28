@@ -24,6 +24,7 @@ struct OpenIntersectionFacePatchMaterializer {
         regionSelectionGraph: BooleanRegionSelectionGraph,
         coincidentArrangementBoundaries: [BooleanFaceArrangementBoundary] = [],
         coincidentFaceActions: [FaceID: BooleanRegionSelectionAction] = [:],
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> BRepSewingRequest {
         try tolerance.validate()
@@ -57,6 +58,7 @@ struct OpenIntersectionFacePatchMaterializer {
                 model: model,
                 sourceSubshapes: sourceSubshapes,
                 coincidentArrangementBoundaries: coincidentArrangementBoundaries,
+                operands: operands,
                 tolerance: tolerance
             )
         } catch {
@@ -208,6 +210,7 @@ struct OpenIntersectionFacePatchMaterializer {
                 forcedActions: coincidentFaceActions,
                 model: model,
                 sourceSubshapes: sourceSubshapes,
+                operands: operands,
                 tolerance: tolerance
             )
         } catch {
@@ -242,7 +245,7 @@ struct OpenIntersectionFacePatchMaterializer {
         }
         let request = BRepSewingRequest(
             featureID: featureID,
-            bodyKind: .solid,
+            bodyKind: operands.resultBodyKind,
             shells: shells,
             bodyParentSubshapeIDs: (targetBodyIDs + [toolBodyID]).flatMap {
                 parentSubshapeIDs(for: .body($0), in: sourceSubshapes)
@@ -259,6 +262,7 @@ struct OpenIntersectionFacePatchMaterializer {
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
         coincidentArrangementBoundaries: [BooleanFaceArrangementBoundary],
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> [BooleanFaceArrangementBoundary] {
         let operandFaceIDs = targetFaceIDs.union(toolFaceIDs)
@@ -320,6 +324,20 @@ struct OpenIntersectionFacePatchMaterializer {
                 )
                 result.append(contentsOf: targetBoundaries)
                 result.append(contentsOf: toolBoundaries)
+            }
+        }
+        // An empty-shell operand has no material to change a face's action across, yet the
+        // crossing is where the operands meet: a face crossing an empty shell is split there
+        // when both sides stay.
+        for index in result.indices where result[index].isPartitioning == false {
+            let boundary = result[index]
+            let oppositeSolidity = targetFaceIDs.contains(boundary.faceID)
+                ? operands.solidities.tool
+                : operands.solidities.target
+            if oppositeSolidity == .none,
+               boundary.forwardLeftAction != .discard,
+               boundary.forwardRightAction != .discard {
+                result[index].forcedPartitioning = true
             }
         }
         // Solid sewing pairs every intersection edge across its face pair,

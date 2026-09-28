@@ -286,6 +286,7 @@ struct LinearPatternFeatureTests {
             subshapes: input.subshapes,
             uvSplitGraph: uvSplitGraph,
             regionSelectionGraph: regionSelectionGraph,
+            operands: .volumes(targetBodyIDs: input.targetBodyIDs, toolBodyID: input.toolBodyID),
             tolerance: input.tolerance
         )
         try selection.sewingRequest.validate(tolerance: input.tolerance)
@@ -381,6 +382,7 @@ struct LinearPatternFeatureTests {
             subshapes: [SubshapeID: TopologyReference],
             toolSubshapes: [SubshapeID: TopologyReference],
             inputLineage: [SubshapeID: TopologyLineage],
+            materials: BooleanMaterials,
             tolerance: ModelingTolerance
         ) throws -> EvaluationResult {
             throw Stop(input: Input(

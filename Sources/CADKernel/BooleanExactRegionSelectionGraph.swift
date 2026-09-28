@@ -21,15 +21,18 @@ public struct BooleanExactRegionSelectionGraph: Sendable {
         operation: BooleanOperation,
         featureID: FeatureID,
         classificationGraph: BooleanClassificationGraph,
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws {
         try decisions.validate(
             operation: operation,
             classificationGraph: classificationGraph,
+            rule: operands.rule,
             tolerance: tolerance
         )
         try sewingRequest.validate(tolerance: tolerance)
         guard sewingRequest.featureID == featureID,
+              sewingRequest.bodyKind == operands.resultBodyKind,
               Set(stableSubshapes.values).count == stableSubshapes.count else {
             throw KernelError(
                 phase: .classification,

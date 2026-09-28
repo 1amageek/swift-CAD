@@ -467,7 +467,12 @@ A Boolean has one or more `tools`, which act together as one region (their
 union), and every target and tool reference carries an optional `placement`: the
 rigid motion placing that body in the result's frame (absent means it combines
 where it was evaluated). The result replaces its targets; Keep Tools keeps
-every tool where it was evaluated, placed or not. The form written before `tools` (one `tool` with an optional
+every tool where it was evaluated, placed or not. Targets and tools are solids (`body`
+sources) or sheets (`sheet` sources); the targets are all one or the other.
+`targetMaterial` and `toolMaterial` (`BooleanMaterial`: Default, Empty, Inside,
+Outside) say how each side's material is taken and decode as Default when
+absent. The Boolean's one output is `resultPort(targetPorts:)`: a sheet when the
+targets' material is empty (Empty, or Default on sheet targets), otherwise a body. The form written before `tools` (one `tool` with an optional
 `toolPlacement`) still decodes, as one tool carrying that placement; the native
 package accepts either form but not both. Geometry is owned by
 [CADModeling](../CADModeling/DESIGN.md#placed-boolean-tools).

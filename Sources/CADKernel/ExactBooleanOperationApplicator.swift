@@ -20,6 +20,7 @@ struct ExactBooleanOperationApplicator: BooleanOperationApplying {
         subshapes: [SubshapeID: TopologyReference],
         toolSubshapes: [SubshapeID: TopologyReference],
         inputLineage: [SubshapeID: TopologyLineage],
+        materials: BooleanMaterials,
         tolerance: ModelingTolerance
     ) throws -> EvaluationResult {
         try BooleanPipeline(evaluator: evaluator).evaluate(
@@ -32,6 +33,7 @@ struct ExactBooleanOperationApplicator: BooleanOperationApplying {
             subshapes: subshapes,
             toolSubshapes: toolSubshapes,
             inputLineage: inputLineage,
+            materials: materials,
             tolerance: tolerance
         )
     }

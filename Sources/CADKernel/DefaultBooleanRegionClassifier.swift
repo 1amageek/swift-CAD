@@ -3,24 +3,23 @@ import CADGeometry
 import CADIR
 import CADTopology
 
+/// Classifies both sides of every intersection component against the opposite operand's
+/// material, through the pass's operand point classifier.
 public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
-    private let pointClassifier: any SolidPointClassifying
-
-    public init(pointClassifier: any SolidPointClassifying = DefaultBRepSolidPointClassifier()) {
-        self.pointClassifier = pointClassifier
-    }
+    public init() {}
 
     public func classificationGraph(
         uvSplitGraph: BooleanUVSplitGraph,
         targetBodyIDs: [BodyID],
         toolBodyID: BodyID,
         model: BRepModel,
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> BooleanClassificationGraph {
         var resultSamples: [BooleanClassificationGraph.Sample] = []
         let classificationSessions = try SolidPointClassificationSessionSet(
             bodyIDs: targetBodyIDs + [toolBodyID],
-            pointClassifier: pointClassifier,
+            pointClassifier: operands.pointClassifier,
             model: model,
             tolerance: tolerance
         )

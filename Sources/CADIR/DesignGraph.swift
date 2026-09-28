@@ -918,20 +918,19 @@ public struct DesignGraph: Codable, Equatable, Sendable {
               node.inputs.count == expectedInputs.count else {
             throw FeatureEvaluationError.invalidGraph("Boolean features must consume declared target and tool body inputs.")
         }
-        for target in boolean.targets {
-            guard let targetSource = nodes[target.featureID],
-                  targetSource.outputs.contains(where: { $0.role == .body }) else {
-                throw FeatureEvaluationError.invalidGraph("Boolean target source must declare a body output.")
+        let targetPorts = try boolean.targets.map { target -> FeaturePort in
+            guard let port = nodes[target.featureID]?.bodyOrSheetOutput else {
+                throw FeatureEvaluationError.invalidGraph("Boolean target source must declare a body or sheet output.")
             }
+            return port
         }
         for tool in boolean.tools {
-            guard let toolSource = nodes[tool.featureID],
-                  toolSource.outputs.contains(where: { $0.role == .body }) else {
-                throw FeatureEvaluationError.invalidGraph("Boolean tool source must declare a body output.")
+            guard nodes[tool.featureID]?.bodyOrSheetOutput != nil else {
+                throw FeatureEvaluationError.invalidGraph("Boolean tool source must declare a body or sheet output.")
             }
         }
-        guard outputRoles == [.body] else {
-            throw FeatureEvaluationError.invalidGraph("Boolean features must declare one body output.")
+        guard outputRoles == [try boolean.resultPort(targetPorts: targetPorts)] else {
+            throw FeatureEvaluationError.invalidGraph("Boolean features must declare the one output their targets and material give.")
         }
     }
 

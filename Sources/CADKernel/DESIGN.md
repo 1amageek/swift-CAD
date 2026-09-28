@@ -519,6 +519,50 @@ reuse by the cache tests.
 Changes require rechecking primitive evaluation, tessellation configuration
 identity, and RupaCore snapshot measurement.
 
+## Boolean operands and material
+
+One Boolean pass (`BooleanPipeline.evaluate`) combines targets with one tool, each
+operand's material taken as a `BooleanMaterials` pair says. The pass resolves a
+`BooleanOperandSolidity` per operand from its body kind, role and material, and
+every phase reads the same `BooleanOperandContext`.
+
+| Operand | Default | Inside | Outside | Empty |
+|---|---|---|---|---|
+| solid | `volume` | `volume` | `complement` | `none` |
+| sheet tool facing solid targets | `behindSheet` | `behindSheet` | `inFrontOfSheet` | `none` |
+| any other sheet | `none` | `behindSheet` | `inFrontOfSheet` | `none` |
+
+- Classification: `BooleanOperandPointClassifier` answers inside/outside/boundary
+  against each operand's material: `DefaultBRepSolidPointClassifier` for a volume
+  (inverted for its complement), `BRepSheetSidePointClassifier` for a sheet side
+  (the first sheet face a ray from the point meets, along or against three fixed
+  oblique directions, says by its oriented normal whether the point is behind it;
+  a point no ray reaches the sheet from, or directions that disagree, is a typed
+  classification failure), and outside everywhere for `none`. Both classifiers
+  share `BRepRayFaceCrossings`.
+- Selection: `BooleanRegionSelectionRule` is the one keep/discard table for
+  materials behind their faces; a face of an operand whose material lies in front
+  of its faces (`isInverted`) turns a kept face (`oriented`). Coincident ownership
+  compares material-outward normals and orients its actions the same way; faces of
+  an empty operand that coincide with the other operand are refused as
+  unsupported.
+- Materialization: the special-case planners (orthogonal cells, convex planar,
+  revolved, partial cylinder, disjoint union) are used only when both operands are
+  volumes; otherwise the general exact path materializes the selected regions. A
+  pass whose targets have no material produces a sheet body, any other a solid
+  (`resultBodyKind`), and the sewing request must carry that kind. A face crossing
+  an empty-shell operand is split along the crossing when both sides stay, and a
+  boundary kept on both sides of one face gives its reverse use its own identity
+  (`:reverse-use`).
+- Callers without materials (patterns, sweeps, extrudes, mirrors, half-space
+  cuts, section curves) keep two solids taken as their volumes.
+
+`SheetBooleanTests` (SwiftCADTests) own solid−sheet difference, intersect,
+Outside and reversed-normal flips, a sheet slice, sheet−solid trim and inside,
+sheet−sheet split and empty intersection, the refused half-space union, a sheet
+that does not reach across, the result port and material persistence; the
+existing Boolean suites prove volumes are unchanged.
+
 ## Sheet half-space cutting
 
 `BRepBodyHalfSpaceCutter` delegates sheet operands to `BRepSheetHalfSpaceCutter` after constructing its enclosing half-space box. The sheet cutter reuses the complete intersection graph, exact UV splitter, intersection edge materialization, and open-face arrangement. It classifies the two sides of each transverse intersection by the signed derivative of the plane distance, preserving the source surface and pcurves. Unsplit faces are classified only after the complete intersection graph establishes absence of transverse crossings. Connected retained patches form sheet shells; no solid caps or box faces are published. An empty retained side or ambiguous tangency fails explicitly. Cut-stage lineage names only source topology. `SheetMirrorCutTests` owns kept/reflected/combined curved-sheet results, exact topology and empty-side failure; Rupa's `SceneMirrorTests` owns the command integration.

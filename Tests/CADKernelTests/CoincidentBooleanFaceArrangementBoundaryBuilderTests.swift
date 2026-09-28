@@ -35,6 +35,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
             pairs: resolution.partiallyCoincidentPairs,
             model: fixture.model,
             sourceSubshapes: fixture.sourceSubshapes,
+            operands: .volumes(targetBodyIDs: [], toolBodyID: BodyID()),
             tolerance: tolerance
         )
         #expect(arrangement.constantActions[fixture.toolFaceID] == .discard)
@@ -81,6 +82,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
             pairs: resolution.partiallyCoincidentPairs,
             model: fixture.model,
             sourceSubshapes: fixture.sourceSubshapes,
+            operands: .volumes(targetBodyIDs: [], toolBodyID: BodyID()),
             tolerance: tolerance
         )
         let targetBoundaries = arrangement.boundaries.filter {
@@ -125,6 +127,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
             pairs: resolution.partiallyCoincidentPairs,
             model: fixture.model,
             sourceSubshapes: fixture.sourceSubshapes,
+            operands: .volumes(targetBodyIDs: [], toolBodyID: BodyID()),
             tolerance: tolerance
         )
         #expect(arrangement.constantActions[fixture.targetFaceID] == .keep)
@@ -181,6 +184,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
                 )]
             )]),
             model: fixture.model,
+            operands: .volumes(targetBodyIDs: [], toolBodyID: BodyID()),
             tolerance: tolerance
         )
     }

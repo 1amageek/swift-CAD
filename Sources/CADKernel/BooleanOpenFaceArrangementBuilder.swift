@@ -1269,6 +1269,7 @@ struct BooleanOpenFaceArrangementBuilder {
         }
 
         var result: [BRepSewingFacePatch] = []
+        var selections: [(cycles: [(cycle: Cycle, role: LoopRole)], action: BooleanRegionSelectionAction, stableKey: String)] = []
         for record in positiveRecords.sorted(by: { $0.stableKey < $1.stableKey }) {
             let childExteriors = childExteriorsByPositiveKey[record.stableKey, default: []]
                 .sorted { $0.stableKey < $1.stableKey }
@@ -1318,16 +1319,32 @@ struct BooleanOpenFaceArrangementBuilder {
                 action = inferredAction
             }
             guard action.isSelected else { continue }
-            result.append(try facePatch(
-                cycles: [(record.cycle, .outer)] + childExteriors.map {
-                    ($0.cycle, .inner)
-                },
+            selections.append((
+                cycles: [(record.cycle, .outer)] + childExteriors.map { ($0.cycle, .inner) },
                 action: action,
-                stableKey: record.stableKey,
+                stableKey: record.stableKey
+            ))
+        }
+        // Kept regions on both sides of one boundary (a face split where both sides stay) use
+        // that edge once each way: the reverse use gets its own identity so the two uses are
+        // distinct in the sewing request.
+        var forwardUses = Set<Int>(), reverseUses = Set<Int>()
+        for selection in selections {
+            for use in selection.cycles.flatMap(\.cycle.uses) {
+                if use.isForward { forwardUses.insert(use.edgeIndex) } else { reverseUses.insert(use.edgeIndex) }
+            }
+        }
+        let bothWays = forwardUses.intersection(reverseUses)
+        for selection in selections {
+            result.append(try facePatch(
+                cycles: selection.cycles,
+                action: selection.action,
+                stableKey: selection.stableKey,
                 graph: graph,
                 face: face,
                 surface: surface,
                 parentSubshapeIDs: parentSubshapeIDs,
+                edgesUsedBothWays: bothWays,
                 tolerance: tolerance
             ))
         }
@@ -1654,6 +1671,7 @@ struct BooleanOpenFaceArrangementBuilder {
         face: Face,
         surface: Surface3D,
         parentSubshapeIDs: [SubshapeID],
+        edgesUsedBothWays: Set<Int>,
         tolerance: ModelingTolerance
     ) throws -> BRepSewingFacePatch {
         let stableID = "open-arrangement:face:\(face.id):region:\(stableKey)"
@@ -1668,6 +1686,7 @@ struct BooleanOpenFaceArrangementBuilder {
                     edges: try liftedEdges(
                         for: record.cycle,
                         graph: graph,
+                        edgesUsedBothWays: edgesUsedBothWays,
                         tolerance: tolerance
                     )
                 )
@@ -1684,6 +1703,7 @@ struct BooleanOpenFaceArrangementBuilder {
     private func liftedEdges(
         for cycle: Cycle,
         graph: Graph,
+        edgesUsedBothWays: Set<Int> = [],
         tolerance: ModelingTolerance
     ) throws -> [BRepSewingEdge] {
         var result: [BRepSewingEdge] = []
@@ -1697,7 +1717,10 @@ struct BooleanOpenFaceArrangementBuilder {
         var firstAnchor: SurfaceParameter?
         var visitsUSingularity = false
         for use in cycle.uses {
-            let edge = try orientedEdge(use, graph: graph, tolerance: tolerance)
+            var edge = try orientedEdge(use, graph: graph, tolerance: tolerance)
+            if use.isForward == false, edgesUsedBothWays.contains(use.edgeIndex) {
+                edge = edge.renamed("\(edge.stableID):reverse-use")
+            }
             let start = try edge.surfaceParameterCurve.startParameter(
                 tolerance: tolerance
             )
@@ -2708,5 +2731,23 @@ private typealias UVPeriodicity = SurfaceParameterTopology
 private extension BooleanRegionSelectionAction {
     var isSelected: Bool {
         self == .keep || self == .keepReversed
+    }
+}
+
+private extension BRepSewingEdge {
+    /// The same edge use under another stable identity.
+    func renamed(_ stableID: String) -> BRepSewingEdge {
+        BRepSewingEdge(
+            stableID: stableID,
+            curve: curve,
+            startParameter: startParameter,
+            endParameter: endParameter,
+            startPoint: startPoint,
+            endPoint: endPoint,
+            surfaceParameterCurve: surfaceParameterCurve,
+            parentSubshapeIDs: parentSubshapeIDs,
+            startVertexParentSubshapeIDs: startVertexParentSubshapeIDs,
+            endVertexParentSubshapeIDs: endVertexParentSubshapeIDs
+        )
     }
 }
