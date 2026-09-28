@@ -132,15 +132,23 @@ offsets meet form runs, and at each corner the two runs' offsets are intersected
 by `SketchCurveIntersector`: where they cross both end at the crossing (the inside
 of a turn), and where they part the `.round` fill is an arc about the corner at
 the distance (cubic spans checked against the circle to the modeling distance)
-and the `.linear` fill their end tangents continued until they meet (refused if
-parallel or meeting behind). A closed chain stays closed; a closed chain of one
+the `.linear` fill their end tangents continued until they meet (refused if
+parallel or meeting behind), and the `.natural` fill the tail's last cubic and the
+head's first continued along their own polynomials (exact Hermite forms over
+intervals past the ends, reaching up to 0.5, 1, 2, 4 and 8 span lengths in turn)
+until they meet, refused when they do not. A closed chain stays closed; a closed chain of one
 run joins its seam by intersecting its last third with its first third.
 `offset(of: SketchSplineCurve, distance:gapFill:)` offsets a sketch spline of any
 degree and knots the same way over its own Bezier segments (B, B′ and B″ by de
 Casteljau on the points and their differences), so a spline is never offset as
 the cubic chain its control points would make; the result is still a cubic chain.
-`CubicBezierChainOffsetTests` and `CubicBezierChainOffsetGapFillTests` own these;
-RupaCore's Offset Planar Curve on splines consumes the spline form.
+`offset(spans:distance:gapFill:)` offsets consecutive Bezier spans of any degrees
+(a line a two-point span), so a joined chain of lines, arcs and splines offsets as
+one curve; `CubicBezierArcApproximation.chain` gives an arc as cubic spans with
+4/3·tan(θ/4) handles, the fewest (up to 64) within the modeling distance.
+`CubicBezierChainOffsetTests`, `CubicBezierChainOffsetGapFillTests` and
+`NaturalGapFillAndArcChainTests` own these; RupaCore's Offset Planar Curve on
+splines and joined chains consumes them.
 
 `SurfaceQueryEvaluator.outwardFrame` returns a face point (the nearest point to
 a query, or the point at a surface parameter) with the face's outward normal:

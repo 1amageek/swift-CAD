@@ -24,11 +24,13 @@ public struct CubicBezierChainOffset: Sendable {
     }
 
     /// How the offsets of two spans meeting at a corner are joined when they part: a round arc
-    /// about the corner at the distance, or their end tangents continued until they meet. Where
-    /// the offsets cross instead, both are trimmed at the crossing whatever the gap fill.
+    /// about the corner at the distance, their end tangents continued until they meet, or their
+    /// end spans continued along their own cubics until they meet. Where the offsets cross
+    /// instead, both are trimmed at the crossing whatever the gap fill.
     public enum GapFill: Sendable, Hashable {
         case round
         case linear
+        case natural
     }
 
     /// The offset of the chain with its corners joined by `gapFill`; a nil gap fill refuses a
@@ -49,8 +51,10 @@ public struct CubicBezierChainOffset: Sendable {
         try offset(spans: curve.segments.map(\.controlPoints), distance: distance, gapFill: gapFill)
     }
 
-    /// The offset of consecutive Bezier spans, each span's last point the next one's first.
-    private func offset(spans: [[Point2D]], distance: Double, gapFill: GapFill?) throws -> [Point2D] {
+    /// The offset of consecutive Bezier spans of any degrees (a line is a two-point span), each
+    /// span's last point the next one's first, as `offset(of:distance:gapFill:)` does for a
+    /// cubic chain: a joined chain of lines, arcs and splines offsets as one curve.
+    public func offset(spans: [[Point2D]], distance: Double, gapFill: GapFill?) throws -> [Point2D] {
         guard let firstSpan = spans.first, let lastSpan = spans.last,
               spans.allSatisfy({ $0.count >= 2 }) else {
             throw invalid("An offset needs at least one span of two or more control points.")
@@ -186,7 +190,45 @@ public struct CubicBezierChainOffset: Sendable {
             }
             let meet = Point2D(x: end.x + endTangent.x * along, y: end.y + endTangent.y * along)
             return (straight(end, meet) + straight(meet, start).dropFirst(), nil)
+        case .natural:
+            return (try naturalJoin(tail: Array(tail.suffix(4)), head: Array(head.prefix(4))), nil)
         }
+    }
+
+    /// The tail's last cubic continued past its end and the head's first cubic continued before
+    /// its start, each along its own polynomial, until they meet: the continuations reach up to
+    /// `naturalReaches` spans' parameter lengths, the nearest meeting is taken, and none is a
+    /// failure.
+    private func naturalJoin(tail: [Point2D], head: [Point2D]) throws -> [Point2D] {
+        for reach in Self.naturalReaches {
+            let forward = hermite(tail, from: 1, to: 1 + reach)
+            let backward = hermite(head, from: -reach, to: 0)
+            let crossings: [SketchCurveIntersection2D]
+            do {
+                crossings = try SketchCurveIntersector(tolerance: tolerance).intersections(
+                    of: .cubicBezierChain(controlPoints: forward), with: .cubicBezierChain(controlPoints: backward)
+                )
+            } catch let error as KernelError {
+                throw invalid("The natural continuations at a corner could not be intersected: \(error.message)")
+            }
+            guard let meeting = crossings.min(by: { $0.firstParameter < $1.firstParameter }) else { continue }
+            return trimmed(forward, from: 0, to: meeting.firstParameter)
+                + trimmed(backward, from: meeting.secondParameter, to: 1).dropFirst()
+        }
+        throw invalid("The offsets' natural continuations at a corner do not meet.")
+    }
+
+    /// Continuation reaches tried in turn, in spans' parameter lengths.
+    static let naturalReaches: [Double] = [0.5, 1, 2, 4, 8]
+
+    /// The cubic `span` over parameters `a`...`b` (which may lie outside 0...1) as one cubic:
+    /// a cubic's Hermite form over any interval is exact.
+    private func hermite(_ span: [Point2D], from a: Double, to b: Double) -> [Point2D] {
+        let (p0, d0, _) = cubicJet(span, a)
+        let (p3, d3, _) = cubicJet(span, b)
+        let scale = (b - a) / 3
+        return [p0, Point2D(x: p0.x + d0.x * scale, y: p0.y + d0.y * scale),
+                Point2D(x: p3.x - d3.x * scale, y: p3.y - d3.y * scale), p3]
     }
 
     /// The arc about `center` from `start` to `end` the short way, as cubic spans within the
