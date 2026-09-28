@@ -703,7 +703,7 @@ struct CADExchangeTests {
         }
 
         #expect(boolean.targets == [BooleanTargetReference(featureID: fixture.targetID)])
-        #expect(boolean.tool == BooleanToolReference(featureID: fixture.toolID))
+        #expect(boolean.tools == [BooleanToolReference(featureID: fixture.toolID)])
         #expect(boolean.operation == .difference)
         #expect(boolean.keepTools)
         #expect(loadedFeature.inputs == [
@@ -4260,7 +4260,7 @@ private func nativeBooleanDocumentFixture() -> (document: CADDocument, targetID:
     )
     let boolean = BooleanFeature(
         targets: [BooleanTargetReference(featureID: targetID)],
-        tool: BooleanToolReference(featureID: toolID),
+        tools: [BooleanToolReference(featureID: toolID)],
         operation: .difference,
         keepTools: true
     )

@@ -101,28 +101,13 @@ public struct MirrorFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             // The target already lies on the kept side, so the cut keeps all of it.
             return try reflect(mirror, bodyID: bodyID, featureID: feature.id, context: context)
         }
-        let cutBodyIDs = Set(cut.subshapes.values.compactMap { reference -> BodyID? in
-            guard case let .body(id) = reference else { return nil }
-            return id
-        })
-        guard cutBodyIDs.count == 1, let cutBodyID = cutBodyIDs.first else {
-            throw error(
-                .topologyFailure,
-                featureID: feature.id,
-                tolerance: context.tolerance,
-                "Cutting the mirror target at its plane must keep exactly one body."
-            )
-        }
-        var staged = context
-        staged.brep = cut.brep
-        for subshapeID in cut.removedSubshapeIDs {
-            staged.subshapes.entries.removeValue(forKey: subshapeID)
-        }
-        staged.subshapes.entries.merge(cut.subshapes) { _, cutEntry in cutEntry }
-        staged.lineage.merge(cut.lineage) { _, cutEntry in cutEntry }
+        var stages = FeatureEvaluationStages(context)
+        stages.apply(cut)
+        let cutBodyID = try stages.publishedBody(of: cut, featureID: feature.id, what: "Cutting the mirror target at its plane")
+        let staged = stages.context
         // The kept material lies against the plane, so it and its reflection meet only there: a
         // combined output sews the two together instead of intersecting them.
-        var result = mirror.output == .combined
+        let result = mirror.output == .combined
             ? try rebuilder.glueReflection(
                 featureID: feature.id,
                 sourceBodyID: cutBodyID,
@@ -141,30 +126,7 @@ public struct MirrorFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
         // Publish the result as if the target had been mirrored directly: the cut stage's
         // identities are consumed, the target's are removed, and lineage through the cut body
         // leads back to the target.
-        let stageSubshapeIDs = Set(cut.subshapes.keys)
-        guard result.subshapes.keys.allSatisfy({ !stageSubshapeIDs.contains($0) }) else {
-            throw error(
-                .topologyFailure,
-                featureID: feature.id,
-                tolerance: context.tolerance,
-                "A cut mirror left a temporary identity in its result."
-            )
-        }
-        result.removedSubshapeIDs = result.removedSubshapeIDs
-            .subtracting(stageSubshapeIDs)
-            .union(cut.removedSubshapeIDs)
-        result.lineage = result.lineage.mapValues { entry in
-            var parents = Set<SubshapeID>()
-            for parent in entry.parents {
-                if stageSubshapeIDs.contains(parent) {
-                    parents.formUnion(cut.lineage[parent]?.parents ?? [])
-                } else {
-                    parents.insert(parent)
-                }
-            }
-            return TopologyLineage(output: entry.output, parents: parents.sorted(), relation: entry.relation)
-        }.withRelationsDerivedFromParents()
-        return result
+        return try stages.publish(result, featureID: feature.id)
     }
 
     /// Replaces `bodyID` with the mirror's output built from it.

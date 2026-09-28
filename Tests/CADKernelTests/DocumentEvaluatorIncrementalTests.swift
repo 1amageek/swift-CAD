@@ -131,7 +131,7 @@ struct DocumentEvaluatorIncrementalTests {
                 id: booleanFeatureID,
                 operation: .boolean(BooleanFeature(
                     targets: [BooleanTargetReference(featureID: targetFeatureID)],
-                    tool: BooleanToolReference(featureID: toolFeatureID),
+                    tools: [BooleanToolReference(featureID: toolFeatureID)],
                     operation: .union
                 )),
                 inputs: [

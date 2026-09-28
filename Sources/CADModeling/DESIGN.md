@@ -551,17 +551,23 @@ replay, target/tool retention and invalid target or sheet requests.
 
 ### Placed Boolean tools
 
-A Boolean with a `toolPlacement` first rebuilds the tool body once at that rigid
-placement through the exact pattern rebuilder's `relocate` (the same exact face
-images and sewing as patterns), under a `booleanToolPlacement` stage identity,
-then combines the moved tool with the targets. The published result is the one
-the original tool would give: the stage identities are consumed with the tool
-and never published, the original tool subshapes are removed, and lineage that
-ran through the moved tool is traced back to the original tool subshapes. An
-evaluator without a relocator refuses a placed tool as an unsupported
-capability. `PlacedBooleanToolTests` prove exact union, difference and intersect
-volumes of a placed tool and that no temporary identity reaches the evaluated
-subshapes or lineage.
+A Boolean whose operands are all unplaced and that has one tool is one pass of
+the pipeline. Otherwise it is evaluated in stages (`FeatureEvaluationStages`):
+every placed target or tool is rebuilt once at its rigid placement through the
+exact pattern rebuilder's `relocate` (the same exact face images and sewing as
+patterns) under a `booleanOperandPlacement` stage identity; several tools are
+then united one after another under `booleanToolUnion` stage identities, so they
+act as their union; and the pass combines the targets with the one tool. The
+published result is the one the original operands would give: no stage identity
+is published, every input a stage consumed is reported removed, and lineage is
+traced through stage subshapes back to input subshapes. With Keep Tools, a tool
+consumed by a stage is put back unchanged from the input model beside the
+result (`restoringInputBodies`); a single unplaced tool is kept by the pipeline
+itself. An evaluator without a relocator refuses a placed operand as an
+unsupported capability. `PlacedBooleanToolTests` prove exact volumes for a placed
+tool, a kept placed tool, targets at different placements and several tools
+(intersect and kept difference), that no temporary identity reaches the evaluated
+subshapes or lineage, and that the single-tool form still decodes.
 
 ### Mirror output and cut
 
@@ -576,7 +582,7 @@ with its reflection (`combined`), the reflection alone (`reflection`, through
 intersect the two halves: they meet only on the plane, so
 `glueReflection` drops both halves' faces on the plane and sews the rest into
 one shell, reversing the reflected loops so both halves turn the same way about
-their outward normals. Cut stage identities are consumed like a placed tool's,
+their outward normals. The cut is a `FeatureEvaluationStages` stage, consumed like a placed Boolean operand's,
 and every stage that rewrites lineage parents re-derives each relation from its
 parents (`withRelationsDerivedFromParents`). `MirrorFeatureIntegrationTests`
 prove each output's volume and extent for boxes, the cut-and-join of a

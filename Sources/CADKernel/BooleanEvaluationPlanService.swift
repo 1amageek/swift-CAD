@@ -169,9 +169,10 @@ public struct BooleanEvaluationPlanService: Sendable {
         try tolerance.validate()
         try document.validate(tolerance: tolerance)
 
+        // The plan covers one pass of the Boolean pipeline: the targets against one tool.
         let boolean = BooleanFeature(
             targets: targets,
-            tool: tool,
+            tools: [tool],
             operation: operation,
             keepTools: keepTools
         )

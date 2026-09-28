@@ -7236,7 +7236,7 @@ private func makeChainedOrthogonalBooleanDocument() -> (
         id: firstBooleanID,
         operation: .boolean(BooleanFeature(
             targets: [BooleanTargetReference(featureID: targetID)],
-            tool: BooleanToolReference(featureID: firstToolID),
+            tools: [BooleanToolReference(featureID: firstToolID)],
             operation: .difference
         )),
         inputs: [
@@ -7269,7 +7269,7 @@ private func makeChainedOrthogonalBooleanDocument() -> (
         id: secondBooleanID,
         operation: .boolean(BooleanFeature(
             targets: [BooleanTargetReference(featureID: firstBooleanID)],
-            tool: BooleanToolReference(featureID: secondToolID),
+            tools: [BooleanToolReference(featureID: secondToolID)],
             operation: .difference
         )),
         inputs: [

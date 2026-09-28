@@ -463,10 +463,13 @@ The target list, operation and Keep Tools are source-owned and round-trip with
 legacy defaults. Target outputs must be solid bodies; geometry admission is owned
 by [CADModeling](../CADModeling/DESIGN.md#extrusion-boolean-composition).
 
-A Boolean's optional `toolPlacement` is the rigid motion placing the tool body
-in the targets' frame. It round-trips as an optional field (absent means the
-tool is combined where it was evaluated) and requires Keep Tools off, because
-the moved tool is consumed. Geometry is owned by
+A Boolean has one or more `tools`, which act together as one region (their
+union), and every target and tool reference carries an optional `placement`: the
+rigid motion placing that body in the result's frame (absent means it combines
+where it was evaluated). Keep Tools keeps every tool where it was evaluated,
+placed or not. The form written before `tools` (one `tool` with an optional
+`toolPlacement`) still decodes, as one tool carrying that placement; the native
+package accepts either form but not both. Geometry is owned by
 [CADModeling](../CADModeling/DESIGN.md#placed-boolean-tools).
 
 A mirror's `output` (combined, reflection or kept) and `cutsAtPlane` round-trip

@@ -3207,7 +3207,7 @@ func booleanEvaluationPlanReportsMultiTargetSeparatedBRepUnionBeforeMutation() t
 
     let result = try BooleanEvaluationPlanService().plan(
         document: setup.document,
-        targets: setup.targetFeatureIDs.map(BooleanTargetReference.init(featureID:)),
+        targets: setup.targetFeatureIDs.map { BooleanTargetReference(featureID: $0) },
         tool: BooleanToolReference(featureID: setup.toolFeatureID),
         operation: .union,
         keepTools: true,
@@ -3245,7 +3245,7 @@ func booleanEvaluationEvaluatesMultiTargetSeparatedBRepUnionKeepToolsWithStableC
     let booleanID = FeatureID()
     let plan = try BooleanEvaluationPlanService().plan(
         document: setup.document,
-        targets: setup.targetFeatureIDs.map(BooleanTargetReference.init(featureID:)),
+        targets: setup.targetFeatureIDs.map { BooleanTargetReference(featureID: $0) },
         tool: BooleanToolReference(featureID: setup.toolFeatureID),
         operation: .union,
         keepTools: true,
@@ -3970,8 +3970,8 @@ private func booleanPlanDocument(
     document.designGraph.nodes[booleanID] = FeatureNode(
         id: booleanID,
         operation: .boolean(BooleanFeature(
-            targets: targets.map(BooleanTargetReference.init(featureID:)),
-            tool: BooleanToolReference(featureID: tool),
+            targets: targets.map { BooleanTargetReference(featureID: $0) },
+            tools: [BooleanToolReference(featureID: tool)],
             operation: operation,
             keepTools: keepTools
         )),

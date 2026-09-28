@@ -1447,19 +1447,26 @@ private func validateSweepTargetReferenceObject(_ object: [String: Any], path: S
 private func validateBooleanFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["targets", "tool", "operation", "keepTools", "toolPlacement"],
+        supportedKeys: ["targets", "tools", "operation", "keepTools", "tool", "toolPlacement"],
         objectName: path
     )
     try validateArrayField("targets", in: object, path: "\(path).targets", using: validateBooleanTargetReferenceObject)
-    try validateObjectField("tool", in: object, path: "\(path).tool", using: validateBooleanToolReferenceObject)
+    if object["tools"] != nil {
+        guard object["tool"] == nil, object["toolPlacement"] == nil else {
+            throw SchemaError.invalidPackage("Native \(path) mixes tools with the single-tool form.")
+        }
+        try validateArrayField("tools", in: object, path: "\(path).tools", using: validateBooleanToolReferenceObject)
+    } else {
+        try validateObjectField("tool", in: object, path: "\(path).tool", using: validateBooleanToolReferenceObject)
+    }
 }
 
 private func validateBooleanTargetReferenceObject(_ object: [String: Any], path: String) throws {
-    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID"], objectName: path)
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID", "placement"], objectName: path)
 }
 
 private func validateBooleanToolReferenceObject(_ object: [String: Any], path: String) throws {
-    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID"], objectName: path)
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID", "placement"], objectName: path)
 }
 
 private func validateFaceLoopOffsetFeatureObject(_ object: [String: Any], path: String) throws {

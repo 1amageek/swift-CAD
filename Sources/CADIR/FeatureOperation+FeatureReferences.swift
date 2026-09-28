@@ -100,8 +100,12 @@ extension FeatureOperation {
             feature.guides = try feature.guides.map { LoftGuideReference(featureID: try transform($0.featureID)) }
             return .loft(feature)
         case .boolean(var feature):
-            feature.targets = try feature.targets.map { BooleanTargetReference(featureID: try transform($0.featureID)) }
-            feature.tool = BooleanToolReference(featureID: try transform(feature.tool.featureID))
+            feature.targets = try feature.targets.map {
+                BooleanTargetReference(featureID: try transform($0.featureID), placement: $0.placement)
+            }
+            feature.tools = try feature.tools.map {
+                BooleanToolReference(featureID: try transform($0.featureID), placement: $0.placement)
+            }
             return .boolean(feature)
         case .faceLoopOffset(var feature):
             feature.target = FaceLoopOffsetTargetReference(featureID: try transform(feature.target.featureID))

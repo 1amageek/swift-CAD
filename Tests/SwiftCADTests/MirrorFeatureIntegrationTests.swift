@@ -195,9 +195,8 @@ struct MirrorFeatureIntegrationTests {
                 id: booleanID,
                 operation: .boolean(BooleanFeature(
                     targets: [BooleanTargetReference(featureID: mirrorID)],
-                    tool: BooleanToolReference(featureID: tool),
-                    operation: .union,
-                    toolPlacement: .translated(by: Vector3D(x: 0.020, y: 0, z: 0))
+                    tools: [BooleanToolReference(featureID: tool, placement: .translated(by: Vector3D(x: 0.020, y: 0, z: 0)))],
+                    operation: .union
                 )),
                 inputs: [FeatureInput(featureID: mirrorID, role: .target), FeatureInput(featureID: tool, role: .body)],
                 outputs: [FeatureOutput(role: .body)]
@@ -214,7 +213,7 @@ struct MirrorFeatureIntegrationTests {
         }
         #expect(mirror.output == .reflection)
         #expect(mirror.cutsAtPlane)
-        #expect(boolean.toolPlacement == .translated(by: Vector3D(x: 0.020, y: 0, z: 0)))
+        #expect(boolean.tools.first?.placement == .translated(by: Vector3D(x: 0.020, y: 0, z: 0)))
     }
 
     @Test(.timeLimit(.minutes(1)))

@@ -160,9 +160,11 @@ public enum FeatureNodeFactory {
                 for target in boolean.targets {
                     try validateSource(target.featureID, role: .body, in: document)
                 }
-                try validateSource(boolean.tool.featureID, role: .body, in: document)
+                for tool in boolean.tools {
+                    try validateSource(tool.featureID, role: .body, in: document)
+                }
                 let inputs = boolean.targets.map { FeatureInput(featureID: $0.featureID, role: .target) }
-                    + [FeatureInput(featureID: boolean.tool.featureID, role: .body)]
+                    + boolean.tools.map { FeatureInput(featureID: $0.featureID, role: .body) }
                 return FeatureNode(
                     id: id,
                     name: name,

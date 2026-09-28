@@ -7,13 +7,13 @@ public struct BooleanFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
     private let applicator: any BooleanOperationApplying
     private let toolRelocator: (any ExactBodyPatternRebuilding)?
 
-    /// An evaluator for Booleans whose tool is combined where it was evaluated.
+    /// An evaluator for Booleans whose operands are all combined where they were evaluated.
     public init(applicator: any BooleanOperationApplying) {
         self.applicator = applicator
         self.toolRelocator = nil
     }
 
-    /// An evaluator that also moves a placed tool onto its targets with `toolRelocator`.
+    /// An evaluator that also moves placed operands into the result's frame with `toolRelocator`.
     package init(
         applicator: any BooleanOperationApplying,
         toolRelocator: any ExactBodyPatternRebuilding
@@ -56,179 +56,108 @@ public struct BooleanFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         ) {
             try boolean.validate()
         }
-        let targetBodyIDs = try boolean.targets.map { target in
-            try context.bodyID(generatedBy: target.featureID)
-        }
-        let toolBodyID = try context.bodyID(generatedBy: boolean.tool.featureID)
-        if let placement = boolean.toolPlacement {
-            return try evaluatePlacedTool(
-                boolean,
-                placement: placement,
-                targetBodyIDs: targetBodyIDs,
-                toolBodyID: toolBodyID,
-                featureID: feature.id,
-                context: context
+        let targetBodyIDs = try boolean.targets.map { try context.bodyID(generatedBy: $0.featureID) }
+        let toolBodyIDs = try boolean.tools.map { try context.bodyID(generatedBy: $0.featureID) }
+        let isPlaced = boolean.targets.contains { $0.placement != nil } || boolean.tools.contains { $0.placement != nil }
+        guard isPlaced || toolBodyIDs.count > 1 else {
+            // One tool where it was evaluated: the pipeline combines the inputs directly.
+            return try combine(
+                boolean.operation, targets: targetBodyIDs, tool: toolBodyIDs[0], keepTools: boolean.keepTools,
+                featureID: feature.id, context: context
             )
         }
-        let toolSubshapes = context.subshapes.entries.filter { _, reference in
-            topologyReference(reference, belongsTo: toolBodyID, in: context.brep)
-        }
+        return try evaluateStaged(
+            boolean, targetBodyIDs: targetBodyIDs, toolBodyIDs: toolBodyIDs, featureID: feature.id, context: context
+        )
+    }
 
-        return try FeatureEvaluationBoundary.evaluate(
-            featureID: feature.id,
-            tolerance: context.tolerance
-        ) {
+    /// Moves every placed operand rigidly into the result's frame, unites several tools into one,
+    /// combines, and publishes the result as if the inputs had been combined directly; kept tools
+    /// stay where they were evaluated.
+    private func evaluateStaged(
+        _ boolean: BooleanFeature,
+        targetBodyIDs: [BodyID],
+        toolBodyIDs: [BodyID],
+        featureID: FeatureID,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
+        var stages = FeatureEvaluationStages(context)
+        func relocated(_ bodyID: BodyID, placement: RigidTransform3D?, ordinal: Int) throws -> BodyID {
+            guard let placement else { return bodyID }
+            guard let toolRelocator else {
+                throw KernelError(
+                    phase: .evaluation,
+                    code: .unsupportedCapability,
+                    featureID: featureID,
+                    tolerance: context.tolerance,
+                    message: "This evaluator cannot move a placed Boolean operand."
+                )
+            }
+            try placement.validate(tolerance: context.tolerance)
+            let stageID = featureEvaluationStageID(featureID: featureID, domain: .booleanOperandPlacement, ordinal: UInt64(ordinal))
+            let staged = stages.context
+            let moved = try FeatureEvaluationBoundary.evaluate(featureID: featureID, tolerance: context.tolerance) {
+                try toolRelocator.relocate(
+                    featureID: stageID,
+                    sourceBodyID: bodyID,
+                    transform: placement,
+                    stablePrefix: "boolean:placedOperand",
+                    context: staged
+                )
+            }
+            stages.apply(moved)
+            return try stages.publishedBody(of: moved, featureID: featureID, what: "Moving a Boolean operand")
+        }
+        let targets = try zip(targetBodyIDs, boolean.targets).enumerated().map { ordinal, pair in
+            try relocated(pair.0, placement: pair.1.placement, ordinal: ordinal)
+        }
+        var tools = try zip(toolBodyIDs, boolean.tools).enumerated().map { ordinal, pair in
+            try relocated(pair.0, placement: pair.1.placement, ordinal: targetBodyIDs.count + ordinal)
+        }
+        // The tools act as one region: unite them, one after another.
+        var unionOrdinal: UInt64 = 0
+        while tools.count > 1 {
+            let stageID = featureEvaluationStageID(featureID: featureID, domain: .booleanToolUnion, ordinal: unionOrdinal)
+            unionOrdinal += 1
+            let united = try combine(.union, targets: [tools[0]], tool: tools[1], keepTools: false, featureID: stageID, context: stages.context)
+            stages.apply(united)
+            tools = [try stages.publishedBody(of: united, featureID: featureID, what: "Uniting the Boolean tools")] + tools.dropFirst(2)
+        }
+        let toolsStaged = toolBodyIDs.count > 1 || boolean.tools.contains { $0.placement != nil }
+        let final = try combine(
+            boolean.operation, targets: targets, tool: tools[0], keepTools: boolean.keepTools && toolsStaged == false,
+            featureID: featureID, context: stages.context
+        )
+        let published = try stages.publish(final, featureID: featureID)
+        guard boolean.keepTools && toolsStaged else { return published }
+        return try stages.restoringInputBodies(toolBodyIDs, into: published)
+    }
+
+    /// One pass of the Boolean pipeline in `context`.
+    private func combine(
+        _ operation: BooleanOperation,
+        targets: [BodyID],
+        tool: BodyID,
+        keepTools: Bool,
+        featureID: FeatureID,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
+        let toolSubshapes = context.subshapes.entries.filter { _, reference in
+            context.brep.contains(reference, inBody: tool)
+        }
+        return try FeatureEvaluationBoundary.evaluate(featureID: featureID, tolerance: context.tolerance) {
             try applicator.apply(
-                operation: boolean.operation,
-                targetBodyIDs: targetBodyIDs,
-                toolBodyID: toolBodyID,
-                keepTools: boolean.keepTools,
-                featureID: feature.id,
+                operation: operation,
+                targetBodyIDs: targets,
+                toolBodyID: tool,
+                keepTools: keepTools,
+                featureID: featureID,
                 model: context.brep,
                 subshapes: context.subshapes.entries,
                 toolSubshapes: toolSubshapes,
                 inputLineage: context.lineage,
                 tolerance: context.tolerance
             )
-        }
-    }
-
-    /// Moves the tool rigidly onto the targets under a temporary stage identity, combines, then
-    /// publishes the result as if the original tool had been combined: the stage identities are
-    /// consumed with the tool, the original tool topology is removed, and lineage that ran through
-    /// the moved tool is traced back to the original tool subshapes.
-    private func evaluatePlacedTool(
-        _ boolean: BooleanFeature,
-        placement: RigidTransform3D,
-        targetBodyIDs: [BodyID],
-        toolBodyID: BodyID,
-        featureID: FeatureID,
-        context: EvaluationContext
-    ) throws -> EvaluationResult {
-        guard let toolRelocator else {
-            throw KernelError(
-                phase: .evaluation,
-                code: .unsupportedCapability,
-                featureID: featureID,
-                tolerance: context.tolerance,
-                message: "This evaluator cannot move a placed Boolean tool."
-            )
-        }
-        try placement.validate(tolerance: context.tolerance)
-        let stageID = featureEvaluationStageID(featureID: featureID, domain: .booleanToolPlacement, ordinal: 0)
-        let relocated = try FeatureEvaluationBoundary.evaluate(
-            featureID: featureID,
-            tolerance: context.tolerance
-        ) {
-            try toolRelocator.relocate(
-                featureID: stageID,
-                sourceBodyID: toolBodyID,
-                transform: placement,
-                stablePrefix: "boolean:placedTool",
-                context: context
-            )
-        }
-        let relocatedBodyIDs = Set(relocated.subshapes.values.compactMap { reference -> BodyID? in
-            guard case let .body(bodyID) = reference else { return nil }
-            return bodyID
-        })
-        guard relocatedBodyIDs.count == 1, let relocatedToolBodyID = relocatedBodyIDs.first else {
-            throw KernelError(
-                phase: .topology,
-                code: .topologyFailure,
-                featureID: featureID,
-                tolerance: context.tolerance,
-                message: "Moving the Boolean tool did not publish exactly one body."
-            )
-        }
-        var subshapes = context.subshapes.entries
-        for subshapeID in relocated.removedSubshapeIDs {
-            subshapes.removeValue(forKey: subshapeID)
-        }
-        subshapes.merge(relocated.subshapes) { _, moved in moved }
-        var inputLineage = context.lineage
-        inputLineage.merge(relocated.lineage) { _, moved in moved }
-
-        var result = try FeatureEvaluationBoundary.evaluate(
-            featureID: featureID,
-            tolerance: context.tolerance
-        ) {
-            try applicator.apply(
-                operation: boolean.operation,
-                targetBodyIDs: targetBodyIDs,
-                toolBodyID: relocatedToolBodyID,
-                keepTools: false,
-                featureID: featureID,
-                model: relocated.brep,
-                subshapes: subshapes,
-                toolSubshapes: relocated.subshapes,
-                inputLineage: inputLineage,
-                tolerance: context.tolerance
-            )
-        }
-        let stageSubshapeIDs = Set(relocated.subshapes.keys)
-        guard result.subshapes.keys.allSatisfy({ stageSubshapeIDs.contains($0) == false }) else {
-            throw KernelError(
-                phase: .topology,
-                code: .topologyFailure,
-                featureID: featureID,
-                tolerance: context.tolerance,
-                message: "A placed Boolean tool left a temporary identity in its result."
-            )
-        }
-        result.removedSubshapeIDs = result.removedSubshapeIDs
-            .subtracting(stageSubshapeIDs)
-            .union(relocated.removedSubshapeIDs)
-        result.lineage = result.lineage.mapValues { entry in
-            var parents = Set<SubshapeID>()
-            for parent in entry.parents {
-                if stageSubshapeIDs.contains(parent) {
-                    parents.formUnion(relocated.lineage[parent]?.parents ?? [])
-                } else {
-                    parents.insert(parent)
-                }
-            }
-            return TopologyLineage(output: entry.output, parents: parents.sorted(), relation: entry.relation)
-        }.withRelationsDerivedFromParents()
-        return result
-    }
-
-    private func topologyReference(
-        _ reference: TopologyReference,
-        belongsTo bodyID: BodyID,
-        in model: BRepModel
-    ) -> Bool {
-        guard let body = model.bodies[bodyID] else {
-            return false
-        }
-        switch reference {
-        case .body(let referenceBodyID):
-            return referenceBodyID == bodyID
-        case .face(let faceID):
-            return body.shellIDs.contains { shellID in
-                model.shells[shellID]?.faceIDs.contains(faceID) == true
-            }
-        case .edge(let edgeID):
-            return body.shellIDs.contains { shellID in
-                model.shells[shellID]?.faceIDs.contains { faceID in
-                    model.faces[faceID]?.loops.contains { loopID in
-                        model.loops[loopID]?.edges.contains { $0.edgeID == edgeID } == true
-                    } == true
-                } == true
-            }
-        case .vertex(let vertexID):
-            return body.shellIDs.contains { shellID in
-                model.shells[shellID]?.faceIDs.contains { faceID in
-                    model.faces[faceID]?.loops.contains { loopID in
-                        model.loops[loopID]?.edges.contains { orientedEdge in
-                            guard let edge = model.edges[orientedEdge.edgeID] else {
-                                return false
-                            }
-                            return edge.startVertexID == vertexID || edge.endVertexID == vertexID
-                        } == true
-                    } == true
-                } == true
-            }
         }
     }
 }

@@ -3,7 +3,8 @@ import CADCore
 package enum FeatureEvaluationStageDomain: UInt64, Sendable {
     case patternInstance = 0x4D7A_20B5_9E31_C641
     case patternUnion = 0xA6C9_73E2_148F_5B0D
-    case booleanToolPlacement = 0x3F18_C5D2_7A94_E063
+    case booleanOperandPlacement = 0x3F18_C5D2_7A94_E063
+    case booleanToolUnion = 0x5B2D_E871_0C46_9FA3
     case mirrorCutTool = 0x71C2_9B4E_D05A_83F7
     case mirrorCut = 0xC4E8_1F63_A92B_5D17
 }
