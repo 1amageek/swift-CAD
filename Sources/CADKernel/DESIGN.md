@@ -108,8 +108,12 @@ the distance (cubic spans checked against the circle to the modeling distance)
 and the `.linear` fill their end tangents continued until they meet (refused if
 parallel or meeting behind). A closed chain stays closed; a closed chain of one
 run joins its seam by intersecting its last third with its first third.
+`offset(of: SketchSplineCurve, distance:gapFill:)` offsets a sketch spline of any
+degree and knots the same way over its own Bezier segments (B, B′ and B″ by de
+Casteljau on the points and their differences), so a spline is never offset as
+the cubic chain its control points would make; the result is still a cubic chain.
 `CubicBezierChainOffsetTests` and `CubicBezierChainOffsetGapFillTests` own these;
-RupaCore's Offset Planar Curve on splines consumes it.
+RupaCore's Offset Planar Curve on splines consumes the spline form.
 
 `SurfaceQueryEvaluator.outwardFrame` returns a face point (the nearest point to
 a query, or the point at a surface parameter) with the face's outward normal:

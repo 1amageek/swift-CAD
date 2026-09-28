@@ -1,7 +1,8 @@
 import Foundation
 import CADCore
 
-/// The offset of a cubic Bezier chain, as a cubic Bezier chain.
+/// The offset of a cubic Bezier chain, or of a sketch spline of any degree and knots through its
+/// Bezier segments, as a cubic Bezier chain.
 public struct CubicBezierChainOffset: Sendable {
     public let tolerance: ModelingTolerance
 
@@ -37,17 +38,34 @@ public struct CubicBezierChainOffset: Sendable {
         guard controlPoints.count >= 4, (controlPoints.count - 1).isMultiple(of: 3) else {
             throw invalid("A cubic Bezier chain needs 3n + 1 control points.")
         }
-        guard controlPoints.allSatisfy({ $0.x.isFinite && $0.y.isFinite }), distance.isFinite else {
+        let spans = stride(from: 0, to: controlPoints.count - 1, by: 3).map { Array(controlPoints[$0...($0 + 3)]) }
+        return try offset(spans: spans, distance: distance, gapFill: gapFill)
+    }
+
+    /// The offset of `curve` with its corners joined by `gapFill`, span by span over its Bezier
+    /// segments of any degree, as `offset(of:distance:gapFill:)` does for a cubic chain; a
+    /// spline whose last point is its first stays closed.
+    public func offset(of curve: SketchSplineCurve, distance: Double, gapFill: GapFill?) throws -> [Point2D] {
+        try offset(spans: curve.segments.map(\.controlPoints), distance: distance, gapFill: gapFill)
+    }
+
+    /// The offset of consecutive Bezier spans, each span's last point the next one's first.
+    private func offset(spans: [[Point2D]], distance: Double, gapFill: GapFill?) throws -> [Point2D] {
+        guard let firstSpan = spans.first, let lastSpan = spans.last,
+              spans.allSatisfy({ $0.count >= 2 }) else {
+            throw invalid("An offset needs at least one span of two or more control points.")
+        }
+        guard spans.allSatisfy({ $0.allSatisfy { $0.x.isFinite && $0.y.isFinite } }), distance.isFinite else {
             throw invalid("An offset needs finite control points and a finite distance.")
         }
-        let spanCount = (controlPoints.count - 1) / 3
-        let isClosed = spanCount > 1 && length(controlPoints[0], controlPoints[controlPoints.count - 1]) <= tolerance.distance
+        let spanCount = spans.count
+        let isClosed = spanCount > 1 && length(firstSpan[0], lastSpan[lastSpan.count - 1]) <= tolerance.distance
         // Runs of spans whose offsets meet, each one offset chain; corners[i] is the chain point
         // where run i ends and run i + 1 starts.
         var runs: [[Point2D]] = []
         var corners: [Point2D] = []
         for span in 0..<spanCount {
-            let p = Array(controlPoints[(3 * span)...(3 * span + 3)])
+            let p = spans[span]
             var pieces: [Point2D] = []
             try fit(p, distance, 0, 1, depth: 0, into: &pieces)
             if let last = runs.last?.last, length(last, pieces[0]) <= tolerance.distance {
@@ -65,7 +83,7 @@ public struct CubicBezierChainOffset: Sendable {
                     runs[0] = runs.removeLast() + runs[0].dropFirst()
                 }
             } else {
-                corners.append(controlPoints[0])
+                corners.append(firstSpan[0])
                 closesAtSeam = true
             }
         }
@@ -280,7 +298,27 @@ public struct CubicBezierChainOffset: Sendable {
         return (Point2D(x: value.x + d * normal.x, y: value.y + d * normal.y), derivative)
     }
 
+    /// B(t), B′(t) and B″(t) of the Bezier span `p` of any degree, by de Casteljau on the
+    /// control points and their first and second differences.
     private func jet(_ p: [Point2D], _ t: Double) -> (Point2D, Point2D, Point2D) {
+        guard p.count != 4 else { return cubicJet(p, t) }
+        func casteljau(_ q: [Point2D]) -> Point2D {
+            var level = q
+            while level.count > 1 {
+                level = zip(level, level.dropFirst()).map { Point2D(x: $0.x + ($1.x - $0.x) * t, y: $0.y + ($1.y - $0.y) * t) }
+            }
+            return level[0]
+        }
+        func differences(_ q: [Point2D], _ scale: Double) -> [Point2D] {
+            zip(q, q.dropFirst()).map { Point2D(x: ($1.x - $0.x) * scale, y: ($1.y - $0.y) * scale) }
+        }
+        let n = Double(p.count - 1)
+        let first = differences(p, n)
+        let second = first.count >= 2 ? differences(first, n - 1) : [Point2D(x: 0, y: 0)]
+        return (casteljau(p), casteljau(first), casteljau(second))
+    }
+
+    private func cubicJet(_ p: [Point2D], _ t: Double) -> (Point2D, Point2D, Point2D) {
         let s = 1 - t
         let value = Point2D(
             x: s * s * s * p[0].x + 3 * s * s * t * p[1].x + 3 * s * t * t * p[2].x + t * t * t * p[3].x,

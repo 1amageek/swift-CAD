@@ -53,6 +53,34 @@ import CADCore
         }
     }
 
+    /// A spline of another degree or with explicit knots is offset through its own Bezier
+    /// segments: the offset stays at the distance from that curve, not from the cubic chain its
+    /// control points would make.
+    @Test func aSplineOfAnyDegreeIsOffsetOnItsOwnCurve() throws {
+        let cases: [(degree: Int, knots: [Double]?, points: [Point2D])] = [
+            (6, nil, [(0, 0), (0.01, 0), (0.02, 0), (0.03, 0.005), (0.06, 0.03), (0.06, 0.02), (0.06, 0.03)]),
+            (5, nil, [(0, 0), (0.01, 0.02), (0.03, 0.025), (0.05, 0.02), (0.07, 0.01), (0.08, 0)]),
+            (3, [0, 0, 0, 0, 0.4, 1, 1, 1, 1], [(0, 0), (0.01, 0.01), (0.02, 0.015), (0.03, 0.002), (0.04, 0.01)]),
+        ].map { ($0.0, $0.1, $0.2.map { Point2D(x: $0.0, y: $0.1) }) }
+        for testCase in cases {
+            let curve = try SketchSplineCurve(degree: testCase.degree, knots: testCase.knots, controlPoints: testCase.points, tolerance: .standard)
+            let lower = curve.bSpline.knots.first!, upper = curve.bSpline.knots.last!
+            let dense = try (0...8000).map { try curve.bSpline.point(at: lower + (upper - lower) * Double($0) / 8000, tolerance: .standard) }
+            for distance in [0.001, -0.0015] {
+                let offset = try offsetter.offset(of: curve, distance: distance, gapFill: nil)
+                #expect((offset.count - 1).isMultiple(of: 3))
+                let offsetSpans = Double((offset.count - 1) / 3)
+                var worst = 0.0
+                for i in 1..<200 {
+                    let q = point(offset, offsetSpans * Double(i) / 200)
+                    let nearest = dense.map { (($0.x - q.x) * ($0.x - q.x) + ($0.y - q.y) * ($0.y - q.y)).squareRoot() }.min()!
+                    worst = max(worst, abs(nearest - abs(distance)))
+                }
+                #expect(worst < 5e-6, "degree \(testCase.degree) distance \(distance): \(worst)")
+            }
+        }
+    }
+
     @Test func aCornerOrAFoldIsRefused() {
         let cornered = [
             Point2D(x: 0, y: 0), Point2D(x: 1, y: 0), Point2D(x: 2, y: 0), Point2D(x: 3, y: 0),
