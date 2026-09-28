@@ -21,6 +21,7 @@ import CADGeometry
             #expect(result.curve.controlPoints.first == Point2D(x: 0, y: 0))
             #expect(result.curve.controlPoints.last == Point2D(x: 5, y: 2))
             #expect(result.maximumDeviation < previous)
+            #expect(result.maximumDeviationFraction >= 0 && result.maximumDeviationFraction <= 1)
             previous = result.maximumDeviation
         }
         #expect(previous < 1e-3)

@@ -14,6 +14,8 @@ public struct SketchSplineLeastSquaresFit: Sendable {
         public var maximumDeviation: Double
         /// The root mean square of those distances.
         public var rootMeanSquareDeviation: Double
+        /// Where on the original the largest distance is, as a fraction of its knot domain.
+        public var maximumDeviationFraction: Double
     }
 
     public let tolerance: ModelingTolerance
@@ -96,16 +98,24 @@ public struct SketchSplineLeastSquaresFit: Sendable {
             try SketchSplineCurve(degree: degree, knots: knots, controlPoints: points, tolerance: tolerance)
         )
         let projector = SketchCurveProjector(tolerance: tolerance)
-        var maximum = 0.0, squares = 0.0
+        var maximum = 0.0, squares = 0.0, maximumFraction = 0.0
         let checks = 2 * sampleCount
         for i in 0...checks {
             let p = try original.point(at: lower + (upper - lower) * Double(i) / Double(checks), tolerance: tolerance)
             let foot = try projector.nearest(on: fittedGeometry, to: p).point
             let distance = hypot(foot.x - p.x, foot.y - p.y)
-            maximum = max(maximum, distance)
+            if distance > maximum {
+                maximum = distance
+                maximumFraction = Double(i) / Double(checks)
+            }
             squares += distance * distance
         }
-        return Result(curve: fitted, maximumDeviation: maximum, rootMeanSquareDeviation: (squares / Double(checks + 1)).squareRoot())
+        return Result(
+            curve: fitted,
+            maximumDeviation: maximum,
+            rootMeanSquareDeviation: (squares / Double(checks + 1)).squareRoot(),
+            maximumDeviationFraction: maximumFraction
+        )
     }
 
     /// The lower triangle L of the symmetric positive definite `matrix` = L·Lᵀ.
