@@ -75,6 +75,12 @@ The solver reads spline ends through the clamped end derivatives and holds
 lengths before). `SketchSplineFormTests`, `SketchSplineCurveTests` and
 `SketchSplineConstraintSolverTests` own these.
 
+`SketchSplineCurve.degreeElevated(tolerance:)` raises a sketch spline's degree by one
+exactly: every Bezier segment is elevated (Qᵢ = i/(n+1)·Pᵢ₋₁ + (1 − i/(n+1))·Pᵢ) and
+the segments are joined at their parameter breaks with knots of multiplicity n + 1,
+so shape and parameter are unchanged and a former smooth knot becomes a joint.
+`SketchSplineDegreeElevationTests` own it.
+
 `CubicBezierChainJoints.mergedSpan(of:atJoint:)` says whether the two spans that
 meet at a chain joint are the halves of one cubic, and returns it: halves of Q
 split at t meet with collinear handles in the ratio t : 1 − t, so t is read from
