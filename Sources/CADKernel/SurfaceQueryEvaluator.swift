@@ -402,8 +402,9 @@ public struct SurfaceQueryEvaluator: Sendable {
                 point,
                 direction: unitDirection,
                 cylinder: cylinder,
-                reference: reference,
-                range: options.range
+                resolved: resolved,
+                model: document.brep,
+                options: options
             )
         case let .analytic(surface):
             return try projectOntoAnalyticSurface(
@@ -873,12 +874,15 @@ public struct SurfaceQueryEvaluator: Sendable {
                     options: options
                 )
             case let .cylinder(cylinder):
+                // The chart-preserving equivalent shares the offset face's parameters, so its
+                // trim applies unchanged.
                 equivalentResult = try projectOntoCylinder(
                     point,
                     direction: direction,
                     cylinder: cylinder,
-                    reference: resolved.reference,
-                    range: options.range
+                    resolved: resolved,
+                    model: model,
+                    options: options
                 )
             case let .analytic(analytic):
                 equivalentResult = try projectOntoAnalyticSurface(
@@ -1468,9 +1472,11 @@ public struct SurfaceQueryEvaluator: Sendable {
         _ point: Point3D,
         direction: Vector3D,
         cylinder: Cylinder3D,
-        reference: SurfaceReference,
-        range: SurfaceDirectionalProjectionRange
+        resolved: ResolvedSurface,
+        model: BRepModel,
+        options: SurfaceDirectionalProjectionOptions
     ) throws -> SurfaceDirectionalProjectionResult {
+        let range = options.range
         try cylinder.validate(tolerance: tolerance)
         let axis = try cylinder.axis.normalized(tolerance: tolerance.distance)
         let (radialU, radialV) = try planeBasis(for: axis)
@@ -1490,27 +1496,28 @@ public struct SurfaceQueryEvaluator: Sendable {
 
         let root = sqrt(max(discriminant, 0.0))
         let denominator = 2.0 * quadraticA
-        let candidates = [
+        func parameter(at signedDistance: Double) -> SurfaceParameter {
+            let projectedOffset = point + direction * signedDistance - cylinder.origin
+            let height = projectedOffset.dot(axis)
+            let projectedRadial = projectedOffset - axis * height
+            let rawAngle = atan2(projectedRadial.dot(radialV), projectedRadial.dot(radialU))
+            return SurfaceParameter(u: rawAngle >= 0.0 ? rawAngle : rawAngle + Double.pi * 2.0, v: height)
+        }
+        let candidates = try trimContainedDistances([
             (-quadraticB - root) / denominator,
             (-quadraticB + root) / denominator,
         ].filter { value in
             value.isFinite && range.accepts(value, tolerance: tolerance)
-        }
+        }, parameter: parameter, resolved: resolved, model: model, options: options)
         guard let signedDistance = bestSignedDistance(candidates, range: range) else {
-            throw FeatureEvaluationError.emptyResult("Cylinder projection is outside the requested direction range.")
+            throw FeatureEvaluationError.emptyResult("Cylinder projection is outside the requested direction range or the face trim.")
         }
-
-        let projectedPoint = point + direction * signedDistance
-        let projectedOffset = projectedPoint - cylinder.origin
-        let height = projectedOffset.dot(axis)
-        let projectedRadial = projectedOffset - axis * height
-        let rawAngle = atan2(projectedRadial.dot(radialV), projectedRadial.dot(radialU))
-        let angle = rawAngle >= 0.0 ? rawAngle : rawAngle + Double.pi * 2.0
+        let projected = parameter(at: signedDistance)
         return try directionalProjectionResult(
             sourcePoint: point,
             direction: direction,
             signedDistanceAlongDirection: signedDistance,
-            reference: SurfaceParameterReference(surface: reference, u: angle, v: height),
+            reference: SurfaceParameterReference(surface: resolved.reference, u: projected.u, v: projected.v),
             surface: .cylinder(cylinder),
             iterations: 0,
             converged: true
@@ -1590,8 +1597,15 @@ public struct SurfaceQueryEvaluator: Sendable {
                 residualTolerance: max(tolerance.angle * 0.001, Double.ulpOfOne * 64.0)
             ).realRoots(coefficients: coefficients)
         }
-        let accepted = candidates.filter { candidate in
+        var accepted = candidates.filter { candidate in
             candidate.isFinite && options.range.accepts(candidate, tolerance: tolerance)
+        }
+        // A plane's trim is checked on its own trim domain below; every other analytic surface
+        // meets the line more than once, so only the meetings inside the face may be chosen.
+        if case .plane = surface {} else {
+            accepted = try trimContainedDistances(accepted, parameter: { distance in
+                try analyticSurfaceParameter(for: point + direction * distance, on: surface)
+            }, resolved: resolved, model: model, options: options)
         }
         guard let signedDistance = bestSignedDistance(accepted, range: options.range) else {
             throw FeatureEvaluationError.emptyResult(
@@ -1709,6 +1723,26 @@ public struct SurfaceQueryEvaluator: Sendable {
                 tolerance: tolerance,
                 message: "B-spline surface projection requires finite bounded parameter domains."
             )
+        }
+    }
+
+    /// The line parameters whose surface points lie inside the face's trim, or all of them when
+    /// the query ignores the trim.
+    private func trimContainedDistances(
+        _ distances: [Double],
+        parameter: (Double) throws -> SurfaceParameter,
+        resolved: ResolvedSurface,
+        model: BRepModel,
+        options: SurfaceDirectionalProjectionOptions
+    ) throws -> [Double] {
+        guard options.respectsTrimBounds, !distances.isEmpty else { return distances }
+        let containment = try faceDomainResolver.makeContainmentSession(
+            for: resolved.faceID,
+            in: model,
+            tolerance: tolerance
+        )
+        return try distances.filter { distance in
+            try containment.contains(try parameter(distance), on: resolved.faceID)
         }
     }
 
