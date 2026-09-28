@@ -111,6 +111,14 @@ degree n, its n new points the blossoms f(1…1, s…s), so a sketch spline of a
 degree and knots is continued on its own polynomial.
 `CubicBezierChainExtensionTests` check it against the known pieces of one cubic
 and one quintic.
+`CurvatureProfileExtension.cubicSpans` builds Extend Curve's Arc (κ(s) = κ₀, the
+end's osculating circle) and Soft (κ(s) = κ₀(1 − s/L), fading to straight) shapes:
+the profile curve is integrated from the end's tangent angle (composite
+Gauss–Legendre), and cubic spans follow it, the first matching the end's tangent
+and curvature exactly (G2), every span ending on the curve and joining the next
+with a continuous tangent; spans are added until each stays within the modeling
+distance of the curve, measured to its nearest point by Newton steps.
+`CurvatureProfileExtensionTests` own it.
 
 `CubicBezierChainOffset.offset(of:distance:)` offsets a chain to its left (the
 tangent turned counterclockwise; a negative distance goes right) as a cubic chain
