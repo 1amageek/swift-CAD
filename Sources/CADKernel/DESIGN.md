@@ -91,7 +91,11 @@ f(s,s,s) of the end span, with s solving ∫₁ˢ |B′(u)| du = length by Newto
 the arc length (composite five-point Gauss–Legendre). The start end is the same
 on the reversed span. A degenerate end tangent, a length not above the modeling
 distance, a malformed chain or a length not reached is `invalidInput`.
-`CubicBezierChainExtensionTests` check it against the known pieces of one cubic.
+`naturalSpan(ofSegment:at:length:)` does the same for an end Bezier segment of any
+degree n, its n new points the blossoms f(1…1, s…s), so a sketch spline of any
+degree and knots is continued on its own polynomial.
+`CubicBezierChainExtensionTests` check it against the known pieces of one cubic
+and one quintic.
 
 `CubicBezierChainOffset.offset(of:distance:)` offsets a chain to its left (the
 tangent turned counterclockwise; a negative distance goes right) as a cubic chain

@@ -1,7 +1,7 @@
 import Foundation
 import CADCore
 
-/// Extensions of a cubic Bezier chain past one of its ends.
+/// Extensions of a cubic Bezier chain, or of any Bezier end segment, past one of its ends.
 public struct CubicBezierChainExtension: Sendable {
     /// Which end of the chain is extended.
     public enum End: Sendable {
@@ -34,9 +34,31 @@ public struct CubicBezierChainExtension: Sendable {
             throw invalid("An extension length must be finite and above the modeling distance.")
         }
         let count = controlPoints.count
-        let span: [Point2D] = switch end {
+        let segment: [Point2D] = switch end {
         case .end: Array(controlPoints[(count - 4)...])
-        case .start: Array(controlPoints[0...3].reversed())
+        case .start: Array(controlPoints[0...3])
+        }
+        return try naturalSpan(ofSegment: segment, at: end, length: length)
+    }
+
+    /// The Natural extension of a curve whose end segment is the Bezier `segment` of any degree
+    /// n (n + 1 points in curve order, the first or last segment as `end` says): the segment's
+    /// polynomial continued past that end until it has run `length` along itself, as one new
+    /// Bezier span of the same degree. Returns its n new control points in curve order, to append
+    /// after the end or prepend before the start.
+    public func naturalSpan(ofSegment segment: [Point2D], at end: End, length: Double) throws -> [Point2D] {
+        guard segment.count >= 2 else {
+            throw invalid("A Bezier segment needs at least two control points.")
+        }
+        guard segment.allSatisfy({ $0.x.isFinite && $0.y.isFinite }) else {
+            throw invalid("A Bezier segment needs finite control points.")
+        }
+        guard length.isFinite, length > tolerance.distance else {
+            throw invalid("An extension length must be finite and above the modeling distance.")
+        }
+        let span: [Point2D] = switch end {
+        case .end: segment
+        case .start: segment.reversed()
         }
         let endSpeed = speed(span, at: 1)
         guard endSpeed > tolerance.distance else {
@@ -53,28 +75,33 @@ public struct CubicBezierChainExtension: Sendable {
         guard s > 1, abs(arcLength(span, from: 1, to: s) - length) <= tolerance.distance else {
             throw invalid("The Natural extension did not reach the requested length.")
         }
-        let continued = [blossom(span, 1, 1, s), blossom(span, 1, s, s), blossom(span, s, s, s)]
+        // The piece on [1, s] has control points f(1…1, s…s) with i values s, i = 1…n.
+        let degree = span.count - 1
+        let continued = (1...degree).map { count in
+            blossom(span, Array(repeating: 1, count: degree - count) + Array(repeating: s, count: count))
+        }
         return switch end {
         case .end: continued
         case .start: continued.reversed()
         }
     }
 
-    /// The blossom of cubic `p` at (u1, u2, u3): De Casteljau with a different parameter per level.
-    private func blossom(_ p: [Point2D], _ u1: Double, _ u2: Double, _ u3: Double) -> Point2D {
-        func level(_ points: [Point2D], _ u: Double) -> [Point2D] {
-            zip(points, points.dropFirst()).map { a, b in Point2D(x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u) }
+    /// The blossom of Bezier `p` at `parameters` (one per degree): De Casteljau with a different
+    /// parameter per level.
+    private func blossom(_ p: [Point2D], _ parameters: [Double]) -> Point2D {
+        var points = p
+        for u in parameters {
+            points = zip(points, points.dropFirst()).map { a, b in Point2D(x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u) }
         }
-        return level(level(level(p, u1), u2), u3)[0]
+        return points[0]
     }
 
-    /// |B′(u)| of cubic `p`, for any u.
+    /// |B′(u)| of Bezier `p`, for any u: its derivative's Bezier by De Casteljau.
     private func speed(_ p: [Point2D], at u: Double) -> Double {
-        let v = 1 - u
-        let a = 3 * v * v, b = 6 * v * u, c = 3 * u * u
-        let x = a * (p[1].x - p[0].x) + b * (p[2].x - p[1].x) + c * (p[3].x - p[2].x)
-        let y = a * (p[1].y - p[0].y) + b * (p[2].y - p[1].y) + c * (p[3].y - p[2].y)
-        return (x * x + y * y).squareRoot()
+        let n = Double(p.count - 1)
+        let derivative = zip(p, p.dropFirst()).map { a, b in Point2D(x: n * (b.x - a.x), y: n * (b.y - a.y)) }
+        let d = blossom(derivative, Array(repeating: u, count: derivative.count - 1))
+        return (d.x * d.x + d.y * d.y).squareRoot()
     }
 
     private func arcLength(_ p: [Point2D], from a: Double, to b: Double) -> Double {
