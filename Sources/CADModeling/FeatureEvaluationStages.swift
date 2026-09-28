@@ -60,6 +60,7 @@ package struct FeatureEvaluationStages {
 
     /// The final result, computed in the staged context, published against the input context.
     package func publish(_ final: EvaluationResult, featureID: FeatureID) throws -> EvaluationResult {
+        guard isEmpty == false else { return final }
         guard final.subshapes.keys.allSatisfy({ stageSubshapeIDs.contains($0) == false }) else {
             throw KernelError(
                 phase: .topology,
@@ -109,6 +110,7 @@ package struct FeatureEvaluationStages {
     /// topology from the input model, and their subshapes no longer reported as removed.
     package func restoringInputBodies(_ bodyIDs: [BodyID], into result: EvaluationResult) throws -> EvaluationResult {
         var restored = result
+        restored.validatedBRep = nil
         let submodel = try BRepBodySubmodelExtractor().extract(bodyIDs: Set(bodyIDs), from: input.brep)
         try BRepModelCombiner().merge(submodel, into: &restored.brep)
         let bodySubshapes = input.subshapes.entries.filter { _, reference in

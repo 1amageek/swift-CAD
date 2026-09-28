@@ -466,8 +466,8 @@ by [CADModeling](../CADModeling/DESIGN.md#extrusion-boolean-composition).
 A Boolean has one or more `tools`, which act together as one region (their
 union), and every target and tool reference carries an optional `placement`: the
 rigid motion placing that body in the result's frame (absent means it combines
-where it was evaluated). Keep Tools keeps every tool where it was evaluated,
-placed or not. The form written before `tools` (one `tool` with an optional
+where it was evaluated). The result replaces its targets; Keep Tools keeps
+every tool where it was evaluated, placed or not. The form written before `tools` (one `tool` with an optional
 `toolPlacement`) still decodes, as one tool carrying that placement; the native
 package accepts either form but not both. Geometry is owned by
 [CADModeling](../CADModeling/DESIGN.md#placed-boolean-tools).

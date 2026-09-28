@@ -551,23 +551,24 @@ replay, target/tool retention and invalid target or sheet requests.
 
 ### Placed Boolean tools
 
-A Boolean whose operands are all unplaced and that has one tool is one pass of
-the pipeline. Otherwise it is evaluated in stages (`FeatureEvaluationStages`):
-every placed target or tool is rebuilt once at its rigid placement through the
-exact pattern rebuilder's `relocate` (the same exact face images and sewing as
-patterns) under a `booleanOperandPlacement` stage identity; several tools are
-then united one after another under `booleanToolUnion` stage identities, so they
-act as their union; and the pass combines the targets with the one tool. The
-published result is the one the original operands would give: no stage identity
-is published, every input a stage consumed is reported removed, and lineage is
-traced through stage subshapes back to input subshapes. With Keep Tools, a tool
-consumed by a stage is put back unchanged from the input model beside the
-result (`restoringInputBodies`); a single unplaced tool is kept by the pipeline
-itself. An evaluator without a relocator refuses a placed operand as an
-unsupported capability. `PlacedBooleanToolTests` prove exact volumes for a placed
-tool, a kept placed tool, targets at different placements and several tools
-(intersect and kept difference), that no temporary identity reaches the evaluated
-subshapes or lineage, and that the single-tool form still decodes.
+A Boolean is evaluated in stages (`FeatureEvaluationStages`): every placed target
+or tool is rebuilt once at its rigid placement through the exact pattern
+rebuilder's `relocate` (the same exact face images and sewing as patterns) under
+a `booleanOperandPlacement` stage identity; several tools are then united one
+after another under `booleanToolUnion` stage identities, so they act as their
+union; and one pipeline pass combines the targets with the one tool, consuming
+both. The published result is the one the original operands would give: no
+stage identity is published, every input a stage consumed is reported removed,
+and lineage is traced through stage subshapes back to input subshapes (a
+Boolean without stages publishes the pass unchanged). The result replaces its
+targets; Keep Tools puts every original tool back, unchanged, from the input
+model beside the result (`restoringInputBodies`). An evaluator without a
+relocator refuses a placed operand as an unsupported capability.
+`PlacedBooleanToolTests` prove exact volumes for a placed tool, a kept placed
+tool, Keep Tools keeping only the tools, targets at different placements and
+several tools (intersect and kept difference), that no temporary identity
+reaches the evaluated subshapes or lineage, and that the single-tool form still
+decodes.
 
 ### Mirror output and cut
 

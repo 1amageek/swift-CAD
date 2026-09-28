@@ -3240,7 +3240,7 @@ func booleanEvaluationPlanReportsMultiTargetSeparatedBRepUnionBeforeMutation() t
 }
 
 @Test(.timeLimit(.minutes(1)))
-func booleanEvaluationEvaluatesMultiTargetSeparatedBRepUnionKeepToolsWithStableCopiedTopologyNames() throws {
+func booleanEvaluationEvaluatesMultiTargetSeparatedBRepUnionKeepToolsKeepingOnlyTheToolWithStableCopiedTopologyNames() throws {
     let setup = booleanPlanMultiTargetCylinderToolDocument()
     let booleanID = FeatureID()
     let plan = try BooleanEvaluationPlanService().plan(
@@ -3261,14 +3261,15 @@ func booleanEvaluationEvaluatesMultiTargetSeparatedBRepUnionKeepToolsWithStableC
     let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
     expectPlannedTopologyNames(plan, for: booleanID, in: evaluated)
-    #expect(evaluated.brep.bodies.count == 4)
-    #expect(evaluated.brep.shells.count == 6)
+    // The result replaces its targets; Keep Tools keeps only the tool.
+    #expect(evaluated.brep.bodies.count == 2)
+    #expect(evaluated.brep.shells.count == 4)
     for targetFeatureID in setup.targetFeatureIDs {
         #expect(evaluated.subshapes[SubshapeID(
             featureID: targetFeatureID,
             role: GeneratedSubshapeRole.body.rawValue,
             ordinal: 0
-        )] != nil)
+        )] == nil)
     }
     #expect(evaluated.subshapes[SubshapeID(
         featureID: setup.toolFeatureID,

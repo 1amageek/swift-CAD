@@ -58,22 +58,14 @@ public struct BooleanFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         }
         let targetBodyIDs = try boolean.targets.map { try context.bodyID(generatedBy: $0.featureID) }
         let toolBodyIDs = try boolean.tools.map { try context.bodyID(generatedBy: $0.featureID) }
-        let isPlaced = boolean.targets.contains { $0.placement != nil } || boolean.tools.contains { $0.placement != nil }
-        guard isPlaced || toolBodyIDs.count > 1 else {
-            // One tool where it was evaluated: the pipeline combines the inputs directly.
-            return try combine(
-                boolean.operation, targets: targetBodyIDs, tool: toolBodyIDs[0], keepTools: boolean.keepTools,
-                featureID: feature.id, context: context
-            )
-        }
         return try evaluateStaged(
             boolean, targetBodyIDs: targetBodyIDs, toolBodyIDs: toolBodyIDs, featureID: feature.id, context: context
         )
     }
 
     /// Moves every placed operand rigidly into the result's frame, unites several tools into one,
-    /// combines, and publishes the result as if the inputs had been combined directly; kept tools
-    /// stay where they were evaluated.
+    /// combines, and publishes the result as if the inputs had been combined directly. The result
+    /// replaces the targets; Keep Tools puts every tool back, unchanged, where it was evaluated.
     private func evaluateStaged(
         _ boolean: BooleanFeature,
         targetBodyIDs: [BodyID],
@@ -119,26 +111,23 @@ public struct BooleanFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         while tools.count > 1 {
             let stageID = featureEvaluationStageID(featureID: featureID, domain: .booleanToolUnion, ordinal: unionOrdinal)
             unionOrdinal += 1
-            let united = try combine(.union, targets: [tools[0]], tool: tools[1], keepTools: false, featureID: stageID, context: stages.context)
+            let united = try combine(.union, targets: [tools[0]], tool: tools[1], featureID: stageID, context: stages.context)
             stages.apply(united)
             tools = [try stages.publishedBody(of: united, featureID: featureID, what: "Uniting the Boolean tools")] + tools.dropFirst(2)
         }
-        let toolsStaged = toolBodyIDs.count > 1 || boolean.tools.contains { $0.placement != nil }
         let final = try combine(
-            boolean.operation, targets: targets, tool: tools[0], keepTools: boolean.keepTools && toolsStaged == false,
-            featureID: featureID, context: stages.context
+            boolean.operation, targets: targets, tool: tools[0], featureID: featureID, context: stages.context
         )
         let published = try stages.publish(final, featureID: featureID)
-        guard boolean.keepTools && toolsStaged else { return published }
+        guard boolean.keepTools else { return published }
         return try stages.restoringInputBodies(toolBodyIDs, into: published)
     }
 
-    /// One pass of the Boolean pipeline in `context`.
+    /// One pass of the Boolean pipeline in `context`, consuming its operands.
     private func combine(
         _ operation: BooleanOperation,
         targets: [BodyID],
         tool: BodyID,
-        keepTools: Bool,
         featureID: FeatureID,
         context: EvaluationContext
     ) throws -> EvaluationResult {
@@ -150,7 +139,7 @@ public struct BooleanFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
                 operation: operation,
                 targetBodyIDs: targets,
                 toolBodyID: tool,
-                keepTools: keepTools,
+                keepTools: false,
                 featureID: featureID,
                 model: context.brep,
                 subshapes: context.subshapes.entries,

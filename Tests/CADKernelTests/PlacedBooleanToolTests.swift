@@ -102,6 +102,23 @@ struct PlacedBooleanToolTests {
         #expect(abs((xs.min() ?? 0) + 0.020) < 1e-12 && abs((xs.max() ?? 0) - 0.020) < 1e-12)
     }
 
+    /// Keep Tools keeps the tool, never the target: the result replaces its target.
+    @Test(.timeLimit(.minutes(1)))
+    func keepToolsKeepsOnlyTheTools() throws {
+        let fixture = try boxes(2)
+        let result = try evaluate(BooleanFeature(
+            targets: [BooleanTargetReference(featureID: fixture.bodies[0])],
+            tools: [BooleanToolReference(featureID: fixture.bodies[1])],
+            operation: .union,
+            keepTools: true
+        ), in: fixture.document)
+        let volumes = try volumes(result.evaluated)
+        #expect(volumes.count == 2)
+        #expect(volumes.allSatisfy { abs($0 / boxVolume - 1) < 1e-9 })
+        #expect(result.evaluated.subshapes.entries.keys.contains { $0.featureID == fixture.bodies[1] })
+        #expect(result.evaluated.subshapes.entries.keys.contains { $0.featureID == fixture.bodies[0] } == false)
+    }
+
     /// A placed target moves into the result's frame beside the unplaced one.
     @Test(.timeLimit(.minutes(1)))
     func targetsAtDifferentPlacementsCombineInTheResultFrame() throws {
