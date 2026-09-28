@@ -155,6 +155,15 @@ private struct ParameterValidationState {
                 throw UnitError.incompatibleQuantity(operation: "subtract", lhs: lhsKind, rhs: rhsKind)
             }
             return lhsKind
+        case let .bezierNaturalExtension(coordinates, length, index):
+            try NaturalBezierContinuation.validateCoordinateForm(count: coordinates.count, index: index)
+            for expression in coordinates + [length] {
+                let actual = try kind(for: expression)
+                guard actual == .length else {
+                    throw UnitError.expectedQuantity(operation: "bezierNaturalExtension", expected: .length, actual: actual)
+                }
+            }
+            return .length
         case let .hypot(lhs, rhs):
             let lhsKind = try kind(for: lhs)
             let rhsKind = try kind(for: rhs)
@@ -265,6 +274,9 @@ private struct ParameterValueValidationState {
                 return try validated(.scalar(lhsValue.value / rhsValue.value))
             }
             throw UnitError.incompatibleQuantity(operation: "divide", lhs: lhsValue.kind, rhs: rhsValue.kind)
+        case let .bezierNaturalExtension(coordinates, length, index):
+            return try NaturalBezierContinuation(tolerance: .standard).coordinate(
+                coordinates.map { try value(for: $0) }, length: value(for: length), index: index)
         case let .hypot(lhs, rhs):
             let lhsValue = try value(for: lhs)
             let rhsValue = try value(for: rhs)

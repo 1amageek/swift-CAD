@@ -39,3 +39,7 @@ kind explicitly rather than treating it as a constant.
 RupaCore regression checks exercise both CADIR validation and CADModeling
 resolution, references, units, zero/nonfinite cases and serialization. Expression
 text readers/formatters and all visitors must handle the new binary case.
+
+## Natural Bezier expression contract
+
+CADCore owns pure numeric Bezier polynomial continuation and the persistent `bezierNaturalExtension` expression. Its interleaved coordinates and distance all have length kind; its coordinate index selects one of the degree new points in the oriented end span. It returns a length and discovers every input dependency. The degree is bounded to 1...11 and coordinates/index/distance are validated before numeric work. Both CADIR and CADModeling evaluate the same numeric implementation. CADKernel retains its public continuation adapter and delegates to CADCore. Invalid tangent, non-finite data, nonpositive distance and nonconvergence throw explicit errors; no cached coordinate fallback is allowed. JSON and Rupa editable text retain all operands. Tests cover parameter changes, units, both evaluators, round trips and invalid data.

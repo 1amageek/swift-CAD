@@ -139,6 +139,10 @@ private func evaluateExpression(
             return try validatedQuantity(.scalar(lhsValue.value / rhsValue.value))
         }
         throw UnitError.incompatibleQuantity(operation: "divide", lhs: lhsValue.kind, rhs: rhsValue.kind)
+    case let .bezierNaturalExtension(coordinates, length, index):
+        return try NaturalBezierContinuation(tolerance: .standard).coordinate(
+            coordinates.map { try evaluateExpression($0, parameterValue: parameterValue, variableValue: variableValue) },
+            length: evaluateExpression(length, parameterValue: parameterValue, variableValue: variableValue), index: index)
     case let .hypot(lhs, rhs):
         let lhsValue = try evaluateExpression(lhs, parameterValue: parameterValue, variableValue: variableValue)
         let rhsValue = try evaluateExpression(rhs, parameterValue: parameterValue, variableValue: variableValue)

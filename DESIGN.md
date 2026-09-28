@@ -201,3 +201,5 @@ designs.
 
 Expression consumers follow the [CADCore expression contract](Sources/CADCore/DESIGN.md), including
 unit-preserving hypot, dependency discovery, serialization and explicit failure.
+
+Natural Bezier extension expressions use the shared numeric and unit contract in [CADCore](Sources/CADCore/DESIGN.md). Both expression evaluators retain dependencies and propagate continuation errors.

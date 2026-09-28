@@ -7,6 +7,7 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
     case multiply(CADExpression, CADExpression)
     case divide(CADExpression, CADExpression)
     case hypot(CADExpression, CADExpression)
+    case bezierNaturalExtension(coordinates: [CADExpression], length: CADExpression, coordinateIndex: Int)
     case sin(CADExpression)
     case cos(CADExpression)
     case tan(CADExpression)
@@ -20,6 +21,7 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
         case left
         case right
         case argument
+        case coordinates, length, coordinateIndex
     }
 
     private enum Kind: String, Codable {
@@ -31,6 +33,7 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
         case multiply
         case divide
         case hypot
+        case bezierNaturalExtension
         case sin
         case cos
         case tan
@@ -82,6 +85,13 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
                 try container.decode(CADExpression.self, forKey: .left),
                 try container.decode(CADExpression.self, forKey: .right)
             )
+        case .bezierNaturalExtension:
+            try container.validateOnlyExpectedKeys([.kind, .coordinates, .length, .coordinateIndex], in: decoder)
+            let coordinates = try container.decode([CADExpression].self, forKey: .coordinates)
+            let index = try container.decode(Int.self, forKey: .coordinateIndex)
+            try NaturalBezierContinuation.validateCoordinateForm(count: coordinates.count, index: index)
+            self = .bezierNaturalExtension(coordinates: coordinates,
+                length: try container.decode(CADExpression.self, forKey: .length), coordinateIndex: index)
         case .sin:
             try container.validateOnlyExpectedKeys([.kind, .argument], in: decoder)
             self = .sin(try container.decode(CADExpression.self, forKey: .argument))
@@ -117,6 +127,12 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
             try encodeBinary(.divide, left, right, into: &container)
         case let .hypot(left, right):
             try encodeBinary(.hypot, left, right, into: &container)
+        case let .bezierNaturalExtension(coordinates, length, index):
+            try NaturalBezierContinuation.validateCoordinateForm(count: coordinates.count, index: index)
+            try container.encode(Kind.bezierNaturalExtension, forKey: .kind)
+            try container.encode(coordinates, forKey: .coordinates)
+            try container.encode(length, forKey: .length)
+            try container.encode(index, forKey: .coordinateIndex)
         case let .sin(argument):
             try encodeUnary(.sin, argument, into: &container)
         case let .cos(argument):
@@ -159,6 +175,10 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
              let .hypot(left, right):
             try left.validateLiteralQuantities()
             try right.validateLiteralQuantities()
+        case let .bezierNaturalExtension(coordinates, length, index):
+            try NaturalBezierContinuation.validateCoordinateForm(count: coordinates.count, index: index)
+            for coordinate in coordinates { try coordinate.validateLiteralQuantities() }
+            try length.validateLiteralQuantities()
         case let .sin(argument),
              let .cos(argument),
              let .tan(argument):
