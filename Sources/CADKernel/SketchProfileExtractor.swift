@@ -54,12 +54,18 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
             case .point:
                 continue
             case let .spline(spline):
+                try spline.validateForm()
+                guard let knots = spline.knotVector else {
+                    throw SketchError.unsupportedEntity("A sketch spline's knot vector could not be resolved.")
+                }
                 splines.append(ResolvedSketchSpline(
                     id: entityID,
                     controlPoints: try spline.controlPoints.map { point in
                         try resolve(point, parameters: parameters)
                     },
-                    isClosed: spline.isClosed
+                    isClosed: spline.isClosed,
+                    source: spline,
+                    knots: knots
                 ))
             case let .arc(arc):
                 arcs.append(ResolvedSketchArc(
@@ -216,7 +222,13 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
     }
 
     private func polygonizedSplineSegment(_ spline: ResolvedSketchSpline) throws -> ResolvedProfileSegment {
-        let points = try splineTessellator.points(for: spline.controlPoints)
+        let points: [Point2D]
+        if spline.source.isCubicBezierChain {
+            points = try splineTessellator.points(for: spline.controlPoints)
+        } else {
+            let planar = try SketchSplineCurve(spline: spline.source, controlPoints: spline.controlPoints, tolerance: tolerance)
+            points = try SketchSplineTessellator(tolerance: tolerance).samples(for: planar).map(\.point)
+        }
         if spline.isClosed {
             guard let first = points.first,
                   let last = points.last,
@@ -229,7 +241,7 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
         }
         return ResolvedProfileSegment(
             id: spline.id,
-            kind: .spline(controlPoints: spline.controlPoints),
+            kind: .spline(controlPoints: spline.controlPoints, degree: spline.source.degree, knots: spline.knots),
             points: points
         )
     }
@@ -775,30 +787,18 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
                 sweepAngle: sweepAngle,
                 on: plane
             )]
-        case let .spline(controlPoints):
+        case let .spline(controlPoints, degree, knots):
             let mappedControlPoints = try controlPoints.map { point in
                 try mapTo3D(point, on: plane)
             }
-            let spanCount = (mappedControlPoints.count - 1) / 3
             let curve = BSplineCurve3D(
-                degree: 3,
-                knots: cubicBezierChainKnots(spanCount: spanCount),
+                degree: degree,
+                knots: knots,
                 controlPoints: mappedControlPoints
             )
             try curve.validate(tolerance: tolerance)
             return [.spline(ProfileSplineSegment(curve: curve))]
         }
-    }
-
-    private func cubicBezierChainKnots(spanCount: Int) -> [Double] {
-        var knots = Array(repeating: 0.0, count: 4)
-        if spanCount > 1 {
-            for boundary in 1..<spanCount {
-                knots.append(contentsOf: Array(repeating: Double(boundary), count: 3))
-            }
-        }
-        knots.append(contentsOf: Array(repeating: Double(spanCount), count: 4))
-        return knots
     }
 
     private func lineBoundarySegments(
@@ -859,6 +859,8 @@ private struct ResolvedSketchSpline {
     var id: SketchEntityID
     var controlPoints: [Point2D]
     var isClosed: Bool
+    var source: SketchSpline
+    var knots: [Double]
 }
 
 private struct ResolvedProfileSegment {
@@ -916,7 +918,8 @@ private struct LoopSegmentBounds {
 private enum ResolvedProfileSegmentKind {
     case line
     case arc(center: Point2D, radius: Double, sweepAngle: Double)
-    case spline(controlPoints: [Point2D])
+    /// The spline's control points, degree and resolved clamped knot vector.
+    case spline(controlPoints: [Point2D], degree: Int, knots: [Double])
 
     func reversed() -> ResolvedProfileSegmentKind {
         switch self {
@@ -924,8 +927,14 @@ private enum ResolvedProfileSegmentKind {
             return .line
         case let .arc(center, radius, sweepAngle):
             return .arc(center: center, radius: radius, sweepAngle: -sweepAngle)
-        case let .spline(controlPoints):
-            return .spline(controlPoints: Array(controlPoints.reversed()))
+        case let .spline(controlPoints, degree, knots):
+            // The reversed curve's knots mirror the original's across its domain.
+            let lower = knots[0], upper = knots[knots.count - 1]
+            return .spline(
+                controlPoints: Array(controlPoints.reversed()),
+                degree: degree,
+                knots: knots.reversed().map { lower + upper - $0 }
+            )
         }
     }
 }

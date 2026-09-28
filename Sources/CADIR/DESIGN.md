@@ -299,6 +299,40 @@ claimed.
     from a triangle soup; it is not a fallback that a CAD consumer may accept
     silently. `CADKernel` owns which face produced which run.
 
+### Sketch spline form
+
+A `SketchSpline` is a clamped, non-rational B-spline in the sketch plane given by
+its control points, its `degree` (1 through `SketchSpline.maximumDegree`) and its
+knots. With `knots == nil` it is in Bezier-chain form: spans of `degree` joined
+end to end, span k on the parameter interval [k, k + 1] using control points
+degree·k through degree·(k + 1), so `degree·n + 1` points for n spans, every
+interior knot of multiplicity `degree` and the curve passing through every
+`degree`-th control point (the joints). The cubic chain every earlier document
+holds is the form with degree 3 and no knots. With explicit knots the vector has
+`controlPoints.count + degree + 1` finite, non-decreasing values, clamped (the
+first and last `degree + 1` equal), a positive domain and no interior knot of
+multiplicity above `degree`; such a curve has joints only at its ends. A closed
+spline starts and ends at one point: its last control point equals its first.
+
+`knotVector` is the resolved knot vector of either form; `isBezierChain`,
+`spanCount` and `jointIndices` describe the chain form's structure. Encoding
+writes `degree` and `knots` only when they differ from the cubic chain, so a
+document that holds only cubic chains encodes byte for byte as before, and a
+decoder that finds neither reads the cubic chain.
+
+Constraints on a spline read its ends through the clamped end conditions, valid
+for either form: the end tangent is along the first (last) control-point leg,
+and the end derivatives are C′ = p/(u[p+1] − u[1])·(P1 − P0) and
+C″ = p(p − 1)/(u[p+1] − u[2])·((P2 − P1)/(u[p+2] − u[2]) − (P1 − P0)/(u[p+1] − u[1]))
+at the start and their mirror at the end. `tangentSplineEndpoints` and
+`splineEndpointTangent` hold the end tangents parallel (G1);
+`smoothSplineEndpoints` holds them parallel and the two end curvature vectors
+C″⊥/|C′|² equal (G2), which does not depend on either curve's parameter
+direction. `smoothSplineControlPoint` holds a chain joint's two legs collinear
+and names an interior joint index, a multiple of `degree`, of a spline in chain
+form. Sketch validation refuses any other form, count or index as a typed
+`SketchError`.
+
 ### Materials
 
 `Material` is a physically based appearance: base color, metallic, roughness

@@ -53,6 +53,27 @@ Non-finite input, a line no longer than the modeling distance and a radius at or
 below it are `invalidInput`. `SketchCurveProjectorTests` own the line, circle,
 arc-end, chain-foot and failure cases; RupaCore Trim and Split Segment consume it.
 
+`SketchSplineCurve` is a sketch spline's exact planar geometry for any degree and
+knots ([Sketch spline form](../CADIR/DESIGN.md#sketch-spline-form)): its clamped
+`BSplineCurve2D` and its Bezier segments with their parameter intervals, a chain
+being its own segments and explicit knots being decomposed by inserting every
+interior knot up to multiplicity `degree`. Everything that reads a spline other
+than a cubic chain goes through it: `SketchCurveExtractor` and
+`SketchProfileExtractor` build the evaluated curve and the profile B-spline on the
+spline's own knots and flatten it with `SketchSplineTessellator` (de Casteljau
+halving until each segment's interior points lie within the modeling distance of
+its chord), while a cubic chain keeps `CubicBezierSplineTessellator` and so its
+exact earlier samples. `SketchCurveGeometry2D.sketchSpline` carries it to the
+projector and the intersector with the B-spline parameter as its natural
+parameter. `SketchCurveSampler.splineSamples(for:)` and `splineSample(for:parameter:)`
+sample it with the parameter normalized over the knot domain, the convention a
+cubic chain already uses, and `turnBoundedSplineSamples` halves every step whose
+tangents turn by more than a bound, so a curvature comb follows a tight bend.
+The solver reads spline ends through the clamped end derivatives and holds
+`smoothSplineEndpoints` to equal curvature vectors (true G2; it held equal handle
+lengths before). `SketchSplineFormTests`, `SketchSplineCurveTests` and
+`SketchSplineConstraintSolverTests` own these.
+
 `CubicBezierChainJoints.mergedSpan(of:atJoint:)` says whether the two spans that
 meet at a chain joint are the halves of one cubic, and returns it: halves of Q
 split at t meet with collinear handles in the ratio t : 1 − t, so t is read from

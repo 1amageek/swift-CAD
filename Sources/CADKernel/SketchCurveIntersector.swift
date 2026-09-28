@@ -211,6 +211,16 @@ public struct SketchCurveIntersector: Sendable {
             knots.append(contentsOf: Array(repeating: Double(spanCount), count: 4))
             let curve = BSplineCurve2D(degree: 3, knots: knots, controlPoints: controlPoints)
             return ExactCurve(curve: try validated(curve), natural: .identity)
+        case let .sketchSpline(spline):
+            guard reach == .authored else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .unsupportedCapability,
+                    tolerance: tolerance,
+                    message: "A sketch spline has no extension."
+                )
+            }
+            return ExactCurve(curve: try validated(spline.bSpline), natural: .identity)
         }
     }
 

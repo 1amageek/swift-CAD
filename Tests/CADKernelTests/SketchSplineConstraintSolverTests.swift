@@ -3,6 +3,7 @@ import Testing
 import CADCore
 import CADIR
 import CADModeling
+import CADGeometry
 @testable import CADKernel
 
 @Suite("Sketch spline constraint solver")
@@ -111,33 +112,93 @@ struct SketchSplineConstraintSolverTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func smoothEndpointsJoinWithEqualAlignedHandles() throws {
+    func smoothEndpointsJoinWithEqualCurvatureVectors() throws {
         let firstID = SketchEntityID()
         let secondID = SketchEntityID()
-        let sketch = endpointPairSketch(
-            firstID: firstID,
-            secondID: secondID,
-            constraint: .smoothSplineEndpoints(
-                SketchSplineEndpointTangencyConstraint(
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                firstID: .spline(SketchSpline(controlPoints: [
+                    point(0.0, 0.0), point(1.0, 1.0), point(2.0, 1.2), point(3.0, 1.0),
+                ])),
+                secondID: .spline(SketchSpline(controlPoints: [
+                    point(3.1, 1.2), point(3.8, 1.3), point(5.0, 0.4), point(6.0, 0.0),
+                ])),
+            ],
+            constraints: [
+                .fixed(.entity(firstID)),
+                .fixed(.splineControlPoint(entity: secondID, index: 3)),
+                .smoothSplineEndpoints(SketchSplineEndpointTangencyConstraint(
                     first: SketchSplineEndpointReference(splineID: firstID, endpoint: .end),
                     second: SketchSplineEndpointReference(splineID: secondID, endpoint: .start),
                     orientation: .aligned
-                )
-            )
+                )),
+            ]
         )
 
         let result = try solve(sketch)
-        let first = try splinePoints(firstID, in: result.sketch)
-        let second = try splinePoints(secondID, in: result.sketch)
-        let firstHandle = first[3] - first[2]
-        let secondHandle = second[1] - second[0]
+        let first = try curve(firstID, in: result.sketch)
+        let second = try curve(secondID, in: result.sketch)
+        let end = try first.differentialGeometry(at: 1.0, tolerance: .standard)
+        let start = try second.differentialGeometry(at: 0.0, tolerance: .standard)
 
-        #expect(result.status == .fullyConstrained)
         #expect(result.maximumNormalizedResidual <= 1.0)
-        #expect(distance(first[3], second[0]) <= 1.0e-8)
-        #expect(abs(cross(firstHandle, secondHandle)) <= 1.0e-8)
-        #expect(dot(firstHandle, secondHandle) > 0.0)
-        #expect(abs(length(firstHandle) - length(secondHandle)) <= 1.0e-8)
+        #expect(distance(end.position, start.position) <= 1.0e-8)
+        #expect(abs(cross(end.firstDerivative, start.firstDerivative)) <= 1.0e-8)
+        #expect(dot(end.firstDerivative, start.firstDerivative) > 0.0)
+        let endCurvature = curvatureVector(end)
+        let startCurvature = curvatureVector(start)
+        #expect(length(endCurvature) > 0.1)
+        #expect(distance(endCurvature, startCurvature) <= 1.0e-6)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func smoothEndpointsHoldAQuinticToACubicWithExplicitKnots() throws {
+        let firstID = SketchEntityID()
+        let secondID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                // A cubic B-spline with one simple interior knot, not in chain form.
+                firstID: .spline(SketchSpline(
+                    controlPoints: [point(0.0, 0.0), point(1.0, 1.0), point(2.0, 1.5), point(3.0, 1.2), point(4.0, 1.0)],
+                    degree: 3,
+                    knots: [0, 0, 0, 0, 0.4, 1, 1, 1, 1]
+                )),
+                // A quintic in chain form, one span.
+                secondID: .spline(SketchSpline(
+                    controlPoints: [point(4.2, 1.1), point(4.8, 1.0), point(5.4, 0.7), point(6.0, 0.3), point(6.5, 0.1), point(7.0, 0.0)],
+                    degree: 5
+                )),
+            ],
+            constraints: [
+                .fixed(.entity(firstID)),
+                .fixed(.splineControlPoint(entity: secondID, index: 3)),
+                .fixed(.splineControlPoint(entity: secondID, index: 4)),
+                .fixed(.splineControlPoint(entity: secondID, index: 5)),
+                .smoothSplineEndpoints(SketchSplineEndpointTangencyConstraint(
+                    first: SketchSplineEndpointReference(splineID: firstID, endpoint: .end),
+                    second: SketchSplineEndpointReference(splineID: secondID, endpoint: .start),
+                    orientation: .aligned
+                )),
+            ]
+        )
+
+        let result = try solve(sketch)
+        guard case let .spline(solvedSecond) = result.sketch.entities[secondID] else {
+            Issue.record("The solved sketch must keep the quintic.")
+            return
+        }
+        #expect(solvedSecond.degree == 5 && solvedSecond.knots == nil)
+        let first = try curve(firstID, in: result.sketch)
+        let second = try curve(secondID, in: result.sketch)
+        let end = try first.differentialGeometry(at: 1.0, tolerance: .standard)
+        let start = try second.differentialGeometry(at: 0.0, tolerance: .standard)
+
+        #expect(result.maximumNormalizedResidual <= 1.0)
+        #expect(distance(end.position, start.position) <= 1.0e-8)
+        #expect(abs(cross(end.firstDerivative, start.firstDerivative)) <= 1.0e-8)
+        #expect(distance(curvatureVector(end), curvatureVector(start)) <= 1.0e-6)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -230,6 +291,21 @@ struct SketchSplineConstraintSolverTests {
             throw SketchError.invalidReference("Solved sketch is missing the expected spline.")
         }
         return try spline.controlPoints.map(resolve)
+    }
+
+    private func curve(_ entityID: SketchEntityID, in sketch: Sketch) throws -> BSplineCurve2D {
+        guard case let .spline(spline) = sketch.entities[entityID], let knots = spline.knotVector else {
+            throw SketchError.invalidReference("Solved sketch is missing the expected spline.")
+        }
+        return BSplineCurve2D(degree: spline.degree, knots: knots, controlPoints: try spline.controlPoints.map(resolve))
+    }
+
+    /// The curvature vector (C″ − (C″·T)T)/|C′|², independent of the parameter direction.
+    private func curvatureVector(_ geometry: BSplineCurve2D.DifferentialGeometry) -> Point2D {
+        let d1 = geometry.firstDerivative, d2 = geometry.secondDerivative
+        let speedSquared = dot(d1, d1)
+        let along = dot(d2, d1) / speedSquared
+        return Point2D(x: (d2.x - along * d1.x) / speedSquared, y: (d2.y - along * d1.y) / speedSquared)
     }
 
     private func linePoints(

@@ -371,9 +371,10 @@ public struct Sketch: Codable, Sendable, Hashable {
         guard spline.controlPoints.indices.contains(index) else {
             throw SketchError.invalidReference("Smooth spline control point constraint points outside the spline.")
         }
-        guard index > 0, index < spline.controlPoints.count - 1, index.isMultiple(of: 3) else {
+        guard spline.isBezierChain, index > 0, index < spline.controlPoints.count - 1,
+              index.isMultiple(of: spline.degree) else {
             throw SketchError.invalidReference(
-                "Smooth spline control point constraint requires an internal cubic spline knot index."
+                "Smooth spline control point constraint requires an internal joint index of a spline in chain form."
             )
         }
     }
@@ -479,11 +480,6 @@ public struct Sketch: Codable, Sendable, Hashable {
     }
 
     private func validateSplineControlPointCount(_ spline: SketchSpline) throws {
-        let count = spline.controlPoints.count
-        guard count >= 4, (count - 1).isMultiple(of: 3) else {
-            throw SketchError.unsupportedEntity(
-                "Cubic sketch spline control point count must be 3n + 1 and at least 4."
-            )
-        }
+        try spline.validateForm()
     }
 }

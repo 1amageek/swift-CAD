@@ -271,7 +271,33 @@ public struct LevenbergMarquardtSketchConstraintSolver: SketchConstraintSolving 
             tolerance: tolerance
         )))
         if smooth {
-            equations.append(.distance(firstTangent.length - secondTangent.length))
+            // G2: equal curvature vectors κ⃗ = (C″|C′|² − (C″·C′)C′)/|C′|⁴, which do not depend on
+            // either curve's parameter direction, scaled by |C′₁||C′₂| to a length.
+            func curvatureVector(_ derivatives: (first: ForwardVector2, second: ForwardVector2)) throws -> (ForwardVector2, ForwardScalar) {
+                let speedSquared = derivatives.first.dot(derivatives.first)
+                guard speedSquared.value > tolerance.distance * tolerance.distance else {
+                    throw KernelError(
+                        phase: .evaluation,
+                        code: .singularSystem,
+                        residual: speedSquared.value,
+                        tolerance: tolerance,
+                        message: "Sketch smooth spline constraint contains a degenerate end."
+                    )
+                }
+                let numerator = derivatives.second * speedSquared
+                    - derivatives.first * derivatives.second.dot(derivatives.first)
+                let denominator = speedSquared * speedSquared
+                return (ForwardVector2(x: numerator.x / denominator, y: numerator.y / denominator), speedSquared.squareRoot)
+            }
+            let (firstCurvature, firstSpeed) = try curvatureVector(try system.splineEndDerivatives(
+                tangency.first.splineID, endpoint: tangency.first.endpoint, variables: variables
+            ))
+            let (secondCurvature, secondSpeed) = try curvatureVector(try system.splineEndDerivatives(
+                tangency.second.splineID, endpoint: tangency.second.endpoint, variables: variables
+            ))
+            let scale = firstSpeed * secondSpeed
+            equations.append(.distance((firstCurvature.x - secondCurvature.x) * scale))
+            equations.append(.distance((firstCurvature.y - secondCurvature.y) * scale))
         }
     }
 
@@ -667,6 +693,18 @@ private struct ForwardVector2 {
         x * other.y - y * other.x
     }
 
+    static func + (lhs: Self, rhs: Self) -> Self {
+        Self(x: lhs.x + rhs.x, y: lhs.y + rhs.y)
+    }
+
+    static func * (lhs: Self, rhs: Double) -> Self {
+        Self(x: lhs.x * rhs, y: lhs.y * rhs)
+    }
+
+    static func * (lhs: Self, rhs: ForwardScalar) -> Self {
+        Self(x: lhs.x * rhs, y: lhs.y * rhs)
+    }
+
     var length: ForwardScalar {
         (x * x + y * y).squareRoot
     }
@@ -690,7 +728,8 @@ private struct SketchVariableSystem {
         case line(Int, Int, Int, Int)
         case circle(Int, Int, Int)
         case arc(Int, Int, Int, Int, Int)
-        case spline([(Int, Int)])
+        /// The control point variable indices, the degree and the resolved clamped knot vector.
+        case spline([(Int, Int)], degree: Int, knots: [Double])
     }
 
     let layouts: [SketchEntityID: Layout]
@@ -743,6 +782,10 @@ private struct SketchVariableSystem {
                     try append(arc.endAngle, kind: .angle)
                 )
             case let .spline(spline):
+                try spline.validateForm()
+                guard let knots = spline.knotVector else {
+                    throw SketchError.unsupportedEntity("A sketch spline's knot vector could not be resolved.")
+                }
                 var indices: [(Int, Int)] = []
                 for point in spline.controlPoints {
                     indices.append((
@@ -750,7 +793,7 @@ private struct SketchVariableSystem {
                         try append(point.y, kind: .length)
                     ))
                 }
-                layouts[entityID] = .spline(indices)
+                layouts[entityID] = .spline(indices, degree: spline.degree, knots: knots)
             }
         }
         self.layouts = layouts
@@ -882,10 +925,43 @@ private struct SketchVariableSystem {
         _ entityID: SketchEntityID,
         variables: [ForwardScalar]
     ) throws -> [ForwardVector2] {
-        guard case let .spline(indices) = try layout(entityID) else {
+        guard case let .spline(indices, _, _) = try layout(entityID) else {
             throw SketchError.invalidReference("Spline constraint requires a spline entity.")
         }
         return indices.map { vector($0.0, $0.1, variables: variables) }
+    }
+
+    /// C′ and C″ at one end of a clamped spline of any degree or knots. The end is read as the
+    /// start of the reversed curve (reversed points, mirrored knots), which keeps C″ and flips C′;
+    /// only the curvature vector and the speed are taken from them.
+    func splineEndDerivatives(
+        _ entityID: SketchEntityID,
+        endpoint: SketchSplineEndpoint,
+        variables: [ForwardScalar]
+    ) throws -> (first: ForwardVector2, second: ForwardVector2) {
+        guard case let .spline(indices, degree, knots) = try layout(entityID) else {
+            throw SketchError.invalidReference("Spline constraint requires a spline entity.")
+        }
+        var points = indices.map { vector($0.0, $0.1, variables: variables) }
+        var u = knots
+        if endpoint == .end {
+            points.reverse()
+            let lower = knots[0], upper = knots[knots.count - 1]
+            u = knots.reversed().map { lower + upper - $0 }
+        }
+        let p = Double(degree)
+        guard points.count >= 2, u[degree + 1] - u[1] > 0 else {
+            throw SketchError.invalidReference("Spline end derivatives require a leg of positive knot span.")
+        }
+        let leg0 = points[1] - points[0]
+        let first = leg0 * (p / (u[degree + 1] - u[1]))
+        guard degree >= 2, points.count >= 3 else {
+            return (first, leg0 * 0.0)
+        }
+        let leg1 = points[2] - points[1]
+        let second = (leg1 * (1.0 / (u[degree + 2] - u[2])) - leg0 * (1.0 / (u[degree + 1] - u[1])))
+            * (p * (p - 1.0) / (u[degree + 1] - u[2]))
+        return (first, second)
     }
 
     func splineEndpoint(
@@ -975,7 +1051,7 @@ private struct SketchVariableSystem {
             guard case let .arc(_, _, radius, _, _) = try layout(entityID) else { throw invalidFixedReference() }
             indices = [(radius, .distance)]
         case let .splineControlPoint(entityID, index):
-            guard case let .spline(points) = try layout(entityID), points.indices.contains(index) else {
+            guard case let .spline(points, _, _) = try layout(entityID), points.indices.contains(index) else {
                 throw invalidFixedReference()
             }
             indices = [(points[index].0, .distance), (points[index].1, .distance)]
@@ -1023,11 +1099,11 @@ private struct SketchVariableSystem {
                     startAngle: angle(values[start]),
                     endAngle: angle(values[end])
                 ))
-            case let (.spline(spline), .spline(indices)):
-                result.entities[entityID] = .spline(SketchSpline(
-                    controlPoints: indices.map { point($0.0, $0.1, values: values) },
-                    isClosed: spline.isClosed
-                ))
+            case let (.spline(spline), .spline(indices, _, _)):
+                // Only the control points are solved; degree, knots and closure stay.
+                var solved = spline
+                solved.controlPoints = indices.map { point($0.0, $0.1, values: values) }
+                result.entities[entityID] = .spline(solved)
             default:
                 continue
             }
@@ -1060,7 +1136,7 @@ private struct SketchVariableSystem {
             return [(x, .distance), (y, .distance), (radius, .distance)]
         case let .arc(x, y, radius, start, end):
             return [(x, .distance), (y, .distance), (radius, .distance), (start, .angle), (end, .angle)]
-        case let .spline(points):
+        case let .spline(points, _, _):
             return points.flatMap { [($0.0, .distance), ($0.1, .distance)] }
         }
     }

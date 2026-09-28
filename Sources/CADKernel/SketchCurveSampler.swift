@@ -182,6 +182,123 @@ public struct SketchCurveSampler: Sendable {
         )
     }
 
+    /// Uniform samples of a sketch spline of any degree or knots: `samplesPerSegment` per Bezier
+    /// segment, the parameter normalized to [0, 1] over the knot domain as for a cubic chain.
+    public func splineSamples(for curve: SketchSplineCurve) -> [CurveEvaluationSample] {
+        var samples: [CurveEvaluationSample] = []
+        for (index, segment) in curve.segments.enumerated() {
+            for step in 0...samplesPerSegment where index == 0 || step > 0 {
+                let t = Double(step) / Double(samplesPerSegment)
+                if let sample = segmentSample(curve, segment, t: t) { samples.append(sample) }
+            }
+        }
+        return samples
+    }
+
+    /// The sample of a sketch spline at `parameter`, normalized to [0, 1] over its knot domain.
+    public func splineSample(for curve: SketchSplineCurve, parameter: Double) -> CurveEvaluationSample? {
+        guard let first = curve.segments.first, let last = curve.segments.last else { return nil }
+        let lower = first.lowerParameter, upper = last.upperParameter
+        let u = lower + clampedUnit(parameter) * (upper - lower)
+        let segment = curve.segments.first { u <= $0.upperParameter } ?? last
+        let span = segment.upperParameter - segment.lowerParameter
+        return segmentSample(curve, segment, t: span > 0 ? (u - segment.lowerParameter) / span : 0)
+    }
+
+    /// Samples dense enough that the tangent turns by at most `maximumTurn` radians between
+    /// neighbours: each segment starts from `samplesPerSegment` uniform steps and every step whose
+    /// tangents turn further is halved, down to `minimumStep` in the segment parameter. A curvature
+    /// comb drawn from them follows tight bends instead of jumping across them.
+    public func turnBoundedSplineSamples(
+        for curve: SketchSplineCurve,
+        maximumTurn: Double = Double.pi / 36,
+        minimumStep: Double = 1.0e-6,
+        maximumSampleCount: Int = 8_192
+    ) throws -> [CurveEvaluationSample] {
+        guard maximumTurn.isFinite, maximumTurn > 0, minimumStep > 0 else {
+            throw GeometryError.invalidTolerance(distance: minimumStep, angle: maximumTurn)
+        }
+        var samples: [CurveEvaluationSample] = []
+        func refine(_ segment: SketchSplineCurve.Segment, _ a: (t: Double, sample: CurveEvaluationSample?),
+                    _ b: (t: Double, sample: CurveEvaluationSample?)) throws {
+            if let sa = a.sample, let sb = b.sample,
+               turn(sa.tangent, sb.tangent) <= maximumTurn || b.t - a.t <= minimumStep {
+                samples.append(sb)
+                return
+            }
+            if a.sample == nil || b.sample == nil, b.t - a.t <= minimumStep {
+                if let sb = b.sample { samples.append(sb) }
+                return
+            }
+            guard samples.count < maximumSampleCount else {
+                throw SketchError.unsupportedProfile("A curvature comb needs more than \(maximumSampleCount) samples.")
+            }
+            let middle = (a.t + b.t) / 2
+            let m = (middle, segmentSample(curve, segment, t: middle))
+            try refine(segment, a, m)
+            try refine(segment, m, b)
+        }
+        for (index, segment) in curve.segments.enumerated() {
+            var previous = (t: 0.0, sample: segmentSample(curve, segment, t: 0))
+            if index == 0, let first = previous.sample { samples.append(first) }
+            for step in 1...samplesPerSegment {
+                let t = Double(step) / Double(samplesPerSegment)
+                let next = (t: t, sample: segmentSample(curve, segment, t: t))
+                try refine(segment, previous, next)
+                previous = next
+            }
+        }
+        return samples
+    }
+
+    private func turn(_ a: Point2D, _ b: Point2D) -> Double {
+        abs(atan2(a.x * b.y - a.y * b.x, a.x * b.x + a.y * b.y))
+    }
+
+    /// The sample at `t` in [0, 1] on `segment`, its parameter normalized over the knot domain.
+    /// Its derivatives are taken on the B-spline parameter, so curvature does not depend on the
+    /// segment's parameter length.
+    private func segmentSample(
+        _ curve: SketchSplineCurve,
+        _ segment: SketchSplineCurve.Segment,
+        t: Double
+    ) -> CurveEvaluationSample? {
+        let p = segment.controlPoints
+        let n = Double(p.count - 1)
+        var levels = [p]
+        while let last = levels.last, last.count > 1 {
+            levels.append(zip(last, last.dropFirst()).map {
+                Point2D(x: $0.x + ($1.x - $0.x) * t, y: $0.y + ($1.y - $0.y) * t)
+            })
+        }
+        let point = levels[levels.count - 1][0]
+        let span = segment.upperParameter - segment.lowerParameter
+        guard span > 0, levels.count >= 2 else { return nil }
+        let b = levels[levels.count - 2]
+        let first = Point2D(x: n * (b[1].x - b[0].x) / span, y: n * (b[1].y - b[0].y) / span)
+        var second = Point2D(x: 0, y: 0)
+        if levels.count >= 3 {
+            let c = levels[levels.count - 3]
+            let scale = n * (n - 1) / (span * span)
+            second = Point2D(x: scale * (c[2].x - 2 * c[1].x + c[0].x), y: scale * (c[2].y - 2 * c[1].y + c[0].y))
+        }
+        let speedSquared = first.x * first.x + first.y * first.y
+        guard speedSquared > minimumLength * minimumLength else { return nil }
+        let speed = speedSquared.squareRoot()
+        let tangent = Point2D(x: first.x / speed, y: first.y / speed)
+        let curvature = (first.x * second.y - first.y * second.x) / (speedSquared * speed)
+        guard curvature.isFinite, let domainFirst = curve.segments.first, let domainLast = curve.segments.last else { return nil }
+        let lower = domainFirst.lowerParameter, upper = domainLast.upperParameter
+        let u = segment.lowerParameter + t * span
+        return CurveEvaluationSample(
+            parameter: (u - lower) / (upper - lower),
+            point: point,
+            tangent: tangent,
+            normal: Point2D(x: -tangent.y, y: tangent.x),
+            curvature: curvature
+        )
+    }
+
     public func approximateLength(of samples: [CurveEvaluationSample]) -> Double {
         guard samples.count >= 2 else {
             return 0.0

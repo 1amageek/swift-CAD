@@ -693,7 +693,7 @@ private func validateSketchArcObject(_ object: [String: Any], path: String) thro
 private func validateSketchSplineObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["controlPoints", "isClosed"],
+        supportedKeys: ["controlPoints", "isClosed", "degree", "knots"],
         objectName: path
     )
     try validateArrayField("controlPoints", in: object, path: "\(path).controlPoints", using: validateSketchPointObject)

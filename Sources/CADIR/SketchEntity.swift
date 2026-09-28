@@ -49,16 +49,6 @@ public struct SketchArc: Codable, Sendable, Hashable {
     }
 }
 
-public struct SketchSpline: Codable, Sendable, Hashable {
-    public var controlPoints: [SketchPoint]
-    public var isClosed: Bool
-
-    public init(controlPoints: [SketchPoint], isClosed: Bool = false) {
-        self.controlPoints = controlPoints
-        self.isClosed = isClosed
-    }
-}
-
 public enum SketchEntity: Codable, Sendable, Hashable {
     case point(SketchPoint)
     case line(SketchLine)

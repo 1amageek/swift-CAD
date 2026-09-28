@@ -70,6 +70,17 @@ public struct SketchCurveProjector: Sendable {
             }
             guard let best else { throw invalid("A cubic Bezier chain has no span.") }
             return best
+        case let .sketchSpline(spline):
+            var best: Projection?
+            for segment in spline.segments {
+                try requireFinite(segment.controlPoints)
+                let foot = footPoint(on: segment.controlPoints, near: point)
+                let parameter = segment.lowerParameter + foot.t * (segment.upperParameter - segment.lowerParameter)
+                let candidate = projection(parameter, foot.point, point)
+                if best == nil || candidate.distance < best!.distance { best = candidate }
+            }
+            guard let best else { throw invalid("A sketch spline has no segment.") }
+            return best
         }
     }
 
@@ -96,8 +107,9 @@ public struct SketchCurveProjector: Sendable {
         return (nearest.0, nearest.1)
     }
 
-    /// B(t), B′(t) and B″(t) of the cubic Bezier span `p`.
+    /// B(t), B′(t) and B″(t) of the Bezier span `p` of any degree; the cubic in closed form.
     private func jet(_ p: [Point2D], _ t: Double) -> (value: Point2D, first: Point2D, second: Point2D) {
+        guard p.count == 4 else { return generalJet(p, t) }
         let s = 1 - t
         func sum(_ terms: [(Double, Point2D)]) -> Point2D {
             terms.reduce(Point2D(x: 0, y: 0)) { Point2D(x: $0.x + $1.0 * $1.1.x, y: $0.y + $1.0 * $1.1.y) }
@@ -109,6 +121,27 @@ public struct SketchCurveProjector: Sendable {
             sum([(3 * s * s, d0), (6 * s * t, d1), (3 * t * t, d2)]),
             sum([(6 * s, difference(d1, d0)), (6 * t, difference(d2, d1))])
         )
+    }
+
+    /// de Casteljau for degree n: the last level is B(t); the two points before it give
+    /// B′(t) = n·(b1 − b0); the three before that give B″(t) = n(n − 1)·(c2 − 2c1 + c0).
+    private func generalJet(_ p: [Point2D], _ t: Double) -> (value: Point2D, first: Point2D, second: Point2D) {
+        let n = Double(p.count - 1)
+        var levels = [p]
+        while let last = levels.last, last.count > 1 {
+            levels.append(zip(last, last.dropFirst()).map { Point2D(x: $0.x + ($1.x - $0.x) * t, y: $0.y + ($1.y - $0.y) * t) })
+        }
+        let value = levels[levels.count - 1][0]
+        guard levels.count >= 2 else { return (value, Point2D(x: 0, y: 0), Point2D(x: 0, y: 0)) }
+        let b = levels[levels.count - 2]
+        let first = Point2D(x: n * (b[1].x - b[0].x), y: n * (b[1].y - b[0].y))
+        guard levels.count >= 3 else { return (value, first, Point2D(x: 0, y: 0)) }
+        let c = levels[levels.count - 3]
+        let second = Point2D(
+            x: n * (n - 1) * (c[2].x - 2 * c[1].x + c[0].x),
+            y: n * (n - 1) * (c[2].y - 2 * c[1].y + c[0].y)
+        )
+        return (value, first, second)
     }
 
     private func projection(_ parameter: Double, _ foot: Point2D, _ point: Point2D) -> Projection {

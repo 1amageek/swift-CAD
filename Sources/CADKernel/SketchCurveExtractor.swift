@@ -125,17 +125,30 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
                         try resolve(point, parameters: parameters)
                     }
                     let controlPoints3D = try controlPoints.map { try mapTo3D($0, on: sketch.plane) }
-                    var samples = try splineTessellator.samples(for: controlPoints)
+                    var samples: [(parameter: Double, point: Point2D)]
+                    let exactCurve: BSplineCurve3D
+                    if spline.isCubicBezierChain {
+                        samples = try splineTessellator.samples(for: controlPoints).map { ($0.parameter, $0.point) }
+                        exactCurve = try cubicBezierSplineCurve(controlPoints: controlPoints3D)
+                    } else {
+                        // Any other degree or explicit knots: the same flattening per Bezier
+                        // segment, on the spline's own knot vector.
+                        let planar = try SketchSplineCurve(spline: spline, controlPoints: controlPoints, tolerance: tolerance)
+                        samples = try SketchSplineTessellator(tolerance: tolerance).samples(for: planar)
+                            .map { ($0.parameter, $0.point) }
+                        exactCurve = BSplineCurve3D(
+                            degree: planar.bSpline.degree,
+                            knots: planar.bSpline.knots,
+                            controlPoints: controlPoints3D
+                        )
+                        try exactCurve.validate(tolerance: tolerance)
+                    }
                     if spline.isClosed,
                        let first = samples.first,
                        let last = samples.last,
                        isClose(first.point, last.point) == false {
-                        samples.append(CubicBezierSplineTessellator.Sample(
-                            parameter: Double((controlPoints.count - 1) / 3),
-                            point: first.point
-                        ))
+                        samples.append((exactCurve.knots[exactCurve.knots.count - 1], first.point))
                     }
-                    let exactCurve = try cubicBezierSplineCurve(controlPoints: controlPoints3D)
                     let curve = EvaluatedCurve(
                         sourceFeatureID: sourceFeatureID,
                         source: .sketchEntity(entityID),

@@ -11,9 +11,11 @@ import Foundation
 ///   counterclockwise from `startAngle` through its positive sweep to `endAngle`.
 /// - `cubicBezierChain`: the chain parameter in `[0, spanCount]`, span `i` covering `[i, i + 1]`,
 ///   the same parameterization profile extraction gives a sketch spline.
+/// - `sketchSpline`: a sketch spline of any degree or knots; its B-spline parameter.
 public enum SketchCurveGeometry2D: Sendable, Hashable {
     case line(start: Point2D, end: Point2D)
     case circle(center: Point2D, radius: Double)
     case arc(center: Point2D, radius: Double, startAngle: Double, endAngle: Double)
     case cubicBezierChain(controlPoints: [Point2D])
+    case sketchSpline(SketchSplineCurve)
 }
