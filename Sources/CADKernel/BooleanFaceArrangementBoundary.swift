@@ -50,45 +50,8 @@ struct BooleanFaceArrangementBoundary: Sendable {
       regionSelectionGraph: regionSelectionGraph,
       tolerance: tolerance
     )
-    let edges: [BRepSewingEdge]
-    switch geometry {
-    case .transverseSegment(let start, let end):
-      edges = [
-        try lineEdge(
-          start: start,
-          end: end,
-          surfaceSide: surfaceSide,
-          stableID: stableID(reference, faceID: face.id, segmentOrdinal: 0),
-          parentSubshapeIDs: parentSubshapeIDs,
-          tolerance: tolerance
-        )
-      ]
-    case .trimmedCurve(let chain):
-      edges = try chain.segments.enumerated().map { segmentOrdinal, intersection in
-        try trimmedIntersectionEdge(
-          intersection,
-          surfaceSide: surfaceSide,
-          stableID: stableID(
-            reference,
-            faceID: face.id,
-            segmentOrdinal: segmentOrdinal
-          ),
-          parentSubshapeIDs: parentSubshapeIDs,
-          tolerance: tolerance
-        )
-      }
-    case .closedCurve(let intersection):
-      edges = try closedIntersectionEdges(
-        intersection,
-        surfaceSide: surfaceSide,
-        reference: reference,
-        faceID: face.id,
-        parentSubshapeIDs: parentSubshapeIDs,
-        tolerance: tolerance
-      )
-    case .tangent, .coincident:
-      return []
-    }
+    let edges = try edges(reference: reference, geometry: geometry, faceID: face.id,
+      surfaceSide: surfaceSide, parentSubshapeIDs: parentSubshapeIDs, tolerance: tolerance)
     return edges.enumerated().map { segmentOrdinal, edge in
       BooleanFaceArrangementBoundary(
         reference: reference,
@@ -103,6 +66,57 @@ struct BooleanFaceArrangementBoundary: Sendable {
           : actions.positive
       )
     }
+  }
+
+  /// Exact intersection edges, shared by solid Boolean and sheet half-space arrangements.
+  static func edges(
+    reference: BooleanFaceSplitComponentReference,
+    geometry: BooleanFaceSplitComponentGeometry,
+    faceID: FaceID,
+    surfaceSide: SurfaceSide,
+    parentSubshapeIDs: [SubshapeID],
+    tolerance: ModelingTolerance
+  ) throws -> [BRepSewingEdge] {
+    let edges: [BRepSewingEdge]
+    switch geometry {
+    case .transverseSegment(let start, let end):
+      edges = [
+        try lineEdge(
+          start: start,
+          end: end,
+          surfaceSide: surfaceSide,
+          stableID: stableID(reference, faceID: faceID, segmentOrdinal: 0),
+          parentSubshapeIDs: parentSubshapeIDs,
+          tolerance: tolerance
+        )
+      ]
+    case .trimmedCurve(let chain):
+      edges = try chain.segments.enumerated().map { segmentOrdinal, intersection in
+        try trimmedIntersectionEdge(
+          intersection,
+          surfaceSide: surfaceSide,
+          stableID: stableID(
+            reference,
+            faceID: faceID,
+            segmentOrdinal: segmentOrdinal
+          ),
+          parentSubshapeIDs: parentSubshapeIDs,
+          tolerance: tolerance
+        )
+      }
+    case .closedCurve(let intersection):
+      edges = try closedIntersectionEdges(
+        intersection,
+        surfaceSide: surfaceSide,
+        reference: reference,
+        faceID: faceID,
+        parentSubshapeIDs: parentSubshapeIDs,
+        tolerance: tolerance
+      )
+    case .tangent, .coincident:
+      return []
+    }
+    return edges
   }
 
   private static func resolvedActions(

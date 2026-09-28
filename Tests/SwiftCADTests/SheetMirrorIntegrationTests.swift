@@ -71,7 +71,7 @@ struct SheetMirrorIntegrationTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func aSheetMirrorsAloneAndACutIsRefused() throws {
+    func aSheetMirrorsAloneAndCanBeCut() throws {
         let (reflected, mirrorID, document) = try evaluate(patch(x0: -0.01, x1: 0.02), output: .reflection)
         try reflected.brep.validate(level: .exact, tolerance: .standard)
         #expect(document.designGraph.nodes[mirrorID]?.outputs.map(\.role) == [.sheet])
@@ -80,8 +80,9 @@ struct SheetMirrorIntegrationTests {
         #expect(abs((xs.min() ?? .nan) + 0.02) <= 1.0e-9)
         #expect(abs((xs.max() ?? .nan) - 0.01) <= 1.0e-9)
 
-        #expect(throws: (any Error).self) {
-            _ = try evaluate(patch(x0: -0.01, x1: 0.02), output: .kept, cuts: true)
-        }
+        let (cut, _, _) = try evaluate(patch(x0: -0.01, x1: 0.02), output: .kept, cuts: true)
+        try cut.brep.validate(level: .exact, tolerance: .standard)
+        #expect(cut.brep.vertices.values.allSatisfy { $0.point.x <= 1e-8 })
+
     }
 }

@@ -368,3 +368,7 @@ against a bilinear curved surface's analytic position and first/second
 derivatives, direction-preserving reversal/subdivision/JSON and invalid targets.
 The existing kernel offset-image integration test retains forward behavior;
 `RollingBallSectionTests` checks the offset-intersection-to-contact-rail path.
+
+### Plane / isoparametric B-spline intersections
+
+When the weighted signed-distance control coefficients are identical along one surface parameter, `PlaneBSplineIsoparametricIntersector` reduces the complete intersection problem to the existing certified curve/plane root solver. Each root yields the exact surface isocurve and its constant-parameter pcurve, verified by `SurfaceSurfaceIntersectionVerifier`. Other surfaces retain the general analytic/B-spline solver. The mirror sheet-cut regression exercises this dispatch with an interior curved-sheet section.

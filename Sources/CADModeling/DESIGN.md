@@ -571,8 +571,7 @@ hull of a B-spline patch, and never by samples. A sheet `clear` of the plane is
 placed beside its reflection as a second shell (`placeSheetInstancesApart`).
 A `oneSided` sheet is sewn to its reflection along its boundary edges on the
 plane (`glueReflection`), and a face lying in the plane is refused. An
-`undetermined` sheet may cross the plane and is refused, as is every sheet
-mirror with a cut, because no evaluator splits a sheet at the plane yet.
+`undetermined` sheet may cross the plane and is refused without Cut. With Cut, the injected half-space cutter partitions sheet faces using exact intersection curves, retains the negative half-space, and returns sheet topology with source lineage.
 `rebuild` refuses sheet patterns with more than one instance, since uniting
 sheets is not a union of volumes. `SheetMirrorIntegrationTests` prove the
 clear, sewn, crossing, reflection-only and cut cases.

@@ -947,14 +947,8 @@ struct ExactTrimEdgeIntersector {
     }
     let position = try encloser.enclosure(
       over: SurfaceParameterBox(
-        u: try ScalarInterval(
-          lower: uLower.nextDown,
-          upper: uUpper.nextUp
-        ),
-        v: try ScalarInterval(
-          lower: vLower.nextDown,
-          upper: vUpper.nextUp
-        )
+        u: try boundedEnclosure(lower: uLower, upper: uUpper, domain: surface.uDomain),
+        v: try boundedEnclosure(lower: vLower, upper: vUpper, domain: surface.vDomain)
       ),
       tolerance: tolerance
     ).position
@@ -1183,6 +1177,18 @@ struct ExactTrimEdgeIntersector {
     return points
   }
 
+  /// Validated pcurves lie in the support domain. Outward rounding at a boundary
+  /// may extend the root enclosure beyond it; intersect that enclosure with the
+  /// domain before asking the surface for a spatial bound.
+  private func boundedEnclosure(
+    lower: Double, upper: Double, domain: ParameterDomain
+  ) throws -> ScalarInterval {
+    if case .closed(let start, let end) = domain {
+      return try ScalarInterval(lower: max(start, lower.nextDown), upper: min(end, upper.nextUp))
+    }
+    return try ScalarInterval(lower: lower.nextDown, upper: upper.nextUp)
+  }
+
   private func surfaceLiftIntersections(
     _ first: BRepSewingEdge,
     _ second: BRepSewingEdge,
@@ -1292,8 +1298,10 @@ struct ExactTrimEdgeIntersector {
         accepting: { intersection in
           let spatial = try surfaceEncloser.enclosure(
             over: SurfaceParameterBox(
-              u: intersection.pointEnclosure.x,
-              v: intersection.pointEnclosure.y
+              u: try boundedEnclosure(lower: intersection.pointEnclosure.x.lower,
+                upper: intersection.pointEnclosure.x.upper, domain: surface.uDomain),
+              v: try boundedEnclosure(lower: intersection.pointEnclosure.y.lower,
+                upper: intersection.pointEnclosure.y.upper, domain: surface.vDomain)
             ),
             tolerance: tolerance
           ).position

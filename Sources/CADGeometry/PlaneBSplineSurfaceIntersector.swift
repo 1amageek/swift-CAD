@@ -20,6 +20,12 @@ struct PlaneBSplineSurfaceIntersector {
         ) {
             return boundaryIntersections
         }
+        if let isoparametric = try PlaneBSplineIsoparametricIntersector().intersections(
+            plane: plane, surface: surface, firstSurface: firstSurface, secondSurface: secondSurface,
+            planeIsFirst: planeIsFirst, tolerance: tolerance
+        ) {
+            return isoparametric
+        }
         return try AnalyticBSplineSurfaceIntersector().intersections(
             analytic: .plane(plane),
             surface: surface,

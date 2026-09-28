@@ -82,19 +82,6 @@ public struct MirrorFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
         guard mirror.cutsAtPlane else {
             return try reflect(mirror, bodyID: bodyID, featureID: feature.id, context: context)
         }
-        guard context.brep.bodies[bodyID]?.kind != .sheet else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): cutting a sheet at the mirror plane needs the sheet's
-            // faces split along their exact intersection with the plane, which no evaluator does
-            // yet; the half-space cutter intersects solids only. Every sheet mirror with a cut is
-            // refused here, and a sheet mirror with a cut is not complete until this path splits
-            // the sheet and keeps the faces on the kept side, with its own tests.
-            throw error(
-                .unsupportedCapability,
-                featureID: feature.id,
-                tolerance: context.tolerance,
-                "Mirror cannot cut a sheet at its plane yet."
-            )
-        }
         guard let cutter else {
             throw error(
                 .unsupportedCapability,

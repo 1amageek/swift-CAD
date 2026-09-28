@@ -71,6 +71,13 @@ struct BRepBodyHalfSpaceCutter: BodyHalfSpaceCutting {
         subshapes.merge(tool.subshapes) { current, _ in current }
         var lineage = context.lineage
         lineage.merge(tool.lineage) { current, _ in current }
+        if context.brep.bodies[bodyID]?.kind == .sheet {
+            return try BRepSheetHalfSpaceCutter(sewer: sewer).cut(
+                bodyID: bodyID, toolBodyID: toolBodyID, planeOrigin: planeOrigin,
+                planeNormal: normal, featureID: featureID, model: model,
+                context: context
+            )
+        }
         var result = try applicator.apply(
             operation: .intersect,
             targetBodyIDs: [bodyID],
