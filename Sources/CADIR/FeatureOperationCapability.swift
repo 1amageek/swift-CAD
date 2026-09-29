@@ -33,6 +33,7 @@ public extension FeatureOperation {
         case .mirror: return "mirror"
         case .joinBodies: return "joinBodies"
         case .unjoinBody: return "unjoinBody"
+        case .extract: return "extract"
         case .chamfer: return "chamfer"
         case .fillet: return "fillet"
         case .g2Blend: return "g2Blend"

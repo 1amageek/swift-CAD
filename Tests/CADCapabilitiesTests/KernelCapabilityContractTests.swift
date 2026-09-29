@@ -60,6 +60,7 @@ struct KernelCapabilityContractTests {
       "MODEL-MIRROR-001",
       "MODEL-JOIN-001",
       "MODEL-UNJOIN-001",
+      "MODEL-EXTRACT-001",
       "MODEL-THICKEN-001",
       "MODEL-BRIDGECURVE-001",
       "MODEL-SPATIALPATH-001",

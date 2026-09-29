@@ -485,6 +485,16 @@ public enum FeatureNodeFactory {
                 )
             }
             return try run()
+        case let .extract(feature):
+            try feature.validate()
+            let sourcePort = try bodyOrSheetPort(of: feature.target.featureID, in: document)
+            return FeatureNode(
+                id: id,
+                name: name,
+                operation: operation,
+                inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                outputs: [FeatureOutput(role: try feature.resultPort(sourcePort: sourcePort))]
+            )
         case .unjoinBody:
             func run() throws -> FeatureNode {
                 guard case let .unjoinBody(feature) = operation else {

@@ -89,7 +89,8 @@ public extension FeatureOperation {
              .curveDrivenPattern,
              .mirror,
              .joinBodies,
-             .unjoinBody:
+             .unjoinBody,
+             .extract:
             return []
         }
     }

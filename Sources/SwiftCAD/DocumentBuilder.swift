@@ -443,6 +443,20 @@ public struct DocumentBuilder {
         return featureID
     }
 
+    /// Copies one component, or chosen faces, of `target`'s body as a body of its own.
+    @discardableResult
+    public mutating func extract(
+        _ target: FeatureID,
+        selection: ExtractSelection,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let extract = ExtractFeature(target: PatternTargetReference(featureID: target), selection: selection)
+        try extract.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .extract(extract))
+        return featureID
+    }
+
     @discardableResult
     public mutating func moveVertex(
         target targetFeatureID: FeatureID,

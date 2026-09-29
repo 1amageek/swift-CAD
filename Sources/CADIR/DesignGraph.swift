@@ -370,6 +370,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 try join.validate()
             case let .unjoinBody(unjoin):
                 try unjoin.validate()
+            case let .extract(extract):
+                try extract.validate()
             case let .chamfer(chamfer):
                 try chamfer.validate()
                 let distance = try parameters.resolvedValue(for: chamfer.distance)
@@ -639,6 +641,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             try validateJoinBodiesContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .unjoinBody:
             try validateUnjoinBodyContract(node, outputRoles: outputRoles, tolerance: tolerance)
+        case .extract:
+            try validateExtractContract(node, outputRoles: outputRoles)
         case .chamfer:
             try validateChamferContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .fillet:
@@ -1384,6 +1388,23 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         }
         guard outputRoles == [.body] else {
             throw FeatureEvaluationError.invalidGraph("Join bodies features must declare one body output.")
+        }
+    }
+
+    @inline(never)
+    private func validateExtractContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        guard case let .extract(extract) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected an extract operation.")
+        }
+        try extract.validate()
+        guard node.inputs == [FeatureInput(featureID: extract.target.featureID, role: .target)] else {
+            throw FeatureEvaluationError.invalidGraph("Extract features must consume the referenced target input.")
+        }
+        guard let sourcePort = nodes[extract.target.featureID]?.bodyOrSheetOutput else {
+            throw FeatureEvaluationError.invalidGraph("Extract target source must declare exactly one body or sheet output.")
+        }
+        guard outputRoles == [try extract.resultPort(sourcePort: sourcePort)] else {
+            throw FeatureEvaluationError.invalidGraph("Extract features must declare the one output their selection gives.")
         }
     }
 

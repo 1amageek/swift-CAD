@@ -320,6 +320,12 @@ extension FeatureOperation {
             return .joinBodies(JoinBodiesFeature(targets: try feature.targets.map(pattern)))
         case .unjoinBody(let feature):
             return .unjoinBody(UnjoinBodyFeature(target: try pattern(feature.target)))
+        case .extract(let feature):
+            let selection: ExtractSelection = switch feature.selection {
+            case .component: feature.selection
+            case let .faces(faces): .faces(try faces.map(subshape))
+            }
+            return .extract(ExtractFeature(target: try pattern(feature.target), selection: selection))
         case .projectCurve(let feature):
             return .projectCurve(ProjectCurveFeature(
                 source: try curve(feature.source),

@@ -477,6 +477,13 @@ targets' material is empty (Empty, or Default on sheet targets), otherwise a bod
 package accepts either form but not both. Geometry is owned by
 [CADModeling](../CADModeling/DESIGN.md#placed-boolean-tools).
 
+An `ExtractFeature` copies part of its target's body as a body of its own and
+leaves the target as it is: `.component(index:count:)` one component of a body
+made of `count` components (solid components with their voids, or sheet shells),
+or `.faces` chosen faces as a sheet. Its one output is `resultPort(sourcePort:)`:
+a component keeps the source's kind, faces are a sheet. Geometry is owned by
+[CADKernel](../CADKernel/DESIGN.md#extract).
+
 A mirror's `output` (combined, reflection or kept) and `cutsAtPlane` round-trip
 with the legacy defaults combined and uncut; keeping only the source material
 requires the cut. Feature-reference remapping and document translation carry

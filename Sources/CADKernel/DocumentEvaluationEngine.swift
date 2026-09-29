@@ -332,6 +332,7 @@ struct DocumentEvaluationEngine {
                  .mirror,
                  .joinBodies,
                  .unjoinBody,
+                 .extract,
                  .bridgeCurve,
                  .bridgeSurface,
                  .curveEdit,

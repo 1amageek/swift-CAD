@@ -1,0 +1,118 @@
+import Foundation
+import Testing
+import CADCore
+import CADGeometry
+import CADIR
+import CADTopology
+@testable import CADKernel
+import SwiftCAD
+
+/// Extract copies one component of a body, or chosen faces, as a body of its own beside the
+/// source, which stays as it is.
+@Suite("Extract")
+struct ExtractFeatureTests {
+    private func length(_ value: Double) -> CADExpression { .constant(.length(value, unit: .meter)) }
+    private let cube = 0.02 * 0.02 * 0.02
+
+    /// A 20 mm cube sliced in two by a horizontal sheet 5 mm up.
+    private func slicedCube() throws -> (builder: DocumentBuilder, box: FeatureID, slice: FeatureID) {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let box = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
+        let plain = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        let bounds = try BRepBodyBoundingBoxBuilder().bounds(for: try #require(plain.brep.bodies.keys.first), in: plain.brep, tolerance: .standard)
+        let z = bounds.minimum.z + 0.005
+        let sheet = try builder.bSplineSurface(BSplineSurface3D(
+            uDegree: 1, vDegree: 1, uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+            controlPoints: [-1.0, 1.0].map { y in [-1.0, 1.0].map { Point3D(x: $0, y: y, z: z) } }
+        ))
+        let slice = try builder.boolean(targets: [box], tool: sheet, operation: .slice)
+        return (builder, box, slice)
+    }
+
+    private func evaluate(_ builder: DocumentBuilder) throws -> EvaluatedDocument {
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "extract"))
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        return evaluated
+    }
+
+    private func bodyID(of featureID: FeatureID, in evaluated: EvaluatedDocument) throws -> BodyID {
+        guard case let .body(bodyID) = evaluated.subshapes[SubshapeID(featureID: featureID, role: "body", ordinal: 0)] else {
+            throw KernelError(phase: .evaluation, code: .missingReference, tolerance: .standard, message: "No body.")
+        }
+        return bodyID
+    }
+
+    private func volume(of featureID: FeatureID, in evaluated: EvaluatedDocument) throws -> Double {
+        try evaluated.brep.volume(of: try bodyID(of: featureID, in: evaluated), tolerance: .standard)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func eachComponentOfASliceBecomesItsOwnBody() throws {
+        var fixture = try slicedCube()
+        let first = try fixture.builder.extract(fixture.slice, selection: .component(index: 0, count: 2))
+        let second = try fixture.builder.extract(fixture.slice, selection: .component(index: 1, count: 2))
+        let evaluated = try evaluate(fixture.builder)
+        // The two copies and the slice they came from.
+        #expect(evaluated.brep.bodies.count == 3)
+        let volumes = [try volume(of: first, in: evaluated), try volume(of: second, in: evaluated)]
+        #expect(abs(volumes.reduce(0, +) - cube) < 1e-12)
+        #expect(Set(volumes.map { ($0 / cube * 4).rounded() }) == [1, 3])
+        #expect(abs(try volume(of: fixture.slice, in: evaluated) - cube) < 1e-12)
+        #expect(evaluated.lineage.values.contains { $0.output.featureID == first && $0.parents.contains { $0.featureID == fixture.slice } })
+        // The order is the same on every evaluation.
+        let again = try evaluate(fixture.builder)
+        #expect(abs(try volume(of: first, in: again) - volumes[0]) < 1e-15)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aChangedComponentCountIsRefused() throws {
+        var fixture = try slicedCube()
+        _ = try fixture.builder.extract(fixture.slice, selection: .component(index: 0, count: 3))
+        #expect(throws: KernelError.self) { try evaluate(fixture.builder) }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func chosenFacesBecomeASheet() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let box = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
+        let evaluatedBox = try evaluate(builder)
+        let faces = try evaluatedBox.subshapes.entries.filter { key, value in
+            guard key.featureID == box, case let .face(faceID) = value, let face = evaluatedBox.brep.faces[faceID],
+                  case let .plane(plane) = evaluatedBox.brep.geometry.surfaces[face.surfaceID] else { return false }
+            return abs(abs(plane.normal.z) - 1) < 1e-9
+        }.keys.sorted().map { try builder.stableSubshape($0) }
+        #expect(faces.count == 2)
+        let lids = try builder.extract(box, selection: .faces(faces))
+        let evaluated = try evaluate(builder)
+        let lidBody = try #require(evaluated.brep.bodies[try bodyID(of: lids, in: evaluated)])
+        #expect(lidBody.kind == .sheet)
+        #expect(lidBody.shellIDs.count == 2)
+        #expect(abs(try volume(of: box, in: evaluated) - cube) < 1e-12)
+    }
+
+    @Test func theFeatureRoundTripsAndRefusesMalformedSelections() throws {
+        let feature = ExtractFeature(target: PatternTargetReference(featureID: FeatureID()), selection: .component(index: 1, count: 2))
+        #expect(try JSONDecoder().decode(ExtractFeature.self, from: JSONEncoder().encode(feature)) == feature)
+        #expect(throws: FeatureEvaluationError.self) { try ExtractSelection.component(index: 2, count: 2).validate() }
+        #expect(throws: FeatureEvaluationError.self) { try ExtractSelection.faces([]).validate() }
+        #expect(try feature.resultPort(sourcePort: .sheet) == .sheet)
+        #expect(try feature.resultPort(sourcePort: .body) == .body)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func theNativePackageKeepsExtractions() throws {
+        var fixture = try slicedCube()
+        let piece = try fixture.builder.extract(fixture.slice, selection: .component(index: 1, count: 2))
+        let document = try fixture.builder.build(name: "extract package")
+        let pipeline = CADPipeline(tolerance: .standard)
+        let sink = DataByteSink()
+        try pipeline.writePackage(for: document, to: sink)
+        let loaded = try pipeline.loadDocument(from: BorrowedBytes(sink.bytes))
+        guard case let .extract(extract) = loaded.designGraph.nodes[piece]?.operation else {
+            Issue.record("The native package must keep the extraction.")
+            return
+        }
+        #expect(extract.selection == .component(index: 1, count: 2))
+        #expect(loaded.designGraph.nodes[piece]?.outputs.map(\.role) == [.body])
+    }
+}

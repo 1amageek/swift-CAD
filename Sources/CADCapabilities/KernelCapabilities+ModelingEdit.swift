@@ -824,6 +824,30 @@ extension KernelCapabilities {
       ]
     ),
     feature(
+      id: "MODEL-EXTRACT-001",
+      operation: "extract",
+      topology: .sheetOrSolidBody,
+      inputs: [
+        "oneValidatedSolidOrSheetBody",
+        "componentIndexAndExpectedComponentCountOrStableFaceReferences",
+      ],
+      outputs: [
+        "validatedExactBRep",
+        "untouchedSourceBody",
+        "oneComponentCopiedAsItsOwnBodyOrChosenFacesCopiedAsASheet",
+        "componentsOrderedBySmallestFaceIdentity",
+        "copiedTopologyLineageToSourceSubshapes",
+        "strictCurrentSchemaNativePersistence",
+      ],
+      fixtures: ["ExtractFeatureTests"],
+      status: .supported,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .topologyFailure,
+      ]
+    ),
+    feature(
       id: "MODEL-THICKEN-001",
       operation: "thicken",
       topology: .sheetToSolidBody,

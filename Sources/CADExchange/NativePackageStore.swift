@@ -457,6 +457,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("mirror", in: object, path: "\(path).mirror", using: validateMirrorFeatureObject)
     try validateObjectField("joinBodies", in: object, path: "\(path).joinBodies", using: validateJoinBodiesFeatureObject)
     try validateObjectField("unjoinBody", in: object, path: "\(path).unjoinBody", using: validateUnjoinBodyFeatureObject)
+    try validateObjectField("extract", in: object, path: "\(path).extract", using: validateExtractFeatureObject)
     try validateObjectField("chamfer", in: object, path: "\(path).chamfer", using: validateChamferFeatureObject)
     try validateObjectField("fillet", in: object, path: "\(path).fillet", using: validateFilletFeatureObject)
     try validateObjectField("g2Blend", in: object, path: "\(path).g2Blend", using: validateG2BlendFeatureObject)
@@ -1721,6 +1722,14 @@ private func validateMirrorFeatureObject(_ object: [String: Any], path: String) 
 private func validateJoinBodiesFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["targets"], objectName: path)
     try validateArrayField("targets", in: object, path: "\(path).targets", using: validatePatternTargetReferenceObject)
+}
+
+private func validateExtractFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["target", "selection"], objectName: path)
+    try validateObjectField("target", in: object, path: "\(path).target", using: validatePatternTargetReferenceObject)
+    try validateObjectField("selection", in: object, path: "\(path).selection") { selection, selectionPath in
+        try rejectUnsupportedNativeKeys(in: selection, supportedKeys: ["kind", "index", "count", "faces"], objectName: selectionPath)
+    }
 }
 
 private func validateUnjoinBodyFeatureObject(_ object: [String: Any], path: String) throws {

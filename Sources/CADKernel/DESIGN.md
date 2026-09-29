@@ -563,6 +563,19 @@ sheet−sheet split and empty intersection, the refused half-space union, a shee
 that does not reach across, the result port and material persistence; the
 existing Boolean suites prove volumes are unchanged.
 
+## Extract
+
+`ExtractFeatureEvaluator` copies part of a body beside it: the source's exact
+faces (`DefaultBRepFacePatchExtractor`) filtered to one component's shells, or to
+the chosen faces regrouped into sheet shells by connectivity, are sewn under the
+extraction's identity and merged into the model; the source body and its
+subshapes are untouched, and every copied subshape's lineage leads to the source
+subshape it copies. Components are ordered by the smallest identity of their
+faces, so an index names the same piece on every evaluation; a source whose
+component count is no longer the one the extraction was made for is refused
+(`invalidInput`). `ExtractFeatureTests` own slice pieces, the refused count,
+face sheets, persistence and the selection contract.
+
 ## Sheet half-space cutting
 
 `BRepBodyHalfSpaceCutter` delegates sheet operands to `BRepSheetHalfSpaceCutter` after constructing its enclosing half-space box. The sheet cutter reuses the complete intersection graph, exact UV splitter, intersection edge materialization, and open-face arrangement. It classifies the two sides of each transverse intersection by the signed derivative of the plane distance, preserving the source surface and pcurves. Unsplit faces are classified only after the complete intersection graph establishes absence of transverse crossings. Connected retained patches form sheet shells; no solid caps or box faces are published. An empty retained side or ambiguous tangency fails explicitly. Cut-stage lineage names only source topology. `SheetMirrorCutTests` owns kept/reflected/combined curved-sheet results, exact topology and empty-side failure; Rupa's `SceneMirrorTests` owns the command integration.
