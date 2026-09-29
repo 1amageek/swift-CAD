@@ -614,8 +614,16 @@ subshapes are untouched, and every copied subshape's lineage leads to the source
 subshape it copies. Components are ordered by the smallest identity of their
 faces, so an index names the same piece on every evaluation; a source whose
 component count is no longer the one the extraction was made for is refused
-(`invalidInput`). `ExtractFeatureTests` own slice pieces, the refused count,
-face sheets, persistence and the selection contract.
+(`invalidInput`). Faces that close are copied as a solid (`.solidFaces`, a
+`.body` output, only of a solid source): on a manifold body chosen faces close
+exactly when they are every face of each shell they lie on (`ExtractFaceSet`), so
+the copy takes whole shells, a chosen outer shell keeping the chosen voids inside
+it and a void chosen without its outer shell bounding a solid of the cavity's
+shape (its faces already face out of the cavity); faces that do not close are
+refused (`invalidInput`). `ExtractFaceClosure` answers the same question for
+callers that must declare the output before appending (Alternative Duplicate).
+`ExtractFeatureTests` own slice pieces, the refused count, face sheets, closed
+faces and cavities, persistence and the selection contract.
 
 ## Sheet half-space cutting
 

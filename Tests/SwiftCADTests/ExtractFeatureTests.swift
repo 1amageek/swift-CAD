@@ -90,6 +90,67 @@ struct ExtractFeatureTests {
         #expect(abs(try volume(of: box, in: evaluated) - cube) < 1e-12)
     }
 
+    /// The stable references of `feature`'s faces that `keep` accepts.
+    private func faces(
+        of feature: FeatureID, in evaluated: EvaluatedDocument, builder: DocumentBuilder,
+        where keep: (Face) -> Bool = { _ in true }
+    ) throws -> [StableSubshapeReference] {
+        try evaluated.subshapes.entries.filter { key, value in
+            guard key.featureID == feature, case let .face(faceID) = value, let face = evaluated.brep.faces[faceID] else { return false }
+            return keep(face)
+        }.keys.sorted().map { try builder.stableSubshape($0) }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func everyFaceOfASolidClosesIntoASolid() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let box = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
+        let evaluatedBox = try evaluate(builder)
+        let all = try faces(of: box, in: evaluatedBox, builder: builder)
+        #expect(all.count == 6)
+        #expect(try ExtractFaceClosure().closes(faces: all, source: box, in: evaluatedBox))
+        #expect(try ExtractFaceClosure().closes(faces: Array(all.prefix(5)), source: box, in: evaluatedBox) == false)
+        let copy = try builder.extract(box, selection: .solidFaces(all))
+        let evaluated = try evaluate(builder)
+        #expect(evaluated.brep.bodies[try bodyID(of: copy, in: evaluated)]?.kind == .solid)
+        #expect(abs(try volume(of: copy, in: evaluated) - cube) < 1e-12)
+        #expect(abs(try volume(of: box, in: evaluated) - cube) < 1e-12)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func facesThatDoNotCloseAreRefusedAsASolid() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let box = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
+        let some = try Array(faces(of: box, in: try evaluate(builder), builder: builder).prefix(5))
+        _ = try builder.extract(box, selection: .solidFaces(some))
+        #expect(throws: KernelError.self) { try evaluate(builder) }
+    }
+
+    /// A 20 mm cube with a 10 mm cavity: its cavity's faces alone are a solid of the cavity's
+    /// shape, and all its faces the cube with its cavity.
+    @Test(.timeLimit(.minutes(2)))
+    func aCavityAloneIsASolidOfItsShapeAndWithItsOuterShellKeepsIt() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let outer = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
+        let inner = try builder.box(
+            placement: PrimitivePlacement(origin: Point3D(x: 0.005, y: 0.005, z: 0.005), axis: .unitZ, referenceDirection: .unitX),
+            width: length(0.01), depth: length(0.01), height: length(0.01)
+        )
+        let hollow = try builder.boolean(targets: [outer], tool: inner, operation: .difference)
+        let evaluatedHollow = try evaluate(builder)
+        let body = try #require(evaluatedHollow.brep.bodies[try bodyID(of: hollow, in: evaluatedHollow)])
+        let voidShell = try #require(body.solidComponents?.first?.voidShellIDs.first)
+        let voidFaces = Set(evaluatedHollow.brep.shells[voidShell]?.faceIDs ?? [])
+        let cavityFaces = try faces(of: hollow, in: evaluatedHollow, builder: builder) { voidFaces.contains($0.id) }
+        let all = try faces(of: hollow, in: evaluatedHollow, builder: builder)
+        #expect(cavityFaces.count == 6 && all.count == 12)
+        let cavity = try builder.extract(hollow, selection: .solidFaces(cavityFaces))
+        let whole = try builder.extract(hollow, selection: .solidFaces(all))
+        let evaluated = try evaluate(builder)
+        #expect(abs(try volume(of: cavity, in: evaluated) - 0.001 * 0.001) < 1e-12)
+        #expect(abs(try volume(of: whole, in: evaluated) - (cube - 1e-6)) < 1e-12)
+    }
+
     @Test func theFeatureRoundTripsAndRefusesMalformedSelections() throws {
         let feature = ExtractFeature(target: PatternTargetReference(featureID: FeatureID()), selection: .component(index: 1, count: 2))
         #expect(try JSONDecoder().decode(ExtractFeature.self, from: JSONEncoder().encode(feature)) == feature)
@@ -97,6 +158,13 @@ struct ExtractFeatureTests {
         #expect(throws: FeatureEvaluationError.self) { try ExtractSelection.faces([]).validate() }
         #expect(try feature.resultPort(sourcePort: .sheet) == .sheet)
         #expect(try feature.resultPort(sourcePort: .body) == .body)
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let box = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
+        let face = try #require(try faces(of: box, in: try evaluate(builder), builder: builder).first)
+        let solid = ExtractFeature(target: PatternTargetReference(featureID: box), selection: .solidFaces([face]))
+        #expect(try JSONDecoder().decode(ExtractFeature.self, from: JSONEncoder().encode(solid)) == solid)
+        #expect(try solid.resultPort(sourcePort: .body) == .body)
+        #expect(throws: FeatureEvaluationError.self) { try solid.resultPort(sourcePort: .sheet) }
     }
 
     @Test(.timeLimit(.minutes(2)))

@@ -2,7 +2,8 @@ import CADCore
 import CADTopology
 
 /// Copies part of a body as a body of its own, leaving the source as it is: one component of a
-/// body made of several (a slice's pieces), or chosen faces as a sheet.
+/// body made of several (a slice's pieces), chosen faces as a sheet, or chosen faces that close
+/// as a solid.
 public struct ExtractFeature: Codable, Hashable, Sendable {
     public var target: PatternTargetReference
     public var selection: ExtractSelection
@@ -18,7 +19,7 @@ public struct ExtractFeature: Codable, Hashable, Sendable {
     }
 
     /// The output the extraction publishes from its source's: a component keeps the source's
-    /// kind, faces are a sheet.
+    /// kind, faces are a sheet, and faces that close are a solid of a solid source.
     public func resultPort(sourcePort: FeaturePort) throws -> FeaturePort {
         guard sourcePort == .body || sourcePort == .sheet else {
             throw FeatureEvaluationError.invalidGraph("Extract needs a solid or sheet source.")
@@ -26,6 +27,11 @@ public struct ExtractFeature: Codable, Hashable, Sendable {
         switch selection {
         case .component: return sourcePort
         case .faces: return .sheet
+        case .solidFaces:
+            guard sourcePort == .body else {
+                throw FeatureEvaluationError.invalidGraph("Faces close into a solid only on a solid source.")
+            }
+            return .body
         }
     }
 
@@ -56,6 +62,10 @@ public enum ExtractSelection: Hashable, Sendable {
     case component(index: Int, count: Int)
     /// These faces of the body, as a sheet.
     case faces([StableSubshapeReference])
+    /// These faces of a solid body, every face of each shell they lie on, as a solid: a chosen
+    /// outer shell keeps the chosen voids inside it, and a void chosen without its outer shell is
+    /// a solid of the cavity's shape.
+    case solidFaces([StableSubshapeReference])
 
     public func validate() throws {
         switch self {
@@ -63,7 +73,7 @@ public enum ExtractSelection: Hashable, Sendable {
             guard count >= 1, (0..<count).contains(index) else {
                 throw FeatureEvaluationError.invalidGraph("Extract component index must lie within its component count.")
             }
-        case let .faces(faces):
+        case let .faces(faces), let .solidFaces(faces):
             guard faces.isEmpty == false else {
                 throw FeatureEvaluationError.invalidGraph("Extract faces requires at least one face.")
             }
@@ -84,7 +94,7 @@ extension ExtractSelection: Codable {
     }
 
     private enum Kind: String, Codable {
-        case component, faces
+        case component, faces, solidFaces
     }
 
     public init(from decoder: Decoder) throws {
@@ -96,6 +106,9 @@ extension ExtractSelection: Codable {
         case .faces:
             try container.validateOnlyExpectedKeys([.kind, .faces], in: decoder)
             self = .faces(try container.decode([StableSubshapeReference].self, forKey: .faces))
+        case .solidFaces:
+            try container.validateOnlyExpectedKeys([.kind, .faces], in: decoder)
+            self = .solidFaces(try container.decode([StableSubshapeReference].self, forKey: .faces))
         }
     }
 
@@ -108,6 +121,9 @@ extension ExtractSelection: Codable {
             try container.encode(count, forKey: .count)
         case let .faces(faces):
             try container.encode(Kind.faces, forKey: .kind)
+            try container.encode(faces, forKey: .faces)
+        case let .solidFaces(faces):
+            try container.encode(Kind.solidFaces, forKey: .kind)
             try container.encode(faces, forKey: .faces)
         }
     }

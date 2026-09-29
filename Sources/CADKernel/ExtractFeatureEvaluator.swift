@@ -76,24 +76,10 @@ struct ExtractFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
             }
             request = BRepSewingRequest(featureID: feature.id, bodyTopology: topology, shells: shells)
         case let .faces(references):
-            var chosen = Set<String>()
-            for reference in references {
-                let topology = try subshapeResolver.topologyReference(
-                    for: reference,
-                    model: context.brep,
-                    subshapes: context.subshapes,
-                    lineage: context.lineage,
-                    tolerance: tolerance
-                )
-                guard case let .face(faceID) = topology,
-                      let shellIndex = body.shellIDs.firstIndex(where: { context.brep.shells[$0]?.faceIDs.contains(faceID) == true }),
-                      let faceIndex = context.brep.shells[body.shellIDs[shellIndex]]?.faceIDs.firstIndex(of: faceID) else {
-                    throw error(.missingReference, feature.id, context, "An extracted face is not a face of the source body.")
-                }
-                guard chosen.insert("shell:\(shellIndex):face:\(faceIndex)").inserted else {
-                    throw error(.invalidInput, feature.id, context, "Extracted faces resolve to the same face.")
-                }
-            }
+            let chosen = try ExtractFaceSet(
+                references: references, body: body, model: context.brep, subshapes: context.subshapes,
+                lineage: context.lineage, resolver: subshapeResolver, tolerance: tolerance
+            ).patchStableIDs
             let patches = extraction.request.shells.flatMap(\.patches).filter { chosen.contains($0.stableID) }
             let shells = try BRepSewingPatchShellPartitioner().shells(
                 patches: patches,
@@ -101,6 +87,42 @@ struct ExtractFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
                 tolerance: tolerance
             )
             request = BRepSewingRequest(featureID: feature.id, bodyKind: .sheet, shells: shells)
+        case let .solidFaces(references):
+            let faceSet = try ExtractFaceSet(
+                references: references, body: body, model: context.brep, subshapes: context.subshapes,
+                lineage: context.lineage, resolver: subshapeResolver, tolerance: tolerance
+            )
+            guard faceSet.closes(body: body, model: context.brep), case let .solid(solids) = body.topology else {
+                throw error(.invalidInput, feature.id, context, "The faces do not close: a solid needs every face of each shell they lie on.")
+            }
+            let chosenShells = Set(faceSet.facesByShell.map(\.shellID))
+            let shellsByStableID = Dictionary(uniqueKeysWithValues: extraction.request.shells.map { ($0.stableID, $0) })
+            func shell(_ shellID: ShellID) throws -> BRepSewingShell {
+                guard let stableID = shellStableIDs[shellID], let shell = shellsByStableID[stableID] else {
+                    throw error(.missingReference, feature.id, context, "Extract lost a chosen shell.")
+                }
+                return shell
+            }
+            var components: [BRepSewingSolidComponent] = []
+            var shells: [BRepSewingShell] = []
+            for solid in solids {
+                let voids = solid.voidShellIDs.filter(chosenShells.contains)
+                if chosenShells.contains(solid.outerShellID) {
+                    let outer = try shell(solid.outerShellID)
+                    let kept = try voids.map(shell)
+                    components.append(BRepSewingSolidComponent(outerShellStableID: outer.stableID, voidShellStableIDs: kept.map(\.stableID)))
+                    shells += [outer] + kept
+                } else {
+                    // A void's faces face out of its cavity; taken as an outer shell, it bounds a
+                    // solid of the cavity's shape.
+                    for void in try voids.map(shell) {
+                        let cavity = BRepSewingShell(stableID: "\(void.stableID):cavity", patches: void.patches, orientation: .forward)
+                        components.append(BRepSewingSolidComponent(outerShellStableID: cavity.stableID, voidShellStableIDs: []))
+                        shells.append(cavity)
+                    }
+                }
+            }
+            request = BRepSewingRequest(featureID: feature.id, bodyTopology: .solid(components: components), shells: shells)
         }
         let sewn = try DefaultBRepSewer().sew(request, tolerance: tolerance)
         var model = context.brep

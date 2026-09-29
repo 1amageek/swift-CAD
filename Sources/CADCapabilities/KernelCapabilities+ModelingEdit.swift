@@ -835,6 +835,8 @@ extension KernelCapabilities {
         "validatedExactBRep",
         "untouchedSourceBody",
         "oneComponentCopiedAsItsOwnBodyOrChosenFacesCopiedAsASheet",
+        "wholeShellsOfChosenFacesCopiedAsASolidWithTheirVoidsOrCavityShapes",
+        "publicFaceClosureQuery",
         "componentsOrderedBySmallestFaceIdentity",
         "copiedTopologyLineageToSourceSubshapes",
         "strictCurrentSchemaNativePersistence",

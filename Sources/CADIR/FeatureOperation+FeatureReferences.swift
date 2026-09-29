@@ -324,6 +324,7 @@ extension FeatureOperation {
             let selection: ExtractSelection = switch feature.selection {
             case .component: feature.selection
             case let .faces(faces): .faces(try faces.map(subshape))
+            case let .solidFaces(faces): .solidFaces(try faces.map(subshape))
             }
             return .extract(ExtractFeature(target: try pattern(feature.target), selection: selection))
         case .projectCurve(let feature):
