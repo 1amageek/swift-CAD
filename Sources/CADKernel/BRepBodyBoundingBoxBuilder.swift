@@ -2,8 +2,13 @@ import CADCore
 import CADGeometry
 import CADTopology
 
-struct BRepBodyBoundingBoxBuilder: Sendable {
-    func bounds(
+/// A box enclosing a body: the union of its faces' bounds, each face bounded by its support
+/// surface's control net or analytic extent, so the box encloses the trimmed body, possibly
+/// generously.
+public struct BRepBodyBoundingBoxBuilder: Sendable {
+    public init() {}
+
+    public func bounds(
         for bodyID: BodyID,
         in model: BRepModel,
         tolerance: ModelingTolerance
