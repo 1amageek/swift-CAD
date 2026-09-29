@@ -250,4 +250,28 @@ struct SheetBooleanTests {
         #expect(evaluated.brep.bodies[sliced]?.shellIDs.count == 2)
         #expect(abs(try evaluated.brep.volume(of: sliced, tolerance: .standard) - cube) < 1e-12)
     }
+
+    /// Operands that do not cross take each other's material too: a 10 mm cube inside a 20 mm
+    /// one, subtracted as Outside, leaves what lies inside the small cube, and intersected with the
+    /// big one as Outside, what lies outside it. Each boundary lies in the other's material, which
+    /// two volumes never do but a volume and a complement do.
+    @Test(.timeLimit(.minutes(2)))
+    func containedOperandsTakeComplementMaterials() throws {
+        func nested() throws -> (DocumentBuilder, outer: FeatureID, inner: FeatureID) {
+            var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+            let outer = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
+            let inner = try builder.box(
+                placement: PrimitivePlacement(origin: Point3D(x: 0.005, y: 0.005, z: 0.005), axis: .unitZ, referenceDirection: .unitX),
+                width: length(0.01), depth: length(0.01), height: length(0.01)
+            )
+            return (builder, outer, inner)
+        }
+        var difference = try nested()
+        _ = try difference.0.boolean(targets: [difference.outer], tool: difference.inner, operation: .difference, toolMaterial: .outside)
+        #expect(abs(try evaluate(difference.0).brep.volume(tolerance: .standard) - 1e-6) < 1e-12)
+
+        var intersect = try nested()
+        _ = try intersect.0.boolean(targets: [intersect.inner], tool: intersect.outer, operation: .intersect, toolMaterial: .outside)
+        #expect(throws: KernelError.self) { try evaluate(intersect.0) }
+    }
 }

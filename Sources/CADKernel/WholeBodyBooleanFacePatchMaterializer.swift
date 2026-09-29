@@ -8,11 +8,14 @@ import CADTopology
 /// the other's material (or they coincide), so the region rule keeps, turns or drops each body
 /// whole.
 struct WholeBodyBooleanFacePatchMaterializer {
-    private enum Relation: Equatable {
-        case disjoint
-        case targetInsideTool
-        case toolInsideTarget
-        case coincident
+    /// Where a target's boundary lies in the tool's material and the tool's boundary in the
+    /// target's: each is what the region rule takes for that body's faces.
+    private struct Relation: Equatable {
+        let target: SolidPointClassification
+        let tool: SolidPointClassification
+
+        var isCoincident: Bool { target == .boundary && tool == .boundary }
+        var isDisjoint: Bool { target == .outside && tool == .outside }
     }
 
     func materialize(
@@ -47,13 +50,14 @@ struct WholeBodyBooleanFacePatchMaterializer {
                 toolBodyID: toolBodyID,
                 model: model,
                 classificationSessions: classificationSessions,
+                operands: operands,
                 tolerance: tolerance
             )
         }
         switch operation {
         case .union:
             if hasBoundaryContact,
-               relations.allSatisfy({ $0 == .disjoint }) {
+               relations.allSatisfy(\.isDisjoint) {
                 throw KernelError(
                     phase: .topology,
                     code: .nonManifoldResult,
@@ -63,7 +67,7 @@ struct WholeBodyBooleanFacePatchMaterializer {
             }
         case .difference:
             if hasBoundaryContact,
-               relations.contains(.toolInsideTarget) {
+               relations.contains(where: { $0.tool == .inside }) {
                 throw KernelError(
                     phase: .topology,
                     code: .nonManifoldResult,
@@ -78,7 +82,7 @@ struct WholeBodyBooleanFacePatchMaterializer {
                 message: "A region is built from the cell complex of its operands, not a whole-body Boolean.")
         }
         let selected: [(bodyID: BodyID, reversedShells: Bool)]
-        if relations.contains(.coincident) {
+        if relations.contains(where: \.isCoincident) {
             guard operands.solidities.areVolumes else {
                 throw KernelError(
                     phase: .classification,
@@ -91,13 +95,13 @@ struct WholeBodyBooleanFacePatchMaterializer {
             // difference still hollows another target around the tool), intersect keeps the
             // tool once.
             let uncovered = zip(targetBodyIDs, relations).compactMap { bodyID, relation in
-                relation == .targetInsideTool || relation == .coincident ? nil : (bodyID, false)
+                relation.target == .inside || relation.isCoincident ? nil : (bodyID, false)
             }
             switch operation {
             case .union:
                 selected = uncovered
             case .difference:
-                selected = uncovered + (relations.contains(.toolInsideTarget) ? [(toolBodyID, true)] : [])
+                selected = uncovered + (relations.contains(where: { $0.tool == .inside }) ? [(toolBodyID, true)] : [])
             case .intersect:
                 selected = [(toolBodyID, false)]
             case .slice:
@@ -107,7 +111,8 @@ struct WholeBodyBooleanFacePatchMaterializer {
             }
         } else {
             // Each body lies wholly on one side of the other's material: the rule decides it
-            // like any face region there.
+            // like any face region there. The tool lies in the targets' material when it lies in
+            // any target's.
             func selection(_ bodyID: BodyID, _ classification: SolidPointClassification, isToolFace: Bool) -> (BodyID, Bool)? {
                 switch operands.rule.action(operation: operation, classification: classification, isToolFace: isToolFace) {
                 case .keep: (bodyID, false)
@@ -116,9 +121,9 @@ struct WholeBodyBooleanFacePatchMaterializer {
                 }
             }
             let targets = zip(targetBodyIDs, relations).compactMap { bodyID, relation in
-                selection(bodyID, relation == .targetInsideTool ? .inside : .outside, isToolFace: false)
+                selection(bodyID, relation.target, isToolFace: false)
             }
-            let tool = selection(toolBodyID, relations.contains(.toolInsideTarget) ? .inside : .outside, isToolFace: true)
+            let tool = selection(toolBodyID, relations.contains(where: { $0.tool == .inside }) ? .inside : .outside, isToolFace: true)
             selected = operation == .slice ? targetBodyIDs.map { ($0, false) } : targets + (tool.map { [$0] } ?? [])
         }
         guard !selected.isEmpty else {
@@ -161,36 +166,32 @@ struct WholeBodyBooleanFacePatchMaterializer {
         toolBodyID: BodyID,
         model: BRepModel,
         classificationSessions: SolidPointClassificationSessionSet,
+        operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> Relation {
-        let target = try classification(
-            of: targetBodyID,
-            relativeTo: toolBodyID,
-            model: model,
-            classificationSessions: classificationSessions,
-            tolerance: tolerance
+        let relation = Relation(
+            target: try classification(
+                of: targetBodyID,
+                relativeTo: toolBodyID,
+                model: model,
+                classificationSessions: classificationSessions,
+                tolerance: tolerance
+            ),
+            tool: try classification(
+                of: toolBodyID,
+                relativeTo: targetBodyID,
+                model: model,
+                classificationSessions: classificationSessions,
+                tolerance: tolerance
+            )
         )
-        let tool = try classification(
-            of: toolBodyID,
-            relativeTo: targetBodyID,
-            model: model,
-            classificationSessions: classificationSessions,
-            tolerance: tolerance
-        )
-        switch (target, tool) {
-        case (.inside, .outside):
-            return .targetInsideTool
-        case (.outside, .inside):
-            return .toolInsideTarget
-        case (.outside, .outside):
-            return .disjoint
-        case (.boundary, .boundary):
-            return .coincident
-        case (.inside, .inside),
-             (.inside, .boundary),
-             (.boundary, .inside),
-             (.outside, .boundary),
-             (.boundary, .outside):
+        // A boundary on the other's boundary without the other on it (or the reverse) needs a
+        // partition, never a whole-body decision. Two volumes cannot each hold the other's
+        // boundary, but a volume and a complement or a sheet's side can: that is how a body inside
+        // another lies in the other's outside.
+        let oneSidedBoundary = (relation.target == .boundary) != (relation.tool == .boundary)
+        let mutualInsideVolumes = relation.target == .inside && relation.tool == .inside && operands.solidities.areVolumes
+        guard !oneSidedBoundary, !mutualInsideVolumes else {
             throw KernelError(
                 phase: .classification,
                 code: .classificationFailure,
@@ -198,6 +199,7 @@ struct WholeBodyBooleanFacePatchMaterializer {
                 message: "Whole-body Boolean containment produced an inconsistent boundary relation."
             )
         }
+        return relation
     }
 
     private func classification(

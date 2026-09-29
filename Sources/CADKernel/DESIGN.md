@@ -566,6 +566,13 @@ every phase reads the same `BooleanOperandContext`.
   an empty-shell operand is split along the crossing when both sides stay, and a
   boundary kept on both sides of one face gives its reverse use its own identity
   (`:reverse-use`).
+- Operands that do not cross (`WholeBodyBooleanFacePatchMaterializer`) are decided
+  whole: each body's boundary is classified against the other's material, and the
+  rule keeps, turns or drops it. Each boundary lying in the other's material is a
+  contradiction only between two volumes; a body inside another lies in the other's
+  complement, so a contained tool subtracted as Outside leaves the tool's volume
+  (`containedOperandsTakeComplementMaterials`). A boundary on the other's
+  boundary without the reverse needs a partition and is refused.
 - Callers without materials (patterns, sweeps, extrudes, mirrors, half-space
   cuts, section curves) keep two solids taken as their volumes.
 
