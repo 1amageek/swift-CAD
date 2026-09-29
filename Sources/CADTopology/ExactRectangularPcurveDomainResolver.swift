@@ -147,8 +147,19 @@ package struct ExactRectangularPcurveDomainResolver:
                 SurfaceParameter(u: start.x, v: start.y),
                 SurfaceParameter(u: end.x, v: end.y),
             ]
-        case .polyline,
-             .harmonic,
+        case let .polyline(points):
+            // A polyline running along one parameter is the segment between its ends when it
+            // runs one way.
+            guard let first = points.first, let last = points.last, points.count >= 2 else { return nil }
+            let alongV = points.allSatisfy { $0.u == first.u }
+            let alongU = points.allSatisfy { $0.v == first.v }
+            guard alongU != alongV else { return nil }
+            let values = alongU ? points.map(\.u) : points.map(\.v)
+            let increasing = zip(values, values.dropFirst()).allSatisfy { $0 < $1 }
+            let decreasing = zip(values, values.dropFirst()).allSatisfy { $0 > $1 }
+            guard increasing || decreasing else { return nil }
+            return [first, last]
+        case .harmonic,
              .sphericalGreatCircle,
              .certifiedImplicit,
              .certifiedAnalyticImplicit,

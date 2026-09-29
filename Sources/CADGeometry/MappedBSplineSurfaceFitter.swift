@@ -6,8 +6,10 @@ import CADCore
 ///
 /// The surface is clamped with uniform knots and interpolates the map at the tensor grid of
 /// Greville abscissae, solved one direction at a time. Its distance to the map is checked at the
-/// quarter points of every knot cell, and while it exceeds the deviation both directions double
-/// their spans from one, up to `maximumSpanCount` each (`resourceLimitExceeded` beyond).
+/// quarter points of every knot cell, and while it exceeds the deviation one direction doubles its
+/// spans, from one each: the one whose doubling brings the fit closer, so a map that bends one way
+/// only is not split the other way. Each direction stops at `maximumSpanCount`
+/// (`resourceLimitExceeded` when neither can double).
 package struct MappedBSplineSurfaceFitter: Sendable {
     package struct Result: Sendable {
         package var surface: BSplineSurface3D
@@ -40,51 +42,61 @@ package struct MappedBSplineSurfaceFitter: Sendable {
                 message: "A surface fit needs a finite parameter rectangle of positive extent.")
         }
         // One span first: a map that is affine over the rectangle is fitted exactly by it.
-        var spans = 1
-        while true {
-            let result = try fit(spans: min(spans, maximumSpanCount), u: u, v: v, tolerance: tolerance, point: point)
-            if result.maximumDeviation <= deviation { return result }
-            guard spans < maximumSpanCount else {
+        var spans = (u: 1, v: 1)
+        var result = try fit(uSpans: 1, vSpans: 1, u: u, v: v, tolerance: tolerance, point: point)
+        while result.maximumDeviation > deviation {
+            var candidates: [((u: Int, v: Int), Result)] = []
+            if spans.u < maximumSpanCount {
+                let next = (u: min(spans.u * 2, maximumSpanCount), v: spans.v)
+                candidates.append((next, try fit(uSpans: next.u, vSpans: next.v, u: u, v: v, tolerance: tolerance, point: point)))
+            }
+            if spans.v < maximumSpanCount {
+                let next = (u: spans.u, v: min(spans.v * 2, maximumSpanCount))
+                candidates.append((next, try fit(uSpans: next.u, vSpans: next.v, u: u, v: v, tolerance: tolerance, point: point)))
+            }
+            guard let best = candidates.min(by: { $0.1.maximumDeviation < $1.1.maximumDeviation }) else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded, residual: result.maximumDeviation, tolerance: tolerance,
                     message: "The mapped surface needs more than \(maximumSpanCount) spans each way to stay within \(deviation).")
             }
-            spans *= 2
+            (spans, result) = best
         }
+        return result
     }
 
     private func fit(
-        spans: Int,
+        uSpans: Int,
+        vSpans: Int,
         u: ScalarInterval,
         v: ScalarInterval,
         tolerance: ModelingTolerance,
         point: (Double, Double) throws -> Point3D
     ) throws -> Result {
         let p = Self.degree
-        let knotsU = Self.clampedUniformKnots(spans: spans, on: u, degree: p)
-        let knotsV = Self.clampedUniformKnots(spans: spans, on: v, degree: p)
-        let count = spans + p
-        let grevilleU = Self.greville(knotsU, degree: p, count: count)
-        let grevilleV = Self.greville(knotsV, degree: p, count: count)
+        let knotsU = Self.clampedUniformKnots(spans: uSpans, on: u, degree: p)
+        let knotsV = Self.clampedUniformKnots(spans: vSpans, on: v, degree: p)
+        let uCount = uSpans + p, vCount = vSpans + p
+        let grevilleU = Self.greville(knotsU, degree: p, count: uCount)
+        let grevilleV = Self.greville(knotsV, degree: p, count: vCount)
         let solverU = try BandedCollocation(knots: knotsU, degree: p, abscissae: grevilleU)
         let solverV = try BandedCollocation(knots: knotsV, degree: p, abscissae: grevilleV)
         // samples[j][i] = map at (grevilleU[i], grevilleV[j]).
         let samples = try grevilleV.map { t in try grevilleU.map { s in try point(s, t) } }
         // Along u for each v row, then along v for each u column.
         let rows = try samples.map { try solverU.solve($0) }
-        var controlPoints = Array(repeating: Array(repeating: Point3D.origin, count: count), count: count)
-        for i in 0..<count {
+        var controlPoints = Array(repeating: Array(repeating: Point3D.origin, count: uCount), count: vCount)
+        for i in 0..<uCount {
             let column = try solverV.solve(rows.map { $0[i] })
-            for j in 0..<count { controlPoints[j][i] = column[j] }
+            for j in 0..<vCount { controlPoints[j][i] = column[j] }
         }
         let surface = BSplineSurface3D(uDegree: p, vDegree: p, uKnots: knotsU, vKnots: knotsV, controlPoints: controlPoints)
         var maximum = 0.0
         let fractions = [0.0, 0.25, 0.5, 0.75]
-        for cellV in 0..<spans {
-            for cellU in 0..<spans {
+        for cellV in 0..<vSpans {
+            for cellU in 0..<uSpans {
                 for a in fractions {
                     for b in fractions {
-                        let s = u.lower + u.width * (Double(cellU) + a) / Double(spans)
-                        let t = v.lower + v.width * (Double(cellV) + b) / Double(spans)
+                        let s = u.lower + u.width * (Double(cellU) + a) / Double(uSpans)
+                        let t = v.lower + v.width * (Double(cellV) + b) / Double(vSpans)
                         let distance = (try surface.point(u: s, v: t, tolerance: tolerance) - (try point(s, t))).length
                         maximum = max(maximum, distance)
                     }
@@ -92,11 +104,13 @@ package struct MappedBSplineSurfaceFitter: Sendable {
             }
         }
         // The far edges, which the cells' lower quarter points do not reach.
-        for index in 0...(4 * spans) {
-            let fraction = Double(index) / Double(4 * spans)
-            for (s, t) in [(u.upper, v.lower + v.width * fraction), (u.lower + u.width * fraction, v.upper)] {
-                maximum = max(maximum, (try surface.point(u: s, v: t, tolerance: tolerance) - (try point(s, t))).length)
-            }
+        for index in 0...(4 * vSpans) {
+            let t = v.lower + v.width * Double(index) / Double(4 * vSpans)
+            maximum = max(maximum, (try surface.point(u: u.upper, v: t, tolerance: tolerance) - (try point(u.upper, t))).length)
+        }
+        for index in 0...(4 * uSpans) {
+            let s = u.lower + u.width * Double(index) / Double(4 * uSpans)
+            maximum = max(maximum, (try surface.point(u: s, v: v.upper, tolerance: tolerance) - (try point(s, v.upper))).length)
         }
         return Result(surface: surface, maximumDeviation: maximum)
     }

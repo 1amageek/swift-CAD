@@ -327,10 +327,13 @@ on a parameter rectangle to a smooth map of it (Wrap carries a face's support th
 way, on the face's own parameters, so its trimming curves stay valid). It
 interpolates the map at the tensor grid of Greville abscissae, one direction at a
 time through one factored collocation matrix per direction, checks the distance
-at the quarter points of every knot cell and along the far edges, and doubles the
-spans each way from one until within the deviation, failing
-(`resourceLimitExceeded`) past `maximumSpanCount`. `MappedBSplineSurfaceFitterTests`
-own the cylinder wrap, the exact one-span cubic and the refused budget.
+at the quarter points of every knot cell and along the far edges, and from one
+span each way doubles one direction at a time — the one whose doubling brings the
+fit closer — until within the deviation, so a map bending one way is not split the
+other way (fewer patches to draw and measure); it fails (`resourceLimitExceeded`)
+when neither direction can double past `maximumSpanCount`.
+`MappedBSplineSurfaceFitterTests` own the cylinder wrap (split along its bend
+only), the exact one-span cubic and the refused budget.
 
 ## Runtime Flows
 

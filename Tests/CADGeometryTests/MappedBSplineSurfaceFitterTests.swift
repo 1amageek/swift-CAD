@@ -28,7 +28,9 @@ import CADCore
         #expect(result.maximumDeviation <= 1e-6)
         #expect(try worst(result, u: u, v: v, wrap) <= 2e-6)
         #expect(result.surface.uKnots.first == u.lower && result.surface.uKnots.last == u.upper)
-        #expect(result.surface.vKnots.first == v.lower && result.surface.vKnots.last == v.upper)
+        #expect(result.surface.vKnots.first == v.lower && result.surface.vKnots.last == v.upper)        // The wrap bends along u only: v keeps its single span.
+        #expect(result.surface.vKnots.count == 8)
+        #expect(result.surface.uKnots.count > 8)
     }
 
     @Test func aCubicMapIsReproducedExactly() throws {

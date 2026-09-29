@@ -303,6 +303,15 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           tolerance: tolerance
         )
       }
+      if let piecewise = try piecewisePolynomialRectangleContribution(
+        surface: surface,
+        trim: trim,
+        reference: reference,
+        budget: &budget,
+        tolerance: tolerance
+      ) {
+        return piecewise
+      }
       if let planarContribution = try axisAlignedPlanarContribution(
         face: face,
         surface: surface,
@@ -383,6 +392,52 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
       requestedCurveWidth: requestedCurveWidth,
       tolerance: tolerance
     )
+  }
+
+  /// The flux of a non-rational B-spline surface of several spans over a rectangular trim: each
+  /// span's certified Bezier patch cut to its share of the rectangle and integrated exactly, the
+  /// shares summed. A share narrower than the parameter resolution but not empty (a trim side a
+  /// hair from a knot) cannot be cut exactly, so the face is left to the general path; a rational
+  /// surface is left to it too. Nil when this path does not apply.
+  private func piecewisePolynomialRectangleContribution(
+    surface: BSplineSurface3D,
+    trim: ExactRectangularPcurveDomain,
+    reference: Point3D,
+    budget: inout CoefficientBudget,
+    tolerance: ModelingTolerance
+  ) throws -> OutwardInterval? {
+    guard !surface.isRational,
+      let patches = try CertifiedBSplineSurfaceBezierExtractor().patches(
+        surface: surface,
+        tolerance: tolerance
+      )
+    else {
+      return nil
+    }
+    var total = OutwardInterval.exact(0.0)
+    for piece in patches {
+      let uLower = max(trim.uLower, piece.uLower), uUpper = min(trim.uUpper, piece.uUpper)
+      let vLower = max(trim.vLower, piece.vLower), vUpper = min(trim.vUpper, piece.vUpper)
+      guard uUpper > uLower, vUpper > vLower else { continue }
+      let scale = max(1.0, abs(piece.uLower), abs(piece.uUpper), abs(piece.vLower), abs(piece.vUpper))
+      let resolution = max(tolerance.relative * scale, Double.ulpOfOne * scale * 256.0)
+      guard uUpper - uLower > resolution, vUpper - vLower > resolution,
+        let patch = PolynomialBezierPatch(certified: piece)
+      else {
+        return nil
+      }
+      let share = try patch.trimmed(
+        uLower: uLower,
+        uUpper: uUpper,
+        vLower: vLower,
+        vUpper: vUpper,
+        sourceUDomain: .closed(piece.uLower, piece.uUpper),
+        sourceVDomain: .closed(piece.vLower, piece.vUpper),
+        tolerance: tolerance
+      )
+      total = total + (try share.fluxIntegral(reference: reference, budget: &budget, tolerance: tolerance))
+    }
+    return total
   }
 
   private func arbitraryProceduralContribution(
@@ -1463,6 +1518,31 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         surface.controlPoints.map { row in
           row.map { OutwardInterval.exact($0.z) }
         })
+    }
+
+    /// A span of a non-rational surface from its certified homogeneous Bezier controls, each
+    /// coordinate enclosed by dividing by its weight's enclosure; nil when a weight's enclosure
+    /// is not positive.
+    init?(certified patch: CertifiedHomogeneousBezierSurfacePatch) {
+      func coordinate(_ value: (CertifiedHomogeneousBezierSurfacePatch.HomogeneousPoint) -> CertifiedHomogeneousBezierSurfacePatch.ScalarBounds) -> BernsteinPolynomial2D? {
+        var rows: [[OutwardInterval]] = []
+        for row in patch.controls {
+          var coefficients: [OutwardInterval] = []
+          for point in row {
+            guard point.weight.lower > 0.0, point.weight.isFinite, value(point).isFinite else { return nil }
+            coefficients.append(
+              OutwardInterval(lower: value(point).lower, upper: value(point).upper)
+                / OutwardInterval(lower: point.weight.lower, upper: point.weight.upper)
+            )
+          }
+          rows.append(coefficients)
+        }
+        return BernsteinPolynomial2D(rows)
+      }
+      guard let x = coordinate({ $0.x }), let y = coordinate({ $0.y }), let z = coordinate({ $0.z }) else {
+        return nil
+      }
+      self.init(x: x, y: y, z: z)
     }
 
     func trimmed(

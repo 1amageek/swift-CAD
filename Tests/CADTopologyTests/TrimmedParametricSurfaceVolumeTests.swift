@@ -54,6 +54,20 @@ struct TrimmedParametricSurfaceVolumeTests {
         #expect(abs(publicVolume - expectedVolume) <= tolerance.distance)
     }
 
+    /// A non-rational top of several spans under a rectangular trim is integrated span by span,
+    /// exactly: each end basis function of the clamped cubic with a knot at ½ covers ⅛ of the
+    /// domain, so the raised interior control points lift ¾ × ¾ of the rise.
+    @Test(.timeLimit(.minutes(1)))
+    func multiSpanPolynomialTopUnderARectangleIsIntegratedSpanBySpan() throws {
+        let fixture = try makeBSplineBox(width: 2.0, depth: 3.0, height: 4.0, topInteriorRise: 2.0, topHasInteriorKnots: true)
+        let shell = try #require(fixture.model.shells[fixture.shellID])
+        try fixture.model.validate(level: .exact, tolerance: tolerance)
+        let expected = 2.0 * 3.0 * (4.0 + 2.0 * 0.75 * 0.75)
+        let bounds = try TrimmedParametricSurfaceVolumeEvaluator().volumeBounds(of: shell, in: fixture.model, tolerance: tolerance)
+        #expect(bounds.lower <= expected && bounds.upper >= expected)
+        #expect(bounds.errorRadius <= 1e-9)
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func thinBilinearPrismUsesDimensionallyCorrectPlanarClassification() throws {
         let width = 0.001

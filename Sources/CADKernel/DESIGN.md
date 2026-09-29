@@ -681,6 +681,14 @@ carried beyond a bounded target surface fails (`invalidInput`); a fit past its
 span budget fails (`resourceLimitExceeded`). `WrapFeatureTests` own the
 identity, offsets with Keep, placed faces, a cube bent onto a cylinder as an annular sector,
 the mirrored reversal, refused options and persistence.
+A deformed body's faces are non-rational B-splines of many spans under their
+source's rectangular trims, which CADTopology's `TrimmedParametricSurfaceVolumeEvaluator`
+integrates exactly span by span (each certified Bezier span cut to its share of
+the rectangle; a share a hair wide leaves the face to the general certified path),
+and `ExactRectangularPcurveDomainResolver` reads an axis-aligned polyline side,
+running one way, as a rectangle side. Before this, the certified rational path
+took minutes on such a body and every measurement of it stalled
+(`multiSpanPolynomialTopUnderARectangleIsIntegratedSpanBySpan`).
 
 ## Sheet half-space cutting
 
