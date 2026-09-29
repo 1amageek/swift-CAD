@@ -34,6 +34,12 @@ validation, parameter dependency discovery and strict Codable round trips.
 Existing serialized expressions keep their meaning; older readers reject the new
 kind explicitly rather than treating it as a constant.
 
+`KernelError` reads as its `message` wherever it is shown, interpolated or
+localized (`description`, `errorDescription`), so a refusal reaches a person as a
+sentence rather than as the value's fields; `debugDescription` keeps the phase,
+code and context for logs and failure records. A caller that needs the cause
+reads `code`, not the text (`aKernelErrorReadsAsItsMessage`).
+
 ## Verification and Change Impact
 
 RupaCore regression checks exercise both CADIR validation and CADModeling

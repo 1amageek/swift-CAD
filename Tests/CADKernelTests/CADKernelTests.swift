@@ -5967,7 +5967,8 @@ struct CADKernelTests {
         #expect(!analysis.result.isSupported)
         #expect(analysis.result.supportedPatchCount == 0)
         #expect(analysis.result.errors.contains { $0.code == .unsupportedPatchNetwork })
-        #expect(analysis.result.failureMessage?.contains("singular") == true)
+        // The reconstruction's own reason: two cells fold onto one image.
+        #expect(analysis.result.failureMessage?.contains("coincident") == true)
     }
 
     @Test(.timeLimit(.minutes(1)))
