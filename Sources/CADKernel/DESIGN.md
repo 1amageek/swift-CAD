@@ -535,11 +535,14 @@ every phase reads the same `BooleanOperandContext`.
 - Classification: `BooleanOperandPointClassifier` answers inside/outside/boundary
   against each operand's material: `DefaultBRepSolidPointClassifier` for a volume
   (inverted for its complement), `BRepSheetSidePointClassifier` for a sheet side
-  (the first sheet face a ray from the point meets, along or against three fixed
-  oblique directions, says by its oriented normal whether the point is behind it;
-  a point no ray reaches the sheet from, or directions that disagree, is a typed
+  (the first sheet face a ray from the point meets, along or against each sheet
+  face's normal at its parameter midpoint and then three fixed oblique
+  directions, says by its oriented normal whether the point is behind it; a point
+  no ray reaches the sheet from, or directions that disagree, is a typed
   classification failure), and outside everywhere for `none`. Both classifiers
-  share `BRepRayFaceCrossings`.
+  share `BRepRayFaceCrossings`, which counts one crossing where a ray meets two
+  faces at an edge they share but two where it passes faces lying on each other
+  with opposite normals (solids touching along a face, as a slice's pieces do).
 - Selection: `BooleanRegionSelectionRule` is the one keep/discard table for
   materials behind their faces; a face of an operand whose material lies in front
   of its faces (`isInverted`) turns a kept face (`oriented`). Coincident ownership

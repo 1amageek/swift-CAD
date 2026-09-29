@@ -165,4 +165,89 @@ struct SheetBooleanTests {
         let older = try JSONDecoder().decode(BooleanFeature.self, from: JSONSerialization.data(withJSONObject: object))
         #expect(older.targetMaterial == .default && older.toolMaterial == .default)
     }
+
+    /// A vertical sheet only a little larger than the cube (a cut's cutter) at `y`, facing +y.
+    private func tightVerticalSheet(_ builder: inout DocumentBuilder, bounds: BoundingBox3D, y: Double, alongX: Bool = true) throws -> FeatureID {
+        let margin = 0.003
+        let zs = [bounds.minimum.z - margin, bounds.maximum.z + margin]
+        if alongX {
+            let xs = [bounds.minimum.x - margin, bounds.maximum.x + margin]
+            return try builder.bSplineSurface(BSplineSurface3D(
+                uDegree: 1, vDegree: 1, uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+                controlPoints: zs.map { z in xs.reversed().map { Point3D(x: $0, y: y, z: z) } }
+            ))
+        }
+        let ys = [bounds.minimum.y - margin, bounds.maximum.y + margin]
+        return try builder.bSplineSurface(BSplineSurface3D(
+            uDegree: 1, vDegree: 1, uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+            controlPoints: zs.map { z in ys.map { Point3D(x: y, y: $0, z: z) } }
+        ))
+    }
+
+    /// A cutter only a little larger than the solid still classifies every face of it: rays run
+    /// along the cutter's normal first.
+    @Test(.timeLimit(.minutes(2)))
+    func aTightCutterSlicesAndItsPiecesSliceAgain() throws {
+        var fixture = try operands(height: 0.5)
+        let bounds = fixture.boxBounds
+        let first = try tightVerticalSheet(&fixture.builder, bounds: bounds, y: bounds.minimum.y + 0.007)
+        let once = try fixture.builder.boolean(targets: [fixture.box], tool: first, operation: .slice, toolMaterial: .inside)
+        let sliced: EvaluatedDocument
+        do {
+            sliced = try evaluate(fixture.builder)
+        } catch {
+            Issue.record("FIRST SLICE: \(error)")
+            return
+        }
+        #expect(sliced.brep.shells.count == 2 + 1)
+        let second = try tightVerticalSheet(&fixture.builder, bounds: bounds, y: bounds.minimum.x + 0.012, alongX: false)
+        _ = try fixture.builder.boolean(targets: [once], tool: second, operation: .slice, toolMaterial: .inside)
+        let twice = try evaluate(fixture.builder)
+        let solidShells = twice.brep.bodies.values.filter { $0.kind == .solid }.flatMap(\.shellIDs)
+        #expect(solidShells.count == 4)
+        #expect(abs(try twice.brep.bodies.values.filter { $0.kind == .solid }.map { try twice.brep.volume(of: $0.id, tolerance: .standard) }.reduce(0, +) - cube) < 1e-12)
+    }
+
+    /// A line extruded along a slanted direction is a slanted plane: it slices the cube in two.
+    @Test(.timeLimit(.minutes(2)))
+    func aSlantedExtrudedLineSlicesTheCube() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let box = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
+        let line = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.line(
+                from: SketchPoint(x: length(-0.1), y: length(0.007)),
+                to: SketchPoint(x: length(0.1), y: length(0.007))
+            )
+        }
+        var document = try builder.build(name: "slanted")
+        let sheetID = FeatureID()
+        try document.appendFeatures([try FeatureNodeFactory.make(
+            operation: .extrude(ExtrudeFeature(
+                section: .curve(CurveSectionReference(featureID: line.featureID)),
+                distance: length(0.1),
+                startDistance: length(-0.1),
+                direction: .vector(Vector3D(x: 0, y: 0.5, z: 1)),
+                resultKind: .sheet
+            )),
+            id: sheetID, in: document, tolerance: .standard
+        )], tolerance: .standard)
+        let sliceID = FeatureID()
+        try document.appendFeatures([try FeatureNodeFactory.make(
+            operation: .boolean(BooleanFeature(
+                targets: [BooleanTargetReference(featureID: box)],
+                tools: [BooleanToolReference(featureID: sheetID)],
+                operation: .slice,
+                toolMaterial: .inside
+            )),
+            id: sliceID, in: document, tolerance: .standard
+        )], tolerance: .standard)
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        guard case let .body(sliced) = evaluated.subshapes[SubshapeID(featureID: sliceID, role: "body", ordinal: 0)] else {
+            Issue.record("The slice has no body.")
+            return
+        }
+        #expect(evaluated.brep.bodies[sliced]?.shellIDs.count == 2)
+        #expect(abs(try evaluated.brep.volume(of: sliced, tolerance: .standard) - cube) < 1e-12)
+    }
 }

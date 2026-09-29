@@ -37,8 +37,13 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                     u: try ScalarInterval(lower: u.lower, upper: u.upper),
                     v: try ScalarInterval(lower: v.lower, upper: v.upper)),
                 tolerance: tolerance)
-            return try tensorSidePatch(surface: surface, orientation: .forward,
-                stableID: sideStableID(pathIndex: 0, loopIndex: 0, profileIndex: index))
+            let stableID = sideStableID(pathIndex: 0, loopIndex: 0, profileIndex: index)
+            // A straight span swept straight is a flat parallelogram: it is published on its exact
+            // plane, bounded by the same edges.
+            if try isStraight(span.curve) {
+                return try planarSidePatch(ruled: surface, translation: endOffset - startOffset, stableID: stableID)
+            }
+            return try tensorSidePatch(surface: surface, orientation: .forward, stableID: stableID)
         }
         return BRepSewingRequest(featureID: featureID, bodyKind: .sheet,
             shells: [BRepSewingShell(stableID: "sweep:shell", patches: patches)])
@@ -422,6 +427,43 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                 surfaceParameterCurve: .constantU(u: u.lower, vStart: v.upper, vEnd: v.lower), stableID: "\(stableID):start")
         ]
         let patch = BRepSewingFacePatch(stableID: stableID, surface: .bSpline(surface), orientation: orientation,
+            loops: [BRepSewingLoop(stableID: "\(stableID):loop", role: .outer, edges: edges)])
+        try patch.validate(tolerance: tolerance)
+        return patch
+    }
+
+    /// Whether every control point of `curve` lies on the line through its end points.
+    private func isStraight(_ curve: BSplineCurve3D) throws -> Bool {
+        guard let first = curve.controlPoints.first, let last = curve.controlPoints.last else { return false }
+        let chord = last - first
+        guard chord.length > tolerance.distance else { return false }
+        let direction = chord * (1 / chord.length)
+        return curve.controlPoints.allSatisfy { point in
+            let offset = point - first
+            return (offset - direction * offset.dot(direction)).length <= tolerance.distance
+        }
+    }
+
+    /// The side patch of a ruled surface that is a flat parallelogram, on its exact plane: its
+    /// four boundary edges are the ruled surface's, their parameter curves projected on the plane,
+    /// and the plane faces the way the ruled surface does (along the curve, then the translation).
+    private func planarSidePatch(ruled surface: BSplineSurface3D, translation: Vector3D, stableID: String) throws -> BRepSewingFacePatch {
+        let u = try closedBounds(surface.uDomain)
+        let v = try closedBounds(surface.vDomain)
+        let bottom = try surface.uIsoparametricCurve(atV: v.lower, tolerance: tolerance)
+        let end = try surface.vIsoparametricCurve(atU: u.upper, tolerance: tolerance)
+        let top = try surface.uIsoparametricCurve(atV: v.upper, tolerance: tolerance)
+        let start = try surface.vIsoparametricCurve(atU: u.lower, tolerance: tolerance)
+        let origin = try Curve3D.bSpline(bottom).point(at: closedBounds(bottom.domain).lower, tolerance: tolerance)
+        let along = try Curve3D.bSpline(bottom).point(at: closedBounds(bottom.domain).upper, tolerance: tolerance) - origin
+        let plane = Surface3D.plane(Plane3D(origin: origin, normal: try along.cross(translation).normalized(tolerance: tolerance.distance)))
+        let edges = [
+            try exactEdge(bottom, reversed: false, surfaceParameterCurve: try planarPcurve(bottom, reversed: false, on: plane), stableID: "\(stableID):bottom"),
+            try exactEdge(end, reversed: false, surfaceParameterCurve: try planarPcurve(end, reversed: false, on: plane), stableID: "\(stableID):end"),
+            try exactEdge(top, reversed: true, surfaceParameterCurve: try planarPcurve(top, reversed: true, on: plane), stableID: "\(stableID):top"),
+            try exactEdge(start, reversed: true, surfaceParameterCurve: try planarPcurve(start, reversed: true, on: plane), stableID: "\(stableID):start"),
+        ]
+        let patch = BRepSewingFacePatch(stableID: stableID, surface: plane, orientation: .forward,
             loops: [BRepSewingLoop(stableID: "\(stableID):loop", role: .outer, edges: edges)])
         try patch.validate(tolerance: tolerance)
         return patch

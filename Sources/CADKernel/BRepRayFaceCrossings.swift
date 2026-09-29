@@ -12,6 +12,8 @@ struct BRepRayFaceCrossings: Sendable {
         /// Distance along the ray.
         let distance: Double
         let parameter: SurfaceParameter
+        /// The face's outward normal there.
+        let normal: Vector3D
     }
 
     let intersector: any CurveSurfaceIntersecting
@@ -63,17 +65,37 @@ struct BRepRayFaceCrossings: Sendable {
                 ) else {
                     continue
                 }
-                if crossings.contains(where: { ($0.point - intersection.point).length <= tolerance.distance }) == false {
+                // A ray through an edge meets both faces it bounds at one point: one crossing.
+                // Two faces lying on each other with opposite normals (solids touching along a
+                // face) are two crossings at one point: out of one and into the other.
+                let normal = try orientedNormal(of: face, surface: surface, at: parameter, tolerance: tolerance)
+                let isRepeat = try crossings.contains { existing in
+                    guard (existing.point - intersection.point).length <= tolerance.distance else { return false }
+                    return existing.normal.dot(normal) > -1 + tolerance.angle
+                }
+                if isRepeat == false {
                     crossings.append(Crossing(
                         point: intersection.point,
                         faceID: faceID,
                         distance: intersection.curveParameter,
-                        parameter: parameter
+                        parameter: parameter,
+                        normal: normal
                     ))
                 }
             }
         }
         return crossings.sorted { $0.distance < $1.distance }
+    }
+
+    private func orientedNormal(
+        of face: Face,
+        surface: Surface3D,
+        at parameter: SurfaceParameter,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        let geometric = try surface.normal(u: parameter.u, v: parameter.v, tolerance: tolerance)
+            .normalized(tolerance: tolerance.distance)
+        return face.orientation == .forward ? geometric : geometric * -1.0
     }
 
     /// Whether `point` lies on one of the faces.

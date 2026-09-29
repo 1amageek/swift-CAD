@@ -84,12 +84,24 @@ sewing, stable-subshape and BRep admission path without copied source features.
 parameter changes, replay and degenerate/unit failure. Core/UI consumers must
 adopt the same range before exposing this control.
 
+### Shell partitioning
+
+`BRepSewingPatchShellPartitioner` groups sewing patches into shells by the edges
+they share. An edge used by two patches joins them; where solids touch along an
+edge (more than two uses), each patch is a ray from the edge into its interior,
+ordered by angle about the edge (faces lying on each other ordered by which wedge
+they close), and consecutive rays that bound a material wedge are joined, so
+touching solids stay separate shells. Uses that do not pair so are a typed
+`nonManifoldResult`. `SheetBooleanTests` re-slice a slice's touching pieces.
+
 ### Curve translation
 
 Curve Extrude supplies start/end displacement vectors to the existing exact
 Sweep patch builder. The builder constructs ruled surfaces between translated
 exact spans and reuses tensor boundaries, sewing, lineage and independent BRep
-admission. Translation does not need a section plane or a synthetic path.
+admission; a straight span swept straight is a flat parallelogram and is
+published on its exact plane, bounded by the same edges with their parameter
+curves on the plane. Translation does not need a section plane or a synthetic path.
 Only implicit normal/symmetric direction resolution requires source plane data.
 No plane or display polyline is inferred for a spatial curve. Open and closed
 sections preserve their boundary connectivity; neither receives solid caps.

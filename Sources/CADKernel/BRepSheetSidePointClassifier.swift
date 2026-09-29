@@ -6,11 +6,13 @@ import CADTopology
 /// Classifies points against a sheet body taken as solid behind its faces' normals: `inside`
 /// behind the sheet, `outside` in front, `boundary` on it.
 ///
-/// A ray from the point along one of three fixed oblique directions, or against it, meets the
-/// sheet first at some face; the point is behind the sheet when the ray leaves through that
-/// face's front (the oriented normal and the ray agree). A point no ray can reach the sheet
-/// from lies beyond the sheet's extent, and directions that disagree mean the sheet folds back
-/// over the point: both are typed classification failures, never a guessed side.
+/// A ray from the point along a direction, or against it, meets the sheet first at some face; the
+/// point is behind the sheet when the ray leaves through that face's front (the oriented normal
+/// and the ray agree). The directions are the sheet's face normals at their parameter midpoints,
+/// which reach a sheet that covers the point head on, then three fixed oblique directions. A
+/// point no ray can reach the sheet from lies beyond the sheet's extent, and directions that
+/// disagree mean the sheet folds back over the point: both are typed classification failures,
+/// never a guessed side.
 struct BRepSheetSidePointClassifier: SolidPointClassificationSessionPreparing {
     private let crossings: BRepRayFaceCrossings
 
@@ -50,8 +52,22 @@ struct BRepSheetSidePointClassifier: SolidPointClassificationSessionPreparing {
         let containmentSession = try (
             crossings.facePointContainment as? any FacePointContainmentSessionPreparing
         )?.makeContainmentSession(for: faceIDs, in: model, tolerance: tolerance)
+        var directions: [Vector3D] = []
+        for faceID in faceIDs {
+            guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID],
+                  let u = midpoint(surface.uDomain), let v = midpoint(surface.vDomain) else { continue }
+            let normal = try surface.normal(u: u, v: v, tolerance: tolerance).normalized(tolerance: tolerance.distance)
+            if directions.contains(where: { abs(abs($0.dot(normal)) - 1) <= tolerance.angle }) == false {
+                directions.append(normal)
+            }
+        }
+        for oblique in try BRepRayFaceCrossings.directions(tolerance: tolerance)
+        where directions.contains(where: { abs(abs($0.dot(oblique)) - 1) <= tolerance.angle }) == false {
+            directions.append(oblique)
+        }
         return Session(
             crossings: crossings,
+            directions: directions,
             model: model,
             faceIDs: faceIDs,
             bounds: try BRepBodyBoundingBoxBuilder().bounds(for: bodyID, in: model, tolerance: tolerance),
@@ -61,8 +77,17 @@ struct BRepSheetSidePointClassifier: SolidPointClassificationSessionPreparing {
         )
     }
 
+    private func midpoint(_ domain: ParameterDomain) -> Double? {
+        switch domain {
+        case let .closed(lower, upper): (lower + upper) / 2
+        case let .periodic(period): period / 2
+        case .unbounded: 0
+        }
+    }
+
     private struct Session: SolidPointClassificationSession {
         let crossings: BRepRayFaceCrossings
+        let directions: [Vector3D]
         let model: BRepModel
         let faceIDs: [FaceID]
         let bounds: BoundingBox3D
@@ -80,7 +105,7 @@ struct BRepSheetSidePointClassifier: SolidPointClassificationSessionPreparing {
             }
             let upperBound = crossings.upperBound(from: point, bounds: bounds, tolerance: tolerance)
             var sides: [SolidPointClassification] = []
-            for direction in try BRepRayFaceCrossings.directions(tolerance: tolerance) {
+            for direction in directions {
                 do {
                     if let side = try side(from: point, along: direction, upperBound: upperBound)
                         ?? side(from: point, along: direction * -1.0, upperBound: upperBound) {
