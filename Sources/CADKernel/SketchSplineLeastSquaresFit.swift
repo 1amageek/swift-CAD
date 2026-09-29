@@ -10,9 +10,9 @@ public struct SketchSplineLeastSquaresFit: Sendable {
     /// The fitted curve on [0, 1] and how far it strays from the original.
     public struct Result: Sendable {
         public var curve: BSplineCurve2D
-        /// The largest distance from a sample of the original to the fitted curve.
+        /// The largest distance between the curves, either way.
         public var maximumDeviation: Double
-        /// The root mean square of those distances.
+        /// The root mean square of the distances from the original's samples to the fitted curve.
         public var rootMeanSquareDeviation: Double
         /// Where on the original the largest distance is, as a fraction of its knot domain.
         public var maximumDeviationFraction: Double
@@ -37,10 +37,12 @@ public struct SketchSplineLeastSquaresFit: Sendable {
     ///
     /// over the m samples and n control points: at 1 the least-squares distance to the samples,
     /// lower weights trading closeness for an evener control polygon, down to the straightest
-    /// curve between the ends at 0. The deviation is the largest distance from the original to the
-    /// fitted curve by exact projection, found on each knot span of the original: sampled evenly
-    /// across the span, each local maximum refined by golden-section search between its
-    /// neighboring samples.
+    /// curve between the ends at 0. The deviation is the distance between the curves both ways:
+    /// the larger of the largest distance from the original to the fitted curve and from the
+    /// fitted curve to the original, each by exact projection and found on each knot span of the
+    /// curve measured from: sampled evenly across the span, each local maximum refined by
+    /// golden-section search between its neighboring samples. Either side alone can miss where
+    /// the other strays.
     public func fit(_ curve: SketchSplineCurve, degree: Int, controlPointCount: Int, shapeWeight: Double = 1) throws -> Result {
         guard shapeWeight.isFinite, shapeWeight >= 0, shapeWeight <= 1 else {
             throw invalid("A fit's shape weight must lie between 0 and 1.")
@@ -145,11 +147,26 @@ public struct SketchSplineLeastSquaresFit: Sendable {
             return max(16, Int((4 * Double(fittedSpans) * chord / total).rounded(.up)))
         }
         let deviation = try deviation(of: original, spans: spans, from: fittedGeometry, samplesPerSpan: checks)
+        // And from the fit back to the original, a few samples for every original span each
+        // fitted span covers; its worst point is placed on the original by its foot there.
+        let originalGeometry = SketchCurveGeometry2D.sketchSpline(curve)
+        let fittedSpanBounds = knotSpans(of: fitted)
+        let backChecks = max(16, (4 * spans.count + fittedSpans - 1) / fittedSpans)
+        let strayed = try self.deviation(
+            of: fitted, spans: fittedSpanBounds, from: originalGeometry,
+            samplesPerSpan: Array(repeating: backChecks, count: fittedSpanBounds.count)
+        )
+        var maximum = deviation.maximum, maximumParameter = deviation.maximumParameter
+        if strayed.maximum > maximum {
+            maximum = strayed.maximum
+            let point = try fitted.point(at: strayed.maximumParameter, tolerance: tolerance)
+            maximumParameter = try SketchCurveProjector(tolerance: tolerance).nearest(on: originalGeometry, to: point).parameter
+        }
         return Result(
             curve: fitted,
-            maximumDeviation: deviation.maximum,
+            maximumDeviation: maximum,
             rootMeanSquareDeviation: deviation.rootMeanSquare,
-            maximumDeviationFraction: (deviation.maximumParameter - lower) / (upper - lower)
+            maximumDeviationFraction: min(max((maximumParameter - lower) / (upper - lower), 0), 1)
         )
     }
 
@@ -160,8 +177,8 @@ public struct SketchSplineLeastSquaresFit: Sendable {
         return zip(breaks, breaks.dropFirst()).map { ($0, $1) }
     }
 
-    /// The largest distance from `original` to `fitted`, and where on the original it is, found
-    /// span by span: each span sampled evenly, and each sampled local maximum refined by
+    /// The largest distance from `original` to `fitted` (either curve may be the one measured
+    /// from), and where on `original` it is, found span by span: each span sampled evenly, and each sampled local maximum refined by
     /// golden-section search between its neighbors unless it cannot beat the largest found — the
     /// distance rises between samples at most as fast as the original moves, which its derivative's
     /// control points bound on the span. A feature on a narrow span is checked like any other; the

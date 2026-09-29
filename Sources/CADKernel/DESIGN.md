@@ -99,7 +99,11 @@ golden-section search unless it cannot beat the largest found — the distance
 rises between samples no faster than the original moves, which the derivative's
 control points bound on a non-rational span. Even sampling of the whole domain
 missed features on narrow spans and reported them fitted
-(`aNarrowKnotSpanIsNeitherFittedBlindNorPassedUnchecked`).
+(`aNarrowKnotSpanIsNeitherFittedBlindNorPassedUnchecked`). The same search runs back from the fit
+to the original, span by span of the fit, and the larger distance is reported (its
+place on the original is the foot of the fit's worst point): measured one way only,
+a fit that strays where the original does not reach reported less than it strays
+(`theDeviationCountsWhereTheFitStraysFromTheOriginal`).
 `refit(_:deviation:keepsCorners:)` (Rebuild's Refit) takes the fewest cubic
 control points, by doubling and then bisecting up to `maximumControlPointCount`
 (`resourceLimitExceeded` beyond), whose fit stays within the deviation; with

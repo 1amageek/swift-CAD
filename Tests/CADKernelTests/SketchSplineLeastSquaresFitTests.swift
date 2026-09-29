@@ -62,6 +62,27 @@ import CADGeometry
         }
     }
 
+    /// The deviation is the distance between the curves both ways: where the fit strays from a
+    /// sextic farther than any point of the sextic lies from the fit, that is what is reported.
+    @Test func theDeviationCountsWhereTheFitStraysFromTheOriginal() throws {
+        let sextic = try SketchSplineCurve(
+            degree: 6, knots: nil,
+            controlPoints: [(0.0, 0.0), (2.0, 3.0), (4.0, -1.0), (6.0, 4.0), (8.0, 0.0), (10.0, 3.0), (12.0, 1.0)]
+                .map { Point2D(x: $0.0 * 0.001, y: $0.1 * 0.001) },
+            tolerance: .standard
+        )
+        let result = try fitter.fit(sextic, degree: 3, controlPointCount: 9)
+        let projector = SketchCurveProjector(tolerance: .standard)
+        var strayed = 0.0
+        for index in 0...4000 {
+            let point = try result.curve.point(at: Double(index) / 4000, tolerance: .standard)
+            let foot = try projector.nearest(on: .sketchSpline(sextic), to: point).point
+            strayed = max(strayed, hypot(foot.x - point.x, foot.y - point.y))
+        }
+        #expect(result.maximumDeviation >= strayed - 1e-12)
+        #expect(result.maximumDeviationFraction >= 0 && result.maximumDeviationFraction <= 1)
+    }
+
     @Test func aStraightSplineIsRefittedExactly() throws {
         let line = try SketchSplineCurve(
             degree: 3, knots: nil,
