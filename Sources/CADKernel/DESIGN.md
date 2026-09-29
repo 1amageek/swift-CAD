@@ -173,26 +173,30 @@ the surface normal oriented by the face's sense in its shell. Face orientation
 is owned here; applications ask instead of reading `Face.orientation`.
 `SurfaceOutwardFrameTests` prove every box face points out of the body.
 
-`FaceUVNChart` is a face's UVN frame for Deform: a point reads as its nearest
-support-surface parameters (not clamped to the trim) normalized over the face's
-own parameter extent (0 and 1 at its sides; a periodic parameter is unwrapped to
-the extent's turn) and its signed height along the outward normal; a coordinate
-places back at those parameters and height, and fails (`invalidInput`) where a
-bounded support surface has no such parameters. The extent is CADTopology's
-`FaceParameterExtentResolver`: the certified enclosures of the trimming curves,
-refined only where they overhang points the curves reach until the overhang is a
-ten-millionth of the width, so it holds every trimming curve and is the trim's
-own box; the certified `DefaultFaceParameterBoundsResolver` stops at quarter-unit
-enclosures, which may overhang by half a curve's span. (A polyline pcurve's
-enclosure bounds each coordinate's speed by its own largest share of a segment, so
-a side running along one parameter no longer spreads across the other.)
-`FaceParameterExtentResolverTests` own the extent.
+`FaceUVNChart` is a face's UVN frame for Deform and Wrap: a point reads as its
+nearest support-surface parameters (not clamped to the trim) normalized over the
+face's own parameter extent (0 and 1 at its sides; a periodic parameter is
+unwrapped to the extent's turn) and its signed height along the outward normal;
+a coordinate places back at those parameters and height, and fails
+(`invalidInput`) where a bounded support surface has no such parameters. It reads
+any `SurfaceQueryModel` (an evaluated document, or an evaluation context while a
+feature runs). The extent is CADTopology's `FaceParameterExtentResolver`: the
+certified enclosures of the trimming curves, refined only where they overhang
+points the curves reach until the overhang is a ten-millionth of the width, so it
+holds every trimming curve and is the trim's own box; the certified
+`DefaultFaceParameterBoundsResolver` stops at quarter-unit enclosures, which may
+overhang by half a curve's span. (A polyline pcurve's enclosure bounds each
+coordinate's speed by its own largest share of a segment, so a side running along
+one parameter no longer spreads across the other.) `FaceParameterExtentResolverTests`
+own the extent.
 `SpatialCurveFitter` turns a curve known only by its points into a Bezier
 `SpatialPathFeature`: per span a cubic Hermite with one-sided second-order
 difference tangents, halved until the span is within the deviation at seven check
 parameters, never crossing a breakpoint (a source corner stays a corner knot), and
-failing past its span budget. `FaceUVNChartTests` and `SpatialCurveFitterTests`
-own both.
+failing past its span budget; `fitBSpline` gives the same spans as a clamped cubic
+B-spline on the source's own parameters (knots of multiplicity three at the span
+ends), so a carried edge keeps its trim. `FaceUVNChartTests` and
+`SpatialCurveFitterTests` own both.
 
 `SurfaceQueryEvaluator.project(_:along:onto:)` chooses, among the line's meetings
 with the support surface in the requested range, only those inside the face's
@@ -648,6 +652,31 @@ refused (`invalidInput`). `ExtractFaceClosure` answers the same question for
 callers that must declare the output before appending (Alternative Duplicate).
 `ExtractFeatureTests` own slice pieces, the refused count, face sheets, closed
 faces and cavities, persistence and the selection contract.
+
+## Wrap
+
+`WrapFeatureEvaluator` deforms a body from one face onto another (Deform Solid
+and Sheet): a point goes from its UVN coordinates on the reference face, through
+`WrapOptions` (scale and offset about the extent's centre in normalized units,
+N scaled and offset as a length, mirror, swap and normal flip), to the same
+coordinates on the target face. Both faces are read as the model is before the
+feature, resolved once, each in its own body's frame and placed into the
+target's by its rigid placement (none: where it was evaluated). The body keeps its topology and trims: each face's
+support becomes a bicubic B-spline fitted to the map of its old support over the
+face's own parameter extent (`MappedBSplineSurfaceFitter`, from one span, so an
+affine map is exact), keeping its pcurves; each edge's span becomes a B-spline on
+the same parameters (`SpatialCurveFitter.fitBSpline`), shared by the edge's two
+coedges. Both fits stay within a quarter of the distance tolerance, so every
+edge meets its faces and vertices within it. Where the map's Jacobian determinant
+is negative at every vertex the faces are reversed to keep the body right side
+out; a sign that changes, or a determinant too small to read, is refused as
+folding or flattening (`singularGeometry`). The faces are sewn under the
+feature's identity with the source's body topology and lineage to the source
+subshapes; the source is removed with its subshapes unless `keepsTarget`. A body
+carried beyond a bounded target surface fails (`invalidInput`); a fit past its
+span budget fails (`resourceLimitExceeded`). `WrapFeatureTests` own the
+identity, offsets with Keep, placed faces, a cube bent onto a cylinder as an annular sector,
+the mirrored reversal, refused options and persistence.
 
 ## Sheet half-space cutting
 

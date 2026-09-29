@@ -233,7 +233,7 @@ public struct SurfaceQueryEvaluator: Sendable {
 
     public func resolve(
         _ reference: SurfaceReference,
-        in document: EvaluatedDocument
+        in document: some SurfaceQueryModel
     ) throws -> ResolvedSurface {
         try reference.validate()
         let topologyReference = try document.topologyReference(for: reference.subshape)
@@ -263,7 +263,7 @@ public struct SurfaceQueryEvaluator: Sendable {
 
     public func frame(
         at reference: SurfaceParameterReference,
-        in document: EvaluatedDocument
+        in document: some SurfaceQueryModel
     ) throws -> SurfaceQueryFrame {
         try reference.validate()
         let resolved = try resolve(reference.surface, in: document)
@@ -282,7 +282,7 @@ public struct SurfaceQueryEvaluator: Sendable {
     public func closestPoint(
         to point: Point3D,
         on reference: SurfaceReference,
-        in document: EvaluatedDocument,
+        in document: some SurfaceQueryModel,
         options: SurfaceProjectionOptions = SurfaceProjectionOptions()
     ) throws -> SurfaceProjectionResult {
         try point.validate()
@@ -380,7 +380,7 @@ public struct SurfaceQueryEvaluator: Sendable {
         _ point: Point3D,
         along direction: Vector3D,
         onto reference: SurfaceReference,
-        in document: EvaluatedDocument,
+        in document: some SurfaceQueryModel,
         options: SurfaceDirectionalProjectionOptions = SurfaceDirectionalProjectionOptions()
     ) throws -> SurfaceDirectionalProjectionResult {
         try point.validate()
@@ -447,7 +447,7 @@ public struct SurfaceQueryEvaluator: Sendable {
 
     public func controlPoint(
         _ reference: SurfaceControlPointReference,
-        in document: EvaluatedDocument
+        in document: some SurfaceQueryModel
     ) throws -> Point3D {
         try reference.validate()
         let surface = try exactBSpline(for: reference.surface, in: document)
@@ -462,7 +462,7 @@ public struct SurfaceQueryEvaluator: Sendable {
 
     public func knot(
         _ reference: SurfaceKnotReference,
-        in document: EvaluatedDocument
+        in document: some SurfaceQueryModel
     ) throws -> Double {
         try reference.validate()
         let surface = try exactBSpline(for: reference.surface, in: document)
@@ -475,7 +475,7 @@ public struct SurfaceQueryEvaluator: Sendable {
 
     public func span(
         _ reference: SurfaceSpanReference,
-        in document: EvaluatedDocument
+        in document: some SurfaceQueryModel
     ) throws -> SurfaceSpanQueryResult {
         try reference.validate()
         let surface = try exactBSpline(for: reference.surface, in: document)
@@ -507,7 +507,7 @@ public struct SurfaceQueryEvaluator: Sendable {
 
     public func trimCurve(
         _ reference: SurfaceTrimReference,
-        in document: EvaluatedDocument
+        in document: some SurfaceQueryModel
     ) throws -> SurfaceTrimQueryResult {
         try reference.validate()
         let resolved = try resolve(reference.surface, in: document)
@@ -556,7 +556,7 @@ public struct SurfaceQueryEvaluator: Sendable {
 
     private func exactBSpline(
         for reference: SurfaceReference,
-        in document: EvaluatedDocument
+        in document: some SurfaceQueryModel
     ) throws -> BSplineSurface3D {
         let resolved = try resolve(reference, in: document)
         guard case let .bSpline(surface) = resolved.surface else {

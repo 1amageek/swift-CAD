@@ -77,6 +77,7 @@ private extension FeatureOperation {
              .joinBodies,
              .unjoinBody,
              .extract,
+             .wrap,
              .chamfer,
              .fillet,
              .g2Blend,

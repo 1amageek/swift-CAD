@@ -19,21 +19,21 @@ public struct UVNCoordinate: Equatable, Sendable {
     }
 }
 
-/// A face's UVN coordinates, the frame Deform carries curves between faces in. A point takes the
-/// parameters of its nearest point on the face's support surface (not clamped to the trim) and
-/// its height along the outward normal there; a coordinate is placed back at those normalized
-/// parameters, that height along the outward normal. The parameters are normalized over the
-/// face's own extent (`FaceParameterExtentResolver`), so its trim spans 0…1.
+/// A face's UVN coordinates, the frame Deform carries curves and Wrap carries bodies between
+/// faces in. A point takes the parameters of its nearest point on the face's support surface (not
+/// clamped to the trim) and its height along the outward normal there; a coordinate is placed
+/// back at those normalized parameters, that height along the outward normal. The parameters are
+/// normalized over the face's own extent (`FaceParameterExtentResolver`), so its trim spans 0…1.
 public struct FaceUVNChart: Sendable {
     public let reference: SurfaceReference
     /// The face's parameter box, over which `s` and `t` run from 0 to 1.
     public let box: SurfaceParameterBox
     private let surface: Surface3D
-    private let document: EvaluatedDocument
+    private let document: any SurfaceQueryModel
     private let evaluator: SurfaceQueryEvaluator
     private let tolerance: ModelingTolerance
 
-    public init(face reference: SurfaceReference, in document: EvaluatedDocument, tolerance: ModelingTolerance) throws {
+    public init(face reference: SurfaceReference, in document: some SurfaceQueryModel, tolerance: ModelingTolerance) throws {
         let evaluator = SurfaceQueryEvaluator(tolerance: tolerance)
         let resolved = try evaluator.resolve(reference, in: document)
         let box = try FaceParameterExtentResolver().bounds(for: resolved.faceID, in: document.brep, tolerance: tolerance)

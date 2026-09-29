@@ -484,6 +484,17 @@ or `.faces` chosen faces as a sheet. Its one output is `resultPort(sourcePort:)`
 a component keeps the source's kind, faces are a sheet. Geometry is owned by
 [CADKernel](../CADKernel/DESIGN.md#extract).
 
+A `WrapFeature` deforms its target's body from a reference face onto a target
+face through `WrapOptions`; both faces are stable references, possibly on the
+target itself, and are read as the model is before the feature. The result lives
+in the target's frame; each face's optional `RigidTransform3D` placement says
+where its body sits there, as a Boolean operand's does. Its inputs are
+the target, then each face owner once (`sourceInputs`); its one output keeps the
+target's kind. The options' scales and offsets must be finite and the scales
+non-zero, and the N offset is a length expression (a parameter dependency);
+invalid options fail to decode or encode. Geometry is owned by
+[CADKernel](../CADKernel/DESIGN.md#wrap).
+
 A mirror's `output` (combined, reflection or kept) and `cutsAtPlane` round-trip
 with the legacy defaults combined and uncut; keeping only the source material
 requires the cut. Feature-reference remapping and document translation carry

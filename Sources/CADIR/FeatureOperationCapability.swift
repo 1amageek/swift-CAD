@@ -34,6 +34,7 @@ public extension FeatureOperation {
         case .joinBodies: return "joinBodies"
         case .unjoinBody: return "unjoinBody"
         case .extract: return "extract"
+        case .wrap: return "wrap"
         case .chamfer: return "chamfer"
         case .fillet: return "fillet"
         case .g2Blend: return "g2Blend"

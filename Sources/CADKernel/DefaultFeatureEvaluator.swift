@@ -256,6 +256,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             return try unjoinBodyEvaluator.evaluateValidated(feature: feature, context: context)
         case .extract:
             return try ExtractFeatureEvaluator().evaluateValidated(feature: feature, context: context)
+        case .wrap:
+            return try WrapFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .chamfer:
             return try chamferEvaluator.evaluateValidated(feature: feature, context: context)
         case .fillet:

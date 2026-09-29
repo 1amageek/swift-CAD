@@ -34,6 +34,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case joinBodies(JoinBodiesFeature)
     case unjoinBody(UnjoinBodyFeature)
     case extract(ExtractFeature)
+    case wrap(WrapFeature)
     case chamfer(ChamferFeature)
     case fillet(FilletFeature)
     case g2Blend(G2BlendFeature)
@@ -88,6 +89,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case joinBodies
         case unjoinBody
         case extract
+        case wrap
         case chamfer
         case fillet
         case g2Blend
@@ -213,6 +215,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .extract:
             try container.validateOnlyExpectedKeys([.kind, .extract], in: decoder)
             self = .extract(try container.decode(ExtractFeature.self, forKey: .extract))
+        case .wrap:
+            try container.validateOnlyExpectedKeys([.kind, .wrap], in: decoder)
+            self = .wrap(try container.decode(WrapFeature.self, forKey: .wrap))
         case .chamfer:
             try container.validateOnlyExpectedKeys([.kind, .chamfer], in: decoder)
             self = .chamfer(try container.decode(ChamferFeature.self, forKey: .chamfer))
@@ -372,6 +377,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .extract(extract):
             try container.encode(Kind.extract, forKey: .kind)
             try container.encode(extract, forKey: .extract)
+        case let .wrap(wrap):
+            try container.encode(Kind.wrap, forKey: .kind)
+            try container.encode(wrap, forKey: .wrap)
         case let .chamfer(chamfer):
             try container.encode(Kind.chamfer, forKey: .kind)
             try container.encode(chamfer, forKey: .chamfer)

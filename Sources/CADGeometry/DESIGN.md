@@ -322,6 +322,16 @@ over 1,024 control points, an unclamped direction or a nonpositive raised weight
 throws. `BSplineSurfaceDegreeElevationTests` proves a rational surface with a
 doubled interior knot is unchanged in both directions.
 
+`MappedBSplineSurfaceFitter` fits a bicubic, clamped, uniformly knotted B-spline
+on a parameter rectangle to a smooth map of it (Wrap carries a face's support this
+way, on the face's own parameters, so its trimming curves stay valid). It
+interpolates the map at the tensor grid of Greville abscissae, one direction at a
+time through one factored collocation matrix per direction, checks the distance
+at the quarter points of every knot cell and along the far edges, and doubles the
+spans each way from one until within the deviation, failing
+(`resourceLimitExceeded`) past `maximumSpanCount`. `MappedBSplineSurfaceFitterTests`
+own the cylinder wrap, the exact one-span cubic and the refused budget.
+
 ## Runtime Flows
 
 An evaluator constructs the analytic curve, validates it against its surface,

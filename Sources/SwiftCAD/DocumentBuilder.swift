@@ -457,6 +457,34 @@ public struct DocumentBuilder {
         return featureID
     }
 
+    /// Deforms `target`'s body from `referenceFace` onto `targetFace`, each face's body placed in
+    /// the target's frame, replacing it unless `keepsTarget`.
+    @discardableResult
+    public mutating func wrap(
+        _ target: FeatureID,
+        from referenceFace: StableSubshapeReference,
+        onto targetFace: StableSubshapeReference,
+        referencePlacement: RigidTransform3D? = nil,
+        targetPlacement: RigidTransform3D? = nil,
+        options: WrapOptions = WrapOptions(),
+        keepsTarget: Bool = false,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let wrap = WrapFeature(
+            target: PatternTargetReference(featureID: target),
+            referenceFace: referenceFace,
+            targetFace: targetFace,
+            referencePlacement: referencePlacement,
+            targetPlacement: targetPlacement,
+            options: options,
+            keepsTarget: keepsTarget
+        )
+        try wrap.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .wrap(wrap))
+        return featureID
+    }
+
     @discardableResult
     public mutating func moveVertex(
         target targetFeatureID: FeatureID,

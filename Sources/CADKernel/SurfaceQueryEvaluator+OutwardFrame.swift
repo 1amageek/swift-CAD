@@ -7,7 +7,7 @@ extension SurfaceQueryEvaluator {
     public func outwardFrame(
         nearestTo point: Point3D,
         on reference: SurfaceReference,
-        in document: EvaluatedDocument,
+        in document: some SurfaceQueryModel,
         options: SurfaceProjectionOptions = SurfaceProjectionOptions()
     ) throws -> SurfaceOutwardFrame {
         let projection = try closestPoint(to: point, on: reference, in: document, options: options)
@@ -17,7 +17,7 @@ extension SurfaceQueryEvaluator {
     /// The face point at `parameter` and the outward normal there.
     public func outwardFrame(
         at parameter: SurfaceParameterReference,
-        in document: EvaluatedDocument
+        in document: some SurfaceQueryModel
     ) throws -> SurfaceOutwardFrame {
         try outwardFrame(frame(at: parameter, in: document), on: parameter.surface, in: document)
     }
@@ -25,7 +25,7 @@ extension SurfaceQueryEvaluator {
     private func outwardFrame(
         _ frame: SurfaceQueryFrame,
         on reference: SurfaceReference,
-        in document: EvaluatedDocument
+        in document: some SurfaceQueryModel
     ) throws -> SurfaceOutwardFrame {
         let resolved = try resolve(reference, in: document)
         guard let face = document.brep.faces[resolved.faceID] else {

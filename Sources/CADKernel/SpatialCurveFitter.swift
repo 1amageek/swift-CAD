@@ -28,12 +28,58 @@ public struct SpatialCurveFitter: Sendable {
         tolerance: ModelingTolerance,
         point: (Double) throws -> Point3D
     ) throws -> FittedSpatialCurve {
+        let (spans, maximumDeviation) = try fittedSpans(breakpoints: breakpoints, tolerance: tolerance, point: point)
+        var knots: [SpatialPathKnot] = [SpatialPathKnot(position: spans[0].p0, outgoing: spans[0].p1 - spans[0].p0)]
+        for (index, span) in spans.enumerated() {
+            knots[knots.count - 1].outgoing = span.p1 - span.p0
+            knots.append(SpatialPathKnot(
+                position: span.p3,
+                incoming: span.p2 - span.p3,
+                outgoing: index + 1 < spans.count ? spans[index + 1].p1 - spans[index + 1].p0 : .zero
+            ))
+        }
+        if isClosed {
+            let last = knots.removeLast()
+            knots[0].incoming = last.incoming
+        }
+        let path = SpatialPathFeature(kind: .bezier, knots: knots, isClosed: isClosed)
+        try path.validate(tolerance: tolerance)
+        return FittedSpatialCurve(path: path, maximumDeviation: maximumDeviation)
+    }
+
+    /// Fits `point` over the increasing `breakpoints` as a clamped cubic B-spline on the same
+    /// parameters: its spans are the fit's, joined by knots of multiplicity three, so the curve at
+    /// a parameter is the fit of `point` there. An edge carried through a map keeps its own
+    /// parameters this way, and with them its correspondence to its faces' trimming curves.
+    public func fitBSpline(
+        breakpoints: [Double],
+        tolerance: ModelingTolerance,
+        point: (Double) throws -> Point3D
+    ) throws -> (curve: BSplineCurve3D, maximumDeviation: Double) {
+        let (spans, maximumDeviation) = try fittedSpans(breakpoints: breakpoints, tolerance: tolerance, point: point)
+        var knots = Array(repeating: spans[0].lower, count: 4)
+        var points = [spans[0].p0]
+        for (index, span) in spans.enumerated() {
+            points += [span.p1, span.p2, span.p3]
+            knots += Array(repeating: span.upper, count: index + 1 < spans.count ? 3 : 4)
+        }
+        let curve = BSplineCurve3D(degree: 3, knots: knots, controlPoints: points)
+        try curve.validate(tolerance: tolerance)
+        return (curve, maximumDeviation)
+    }
+
+    /// The Hermite spans of the fit, in order, each with the parameters it covers.
+    private func fittedSpans(
+        breakpoints: [Double],
+        tolerance: ModelingTolerance,
+        point: (Double) throws -> Point3D
+    ) throws -> (spans: [(lower: Double, upper: Double, p0: Point3D, p1: Point3D, p2: Point3D, p3: Point3D)], maximumDeviation: Double) {
         guard breakpoints.count >= 2,
               breakpoints.allSatisfy(\.isFinite),
               zip(breakpoints, breakpoints.dropFirst()).allSatisfy({ $0 < $1 }) else {
             throw KernelError(phase: .validation, code: .invalidInput, tolerance: tolerance, message: "A fit needs increasing finite breakpoints.")
         }
-        var spans: [(p0: Point3D, p1: Point3D, p2: Point3D, p3: Point3D)] = []
+        var spans: [(lower: Double, upper: Double, p0: Point3D, p1: Point3D, p2: Point3D, p3: Point3D)] = []
         var maximumDeviation = 0.0
         for (lower, upper) in zip(breakpoints, breakpoints.dropFirst()) {
             var pending = [(lower, upper)]
@@ -45,7 +91,7 @@ public struct SpatialCurveFitter: Sendable {
                     worst = max(worst, (Self.bezier(span, at: fraction) - expected).length)
                 }
                 if worst <= deviation {
-                    spans.append(span)
+                    spans.append((a, b, span.p0, span.p1, span.p2, span.p3))
                     maximumDeviation = max(maximumDeviation, worst)
                 } else {
                     let middle = a + (b - a) * 0.5
@@ -63,22 +109,7 @@ public struct SpatialCurveFitter: Sendable {
                 }
             }
         }
-        var knots: [SpatialPathKnot] = [SpatialPathKnot(position: spans[0].p0, outgoing: spans[0].p1 - spans[0].p0)]
-        for (index, span) in spans.enumerated() {
-            knots[knots.count - 1].outgoing = span.p1 - span.p0
-            knots.append(SpatialPathKnot(
-                position: span.p3,
-                incoming: span.p2 - span.p3,
-                outgoing: index + 1 < spans.count ? spans[index + 1].p1 - spans[index + 1].p0 : .zero
-            ))
-        }
-        if isClosed {
-            let last = knots.removeLast()
-            knots[0].incoming = last.incoming
-        }
-        let path = SpatialPathFeature(kind: .bezier, knots: knots, isClosed: isClosed)
-        try path.validate(tolerance: tolerance)
-        return FittedSpatialCurve(path: path, maximumDeviation: maximumDeviation)
+        return (spans, maximumDeviation)
     }
 
     /// The cubic through the curve's points at `a` and `b` with its derivatives there, estimated

@@ -333,6 +333,7 @@ struct DocumentEvaluationEngine {
                  .joinBodies,
                  .unjoinBody,
                  .extract,
+                 .wrap,
                  .bridgeCurve,
                  .bridgeSurface,
                  .curveEdit,

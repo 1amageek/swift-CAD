@@ -485,6 +485,16 @@ public enum FeatureNodeFactory {
                 )
             }
             return try run()
+        case let .wrap(feature):
+            try feature.validate()
+            let sourcePort = try bodyOrSheetPort(of: feature.target.featureID, in: document)
+            return FeatureNode(
+                id: id,
+                name: name,
+                operation: operation,
+                inputs: feature.sourceInputs,
+                outputs: [FeatureOutput(role: try feature.resultPort(sourcePort: sourcePort))]
+            )
         case let .extract(feature):
             try feature.validate()
             let sourcePort = try bodyOrSheetPort(of: feature.target.featureID, in: document)

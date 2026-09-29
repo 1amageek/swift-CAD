@@ -850,6 +850,34 @@ extension KernelCapabilities {
       ]
     ),
     feature(
+      id: "MODEL-WRAP-001",
+      operation: "wrap",
+      topology: .sheetOrSolidBody,
+      inputs: [
+        "oneValidatedSolidOrSheetBody",
+        "stableReferenceAndTargetFaces",
+        "uvnScaleOffsetMirrorSwapAndNormalFlip",
+      ],
+      outputs: [
+        "validatedExactBRep",
+        "sourceTopologyAndTrimsCarriedOntoFittedBSplineSupports",
+        "surfaceAndEdgeFitsWithinAQuarterOfTheDistanceTolerance",
+        "orientationRestoredWhenTheMapTurnsSpaceInsideOut",
+        "sourceReplacedUnlessKept",
+        "carriedTopologyLineageToSourceSubshapes",
+        "strictCurrentSchemaNativePersistence",
+      ],
+      fixtures: ["WrapFeatureTests"],
+      status: .supported,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .singularGeometry,
+        .resourceLimitExceeded,
+        .topologyFailure,
+      ]
+    ),
+    feature(
       id: "MODEL-THICKEN-001",
       operation: "thicken",
       topology: .sheetToSolidBody,

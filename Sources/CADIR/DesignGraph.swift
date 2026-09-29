@@ -372,6 +372,11 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 try unjoin.validate()
             case let .extract(extract):
                 try extract.validate()
+            case let .wrap(wrap):
+                try wrap.validate()
+                guard try parameters.resolvedValue(for: wrap.options.offsetN).kind == .length else {
+                    throw FeatureEvaluationError.invalidGraph("Wrap N offset must be a length.")
+                }
             case let .chamfer(chamfer):
                 try chamfer.validate()
                 let distance = try parameters.resolvedValue(for: chamfer.distance)
@@ -643,6 +648,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             try validateUnjoinBodyContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .extract:
             try validateExtractContract(node, outputRoles: outputRoles)
+        case .wrap:
+            try validateWrapContract(node, outputRoles: outputRoles)
         case .chamfer:
             try validateChamferContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .fillet:
@@ -1392,6 +1399,22 @@ public struct DesignGraph: Codable, Equatable, Sendable {
     }
 
     @inline(never)
+    private func validateWrapContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        guard case let .wrap(wrap) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a wrap operation.")
+        }
+        try wrap.validate()
+        guard node.inputs == wrap.sourceInputs else {
+            throw FeatureEvaluationError.invalidGraph("Wrap must consume its target and the owners of its reference and target faces.")
+        }
+        guard let sourcePort = nodes[wrap.target.featureID]?.bodyOrSheetOutput else {
+            throw FeatureEvaluationError.invalidGraph("Wrap target source must declare exactly one body or sheet output.")
+        }
+        guard outputRoles == [try wrap.resultPort(sourcePort: sourcePort)] else {
+            throw FeatureEvaluationError.invalidGraph("Wrap features must declare their target's output.")
+        }
+    }
+
     private func validateExtractContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
         guard case let .extract(extract) = node.operation else {
             throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected an extract operation.")

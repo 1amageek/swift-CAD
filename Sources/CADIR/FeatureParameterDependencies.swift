@@ -51,6 +51,8 @@ public extension FeatureOperation {
                 .union(pattern.secondSpacing.referencedParameterIDs)
         case let .chamfer(chamfer):
             return chamfer.distance.referencedParameterIDs
+        case let .wrap(wrap):
+            return wrap.options.offsetN.referencedParameterIDs
         case let .fillet(fillet):
             return fillet.radius.referencedParameterIDs
         case let .g2Blend(blend):

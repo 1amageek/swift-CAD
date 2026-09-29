@@ -327,6 +327,16 @@ extension FeatureOperation {
             case let .solidFaces(faces): .solidFaces(try faces.map(subshape))
             }
             return .extract(ExtractFeature(target: try pattern(feature.target), selection: selection))
+        case .wrap(let feature):
+            return .wrap(WrapFeature(
+                target: try pattern(feature.target),
+                referenceFace: try subshape(feature.referenceFace),
+                targetFace: try subshape(feature.targetFace),
+                referencePlacement: feature.referencePlacement,
+                targetPlacement: feature.targetPlacement,
+                options: feature.options,
+                keepsTarget: feature.keepsTarget
+            ))
         case .projectCurve(let feature):
             return .projectCurve(ProjectCurveFeature(
                 source: try curve(feature.source),
