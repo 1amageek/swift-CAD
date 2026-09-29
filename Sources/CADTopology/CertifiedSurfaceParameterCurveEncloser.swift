@@ -381,12 +381,20 @@ package struct CertifiedSurfaceParameterCurveEncloser {
           "Polyline pcurve enclosure requires at least two points."
         )
       }
+      // The polyline runs at constant speed in its total length L, so along segment i each
+      // coordinate moves at L times the segment's share of it, |Δu_i| / ℓ_i ≤ 1.
       var length = 0.0
+      var uShare = 0.0
+      var vShare = 0.0
       for index in 1..<points.count {
-        length += hypot(
-          points[index].u - points[index - 1].u,
-          points[index].v - points[index - 1].v
-        )
+        let du = abs(points[index].u - points[index - 1].u)
+        let dv = abs(points[index].v - points[index - 1].v)
+        let segment = hypot(du, dv)
+        length += segment
+        if segment > 0.0 {
+          uShare = max(uShare, min(du / segment, 1.0).nextUp)
+          vShare = max(vShare, min(dv / segment, 1.0).nextUp)
+        }
       }
       guard length.isFinite, length > 0.0 else {
         throw failure(
@@ -395,7 +403,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
           "Polyline pcurve enclosure requires positive finite length."
         )
       }
-      return (length.nextUp, length.nextUp)
+      return ((length * uShare).nextUp, (length * vShare).nextUp)
     case .bSpline(let curve):
       guard case .closed(let lower, let upper) = curve.domain else {
         throw failure(

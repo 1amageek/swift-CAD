@@ -22,7 +22,8 @@ public struct UVNCoordinate: Equatable, Sendable {
 /// A face's UVN coordinates, the frame Deform carries curves between faces in. A point takes the
 /// parameters of its nearest point on the face's support surface (not clamped to the trim) and
 /// its height along the outward normal there; a coordinate is placed back at those normalized
-/// parameters, that height along the outward normal.
+/// parameters, that height along the outward normal. The parameters are normalized over the
+/// face's own extent (`FaceParameterExtentResolver`), so its trim spans 0…1.
 public struct FaceUVNChart: Sendable {
     public let reference: SurfaceReference
     /// The face's parameter box, over which `s` and `t` run from 0 to 1.
@@ -30,11 +31,12 @@ public struct FaceUVNChart: Sendable {
     private let surface: Surface3D
     private let document: EvaluatedDocument
     private let evaluator: SurfaceQueryEvaluator
+    private let tolerance: ModelingTolerance
 
     public init(face reference: SurfaceReference, in document: EvaluatedDocument, tolerance: ModelingTolerance) throws {
         let evaluator = SurfaceQueryEvaluator(tolerance: tolerance)
         let resolved = try evaluator.resolve(reference, in: document)
-        let box = try DefaultFaceParameterBoundsResolver().bounds(for: resolved.faceID, in: document.brep, tolerance: tolerance)
+        let box = try FaceParameterExtentResolver().bounds(for: resolved.faceID, in: document.brep, tolerance: tolerance)
         guard box.u.width > tolerance.distance, box.v.width > tolerance.distance else {
             throw KernelError(
                 phase: .geometry, code: .singularGeometry, tolerance: tolerance,
@@ -46,6 +48,7 @@ public struct FaceUVNChart: Sendable {
         self.surface = resolved.surface
         self.document = document
         self.evaluator = evaluator
+        self.tolerance = tolerance
     }
 
     public func coordinate(of point: Point3D) throws -> UVNCoordinate {
@@ -68,12 +71,16 @@ public struct FaceUVNChart: Sendable {
         guard coordinate.s.isFinite, coordinate.t.isFinite, coordinate.n.isFinite else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: nil, message: "A UVN coordinate must be finite.")
         }
+        let u = box.u.lower + coordinate.s * box.u.width
+        let v = box.v.lower + coordinate.t * box.v.width
+        guard try surface.uDomain.contains(u, tolerance: tolerance), try surface.vDomain.contains(v, tolerance: tolerance) else {
+            throw KernelError(
+                phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                message: "A UVN coordinate at s \(coordinate.s), t \(coordinate.t) falls beyond the face's bounded support surface."
+            )
+        }
         let frame = try evaluator.outwardFrame(
-            at: SurfaceParameterReference(
-                surface: reference,
-                u: box.u.lower + coordinate.s * box.u.width,
-                v: box.v.lower + coordinate.t * box.v.width
-            ),
+            at: SurfaceParameterReference(surface: reference, u: u, v: v),
             in: document
         )
         return frame.point + (try frame.outwardNormal.normalized(tolerance: 1.0e-15)) * coordinate.n

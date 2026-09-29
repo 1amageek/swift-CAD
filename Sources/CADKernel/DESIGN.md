@@ -175,10 +175,18 @@ is owned here; applications ask instead of reading `Face.orientation`.
 
 `FaceUVNChart` is a face's UVN frame for Deform: a point reads as its nearest
 support-surface parameters (not clamped to the trim) normalized over the face's
-parameter box (`DefaultFaceParameterBoundsResolver`, 0 and 1 at the box edges; a
-periodic parameter is unwrapped to the box's turn) and its signed height along
-the outward normal; a coordinate places back at those parameters and height, and
-fails where a bounded support surface has no such parameters.
+own parameter extent (0 and 1 at its sides; a periodic parameter is unwrapped to
+the extent's turn) and its signed height along the outward normal; a coordinate
+places back at those parameters and height, and fails (`invalidInput`) where a
+bounded support surface has no such parameters. The extent is CADTopology's
+`FaceParameterExtentResolver`: the certified enclosures of the trimming curves,
+refined only where they overhang points the curves reach until the overhang is a
+ten-millionth of the width, so it holds every trimming curve and is the trim's
+own box; the certified `DefaultFaceParameterBoundsResolver` stops at quarter-unit
+enclosures, which may overhang by half a curve's span. (A polyline pcurve's
+enclosure bounds each coordinate's speed by its own largest share of a segment, so
+a side running along one parameter no longer spreads across the other.)
+`FaceParameterExtentResolverTests` own the extent.
 `SpatialCurveFitter` turns a curve known only by its points into a Bezier
 `SpatialPathFeature`: per span a cubic Hermite with one-sided second-order
 difference tangents, halved until the span is within the deviation at seven check
