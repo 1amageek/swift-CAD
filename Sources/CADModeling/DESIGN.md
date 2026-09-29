@@ -92,7 +92,9 @@ edge (more than two uses), each patch is a ray from the edge into its interior,
 ordered by angle about the edge (faces lying on each other ordered by which wedge
 they close), and consecutive rays that bound a material wedge are joined, so
 touching solids stay separate shells. Uses that do not pair so are a typed
-`nonManifoldResult`. `SheetBooleanTests` re-slice a slice's touching pieces.
+`nonManifoldResult`. The angular ordering about an edge is `BRepSewingEdgeFan`,
+which the Region cell complex also uses. `SheetBooleanTests` re-slice a slice's
+touching pieces.
 
 ### Curve translation
 

@@ -13,11 +13,25 @@ struct BRepFaceInteriorPointSampler {
         self.containmentTester = containmentTester
     }
 
+    struct Sample {
+        let point: Point3D
+        let parameter: SurfaceParameter
+    }
+
     func point(
         on faceID: FaceID,
         in model: BRepModel,
         tolerance: ModelingTolerance
     ) throws -> Point3D {
+        try sample(on: faceID, in: model, tolerance: tolerance).point
+    }
+
+    /// A point inside the trimmed face with its surface parameter.
+    func sample(
+        on faceID: FaceID,
+        in model: BRepModel,
+        tolerance: ModelingTolerance
+    ) throws -> Sample {
         try tolerance.validate()
         guard let face = model.faces[faceID],
               let surface = model.geometry.surfaces[face.surfaceID] else {
@@ -48,7 +62,7 @@ struct BRepFaceInteriorPointSampler {
                     )
                 }
                 for fraction in [0.5, 0.25, 0.75] {
-                    if let point = try interiorPoint(
+                    if let sample = try interiorPoint(
                         near: fraction,
                         pcurve: pcurve,
                         faceID: faceID,
@@ -56,7 +70,7 @@ struct BRepFaceInteriorPointSampler {
                         model: model,
                         tolerance: tolerance
                     ) {
-                        return point
+                        return sample
                     }
                 }
             }
@@ -76,7 +90,7 @@ struct BRepFaceInteriorPointSampler {
         surface: Surface3D,
         model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> Point3D? {
+    ) throws -> Sample? {
         let derivativeFraction = 1.0e-4
         let lowerFraction = max(fraction - derivativeFraction, 0.0)
         let upperFraction = min(fraction + derivativeFraction, 1.0)
@@ -125,7 +139,7 @@ struct BRepFaceInteriorPointSampler {
                         in: model,
                         tolerance: tolerance
                     ) {
-                        return candidate
+                        return Sample(point: candidate, parameter: parameter)
                     }
                 } catch GeometryError.invalidDistance {
                     continue

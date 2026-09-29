@@ -566,6 +566,44 @@ sheet−sheet split and empty intersection, the refused half-space union, a shee
 that does not reach across, the result port and material persistence; the
 existing Boolean suites prove volumes are unchanged.
 
+## Region
+
+`BooleanOperation.region` divides space by the faces of every operand, targets and
+tools alike, and replaces them with one solid whose components are the bounded
+cells. `BooleanFeatureEvaluator` places the operands and passes them all to one
+pass without uniting tools; `ExactBooleanOperationApplicator` routes the pass to
+`RegionBooleanEvaluator`. A Region takes no operand material (`validate`).
+
+```text
+operands ──pairwise──▶ intersection + UV split graphs
+        ──every crossing, both sides kept──▶ SharedCurveFaceArrangement
+        + unsplit faces (SourceBRepFacePatchBuilder)
+        ──▶ BRepCellComplexBuilder ──▶ solid sewing request ──▶ sewn, operands removed
+```
+
+- Arrangement: every pair of operands is intersected; each transverse component
+  splits the faces on both sides with keep/keep forced partitions, so a face
+  crossed by several operands is split by all of them (in-face crossings are
+  shared by `SharedCurveFaceArrangement`). Coincident components are refused
+  (`unsupportedCapability`, `FIXME(INCOMPLETE_IMPLEMENTATION)` in the evaluator).
+- Cells (`BRepCellComplexBuilder`): patches with an edge no other patch shares are
+  dropped until none remains (sheet parts outside the cells go). Each patch has a
+  front and a back side; around each edge (`BRepSewingEdgeFan`) the two sides
+  facing each wedge between angle-consecutive patches bound one region, so the
+  connected sides are closed shells, each face turned to face out of its region
+  and renamed per side. A shell whose region-interior probe point it encloses (ray
+  parity, `BRepRayFaceCrossings`) is a cell's outer shell; any other is a void of
+  the smallest outer shell enclosing it, re-emitted in the void convention (faces
+  out of the cavity, shell reversed), or the unbounded region's boundary, dropped.
+  No bounded cell is an `emptyResult`.
+- Results publish stable-key subshapes (`OrthogonalBooleanFacePatchBuilder`
+  naming) with remapped sewn and Boolean lineage; operand subshapes are removed
+  (`BRepBodyTopologyRemoval`, shared with the exact Boolean evaluator).
+
+`RegionBooleanTests` (SwiftCADTests) own overlapping cubes (three cells with their
+volumes), a nested cube (a cell and a voided cell), a sheet dividing a cube,
+separate cubes, and the refused material.
+
 ## Extract
 
 `ExtractFeatureEvaluator` copies part of a body beside it: the source's exact

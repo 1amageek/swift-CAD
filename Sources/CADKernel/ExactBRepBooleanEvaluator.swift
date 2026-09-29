@@ -248,22 +248,22 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         } else {
             for targetBodyID in targetBodyIDs {
                 removedSubshapeIDs.formUnion(
-                    subshapeIDsReferencingBodyTopology(
+                    BRepBodyTopologyRemoval().subshapeIDs(
                         bodyID: targetBodyID,
                         in: resultModel,
                         subshapes: subshapes
                     )
                 )
-                try removeBodyTopology(bodyID: targetBodyID, from: &resultModel)
+                try BRepBodyTopologyRemoval().remove(bodyID: targetBodyID, from: &resultModel)
             }
             removedSubshapeIDs.formUnion(
-                subshapeIDsReferencingBodyTopology(
+                BRepBodyTopologyRemoval().subshapeIDs(
                     bodyID: toolBodyID,
                     in: resultModel,
                     subshapes: subshapes
                 )
             )
-            try removeBodyTopology(bodyID: toolBodyID, from: &resultModel)
+            try BRepBodyTopologyRemoval().remove(bodyID: toolBodyID, from: &resultModel)
         }
 
         let sewn = try DefaultBRepSewer().sew(
@@ -295,40 +295,12 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             brep: resultModel,
             subshapes: resultSubshapes,
             removedSubshapeIDs: removedSubshapeIDs,
-            lineage: remappedSewnLineage(
-                builtSubshapes: builtSubshapes,
-                sewn: sewn
-            )
+            lineage: sewn.lineage(remappedTo: builtSubshapes)
         )
         if resultModel == sewn.brep {
             evaluation.validatedBRep = sewn.validatedBRep
         }
         return evaluation
-    }
-
-    private func remappedSewnLineage(
-        builtSubshapes: [SubshapeID: TopologyReference],
-        sewn: BRepSewingResult
-    ) -> [SubshapeID: TopologyLineage] {
-        let sewnIdentityByReference = Dictionary(
-            sewn.subshapes.map { ($0.value, $0.key) },
-            uniquingKeysWith: { first, _ in first }
-        )
-        return Dictionary(uniqueKeysWithValues: builtSubshapes.compactMap { output, reference in
-            guard let sewnIdentity = sewnIdentityByReference[reference],
-                  let lineage = sewn.lineage[sewnIdentity],
-                  lineage.parents.isEmpty == false else {
-                return nil
-            }
-            return (
-                output,
-                TopologyLineage(
-                    output: output,
-                    parents: lineage.parents,
-                    relation: lineage.relation
-                )
-            )
-        })
     }
 
     private func makePlan(
@@ -515,7 +487,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             outputKind = .convexPlanarDifference
         case .intersect:
             outputKind = .convexPlanarIntersection
-        case .slice:
+        case .slice, .region:
             throw KernelError.unsupportedEvaluation(
                 tolerance: tolerance,
                 message: "Convex planar materialization supports union, difference, and intersection."
@@ -587,7 +559,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 throw FeatureEvaluationError.emptyResult(
                     "Boolean intersection has no volume because a target supporting plane separates the revolved tool."
                 )
-            case .slice:
+            case .slice, .region:
                 break
             }
         }
@@ -616,7 +588,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                     tolerance: tolerance,
                     message: "Boolean intersection of boundary-contacting solids has no volumetric result."
                 )
-            case .slice:
+            case .slice, .region:
                 break
             }
         }
@@ -643,7 +615,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 throw FeatureEvaluationError.emptyResult(
                     "Boolean difference removed a target fully contained by its revolved tool."
                 )
-            case .slice:
+            case .slice, .region:
                 break
             }
         }
@@ -683,7 +655,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             }
         case .intersect:
             outputTopologyKind = .revolvedIntersection
-        case .slice:
+        case .slice, .region:
             throw KernelError.unsupportedEvaluation(
                 tolerance: tolerance,
                 message: "Revolved Boolean materialization supports union, difference, and intersection."
@@ -736,7 +708,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             outputTopologyKind = .partialCylinderDifference
         case .intersect:
             outputTopologyKind = .partialCylinderIntersection
-        case .slice:
+        case .slice, .region:
             throw KernelError.unsupportedEvaluation(
                 tolerance: tolerance,
                 message: "Partial-cylinder materialization supports union, difference, and intersection."
@@ -818,6 +790,11 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             return try intersectCells(targets: targetCells, tools: toolCells, tolerance: tolerance)
         case .slice:
             return .boxes(try sliceCells(targets: targetCells, tools: toolCells, tolerance: tolerance))
+        case .region:
+            throw KernelError.unsupportedEvaluation(
+                tolerance: tolerance,
+                message: "A region is built from the cell complex of its operands, not an orthogonal cell plan."
+            )
         }
     }
 
@@ -1036,100 +1013,6 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             }
         }
         return true
-    }
-
-    private func subshapeIDsReferencingBodyTopology(
-        bodyID: BodyID,
-        in model: BRepModel,
-        subshapes: [SubshapeID: TopologyReference]
-    ) -> Set<SubshapeID> {
-        let references = topologyReferences(for: bodyID, in: model)
-        return Set(subshapes.compactMap { subshapeID, reference in
-            references.contains(reference) ? subshapeID : nil
-        })
-    }
-
-    private func topologyReferences(for bodyID: BodyID, in model: BRepModel) -> Set<TopologyReference> {
-        guard let body = model.bodies[bodyID] else {
-            return []
-        }
-        var references: Set<TopologyReference> = [.body(bodyID)]
-        for shellID in body.shellIDs {
-            guard let shell = model.shells[shellID] else {
-                continue
-            }
-            for faceID in shell.faceIDs {
-                references.insert(.face(faceID))
-                guard let face = model.faces[faceID] else {
-                    continue
-                }
-                for loopID in face.loops {
-                    guard let loop = model.loops[loopID] else {
-                        continue
-                    }
-                    for orientedEdge in loop.edges {
-                        references.insert(.edge(orientedEdge.edgeID))
-                        guard let edge = model.edges[orientedEdge.edgeID] else {
-                            continue
-                        }
-                        references.insert(.vertex(edge.startVertexID))
-                        references.insert(.vertex(edge.endVertexID))
-                    }
-                }
-            }
-        }
-        return references
-    }
-
-    private func removeBodyTopology(bodyID: BodyID, from model: inout BRepModel) throws {
-        guard let body = model.bodies.removeValue(forKey: bodyID) else {
-            throw TopologyError.missingReference("Missing boolean body \(bodyID).")
-        }
-        var surfaceIDs = Set<SurfaceID>()
-        var curveIDs = Set<CurveID>()
-        var loopIDs = Set<LoopID>()
-        var edgeIDs = Set<EdgeID>()
-        var vertexIDs = Set<VertexID>()
-
-        for shellID in body.shellIDs {
-            guard let shell = model.shells.removeValue(forKey: shellID) else {
-                throw TopologyError.missingReference("Missing boolean shell \(shellID).")
-            }
-            for faceID in shell.faceIDs {
-                guard let face = model.faces.removeValue(forKey: faceID) else {
-                    throw TopologyError.missingReference("Missing boolean face \(faceID).")
-                }
-                surfaceIDs.insert(face.surfaceID)
-                for loopID in face.loops {
-                    loopIDs.insert(loopID)
-                }
-            }
-        }
-        for loopID in loopIDs {
-            guard let loop = model.loops.removeValue(forKey: loopID) else {
-                throw TopologyError.missingReference("Missing boolean loop \(loopID).")
-            }
-            for orientedEdge in loop.edges {
-                edgeIDs.insert(orientedEdge.edgeID)
-            }
-        }
-        for edgeID in edgeIDs {
-            guard let edge = model.edges.removeValue(forKey: edgeID) else {
-                throw TopologyError.missingReference("Missing boolean edge \(edgeID).")
-            }
-            curveIDs.insert(edge.curveID)
-            vertexIDs.insert(edge.startVertexID)
-            vertexIDs.insert(edge.endVertexID)
-        }
-        for vertexID in vertexIDs {
-            model.vertices.removeValue(forKey: vertexID)
-        }
-        for curveID in curveIDs {
-            model.geometry.curves.removeValue(forKey: curveID)
-        }
-        for surfaceID in surfaceIDs {
-            model.geometry.surfaces.removeValue(forKey: surfaceID)
-        }
     }
 
     private func newlyPublishedToolSubshapes(

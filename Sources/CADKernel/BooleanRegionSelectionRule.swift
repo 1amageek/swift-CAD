@@ -39,6 +39,9 @@ public struct BooleanRegionSelectionRule: Sendable {
             }
         case .slice:
             isToolFace ? .partitionBoundary : .keep
+        case .region:
+            // Every face region of every operand bounds some region.
+            .keep
         }
         return oriented(action, isToolFace: isToolFace)
     }

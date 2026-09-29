@@ -109,7 +109,7 @@ struct ConvexPlanarBooleanFacePatchBuilder {
             try second.clip(to: first)
             try first.build(second.allPolygons())
             try first.inverted()
-        case .slice:
+        case .slice, .region:
             throw KernelError(
                 phase: .evaluation,
                 code: .unsupportedCapability,

@@ -31,13 +31,15 @@ public struct BooleanFeature: Hashable, Sendable {
     }
 
     /// The output the Boolean publishes, from what its targets are: a sheet when the targets'
-    /// material is empty (Empty, or Default on sheets), otherwise a body. Targets are all solids
-    /// or all sheets.
+    /// material is empty (Empty, or Default on sheets), otherwise a body; a region is always a
+    /// body. Targets are all solids or all sheets.
     public func resultPort(targetPorts: [FeaturePort]) throws -> FeaturePort {
         guard let first = targetPorts.first, targetPorts.allSatisfy({ $0 == first }),
               first == .body || first == .sheet else {
             throw FeatureEvaluationError.invalidGraph("Boolean targets must all be solids or all be sheets.")
         }
+        // The regions the operands enclose are solids, whatever the operands are.
+        if operation == .region { return .body }
         switch targetMaterial {
         case .empty:
             return .sheet
@@ -65,6 +67,10 @@ public struct BooleanFeature: Hashable, Sendable {
         }
         guard Set(targetFeatureIDs).isDisjoint(with: toolFeatureIDs) else {
             throw FeatureEvaluationError.invalidGraph("Boolean tool must be distinct from every target.")
+        }
+        // A Region Boolean divides space by faces alone, so no operand has a material.
+        guard operation != .region || (targetMaterial == .default && toolMaterial == .default) else {
+            throw FeatureEvaluationError.invalidGraph("A Region Boolean takes no operand material.")
         }
     }
 }
@@ -167,4 +173,7 @@ public enum BooleanOperation: String, Codable, CaseIterable, Hashable, Sendable 
     case difference
     case intersect
     case slice
+    /// The solids enclosed by the faces of all the operands, targets and tools alike, each region
+    /// they bound a solid of its own.
+    case region
 }

@@ -222,7 +222,7 @@ struct ConvexPolygonCircleBooleanPlan: Sendable {
                     isSelected = isInsideCircle == false
                 case .intersect:
                     isSelected = isInsideCircle
-                case .slice:
+                case .slice, .region:
                     isSelected = false
                 }
                 if isSelected {
@@ -278,7 +278,7 @@ struct ConvexPolygonCircleBooleanPlan: Sendable {
                 isSelected = isInsidePolygon == false
             case .difference, .intersect:
                 isSelected = isInsidePolygon
-            case .slice:
+            case .slice, .region:
                 isSelected = false
             }
             guard isSelected else {

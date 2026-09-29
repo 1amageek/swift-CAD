@@ -152,7 +152,7 @@ struct CoincidentBooleanFaceOwnershipResolver {
             return sameOutwardDirection ? (.keep, .discard) : (.discard, .discard)
         case .difference:
             return sameOutwardDirection ? (.discard, .discard) : (.keep, .discard)
-        case .slice:
+        case .slice, .region:
             return (.keep, .discard)
         }
     }

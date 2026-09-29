@@ -73,6 +73,9 @@ struct WholeBodyBooleanFacePatchMaterializer {
             }
         case .intersect, .slice:
             break
+        case .region:
+            throw KernelError(phase: .topology, code: .unsupportedCapability, tolerance: tolerance,
+                message: "A region is built from the cell complex of its operands, not a whole-body Boolean.")
         }
         let selected: [(bodyID: BodyID, reversedShells: Bool)]
         if relations.contains(.coincident) {
@@ -99,6 +102,8 @@ struct WholeBodyBooleanFacePatchMaterializer {
                 selected = [(toolBodyID, false)]
             case .slice:
                 selected = targetBodyIDs.map { ($0, false) }
+            case .region:
+                selected = []
             }
         } else {
             // Each body lies wholly on one side of the other's material: the rule decides it

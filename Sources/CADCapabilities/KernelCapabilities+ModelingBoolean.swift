@@ -101,6 +101,7 @@ extension KernelCapabilities {
         "adaptiveAnnulusSectionTorusTorusBooleanVolume",
         "toleranceBoundedCenteredNonParallelTorusCylinderBooleanVolume",
         "carriedOperand",
+        "regionCellComplexWithNestedVoids",
         "TopologyLineage",
         "validatedExactBRep",
       ],
@@ -185,6 +186,7 @@ extension KernelCapabilities {
         "CADCommandPipelineTests.builderAndCodableCommandProduceIdenticalCornerCylindricalDifference",
         "CADCommandPipelineTests.builderAndCodableCommandProduceIdenticalInsideCornerCylindricalDifference",
         "CADCommandPipelineTests.builderAndCodableCommandProduceIdenticalTwoShellCylindricalDifference",
+        "RegionBooleanTests",
       ],
       status: .partial,
       failureCodes: [

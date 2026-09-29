@@ -45,7 +45,7 @@ struct RevolvedBooleanFacePatchBuilder {
                 for: plan,
                 featureID: featureID
             )
-        case .slice:
+        case .slice, .region:
             throw topologyFailure("Revolved Boolean plan contains an unsupported operation.")
         }
     }
@@ -416,7 +416,7 @@ struct RevolvedBooleanFacePatchBuilder {
             return plan.differenceOpensLowerCap
         case .intersect:
             return true
-        case .slice:
+        case .slice, .region:
             return false
         }
     }
@@ -429,7 +429,7 @@ struct RevolvedBooleanFacePatchBuilder {
             return plan.differenceOpensUpperCap
         case .intersect:
             return true
-        case .slice:
+        case .slice, .region:
             return false
         }
     }

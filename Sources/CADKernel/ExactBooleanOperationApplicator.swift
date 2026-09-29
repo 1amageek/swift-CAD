@@ -23,7 +23,21 @@ struct ExactBooleanOperationApplicator: BooleanOperationApplying {
         materials: BooleanMaterials,
         tolerance: ModelingTolerance
     ) throws -> EvaluationResult {
-        try BooleanPipeline(evaluator: evaluator).evaluate(
+        if operation == .region {
+            guard keepTools == false else {
+                throw KernelError(phase: .topology, code: .invalidInput, featureID: featureID, tolerance: tolerance,
+                    message: "A Region Boolean pass consumes every operand.")
+            }
+            return try RegionBooleanEvaluator(pipeline: BooleanPipeline(evaluator: evaluator)).evaluate(
+                operandBodyIDs: targetBodyIDs + [toolBodyID],
+                featureID: featureID,
+                model: model,
+                subshapes: subshapes,
+                inputLineage: inputLineage,
+                tolerance: tolerance
+            )
+        }
+        return try BooleanPipeline(evaluator: evaluator).evaluate(
             operation: operation,
             targetBodyIDs: targetBodyIDs,
             toolBodyID: toolBodyID,

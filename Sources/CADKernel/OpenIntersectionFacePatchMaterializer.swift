@@ -82,116 +82,15 @@ struct OpenIntersectionFacePatchMaterializer {
             return discardedFaceIDs.contains(pair.targetFaceID) == false
                 && discardedFaceIDs.contains(pair.toolFaceID) == false
         }
-        let groupedBoundaries = Dictionary(grouping: effectiveBoundaries, by: \.faceID)
-        // Faces sharing one geometric curve support must segment it
-        // identically for solid sewing to pair twins. Independently authored
-        // analytic and B-spline lines can describe the same support, so exact
-        // representation equality is insufficient at this topology boundary.
-        var curveIdentityRegistry = CurveSupportIdentityRegistry()
-        func curveKey(_ edge: BRepSewingEdge) -> ExactCurveIdentity {
-            curveIdentityRegistry.identity(for: edge, tolerance: tolerance)
-        }
-        var sharedPointsByCurve: [ExactCurveIdentity: [Point3D]] = [:]
-        var previewEdgesByFaceID: [FaceID: [BRepSewingEdge]] = [:]
-        for boundary in effectiveBoundaries {
-            let key = curveKey(boundary.edge)
-            sharedPointsByCurve[key, default: []]
-                .append(boundary.edge.startPoint)
-            sharedPointsByCurve[key, default: []]
-                .append(boundary.edge.endPoint)
-        }
-        // Pass one discovers every face's own segmentation (including
-        // in-face crossings); its patch-edge endpoints join the shared set
-        // so pass two segments every curve identically on all faces.
-        for faceID in groupedBoundaries.keys.sorted() {
-            guard let faceBoundaries = groupedBoundaries[faceID] else { continue }
-            let preview: BooleanOpenFaceArrangementBuilder.Result
-            do {
-                preview = try BooleanOpenFaceArrangementBuilder().build(
-                    faceID: faceID,
-                    boundaries: faceBoundaries,
-                    model: model,
-                    sourceSubshapes: sourceSubshapes,
-                    forcedAction: coincidentFaceActions[faceID],
-                    tolerance: tolerance
-                )
-            } catch {
-                throw contextualized(
-                    error,
-                    stage: "preliminary arrangement of face \(faceID)",
-                    tolerance: tolerance
-                )
-            }
-            let previewEdges = preview.patches.flatMap {
-                $0.loops.flatMap(\.edges)
-            }
-            previewEdgesByFaceID[faceID] = previewEdges
-            for edge in previewEdges {
-                let key = curveKey(edge)
-                sharedPointsByCurve[key, default: []]
-                    .append(edge.startPoint)
-                sharedPointsByCurve[key, default: []]
-                    .append(edge.endPoint)
-            }
-        }
-        // Independently computed copies of one split point differ by
-        // rounding across faces; clustering to canonical representatives
-        // keeps every face's segmentation bitwise identical.
-        for (key, points) in sharedPointsByCurve {
-            var representatives: [Point3D] = []
-            for point in points.sorted(by: {
-                ($0.x, $0.y, $0.z) < ($1.x, $1.y, $1.z)
-            }) {
-                if representatives.contains(where: {
-                    ($0 - point).length <= tolerance.distance * 8.0
-                }) == false {
-                    representatives.append(point)
-                }
-            }
-            sharedPointsByCurve[key] = representatives
-        }
-        var splitPatches: [BRepSewingFacePatch] = []
-        var splitFaceIDs: Set<FaceID> = []
-        for faceID in groupedBoundaries.keys.sorted() {
-            guard let faceBoundaries = groupedBoundaries[faceID] else { continue }
-            let result: BooleanOpenFaceArrangementBuilder.Result
-            do {
-                var sharedSubdivisionPoints: [Point3D] = []
-                for boundary in faceBoundaries {
-                    sharedSubdivisionPoints.append(
-                        contentsOf: sharedPointsByCurve[
-                            curveKey(boundary.edge)
-                        ] ?? []
-                    )
-                }
-                for edge in previewEdgesByFaceID[faceID, default: []] {
-                    sharedSubdivisionPoints.append(
-                        contentsOf: sharedPointsByCurve[
-                            curveKey(edge)
-                        ] ?? []
-                    )
-                }
-                result = try BooleanOpenFaceArrangementBuilder().build(
-                    faceID: faceID,
-                    boundaries: faceBoundaries,
-                    model: model,
-                    sourceSubshapes: sourceSubshapes,
-                    forcedAction: coincidentFaceActions[faceID],
-                    sharedSubdivisionPoints: sharedSubdivisionPoints,
-                    tolerance: tolerance
-                )
-            } catch {
-                throw contextualized(
-                    error,
-                    stage: "arrangement of face \(faceID)",
-                    tolerance: tolerance
-                )
-            }
-            if result.isPartitioned {
-                splitFaceIDs.insert(faceID)
-                splitPatches.append(contentsOf: result.patches)
-            }
-        }
+        let arrangement = try SharedCurveFaceArrangement().arrange(
+            boundaries: effectiveBoundaries,
+            model: model,
+            sourceSubshapes: sourceSubshapes,
+            forcedActions: coincidentFaceActions,
+            tolerance: tolerance
+        )
+        let splitPatches = arrangement.patches
+        let splitFaceIDs = arrangement.splitFaceIDs
         guard splitFaceIDs.isEmpty == false || coincidentFaceActions.isEmpty == false else {
             throw KernelError(
                 phase: .topology,

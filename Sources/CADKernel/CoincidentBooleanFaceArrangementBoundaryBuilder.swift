@@ -583,7 +583,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
             outside = .discard
         case .difference:
             outside = sourceIsToolFace ? .discard : .keep
-        case .slice:
+        case .slice, .region:
             outside = sourceIsToolFace ? .discard : .keep
         }
         let inside: BooleanRegionSelectionAction
@@ -600,7 +600,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
             inside = sameOutwardDirection
                 ? .discard
                 : (sourceIsToolFace ? .discard : .keep)
-        case .slice:
+        case .slice, .region:
             inside = sourceIsToolFace ? .discard : .keep
         }
         return (inside, outside)

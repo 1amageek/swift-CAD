@@ -106,6 +106,16 @@ public struct BooleanFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         var tools = try zip(toolBodyIDs, boolean.tools).enumerated().map { ordinal, pair in
             try relocated(pair.0, placement: pair.1.placement, ordinal: targetBodyIDs.count + ordinal)
         }
+        // A Region Boolean divides space by every operand's faces alike: nothing is united.
+        if boolean.operation == .region {
+            let final = try combine(
+                .region, targets: targets + tools.dropLast(), tool: tools[tools.count - 1],
+                materials: .default, featureID: featureID, context: stages.context
+            )
+            let published = try stages.publish(final, featureID: featureID)
+            guard boolean.keepTools else { return published }
+            return try stages.restoringInputBodies(toolBodyIDs, into: published)
+        }
         // The tools act as one region: unite them, one after another. Their union is a volume,
         // so several tools are solids taken as their volumes.
         if tools.count > 1 {
