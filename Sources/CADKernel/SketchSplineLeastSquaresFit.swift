@@ -24,8 +24,12 @@ public struct SketchSplineLeastSquaresFit: Sendable {
         self.tolerance = tolerance
     }
 
+    /// The most control points a fit takes.
+    public static let maximumControlPointCount = 1_024
+
     /// Fits `curve` with `controlPointCount` control points of `degree`: the original is sampled
-    /// densely on its own parameter, the samples are parameterized by chord length, the knots are
+    /// on every one of its knot spans, however narrow, the samples are parameterized by chord
+    /// length, the knots are
     /// uniform and clamped on [0, 1], the end points are the original's ends, and the interior
     /// points solve the normal equations (Cholesky) of
     ///
@@ -33,8 +37,10 @@ public struct SketchSplineLeastSquaresFit: Sendable {
     ///
     /// over the m samples and n control points: at 1 the least-squares distance to the samples,
     /// lower weights trading closeness for an evener control polygon, down to the straightest
-    /// curve between the ends at 0. The deviation is measured from further samples of the original
-    /// to the fitted curve by exact projection.
+    /// curve between the ends at 0. The deviation is the largest distance from the original to the
+    /// fitted curve by exact projection, found on each knot span of the original: sampled evenly
+    /// across the span, each local maximum refined by golden-section search between its
+    /// neighboring samples.
     public func fit(_ curve: SketchSplineCurve, degree: Int, controlPointCount: Int, shapeWeight: Double = 1) throws -> Result {
         guard shapeWeight.isFinite, shapeWeight >= 0, shapeWeight <= 1 else {
             throw invalid("A fit's shape weight must lie between 0 and 1.")
@@ -45,15 +51,18 @@ public struct SketchSplineLeastSquaresFit: Sendable {
         guard controlPointCount >= degree + 1 else {
             throw invalid("A fitted spline of degree \(degree) needs at least \(degree + 1) control points.")
         }
-        guard controlPointCount <= 1_024 else {
-            throw invalid("A fitted spline is limited to 1024 control points.")
+        guard controlPointCount <= Self.maximumControlPointCount else {
+            throw invalid("A fitted spline is limited to \(Self.maximumControlPointCount) control points.")
         }
         let original = curve.bSpline
         let lower = original.knots[0], upper = original.knots[original.knots.count - 1]
-        let sampleCount = max(64, 16 * controlPointCount)
-        let samples = try (0...sampleCount).map {
-            try original.point(at: lower + (upper - lower) * Double($0) / Double(sampleCount), tolerance: tolerance)
-        }
+        let spans = knotSpans(of: original)
+        let sampleBudget = max(64, 16 * controlPointCount)
+        let samplesPerSpan = max(8, (sampleBudget + spans.count - 1) / spans.count)
+        let sampleParameters = spans.flatMap { span in
+            (0..<samplesPerSpan).map { span.lower + (span.upper - span.lower) * Double($0) / Double(samplesPerSpan) }
+        } + [upper]
+        let samples = try sampleParameters.map { try original.point(at: $0, tolerance: tolerance) }
         var lengths = [0.0]
         for (a, b) in zip(samples, samples.dropFirst()) {
             lengths.append(lengths[lengths.count - 1] + hypot(b.x - a.x, b.y - a.y))
@@ -63,9 +72,9 @@ public struct SketchSplineLeastSquaresFit: Sendable {
         }
         let parameters = lengths.map { $0 / total }
         let n = controlPointCount
-        let spans = n - degree
+        let fittedSpans = n - degree
         var knots = Array(repeating: 0.0, count: degree + 1)
-        if spans > 1 { knots += (1..<spans).map { Double($0) / Double(spans) } }
+        if fittedSpans > 1 { knots += (1..<fittedSpans).map { Double($0) / Double(fittedSpans) } }
         knots += Array(repeating: 1.0, count: degree + 1)
 
         let first = samples[0], last = samples[samples.count - 1]
@@ -129,25 +138,120 @@ public struct SketchSplineLeastSquaresFit: Sendable {
         let fittedGeometry = SketchCurveGeometry2D.sketchSpline(
             try SketchSplineCurve(degree: degree, knots: knots, controlPoints: points, tolerance: tolerance)
         )
-        let projector = SketchCurveProjector(tolerance: tolerance)
-        var maximum = 0.0, squares = 0.0, maximumFraction = 0.0
-        let checks = 2 * sampleCount
-        for i in 0...checks {
-            let p = try original.point(at: lower + (upper - lower) * Double(i) / Double(checks), tolerance: tolerance)
-            let foot = try projector.nearest(on: fittedGeometry, to: p).point
-            let distance = hypot(foot.x - p.x, foot.y - p.y)
-            if distance > maximum {
-                maximum = distance
-                maximumFraction = Double(i) / Double(checks)
-            }
-            squares += distance * distance
+        // The distance oscillates once per fitted span, so each original span is checked with a
+        // few samples for every fitted span its share of the chord length covers.
+        let checks = spans.indices.map { index in
+            let chord = lengths[(index + 1) * samplesPerSpan] - lengths[index * samplesPerSpan]
+            return max(16, Int((4 * Double(fittedSpans) * chord / total).rounded(.up)))
         }
+        let deviation = try deviation(of: original, spans: spans, from: fittedGeometry, samplesPerSpan: checks)
         return Result(
             curve: fitted,
-            maximumDeviation: maximum,
-            rootMeanSquareDeviation: (squares / Double(checks + 1)).squareRoot(),
-            maximumDeviationFraction: maximumFraction
+            maximumDeviation: deviation.maximum,
+            rootMeanSquareDeviation: deviation.rootMeanSquare,
+            maximumDeviationFraction: (deviation.maximumParameter - lower) / (upper - lower)
         )
+    }
+
+    /// The original's knot spans of nonzero width, in order.
+    private func knotSpans(of spline: BSplineCurve2D) -> [(lower: Double, upper: Double)] {
+        let domain = spline.knots[spline.degree]...spline.knots[spline.knots.count - spline.degree - 1]
+        let breaks = Array(Set(spline.knots.filter { domain.contains($0) })).sorted()
+        return zip(breaks, breaks.dropFirst()).map { ($0, $1) }
+    }
+
+    /// The largest distance from `original` to `fitted`, and where on the original it is, found
+    /// span by span: each span sampled evenly, and each sampled local maximum refined by
+    /// golden-section search between its neighbors unless it cannot beat the largest found — the
+    /// distance rises between samples at most as fast as the original moves, which its derivative's
+    /// control points bound on the span. A feature on a narrow span is checked like any other; the
+    /// root mean square is over the samples, weighted by their spans' widths.
+    private func deviation(
+        of original: BSplineCurve2D,
+        spans: [(lower: Double, upper: Double)],
+        from fitted: SketchCurveGeometry2D,
+        samplesPerSpan: [Int]
+    ) throws -> (maximum: Double, maximumParameter: Double, rootMeanSquare: Double) {
+        let projector = SketchCurveProjector(tolerance: tolerance)
+        func distance(at t: Double) throws -> Double {
+            let point = try original.point(at: t, tolerance: tolerance)
+            let foot = try projector.nearest(on: fitted, to: point).point
+            return hypot(foot.x - point.x, foot.y - point.y)
+        }
+        var maximum = 0.0, maximumParameter = spans[0].lower, weightedSquares = 0.0, width = 0.0
+        for (span, count) in zip(spans, samplesPerSpan) {
+            let parameters = (0...count).map { span.lower + (span.upper - span.lower) * Double($0) / Double(count) }
+            let distances = try parameters.map(distance(at:))
+            let step = (span.upper - span.lower) / Double(count)
+            weightedSquares += distances.dropLast().reduce(0.0) { $0 + $1 * $1 } * step
+            width += span.upper - span.lower
+            let rise = speedBound(of: original, on: span).map { $0 * step } ?? .infinity
+            let peaks = distances.indices.filter { index in
+                let left = index > 0 ? distances[index - 1] : -Double.infinity
+                let right = index + 1 < distances.count ? distances[index + 1] : -Double.infinity
+                return distances[index] >= left && distances[index] >= right
+            }.sorted { distances[$0] > distances[$1] }
+            for index in peaks {
+                if distances[index] > maximum {
+                    maximum = distances[index]
+                    maximumParameter = parameters[index]
+                }
+                guard distances[index] + rise > maximum || rise.isInfinite else { break }
+                let refined = try goldenSectionMaximum(
+                    of: distance(at:),
+                    lower: parameters[max(index - 1, 0)],
+                    upper: parameters[min(index + 1, parameters.count - 1)],
+                    start: (parameters[index], distances[index])
+                )
+                if refined.value > maximum {
+                    maximum = refined.value
+                    maximumParameter = refined.parameter
+                }
+            }
+        }
+        return (maximum, maximumParameter, (weightedSquares / width).squareRoot())
+    }
+
+    /// How fast a non-rational `spline` moves at most on `span`: the longest of the derivative's
+    /// control points that span's basis weighs, p·(Pᵢ₊₁ − Pᵢ)/(uᵢ₊ₚ₊₁ − uᵢ₊₁); nil for a rational
+    /// spline, whose derivative these do not bound.
+    private func speedBound(of spline: BSplineCurve2D, on span: (lower: Double, upper: Double)) -> Double? {
+        guard !spline.isRational, let k = spline.knots.lastIndex(of: span.lower) else { return nil }
+        let p = spline.degree, knots = spline.knots, points = spline.controlPoints
+        var bound = 0.0
+        for i in max(k - p, 0)..<min(k, points.count - 1) {
+            let width = knots[i + p + 1] - knots[i + 1]
+            guard width > 0 else { continue }
+            let difference = (x: points[i + 1].x - points[i].x, y: points[i + 1].y - points[i].y)
+            bound = max(bound, Double(p) * hypot(difference.x, difference.y) / width)
+        }
+        return bound
+    }
+
+    /// The largest value of `f` on [lower, upper] golden-section search finds, never below `start`.
+    private func goldenSectionMaximum(
+        of f: (Double) throws -> Double,
+        lower: Double,
+        upper: Double,
+        start: (parameter: Double, value: Double)
+    ) throws -> (parameter: Double, value: Double) {
+        var best = start
+        guard upper > lower else { return best }
+        let ratio = (5.0.squareRoot() - 1) / 2
+        var a = lower, b = upper
+        var c = b - ratio * (b - a), d = a + ratio * (b - a)
+        var fc = try f(c), fd = try f(d)
+        for _ in 0..<48 where b - a > tolerance.distance * 1e-3 {
+            if fc > fd {
+                b = d; d = c; fd = fc
+                c = b - ratio * (b - a); fc = try f(c)
+            } else {
+                a = c; c = d; fc = fd
+                d = a + ratio * (b - a); fd = try f(d)
+            }
+        }
+        for candidate in [(c, fc), (d, fd)] where candidate.1 > best.value { best = candidate }
+        return best
     }
 
     /// The lower triangle L of the symmetric positive definite `matrix` = L·Lᵀ.
@@ -245,12 +349,12 @@ extension SketchSplineLeastSquaresFit {
         var high = 8
         var highFit = try fit(curve, degree: 3, controlPointCount: high)
         while highFit.maximumDeviation > deviation {
-            guard high < 1_024 else {
+            guard high < Self.maximumControlPointCount else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded, residual: highFit.maximumDeviation, tolerance: tolerance,
-                                  message: "The refit needs more than 1024 control points for this tolerance.")
+                                  message: "The refit needs more than \(Self.maximumControlPointCount) control points for this tolerance.")
             }
             low = high
-            high = min(high * 2, 1_024)
+            high = min(high * 2, Self.maximumControlPointCount)
             highFit = try fit(curve, degree: 3, controlPointCount: high)
         }
         fitted = highFit

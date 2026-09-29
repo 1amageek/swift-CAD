@@ -28,6 +28,40 @@ import CADGeometry
         #expect(previous < 1e-3)
     }
 
+    /// A line with a 100 mm spike on knot spans a thousandth of its domain wide.
+    private func narrowSpike() throws -> SketchSplineCurve {
+        try SketchSplineCurve(
+            degree: 1, knots: [0, 0, 0.501, 0.502, 0.503, 1, 1],
+            controlPoints: [(0.0, 0.0), (0.5, 0.0), (0.5005, 0.1), (0.501, 0.0), (1.0, 0.0)].map { Point2D(x: $0.0, y: $0.1) },
+            tolerance: .standard
+        )
+    }
+
+    /// The true distance from `point` to `result`'s curve.
+    private func distance(from point: Point2D, to result: SketchSplineLeastSquaresFit.Result) throws -> Double {
+        let curve = SketchCurveGeometry2D.sketchSpline(try SketchSplineCurve(
+            degree: result.curve.degree, knots: result.curve.knots, controlPoints: result.curve.controlPoints, tolerance: .standard
+        ))
+        let foot = try SketchCurveProjector(tolerance: .standard).nearest(on: curve, to: point).point
+        return hypot(foot.x - point.x, foot.y - point.y)
+    }
+
+    /// Knot spans far narrower than an even sampling of the domain are still fitted and checked:
+    /// the reported deviation is never less than the spike's true distance from the fit, and a
+    /// refit within a deviation holds the spike within it.
+    @Test func aNarrowKnotSpanIsNeitherFittedBlindNorPassedUnchecked() throws {
+        let spike = try narrowSpike()
+        let apex = Point2D(x: 0.5005, y: 0.1)
+        let coarse = try fitter.fit(spike, degree: 3, controlPointCount: 8)
+        #expect(coarse.maximumDeviation >= (try distance(from: apex, to: coarse)) - 1e-9)
+        #expect(coarse.maximumDeviation > 0.01)
+        let refitted = try fitter.refit(spike, deviation: 0.01, keepsCorners: false)
+        #expect(refitted.maximumDeviation <= 0.01)
+        for point in [apex, Point2D(x: 0.5, y: 0), Point2D(x: 0.501, y: 0), Point2D(x: 0.50025, y: 0.05)] {
+            #expect(try distance(from: point, to: refitted) <= 0.01 + 1e-9)
+        }
+    }
+
     @Test func aStraightSplineIsRefittedExactly() throws {
         let line = try SketchSplineCurve(
             degree: 3, knots: nil,

@@ -83,16 +83,25 @@ so shape and parameter are unchanged and a former smooth knot becomes a joint.
 
 `SketchSplineLeastSquaresFit.fit(_:degree:controlPointCount:shapeWeight:)` refits
 a sketch spline as a clamped uniform B-spline of any degree with a chosen number
-of control points (Rebuild's Points and Explicit Control): the original is
-sampled on its own parameter, the samples take chord-length parameters, the ends
+of control points (Rebuild's Points and Explicit Control), at most
+`maximumControlPointCount`: the original is sampled on every knot span of its
+own, however narrow (an even share of the samples per span, at least eight), the
+samples take chord-length parameters, the ends
 are the original's ends and the interior points solve by Cholesky the normal
 equations of `shapeWeight` times the mean squared distance to the samples plus
 `1 − shapeWeight` times the mean squared second difference of the control
 points (1 is plain least squares, 0 the evenest polygon on the chord); a weight
 outside 0...1 or an underdetermined system is `invalidInput`. The deviation
-reported is measured by exact projection of further samples onto the fit.
+reported is the largest distance from the original to the fit by exact
+projection, found span by span of the original: each span sampled a few times
+per fitted span its chord covers, and each sampled local maximum refined by
+golden-section search unless it cannot beat the largest found — the distance
+rises between samples no faster than the original moves, which the derivative's
+control points bound on a non-rational span. Even sampling of the whole domain
+missed features on narrow spans and reported them fitted
+(`aNarrowKnotSpanIsNeitherFittedBlindNorPassedUnchecked`).
 `refit(_:deviation:keepsCorners:)` (Rebuild's Refit) takes the fewest cubic
-control points, by doubling and then bisecting up to 1024
+control points, by doubling and then bisecting up to `maximumControlPointCount`
 (`resourceLimitExceeded` beyond), whose fit stays within the deviation; with
 corners kept, the original is trimmed at `cornerParameters(of:)` — knots of
 multiplicity at least the degree whose control-polygon legs turn by more than
