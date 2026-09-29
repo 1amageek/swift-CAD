@@ -47,6 +47,14 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Native rolling-ball surfaces retain normalized dimensionless parameters, but
+the exact STEP/IGES writers currently have no chart-preserving representation
+for a general blend. They must reject export with `unsupportedCapability`,
+never substitute a display mesh or an uncertified spline. Native project
+serialization is independent of this exchange limitation. Manufacturing
+exchange remains incomplete until an explicit bounded representation contract
+and its round-trip verification are implemented.
+
 Native Sweep package shape validation accepts the optional approximation
 allowance and normalized angle law defined by [CADIR](../CADIR/DESIGN.md).
 Unknown nested knot or expression keys remain rejected.

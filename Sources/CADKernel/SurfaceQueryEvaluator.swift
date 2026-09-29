@@ -328,10 +328,10 @@ public struct SurfaceQueryEvaluator: Sendable {
                 model: document.brep,
                 options: unrestrictedOptions
             )
-        case let .procedural(.ruled(ruled)):
-            try closestPointOnProceduralRuled(
+        case let .procedural(procedural):
+            try closestPointOnBoundedProceduralSurface(
                 point,
-                ruled: ruled,
+                procedural: procedural,
                 resolved: resolved,
                 options: unrestrictedOptions
             )
@@ -433,7 +433,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                 model: document.brep,
                 options: options
             )
-        case .procedural(.ruled):
+        case .procedural(.ruled), .procedural(.rollingBall):
             return try projectOntoGeneralSurface(
                 point,
                 direction: unitDirection,
@@ -820,14 +820,13 @@ public struct SurfaceQueryEvaluator: Sendable {
         )
     }
 
-    private func closestPointOnProceduralRuled(
+    private func closestPointOnBoundedProceduralSurface(
         _ point: Point3D,
-        ruled: RuledSurface3D,
+        procedural: ProceduralSurface3D,
         resolved: ResolvedSurface,
         options: SurfaceProjectionOptions
     ) throws -> SurfaceProjectionResult {
-        let surface = Surface3D.procedural(.ruled(ruled))
-        let projection = try ruled.closestParameterProjection(
+        let projection = try procedural.closestParameterProjection(
             of: point,
             options: SurfaceParameterProjectionOptions(
                 maximumIterations: options.limits.maximumIterations,
@@ -844,7 +843,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                 u: projection.u,
                 v: projection.v
             ),
-            surface: surface,
+            surface: resolved.surface,
             iterations: projection.iterations,
             converged: true
         )

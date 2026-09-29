@@ -169,6 +169,9 @@ package struct ExactRectangularBSplineSurfacePatchBuilder: Sendable {
                     message: "Exact rational B-spline conversion requires a rationally representable source surface."
                 )
             }
+        case .procedural(.rollingBall):
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "A general rolling-ball blend has no exact rational B-spline conversion.")
         case let .procedural(.ruled(ruled)):
             let interval = try ScalarInterval(lower: lowerU, upper: upperU)
             let curveBuilder = AnalyticCurveBSplineBuilder()

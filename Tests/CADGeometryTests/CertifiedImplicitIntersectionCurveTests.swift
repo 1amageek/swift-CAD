@@ -8,6 +8,70 @@ import Testing
 struct CertifiedImplicitIntersectionCurveTests {
   private let tolerance = ModelingTolerance.standard
 
+  @Test func lowerOrderEvaluationRetainsNonlinearImplicitDerivatives() throws {
+    let first = Surface3D.bSpline(horizontalSurface())
+    let second = Surface3D.bSpline(BSplineSurface3D(uDegree: 3, vDegree: 1,
+      uKnots: [0, 0, 0, 0, 1, 1, 1, 1], vKnots: [0, 0, 1, 1],
+      controlPoints: [-0.5, 0.5].map { z in
+        [Point3D(x: 0, y: 0, z: z), Point3D(x: 0, y: 1.0 / 3, z: z),
+         Point3D(x: 0, y: 2.0 / 3, z: z), Point3D(x: 1, y: 1, z: z)]
+      }, weights: [[1, 1, 1, 1], [1, 1, 1, 1]]))
+    func anchor(_ t: Double) throws -> SurfaceIntersectionParameterPair {
+      try .init(first: .init(u: t * t * t, v: t), second: .init(u: t, v: 0.5))
+    }
+    let cell = try CertifiedImplicitIntersectionGraphCell(
+      parameterBox: .init(firstU: ScalarInterval(lower: 0, upper: 1),
+        firstV: ScalarInterval(lower: 0.4, upper: 0.6),
+        secondU: ScalarInterval(lower: 0.35, upper: 0.65), secondV: ScalarInterval(lower: 0, upper: 1)),
+      freeParameter: .firstV, direction: .forward,
+      lowerAnchor: anchor(0.4), midpointAnchor: anchor(0.5), upperAnchor: anchor(0.6),
+      firstSurface: first, secondSurface: second, tolerance: tolerance)
+    let implicit = try CertifiedImplicitIntersectionCurve(firstSurface: first, secondSurface: second,
+      cells: [cell], isClosed: false, tolerance: tolerance)
+    for fraction in [0.0, 0.17, 0.63, 1.0] {
+      let t = 0.4 + 0.2 * fraction
+      let lower = try Curve3D.implicit(implicit).differentialGeometry(at: fraction, tolerance: tolerance)
+      let full = try implicit.differential(atNormalizedFraction: fraction, tolerance: tolerance)
+      #expect((lower.position - Point3D(x: t * t * t, y: t, z: 0)).length <= tolerance.distance)
+      #expect((lower.firstDerivative - Vector3D(x: 0.6 * t * t, y: 0.2, z: 0)).length <= tolerance.relative)
+      #expect((lower.secondDerivative - Vector3D(x: 0.24 * t, y: 0, z: 0)).length <= tolerance.relative)
+      #expect((lower.firstDerivative - full.firstDerivative).length <= tolerance.relative)
+      #expect((lower.secondDerivative - full.secondDerivative).length <= tolerance.relative)
+      #expect(abs(full.thirdDerivative.x - 0.048) <= tolerance.relative)
+    }
+  }
+
+  @Test func implicitLiftBoundsRespectRequestedSubinterval() throws {
+    let intersection = try certifiedLineCurve()
+    for role in [SurfaceIntersectionSurfaceRole.first, .second] {
+      for (start, end) in [(0.2, 0.8), (0.8, 0.2)] {
+        let pcurve = try CertifiedImplicitSurfaceParameterCurve(
+          intersection: intersection, role: role,
+          startFraction: start, endFraction: end, tolerance: tolerance)
+        let lift = SurfaceLiftCurve3D(
+          surface: role == .first ? intersection.firstSurface : intersection.secondSurface,
+          parameterCurve: .certifiedImplicit(pcurve))
+        let jet = try DefaultCurveDifferentialEncloser().thirdOrderIntervalJet(
+          of: .surfaceLift(lift), over: ScalarInterval(lower: 0.25, upper: 0.75), tolerance: tolerance)
+        #expect(jet.y.derivativeU.lower <= end - start && jet.y.derivativeU.upper >= end - start)
+        #expect(jet.y.derivativeU.width < 1e-6)
+        #expect(jet.x.derivativeU.absoluteUpperBound < 1e-6)
+        #expect(jet.z.thirdDerivativeUUU.absoluteUpperBound < 1e-6)
+        for width in [0.01, tolerance.relative * 0.5] {
+          let interval = try ScalarInterval(lower: 0.25, upper: 0.25 + width)
+          let box = try lift.boundingBox(over: interval, tolerance: tolerance)
+          #expect(box.maximum.y - box.minimum.y <= abs(end - start) * width + tolerance.distance * 16)
+          for fraction in [interval.lower, interval.midpoint, interval.upper] {
+            let point = try lift.point(atNormalizedFraction: fraction, tolerance: tolerance)
+            #expect(point.x >= box.minimum.x && point.x <= box.maximum.x)
+            #expect(point.y >= box.minimum.y && point.y <= box.maximum.y)
+            #expect(point.z >= box.minimum.z && point.z <= box.maximum.z)
+          }
+        }
+      }
+    }
+  }
+
   @Test func tinyImplicitIntervalsRetainLocalPositionBounds() throws {
     let curve = try certifiedLineCurve()
     for encloser in [ImplicitCurveIntervalJetEncloser(),
@@ -23,6 +87,86 @@ struct CertifiedImplicitIntersectionCurveTests {
         #expect(free.secondDerivative.contains(0))
         #expect(free.thirdDerivative.contains(0))
       }
+    }
+  }
+
+  @Test func implicitPcurveLiftRetainsTrimmedAndReversedDerivativeBounds() throws {
+    let intersection = try certifiedLineCurve()
+    for role in [SurfaceIntersectionSurfaceRole.first, .second] {
+      for (start, end) in [(0.2, 0.8), (0.8, 0.2)] {
+        let pcurve = try CertifiedImplicitSurfaceParameterCurve(
+          intersection: intersection, role: role,
+          startFraction: start, endFraction: end, tolerance: tolerance)
+        let lift = SurfaceLiftCurve3D(
+          surface: role == .first ? intersection.firstSurface : intersection.secondSurface,
+          parameterCurve: .certifiedImplicit(pcurve))
+        let interval = try ScalarInterval(lower: 0.25, upper: 0.75)
+        let bounder = SurfaceLiftDifferentialBounder()
+        let first = try #require(try bounder.firstDerivativeMagnitude(
+          lift: lift, interval: interval, tolerance: tolerance))
+        let second = try #require(try bounder.secondDerivativeMagnitude(
+          lift: lift, interval: interval, tolerance: tolerance))
+        let third = try #require(try bounder.thirdDerivativeMagnitude(
+          lift: lift, interval: interval, tolerance: tolerance))
+        #expect(first.isFinite && first >= 0.6 && first < 0.61)
+        #expect(second.isFinite && second >= 0 && second < 1e-6)
+        #expect(third.isFinite && third >= 0 && third < 1e-6)
+        let bounds = try #require(try bounder.parameterBounds(.certifiedImplicit(pcurve), tolerance: tolerance))
+        for fraction in [0.25, 0.5, 0.75] {
+          let uv = try pcurve.parameter(atNormalizedFraction: fraction, tolerance: tolerance)
+          #expect(bounds.u.contains(uv.u) && bounds.v.contains(uv.v))
+          let actual = try lift.differentialGeometry(atNormalizedFraction: fraction, tolerance: tolerance)
+          #expect(actual.firstDerivative.length <= first)
+          #expect(actual.secondDerivative.length <= second)
+        }
+      }
+    }
+  }
+
+  @Test func planarSupportConnectsMultipleCellsAndRoundTrips() throws {
+    let first = Surface3D.bSpline(horizontalSurface())
+    let second = Surface3D.plane(Plane3D(
+      origin: Point3D(x: 0.5, y: 0, z: 0), normal: .unitX))
+    func anchor(_ y: Double) throws -> SurfaceIntersectionParameterPair {
+      let p = try second.parameterProjection(
+        of: Point3D(x: 0.5, y: y, z: 0), tolerance: tolerance)
+      return try SurfaceIntersectionParameterPair(
+        first: SurfaceParameter(u: 0.5, v: y),
+        second: SurfaceParameter(u: p.u, v: p.v))
+    }
+    func cell(_ lower: Double, _ upper: Double) throws -> CertifiedImplicitIntersectionGraphCell {
+      try CertifiedImplicitIntersectionGraphCell(
+        parameterBox: SurfaceIntersectionParameterBox(
+          firstU: ScalarInterval(lower: 0, upper: 1),
+          firstV: ScalarInterval(lower: lower, upper: upper),
+          secondU: ScalarInterval(lower: -2, upper: 2),
+          secondV: ScalarInterval(lower: -2, upper: 2)),
+        freeParameter: .firstV, direction: .forward,
+        lowerAnchor: anchor(lower), midpointAnchor: anchor((lower + upper) / 2),
+        upperAnchor: anchor(upper), firstSurface: first, secondSurface: second,
+        tolerance: tolerance)
+    }
+    let lower = try cell(0, 0.5)
+    let upper = try cell(0.5, 1)
+    let curve = try CertifiedImplicitIntersectionCurve(
+      firstSurface: first, secondSurface: second, cells: [lower, upper],
+      isClosed: false, tolerance: tolerance)
+    let decoded = try JSONDecoder().decode(
+      CertifiedImplicitIntersectionCurve.self, from: JSONEncoder().encode(curve))
+    #expect(decoded == curve)
+    for fraction in [0.0, 0.25, 0.5, 0.75, 1.0] {
+      let point = try decoded.point(atNormalizedFraction: fraction, tolerance: tolerance)
+      #expect(point.isApproximatelyEqual(to: Point3D(x: 0.5, y: fraction, z: 0),
+        tolerance: tolerance.distance))
+    }
+    let disconnected = try cell(0.6, 1)
+    do {
+      _ = try CertifiedImplicitIntersectionCurve(
+        firstSurface: first, secondSurface: second, cells: [lower, disconnected],
+        isClosed: false, tolerance: tolerance)
+      Issue.record("Disconnected planar-support graph cells must be rejected.")
+    } catch let error as KernelError {
+      #expect(error.code == .intersectionFailure)
     }
   }
 
@@ -239,6 +383,17 @@ struct CertifiedImplicitIntersectionCurveTests {
 
     #expect(throws: KernelError.self) {
       try curve.validate(tolerance: stricterTolerance)
+    }
+    let admitted = try ValidatedCurve3D(.implicit(curve), tolerance: tolerance)
+    for parameter in [0.0, 0.5, 1.0] {
+      #expect(try admitted.point(at: parameter) == curve.point(
+        atNormalizedFraction: parameter, tolerance: tolerance))
+    }
+    #expect(throws: KernelError.self) {
+      try ValidatedCurve3D(.implicit(curve), tolerance: stricterTolerance)
+    }
+    #expect(throws: KernelError.self) {
+      try PreparedCurveDifferentialEncloser(curve: .implicit(curve), tolerance: stricterTolerance)
     }
   }
 

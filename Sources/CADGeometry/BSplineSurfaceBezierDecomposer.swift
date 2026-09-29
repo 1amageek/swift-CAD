@@ -115,6 +115,17 @@ struct BSplineSurfaceBezierDecomposer {
                 message: "B-spline Bezier extraction requires positive finite knot spans."
             )
         }
+        if surface.uControlPointCount == surface.uDegree + 1,
+           surface.vControlPointCount == surface.vDegree + 1,
+           surface.uKnots.prefix(surface.uDegree + 1).allSatisfy({ $0 == uBounds.lower }),
+           surface.uKnots.suffix(surface.uDegree + 1).allSatisfy({ $0 == uBounds.upper }),
+           surface.vKnots.prefix(surface.vDegree + 1).allSatisfy({ $0 == vBounds.lower }),
+           surface.vKnots.suffix(surface.vDegree + 1).allSatisfy({ $0 == vBounds.upper }) {
+            return RationalBezierSurfacePatch3D(
+                controlPoints: surface.controlPoints, weights: surface.weights,
+                uLower: uBounds.lower, uUpper: uBounds.upper,
+                vLower: vBounds.lower, vUpper: vBounds.upper)
+        }
         var derivatives = Array(
             repeating: Array(
                 repeating: HomogeneousVector.zero,

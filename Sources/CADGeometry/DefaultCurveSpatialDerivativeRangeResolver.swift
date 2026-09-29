@@ -28,6 +28,14 @@ struct DefaultCurveSpatialDerivativeRangeResolver:
         tolerance: tolerance
       )
     case .surfaceLift(let lift):
+      if let jet = try DefaultCurveDifferentialEncloser().directJet(
+        curve, parameters: interval, tolerance: tolerance
+      ) {
+        return try CurveSpatialDerivativeRange(
+          x: ScalarInterval(lower: jet.x.derivativeU.lower, upper: jet.x.derivativeU.upper),
+          y: ScalarInterval(lower: jet.y.derivativeU.lower, upper: jet.y.derivativeU.upper),
+          z: ScalarInterval(lower: jet.z.derivativeU.lower, upper: jet.z.derivativeU.upper))
+      }
       guard
         let secondDerivativeBound =
           try SurfaceLiftDifferentialBounder()

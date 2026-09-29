@@ -927,7 +927,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
           tolerance: tolerance
         )
         return
-      case .procedural(.ruled):
+      case .procedural(.ruled), .procedural(.rollingBall):
         return nil
       }
       let sampleV = if case .cone = kind { 1.0 } else { 0.0 }

@@ -6,6 +6,12 @@ import CADModeling
 import CADTopology
 
 struct BooleanOpenFaceArrangementBuilder {
+    private let sourceContactTolerance: ModelingTolerance?
+
+    init(sourceContactTolerance: ModelingTolerance? = nil) {
+        self.sourceContactTolerance = sourceContactTolerance
+    }
+
     struct Result: Sendable {
         let patches: [BRepSewingFacePatch]
         let isPartitioned: Bool
@@ -21,6 +27,16 @@ struct BooleanOpenFaceArrangementBuilder {
         tolerance: ModelingTolerance
     ) throws -> Result {
         try tolerance.validate()
+        if let sourceContactTolerance {
+            try sourceContactTolerance.validate()
+            guard sourceContactTolerance.distance >= tolerance.distance,
+                  sourceContactTolerance.angle == tolerance.angle,
+                  sourceContactTolerance.relative == tolerance.relative else {
+                throw KernelError(phase: .topology, code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "Source-contact tolerance must preserve the arrangement's input precision contract.")
+            }
+        }
         guard forcedAction == nil || forcedAction?.isSelected == true else {
             throw KernelError(
                 phase: .classification,
@@ -648,11 +664,10 @@ struct BooleanOpenFaceArrangementBuilder {
                 ) else {
                     let intersections: ExactTrimEdgeIntersectionResult
                     do {
-                        // Recovered-contact endpoints sit a few microns off
-                        // the source edge, an offset certified charts cannot
-                        // resolve at the exact tolerance; crossing detection
-                        // certifies at the same widened snap bound used for
-                        // source matching and node identity.
+                        // Source crossings use the same explicit contact
+                        // tolerance as source matching and node identity.
+                        // The default Boolean policy admits recovered contacts;
+                        // machining supplies the unchanged modeling tolerance.
                         let intersectionTolerance = first.boundary != nil
                             && second.boundary != nil
                             ? tolerance
@@ -2360,14 +2375,13 @@ struct BooleanOpenFaceArrangementBuilder {
     }
 
 
-    // Recovered containment-transition contacts locate boundary crossings
-    // to the containment tester's polygon resolution, a few microns beyond
-    // the exact tolerance, so source-edge matching and subdivision snap at
-    // a widened bound.
+    // The legacy Boolean default admits recovered containment-transition
+    // contacts. Callers with exact contact rails supply their modeling
+    // tolerance explicitly rather than inheriting that recovery allowance.
     private func sourceSnapTolerance(
         _ tolerance: ModelingTolerance
     ) -> ModelingTolerance {
-        ModelingTolerance(
+        sourceContactTolerance ?? ModelingTolerance(
             distance: tolerance.distance * 8.0,
             angle: tolerance.angle,
             relative: tolerance.relative
@@ -2612,6 +2626,8 @@ struct BooleanOpenFaceArrangementBuilder {
             return "procedural-offset"
         case .procedural(.ruled):
             return "procedural-ruled"
+        case .procedural(.rollingBall):
+            return "procedural-rolling-ball"
         }
     }
 

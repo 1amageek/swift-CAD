@@ -240,18 +240,114 @@ proves separation globally. Reuse the same existing projection criterion, coveri
 the complete parameter rectangle rather than only two disjoint patches. This
 certificate finishes the proof without enumerating redundant cell pairs.
 
+Surface-intersection completeness encloses each support separately. A recoverable
+enclosure failure subdivides only that support's two parameters under the existing
+depth and cell budgets; exhausting those parameters leaves an unresolved cell.
+Partner subdivision cannot repair a failed jet. Successfully admitted jets are
+consumed by the graph prover without recomputation. Once both jets exist, graph
+rank and coverage refinement retain the four-coordinate search policy.
+`RollingBallSectionTests.completenessRefinesOnlyTheSurfaceWhoseEnclosureFailed`
+checks both surface orders with a seven-cell, depth-one budget and a broad jet
+that demonstrably fails. Existing procedural disconnected-component and
+parametric contractor checks cover successful graph search after enclosure.
+
+Curve-surface correspondence treats an inconclusive singular interval enclosure
+as a request for bounded local subdivision, not a successful proof or a reason
+to reject before subdivision. Point-evaluation errors still propagate. Global
+lift bounds are optional optimizations; each accepted cell requires a finite
+certified local bound under the existing depth/cell limits.
+
+For bounded-parametric intersections with one planar support, the finite
+partner's conservative spatial hull bounds the plane's search domain. Positive
+rational B-splines use their control hull; signed offsets expand the hull by
+the absolute offset distance. Other finite supports use the existing certified
+surface enclosure. Outward interval projection through the original planar
+frame retains native UV coordinates, including legacy/analytic chart choices.
+The hull includes modeling-distance contact uncertainty. Both-unbounded and
+nonplanar unbounded pairs remain unsupported by bounded marching. This search
+restriction does not trim or replace either source surface, and spatial bounds
+must not come from display meshes or samples.
+Adjacent implicit graph cells use this same search-domain normalization at
+construction and decoding, computed once per connection-validation pass using
+the stored certification tolerance. Native surface domains and geometric and
+tangent continuity checks remain unchanged.
+Surface lifts of implicit intersection pcurves reuse the certified parameter
+interval jet for UV bounds and derivatives through order three. Reversed and
+trimmed pcurves rescale each derivative by its parameter-span power; closed
+seam-crossing spans enclose both sides separately. Offset pullbacks transport
+only UV bounds, never the original support's spatial derivative certificate.
 At the graph restriction resolution floor, interval jets use a containing
 local interval wide enough for certified restriction, not the entire parent
 cell. Derivatives are rescaled by that containing interval's actual width.
 This preserves conservative bounds without undoing adaptive refinement;
 endpoint and interior tiny-interval checks cover prepared and unprepared paths.
-
+Surface-lift position bounds use interval-local UV certificates before a
+whole-intersection enclosure. Implicit pcurves retain the requested direction
+and trim; below restriction resolution, the shared containing interval keeps
+the enclosure conservative. The original support surface owns spatial bounds,
+including offset pullbacks; a source intersection's box is not reused as the
+destination surface's geometry.
 B-spline inverse projection refines candidate stationary points to the same
 parameter resolution used to distinguish roots. A small world-space residual
 or gradient alone is insufficient for small-scale curves. Self-overlapping
 curves retain explicit ambiguous-selection failure; no distance-based root
 merging replaces parameter uniqueness.
 
+Interval-local UV bounds may restrict an already validated parameter curve
+without constructing a new offset image. Offset images preserve UV coordinates;
+their source supplies parameter-space bounds, while the original lift retains
+the target surface for spatial chain-rule evaluation. This internal restriction
+is not a persistable geometry value or a transferable spatial certificate.
+Public offset-image construction and validation retain their admission rules.
+The regression uses a short rolling-ball patch whose midpoint enclosure is
+narrower than the admitted source-curve span, followed by actual tessellation.
+
+Tessellation differential certification also bounds interval conditioning before
+dividing by the normal magnitude: the certified upper normal magnitude may be
+at most twice its positive lower bound. This bounds denominator uncertainty by
+a factor of two; a merely positive lower endpoint is insufficient for useful
+normal-derivative estimates. Cells that cannot establish this condition are
+subdivided under the existing depth/cell budgets, never accepted with clamped
+derivatives or increased mesh limits.
+
+Numeric affine, constant-coordinate and harmonic UV charts compose directly
+with the existing analytic surface interval formulas. Both coordinates retain
+one normalized independent curve parameter through third order. Offset-image
+and periodic-translation wrappers preserve that UV relation after validation;
+they do not transfer the source surface's spatial derivative certificate.
+The surface formulas are shared with two-dimensional surface enclosure rather
+than duplicated for each lifted curve kind.
+
+Certified implicit UV charts retain signed derivatives through order three in
+surface-lift enclosure. The chart interval is mapped outward to its certified
+intersection, including reversal and closed-seam union. The existing surface
+chain-rule owner composes these derivatives with one support-surface jet; it
+does not recompute three independent magnitude bounds. Offset pullbacks reuse
+UV coordinates only, and evaluate the original contact support, not its offset.
+Finite source-domain and certification failures remain explicit. These values
+are request-local and introduce no shared cache or publication authority.
+
+`ProceduralSurface3D.rollingBall` retains the
+[RollingBall blend contract](RollingBall/DESIGN.md) without substituting a
+plane, analytic quadric or B-spline. It is nonperiodic with normalized U/V
+domains. Existing finite-domain projection and differential enclosure consumers
+operate on the retained surface. Analytic-only recognizers return no match;
+they do not classify a general blend as a cylinder or translational prism.
+Native Codable persistence and rigid placement preserve its three rail charts.
+This representation does not establish feature feasibility or closed topology.
+
+Circle intersections retain harmonic UV curves on planes and affine longitude
+curves on coaxial spherical latitudes, including chart-preserving analytic
+offsets. The common intersection verifier admits these structural cases before
+cubic UV fitting. Their first through third derivatives must retain the native
+angular parameter; a positional fit alone is not equivalent for blend geometry.
+Curve differential enclosures preserve an exact normalized ruled-boundary lift
+by evaluating the original boundary curve. Admission requires an endpoint V
+and the identical U parameter span, so no approximate surface substitution or
+unaccounted parameter scaling is introduced.
+Affine UV lifts on analytic cylinders compose the angular and axial interval
+jets directly, preserving their common normalized curve parameter through third
+order rather than independently reconstructing derivative magnitudes.
 `OffsetSurfaceParameterCurveImage` transports UV correspondence in either
 direction across one known offset relation. Forward transport targets the
 existing exact chart-preserving offset representation. Pullback validates the
@@ -262,6 +358,19 @@ existing surface-lift owner. Reversal, trimming and Codable retain direction;
 the optional `isPullback` field is omitted for forward images and defaults to
 false only when absent, preserving the existing forward encoding. Invalid
 field values and unrelated destination surfaces remain errors.
+
+Correspondence of an offset-image pcurve against a separately represented
+spatial rail uses the existing bounded spatial proof. Its certified implicit
+UV source supplies parameter derivative enclosures, not an automatic mismatch
+when structural identity is unavailable. Enclosures scale to the pcurve's
+oriented trim and split at original graph-cell boundaries, including periodic
+seams. Direct certified pcurves still require their original spatial source;
+this does not weaken source-certificate identity or admit endpoint-only matches.
+
+Implicit spatial correspondence prepares its immutable curve enclosure once per
+request and reuses it for adaptive second-derivative bounds. Each interval still
+receives its own enclosure; original graph proofs and surface preparation are
+not repeated for each cell. No cross-request cache or relaxed tolerance is used.
 
 Parameter derivatives of unit-weight, single-span clamped cubic B-splines
 use scalar de Casteljau interpolation and quadratic/linear derivative
@@ -346,6 +455,33 @@ same contract rather than reimplementing a sphere-specific rule.
 Geometry values are immutable value types after construction. Validation does
 not retain external state or mutate the source/evaluation model.
 
+`Curve3D` consumes an implicit intersection through its immutable certification
+contract. Construction and decoding prove the graph; numerical preparation and
+point evaluation check the requested tolerance, without recursively replaying
+the graph proof through nested blend supports. Explicit certificate validation
+remains available for audits. Stricter tolerances are still rejected.
+
+Implicit curve differentiation shares one second-order solve and dual-surface
+residual checks. Position/tangent/curvature consumers request only second order;
+the third-order API extends that solve with the cubic terms. Nested rolling-ball
+supports must not compute third-order rails for a second-order request. The
+lower-order result has no third-derivative field, rather than a fabricated zero.
+
+Prepared surface enclosures own the coordinates that can resolve recoverable
+regularity failures. Rolling-ball contact radials, weights and their derivatives
+depend on U only; subdividing V cannot repair those bounds. Other supports,
+including offsets whose normal regularity depends on both axes, permit both axes.
+Completeness maps these local coordinates to the corresponding surface of the
+four-dimensional search; it never spends refinement on unrelated coordinates.
+Root admission, interval bounds and resource limits remain unchanged.
+
+Implicit graph point refinement continues through sub-tolerance residuals until
+floating-point progress stops. At stagnation or the iteration limit, both the
+spatial residual and the Newton correction relative to the cell's parameter
+spans must satisfy the requested tolerance. Stopping on spatial residual alone
+introduces evaluation noise that prevents a surrounding blend's Newton solve
+from converging. The iteration/line-search limits and typed failure are retained.
+
 ## Failure, Concurrency, and Constraints
 
 Invalid coordinates, vector lengths, angular spans, wrong surfaces, and
@@ -355,6 +491,81 @@ nonfinite or degenerate data.
 
 ## Verification and Change Impact
 
+General curve/surface correspondence for an implicit intersection uses its
+existing certified spatial derivative enclosure. A B-spline pcurve is not
+rejected merely for differing from the intersection's native UV representation;
+it must pass the same bounded spatial correspondence proof, including reversed
+trims and rejection of displaced curves. This does not waive chart ownership
+for native certified pcurves or imply successful machining reconstruction.
+
+`CertifiedImplicitIntersectionCurve.transferredParameterCurve` constructs a
+cubic UV candidate on a finite target chart, partitioned at the certified graph
+cells. Each cell supplies its own one-sided endpoint derivatives; derivative
+scales from adjacent cells are not mixed. Candidate controls are restricted to
+the target chart, then the existing spatial correspondence validator must
+certify the complete original implicit edge against that target. Clamping or
+sampling alone never admits a transfer. The caller supplies span and proof
+budgets; unsupported charts, exhausted budgets and failed correspondence throw.
+Original face geometry and the implicit spatial edge remain unchanged.
+On geometric correspondence refusal, the candidate doubles subdivisions within
+each original graph cell, subject to the span limit. One-sided derivatives stay
+within their owning cell. Each attempt has the supplied correspondence proof
+budget; at most `1 + floor(log2(maximumSpanCount / cellCount))` attempts occur.
+Other failures propagate immediately; no uncertified candidate is returned.
+
+Gauge root refinement requires both spatial residual admission and a Newton
+correction within the normalized parameter tolerance. A small spatial residual
+alone cannot establish an accurate boundary parameter on a small-scale surface.
+Iteration exhaustion returns no root; the caller retains failure ownership.
+Implicit graph point refinement requests only first-order surface jets for
+its Jacobian and positions for line-search acceptance. Curvature is computed
+only by differential consumers, not by numerical point refinement.
+
+`BSplineSurface3D.continuedBezierSupport` constructs a temporary continuation
+of one clamped rational Bezier chart over a containing parameter rectangle.
+It does not replace source faces. Homogeneous de Casteljau/blossom evaluation
+uses outward arithmetic; positive denominator controls and a whole-domain
+stored-surface error bound are mandatory. The returned error is charged to the
+caller's allowance. Non-Bezier inputs, poles, nonfinite results and exhausted
+allowances fail explicitly. Original UV coordinates are retained, and the
+original surface remains the authority for retained face geometry.
+
+Surface-lift derivative ranges reuse the differential encloser's direct
+coordinate jet when available. The magnitude-bound path remains for unsupported
+parameter representations; calling the public enclosure from that fallback
+would recurse through the derivative resolver and is not permitted.
+For implicit pcurves, the existing operation-owned prepared curve retains the
+immutable implicit jet encloser through offset-image and periodic-translation
+wrappers. Each interval still evaluates its own bounds; preparation is tied to
+that exact curve and does not outlive the requesting operation.
+
+Curve-surface root-certification sessions retain a `ValidatedCurve3D` for
+midpoint and boundary-witness evaluation. Full curve admission occurs once at
+session preparation, not once per subdivision cell. Calls with a different
+tolerance revalidate at that tolerance; parameter-domain checks remain active.
+
+Adaptive curve-surface cells reuse the derivative range computed with their
+curve bounding jet. Surface-only subdivision retains both immutable bounds;
+curve subdivision drops both. Recentered witness cells recompute their bounds.
+The pending-cell budget also bounds retained derivative storage; no shared cache
+or mutable session state is introduced.
+
+Implicit curve-surface searches partition at the stored graph-cell boundaries
+before reusing second-derivative magnitude bounds. Inside each smooth cell,
+the existing midpoint/Taylor position and derivative bounds replace repeated
+third-order interval construction. Bounds never propagate across graph-cell
+parameterization changes. Initial cells count against the search budget;
+admission and failure conditions remain those of the root certifier.
+
+Completeness search may align subdivisions to a certified atlas cell only when
+the search box intersects that cell in every parameter coordinate. Disjoint
+cells cannot cover any part of the box; their boundaries must not multiply its
+subdivisions. This changes search ordering only, not exclusion or coverage proof.
+Among intersecting cells, subdivision boundaries come from the single cell
+with the greatest normalized overlap. Combining boundaries of unrelated cells
+into a Cartesian partition is unnecessary; uncovered children still undergo
+the same exclusion, contraction, and coverage proofs.
+
 Prepared B-spline differential enclosers own immutable homogeneous derivative
 control nets through third order for each Bezier span. Preparation occurs once
 per surface operation; requested boxes only restrict those same nets. The direct
@@ -363,12 +574,43 @@ cache, shared mutation, tolerance change, or cross-request lifetime is introduce
 Prepared/direct interval equality, disjoint successive boxes and invalid span
 rejection verify this reuse contract.
 
+Rational interval jets use a stored control point as a local spatial origin.
+Control-point subtraction occurs inside outward interval arithmetic before
+homogeneous weighting. Only the position jet restores that constant origin;
+derivatives retain translation-invariant local coordinates. This removes
+world-origin dependent cancellation without changing surfaces or tolerance.
+Translation regression and point/derivative containment checks own this contract.
+
+When weights are identical across rows and a coordinate is constant within each
+row, that coordinate's common rational profile factor cancels exactly. The
+transposed condition handles column-only coordinates. Preparation recognizes
+only exact stored equality and retains the resulting polynomial derivative net;
+other coordinates keep the rational path. This is not a fitted approximation.
+An already-clamped single Bezier span retains its original controls and weights
+during decomposition; reconstructing them through floating-point derivatives
+would unnecessarily destroy these exact stored relationships.
+
 Curve decomposition preserves existing Bezier spans, including composite curves
 whose span boundaries have at least degree-fold knot multiplicity,
 after source validation. Trimming preserves source endpoint controls and weights
 at unchanged bounds; only newly created endpoints are evaluated by subdivision.
 The contract is exact stored identity, not tolerance-based snapping. Rational,
 non-clamped and partial-domain regression checks remain in BSplineCurveTrimmingTests.
+
+Rational seam-normal comparison removes the common positive homogeneous weight
+factor before polynomial products. The reduced numerator
+`W*(Pu cross Pv) - Wv*(Pu cross P) - Wu*(P cross Pv)` preserves normal direction
+and uses the existing product-degree limit without widening tolerances.
+Rational cubic smooth and creased seams are covered by `BSplineBoundaryNormalTests`.
+
+Isoparametric single-Bezier B-spline boundary normals are compared through the
+existing correlated Bernstein product owner. The result bounds the sine of the
+angle between tangent planes over the entire normalized boundary, with explicit
+second-boundary reversal. Polynomial patches use unweighted tangent numerators;
+rational patches retain homogeneous numerators. The existing product-degree
+ceiling is unchanged. A missing bound means unresolved capability or regularity,
+never proof of a crease. Callers must separately establish shared-boundary
+position and topology; this calculation neither changes nor joins surfaces.
 
 Tests cover valid sphere great-circle curves at seam and pole endpoints,
 slightly perturbed valid floating-point bases, non-orthogonal bases,

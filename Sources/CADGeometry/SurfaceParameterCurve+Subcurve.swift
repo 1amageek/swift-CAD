@@ -2,6 +2,34 @@ import Foundation
 import CADCore
 
 public extension SurfaceParameterCurve {
+    /// Restricts UV values for interval arithmetic on an already validated lift.
+    /// The result is not a new geometry value or a spatial curve certificate.
+    internal func subcurveForParameterBounds(
+        fromNormalizedFraction lower: Double,
+        toNormalizedFraction upper: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterCurve {
+        switch self {
+        case let .offsetSurfaceImage(image):
+            return try image.source.subcurveForParameterBounds(
+                fromNormalizedFraction: lower, toNormalizedFraction: upper,
+                tolerance: tolerance
+            )
+        case let .periodicTranslation(base, uShift, vShift):
+            return .periodicTranslation(
+                base: try base.subcurveForParameterBounds(
+                    fromNormalizedFraction: lower, toNormalizedFraction: upper,
+                    tolerance: tolerance
+                ), uShift: uShift, vShift: vShift
+            )
+        default:
+            return try subcurve(
+                fromNormalizedFraction: lower, toNormalizedFraction: upper,
+                tolerance: tolerance
+            )
+        }
+    }
+
     func subcurve(
         fromNormalizedFraction startFraction: Double,
         toNormalizedFraction endFraction: Double,

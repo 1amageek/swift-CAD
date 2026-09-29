@@ -143,7 +143,7 @@ public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendabl
       fraction,
       tolerance: tolerance
     )
-    let differential = try intersection.differential(
+    let differential = try intersection.secondOrderDifferential(
       atNormalizedFraction: intersectionFraction,
       tolerance: tolerance
     )

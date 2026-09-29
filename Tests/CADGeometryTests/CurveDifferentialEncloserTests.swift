@@ -6,6 +6,34 @@ import Testing
 
 @Suite("Certified curve differential enclosures")
 struct CurveDifferentialEncloserTests {
+  @Test func intervalPullbackRetainsMixedTermsThroughThirdOrder() throws {
+    for lower in [-0.6, 0.2] {
+      let range = try ScalarInterval(lower: lower, upper: lower + 0.01)
+      let t = SurfaceIntervalJet.parameterU(range)
+      let u = t * t, v = t * t * t
+      let su = SurfaceIntervalJet.parameterU(try ScalarInterval(lower: u.value.lower, upper: u.value.upper))
+      let sv = SurfaceIntervalJet.parameterV(try ScalarInterval(lower: v.value.lower, upper: v.value.upper))
+      let surface = SurfaceIntervalVectorJet(x: su * su * su + su * sv * sv,
+        y: su * su * sv + sv * sv * sv, z: su * sv)
+      let result = SurfaceParameterThirdOrderChainRule.intervalJet(surface: surface, u: u, v: v)
+      // The composed coordinates are t^6 + t^8, t^7 + t^9, and t^5.
+      for value in [range.lower, range.midpoint, range.upper] {
+        let derivatives: [(SurfaceIntervalJet, Double, Double, Double)] = [
+          (result.x, 6 * pow(value, 5) + 8 * pow(value, 7),
+           30 * pow(value, 4) + 56 * pow(value, 6), 120 * pow(value, 3) + 336 * pow(value, 5)),
+          (result.y, 7 * pow(value, 6) + 9 * pow(value, 8),
+           42 * pow(value, 5) + 72 * pow(value, 7), 210 * pow(value, 4) + 504 * pow(value, 6)),
+          (result.z, 5 * pow(value, 4), 20 * pow(value, 3), 60 * pow(value, 2))
+        ]
+        for (jet, first, second, third) in derivatives {
+          #expect(jet.derivativeU.lower <= first && first <= jet.derivativeU.upper)
+          #expect(jet.secondDerivativeUU.lower <= second && second <= jet.secondDerivativeUU.upper)
+          #expect(jet.thirdDerivativeUUU.lower <= third && third <= jet.thirdDerivativeUUU.upper)
+        }
+      }
+    }
+  }
+
   private let tolerance = ModelingTolerance(
     distance: 1.0e-9,
     angle: 1.0e-10,

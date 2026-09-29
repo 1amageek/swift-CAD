@@ -208,7 +208,12 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
     let dependentIndexes = SurfaceIntersectionParameterCoordinate.allCases
       .map(\.rawValue)
       .filter { $0 != freeParameter.rawValue }
-    var previousResidual = Double.infinity
+    func isAccurate(_ residual: Double, correction: [Double]) -> Bool {
+      residual <= tolerance.distance && dependentIndexes.indices.allSatisfy { index in
+        abs(correction[index]) <= tolerance.relative
+          * parameterBox.intervals[dependentIndexes[index]].width
+      }
+    }
     for _ in 0..<32 {
       let currentSample = try sample(
         values: values,
@@ -216,7 +221,7 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
         secondSurface: secondSurface,
         tolerance: tolerance
       )
-      if currentSample.residual <= tolerance.distance {
+      if currentSample.residual == 0 {
         return try SurfaceIntersectionParameterPair(values: values)
       }
       let dependentColumns = dependentIndexes.map { currentSample.columns[$0] }
@@ -246,20 +251,19 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
           )
         }
         candidate[freeParameter.rawValue] = freeValue
-        let candidateSample = try self.sample(
-          values: candidate,
-          firstSurface: firstSurface,
-          secondSurface: secondSurface,
-          tolerance: tolerance
-        )
-        if candidateSample.residual < currentSample.residual {
+        if candidate == values { break }
+        let firstPoint = try firstSurface.point(u: candidate[0], v: candidate[1], tolerance: tolerance)
+        let secondPoint = try secondSurface.point(u: candidate[2], v: candidate[3], tolerance: tolerance)
+        if (firstPoint - secondPoint).length < currentSample.residual {
           acceptedValues = candidate
-          previousResidual = candidateSample.residual
           break
         }
         scale *= 0.5
       }
       guard let acceptedValues else {
+        if isAccurate(currentSample.residual, correction: delta) {
+          return try SurfaceIntersectionParameterPair(values: values)
+        }
         throw certificateFailure(
           tolerance: tolerance,
           residual: currentSample.residual,
@@ -267,9 +271,6 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
         )
       }
       values = acceptedValues
-      if previousResidual <= tolerance.distance {
-        return try SurfaceIntersectionParameterPair(values: values)
-      }
     }
     let finalSample = try sample(
       values: values,
@@ -277,7 +278,10 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
       secondSurface: secondSurface,
       tolerance: tolerance
     )
-    guard finalSample.residual <= tolerance.distance else {
+    guard let correction = Self.solve(
+      columns: dependentIndexes.map { finalSample.columns[$0] },
+      rightHandSide: finalSample.difference * -1.0
+    ), isAccurate(finalSample.residual, correction: correction) else {
       throw certificateFailure(
         tolerance: tolerance,
         residual: finalSample.residual,
@@ -335,6 +339,117 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
       v: values[3],
       tolerance: tolerance
     )
+    let solved = try secondOrderSolution(parameters: parameters,
+      firstGeometry: firstGeometry.secondOrder, secondGeometry: secondGeometry.secondOrder,
+      parameterScale: parameterScale, tolerance: tolerance)
+    let columns = solved.columns
+    let dependentIndexes = solved.dependentIndexes
+    let firstParameterDerivatives = solved.firstDerivatives
+    let secondParameterDerivatives = solved.secondDerivatives
+    let firstSurfaceCubic = Self.composedCubicTerm(
+      geometry: firstGeometry,
+      firstU: firstParameterDerivatives[0],
+      firstV: firstParameterDerivatives[1],
+      secondU: secondParameterDerivatives[0],
+      secondV: secondParameterDerivatives[1]
+    )
+    let secondSurfaceCubic = Self.composedCubicTerm(
+      geometry: secondGeometry,
+      firstU: firstParameterDerivatives[2],
+      firstV: firstParameterDerivatives[3],
+      secondU: secondParameterDerivatives[2],
+      secondV: secondParameterDerivatives[3]
+    )
+    let thirdRightHandSide = (firstSurfaceCubic - secondSurfaceCubic) * -1.0
+    guard
+      let dependentThirdDerivatives = Self.solve(
+        columns: dependentIndexes.map { columns[$0] },
+        rightHandSide: thirdRightHandSide
+      )
+    else {
+      throw certificateFailure(
+        tolerance: tolerance,
+        message: "A certified implicit intersection graph has no regular third differential."
+      )
+    }
+    var thirdParameterDerivatives = Array(repeating: 0.0, count: 4)
+    for index in dependentIndexes.indices {
+      thirdParameterDerivatives[dependentIndexes[index]] = dependentThirdDerivatives[index]
+    }
+
+    let firstSpatialThirdDerivative =
+      firstGeometry.tangentU
+      * thirdParameterDerivatives[0]
+      + firstGeometry.tangentV * thirdParameterDerivatives[1]
+      + firstSurfaceCubic
+    let secondSpatialThirdDerivative =
+      secondGeometry.tangentU
+      * thirdParameterDerivatives[2]
+      + secondGeometry.tangentV * thirdParameterDerivatives[3]
+      + secondSurfaceCubic
+    let thirdDerivativeResidual = (firstSpatialThirdDerivative - secondSpatialThirdDerivative)
+      .length
+    let thirdDerivativeScale = max(
+      max(
+        firstSpatialThirdDerivative.length,
+        secondSpatialThirdDerivative.length
+      ),
+      1.0
+    )
+    guard
+      thirdDerivativeResidual
+        <= tolerance.relative * thirdDerivativeScale
+    else {
+      throw certificateFailure(
+        tolerance: tolerance,
+        residual: thirdDerivativeResidual / thirdDerivativeScale,
+        message:
+          "A certified implicit intersection differential has inconsistent dual-surface third derivatives."
+      )
+    }
+    return CertifiedImplicitIntersectionDifferential(
+      position: solved.differential.position,
+      firstDerivative: solved.differential.firstDerivative,
+      secondDerivative: solved.differential.secondDerivative,
+      thirdDerivative: (firstSpatialThirdDerivative + secondSpatialThirdDerivative) * 0.5,
+      parameters: parameters,
+      firstParameterDerivatives: solved.differential.firstParameterDerivatives,
+      secondParameterDerivatives: solved.differential.secondParameterDerivatives,
+      thirdParameterDerivatives: try SurfaceIntersectionParameterVector(values: thirdParameterDerivatives)
+    )
+  }
+
+  func secondOrderDifferential(
+    atNormalizedFraction fraction: Double,
+    parameterScale: Double,
+    firstSurface: Surface3D,
+    secondSurface: Surface3D,
+    tolerance: ModelingTolerance
+  ) throws -> CertifiedImplicitIntersectionDifferential.SecondOrder {
+    guard parameterScale.isFinite, parameterScale > 0 else {
+      throw GeometryError.invalidDistance(parameterScale)
+    }
+    let parameters = try parameterPair(atNormalizedFraction: fraction,
+      firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance)
+    return try secondOrderSolution(parameters: parameters,
+      firstGeometry: firstSurface.parameterDerivatives(
+        atU: parameters.first.u, v: parameters.first.v, tolerance: tolerance),
+      secondGeometry: secondSurface.parameterDerivatives(
+        atU: parameters.second.u, v: parameters.second.v, tolerance: tolerance),
+      parameterScale: parameterScale, tolerance: tolerance).differential
+  }
+
+  private func secondOrderSolution(
+    parameters: SurfaceIntersectionParameterPair,
+    firstGeometry: SurfaceParameterDerivatives,
+    secondGeometry: SurfaceParameterDerivatives,
+    parameterScale: Double,
+    tolerance: ModelingTolerance
+  ) throws -> (
+    differential: CertifiedImplicitIntersectionDifferential.SecondOrder,
+    columns: [Vector3D], dependentIndexes: [Int],
+    firstDerivatives: [Double], secondDerivatives: [Double]
+  ) {
     let columns = [
       firstGeometry.tangentU,
       firstGeometry.tangentV,
@@ -400,37 +515,6 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
       secondParameterDerivatives[dependentIndexes[index]] = dependentSecondDerivatives[index]
     }
 
-    let firstSurfaceCubic = Self.composedCubicTerm(
-      geometry: firstGeometry,
-      firstU: firstParameterDerivatives[0],
-      firstV: firstParameterDerivatives[1],
-      secondU: secondParameterDerivatives[0],
-      secondV: secondParameterDerivatives[1]
-    )
-    let secondSurfaceCubic = Self.composedCubicTerm(
-      geometry: secondGeometry,
-      firstU: firstParameterDerivatives[2],
-      firstV: firstParameterDerivatives[3],
-      secondU: secondParameterDerivatives[2],
-      secondV: secondParameterDerivatives[3]
-    )
-    let thirdRightHandSide = (firstSurfaceCubic - secondSurfaceCubic) * -1.0
-    guard
-      let dependentThirdDerivatives = Self.solve(
-        columns: dependentIndexes.map { columns[$0] },
-        rightHandSide: thirdRightHandSide
-      )
-    else {
-      throw certificateFailure(
-        tolerance: tolerance,
-        message: "A certified implicit intersection graph has no regular third differential."
-      )
-    }
-    var thirdParameterDerivatives = Array(repeating: 0.0, count: 4)
-    for index in dependentIndexes.indices {
-      thirdParameterDerivatives[dependentIndexes[index]] = dependentThirdDerivatives[index]
-    }
-
     let firstPoint = firstGeometry.position
     let secondPoint = secondGeometry.position
     let residual = (firstPoint - secondPoint).length
@@ -482,56 +566,15 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
           "A certified implicit intersection differential has inconsistent dual-surface curvature."
       )
     }
-    let firstSpatialThirdDerivative =
-      firstGeometry.tangentU
-      * thirdParameterDerivatives[0]
-      + firstGeometry.tangentV * thirdParameterDerivatives[1]
-      + firstSurfaceCubic
-    let secondSpatialThirdDerivative =
-      secondGeometry.tangentU
-      * thirdParameterDerivatives[2]
-      + secondGeometry.tangentV * thirdParameterDerivatives[3]
-      + secondSurfaceCubic
-    let thirdDerivativeResidual = (firstSpatialThirdDerivative - secondSpatialThirdDerivative)
-      .length
-    let thirdDerivativeScale = max(
-      max(
-        firstSpatialThirdDerivative.length,
-        secondSpatialThirdDerivative.length
-      ),
-      1.0
-    )
-    guard
-      thirdDerivativeResidual
-        <= tolerance.relative * thirdDerivativeScale
-    else {
-      throw certificateFailure(
-        tolerance: tolerance,
-        residual: thirdDerivativeResidual / thirdDerivativeScale,
-        message:
-          "A certified implicit intersection differential has inconsistent dual-surface third derivatives."
-      )
-    }
-    return CertifiedImplicitIntersectionDifferential(
-      position: Point3D(
-        x: (firstPoint.x + secondPoint.x) * 0.5,
-        y: (firstPoint.y + secondPoint.y) * 0.5,
-        z: (firstPoint.z + secondPoint.z) * 0.5
-      ),
+    let differential = CertifiedImplicitIntersectionDifferential.SecondOrder(
+      position: Point3D(x: (firstPoint.x + secondPoint.x) * 0.5,
+        y: (firstPoint.y + secondPoint.y) * 0.5, z: (firstPoint.z + secondPoint.z) * 0.5),
       firstDerivative: (firstSpatialDerivative + secondSpatialFirstDerivative) * 0.5,
       secondDerivative: (secondSpatialDerivative + secondSpatialSecondDerivative) * 0.5,
-      thirdDerivative: (firstSpatialThirdDerivative + secondSpatialThirdDerivative) * 0.5,
       parameters: parameters,
-      firstParameterDerivatives: try SurfaceIntersectionParameterVector(
-        values: firstParameterDerivatives
-      ),
-      secondParameterDerivatives: try SurfaceIntersectionParameterVector(
-        values: secondParameterDerivatives
-      ),
-      thirdParameterDerivatives: try SurfaceIntersectionParameterVector(
-        values: thirdParameterDerivatives
-      )
-    )
+      firstParameterDerivatives: try SurfaceIntersectionParameterVector(values: firstParameterDerivatives),
+      secondParameterDerivatives: try SurfaceIntersectionParameterVector(values: secondParameterDerivatives))
+    return (differential, columns, dependentIndexes, firstParameterDerivatives, secondParameterDerivatives)
   }
 
   package func parameterDerivativeBounds(
@@ -888,25 +931,27 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
     secondSurface: Surface3D,
     tolerance: ModelingTolerance
   ) throws -> (difference: Vector3D, residual: Double, columns: [Vector3D]) {
-    let firstGeometry = try firstSurface.differentialGeometry(
+    let firstGeometry = try firstSurface.taylorJet(
       atU: values[0],
       v: values[1],
+      throughOrder: 1,
       tolerance: tolerance
     )
-    let secondGeometry = try secondSurface.differentialGeometry(
+    let secondGeometry = try secondSurface.taylorJet(
       atU: values[2],
       v: values[3],
+      throughOrder: 1,
       tolerance: tolerance
     )
-    let difference = firstGeometry.position - secondGeometry.position
+    let difference = firstGeometry.value - secondGeometry.value
     return (
       difference,
       difference.length,
       [
-        firstGeometry.tangentU,
-        firstGeometry.tangentV,
-        secondGeometry.tangentU * -1.0,
-        secondGeometry.tangentV * -1.0,
+        firstGeometry.derivative(uOrder: 1, vOrder: 0),
+        firstGeometry.derivative(uOrder: 0, vOrder: 1),
+        secondGeometry.derivative(uOrder: 1, vOrder: 0) * -1.0,
+        secondGeometry.derivative(uOrder: 0, vOrder: 1) * -1.0,
       ]
     )
   }

@@ -64,7 +64,7 @@ enum ExactSurfaceParameterCodec {
                     unit: unit,
                     convention: convention
                 )
-            case .ruled:
+            case .ruled, .rollingBall:
                 return parameter
             }
         }
@@ -128,7 +128,7 @@ enum ExactSurfaceParameterCodec {
                     tolerance: tolerance,
                     convention: convention
                 )
-            case .ruled:
+            case .ruled, .rollingBall:
                 return parameter
             }
         }
@@ -159,7 +159,7 @@ enum ExactSurfaceParameterCodec {
                     unit: unit,
                     tolerance: tolerance
                 )
-            case .ruled:
+            case .ruled, .rollingBall:
                 return max(tolerance.angle, tolerance.relative)
             }
         }

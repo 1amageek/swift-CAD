@@ -177,6 +177,16 @@ package struct AnalyticCurveBSplineBuilder {
         guard let law = linearParameterLaw(lift.parameterCurve) else {
             return nil
         }
+        if case let .procedural(.rollingBall(blend)) = lift.surface,
+           law.uScale == 0,
+           (law.vOffset == 0 && law.vScale == 1
+            || law.vOffset == 1 && law.vScale == -1) {
+            let section = try blend.rationalSection(atU: law.uOffset)
+            let oriented = try law.vScale > 0 ? section : section.reversed(tolerance: tolerance)
+            return try oriented.trimmed(
+                from: interval.lower, to: interval.upper, tolerance: tolerance
+            )
+        }
         let canonical = CanonicalAnalyticSurface(lift.surface)
         switch canonical {
         case .plane:

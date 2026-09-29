@@ -12,10 +12,23 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
       source: PreparedSurfaceDifferentialEncloser
     )
     case ruled(PreparedRuledSurfaceDifferentialEncloser)
+    case rollingBall(RollingBallBlendSurface3D,
+      center: PreparedCurveDifferentialEncloser,
+      first: PreparedCurveDifferentialEncloser,
+      second: PreparedCurveDifferentialEncloser)
   }
 
   package let surface: Surface3D
   private let storage: Storage
+
+  /// Local coordinates that can resolve a recoverable enclosure failure.
+  /// Rolling-ball radials and circular weights depend only on the spine (U).
+  var enclosureRefinementCoordinates: Range<Int> {
+    switch storage {
+    case .rollingBall: 0..<1
+    case .direct, .bSpline, .offset, .ruled: 0..<2
+    }
+  }
 
   package init(
     surface: Surface3D,
@@ -96,6 +109,8 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
         over: parameters,
         tolerance: tolerance
       )
+    case .rollingBall(let blend, let center, let first, let second):
+      return try blend.intervalJet(over: parameters, center: center, first: first, second: second)
     }
   }
 
@@ -129,6 +144,11 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
           surface: ruled,
           tolerance: tolerance
         ))
+    case .procedural(.rollingBall(let blend)):
+      return .rollingBall(blend,
+        center: try PreparedCurveDifferentialEncloser(curve: blend.centerSpine, tolerance: blend.tolerance),
+        first: try PreparedCurveDifferentialEncloser(curve: blend.firstContact, tolerance: blend.tolerance),
+        second: try PreparedCurveDifferentialEncloser(curve: blend.secondContact, tolerance: blend.tolerance))
     case .plane, .cylinder, .analytic:
       return .direct(surface)
     }

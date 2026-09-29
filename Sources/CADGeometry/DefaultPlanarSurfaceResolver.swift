@@ -27,7 +27,7 @@ package struct DefaultPlanarSurfaceResolver: PlanarSurfaceResolving {
                 origin: sourcePlane.origin + sourcePlane.normal * offset.distance,
                 normal: sourcePlane.normal
             )
-        case .procedural(.ruled):
+        case .procedural(.ruled), .procedural(.rollingBall):
             return nil
         }
     }

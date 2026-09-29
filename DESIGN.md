@@ -5,8 +5,8 @@
 Swift-CAD is the native CAD package for source documents, exact analytic
 geometry, validated B-rep topology, deterministic evaluation, and derived
 presentation Mesh. This package design is the parent of the affected
-`CADGeometry`, `CADModeling`, `CADIR`, `CADKernel`, and `CADExchange` module
-designs. It has no parent inside the Swift-CAD repository.
+`CADGeometry`, `CADModeling`, `CADIR`, `CADKernel`, `CADTopology`, and
+`CADExchange` module designs. It has no parent inside the Swift-CAD repository.
 
 The package owns the exact source-to-evaluation path used by RupaCore. Exchange
 readers may publish a validated source document, but they do not own project
@@ -42,6 +42,7 @@ or bounds data.
 | [CADModeling](Sources/CADModeling/DESIGN.md) | child | exact primitive construction | Owns generated primitive B-rep topology and analytic seam/pole pcurves. | Generated references must remain valid through the shared geometry contract. |
 | [CADIR](Sources/CADIR/DESIGN.md) | child | stable signature value and Codable contract | Owns serialized geometry signatures and their rejection rules. | Signatures retain geometry; they do not identify a new body by themselves. |
 | [CADKernel](Sources/CADKernel/DESIGN.md) | child | evaluated snapshot topology reads | Owns snapshot-scoped stable-reference creation and lookup. | Reads use the supplied immutable evaluation; no second authority is created. |
+| [CADTopology](Sources/CADTopology/DESIGN.md) | child | exact open-boundary edge loops | Owns incidence-based loop discovery shared by evaluation and presentation. | Only closed, non-branching one-face edge components are returned. |
 | [CADExchange](Sources/CADExchange/DESIGN.md) | child | bounded exchange parse/write and typed format support | Publishes exact STEP source documents and mesh exchange results at the CADIR boundary. | Exchange format support is explicit; unsupported entities never become partial source. |
 | [RupaCore](../RupaKit/Sources/RupaCore/DESIGN.md) | used by | evaluated solid and Mesh-backed presentation measurement | Consumes exact B-rep volume and derived Mesh area/bounds. | RupaCore does not construct or approximate CAD geometry; a capability it needs is published here, per the [system kernel/application boundary](../DESIGN.md#kernel-and-application-boundary). |
 
@@ -54,6 +55,7 @@ admission; registration never replaces the evaluator's geometric validation.
 flowchart LR
     Exchange["CADExchange bounded reader"] --> Source["CADIR source document"]
     Source --> Modeling["CADModeling exact feature construction"]
+    Modeling --> Topology["CADTopology boundary incidence and loops"]
     Modeling --> Geometry["CADGeometry analytic geometry and pcurves"]
     Geometry --> Kernel["CADKernel evaluation"]
     Kernel --> BRep["Exact B-rep + lineage"]

@@ -144,7 +144,10 @@ extension DefaultSurfaceDifferentialEncloser {
     guard tangentUSquared.lower > minimumTangentSquared,
       tangentVSquared.lower > minimumTangentSquared,
       normalSquared.lower > minimumNormalSquared,
-      normalLower > 0.0
+      normalLower > 0.0,
+      // Keep normalization denominator uncertainty within a factor of two.
+      // Bare positivity can otherwise admit arbitrarily loose normal bounds.
+      normalSquared.upper <= (4.0 * normalSquared.lower).nextDown
     else {
       return nil
     }
@@ -243,6 +246,7 @@ extension DefaultSurfaceDifferentialEncloser {
     case .bSpline: return "B-spline surface"
     case .procedural(.offset): return "offset surface"
     case .procedural(.ruled): return "ruled surface"
+    case .procedural(.rollingBall): return "rolling-ball blend surface"
     }
   }
 

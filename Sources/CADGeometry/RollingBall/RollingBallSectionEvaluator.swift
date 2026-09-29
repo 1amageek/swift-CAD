@@ -66,6 +66,30 @@ public struct RollingBallSectionEvaluator: RollingBallSectionEvaluating {
         )
     }
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): This constructs an evaluable blend but
+    // no production feature consumes it yet. Full-domain regularity, persistent
+    // Surface3D storage and trimmed-solid reconstruction remain prerequisites
+    // for reporting a completed fillet operation.
+    public func blendSurface(
+        fromCurveParameter lower: Double,
+        toCurveParameter upper: Double,
+        options: CurveSurfaceCorrespondenceValidationOptions
+    ) throws -> RollingBallBlendSurface3D {
+        let firstRail = try contactCurve(on: .first, fromCurveParameter: lower,
+                                         toCurveParameter: upper, options: options)
+        let secondRail = try contactCurve(on: .second, fromCurveParameter: lower,
+                                          toCurveParameter: upper, options: options)
+        let centerParameters = try intersection.firstSurfaceParameterCurve.trimmed(
+            from: lower, to: upper, curveDomain: intersection.curve.parameterDomain,
+            tolerance: tolerance
+        )
+        let center = SurfaceLiftCurve3D(surface: .procedural(.offset(first)), parameterCurve: centerParameters)
+        return RollingBallBlendSurface3D(
+            centerSpine: .surfaceLift(center), firstContact: .surfaceLift(firstRail), secondContact: .surfaceLift(secondRail),
+            radius: abs(first.distance), tolerance: tolerance
+        )
+    }
+
     public func section(atCurveParameter parameter: Double) throws -> RollingBallSection {
         let correspondence = try intersection.evaluatedCorrespondenceAssumingValidated(
             atCurveParameter: parameter,

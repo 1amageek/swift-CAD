@@ -38,7 +38,31 @@ public struct DefaultSurfaceRegularityValidator: SurfaceRegularityValidating, Se
       surface: surface,
       tolerance: tolerance
     )
+    try validate(parameters: parameters, tolerance: tolerance,
+      intervalJet: { try encloser.intervalJet(over: $0, tolerance: tolerance) },
+      differential: { try surface.parameterDerivatives(atU: $0, v: $1, tolerance: tolerance) })
+  }
 
+  func validate(_ blend: RollingBallBlendSurface3D, over parameters: SurfaceParameterBox) throws {
+    try blend.tolerance.validate()
+    guard parameters.u.width > 0, parameters.v.width > 0,
+      parameters.u.lower >= 0, parameters.u.upper <= 1,
+      parameters.v.lower >= 0, parameters.v.upper <= 1,
+      maximumSubdivisionDepth > 0, maximumCellCount > 0 else {
+      throw KernelError(phase: .geometry, code: .invalidInput, tolerance: blend.tolerance,
+        message: "Blend regularity requires a positive normalized box and positive proof budgets.")
+    }
+    try validate(parameters: parameters, tolerance: blend.tolerance,
+      intervalJet: { try blend.intervalJet(over: $0) },
+      differential: { try blend.parameterDerivatives(atU: $0, v: $1) })
+  }
+
+  private func validate(
+    parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance,
+    intervalJet: (SurfaceParameterBox) throws -> SurfaceIntervalVectorJet,
+    differential: (Double, Double) throws -> SurfaceParameterDerivatives
+  ) throws {
     var remainingCells = maximumCellCount
     var stack = [Cell(parameters: parameters, depth: 0)]
     while let cell = stack.popLast() {
@@ -53,10 +77,7 @@ public struct DefaultSurfaceRegularityValidator: SurfaceRegularityValidating, Se
       remainingCells -= 1
 
       do {
-        let jet = try encloser.intervalJet(
-          over: cell.parameters,
-          tolerance: tolerance
-        )
+        let jet = try intervalJet(cell.parameters)
         if certifiesRegularity(jet, tolerance: tolerance) {
           continue
         }
@@ -68,11 +89,7 @@ public struct DefaultSurfaceRegularityValidator: SurfaceRegularityValidating, Se
 
       let midpointU = cell.parameters.u.midpoint
       let midpointV = cell.parameters.v.midpoint
-      let differential = try surface.parameterDerivatives(
-        atU: midpointU,
-        v: midpointV,
-        tolerance: tolerance
-      )
+      let differential = try differential(midpointU, midpointV)
       if isSingular(differential, tolerance: tolerance) {
         throw KernelError(
           phase: .geometry,

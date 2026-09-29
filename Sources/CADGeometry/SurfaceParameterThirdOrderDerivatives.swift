@@ -18,6 +18,12 @@ public struct SurfaceParameterThirdOrderDerivatives: Codable, Hashable, Sendable
     public let thirdDerivativeUVV: Vector3D
     public let thirdDerivativeVVV: Vector3D
 
+    var secondOrder: SurfaceParameterDerivatives {
+        SurfaceParameterDerivatives(position: position, tangentU: tangentU, tangentV: tangentV,
+            secondDerivativeUU: secondDerivativeUU, secondDerivativeUV: secondDerivativeUV,
+            secondDerivativeVV: secondDerivativeVV)
+    }
+
     public init(
         position: Point3D,
         tangentU: Vector3D,

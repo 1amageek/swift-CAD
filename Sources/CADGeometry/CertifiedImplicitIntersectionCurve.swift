@@ -104,11 +104,16 @@ public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
   private func validateConnections(
     tolerance: ModelingTolerance
   ) throws {
+    let spans = cells.count > 1
+      ? try BoundedSurfaceParameterDomainMap(
+        first: firstSurface, second: secondSurface,
+        tolerance: certificationTolerance).spans
+      : []
     for index in 1..<cells.count {
       try validateConnection(
         fromCell: cells[index - 1],
         toCell: cells[index],
-        requiresParameterContinuity: true,
+        parameterSpans: spans,
         tolerance: tolerance
       )
     }
@@ -116,7 +121,7 @@ public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
       try validateConnection(
         fromCell: cells[cells.count - 1],
         toCell: cells[0],
-        requiresParameterContinuity: false,
+        parameterSpans: nil,
         tolerance: tolerance
       )
     }
@@ -169,6 +174,16 @@ public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
       secondSurface: secondSurface,
       tolerance: tolerance
     )
+  }
+
+  func secondOrderDifferential(
+    atNormalizedFraction fraction: Double,
+    tolerance: ModelingTolerance
+  ) throws -> CertifiedImplicitIntersectionDifferential.SecondOrder {
+    let location = try cellLocation(atNormalizedFraction: fraction, tolerance: tolerance)
+    return try cells[location.index].secondOrderDifferential(
+      atNormalizedFraction: location.fraction, parameterScale: Double(cells.count),
+      firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance)
   }
 
   func thirdDerivative(
@@ -265,16 +280,14 @@ public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
   private func validateConnection(
     fromCell: CertifiedImplicitIntersectionGraphCell,
     toCell: CertifiedImplicitIntersectionGraphCell,
-    requiresParameterContinuity: Bool,
+    parameterSpans: [Double]?,
     tolerance: ModelingTolerance
   ) throws {
     let fromParameters = fromCell.endAnchor
     let toParameters = toCell.startAnchor
-    if requiresParameterContinuity {
-      let parameterResidual = try maximumNormalizedParameterGap(
-        from: fromParameters,
-        to: toParameters
-      )
+    if let parameterSpans {
+      let parameterResidual = zip(zip(fromParameters.values, toParameters.values), parameterSpans)
+        .reduce(0.0) { max($0, abs($1.0.0 - $1.0.1) / $1.1) }
       guard parameterResidual <= tolerance.relative else {
         throw KernelError(
           phase: .geometry,
@@ -363,37 +376,6 @@ public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
         message: "Certified implicit intersection graph cells do not preserve tangent orientation."
       )
     }
-  }
-
-  private func maximumNormalizedParameterGap(
-    from: SurfaceIntersectionParameterPair,
-    to: SurfaceIntersectionParameterPair
-  ) throws -> Double {
-    let spans = try [
-      parameterSpan(firstSurface.uDomain),
-      parameterSpan(firstSurface.vDomain),
-      parameterSpan(secondSurface.uDomain),
-      parameterSpan(secondSurface.vDomain),
-    ]
-    return zip(zip(from.values, to.values), spans).map { values, span in
-      abs(values.0 - values.1) / span
-    }.max() ?? .infinity
-  }
-
-  private func parameterSpan(_ domain: ParameterDomain) throws -> Double {
-    guard case .closed(let lower, let upper) = domain,
-      lower.isFinite,
-      upper.isFinite,
-      upper > lower
-    else {
-      throw KernelError(
-        phase: .geometry,
-        code: .invalidInput,
-        tolerance: nil,
-        message: "A certified implicit intersection requires finite closed surface domains."
-      )
-    }
-    return upper - lower
   }
 
   private enum CodingKeys: String, CodingKey {

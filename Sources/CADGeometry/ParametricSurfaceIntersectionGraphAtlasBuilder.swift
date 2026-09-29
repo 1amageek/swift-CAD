@@ -65,10 +65,12 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
         continue
       }
       remainingCellAttempts -= 1
+      var rejection: String?
       if let bridge = try certifiedEntry(
         component: component,
         range: lower...upper,
-        remainingRootAttempts: &remainingRootAttempts
+        remainingRootAttempts: &remainingRootAttempts,
+        rejection: &rejection
       ) {
         let previous = entries[index - 1]
         entries[index - 1] = Entry(
@@ -95,16 +97,18 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
       )
     }
     remainingCellAttempts -= 1
+    var rejection: String?
     if let entry = try certifiedEntry(
       component: component,
       range: range,
-      remainingRootAttempts: &remainingRootAttempts
+      remainingRootAttempts: &remainingRootAttempts,
+      rejection: &rejection
     ) {
       return [entry]
     }
     guard range.upperBound - range.lowerBound > 1 else {
       throw failure(
-        "A traced surface-intersection segment could not be enclosed by a full-graph interval certificate."
+        "A traced surface-intersection segment could not be enclosed by a full-graph interval certificate. First rejection: \(rejection ?? "No admissible monotone graph box or refined midpoint.")"
       )
     }
     let middle =
@@ -128,7 +132,8 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
   private func certifiedEntry(
     component: [Sample],
     range: ClosedRange<Int>,
-    remainingRootAttempts: inout Int
+    remainingRootAttempts: inout Int,
+    rejection: inout String?
   ) throws -> Entry? {
     let samples = Array(component[range])
     let candidates = monotoneFreeParameters(in: samples)
@@ -137,7 +142,8 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
         component: component,
         range: range,
         freeParameter: freeParameter,
-        remainingRootAttempts: &remainingRootAttempts
+        remainingRootAttempts: &remainingRootAttempts,
+        rejection: &rejection
       ) {
         return entry
       }
@@ -149,7 +155,8 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
     component: [Sample],
     range: ClosedRange<Int>,
     freeParameter: SurfaceIntersectionParameterCoordinate,
-    remainingRootAttempts: inout Int
+    remainingRootAttempts: inout Int,
+    rejection: inout String?
   ) throws -> Entry? {
     let samples = Array(component[range])
     guard let componentStart = samples.first,
@@ -265,6 +272,9 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
         where error.code == .intersectionFailure
         || error.code == .singularSystem
       {
+        if rejection == nil {
+          rejection = "Free coordinate \(freeParameter); anchors \(lowerSample.actual) -> \(upperSample.actual). \(error.message)"
+        }
         continue
       }
     }

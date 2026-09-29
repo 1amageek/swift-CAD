@@ -297,7 +297,7 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
                 periodicSeamOffset: periodicSeamOffset,
                 tolerance: tolerance
             )
-        case .bSpline, .procedural(.ruled):
+        case .bSpline, .procedural(.ruled), .procedural(.rollingBall):
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,

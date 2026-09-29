@@ -121,7 +121,7 @@ struct ParametricSurfaceIntersectionRootRefiner: Sendable {
 
     for _ in 0..<maximumIterations {
       let current = try sample(normalized: parameters)
-      if current.residual <= residualTarget { return current }
+      if current.residual == 0 { return current }
       let columns = try jacobianColumns(at: current)
       let difference = current.firstPoint - current.secondPoint
       guard
@@ -132,7 +132,10 @@ struct ParametricSurfaceIntersectionRootRefiner: Sendable {
       else {
         return nil
       }
-      var accepted: ParametricSurfaceIntersectionSample?
+      if current.residual <= residualTarget,
+        delta.allSatisfy({ abs($0) <= tolerance.relative * 0.1 }) {
+        return current
+      }
       var acceptedParameters: [Double]?
       var scale = 1.0
       for _ in 0..<12 {
@@ -150,18 +153,15 @@ struct ParametricSurfaceIntersectionRootRefiner: Sendable {
         candidate[fixedParameterIndex] = fixedValue
         let candidateSample = try sample(normalized: candidate)
         if candidateSample.residual < current.residual {
-          accepted = candidateSample
           acceptedParameters = candidate
           break
         }
         scale *= 0.5
       }
-      guard let accepted, let acceptedParameters else { return nil }
+      guard let acceptedParameters else { return nil }
       parameters = acceptedParameters
-      if accepted.residual <= residualTarget { return accepted }
     }
-    let final = try sample(normalized: parameters)
-    return final.residual <= tolerance.distance ? final : nil
+    return nil
   }
 
   func jacobianColumns(

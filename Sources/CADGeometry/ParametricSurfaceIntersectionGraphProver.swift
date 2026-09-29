@@ -194,6 +194,21 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     )
   }
 
+  /// The caller owns enclosure admission for both jets over this exact box.
+  init(
+    firstSurface: Surface3D,
+    secondSurface: Surface3D,
+    parameterBox: SurfaceIntersectionParameterBox,
+    firstJet: SurfaceIntervalVectorJet,
+    secondJet: SurfaceIntervalVectorJet
+  ) {
+    self.firstSurface = firstSurface
+    self.secondSurface = secondSurface
+    self.parameterBox = parameterBox
+    self.firstJet = firstJet
+    self.secondJet = secondJet
+  }
+
   func excludesIntersection() -> Bool {
     let residual =
       intervalVector(firstJet, at: \SurfaceIntervalJet.value)

@@ -84,6 +84,18 @@ struct ParametricCurveSurfaceRootCertifierTests {
             cell: cell,
             tolerance: tolerance
           )
+          var preparedCell = cell
+          preparedCell.curveDerivative = try PreparedCurveDifferentialEncloser(
+            curve: curve, tolerance: tolerance
+          ).derivativeRange(over: curveInterval, tolerance: tolerance)
+          let reusedCertificate = try session.certificate(
+            cell: preparedCell, tolerance: tolerance)
+          switch (certificate, reusedCertificate) {
+          case (.excluded, .excluded), (.unique, .unique), (.unresolved, .unresolved):
+            break
+          default:
+            Issue.record("Reusing the same interval derivative changed root admission.")
+          }
           if case .excluded = certificate {
             Issue.record(
               "A cell sharing the procedural root boundary was excluded."
@@ -94,6 +106,11 @@ struct ParametricCurveSurfaceRootCertifierTests {
             witness: witness,
             tolerance: tolerance
           )
+          let reusedBoundary = try session.boundaryCertificate(
+            cell: preparedCell, witness: witness, tolerance: tolerance)
+          if case .unique = reusedBoundary {} else {
+            Issue.record("Reusing the derivative lost the certified boundary root.")
+          }
           if case .unique = boundaryCertificate {
             continue
           }

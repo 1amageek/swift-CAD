@@ -49,7 +49,10 @@ public enum Curve3D: Codable, Sendable, Hashable {
         case let .bSpline(curve):
             try curve.validate(tolerance: tolerance)
         case let .implicit(curve):
-            try curve.validate(tolerance: tolerance)
+            // Construction and decoding already prove this immutable graph.
+            // Replaying it here recursively revalidates the supports of blends
+            // whenever a numerical consumer prepares or samples this curve.
+            try curve.validateCertificationContract(tolerance: tolerance)
         case let .surfaceLift(curve):
             try curve.validate(tolerance: tolerance)
         case let .certifiedIntersection(curve):
@@ -203,7 +206,7 @@ public enum Curve3D: Codable, Sendable, Hashable {
                 curvature: geometry.curvature
             )
         case let .implicit(curve):
-            let geometry = try curve.differential(
+            let geometry = try curve.secondOrderDifferential(
                 atNormalizedFraction: parameter,
                 tolerance: tolerance
             )

@@ -110,7 +110,7 @@ struct ExactProjectedAnalyticPcurveBSplineBuilder {
             return false
         case let .procedural(.offset(offset)):
             return isPlanar(offset.source)
-        case .procedural(.ruled):
+        case .procedural(.ruled), .procedural(.rollingBall):
             return false
         }
     }

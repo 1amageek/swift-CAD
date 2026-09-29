@@ -2,6 +2,19 @@ import CADCore
 import Foundation
 
 struct ProceduralSurfaceParameterProjector: Sendable {
+  func parameterProjectionResult(
+    of point: Point3D,
+    on blend: RollingBallBlendSurface3D,
+    options: SurfaceParameterProjectionOptions,
+    tolerance: ModelingTolerance
+  ) throws -> SurfaceParameterProjectionResult {
+    try options.validate(tolerance: tolerance)
+    try blend.validate()
+    try point.validate()
+    return try boundedProjectionResult(of: point, on: .procedural(.rollingBall(blend)),
+      uBounds: 0...1, vBounds: 0...1, options: options, tolerance: tolerance)
+  }
+
   private struct Cell: Sendable {
     let u: ClosedRange<Double>
     let v: ClosedRange<Double>

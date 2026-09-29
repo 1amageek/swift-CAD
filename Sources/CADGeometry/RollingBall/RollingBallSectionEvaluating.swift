@@ -9,4 +9,9 @@ public protocol RollingBallSectionEvaluating: Sendable {
         toCurveParameter upper: Double,
         options: CurveSurfaceCorrespondenceValidationOptions
     ) throws -> SurfaceLiftCurve3D
+    func blendSurface(
+        fromCurveParameter lower: Double,
+        toCurveParameter upper: Double,
+        options: CurveSurfaceCorrespondenceValidationOptions
+    ) throws -> RollingBallBlendSurface3D
 }

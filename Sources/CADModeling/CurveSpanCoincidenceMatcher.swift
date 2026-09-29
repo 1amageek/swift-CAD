@@ -53,7 +53,24 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
             candidate.curve,
             existing.curve
         ) else {
-            return false
+            guard case .surfaceLift = candidate.curve,
+                  case .surfaceLift(let lift) = existing.curve else { return false }
+            let first = orientation == .forward ? existing.startParameter : existing.endParameter
+            let last = orientation == .forward ? existing.endParameter : existing.startParameter
+            let span = try lift.parameterCurve.subcurve(
+                fromNormalizedFraction: min(first, last),
+                toNormalizedFraction: max(first, last), tolerance: tolerance)
+            let parameters = try first < last ? span : span.reversed(tolerance: tolerance)
+            do {
+                try DefaultCurveSurfaceCorrespondenceValidator().validate(
+                    curve: candidate.curve, from: candidate.startParameter, to: candidate.endParameter,
+                    surface: lift.surface, parameterCurve: parameters,
+                    options: .init(maximumSubdivisionDepth: 20, maximumCellCount: 65_536),
+                    tolerance: tolerance)
+                return true
+            } catch let error as KernelError where error.code == .topologyFailure {
+                return false
+            }
         }
         let expectedStart: Double
         let expectedSpan: Double

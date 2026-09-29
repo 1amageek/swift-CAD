@@ -35,6 +35,24 @@ Equal-radius signed offsets + intersection component
 
 ## Contracts and Invariants
 
+Repeated blend interval queries retain the prepared center and two contact-rail
+enclosers in the existing PreparedSurfaceDifferentialEncloser. The preparation
+is immutable and request-local; each box still recomputes its interval proof
+and uses the blend's construction tolerance. One-shot queries use the same
+formula and preparation contract. No persistent cache or tolerance change is
+introduced. Prepared/unprepared differential comparisons and domain refusal
+remain required, including implicit contact rails.
+
+`crossSectionLiesOnLeft` certifies the sign of
+`contactTangent.cross(otherContact - contact).dot(sourceNormal)` throughout
+the normalized contact rail. Left/right is relative to the source UV chart,
+not world axes or B-rep face orientation. It uses existing curve/surface
+interval enclosures, rejects changing signs, and refines inconclusive bounds
+within caller budgets. Rigid images transform the source normal consistently.
+This relation selects a trim side only after the caller establishes an inward
+convex treatment; it does not establish material ownership or end closure.
+Unsupported source-chart enclosures fail explicitly, without a sampled vote.
+
 `RollingBallSectionEvaluating` evaluates at the intersection curve's native
 parameter, not an assumed normalized parameter. The immutable evaluator retains
 the supplied offsets, component and tolerance. Both offset magnitudes must be
@@ -68,6 +86,73 @@ or exhausted proof budgets must not produce a rail. The default service retains
 its own immutable-input cache and synchronization contract; this component adds
 no cache or shared mutable state.
 
+### Blend surface evaluation
+
+Contact-boundary correspondence may reuse the original offset certificate only
+when the stored center and pulled-back rail have the same chart parameters and
+the offset magnitude equals the blend radius. The same offset chart has zero
+ideal radial defect. Opposite roles of the identical implicit certificate with
+identical trims bound the radial defect by that certificate's residual bound
+(reverse triangle inequality). The consumer's deviation limit must admit that
+bound; unrelated centers, radii, trims, or certificates retain general proof.
+
+The next composition is an immutable `RollingBallBlendSurface3D`, constructed
+by the section evaluator from the two admitted contact rails and the first
+offset rail as center spine. All three rails use the same normalized U domain;
+V traverses the minor circular section. For normalized radial vectors a and b,
+w=sqrt((1+a dot b)/2), s=1-v, the radial surface is
+`r * (a*s*s + (a+b)*s*v/w + b*v*v) / (s*s + 2*w*s*v + v*v)`.
+Adding the center spine gives the surface position. Normalization handles
+intersection evaluation residuals only after both contact distances fit the
+modeling tolerance; it must not make invalid contact geometry admissible.
+
+Point evaluation uses scalar arithmetic. Mixed derivatives through total order
+three use existing bivariate Taylor jets and curve derivatives; box enclosures
+use existing outward interval jets and curve enclosers with the same formula.
+Unprovable nonzero radial vectors or minor-arc denominators fail explicitly;
+the caller owns subdivision. No sampled derivative is used as an enclosure.
+These evaluations do not certify global fillet feasibility, source tangency
+between finite checks, end conditions or self-intersection. Complete
+feature admission and feature topology integration
+remain required before a fillet can publish this surface.
+
+The blend value persists its center spine, both source contact rails, radius
+and construction tolerance. Decoding validates structural inputs and normalized
+spine coverage, rejects unknown fields, and does not deserialize any proof or
+claim regularity, contact feasibility or solid validity. Derived jets and
+validation results are not stored. `Surface3D.procedural(.rollingBall)` owns
+the native surface representation. Point, differential and interval operations
+delegate to the same blend value; inverse projection uses the existing bounded
+procedural projector. Kernel closest-point queries use its existing finite-domain
+closest-point certification, not inverse projection's on-surface acceptance.
+The stored construction tolerance governs rail admission;
+consumer tolerance governs projection acceptance and topology validation.
+No exact analytic or B-spline equivalent is advertised for a general blend.
+The contact rails are stored as normalized `Curve3D` values: initial rails
+retain `surfaceLift` charts, and rigid images retain those sources through the
+existing curve transform representation. Rigid placement transforms all three
+rails together and preserves radius; it does not reinterpret UV coordinates
+on a newly oriented analytic support surface.
+
+`validateRegularity` reuses `DefaultSurfaceRegularityValidator`'s bounded cell
+subdivision and interval tangent-frame admission. The blend supplies its own
+interval and point differentials; no second regularity algorithm is introduced.
+Success proves nondegenerate parameterization only, not contact correspondence,
+self-intersection absence, end closure, or solid validity. Caller-supplied depth
+and cell limits fail explicitly when the proof cannot be completed.
+
+Contact-minus-center interval jets retain correlation by intersecting their
+direct bounds with a mean-value enclosure anchored at a certified interval
+around the cell midpoint, wide enough for existing normalized-pcurve trim
+admission and clipped to the original cell. Each derivative uses the
+next derivative's full-cell bound; the third derivative remains unchanged.
+The anchor is an interval evaluation, never an uncertified sampled point.
+
+The section denominator has Bernstein weights `[1, w, 1]`. On the normalized
+section domain its value is bounded by their convex hull, even when independent
+interval products lose the correlation between `t` and `1-t`. Intersect this
+bound with the arithmetic value enclosure; retain all derivative enclosures.
+
 ## State, Ownership, and Lifecycle
 
 All inputs are immutable value-owned, Sendable geometry. Evaluation retains no
@@ -81,6 +166,22 @@ degenerate contact directions and invalid output geometry throw typed errors.
 No nearest-point heuristic, planar substitute, or mesh fallback is permitted.
 
 ## Verification and Change Impact
+
+Constant-U blend sections admit algebraic rational quadratic normalization for
+curve coincidence. This preserves the native V parameter and does not replace
+stored surface lifts or certify a complete blend as a rational surface. Reversed
+sections reverse the controls and weights; bounded spans use existing B-spline
+trimming. General non-isoparametric lifts remain unsupported by this conversion.
+Curve-surface correspondence uses the same section conversion and existing
+homogeneous-control distance bound, including reversed edge trim orientation.
+Only a bound within consumer distance tolerance admits correspondence; endpoints
+alone never establish coincidence or correspondence.
+
+[RollingBallContactSideTests](../../../Tests/CADGeometryTests/RollingBallContactSideTests.swift)
+checks independently known source-chart sides, reversed rail direction,
+reflection, and explicit degenerate/budget refusal. Native helical integration
+must use the certified side and exclude the original selected edge from the
+retained flank, rather than accepting either partition because it can sew.
 
 [RollingBallSectionTests](../../../Tests/CADGeometryTests/RollingBallSectionTests.swift)
 checks actual sphere/plane offset intersections, radius and source contacts,

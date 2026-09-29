@@ -3,7 +3,7 @@ import Foundation
 
 private let maximumCertifiedBernsteinProductDegree = 16
 
-struct RationalBezierSurfaceDifferentialBounds: Sendable {
+package struct RationalBezierSurfaceDifferentialBounds: Sendable {
     let tangentUNumerator: IntervalVector3DBounds
     let tangentVNumerator: IntervalVector3DBounds
     let normalNumerator: IntervalVector3DBounds
@@ -17,6 +17,60 @@ struct RationalBezierSurfaceDifferentialBounds: Sendable {
         if patch.vLower == v0 { result.insert(.vLower) }
         if patch.vUpper == v1 { result.insert(.vUpper) }
         return result
+    }
+
+    /// Bounds tangent-plane deviation, not positional boundary continuity.
+    /// A nil result is inconclusive and must not be classified as a sharp edge.
+    package static func boundaryNormalSineBounds(
+        first: BSplineSurface3D,
+        firstBoundary: SurfaceParameterBoundary,
+        second: BSplineSurface3D,
+        secondBoundary: SurfaceParameterBoundary,
+        reverseSecond: Bool,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarInterval? {
+        try first.validate(tolerance: tolerance)
+        try second.validate(tolerance: tolerance)
+        func normal(_ surface: BSplineSurface3D) -> BernsteinVector3Surface? {
+            guard surface.uControlPointCount == surface.uDegree + 1,
+                  surface.vControlPointCount == surface.vDegree + 1,
+                  case let .closed(u0, u1) = surface.uDomain,
+                  case let .closed(v0, v1) = surface.vDomain,
+                  surface.uKnots.prefix(surface.uDegree + 1).allSatisfy({ $0 == u0 }),
+                  surface.uKnots.suffix(surface.uDegree + 1).allSatisfy({ $0 == u1 }),
+                  surface.vKnots.prefix(surface.vDegree + 1).allSatisfy({ $0 == v0 }),
+                  surface.vKnots.suffix(surface.vDegree + 1).allSatisfy({ $0 == v1 }) else { return nil }
+            let patch = RationalBezierSurfacePatch3D(controlPoints: surface.controlPoints,
+                weights: surface.weights, uLower: u0, uUpper: u1, vLower: v0, vUpper: v1)
+            if surface.weights.allSatisfy({ $0.allSatisfy { $0 == 1 } }) {
+                // Positive parameter scales cancel in the normalized normal.
+                guard let homogeneous = BernsteinVector4Surface(patch: patch),
+                      let u = homogeneous.xyz.derivativeU(parameterSpan: 1),
+                      let v = homogeneous.xyz.derivativeV(parameterSpan: 1) else { return nil }
+                return u.cross(v)
+            }
+            // Remove the common positive W factor before comparing normals:
+            // (W*Pu-P*Wu) x (W*Pv-P*Wv)
+            // = W * (W*(Pu x Pv) - Wv*(Pu x P) - Wu*(P x Pv)).
+            // This preserves direction while avoiding unnecessary product degree.
+            guard let h = BernsteinVector4Surface(patch: patch),
+                  let u = h.derivativeU(parameterSpan: 1),
+                  let v = h.derivativeV(parameterSpan: 1),
+                  let leading = u.xyz.cross(v.xyz)?.multiplied(by: h.weight),
+                  let first = u.xyz.cross(h.xyz)?.multiplied(by: v.weight),
+                  let second = h.xyz.cross(v.xyz)?.multiplied(by: u.weight) else { return nil }
+            return leading.subtracting(first)?.subtracting(second)
+        }
+        guard let firstNormal = normal(first)?.boundary(firstBoundary, reversed: false),
+              let secondNormal = normal(second)?.boundary(secondBoundary, reversed: reverseSecond),
+              let cross = firstNormal.cross(secondNormal) else { return nil }
+        let a = firstNormal.enclosure, b = secondNormal.enclosure, c = cross.enclosure
+        let denominator = OutwardScalarInterval(lower: a.lengthLowerBound, upper: a.lengthUpperBound)
+            * OutwardScalarInterval(lower: b.lengthLowerBound, upper: b.lengthUpperBound)
+        guard denominator.lower > 0,
+              let ratio = OutwardScalarInterval(lower: c.lengthLowerBound, upper: c.lengthUpperBound)
+                .divided(by: denominator), ratio.isFinite else { return nil }
+        return try ScalarInterval(lower: max(0, ratio.lower), upper: min(1, ratio.upper))
     }
 
     init(patch: RationalBezierSurfacePatch3D,
@@ -313,6 +367,11 @@ private struct BernsteinVector3Surface {
         return Self(x: x, y: y, z: z)
     }
 
+    func boundary(_ side: SurfaceParameterBoundary, reversed: Bool) -> BernsteinVector3Surface {
+        BernsteinVector3Surface(x: x.boundary(side, reversed: reversed),
+            y: y.boundary(side, reversed: reversed), z: z.boundary(side, reversed: reversed))
+    }
+
     func derivativeU(parameterSpan: Double) -> BernsteinVector3Surface? {
         guard let x = x.derivativeU(parameterSpan: parameterSpan),
               let y = y.derivativeU(parameterSpan: parameterSpan),
@@ -412,6 +471,23 @@ private struct BernsteinScalarSurface {
         }
         // Removing a known factor keeps a nonempty rectangular coefficient net.
         return Self(coefficients: result)
+    }
+
+    private init(boundaryCoefficients: [OutwardScalarInterval]) {
+        coefficients = [boundaryCoefficients]
+        uDegree = boundaryCoefficients.count - 1
+        vDegree = 0
+    }
+
+    func boundary(_ side: SurfaceParameterBoundary, reversed: Bool) -> BernsteinScalarSurface {
+        let values: [OutwardScalarInterval]
+        switch side {
+        case .uLower: values = coefficients.map { $0[0] }
+        case .uUpper: values = coefficients.map { $0[uDegree] }
+        case .vLower: values = coefficients[0]
+        case .vUpper: values = coefficients[vDegree]
+        }
+        return BernsteinScalarSurface(boundaryCoefficients: reversed ? Array(values.reversed()) : values)
     }
 
     init?(coefficients: [[OutwardScalarInterval]]) {

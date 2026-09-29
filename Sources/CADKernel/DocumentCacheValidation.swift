@@ -220,6 +220,8 @@ private func surfaceSignature(_ surface: Surface3D) throws -> String {
       try curveSignature(surface.startBoundary),
       try curveSignature(surface.endBoundary),
     ].joined(separator: ",")
+  case .procedural(.rollingBall(let surface)):
+    return "proceduralRollingBall," + (try canonicalEncodingSignature(surface))
   }
 }
 

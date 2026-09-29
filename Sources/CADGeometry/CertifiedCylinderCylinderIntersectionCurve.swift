@@ -1456,9 +1456,9 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
             + CurveTaylorScalarJet(
                 value: usesLowerEndpoint ? -correctionSlope : correctionSlope
             )
-        let oppositeDistance = CurveTaylorScalarJet(value: span) - distance
+        let startDistance = CurveTaylorScalarJet(value: span) - distance
         return try numerator.divided(
-            by: oppositeDistance,
+            by: startDistance,
             tolerance: tolerance,
             diagnosticContext: context
         ).validated(tolerance: tolerance, diagnosticContext: context)
@@ -1632,17 +1632,17 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
                 second: 0.0
             )
         )
-        let oppositeDistance = span - distance
-        guard oppositeDistance > 0.0 else {
+        let startDistance = span - distance
+        guard startDistance > 0.0 else {
             throw KernelError(
                 phase: .geometry,
                 code: .singularSystem,
-                residual: oppositeDistance,
+                residual: startDistance,
                 tolerance: tolerance,
                 message: "A bounded cylinder-cylinder factor lost its opposite-endpoint denominator."
             )
         }
-        let inverse = 1.0 / oppositeDistance
+        let inverse = 1.0 / startDistance
         let firstWithRespectToDistance = numerator.first * inverse
             + numerator.value * inverse * inverse
         let secondWithRespectToDistance = numerator.second * inverse

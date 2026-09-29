@@ -3,6 +3,42 @@ import CADCore
 import Testing
 
 struct OffsetSurfaceLiftDerivativeBoundsTests {
+    @Test
+    func narrowPullbackBoundsDoNotConstructAnInvalidShortImage() throws {
+        let tolerance = ModelingTolerance(distance: 1e-6, angle: 1e-8, relative: 1e-9)
+        let source = Surface3D.analytic(.sphere(center: .origin, radius: 2))
+        let image = try OffsetSurface3D(source: source, distance: -0.2)
+            .parameterCurvePullback(
+                transporting: .affine(origin: Point2D(x: 0, y: 0.1),
+                                     direction: Point2D(x: 1, y: 0),
+                                     startParameter: 0.7, endParameter: 0.8),
+                tolerance: tolerance
+            )
+        let lift = SurfaceLiftCurve3D(surface: source, parameterCurve: .offsetSurfaceImage(image))
+        try lift.validate(tolerance: tolerance)
+        let interval = try ScalarInterval(lower: 0.499999, upper: 0.500001)
+        #expect(throws: GeometryError.self) {
+            try image.subcurve(fromNormalizedFraction: interval.lower,
+                               toNormalizedFraction: interval.upper, tolerance: tolerance)
+        }
+        let bounder = SurfaceLiftDifferentialBounder()
+        let first = try #require(try bounder.firstDerivativeMagnitude(
+            lift: lift, interval: interval, tolerance: tolerance))
+        let second = try #require(try bounder.secondDerivativeMagnitude(
+            lift: lift, interval: interval, tolerance: tolerance))
+        let third = try #require(try bounder.thirdDerivativeMagnitude(
+            lift: lift, interval: interval, tolerance: tolerance))
+        #expect(first.isFinite && second.isFinite && third.isFinite)
+        let box = try lift.boundingBox(over: interval, tolerance: tolerance)
+        for fraction in [interval.lower, interval.midpoint, interval.upper] {
+            let differential = try lift.differentialGeometry(
+                atNormalizedFraction: fraction, tolerance: tolerance)
+            #expect(differential.firstDerivative.length <= first)
+            #expect(differential.secondDerivative.length <= second)
+            #expect(box.contains(differential.position, tolerance: tolerance.distance))
+        }
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func offsetBoundaryBoundsEncloseActualDerivatives() throws {
         let tolerance = ModelingTolerance.standard

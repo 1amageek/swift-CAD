@@ -3,9 +3,24 @@ import CADCore
 public enum ProceduralSurface3D: Codable, Hashable, Sendable {
     case offset(OffsetSurface3D)
     case ruled(RuledSurface3D)
+    case rollingBall(RollingBallBlendSurface3D)
+
+    /// Finds the certified closest point on a finite procedural parameter domain.
+    package func closestParameterProjection(
+        of point: Point3D,
+        options: SurfaceParameterProjectionOptions,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterProjection {
+        try ProceduralSurfaceParameterProjector().closestProjection(
+            of: point, on: .procedural(self), options: options, tolerance: tolerance
+        )
+    }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        try tolerance.validate()
         switch self {
+        case let .rollingBall(surface):
+            try surface.validate()
         case let .offset(surface):
             try surface.validate(tolerance: tolerance)
         case let .ruled(surface):
@@ -15,6 +30,8 @@ public enum ProceduralSurface3D: Codable, Hashable, Sendable {
 
     public var uDomain: ParameterDomain {
         switch self {
+        case let .rollingBall(surface):
+            surface.uDomain
         case let .offset(surface):
             surface.uDomain
         case let .ruled(surface):
@@ -24,6 +41,8 @@ public enum ProceduralSurface3D: Codable, Hashable, Sendable {
 
     public var vDomain: ParameterDomain {
         switch self {
+        case let .rollingBall(surface):
+            surface.vDomain
         case let .offset(surface):
             surface.vDomain
         case let .ruled(surface):
@@ -37,6 +56,8 @@ public enum ProceduralSurface3D: Codable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> Point3D {
         switch self {
+        case let .rollingBall(surface):
+            try surface.point(u: u, v: v)
         case let .offset(surface):
             try surface.point(u: u, v: v, tolerance: tolerance)
         case let .ruled(surface):
@@ -50,6 +71,8 @@ public enum ProceduralSurface3D: Codable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterDerivatives {
         switch self {
+        case let .rollingBall(surface):
+            try surface.parameterDerivatives(atU: u, v: v)
         case let .offset(surface):
             try surface.parameterDerivatives(
                 atU: u,
@@ -71,6 +94,8 @@ public enum ProceduralSurface3D: Codable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterThirdOrderDerivatives {
         switch self {
+        case let .rollingBall(surface):
+            try surface.parameterDerivativesThroughThirdOrder(atU: u, v: v)
         case let .offset(surface):
             try surface.parameterDerivativesThroughThirdOrder(
                 atU: u,
@@ -92,6 +117,10 @@ public enum ProceduralSurface3D: Codable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterProjectionResult {
         switch self {
+        case let .rollingBall(surface):
+            try ProceduralSurfaceParameterProjector().parameterProjectionResult(
+                of: point, on: surface, options: options, tolerance: tolerance
+            )
         case let .offset(surface):
             try ProceduralSurfaceParameterProjector().parameterProjectionResult(
                 of: point,
@@ -116,6 +145,8 @@ public enum ProceduralSurface3D: Codable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> SurfaceTaylorVectorJet {
         switch self {
+        case let .rollingBall(surface):
+            try surface.taylorJet(atU: u, v: v, throughOrder: order)
         case let .offset(surface):
             try surface.taylorJet(
                 atU: u,
@@ -138,6 +169,8 @@ public enum ProceduralSurface3D: Codable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> SurfaceIntervalVectorJet {
         switch self {
+        case let .rollingBall(surface):
+            try surface.intervalJet(over: parameters)
         case let .offset(surface):
             try surface.intervalJet(
                 over: parameters,
@@ -157,6 +190,8 @@ public enum ProceduralSurface3D: Codable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> Surface3D? {
         switch self {
+        case .rollingBall:
+            return nil
         case let .offset(surface):
             return try surface.exactChartPreservingSurface(tolerance: tolerance)
         case let .ruled(surface):

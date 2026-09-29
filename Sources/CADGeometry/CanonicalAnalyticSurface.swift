@@ -62,7 +62,7 @@ enum CanonicalAnalyticSurface: Sendable {
                 majorRadius: majorRadius,
                 minorRadius: minorRadius
             ))
-        case .bSpline, .procedural(.ruled):
+        case .bSpline, .procedural(.ruled), .procedural(.rollingBall):
             self = .unsupported
         case let .procedural(.offset(offset)):
             switch CanonicalAnalyticSurface(offset.source) {

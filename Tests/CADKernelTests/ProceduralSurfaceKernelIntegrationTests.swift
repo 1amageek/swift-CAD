@@ -3,6 +3,7 @@ import CADGeometry
 import CADIR
 import CADModeling
 import CADTopology
+import Foundation
 import Testing
 @testable import CADKernel
 
@@ -363,6 +364,56 @@ struct ProceduralSurfaceKernelIntegrationTests {
         )
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func rollingBallPatchRetainsNativeGeometryThroughSewingAndTessellation() throws {
+        let sphere = OffsetSurface3D(
+            source: .analytic(.sphere(center: .origin, radius: 2)), distance: -0.2
+        )
+        let plane = OffsetSurface3D(
+            source: .plane(Plane3D(origin: .origin, normal: .unitZ)), distance: 0.2
+        )
+        let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+            first: .procedural(.offset(sphere)), second: .procedural(.offset(plane)),
+            tolerance: tolerance
+        )
+        guard case let .curve(component) = try #require(intersections.first) else {
+            Issue.record("The blend requires an offset intersection curve.")
+            return
+        }
+        let evaluator = try RollingBallSectionEvaluator(
+            first: sphere, second: plane, intersection: component, tolerance: tolerance
+        )
+        let blend = try evaluator.blendSurface(
+            fromCurveParameter: 0.7, toCurveParameter: 0.8,
+            options: .init(maximumSubdivisionDepth: 20, maximumCellCount: 65_536)
+        )
+        let fixture = try makeFixture(
+            stablePrefix: "rolling-ball",
+            parameters: [.init(u: 0, v: 0), .init(u: 1, v: 0),
+                         .init(u: 1, v: 1), .init(u: 0, v: 1)],
+            pcurves: [.constantV(v: 0, uStart: 0, uEnd: 1),
+                      .constantU(u: 1, vStart: 0, vEnd: 1),
+                      .constantV(v: 1, uStart: 1, uEnd: 0),
+                      .constantU(u: 0, vStart: 1, vEnd: 0)],
+            surface: .procedural(.rollingBall(blend))
+        )
+        try fixture.document.brep.validate(level: .exact, tolerance: tolerance)
+        let meshes = try MeshTessellator(tolerance: tolerance).tessellate(
+            model: fixture.document.brep,
+            options: .init(linearTolerance: 0.005, angularTolerance: 0.1, maxEdgeLength: 0.1)
+        )
+        let mesh = try #require(meshes.values.first)
+        #expect(mesh.positions.count > 4)
+        #expect(mesh.indices.count > 6)
+        #expect(mesh.normals.count == mesh.positions.count)
+        let majorRadius = sqrt(1.8 * 1.8 - 0.04)
+        for point in mesh.positions {
+            let radial = hypot(point.x, point.y) - majorRadius
+            #expect(abs(radial * radial + pow(point.z - 0.2, 2) - 0.04) <= tolerance.distance)
+        }
+        #expect(mesh.normals.allSatisfy { abs($0.length - 1) <= tolerance.distance })
+    }
+
     private func makeTriangularFixture() throws -> Fixture {
         try makeFixture(
             stablePrefix: "procedural-triangle",
@@ -387,10 +438,11 @@ struct ProceduralSurfaceKernelIntegrationTests {
     private func makeFixture(
         stablePrefix: String,
         parameters: [SurfaceParameter],
-        pcurves: [SurfaceParameterCurve]
+        pcurves: [SurfaceParameterCurve],
+        surface suppliedSurface: Surface3D? = nil
     ) throws -> Fixture {
         let featureID = FeatureID()
-        let surface = Surface3D.procedural(.offset(OffsetSurface3D(
+        let surface = suppliedSurface ?? Surface3D.procedural(.offset(OffsetSurface3D(
             source: .bSpline(makeParabolicCylinder()),
             distance: 0.2
         )))

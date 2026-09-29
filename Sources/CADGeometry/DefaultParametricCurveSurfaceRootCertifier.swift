@@ -28,6 +28,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
   private struct Session: ParametricCurveSurfaceRootCertificationSession {
     let certifier: DefaultParametricCurveSurfaceRootCertifier
     let curve: Curve3D
+    let validatedCurve: ValidatedCurve3D
     let surface: Surface3D
     let preparedCurve: PreparedCurveDifferentialEncloser
     let preparedSurface: PreparedSurfaceDifferentialEncloser
@@ -38,6 +39,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
     ) throws -> ParametricCurveSurfaceRootCertificate {
       try certifier.certificate(
         curve: curve,
+        validatedCurve: validatedCurve,
         surface: surface,
         preparedCurve: preparedCurve,
         preparedSurface: preparedSurface,
@@ -53,6 +55,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
     ) throws -> ParametricCurveSurfaceRootCertificate {
       try certifier.boundaryCertificate(
         curve: curve,
+        validatedCurve: validatedCurve,
         surface: surface,
         preparedCurve: preparedCurve,
         preparedSurface: preparedSurface,
@@ -85,6 +88,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
     return Session(
       certifier: self,
       curve: curve,
+      validatedCurve: try ValidatedCurve3D(curve, tolerance: tolerance),
       surface: surface,
       preparedCurve: preparedCurve,
       preparedSurface: preparedSurface
@@ -93,6 +97,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
 
   private func certificate(
     curve: Curve3D,
+    validatedCurve: ValidatedCurve3D,
     surface: Surface3D,
     preparedCurve: PreparedCurveDifferentialEncloser,
     preparedSurface: PreparedSurfaceDifferentialEncloser,
@@ -100,7 +105,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
     tolerance: ModelingTolerance
   ) throws -> ParametricCurveSurfaceRootCertificate {
     guard
-      let curveDerivative = try curveDerivativeRange(
+      let curveDerivative = try cell.curveDerivative ?? curveDerivativeRange(
         curve: curve,
         prepared: preparedCurve,
         interval: cell.curve,
@@ -117,10 +122,9 @@ struct DefaultParametricCurveSurfaceRootCertifier:
       vInterval: cell.surfaceV,
       tolerance: tolerance
     )
-    let curveGeometry = try curve.differentialGeometry(
-      at: cell.curve.midpoint,
-      tolerance: tolerance
-    )
+    let admittedCurve = try tolerance == validatedCurve.tolerance
+      ? validatedCurve : ValidatedCurve3D(curve, tolerance: tolerance)
+    let curveGeometry = try admittedCurve.differentialGeometry(at: cell.curve.midpoint)
     let surfaceGeometry = try surface.parameterDerivatives(
       atU: cell.surfaceU.midpoint,
       v: cell.surfaceV.midpoint,
@@ -219,6 +223,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
 
   private func boundaryCertificate(
     curve: Curve3D,
+    validatedCurve: ValidatedCurve3D,
     surface: Surface3D,
     preparedCurve: PreparedCurveDifferentialEncloser,
     preparedSurface: PreparedSurfaceDifferentialEncloser,
@@ -239,7 +244,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
     else {
       return .unresolved
     }
-    let curveDerivative = try curveDerivativeRange(
+    let curveDerivative = try cell.curveDerivative ?? curveDerivativeRange(
       curve: curve,
       prepared: preparedCurve,
       interval: cell.curve,
@@ -254,10 +259,9 @@ struct DefaultParametricCurveSurfaceRootCertifier:
       vInterval: cell.surfaceV,
       tolerance: tolerance
     )
-    let curveGeometry = try curve.differentialGeometry(
-      at: witness.curveParameter,
-      tolerance: tolerance
-    )
+    let admittedCurve = try tolerance == validatedCurve.tolerance
+      ? validatedCurve : ValidatedCurve3D(curve, tolerance: tolerance)
+    let curveGeometry = try admittedCurve.differentialGeometry(at: witness.curveParameter)
     let surfaceGeometry = try surface.parameterDerivatives(
       atU: witness.surfaceU,
       v: witness.surfaceV,
@@ -376,6 +380,9 @@ struct DefaultParametricCurveSurfaceRootCertifier:
     tolerance: ModelingTolerance
   ) throws -> CurveSpatialDerivativeRange? {
     if case .surfaceLift = curve {
+      if let range = try prepared.preparedSurfaceLiftDerivativeRange(
+        over: interval, tolerance: tolerance
+      ) { return range }
       return try curveDerivativeRangeResolver.derivativeRange(
         curve: curve,
         interval: interval,

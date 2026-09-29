@@ -290,10 +290,11 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
       + SurfaceIntervalVectorJet.constant(transform.basisZ) * jet.z
   }
 
-  private func directJet(
+  func directJet(
     _ curve: Curve3D,
     parameters: ScalarInterval,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    preparedImplicit: ImplicitCurveIntervalJetEncloser? = nil
   ) throws -> SurfaceIntervalVectorJet? {
     switch curve {
     case .line(let line):
@@ -324,9 +325,79 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
         parameters: parameters,
         tolerance: tolerance
       )
-    case .implicit, .surfaceLift, .certifiedIntersection, .rigidImage,
+    case .surfaceLift(let lift):
+      if case let .procedural(.ruled(ruled)) = lift.surface,
+        case let .constantV(v, start, end) = lift.parameterCurve,
+        start == 0, end == 1, v == 0 || v == 1 {
+        // Exact boundary identity precedes general surface composition.
+        return try thirdOrderIntervalJet(
+          of: v == 0 ? ruled.startBoundary : ruled.endBoundary,
+          over: parameters, tolerance: tolerance)
+      }
+      guard let uv = try parameterJets(lift.parameterCurve, over: parameters, tolerance: tolerance,
+        preparedImplicit: preparedImplicit) else { return nil }
+      let encloser = DefaultSurfaceDifferentialEncloser()
+      if let analytic = try encloser.analyticJet(
+        of: lift.surface, u: uv.u, v: uv.v, tolerance: tolerance
+      ) { return analytic }
+      let bounder = SurfaceLiftDifferentialBounder()
+      let box = try SurfaceParameterBox(
+        u: bounder.nondegenerateRange(ScalarInterval(lower: uv.u.value.lower, upper: uv.u.value.upper),
+            domain: lift.surface.uDomain, tolerance: tolerance),
+        v: bounder.nondegenerateRange(ScalarInterval(lower: uv.v.value.lower, upper: uv.v.value.upper),
+            domain: lift.surface.vDomain, tolerance: tolerance))
+      return try SurfaceParameterThirdOrderChainRule.intervalJet(
+        surface: encloser.intervalJet(of: lift.surface, over: box, tolerance: tolerance),
+        u: uv.u, v: uv.v)
+    case .implicit, .certifiedIntersection, .rigidImage,
       .affineImage:
       return nil
+    }
+  }
+
+  /// Composes numeric UV charts without materializing a new trimmed curve.
+  /// Both coordinates retain the same independent normalized curve parameter.
+  func parameterJets(
+    _ curve: SurfaceParameterCurve,
+    over parameters: ScalarInterval,
+    tolerance: ModelingTolerance,
+    preparedImplicit: ImplicitCurveIntervalJetEncloser? = nil
+  ) throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet)? {
+    switch curve {
+    case let .offsetSurfaceImage(image):
+      return try parameterJets(image.source, over: parameters, tolerance: tolerance, preparedImplicit: preparedImplicit)
+    case let .periodicTranslation(base, uShift, vShift):
+      guard let base = try parameterJets(base, over: parameters, tolerance: tolerance, preparedImplicit: preparedImplicit) else { return nil }
+      return (base.u + .constant(uShift), base.v + .constant(vShift))
+    case let .certifiedImplicit(implicit):
+      let span = OutwardScalarInterval(implicit.endFraction) - OutwardScalarInterval(implicit.startFraction)
+      let mapped = OutwardScalarInterval(implicit.startFraction)
+        + span * OutwardScalarInterval(lower: parameters.lower, upper: parameters.upper)
+      let lower = max(min(implicit.startFraction, implicit.endFraction), mapped.lower)
+      let upper = min(max(implicit.startFraction, implicit.endFraction), mapped.upper)
+      guard upper > lower else {
+        throw certificationFailure(tolerance: tolerance,
+          message: "Implicit lift interval mapping has no representable positive span.")
+      }
+      let local = CertifiedImplicitSurfaceParameterCurve(
+        validatedIntersection: implicit.intersection, role: implicit.role,
+        startFraction: lower, endFraction: upper)
+      let uv = try SurfaceLiftDifferentialBounder().implicitParameterBounds(local, tolerance: tolerance, prepared: preparedImplicit)
+      func jet(_ coordinate: CertifiedImplicitParameterIntervalJet.Coordinate) -> SurfaceIntervalJet {
+        func interval(_ value: ScalarInterval) -> OutwardScalarInterval {
+          OutwardScalarInterval(lower: value.lower, upper: value.upper)
+        }
+        let zero = OutwardScalarInterval(0)
+        return SurfaceIntervalJet(value: interval(coordinate.value),
+          derivativeU: interval(coordinate.firstDerivative) * span, derivativeV: zero,
+          secondDerivativeUU: interval(coordinate.secondDerivative) * span * span,
+          secondDerivativeUV: zero, secondDerivativeVV: zero,
+          thirdDerivativeUUU: interval(coordinate.thirdDerivative) * span * span * span,
+          thirdDerivativeUUV: zero, thirdDerivativeUVV: zero, thirdDerivativeVVV: zero)
+      }
+      return (jet(uv.u), jet(uv.v))
+    default:
+      return try SurfaceParameterIntervalJet.enclose(curve, over: parameters, tolerance: tolerance)
     }
   }
 

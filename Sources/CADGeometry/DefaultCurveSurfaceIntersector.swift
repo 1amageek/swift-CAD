@@ -1465,7 +1465,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         surface: equivalent,
         tolerance: tolerance
       )
-    case .procedural(.ruled):
+    case .procedural(.ruled), .procedural(.rollingBall):
       return nil
     }
   }
@@ -2003,14 +2003,13 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
 
   private func differentialCurveBounds(
     curve: Curve3D,
+    validatedCurve: ValidatedCurve3D? = nil,
     interval: ScalarInterval,
     secondDerivativeBound: Double,
     tolerance: ModelingTolerance
   ) throws -> BoundingBox3D {
-    let geometry = try curve.differentialGeometry(
-      at: interval.midpoint,
-      tolerance: tolerance
-    )
+    let admitted = try validatedCurve ?? ValidatedCurve3D(curve, tolerance: tolerance)
+    let geometry = try admitted.differentialGeometry(at: interval.midpoint)
     let halfWidth = (interval.width * 0.5).nextUp
     let arithmeticEnvelope =
       (Double.ulpOfOne
@@ -2407,14 +2406,13 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
 
   private func curveDerivativeRange(
     curve: Curve3D,
+    validatedCurve: ValidatedCurve3D? = nil,
     interval: ScalarInterval,
     secondDerivativeBound: Double,
     tolerance: ModelingTolerance
   ) throws -> IntervalVector3 {
-    let derivative = try curve.differentialGeometry(
-      at: interval.midpoint,
-      tolerance: tolerance
-    ).firstDerivative
+    let admitted = try validatedCurve ?? ValidatedCurve3D(curve, tolerance: tolerance)
+    let derivative = try admitted.differentialGeometry(at: interval.midpoint).firstDerivative
     let radius = (secondDerivativeBound * interval.width * 0.5).nextUp
     return try IntervalVector3(
       x: outwardInterval([derivative.x - radius, derivative.x + radius]),
@@ -2632,6 +2630,27 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     )
     let rootCell = ParameterCell(t: curveRange, u: uRange, v: vRange, depth: 0)
     var pending = [rootCell]
+    let validatedCurve = try ValidatedCurve3D(curve, tolerance: tolerance)
+    if case .implicit(let implicit) = curve {
+      let breaks = (1..<implicit.cells.count).map { Double($0) / Double(implicit.cells.count) }
+        .filter { $0 > curveRange.lower && $0 < curveRange.upper }
+      let partition = [curveRange.lower] + breaks + [curveRange.upper]
+      guard partition.count - 1 <= options.maximumSubdivisionCells else {
+        throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+          message: "Implicit graph cells exceed the curve-surface subdivision budget.")
+      }
+      pending.removeAll(keepingCapacity: true)
+      for index in (1..<partition.count).reversed() {
+        let interval = try ScalarInterval(lower: partition[index - 1], upper: partition[index])
+        let jet = try preparedCurveBounds.thirdOrderIntervalJet(over: interval, tolerance: tolerance)
+        let second = [jet.x.secondDerivativeUU, jet.y.secondDerivativeUU, jet.z.secondDerivativeUU]
+          .map { max(abs($0.lower), abs($0.upper)) }
+        let bound = ((second[0] + second[1]).nextUp + second[2]).nextUp
+        guard bound.isFinite else { throw intervalArithmeticFailure() }
+        pending.append(ParameterCell(t: interval, u: uRange, v: vRange, depth: 0,
+          secondDerivativeBound: bound))
+      }
+    }
     var candidates: [AdaptiveCandidate] = []
     var remainingCells = options.maximumSubdivisionCells
     var remainingCandidates = options.maximumCandidateCount
@@ -2646,12 +2665,33 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         )
       }
       remainingCells -= 1
-      let curveBounds =
-        try cell.curveBounds
-        ?? preparedCurveBounds.boundingBox(
+      let curveBounds: BoundingBox3D
+      let curveDerivative: CurveSpatialDerivativeRange
+      if let bounds = cell.curveBounds, let derivative = cell.curveDerivative {
+        curveBounds = bounds
+        curveDerivative = derivative
+      } else if let second = cell.secondDerivativeBound {
+        curveBounds = try differentialCurveBounds(curve: curve, validatedCurve: validatedCurve,
+          interval: cell.t, secondDerivativeBound: second, tolerance: tolerance)
+          .expanded(by: tolerance.distance)
+        let derivative = try curveDerivativeRange(curve: curve, validatedCurve: validatedCurve,
+          interval: cell.t, secondDerivativeBound: second, tolerance: tolerance)
+        curveDerivative = CurveSpatialDerivativeRange(x: derivative.x, y: derivative.y, z: derivative.z)
+      } else {
+        let jet = try preparedCurveBounds.thirdOrderIntervalJet(
           over: cell.t,
           tolerance: tolerance
         )
+        curveBounds = try BoundingBox3D(
+          minimum: Point3D(x: jet.x.value.lower, y: jet.y.value.lower, z: jet.z.value.lower),
+          maximum: Point3D(x: jet.x.value.upper, y: jet.y.value.upper, z: jet.z.value.upper)
+        ).expanded(by: tolerance.distance)
+        curveDerivative = CurveSpatialDerivativeRange(
+          x: try ScalarInterval(lower: jet.x.derivativeU.lower, upper: jet.x.derivativeU.upper),
+          y: try ScalarInterval(lower: jet.y.derivativeU.lower, upper: jet.y.derivativeU.upper),
+          z: try ScalarInterval(lower: jet.z.derivativeU.lower, upper: jet.z.derivativeU.upper)
+        )
+      }
       let surfaceBounds =
         try cell.surfaceBounds
         ?? preparedSurfaceBounds.boundingBox(
@@ -2666,7 +2706,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
           curve: cell.t,
           surfaceU: cell.u,
           surfaceV: cell.v,
-          surfacePatches: bSplineSurfacePatches
+          surfacePatches: bSplineSurfacePatches,
+          curveDerivative: curveDerivative
         ),
         tolerance: tolerance
       )
@@ -2805,6 +2846,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         cell,
         root: rootCell,
         curveBounds: curveBounds,
+        curveDerivative: curveDerivative,
         surfaceBounds: surfaceBounds
       )
       pending.append(contentsOf: children.reversed())
@@ -4151,6 +4193,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     _ cell: ParameterCell,
     root: ParameterCell,
     curveBounds: BoundingBox3D,
+    curveDerivative: CurveSpatialDerivativeRange,
     surfaceBounds: BoundingBox3D
   ) throws -> [ParameterCell] {
     let tScale = cell.t.width / root.t.width
@@ -4164,6 +4207,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
           u: cell.u,
           v: cell.v,
           depth: cell.depth + 1,
+          secondDerivativeBound: cell.secondDerivativeBound,
           surfaceBounds: surfaceBounds
         ),
         ParameterCell(
@@ -4171,6 +4215,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
           u: cell.u,
           v: cell.v,
           depth: cell.depth + 1,
+          secondDerivativeBound: cell.secondDerivativeBound,
           surfaceBounds: surfaceBounds
         ),
       ]
@@ -4183,14 +4228,18 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
           u: try ScalarInterval(lower: cell.u.lower, upper: midpoint),
           v: cell.v,
           depth: cell.depth + 1,
-          curveBounds: curveBounds
+          secondDerivativeBound: cell.secondDerivativeBound,
+          curveBounds: curveBounds,
+          curveDerivative: curveDerivative
         ),
         ParameterCell(
           t: cell.t,
           u: try ScalarInterval(lower: midpoint, upper: cell.u.upper),
           v: cell.v,
           depth: cell.depth + 1,
-          curveBounds: curveBounds
+          secondDerivativeBound: cell.secondDerivativeBound,
+          curveBounds: curveBounds,
+          curveDerivative: curveDerivative
         ),
       ]
     }
@@ -4201,14 +4250,18 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         u: cell.u,
         v: try ScalarInterval(lower: cell.v.lower, upper: midpoint),
         depth: cell.depth + 1,
-        curveBounds: curveBounds
+        secondDerivativeBound: cell.secondDerivativeBound,
+        curveBounds: curveBounds,
+        curveDerivative: curveDerivative
       ),
       ParameterCell(
         t: cell.t,
         u: cell.u,
         v: try ScalarInterval(lower: midpoint, upper: cell.v.upper),
         depth: cell.depth + 1,
-        curveBounds: curveBounds
+        secondDerivativeBound: cell.secondDerivativeBound,
+        curveBounds: curveBounds,
+        curveDerivative: curveDerivative
       ),
     ]
   }
@@ -4825,14 +4878,18 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     let v: ScalarInterval
     let depth: Int
     let curveBounds: BoundingBox3D?
+    let curveDerivative: CurveSpatialDerivativeRange?
     let surfaceBounds: BoundingBox3D?
+    let secondDerivativeBound: Double?
 
     init(
       t: ScalarInterval,
       u: ScalarInterval,
       v: ScalarInterval,
       depth: Int,
+      secondDerivativeBound: Double? = nil,
       curveBounds: BoundingBox3D? = nil,
+      curveDerivative: CurveSpatialDerivativeRange? = nil,
       surfaceBounds: BoundingBox3D? = nil
     ) {
       self.t = t
@@ -4840,7 +4897,9 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       self.v = v
       self.depth = depth
       self.curveBounds = curveBounds
+      self.curveDerivative = curveDerivative
       self.surfaceBounds = surfaceBounds
+      self.secondDerivativeBound = secondDerivativeBound
     }
   }
 

@@ -9,6 +9,7 @@ struct PreparedCurveDifferentialEncloser: Sendable {
       CertifiedImplicitIntersectionCurve,
       ImplicitCurveIntervalJetEncloser
     )
+    case implicitLift(Curve3D, ImplicitCurveIntervalJetEncloser)
     case rigid(
       RigidTransform3D,
       source: PreparedCurveDifferentialEncloser
@@ -60,7 +61,22 @@ struct PreparedCurveDifferentialEncloser: Sendable {
           tolerance: tolerance
         )
       )
-    case .line, .circle, .analytic, .surfaceLift, .certifiedIntersection:
+    case .surfaceLift(let lift):
+      var parameterCurve = lift.parameterCurve
+      unwrap: while true {
+        switch parameterCurve {
+        case .offsetSurfaceImage(let image): parameterCurve = image.source
+        case .periodicTranslation(let base, _, _): parameterCurve = base
+        default: break unwrap
+        }
+      }
+      if case .certifiedImplicit(let implicit) = parameterCurve {
+        storage = .implicitLift(curve, try ImplicitCurveIntervalJetEncloser(
+          intersection: implicit.intersection, tolerance: tolerance))
+      } else {
+        storage = .direct(curve)
+      }
+    case .line, .circle, .analytic, .certifiedIntersection:
       storage = .direct(curve)
     }
   }
@@ -89,6 +105,14 @@ struct PreparedCurveDifferentialEncloser: Sendable {
         over: parameters,
         tolerance: tolerance
       )
+    case .implicitLift(let curve, let encloser):
+      guard let jet = try DefaultCurveDifferentialEncloser().directJet(
+        curve, parameters: parameters, tolerance: tolerance, preparedImplicit: encloser
+      ) else {
+        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+          message: "A prepared implicit lift lost its direct parameter-jet representation.")
+      }
+      return jet
     case .rigid(let transform, let source):
       return transformed(
         try source.thirdOrderIntervalJet(
@@ -121,6 +145,14 @@ struct PreparedCurveDifferentialEncloser: Sendable {
       y: try scalarInterval(jet.y.derivativeU),
       z: try scalarInterval(jet.z.derivativeU)
     )
+  }
+
+  func preparedSurfaceLiftDerivativeRange(
+    over parameters: ScalarInterval,
+    tolerance: ModelingTolerance
+  ) throws -> CurveSpatialDerivativeRange? {
+    guard case .implicitLift = storage else { return nil }
+    return try derivativeRange(over: parameters, tolerance: tolerance)
   }
 
   func boundingBox(

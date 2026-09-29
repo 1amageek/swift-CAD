@@ -1610,7 +1610,7 @@ struct ExactIGESWriter {
           "\(basis)",
         ].joined(separator: ",") + ";"
       )
-    case .procedural(.ruled):
+    case .procedural(.ruled), .procedural(.rollingBall):
       let representation = try ExactExchangeSurfaceRepresentationResolver()
         .resolve(surface, tolerance: tolerance)
       guard representation != surface else {

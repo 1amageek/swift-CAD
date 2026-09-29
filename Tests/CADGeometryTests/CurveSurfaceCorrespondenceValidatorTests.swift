@@ -5,6 +5,134 @@ import Foundation
 
 @Suite("Certified curve-surface correspondence")
 struct CurveSurfaceCorrespondenceValidatorTests {
+    @Test(.timeLimit(.minutes(1)))
+    func implicitSplineTransferRefinesWithinSpanBudget() throws {
+        let tolerance = ModelingTolerance.standard
+        func surface(graph: Bool) -> Surface3D {
+            .bSpline(BSplineSurface3D(uDegree: 4, vDegree: 1,
+                uKnots: Array(repeating: 0, count: 5) + Array(repeating: 1, count: 5),
+                vKnots: [0, 0, 1, 1], controlPoints: (0...1).map { v in
+                    (0...4).map { u in Point3D(x: Double(u) / 4, y: Double(v),
+                        z: graph ? Double(v) - (u == 4 ? 1 : 0) : 0) }
+                }))
+        }
+        let first = surface(graph: false)
+        let second = surface(graph: true)
+        func anchor(_ u: Double) throws -> SurfaceIntersectionParameterPair {
+            let uv = SurfaceParameter(u: u, v: u * u * u * u)
+            return try SurfaceIntersectionParameterPair(first: uv, second: uv)
+        }
+        let cell = try CertifiedImplicitIntersectionGraphCell(
+            parameterBox: SurfaceIntersectionParameterBox(
+                firstU: ScalarInterval(lower: 0.4, upper: 0.6),
+                firstV: ScalarInterval(lower: 0, upper: 0.2),
+                secondU: ScalarInterval(lower: 0.3, upper: 0.7),
+                secondV: ScalarInterval(lower: 0, upper: 0.2)),
+            freeParameter: .firstU, direction: .forward,
+            lowerAnchor: anchor(0.4), midpointAnchor: anchor(0.5), upperAnchor: anchor(0.6),
+            firstSurface: first, secondSurface: second, tolerance: tolerance)
+        let implicit = try CertifiedImplicitIntersectionCurve(firstSurface: first, secondSurface: second,
+            cells: [cell], isClosed: false, tolerance: tolerance)
+        #expect(throws: KernelError.self) {
+            try implicit.transferredParameterCurve(on: .first, to: first,
+                maximumSpanCount: 1, options: options, tolerance: tolerance)
+        }
+        let transfer = try implicit.transferredParameterCurve(on: .first, to: first,
+            maximumSpanCount: 16, options: options, tolerance: tolerance)
+        guard case .bSpline(let spline) = transfer else {
+            Issue.record("Transfer must retain its verified spline."); return
+        }
+        #expect(spline.controlPoints.count > 4)
+        for fraction in stride(from: 0.0, through: 1.0, by: 0.0625) {
+            let point = try transfer.parameter(atNormalizedFraction: fraction, tolerance: tolerance)
+            #expect(abs(point.v - pow(point.u, 4)) <= tolerance.distance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func implicitCurveAcceptsVerifiedSplinePcurveAndRejectsDisplacement() throws {
+        let tolerance = ModelingTolerance.standard
+        func surface(vertical: Bool) -> Surface3D {
+            .bSpline(BSplineSurface3D(uDegree: 1, vDegree: 1,
+                uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+                controlPoints: (0...1).map { v in (0...1).map { u in
+                    Point3D(x: Double(u), y: vertical ? 0.5 : Double(v),
+                            z: vertical ? Double(v) - 0.5 : 0)
+                } }))
+        }
+        let first = surface(vertical: false)
+        let second = surface(vertical: true)
+        func anchor(_ u: Double) throws -> SurfaceIntersectionParameterPair {
+            try SurfaceIntersectionParameterPair(first: .init(u: u, v: 0.5), second: .init(u: u, v: 0.5))
+        }
+        let cell = try CertifiedImplicitIntersectionGraphCell(
+            parameterBox: SurfaceIntersectionParameterBox(
+                firstU: ScalarInterval(lower: 0.25, upper: 0.75),
+                firstV: ScalarInterval(lower: 0.2, upper: 0.8),
+                secondU: ScalarInterval(lower: 0.2, upper: 0.8),
+                secondV: ScalarInterval(lower: 0.2, upper: 0.8)),
+            freeParameter: .firstU, direction: .forward,
+            lowerAnchor: anchor(0.25), midpointAnchor: anchor(0.5), upperAnchor: anchor(0.75),
+            firstSurface: first, secondSurface: second, tolerance: tolerance)
+        let curve = Curve3D.implicit(try CertifiedImplicitIntersectionCurve(
+            firstSurface: first, secondSurface: second, cells: [cell], isClosed: false, tolerance: tolerance))
+        guard case .implicit(let implicit) = curve else { return }
+        for (role, target) in [(SurfaceIntersectionSurfaceRole.first, first), (.second, second)] {
+            let transferred = try implicit.transferredParameterCurve(on: role, to: target,
+                maximumSpanCount: 1, options: options, tolerance: tolerance)
+            try transferred.validate(on: target, tolerance: tolerance)
+        }
+        #expect(throws: KernelError.self) {
+            try implicit.transferredParameterCurve(on: .first, to: first,
+                maximumSpanCount: 0, options: options, tolerance: tolerance)
+        }
+        #expect(throws: KernelError.self) {
+            try implicit.transferredParameterCurve(on: .first,
+                to: .plane(Plane3D(origin: .origin, normal: .unitZ)),
+                maximumSpanCount: 1, options: options, tolerance: tolerance)
+        }
+        func pcurve(_ displacement: Double, reversed: Bool) -> SurfaceParameterCurve {
+            .bSpline(BSplineCurve2D(degree: 1, knots: [0, 0, 1, 1],
+                controlPoints: (reversed ? [0.75, 0.25] : [0.25, 0.75]).map {
+                    Point2D(x: $0, y: 0.5 + displacement)
+                }))
+        }
+        let validator = DefaultCurveSurfaceCorrespondenceValidator()
+        let offset = OffsetSurface3D(source: first, distance: 0.1)
+        for reversed in [false, true] {
+            let certified = SurfaceParameterCurve.certifiedImplicit(try .init(
+                intersection: implicit, role: .first,
+                startFraction: reversed ? 0.8 : 0.2, endFraction: reversed ? 0.2 : 0.8,
+                tolerance: tolerance))
+            let image = try offset.parameterCurveImage(transporting: certified, tolerance: tolerance)
+            let target = try image.targetSurface(tolerance: tolerance)
+            let start = Point3D(x: reversed ? 0.65 : 0.35, y: 0.5, z: 0.1)
+            let end = Point3D(x: reversed ? 0.35 : 0.65, y: 0.5, z: 0.1)
+            let line = Curve3D.bSpline(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+                controlPoints: [start, end]))
+            try validator.validate(curve: line, from: 0, to: 1, surface: target,
+                parameterCurve: .offsetSurfaceImage(image), options: options, tolerance: tolerance)
+            let bowed = Curve3D.bSpline(BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+                controlPoints: [start, Point3D(x: 0.5, y: 0.5, z: 0.2), end]))
+            #expect(throws: KernelError.self) {
+                try validator.validate(curve: bowed, from: 0, to: 1, surface: target,
+                    parameterCurve: .offsetSurfaceImage(image), options: options, tolerance: tolerance)
+            }
+            #expect(throws: KernelError.self) {
+                try validator.validate(curve: line, from: 0, to: 1, surface: first,
+                    parameterCurve: certified, options: options, tolerance: tolerance)
+            }
+        }
+        for reversed in [false, true] {
+            try validator.validate(curve: curve, from: reversed ? 1 : 0, to: reversed ? 0 : 1,
+                surface: first, parameterCurve: pcurve(0, reversed: reversed), options: options, tolerance: tolerance)
+        }
+        #expect(throws: KernelError.self) {
+            try validator.validate(curve: curve, from: 0, to: 1,
+                surface: first, parameterCurve: pcurve(0.01, reversed: false), options: options, tolerance: tolerance)
+        }
+    }
+
     private let options = CurveSurfaceCorrespondenceValidationOptions(
         maximumSubdivisionDepth: 32,
         maximumCellCount: 65_536

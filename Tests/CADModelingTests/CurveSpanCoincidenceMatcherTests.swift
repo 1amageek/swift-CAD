@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 import CADCore
 import CADGeometry
@@ -6,6 +7,39 @@ import CADTopology
 
 @Suite("Curve span coincidence matcher")
 struct CurveSpanCoincidenceMatcherTests {
+    @Test func nativeContactSpansMatchAcrossContinuedSupports() throws {
+        struct StoredSpan: Decodable {
+            let curve: Curve3D
+            let startParameter: Double
+            let endParameter: Double
+            let startPoint: Point3D
+            let endPoint: Point3D
+
+            var span: CurveSpanDefinition {
+                .init(curve: curve, startParameter: startParameter, endParameter: endParameter,
+                    startPoint: startPoint, endPoint: endPoint)
+            }
+        }
+        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .appendingPathComponent("Fixtures/NativeContactSpans.json")
+        let pairs = try JSONDecoder().decode([[StoredSpan]].self, from: Data(contentsOf: url))
+        let tolerance = ModelingTolerance(distance: 1e-8, angle: 1e-10, relative: 1e-10)
+        let matcher = CurveSpanCoincidenceMatcher()
+        #expect(pairs.count == 2)
+        for pair in pairs {
+            try #require(pair.count == 2)
+            for index in 0...1 {
+                let first = pair[index].span, second = pair[1 - index].span
+                #expect(try matcher.matches(first, second, orientation: .reversed, tolerance: tolerance))
+                let reversed = CurveSpanDefinition(curve: first.curve,
+                    startParameter: first.endParameter, endParameter: first.startParameter,
+                    startPoint: first.endPoint, endPoint: first.startPoint)
+                #expect(try matcher.matches(reversed, second, orientation: .forward, tolerance: tolerance))
+                #expect(try matcher.matches(first, second, orientation: .forward, tolerance: tolerance) == false)
+            }
+        }
+    }
+
     @Test
     func rejectsDifferentCurvePassingThroughLegacySampleLocations() throws {
         let straight = CurveSpanDefinition(

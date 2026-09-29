@@ -306,6 +306,13 @@ public struct RigidTransform3D: Codable, Hashable, Sendable {
             transformed = .bSpline(try applying(to: spline, tolerance: tolerance))
         case let .procedural(procedural):
             switch procedural {
+            case let .rollingBall(blend):
+                transformed = .procedural(.rollingBall(RollingBallBlendSurface3D(
+                    centerSpine: try applying(to: blend.centerSpine, tolerance: tolerance),
+                    firstContact: try applying(to: blend.firstContact, tolerance: tolerance),
+                    secondContact: try applying(to: blend.secondContact, tolerance: tolerance),
+                    radius: blend.radius, tolerance: blend.tolerance
+                )))
             case let .offset(offset):
                 transformed = .procedural(.offset(OffsetSurface3D(
                     source: try applying(

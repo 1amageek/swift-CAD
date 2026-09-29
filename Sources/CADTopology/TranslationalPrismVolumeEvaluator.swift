@@ -302,7 +302,7 @@ struct TranslationalPrismVolumeEvaluator {
                 translation: translation,
                 tolerance: tolerance
             )
-        case .analytic:
+        case .analytic, .procedural(.rollingBall):
             return false
         case let .procedural(.offset(offset)):
             return try faceIsTranslatedSide(
@@ -505,7 +505,7 @@ struct TranslationalPrismVolumeEvaluator {
                 origin: source.origin + source.normal * offset.distance,
                 normal: source.normal
             )
-        case .procedural(.ruled):
+        case .procedural(.ruled), .procedural(.rollingBall):
             return nil
         }
     }

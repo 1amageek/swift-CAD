@@ -1,0 +1,71 @@
+# CADTopology
+
+## Purpose and Scope
+
+`CADTopology` owns validated B-rep topology and topology-level queries. It is a
+child of the [Swift-CAD package design](../../DESIGN.md) and owns
+[OpenBoundaryLoop](OpenBoundaryLoop/DESIGN.md).
+
+## Responsibilities and Boundaries
+
+The module owns exact topological incidence, adjacency, ownership, and
+validation. It does not construct NURBS surfaces, resolve Rupa selection, or
+choose display behavior. Open-boundary loop discovery is shared topology
+knowledge so feature evaluation and viewport presentation identify the same
+eligible boundary components.
+
+## Related Designs
+
+| Design | Relationship | Contract Used | Summary | Cautions |
+|---|---|---|---|---|
+| [Swift-CAD package](../../DESIGN.md) | parent | exact B-rep topology | Defines topology's place in the package. | Mesh is not topology authority. |
+| [OpenBoundaryLoop](OpenBoundaryLoop/DESIGN.md) | child | ordered boundary cycles and hole eligibility | Provides shared exact topology and rejects a lone face's outer perimeter as a fill target. | Geometry quality remains a modeling contract. |
+| [CADModeling](../CADModeling/DESIGN.md) | used by | loop containing a stable seed edge | Builds a separate surface from an eligible boundary. | Curve conversion and surface quality remain CADModeling responsibilities. |
+| [RupaCore](../../../RupaKit/Sources/RupaCore/DESIGN.md) | used by | loop edge membership | Marks the same open loop for viewport affordances. | Display identity comes from generated topology IDs. |
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Body["B-rep body"] --> Incidence["Count edge uses per face"]
+    Incidence --> Boundary["One-face boundary edges"]
+    Boundary --> Components["Vertex-connected components"]
+    Components --> Loops["Closed non-branching ordered loops"]
+    Loops --> Modeling["SurfaceFill evaluation"]
+    Loops --> Display["Viewport boundary-loop identity"]
+```
+
+## Contracts and Invariants
+
+- An eligible edge has exactly one coedge use in exactly one face owned by the
+  requested body.
+- A returned loop is connected, closed, has no repeated edge, and every vertex
+  has degree two in that boundary component.
+- Edge traversal records whether it follows the stored edge direction. A loop
+  requested from a seed starts at that edge and follows its stored direction.
+- Branches, open chains, non-boundary edges, and malformed components are not
+  returned as closed loops. A lone face's outer perimeter is a valid boundary
+  cycle but not a fillable hole; both modeling and presentation use the same
+  predicate to refuse it.
+- Loop discovery reads exact B-rep topology only. It never consults mesh edges
+  or geometric endpoint proximity.
+- `BRepModel.faceAreaMeasurement` (`TOPO-FACEAREA-001`) measures a face's area
+  and area centroid from its coedge pcurves alone, never from a tessellation.
+  A plane and a cylinder have a constant area element, so area and first
+  moments are parameter-domain integrals of 1 and of the support's coordinate
+  functions, each taken as the closed-form boundary integral −∮ G du with
+  ∂G/∂v the integrand. Every G is periodic in u, so a cylindrical band bounded
+  by two full circles measures correctly. Moments are divided by the signed
+  area, so loop traversal sense cancels. Other supports, and pcurves with no
+  closed form on the support (rational B-splines anywhere; harmonic,
+  B-spline and certified pcurves on a cylinder), throw `unsupportedCapability`.
+
+## Verification and Change Impact
+
+`CADTopologyTests` verifies deterministic ordered traversal, seed orientation,
+multiple disjoint loops, and refusal to report branched or open boundary
+components, and the single-face inner/outer fillability rule.
+`FaceAreaMeasurementTests` (SwiftCADTests) prove box, L-shaped, full and half
+cylinder areas and centroids against closed forms and the typed refusal. Changes affect
+CADModeling Surface Fill and RupaCore body display topology; both consumers
+must continue to agree on the exact cycle and whether it is actionable.

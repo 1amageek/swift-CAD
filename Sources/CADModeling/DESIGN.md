@@ -7,6 +7,7 @@ for primitive and derived B-rep geometry. It is a child of the [Swift-CAD
 package design](../../DESIGN.md). Children include
 [InvoluteGear](InvoluteGear/DESIGN.md), [CertifiedTwist](CertifiedTwist/DESIGN.md)
 and [SpatialPath](SpatialPath/DESIGN.md), with
+[RollingBall](RollingBall/DESIGN.md) owning blend sewing boundaries and
 [SurfaceFill](SurfaceFill/DESIGN.md) owning source-boundary surface filling,
 and [BridgeSurface](BridgeSurface/DESIGN.md) owning exact source-edge bridging.
 
@@ -28,6 +29,7 @@ stable signature serialization, evaluation caching, or Rupa project authority.
 | [CADGeometry](../CADGeometry/DESIGN.md) | depends on | analytic pcurve validation | Supplies the common structural contract. | Do not add a sphere-specific bypass. |
 | [CADKernel](../CADKernel/DESIGN.md) | used by | evaluation and stable topology reads | Consumes the generated B-rep. | Stable reads must see every generated subshape. |
 | [InvoluteGear](InvoluteGear/DESIGN.md) | child | closed gear section | Composes flanks and analytic circular roots into Profile. | Resolved geometry only; no source or manufacturing certification. |
+| [RollingBall](RollingBall/DESIGN.md) | child | contact-preserving blend and cap patches | Uses admitted rails as sewing boundaries. | Does not select treatment regions or close solids. |
 | [SurfaceFill](SurfaceFill/DESIGN.md) | child | exact G0 surface fill from an open B-rep boundary loop | Reuses exact curve conversion, composite curves and Coons construction. | Does not claim G1/G2 optimization or guide-curve constraints. |
 | [BridgeSurface](BridgeSurface/DESIGN.md) | child | exact G0 ruled sheet between two source boundary edges | Resolves current stable edge references and reuses the exact ruled-surface builder. | Sources must share a coordinate frame; this is not full XNURBS fitting. |
 | [CADTopology OpenBoundaryLoop](../CADTopology/OpenBoundaryLoop/DESIGN.md) | depends on | ordered exact boundary edge cycle | Supplies the shared loop containing the selected seed. | It does not choose corners or surface quality. |
@@ -52,6 +54,12 @@ share the source-section admission contract in
 provide general boundary constraints or certify G1/G2 fitting. The approved
 eleven-operation implementation remains incomplete until each actual evaluator,
 source contract and application route meets its acceptance criteria.
+
+Lifted sewing spans with distinct definitions require the existing whole-span
+curve/surface correspondence proof on the restricted, oriented destination
+pcurve. Matching endpoints alone cannot authorize reuse. The matcher reports
+proved geometric mismatch as false and propagates inconclusive/resource errors.
+CADKernel validates the resulting canonical edge against every incident face.
 
 ### Bridge curve construction
 
@@ -226,30 +234,6 @@ Finite scores and deterministic ties are required; failed geometry still goes
 through the same patch admission. LoftFeatureTests covers automatic rotating
 closure, explicit traversal/seams, open stacks and invalid correspondence.
 
-Every Loft side patch passes the existing
-B-spline regularity and embedding validators over its complete parameter domain
-before entering the result BRep. This applies to profile, curve and mixed inputs.
-Interior collapsed rows and single-patch self-overlap are failures, even when
-the edge/face graph is structurally valid. Nonincident side patches (no shared
-topological vertex) additionally require finite-domain separation before publication.
-Positive-weight control hulls exclude distant pairs; remaining pairs use
-CADGeometry's certified separation contract. Root comparisons share its standard
-pair-count ceiling; each unresolved pair retains the geometry subdivision budget.
-Side patches sharing exactly one generated edge pass that edge's parameter-side
-identity into adjacent-chart admission; a topological edge alone never proves
-their interiors disjoint. Shared vertices with no common edge pass their paired
-parameter corners to the geometry point-contact separation proof;
-topological vertex identity alone does not establish separation.
-Two opposite shared edges use the geometry half-chart admission path.
-Section edges are unique per loop/section/span and connectors per
-loop/connection/vertex. Closed partitions have at least two spans; closed section
-loops have at least three sections. Consequently two distinct generated side
-faces can share no edge, one edge, or two opposite edges, never adjacent edges
-or three/four edges. Unexpected incidence fails instead of bypassing admission.
-Cap/side intersections still require topology-aware admission and remain
-explicitly incomplete. Stationary outer parameters use CADGeometry's explicit
-unit-weight factor-removal contract; unresolved cases fail rather than skipping
-admission for the entire smooth construction branch.
 Conic span construction preserves the source's signed sweep before adding the
 start angle. A sweep equal to one declared period reuses the first point as the
 last span endpoint; near-full partial arcs do not close by tolerance. This
@@ -275,6 +259,30 @@ products and degree budget; Loft supplies the whole incident section column.
 Identical denominator factors are reused once. This conversion must preserve
 each authored curve and must not relax exact shared-boundary admission.
 
+Every Loft side patch passes the existing
+B-spline regularity and embedding validators over its complete parameter domain
+before entering the result BRep. This applies to profile, curve and mixed inputs.
+Interior collapsed rows and single-patch self-overlap are failures, even when
+the edge/face graph is structurally valid. Nonincident side patches (no shared
+topological vertex) additionally require finite-domain separation before publication.
+Positive-weight control hulls exclude distant pairs; remaining pairs use
+CADGeometry's certified separation contract. Root comparisons share its standard
+pair-count ceiling; each unresolved pair retains the geometry subdivision budget.
+Side patches sharing exactly one generated edge pass that edge's parameter-side
+identity into adjacent-chart admission; a topological edge alone never proves
+their interiors disjoint. Shared vertices with no common edge pass their paired
+parameter corners to the geometry point-contact separation proof;
+topological vertex identity alone does not establish separation.
+Two opposite shared edges use the geometry half-chart admission path.
+Section edges are unique per loop/section/span and connectors per
+loop/connection/vertex. Closed partitions have at least two spans; closed section
+loops have at least three sections. Consequently two distinct generated side
+faces can share no edge, one edge, or two opposite edges, never adjacent edges
+or three/four edges. Unexpected incidence fails instead of bypassing admission.
+Cap/side intersections still require topology-aware admission and remain
+explicitly incomplete. Stationary outer parameters use CADGeometry's explicit
+unit-weight factor-removal contract; unresolved cases fail rather than skipping
+admission for the entire smooth construction branch.
 
 Loft delegates all non-linear-connector transfinite construction to CADGeometry's
 shared Coons builder, including its exact unit-weight low-degree path. It does not
@@ -314,19 +322,6 @@ independent of closing the sequence of sections. Only closed profiles admit
 Solid output and planar caps. Common side-surface, connector, pcurve and lineage
 construction is shared, including smooth connector generation.
 
-Curve partitions retain each source span, subdividing at the union of normalized
-boundary-progress breaks. Partitioning must preserve rational geometry, source
-orientation and both open endpoints. Different closure kinds, disconnected
-spans and degenerate correspondence are explicit failures. No triangulated or
-sampled section substitutes for exact input. Advanced guide/continuity controls
-remain separately tracked until connected to this same path.
-
-### Bounded rotational Sweep construction
-
-The implementation contract is owned by
-[CertifiedTwist](CertifiedTwist/DESIGN.md), a child component of this module.
-
-The precision-modeling extension retains the input profile exactly and stores
 Before Solid publication, each generated edge not belonging to a cap is
 intersected with that cap's support over its actual trimmed parameter range.
 Discrete events strictly inside the outer trim and outside every hole are
@@ -380,6 +375,19 @@ regression proves Solid publication, exact BRep validation, planar side support
 and the analytic prism volume. This establishes straight planar continuation,
 not general curved trace clipping or arbitrary coplanar arrangements.
 
+Curve partitions retain each source span, subdividing at the union of normalized
+boundary-progress breaks. Partitioning must preserve rational geometry, source
+orientation and both open endpoints. Different closure kinds, disconnected
+spans and degenerate correspondence are explicit failures. No triangulated or
+sampled section substitutes for exact input. Advanced guide/continuity controls
+remain separately tracked until connected to this same path.
+
+### Bounded rotational Sweep construction
+
+The implementation contract is owned by
+[CertifiedTwist](CertifiedTwist/DESIGN.md), a child component of this module.
+
+The precision-modeling extension retains the input profile exactly and stores
 an explicit positional approximation allowance in Sweep source, separate from
 modeling tolerance and presentation tessellation. A straight, profile-normal
 path with unit section scale and no guides may use a piecewise-linear angle

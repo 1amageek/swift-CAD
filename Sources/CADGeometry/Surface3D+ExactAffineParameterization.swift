@@ -13,7 +13,7 @@ extension Surface3D {
             return false
         case let .procedural(.offset(surface)):
             return surface.source.hasExactAffineParameterization
-        case .procedural(.ruled):
+        case .procedural(.ruled), .procedural(.rollingBall):
             return false
         }
     }
@@ -48,7 +48,7 @@ extension Surface3D {
                 of: point,
                 tolerance: tolerance
             )
-        case .procedural(.ruled):
+        case .procedural(.ruled), .procedural(.rollingBall):
             return nil
         }
     }

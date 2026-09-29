@@ -876,6 +876,34 @@ struct SurfaceSurfaceIntersectionTests {
   }
 
   @Test(.timeLimit(.minutes(1)))
+  func latitudeCircleRetainsAnalyticChartsInBothOrientations() throws {
+    let sphere = Surface3D.analytic(.sphere(center: .origin, radius: 2))
+    for sign in [-1.0, 1.0] {
+      let plane = Surface3D.plane(Plane3D(
+        origin: Point3D(x: 0, y: 0, z: 1),
+        normal: Vector3D(x: 0, y: 0, z: sign)
+      ))
+      let intersections = try intersector.intersections(
+        first: plane, second: sphere, tolerance: tolerance
+      )
+      guard case .curve(let result) = try #require(intersections.first),
+            case .harmonic = result.firstSurfaceParameterCurve,
+            case .affine = result.secondSurfaceParameterCurve else {
+        Issue.record("A latitude circle must retain analytic plane and sphere charts.")
+        continue
+      }
+      for parameter in [0.0, 0.7, 3.4, 2 * Double.pi] {
+        let point = try result.curve.point(at: parameter, tolerance: tolerance)
+        for (role, surface) in [(SurfaceIntersectionSurfaceRole.first, plane), (.second, sphere)] {
+          let uv = try result.surfaceParameter(on: role, atCurveParameter: parameter, tolerance: tolerance)
+          let lifted = try surface.point(u: uv.u, v: uv.v, tolerance: tolerance)
+          #expect(lifted.isApproximatelyEqual(to: point, tolerance: tolerance.distance))
+        }
+      }
+    }
+  }
+
+  @Test(.timeLimit(.minutes(1)))
   func coaxialSphereCylinderGreatCircleRetainsPoleSafeSpherePcurve() throws {
     let sphere = Surface3D.analytic(.sphere(center: .origin, radius: 2.0))
     let cylinder = Surface3D.analytic(

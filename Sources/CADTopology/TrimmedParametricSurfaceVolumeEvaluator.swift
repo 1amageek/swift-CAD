@@ -264,6 +264,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     case .bSpline: "B-spline"
     case .procedural(.offset): "offset"
     case .procedural(.ruled): "ruled"
+    case .procedural(.rollingBall): "rolling-ball"
     }
   }
 

@@ -878,7 +878,7 @@ struct ExactSTEPWriter {
       return try table.add(
         "OFFSET_SURFACE('SWIFTCAD_OFFSET',#\(basis),\(number(units.fromInternal(offset.distance))),.U.)"
       )
-    case .procedural(.ruled):
+    case .procedural(.ruled), .procedural(.rollingBall):
       let representation = try ExactExchangeSurfaceRepresentationResolver()
         .resolve(surface, tolerance: tolerance)
       guard representation != surface else {

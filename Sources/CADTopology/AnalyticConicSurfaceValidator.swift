@@ -138,7 +138,7 @@ private extension AnalyticConicSurfaceValidator {
                     faceID: faceID,
                     tolerance: tolerance
                 )
-            case .procedural(.ruled):
+            case .procedural(.ruled), .procedural(.rollingBall):
                 throw TopologyError.invalidFaceSurface(faceID)
             }
         }

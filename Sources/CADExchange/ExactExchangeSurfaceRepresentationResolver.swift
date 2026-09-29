@@ -11,6 +11,14 @@ struct ExactExchangeSurfaceRepresentationResolver: Sendable {
         switch surface {
         case .plane, .cylinder, .analytic, .bSpline:
             return surface
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Exact STEP/IGES writers reach this
+        // branch for native blends. A certified exchange representation and
+        // round-trip geometry verification are required before export succeeds.
+        case .procedural(.rollingBall):
+            throw exchangeError(
+                .unsupportedCapability, tolerance: tolerance,
+                "General rolling-ball surfaces have no exact exchange representation."
+            )
         case let .procedural(.ruled(ruled)):
             let patch = try ExactRectangularBSplineSurfacePatchBuilder().build(
                 surface: .procedural(.ruled(ruled)),

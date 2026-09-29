@@ -19,7 +19,11 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
         let uUpper: Double
         let vLower: Double
         let vUpper: Double
+        fileprivate let origin: Point3D
         fileprivate let controls: HomogeneousJetControls
+        fileprivate let polynomialX: HomogeneousJetControls?
+        fileprivate let polynomialY: HomogeneousJetControls?
+        fileprivate let polynomialZ: HomogeneousJetControls?
     }
 
     func enclosure(
@@ -56,6 +60,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
             throw invalidPatchError(tolerance: tolerance)
         }
         var controls: [[IntervalHomogeneousSurfaceControl]] = []
+        let origin = patch.controlPoints[0][0]
         controls.reserveCapacity(patch.controlPoints.count)
         for vIndex in patch.controlPoints.indices {
             var row: [IntervalHomogeneousSurfaceControl] = []
@@ -68,9 +73,9 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
                 }
                 let intervalWeight = OutwardScalarInterval(weight)
                 row.append(IntervalHomogeneousSurfaceControl(
-                    x: OutwardScalarInterval(point.x) * intervalWeight,
-                    y: OutwardScalarInterval(point.y) * intervalWeight,
-                    z: OutwardScalarInterval(point.z) * intervalWeight,
+                    x: (OutwardScalarInterval.exact(point.x) - .exact(origin.x)) * intervalWeight,
+                    y: (OutwardScalarInterval.exact(point.y) - .exact(origin.y)) * intervalWeight,
+                    z: (OutwardScalarInterval.exact(point.z) - .exact(origin.z)) * intervalWeight,
                     weight: intervalWeight
                 ))
             }
@@ -79,13 +84,43 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
         return try PreparedPatch(
             uLower: patch.uLower, uUpper: patch.uUpper,
             vLower: patch.vLower, vUpper: patch.vUpper,
+            origin: origin,
             controls: derivativeJetControls(
                 controls,
                 uSpan: patch.uUpper - patch.uLower,
                 vSpan: patch.vUpper - patch.vLower,
                 tolerance: tolerance
-            )
+            ),
+            polynomialX: polynomialCoordinate(\.x, origin: origin.x, patch: patch, tolerance: tolerance),
+            polynomialY: polynomialCoordinate(\.y, origin: origin.y, patch: patch, tolerance: tolerance),
+            polynomialZ: polynomialCoordinate(\.z, origin: origin.z, patch: patch, tolerance: tolerance)
         )
+    }
+
+    private func polynomialCoordinate(_ coordinate: KeyPath<Point3D, Double>, origin: Double,
+                                      patch: RationalBezierSurfacePatch3D,
+                                      tolerance: ModelingTolerance) throws -> HomogeneousJetControls? {
+        guard !patch.weights.allSatisfy({ $0.allSatisfy { $0 == 1 } }) else { return nil }
+        let points: [[Point3D]]
+        if patch.weights.allSatisfy({ $0 == patch.weights[0] }),
+           patch.controlPoints.allSatisfy({ row in
+               row.allSatisfy { $0[keyPath: coordinate] == row[0][keyPath: coordinate] }
+           }) {
+            points = patch.controlPoints.map { [$0[0]] }
+        } else if patch.weights.allSatisfy({ row in row.allSatisfy { $0 == row[0] } }),
+                  patch.controlPoints.allSatisfy({ row in
+                      row.indices.allSatisfy { row[$0][keyPath: coordinate] == patch.controlPoints[0][$0][keyPath: coordinate] }
+                  }) {
+            points = [patch.controlPoints[0]]
+        } else { return nil }
+        let controls = points.map { row in row.map { point in
+            IntervalHomogeneousSurfaceControl(
+                x: .exact(point[keyPath: coordinate]) - .exact(origin),
+                y: .exact(0), z: .exact(0), weight: .exact(1))
+        } }
+        return try derivativeJetControls(controls,
+            uSpan: patch.uUpper - patch.uLower, vSpan: patch.vUpper - patch.vLower,
+            tolerance: tolerance)
     }
 
     func enclosure(of patch: PreparedPatch, u: ScalarInterval, v: ScalarInterval,
@@ -94,16 +129,13 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
               v.lower >= patch.vLower, v.upper <= patch.vUpper else {
             throw invalidPatchError(tolerance: tolerance)
         }
-        let localized = try localizedJetControls(
-            patch.controls,
-            sourceULower: patch.uLower,
-            sourceUUpper: patch.uUpper,
-            sourceVLower: patch.vLower,
-            sourceVUpper: patch.vUpper,
-            targetU: u,
-            targetV: v,
-            tolerance: tolerance
-        )
+        func localize(_ controls: HomogeneousJetControls) throws -> HomogeneousJetControls {
+            try localizedJetControls(controls,
+                sourceULower: patch.uLower, sourceUUpper: patch.uUpper,
+                sourceVLower: patch.vLower, sourceVUpper: patch.vUpper,
+                targetU: u, targetV: v, tolerance: tolerance)
+        }
+        let localized = try localize(patch.controls)
         let x = scalarJet(localized, component: \IntervalHomogeneousSurfaceControl.x)
         let y = scalarJet(localized, component: \IntervalHomogeneousSurfaceControl.y)
         let z = scalarJet(localized, component: \IntervalHomogeneousSurfaceControl.z)
@@ -120,10 +152,18 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
                 message: "A rational surface enclosure requires a certified positive weight range."
             )
         }
-        return SurfaceIntervalVectorJet(
-            x: x * reciprocalWeight,
-            y: y * reciprocalWeight,
-            z: z * reciprocalWeight
+        func coordinate(_ polynomial: HomogeneousJetControls?, rational: SurfaceIntervalJet,
+                        origin: Double) throws -> SurfaceIntervalJet {
+            let value: SurfaceIntervalJet
+            if let polynomial {
+                value = scalarJet(try localize(polynomial), component: \.x)
+            } else { value = rational * reciprocalWeight }
+            return value + .constant(origin)
+        }
+        return try SurfaceIntervalVectorJet(
+            x: coordinate(patch.polynomialX, rational: x, origin: patch.origin.x),
+            y: coordinate(patch.polynomialY, rational: y, origin: patch.origin.y),
+            z: coordinate(patch.polynomialZ, rational: z, origin: patch.origin.z)
         )
     }
 
@@ -445,7 +485,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
     }
 }
 
-fileprivate struct IntervalHomogeneousSurfaceControl: Sendable {
+struct IntervalHomogeneousSurfaceControl: Sendable {
     let x: OutwardScalarInterval
     let y: OutwardScalarInterval
     let z: OutwardScalarInterval

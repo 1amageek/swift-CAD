@@ -388,7 +388,7 @@ struct BooleanTopologyLineageBuilder {
                 return nil
             }
             return try cylinder(equivalent, tolerance: tolerance)
-        case .procedural(.ruled):
+        case .procedural(.ruled), .procedural(.rollingBall):
             return nil
         case .plane, .analytic, .bSpline:
             return nil

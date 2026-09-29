@@ -1,6 +1,15 @@
 import CADCore
 
 public struct CertifiedImplicitIntersectionDifferential: Sendable, Hashable {
+    struct SecondOrder: Sendable {
+        let position: Point3D
+        let firstDerivative: Vector3D
+        let secondDerivative: Vector3D
+        let parameters: SurfaceIntersectionParameterPair
+        let firstParameterDerivatives: SurfaceIntersectionParameterVector
+        let secondParameterDerivatives: SurfaceIntersectionParameterVector
+    }
+
     public let position: Point3D
     public let firstDerivative: Vector3D
     public let secondDerivative: Vector3D

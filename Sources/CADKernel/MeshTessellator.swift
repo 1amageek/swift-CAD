@@ -69,7 +69,7 @@ public struct MeshTessellator: Tessellating {
             limits: effectiveLimits,
             reserving: reservation
         )
-        var planarBoundaries: [FaceID: PlanarBoundary] = [:]
+        var preparations: [FaceID: FaceUsageEstimate] = [:]
         for (_, body) in sortedBodies {
             try Task.checkCancellation()
             for shellID in body.shellIDs {
@@ -87,9 +87,7 @@ public struct MeshTessellator: Tessellating {
                         vertices: estimate.vertices,
                         indices: estimate.indices
                     )
-                    if let boundary = estimate.planarBoundary {
-                        planarBoundaries[faceID] = boundary
-                    }
+                    preparations[faceID] = estimate
                 }
             }
         }
@@ -113,9 +111,12 @@ public struct MeshTessellator: Tessellating {
                 for faceID in shell.faceIDs {
                     try Task.checkCancellation()
                     let indexCountBeforeFace = indices.count
+                    guard let preparation = preparations[faceID] else {
+                        throw TessellationError.unsupportedFace(faceID)
+                    }
                     try append(
                         faceID: faceID,
-                        planarBoundary: planarBoundaries[faceID],
+                        preparation: preparation,
                         shellOrientation: shell.orientation,
                         model: model,
                         options: options,
@@ -154,6 +155,13 @@ public struct MeshTessellator: Tessellating {
         var vertices: Int
         var indices: Int
         var planarBoundary: PlanarBoundary? = nil
+        var grid: ParametricGrid? = nil
+    }
+
+    private struct ParametricGrid {
+        let uBounds: (lower: Double, upper: Double)
+        let vBounds: (lower: Double, upper: Double)
+        let steps: (u: Int, v: Int)
     }
 
     private struct PlanarBoundary {
@@ -235,7 +243,9 @@ public struct MeshTessellator: Tessellating {
                 vBounds: bounds.v,
                 options: options
             )
-            return try gridUsageEstimate(uSteps: stepCounts.u, vSteps: stepCounts.v)
+            var estimate = try gridUsageEstimate(uSteps: stepCounts.u, vSteps: stepCounts.v)
+            estimate.grid = ParametricGrid(uBounds: bounds.u, vBounds: bounds.v, steps: stepCounts)
+            return estimate
         }
 
         var boundaryPointCount = try sampledParameters(
@@ -395,7 +405,7 @@ public struct MeshTessellator: Tessellating {
 
     private func append(
         faceID: FaceID,
-        planarBoundary: PlanarBoundary?,
+        preparation: FaceUsageEstimate,
         shellOrientation: Orientation,
         model: BRepModel,
         options: TessellationOptions,
@@ -404,6 +414,7 @@ public struct MeshTessellator: Tessellating {
         indices: inout [UInt32],
         budget: inout TessellationBudget
     ) throws {
+        let planarBoundary = preparation.planarBoundary
         guard let face = model.faces[faceID] else {
             throw TessellationError.unsupportedFace(faceID)
         }
@@ -451,6 +462,7 @@ public struct MeshTessellator: Tessellating {
         } else {
             try appendParametricFace(
                 surface: surface,
+                grid: preparation.grid,
                 outerLoop: loop,
                 innerLoopIDs: innerLoopIDs,
                 face: face,
@@ -1751,6 +1763,7 @@ public struct MeshTessellator: Tessellating {
 
     private func appendParametricFace(
         surface: Surface3D,
+        grid: ParametricGrid?,
         outerLoop: Loop,
         innerLoopIDs: [LoopID],
         face: Face,
@@ -1764,22 +1777,13 @@ public struct MeshTessellator: Tessellating {
         budget: inout TessellationBudget
     ) throws {
         try surface.validate(tolerance: tolerance)
-        if innerLoopIDs.isEmpty,
-           let bounds = try rectangularParameterBounds(
-               for: outerLoop,
-               on: surface,
-               in: model,
-               options: options,
-               faceID: faceID
-           ) {
+        if let grid {
             try appendParametricGridFace(
                 surface: surface,
-                uBounds: bounds.u,
-                vBounds: bounds.v,
+                grid: grid,
                 face: face,
                 faceID: faceID,
                 shellOrientation: shellOrientation,
-                options: options,
                 positions: &positions,
                 normals: &normals,
                 indices: &indices,
@@ -1824,23 +1828,18 @@ public struct MeshTessellator: Tessellating {
 
     private func appendParametricGridFace(
         surface: Surface3D,
-        uBounds: (lower: Double, upper: Double),
-        vBounds: (lower: Double, upper: Double),
+        grid: ParametricGrid,
         face: Face,
         faceID: FaceID,
         shellOrientation: Orientation,
-        options: TessellationOptions,
         positions: inout [Point3D],
         normals: inout [Vector3D],
         indices: inout [UInt32],
         budget: inout TessellationBudget
     ) throws {
-        let stepCounts = try parametricGridStepCounts(
-            surface: surface,
-            uBounds: uBounds,
-            vBounds: vBounds,
-            options: options
-        )
+        let stepCounts = grid.steps
+        let uBounds = grid.uBounds
+        let vBounds = grid.vBounds
         let uSteps = stepCounts.u
         let vSteps = stepCounts.v
         let pointCount = (uSteps + 1) * (vSteps + 1)
@@ -2039,7 +2038,7 @@ public struct MeshTessellator: Tessellating {
                 vBounds: vBounds,
                 options: options
             )
-        case .procedural(.ruled):
+        case .procedural(.ruled), .procedural(.rollingBall):
             return try certifiedProceduralSurfaceStepCounts(
                 surface: surface,
                 uBounds: uBounds,

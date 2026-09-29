@@ -3,9 +3,9 @@ import CADCore
 extension SurfaceLiftCurve3D {
     /// Returns a certified enclosure of a bounded lift interval.
     ///
-    /// Exact intersection truth is preferred. Otherwise the implementation
-    /// uses convex-hull bounds for rational supports or a proven global speed
-    /// bound; no sampled point cloud is accepted as a bounding certificate.
+    /// Interval-local UV certificates are preferred over whole-intersection
+    /// bounds. Other representations use exact truth, rational support hulls,
+    /// or a proven speed bound; sampled point clouds are not certificates.
     package func boundingBox(
         over interval: ScalarInterval,
         tolerance: ModelingTolerance
@@ -20,16 +20,14 @@ extension SurfaceLiftCurve3D {
                 message: "A surface-lift bounding interval must lie in the normalized curve domain."
             )
         }
-        if let exact = try parameterCurve.exactIntersectionBoundingBox(
-            tolerance: tolerance
-        ) {
-            return exact
-        }
         let bounder = SurfaceLiftDifferentialBounder()
         if supportsIntervalLocalParameterBounds(parameterCurve) {
-            let localCurve = try parameterCurve.subcurve(
-                fromNormalizedFraction: interval.lower,
-                toNormalizedFraction: interval.upper,
+            let containingInterval = try bounder.certificationInterval(
+                containing: interval, tolerance: tolerance
+            )
+            let localCurve = try parameterCurve.subcurveForParameterBounds(
+                fromNormalizedFraction: containingInterval.lower,
+                toNormalizedFraction: containingInterval.upper,
                 tolerance: tolerance
             )
             if let parameters = try bounder.parameterBounds(
@@ -65,6 +63,11 @@ extension SurfaceLiftCurve3D {
                     )
                 )
             }
+        }
+        if let exact = try parameterCurve.exactIntersectionBoundingBox(
+            tolerance: tolerance
+        ) {
+            return exact
         }
         if let rationalSupport = try bounder.bSplineSupportBounds(
             lift: self,
@@ -118,13 +121,13 @@ extension SurfaceLiftCurve3D {
         _ curve: SurfaceParameterCurve
     ) -> Bool {
         switch curve {
-        case .affine, .constantU, .constantV, .polyline, .bSpline:
+        case .affine, .constantU, .constantV, .polyline, .bSpline, .certifiedImplicit:
             return true
         case let .offsetSurfaceImage(image):
             return supportsIntervalLocalParameterBounds(image.source)
         case let .periodicTranslation(base, _, _):
             return supportsIntervalLocalParameterBounds(base)
-        case .harmonic, .sphericalGreatCircle, .certifiedImplicit,
+        case .harmonic, .sphericalGreatCircle,
              .certifiedAnalyticImplicit, .certifiedAnalyticPair,
              .projectedAnalytic, .rigidImage:
             return false

@@ -73,12 +73,13 @@ struct SurfaceLiftDifferentialBounder {
             containing: interval,
             tolerance: tolerance
         )
-        let localCurve = try lift.parameterCurve.subcurve(
+        let localCurve = try lift.parameterCurve.subcurveForParameterBounds(
             fromNormalizedFraction: certificationInterval.lower,
             toNormalizedFraction: certificationInterval.upper,
             tolerance: tolerance
         )
-        if case let .certifiedAnalyticPair(curve) = localCurve {
+        if case .certifiedAnalyticPair = lift.parameterCurve,
+           case let .certifiedAnalyticPair(curve) = localCurve {
             let localBounds = try curve.spatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
             )
@@ -223,12 +224,13 @@ struct SurfaceLiftDifferentialBounder {
             containing: interval,
             tolerance: tolerance
         )
-        let localCurve = try lift.parameterCurve.subcurve(
+        let localCurve = try lift.parameterCurve.subcurveForParameterBounds(
             fromNormalizedFraction: certificationInterval.lower,
             toNormalizedFraction: certificationInterval.upper,
             tolerance: tolerance
         )
-        if case let .certifiedAnalyticPair(curve) = localCurve {
+        if case .certifiedAnalyticPair = lift.parameterCurve,
+           case let .certifiedAnalyticPair(curve) = localCurve {
             let localBounds = try curve
                 .spatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
@@ -351,12 +353,13 @@ struct SurfaceLiftDifferentialBounder {
             containing: interval,
             tolerance: tolerance
         )
-        let localCurve = try lift.parameterCurve.subcurve(
+        let localCurve = try lift.parameterCurve.subcurveForParameterBounds(
             fromNormalizedFraction: certificationInterval.lower,
             toNormalizedFraction: certificationInterval.upper,
             tolerance: tolerance
         )
-        if case let .certifiedAnalyticPair(curve) = localCurve {
+        if case .certifiedAnalyticPair = lift.parameterCurve,
+           case let .certifiedAnalyticPair(curve) = localCurve {
             let localBounds = try curve
                 .spatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
@@ -411,7 +414,7 @@ struct SurfaceLiftDifferentialBounder {
         return globalBound.nextUp
     }
 
-    private func certificationInterval(
+    func certificationInterval(
         containing interval: ScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> ScalarInterval {
@@ -617,7 +620,10 @@ struct SurfaceLiftDifferentialBounder {
                 tolerance: tolerance,
                 message: "A certified analytic-pair pcurve belongs to analytic support surfaces and cannot bound a B-spline support."
             )
-        case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
+        case let .certifiedImplicit(curve):
+            let jet = try implicitParameterBounds(curve, tolerance: tolerance)
+            return ParameterBounds(u: jet.u.value, v: jet.v.value)
+        case .sphericalGreatCircle, .certifiedAnalyticImplicit,
              .projectedAnalytic, .rigidImage:
             return nil
         case let .offsetSurfaceImage(image):
@@ -819,7 +825,22 @@ struct SurfaceLiftDifferentialBounder {
                 tolerance: tolerance,
                 message: "Certified analytic-pair differentiation must use its spatial certificate."
             )
-        case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
+        case let .certifiedImplicit(curve):
+            let jet = try implicitParameterBounds(curve, tolerance: tolerance)
+            let scale = abs(curve.endFraction - curve.startFraction).nextUp
+            let squared = upperProduct(scale, scale)
+            let cubed = upperProduct(squared, scale)
+            func magnitude(_ interval: ScalarInterval) -> Double {
+                max(abs(interval.lower), abs(interval.upper)).nextUp
+            }
+            return ParameterDerivativeBounds(
+                firstU: upperProduct(magnitude(jet.u.firstDerivative), scale),
+                firstV: upperProduct(magnitude(jet.v.firstDerivative), scale),
+                secondU: upperProduct(magnitude(jet.u.secondDerivative), squared),
+                secondV: upperProduct(magnitude(jet.v.secondDerivative), squared),
+                thirdU: upperProduct(magnitude(jet.u.thirdDerivative), cubed),
+                thirdV: upperProduct(magnitude(jet.v.thirdDerivative), cubed))
+        case .sphericalGreatCircle, .certifiedAnalyticImplicit,
              .projectedAnalytic, .rigidImage:
             return nil
         case let .offsetSurfaceImage(image):
@@ -833,6 +854,39 @@ struct SurfaceLiftDifferentialBounder {
                 tolerance: tolerance
             )
         }
+    }
+
+    func implicitParameterBounds(
+        _ curve: CertifiedImplicitSurfaceParameterCurve,
+        tolerance: ModelingTolerance,
+        prepared: ImplicitCurveIntervalJetEncloser? = nil
+    ) throws -> (u: CertifiedImplicitParameterIntervalJet.Coordinate,
+                 v: CertifiedImplicitParameterIntervalJet.Coordinate) {
+        let encloser = try prepared ?? ImplicitCurveIntervalJetEncloser(
+            intersection: curve.intersection, tolerance: tolerance)
+        let lower = min(curve.startFraction, curve.endFraction)
+        let upper = max(curve.startFraction, curve.endFraction)
+        func enclosed(_ lower: Double, _ upper: Double) throws -> CertifiedImplicitParameterIntervalJet {
+            try encloser.parameterIntervalJet(of: curve.intersection,
+                over: ScalarInterval(lower: lower, upper: upper), tolerance: tolerance)
+        }
+        let first = try enclosed(lower >= 1 ? lower - 1 : lower,
+                                 lower >= 1 ? upper - 1 : min(upper, 1))
+        let uIndex: SurfaceIntersectionParameterCoordinate = curve.role == .first ? .firstU : .secondU
+        let vIndex: SurfaceIntersectionParameterCoordinate = curve.role == .first ? .firstV : .secondV
+        guard lower < 1, upper > 1 else { return (first[uIndex], first[vIndex]) }
+        let second = try enclosed(0, upper - 1)
+        func union(_ a: ScalarInterval, _ b: ScalarInterval) throws -> ScalarInterval {
+            try ScalarInterval(lower: min(a.lower, b.lower), upper: max(a.upper, b.upper))
+        }
+        func merged(_ index: SurfaceIntersectionParameterCoordinate) throws -> CertifiedImplicitParameterIntervalJet.Coordinate {
+            let a = first[index], b = second[index]
+            return try .init(value: union(a.value, b.value),
+                firstDerivative: union(a.firstDerivative, b.firstDerivative),
+                secondDerivative: union(a.secondDerivative, b.secondDerivative),
+                thirdDerivative: union(a.thirdDerivative, b.thirdDerivative))
+        }
+        return try (merged(uIndex), merged(vIndex))
     }
 
     private func mappedInterval(

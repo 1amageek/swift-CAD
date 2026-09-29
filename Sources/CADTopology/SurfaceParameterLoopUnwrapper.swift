@@ -392,7 +392,7 @@ package struct SurfaceParameterLoopUnwrapper {
                 )
             }
             return false
-        case .procedural(.ruled), .plane, .cylinder, .analytic:
+        case .procedural(.ruled), .procedural(.rollingBall), .plane, .cylinder, .analytic:
             return false
         }
     }

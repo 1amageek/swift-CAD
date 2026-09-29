@@ -11,6 +11,7 @@ struct ParametricCurveSurfaceRootCell: Sendable {
   let surfaceU: ScalarInterval
   let surfaceV: ScalarInterval
   let surfacePatches: [RationalBezierSurfacePatch3D]
+  var curveDerivative: CurveSpatialDerivativeRange? = nil
 }
 
 protocol ParametricCurveSurfaceRootCertificationSession: Sendable {

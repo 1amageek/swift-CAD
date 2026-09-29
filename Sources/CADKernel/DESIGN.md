@@ -4,8 +4,8 @@
 
 `CADKernel` owns deterministic document evaluation, immutable evaluated
 snapshots, topology lookup, and derived Mesh orchestration. It is a child of
-the [Swift-CAD package design](../../DESIGN.md) and has no children for this
-change.
+the [Swift-CAD package design](../../DESIGN.md). Its machining composition child
+is [RollingBallFillet](RollingBallFillet/DESIGN.md).
 
 ## Responsibilities and Boundaries
 
@@ -235,6 +235,7 @@ partway fail. `PlanarCurveExtrusionIntersectorTests` own it.
 | [Swift-CAD package](../../DESIGN.md) | parent | immutable exact evaluation | Defines kernel composition and Mesh separation. | Do not re-evaluate during a read. |
 | [CADIR](../CADIR/DESIGN.md) | depends on | complete stable signature value | Provides validated reference values. | Every topology entry is eligible for a reference. |
 | [CADModeling](../CADModeling/DESIGN.md) | depends on | exact generated B-rep | Supplies source topology and lineage. | Seam/pole topology remains present. |
+| [RollingBallFillet](RollingBallFillet/DESIGN.md) | child | complete solid sewing request | Composes native source-face arrangements and blend boundaries. | A request is not a validated or publishable result. |
 | [RupaCore](../../../RupaKit/Sources/RupaCore/DESIGN.md) | used by | evaluated body and Mesh measurements; edge queries; sketch curve intersections | Consumes the same snapshot outputs and certified sketch intersections. | Volume authority stays in exact B-rep; Core computes no intersection itself. |
 
 ## Architecture
@@ -253,6 +254,21 @@ flowchart LR
 ```
 
 ## Contracts and Invariants
+
+Face arrangement accepts an explicit source-contact tolerance. Machining
+supplies the modeling tolerance unchanged for crossing detection, source-edge
+subdivision and junction matching. The existing Boolean default retains its
+recovered-contact policy; this is not an implicit machining allowance. An
+explicit policy must retain angle/relative tolerances and cannot demand a
+distance stricter than the arrangement's input contract.
+
+Implicit contact/isoparametric crossing classification first uses the existing
+whole-interval UV jet to exclude separated coordinate ranges, retaining the
+same parameter-overlap resolution. An overlapping range is not admitted as a
+crossing: endpoint monotonicity or the existing general intersector must prove
+the result. This avoids constructing a 3D ruled search for disjoint boundaries.
+The chart-preserving offset image is validated before its native UV certificate
+is used. NativeTrimCrossingTests owns separation and endpoint regressions.
 
 Certified straight twist preflight and evaluation use the same
 [CertifiedTwist admission](../CADModeling/CertifiedTwist/DESIGN.md). Exact BRep
@@ -323,6 +339,23 @@ body quality, and cumulative resource refusal.
    equal. `CADIR` owns the run value contract; see `Sources/CADIR/DESIGN.md`.
 
 ### Implemented Admission Mechanism
+
+Face admission retains its rectangular grid bounds and certified step counts
+alongside existing planar boundary preparation. Emission consumes this same
+request-local preparation for the immutable model/options; it never repeats
+the interval proof or independently chooses a new grid. The preparation is
+released with the invocation and is not a persistent cache. Actual output
+growth is still charged against the admitted budget.
+
+Rolling-ball surfaces use the existing certified procedural-surface grid
+admission in both preflight and emission. Their retained contact rails supply
+the differential bounds; tessellation does not replace them with planar or
+analytic approximations. Failure to certify bounds remains a typed failure.
+Integration verification must cover a retained rolling-ball surface, mesh
+fidelity and budget refusal; geometry-only evaluation is insufficient.
+Closest-point queries reuse the bounded procedural projector. Cache identity
+includes the entire encoded blend, including all rails and construction
+tolerance, through the existing canonical encoding signature function.
 
 Sewing connectivity compares endpoint-slot pairs before loading full edge uses.
 The request-local slot table owns points; curve and pcurve values are read only
@@ -520,6 +553,14 @@ UI scheduling and performs no retry; a caller that needs another fidelity
 profile must submit a new explicit evaluation request.
 
 ## Verification and Change Impact
+
+Shared B-spline chart crossings may use a certified implicit pcurve's strictly
+monotone coordinate to prove that an isoparametric edge has at most one crossing.
+This reduction requires exact endpoint-coordinate equality, full-span signed
+derivative bounds, validated chart ownership, and model-space boundary agreement
+at the unchanged distance tolerance. Unproven monotonicity or unsupported charts
+retain the existing complete intersection path. NativeTrimCrossingTests owns the
+captured helical contact/boundary regression.
 
 Kernel tests must exercise every sphere body/face/edge/vertex stable-reference
 path, deterministic JSON round-trip, invalid signature rejection, and planar or

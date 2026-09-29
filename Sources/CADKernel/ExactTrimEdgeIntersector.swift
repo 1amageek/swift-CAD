@@ -1206,6 +1206,11 @@ struct ExactTrimEdgeIntersector {
     } else {
       return nil
     }
+    if let points = try implicitIsoparametricIntersections(
+      first, second, surface: surface, tolerance: tolerance
+    ) ?? implicitIsoparametricIntersections(second, first, surface: surface, tolerance: tolerance) {
+      return points
+    }
     guard
       let firstPcurve = try exactRationalPcurve(
         first,
@@ -1334,6 +1339,60 @@ struct ExactTrimEdgeIntersector {
       appendUnique(liftedPoint, to: &points, tolerance: tolerance)
     }
     return points.sorted(by: pointOrder)
+  }
+
+  /// A separated coordinate enclosure excludes crossings. Otherwise a strictly
+  /// monotone coordinate and an exact endpoint certify the only possible root.
+  private func implicitIsoparametricIntersections(
+    _ boundary: BRepSewingEdge, _ contact: BRepSewingEdge,
+    surface: Surface3D, tolerance: ModelingTolerance
+  ) throws -> [Point3D]? {
+    guard case .bSpline = surface else { return nil }
+    let isU: Bool
+    let constant: Double
+    let start: Double
+    let end: Double
+    switch boundary.surfaceParameterCurve {
+    case .constantU(let u, let vStart, let vEnd): (isU, constant, start, end) = (true, u, vStart, vEnd)
+    case .constantV(let v, let uStart, let uEnd): (isU, constant, start, end) = (false, v, uStart, uEnd)
+    default: return nil
+    }
+    var pcurve = contact.surfaceParameterCurve
+    while case .offsetSurfaceImage(let image) = pcurve { pcurve = image.source }
+    guard case .certifiedImplicit(let implicit) = pcurve,
+      min(implicit.startFraction, implicit.endFraction) >= 0,
+      max(implicit.startFraction, implicit.endFraction) <= 1, start != end else { return nil }
+    try boundary.surfaceParameterCurve.validate(on: surface, tolerance: tolerance)
+    try contact.surfaceParameterCurve.validate(on: surface, tolerance: tolerance)
+    let jet = try ImplicitCurveIntervalJetEncloser(intersection: implicit.intersection, tolerance: tolerance)
+      .parameterIntervalJet(of: implicit.intersection,
+        over: ScalarInterval(lower: min(implicit.startFraction, implicit.endFraction),
+                             upper: max(implicit.startFraction, implicit.endFraction)), tolerance: tolerance)
+    let coordinate: SurfaceIntersectionParameterCoordinate = implicit.role == .first
+      ? (isU ? .firstU : .firstV) : (isU ? .secondU : .secondV)
+    let bounds = jet[coordinate].value
+    if !intervalsMayOverlap((bounds.lower, bounds.upper), (constant, constant),
+      period: nil, tolerance: tolerance) {
+      return []
+    }
+    let first = try contact.surfaceParameterCurve.startParameter(tolerance: tolerance)
+    let last = try contact.surfaceParameterCurve.endParameter(tolerance: tolerance)
+    let endpoint: (uv: SurfaceParameter, point: Point3D)
+    if (isU ? first.u : first.v) == constant { endpoint = (first, contact.startPoint) }
+    else if (isU ? last.u : last.v) == constant { endpoint = (last, contact.endPoint) }
+    else { return nil }
+    let derivative = jet[coordinate].firstDerivative
+    guard derivative.lower > 0 || derivative.upper < 0 else { return nil }
+    let varying = isU ? endpoint.uv.v : endpoint.uv.u
+    guard varying >= min(start, end), varying <= max(start, end) else { return [] }
+    let fraction = (varying - start) / (end - start)
+    let point = try boundary.curve.point(at: boundary.startParameter
+      + (boundary.endParameter - boundary.startParameter) * fraction, tolerance: tolerance)
+    guard (point - endpoint.point).length <= tolerance.distance else {
+      throw KernelError(phase: .geometry, code: .intersectionFailure, tolerance: tolerance,
+        message: "An implicit chart endpoint does not match its source boundary in model space.")
+    }
+    return [endpoint.point]
   }
 
   /// Maps a structural-contact-free edge parameter range into the exact

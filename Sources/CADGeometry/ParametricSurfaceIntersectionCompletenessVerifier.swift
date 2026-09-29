@@ -137,7 +137,7 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
   ) throws -> SearchStep {
     guard remainingCells > 0 else {
       throw resourceLimit(
-        "Parametric surface-intersection completeness exhausted its subdivision-cell limit."
+        "Parametric surface-intersection completeness exhausted its subdivision-cell limit. Atlas records=\(atlas.count), remaining root attempts=\(remainingRootAttempts), depths=\(searchBox.subdivisionDepths), normalized bounds=\(searchBox.normalizedBounds). \(atlasDiagnostic(searchBox: searchBox, atlas: atlas))"
       )
     }
     remainingCells -= 1
@@ -150,14 +150,12 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
       return .covered
     }
 
-    let prover: ParametricSurfaceIntersectionGraphProver
+    try parameterBox.validate(first: first, second: second, tolerance: tolerance)
+    let firstJet: SurfaceIntervalVectorJet
     do {
-      prover = try ParametricSurfaceIntersectionGraphProver(
-        firstSurface: preparedFirstSurface,
-        secondSurface: preparedSecondSurface,
-        parameterBox: parameterBox,
-        tolerance: tolerance
-      )
+      firstJet = try preparedFirstSurface.intervalJet(
+        over: SurfaceParameterBox(u: parameterBox.firstU, v: parameterBox.firstV),
+        tolerance: tolerance)
     } catch let error as KernelError
       where error.code == .singularSystem
       || error.code == .intersectionFailure
@@ -169,9 +167,28 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
         atlasDiagnostic: atlasDiagnostic(
           searchBox: searchBox,
           atlas: atlas
-        )
+        ),
+        restrictedTo: preparedFirstSurface.enclosureRefinementCoordinates
       )
     }
+    let secondJet: SurfaceIntervalVectorJet
+    do {
+      secondJet = try preparedSecondSurface.intervalJet(
+        over: SurfaceParameterBox(u: parameterBox.secondU, v: parameterBox.secondV),
+        tolerance: tolerance)
+    } catch let error as KernelError
+      where error.code == .singularSystem || error.code == .intersectionFailure
+    {
+      return subdivideOrReport(
+        searchBox: searchBox, reason: error.message, atlas: atlas,
+        atlasDiagnostic: atlasDiagnostic(searchBox: searchBox, atlas: atlas),
+        restrictedTo: (preparedSecondSurface.enclosureRefinementCoordinates.lowerBound + 2)..<(preparedSecondSurface.enclosureRefinementCoordinates.upperBound + 2)
+      )
+    }
+    let prover = ParametricSurfaceIntersectionGraphProver(
+      firstSurface: first, secondSurface: second, parameterBox: parameterBox,
+      firstJet: firstJet, secondJet: secondJet
+    )
     if prover.excludesIntersection() { return .covered }
 
     let freeParameters = prover.rankCertifiedFreeParameters()
@@ -286,7 +303,7 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
         }
         guard remainingRootAttempts > 0 else {
           throw resourceLimit(
-            "Parametric surface-intersection completeness exhausted its root-attempt limit."
+            "Parametric surface-intersection completeness exhausted its root-attempt limit. Atlas records=\(atlas.count), free coordinate=\(freeParameter), depths=\(searchBox.subdivisionDepths), normalized bounds=\(searchBox.normalizedBounds)."
           )
         }
         remainingRootAttempts -= 1
@@ -336,15 +353,16 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
     searchBox: SearchBox,
     reason: String,
     atlas: [ParametricSurfaceIntersectionGraphCellRecord],
-    atlasDiagnostic: String
+    atlasDiagnostic: String,
+    restrictedTo coordinates: Range<Int>? = nil
   ) -> SearchStep {
-    let atlasSplit = atlasAlignedSplit(
+    let atlasSplit = coordinates == nil ? atlasAlignedSplit(
       searchBox: searchBox,
       atlas: atlas
-    )
+    ) : nil
     guard
       let splitIndex = atlasSplit?.index
-        ?? splitIndex(for: searchBox)
+        ?? splitIndex(for: searchBox, among: coordinates ?? 0..<4)
     else {
       return .unresolved(
         "Normalized box \(searchBox.normalizedBounds.flatMap { [$0.lower, $0.upper] }) remained unresolved at depths \(searchBox.subdivisionDepths). \(reason) \(atlasDiagnostic)"
@@ -386,6 +404,7 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
       $0.lower + ($0.upper - $0.lower) * 0.5
     }
     var candidates: [(index: Int, value: Double, score: Double)] = []
+    var greatestOverlap = 0.0
     for record in atlas {
       let normalizedLower = domains.normalized(
         record.parameterBox.intervals.map(\.lower)
@@ -393,6 +412,20 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
       let normalizedUpper = domains.normalized(
         record.parameterBox.intervals.map(\.upper)
       )
+      // A disjoint atlas cell cannot cover either child of this box.
+      guard searchBox.normalizedBounds.indices.allSatisfy({ index in
+        let search = searchBox.normalizedBounds[index]
+        return normalizedLower[index] <= search.upper
+          && normalizedUpper[index] >= search.lower
+      }) else { continue }
+      let overlap = searchBox.normalizedBounds.indices.reduce(1.0) { product, index in
+        let search = searchBox.normalizedBounds[index]
+        let width = min(search.upper, normalizedUpper[index])
+          - max(search.lower, normalizedLower[index])
+        return product * max(0, width) / (search.upper - search.lower)
+      }
+      guard overlap > greatestOverlap else { continue }
+      var recordCandidates: [(index: Int, value: Double, score: Double)] = []
       for index in searchBox.normalizedBounds.indices {
         let search = searchBox.normalizedBounds[index]
         for boundary in [normalizedLower[index], normalizedUpper[index]]
@@ -403,13 +436,17 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
           && search.upper - boundary
             > tolerance.relative * 4.0
         {
-          candidates.append(
+          recordCandidates.append(
             (
               index: index,
               value: boundary,
               score: abs(boundary - midpoint[index])
             ))
         }
+      }
+      if recordCandidates.isEmpty == false {
+        greatestOverlap = overlap
+        candidates = recordCandidates
       }
     }
     return candidates.min(by: { $0.score < $1.score }).map {
@@ -453,8 +490,8 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
     return "Nearest graph-cell containment gap=\(nearest.gap), bounds=\(nearest.bounds)."
   }
 
-  private func splitIndex(for searchBox: SearchBox) -> Int? {
-    let eligible = searchBox.normalizedBounds.indices.filter { index in
+  private func splitIndex(for searchBox: SearchBox, among coordinates: Range<Int>) -> Int? {
+    let eligible = coordinates.filter { index in
       searchBox.subdivisionDepths[index]
         < options.maximumSubdivisionDepth
         && searchBox.normalizedBounds[index].upper

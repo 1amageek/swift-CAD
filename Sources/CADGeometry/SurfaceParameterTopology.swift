@@ -43,7 +43,7 @@ public struct SurfaceParameterTopology: Hashable, Sendable {
             }
         case let .procedural(.offset(offset)):
             return uSingularVValues(on: offset.source)
-        case .plane, .cylinder, .bSpline, .procedural(.ruled):
+        case .plane, .cylinder, .bSpline, .procedural(.ruled), .procedural(.rollingBall):
             return []
         }
     }

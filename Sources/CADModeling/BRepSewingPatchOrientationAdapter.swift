@@ -33,7 +33,7 @@ package struct BRepSewingPatchOrientationAdapter {
         return result
     }
 
-    private func reversed(
+    package func reversed(
         _ edge: BRepSewingEdge,
         tolerance: ModelingTolerance
     ) throws -> BRepSewingEdge {

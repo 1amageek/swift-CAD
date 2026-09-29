@@ -105,6 +105,9 @@ struct SurfaceSurfaceIntersectionVerifier {
                     residual: (point - source).length, iterations: 0),
                 maximumResidual: tolerance.distance)
         }
+        if let exactCircle = try analyticCircleParameterCurve(for: curve, on: surface, tolerance: tolerance) {
+            return exactCircle
+        }
         if let exactGreatCircle = try sphericalGreatCircleParameterCurve(
             for: curve,
             on: surface,
@@ -129,6 +132,61 @@ struct SurfaceSurfaceIntersectionVerifier {
                 tolerance: tolerance
             )
         }
+    }
+
+    private func analyticCircleParameterCurve(
+        for curve: Curve3D,
+        on surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> ParameterCurveResult? {
+        guard case let .circle(circle) = curve else { return nil }
+        let support = try surface.exactChartPreservingRepresentation(tolerance: tolerance) ?? surface
+        let pcurve: SurfaceParameterCurve
+        let anchorPoint = try curve.point(at: 0, tolerance: tolerance)
+        switch CanonicalAnalyticSurface(support) {
+        case let .plane(plane):
+            guard circle.normal.cross(plane.normal).length == 0 else { return nil }
+            let center = try surface.parameterProjection(of: circle.center, tolerance: tolerance)
+            let basis = try circleOrthonormalBasis(circle.normal, tolerance: tolerance)
+            let frame = try surface.parameterDerivatives(atU: center.u, v: center.v, tolerance: tolerance)
+            pcurve = .harmonic(
+                center: Point2D(x: center.u, y: center.v),
+                cosine: Point2D(x: basis.u.dot(frame.tangentU) * circle.radius,
+                                y: basis.u.dot(frame.tangentV) * circle.radius),
+                sine: Point2D(x: basis.v.dot(frame.tangentU) * circle.radius,
+                              y: basis.v.dot(frame.tangentV) * circle.radius),
+                startParameter: 0, endParameter: 2 * .pi
+            )
+        case let .sphere(sphere):
+            let delta = circle.center - sphere.center
+            guard circle.normal.x == 0, circle.normal.y == 0,
+                  delta.x == 0, delta.y == 0 else { return nil }
+            let anchor = try surface.parameterProjection(of: anchorPoint, tolerance: tolerance)
+            pcurve = .affine(
+                origin: Point2D(x: anchor.u, y: anchor.v),
+                direction: Point2D(x: circle.normal.z > 0 ? 1 : -1, y: 0),
+                startParameter: 0, endParameter: 2 * .pi
+            )
+        case .cylinder, .cone, .torus, .unsupported:
+            return nil
+        }
+        try pcurve.validate(on: surface, tolerance: tolerance)
+        let anchor = try surface.parameterProjection(of: anchorPoint, tolerance: tolerance)
+        var maximumResidual = anchor.residual
+        for parameter in Self.closedCurveSamples + [2 * .pi] {
+            let uv = try pcurve.parameter(atCurveParameter: parameter, curveDomain: curve.parameterDomain,
+                                           tolerance: tolerance)
+            maximumResidual = max(maximumResidual, try residual(
+                curveParameter: parameter, uv: Point2D(x: uv.u, y: uv.v), curve: curve,
+                surface: surface, tolerance: tolerance
+            ))
+        }
+        guard maximumResidual <= tolerance.distance else {
+            throw KernelError(phase: .geometry, code: .intersectionFailure,
+                              residual: maximumResidual, tolerance: tolerance,
+                              message: "An analytic circle pcurve failed its structural correspondence check.")
+        }
+        return ParameterCurveResult(curve: pcurve, anchor: anchor, maximumResidual: maximumResidual)
     }
 
     private func sphericalGreatCircleParameterCurve(
