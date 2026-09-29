@@ -45,9 +45,13 @@ public struct InvoluteGearFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
             let allowance = try value(.sweepError)
             let path = BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
                 controlPoints: [gear.origin, gear.origin + Vector3D(x: 0, y: 0, z: width)])
+            // The gear generates both the sweep's section and its path. A sweep's path must be
+            // distinct from its sections, so the path takes an identity of its own, derived from
+            // the gear's and used only as the sweep's input key.
+            let pathID = Self.pathFeatureID(of: feature.id)
             var inputs = context
             inputs.profiles[feature.id] = [profile]
-            inputs.curves[feature.id] = [EvaluatedCurve(sourceFeatureID: feature.id,
+            inputs.curves[pathID] = [EvaluatedCurve(sourceFeatureID: pathID,
                 source: .generatedFeature, kind: .spline, points: path.controlPoints,
                 plane: nil, exactCurve: .bSpline(path), exactParameterDomain: path.domain)]
             let zero = CADExpression.constant(.angle(0, unit: .radian))
@@ -60,7 +64,7 @@ public struct InvoluteGearFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
             var operation = feature
             operation.operation = .sweep(SweepFeature(
                 sections: [.profile(.init(featureID: feature.id))],
-                path: .init(featureID: feature.id), options: .init(
+                path: .init(featureID: pathID), options: .init(
                     twistAngle: gear.doubleHelical ? zero : twistExpression,
                     approximationTolerance: twist == 0 ? nil : .constant(.length(allowance, unit: .meter)),
                     twistLaw: law)))
@@ -74,5 +78,14 @@ public struct InvoluteGearFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
             throw KernelError.wrapping(error, phase: .evaluation,
                 featureID: feature.id, tolerance: context.tolerance)
         }
+    }
+
+    /// The identity of the path a gear sweeps its section along: fixed for a gear, and never the
+    /// gear's own identity (UUID version and variant bits kept, as generated topology IDs keep them).
+    package static func pathFeatureID(of gearID: FeatureID) -> FeatureID {
+        let bits = gearID.bitPattern
+        let high = ((bits.high ^ 0x9E37_79B9_7F4A_7C15) & ~UInt64(0xF000)) | 0x8000
+        let low = ((bits.low ^ 0xD1B5_4A32_D192_ED03) & 0x3FFF_FFFF_FFFF_FFFF) | 0x8000_0000_0000_0000
+        return FeatureID(highBits: high, lowBits: low)
     }
 }

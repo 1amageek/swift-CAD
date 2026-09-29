@@ -11,7 +11,10 @@ involute gear section with explicitly specified circular root fillets.
 [native source](../../CADIR/InvoluteGear/DESIGN.md) and delegates a request-local
 Profile and axial path to the existing Sweep evaluator. The original feature
 identity owns all output topology; temporary inputs never enter the document
-graph. Source expressions and parameter dependencies remain in CADIR. No
+graph. The Profile is keyed by the gear's own identity and the path by
+`pathFeatureID(of:)`, a fixed identity derived from it: a Sweep refuses a path
+that is one of its sections, and keying both by the gear made every gear fail
+evaluation (`InvoluteGearSweepPathTests`). Source expressions and parameter dependencies remain in CADIR. No
 second evaluator registry, publication path or cache is introduced.
 The delegated Sweep's `ValidatedFeatureEvaluating` result is retained unchanged
 when available: its feature identity and tolerance are the original request's.
