@@ -746,8 +746,11 @@ the face; subdividing a B-spline surface first inserts each line's knot up to th
 degree, keeping its shape and parameters. `ImprintBodyFeatureEvaluator` imprints
 the exact Boolean intersection of a tool's faces with a target's
 (`BooleanPipeline.completeIntersectionGraph`, `uvSplitGraph`,
-`BooleanFaceArrangementBoundary.edges`) and leaves the tool as it is; a tool face
-lying on a target face is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+`BooleanFaceArrangementBoundary.edges`) and leaves the tool as it is; a placed
+tool is first moved into the target's frame in an unpublished
+`imprintToolPlacement` stage, and Imprint Curve Body imprints a placed curve as
+its rigid image, so both imprint where they are shown; a tool face lying on a
+target face is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
 `UntrimFaceFeatureEvaluator` builds a sheet of a face's surface bounded by four
 parameter lines, the surface's own domain where bounded and the face's extent
 where unbounded or periodic (the whole period, meeting in a seam, when the face
