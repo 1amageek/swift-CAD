@@ -3,7 +3,7 @@ import CADCore
 import CADGeometry
 import CADIR
 
-/// A drafted extrusion's section at one height: every wall of the profile moved toward the
+/// A drafted or thin extrusion's section at one height: every wall of the profile moved toward the
 /// material by `height · tangent`, so the section narrows along the extrusion axis for a positive
 /// draft and one taper runs straight through the sketch plane.
 ///
@@ -39,81 +39,149 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         let normal = try planeNormal.normalized(tolerance: tolerance.distance)
         let lift = try axis.normalized(tolerance: tolerance.distance) * height
         // Toward the material is inward: a positive draft narrows the section along the axis.
-        let shift = -height * tangent
         return try profile.boundaryLoops.map { loop in
-            let elements = try loop.boundarySegments.map { segment -> Element in
-                switch segment {
-                case let .line(line): return .line(start: line.start, end: line.end)
-                case let .circularArc(arc): return .arc(arc)
-                case .spline:
-                    // FIXME(INCOMPLETE_IMPLEMENTATION): a spline's offset is not a spline, so a
-                    // drafted extrusion of a spline section is refused. Production path:
-                    // ExactProfileExtrudeBodyBuilder for every extrude with a draft angle. Complete
-                    // only when a spline wall is drafted within a stated deviation, verified by a
-                    // drafted spline section's volume and wall angle.
-                    throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                                      message: "A drafted extrusion drafts line and circular-arc sections.")
-                }
-            }
-            guard elements.isEmpty == false else { throw SketchError.openProfile }
-            // The joint after each element, moved.
-            var joints: [Point3D] = []
-            for index in elements.indices {
-                let this = elements[index]
-                let next = elements[(index + 1) % elements.count]
-                let corner = endPoint(of: this)
-                let before = try travel(of: this, at: corner, atEnd: true)
-                let after = try travel(of: next, at: corner, atEnd: false)
-                let outBefore = before.cross(normal)
-                let outAfter = after.cross(normal)
-                if before.cross(after).length <= tolerance.angle, before.dot(after) > 0 {
-                    joints.append(corner + outBefore * shift)
-                } else if case .line = this, case .line = next {
-                    let denominator = 1 + outBefore.dot(outAfter)
-                    guard denominator > 1e-9 else {
-                        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
-                                          message: "A drafted extrusion's section turns back on itself at a corner.")
-                    }
-                    joints.append(corner + (outBefore + outAfter) * (shift / denominator))
-                } else {
-                    // FIXME(INCOMPLETE_IMPLEMENTATION): a corner where a circular arc meets another
-                    // element at an angle drafts along a conic, not a ruling, so it is refused.
-                    // Production path: ExactProfileExtrudeBodyBuilder for every extrude with a draft
-                    // angle. Complete only when such a corner's edge is the plane-cone or cone-cone
-                    // intersection, verified by a drafted slot with sharp arc corners.
-                    throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                                      message: "A drafted extrusion drafts arcs that meet their neighbours tangentially.")
-                }
-            }
-            var result: [ExactPrismaticBoundarySegment] = []
-            for index in elements.indices {
-                let start = joints[(index + elements.count - 1) % elements.count]
-                let end = joints[index]
-                switch elements[index] {
-                case let .line(originalStart, originalEnd):
-                    guard (end - start).dot(originalEnd - originalStart) > 0, (end - start).length > tolerance.distance else {
-                        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
-                                          message: "A drafted extrusion's wall vanishes or turns over at this height.")
-                    }
-                    result.append(try .line(from: start + lift, to: end + lift, tolerance: tolerance))
-                case let .arc(arc):
-                    let radial = try (arc.start - arc.center).normalized(tolerance: tolerance.distance)
-                    let outward = try travel(of: elements[index], at: arc.start, atEnd: false).cross(normal)
-                    let radius = arc.radius + shift * outward.dot(radial)
-                    guard radius > tolerance.distance,
-                          abs((start - arc.center).length - radius) <= tolerance.distance,
-                          abs((end - arc.center).length - radius) <= tolerance.distance else {
-                        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
-                                          message: "A drafted extrusion's arc shrinks to nothing at this height.")
-                    }
-                    result.append(contentsOf: try spans(
-                        center: arc.center + lift, normal: arc.normal, radius: radius,
-                        start: start + lift, sweep: arc.sweepAngle
-                    ))
-                }
-            }
-            return result
+            try segments(try offset(try elements(of: loop), normal: normal, shift: -height * tangent), lift: lift)
         }
+    }
+
+    /// The walls of a thin extrusion at `height`: for every loop a ring `thickness` wide on the
+    /// material's side of its drafted boundary, each as its outer boundary and its one hole. The
+    /// outline's ring runs inside it; a hole's ring runs around the hole.
+    package func wallRegions(
+        from profile: Profile,
+        planeNormal: Vector3D,
+        axis: Vector3D,
+        height: Double,
+        tangent: Double,
+        thickness: Double
+    ) throws -> [[[ExactPrismaticBoundarySegment]]] {
+        try tolerance.validate()
+        guard thickness.isFinite, thickness > tolerance.distance else {
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                              message: "A thin extrusion's wall thickness must be a positive length.")
+        }
+        let normal = try planeNormal.normalized(tolerance: tolerance.distance)
+        let lift = try axis.normalized(tolerance: tolerance.distance) * height
+        let shift = -height * tangent
+        return try profile.boundaryLoops.enumerated().map { index, loop in
+            let source = try elements(of: loop)
+            let face = try offset(source, normal: normal, shift: shift)
+            let back = try offset(source, normal: normal, shift: shift - thickness)
+            // The outline's ring is bounded by the outline and, as its hole, the wall's inner
+            // face turned around; a hole's ring by the grown hole turned around and the hole.
+            if index == 0 {
+                return [try segments(face, lift: lift), try segments(reversed(back), lift: lift)]
+            }
+            return [try segments(reversed(back), lift: lift), try segments(face, lift: lift)]
+        }
+    }
+
+    private func elements(of loop: ProfileLoop) throws -> [Element] {
+        let elements = try loop.boundarySegments.map { segment -> Element in
+            switch segment {
+            case let .line(line): return .line(start: line.start, end: line.end)
+            case let .circularArc(arc): return .arc(arc)
+            case .spline:
+                // FIXME(INCOMPLETE_IMPLEMENTATION): a spline's offset is not a spline, so a
+                // drafted or thin extrusion of a spline section is refused. Production path:
+                // ExactProfileExtrudeBodyBuilder for every extrude with a draft angle or a wall
+                // thickness. Complete only when a spline wall is offset within a stated deviation,
+                // verified by a drafted and a thin spline section's volumes.
+                throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                                  message: "A drafted or thin extrusion offsets line and circular-arc sections.")
+            }
+        }
+        guard elements.isEmpty == false else { throw SketchError.openProfile }
+        return elements
+    }
+
+    /// `elements` with every wall moved by `shift` along its outward side (negative: toward the
+    /// material), joints moved with them.
+    private func offset(_ elements: [Element], normal: Vector3D, shift: Double) throws -> [Element] {
+        var joints: [Point3D] = []
+        for index in elements.indices {
+            let this = elements[index]
+            let next = elements[(index + 1) % elements.count]
+            let corner = endPoint(of: this)
+            let before = try travel(of: this, at: corner)
+            let after = try travel(of: next, at: corner)
+            let outBefore = before.cross(normal)
+            let outAfter = after.cross(normal)
+            if before.cross(after).length <= tolerance.angle, before.dot(after) > 0 {
+                joints.append(corner + outBefore * shift)
+            } else if case .line = this, case .line = next {
+                let denominator = 1 + outBefore.dot(outAfter)
+                guard denominator > 1e-9 else {
+                    throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                                      message: "An offset section turns back on itself at a corner.")
+                }
+                joints.append(corner + (outBefore + outAfter) * (shift / denominator))
+            } else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): a corner where a circular arc meets another
+                // element at an angle offsets along a conic, not a ruling, so it is refused.
+                // Production path: ExactProfileExtrudeBodyBuilder for every extrude with a draft
+                // angle or a wall thickness. Complete only when such a corner's offset joint is the
+                // offset curves' crossing and its drafted edge the surfaces' intersection, verified
+                // by a drafted and a thin slot with sharp arc corners.
+                throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                                  message: "An offset section's arcs must meet their neighbours tangentially.")
+            }
+        }
+        return try elements.indices.map { index in
+            let start = joints[(index + elements.count - 1) % elements.count]
+            let end = joints[index]
+            switch elements[index] {
+            case let .line(originalStart, originalEnd):
+                guard (end - start).dot(originalEnd - originalStart) > 0, (end - start).length > tolerance.distance else {
+                    throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                                      message: "An offset section's wall vanishes or turns over.")
+                }
+                return .line(start: start, end: end)
+            case let .arc(arc):
+                let radial = try (arc.start - arc.center).normalized(tolerance: tolerance.distance)
+                let outward = try travel(of: elements[index], at: arc.start).cross(normal)
+                let radius = arc.radius + shift * outward.dot(radial)
+                guard radius > tolerance.distance,
+                      abs((start - arc.center).length - radius) <= tolerance.distance,
+                      abs((end - arc.center).length - radius) <= tolerance.distance else {
+                    throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                                      message: "An offset section's arc shrinks to nothing.")
+                }
+                return .arc(ProfileCircularArcSegment(
+                    center: arc.center, normal: arc.normal, radius: radius, start: start, end: end, sweepAngle: arc.sweepAngle
+                ))
+            }
+        }
+    }
+
+    /// `elements` run the other way.
+    private func reversed(_ elements: [Element]) -> [Element] {
+        elements.reversed().map { element in
+            switch element {
+            case let .line(start, end): .line(start: end, end: start)
+            case let .arc(arc):
+                .arc(ProfileCircularArcSegment(
+                    center: arc.center, normal: arc.normal, radius: arc.radius, start: arc.end, end: arc.start, sweepAngle: -arc.sweepAngle
+                ))
+            }
+        }
+    }
+
+    /// `elements` lifted by `lift`, lines as lines and arcs as rational quadratic spans.
+    private func segments(_ elements: [Element], lift: Vector3D) throws -> [ExactPrismaticBoundarySegment] {
+        var result: [ExactPrismaticBoundarySegment] = []
+        for element in elements {
+            switch element {
+            case let .line(start, end):
+                result.append(try .line(from: start + lift, to: end + lift, tolerance: tolerance))
+            case let .arc(arc):
+                result.append(contentsOf: try spans(
+                    center: arc.center + lift, normal: arc.normal, radius: arc.radius,
+                    start: arc.start + lift, sweep: arc.sweepAngle
+                ))
+            }
+        }
+        return result
     }
 
     private func endPoint(of element: Element) -> Point3D {
@@ -124,7 +192,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
     }
 
     /// The unit direction an element runs in at `point`, one of its ends.
-    private func travel(of element: Element, at point: Point3D, atEnd: Bool) throws -> Vector3D {
+    private func travel(of element: Element, at point: Point3D) throws -> Vector3D {
         switch element {
         case let .line(start, end):
             return try (end - start).normalized(tolerance: tolerance.distance)

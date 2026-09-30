@@ -24,7 +24,8 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
         startOffset: Double = 0,
         bodyKind: BodyKind,
         includesCaps: Bool,
-        draftTangent: Double = 0
+        draftTangent: Double = 0,
+        wallThickness: Double = 0
     ) throws -> EvaluationResult {
         try context.tolerance.validate()
         guard profile.vertices.count >= 3 else {
@@ -53,7 +54,38 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
         let patchBuilder = ExactPrismaticFacePatchBuilder(tolerance: context.tolerance)
         let boundaries: [[ExactPrismaticBoundarySegment]]
         let request: BRepSewingRequest
-        if draftTangent != 0 {
+        if wallThickness != 0 {
+            // A thin extrusion: one solid ring of the thickness along every loop, on the
+            // material's side, drafted with the section when it is drafted.
+            guard includesCaps, bodyKind == .solid, draftTangent.isFinite,
+                  draftTangent == 0 || abs(abs(normalComponent) - 1) <= context.tolerance.angle else {
+                throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: context.tolerance,
+                                  message: "A thin extrusion makes a solid wall; a drafted one runs along its section's normal.")
+            }
+            let lower = axis.dot(bottomOffset)
+            let walls = ExactDraftedProfileBoundaryBuilder(tolerance: context.tolerance)
+            let bottom = try walls.wallRegions(
+                from: profile, planeNormal: profileNormal, axis: axis, height: lower, tangent: draftTangent, thickness: wallThickness
+            )
+            let top = try walls.wallRegions(
+                from: profile, planeNormal: profileNormal, axis: axis, height: lower + distance, tangent: draftTangent, thickness: wallThickness
+            )
+            let shells = try zip(bottom, top).enumerated().flatMap { index, region in
+                try patchBuilder.request(
+                    bottom: region.0, top: region.1, featureID: featureID, stablePrefix: "extrude:wall:\(index)",
+                    bodyKind: .solid, includesCaps: true, sideOrientation: sideOrientation, capNormal: capNormal
+                ).shells
+            }
+            let sewn = try sewer.sew(
+                BRepSewingRequest(featureID: featureID, bodyKind: .solid, shells: shells), tolerance: context.tolerance
+            )
+            let subshapes = try wallSubshapes(sewn: sewn, regionCounts: bottom.map { $0.map(\.count) })
+            return EvaluationResult(
+                brep: try BRepModelCombiner().combined([context.brep, sewn.brep]),
+                subshapes: subshapes,
+                lineage: try GeneratedTopologyLineageBuilder().build(featureID: featureID, subshapes: subshapes)
+            )
+        } else if draftTangent != 0 {
             // A draft tapers the walls by one angle through the whole span, measured from the
             // sketch plane along the axis, so the axis must be the plane's normal.
             guard draftTangent.isFinite, abs(abs(normalComponent) - 1) <= context.tolerance.angle else {
@@ -137,6 +169,52 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
                 subshapes: subshapes
             )
         )
+    }
+
+    /// A thin extrusion's subshapes: its body, each ring's lower and upper caps as start and end
+    /// faces, its walls as side faces ring by ring (outline or hole first, the wall's other face
+    /// after), and its edges and vertices in the prism's order ring by ring.
+    private func wallSubshapes(sewn: BRepSewingResult, regionCounts: [[Int]]) throws -> [SubshapeID: TopologyReference] {
+        var result: [SubshapeID: TopologyReference] = [subshapeID(role: .body, ordinal: 0): .body(sewn.bodyID)]
+        var sideOrdinal = 0
+        var edgeIDs: [EdgeID] = []
+        var seen = Set<EdgeID>()
+        func append(_ stableID: String) throws {
+            guard case let .edge(edgeID) = try reference(.edge(stableID), in: sewn) else {
+                throw TopologyError.missingReference("Thin extrude stable edge \(stableID) did not resolve to an edge.")
+            }
+            if seen.insert(edgeID).inserted { edgeIDs.append(edgeID) }
+        }
+        for (region, counts) in regionCounts.enumerated() {
+            let prefix = "extrude:wall:\(region)"
+            result[subshapeID(role: .startFace, ordinal: region)] = try reference(.face("\(prefix):cap:lower"), in: sewn)
+            result[subshapeID(role: .endFace, ordinal: region)] = try reference(.face("\(prefix):cap:upper"), in: sewn)
+            for (loop, count) in counts.enumerated() {
+                let loopPrefix = loop == 0 ? prefix : "\(prefix):inner:\(loop - 1)"
+                for index in 0..<count {
+                    result[subshapeID(role: .sideFace, ordinal: sideOrdinal)] = try reference(.face("\(loopPrefix):side:\(index)"), in: sewn)
+                    sideOrdinal += 1
+                }
+            }
+            for cap in ["lower", "upper"] {
+                for (loop, count) in counts.enumerated() {
+                    let capPrefix = loop == 0 ? "\(prefix):cap:\(cap)" : "\(prefix):cap:\(cap):inner:\(loop - 1)"
+                    for index in 0..<count { try append("\(capPrefix):edge:\(index)") }
+                }
+            }
+            for (loop, count) in counts.enumerated() {
+                let loopPrefix = loop == 0 ? prefix : "\(prefix):inner:\(loop - 1)"
+                for index in 0..<count { try append("\(loopPrefix):side:\(index):end") }
+            }
+        }
+        guard edgeIDs.count == sewn.brep.edges.count else {
+            throw TopologyError.missingReference("Thin extrude semantic edge ordering did not cover every sewn edge.")
+        }
+        for (ordinal, edgeID) in edgeIDs.enumerated() { result[subshapeID(role: .edge, ordinal: ordinal)] = .edge(edgeID) }
+        for (ordinal, vertexID) in try orderedVertexIDs(from: edgeIDs, in: sewn.brep).enumerated() {
+            result[subshapeID(role: .vertex, ordinal: ordinal)] = .vertex(vertexID)
+        }
+        return result
     }
 
     private func semanticSubshapes(

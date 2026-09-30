@@ -122,11 +122,13 @@ extension KernelCapabilities {
         "normalSymmetricOrNonTangentialVectorDirection",
         "optionalUnionDifferenceIntersectOrSliceWithPlacedTargetsAndKeepTools",
         "optionalDraftAngleOnLineAndTangentArcSectionsAlongTheirNormal",
+        "optionalWallThicknessOnLineAndTangentArcSections",
       ],
       outputs: [
         "validatedExactBRep",
         "booleanWithTargetsMovedToTheirPlacementsFirst",
         "draftedWallsOfPlanesAndExactRuledConesTaperingThroughTheSketchPlane",
+        "thinWallsOneSolidRingPerLoopOpenAtBothEnds",
         "analyticPlanarAndCylindricalFaces",
         "rationalBSplineRuledSurfaces",
         "mandatoryFaceLocalPcurves",

@@ -78,3 +78,44 @@ struct ExtrudeDraftTests {
         #expect(throws: (any Error).self) { _ = try evaluate(builder) }
     }
 }
+
+/// A thin extrusion walls its section in: a rectangle into a rectangular tube open at both ends, a
+/// circle into a round tube, drafted like a solid extrusion when it is drafted.
+@Suite("Extrude wall thickness")
+struct ExtrudeWallThicknessTests {
+    private func length(_ value: Double) -> CADExpression { .constant(.length(value, unit: .meter)) }
+
+    private func evaluate(_ builder: DocumentBuilder) throws -> EvaluatedDocument {
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "wall"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        return evaluated
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aRectangleBecomesATubeOfTheThickness() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let profile = try builder.sketch(on: .xy) { $0.rectangle(width: length(0.02), height: length(0.01)) }
+        _ = try builder.extrude(profile, distance: length(0.01), thickness: length(0.001))
+        let evaluated = try evaluate(builder)
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - (0.02 * 0.01 - 0.018 * 0.008) * 0.01) < 1e-12)
+        // Four outer walls, four inner, and the two ring caps.
+        #expect(evaluated.brep.faces.count == 10)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aCircleBecomesARoundTube() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let profile = try builder.sketch(on: .xy) { $0.circle(center: SketchPoint(x: length(0), y: length(0)), radius: length(0.005)) }
+        _ = try builder.extrude(profile, distance: length(0.01), thickness: length(0.001))
+        let evaluated = try evaluate(builder)
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - Double.pi * (0.005 * 0.005 - 0.004 * 0.004) * 0.01) < 1e-12)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aThicknessWiderThanTheSectionIsRefused() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let profile = try builder.sketch(on: .xy) { $0.rectangle(width: length(0.02), height: length(0.01)) }
+        _ = try builder.extrude(profile, distance: length(0.01), thickness: length(0.006))
+        #expect(throws: (any Error).self) { _ = try evaluate(builder) }
+    }
+}

@@ -677,6 +677,13 @@ the normal are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). `ExtrudeDraftTests`
 rectangle frustum's volume and wall angle, the symmetric taper, the circle's cone and the oblique
 refusal.
 
+A `thickness` makes the extrusion thin: `wallRegions` offsets every loop a further thickness
+toward the material, and each loop's ring (the outline with its inward offset as a hole, a hole's
+outward offset with the hole inside it) is extruded as a solid of its own, drafted with the
+section, open at both ends; the rings are named `extrude:wall:i` and published ring by ring.
+A thickness wider than the section refuses as the offset turns a wall over.
+`ExtrudeWallThicknessTests` own the rectangular and round tubes' volumes and the refusal.
+
 ### Extrusion Boolean composition
 
 Extrude owns its retained target references and operation, while the existing

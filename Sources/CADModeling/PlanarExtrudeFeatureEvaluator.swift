@@ -66,6 +66,15 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             }
             draftTangent = abs(quantity.value) > context.tolerance.angle ? tan(quantity.value) : 0
         }
+        var wallThickness = 0.0
+        if let thickness = extrude.thickness {
+            let quantity = try resolver.evaluate(thickness, parameters: context.parameters, variables: [:])
+            guard quantity.kind == .length, quantity.value.isFinite, quantity.value > context.tolerance.distance else {
+                throw KernelError(phase: .evaluation, code: .invalidInput, featureID: feature.id, tolerance: context.tolerance,
+                                  message: "An extrusion's wall thickness must be a positive length.")
+            }
+            wallThickness = quantity.value
+        }
         // A placed Boolean target moves into the extrusion's frame first, as a staged body, the
         // way a Boolean moves its placed operands; the tool is built beside it.
         var stages = FeatureEvaluationStages(context)
@@ -112,16 +121,17 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 startOffset: range.lowerBound,
                 bodyKind: extrude.resultKind == .solid ? .solid : .sheet,
                 includesCaps: extrude.resultKind == .solid,
-                draftTangent: draftTangent
+                draftTangent: draftTangent,
+                wallThickness: wallThickness
             )
         case .curve(let reference):
-            guard draftTangent == 0 else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): a curve extrusion is refused a draft.
-                // Production path: PlanarExtrudeFeatureEvaluator for every curve extrude with a
-                // draft angle. Complete only when a drafted curve sheet leans by the angle, verified
-                // by its wall normals.
+            guard draftTangent == 0, wallThickness == 0 else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): a curve extrusion is refused a draft or a wall
+                // thickness. Production path: PlanarExtrudeFeatureEvaluator for every curve extrude
+                // with either. Complete only when a drafted curve sheet leans by the angle and a thin
+                // one is thickened into a solid wall, verified by their wall normals and volume.
                 throw KernelError(phase: .geometry, code: .unsupportedCapability, featureID: feature.id,
-                                  tolerance: context.tolerance, message: "A drafted extrusion drafts a closed section.")
+                                  tolerance: context.tolerance, message: "A drafted or thin extrusion takes a closed section.")
             }
             let curve = try ResolvedModelingSection.resolveCurve(
                 reference, from: context.curves[reference.featureID], tolerance: context.tolerance
