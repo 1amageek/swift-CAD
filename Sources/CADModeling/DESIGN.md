@@ -225,6 +225,11 @@ the native round trip.
 
 ### Loft section topology
 
+A planar face of a body is a closed Loft section: `FaceSectionProfileResolver` reads it as the
+profile it bounds where its body is, and it takes the profile route (or, beside curve sections,
+its single loop takes the curve route). `LoftFaceTests` own a loft between two boxes' facing faces.
+
+
 Guide contact resolution consumes exact boundary loops (`ExactLoftGuideSection`),
 not display vertices or an artificial closed Profile. The profile entry point
 extracts spans once per section and delegates to the same resolver. Guide

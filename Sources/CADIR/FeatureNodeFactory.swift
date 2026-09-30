@@ -163,7 +163,7 @@ public enum FeatureNodeFactory {
                     switch section.section {
                     case .profile(let reference): try validateProfileSource(reference, in: document)
                     case .curve(let reference): try validateCurveSource(reference.featureID, owner: "Loft", in: document)
-                    case .face: throw FeatureEvaluationError.invalidGraph("Loft takes profile or curve sections.")
+                    case .face(let reference): try validateSource(reference.featureID, role: reference.bodyRole, in: document)
                     }
                 }
                 for guide in loft.guides {

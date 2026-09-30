@@ -36,14 +36,28 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             )
         }
         try loft.validate()
-        if loft.sections.contains(where: { !$0.section.isProfile }) {
+        if loft.sections.contains(where: { !$0.section.isClosedRegion }) {
             let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: context.tolerance)
             var seamPoints: [Point3D?] = []
             let boundaries = try loft.sections.map { section -> (spans: [ExactBSplineCurveSpan], closed: Bool) in
                 switch section.section {
-                case .face:
-                    // Refused by the feature's validation; a face section is not read here.
-                    throw FeatureEvaluationError.invalidGraph("Loft takes profile or curve sections.")
+                case .face(let reference):
+                    // A planar face lofts as the profile it bounds, read where its body is.
+                    let profile = try FaceSectionProfileResolver().profile(for: reference, context: context, featureID: feature.id)
+                    if let index = section.startSampleIndex {
+                        guard profile.vertices.indices.contains(index) else {
+                            throw FeatureEvaluationError.invalidGraph("Loft start index must reference an existing face sample.")
+                        }
+                        seamPoints.append(profile.vertices[index])
+                    } else {
+                        seamPoints.append(nil)
+                    }
+                    let loops = try spanBuilder.profileLoopSpans(from: profile)
+                    guard loops.count == 1, let spans = loops.first else {
+                        throw KernelError(phase: .topology, code: .nonManifoldResult, tolerance: context.tolerance,
+                            message: "A single curve cannot match a Loft face with holes.")
+                    }
+                    return (try directedProfileSpans(spans, direction: section.profileDirection, tolerance: context.tolerance), true)
                 case .curve(let reference):
                     if let index = section.startSampleIndex {
                         let source = try ResolvedModelingSection.resolveCurve(
@@ -199,13 +213,15 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         context: EvaluationContext
     ) throws -> [Profile] {
         try loft.sections.map { section in
-            guard case .profile(let reference) = section.section else {
-                throw FeatureEvaluationError.invalidGraph("Profile Loft dispatch requires profile sections.")
+            switch section.section {
+            case .profile(let reference):
+                return try ResolvedModelingSection.resolveProfile(reference, from: context.profiles[reference.featureID])
+            case .face(let reference):
+                // A planar face lofts as the profile it bounds, read where its body is.
+                return try FaceSectionProfileResolver().profile(for: reference, context: context, featureID: reference.featureID)
+            case .curve:
+                throw FeatureEvaluationError.invalidGraph("Profile Loft dispatch requires closed-region sections.")
             }
-            return try ResolvedModelingSection.resolveProfile(
-                reference,
-                from: context.profiles[reference.featureID]
-            )
         }
     }
 

@@ -42,14 +42,8 @@ public struct LoftFeature: Codable, Hashable, Sendable {
         }
         for section in sections {
             try section.validate()
-            // FIXME(INCOMPLETE_IMPLEMENTATION): a face section is refused. Production path:
-            // LoftFeature.validate for every loft. Complete only when a planar face lofts like a
-            // profile, verified by a lofted face's volume.
-            if case .face = section.section {
-                throw FeatureEvaluationError.invalidGraph("Loft takes profile or curve sections.")
-            }
         }
-        guard options.resultKind == .sheet || sections.allSatisfy({ $0.section.isProfile }) else {
+        guard options.resultKind == .sheet || sections.allSatisfy({ $0.section.isClosedRegion }) else {
             throw FeatureEvaluationError.invalidGraph("Curve Loft sections require Sheet output.")
         }
         let uniqueSections = Set(sections)
@@ -175,7 +169,7 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
 
     public func validate() throws {
         try section.validate()
-        guard section.isProfile || profileDirection == .automatic else {
+        guard section.isClosedRegion || profileDirection == .automatic else {
             throw FeatureEvaluationError.invalidGraph("Curve Loft traversal belongs to its curve reference, not profileDirection.")
         }
         if let startSampleIndex {

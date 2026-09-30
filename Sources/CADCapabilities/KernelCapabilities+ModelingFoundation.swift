@@ -317,6 +317,7 @@ extension KernelCapabilities {
         "optionalOpenRationalGuideCurvesWithOneOrderedExactBoundaryContactPerSection",
         "ruledOrSmoothSectionInterpolation",
         "openSolidOrSheetSectionChainOrClosedSheetSectionLoop",
+        "planarFacesOfBodiesAsClosedSections",
       ],
       outputs: [
         "validatedExactSolidOrSheetBRep",
@@ -327,6 +328,7 @@ extension KernelCapabilities {
         "deterministicGeneratedLineage",
       ],
       fixtures: [
+        "LoftFaceTests",
         "LoftFeatureTests",
         "LoftFeatureTests.loftGuideContactInsideExactBoundarySegmentCreatesPartitionVertex",
         "LoftFeatureTests.loftGuideResolvesExactInteriorContactOnEveryIntermediateSection",
