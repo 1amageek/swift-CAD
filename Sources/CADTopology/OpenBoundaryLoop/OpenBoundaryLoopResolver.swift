@@ -78,7 +78,8 @@ public struct OpenBoundaryLoopResolver: Sendable {
         }
     }
 
-    private func boundaryEdgeIDs(in body: Body, model: BRepModel) -> Set<EdgeID> {
+    /// The body's open edges: each used by exactly one face, whether or not it closes a loop.
+    public func boundaryEdgeIDs(in body: Body, model: BRepModel) -> Set<EdgeID> {
         var uses: [EdgeID: Int] = [:]
         for shellID in body.shellIDs {
             guard let shell = model.shells[shellID] else { continue }

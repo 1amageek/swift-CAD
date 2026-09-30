@@ -499,6 +499,16 @@ public struct DocumentBuilder {
         return featureID
     }
 
+    /// Turns the sheet `target` over in its place (`ReverseSheetFeature`).
+    @discardableResult
+    public mutating func reverseSheet(_ target: FeatureID, named name: String? = nil) throws -> FeatureID {
+        let reverse = ReverseSheetFeature(target: PatternTargetReference(featureID: target))
+        try reverse.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .reverseSheet(reverse))
+        return featureID
+    }
+
     @discardableResult
     public mutating func moveVertex(
         target targetFeatureID: FeatureID,

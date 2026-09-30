@@ -719,6 +719,19 @@ component (`ExtractSelection.component`). `UnjoinFacesFeatureTests` own every
 face, chosen faces and pieces, the round trip back to a solid through Join, a
 foreign face refused and persistence.
 
+## Reverse Sheet
+
+`ReverseSheetFeatureEvaluator` turns a sheet over in its place, consuming it: the
+sheet's exact faces are copied as sewing patches, each reoriented to its other
+side (`BRepSewingPatchOrientationAdapter`: loops traversed the other way,
+parameter curves reversed) and sewn back in the sheet's own shells, so surfaces,
+trims and the sewn edges between faces are unchanged. A solid is refused at graph
+construction and evaluation (its faces face out of it). The source body and every
+subshape within it are removed, and each face's lineage leads to the face it
+turns over. `ReverseSheetFeatureTests` own one face, a joined sheet turned over
+whole and back, the refused solid, persistence and the open-edge query
+(`OpenBoundaryLoopResolver.boundaryEdgeIDs`, every edge one face uses).
+
 ## Wrap
 
 `WrapFeatureEvaluator` deforms a body from one face onto another (Deform Solid

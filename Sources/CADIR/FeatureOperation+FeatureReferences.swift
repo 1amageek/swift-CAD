@@ -331,6 +331,8 @@ extension FeatureOperation {
             case let .faces(faces): .faces(try faces.map(subshape))
             }
             return .unjoinFaces(UnjoinFacesFeature(target: try pattern(feature.target), selection: selection))
+        case .reverseSheet(let feature):
+            return .reverseSheet(ReverseSheetFeature(target: try pattern(feature.target)))
         case .extract(let feature):
             let selection: ExtractSelection = switch feature.selection {
             case .component: feature.selection

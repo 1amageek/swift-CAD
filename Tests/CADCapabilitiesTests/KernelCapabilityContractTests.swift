@@ -61,6 +61,7 @@ struct KernelCapabilityContractTests {
       "MODEL-JOIN-001",
       "MODEL-UNJOIN-001",
       "MODEL-UNJOIN-002",
+      "MODEL-REVERSE-SHEET-001",
       "MODEL-EXTRACT-001",
       "MODEL-WRAP-001",
       "MODEL-THICKEN-001",

@@ -372,6 +372,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 try unjoin.validate()
             case let .unjoinFaces(unjoin):
                 try unjoin.validate()
+            case let .reverseSheet(reverse):
+                try reverse.validate()
             case let .extract(extract):
                 try extract.validate()
             case let .wrap(wrap):
@@ -650,6 +652,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             try validateUnjoinBodyContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .unjoinFaces:
             try validateUnjoinFacesContract(node, outputRoles: outputRoles)
+        case .reverseSheet:
+            try validateReverseSheetContract(node, outputRoles: outputRoles)
         case .extract:
             try validateExtractContract(node, outputRoles: outputRoles)
         case .wrap:
@@ -1452,6 +1456,22 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         }
         guard outputRoles == [.sheet] else {
             throw FeatureEvaluationError.invalidGraph("Unjoin faces features must declare one sheet output.")
+        }
+    }
+
+    private func validateReverseSheetContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        guard case let .reverseSheet(reverse) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a reverseSheet operation.")
+        }
+        try reverse.validate()
+        guard node.inputs == [FeatureInput(featureID: reverse.target.featureID, role: .target)] else {
+            throw FeatureEvaluationError.invalidGraph("Reverse sheet features must consume the referenced target input.")
+        }
+        guard nodes[reverse.target.featureID]?.bodyOrSheetOutput == .sheet else {
+            throw FeatureEvaluationError.invalidGraph("Reverse sheet target source must declare one sheet output.")
+        }
+        guard outputRoles == [.sheet] else {
+            throw FeatureEvaluationError.invalidGraph("Reverse sheet features must declare one sheet output.")
         }
     }
 

@@ -854,6 +854,28 @@ extension KernelCapabilities {
       ]
     ),
     feature(
+      id: "MODEL-REVERSE-SHEET-001",
+      operation: "reverseSheet",
+      topology: .sheetBody,
+      inputs: ["oneValidatedSheetBody"],
+      outputs: [
+        "validatedExactBRep",
+        "oneSheetBodyInTheSourcesPlace",
+        "everyFaceTurnedToItsOtherSide",
+        "unchangedFaceGeometryTrimAndShellGrouping",
+        "consumedSourceBodyAndSubshapes",
+        "faceLineageToTheReversedFaces",
+        "strictCurrentSchemaNativePersistence",
+      ],
+      fixtures: ["ReverseSheetFeatureTests"],
+      status: .supported,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .topologyFailure,
+      ]
+    ),
+    feature(
       id: "MODEL-EXTRACT-001",
       operation: "extract",
       topology: .sheetOrSolidBody,

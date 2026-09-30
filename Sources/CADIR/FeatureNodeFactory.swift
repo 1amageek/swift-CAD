@@ -538,6 +538,21 @@ public enum FeatureNodeFactory {
                 inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
                 outputs: [FeatureOutput(role: .sheet)]
             )
+        case .reverseSheet:
+            guard case let .reverseSheet(feature) = operation else {
+                throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+            }
+            try feature.validate()
+            guard try bodyOrSheetPort(of: feature.target.featureID, in: document) == .sheet else {
+                throw FeatureEvaluationError.invalidGraph("Reverse turns a sheet over; its target must be a sheet.")
+            }
+            return FeatureNode(
+                id: id,
+                name: name,
+                operation: operation,
+                inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                outputs: [FeatureOutput(role: .sheet)]
+            )
         case .chamfer:
             func run() throws -> FeatureNode {
                 guard case let .chamfer(feature) = operation else {

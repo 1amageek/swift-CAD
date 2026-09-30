@@ -34,6 +34,7 @@ public extension FeatureOperation {
         case .joinBodies: return "joinBodies"
         case .unjoinBody: return "unjoinBody"
         case .unjoinFaces: return "unjoinFaces"
+        case .reverseSheet: return "reverseSheet"
         case .extract: return "extract"
         case .wrap: return "wrap"
         case .chamfer: return "chamfer"

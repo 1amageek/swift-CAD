@@ -77,6 +77,7 @@ private extension FeatureOperation {
              .joinBodies,
              .unjoinBody,
              .unjoinFaces,
+             .reverseSheet,
              .extract,
              .wrap,
              .chamfer,

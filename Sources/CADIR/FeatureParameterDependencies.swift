@@ -93,6 +93,7 @@ public extension FeatureOperation {
              .joinBodies,
              .unjoinBody,
              .unjoinFaces,
+             .reverseSheet,
              .extract:
             return []
         }

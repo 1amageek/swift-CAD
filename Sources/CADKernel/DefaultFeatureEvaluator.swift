@@ -262,6 +262,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             return try unjoinBodyEvaluator.evaluateValidated(feature: feature, context: context)
         case .unjoinFaces:
             return try UnjoinFacesFeatureEvaluator().evaluateValidated(feature: feature, context: context)
+        case .reverseSheet:
+            return try ReverseSheetFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .extract:
             return try ExtractFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .wrap:
