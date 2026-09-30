@@ -210,6 +210,19 @@ rational surfaces of revolution are Boolean operands only as far as the plane/B-
 intersector certifies them. `RevolveOptionsTests` own the Boolean volumes, thin volumes, the curve
 solid and the face section.
 
+### Pipe
+
+`PipeFeatureEvaluator` owns a pipe's section and path, not its surfaces: it cuts the exact path
+spans to the pipe's start and end fractions of its length (arc length by Gauss–Legendre quadrature,
+the cut parameter by bisection), lays a circle (two exact half arcs) or a regular polygon of the
+diameter across the cut path's start in the path's normal plane, turned by the angle, with a hole of
+the same shape for a wall (a polygon's wall measured across its sides), and evaluates the Sweep of
+that section along the cut path in a context holding both under the pipe's identity (the path under
+a `pipePath` stage identity). Straight paths and single arcs so stay exact and curved paths take the
+certified curved sweep within the pipe's allowance; Booleans are Sweep's. `PipeTests` own the exact
+straight, hollow, cut and polygonal volumes, the curved volume within the allowance, the bored box and
+the native round trip.
+
 ### Loft section topology
 
 Guide contact resolution consumes exact boundary loops (`ExactLoftGuideSection`),

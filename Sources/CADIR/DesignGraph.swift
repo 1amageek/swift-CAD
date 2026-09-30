@@ -190,6 +190,28 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                         "Sweep distance fraction must be greater than 0 and less than or equal to 1."
                     )
                 }
+            case let .pipe(pipe):
+                try pipe.validate()
+                func resolved(_ expression: CADExpression, _ kind: QuantityKind, _ name: String) throws -> Double {
+                    let value = try parameters.resolvedValue(for: expression)
+                    guard value.kind == kind, value.value.isFinite else {
+                        throw UnitError.expectedQuantity(operation: "pipe.\(name)", expected: kind, actual: value.kind)
+                    }
+                    return value.value
+                }
+                let diameter = try resolved(pipe.diameter, .length, "diameter")
+                let thickness = try pipe.thickness.map { try resolved($0, .length, "thickness") }
+                let start = try resolved(pipe.start, .scalar, "start")
+                let end = try resolved(pipe.end, .scalar, "end")
+                _ = try resolved(pipe.angle, .angle, "angle")
+                let endScale = try resolved(pipe.endScale, .scalar, "endScale")
+                let allowance = try resolved(pipe.approximationTolerance, .length, "approximationTolerance")
+                guard diameter > tolerance.distance, thickness.map({ $0 > tolerance.distance && 2 * $0 < diameter }) ?? true,
+                      0 <= start, start < end, end <= 1, endScale > tolerance.relative, allowance > 0 else {
+                    throw FeatureEvaluationError.invalidGraph(
+                        "A pipe needs a positive diameter, a wall thinner than its radius, 0 ≤ start < end ≤ 1, a positive end scale and allowance."
+                    )
+                }
             case let .loft(loft):
                 try loft.validate()
             case let .boolean(boolean):
@@ -632,6 +654,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             try validateRevolveContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .sweep:
             try validateSweepContract(node, outputRoles: outputRoles, tolerance: tolerance)
+        case .pipe:
+            try validatePipeContract(node, outputRoles: outputRoles)
         case .loft:
             try validateLoftContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .boolean:
@@ -870,6 +894,29 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         }
         guard outputRoles == [revolve.resultKind == .solid ? .body : .sheet] else {
             throw FeatureEvaluationError.invalidGraph("Revolve output must agree with its body kind.")
+        }
+    }
+
+    @inline(never)
+    private func validatePipeContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        guard case let .pipe(pipe) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a pipe operation.")
+        }
+        try pipe.validate()
+        guard node.inputs == [FeatureInput(featureID: pipe.path.featureID, role: .path)]
+            + pipe.targets.map({ FeatureInput(featureID: $0.featureID, role: .target) }) else {
+            throw FeatureEvaluationError.invalidGraph("Pipe features must consume their path and target inputs.")
+        }
+        guard nodes[pipe.path.featureID]?.outputs.contains(where: { $0.role == .curve }) == true else {
+            throw FeatureEvaluationError.invalidGraph("Pipe path source must declare a curve output.")
+        }
+        for target in pipe.targets {
+            guard nodes[target.featureID]?.outputs.contains(where: { $0.role == .body }) == true else {
+                throw FeatureEvaluationError.invalidGraph("Pipe target source must declare a body output.")
+            }
+        }
+        guard outputRoles == [.body] else {
+            throw FeatureEvaluationError.invalidGraph("Pipe features declare one body output.")
         }
     }
 

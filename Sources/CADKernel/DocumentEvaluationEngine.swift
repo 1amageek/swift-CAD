@@ -296,6 +296,7 @@ struct DocumentEvaluationEngine {
                  .extrude,
                  .revolve,
                  .sweep,
+                 .pipe,
                  .loft,
                  .boolean,
                  .chamfer,

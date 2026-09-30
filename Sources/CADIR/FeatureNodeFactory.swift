@@ -133,6 +133,26 @@ public enum FeatureNodeFactory {
                 )
             }
             return try run()
+        case .pipe:
+            func run() throws -> FeatureNode {
+                guard case let .pipe(pipe) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try pipe.validate()
+                try validateSource(pipe.path.featureID, role: .curve, in: document)
+                for target in pipe.targets {
+                    try validateSource(target.featureID, role: .body, in: document)
+                }
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: [FeatureInput(featureID: pipe.path.featureID, role: .path)]
+                        + pipe.targets.map { FeatureInput(featureID: $0.featureID, role: .target) },
+                    outputs: [FeatureOutput(role: .body)]
+                )
+            }
+            return try run()
         case .loft:
             func run() throws -> FeatureNode {
                 guard case let .loft(loft) = operation else {

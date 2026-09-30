@@ -10,6 +10,7 @@ package enum FeatureEvaluationStageDomain: UInt64, Sendable {
     case joinOperandPlacement = 0x2E97_B3C1_58D0_A46F
     case imprintToolPlacement = 0x94D1_6A3E_B72C_0F85
     case hollowInnerBody = 0x6E3B_A1F7_0D52_C98B
+    case pipePath = 0xB15D_4C08_E3A7_62F9
 }
 
 /// Derives a deterministic, non-published identity for one internal evaluation stage.

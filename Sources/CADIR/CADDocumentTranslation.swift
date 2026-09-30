@@ -61,6 +61,7 @@ private extension FeatureOperation {
             )
         case .extrude,
              .sweep,
+             .pipe,
              .loft,
              .boolean,
              .faceLoopOffset,

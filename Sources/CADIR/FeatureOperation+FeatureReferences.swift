@@ -97,6 +97,10 @@ extension FeatureOperation {
             feature.guides = try feature.guides.map { SweepGuideReference(featureID: try transform($0.featureID)) }
             feature.targets = try feature.targets.map { SweepTargetReference(featureID: try transform($0.featureID)) }
             return .sweep(feature)
+        case .pipe(var feature):
+            feature.path = SweepPathReference(featureID: try transform(feature.path.featureID))
+            feature.targets = try feature.targets.map { SweepTargetReference(featureID: try transform($0.featureID)) }
+            return .pipe(feature)
         case .loft(var feature):
             feature.sections = try feature.sections.map { reference in
                 var result = reference

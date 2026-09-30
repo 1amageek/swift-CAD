@@ -30,6 +30,7 @@ struct KernelCapabilityContractTests {
       "MODEL-EXTRUDE-001",
       "MODEL-REVOLVE-001",
       "MODEL-SWEEP-001",
+      "MODEL-PIPE-001",
       "MODEL-LOFT-001",
       "MODEL-BOOLEAN-001",
       "MODEL-POLYSPLINE-001",

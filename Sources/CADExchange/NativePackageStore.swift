@@ -423,6 +423,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("extrude", in: object, path: "\(path).extrude", using: validateExtrudeFeatureObject)
     try validateObjectField("revolve", in: object, path: "\(path).revolve", using: validateRevolveFeatureObject)
     try validateObjectField("sweep", in: object, path: "\(path).sweep", using: validateSweepFeatureObject)
+    try validateObjectField("pipe", in: object, path: "\(path).pipe", using: validatePipeFeatureObject)
     try validateObjectField("loft", in: object, path: "\(path).loft", using: validateLoftFeatureObject)
     try validateObjectField("boolean", in: object, path: "\(path).boolean", using: validateBooleanFeatureObject)
     try validateObjectField("polySpline", in: object, path: "\(path).polySpline", using: validatePolySplineFeatureObject)
@@ -1478,6 +1479,25 @@ private func validateSweepFeatureObject(_ object: [String: Any], path: String) t
     try validateArrayField("guides", in: object, path: "\(path).guides", using: validateSweepGuideReferenceObject)
     try validateArrayField("targets", in: object, path: "\(path).targets", using: validateSweepTargetReferenceObject)
     try validateObjectField("options", in: object, path: "\(path).options", using: validateSweepOptionsObject)
+}
+
+private func validatePipeFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["path", "diameter", "thickness", "vertexCount", "angle", "endScale", "start", "end",
+                        "booleanOperation", "targets", "keepTools", "approximationTolerance"],
+        objectName: path
+    )
+    try validateObjectField("path", in: object, path: "\(path).path", using: validateSweepPathReferenceObject)
+    for key in ["diameter", "angle", "endScale", "start", "end", "approximationTolerance"] {
+        try validateObjectField(key, in: object, path: "\(path).\(key)", using: validateExpressionObject)
+    }
+    if object["thickness"] != nil {
+        try validateObjectField("thickness", in: object, path: "\(path).thickness", using: validateExpressionObject)
+    }
+    if object["targets"] != nil {
+        try validateArrayField("targets", in: object, path: "\(path).targets", using: validateSweepTargetReferenceObject)
+    }
 }
 
 private func validateSectionReferenceObject(_ object: [String: Any], path: String) throws {

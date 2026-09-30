@@ -9,6 +9,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case extrude(ExtrudeFeature)
     case revolve(RevolveFeature)
     case sweep(SweepFeature)
+    case pipe(PipeFeature)
     case loft(LoftFeature)
     case boolean(BooleanFeature)
     case polySpline(PolySplineFeature)
@@ -77,6 +78,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case extrude
         case revolve
         case sweep
+        case pipe
         case loft
         case boolean
         case polySpline
@@ -166,6 +168,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .sweep:
             try container.validateOnlyExpectedKeys([.kind, .sweep], in: decoder)
             self = .sweep(try container.decode(SweepFeature.self, forKey: .sweep))
+        case .pipe:
+            try container.validateOnlyExpectedKeys([.kind, .pipe], in: decoder)
+            self = .pipe(try container.decode(PipeFeature.self, forKey: .pipe))
         case .loft:
             try container.validateOnlyExpectedKeys([.kind, .loft], in: decoder)
             self = .loft(try container.decode(LoftFeature.self, forKey: .loft))
@@ -367,6 +372,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .sweep(sweep):
             try container.encode(Kind.sweep, forKey: .kind)
             try container.encode(sweep, forKey: .sweep)
+        case let .pipe(pipe):
+            try container.encode(Kind.pipe, forKey: .kind)
+            try container.encode(pipe, forKey: .pipe)
         case let .loft(loft):
             try container.encode(Kind.loft, forKey: .kind)
             try container.encode(loft, forKey: .loft)

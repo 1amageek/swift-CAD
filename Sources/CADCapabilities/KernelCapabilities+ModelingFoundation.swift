@@ -271,6 +271,43 @@ extension KernelCapabilities {
       ]
     ),
     feature(
+      id: "MODEL-PIPE-001",
+      operation: "pipe",
+      topology: .solidBody,
+      inputs: [
+        "oneConnectedOpenExactPathCurve",
+        "circleOrRegularPolygonSectionAcrossThePathStart",
+        "optionalWallThicknessBelowTheRadius",
+        "sectionRotationAngle",
+        "startAndEndFractionsOfThePathLength",
+        "explicitPositionalAllowanceForCurvedPaths",
+        "optionalUnionDifferenceIntersectSliceWithTargetsAndKeepTools",
+      ],
+      outputs: [
+        "validatedExactSolidBRep",
+        "exactStraightAndCircularPipesCertifiedCurvedPipes",
+        "mandatoryFaceLocalPcurves",
+        "deterministicGeneratedLineage",
+      ],
+      fixtures: [
+        "PipeTests",
+      ],
+      status: .partial,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .sweepPathNormalUnavailable,
+        .sweepRoundCornerUnavailable,
+        .sweepScalePathUnavailable,
+        .resourceLimitExceeded,
+        .topologyFailure,
+      ],
+      additionalPublicAPIs: [
+        "CADModeling.PipeFeatureEvaluator",
+        "DocumentBuilder.pipe",
+      ]
+    ),
+    feature(
       id: "MODEL-LOFT-001",
       operation: "loft",
       topology: .sheetOrSolidBody,
