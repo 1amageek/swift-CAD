@@ -363,7 +363,7 @@ struct FilletFeatureTests {
                 tolerance: .standard
             )
             let cylinderGeometry = try cylinderSurface.differentialGeometry(
-                atU: parameter.u,
+                u: parameter.u,
                 v: parameter.v,
                 tolerance: .standard
             )

@@ -145,7 +145,7 @@ package struct ConstrainedSurfaceHeightFitter {
             let surface = BSplineSurface3D(uDegree: 3, vDegree: 3, uKnots: knots, vKnots: knots, controlPoints: net)
             try surface.validate(tolerance: tolerance)
             for i in source.points.indices {
-                let evaluated = try surface.differentialGeometry(atU: coordinates[i].x, v: coordinates[i].y, tolerance: tolerance)
+                let evaluated = try surface.differentialGeometry(u: coordinates[i].x, v: coordinates[i].y, tolerance: tolerance)
                 guard (evaluated.position - source.points[i].position).length <= source.positionTolerance else {
                     throw failure(.conflictingConstraints, "Constrained Surface failed independent positional verification.")
                 }

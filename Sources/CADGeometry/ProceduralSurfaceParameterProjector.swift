@@ -471,7 +471,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
     for iteration in 0..<options.maximumIterations {
       iterations = iteration + 1
       let derivatives = try surface.parameterDerivatives(
-        atU: u,
+        u: u,
         v: v,
         tolerance: tolerance
       )

@@ -51,21 +51,21 @@ public struct SurfaceParameterThirdOrderDerivatives: Codable, Hashable, Sendable
 
 public extension Surface3D {
     func parameterDerivativesThroughThirdOrder(
-        atU u: Double,
+        u: Double,
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterThirdOrderDerivatives {
         switch self {
         case .plane:
             let lowerOrder = try parameterDerivatives(
-                atU: u,
+                u: u,
                 v: v,
                 tolerance: tolerance
             )
             return lowerOrder.withZeroThirdDerivatives()
         case .cylinder:
             let lowerOrder = try parameterDerivatives(
-                atU: u,
+                u: u,
                 v: v,
                 tolerance: tolerance
             )
@@ -84,13 +84,13 @@ public extension Surface3D {
             )
         case let .bSpline(surface):
             return try surface.parameterDerivativesThroughThirdOrder(
-                atU: u,
+                u: u,
                 v: v,
                 tolerance: tolerance
             )
         case let .procedural(surface):
             return try surface.parameterDerivativesThroughThirdOrder(
-                atU: u,
+                u: u,
                 v: v,
                 tolerance: tolerance
             )
@@ -167,7 +167,7 @@ public extension AnalyticSurface3D {
 
 public extension BSplineSurface3D {
     func parameterDerivativesThroughThirdOrder(
-        atU u: Double,
+        u: Double,
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterThirdOrderDerivatives {

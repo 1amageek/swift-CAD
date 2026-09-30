@@ -42,12 +42,12 @@ struct BSplineSurfaceTrimmingTests {
         }
 
         let sourceDifferential = try surface.differentialGeometry(
-            atU: 0.43,
+            u: 0.43,
             v: 0.57,
             tolerance: tolerance
         )
         let trimmedDifferential = try trimmed.differentialGeometry(
-            atU: 0.43,
+            u: 0.43,
             v: 0.57,
             tolerance: tolerance
         )

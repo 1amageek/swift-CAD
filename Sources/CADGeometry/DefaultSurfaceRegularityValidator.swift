@@ -40,7 +40,7 @@ public struct DefaultSurfaceRegularityValidator: SurfaceRegularityValidating, Se
     )
     try validate(parameters: parameters, tolerance: tolerance,
       intervalJet: { try encloser.intervalJet(over: $0, tolerance: tolerance) },
-      differential: { try surface.parameterDerivatives(atU: $0, v: $1, tolerance: tolerance) })
+      differential: { try surface.parameterDerivatives(u: $0, v: $1, tolerance: tolerance) })
   }
 
   func validate(_ blend: RollingBallBlendSurface3D, over parameters: SurfaceParameterBox) throws {
@@ -54,7 +54,7 @@ public struct DefaultSurfaceRegularityValidator: SurfaceRegularityValidating, Se
     }
     try validate(parameters: parameters, tolerance: blend.tolerance,
       intervalJet: { try blend.intervalJet(over: $0) },
-      differential: { try blend.parameterDerivatives(atU: $0, v: $1) })
+      differential: { try blend.parameterDerivatives(u: $0, v: $1) })
   }
 
   private func validate(

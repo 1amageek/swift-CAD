@@ -91,7 +91,7 @@ struct SurfaceOffsetFeatureTests {
                 tolerance: .standard
             )
             let derivatives = try surfaceCase.surface.parameterDerivatives(
-                atU: u,
+                u: u,
                 v: v,
                 tolerance: .standard
             )

@@ -22,9 +22,9 @@ struct ConstrainedSurfaceTests {
         var tightChange = 0.0, relaxedChange = 0.0
         for v in 0...20 { for u in 0...20 {
             let uv = (Double(u) / 20, Double(v) / 20)
-            let n = try reference.differentialGeometry(atU: uv.0, v: uv.1, tolerance: .standard).normal
-            let t = try tight.differentialGeometry(atU: uv.0, v: uv.1, tolerance: .standard).normal
-            let r = try relaxed.differentialGeometry(atU: uv.0, v: uv.1, tolerance: .standard).normal
+            let n = try reference.differentialGeometry(u: uv.0, v: uv.1, tolerance: .standard).normal
+            let t = try tight.differentialGeometry(u: uv.0, v: uv.1, tolerance: .standard).normal
+            let r = try relaxed.differentialGeometry(u: uv.0, v: uv.1, tolerance: .standard).normal
             tightChange = max(tightChange, acos(min(1, n.dot(t))))
             relaxedChange = max(relaxedChange, acos(min(1, n.dot(r))))
         } }

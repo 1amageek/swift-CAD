@@ -59,12 +59,12 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
 
   func intersectionTangent(at sample: Sample) throws -> [Double] {
     let firstGeometry = try first.differentialGeometry(
-      atU: sample.actual[0],
+      u: sample.actual[0],
       v: sample.actual[1],
       tolerance: tolerance
     )
     let secondGeometry = try second.differentialGeometry(
-      atU: sample.actual[2],
+      u: sample.actual[2],
       v: sample.actual[3],
       tolerance: tolerance
     )

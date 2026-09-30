@@ -52,7 +52,7 @@ struct SurfaceBoundaryCertificationTests {
             uKnots: Array(repeating: 0, count: 6) + Array(repeating: 1, count: 6),
             vKnots: [0, 0, 0, 1, 1, 1], controlPoints: points)
         for fraction in [0.0, 0.25, 0.5, 0.75, 1] {
-            let sample = try Surface3D.bSpline(curved).differentialGeometry(atU: fraction, v: 0, tolerance: tolerance)
+            let sample = try Surface3D.bSpline(curved).differentialGeometry(u: fraction, v: 0, tolerance: tolerance)
             #expect(abs(sample.position.z) < 1e-12)
             if order >= 1 { #expect(abs(sample.normal.y) < 1e-12) }
             if order >= 2 { #expect(abs(sample.secondDerivativeVV.z) < 1e-12) }

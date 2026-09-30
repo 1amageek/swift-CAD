@@ -367,7 +367,7 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
             second: root.second
         )
         let geometry = try configuration.cylinder.surface.differentialGeometry(
-            atU: angle.value,
+            u: angle.value,
             v: height.value,
             tolerance: tolerance
         )
@@ -428,7 +428,7 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
         let height = CurveTaylorScalarJet(value: -configuration.axialCenter)
             + root
         let surface = try cylinderSurface.parameterDerivativesThroughThirdOrder(
-            atU: angle.value,
+            u: angle.value,
             v: height.value,
             tolerance: tolerance
         )

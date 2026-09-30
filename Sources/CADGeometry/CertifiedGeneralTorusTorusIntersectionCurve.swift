@@ -740,7 +740,7 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
             tolerance: tolerance
         )
         let surface = try parameterizedSurface.parameterDerivativesThroughThirdOrder(
-            atU: projection.u,
+            u: projection.u,
             v: projection.v,
             tolerance: tolerance
         )
@@ -752,7 +752,7 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
             diagnosticContext: "General torus-torus curve"
         )
         let lowerSurface = try parameterizedSurface.differentialGeometry(
-            atU: projection.u,
+            u: projection.u,
             v: projection.v,
             tolerance: tolerance
         )

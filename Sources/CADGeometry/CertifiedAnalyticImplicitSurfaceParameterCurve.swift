@@ -140,7 +140,7 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Codable, Hashable,
             tolerance: tolerance
         )
         let surfaceDifferential = try intersection.analyticSurface.differentialGeometry(
-            atU: parameter.u,
+            u: parameter.u,
             v: parameter.v,
             tolerance: tolerance
         )
@@ -218,7 +218,7 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Codable, Hashable,
         ) * (scale * scale * scale)
         let surface = try intersection.analyticSurface
             .parameterDerivativesThroughThirdOrder(
-                atU: lower.parameter.u,
+                u: lower.parameter.u,
                 v: lower.parameter.v,
                 tolerance: tolerance
             )

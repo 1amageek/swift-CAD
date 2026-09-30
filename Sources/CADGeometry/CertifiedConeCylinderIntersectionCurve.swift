@@ -717,7 +717,7 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             )
         }
         let geometry = try configuration.cylinder.surface.differentialGeometry(
-            atU: angle.value,
+            u: angle.value,
             v: height.value,
             tolerance: tolerance
         )
@@ -733,7 +733,7 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             + geometry.tangentV * height.second
         let thirdSurface = try configuration.cylinder.surface
             .parameterDerivativesThroughThirdOrder(
-                atU: angle.value,
+                u: angle.value,
                 v: height.value,
                 tolerance: tolerance
             )

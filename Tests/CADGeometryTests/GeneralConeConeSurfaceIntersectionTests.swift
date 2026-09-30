@@ -443,12 +443,12 @@ struct GeneralConeConeSurfaceIntersectionTests {
             tolerance: tolerance
         )
         let firstGeometry = try first.differentialGeometry(
-            atU: result.firstSurfaceParameter.u,
+            u: result.firstSurfaceParameter.u,
             v: result.firstSurfaceParameter.v,
             tolerance: tolerance
         )
         let secondGeometry = try second.differentialGeometry(
-            atU: result.secondSurfaceParameter.u,
+            u: result.secondSurfaceParameter.u,
             v: result.secondSurfaceParameter.v,
             tolerance: tolerance
         )

@@ -516,7 +516,7 @@ struct SurfaceTaylorVectorJet: Sendable {
 
 extension Surface3D {
     func taylorJet(
-        atU u: Double,
+        u: Double,
         v: Double,
         throughOrder order: Int,
         tolerance: ModelingTolerance
@@ -564,21 +564,21 @@ extension Surface3D {
             return try origin + radial * radius + axis * parameterV
         case let .analytic(surface):
             return try surface.taylorJet(
-                atU: u,
+                u: u,
                 v: v,
                 throughOrder: order,
                 tolerance: tolerance
             )
         case let .bSpline(surface):
             return try surface.taylorJet(
-                atU: u,
+                u: u,
                 v: v,
                 throughOrder: order,
                 tolerance: tolerance
             )
         case let .procedural(surface):
             return try surface.taylorJet(
-                atU: u,
+                u: u,
                 v: v,
                 throughOrder: order,
                 tolerance: tolerance
@@ -589,7 +589,7 @@ extension Surface3D {
 
 private extension AnalyticSurface3D {
     func taylorJet(
-        atU u: Double,
+        u: Double,
         v: Double,
         throughOrder order: Int,
         tolerance: ModelingTolerance
@@ -667,7 +667,7 @@ private extension BSplineSurface3D {
     }
 
     func taylorJet(
-        atU u: Double,
+        u: Double,
         v: Double,
         throughOrder order: Int,
         tolerance: ModelingTolerance

@@ -142,21 +142,21 @@ struct RevolvedSurfaceFaceAreaIntegrator {
         vShift: Double = 0,
         tolerance: ModelingTolerance
     ) throws -> [(start: SurfaceParameter, end: SurfaceParameter)] {
-        func point(_ u: Double, _ v: Double) -> SurfaceParameter {
+        func shifted(u: Double, v: Double) -> SurfaceParameter {
             SurfaceParameter(u: u + uShift, v: v + vShift)
         }
         switch curve {
         case let .affine(origin, direction, startParameter, endParameter):
             return [(
-                point(origin.x + direction.x * startParameter, origin.y + direction.y * startParameter),
-                point(origin.x + direction.x * endParameter, origin.y + direction.y * endParameter)
+                shifted(u: origin.x + direction.x * startParameter, v: origin.y + direction.y * startParameter),
+                shifted(u: origin.x + direction.x * endParameter, v: origin.y + direction.y * endParameter)
             )]
         case let .constantU(u, vStart, vEnd):
-            return [(point(u, vStart), point(u, vEnd))]
+            return [(shifted(u: u, v: vStart), shifted(u: u, v: vEnd))]
         case let .constantV(v, uStart, uEnd):
-            return [(point(uStart, v), point(uEnd, v))]
+            return [(shifted(u: uStart, v: v), shifted(u: uEnd, v: v))]
         case let .polyline(points):
-            return zip(points, points.dropFirst()).map { (point($0.u, $0.v), point($1.u, $1.v)) }
+            return zip(points, points.dropFirst()).map { (shifted(u: $0.u, v: $0.v), shifted(u: $1.u, v: $1.v)) }
         case let .periodicTranslation(base, translatedU, translatedV):
             return try segments(
                 of: base, uShift: uShift + translatedU, vShift: vShift + translatedV, tolerance: tolerance

@@ -2975,12 +2975,12 @@ struct BoundedBSplineSurfaceIntersector {
       tangent[$0] * domains.spans[$0]
     }
     let firstDifferential = try first.differentialGeometry(
-      atU: samples[index].actual[0],
+      u: samples[index].actual[0],
       v: samples[index].actual[1],
       tolerance: tolerance
     )
     let secondDifferential = try second.differentialGeometry(
-      atU: samples[index].actual[2],
+      u: samples[index].actual[2],
       v: samples[index].actual[3],
       tolerance: tolerance
     )
@@ -3095,12 +3095,12 @@ struct BoundedBSplineSurfaceIntersector {
     tolerance: ModelingTolerance
   ) throws -> SurfaceSurfaceIntersection {
     let firstGeometry = try first.differentialGeometry(
-      atU: sample.actual[0],
+      u: sample.actual[0],
       v: sample.actual[1],
       tolerance: tolerance
     )
     let secondGeometry = try second.differentialGeometry(
-      atU: sample.actual[2],
+      u: sample.actual[2],
       v: sample.actual[3],
       tolerance: tolerance
     )
@@ -3184,12 +3184,12 @@ struct BoundedBSplineSurfaceIntersector {
     tolerance: ModelingTolerance
   ) throws -> [Double] {
     let firstGeometry = try first.differentialGeometry(
-      atU: sample.actual[0],
+      u: sample.actual[0],
       v: sample.actual[1],
       tolerance: tolerance
     )
     let secondGeometry = try second.differentialGeometry(
-      atU: sample.actual[2],
+      u: sample.actual[2],
       v: sample.actual[3],
       tolerance: tolerance
     )

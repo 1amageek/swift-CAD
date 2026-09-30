@@ -99,7 +99,7 @@ public struct SurfaceContinuityTarget: Codable, Sendable, Hashable {
     }
 
     public func frame(tolerance: ModelingTolerance) throws -> SurfaceContinuityFrame {
-        let geometry = try surface.differentialGeometry(atU: u, v: v, tolerance: tolerance)
+        let geometry = try surface.differentialGeometry(u: u, v: v, tolerance: tolerance)
         switch orientation {
         case .forward:
             return SurfaceContinuityFrame(

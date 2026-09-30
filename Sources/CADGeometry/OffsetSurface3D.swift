@@ -31,7 +31,7 @@ public struct OffsetSurface3D: Codable, Hashable, Sendable {
     tolerance: ModelingTolerance
   ) throws -> Point3D {
     let jet = try taylorJet(
-      atU: u,
+      u: u,
       v: v,
       throughOrder: 0,
       tolerance: tolerance
@@ -41,12 +41,12 @@ public struct OffsetSurface3D: Codable, Hashable, Sendable {
   }
 
   public func parameterDerivatives(
-    atU u: Double,
+    u: Double,
     v: Double,
     tolerance: ModelingTolerance
   ) throws -> SurfaceParameterDerivatives {
     let jet = try taylorJet(
-      atU: u,
+      u: u,
       v: v,
       throughOrder: 2,
       tolerance: tolerance
@@ -67,12 +67,12 @@ public struct OffsetSurface3D: Codable, Hashable, Sendable {
   }
 
   public func parameterDerivativesThroughThirdOrder(
-    atU u: Double,
+    u: Double,
     v: Double,
     tolerance: ModelingTolerance
   ) throws -> SurfaceParameterThirdOrderDerivatives {
     let jet = try taylorJet(
-      atU: u,
+      u: u,
       v: v,
       throughOrder: 3,
       tolerance: tolerance
@@ -113,14 +113,14 @@ public struct OffsetSurface3D: Codable, Hashable, Sendable {
   }
 
   func taylorJet(
-    atU u: Double,
+    u: Double,
     v: Double,
     throughOrder order: Int,
     tolerance: ModelingTolerance
   ) throws -> SurfaceTaylorVectorJet {
     try validate(tolerance: tolerance)
     let sourceJet = try source.taylorJet(
-      atU: u,
+      u: u,
       v: v,
       throughOrder: order + 1,
       tolerance: tolerance

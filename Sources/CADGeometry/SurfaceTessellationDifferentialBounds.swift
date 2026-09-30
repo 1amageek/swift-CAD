@@ -56,7 +56,7 @@ extension DefaultSurfaceDifferentialEncloser {
       }
 
       let differential = try surface.parameterDerivatives(
-        atU: cell.parameters.u.midpoint,
+        u: cell.parameters.u.midpoint,
         v: cell.parameters.v.midpoint,
         tolerance: tolerance
       )

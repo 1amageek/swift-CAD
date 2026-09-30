@@ -1839,7 +1839,7 @@ private extension ExactSTEPReader {
                 tolerance: tolerance
             )
             let differential = try surface.differentialGeometry(
-                atU: startMatch.parameter.u,
+                u: startMatch.parameter.u,
                 v: startMatch.parameter.v,
                     tolerance: tolerance
             )

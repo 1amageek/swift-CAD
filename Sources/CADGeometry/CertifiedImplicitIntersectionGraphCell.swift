@@ -330,12 +330,12 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
     )
     let values = parameters.values
     let firstGeometry = try firstSurface.parameterDerivativesThroughThirdOrder(
-      atU: values[0],
+      u: values[0],
       v: values[1],
       tolerance: tolerance
     )
     let secondGeometry = try secondSurface.parameterDerivativesThroughThirdOrder(
-      atU: values[2],
+      u: values[2],
       v: values[3],
       tolerance: tolerance
     )
@@ -433,9 +433,9 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
       firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance)
     return try secondOrderSolution(parameters: parameters,
       firstGeometry: firstSurface.parameterDerivatives(
-        atU: parameters.first.u, v: parameters.first.v, tolerance: tolerance),
+        u: parameters.first.u, v: parameters.first.v, tolerance: tolerance),
       secondGeometry: secondSurface.parameterDerivatives(
-        atU: parameters.second.u, v: parameters.second.v, tolerance: tolerance),
+        u: parameters.second.u, v: parameters.second.v, tolerance: tolerance),
       parameterScale: parameterScale, tolerance: tolerance).differential
   }
 
@@ -932,13 +932,13 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
     tolerance: ModelingTolerance
   ) throws -> (difference: Vector3D, residual: Double, columns: [Vector3D]) {
     let firstGeometry = try firstSurface.taylorJet(
-      atU: values[0],
+      u: values[0],
       v: values[1],
       throughOrder: 1,
       tolerance: tolerance
     )
     let secondGeometry = try secondSurface.taylorJet(
-      atU: values[2],
+      u: values[2],
       v: values[3],
       throughOrder: 1,
       tolerance: tolerance

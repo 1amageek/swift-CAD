@@ -164,7 +164,7 @@ public struct ProjectedAnalyticSurfaceParameterCurve: Codable, Hashable, Sendabl
             tolerance: tolerance
         ).thirdDerivative * (span * span * span)
         let surfaceDerivatives = try surface.parameterDerivativesThroughThirdOrder(
-            atU: lower.parameter.u,
+            u: lower.parameter.u,
             v: lower.parameter.v,
             tolerance: tolerance
         )
@@ -240,7 +240,7 @@ public struct ProjectedAnalyticSurfaceParameterCurve: Codable, Hashable, Sendabl
             tolerance: tolerance
         )
         let surfaceDifferential = try surface.differentialGeometry(
-            atU: surfaceParameter.u,
+            u: surfaceParameter.u,
             v: surfaceParameter.v,
             tolerance: tolerance
         )

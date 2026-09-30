@@ -483,12 +483,12 @@ struct GeneralTorusTorusSurfaceIntersectionTests {
                         tolerance: tolerance
                     )
                     let firstSurfaceDifferential = try first.differentialGeometry(
-                        atU: firstDifferential.parameter.u,
+                        u: firstDifferential.parameter.u,
                         v: firstDifferential.parameter.v,
                         tolerance: tolerance
                     )
                     let secondSurfaceDifferential = try second.differentialGeometry(
-                        atU: secondDifferential.parameter.u,
+                        u: secondDifferential.parameter.u,
                         v: secondDifferential.parameter.v,
                         tolerance: tolerance
                     )

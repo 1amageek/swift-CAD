@@ -1697,7 +1697,7 @@ struct SurfaceSurfaceIntersectionTests {
             tolerance: tolerance
           )
           let surfaceDifferential = try surface.differentialGeometry(
-            atU: parameterDifferential.parameter.u,
+            u: parameterDifferential.parameter.u,
             v: parameterDifferential.parameter.v,
             tolerance: tolerance
           )

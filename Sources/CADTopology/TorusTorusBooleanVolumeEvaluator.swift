@@ -315,7 +315,7 @@ struct TorusTorusBooleanVolumeEvaluator {
         let inwardU = -tangentV / parameterTangentLength * orientationSign
         let inwardV = tangentU / parameterTangentLength * orientationSign
         let differential = try surface.differentialGeometry(
-            atU: center.u,
+            u: center.u,
             v: center.v,
             tolerance: tolerance
         )

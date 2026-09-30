@@ -148,7 +148,7 @@ struct SurfaceSurfaceIntersectionVerifier {
             guard circle.normal.cross(plane.normal).length == 0 else { return nil }
             let center = try surface.parameterProjection(of: circle.center, tolerance: tolerance)
             let basis = try circleOrthonormalBasis(circle.normal, tolerance: tolerance)
-            let frame = try surface.parameterDerivatives(atU: center.u, v: center.v, tolerance: tolerance)
+            let frame = try surface.parameterDerivatives(u: center.u, v: center.v, tolerance: tolerance)
             pcurve = .harmonic(
                 center: Point2D(x: center.u, y: center.v),
                 cosine: Point2D(x: basis.u.dot(frame.tangentU) * circle.radius,
@@ -625,7 +625,7 @@ struct SurfaceSurfaceIntersectionVerifier {
             tolerance: tolerance
         )
         let surfaceGeometry = try surface.differentialGeometry(
-            atU: uv.x,
+            u: uv.x,
             v: uv.y,
             tolerance: tolerance
         )

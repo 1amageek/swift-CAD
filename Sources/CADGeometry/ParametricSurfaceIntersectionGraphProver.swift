@@ -833,12 +833,12 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     tolerance: ModelingTolerance
   ) throws -> [IntervalQuadraticPolynomial] {
     let firstDerivatives = try firstSurface.parameterDerivatives(
-      atU: actualCenter[0],
+      u: actualCenter[0],
       v: actualCenter[1],
       tolerance: tolerance
     )
     let secondDerivatives = try secondSurface.parameterDerivatives(
-      atU: actualCenter[2],
+      u: actualCenter[2],
       v: actualCenter[3],
       tolerance: tolerance
     )

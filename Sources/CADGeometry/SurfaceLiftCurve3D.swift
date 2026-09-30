@@ -210,7 +210,7 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
             )
         }
         let geometry = try surface.parameterDerivativesAssumingValid(
-            atU: parameter.parameter.u,
+            u: parameter.parameter.u,
             v: parameter.parameter.v,
             tolerance: tolerance
         )

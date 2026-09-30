@@ -16,7 +16,7 @@ struct RuledSurface3DTests {
         let surface = makePlanarSurface()
 
         let derivatives = try surface.parameterDerivatives(
-            atU: 0.25,
+            u: 0.25,
             v: 0.4,
             tolerance: tolerance
         )
@@ -35,7 +35,7 @@ struct RuledSurface3DTests {
         expectApproximatelyEqual(derivatives.secondDerivativeVV, .zero)
 
         let third = try surface.parameterDerivativesThroughThirdOrder(
-            atU: 0.25,
+            u: 0.25,
             v: 0.4,
             tolerance: tolerance
         )
@@ -67,7 +67,7 @@ struct RuledSurface3DTests {
             for uIndex in 0...6 {
                 let u = 0.2 + 0.5 * Double(uIndex) / 6.0
                 let sample = try surface.parameterDerivatives(
-                    atU: u,
+                    u: u,
                     v: v,
                     tolerance: tolerance
                 )
@@ -293,12 +293,12 @@ struct RuledSurface3DTests {
             for vIndex in 0...8 {
                 let v = Double(vIndex) / 8.0
                 let expected = try ruled.parameterDerivatives(
-                    atU: u,
+                    u: u,
                     v: v,
                     tolerance: tolerance
                 )
                 let actual = try exact.parameterDerivatives(
-                    atU: u,
+                    u: u,
                     v: v,
                     tolerance: tolerance
                 )

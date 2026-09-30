@@ -302,7 +302,7 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
         )
         let angle = angleDifferential(at: normalizedFraction)
         let baseGeometry = try configuration.parameterized.surface.differentialGeometry(
-            atU: angle.value,
+            u: angle.value,
             v: 0.0,
             tolerance: tolerance
         )
@@ -354,7 +354,7 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
             .scaled(by: -inverseProjectedAxisSquaredLength)
             .adding(signedRoot)
         let surfaceGeometry = try configuration.parameterized.surface.differentialGeometry(
-            atU: angle.value,
+            u: angle.value,
             v: height.value,
             tolerance: tolerance
         )
@@ -417,7 +417,7 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
             + root
         let surface = try configuration.parameterized.surface
             .parameterDerivativesThroughThirdOrder(
-                atU: angle.value,
+                u: angle.value,
                 v: height.value,
                 tolerance: tolerance
             )

@@ -202,7 +202,7 @@ struct ParallelOffsetTorusTorusSurfaceIntersectionTests {
                         tolerance: tolerance
                     )
                     let surfaceGeometry = try surface.differentialGeometry(
-                        atU: parameter.parameter.u,
+                        u: parameter.parameter.u,
                         v: parameter.parameter.v,
                         tolerance: tolerance
                     )

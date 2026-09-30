@@ -290,7 +290,7 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
               try vDomain.contains(v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
         }
-        let derivatives = try surfaceDerivatives(atU: u, v: v, tolerance: tolerance)
+        let derivatives = try surfaceDerivatives(u: u, v: v, tolerance: tolerance)
         return try strictSurfaceNormal(
             tangentU: derivatives.tangentU,
             tangentV: derivatives.tangentV,
@@ -299,7 +299,7 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
     }
 
     public func differentialGeometry(
-        atU u: Double,
+        u: Double,
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
@@ -308,7 +308,7 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
               try vDomain.contains(v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
         }
-        let derivatives = try surfaceDerivatives(atU: u, v: v, tolerance: tolerance)
+        let derivatives = try surfaceDerivatives(u: u, v: v, tolerance: tolerance)
         let tangentU = derivatives.tangentU
         let tangentV = derivatives.tangentV
         let secondDerivativeUU = derivatives.secondDerivativeUU
@@ -777,7 +777,7 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
     }
 
     func surfaceDerivatives(
-        atU u: Double,
+        u: Double,
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> RationalDerivatives {

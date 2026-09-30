@@ -301,7 +301,7 @@ package struct LocalVertexDisplacementRebuilder: Sendable {
                 controlPoints: [[outer[0], outer[1]], [outer[3], outer[2]]]
             )
             try patch.validate(tolerance: tolerance)
-            let center = try Surface3D.bSpline(patch).differentialGeometry(atU: 0.5, v: 0.5, tolerance: tolerance)
+            let center = try Surface3D.bSpline(patch).differentialGeometry(u: 0.5, v: 0.5, tolerance: tolerance)
             guard center.tangentU.cross(center.tangentV).dot(previousNormal) > 0 else {
                 throw failure(.topologyFailure, featureID, tolerance, "A direct edit would turn a face over.")
             }

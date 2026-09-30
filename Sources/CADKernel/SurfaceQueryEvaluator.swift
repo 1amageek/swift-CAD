@@ -272,7 +272,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             throw GeometryError.invalidDistance(0.0)
         }
         let geometry = try resolved.surface.differentialGeometry(
-            atU: reference.u,
+            u: reference.u,
             v: reference.v,
             tolerance: tolerance
         )
@@ -1661,7 +1661,7 @@ public struct SurfaceQueryEvaluator: Sendable {
         converged: Bool
     ) throws -> SurfaceProjectionResult {
         let geometry = try surface.differentialGeometry(
-            atU: reference.u,
+            u: reference.u,
             v: reference.v,
             tolerance: tolerance
         )
@@ -1692,7 +1692,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             )
         }
         let geometry = try surface.differentialGeometry(
-            atU: reference.u,
+            u: reference.u,
             v: reference.v,
             tolerance: tolerance
         )

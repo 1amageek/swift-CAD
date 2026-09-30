@@ -531,7 +531,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
             tolerance: tolerance
         )
         let surface = try cylinderSurface.parameterDerivativesThroughThirdOrder(
-            atU: projection.u,
+            u: projection.u,
             v: projection.v,
             tolerance: tolerance
         )
@@ -543,7 +543,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
             diagnosticContext: "General torus-cylinder curve"
         )
         let lowerSurface = try cylinderSurface.differentialGeometry(
-            atU: projection.u,
+            u: projection.u,
             v: projection.v,
             tolerance: tolerance
         )

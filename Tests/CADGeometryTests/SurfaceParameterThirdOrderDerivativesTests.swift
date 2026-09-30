@@ -31,12 +31,12 @@ struct SurfaceParameterThirdOrderDerivativesTests {
 
         for surface in surfaces {
             let lower = try surface.parameterDerivatives(
-                atU: u,
+                u: u,
                 v: v,
                 tolerance: tolerance
             )
             let third = try surface.parameterDerivativesThroughThirdOrder(
-                atU: u,
+                u: u,
                 v: v,
                 tolerance: tolerance
             )
@@ -68,7 +68,7 @@ struct SurfaceParameterThirdOrderDerivativesTests {
             origin: .origin,
             normal: .unitZ
         )).parameterDerivativesThroughThirdOrder(
-            atU: u,
+            u: u,
             v: v,
             tolerance: tolerance
         )
@@ -82,7 +82,7 @@ struct SurfaceParameterThirdOrderDerivativesTests {
             axis: .unitZ,
             radius: 2.0
         )).parameterDerivativesThroughThirdOrder(
-            atU: u,
+            u: u,
             v: v,
             tolerance: tolerance
         )
@@ -98,7 +98,7 @@ struct SurfaceParameterThirdOrderDerivativesTests {
             center: .origin,
             radius: 2.3
         )).parameterDerivativesThroughThirdOrder(
-            atU: u,
+            u: u,
             v: v,
             tolerance: tolerance
         )
@@ -112,7 +112,7 @@ struct SurfaceParameterThirdOrderDerivativesTests {
             majorRadius: 3.1,
             minorRadius: 0.8
         )).parameterDerivativesThroughThirdOrder(
-            atU: u,
+            u: u,
             v: v,
             tolerance: tolerance
         )
@@ -127,7 +127,7 @@ struct SurfaceParameterThirdOrderDerivativesTests {
         let v = 0.42
 
         let derivatives = try surface.parameterDerivativesThroughThirdOrder(
-            atU: u,
+            u: u,
             v: v,
             tolerance: tolerance
         )
@@ -203,7 +203,7 @@ struct SurfaceParameterThirdOrderDerivativesTests {
         let third = 6.0 / denominatorFourth
 
         let derivatives = try surface.parameterDerivativesThroughThirdOrder(
-            atU: u,
+            u: u,
             v: v,
             tolerance: tolerance
         )
@@ -247,7 +247,7 @@ struct SurfaceParameterThirdOrderDerivativesTests {
 
         #expect(throws: GeometryError.self) {
             try surface.parameterDerivativesThroughThirdOrder(
-                atU: -0.1,
+                u: -0.1,
                 v: 0.5,
                 tolerance: tolerance
             )

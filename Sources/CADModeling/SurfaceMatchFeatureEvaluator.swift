@@ -259,12 +259,12 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
         tolerance: ModelingTolerance
     ) throws -> ExactPatternTransform {
         let sourceFrame = try sourceSurface.uvnFrame(
-            atU: sourceParameter.u,
+            u: sourceParameter.u,
             v: sourceParameter.v,
             tolerance: tolerance
         )
         let targetFrame = try targetSurface.uvnFrame(
-            atU: targetParameter.u,
+            u: targetParameter.u,
             v: targetParameter.v,
             tolerance: tolerance
         )

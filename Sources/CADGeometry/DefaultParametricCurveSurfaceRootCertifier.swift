@@ -126,7 +126,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
       ? validatedCurve : ValidatedCurve3D(curve, tolerance: tolerance)
     let curveGeometry = try admittedCurve.differentialGeometry(at: cell.curve.midpoint)
     let surfaceGeometry = try surface.parameterDerivatives(
-      atU: cell.surfaceU.midpoint,
+      u: cell.surfaceU.midpoint,
       v: cell.surfaceV.midpoint,
       tolerance: tolerance
     )
@@ -263,7 +263,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
       ? validatedCurve : ValidatedCurve3D(curve, tolerance: tolerance)
     let curveGeometry = try admittedCurve.differentialGeometry(at: witness.curveParameter)
     let surfaceGeometry = try surface.parameterDerivatives(
-      atU: witness.surfaceU,
+      u: witness.surfaceU,
       v: witness.surfaceV,
       tolerance: tolerance
     )

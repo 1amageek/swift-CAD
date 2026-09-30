@@ -109,7 +109,7 @@ struct BoundedSurfaceParameterDomainMap: Sendable {
         message: "Bounded marching requires finite supports or one plane bounded by its finite partner.")
     }
     let box = try expandedHull(hull(of: partner, tolerance: tolerance), by: tolerance.distance)
-    let frame = try surface.parameterDerivatives(atU: 0, v: 0, tolerance: tolerance)
+    let frame = try surface.parameterDerivatives(u: 0, v: 0, tolerance: tolerance)
     let x = OutwardScalarInterval(lower: box.minimum.x, upper: box.maximum.x) - .exact(frame.position.x)
     let y = OutwardScalarInterval(lower: box.minimum.y, upper: box.maximum.y) - .exact(frame.position.y)
     let z = OutwardScalarInterval(lower: box.minimum.z, upper: box.maximum.z) - .exact(frame.position.z)

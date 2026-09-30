@@ -273,7 +273,7 @@ struct SurfaceDifferentialEncloserTests {
                 let uFraction = Double(uIndex) / Double(sampleCount - 1)
                 let u = parameters.u.lower + parameters.u.width * uFraction
                 let derivatives = try surface.parameterDerivatives(
-                    atU: u,
+                    u: u,
                     v: v,
                     tolerance: tolerance
                 )

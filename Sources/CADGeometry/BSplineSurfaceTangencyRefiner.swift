@@ -232,12 +232,12 @@ struct BSplineSurfaceTangencyRefiner {
             domainLowerBounds[$0] + normalizedParameters[$0] * domainSpans[$0]
         }
         let firstGeometry = try first.differentialGeometry(
-            atU: actualParameters[0],
+            u: actualParameters[0],
             v: actualParameters[1],
             tolerance: tolerance
         )
         let secondGeometry = try second.differentialGeometry(
-            atU: actualParameters[2],
+            u: actualParameters[2],
             v: actualParameters[3],
             tolerance: tolerance
         )

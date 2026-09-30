@@ -319,7 +319,7 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
             completedIterations = iteration + 1
             let parameter = side.parameter(variable: variable)
             let geometry = try surface.differentialGeometry(
-                atU: parameter.u,
+                u: parameter.u,
                 v: parameter.v,
                 tolerance: tolerance
             )

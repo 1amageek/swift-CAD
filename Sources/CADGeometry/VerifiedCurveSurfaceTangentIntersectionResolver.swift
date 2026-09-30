@@ -39,7 +39,7 @@ struct VerifiedCurveSurfaceTangentIntersectionResolver:
             tolerance: tolerance
         )
         let surfaceGeometry = try surface.differentialGeometry(
-            atU: surfaceU,
+            u: surfaceU,
             v: surfaceV,
             tolerance: tolerance
         )

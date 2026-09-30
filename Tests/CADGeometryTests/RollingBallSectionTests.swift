@@ -257,7 +257,7 @@ struct RollingBallSectionTests {
                 #expect((point - expected).length <= tolerance.distance)
                 let radial = hypot(point.x, point.y) - majorRadius
                 #expect(abs(radial * radial + pow(point.z - 0.2, 2) - 0.04) <= tolerance.distance)
-                let d = try surface.parameterDerivativesThroughThirdOrder(atU: u, v: v)
+                let d = try surface.parameterDerivativesThroughThirdOrder(u: u, v: v)
                 #expect((point - d.position).length <= tolerance.distance)
                 let xy = Vector3D(x: point.x, y: point.y, z: 0)
                 let expectedU = Vector3D.unitZ.cross(xy) * span
@@ -274,8 +274,8 @@ struct RollingBallSectionTests {
                     #expect(abs(d.tangentU.dot(normal)) <= tolerance.distance)
                 } else {
                     let h = 1.0e-5
-                    let lower = try surface.parameterDerivatives(atU: u, v: v - h)
-                    let upper = try surface.parameterDerivatives(atU: u, v: v + h)
+                    let lower = try surface.parameterDerivatives(u: u, v: v - h)
+                    let upper = try surface.parameterDerivatives(u: u, v: v + h)
                     let third = (upper.secondDerivativeVV - lower.secondDerivativeVV) / (2 * h)
                     #expect((third - d.thirdDerivativeVVV).length <= 1.0e-5)
                 }
@@ -286,7 +286,7 @@ struct RollingBallSectionTests {
         let enclosure = try surface.intervalJet(over: box)
         for u in [box.u.lower, box.u.midpoint, box.u.upper] {
             for v in [box.v.lower, box.v.midpoint, box.v.upper] {
-                let d = try surface.parameterDerivativesThroughThirdOrder(atU: u, v: v)
+                let d = try surface.parameterDerivativesThroughThirdOrder(u: u, v: v)
                 for (value, bounds) in [
                     (d.position - .origin, [enclosure.x.value, enclosure.y.value, enclosure.z.value]),
                     (d.tangentU, [enclosure.x.derivativeU, enclosure.y.derivativeU, enclosure.z.derivativeU]),
@@ -391,7 +391,7 @@ struct RollingBallSectionTests {
         for u in [0.0, 0.3, 0.7, 1.0] {
             let centerPoint = try center.point(at: u, tolerance: tolerance)
             for v in [0.0, 0.4, 1.0] {
-                let value = try blend.parameterDerivativesThroughThirdOrder(atU: u, v: v)
+                let value = try blend.parameterDerivativesThroughThirdOrder(u: u, v: v)
                 #expect(abs((value.position - centerPoint).length - radius) <= tolerance.distance)
                 if v == 0 || v == 1 {
                     let rail = v == 0 ? first : second

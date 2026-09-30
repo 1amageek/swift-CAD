@@ -2246,7 +2246,7 @@ struct CADIRTests {
             topLeft: Point3D(x: 0.0, y: 1.0, z: 0.0)
         )
 
-        let geometry = try surface.differentialGeometry(atU: 0.5, v: 0.5, tolerance: .standard)
+        let geometry = try surface.differentialGeometry(u: 0.5, v: 0.5, tolerance: .standard)
 
         #expect(abs(geometry.position.x - 0.5) <= 1.0e-12)
         #expect(abs(geometry.position.y - 0.5) <= 1.0e-12)
@@ -2279,7 +2279,7 @@ struct CADIRTests {
 
         for parameter in [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (1.0, 1.0)] {
             let geometry = try surface.differentialGeometry(
-                atU: parameter.0,
+                u: parameter.0,
                 v: parameter.1,
                 tolerance: .standard
             )
@@ -2319,7 +2319,7 @@ struct CADIRTests {
             #expect(error.tolerance == .standard)
         }
         do {
-            _ = try surface.differentialGeometry(atU: 0.5, v: 0.0, tolerance: .standard)
+            _ = try surface.differentialGeometry(u: 0.5, v: 0.0, tolerance: .standard)
             Issue.record("A singular surface parameter must not return fabricated differential geometry.")
         } catch let error as KernelError {
             #expect(error.phase == .geometry)
@@ -2351,7 +2351,7 @@ struct CADIRTests {
         let surface = makeWeightedBilinearSurface()
 
         let point = try surface.point(u: 0.5, v: 0.5, tolerance: .standard)
-        let geometry = try surface.differentialGeometry(atU: 0.5, v: 0.5, tolerance: .standard)
+        let geometry = try surface.differentialGeometry(u: 0.5, v: 0.5, tolerance: .standard)
 
         #expect(abs(point.x - 4.0 / 7.0) <= 1.0e-12)
         #expect(abs(point.y - 4.0 / 7.0) <= 1.0e-12)
@@ -2451,8 +2451,8 @@ struct CADIRTests {
         let plane = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
         let cylinder = Surface3D.cylinder(Cylinder3D(origin: .origin, axis: .unitZ, radius: 2.0))
 
-        let planeGeometry = try plane.differentialGeometry(atU: 2.0, v: 3.0, tolerance: .standard)
-        let cylinderGeometry = try cylinder.differentialGeometry(atU: 0.0, v: 3.0, tolerance: .standard)
+        let planeGeometry = try plane.differentialGeometry(u: 2.0, v: 3.0, tolerance: .standard)
+        let cylinderGeometry = try cylinder.differentialGeometry(u: 0.0, v: 3.0, tolerance: .standard)
 
         #expect(abs(planeGeometry.position.x - 2.0) <= 1.0e-12)
         #expect(abs(planeGeometry.position.y - 3.0) <= 1.0e-12)
@@ -2826,7 +2826,7 @@ struct CADIRTests {
             topLeft: Point3D(x: 0.0, y: 1.0, z: 0.0)
         )
 
-        let geometry = try surface.differentialGeometry(atU: 0.5, v: 0.5, tolerance: .standard)
+        let geometry = try surface.differentialGeometry(u: 0.5, v: 0.5, tolerance: .standard)
 
         #expect(geometry.gaussianCurvature < 0.0)
         #expect(geometry.minimumPrincipalCurvature < 0.0)

@@ -932,7 +932,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
       }
       let sampleV = if case .cone = kind { 1.0 } else { 0.0 }
       let geometry = try surface.differentialGeometry(
-        atU: 0.0,
+        u: 0.0,
         v: sampleV,
         tolerance: tolerance
       )

@@ -17,7 +17,7 @@ struct BoundedSurfaceParameterDomainMapTests {
             distance: 0.2)))
         try finite.validate(tolerance: tolerance)
         try plane.validate(tolerance: tolerance)
-        let frame = try plane.parameterDerivatives(atU: 0, v: 0, tolerance: tolerance)
+        let frame = try plane.parameterDerivatives(u: 0, v: 0, tolerance: tolerance)
         for reversed in [false, true] {
             let map = try BoundedSurfaceParameterDomainMap(
                 first: reversed ? plane : finite, second: reversed ? finite : plane,

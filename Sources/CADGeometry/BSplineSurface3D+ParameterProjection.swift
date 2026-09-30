@@ -228,7 +228,7 @@ extension BSplineSurface3D {
         var damping = max(tolerance.relative, Double.ulpOfOne.squareRoot())
         for iteration in 0..<options.maximumIterations {
             iterations = iteration + 1
-            let geometry = try surfaceDerivatives(atU: u, v: v, tolerance: tolerance)
+            let geometry = try surfaceDerivatives(u: u, v: v, tolerance: tolerance)
             let residual = geometry.position - point
             let gradientU = residual.dot(geometry.tangentU)
             let gradientV = residual.dot(geometry.tangentV)

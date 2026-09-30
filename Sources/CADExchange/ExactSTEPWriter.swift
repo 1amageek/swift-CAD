@@ -904,7 +904,7 @@ struct ExactSTEPWriter {
     let normal = try directionEntity(plane.normal, table: &table)
     let surface = Surface3D.plane(plane)
     let frame = try surface.differentialGeometry(
-      atU: 0.0,
+      u: 0.0,
       v: 0.0,
       tolerance: tolerance
     )

@@ -35,7 +35,7 @@ struct DefaultSurfaceNormalResolver: SurfaceNormalResolving {
             )
         case let .procedural(surface):
             let derivatives = try surface.parameterDerivatives(
-                atU: u,
+                u: u,
                 v: v,
                 tolerance: tolerance
             )

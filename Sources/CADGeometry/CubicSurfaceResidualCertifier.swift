@@ -796,12 +796,12 @@ struct CubicSurfaceResidualCertifier {
         let secondUV = cubicPoint(cell.secondParameters, fraction: fraction)
         let secondUVDerivative = cubicDerivative(cell.secondParameters, fraction: fraction)
         let firstGeometry = try first.differentialGeometry(
-            atU: firstUV.x,
+            u: firstUV.x,
             v: firstUV.y,
             tolerance: tolerance
         )
         let secondGeometry = try second.differentialGeometry(
-            atU: secondUV.x,
+            u: secondUV.x,
             v: secondUV.y,
             tolerance: tolerance
         )

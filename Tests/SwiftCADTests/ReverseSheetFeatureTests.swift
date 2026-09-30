@@ -44,7 +44,7 @@ struct ReverseSheetFeatureTests {
         try body.shellIDs.flatMap { evaluated.brep.shells[$0]?.faceIDs ?? [] }.map { faceID in
             let face = try #require(evaluated.brep.faces[faceID])
             let surface = try #require(evaluated.brep.geometry.surfaces[face.surfaceID])
-            let normal = try surface.differentialGeometry(atU: 0.5, v: 0.5, tolerance: .standard).normal
+            let normal = try surface.differentialGeometry(u: 0.5, v: 0.5, tolerance: .standard).normal
             return face.orientation == .forward ? normal : normal * -1
         }
     }

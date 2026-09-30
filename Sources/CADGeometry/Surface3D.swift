@@ -209,7 +209,7 @@ public enum Surface3D: Codable, Sendable, Hashable {
     }
 
     public func differentialGeometry(
-        atU u: Double,
+        u: Double,
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
@@ -284,7 +284,7 @@ public enum Surface3D: Codable, Sendable, Hashable {
                 maximumPrincipalDirection: geometry.maximumPrincipalDirection
             )
         case let .bSpline(surface):
-            let geometry = try surface.differentialGeometry(atU: u, v: v, tolerance: tolerance)
+            let geometry = try surface.differentialGeometry(u: u, v: v, tolerance: tolerance)
             return DifferentialGeometry(
                 position: geometry.position,
                 tangentU: geometry.tangentU,
@@ -304,7 +304,7 @@ public enum Surface3D: Codable, Sendable, Hashable {
             )
         case let .procedural(surface):
             let derivatives = try surface.parameterDerivatives(
-                atU: u,
+                u: u,
                 v: v,
                 tolerance: tolerance
             )
@@ -316,11 +316,11 @@ public enum Surface3D: Codable, Sendable, Hashable {
     }
 
     public func uvnFrame(
-        atU u: Double,
+        u: Double,
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> UVNFrame {
-        let differential = try differentialGeometry(atU: u, v: v, tolerance: tolerance)
+        let differential = try differentialGeometry(u: u, v: v, tolerance: tolerance)
         let tangentU = try differential.tangentU.normalized(tolerance: tolerance.distance)
         let normal = try differential.normal.normalized(tolerance: tolerance.distance)
         let tangentV = try normal.cross(tangentU).normalized(tolerance: tolerance.distance)

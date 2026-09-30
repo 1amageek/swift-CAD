@@ -2363,7 +2363,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       )
     else { return nil }
     let surfaceGeometry = try surface.differentialGeometry(
-      atU: surfaceU,
+      u: surfaceU,
       v: surfaceV,
       tolerance: tolerance
     )
@@ -3108,7 +3108,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         tolerance: tolerance
       )
       let surfaceGeometry = try surface.differentialGeometry(
-        atU: intersection.surfaceU,
+        u: intersection.surfaceU,
         v: intersection.surfaceV,
         tolerance: tolerance
       )
@@ -4281,7 +4281,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     for iteration in 0...maximumIterations {
       let curveGeometry = try curve.differentialGeometry(at: current.t, tolerance: tolerance)
       let surfaceGeometry = try surface.parameterDerivatives(
-        atU: current.u,
+        u: current.u,
         v: current.v,
         tolerance: tolerance
       )
@@ -4489,7 +4489,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         tolerance: tolerance
       )
       let surfaceGeometry = try surface.parameterDerivatives(
-        atU: current.u,
+        u: current.u,
         v: current.v,
         tolerance: tolerance
       )
@@ -4591,7 +4591,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
           tolerance: tolerance
         )
         let candidateSurface = try surface.parameterDerivatives(
-          atU: candidate.u,
+          u: candidate.u,
           v: candidate.v,
           tolerance: tolerance
         )

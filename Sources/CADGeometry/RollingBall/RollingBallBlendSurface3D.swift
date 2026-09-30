@@ -132,8 +132,8 @@ public struct RollingBallBlendSurface3D: Codable, Hashable, Sendable {
         return result
     }
 
-    public func parameterDerivatives(atU u: Double, v: Double) throws -> SurfaceParameterDerivatives {
-        let jet = try taylorJet(atU: u, v: v, throughOrder: 2)
+    public func parameterDerivatives(u: Double, v: Double) throws -> SurfaceParameterDerivatives {
+        let jet = try taylorJet(u: u, v: v, throughOrder: 2)
         return SurfaceParameterDerivatives(
             position: .origin + jet.value,
             tangentU: jet.derivative(uOrder: 1, vOrder: 0),
@@ -145,9 +145,9 @@ public struct RollingBallBlendSurface3D: Codable, Hashable, Sendable {
     }
 
     public func parameterDerivativesThroughThirdOrder(
-        atU u: Double, v: Double
+        u: Double, v: Double
     ) throws -> SurfaceParameterThirdOrderDerivatives {
-        let jet = try taylorJet(atU: u, v: v, throughOrder: 3)
+        let jet = try taylorJet(u: u, v: v, throughOrder: 3)
         return SurfaceParameterThirdOrderDerivatives(
             position: .origin + jet.value,
             tangentU: jet.derivative(uOrder: 1, vOrder: 0),
@@ -162,7 +162,7 @@ public struct RollingBallBlendSurface3D: Codable, Hashable, Sendable {
         )
     }
 
-    func taylorJet(atU u: Double, v: Double, throughOrder order: Int) throws -> SurfaceTaylorVectorJet {
+    func taylorJet(u: Double, v: Double, throughOrder order: Int) throws -> SurfaceTaylorVectorJet {
         try validateParameters(u: u, v: v)
         guard (0...3).contains(order) else {
             throw failure(.invalidInput, "Blend Taylor derivatives support total orders zero through three.")

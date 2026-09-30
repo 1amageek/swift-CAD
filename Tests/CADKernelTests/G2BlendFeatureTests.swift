@@ -97,7 +97,7 @@ struct G2BlendFeatureTests {
                 tolerance: .standard
             )
             let geometry = try surface.differentialGeometry(
-                atU: parameter.u,
+                u: parameter.u,
                 v: parameter.v,
                 tolerance: .standard
             )

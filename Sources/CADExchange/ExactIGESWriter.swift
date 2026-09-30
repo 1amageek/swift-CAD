@@ -1524,7 +1524,7 @@ struct ExactIGESWriter {
         parameters: directionParameters(plane.normal)
       )
       let frame = try surface.differentialGeometry(
-        atU: 0.0,
+        u: 0.0,
         v: 0.0,
         tolerance: tolerance
       )
@@ -1561,7 +1561,7 @@ struct ExactIGESWriter {
         parameters: directionParameters(cylinder.axis)
       )
       let frame = try surface.differentialGeometry(
-        atU: 0.0,
+        u: 0.0,
         v: 0.0,
         tolerance: tolerance
       )

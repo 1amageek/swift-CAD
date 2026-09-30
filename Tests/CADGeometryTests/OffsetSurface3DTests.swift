@@ -66,12 +66,12 @@ struct OffsetSurface3DTests {
       )
       for (u, v) in [(0.37, 0.28), (1.41, -0.34), (4.73, 0.81)] {
         let actual = try offset.parameterDerivativesThroughThirdOrder(
-          atU: u,
+          u: u,
           v: v,
           tolerance: tolerance
         )
         let expected = try pair.expected.parameterDerivativesThroughThirdOrder(
-          atU: u,
+          u: u,
           v: v,
           tolerance: tolerance
         )
@@ -108,12 +108,12 @@ struct OffsetSurface3DTests {
     let v = 0.73
 
     let sourceDerivatives = try source.parameterDerivativesThroughThirdOrder(
-      atU: u,
+      u: u,
       v: v,
       tolerance: tolerance
     )
     let actual = try offset.parameterDerivativesThroughThirdOrder(
-      atU: u,
+      u: u,
       v: v,
       tolerance: tolerance
     )
@@ -223,12 +223,12 @@ struct OffsetSurface3DTests {
       ))
 
     let actualDerivatives = try nested.parameterDerivativesThroughThirdOrder(
-      atU: 0.73,
+      u: 0.73,
       v: -0.41,
       tolerance: tolerance
     )
     let expectedDerivatives = try expected.parameterDerivativesThroughThirdOrder(
-      atU: 0.73,
+      u: 0.73,
       v: -0.41,
       tolerance: tolerance
     )
@@ -263,7 +263,7 @@ struct OffsetSurface3DTests {
       for uIndex in 0..<7 {
         let u = 0.25 + 0.20 * Double(uIndex) / 6.0
         let derivatives = try surface.parameterDerivatives(
-          atU: u,
+          u: u,
           v: v,
           tolerance: tolerance
         )
@@ -381,12 +381,12 @@ struct OffsetSurface3DTests {
       ))
 
     let actualGeometry = try procedural.differentialGeometry(
-      atU: 0.82,
+      u: 0.82,
       v: 0.34,
       tolerance: tolerance
     )
     let expectedGeometry = try expected.differentialGeometry(
-      atU: 0.82,
+      u: 0.82,
       v: 0.34,
       tolerance: tolerance
     )

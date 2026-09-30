@@ -39,7 +39,7 @@ struct BSplineSurfaceDerivativeRangeResolverTests {
             for v in [-0.05, 0.0, 0.05] {
                 let differential = try Surface3D.bSpline(trimmed)
                     .differentialGeometry(
-                        atU: u,
+                        u: u,
                         v: v,
                         tolerance: tolerance
                     )

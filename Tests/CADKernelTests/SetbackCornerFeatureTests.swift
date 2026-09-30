@@ -100,7 +100,7 @@ struct SetbackCornerFeatureTests {
                 tolerance: .standard
             )
             let sphereGeometry = try sphereSurface.differentialGeometry(
-                atU: sphereParameter.u,
+                u: sphereParameter.u,
                 v: sphereParameter.v,
                 tolerance: .standard
             )
@@ -124,7 +124,7 @@ struct SetbackCornerFeatureTests {
                 tolerance: .standard
             )
             let cylinderGeometry = try cylinderSurface.differentialGeometry(
-                atU: cylinderParameter.u,
+                u: cylinderParameter.u,
                 v: cylinderParameter.v,
                 tolerance: .standard
             )

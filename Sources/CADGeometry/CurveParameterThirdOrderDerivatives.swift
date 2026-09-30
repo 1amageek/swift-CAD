@@ -210,7 +210,7 @@ extension SurfaceLiftCurve3D {
             tolerance: tolerance
         )
         let surfaceDerivatives = try surface.parameterDerivativesThroughThirdOrder(
-            atU: parameter.parameter.u,
+            u: parameter.parameter.u,
             v: parameter.parameter.v,
             tolerance: tolerance
         )
@@ -289,7 +289,7 @@ private extension SurfaceParameterCurve {
             ) * span
             let spatialThird = radialFirst * (-radius * span * span)
             let surface = try supportSurface.parameterDerivativesThroughThirdOrder(
-                atU: lower.parameter.u,
+                u: lower.parameter.u,
                 v: lower.parameter.v,
                 tolerance: tolerance
             )

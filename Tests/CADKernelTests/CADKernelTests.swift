@@ -4941,12 +4941,12 @@ struct CADKernelTests {
         #expect(evaluated.brep.vertices.count == 6)
         for parameter in [0.0, 0.25, 0.5, 0.75, 1.0] {
             let firstGeometry = try first.differentialGeometry(
-                atU: 1.0,
+                u: 1.0,
                 v: parameter,
                 tolerance: .standard
             )
             let secondGeometry = try second.differentialGeometry(
-                atU: 0.0,
+                u: 0.0,
                 v: parameter,
                 tolerance: .standard
             )
@@ -5012,7 +5012,7 @@ struct CADKernelTests {
         let surface = try polySplineSurface(from: evaluated)
         for (u, v) in [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)] {
             let geometry = try surface.differentialGeometry(
-                atU: u,
+                u: u,
                 v: v,
                 tolerance: .standard
             )

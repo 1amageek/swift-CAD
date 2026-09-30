@@ -55,14 +55,14 @@ struct GeometryKernelTests {
     func sphereDifferentialGeometryIsOrthonormal() throws {
         let sphere = Surface3D.analytic(.sphere(center: .origin, radius: 2.0))
         let differential = try sphere.differentialGeometry(
-            atU: 0.4,
+            u: 0.4,
             v: 0.3,
             tolerance: .standard
         )
         #expect(abs(differential.normal.length - 1.0) < 1.0e-12)
         #expect(abs((differential.position - Point3D.origin).length - 2.0) < 1.0e-12)
         let frame = try sphere.uvnFrame(
-            atU: 0.4,
+            u: 0.4,
             v: 0.3,
             tolerance: .standard
         )
@@ -76,7 +76,7 @@ struct GeometryKernelTests {
         let sphere = Surface3D.analytic(.sphere(center: .origin, radius: 2.0))
         do {
             _ = try sphere.differentialGeometry(
-                atU: 0.4,
+                u: 0.4,
                 v: Double.pi * 0.5,
                 tolerance: .standard
             )
@@ -253,7 +253,7 @@ struct GeometryKernelTests {
             ]
         )
         let differential = try surface.differentialGeometry(
-            atU: 0.25,
+            u: 0.25,
             v: 0.75,
             tolerance: .standard
         )
@@ -350,7 +350,7 @@ struct GeometryKernelTests {
             ]
         )
         let geometry = try surface.differentialGeometry(
-            atU: 0.5,
+            u: 0.5,
             v: 0.4,
             tolerance: .standard
         )
@@ -369,7 +369,7 @@ struct GeometryKernelTests {
         #expect(abs(geometry.minimumPrincipalDirection.dot(geometry.maximumPrincipalDirection)) <= 1.0e-12)
 
         let frame = try Surface3D.bSpline(surface).uvnFrame(
-            atU: 0.5,
+            u: 0.5,
             v: 0.4,
             tolerance: .standard
         )
@@ -404,7 +404,7 @@ struct GeometryKernelTests {
         )
 
         let geometry = try surface.differentialGeometry(
-            atU: 0.5,
+            u: 0.5,
             v: 0.5,
             tolerance: .standard
         )
@@ -442,12 +442,12 @@ struct GeometryKernelTests {
         )
 
         let geometry = try surface.differentialGeometry(
-            atU: 0.37,
+            u: 0.37,
             v: 0.61,
             tolerance: scaleTolerance
         )
         let frame = try Surface3D.bSpline(surface).uvnFrame(
-            atU: 0.37,
+            u: 0.37,
             v: 0.61,
             tolerance: scaleTolerance
         )
@@ -497,7 +497,7 @@ struct GeometryKernelTests {
 
         for parameter in [0.0, 0.19, 0.53, 0.86, 1.0] {
             let expectedU = try surface.differentialGeometry(
-                atU: parameter,
+                u: parameter,
                 v: fixedV,
                 tolerance: .standard
             )
@@ -506,7 +506,7 @@ struct GeometryKernelTests {
             #expect((actualU.firstDerivative - expectedU.tangentU).length <= ModelingTolerance.standard.distance)
 
             let expectedV = try surface.differentialGeometry(
-                atU: fixedU,
+                u: fixedU,
                 v: parameter,
                 tolerance: .standard
             )

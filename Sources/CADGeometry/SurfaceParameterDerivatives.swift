@@ -29,13 +29,13 @@ public struct SurfaceParameterDerivatives: Sendable, Hashable {
 
 public extension Surface3D {
     func parameterDerivatives(
-        atU u: Double,
+        u: Double,
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterDerivatives {
         try validate(tolerance: tolerance)
         return try parameterDerivativesAssumingValid(
-            atU: u,
+            u: u,
             v: v,
             tolerance: tolerance
         )
@@ -44,7 +44,7 @@ public extension Surface3D {
 
 package extension Surface3D {
     func parameterDerivativesAssumingValid(
-        atU u: Double,
+        u: Double,
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterDerivatives {
@@ -105,13 +105,13 @@ package extension Surface3D {
             )
         case let .bSpline(surface):
             return try surface.parameterDerivativesAssumingValid(
-                atU: u,
+                u: u,
                 v: v,
                 tolerance: tolerance
             )
         case let .procedural(surface):
             return try surface.parameterDerivatives(
-                atU: u,
+                u: u,
                 v: v,
                 tolerance: tolerance
             )
@@ -121,13 +121,13 @@ package extension Surface3D {
 
 public extension BSplineSurface3D {
     func parameterDerivatives(
-        atU u: Double,
+        u: Double,
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterDerivatives {
         try validate(tolerance: tolerance)
         return try parameterDerivativesAssumingValid(
-            atU: u,
+            u: u,
             v: v,
             tolerance: tolerance
         )
@@ -136,7 +136,7 @@ public extension BSplineSurface3D {
 
 package extension BSplineSurface3D {
     func parameterDerivativesAssumingValid(
-        atU u: Double,
+        u: Double,
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterDerivatives {
@@ -145,7 +145,7 @@ package extension BSplineSurface3D {
             throw GeometryError.invalidDistance(0.0)
         }
         let derivatives = try surfaceDerivatives(
-            atU: u,
+            u: u,
             v: v,
             tolerance: tolerance
         )

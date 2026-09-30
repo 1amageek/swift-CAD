@@ -66,22 +66,22 @@ public enum ProceduralSurface3D: Codable, Hashable, Sendable {
     }
 
     public func parameterDerivatives(
-        atU u: Double,
+        u: Double,
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterDerivatives {
         switch self {
         case let .rollingBall(surface):
-            try surface.parameterDerivatives(atU: u, v: v)
+            try surface.parameterDerivatives(u: u, v: v)
         case let .offset(surface):
             try surface.parameterDerivatives(
-                atU: u,
+                u: u,
                 v: v,
                 tolerance: tolerance
             )
         case let .ruled(surface):
             try surface.parameterDerivatives(
-                atU: u,
+                u: u,
                 v: v,
                 tolerance: tolerance
             )
@@ -89,22 +89,22 @@ public enum ProceduralSurface3D: Codable, Hashable, Sendable {
     }
 
     public func parameterDerivativesThroughThirdOrder(
-        atU u: Double,
+        u: Double,
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterThirdOrderDerivatives {
         switch self {
         case let .rollingBall(surface):
-            try surface.parameterDerivativesThroughThirdOrder(atU: u, v: v)
+            try surface.parameterDerivativesThroughThirdOrder(u: u, v: v)
         case let .offset(surface):
             try surface.parameterDerivativesThroughThirdOrder(
-                atU: u,
+                u: u,
                 v: v,
                 tolerance: tolerance
             )
         case let .ruled(surface):
             try surface.parameterDerivativesThroughThirdOrder(
-                atU: u,
+                u: u,
                 v: v,
                 tolerance: tolerance
             )
@@ -139,24 +139,24 @@ public enum ProceduralSurface3D: Codable, Hashable, Sendable {
     }
 
     func taylorJet(
-        atU u: Double,
+        u: Double,
         v: Double,
         throughOrder order: Int,
         tolerance: ModelingTolerance
     ) throws -> SurfaceTaylorVectorJet {
         switch self {
         case let .rollingBall(surface):
-            try surface.taylorJet(atU: u, v: v, throughOrder: order)
+            try surface.taylorJet(u: u, v: v, throughOrder: order)
         case let .offset(surface):
             try surface.taylorJet(
-                atU: u,
+                u: u,
                 v: v,
                 throughOrder: order,
                 tolerance: tolerance
             )
         case let .ruled(surface):
             try surface.taylorJet(
-                atU: u,
+                u: u,
                 v: v,
                 throughOrder: order,
                 tolerance: tolerance

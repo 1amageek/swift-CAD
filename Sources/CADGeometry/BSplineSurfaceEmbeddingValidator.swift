@@ -126,7 +126,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         )
         try certifySeparatedCells(
             cells,
-            pointAt: { try surface.point(u: $0, v: $1, tolerance: tolerance) },
+            point: { try surface.point(u: $0, v: $1, tolerance: tolerance) },
             tolerance: tolerance
         )
     }
@@ -751,7 +751,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
             let upper = surface.vKnots[surface.vKnots.count - surface.vDegree - 1]
             return (surface, lower + (v <= 1 ? v : v - 1) * (upper - lower))
         }
-        func pointAt(_ u: Double, _ v: Double) throws -> Point3D {
+        func point(_ u: Double, _ v: Double) throws -> Point3D {
             let (surface, parameter) = sourceParameter(v)
             return try surface.point(u: u, v: parameter, tolerance: tolerance)
         }
@@ -760,14 +760,14 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
             for j in cells.indices where j > i {
                 try consumeSeparationCell(&comparisons, tolerance: tolerance)
                 try rejectSampledCoincidence(first: cells[i].patch, second: cells[j].patch,
-                    pointAt: pointAt, tolerance: tolerance)
+                    point: point, tolerance: tolerance)
             }
         }
         try certifyLocalInjectivity(cells: &cells, normalAt: { u, v in
             let (surface, parameter) = sourceParameter(v)
             return try surface.normal(u: u, v: parameter, tolerance: tolerance)
         }, tolerance: tolerance)
-        try certifySeparatedCells(cells, pointAt: pointAt, tolerance: tolerance)
+        try certifySeparatedCells(cells, point: point, tolerance: tolerance)
     }
 
     private func straightSeamSeparates(_ a: BSplineSurface3D, _ b: BSplineSurface3D) throws -> Bool {
@@ -868,7 +868,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
 
     private func certifySeparatedCells(
         _ cells: [Cell],
-        pointAt: (Double, Double) throws -> Point3D,
+        point: (Double, Double) throws -> Point3D,
         tolerance: ModelingTolerance
     ) throws {
         guard cells.count > 1 else { return }
@@ -908,7 +908,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                 try rejectSampledCoincidence(
                     first: first,
                     second: second,
-                    pointAt: pointAt,
+                    point: point,
                     tolerance: tolerance
                 )
                 try certifyPairSeparation(first: first, second: second,
@@ -920,7 +920,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
     private func rejectSampledCoincidence(
         first: RationalBezierSurfacePatch3D,
         second: RationalBezierSurfacePatch3D,
-        pointAt: (Double, Double) throws -> Point3D,
+        point: (Double, Double) throws -> Point3D,
         tolerance: ModelingTolerance
     ) throws {
         let fractions = [0.0, 0.5, 1.0]
@@ -931,7 +931,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                     uFraction: firstU,
                     vFraction: firstV
                 )
-                let firstPoint = try pointAt(firstParameter.x, firstParameter.y)
+                let firstPoint = try point(firstParameter.x, firstParameter.y)
                 for secondU in fractions {
                     for secondV in fractions {
                         let secondParameter = parameter(
@@ -940,7 +940,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                             vFraction: secondV
                         )
                         if firstParameter == secondParameter { continue }
-                        let secondPoint = try pointAt(secondParameter.x, secondParameter.y)
+                        let secondPoint = try point(secondParameter.x, secondParameter.y)
                         let residual = (firstPoint - secondPoint).length
                         guard residual > tolerance.distance else {
                             throw KernelError(

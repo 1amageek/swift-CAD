@@ -98,7 +98,7 @@ public struct RuledSurface3D: Codable, Hashable, Sendable {
     }
 
     public func parameterDerivatives(
-        atU u: Double,
+        u: Double,
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterDerivatives {
@@ -124,7 +124,7 @@ public struct RuledSurface3D: Codable, Hashable, Sendable {
     }
 
     public func parameterDerivativesThroughThirdOrder(
-        atU u: Double,
+        u: Double,
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterThirdOrderDerivatives {
@@ -217,7 +217,7 @@ extension RuledSurface3D {
 
 extension RuledSurface3D {
     func taylorJet(
-        atU u: Double,
+        u: Double,
         v: Double,
         throughOrder order: Int,
         tolerance: ModelingTolerance
@@ -232,7 +232,7 @@ extension RuledSurface3D {
             )
         }
         let lower = try parameterDerivatives(
-            atU: u,
+            u: u,
             v: v,
             tolerance: tolerance
         )
@@ -276,7 +276,7 @@ extension RuledSurface3D {
         try assign(0, 2, lower.secondDerivativeVV)
         if order == 3 {
             let third = try parameterDerivativesThroughThirdOrder(
-                atU: u,
+                u: u,
                 v: v,
                 tolerance: tolerance
             )

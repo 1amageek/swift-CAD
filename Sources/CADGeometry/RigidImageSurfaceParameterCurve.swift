@@ -115,7 +115,7 @@ public struct RigidImageSurfaceParameterCurve: Codable, Hashable, Sendable {
             to: sourceGeometry.secondDerivative
         ) * (scale * scale)
         let surfaceGeometry = try targetSurface.differentialGeometry(
-            atU: parameter.u,
+            u: parameter.u,
             v: parameter.v,
             tolerance: tolerance
         )
@@ -185,7 +185,7 @@ public struct RigidImageSurfaceParameterCurve: Codable, Hashable, Sendable {
             )
         ) * (scale * scale * scale)
         let surface = try targetSurface.parameterDerivativesThroughThirdOrder(
-            atU: lower.parameter.u,
+            u: lower.parameter.u,
             v: lower.parameter.v,
             tolerance: tolerance
         )

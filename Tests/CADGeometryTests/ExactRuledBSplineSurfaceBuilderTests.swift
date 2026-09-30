@@ -91,7 +91,7 @@ struct ExactRuledBSplineSurfaceBuilderTests {
                 #expect((actual - expected).length <= tolerance.distance * 8.0)
             }
             let derivatives = try surface.parameterDerivatives(
-                atU: u,
+                u: u,
                 v: 0.37,
                 tolerance: tolerance
             )

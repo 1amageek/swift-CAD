@@ -101,7 +101,7 @@ struct CurveThirdOrderCertificationTests {
         for u in [parameters.u.lower, parameters.u.midpoint, parameters.u.upper] {
             for v in [parameters.v.lower, parameters.v.midpoint, parameters.v.upper] {
                 let derivatives = try surface.parameterDerivativesThroughThirdOrder(
-                    atU: u,
+                    u: u,
                     v: v,
                     tolerance: tolerance
                 )

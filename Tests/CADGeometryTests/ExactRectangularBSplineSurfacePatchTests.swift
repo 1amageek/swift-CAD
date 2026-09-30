@@ -32,12 +32,12 @@ struct ExactRectangularBSplineSurfacePatchTests {
                     tolerance: .standard
                 )
                 let source = try surfaceCase.surface.differentialGeometry(
-                    atU: sourceParameter.u,
+                    u: sourceParameter.u,
                     v: sourceParameter.v,
                     tolerance: .standard
                 )
                 let converted = try patch.surface.differentialGeometry(
-                    atU: patchParameter.u,
+                    u: patchParameter.u,
                     v: patchParameter.v,
                     tolerance: .standard
                 )
