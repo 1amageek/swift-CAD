@@ -136,7 +136,8 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             throw TopologyError.missingReference("An extended edge's geometry is missing.")
         }
         let parents = context.subshapeIDs(for: .face(faceID))
-        if let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) {
+        // A B-spline face continues on its own surface, flat or not; its domain ends at the edge.
+        if case .bSpline = surface {} else if let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) {
             return try planarStrip(
                 plane: plane, surface: surface, face: face, curve: curve, trim: trim, coedge: coedge, distance: distance,
                 stableID: stableID, parents: parents, featureID: featureID, tolerance: tolerance
@@ -168,7 +169,11 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         let unitNormal = try plane.normal.normalized(tolerance: tolerance.distance)
         let outward = face.orientation == .forward ? unitNormal : unitNormal * -1
         let middle = try curve.point(at: (from + to) / 2, tolerance: tolerance)
-        let tangent = try BRepSurfaceMeetingSolver(tolerance: tolerance).tangent(of: curve, at: (from + to) / 2) * (to >= from ? 1 : -1)
+        let difference = try BRepSurfaceMeetingSolver(tolerance: tolerance).tangent(of: curve, at: (from + to) / 2) * (to >= from ? 1 : -1)
+        guard difference.length > 0 else {
+            throw failure(.invalidInput, featureID, tolerance, "An extended edge has no direction.")
+        }
+        let tangent = difference / difference.length
         let away = try tangent.cross(outward).normalized(tolerance: tolerance.distance)
         var farCurve: Curve3D
         var farStart: Point3D
