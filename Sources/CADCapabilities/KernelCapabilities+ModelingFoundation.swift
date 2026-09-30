@@ -120,9 +120,11 @@ extension KernelCapabilities {
         "planarClosedRationalBSplineProfile",
         "positiveLengthExpression",
         "normalSymmetricOrNonTangentialVectorDirection",
+        "optionalUnionDifferenceIntersectOrSliceWithPlacedTargetsAndKeepTools",
       ],
       outputs: [
         "validatedExactBRep",
+        "booleanWithTargetsMovedToTheirPlacementsFirst",
         "analyticPlanarAndCylindricalFaces",
         "rationalBSplineRuledSurfaces",
         "mandatoryFaceLocalPcurves",
@@ -136,6 +138,7 @@ extension KernelCapabilities {
         "CADKernelTests.obliqueVectorExtrudeKeepsCapFacesParallelToSketchPlane",
         "ExactSplineExtrudeFeatureTests",
         "ExactSplineExtrudeCommandParityTests",
+        "TwoSidedExtrudeTests",
       ],
       status: .supported,
       failureCodes: [

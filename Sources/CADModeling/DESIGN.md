@@ -665,14 +665,18 @@ the stable signature owners, and the `CADIR` all-edge fillet domain statement.
 ### Extrusion Boolean composition
 
 Extrude owns its retained target references and operation, while the existing
-`SweepBooleanApplying` contract owns Boolean topology construction. The evaluator
-first constructs the exact signed-span tool, then applies the selected Boolean
+`SweepBooleanApplying` contract owns Boolean topology construction. A target with
+a rigid placement is first moved there as a staged body by the Boolean's operand
+relocator (`ExactBodyPatternRebuilding`, `booleanOperandPlacement` stages), and the
+result is published through `FeatureEvaluationStages`, so a target is combined
+where it is displayed. The evaluator
+then constructs the exact signed-span tool beside the targets and applies the selected Boolean
 with the input subshape lineage. New-body extrusion requires no targets and no
 Keep Tools. Boolean extrusion requires solid output and unique solid targets;
 failures propagate before publication. The exact result is admitted through the
 existing validated BRep path. Legacy source omitting targets and Keep Tools
 retains new-body behavior. Verification covers intersecting solid volume, source
-replay, target/tool retention and invalid target or sheet requests.
+replay, target/tool retention, placed targets and invalid target or sheet requests.
 
 ### Placed Boolean tools
 

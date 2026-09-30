@@ -6,6 +6,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
     private let resolver: ParameterResolving
     private let sewer: any BRepSewing
     private let booleanApplicator: (any SweepBooleanApplying)?
+    private let targetRelocator: (any ExactBodyPatternRebuilding)?
 
     public init(
         sewer: any BRepSewing,
@@ -15,6 +16,21 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         self.resolver = resolver
         self.sewer = sewer
         self.booleanApplicator = booleanApplicator
+        self.targetRelocator = nil
+    }
+
+    /// An evaluator that also moves placed Boolean targets into the extrusion's frame with
+    /// `targetRelocator`, as a Boolean moves its placed operands.
+    package init(
+        sewer: any BRepSewing,
+        resolver: ParameterResolving = ParameterResolver(),
+        booleanApplicator: any SweepBooleanApplying,
+        targetRelocator: any ExactBodyPatternRebuilding
+    ) {
+        self.resolver = resolver
+        self.sewer = sewer
+        self.booleanApplicator = booleanApplicator
+        self.targetRelocator = targetRelocator
     }
 
     public func evaluate(
@@ -40,6 +56,35 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             try resolver.evaluate($0, parameters: context.parameters, variables: [:])
         }
         let span = range.upperBound - range.lowerBound
+        // A placed Boolean target moves into the extrusion's frame first, as a staged body, the
+        // way a Boolean moves its placed operands; the tool is built beside it.
+        var stages = FeatureEvaluationStages(context)
+        var targetBodyIDs: [BodyID] = []
+        if extrude.operation != .newBody {
+            for (ordinal, target) in extrude.targets.enumerated() {
+                let bodyID = try context.bodyID(generatedBy: target.featureID)
+                guard let placement = target.placement else {
+                    targetBodyIDs.append(bodyID)
+                    continue
+                }
+                guard let targetRelocator else {
+                    throw KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: feature.id,
+                                      tolerance: context.tolerance, message: "This evaluator cannot move a placed extrusion target.")
+                }
+                try placement.validate(tolerance: context.tolerance)
+                let stageID = featureEvaluationStageID(featureID: feature.id, domain: .booleanOperandPlacement, ordinal: UInt64(ordinal))
+                let staged = stages.context
+                let moved = try FeatureEvaluationBoundary.evaluate(featureID: feature.id, tolerance: context.tolerance) {
+                    try targetRelocator.relocate(
+                        featureID: stageID, sourceBodyID: bodyID, transform: placement,
+                        stablePrefix: "extrude:placedTarget", context: staged
+                    )
+                }
+                stages.apply(moved)
+                targetBodyIDs.append(try stages.publishedBody(of: moved, featureID: feature.id, what: "Moving an extrusion target"))
+            }
+        }
+        let context = stages.context
         var result: EvaluationResult
         switch extrude.section {
         case .profile(let reference):
@@ -79,10 +124,13 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 throw FeatureEvaluationError.missingInput("Extrusion tool body was not generated.")
             }
             result = try booleanApplicator.apply(operation: operation,
-                targetBodyIDs: try extrude.targets.map { try context.bodyID(generatedBy: $0.featureID) },
+                targetBodyIDs: targetBodyIDs,
                 toolBodyID: toolID, keepTools: extrude.keepTools, featureID: feature.id,
                 toolResult: result, targetSubshapes: context.subshapes.entries,
                 inputLineage: context.lineage, tolerance: context.tolerance)
+            if stages.isEmpty == false {
+                result = try stages.publish(result, featureID: feature.id)
+            }
         }
         return try ValidatedFeatureEvaluation(
             planarExtrusion: result,

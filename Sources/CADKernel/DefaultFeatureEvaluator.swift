@@ -61,7 +61,12 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.extrudeEvaluator = PlanarExtrudeFeatureEvaluator(
             sewer: sewer,
             resolver: resolver,
-            booleanApplicator: ExactSweepBooleanApplicator()
+            booleanApplicator: ExactSweepBooleanApplicator(),
+            targetRelocator: DefaultExactBodyPatternRebuilder(
+                sewer: sewer,
+                unionApplicator: ExactBooleanOperationApplicator(),
+                separationValidator: ExactBodyJoinValidator()
+            )
         )
         self.revolveEvaluator = PlanarRevolveFeatureEvaluator(
             sewer: sewer,

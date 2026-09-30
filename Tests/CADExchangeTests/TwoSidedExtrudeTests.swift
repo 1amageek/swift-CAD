@@ -71,6 +71,28 @@ struct TwoSidedExtrudeTests {
         }
     }
 
+    /// A target placed half its width along X meets the tool where it is placed.
+    @Test(arguments: [SolidOperation.union, .intersect])
+    func aPlacedTargetIsCombinedWhereItIsPlaced(operation: SolidOperation) throws {
+        var (document, targetID) = try fixture(curve: false)
+        guard case let .extrude(target) = document.designGraph.nodes[targetID]?.operation else {
+            Issue.record("Expected target extrusion"); return
+        }
+        let source = ExtrudeFeature(section: target.section,
+            distance: .constant(.length(0.04, unit: .meter)),
+            operation: operation, targets: [.init(featureID: targetID, placement: .translated(by: Vector3D(x: 0.01, y: 0, z: 0)))],
+            resultKind: .solid)
+        let node = try FeatureNodeFactory.make(operation: .extrude(source), in: document, tolerance: .standard)
+        document.designGraph.nodes[node.id] = node
+        document.designGraph.order.append(node.id)
+        document.designGraph.dependencies += node.inputs.map { DependencyEdge(source: $0.featureID, target: node.id) }
+        let result = try DocumentEvaluator(tolerance: .standard).evaluateExact(document)
+        // The 0.02 × 0.01 prisms, 0.04 tall each, overlap 0.03 tall and now half as wide.
+        let overlap = 0.01 * 0.01 * 0.03
+        let expected = operation == .union ? 2 * 0.02 * 0.01 * 0.04 - overlap : overlap
+        #expect(abs(try result.brep.volume(tolerance: .standard) - expected) < 1e-11)
+    }
+
     @Test(arguments: [SolidOperation.union, .difference, .intersect, .slice], [false, true])
     func booleanExtrusionRetainsTargetsAndReplays(operation: SolidOperation, keepTools: Bool) throws {
         var (document, targetID) = try fixture(curve: false)
