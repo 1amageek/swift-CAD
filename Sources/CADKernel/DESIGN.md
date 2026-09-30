@@ -763,7 +763,8 @@ bidirectional) and imprinted where it crosses the target
 (`ImprintBodyFeatureEvaluator.crossingPairs`). A line sweeps a plane and a circle
 along its axis a cylinder, which intersect exactly; any other curve sweeps its
 exact ruled B-spline form, on that form's own chart; a closed curve is swept in
-two halves, whose crossings meet end to end. Hiding occlusion keeps a crossing
+two halves, whose crossings meet end to end. A placed curve is its rigid image, so a
+placed line or circle is still swept exactly. Hiding occlusion keeps a crossing
 only when no other crossing lies nearer the curve along the sweep, each point's
 curve parameter and sweep distance found in the model rather than in the
 sheet's parameters, and refuses a crossing hidden along part of its length

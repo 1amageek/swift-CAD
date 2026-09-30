@@ -46,14 +46,8 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
         for (index, reference) in imprint.curves.enumerated() {
             var (curve, span) = try exactCurve(reference.curve, featureID: feature.id, context: context)
             if let placement = reference.placement {
-                try placement.validate(tolerance: context.tolerance)
-                curve = try .affineImage(AffineImageCurve3D(
-                    source: curve,
-                    transform: try AffineTransform3D(
-                        basisX: placement.basisX, basisY: placement.basisY, basisZ: placement.basisZ, translation: placement.translation
-                    ),
-                    tolerance: context.tolerance
-                ))
+                // A rigid image keeps a line a line and a circle a circle, parameters and all.
+                curve = try placement.applying(to: curve, tolerance: context.tolerance)
             }
             let projected: [BRepFaceImprinter.Curve]
             switch imprint.projection {
@@ -176,16 +170,16 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             }
             return SurfaceParameter(u: projection.u, v: projection.v)
         }
-        switch curve {
-        case let .line(line) where line.direction.cross(unit).length > tolerance.angle:
-            let surface = Surface3D.plane(Plane3D(origin: line.origin, normal: try line.direction.cross(unit).normalized(tolerance: tolerance.distance)))
+        switch sweptProfile(of: curve, tolerance: tolerance) {
+        case let .line(origin, direction) where direction.cross(unit).length > tolerance.angle * max(direction.length, 1):
+            let surface = Surface3D.plane(Plane3D(origin: origin, normal: try direction.cross(unit).normalized(tolerance: tolerance.distance)))
             var uvs = try corners.map { try parameter(of: $0, on: surface) }
             if signedArea(uvs) < 0 { uvs.reverse() }
             return (surface, try uvs.indices.map { index in
                 try ParameterPointInterpolator().curve(through: [uvs[index], uvs[(index + 1) % uvs.count]], tolerance: tolerance)
             })
-        case let .circle(circle) where circle.normal.cross(unit).length <= tolerance.angle * max(circle.normal.length, 1):
-            let surface = Surface3D.cylinder(Cylinder3D(origin: circle.center, axis: unit, radius: circle.radius))
+        case let .circle(center, normal, radius) where normal.cross(unit).length <= tolerance.angle * max(normal.length, 1):
+            let surface = Surface3D.cylinder(Cylinder3D(origin: center, axis: unit, radius: radius))
             let a = try parameter(of: start, on: surface)
             let middle = try parameter(of: try curve.point(at: (span.lowerBound + span.upperBound) / 2, tolerance: tolerance), on: surface)
             var b = try parameter(of: end, on: surface).u
@@ -230,6 +224,28 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
                 .constantV(v: 1, uStart: across.upperBound, uEnd: across.lowerBound),
                 .constantU(u: across.lowerBound, vStart: 1, vEnd: 0),
             ])
+        }
+    }
+
+    /// What a curve's sweep can be built on exactly: a line, a circle, or neither.
+    private enum SweptProfile {
+        case line(origin: Point3D, direction: Vector3D)
+        case circle(center: Point3D, normal: Vector3D, radius: Double)
+        case other
+    }
+
+    /// The line or circle `curve` is, in whichever of its forms carries it; a rigidly placed
+    /// circle arrives as an ellipse of equal radii.
+    private func sweptProfile(of curve: Curve3D, tolerance: ModelingTolerance) -> SweptProfile {
+        switch curve {
+        case let .line(line): .line(origin: line.origin, direction: line.direction)
+        case let .analytic(.line(origin, direction)): .line(origin: origin, direction: direction)
+        case let .circle(circle): .circle(center: circle.center, normal: circle.normal, radius: circle.radius)
+        case let .analytic(.circle(center, normal, radius)), let .analytic(.arc(center, normal, radius, _, _)):
+            .circle(center: center, normal: normal, radius: radius)
+        case let .analytic(.ellipse(center, normal, _, majorRadius, minorRadius)) where abs(majorRadius - minorRadius) <= tolerance.distance:
+            .circle(center: center, normal: normal, radius: majorRadius)
+        default: .other
         }
     }
 
