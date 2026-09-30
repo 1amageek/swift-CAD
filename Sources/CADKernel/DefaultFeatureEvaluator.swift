@@ -276,6 +276,10 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             return try RemoveRedundantTopologyFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .sheetExtend:
             return try SheetExtendFeatureEvaluator().evaluateValidated(feature: feature, context: context)
+        case .faceRebuild:
+            return try FaceRebuildFeatureEvaluator().evaluateValidated(feature: feature, context: context)
+        case .faceUnwrap:
+            return try FaceUnwrapFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .surfaceAlign:
             return try SurfaceAlignFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .untrimFace:

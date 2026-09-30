@@ -528,6 +528,32 @@ public struct DocumentBuilder {
         return featureID
     }
 
+    /// Rebuild Face: `faces` of `target` refitted to `method` on their own parameters, widened by
+    /// `extendU` and `extendV` of their extent, over the face's extent when `shrinks`.
+    @discardableResult
+    public mutating func rebuildFaces(
+        target: FeatureID, faces: [StableSubshapeReference], method: FaceRebuildMethod,
+        extendU: Double = 0, extendV: Double = 0, shrinks: Bool = false, named name: String? = nil
+    ) throws -> FeatureID {
+        let feature = FaceRebuildFeature(
+            target: PatternTargetReference(featureID: target), faces: faces, method: method, extendU: extendU, extendV: extendV, shrinks: shrinks
+        )
+        try feature.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .faceRebuild(feature))
+        return featureID
+    }
+
+    /// Unwrap Face: `face` of `target` flattened into a sheet in the XY plane about the origin.
+    @discardableResult
+    public mutating func unwrapFace(target: FeatureID, face: StableSubshapeReference, named name: String? = nil) throws -> FeatureID {
+        let feature = FaceUnwrapFeature(target: PatternTargetReference(featureID: target), face: face)
+        try feature.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .faceUnwrap(feature))
+        return featureID
+    }
+
     /// Delete Redundant Topology: faces of `target` on one surface merged across the edges between
     /// them, and edges on one curve across the vertices between them.
     @discardableResult

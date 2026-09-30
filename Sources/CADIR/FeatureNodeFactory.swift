@@ -554,6 +554,20 @@ public enum FeatureNodeFactory {
             try validateSource(feature.target.featureID, role: .sheet, in: document)
             _ = try bodyOrSheetPort(of: feature.reference.featureID, in: document)
             return FeatureNode(id: id, name: name, operation: operation, inputs: feature.inputs, outputs: [FeatureOutput(role: .sheet)])
+        case .faceRebuild:
+            guard case let .faceRebuild(feature) = operation else {
+                throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+            }
+            try feature.validate()
+            let targetPort = try bodyOrSheetPort(of: feature.target.featureID, in: document)
+            return FeatureNode(id: id, name: name, operation: operation, inputs: feature.inputs, outputs: [FeatureOutput(role: targetPort)])
+        case .faceUnwrap:
+            guard case let .faceUnwrap(feature) = operation else {
+                throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+            }
+            try feature.validate()
+            _ = try bodyOrSheetPort(of: feature.target.featureID, in: document)
+            return FeatureNode(id: id, name: name, operation: operation, inputs: feature.inputs, outputs: [FeatureOutput(role: .sheet)])
         case .sheetExtend:
             guard case let .sheetExtend(feature) = operation else {
                 throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")

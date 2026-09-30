@@ -842,6 +842,40 @@ a gap at G0, G1 and G2 with its far edge kept, a partial alignment on a refitted
 the edge's ends and meeting in the middle, and blended rows without input shape influence
 running straight.
 
+## Rebuild Face
+
+`FaceRebuildFeatureEvaluator` gives each chosen face a B-spline surface refitted to its own on the
+same parameters (`MappedBSplineSurfaceFitter`: an explicit layout as given, a tolerance by as few
+bicubic spans as keep within it), over the face's parameter extent when it shrinks and its
+surface's own domain otherwise (a B-spline's knot range; an analytic surface's face extent),
+widened past each side by the extension fractions. A B-spline is read past its domain as its end
+spans continued (`BSplineSurfaceNaturalContinuation`, de Boor's algorithm on the nearest span);
+an analytic surface asked past its domain is refused. A face that is a sheet of its own is sewn
+anew on its new surface, each edge a B-spline fitted along its trimming curve within a quarter of
+the distance tolerance, so coarse layouts are free. A face whose every edge meets another face
+takes its new surface in place with its edges, vertices and trimming curves kept, which holds
+only while the new surface keeps within a quarter of the distance tolerance of the old one along
+the trimming curves; a coarser refit is refused, as is a face with both open and shared edges
+(both marked `FIXME(INCOMPLETE_IMPLEMENTATION)`). `FaceRebuildTests` own the explicit layout
+reproducing a quadratic arch exactly, the extension continuing it past its edge with the face
+kept, a box's top and a cylinder's quarter wall (tangent neighbours) rebuilt in place, and the
+two refusals.
+
+## Unwrap Face
+
+`FaceUnwrapFeatureEvaluator` lays one face flat as a sheet of its own in the XY plane, centred on
+the origin (the middle of its flat boundary's box), front facing +Z (a reversed face is laid out
+mirrored), the body left as it is. `FaceDevelopment` maps the face's parameters: planes as they
+are, cylinders unrolled (r·u, v), cones into their sector (v·cos(u·sin α), −v·sin(u·sin α)) — all
+isometric — and other surfaces by arc length along their middle parameter lines (five-point
+Gauss–Legendre over 64 cells). The sheet keeps the face's parameters and trimming curves, so it
+serves as Deform's reference: its surface is a planar B-spline fitted to the map within a quarter
+of the distance tolerance, and each edge a B-spline fitted to that surface along the edge's
+trimming curve. A seam comes apart into two edges; a loop that does not close when laid flat (a
+face around its surface's period with no seam) is refused. `FaceUnwrapTests` own a cylinder's
+quarter wall unrolled to its arc length and height about the origin, and an arch laid out to its
+parabola's length.
+
 ## Extend Sheet
 
 `SheetExtendFeatureEvaluator` carries a sheet's chosen open edges on by a distance. Each edge

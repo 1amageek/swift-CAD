@@ -41,6 +41,8 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case removeFillets(RemoveFilletsFeature)
     case removeRedundantTopology(RemoveRedundantTopologyFeature)
     case sheetExtend(SheetExtendFeature)
+    case faceRebuild(FaceRebuildFeature)
+    case faceUnwrap(FaceUnwrapFeature)
     case surfaceAlign(SurfaceAlignFeature)
     case untrimFace(UntrimFaceFeature)
     case imprintCurves(ImprintCurvesFeature)
@@ -107,6 +109,8 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case removeFillets
         case removeRedundantTopology
         case sheetExtend
+        case faceRebuild
+        case faceUnwrap
         case surfaceAlign
         case untrimFace
         case imprintCurves
@@ -258,6 +262,12 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .sheetExtend:
             try container.validateOnlyExpectedKeys([.kind, .sheetExtend], in: decoder)
             self = .sheetExtend(try container.decode(SheetExtendFeature.self, forKey: .sheetExtend))
+        case .faceRebuild:
+            try container.validateOnlyExpectedKeys([.kind, .faceRebuild], in: decoder)
+            self = .faceRebuild(try container.decode(FaceRebuildFeature.self, forKey: .faceRebuild))
+        case .faceUnwrap:
+            try container.validateOnlyExpectedKeys([.kind, .faceUnwrap], in: decoder)
+            self = .faceUnwrap(try container.decode(FaceUnwrapFeature.self, forKey: .faceUnwrap))
         case .removeRedundantTopology:
             try container.validateOnlyExpectedKeys([.kind, .removeRedundantTopology], in: decoder)
             self = .removeRedundantTopology(try container.decode(RemoveRedundantTopologyFeature.self, forKey: .removeRedundantTopology))
@@ -453,6 +463,12 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .sheetExtend(feature):
             try container.encode(Kind.sheetExtend, forKey: .kind)
             try container.encode(feature, forKey: .sheetExtend)
+        case let .faceRebuild(feature):
+            try container.encode(Kind.faceRebuild, forKey: .kind)
+            try container.encode(feature, forKey: .faceRebuild)
+        case let .faceUnwrap(feature):
+            try container.encode(Kind.faceUnwrap, forKey: .kind)
+            try container.encode(feature, forKey: .faceUnwrap)
         case let .removeRedundantTopology(feature):
             try container.encode(Kind.removeRedundantTopology, forKey: .kind)
             try container.encode(feature, forKey: .removeRedundantTopology)

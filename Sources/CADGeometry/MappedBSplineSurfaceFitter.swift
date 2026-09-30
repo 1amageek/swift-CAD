@@ -6,12 +6,13 @@ import CADCore
 /// parameters, so its trimming curves stay valid.
 ///
 /// The surface is clamped with uniform knots and interpolates the map at the tensor grid of
-/// Greville abscissae, solved one direction at a time. `fit(layout:u:v:tolerance:point:)` fits one
-/// given layout of degrees and spans and reports how far it strays. Its distance to the map is checked at the
-/// quarter points of every knot cell, and while it exceeds the deviation one direction doubles its
-/// spans, from one each: the one whose doubling brings the fit closer, so a map that bends one way
-/// only is not split the other way. Each direction stops at `maximumSpanCount`
-/// (`resourceLimitExceeded` when neither can double).
+/// Greville abscissae, solved one direction at a time. Its distance to the map is checked at the
+/// quarter points of every knot cell, and while it exceeds the deviation the spans double, from
+/// one each: in the direction whose doubling brings the fit closest by a tenth or more, so a map
+/// that bends one way only is not split the other way, and in both when neither does (a first
+/// split can stray further before the next close in). Each direction stops at `maximumSpanCount`
+/// (`resourceLimitExceeded` when neither can double). `fit(layout:u:v:tolerance:point:)` fits one
+/// given layout of degrees and spans and reports how far it strays.
 package struct MappedBSplineSurfaceFitter: Sendable {
     package struct Result: Sendable {
         package var surface: BSplineSurface3D
@@ -73,11 +74,19 @@ package struct MappedBSplineSurfaceFitter: Sendable {
                 let next = (u: spans.u, v: min(spans.v * 2, maximumSpanCount))
                 candidates.append((next, try Self.fit(layout: layout(next.u, next.v), u: u, v: v, tolerance: tolerance, point: point)))
             }
-            guard let best = candidates.min(by: { $0.1.maximumDeviation < $1.1.maximumDeviation }) else {
+            guard candidates.isEmpty == false else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded, residual: result.maximumDeviation, tolerance: tolerance,
                     message: "The mapped surface needs more than \(maximumSpanCount) spans each way to stay within \(deviation).")
             }
-            (spans, result) = best
+            // A doubling that brings the fit closer wins; when neither does (a first split can
+            // stray further before the next ones close in), both directions double.
+            let improving = candidates.filter { $0.1.maximumDeviation < result.maximumDeviation * 0.9 }
+            if let best = improving.min(by: { $0.1.maximumDeviation < $1.1.maximumDeviation }) {
+                (spans, result) = best
+            } else {
+                spans = (u: min(spans.u * 2, maximumSpanCount), v: min(spans.v * 2, maximumSpanCount))
+                result = try Self.fit(layout: layout(spans.u, spans.v), u: u, v: v, tolerance: tolerance, point: point)
+            }
         }
         return result
     }

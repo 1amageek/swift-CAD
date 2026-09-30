@@ -903,6 +903,61 @@ extension KernelCapabilities {
       ]
     ),
     feature(
+      id: "MODEL-FACEREBUILD-001",
+      operation: "faceRebuild",
+      topology: .sheetOrSolidBody,
+      inputs: [
+        "facesOfOneBodyEachASheetOfItsOwnOrEnclosedByOtherFaces",
+        "explicitDegreeAndSpanLayoutOrPositiveTolerance",
+        "extendFractionsZeroToOneEachWay",
+        "shrinkToTheFacesParameterExtent",
+      ],
+      outputs: [
+        "validatedExactBRep",
+        "bSplineSurfaceRefittedOnTheFacesOwnParameters",
+        "trimmingCurvesKept",
+        "surfacesContinuedPastTheirDomainNaturally",
+        "sheetFacesSewnAnewOnFittedEdges",
+        "enclosedFacesTakeTheirSurfaceInPlaceWithinAQuarterOfTheDistanceTolerance",
+        "strictCurrentSchemaNativePersistence",
+      ],
+      fixtures: ["FaceRebuildTests"],
+      status: .partial,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .unsupportedCapability,
+        .topologyFailure,
+        .resourceLimitExceeded,
+      ]
+    ),
+    feature(
+      id: "MODEL-FACEUNWRAP-001",
+      operation: "faceUnwrap",
+      topology: .sheetBody,
+      inputs: [
+        "oneFaceOfABodyOrSheet",
+      ],
+      outputs: [
+        "validatedExactBRep",
+        "sheetInTheXYPlaneCentredOnTheOriginFrontFacingPlusZ",
+        "planesCylindersAndConesUnrolledIsometrically",
+        "otherSurfacesLaidOutByArcLengthAlongTheirMiddleParameterLines",
+        "facesOwnParametersAndTrimmingCurvesKept",
+        "seamsCutOpen",
+        "sourceBodyKept",
+        "strictCurrentSchemaNativePersistence",
+      ],
+      fixtures: ["FaceUnwrapTests"],
+      status: .partial,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .unsupportedCapability,
+        .resourceLimitExceeded,
+      ]
+    ),
+    feature(
       id: "MODEL-SHEETEXTEND-001",
       operation: "sheetExtend",
       topology: .sheetBody,

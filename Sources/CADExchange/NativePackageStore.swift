@@ -477,6 +477,20 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
         try validateObjectField("targetEdge", in: feature, path: "\(featurePath).targetEdge", using: validateStableSubshapeReferenceObject)
         try validateObjectField("referenceEdge", in: feature, path: "\(featurePath).referenceEdge", using: validateStableSubshapeReferenceObject)
     }
+    try validateObjectField("faceRebuild", in: object, path: "\(path).faceRebuild") { feature, featurePath in
+        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "faces", "method", "extendU", "extendV", "shrinks"], objectName: featurePath)
+        try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
+        try validateArrayField("faces", in: feature, path: "\(featurePath).faces", using: validateStableSubshapeReferenceObject)
+        try validateObjectField("method", in: feature, path: "\(featurePath).method") { method, methodPath in
+            try rejectUnsupportedNativeKeys(in: method, supportedKeys: ["kind", "layout", "tolerance"], objectName: methodPath)
+            try validateObjectField("tolerance", in: method, path: "\(methodPath).tolerance", using: validateExpressionObject)
+        }
+    }
+    try validateObjectField("faceUnwrap", in: object, path: "\(path).faceUnwrap") { feature, featurePath in
+        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "face"], objectName: featurePath)
+        try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
+        try validateObjectField("face", in: feature, path: "\(featurePath).face", using: validateStableSubshapeReferenceObject)
+    }
     try validateObjectField("sheetExtend", in: object, path: "\(path).sheetExtend") { feature, featurePath in
         try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "edges", "distance", "shape", "modifies"], objectName: featurePath)
         try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)

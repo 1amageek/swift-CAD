@@ -34,6 +34,9 @@ public extension FeatureOperation {
             return draft.angle.referencedParameterIDs.union(draft.neutralOffset?.referencedParameterIDs ?? [])
         case let .sheetExtend(extend):
             return extend.distance.referencedParameterIDs
+        case let .faceRebuild(rebuild):
+            if case let .tolerance(distance) = rebuild.method { return distance.referencedParameterIDs }
+            return []
         case let .removeFillets(removal):
             return removal.maximumRadius?.referencedParameterIDs ?? []
         case let .faceOffset(offset):
@@ -103,6 +106,7 @@ public extension FeatureOperation {
              .faceMatch,
              .removeRedundantTopology,
              .surfaceAlign,
+             .faceUnwrap,
              .untrimFace,
              .imprintCurves,
              .extract:

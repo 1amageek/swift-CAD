@@ -350,6 +350,14 @@ extension FeatureOperation {
             feature.target = try pattern(feature.target)
             feature.edges = try feature.edges.map(subshape)
             return .sheetExtend(feature)
+        case .faceRebuild(var feature):
+            feature.target = try pattern(feature.target)
+            feature.faces = try feature.faces.map(subshape)
+            return .faceRebuild(feature)
+        case .faceUnwrap(var feature):
+            feature.target = try pattern(feature.target)
+            feature.face = try subshape(feature.face)
+            return .faceUnwrap(feature)
         case .removeRedundantTopology(var feature):
             feature.target = try pattern(feature.target)
             return .removeRedundantTopology(feature)

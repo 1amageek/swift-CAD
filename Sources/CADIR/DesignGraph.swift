@@ -395,6 +395,10 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 try feature.validate()
             case let .sheetExtend(feature):
                 try feature.validate()
+            case let .faceRebuild(feature):
+                try feature.validate()
+            case let .faceUnwrap(feature):
+                try feature.validate()
             case let .surfaceAlign(feature):
                 try feature.validate()
             case let .untrimFace(feature):
@@ -693,6 +697,10 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             try validateRemoveRedundantTopologyContract(node, outputRoles: outputRoles)
         case .sheetExtend:
             try validateSheetExtendContract(node, outputRoles: outputRoles)
+        case .faceRebuild:
+            try validateFaceRebuildContract(node, outputRoles: outputRoles)
+        case .faceUnwrap:
+            try validateFaceUnwrapContract(node, outputRoles: outputRoles)
         case .surfaceAlign:
             try validateSurfaceAlignContract(node, outputRoles: outputRoles)
         case .extract:
@@ -1510,6 +1518,34 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         guard nodes[feature.target.featureID]?.outputs.contains(where: { $0.role == .sheet }) == true,
               nodes[feature.reference.featureID]?.bodyOrSheetOutput != nil, outputRoles == [.sheet] else {
             throw FeatureEvaluationError.invalidGraph("Align Surface takes a sheet and publishes one.")
+        }
+    }
+
+    /// Rebuild Face reshapes its target's faces and publishes its target's kind of body.
+    private func validateFaceRebuildContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        guard case let .faceRebuild(feature) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a faceRebuild operation.")
+        }
+        try feature.validate()
+        guard node.inputs == feature.inputs else {
+            throw FeatureEvaluationError.invalidGraph("Rebuild Face features must consume exactly their target.")
+        }
+        guard let targetPort = nodes[feature.target.featureID]?.bodyOrSheetOutput, outputRoles == [targetPort] else {
+            throw FeatureEvaluationError.invalidGraph("Rebuild Face publishes its target's kind of body.")
+        }
+    }
+
+    /// Unwrap Face reads a body and publishes the flattened face as a sheet.
+    private func validateFaceUnwrapContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        guard case let .faceUnwrap(feature) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a faceUnwrap operation.")
+        }
+        try feature.validate()
+        guard node.inputs == feature.inputs else {
+            throw FeatureEvaluationError.invalidGraph("Unwrap Face features must consume exactly their target.")
+        }
+        guard nodes[feature.target.featureID]?.bodyOrSheetOutput != nil, outputRoles == [.sheet] else {
+            throw FeatureEvaluationError.invalidGraph("Unwrap Face reads a body or sheet and publishes a sheet.")
         }
     }
 
