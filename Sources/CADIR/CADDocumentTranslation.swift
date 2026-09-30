@@ -83,6 +83,7 @@ private extension FeatureOperation {
              .faceMatch,
              .removeFillets,
              .removeRedundantTopology,
+             .sheetExtend,
              .untrimFace,
              .imprintCurves,
              .extract,

@@ -32,6 +32,8 @@ public extension FeatureOperation {
             return offset.distance.referencedParameterIDs
         case let .faceDraft(draft):
             return draft.angle.referencedParameterIDs.union(draft.neutralOffset?.referencedParameterIDs ?? [])
+        case let .sheetExtend(extend):
+            return extend.distance.referencedParameterIDs
         case let .removeFillets(removal):
             return removal.maximumRadius?.referencedParameterIDs ?? []
         case let .faceOffset(offset):

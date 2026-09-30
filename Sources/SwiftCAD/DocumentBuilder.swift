@@ -493,6 +493,20 @@ public struct DocumentBuilder {
     }
 
     /// Imprints where `tool` crosses `target` (`ImprintBodyFeature`).
+    /// Extend Sheet: open `edges` of the sheet `target` carried on by `distance` in `shape`, joined to
+    /// it when `modifies`, otherwise a sheet of their own beside it.
+    @discardableResult
+    public mutating func extendSheet(
+        target: FeatureID, edges: [StableSubshapeReference], distance: CADExpression,
+        shape: SheetExtensionShape = .natural, modifies: Bool = true, named name: String? = nil
+    ) throws -> FeatureID {
+        let feature = SheetExtendFeature(target: PatternTargetReference(featureID: target), edges: edges, distance: distance, shape: shape, modifies: modifies)
+        try feature.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .sheetExtend(feature))
+        return featureID
+    }
+
     /// Delete Redundant Topology: faces of `target` on one surface merged across the edges between
     /// them, and edges on one curve across the vertices between them.
     @discardableResult

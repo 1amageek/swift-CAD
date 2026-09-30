@@ -393,6 +393,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 try feature.validate()
             case let .removeRedundantTopology(feature):
                 try feature.validate()
+            case let .sheetExtend(feature):
+                try feature.validate()
             case let .untrimFace(feature):
                 try feature.validate()
             case let .imprintCurves(feature):
@@ -687,6 +689,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             try validateRemoveFilletsContract(node, outputRoles: outputRoles)
         case .removeRedundantTopology:
             try validateRemoveRedundantTopologyContract(node, outputRoles: outputRoles)
+        case .sheetExtend:
+            try validateSheetExtendContract(node, outputRoles: outputRoles)
         case .extract:
             try validateExtractContract(node, outputRoles: outputRoles)
         case .wrap:
@@ -1487,6 +1491,20 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         }
         guard outputRoles == [.sheet] else {
             throw FeatureEvaluationError.invalidGraph("Unjoin faces features must declare one sheet output.")
+        }
+    }
+
+    /// Extend Sheet reads its sheet, consuming it when the extensions join it, and publishes a sheet.
+    private func validateSheetExtendContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        guard case let .sheetExtend(feature) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a sheetExtend operation.")
+        }
+        try feature.validate()
+        guard node.inputs == feature.inputs else {
+            throw FeatureEvaluationError.invalidGraph("Extend Sheet features must consume exactly their referenced inputs.")
+        }
+        guard nodes[feature.target.featureID]?.outputs.contains(where: { $0.role == .sheet }) == true, outputRoles == [.sheet] else {
+            throw FeatureEvaluationError.invalidGraph("Extend Sheet takes a sheet and publishes one.")
         }
     }
 

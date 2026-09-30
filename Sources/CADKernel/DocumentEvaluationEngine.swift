@@ -333,6 +333,7 @@ struct DocumentEvaluationEngine {
                  .faceMatch,
                  .removeFillets,
                  .removeRedundantTopology,
+                 .sheetExtend,
                  .untrimFace,
                  .imprintCurves,
                  .extract,

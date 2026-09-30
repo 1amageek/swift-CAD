@@ -868,6 +868,35 @@ extension KernelCapabilities {
       ]
     ),
     feature(
+      id: "MODEL-SHEETEXTEND-001",
+      operation: "sheetExtend",
+      topology: .sheetBody,
+      inputs: [
+        "oneValidatedSheet",
+        "oneOrMoreOpenEdgesNotMeetingOneAnother",
+        "straightOrCircularEdgesOfPlanarFacesOrParameterBoundaryEdgesOfBSplineFaces",
+        "positiveDistance",
+        "naturalLinearOrReflectiveShape",
+        "modifiesOrBeside",
+      ],
+      outputs: [
+        "validatedExactBRep",
+        "stripsCarryingTheSheetOnPastTheEdges",
+        "naturalExtensionTheSurfaceItselfContinued",
+        "distanceMeasuredAlongTheSurfaceAcrossTheEdgeMiddle",
+        "extensionsJoinedToTheSheetOrASheetBesideIt",
+        "strictCurrentSchemaNativePersistence",
+      ],
+      fixtures: ["SheetExtendTests"],
+      status: .partial,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .unsupportedCapability,
+        .topologyFailure,
+      ]
+    ),
+    feature(
       id: "MODEL-REDUNDANTTOPOLOGY-001",
       operation: "removeRedundantTopology",
       topology: .sheetOrSolidBody,

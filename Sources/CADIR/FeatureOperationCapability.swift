@@ -40,6 +40,7 @@ public extension FeatureOperation {
         case .faceMatch: return "faceMatch"
         case .removeFillets: return "removeFillets"
         case .removeRedundantTopology: return "removeRedundantTopology"
+        case .sheetExtend: return "sheetExtend"
         case .untrimFace: return "untrimFace"
         case .imprintCurves: return "imprintCurves"
         case .extract: return "extract"

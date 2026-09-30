@@ -66,6 +66,7 @@ struct KernelCapabilityContractTests {
       "MODEL-FACEMATCH-001",
       "MODEL-REMOVEFILLETS-001",
       "MODEL-REDUNDANTTOPOLOGY-001",
+      "MODEL-SHEETEXTEND-001",
       "MODEL-ISOPARAM-001",
       "MODEL-UNTRIM-001",
       "MODEL-IMPRINT-002",

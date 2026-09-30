@@ -463,6 +463,12 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
         try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "face", "direction", "fractions", "subdividesControlNet"], objectName: featurePath)
         try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
     }
+    try validateObjectField("sheetExtend", in: object, path: "\(path).sheetExtend") { feature, featurePath in
+        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "edges", "distance", "shape", "modifies"], objectName: featurePath)
+        try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
+        try validateArrayField("edges", in: feature, path: "\(featurePath).edges", using: validateStableSubshapeReferenceObject)
+        try validateObjectField("distance", in: feature, path: "\(featurePath).distance", using: validateExpressionObject)
+    }
     try validateObjectField("removeRedundantTopology", in: object, path: "\(path).removeRedundantTopology") { feature, featurePath in
         try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target"], objectName: featurePath)
         try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)

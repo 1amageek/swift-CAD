@@ -816,6 +816,22 @@ wall it passes) is refused with the feature's own identity. `HollowTests` prove 
 through one or two faces or closed, a cylinder and a rounded box by exact volumes, and the
 refusal.
 
+## Extend Sheet
+
+`SheetExtendFeatureEvaluator` carries a sheet's chosen open edges on by a distance. Each edge
+gets one strip patch: on a planar face the rectangle beside a straight edge or the ring sector
+around an arc, every shape alike; on a B-spline face, along one of its parameter boundaries,
+the extension `BSplineSurfaceBoundaryExtender` builds past that boundary — the surface's last
+span continued by blossoming (natural), the straight strip along the cross-boundary derivative
+(linear), or the stretch before the boundary reflected through it (reflective) — as far as the
+distance measured along the surface across the edge's middle. Modifying, the sheet's patches
+(`DefaultBRepFacePatchExtractor`) and the strips are sewn into one sheet in its place;
+otherwise the strips are sewn into a sheet of their own beside it, the sheet kept. Chosen edges
+meeting at a corner, faces on other surfaces and edges inside a B-spline domain are refused
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`). `SheetExtendTests` prove a planar sheet grown in place and
+beside it, a bilinear sheet continued exactly, each shape of a parabolic arch, and the corner
+refusal.
+
 ## Reverse Sheet
 
 `ReverseSheetFeatureEvaluator` turns a sheet over in its place, consuming it: the
