@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// What joining makes of its targets.
 public enum JoinBodiesMode: String, Codable, Hashable, Sendable {
@@ -20,11 +21,24 @@ public enum JoinBodiesMode: String, Codable, Hashable, Sendable {
     }
 }
 
+/// One body to join and where it sits in the joined body's frame.
+public struct JoinBodiesTargetReference: Codable, Hashable, Sendable {
+    public var featureID: FeatureID
+    /// Where the body sits in the joined body's frame: it is moved rigidly there before joining;
+    /// `nil` joins it where it was evaluated.
+    public var placement: RigidTransform3D?
+
+    public init(featureID: FeatureID, placement: RigidTransform3D? = nil) {
+        self.featureID = featureID
+        self.placement = placement
+    }
+}
+
 public struct JoinBodiesFeature: Codable, Hashable, Sendable {
-    public let targets: [PatternTargetReference]
+    public let targets: [JoinBodiesTargetReference]
     public let mode: JoinBodiesMode
 
-    public init(targets: [PatternTargetReference], mode: JoinBodiesMode = .solidComponents) {
+    public init(targets: [JoinBodiesTargetReference], mode: JoinBodiesMode = .solidComponents) {
         self.targets = targets
         self.mode = mode
     }
@@ -37,7 +51,6 @@ public struct JoinBodiesFeature: Codable, Hashable, Sendable {
         guard Set(targetFeatureIDs).count == targetFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Join bodies target references must be unique.")
         }
-        try targets.forEach { try $0.validate() }
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -48,7 +61,7 @@ public struct JoinBodiesFeature: Codable, Hashable, Sendable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.targets, .mode], in: decoder)
-        targets = try container.decode([PatternTargetReference].self, forKey: .targets)
+        targets = try container.decode([JoinBodiesTargetReference].self, forKey: .targets)
         mode = try container.decode(JoinBodiesMode.self, forKey: .mode)
         try validate()
     }

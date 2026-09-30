@@ -7,6 +7,7 @@ package enum FeatureEvaluationStageDomain: UInt64, Sendable {
     case booleanToolUnion = 0x5B2D_E871_0C46_9FA3
     case mirrorCutTool = 0x71C2_9B4E_D05A_83F7
     case mirrorCut = 0xC4E8_1F63_A92B_5D17
+    case joinOperandPlacement = 0x2E97_B3C1_58D0_A46F
 }
 
 /// Derives a deterministic, non-published identity for one internal evaluation stage.

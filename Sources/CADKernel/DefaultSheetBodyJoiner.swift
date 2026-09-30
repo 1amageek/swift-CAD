@@ -190,22 +190,30 @@ struct DefaultSheetBodyJoiner: SheetBodyJoining {
 public struct JoinSheetClosure {
     public init() {}
 
-    /// Throws where joining itself would refuse: a source that is no sheet, an edge met by more
-    /// than two faces, sheets that do not all meet, or faces that cannot agree on a front side.
-    public func closes(sheets features: [FeatureID], in document: EvaluatedDocument) throws -> Bool {
+    /// Each target moved to its placement first, as joining moves it. Throws where joining itself
+    /// would refuse: a source that is no sheet, an edge met by more than two faces, sheets that do
+    /// not all meet, or faces that cannot agree on a front side.
+    public func closes(sheets targets: [JoinBodiesTargetReference], in document: EvaluatedDocument) throws -> Bool {
         let tolerance = document.configuration.tolerance
-        let bodyIDs = try features.map { featureID -> BodyID in
-            guard case let .body(bodyID) = document.subshapes[SubshapeID(
-                featureID: featureID, role: GeneratedSubshapeRole.body.rawValue, ordinal: 0
-            )] else {
-                throw KernelError(phase: .evaluation, code: .missingReference, featureID: featureID, tolerance: tolerance,
-                    message: "A sheet to join has no evaluated body.")
-            }
-            return bodyID
-        }
-        return try DefaultSheetBodyJoiner().plan(
-            bodyIDs: bodyIDs, featureID: FeatureID(), model: document.brep,
-            subshapes: document.subshapes.entries, tolerance: tolerance
+        let featureID = FeatureID()
+        let context = EvaluationContext(
+            parameters: document.parameters,
+            brep: document.brep,
+            profiles: [:],
+            curves: document.curves,
+            subshapes: document.subshapes,
+            lineage: document.lineage,
+            tolerance: tolerance
+        )
+        let sewer = DefaultBRepSewer()
+        let (stages, bodyIDs) = try JoinTargetPlacement(relocator: DefaultExactBodyPatternRebuilder(
+            sewer: sewer,
+            unionApplicator: ExactBooleanOperationApplicator(),
+            separationValidator: ExactBodyJoinValidator()
+        )).place(targets, featureID: featureID, context: context)
+        return try DefaultSheetBodyJoiner(sewer: sewer).plan(
+            bodyIDs: bodyIDs, featureID: featureID, model: stages.context.brep,
+            subshapes: stages.context.subshapes.entries, tolerance: tolerance
         ).closes
     }
 }

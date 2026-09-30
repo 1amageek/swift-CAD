@@ -133,7 +133,12 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         )
         self.joinBodiesEvaluator = JoinBodiesFeatureEvaluator(
             validator: ExactBodyJoinValidator(),
-            sheetJoiner: DefaultSheetBodyJoiner(sewer: sewer)
+            sheetJoiner: DefaultSheetBodyJoiner(sewer: sewer),
+            relocator: DefaultExactBodyPatternRebuilder(
+                sewer: sewer,
+                unionApplicator: ExactBooleanOperationApplicator(),
+                separationValidator: ExactBodyJoinValidator()
+            )
         )
         self.unjoinBodyEvaluator = UnjoinBodyFeatureEvaluator()
         self.chamferEvaluator = ChamferFeatureEvaluator(

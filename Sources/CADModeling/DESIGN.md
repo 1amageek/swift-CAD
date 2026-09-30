@@ -107,7 +107,11 @@ touching pieces.
 ### Joining bodies
 
 `JoinBodiesFeature.mode` says what a join makes, and so which port its targets and
-its result use. `.solidComponents` makes solids whose material does not meet the
+its result use. Each target may carry a rigid `placement` into the joined body's
+frame; `JoinTargetPlacement` moves every placed target there first, each move an
+internal `joinOperandPlacement` stage, and the join is published as if it had acted
+on its inputs directly. The closure query moves targets the same way, so it answers
+for the bodies the join will see. `.solidComponents` makes solids whose material does not meet the
 components of one solid body, each shell untouched. `.sewnSheet` and `.sewnSolid`
 sew sheets along the boundary edges that coincide within the modeling tolerance
 (`SheetBodyJoining`, implemented by `DefaultSheetBodyJoiner` in CADKernel, which
@@ -125,7 +129,8 @@ rebuilds every face, edge and vertex, so every subshape of the sources is remove
 An author chooses the mode with `JoinSheetClosure`, which runs the same plan.
 `JoinSheetsFeatureTests` cover a cube of mixed-facing sheets, an open join both
 ways, sheets that do not meet, three faces on one edge, mixed kinds, the closure
-query and a mode that does not match.
+query, a mode that does not match, and a sheet evaluated elsewhere and joined at its
+placement.
 
 ### Curve translation
 

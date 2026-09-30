@@ -770,6 +770,7 @@ extension KernelCapabilities {
         "twoOrMoreValidatedSolidBodiesOrTwoOrMoreValidatedSheetBodies",
         "pairwiseDisjointMaterialRegionsAndBoundariesForSolids",
         "sheetsConnectedThroughBoundaryEdgesCoincidentWithinModelingTolerance",
+        "optionalRigidPlacementPerTargetIntoTheJoinedFrame",
       ],
       outputs: [
         "validatedExactMultiShellBRep",

@@ -8,10 +8,16 @@ import CADTopology
 public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let validator: any BodyJoinValidating
     private let sheetJoiner: any SheetBodyJoining
+    private let relocator: (any ExactBodyPatternRebuilding)?
 
-    package init(validator: any BodyJoinValidating, sheetJoiner: any SheetBodyJoining) {
+    package init(
+        validator: any BodyJoinValidating,
+        sheetJoiner: any SheetBodyJoining,
+        relocator: (any ExactBodyPatternRebuilding)? = nil
+    ) {
         self.validator = validator
         self.sheetJoiner = sheetJoiner
+        self.relocator = relocator
     }
 
     public func evaluate(
@@ -33,6 +39,8 @@ public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         }
     }
 
+    /// Moves every placed target rigidly into the joined body's frame, joins as the mode says,
+    /// and publishes the result as if the targets had been joined directly.
     private func evaluateUnvalidated(
         feature: FeatureNode,
         context: EvaluationContext
@@ -53,9 +61,19 @@ public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             featureID: feature.id,
             tolerance: context.tolerance
         )
-        let bodyIDs = try join.targets.map { target in
-            try context.bodyID(generatedBy: target.featureID)
-        }
+        let (stages, bodyIDs) = try JoinTargetPlacement(relocator: relocator).place(
+            join.targets, featureID: feature.id, context: context
+        )
+        let joined = try joined(join, bodyIDs: bodyIDs, featureID: feature.id, context: stages.context)
+        return try stages.publish(joined, featureID: feature.id)
+    }
+
+    private func joined(
+        _ join: JoinBodiesFeature,
+        bodyIDs: [BodyID],
+        featureID: FeatureID,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
         let bodies = try bodyIDs.map { bodyID -> Body in
             guard let body = context.brep.bodies[bodyID] else {
                 throw TopologyError.missingReference("Join bodies source body is missing.")
@@ -69,13 +87,13 @@ public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             guard bodies.allSatisfy({ $0.kind == .sheet }) else {
                 throw error(
                     .invalidInput,
-                    featureID: feature.id,
+                    featureID: featureID,
                     tolerance: context.tolerance,
                     "Join bodies sews sheets only."
                 )
             }
             let sewn = try sheetJoiner.joinSheets(
-                bodyIDs: bodyIDs, closed: join.mode == .sewnSolid, featureID: feature.id, context: context
+                bodyIDs: bodyIDs, closed: join.mode == .sewnSolid, featureID: featureID, context: context
             )
             // Sewing rebuilds every face, edge and vertex, so every subshape of the sources goes.
             let replacedSubshapeIDs = try bodyIDs.reduce(into: Set<SubshapeID>()) { replaced, bodyID in
@@ -96,7 +114,7 @@ public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         guard bodies.allSatisfy({ $0.kind == .solid }) else {
             throw error(
                 .invalidInput,
-                featureID: feature.id,
+                featureID: featureID,
                 tolerance: context.tolerance,
                 "Join bodies combines solids only; sheets are sewn."
             )
@@ -119,7 +137,7 @@ public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             guard case .solid(let components) = body.topology else {
                 throw error(
                     .topologyFailure,
-                    featureID: feature.id,
+                    featureID: featureID,
                     tolerance: context.tolerance,
                     "A validated solid body has inconsistent explicit topology."
                 )
@@ -137,7 +155,7 @@ public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         )
 
         let joinedSubshapeID = SubshapeID(
-            featureID: feature.id,
+            featureID: featureID,
             role: GeneratedSubshapeRole.body.rawValue,
             ordinal: 0
         )

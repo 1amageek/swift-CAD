@@ -1721,7 +1721,9 @@ private func validateMirrorFeatureObject(_ object: [String: Any], path: String) 
 
 private func validateJoinBodiesFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["targets", "mode"], objectName: path)
-    try validateArrayField("targets", in: object, path: "\(path).targets", using: validatePatternTargetReferenceObject)
+    try validateArrayField("targets", in: object, path: "\(path).targets") { target, targetPath in
+        try rejectUnsupportedNativeKeys(in: target, supportedKeys: ["featureID", "placement"], objectName: targetPath)
+    }
 }
 
 private func validateExtractFeatureObject(_ object: [String: Any], path: String) throws {

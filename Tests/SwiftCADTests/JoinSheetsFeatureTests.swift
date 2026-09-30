@@ -124,13 +124,44 @@ struct JoinSheetsFeatureTests {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let sides = try cubeSides(&builder)
         let evaluated = try evaluate(builder)
-        #expect(try JoinSheetClosure().closes(sheets: sides, in: evaluated))
-        #expect(try JoinSheetClosure().closes(sheets: Array(sides.prefix(5)), in: evaluated) == false)
+        #expect(try JoinSheetClosure().closes(sheets: sides.map { JoinBodiesTargetReference(featureID: $0) }, in: evaluated))
+        #expect(try JoinSheetClosure().closes(sheets: sides.prefix(5).map { JoinBodiesTargetReference(featureID: $0) }, in: evaluated) == false)
         _ = try builder.joinBodies(sides, mode: .sewnSheet)
         #expect(throws: KernelError.self) { try evaluate(builder) }
         var open = DocumentBuilder(units: .meters, tolerance: .standard)
         let five = Array(try cubeSides(&open).prefix(5))
         _ = try open.joinBodies(five, mode: .sewnSolid)
         #expect(throws: KernelError.self) { try evaluate(open) }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aPlacedSheetJoinsWhereItIsPlaced() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let floor = try quad(&builder, corner(0, 0, 0), corner(1, 0, 0), corner(1, 1, 0), corner(0, 1, 0))
+        // The wall is evaluated five sides away and placed back against the floor.
+        let wall = try quad(&builder, corner(5, 0, 0), corner(5, 0, 1), corner(6, 0, 1), corner(6, 0, 0))
+        let back = try RigidTransform3D(
+            basisX: .unitX, basisY: .unitY, basisZ: .unitZ,
+            translation: Vector3D(x: -5 * side, y: 0, z: 0), tolerance: .standard
+        )
+        let targets = [JoinBodiesTargetReference(featureID: floor), JoinBodiesTargetReference(featureID: wall, placement: back)]
+        #expect(try JoinSheetClosure().closes(sheets: targets, in: try evaluate(builder)) == false)
+        #expect(throws: KernelError.self) {
+            try JoinSheetClosure().closes(sheets: targets.map { JoinBodiesTargetReference(featureID: $0.featureID) }, in: try evaluate(builder))
+        }
+        var document = try builder.build(name: "placed join")
+        let joined = FeatureID()
+        try document.appendFeatures([try FeatureNodeFactory.make(
+            operation: .joinBodies(JoinBodiesFeature(targets: targets, mode: .sewnSheet)),
+            id: joined, in: document, tolerance: .standard
+        )], tolerance: .standard)
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        let sheet = try body(of: joined, in: evaluated)
+        #expect(sheet.kind == .sheet)
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.edges.count == 7)
+        // No stage identity escapes into the evaluated document.
+        #expect(evaluated.subshapes.entries.keys.allSatisfy { $0.featureID == joined || $0.featureID == floor || $0.featureID == wall })
     }
 }
