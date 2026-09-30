@@ -112,7 +112,9 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         } else {
             guard resultKind == .solid, !targets.isEmpty,
                   Set(targets.map(\.featureID)).count == targets.count,
-                  !targets.contains(where: { $0.featureID == section.featureID }) else {
+                  section.isFace || !targets.contains(where: { $0.featureID == section.featureID }) else {
+                // A face section may combine with the body it lies on; a profile or a curve's source
+                // is no body to combine with.
                 throw FeatureEvaluationError.invalidGraph("Boolean extrusion requires solid output and unique targets distinct from its section.")
             }
             try targets.forEach { try $0.validate() }
@@ -127,7 +129,7 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         guard direction != .symmetric || startDistance == nil else {
             throw FeatureEvaluationError.invalidGraph("Symmetric extrusion cannot also specify a start position.")
         }
-        guard resultKind == .sheet || section.isProfile else {
+        guard resultKind == .sheet || section.isClosedRegion else {
             throw FeatureEvaluationError.invalidGraph("A curve extrusion requires sheet output.")
         }
         if case .vector(let vector) = direction { try vector.validate() }

@@ -684,6 +684,12 @@ section, open at both ends; the rings are named `extrude:wall:i` and published r
 A thickness wider than the section refuses as the offset turns a wall over.
 `ExtrudeWallThicknessTests` own the rectangular and round tubes' volumes and the refusal.
 
+A face section extrudes as the profile `FaceSectionProfileResolver` reads from the face where it is
+before any Boolean target moves: its plane with the face's outward normal, its outer loop
+counterclockwise and holes clockwise about it, each edge exactly (line, circular arc, or the
+B-spline trimmed to the edge; other curves refused). `ExtrudeFaceTests` own a box's top grown as a
+new block, united with the box, drafted, and round-tripped natively.
+
 ### Extrusion Boolean composition
 
 Extrude owns its retained target references and operation, while the existing

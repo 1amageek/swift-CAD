@@ -3,7 +3,7 @@
 ## Purpose and Scope
 
 Child of [CADIR](../DESIGN.md), with no children. Owns the persistent distinction
-between a closed profile and a source curve used as a modeling section.
+between a closed profile, a source curve and a planar face used as a modeling section.
 
 ## Responsibilities and Boundaries
 
@@ -30,6 +30,13 @@ section source value -> strict encoding/decoding -> graph input role
 
 ## Contracts and Invariants
 
+- A face reference (`FaceSectionReference`) names the body or sheet feature owning
+  the face, the face's stable subshape and the port it is published on (`body` or
+  `sheet`), which is its input role; it carries no profile index, interval or
+  direction. It bounds a closed region like a profile (`isClosedRegion`). Extrude
+  resolves it through `FaceSectionProfileResolver`; Revolve, Sweep and Loft refuse
+  it in their validation (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A face section's
+  extrusion may combine with the body the face lies on.
 - A profile reference preserves its explicit nonnegative profile index.
 - A curve reference contains no profile index; unrelated or unknown fields fail.
 - Encoding and decoding validate the reference, not only later graph evaluation.

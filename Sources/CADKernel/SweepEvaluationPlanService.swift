@@ -486,6 +486,9 @@ public struct SweepEvaluationPlanService: Sendable {
         tolerance: ModelingTolerance
     ) throws -> ResolvedModelingSection {
         switch section {
+        case .face:
+            // Refused by the sweep's validation; a face section is not planned here.
+            throw FeatureEvaluationError.invalidGraph("Sweep takes a profile or a curve section.")
         case .profile(let profileReference):
             let sourceProfiles = try profiles(
                 for: profileReference.featureID,

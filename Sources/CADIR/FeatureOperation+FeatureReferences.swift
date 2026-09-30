@@ -61,6 +61,12 @@ extension FeatureOperation {
                 var result = curveReference
                 result.featureID = try transform(curveReference.featureID)
                 return .curve(result)
+            case .face(let faceReference):
+                return .face(FaceSectionReference(
+                    featureID: try transform(faceReference.featureID),
+                    face: try subshape(faceReference.face),
+                    bodyRole: faceReference.bodyRole
+                ))
             }
         }
         func surfaceTarget(_ reference: SurfaceOperationTargetReference) throws -> SurfaceOperationTargetReference {

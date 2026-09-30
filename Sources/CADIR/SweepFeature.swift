@@ -61,6 +61,12 @@ public struct SweepFeature: Codable, Hashable, Sendable {
         guard sections.count == 1 else {
             throw FeatureEvaluationError.invalidGraph("Sweep features currently require exactly one section.")
         }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): a face section is refused. Production path:
+        // SweepFeature.validate for every sweep. Complete only when a planar face sweeps like a
+        // profile, verified by a swept face's volume.
+        if sections.contains(where: { if case .face = $0 { return true }; return false }) {
+            throw FeatureEvaluationError.invalidGraph("Sweep takes a profile or a curve section.")
+        }
         let sectionFeatureIDs = sections.map(\.featureID)
         guard Set(sectionFeatureIDs).count == sectionFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Sweep section references must be unique.")

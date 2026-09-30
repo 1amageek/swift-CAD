@@ -1477,19 +1477,27 @@ private func validateSweepFeatureObject(_ object: [String: Any], path: String) t
 private func validateSectionReferenceObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["kind", "featureID", "profileIndex", "parameterDomain", "isReversed"],
+        supportedKeys: ["kind", "featureID", "profileIndex", "parameterDomain", "isReversed", "face", "bodyRole"],
         objectName: path
     )
     guard let kind = object["kind"] as? String else {
-        throw SchemaError.invalidPackage("Native \(path).kind must declare profile or curve.")
+        throw SchemaError.invalidPackage("Native \(path).kind must declare profile, curve or face.")
     }
     guard let featureID = object["featureID"] as? String,
           UUID(uuidString: featureID) != nil else {
         throw SchemaError.invalidPackage("Native \(path).featureID must be a UUID string.")
     }
     switch kind {
+    case "face":
+        guard object["profileIndex"] == nil, object["parameterDomain"] == nil, object["isReversed"] == nil else {
+            throw SchemaError.invalidPackage("Native \(path) face sections carry only their owner, face and body role.")
+        }
+        try validateObjectField("face", in: object, path: "\(path).face", using: validateStableSubshapeReferenceObject)
+        guard let role = object["bodyRole"] as? String, role == "body" || role == "sheet" else {
+            throw SchemaError.invalidPackage("Native \(path).bodyRole must be body or sheet.")
+        }
     case "profile":
-        guard object["parameterDomain"] == nil, object["isReversed"] == nil else {
+        guard object["parameterDomain"] == nil, object["isReversed"] == nil, object["face"] == nil else {
             throw SchemaError.invalidPackage("Native \(path) profile sections cannot carry curve interval or direction fields.")
         }
         guard let index = object["profileIndex"] as? Int,

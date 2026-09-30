@@ -69,6 +69,7 @@ public enum FeatureNodeFactory {
                 switch extrude.section {
                 case .profile(let reference): try validateProfileSource(reference, in: document)
                 case .curve(let reference): try validateCurveSource(reference.featureID, owner: "Extrude", in: document)
+                case .face(let reference): try validateSource(reference.featureID, role: reference.bodyRole, in: document)
                 }
                 for target in extrude.targets {
                     try validateSource(target.featureID, role: .body, in: document)
@@ -92,6 +93,7 @@ public enum FeatureNodeFactory {
                 switch revolve.section {
                 case .profile(let reference): try validateProfileSource(reference, in: document)
                 case .curve(let reference): try validateCurveSource(reference.featureID, owner: "Revolve", in: document)
+                case .face: throw FeatureEvaluationError.invalidGraph("Revolve takes a profile or a curve section.")
                 }
                 return FeatureNode(
                     id: id,
@@ -137,6 +139,7 @@ public enum FeatureNodeFactory {
                     switch section.section {
                     case .profile(let reference): try validateProfileSource(reference, in: document)
                     case .curve(let reference): try validateCurveSource(reference.featureID, owner: "Loft", in: document)
+                    case .face: throw FeatureEvaluationError.invalidGraph("Loft takes profile or curve sections.")
                     }
                 }
                 for guide in loft.guides {

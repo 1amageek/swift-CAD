@@ -42,6 +42,12 @@ public struct LoftFeature: Codable, Hashable, Sendable {
         }
         for section in sections {
             try section.validate()
+            // FIXME(INCOMPLETE_IMPLEMENTATION): a face section is refused. Production path:
+            // LoftFeature.validate for every loft. Complete only when a planar face lofts like a
+            // profile, verified by a lofted face's volume.
+            if case .face = section.section {
+                throw FeatureEvaluationError.invalidGraph("Loft takes profile or curve sections.")
+            }
         }
         guard options.resultKind == .sheet || sections.allSatisfy({ $0.section.isProfile }) else {
             throw FeatureEvaluationError.invalidGraph("Curve Loft sections require Sheet output.")

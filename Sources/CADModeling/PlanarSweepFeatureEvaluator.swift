@@ -391,6 +391,9 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         context: EvaluationContext
     ) throws -> ResolvedModelingSection {
         switch section {
+        case .face:
+            // Refused by the feature's validation; a face section is not read here.
+            throw FeatureEvaluationError.invalidGraph("Sweep takes a profile or a curve section.")
         case .profile(let profileReference):
             let profile = try ResolvedModelingSection.resolveProfile(
                 profileReference,

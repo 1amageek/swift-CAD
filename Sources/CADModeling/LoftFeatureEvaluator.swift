@@ -41,6 +41,9 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             var seamPoints: [Point3D?] = []
             let boundaries = try loft.sections.map { section -> (spans: [ExactBSplineCurveSpan], closed: Bool) in
                 switch section.section {
+                case .face:
+                    // Refused by the feature's validation; a face section is not read here.
+                    throw FeatureEvaluationError.invalidGraph("Loft takes profile or curve sections.")
                 case .curve(let reference):
                     if let index = section.startSampleIndex {
                         let source = try ResolvedModelingSection.resolveCurve(

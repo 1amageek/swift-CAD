@@ -123,6 +123,7 @@ extension KernelCapabilities {
         "optionalUnionDifferenceIntersectOrSliceWithPlacedTargetsAndKeepTools",
         "optionalDraftAngleOnLineAndTangentArcSectionsAlongTheirNormal",
         "optionalWallThicknessOnLineAndTangentArcSections",
+        "planarFaceSectionOfABodyOrSheetAlongItsOutwardNormal",
       ],
       outputs: [
         "validatedExactBRep",
@@ -144,6 +145,7 @@ extension KernelCapabilities {
         "ExactSplineExtrudeCommandParityTests",
         "TwoSidedExtrudeTests",
         "ExtrudeDraftTests",
+        "ExtrudeFaceTests",
       ],
       status: .supported,
       failureCodes: [

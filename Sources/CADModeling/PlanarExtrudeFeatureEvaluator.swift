@@ -103,13 +103,23 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 targetBodyIDs.append(try stages.publishedBody(of: moved, featureID: feature.id, what: "Moving an extrusion target"))
             }
         }
+        // A face section is read where its face is before any target moves.
+        var faceProfile: Profile?
+        if case let .face(reference) = extrude.section {
+            faceProfile = try FaceSectionProfileResolver().profile(for: reference, context: context, featureID: feature.id)
+        }
         let context = stages.context
         var result: EvaluationResult
         switch extrude.section {
-        case .profile(let reference):
-            let profile = try ResolvedModelingSection.resolveProfile(
-                reference, from: context.profiles[reference.featureID]
-            )
+        case .profile, .face:
+            let profile: Profile
+            if case let .profile(reference) = extrude.section {
+                profile = try ResolvedModelingSection.resolveProfile(reference, from: context.profiles[reference.featureID])
+            } else if let faceProfile {
+                profile = faceProfile
+            } else {
+                throw FeatureEvaluationError.missingInput("An extrusion's face section was not read.")
+            }
             result = try ExactProfileExtrudeBodyBuilder(
                 featureID: feature.id,
                 context: context,

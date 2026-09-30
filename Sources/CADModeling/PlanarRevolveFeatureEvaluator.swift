@@ -90,6 +90,9 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
 
         let profile: Profile
         switch revolve.section {
+        case .face:
+            // Refused by the feature's validation; a face section is not read here.
+            throw FeatureEvaluationError.invalidGraph("Revolve takes a profile or a curve section.")
         case .curve(let reference):
             let section = try ResolvedModelingSection.resolveCurve(reference,
                 from: context.curves[reference.featureID], tolerance: context.tolerance)

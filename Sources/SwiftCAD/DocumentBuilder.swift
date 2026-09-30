@@ -220,6 +220,37 @@ public struct DocumentBuilder {
         return featureID
     }
 
+    /// Extrudes a planar `face` of the body or sheet `owner` makes, along its outward normal by
+    /// default, as a new body or combined with `targets`.
+    @discardableResult
+    public mutating func extrude(
+        face: StableSubshapeReference,
+        of owner: FeatureID,
+        bodyRole: FeaturePort = .body,
+        distance: CADExpression,
+        startDistance: CADExpression? = nil,
+        direction: ExtrudeDirection = .normal,
+        operation: SolidOperation = .newBody,
+        targets: [FeatureID] = [],
+        keepTools: Bool = false,
+        draftAngle: CADExpression? = nil,
+        thickness: CADExpression? = nil,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let featureID = FeatureID()
+        try append(
+            id: featureID,
+            name: name,
+            operation: .extrude(ExtrudeFeature(
+                section: .face(FaceSectionReference(featureID: owner, face: face, bodyRole: bodyRole)),
+                distance: distance, startDistance: startDistance, direction: direction, operation: operation,
+                targets: targets.map { BooleanTargetReference(featureID: $0) }, keepTools: keepTools,
+                resultKind: .solid, draftAngle: draftAngle, thickness: thickness
+            ))
+        )
+        return featureID
+    }
+
     @discardableResult
     public mutating func extrude(
         _ profile: ProfileReference,

@@ -56,6 +56,12 @@ public struct RevolveFeature: Codable, Hashable, Sendable {
 
     private func validateSection() throws {
         try section.validate()
+        // FIXME(INCOMPLETE_IMPLEMENTATION): a face section is refused. Production path:
+        // RevolveFeature.validate for every revolve. Complete only when a planar face revolves
+        // like a profile, verified by a revolved face's volume.
+        if case .face = section {
+            throw FeatureEvaluationError.invalidGraph("Revolve takes a profile or a curve section.")
+        }
         guard resultKind == .sheet || section.isProfile else {
             throw FeatureEvaluationError.invalidGraph("A curve revolution requires sheet output.")
         }

@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 import CADCore
+import CADExchange
 import CADGeometry
 import CADIR
 import CADTopology
@@ -117,5 +118,68 @@ struct ExtrudeWallThicknessTests {
         let profile = try builder.sketch(on: .xy) { $0.rectangle(width: length(0.02), height: length(0.01)) }
         _ = try builder.extrude(profile, distance: length(0.01), thickness: length(0.006))
         #expect(throws: (any Error).self) { _ = try evaluate(builder) }
+    }
+}
+
+/// A planar face of a body extrudes like a profile, along its outward normal: a box's top grows a
+/// block as a new body, or grows the box itself when united with it, drafted like any section; the
+/// face section survives a native round trip.
+@Suite("Extrude face")
+struct ExtrudeFaceTests {
+    private func length(_ value: Double) -> CADExpression { .constant(.length(value, unit: .meter)) }
+
+    private func evaluate(_ builder: DocumentBuilder) throws -> EvaluatedDocument {
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "face"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        return evaluated
+    }
+
+    private func top(of box: FeatureID, in builder: DocumentBuilder) throws -> StableSubshapeReference {
+        let evaluated = try evaluate(builder)
+        let key = try #require(evaluated.subshapes.entries.first { key, value in
+            guard key.featureID == box, case let .face(id) = value, let face = evaluated.brep.faces[id],
+                  case let .plane(plane) = evaluated.brep.geometry.surfaces[face.surfaceID] else { return false }
+            let outward = face.orientation == .forward ? plane.normal : plane.normal * -1
+            return outward.z > 0.99
+        }?.key)
+        return try builder.stableSubshape(key)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aBoxsTopGrowsABlockOrTheBoxItself() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let box = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
+        let face = try top(of: box, in: builder)
+        var apart = builder
+        _ = try apart.extrude(face: face, of: box, distance: length(0.01))
+        let separate = try evaluate(apart)
+        #expect(separate.brep.bodies.count == 2)
+        #expect(abs(try separate.brep.volume(tolerance: .standard) - (0.02 * 0.02 * 0.02 + 0.02 * 0.02 * 0.01)) < 1e-12)
+
+        _ = try builder.extrude(face: face, of: box, distance: length(0.01), operation: .union, targets: [box])
+        let grown = try evaluate(builder)
+        let zs = grown.brep.vertices.values.map(\.point.z)
+        #expect(abs((zs.max() ?? 0) - (zs.min() ?? 0) - 0.03) < 1e-12)
+        #expect(abs(try grown.brep.volume(tolerance: .standard) - 0.02 * 0.02 * 0.03) < 1e-12)
+
+        let document = try builder.build(name: "face")
+        let sink = DataByteSink()
+        let store = NativePackageStore(tolerance: .standard)
+        try store.writePackage(for: document, to: sink)
+        let restored = try store.loadDocument(from: BorrowedBytes(sink.bytes))
+        #expect(restored.designGraph.nodes == document.designGraph.nodes)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aDraftedFaceExtrusionTapersLikeAProfile() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let box = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
+        let face = try top(of: box, in: builder)
+        _ = try builder.extrude(face: face, of: box, distance: length(0.01), draftAngle: .constant(.angle(5, unit: .degree)))
+        let evaluated = try evaluate(builder)
+        let t = tan(5 * Double.pi / 180)
+        // ∫₀^0.01 (0.02 − 2ht)² dh beside the 20 mm box.
+        let exact = 0.02 * 0.02 * 0.01 - (0.02 + 0.02) * t * 0.01 * 0.01 + 4.0 / 3.0 * t * t * 0.01 * 0.01 * 0.01
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - (0.02 * 0.02 * 0.02 + exact)) < 1e-12)
     }
 }
