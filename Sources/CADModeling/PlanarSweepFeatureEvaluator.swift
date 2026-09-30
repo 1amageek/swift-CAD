@@ -123,10 +123,13 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         )
         // A path-normal sweep along a curved path moves the section with the path's frame,
         // within the requested positional allowance.
-        let curvedPathSpans = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance).pathSpans(
-            from: pathSegments, endingAt: optionValues.distanceFraction < 1 ? frames.last?.origin : nil
-        )
-        if CertifiedCurvedPathSweepPlan.applies(
+        // Only an exact path has the spans the curved plan moves along; others keep their routes.
+        let curvedPathSpans = pathSegments.allSatisfy({ $0.curve.exactCurve != nil })
+            ? try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance).pathSpans(
+                from: pathSegments, endingAt: optionValues.distanceFraction < 1 ? frames.last?.origin : nil
+            )
+            : []
+        if curvedPathSpans.isEmpty == false, CertifiedCurvedPathSweepPlan.applies(
             sweep.options, pathSpans: curvedPathSpans,
             exactCircularSolid: exactCircularPath != nil && sweep.options.resultKind == .solid,
             tolerance: context.tolerance

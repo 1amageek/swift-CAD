@@ -177,13 +177,15 @@ public struct SweepEvaluationPlanService: Sendable {
             distanceFraction: optionValues.distanceFraction,
             preferredNormal: normal(for: try section.plane(), tolerance: tolerance)
         )
-        let curvedPathSpans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).pathSpans(
-            from: pathSegments, endingAt: optionValues.distanceFraction < 1 ? curvedFrames.last?.origin : nil
-        )
+        let curvedPathSpans = pathSegments.allSatisfy({ $0.curve.exactCurve != nil })
+            ? try ExactBSplineCurveSpanBuilder(tolerance: tolerance).pathSpans(
+                from: pathSegments, endingAt: optionValues.distanceFraction < 1 ? curvedFrames.last?.origin : nil
+            )
+            : []
         let circularSolid = try ExactCircularSweepPath(
             segments: pathSegments, distanceFraction: optionValues.distanceFraction, tolerance: tolerance
         ) != nil && options.resultKind == .solid
-        if CertifiedCurvedPathSweepPlan.applies(options, pathSpans: curvedPathSpans, exactCircularSolid: circularSolid, tolerance: tolerance) {
+        if curvedPathSpans.isEmpty == false, CertifiedCurvedPathSweepPlan.applies(options, pathSpans: curvedPathSpans, exactCircularSolid: circularSolid, tolerance: tolerance) {
             let sectionState: SweepEvaluationCapabilities.SectionState = guideCurves.isEmpty ? .identity : .guided
             do {
                 let certified = try CertifiedCurvedPathSweepPlan(section: section, pathSpans: curvedPathSpans,

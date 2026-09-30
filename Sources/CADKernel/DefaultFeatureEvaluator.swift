@@ -198,145 +198,97 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         feature: FeatureNode,
         context: EvaluationContext
     ) throws -> ValidatedFeatureEvaluation {
-        switch feature.operation {
-        case .involuteGear:
-            return try involuteGearEvaluator.evaluateValidated(feature: feature, context: context)
-        case .spatialPath:
-            return try SpatialPathFeatureEvaluator().evaluateValidated(feature: feature, context: context)
+        // The evaluator is looked up in its own frame, which is gone before the evaluation runs:
+        // a deep evaluation cannot afford a dispatcher frame that holds every case's operands.
+        switch feature.operation.kind {
         case .sketch:
             throw KernelError.unsupportedEvaluation(
                 tolerance: context.tolerance,
                 message: "Sketch features do not produce BRep bodies directly."
             )
-        case let .importedBRep(importedBRep):
+        case .importedBRep:
+            guard case let .importedBRep(importedBRep) = feature.operation else {
+                throw FeatureEvaluationError.invalidGraph("Feature evaluation dispatch expected an imported B-rep.")
+            }
             return try evaluateImportedBRep(
                 featureID: feature.id,
                 source: importedBRep,
                 context: context,
                 tolerance: context.tolerance
             )
-        case .primitive:
-            return try primitiveEvaluator.evaluateValidated(feature: feature, context: context)
-        case .extrude:
-            return try extrudeEvaluator.evaluateValidated(feature: feature, context: context)
-        case .revolve:
-            return try revolveEvaluator.evaluateValidated(feature: feature, context: context)
-        case .sweep:
-            return try sweepEvaluator.evaluateValidated(feature: feature, context: context)
-        case .loft:
-            return try loftEvaluator.evaluateValidated(feature: feature, context: context)
-        case .boolean:
-            return try booleanEvaluator.evaluateValidated(feature: feature, context: context)
-        case .polySpline:
-            return try polySplineEvaluator.evaluateValidated(feature: feature, context: context)
-        case .constrainedSurface:
-            return try ConstrainedSurfaceFeatureEvaluator().evaluateValidated(feature: feature, context: context)
-        case .bSplineSurface:
-            return try bSplineSurfaceEvaluator.evaluateValidated(feature: feature, context: context)
-        case .patchSurface:
-            return try patchSurfaceEvaluator.evaluateValidated(feature: feature, context: context)
-        case .surfaceFill:
-            return try surfaceFillEvaluator.evaluateValidated(feature: feature, context: context)
-        case .faceLoopOffset:
-            return try faceLoopOffsetEvaluator.evaluateValidated(feature: feature, context: context)
-        case .edgeOffset:
-            return try edgeOffsetEvaluator.evaluateValidated(feature: feature, context: context)
-        case .faceKnife:
-            return try faceKnifeEvaluator.evaluateValidated(feature: feature, context: context)
-        case .faceDelete:
-            return try faceDeleteEvaluator.evaluateValidated(feature: feature, context: context)
-        case .faceDraft:
-            return try faceDraftEvaluator.evaluateValidated(feature: feature, context: context)
-        case .faceOffset:
-            return try faceOffsetEvaluator.evaluateValidated(feature: feature, context: context)
-        case .faceMove:
-            return try faceMoveEvaluator.evaluateValidated(feature: feature, context: context)
-        case .edgeMove:
-            return try edgeMoveEvaluator.evaluateValidated(feature: feature, context: context)
-        case .vertexMove:
-            return try vertexMoveEvaluator.evaluateValidated(feature: feature, context: context)
-        case .topologyTransform:
-            return try topologyTransformEvaluator.evaluateValidated(feature: feature, context: context)
-        case .linearPattern:
-            return try linearPatternEvaluator.evaluateValidated(feature: feature, context: context)
-        case .radialPattern:
-            return try radialPatternEvaluator.evaluateValidated(feature: feature, context: context)
-        case .gridPattern:
-            return try gridPatternEvaluator.evaluateValidated(feature: feature, context: context)
-        case .curveDrivenPattern:
-            return try curveDrivenPatternEvaluator.evaluateValidated(feature: feature, context: context)
-        case .mirror:
-            return try mirrorEvaluator.evaluateValidated(feature: feature, context: context)
-        case .joinBodies:
-            return try joinBodiesEvaluator.evaluateValidated(feature: feature, context: context)
-        case .unjoinBody:
-            return try unjoinBodyEvaluator.evaluateValidated(feature: feature, context: context)
-        case .unjoinFaces:
-            return try UnjoinFacesFeatureEvaluator().evaluateValidated(feature: feature, context: context)
-        case .reverseSheet:
-            return try ReverseSheetFeatureEvaluator().evaluateValidated(feature: feature, context: context)
-        case .isoparam:
-            return try IsoparamFeatureEvaluator().evaluateValidated(feature: feature, context: context)
-        case .imprintBody:
-            return try ImprintBodyFeatureEvaluator().evaluateValidated(feature: feature, context: context)
-        case .faceMatch:
-            return try FaceMatchFeatureEvaluator().evaluateValidated(feature: feature, context: context)
-        case .removeFillets:
-            return try RemoveFilletsFeatureEvaluator().evaluateValidated(feature: feature, context: context)
-        case .removeRedundantTopology:
-            return try RemoveRedundantTopologyFeatureEvaluator().evaluateValidated(feature: feature, context: context)
-        case .sheetExtend:
-            return try SheetExtendFeatureEvaluator().evaluateValidated(feature: feature, context: context)
-        case .faceRebuild:
-            return try FaceRebuildFeatureEvaluator().evaluateValidated(feature: feature, context: context)
-        case .faceUnwrap:
-            return try FaceUnwrapFeatureEvaluator().evaluateValidated(feature: feature, context: context)
-        case .surfaceAlign:
-            return try SurfaceAlignFeatureEvaluator().evaluateValidated(feature: feature, context: context)
-        case .untrimFace:
-            return try UntrimFaceFeatureEvaluator().evaluateValidated(feature: feature, context: context)
-        case .imprintCurves:
-            return try ImprintCurvesFeatureEvaluator().evaluateValidated(feature: feature, context: context)
-        case .extract:
-            return try ExtractFeatureEvaluator().evaluateValidated(feature: feature, context: context)
-        case .wrap:
-            return try WrapFeatureEvaluator().evaluateValidated(feature: feature, context: context)
-        case .chamfer:
-            return try chamferEvaluator.evaluateValidated(feature: feature, context: context)
-        case .fillet:
-            return try filletEvaluator.evaluateValidated(feature: feature, context: context)
-        case .g2Blend:
-            return try g2BlendEvaluator.evaluateValidated(feature: feature, context: context)
-        case .setbackCorner:
-            return try setbackCornerEvaluator.evaluateValidated(feature: feature, context: context)
-        case .shell:
-            return try shellEvaluator.evaluateValidated(feature: feature, context: context)
-        case .thicken:
-            return try thickenEvaluator.evaluateValidated(feature: feature, context: context)
-        case .bridgeCurve:
-            return try bridgeCurveEvaluator.evaluateValidated(feature: feature, context: context)
-        case .bridgeSurface:
-            return try bridgeSurfaceEvaluator.evaluateValidated(feature: feature, context: context)
-        case .curveEdit:
-            return try curveEditEvaluator.evaluateValidated(feature: feature, context: context)
-        case .curveOffset:
-            return try curveOffsetEvaluator.evaluateValidated(feature: feature, context: context)
-        case .projectCurve:
-            return try projectCurveEvaluator.evaluateValidated(feature: feature, context: context)
-        case .curveTrim:
-            return try curveTrimEvaluator.evaluateValidated(feature: feature, context: context)
-        case .curveExtend:
-            return try curveExtendEvaluator.evaluateValidated(feature: feature, context: context)
-        case .curveMatch:
-            return try curveMatchEvaluator.evaluateValidated(feature: feature, context: context)
-        case .surfaceOffset:
-            return try surfaceOffsetEvaluator.evaluateValidated(feature: feature, context: context)
-        case .surfaceTrim:
-            return try surfaceTrimEvaluator.evaluateValidated(feature: feature, context: context)
-        case .surfaceExtend:
-            return try surfaceExtendEvaluator.evaluateValidated(feature: feature, context: context)
-        case .surfaceMatch:
-            return try surfaceMatchEvaluator.evaluateValidated(feature: feature, context: context)
+        default:
+            return try validatedEvaluator(for: feature.operation.kind).evaluateValidated(feature: feature, context: context)
+        }
+    }
+
+    /// The evaluator of every kind that has one.
+    private func validatedEvaluator(for kind: FeatureOperationKind) throws -> any ValidatedFeatureEvaluating {
+        switch kind {
+        case .involuteGear: return involuteGearEvaluator
+        case .spatialPath: return SpatialPathFeatureEvaluator()
+        case .primitive: return primitiveEvaluator
+        case .extrude: return extrudeEvaluator
+        case .revolve: return revolveEvaluator
+        case .sweep: return sweepEvaluator
+        case .loft: return loftEvaluator
+        case .boolean: return booleanEvaluator
+        case .polySpline: return polySplineEvaluator
+        case .constrainedSurface: return ConstrainedSurfaceFeatureEvaluator()
+        case .bSplineSurface: return bSplineSurfaceEvaluator
+        case .patchSurface: return patchSurfaceEvaluator
+        case .surfaceFill: return surfaceFillEvaluator
+        case .faceLoopOffset: return faceLoopOffsetEvaluator
+        case .edgeOffset: return edgeOffsetEvaluator
+        case .faceKnife: return faceKnifeEvaluator
+        case .faceDelete: return faceDeleteEvaluator
+        case .faceDraft: return faceDraftEvaluator
+        case .faceOffset: return faceOffsetEvaluator
+        case .faceMove: return faceMoveEvaluator
+        case .edgeMove: return edgeMoveEvaluator
+        case .vertexMove: return vertexMoveEvaluator
+        case .topologyTransform: return topologyTransformEvaluator
+        case .linearPattern: return linearPatternEvaluator
+        case .radialPattern: return radialPatternEvaluator
+        case .gridPattern: return gridPatternEvaluator
+        case .curveDrivenPattern: return curveDrivenPatternEvaluator
+        case .mirror: return mirrorEvaluator
+        case .joinBodies: return joinBodiesEvaluator
+        case .unjoinBody: return unjoinBodyEvaluator
+        case .unjoinFaces: return UnjoinFacesFeatureEvaluator()
+        case .reverseSheet: return ReverseSheetFeatureEvaluator()
+        case .isoparam: return IsoparamFeatureEvaluator()
+        case .imprintBody: return ImprintBodyFeatureEvaluator()
+        case .faceMatch: return FaceMatchFeatureEvaluator()
+        case .removeFillets: return RemoveFilletsFeatureEvaluator()
+        case .removeRedundantTopology: return RemoveRedundantTopologyFeatureEvaluator()
+        case .sheetExtend: return SheetExtendFeatureEvaluator()
+        case .faceRebuild: return FaceRebuildFeatureEvaluator()
+        case .faceUnwrap: return FaceUnwrapFeatureEvaluator()
+        case .surfaceAlign: return SurfaceAlignFeatureEvaluator()
+        case .untrimFace: return UntrimFaceFeatureEvaluator()
+        case .imprintCurves: return ImprintCurvesFeatureEvaluator()
+        case .extract: return ExtractFeatureEvaluator()
+        case .wrap: return WrapFeatureEvaluator()
+        case .chamfer: return chamferEvaluator
+        case .fillet: return filletEvaluator
+        case .g2Blend: return g2BlendEvaluator
+        case .setbackCorner: return setbackCornerEvaluator
+        case .shell: return shellEvaluator
+        case .thicken: return thickenEvaluator
+        case .bridgeCurve: return bridgeCurveEvaluator
+        case .bridgeSurface: return bridgeSurfaceEvaluator
+        case .curveEdit: return curveEditEvaluator
+        case .curveOffset: return curveOffsetEvaluator
+        case .projectCurve: return projectCurveEvaluator
+        case .curveTrim: return curveTrimEvaluator
+        case .curveExtend: return curveExtendEvaluator
+        case .curveMatch: return curveMatchEvaluator
+        case .surfaceOffset: return surfaceOffsetEvaluator
+        case .surfaceTrim: return surfaceTrimEvaluator
+        case .surfaceExtend: return surfaceExtendEvaluator
+        case .surfaceMatch: return surfaceMatchEvaluator
+        case .sketch, .importedBRep:
+            throw FeatureEvaluationError.invalidGraph("Feature evaluation dispatch reached a kind without an evaluator.")
         }
     }
 

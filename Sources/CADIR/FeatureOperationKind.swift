@@ -65,3 +65,78 @@ public enum FeatureOperationKind: String, Codable, CaseIterable, Hashable, Senda
     case surfaceExtend
     case surfaceMatch
 }
+
+public extension FeatureOperation {
+    /// The operation's kind without its payload. A dispatcher switches on it, not on the operation:
+    /// matching the large operation enum case by case keeps a copy of it per case on the stack in
+    /// unoptimized builds, which deep evaluations cannot afford.
+    var kind: FeatureOperationKind {
+        switch self {
+        case .involuteGear: .involuteGear
+        case .sketch: .sketch
+        case .spatialPath: .spatialPath
+        case .importedBRep: .importedBRep
+        case .primitive: .primitive
+        case .extrude: .extrude
+        case .revolve: .revolve
+        case .sweep: .sweep
+        case .loft: .loft
+        case .boolean: .boolean
+        case .polySpline: .polySpline
+        case .constrainedSurface: .constrainedSurface
+        case .bSplineSurface: .bSplineSurface
+        case .patchSurface: .patchSurface
+        case .surfaceFill: .surfaceFill
+        case .faceLoopOffset: .faceLoopOffset
+        case .edgeOffset: .edgeOffset
+        case .faceKnife: .faceKnife
+        case .faceDelete: .faceDelete
+        case .faceDraft: .faceDraft
+        case .faceOffset: .faceOffset
+        case .faceMove: .faceMove
+        case .edgeMove: .edgeMove
+        case .vertexMove: .vertexMove
+        case .topologyTransform: .topologyTransform
+        case .linearPattern: .linearPattern
+        case .radialPattern: .radialPattern
+        case .gridPattern: .gridPattern
+        case .curveDrivenPattern: .curveDrivenPattern
+        case .mirror: .mirror
+        case .joinBodies: .joinBodies
+        case .unjoinBody: .unjoinBody
+        case .unjoinFaces: .unjoinFaces
+        case .reverseSheet: .reverseSheet
+        case .isoparam: .isoparam
+        case .imprintBody: .imprintBody
+        case .faceMatch: .faceMatch
+        case .removeFillets: .removeFillets
+        case .removeRedundantTopology: .removeRedundantTopology
+        case .sheetExtend: .sheetExtend
+        case .faceRebuild: .faceRebuild
+        case .faceUnwrap: .faceUnwrap
+        case .surfaceAlign: .surfaceAlign
+        case .untrimFace: .untrimFace
+        case .imprintCurves: .imprintCurves
+        case .extract: .extract
+        case .wrap: .wrap
+        case .chamfer: .chamfer
+        case .fillet: .fillet
+        case .g2Blend: .g2Blend
+        case .setbackCorner: .setbackCorner
+        case .shell: .shell
+        case .thicken: .thicken
+        case .bridgeCurve: .bridgeCurve
+        case .bridgeSurface: .bridgeSurface
+        case .curveEdit: .curveEdit
+        case .curveOffset: .curveOffset
+        case .projectCurve: .projectCurve
+        case .curveTrim: .curveTrim
+        case .curveExtend: .curveExtend
+        case .curveMatch: .curveMatch
+        case .surfaceOffset: .surfaceOffset
+        case .surfaceTrim: .surfaceTrim
+        case .surfaceExtend: .surfaceExtend
+        case .surfaceMatch: .surfaceMatch
+        }
+    }
+}
