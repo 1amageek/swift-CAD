@@ -395,6 +395,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 try feature.validate()
             case let .sheetExtend(feature):
                 try feature.validate()
+            case let .surfaceAlign(feature):
+                try feature.validate()
             case let .untrimFace(feature):
                 try feature.validate()
             case let .imprintCurves(feature):
@@ -691,6 +693,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             try validateRemoveRedundantTopologyContract(node, outputRoles: outputRoles)
         case .sheetExtend:
             try validateSheetExtendContract(node, outputRoles: outputRoles)
+        case .surfaceAlign:
+            try validateSurfaceAlignContract(node, outputRoles: outputRoles)
         case .extract:
             try validateExtractContract(node, outputRoles: outputRoles)
         case .wrap:
@@ -1491,6 +1495,21 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         }
         guard outputRoles == [.sheet] else {
             throw FeatureEvaluationError.invalidGraph("Unjoin faces features must declare one sheet output.")
+        }
+    }
+
+    /// Align Surface consumes its sheet, reads the reference's body, and publishes a sheet.
+    private func validateSurfaceAlignContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        guard case let .surfaceAlign(feature) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a surfaceAlign operation.")
+        }
+        try feature.validate()
+        guard node.inputs == feature.inputs else {
+            throw FeatureEvaluationError.invalidGraph("Align Surface features must consume exactly their referenced inputs.")
+        }
+        guard nodes[feature.target.featureID]?.outputs.contains(where: { $0.role == .sheet }) == true,
+              nodes[feature.reference.featureID]?.bodyOrSheetOutput != nil, outputRoles == [.sheet] else {
+            throw FeatureEvaluationError.invalidGraph("Align Surface takes a sheet and publishes one.")
         }
     }
 

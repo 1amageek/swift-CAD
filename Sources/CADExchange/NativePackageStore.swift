@@ -463,6 +463,17 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
         try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "face", "direction", "fractions", "subdividesControlNet"], objectName: featurePath)
         try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
     }
+    try validateObjectField("surfaceAlign", in: object, path: "\(path).surfaceAlign") { feature, featurePath in
+        try rejectUnsupportedNativeKeys(
+            in: feature,
+            supportedKeys: ["target", "targetEdge", "reference", "referenceEdge", "referencePlacement", "continuity", "tension", "blendRows"],
+            objectName: featurePath
+        )
+        try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
+        try validateObjectField("reference", in: feature, path: "\(featurePath).reference", using: validatePatternTargetReferenceObject)
+        try validateObjectField("targetEdge", in: feature, path: "\(featurePath).targetEdge", using: validateStableSubshapeReferenceObject)
+        try validateObjectField("referenceEdge", in: feature, path: "\(featurePath).referenceEdge", using: validateStableSubshapeReferenceObject)
+    }
     try validateObjectField("sheetExtend", in: object, path: "\(path).sheetExtend") { feature, featurePath in
         try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "edges", "distance", "shape", "modifies"], objectName: featurePath)
         try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)

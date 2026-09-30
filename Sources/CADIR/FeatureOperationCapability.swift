@@ -41,6 +41,7 @@ public extension FeatureOperation {
         case .removeFillets: return "removeFillets"
         case .removeRedundantTopology: return "removeRedundantTopology"
         case .sheetExtend: return "sheetExtend"
+        case .surfaceAlign: return "surfaceAlign"
         case .untrimFace: return "untrimFace"
         case .imprintCurves: return "imprintCurves"
         case .extract: return "extract"

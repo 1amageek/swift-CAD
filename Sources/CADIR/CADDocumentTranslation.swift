@@ -84,6 +84,7 @@ private extension FeatureOperation {
              .removeFillets,
              .removeRedundantTopology,
              .sheetExtend,
+             .surfaceAlign,
              .untrimFace,
              .imprintCurves,
              .extract,

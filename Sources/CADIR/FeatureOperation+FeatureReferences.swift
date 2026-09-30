@@ -340,6 +340,12 @@ extension FeatureOperation {
                 target: try pattern(feature.target), face: try subshape(feature.face), direction: feature.direction,
                 fractions: feature.fractions, subdividesControlNet: feature.subdividesControlNet
             ))
+        case .surfaceAlign(var feature):
+            feature.target = try pattern(feature.target)
+            feature.reference = try pattern(feature.reference)
+            feature.targetEdge = try subshape(feature.targetEdge)
+            feature.referenceEdge = try subshape(feature.referenceEdge)
+            return .surfaceAlign(feature)
         case .sheetExtend(var feature):
             feature.target = try pattern(feature.target)
             feature.edges = try feature.edges.map(subshape)

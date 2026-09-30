@@ -868,6 +868,35 @@ extension KernelCapabilities {
       ]
     ),
     feature(
+      id: "MODEL-SURFACEALIGN-001",
+      operation: "surfaceAlign",
+      topology: .sheetBody,
+      inputs: [
+        "oneSingleFaceNonRationalBSplineSheetBoundedByItsParameterLines",
+        "oneTargetEdgeAlongItsParameterBoundary",
+        "oneReferenceEdgeAlongANonRationalBSplineFacesParameterBoundaryWithItsRelativePlacement",
+        "G0G1OrG2",
+        "positiveTension",
+        "blendedRowsNoneToSixtyFour",
+      ],
+      outputs: [
+        "validatedExactBRep",
+        "edgesBroughtToOneExactBasis",
+        "boundaryRowOnTheReferenceCurve",
+        "crossEdgeDerivativesOfTheReferenceScaledByTheTension",
+        "changeFadedOverTheBlendedRows",
+        "strictCurrentSchemaNativePersistence",
+      ],
+      fixtures: ["SurfaceAlignTests"],
+      status: .partial,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .unsupportedCapability,
+        .topologyFailure,
+      ]
+    ),
+    feature(
       id: "MODEL-SHEETEXTEND-001",
       operation: "sheetExtend",
       topology: .sheetBody,

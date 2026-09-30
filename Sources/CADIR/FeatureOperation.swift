@@ -41,6 +41,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case removeFillets(RemoveFilletsFeature)
     case removeRedundantTopology(RemoveRedundantTopologyFeature)
     case sheetExtend(SheetExtendFeature)
+    case surfaceAlign(SurfaceAlignFeature)
     case untrimFace(UntrimFaceFeature)
     case imprintCurves(ImprintCurvesFeature)
     case extract(ExtractFeature)
@@ -106,6 +107,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case removeFillets
         case removeRedundantTopology
         case sheetExtend
+        case surfaceAlign
         case untrimFace
         case imprintCurves
         case extract
@@ -250,6 +252,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .removeFillets:
             try container.validateOnlyExpectedKeys([.kind, .removeFillets], in: decoder)
             self = .removeFillets(try container.decode(RemoveFilletsFeature.self, forKey: .removeFillets))
+        case .surfaceAlign:
+            try container.validateOnlyExpectedKeys([.kind, .surfaceAlign], in: decoder)
+            self = .surfaceAlign(try container.decode(SurfaceAlignFeature.self, forKey: .surfaceAlign))
         case .sheetExtend:
             try container.validateOnlyExpectedKeys([.kind, .sheetExtend], in: decoder)
             self = .sheetExtend(try container.decode(SheetExtendFeature.self, forKey: .sheetExtend))
@@ -442,6 +447,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .removeFillets(feature):
             try container.encode(Kind.removeFillets, forKey: .kind)
             try container.encode(feature, forKey: .removeFillets)
+        case let .surfaceAlign(feature):
+            try container.encode(Kind.surfaceAlign, forKey: .kind)
+            try container.encode(feature, forKey: .surfaceAlign)
         case let .sheetExtend(feature):
             try container.encode(Kind.sheetExtend, forKey: .kind)
             try container.encode(feature, forKey: .sheetExtend)

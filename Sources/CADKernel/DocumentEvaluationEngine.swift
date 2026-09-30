@@ -334,6 +334,7 @@ struct DocumentEvaluationEngine {
                  .removeFillets,
                  .removeRedundantTopology,
                  .sheetExtend,
+                 .surfaceAlign,
                  .untrimFace,
                  .imprintCurves,
                  .extract,

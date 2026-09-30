@@ -102,6 +102,7 @@ public extension FeatureOperation {
              .imprintBody,
              .faceMatch,
              .removeRedundantTopology,
+             .surfaceAlign,
              .untrimFace,
              .imprintCurves,
              .extract:

@@ -546,6 +546,14 @@ public enum FeatureNodeFactory {
                 inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
                 outputs: [FeatureOutput(role: .sheet)]
             )
+        case .surfaceAlign:
+            guard case let .surfaceAlign(feature) = operation else {
+                throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+            }
+            try feature.validate()
+            try validateSource(feature.target.featureID, role: .sheet, in: document)
+            _ = try bodyOrSheetPort(of: feature.reference.featureID, in: document)
+            return FeatureNode(id: id, name: name, operation: operation, inputs: feature.inputs, outputs: [FeatureOutput(role: .sheet)])
         case .sheetExtend:
             guard case let .sheetExtend(feature) = operation else {
                 throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")

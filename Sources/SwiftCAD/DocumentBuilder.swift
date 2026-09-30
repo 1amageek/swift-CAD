@@ -493,6 +493,25 @@ public struct DocumentBuilder {
     }
 
     /// Imprints where `tool` crosses `target` (`ImprintBodyFeature`).
+    /// Align Surface: the single-face B-spline sheet `target`'s `targetEdge` made to follow
+    /// `referenceEdge` of `reference` with `continuity`.
+    @discardableResult
+    public mutating func alignSurface(
+        target: FeatureID, targetEdge: StableSubshapeReference, reference: FeatureID, referenceEdge: StableSubshapeReference,
+        referencePlacement: RigidTransform3D? = nil, continuity: SurfaceContinuityLevel = .tangentPlane,
+        tension: Double = 1, blendRows: Int = 0, named name: String? = nil
+    ) throws -> FeatureID {
+        let feature = SurfaceAlignFeature(
+            target: PatternTargetReference(featureID: target), targetEdge: targetEdge,
+            reference: PatternTargetReference(featureID: reference), referenceEdge: referenceEdge,
+            referencePlacement: referencePlacement, continuity: continuity, tension: tension, blendRows: blendRows
+        )
+        try feature.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .surfaceAlign(feature))
+        return featureID
+    }
+
     /// Extend Sheet: open `edges` of the sheet `target` carried on by `distance` in `shape`, joined to
     /// it when `modifies`, otherwise a sheet of their own beside it.
     @discardableResult

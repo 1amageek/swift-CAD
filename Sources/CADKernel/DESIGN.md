@@ -816,6 +816,22 @@ wall it passes) is refused with the feature's own identity. `HollowTests` prove 
 through one or two faces or closed, a cylinder and a rounded box by exact volumes, and the
 refusal.
 
+## Align Surface
+
+`SurfaceAlignFeatureEvaluator` aligns a single-face B-spline sheet's parameter-boundary edge to a
+reference B-spline face's parameter-boundary edge, placed in the target's frame.
+`BSplineSurfaceEdgeAligner` turns the target so the edge is its lower U boundary and the
+reference so its edge is its upper one, runs the reference along the edge the target's way,
+maps both edge parameters to [0, 1], raises the lower degree and merges knots, so both share one
+exact basis along the edge; refines the target along U until it has the rows the continuity
+sets, the rows blended and a far row; then sets its first row to the reference's boundary (G0),
+its second so the cross-edge derivative is the reference's times the tension times the target's
+own speed ratio (G1), its third so the second derivative is that factor squared times the
+reference's (G2), and fades the last row's displacement over the blended rows. The sheet is sewn
+anew on the aligned surface. Rational surfaces, trimmed faces and edges inside a domain are
+refused. `SurfaceAlignTests` prove a flat sheet following an arch across a gap at G0, G1 and G2
+with its far edge kept.
+
 ## Extend Sheet
 
 `SheetExtendFeatureEvaluator` carries a sheet's chosen open edges on by a distance. Each edge
