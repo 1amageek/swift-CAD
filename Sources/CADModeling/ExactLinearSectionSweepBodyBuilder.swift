@@ -124,6 +124,16 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
             pathSpanCount: plan.pathSpans.count, includesCaps: resultKind == .solid)
     }
 
+    package func buildCertifiedCurvedPath(
+        _ plan: CertifiedCurvedPathSweepPlan,
+        resultKind: SweepResultKind
+    ) throws -> EvaluationResult {
+        let request = try CertifiedCurvedPathSweepFacePatchBuilder(tolerance: context.tolerance)
+            .request(plan, resultKind: resultKind, featureID: featureID)
+        return try evaluationResult(request: request, profileSpanCounts: plan.profileSpanLoops.map(\.count),
+            pathSpanCount: plan.pieceCount, includesCaps: resultKind == .solid)
+    }
+
     private func evaluationResult(
         request: BRepSewingRequest, profileSpanCounts: [Int], pathSpanCount: Int, includesCaps: Bool
     ) throws -> EvaluationResult {

@@ -215,6 +215,7 @@ extension KernelCapabilities {
         "straightNormalOrNonTangentialParallelPath",
         "curvedParallelPathWithCertifiedMonotoneProfileNormalAdvance",
         "circularPathNormalSolidReducibleToExactRevolve",
+        "curvedTangentContinuousPathNormalWithinExplicitAllowanceAndCertifiedNoSelfOverlap",
         "optionalExactPathPrefixDistanceFraction",
       ],
       outputs: [
@@ -238,6 +239,7 @@ extension KernelCapabilities {
         "ExactLinearScaleSweepCommandParityTests",
         "ExactPointGuideSweepCommandParityTests",
         "ExactCircularPathNormalSweepCommandParityTests",
+        "CurvedPathNormalSweepTests",
       ],
       status: .partial,
       failureCodes: [

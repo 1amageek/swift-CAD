@@ -409,7 +409,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         return patch
     }
 
-    private func tensorSidePatch(
+    package func tensorSidePatch(
         surface: BSplineSurface3D,
         orientation: Orientation,
         stableID: String
@@ -505,7 +505,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         return surface
     }
 
-    private func exactEdge(
+    package func exactEdge(
         _ curve: BSplineCurve3D,
         reversed: Bool,
         surfaceParameterCurve: SurfaceParameterCurve,
@@ -598,7 +598,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         )
     }
 
-    private func planarPcurve(
+    package func planarPcurve(
         _ curve: BSplineCurve3D,
         reversed: Bool,
         on surface: Surface3D
@@ -624,7 +624,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         return .bSpline(parameterCurve)
     }
 
-    private func validateProfileSpans(
+    package func validateProfileSpans(
         _ spans: [ExactBSplineCurveSpan],
         on plane: Plane3D
     ) throws {
@@ -644,7 +644,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         }
     }
 
-    private func validateSectionContinuity(
+    package func validateSectionContinuity(
         _ spans: [ExactBSplineCurveSpan],
         isClosed: Bool
     ) throws {
@@ -734,7 +734,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         return sign
     }
 
-    private func profileWindingSign(
+    package func profileWindingSign(
         _ spans: [ExactBSplineCurveSpan],
         normal: Vector3D,
         featureID: FeatureID
@@ -867,7 +867,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         return sum * halfWidth
     }
 
-    private func closedBounds(
+    package func closedBounds(
         _ domain: ParameterDomain
     ) throws -> (lower: Double, upper: Double) {
         guard case let .closed(lower, upper) = domain,

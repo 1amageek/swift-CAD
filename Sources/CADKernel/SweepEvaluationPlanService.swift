@@ -171,6 +171,42 @@ public struct SweepEvaluationPlanService: Sendable {
             operationName: "Sweep path",
             preferredStartPlane: preferredStartPlane
         )
+        // A curved path-normal sweep is admitted by building its certified plan.
+        let curvedFrames = try makePathSampler(tolerance).frames(
+            for: pathSegments,
+            distanceFraction: optionValues.distanceFraction,
+            preferredNormal: normal(for: try section.plane(), tolerance: tolerance)
+        )
+        let curvedPathSpans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).pathSpans(
+            from: pathSegments, endingAt: optionValues.distanceFraction < 1 ? curvedFrames.last?.origin : nil
+        )
+        let circularSolid = try ExactCircularSweepPath(
+            segments: pathSegments, distanceFraction: optionValues.distanceFraction, tolerance: tolerance
+        ) != nil && options.resultKind == .solid
+        if CertifiedCurvedPathSweepPlan.applies(options, pathSpans: curvedPathSpans, exactCircularSolid: circularSolid, tolerance: tolerance) {
+            let sectionState: SweepEvaluationCapabilities.SectionState = guideCurves.isEmpty ? .identity : .guided
+            do {
+                let certified = try CertifiedCurvedPathSweepPlan(section: section, pathSpans: curvedPathSpans,
+                    sweep: sweep, values: optionValues, featureID: nil, tolerance: tolerance)
+                let geometry = SweepEvaluationCapabilities.Geometry(pathShape: .curved, sectionState: sectionState,
+                    guideConstraintCount: guides.count, tolerance: tolerance, certifiedCurvedPathAvailable: true)
+                let supported = try SweepEvaluationCapabilities().supportedPlan(options, geometry: geometry, tolerance: tolerance)
+                return SweepEvaluationPlanResult(status: .supported, sectionCount: sections.count,
+                    pathSegmentCount: pathSegments.count, guideCount: guides.count, targetCount: targets.count,
+                    pathShape: geometry.pathShape, sectionState: sectionState, evaluationKind: supported.kind,
+                    outputTopologyKind: supported.outputTopologyKind, booleanSupportKind: supported.booleanSupportKind,
+                    unsupportedCode: nil,
+                    message: "Curved path-normal positional error <= \(certified.positionErrorUpperBound) meters.",
+                    checks: checks + [SweepEvaluationPreflightCheck(kind: .capabilityDecision,
+                        status: .passed, message: supported.message)])
+            } catch let error as KernelError {
+                return unsupportedResult(sectionCount: sections.count, pathSegmentCount: pathSegments.count,
+                    guideCount: guides.count, targetCount: targets.count, pathShape: .curved, sectionState: sectionState,
+                    unsupportedCase: SweepEvaluationCapabilities.UnsupportedCase(code: error.code, message: error.message),
+                    checks: checks + [SweepEvaluationPreflightCheck(kind: .capabilityDecision,
+                        status: .unsupported, message: error.message)])
+            }
+        }
         if CertifiedTwistSweepPlan.requested(options) {
             do {
                 guard case let .profile(profile, _) = section else {

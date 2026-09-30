@@ -98,15 +98,6 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             operationName: "Sweep path",
             preferredStartPlane: preferredStartPlane
         )
-        if CertifiedTwistSweepPlan.requested(sweep.options) {
-            guard case let .profile(profile, _) = section else {
-                throw CertifiedTwistSweepPlan.failure("Certified twist initially requires a closed profile section.", context.tolerance)
-            }
-            let plan = try CertifiedTwistSweepPlan(profile: profile, pathSegments: pathSegments,
-                sweep: sweep, values: optionValues, tolerance: context.tolerance)
-            return try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
-                .buildCertifiedTwist(plan, resultKind: sweep.options.resultKind)
-        }
         let exactCircularPath = try ExactCircularSweepPath(
             segments: pathSegments,
             distanceFraction: optionValues.distanceFraction,
@@ -130,6 +121,33 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             distanceFraction: optionValues.distanceFraction,
             preferredNormal: normal(for: try section.plane(), tolerance: context.tolerance)
         )
+        // A path-normal sweep along a curved path moves the section with the path's frame,
+        // within the requested positional allowance.
+        let curvedPathSpans = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance).pathSpans(
+            from: pathSegments, endingAt: optionValues.distanceFraction < 1 ? frames.last?.origin : nil
+        )
+        if CertifiedCurvedPathSweepPlan.applies(
+            sweep.options, pathSpans: curvedPathSpans,
+            exactCircularSolid: exactCircularPath != nil && sweep.options.resultKind == .solid,
+            tolerance: context.tolerance
+        ) {
+            let plan = try CertifiedCurvedPathSweepPlan(
+                section: section, pathSpans: curvedPathSpans, sweep: sweep, values: optionValues,
+                featureID: feature.id, tolerance: context.tolerance
+            )
+            let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
+                .buildCertifiedCurvedPath(plan, resultKind: sweep.options.resultKind)
+            return try applyBooleanIfNeeded(sweep, featureID: feature.id, toolResult: tool, context: context)
+        }
+        if CertifiedTwistSweepPlan.requested(sweep.options) {
+            guard case let .profile(profile, _) = section else {
+                throw CertifiedTwistSweepPlan.failure("Certified twist initially requires a closed profile section.", context.tolerance)
+            }
+            let plan = try CertifiedTwistSweepPlan(profile: profile, pathSegments: pathSegments,
+                sweep: sweep, values: optionValues, tolerance: context.tolerance)
+            return try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
+                .buildCertifiedTwist(plan, resultKind: sweep.options.resultKind)
+        }
         let toolResult: EvaluationResult
         let straightPathCandidate = try sampler.straightPath(from: frames)
         let baseSectionState = sectionTransform.state(
@@ -287,7 +305,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 endTransform = pointGuideEndTransform
             case .exactTranslationalSweep:
                 endTransform = .identity
-            case .exactStraightExtrude, .exactCircularPathRevolve, .certifiedStraightTwist:
+            case .exactStraightExtrude, .exactCircularPathRevolve, .certifiedStraightTwist, .certifiedCurvedPathNormal:
                 throw KernelError(
                     phase: .evaluation,
                     code: .unsupportedCapability,

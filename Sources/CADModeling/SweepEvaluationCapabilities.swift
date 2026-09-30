@@ -60,6 +60,7 @@ public struct SweepEvaluationCapabilities: Sendable {
 
     public enum EvaluationKind: String, Codable, Equatable, Hashable, Sendable {
         case certifiedStraightTwist
+        case certifiedCurvedPathNormal
         case exactStraightExtrude
         case exactTranslationalSweep
         case exactLinearScaleSweep
@@ -70,6 +71,8 @@ public struct SweepEvaluationCapabilities: Sendable {
     public enum OutputTopologyKind: String, Codable, Equatable, Hashable, Sendable {
         case certifiedTwistSolid
         case certifiedTwistSheet
+        case certifiedCurvedPathSolid
+        case certifiedCurvedPathSheet
         case exactStraightSolid
         case exactStraightSheet
         case exactTranslationalSolid
@@ -115,19 +118,23 @@ public struct SweepEvaluationCapabilities: Sendable {
         public var guideConstraintCount: Int
         public var tolerance: ModelingTolerance
         public var certifiedTwistAvailable: Bool
+        /// Whether a curved path-normal plan was admitted for this geometry.
+        public var certifiedCurvedPathAvailable: Bool
 
         public init(
             pathShape: PathShape,
             sectionState: SectionState,
             guideConstraintCount: Int = 0,
             tolerance: ModelingTolerance,
-            certifiedTwistAvailable: Bool = false
+            certifiedTwistAvailable: Bool = false,
+            certifiedCurvedPathAvailable: Bool = false
         ) {
             self.pathShape = pathShape
             self.sectionState = sectionState
             self.guideConstraintCount = guideConstraintCount
             self.tolerance = tolerance
             self.certifiedTwistAvailable = certifiedTwistAvailable
+            self.certifiedCurvedPathAvailable = certifiedCurvedPathAvailable
         }
     }
 
@@ -163,6 +170,8 @@ public struct SweepEvaluationCapabilities: Sendable {
             switch kind {
             case .certifiedStraightTwist:
                 outputTopologyKind = .certifiedTwistSolid
+            case .certifiedCurvedPathNormal:
+                outputTopologyKind = .certifiedCurvedPathSolid
             case .exactStraightExtrude:
                 outputTopologyKind = .exactStraightSolid
             case .exactTranslationalSweep:
@@ -243,6 +252,9 @@ public struct SweepEvaluationCapabilities: Sendable {
         }
         if let unsupportedCase = staticUnsupportedCase(for: options) {
             return .unsupported(unsupportedCase)
+        }
+        if geometry.certifiedCurvedPathAvailable {
+            return .supported(try supportedPlan(kind: .certifiedCurvedPathNormal, options: options))
         }
         if CertifiedTwistSweepPlan.requested(options) {
             guard geometry.certifiedTwistAvailable else {
@@ -409,6 +421,10 @@ public struct SweepEvaluationCapabilities: Sendable {
             return .certifiedTwistSolid
         case (.certifiedStraightTwist, .sheet):
             return .certifiedTwistSheet
+        case (.certifiedCurvedPathNormal, .solid):
+            return .certifiedCurvedPathSolid
+        case (.certifiedCurvedPathNormal, .sheet):
+            return .certifiedCurvedPathSheet
         case (.exactStraightExtrude, .solid):
             return .exactStraightSolid
         case (.exactStraightExtrude, .sheet):
@@ -504,6 +520,8 @@ private extension SweepEvaluationCapabilities.EvaluationKind {
         switch self {
         case .certifiedStraightTwist:
             return "Sweep uses certified cubic rotation surfaces with an explicit positional allowance."
+        case .certifiedCurvedPathNormal:
+            return "Sweep moves the section with the curved path's frame on certified cubic surfaces within an explicit positional allowance."
         case .exactStraightExtrude:
             return "Sweep can evaluate as a profile-plane-preserving exact straight extrusion."
         case .exactTranslationalSweep:

@@ -11,8 +11,14 @@ package struct CertifiedTwistSweepPlan: Sendable {
     package let positionErrorUpperBound: Double
     package let profilePlane: SketchPlane
 
+    /// Whether the options ask for a certified twist: a twist law, or an allowance with a twist
+    /// angle that is not a literal zero. An allowance alone asks for no twist; it bounds whichever
+    /// approximation a sweep needs. A twist without an allowance is refused by capability planning.
     package static func requested(_ options: SweepOptions) -> Bool {
-        options.approximationTolerance != nil || options.twistLaw != nil
+        if options.twistLaw != nil { return true }
+        guard options.approximationTolerance != nil else { return false }
+        if case .constant(let angle) = options.twistAngle, angle.value == 0 { return false }
+        return true
     }
 
     package init(

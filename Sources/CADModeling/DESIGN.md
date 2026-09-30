@@ -5,7 +5,8 @@
 `CADModeling` owns feature-evaluation requests and exact construction policies
 for primitive and derived B-rep geometry. It is a child of the [Swift-CAD
 package design](../../DESIGN.md). Children include
-[InvoluteGear](InvoluteGear/DESIGN.md), [CertifiedTwist](CertifiedTwist/DESIGN.md)
+[InvoluteGear](InvoluteGear/DESIGN.md), [CertifiedTwist](CertifiedTwist/DESIGN.md),
+[CertifiedCurvedSweep](CertifiedCurvedSweep/DESIGN.md)
 and [SpatialPath](SpatialPath/DESIGN.md), with
 [RollingBall](RollingBall/DESIGN.md) owning blend sewing boundaries and
 [SurfaceFill](SurfaceFill/DESIGN.md) owning source-boundary surface filling,
@@ -426,7 +427,9 @@ remain separately tracked until connected to this same path.
 ### Bounded rotational Sweep construction
 
 The implementation contract is owned by
-[CertifiedTwist](CertifiedTwist/DESIGN.md), a child component of this module.
+[CertifiedTwist](CertifiedTwist/DESIGN.md), a child component of this module. A
+path-normal Sweep along a curved path is owned by
+[CertifiedCurvedSweep](CertifiedCurvedSweep/DESIGN.md) under the same allowance.
 
 The precision-modeling extension retains the input profile exactly and stores
 an explicit positional approximation allowance in Sweep source, separate from
