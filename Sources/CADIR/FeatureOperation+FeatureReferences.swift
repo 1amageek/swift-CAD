@@ -340,6 +340,9 @@ extension FeatureOperation {
                 target: try pattern(feature.target), face: try subshape(feature.face), direction: feature.direction,
                 fractions: feature.fractions, subdividesControlNet: feature.subdividesControlNet
             ))
+        case .removeFillets(var feature):
+            feature.target = try pattern(feature.target)
+            return .removeFillets(feature)
         case .faceMatch(var feature):
             feature.target = try pattern(feature.target)
             feature.source = try pattern(feature.source)

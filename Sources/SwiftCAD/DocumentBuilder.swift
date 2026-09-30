@@ -322,11 +322,13 @@ public struct DocumentBuilder {
     public mutating func faceDelete(
         target targetFeatureID: FeatureID,
         faces: [StableSubshapeReference],
+        heals: Bool = false,
         named name: String? = nil
     ) throws -> FeatureID {
         let faceDelete = FaceDeleteFeature(
             target: FaceDeleteTargetReference(featureID: targetFeatureID),
-            faces: faces
+            faces: faces,
+            heals: heals
         )
         try faceDelete.validate()
         let featureID = FeatureID()
@@ -491,6 +493,22 @@ public struct DocumentBuilder {
     }
 
     /// Imprints where `tool` crosses `target` (`ImprintBodyFeature`).
+    /// Remove Fillets From Shell: the fillets of `target` no wider than `maximumRadius` (any, when
+    /// nil) and of `convexity`, taken out and the faces they joined grown to meet.
+    @discardableResult
+    public mutating func removeFillets(
+        target: FeatureID,
+        maximumRadius: CADExpression? = nil,
+        convexity: FilletConvexity = .any,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let feature = RemoveFilletsFeature(target: PatternTargetReference(featureID: target), maximumRadius: maximumRadius, convexity: convexity)
+        try feature.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .removeFillets(feature))
+        return featureID
+    }
+
     /// Match Face: `faces` of `target` take the surface of `referenceFace`, a face of `source`
     /// placed by `sourcePlacement` in the target's frame when `source` is another body.
     @discardableResult

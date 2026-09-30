@@ -73,14 +73,25 @@ public struct FaceDeleteFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             }
         }
 
-        let model = try topologyTransformer.transformedModel(
-            deleting: resolvedFaceIDs,
-            from: bodyID,
-            featureID: feature.id,
-            in: context.brep,
-            tolerance: context.tolerance
-        )
-        try model.validate(level: .exact, tolerance: context.tolerance)
+        var model: BRepModel
+        if faceDelete.heals {
+            // The faces around grow over the deleted faces until they meet; the solid stays closed.
+            model = context.brep
+            try FaceRemovalPlanner().heal(
+                removing: resolvedFaceIDs, bodyID: bodyID, featureID: feature.id, model: &model, tolerance: context.tolerance
+            )
+            try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: context.tolerance)
+            try model.validate(level: .volumetric, tolerance: context.tolerance)
+        } else {
+            model = try topologyTransformer.transformedModel(
+                deleting: resolvedFaceIDs,
+                from: bodyID,
+                featureID: feature.id,
+                in: context.brep,
+                tolerance: context.tolerance
+            )
+            try model.validate(level: .exact, tolerance: context.tolerance)
+        }
 
         let identity = try identityBuilder.identity(
             featureID: feature.id,

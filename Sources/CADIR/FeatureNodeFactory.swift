@@ -305,7 +305,7 @@ public enum FeatureNodeFactory {
                     name: name,
                     operation: operation,
                     inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
-                    outputs: [FeatureOutput(role: .sheet)]
+                    outputs: [FeatureOutput(role: feature.outputRole)]
                 )
             }
             return try run()
@@ -545,6 +545,16 @@ public enum FeatureNodeFactory {
                 operation: operation,
                 inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
                 outputs: [FeatureOutput(role: .sheet)]
+            )
+        case .removeFillets:
+            guard case let .removeFillets(feature) = operation else {
+                throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+            }
+            try feature.validate()
+            try validateSource(feature.target.featureID, role: .body, in: document)
+            return FeatureNode(
+                id: id, name: name, operation: operation,
+                inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)], outputs: [FeatureOutput(role: .body)]
             )
         case .faceMatch:
             guard case let .faceMatch(feature) = operation else {

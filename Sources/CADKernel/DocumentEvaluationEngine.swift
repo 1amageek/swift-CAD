@@ -331,6 +331,7 @@ struct DocumentEvaluationEngine {
                  .isoparam,
                  .imprintBody,
                  .faceMatch,
+                 .removeFillets,
                  .untrimFace,
                  .imprintCurves,
                  .extract,

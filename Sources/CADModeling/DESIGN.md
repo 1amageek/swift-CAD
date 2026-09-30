@@ -554,6 +554,31 @@ neutral plane is refused likewise until it is split along it. `PushFaceTests`,
 holes, adjacent angles, pyramid and cone frustums and placed references by exact
 volumes, and the refusals.
 
+`FaceRemovalHealer` heals a solid over faces taken out of it (Delete Face with
+`heals`, and Remove Fillets From Shell): the faces around keep their surfaces and
+each removed face collapses onto them, as `FaceRemovalPlanner` chooses:
+
+| Collapse | Removed face | Topology | Geometry re-solved |
+|---|---|---|---|
+| `dropsHoles` | the faces a hole runs through | each whole inner loop they leave in a kept face goes | none |
+| `toEdge(first:second:)` | a strip (fillet or chamfer) | its edges with the two faces it joins merge into one; its other edges shrink to points | the merged edge on the two faces' intersection, the merged vertices where their faces cross |
+| `toPoint` | a face the faces around meet at one point (a fillet corner, a pyramid's top) | all its vertices merge and its edges go | the merged vertex |
+
+Edges between kept faces that reach a merged vertex run on their own curves to it.
+`BRepSurfaceMeetingSolver` (also under `FaceSurfaceReplacementRebuilder`) solves the
+meetings: the intersection branch nearest a seed, crossing points by tangent-plane
+Newton or along a curve where surfaces touch tangentially, and sense-keeping trims.
+A fillet is a face on a cylinder, torus or sphere no wider than the radius asked for,
+tangent to two kept faces along two of its edges (a strip), or lying where fillets
+meet (a corner, removed only with all the strips around it); its convexity is whether
+its centre of curvature lies in the material. A deleted face that is not a fillet is
+tried every way it could collapse and the healed solid that validates and changes the
+volume least is kept; faces touching one another go together only as a hole
+(`FIXME(INCOMPLETE_IMPLEMENTATION)` for any other cluster). `FaceRemovalHealingTests`
+prove a filled hole, a sharpened rounded box, one sharpened corner, a restored
+chamfered edge, radius and convexity filters and the refusal of a top no neighbours
+close over.
+
 `LocalVertexDisplacementRebuilder` owns the direct edits that move vertices: a
 straight edge's two ends (`EdgeMoveFeatureEvaluator`), a planar face's boundary
 (`FaceMoveFeatureEvaluator`), and a vertex of any body other than a single-shell

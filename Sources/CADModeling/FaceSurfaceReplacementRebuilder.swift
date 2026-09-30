@@ -32,11 +32,6 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
         }
     }
 
-    /// The least angle, in radians, at which surfaces meeting at a vertex are solved from their
-    /// tangent planes; nearer tangency the vertex is found along a re-solved edge instead, where
-    /// the tangent planes no longer fix it well.
-    private static let transversality = 1e-4
-
     package init() {}
 
     package func replace(
@@ -47,6 +42,7 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
         tolerance: ModelingTolerance
     ) throws {
         try tolerance.validate()
+        let solver = BRepSurfaceMeetingSolver(tolerance: tolerance)
         guard replacements.isEmpty == false else {
             throw failure(.invalidInput, featureID, tolerance, "A face replacement changes at least one face.")
         }
@@ -124,30 +120,18 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
                 rulings.insert(edgeID)
                 continue
             }
-            var nearest: (curve: Curve3D, distance: Double)?
-            var coincide = false
-            for component in try DefaultSurfaceSurfaceIntersector().intersections(first: first, second: second, tolerance: tolerance) {
-                switch component {
-                case let .curve(branch):
-                    let distance = (try closest(to: middle, on: branch.curve, tolerance: tolerance).point - middle).length
-                    if nearest.map({ distance < $0.distance }) ?? true { nearest = (branch.curve, distance) }
-                case .coincident:
-                    coincide = true
-                case .point:
-                    continue
-                }
-            }
-            if coincide, nearest == nil {
+            let branch = try solver.nearestBranch(of: first, and: second, near: middle)
+            if branch.coincide {
                 guard try isStraight(edgeID, model: model) else {
                     throw failure(.unsupportedCapability, featureID, tolerance, "A curved edge between faces that now share one surface cannot be re-solved.")
                 }
                 rulings.insert(edgeID)
                 continue
             }
-            guard let nearest else {
+            guard let curve = branch.curve else {
                 throw failure(.topologyFailure, featureID, tolerance, "The faces on either side of an edge no longer meet.")
             }
-            curves[edgeID] = nearest.curve
+            curves[edgeID] = curve
         }
 
         // Each changed vertex: where its faces' distinct surfaces meet, nearest where it was. Where
@@ -169,7 +153,7 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
                 let candidate = try surface(of: faceID)
                 if distinct.contains(candidate) == false { distinct.append(candidate) }
             }
-            if let point = try transversalMeetingPoint(of: distinct, near: old, featureID: featureID, tolerance: tolerance) {
+            if let point = try solver.crossingPoint(of: distinct, near: old) {
                 newPoints[vertexID] = point
                 continue
             }
@@ -178,13 +162,13 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
                 guard let curve = curves[edgeID], let edgeFaces = facesOfEdge[edgeID] else { continue }
                 let onCurve = try edgeFaces.map { try surface(of: $0) }
                 let others = distinct.filter { onCurve.contains($0) == false }
-                if let point = try meetingPoint(on: curve, with: others, near: old, tolerance: tolerance) {
+                if let point = try solver.crossingPoint(on: curve, with: others, near: old) {
                     alongEdge = point
                     break
                 }
             }
             guard let alongEdge else {
-                throw failure(.topologyFailure, featureID, tolerance, "Faces around a vertex meet tangentially and no edge fixes where.")
+                throw failure(.topologyFailure, featureID, tolerance, "The faces around a vertex no longer meet near it.")
             }
             newPoints[vertexID] = alongEdge
         }
@@ -217,17 +201,17 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
                 trim = CurveTrim(startParameter: 0, endParameter: delta.length)
                 let middle = start + delta * 0.5
                 for faceID in Set(facesOfEdge[edgeID] ?? []) {
-                    guard (try foot(of: middle, on: try surface(of: faceID), tolerance: tolerance).point - middle).length <= tolerance.distance else {
+                    guard (try solver.foot(of: middle, on: try surface(of: faceID)).point - middle).length <= tolerance.distance else {
                         throw failure(.unsupportedCapability, featureID, tolerance, "A straight edge re-solved through its ends leaves its face's surface.")
                     }
                 }
             } else {
                 guard let solved = curves[edgeID] else { throw TopologyError.missingReference("A re-solved edge curve is missing.") }
                 curve = solved
-                trim = try trimmed(
-                    solved, from: start, to: end, isClosed: edge.startVertexID == edge.endVertexID,
-                    sense: oldDirection, featureID: featureID, tolerance: tolerance
-                )
+                guard let solvedTrim = try solver.trim(solved, from: start, to: end, isClosed: edge.startVertexID == edge.endVertexID, sense: oldDirection) else {
+                    throw failure(.topologyFailure, featureID, tolerance, "A face replacement collapsed or reversed an edge.")
+                }
+                trim = solvedTrim
             }
             let curveID = nextCurveID(&ids, model)
             model.geometry.curves[curveID] = curve
@@ -248,10 +232,13 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
                   let end = model.vertices[edge.endVertexID]?.point else {
                 throw TopologyError.missingReference("A replaced body's edge geometry is missing.")
             }
-            edge.trim = try trimmed(
+            guard let trim = try solver.trim(
                 curve, from: start, to: end, isClosed: edge.startVertexID == edge.endVertexID,
-                sense: try oldTangent(of: edgeID, model: model, tolerance: tolerance), featureID: featureID, tolerance: tolerance
-            )
+                sense: try oldTangent(of: edgeID, model: model, tolerance: tolerance)
+            ) else {
+                throw failure(.topologyFailure, featureID, tolerance, "A face replacement collapsed or reversed an edge.")
+            }
+            edge.trim = trim
             model.edges[edgeID] = edge
             retrimmed.append(edgeID)
         }
@@ -295,166 +282,10 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
         model.geometry.surfaces = model.geometry.surfaces.filter { referencedSurfaces.contains($0.key) }
     }
 
-    /// The point nearest `seed` lying on every surface, where they cross: three or more surfaces
-    /// fix it; two fix it along their intersection, where it stays nearest the seed; one is the
-    /// seed's foot on it. Each step solves the surfaces' tangent planes at the current point's
-    /// feet. Nil when surfaces touch tangentially there, so their tangent planes cannot fix it.
-    private func transversalMeetingPoint(
-        of surfaces: [Surface3D],
-        near seed: Point3D,
-        featureID: FeatureID,
-        tolerance: ModelingTolerance
-    ) throws -> Point3D? {
-        guard let only = surfaces.first else { throw failure(.invalidInput, featureID, tolerance, "A vertex has no surfaces around it.") }
-        if surfaces.count == 1 { return try foot(of: seed, on: only, tolerance: tolerance).point }
-        var point = seed
-        for _ in 0..<64 {
-            var rows: [(normal: Vector3D, value: Double)] = []
-            for surface in surfaces {
-                let foot = try foot(of: point, on: surface, tolerance: tolerance)
-                rows.append((foot.normal, foot.normal.dot(foot.point - .origin)))
-            }
-            if surfaces.count == 2 {
-                let along = rows[0].normal.cross(rows[1].normal)
-                guard along.length > Self.transversality else { return nil }
-                let unit = try along.normalized(tolerance: tolerance.distance)
-                rows.append((unit, unit.dot(seed - .origin)))
-            }
-            guard let next = leastSquaresPoint(rows, tolerance: tolerance) else { return nil }
-            let step = (next - point).length
-            point = next
-            if step <= tolerance.distance * 1e-3 { break }
-        }
-        for surface in surfaces where (try foot(of: point, on: surface, tolerance: tolerance).point - point).length > tolerance.distance {
-            throw failure(.topologyFailure, featureID, tolerance, "The faces around a vertex no longer meet near it.")
-        }
-        return point
-    }
-
-    /// The parameter and point of `curve` nearest `point`: exact on a line, and certified over the
-    /// curve's finite or periodic domain otherwise.
-    private func closest(to point: Point3D, on curve: Curve3D, tolerance: ModelingTolerance) throws -> (parameter: Double, point: Point3D) {
-        let line: (origin: Point3D, direction: Vector3D)?
-        switch curve {
-        case let .line(value): line = (value.origin, value.direction)
-        case let .analytic(.line(origin, direction)): line = (origin, direction)
-        default: line = nil
-        }
-        if let line {
-            let parameter = (point - line.origin).dot(line.direction) / line.direction.dot(line.direction)
-            return (parameter, try curve.point(at: parameter, tolerance: tolerance))
-        }
-        let projection = try curve.closestParameterProjection(of: point, options: CurveParameterProjectionOptions(), tolerance: tolerance)
-        return (projection.parameter, projection.point)
-    }
-
-    /// The point of `curve` nearest `seed` that lies on every one of `others`, found where the
-    /// curve's signed distance to the first of them vanishes; nil when it does not converge there
-    /// or misses the rest.
-    private func meetingPoint(on curve: Curve3D, with others: [Surface3D], near seed: Point3D, tolerance: ModelingTolerance) throws -> Point3D? {
-        var parameter = try closest(to: seed, on: curve, tolerance: tolerance).parameter
-        guard let target = others.first else { return try curve.point(at: parameter, tolerance: tolerance) }
-        func signedDistance(_ t: Double) throws -> Double {
-            let point = try curve.point(at: t, tolerance: tolerance)
-            let foot = try foot(of: point, on: target, tolerance: tolerance)
-            return (point - foot.point).dot(foot.normal)
-        }
-        for _ in 0..<64 {
-            let value = try signedDistance(parameter)
-            if abs(value) <= tolerance.distance * 1e-3 { break }
-            let step = max(1e-9, abs(parameter) * 1e-8)
-            let slope = (try signedDistance(parameter + step) - (try signedDistance(parameter - step))) / (2 * step)
-            guard abs(slope) > 1e-12 else { return nil }
-            parameter -= value / slope
-        }
-        let point = try curve.point(at: parameter, tolerance: tolerance)
-        for surface in others where (try foot(of: point, on: surface, tolerance: tolerance).point - point).length > tolerance.distance {
-            return nil
-        }
-        return point
-    }
-
-    /// The point best satisfying `normal · X = value` for every row; nil when the rows leave a
-    /// direction free.
-    private func leastSquaresPoint(
-        _ rows: [(normal: Vector3D, value: Double)],
-        tolerance: ModelingTolerance
-    ) -> Point3D? {
-        var matrix = [[Double]](repeating: [0, 0, 0], count: 3)
-        var right = [0.0, 0.0, 0.0]
-        for row in rows {
-            let n = [row.normal.x, row.normal.y, row.normal.z]
-            for i in 0..<3 {
-                for j in 0..<3 { matrix[i][j] += n[i] * n[j] }
-                right[i] += n[i] * row.value
-            }
-        }
-        func determinant(_ m: [[Double]]) -> Double {
-            m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1])
-                - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
-                + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0])
-        }
-        let det = determinant(matrix)
-        guard abs(det) > Self.transversality * Self.transversality else { return nil }
-        var solution = [0.0, 0.0, 0.0]
-        for column in 0..<3 {
-            var replaced = matrix
-            for i in 0..<3 { replaced[i][column] = right[i] }
-            solution[column] = determinant(replaced) / det
-        }
-        return Point3D(x: solution[0], y: solution[1], z: solution[2])
-    }
-
-    /// The nearest point of `surface` to `point` and the surface's unit normal there.
-    private func foot(of point: Point3D, on surface: Surface3D, tolerance: ModelingTolerance) throws -> (point: Point3D, normal: Vector3D) {
-        try SurfaceFootResolver().foot(of: point, on: surface, tolerance: tolerance)
-    }
-
     /// The outward normal of a face on `surface` at the foot of `point`.
     private func outwardNormal(of surface: Surface3D, orientation: Orientation, near point: Point3D, tolerance: ModelingTolerance) throws -> Vector3D {
-        let normal = try foot(of: point, on: surface, tolerance: tolerance).normal
+        let normal = try SurfaceFootResolver().foot(of: point, on: surface, tolerance: tolerance).normal
         return orientation == .forward ? normal : normal * -1
-    }
-
-    /// The parameters of `curve` from `start` to `end` running the way `sense` points at the
-    /// start; a closed edge runs once around.
-    private func trimmed(
-        _ curve: Curve3D,
-        from start: Point3D,
-        to end: Point3D,
-        isClosed: Bool,
-        sense: Vector3D,
-        featureID: FeatureID,
-        tolerance: ModelingTolerance
-    ) throws -> CurveTrim {
-        let first = try curve.parameterProjection(of: start, tolerance: tolerance)
-        let last = try curve.parameterProjection(of: end, tolerance: tolerance)
-        guard (first.point - start).length <= tolerance.distance, (last.point - end).length <= tolerance.distance else {
-            throw failure(.topologyFailure, featureID, tolerance, "A re-solved vertex does not lie on its re-solved edge.")
-        }
-        let forward = try tangent(of: curve, at: first.parameter, tolerance: tolerance).dot(sense) > 0
-        var endParameter = last.parameter
-        if case let .periodic(period) = curve.parameterDomain {
-            // A periodic curve reaches the end once, the way the edge ran.
-            while forward ? endParameter <= first.parameter + (isClosed ? tolerance.distance : 0) : endParameter >= first.parameter - (isClosed ? tolerance.distance : 0) {
-                endParameter += forward ? period : -period
-            }
-            while forward ? endParameter - first.parameter > period + tolerance.distance : first.parameter - endParameter > period + tolerance.distance {
-                endParameter -= forward ? period : -period
-            }
-        } else if isClosed {
-            throw failure(.unsupportedCapability, featureID, tolerance, "A closed edge re-solved onto an open curve cannot close.")
-        }
-        guard abs(endParameter - first.parameter) > tolerance.distance, (endParameter > first.parameter) == forward else {
-            throw failure(.topologyFailure, featureID, tolerance, "A face replacement collapsed or reversed an edge.")
-        }
-        return CurveTrim(startParameter: first.parameter, endParameter: endParameter)
-    }
-
-    /// The direction a curve runs at a parameter, by a central difference.
-    private func tangent(of curve: Curve3D, at parameter: Double, tolerance: ModelingTolerance) throws -> Vector3D {
-        let step = max(1e-6, abs(parameter) * 1e-9)
-        return try curve.point(at: parameter + step, tolerance: tolerance) - curve.point(at: parameter - step, tolerance: tolerance)
     }
 
     /// The direction an edge ran from its start before the replacement.
@@ -462,7 +293,7 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
         guard let edge = model.edges[edgeID], let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else {
             throw TopologyError.missingReference("A replaced body's edge geometry is missing.")
         }
-        let direction = try tangent(of: curve, at: trim.startParameter, tolerance: tolerance)
+        let direction = try BRepSurfaceMeetingSolver(tolerance: tolerance).tangent(of: curve, at: trim.startParameter)
         return trim.endParameter >= trim.startParameter ? direction : direction * -1
     }
 

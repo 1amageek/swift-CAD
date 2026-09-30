@@ -389,6 +389,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 try feature.validate()
             case let .faceMatch(feature):
                 try feature.validate()
+            case let .removeFillets(feature):
+                try feature.validate()
             case let .untrimFace(feature):
                 try feature.validate()
             case let .imprintCurves(feature):
@@ -677,6 +679,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             try validateImprintContract(node, outputRoles: outputRoles)
         case .faceMatch:
             try validateFaceMatchContract(node, outputRoles: outputRoles)
+        case .removeFillets:
+            try validateRemoveFilletsContract(node, outputRoles: outputRoles)
         case .extract:
             try validateExtractContract(node, outputRoles: outputRoles)
         case .wrap:
@@ -1128,8 +1132,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
               targetSource.outputs.contains(where: { $0.role == .body }) else {
             throw FeatureEvaluationError.invalidGraph("Face Delete target source must declare a body output.")
         }
-        guard outputRoles == [.sheet] else {
-            throw FeatureEvaluationError.invalidGraph("Face Delete features must declare one sheet output.")
+        guard outputRoles == [faceDelete.outputRole] else {
+            throw FeatureEvaluationError.invalidGraph("Face Delete features must declare one sheet output, or one body output when they heal.")
         }
     }
 
@@ -1477,6 +1481,20 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         }
         guard outputRoles == [.sheet] else {
             throw FeatureEvaluationError.invalidGraph("Unjoin faces features must declare one sheet output.")
+        }
+    }
+
+    /// Remove Fillets reshapes its solid target in its place.
+    private func validateRemoveFilletsContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        guard case let .removeFillets(feature) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a removeFillets operation.")
+        }
+        try feature.validate()
+        guard node.inputs == [FeatureInput(featureID: feature.target.featureID, role: .target)] else {
+            throw FeatureEvaluationError.invalidGraph("Remove Fillets features must consume exactly their target.")
+        }
+        guard nodes[feature.target.featureID]?.outputs.contains(where: { $0.role == .body }) == true, outputRoles == [.body] else {
+            throw FeatureEvaluationError.invalidGraph("Remove Fillets takes a solid and publishes one.")
         }
     }
 

@@ -64,6 +64,7 @@ struct KernelCapabilityContractTests {
       "MODEL-REVERSE-SHEET-001",
       "MODEL-IMPRINT-001",
       "MODEL-FACEMATCH-001",
+      "MODEL-REMOVEFILLETS-001",
       "MODEL-ISOPARAM-001",
       "MODEL-UNTRIM-001",
       "MODEL-IMPRINT-002",
@@ -954,24 +955,24 @@ struct KernelCapabilityContractTests {
   }
 
   @Test
-  func faceDeleteCapabilityIsAvailableAsSupported() throws {
-    let capability = try KernelCapabilities.current.requireSupported(
-      operation: "faceDelete"
-    )
+  func faceDeleteOpensOrHealsAsPartial() throws {
+    let capability = try partialCapability(operation: "faceDelete")
 
-    #expect(capability.status == .supported)
-    #expect(capability.topology == .sheetBody)
+    #expect(capability.status == .partial)
+    #expect(capability.topology == .sheetOrSolidBody)
     #expect(
       capability.acceptedInputs.contains(
         "atLeastOneRemainingFaceInEverySourceShell"
       ))
+    #expect(capability.acceptedInputs.contains("healingOrOpening"))
     #expect(
       capability.exactOutputs.contains(
         "deterministicEdgeConnectedShellPartition"
       ))
+    #expect(capability.exactOutputs.contains("healedSolidWhoseFacesAroundGrowOverTheDeletedFaces"))
     #expect(capability.exactOutputs.contains("orphanFreeTopologyAndGeometry"))
     #expect(capability.failureCodes.contains(.invalidInput))
-    #expect(!capability.failureCodes.contains(.unsupportedCapability))
+    #expect(capability.failureCodes.contains(.unsupportedCapability))
   }
 
   @Test

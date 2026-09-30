@@ -463,6 +463,11 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
         try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "face", "direction", "fractions", "subdividesControlNet"], objectName: featurePath)
         try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
     }
+    try validateObjectField("removeFillets", in: object, path: "\(path).removeFillets") { feature, featurePath in
+        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "maximumRadius", "convexity"], objectName: featurePath)
+        try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
+        try validateObjectField("maximumRadius", in: feature, path: "\(featurePath).maximumRadius", using: validateExpressionObject)
+    }
     try validateObjectField("faceMatch", in: object, path: "\(path).faceMatch") { feature, featurePath in
         try rejectUnsupportedNativeKeys(
             in: feature, supportedKeys: ["target", "faces", "source", "referenceFace", "sourcePlacement", "front", "grow"], objectName: featurePath
@@ -1534,7 +1539,7 @@ private func validateFaceKnifeTargetReferenceObject(_ object: [String: Any], pat
 private func validateFaceDeleteFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["target", "faces"],
+        supportedKeys: ["target", "faces", "heals"],
         objectName: path
     )
     try validateObjectField("target", in: object, path: "\(path).target", using: validateFaceDeleteTargetReferenceObject)

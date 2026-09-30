@@ -89,14 +89,16 @@ extension KernelCapabilities {
     feature(
       id: "MODEL-FACEDELETE-001",
       operation: "faceDelete",
-      topology: .sheetBody,
+      topology: .sheetOrSolidBody,
       inputs: [
         "oneValidatedSolidBody",
         "oneOrMoreUniqueStableSelectedFacesOwnedByTheTargetBody",
         "atLeastOneRemainingFaceInEverySourceShell",
+        "healingOrOpening",
       ],
       outputs: [
         "validatedExactSheetBRep",
+        "healedSolidWhoseFacesAroundGrowOverTheDeletedFaces",
         "deterministicEdgeConnectedShellPartition",
         "orphanFreeTopologyAndGeometry",
         "mandatoryFaceLocalPcurves",
@@ -109,11 +111,13 @@ extension KernelCapabilities {
         "FaceDeleteFeatureTests",
         "FaceDeleteSchemaTests",
         "FaceDeleteBuilderTests",
+        "FaceRemovalHealingTests",
       ],
-      status: .supported,
+      status: .partial,
       failureCodes: [
         .invalidInput,
         .missingReference,
+        .unsupportedCapability,
         .topologyFailure,
         .nonManifoldResult,
       ],
@@ -863,6 +867,31 @@ extension KernelCapabilities {
       failureCodes: [
         .invalidInput,
         .missingReference,
+        .topologyFailure,
+      ]
+    ),
+    feature(
+      id: "MODEL-REMOVEFILLETS-001",
+      operation: "removeFillets",
+      topology: .solidBody,
+      inputs: [
+        "oneValidatedSolid",
+        "optionalMaximumRadius",
+        "convexityAnyConvexOrConcave",
+      ],
+      outputs: [
+        "validatedExactBRep",
+        "filletStripsCollapsedOntoTheMeetingOfTheFacesTheyJoined",
+        "filletCornersCollapsedToWhereTheirFacesMeet",
+        "edgesAndVerticesResolvedFromTheKeptSurfaces",
+        "strictCurrentSchemaNativePersistence",
+      ],
+      fixtures: ["FaceRemovalHealingTests"],
+      status: .partial,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .unsupportedCapability,
         .topologyFailure,
       ]
     ),

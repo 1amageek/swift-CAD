@@ -38,6 +38,7 @@ public extension FeatureOperation {
         case .isoparam: return "isoparam"
         case .imprintBody: return "imprintBody"
         case .faceMatch: return "faceMatch"
+        case .removeFillets: return "removeFillets"
         case .untrimFace: return "untrimFace"
         case .imprintCurves: return "imprintCurves"
         case .extract: return "extract"
