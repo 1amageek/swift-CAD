@@ -102,6 +102,15 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
         onto targetBodyID: BodyID, featureID: FeatureID, context: EvaluationContext
     ) throws -> [BRepFaceImprinter.Curve] {
         let tolerance = context.tolerance
+        // A closed curve's sweep would meet itself along a seam; it is swept in two halves, whose
+        // crossings meet end to end.
+        if (try curve.point(at: span.lowerBound, tolerance: tolerance) - curve.point(at: span.upperBound, tolerance: tolerance)).length <= tolerance.distance {
+            let middle = (span.lowerBound + span.upperBound) / 2
+            return try [span.lowerBound...middle, middle...span.upperBound].flatMap { half in
+                try swept(curve, over: half, along: direction, bidirectional: bidirectional, hidesOcclusion: hidesOcclusion,
+                          onto: targetBodyID, featureID: featureID, context: context)
+            }
+        }
         let unit = try direction.normalized(tolerance: tolerance.distance)
         let box = try BRepBodyBoundingBoxBuilder().bounds(for: targetBodyID, in: context.brep, tolerance: tolerance)
         let center = Point3D(x: (box.minimum.x + box.maximum.x) / 2, y: (box.minimum.y + box.maximum.y) / 2, z: (box.minimum.z + box.maximum.z) / 2)
@@ -111,36 +120,16 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             farthest = max(farthest, (try curve.point(at: t, tolerance: tolerance) - center).length)
         }
         let reach = 2 * ((box.maximum - box.minimum).length + farthest)
-        func translated(by distance: Double) throws -> Curve3D {
+        func translated(_ distance: Double) throws -> Curve3D {
             try .affineImage(AffineImageCurve3D(
                 source: curve,
                 transform: try AffineTransform3D(basisX: .unitX, basisY: .unitY, basisZ: .unitZ, translation: unit * distance),
                 tolerance: tolerance
             ))
         }
-        let ruled = RuledSurface3D(
-            startBoundary: bidirectional ? try translated(by: -reach) : curve,
-            endBoundary: try translated(by: reach),
-            uDomain: .closed(span.lowerBound, span.upperBound)
+        let (surface, sides) = try sweepSurface(
+            of: curve, over: span, along: unit, back: bidirectional ? -reach : 0, forth: reach, translated: translated, tolerance: tolerance
         )
-        // The exact B-spline sweep has a chart of its own across the curve (its knots start at 0
-        // and end at 1), so its sides lie on its own domain, not the curve's parameters.
-        let surface: Surface3D
-        let across: ClosedRange<Double>
-        if let spline = try ruled.exactBSplineRepresentation(tolerance: tolerance),
-           case let .closed(lower, upper) = spline.uDomain {
-            surface = .bSpline(spline)
-            across = lower...upper
-        } else {
-            surface = .procedural(.ruled(ruled))
-            across = span
-        }
-        let sides: [SurfaceParameterCurve] = [
-            .constantV(v: 0, uStart: across.lowerBound, uEnd: across.upperBound),
-            .constantU(u: across.upperBound, vStart: 0, vEnd: 1),
-            .constantV(v: 1, uStart: across.upperBound, uEnd: across.lowerBound),
-            .constantU(u: across.lowerBound, vStart: 1, vEnd: 0),
-        ]
         let sheet = try sewer.sew(BRepSewingRequest(featureID: featureID, bodyKind: .sheet, shells: [BRepSewingShell(
             stableID: "imprint:sweep:shell",
             patches: [BRepSewingFacePatch(
@@ -155,8 +144,9 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
         try BRepModelCombiner().merge(sheet.brep, into: &scratch.brep)
         scratch.subshapes = SubshapeIndex(context.subshapes.entries.merging(sheet.subshapes) { $1 })
         let pairs = try ImprintBodyFeatureEvaluator.crossingPairs(of: targetBodyID, by: sheet.bodyID, pipeline: pipeline, featureID: featureID, context: scratch)
-        let curveV = bidirectional ? 0.5 : 0.0
-        let visible = hidesOcclusion ? try seenFirst(pairs, curveV: curveV, featureID: featureID, context: context) : pairs
+        let visible = hidesOcclusion
+            ? try seenFirst(pairs, sweeping: curve, over: span, along: unit, featureID: featureID, context: context)
+            : pairs
         // The sweep sheet is never published.
         let published = Set(context.subshapes.entries.keys)
         return visible.map { pair in
@@ -169,19 +159,135 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
         }
     }
 
+    /// The sheet the curve sweeps along `unit` from `back` to `forth`, with its four sides in its
+    /// own parameters, run counterclockwise. A line sweeps a plane and a circle along its axis a
+    /// cylinder, which intersect other faces exactly; any other curve sweeps its exact ruled
+    /// B-spline form (or the ruled surface itself when it has none).
+    private func sweepSurface(
+        of curve: Curve3D, over span: ClosedRange<Double>, along unit: Vector3D, back: Double, forth: Double,
+        translated: (Double) throws -> Curve3D, tolerance: ModelingTolerance
+    ) throws -> (Surface3D, [SurfaceParameterCurve]) {
+        let start = try curve.point(at: span.lowerBound, tolerance: tolerance)
+        let end = try curve.point(at: span.upperBound, tolerance: tolerance)
+        let corners = [start + unit * back, end + unit * back, end + unit * forth, start + unit * forth]
+        func parameter(of point: Point3D, on surface: Surface3D) throws -> SurfaceParameter {
+            guard case let .projected(projection) = try surface.parameterProjectionResult(of: point, tolerance: tolerance) else {
+                throw KernelError(phase: .geometry, code: .topologyFailure, tolerance: tolerance, message: "A sweep corner is off its sweep.")
+            }
+            return SurfaceParameter(u: projection.u, v: projection.v)
+        }
+        switch curve {
+        case let .line(line) where line.direction.cross(unit).length > tolerance.angle:
+            let surface = Surface3D.plane(Plane3D(origin: line.origin, normal: try line.direction.cross(unit).normalized(tolerance: tolerance.distance)))
+            var uvs = try corners.map { try parameter(of: $0, on: surface) }
+            if signedArea(uvs) < 0 { uvs.reverse() }
+            return (surface, try uvs.indices.map { index in
+                try ParameterPointInterpolator().curve(through: [uvs[index], uvs[(index + 1) % uvs.count]], tolerance: tolerance)
+            })
+        case let .circle(circle) where circle.normal.cross(unit).length <= tolerance.angle * max(circle.normal.length, 1):
+            let surface = Surface3D.cylinder(Cylinder3D(origin: circle.center, axis: unit, radius: circle.radius))
+            let a = try parameter(of: start, on: surface)
+            let middle = try parameter(of: try curve.point(at: (span.lowerBound + span.upperBound) / 2, tolerance: tolerance), on: surface)
+            var b = try parameter(of: end, on: surface).u
+            // The arc's end angle is taken the way round that passes its middle.
+            func unwrapped(_ angle: Double, from reference: Double) -> Double {
+                var value = angle
+                while value < reference { value += 2 * .pi }
+                while value >= reference + 2 * .pi { value -= 2 * .pi }
+                return value
+            }
+            let middleU = unwrapped(middle.u, from: a.u)
+            b = unwrapped(b, from: a.u)
+            if b <= a.u + tolerance.angle { b += 2 * .pi }
+            let (low, high) = middleU <= b ? (a.u, b) : (b - 2 * .pi, a.u)
+            let vs = [try parameter(of: corners[0], on: surface).v, try parameter(of: corners[3], on: surface).v]
+            let (bottom, top) = (vs.min() ?? 0, vs.max() ?? 0)
+            return (surface, [
+                .constantV(v: bottom, uStart: low, uEnd: high),
+                .constantU(u: high, vStart: bottom, vEnd: top),
+                .constantV(v: top, uStart: high, uEnd: low),
+                .constantU(u: low, vStart: top, vEnd: bottom),
+            ])
+        default:
+            let ruled = RuledSurface3D(
+                startBoundary: try translated(back), endBoundary: try translated(forth),
+                uDomain: .closed(span.lowerBound, span.upperBound)
+            )
+            // The exact B-spline sweep has a chart of its own across the curve (its knots start
+            // at 0 and end at 1), so its sides lie on its own domain, not the curve's parameters.
+            let surface: Surface3D
+            let across: ClosedRange<Double>
+            if let spline = try ruled.exactBSplineRepresentation(tolerance: tolerance), case let .closed(lower, upper) = spline.uDomain {
+                surface = .bSpline(spline)
+                across = lower...upper
+            } else {
+                surface = .procedural(.ruled(ruled))
+                across = span
+            }
+            return (surface, [
+                .constantV(v: 0, uStart: across.lowerBound, uEnd: across.upperBound),
+                .constantU(u: across.upperBound, vStart: 0, vEnd: 1),
+                .constantV(v: 1, uStart: across.upperBound, uEnd: across.lowerBound),
+                .constantU(u: across.lowerBound, vStart: 1, vEnd: 0),
+            ])
+        }
+    }
+
+    private func signedArea(_ points: [SurfaceParameter]) -> Double {
+        points.indices.reduce(0) { sum, index in
+            let a = points[index], b = points[(index + 1) % points.count]
+            return sum + a.u * b.v - b.u * a.v
+        } / 2
+    }
+
     /// The crossings nothing of the target hides from the curve: along each crossing, the sweep
-    /// meets no other crossing on the same side of the curve nearer to it.
+    /// meets no other crossing on the same side of the curve nearer to it. Where a crossing's
+    /// points came from is found in the model (the curve point whose sweep line passes through
+    /// them), so the test does not depend on how the sweep sheet is parameterized.
     private func seenFirst(
-        _ pairs: [(onTarget: BRepFaceImprinter.Curve, onTool: BRepSewingEdge)], curveV: Double, featureID: FeatureID, context: EvaluationContext
+        _ pairs: [(onTarget: BRepFaceImprinter.Curve, onTool: BRepSewingEdge)],
+        sweeping curve: Curve3D, over span: ClosedRange<Double>, along unit: Vector3D,
+        featureID: FeatureID, context: EvaluationContext
     ) throws -> [(onTarget: BRepFaceImprinter.Curve, onTool: BRepSewingEdge)] {
         let tolerance = context.tolerance
-        let traces = try pairs.map { pair in
-            try (0...64).map { try pair.onTool.surfaceParameterCurve.parameter(atNormalizedFraction: Double($0) / 64, tolerance: tolerance) }
+        let curveSamples = try (0...256).map { index -> (t: Double, point: Point3D) in
+            let t = span.lowerBound + (span.upperBound - span.lowerBound) * Double(index) / 256
+            return (t, try curve.point(at: t, tolerance: tolerance))
         }
-        func sweepDistance(of trace: [SurfaceParameter], at u: Double) -> Double? {
-            for (a, b) in zip(trace, trace.dropFirst()) where min(a.u, b.u) <= u && u <= max(a.u, b.u) {
-                let fraction = b.u == a.u ? 0 : (u - a.u) / (b.u - a.u)
-                return a.v + (b.v - a.v) * fraction - curveV
+        /// The curve parameter a point is swept from, and how far along the sweep it lies.
+        func sweepCoordinates(of point: Point3D) throws -> (t: Double, distance: Double) {
+            func across(_ t: Double) throws -> Double {
+                let offset = point - (try curve.point(at: t, tolerance: tolerance))
+                return (offset - unit * offset.dot(unit)).length
+            }
+            var best = curveSamples[0]
+            var bestAcross = Double.infinity
+            for sample in curveSamples {
+                let offset = point - sample.point
+                let value = (offset - unit * offset.dot(unit)).length
+                if value < bestAcross { bestAcross = value; best = sample }
+            }
+            let step = (span.upperBound - span.lowerBound) / 256
+            var low = max(span.lowerBound, best.t - step), high = min(span.upperBound, best.t + step)
+            for _ in 0..<50 {
+                let a = low + (high - low) / 3, b = high - (high - low) / 3
+                if try across(a) < across(b) { high = b } else { low = a }
+            }
+            let t = (low + high) / 2
+            return (t, (point - (try curve.point(at: t, tolerance: tolerance))).dot(unit))
+        }
+        let traces = try pairs.map { pair in
+            let edge = pair.onTarget.edge
+            return try (0...64).map { index in
+                try sweepCoordinates(of: try edge.curve.point(
+                    at: edge.startParameter + (edge.endParameter - edge.startParameter) * Double(index) / 64, tolerance: tolerance
+                ))
+            }
+        }
+        func sweepDistance(of trace: [(t: Double, distance: Double)], at t: Double) -> Double? {
+            for (a, b) in zip(trace, trace.dropFirst()) where min(a.t, b.t) <= t && t <= max(a.t, b.t) {
+                let fraction = b.t == a.t ? 0 : (t - a.t) / (b.t - a.t)
+                return a.distance + (b.distance - a.distance) * fraction
             }
             return nil
         }
@@ -190,10 +296,9 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             var seen: [Bool] = []
             for fraction in [0.1, 0.3, 0.5, 0.7, 0.9] {
                 let at = traces[index][Int((fraction * 64).rounded())]
-                let distance = at.v - curveV
                 let hidden = traces.indices.contains { other in
-                    guard other != index, let nearer = sweepDistance(of: traces[other], at: at.u) else { return false }
-                    return nearer * distance > 0 && abs(nearer) < abs(distance) - 1e-9
+                    guard other != index, let nearer = sweepDistance(of: traces[other], at: at.t) else { return false }
+                    return nearer * at.distance > 0 && abs(nearer) < abs(at.distance) - tolerance.distance
                 }
                 seen.append(!hidden)
             }

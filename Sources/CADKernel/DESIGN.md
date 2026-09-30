@@ -758,12 +758,16 @@ goes around), turned to the face's side; keeping edges imprints the face's own
 boundary on it and traces that lineage past the unpublished bare sheet. A side
 that collapses to a point is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
 `ImprintCurvesFeatureEvaluator` projects curves onto a target. Along a vector,
-each curve is swept into a ruled sheet reaching past the target (both ways when
-bidirectional), built on the sweep's exact B-spline form and that form's own
-chart, and imprinted where it crosses the target
-(`ImprintBodyFeatureEvaluator.crossingPairs`); hiding occlusion keeps a crossing
-only when no other crossing lies nearer the curve along the sweep, and refuses a
-crossing hidden along part of its length (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+each curve is swept into a sheet reaching past the target (both ways when
+bidirectional) and imprinted where it crosses the target
+(`ImprintBodyFeatureEvaluator.crossingPairs`). A line sweeps a plane and a circle
+along its axis a cylinder, which intersect exactly; any other curve sweeps its
+exact ruled B-spline form, on that form's own chart; a closed curve is swept in
+two halves, whose crossings meet end to end. Hiding occlusion keeps a crossing
+only when no other crossing lies nearer the curve along the sweep, each point's
+curve parameter and sweep distance found in the model rather than in the
+sheet's parameters, and refuses a crossing hidden along part of its length
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`).
 Along the normal, each sample of the curve goes to the closest point of the
 target's faces (`BRepFaceClosestPointProjector`, Newton's method within each
 face's parameter extent), runs of samples on one face become a cubic parameter

@@ -305,6 +305,21 @@ struct ImprintFeatureTests {
         #expect(tooled.subshapes.entries.keys.allSatisfy { tooled.document.designGraph.nodes[$0.featureID] != nil })
     }
 
+    @Test(.timeLimit(.minutes(2)))
+    func aClosedCurveSweptOntoAFaceImprintsWhole() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (box, extent) = try liftedBox(&builder)
+        let sketch = try builder.sketch(on: .xy, named: "Circle") { sketch in
+            _ = sketch.circle(center: sketchPoint((extent.minimum.x + extent.maximum.x) / 2, (extent.minimum.y + extent.maximum.y) / 2), radius: length(side / 4))
+        }
+        let imprinted = try builder.imprintCurves(box, curves: [ImprintCurveReference(curve: CurveOutputReference(featureID: sketch.featureID))],
+            projection: .vector(direction: .unitZ, bidirectional: false, hidesOcclusion: true))
+        let evaluated = try evaluate(builder)
+        let solid = try body(of: imprinted, in: evaluated)
+        #expect(faceCount(solid, in: evaluated) == 7)
+        #expect(abs(try evaluated.brep.volume(of: solid.id, tolerance: .standard) - side * side * side) < 1e-12)
+    }
+
     // MARK: Untrim
 
     @Test(.timeLimit(.minutes(2)))
