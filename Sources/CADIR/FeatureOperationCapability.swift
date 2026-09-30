@@ -33,6 +33,7 @@ public extension FeatureOperation {
         case .mirror: return "mirror"
         case .joinBodies: return "joinBodies"
         case .unjoinBody: return "unjoinBody"
+        case .unjoinFaces: return "unjoinFaces"
         case .extract: return "extract"
         case .wrap: return "wrap"
         case .chamfer: return "chamfer"

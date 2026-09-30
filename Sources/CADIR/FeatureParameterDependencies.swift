@@ -92,6 +92,7 @@ public extension FeatureOperation {
              .mirror,
              .joinBodies,
              .unjoinBody,
+             .unjoinFaces,
              .extract:
             return []
         }

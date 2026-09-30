@@ -326,6 +326,7 @@ struct DocumentEvaluationEngine {
                  .mirror,
                  .joinBodies,
                  .unjoinBody,
+                 .unjoinFaces,
                  .extract,
                  .wrap,
                  .bridgeCurve,

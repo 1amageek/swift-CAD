@@ -457,6 +457,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("mirror", in: object, path: "\(path).mirror", using: validateMirrorFeatureObject)
     try validateObjectField("joinBodies", in: object, path: "\(path).joinBodies", using: validateJoinBodiesFeatureObject)
     try validateObjectField("unjoinBody", in: object, path: "\(path).unjoinBody", using: validateUnjoinBodyFeatureObject)
+    try validateObjectField("unjoinFaces", in: object, path: "\(path).unjoinFaces", using: validateUnjoinFacesFeatureObject)
     try validateObjectField("extract", in: object, path: "\(path).extract", using: validateExtractFeatureObject)
     try validateObjectField("chamfer", in: object, path: "\(path).chamfer", using: validateChamferFeatureObject)
     try validateObjectField("fillet", in: object, path: "\(path).fillet", using: validateFilletFeatureObject)
@@ -1731,6 +1732,14 @@ private func validateExtractFeatureObject(_ object: [String: Any], path: String)
     try validateObjectField("target", in: object, path: "\(path).target", using: validatePatternTargetReferenceObject)
     try validateObjectField("selection", in: object, path: "\(path).selection") { selection, selectionPath in
         try rejectUnsupportedNativeKeys(in: selection, supportedKeys: ["kind", "index", "count", "faces"], objectName: selectionPath)
+    }
+}
+
+private func validateUnjoinFacesFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["target", "selection"], objectName: path)
+    try validateObjectField("target", in: object, path: "\(path).target", using: validatePatternTargetReferenceObject)
+    try validateObjectField("selection", in: object, path: "\(path).selection") { selection, selectionPath in
+        try rejectUnsupportedNativeKeys(in: selection, supportedKeys: ["kind", "faces"], objectName: selectionPath)
     }
 }
 

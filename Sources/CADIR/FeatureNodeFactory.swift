@@ -525,6 +525,19 @@ public enum FeatureNodeFactory {
                 )
             }
             return try run()
+        case .unjoinFaces:
+            guard case let .unjoinFaces(feature) = operation else {
+                throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+            }
+            try feature.validate()
+            _ = try bodyOrSheetPort(of: feature.target.featureID, in: document)
+            return FeatureNode(
+                id: id,
+                name: name,
+                operation: operation,
+                inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                outputs: [FeatureOutput(role: .sheet)]
+            )
         case .chamfer:
             func run() throws -> FeatureNode {
                 guard case let .chamfer(feature) = operation else {

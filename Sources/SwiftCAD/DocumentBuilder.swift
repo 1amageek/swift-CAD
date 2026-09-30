@@ -485,6 +485,20 @@ public struct DocumentBuilder {
         return featureID
     }
 
+    /// Separates `target` into sheets in its place (`UnjoinFacesFeature`).
+    @discardableResult
+    public mutating func unjoinFaces(
+        _ target: FeatureID,
+        selection: UnjoinFacesSelection,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let unjoin = UnjoinFacesFeature(target: PatternTargetReference(featureID: target), selection: selection)
+        try unjoin.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .unjoinFaces(unjoin))
+        return featureID
+    }
+
     @discardableResult
     public mutating func moveVertex(
         target targetFeatureID: FeatureID,

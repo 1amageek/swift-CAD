@@ -31,6 +31,7 @@ public enum FeatureOperationKind: String, Codable, CaseIterable, Hashable, Senda
     case mirror
     case joinBodies
     case unjoinBody
+    case unjoinFaces
     case extract
     case wrap
     case chamfer

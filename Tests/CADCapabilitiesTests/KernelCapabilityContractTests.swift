@@ -60,6 +60,7 @@ struct KernelCapabilityContractTests {
       "MODEL-MIRROR-001",
       "MODEL-JOIN-001",
       "MODEL-UNJOIN-001",
+      "MODEL-UNJOIN-002",
       "MODEL-EXTRACT-001",
       "MODEL-WRAP-001",
       "MODEL-THICKEN-001",
@@ -162,7 +163,7 @@ struct KernelCapabilityContractTests {
     #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
     #expect(
       capability.acceptedInputs.contains(
-        "twoOrMoreValidatedSolidBodies"
+        "twoOrMoreValidatedSolidBodiesOrTwoOrMoreValidatedSheetBodies"
       ))
     #expect(
       capability.exactOutputs.contains(

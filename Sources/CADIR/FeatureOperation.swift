@@ -33,6 +33,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case mirror(MirrorFeature)
     case joinBodies(JoinBodiesFeature)
     case unjoinBody(UnjoinBodyFeature)
+    case unjoinFaces(UnjoinFacesFeature)
     case extract(ExtractFeature)
     case wrap(WrapFeature)
     case chamfer(ChamferFeature)
@@ -88,6 +89,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case mirror
         case joinBodies
         case unjoinBody
+        case unjoinFaces
         case extract
         case wrap
         case chamfer
@@ -212,6 +214,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .unjoinBody:
             try container.validateOnlyExpectedKeys([.kind, .unjoinBody], in: decoder)
             self = .unjoinBody(try container.decode(UnjoinBodyFeature.self, forKey: .unjoinBody))
+        case .unjoinFaces:
+            try container.validateOnlyExpectedKeys([.kind, .unjoinFaces], in: decoder)
+            self = .unjoinFaces(try container.decode(UnjoinFacesFeature.self, forKey: .unjoinFaces))
         case .extract:
             try container.validateOnlyExpectedKeys([.kind, .extract], in: decoder)
             self = .extract(try container.decode(ExtractFeature.self, forKey: .extract))
@@ -374,6 +379,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .unjoinBody(unjoinBody):
             try container.encode(Kind.unjoinBody, forKey: .kind)
             try container.encode(unjoinBody, forKey: .unjoinBody)
+        case let .unjoinFaces(unjoinFaces):
+            try container.encode(Kind.unjoinFaces, forKey: .kind)
+            try container.encode(unjoinFaces, forKey: .unjoinFaces)
         case let .extract(extract):
             try container.encode(Kind.extract, forKey: .kind)
             try container.encode(extract, forKey: .extract)

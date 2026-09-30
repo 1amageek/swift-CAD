@@ -325,6 +325,12 @@ extension FeatureOperation {
             ))
         case .unjoinBody(let feature):
             return .unjoinBody(UnjoinBodyFeature(target: try pattern(feature.target)))
+        case .unjoinFaces(let feature):
+            let selection: UnjoinFacesSelection = switch feature.selection {
+            case .everyFace: .everyFace
+            case let .faces(faces): .faces(try faces.map(subshape))
+            }
+            return .unjoinFaces(UnjoinFacesFeature(target: try pattern(feature.target), selection: selection))
         case .extract(let feature):
             let selection: ExtractSelection = switch feature.selection {
             case .component: feature.selection

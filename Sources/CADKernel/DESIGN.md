@@ -705,6 +705,20 @@ callers that must declare the output before appending (Alternative Duplicate).
 `ExtractFeatureTests` own slice pieces, the refused count, face sheets, closed
 faces and cavities, persistence and the selection contract.
 
+## Unjoin Faces
+
+`UnjoinFacesFeatureEvaluator` separates a body in its place, consuming it: the
+source's exact faces (`DefaultBRepFacePatchExtractor`) become the shells of one
+sheet body, each chosen face (`.faces`, resolved through `ExtractFaceSet`) or
+every face (`.everyFace`) a shell of its own and the faces left regrouped into one
+shell per connected piece (`BRepSewingPatchShellPartitioner`). Every face keeps
+its geometry, trim and side; the source body and every subshape within it
+(`BodyTopologyScope`) are removed, and each new face's lineage leads to the face
+it separates. A caller that presents one object per piece extracts the pieces by
+component (`ExtractSelection.component`). `UnjoinFacesFeatureTests` own every
+face, chosen faces and pieces, the round trip back to a solid through Join, a
+foreign face refused and persistence.
+
 ## Wrap
 
 `WrapFeatureEvaluator` deforms a body from one face onto another (Deform Solid

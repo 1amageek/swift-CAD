@@ -828,6 +828,32 @@ extension KernelCapabilities {
       ]
     ),
     feature(
+      id: "MODEL-UNJOIN-002",
+      operation: "unjoinFaces",
+      topology: .sheetOrSolidBody,
+      inputs: [
+        "oneValidatedSolidOrSheetBody",
+        "everyFaceOrStableFacesOfThatBody",
+      ],
+      outputs: [
+        "validatedExactBRep",
+        "oneSheetBodyInTheSourcesPlace",
+        "oneShellPerSeparatedFace",
+        "oneShellPerConnectedRemainingPiece",
+        "unchangedFaceGeometryTrimAndSide",
+        "consumedSourceBodyAndSubshapes",
+        "faceLineageToTheSeparatedFaces",
+        "strictCurrentSchemaNativePersistence",
+      ],
+      fixtures: ["UnjoinFacesFeatureTests"],
+      status: .supported,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .topologyFailure,
+      ]
+    ),
+    feature(
       id: "MODEL-EXTRACT-001",
       operation: "extract",
       topology: .sheetOrSolidBody,

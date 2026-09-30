@@ -76,6 +76,7 @@ private extension FeatureOperation {
              .gridPattern,
              .joinBodies,
              .unjoinBody,
+             .unjoinFaces,
              .extract,
              .wrap,
              .chamfer,

@@ -370,6 +370,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 try join.validate()
             case let .unjoinBody(unjoin):
                 try unjoin.validate()
+            case let .unjoinFaces(unjoin):
+                try unjoin.validate()
             case let .extract(extract):
                 try extract.validate()
             case let .wrap(wrap):
@@ -646,6 +648,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             try validateJoinBodiesContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .unjoinBody:
             try validateUnjoinBodyContract(node, outputRoles: outputRoles, tolerance: tolerance)
+        case .unjoinFaces:
+            try validateUnjoinFacesContract(node, outputRoles: outputRoles)
         case .extract:
             try validateExtractContract(node, outputRoles: outputRoles)
         case .wrap:
@@ -1432,6 +1436,22 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         }
         guard outputRoles == [try extract.resultPort(sourcePort: sourcePort)] else {
             throw FeatureEvaluationError.invalidGraph("Extract features must declare the one output their selection gives.")
+        }
+    }
+
+    private func validateUnjoinFacesContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        guard case let .unjoinFaces(unjoin) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected an unjoinFaces operation.")
+        }
+        try unjoin.validate()
+        guard node.inputs == [FeatureInput(featureID: unjoin.target.featureID, role: .target)] else {
+            throw FeatureEvaluationError.invalidGraph("Unjoin faces features must consume the referenced target input.")
+        }
+        guard nodes[unjoin.target.featureID]?.bodyOrSheetOutput != nil else {
+            throw FeatureEvaluationError.invalidGraph("Unjoin faces target source must declare exactly one body or sheet output.")
+        }
+        guard outputRoles == [.sheet] else {
+            throw FeatureEvaluationError.invalidGraph("Unjoin faces features must declare one sheet output.")
         }
     }
 
