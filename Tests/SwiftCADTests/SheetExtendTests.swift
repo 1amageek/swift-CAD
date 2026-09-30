@@ -100,12 +100,16 @@ struct SheetExtendTests {
         let model = try evaluate(builder).brep
         let far = try #require(model.vertices.values.map(\.point).filter { abs($0.y) < 1e-12 }.max { $0.x < $1.x })
         #expect(far.x > s + 1e-6)
-        // Past u = 1 the arch goes on as a parabola, a tangent line, or a reflected parabola.
-        let expected = switch shape {
-        case .natural: -(far.x - s) * far.x / s
-        case .linear: -(far.x - s)
-        case .reflective: -(far.x - s) * (2 * s - far.x) / s
+        // Past u = 1 the arch goes on as a parabola, a tangent line, or the arch mirrored across
+        // the plane perpendicular to its end tangent, (1, 0, -1)/√2 through (s, 0, 0).
+        switch shape {
+        case .natural: #expect(abs(far.z + (far.x - s) * far.x / s) < 1e-9)
+        case .linear: #expect(abs(far.z + (far.x - s)) < 1e-9)
+        case .reflective:
+            let normal = Vector3D(x: 1, y: 0, z: -1) * (1 / 2.0.squareRoot())
+            let mirrored = far + normal * (-2 * (far - Point3D(x: s, y: 0, z: 0)).dot(normal))
+            #expect(abs(mirrored.z - mirrored.x * (s - mirrored.x) / s) < 1e-9)
+            #expect(mirrored.x < s)
         }
-        #expect(abs(far.z - expected) < 1e-9)
     }
 }

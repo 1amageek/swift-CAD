@@ -823,7 +823,9 @@ gets one strip patch: on a planar face the rectangle beside a straight edge or t
 around an arc, every shape alike; on a B-spline face, along one of its parameter boundaries,
 the extension `BSplineSurfaceBoundaryExtender` builds past that boundary — the surface's last
 span continued by blossoming (natural), the straight strip along the cross-boundary derivative
-(linear), or the stretch before the boundary reflected through it (reflective) — as far as the
+(linear), or the stretch before the boundary mirrored control row by control row across
+the plane perpendicular to the row's end tangent, as Extend Curve mirrors a curve's end
+(reflective) — as far as the
 distance measured along the surface across the edge's middle. Modifying, the sheet's patches
 (`DefaultBRepFacePatchExtractor`) and the strips are sewn into one sheet in its place;
 otherwise the strips are sewn into a sheet of their own beside it, the sheet kept. Chosen edges

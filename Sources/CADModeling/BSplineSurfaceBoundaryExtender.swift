@@ -8,10 +8,10 @@ import CADGeometry
 /// | Shape | Extension | Across the boundary |
 /// |---|---|---|
 /// | natural | the source's own polynomial continued: its last span extrapolated by blossoming | the source itself, rational or not |
-/// | reflective | the source's last stretch reflected through the boundary curve, `2·S(b) − S(b − t)` | tangent, curvature mirrored |
+/// | reflective | the source's last stretch mirrored, control row by control row, across the plane perpendicular to the row's end tangent | tangent, curvature mirrored |
 /// | linear | the ruled strip along the source's cross-boundary derivative | tangent |
 ///
-/// Reflective and linear need a non-rational source, whose control points combine affinely.
+/// Linear needs a non-rational source, whose control points combine affinely.
 package struct BSplineSurfaceBoundaryExtender: Sendable {
     package enum Side: Sendable {
         case uLower, uUpper, vLower, vUpper
@@ -87,10 +87,11 @@ package struct BSplineSurfaceBoundaryExtender: Sendable {
         )
     }
 
-    /// `2·S(b, v) − S(b − t, v)` over `t ∈ [0, delta]`: the stretch before the boundary, reversed,
-    /// and reflected through the boundary curve, whose control points repeat along U.
+    /// The stretch before the boundary, reversed, each control row mirrored across the plane
+    /// through its end perpendicular to its end tangent, as Extend Curve mirrors a curve's end:
+    /// each row keeps its end and its end derivative, and its curvature is mirrored. A mirror is
+    /// affine, so rational surfaces extend exactly.
     private func reflectiveUpper(of surface: BSplineSurface3D, by delta: Double, tolerance: ModelingTolerance) throws -> BSplineSurface3D {
-        try requireNonRational(surface, tolerance)
         guard let lower = surface.uKnots.first, let upper = surface.uKnots.last,
               let lowerV = surface.vKnots.first, let upperV = surface.vKnots.last, upper - delta >= lower - tolerance.distance else {
             throw failure("A reflective extension reaches no further than the surface runs.", tolerance)
@@ -98,11 +99,15 @@ package struct BSplineSurfaceBoundaryExtender: Sendable {
         let stretch = reversedU(try surface.trimmed(uFrom: max(lower, upper - delta), uTo: upper, vFrom: lowerV, vTo: upperV, tolerance: tolerance))
         // The reversed stretch runs from the boundary; its knots move on past it.
         let knots = stretch.uKnots.map { $0 - stretch.uKnots[0] + upper }
-        let points = stretch.controlPoints.map { row -> [Point3D] in
-            let boundary = row[0]
-            return row.map { boundary + (boundary - $0) }
+        let points = try stretch.controlPoints.map { row -> [Point3D] in
+            let end = row[0]
+            let tangent = try (end - row[1]).normalized(tolerance: tolerance.distance)
+            return row.map { $0 + tangent * (-2 * ($0 - end).dot(tangent)) }
         }
-        return BSplineSurface3D(uDegree: stretch.uDegree, vDegree: stretch.vDegree, uKnots: knots, vKnots: stretch.vKnots, controlPoints: points)
+        return BSplineSurface3D(
+            uDegree: stretch.uDegree, vDegree: stretch.vDegree, uKnots: knots, vKnots: stretch.vKnots,
+            controlPoints: points, weights: stretch.weights
+        )
     }
 
     /// The ruled strip from the boundary curve along `delta` times the cross-boundary derivative,

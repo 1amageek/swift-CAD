@@ -73,6 +73,7 @@ public enum SheetExtensionShape: String, Codable, Hashable, Sendable, CaseIterab
     case natural
     /// Straight on along the sheet's tangent across the edge.
     case linear
-    /// The sheet's stretch before the edge reflected through it: tangent kept, curvature mirrored.
+    /// The sheet's stretch before the edge mirrored across it, as Extend Curve mirrors a curve's
+    /// end: tangent kept, curvature mirrored.
     case reflective
 }
