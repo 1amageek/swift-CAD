@@ -8,9 +8,9 @@ import CADTopology
 @testable import SwiftCAD
 
 /// Rebuild Face refits a face's surface on its own parameters: a sheet of one face to an explicit
-/// layout or widened past its edges, and a face of a solid in place within a tolerance, tangent
-/// neighbours and all; a face with both open and shared edges, or a face of a solid refitted
-/// coarser than the modeling tolerance, is refused.
+/// layout or widened past its edges, and faces sharing edges in place within a tolerance, tangent
+/// neighbours and open edges and all; a face sharing edges refitted coarser than the modeling
+/// tolerance is refused.
 @Suite("Rebuild Face")
 struct FaceRebuildTests {
     private let s = 0.02
@@ -144,7 +144,7 @@ struct FaceRebuildTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
-    func aFaceWithOpenAndSharedEdgesIsRefused() throws {
+    func aWallOfAnOpenBoxWithAnOpenEdgeIsRebuiltInPlace() throws {
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
         let profile = try builder.sketch(on: .xy) { $0.rectangle(width: .constant(.length(40, unit: .millimeter)), height: .constant(.length(20, unit: .millimeter))) }
         let box = try builder.extrude(profile, distance: .constant(.length(10, unit: .millimeter)))
@@ -154,7 +154,8 @@ struct FaceRebuildTests {
             guard case let .plane(plane) = surface else { return false }
             return abs(plane.normal.z) < 0.1
         }.first)
-        _ = try builder.rebuildFaces(target: open, faces: [wall], method: .tolerance(.constant(.length(1e-7, unit: .meter))))
-        #expect(throws: (any Error).self) { _ = try evaluate(builder) }
+        let rebuilt = try builder.rebuildFaces(target: open, faces: [wall], method: .explicit(SurfaceControlLayout(uDegree: 2, vDegree: 2, uSpans: 3, vSpans: 1)))
+        _ = try evaluate(builder)
+        #expect(try faces(of: rebuilt, in: builder) { if case .bSpline = $0 { return true }; return false }.count == 1)
     }
 }

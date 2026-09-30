@@ -851,15 +851,15 @@ surface's own domain otherwise (a B-spline's knot range; an analytic surface's f
 widened past each side by the extension fractions. A B-spline is read past its domain as its end
 spans continued (`BSplineSurfaceNaturalContinuation`, de Boor's algorithm on the nearest span);
 an analytic surface asked past its domain is refused. A face that is a sheet of its own is sewn
-anew on its new surface, each edge a B-spline fitted along its trimming curve within a quarter of
-the distance tolerance, so coarse layouts are free. A face whose every edge meets another face
-takes its new surface in place with its edges, vertices and trimming curves kept, which holds
-only while the new surface keeps within a quarter of the distance tolerance of the old one along
-the trimming curves; a coarser refit is refused, as is a face with both open and shared edges
-(both marked `FIXME(INCOMPLETE_IMPLEMENTATION)`). `FaceRebuildTests` own the explicit layout
-reproducing a quadratic arch exactly, the extension continuing it past its edge with the face
-kept, a box's top and a cylinder's quarter wall (tangent neighbours) rebuilt in place, and the
-two refusals.
+anew on its new surface when the new surface strays from its edges, each edge a B-spline fitted
+along its trimming curve within a quarter of the distance tolerance, so coarse layouts are free.
+Any face whose new surface keeps within a quarter of the distance tolerance of the old one along
+its trimming curves takes it in place, its edges, vertices and trimming curves kept, whatever its
+neighbours; a coarser refit of a face sharing edges is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+`FaceRebuildTests` own the explicit layout reproducing a quadratic arch exactly, the extension
+continuing it past its edge with the face kept, a box's top, a cylinder's quarter wall (tangent
+neighbours) and an open box's wall (open and shared edges) rebuilt in place, and the coarse
+refusal.
 
 ## Unwrap Face
 
