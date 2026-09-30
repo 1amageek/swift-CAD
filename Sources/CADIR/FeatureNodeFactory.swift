@@ -538,7 +538,7 @@ public enum FeatureNodeFactory {
                 inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
                 outputs: [FeatureOutput(role: .sheet)]
             )
-        case .isoparam, .imprintBody, .untrimFace:
+        case .isoparam, .imprintBody, .untrimFace, .imprintCurves:
             let target: FeatureID
             var inputs: [FeatureInput]
             var output: FeaturePort?
@@ -557,6 +557,10 @@ public enum FeatureNodeFactory {
                 target = feature.target.featureID
                 inputs = [FeatureInput(featureID: target, role: .target)]
                 output = .sheet
+            case let .imprintCurves(feature):
+                try feature.validate()
+                target = feature.target.featureID
+                inputs = [FeatureInput(featureID: target, role: .target)] + feature.curveInputs
             default:
                 throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
             }

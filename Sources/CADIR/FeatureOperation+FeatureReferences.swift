@@ -346,6 +346,12 @@ extension FeatureOperation {
             return .untrimFace(UntrimFaceFeature(
                 target: try pattern(feature.target), face: try subshape(feature.face), keepsEdges: feature.keepsEdges
             ))
+        case .imprintCurves(let feature):
+            return .imprintCurves(ImprintCurvesFeature(
+                target: try pattern(feature.target),
+                curves: try feature.curves.map { CurveOutputReference(featureID: try transform($0.featureID), curveIndex: $0.curveIndex) },
+                projection: feature.projection, completion: feature.completion
+            ))
         case .extract(let feature):
             let selection: ExtractSelection = switch feature.selection {
             case .component: feature.selection

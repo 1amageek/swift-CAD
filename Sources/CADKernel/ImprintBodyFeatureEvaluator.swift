@@ -41,9 +41,9 @@ struct ImprintBodyFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         guard curves.isEmpty == false else {
             throw failure(.invalidInput, feature.id, context, "The tool does not cross the target.")
         }
-        let completed = imprint.completion == .edge
-            ? try BRepImprintCompletion().completed(curves, model: context.brep, sourceSubshapes: context.subshapes.entries, tolerance: context.tolerance)
-            : curves
+        let completed = try BRepImprintCompletion().completed(
+            curves, by: imprint.completion, model: context.brep, sourceSubshapes: context.subshapes.entries, tolerance: context.tolerance
+        )
         return try BRepFaceImprinter().imprint(completed, on: targetBodyID, featureID: feature.id, context: context)
     }
 
@@ -55,12 +55,23 @@ struct ImprintBodyFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         featureID: FeatureID,
         context: EvaluationContext
     ) throws -> [BRepFaceImprinter.Curve] {
+        try crossingPairs(of: targetBodyID, by: toolBodyID, pipeline: pipeline, featureID: featureID, context: context).map(\.onTarget)
+    }
+
+    /// Each crossing both as a curve on the target face and as the same curve on the tool face.
+    static func crossingPairs(
+        of targetBodyID: BodyID,
+        by toolBodyID: BodyID,
+        pipeline: BooleanPipeline,
+        featureID: FeatureID,
+        context: EvaluationContext
+    ) throws -> [(onTarget: BRepFaceImprinter.Curve, onTool: BRepSewingEdge)] {
         let tolerance = context.tolerance
         let intersections = try pipeline.completeIntersectionGraph(
             targetBodyIDs: [targetBodyID], toolBodyID: toolBodyID, operation: .region, model: context.brep, tolerance: tolerance
         )
         let splits = try pipeline.uvSplitGraph(intersectionGraph: intersections, model: context.brep, tolerance: tolerance)
-        var curves: [BRepFaceImprinter.Curve] = []
+        var pairs: [(onTarget: BRepFaceImprinter.Curve, onTool: BRepSewingEdge)] = []
         for split in splits.splits {
             let faceID = split.facePair.targetFaceID
             let parents = context.subshapeIDs(for: .face(faceID)) + context.subshapeIDs(for: .face(split.facePair.toolFaceID))
@@ -79,15 +90,25 @@ struct ImprintBodyFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                         message: "Imprint cannot yet imprint a tool face that lies on a target face.")
                 default:
                     let reference = BooleanFaceSplitComponentReference(facePair: split.facePair, componentID: component.id)
-                    let edges = try BooleanFaceArrangementBoundary.edges(
+                    let onTarget = try BooleanFaceArrangementBoundary.edges(
                         reference: reference, geometry: component.geometry, faceID: faceID,
                         surfaceSide: .first, parentSubshapeIDs: parents, tolerance: tolerance
                     )
-                    curves += edges.map { BRepFaceImprinter.Curve(faceID: faceID, edge: $0) }
+                    let onTool = try BooleanFaceArrangementBoundary.edges(
+                        reference: reference, geometry: component.geometry, faceID: split.facePair.toolFaceID,
+                        surfaceSide: .second, parentSubshapeIDs: parents, tolerance: tolerance
+                    )
+                    guard onTarget.count == onTool.count else {
+                        throw KernelError(phase: .topology, code: .topologyFailure, featureID: featureID, tolerance: tolerance,
+                            message: "A crossing is segmented differently on its two faces.")
+                    }
+                    for (target, tool) in zip(onTarget, onTool) {
+                        pairs.append((BRepFaceImprinter.Curve(faceID: faceID, edge: target), tool))
+                    }
                 }
             }
         }
-        return curves
+        return pairs
     }
 
     private func failure(_ code: KernelErrorCode, _ featureID: FeatureID, _ context: EvaluationContext, _ message: String) -> KernelError {

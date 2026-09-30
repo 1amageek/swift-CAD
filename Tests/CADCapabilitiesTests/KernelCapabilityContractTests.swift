@@ -65,6 +65,7 @@ struct KernelCapabilityContractTests {
       "MODEL-IMPRINT-001",
       "MODEL-ISOPARAM-001",
       "MODEL-UNTRIM-001",
+      "MODEL-IMPRINT-002",
       "MODEL-EXTRACT-001",
       "MODEL-WRAP-001",
       "MODEL-THICKEN-001",

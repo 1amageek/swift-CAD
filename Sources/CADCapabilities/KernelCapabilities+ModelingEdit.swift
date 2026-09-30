@@ -952,6 +952,33 @@ extension KernelCapabilities {
       ]
     ),
     feature(
+      id: "MODEL-IMPRINT-002",
+      operation: "imprintCurves",
+      topology: .sheetOrSolidBody,
+      inputs: [
+        "oneValidatedSolidOrSheetTargetBody",
+        "oneOrMoreBoundedExactCurves",
+        "normalOrVectorProjectionWithBidirectionalAndOcclusionOptions",
+        "completionNoneEdgeOrBoundary",
+      ],
+      outputs: [
+        "validatedExactBRep",
+        "targetFacesSplitAlongTheProjectedCurves",
+        "vectorProjectionAsTheCurvesSweepCrossingTheTarget",
+        "normalProjectionThroughSharedEdgePoints",
+        "sameSolidOrSheetTargetInItsPlace",
+        "strictCurrentSchemaNativePersistence",
+      ],
+      fixtures: ["ImprintFeatureTests"],
+      status: .partial,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .unsupportedCapability,
+        .topologyFailure,
+      ]
+    ),
+    feature(
       id: "MODEL-EXTRACT-001",
       operation: "extract",
       topology: .sheetOrSolidBody,

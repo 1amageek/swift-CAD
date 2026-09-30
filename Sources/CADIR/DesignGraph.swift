@@ -380,6 +380,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 try feature.validate()
             case let .untrimFace(feature):
                 try feature.validate()
+            case let .imprintCurves(feature):
+                try feature.validate()
             case let .extract(extract):
                 try extract.validate()
             case let .wrap(wrap):
@@ -660,7 +662,7 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             try validateUnjoinFacesContract(node, outputRoles: outputRoles)
         case .reverseSheet:
             try validateReverseSheetContract(node, outputRoles: outputRoles)
-        case .isoparam, .imprintBody, .untrimFace:
+        case .isoparam, .imprintBody, .untrimFace, .imprintCurves:
             try validateImprintContract(node, outputRoles: outputRoles)
         case .extract:
             try validateExtractContract(node, outputRoles: outputRoles)
@@ -1490,6 +1492,10 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             target = feature.target.featureID
             inputs = [FeatureInput(featureID: target, role: .target)]
             output = .sheet
+        case let .imprintCurves(feature):
+            try feature.validate()
+            target = feature.target.featureID
+            inputs = [FeatureInput(featureID: target, role: .target)] + feature.curveInputs
         default:
             throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected an imprint operation.")
         }

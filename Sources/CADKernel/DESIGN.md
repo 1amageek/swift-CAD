@@ -754,7 +754,22 @@ where unbounded or periodic (the whole period, meeting in a seam, when the face
 goes around), turned to the face's side; keeping edges imprints the face's own
 boundary on it and traces that lineage past the unpublished bare sheet. A side
 that collapses to a point is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
-`ImprintFeatureTests` own these contracts.
+`ImprintCurvesFeatureEvaluator` projects curves onto a target. Along a vector,
+each curve is swept into a ruled sheet reaching past the target (both ways when
+bidirectional), built on the sweep's exact B-spline form and that form's own
+chart, and imprinted where it crosses the target
+(`ImprintBodyFeatureEvaluator.crossingPairs`); hiding occlusion keeps a crossing
+only when no other crossing lies nearer the curve along the sweep, and refuses a
+crossing hidden along part of its length (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+Along the normal, each sample of the curve goes to the closest point of the
+target's faces (`BRepFaceClosestPointProjector`, Newton's method within each
+face's parameter extent), runs of samples on one face become a cubic parameter
+curve through them (`ParameterPointInterpolator`), and where the projection
+passes to a neighbour both runs end at the point of their shared edge the
+projection crosses. The sweep sheet is never published, so its subshapes are
+dropped from the crossings' lineage. Completion is `.none`, `.edge` (stopping at
+the first other curve) or `.boundary` (reaching the face's boundary across other
+curves). `ImprintFeatureTests` own these contracts.
 
 ## Reverse Sheet
 

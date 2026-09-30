@@ -97,6 +97,7 @@ public extension FeatureOperation {
              .isoparam,
              .imprintBody,
              .untrimFace,
+             .imprintCurves,
              .extract:
             return []
         }

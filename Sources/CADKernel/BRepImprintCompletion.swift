@@ -4,18 +4,20 @@ import CADIR
 import CADModeling
 import CADTopology
 
-/// Carries each imprinted curve on from its ends (`ImprintCompletion.edge`): from an end that
-/// lies inside its face, a straight line in the face's parameters continues the curve's direction
-/// there until it meets the face's boundary or another curve on the face, and becomes a curve of
-/// its own. An end already on the boundary goes no further, since its continuation leaves the
-/// face at once.
+/// Carries each imprinted curve on from its ends: from an end that lies inside its face, a
+/// straight line in the face's parameters continues the curve's direction there until it meets
+/// the face's boundary, stopping at another curve on the face first for `.edge` and crossing it
+/// for `.boundary`, and becomes a curve of its own. An end already on the boundary goes no
+/// further, since its continuation leaves the face at once. `.none` completes nothing.
 struct BRepImprintCompletion {
     func completed(
         _ curves: [BRepFaceImprinter.Curve],
+        by completion: ImprintCompletion,
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
         tolerance: ModelingTolerance
     ) throws -> [BRepFaceImprinter.Curve] {
+        guard completion != .none else { return curves }
         var result = curves
         let clipper = BRepFaceCurveClipper()
         let intersector = ExactTrimEdgeIntersector()
@@ -46,9 +48,9 @@ struct BRepImprintCompletion {
                 guard var piece = pieces.first(where: { ($0.startPoint - end).length <= tolerance.distance * 8 }) else {
                     continue
                 }
-                // It stops at the first other curve it meets.
+                // Edge completion stops at the first other curve it meets.
                 var crossings: [Point3D] = []
-                for other in others {
+                for other in completion == .edge ? others : [] {
                     if case .subdivisionPoints(let points) = try intersector.intersections(piece, other, sharedSurface: surface, tolerance: tolerance) {
                         crossings += points
                     }

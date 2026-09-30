@@ -53,4 +53,7 @@ public enum ImprintCompletion: String, Codable, Hashable, Sendable {
     /// Each end inside a face carries on along the curve's direction on the face until it meets
     /// an edge or another imprinted curve.
     case edge
+    /// Each end inside a face carries on along the curve's direction on the face until it meets
+    /// the face's own boundary, crossing any other imprinted curve on the way.
+    case boundary
 }

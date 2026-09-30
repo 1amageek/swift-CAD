@@ -270,6 +270,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             return try ImprintBodyFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .untrimFace:
             return try UntrimFaceFeatureEvaluator().evaluateValidated(feature: feature, context: context)
+        case .imprintCurves:
+            return try ImprintCurvesFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .extract:
             return try ExtractFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .wrap:

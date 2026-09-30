@@ -185,6 +185,90 @@ struct ImprintFeatureTests {
         #expect(abs(try evaluated.brep.volume(of: solid.id, tolerance: .standard) - side * side * side) < 1e-12)
     }
 
+    // MARK: Imprint Curve Body
+
+    private func sketchPoint(_ x: Double, _ y: Double) -> SketchPoint {
+        SketchPoint(x: .constant(.length(x, unit: .meter)), y: .constant(.length(y, unit: .meter)))
+    }
+
+    /// A box lifted clear of the XY plane, and its bounds.
+    private func liftedBox(_ builder: inout DocumentBuilder) throws -> (FeatureID, (minimum: Point3D, maximum: Point3D)) {
+        let box = try builder.box(
+            placement: PrimitivePlacement(origin: Point3D(x: 0, y: 0, z: 0.05), axis: .unitZ, referenceDirection: .unitX),
+            width: length(side), depth: length(side), height: length(side)
+        )
+        return (box, try bounds(of: box, in: try evaluate(builder)))
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aCurveSweptThroughASolidImprintsWhatItCrossesOrOnlyWhatItSeesFirst() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (box, extent) = try liftedBox(&builder)
+        let midX = (extent.minimum.x + extent.maximum.x) / 2
+        // A line under the box, longer than it, swept up through it.
+        let sketch = try builder.sketch(on: .xy, named: "Line") { sketch in
+            _ = sketch.line(from: sketchPoint(midX, extent.minimum.y - side), to: sketchPoint(midX, extent.maximum.y + side))
+        }
+        var through = builder
+        let crossed = try through.imprintCurves(box, curves: [CurveOutputReference(featureID: sketch.featureID)],
+            projection: .vector(direction: .unitZ, bidirectional: false, hidesOcclusion: false))
+        let all = try evaluate(through)
+        // Bottom, top and the two faces the line passes under are each cut in two.
+        #expect(faceCount(try body(of: crossed, in: all), in: all) == 10)
+        let seen = try builder.imprintCurves(box, curves: [CurveOutputReference(featureID: sketch.featureID)],
+            projection: .vector(direction: .unitZ, bidirectional: false, hidesOcclusion: true))
+        let first = try evaluate(builder)
+        // Only the bottom, which the line meets first.
+        #expect(faceCount(try body(of: seen, in: first), in: first) == 7)
+        #expect(abs(try first.brep.volume(of: try body(of: seen, in: first).id, tolerance: .standard) - side * side * side) < 1e-12)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aShortCurveReachesTheEdgesOnlyWithCompletion() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (box, extent) = try liftedBox(&builder)
+        let midX = (extent.minimum.x + extent.maximum.x) / 2
+        let midY = (extent.minimum.y + extent.maximum.y) / 2
+        let sketch = try builder.sketch(on: .xy, named: "Short") { sketch in
+            _ = sketch.line(from: sketchPoint(midX, midY - side / 4), to: sketchPoint(midX, midY + side / 4))
+        }
+        var bare = builder
+        _ = try bare.imprintCurves(box, curves: [CurveOutputReference(featureID: sketch.featureID)],
+            projection: .vector(direction: .unitZ, bidirectional: false, hidesOcclusion: true), completion: .none)
+        #expect(throws: KernelError.self) { try evaluate(bare) }
+        let completed = try builder.imprintCurves(box, curves: [CurveOutputReference(featureID: sketch.featureID)],
+            projection: .vector(direction: .unitZ, bidirectional: false, hidesOcclusion: true), completion: .edge)
+        let evaluated = try evaluate(builder)
+        #expect(faceCount(try body(of: completed, in: evaluated), in: evaluated) == 7)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aCurveProjectedAlongTheNormalLandsOnTheNearestFace() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (box, extent) = try liftedBox(&builder)
+        let midX = (extent.minimum.x + extent.maximum.x) / 2
+        let midY = (extent.minimum.y + extent.maximum.y) / 2
+        // A circle under the box lands on its bottom as a disc.
+        let sketch = try builder.sketch(on: .xy, named: "Circle") { sketch in
+            _ = sketch.circle(center: sketchPoint(midX, midY), radius: length(side / 4))
+        }
+        let imprinted = try builder.imprintCurves(box, curves: [CurveOutputReference(featureID: sketch.featureID)], projection: .normal)
+        let evaluated = try evaluate(builder)
+        let solid = try body(of: imprinted, in: evaluated)
+        #expect(faceCount(solid, in: evaluated) == 7)
+        #expect(abs(try evaluated.brep.volume(of: solid.id, tolerance: .standard) - side * side * side) < 1e-12)
+        // Every new edge lies on the bottom, at the circle's radius from its centre.
+        let bottom = extent.minimum.z
+        var rim = 0
+        for edge in evaluated.brep.edges.values {
+            guard let curve = evaluated.brep.geometry.curves[edge.curveID], let trim = edge.trim else { continue }
+            let point = try curve.point(at: (trim.startParameter + trim.endParameter) / 2, tolerance: .standard)
+            let radius = ((point.x - midX) * (point.x - midX) + (point.y - midY) * (point.y - midY)).squareRoot()
+            if abs(point.z - bottom) < 1e-9 && abs(radius - side / 4) < 1e-6 { rim += 1 }
+        }
+        #expect(rim == 2)
+    }
+
     // MARK: Untrim
 
     @Test(.timeLimit(.minutes(2)))

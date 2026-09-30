@@ -468,6 +468,13 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
         try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
         try validateObjectField("tool", in: feature, path: "\(featurePath).tool", using: validatePatternTargetReferenceObject)
     }
+    try validateObjectField("imprintCurves", in: object, path: "\(path).imprintCurves") { feature, featurePath in
+        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "curves", "projection", "completion"], objectName: featurePath)
+        try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
+        try validateObjectField("projection", in: feature, path: "\(featurePath).projection") { projection, projectionPath in
+            try rejectUnsupportedNativeKeys(in: projection, supportedKeys: ["kind", "direction", "bidirectional", "hidesOcclusion"], objectName: projectionPath)
+        }
+    }
     try validateObjectField("untrimFace", in: object, path: "\(path).untrimFace") { feature, featurePath in
         try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "face", "keepsEdges"], objectName: featurePath)
         try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)

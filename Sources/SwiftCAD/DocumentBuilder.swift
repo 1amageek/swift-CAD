@@ -529,6 +529,21 @@ public struct DocumentBuilder {
         return featureID
     }
 
+    /// Imprints `curves` projected onto `target` (`ImprintCurvesFeature`).
+    @discardableResult
+    public mutating func imprintCurves(
+        _ target: FeatureID, curves: [CurveOutputReference], projection: ImprintProjection,
+        completion: ImprintCompletion = .none, named name: String? = nil
+    ) throws -> FeatureID {
+        let feature = ImprintCurvesFeature(
+            target: PatternTargetReference(featureID: target), curves: curves, projection: projection, completion: completion
+        )
+        try feature.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .imprintCurves(feature))
+        return featureID
+    }
+
     /// A sheet of a face's untrimmed surface beside `target` (`UntrimFaceFeature`).
     @discardableResult
     public mutating func untrimFace(

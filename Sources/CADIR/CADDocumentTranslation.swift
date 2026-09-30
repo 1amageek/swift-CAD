@@ -81,6 +81,7 @@ private extension FeatureOperation {
              .isoparam,
              .imprintBody,
              .untrimFace,
+             .imprintCurves,
              .extract,
              .wrap,
              .chamfer,

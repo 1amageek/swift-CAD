@@ -38,6 +38,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case isoparam(IsoparamFeature)
     case imprintBody(ImprintBodyFeature)
     case untrimFace(UntrimFaceFeature)
+    case imprintCurves(ImprintCurvesFeature)
     case extract(ExtractFeature)
     case wrap(WrapFeature)
     case chamfer(ChamferFeature)
@@ -98,6 +99,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case isoparam
         case imprintBody
         case untrimFace
+        case imprintCurves
         case extract
         case wrap
         case chamfer
@@ -237,6 +239,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .untrimFace:
             try container.validateOnlyExpectedKeys([.kind, .untrimFace], in: decoder)
             self = .untrimFace(try container.decode(UntrimFaceFeature.self, forKey: .untrimFace))
+        case .imprintCurves:
+            try container.validateOnlyExpectedKeys([.kind, .imprintCurves], in: decoder)
+            self = .imprintCurves(try container.decode(ImprintCurvesFeature.self, forKey: .imprintCurves))
         case .extract:
             try container.validateOnlyExpectedKeys([.kind, .extract], in: decoder)
             self = .extract(try container.decode(ExtractFeature.self, forKey: .extract))
@@ -414,6 +419,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .untrimFace(feature):
             try container.encode(Kind.untrimFace, forKey: .kind)
             try container.encode(feature, forKey: .untrimFace)
+        case let .imprintCurves(feature):
+            try container.encode(Kind.imprintCurves, forKey: .kind)
+            try container.encode(feature, forKey: .imprintCurves)
         case let .extract(extract):
             try container.encode(Kind.extract, forKey: .kind)
             try container.encode(extract, forKey: .extract)
