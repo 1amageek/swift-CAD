@@ -44,7 +44,17 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
         let targetBodyID = try context.bodyID(generatedBy: imprint.target.featureID)
         var curves: [BRepFaceImprinter.Curve] = []
         for (index, reference) in imprint.curves.enumerated() {
-            let (curve, span) = try exactCurve(reference, featureID: feature.id, context: context)
+            var (curve, span) = try exactCurve(reference.curve, featureID: feature.id, context: context)
+            if let placement = reference.placement {
+                try placement.validate(tolerance: context.tolerance)
+                curve = try .affineImage(AffineImageCurve3D(
+                    source: curve,
+                    transform: try AffineTransform3D(
+                        basisX: placement.basisX, basisY: placement.basisY, basisZ: placement.basisZ, translation: placement.translation
+                    ),
+                    tolerance: context.tolerance
+                ))
+            }
             let projected: [BRepFaceImprinter.Curve]
             switch imprint.projection {
             case let .vector(direction, bidirectional, hidesOcclusion):

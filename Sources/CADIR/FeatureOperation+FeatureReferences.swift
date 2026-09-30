@@ -340,7 +340,8 @@ extension FeatureOperation {
             ))
         case .imprintBody(let feature):
             return .imprintBody(ImprintBodyFeature(
-                target: try pattern(feature.target), tool: try pattern(feature.tool), completion: feature.completion
+                target: try pattern(feature.target), tool: try pattern(feature.tool), toolPlacement: feature.toolPlacement,
+                completion: feature.completion
             ))
         case .untrimFace(let feature):
             return .untrimFace(UntrimFaceFeature(
@@ -349,7 +350,12 @@ extension FeatureOperation {
         case .imprintCurves(let feature):
             return .imprintCurves(ImprintCurvesFeature(
                 target: try pattern(feature.target),
-                curves: try feature.curves.map { CurveOutputReference(featureID: try transform($0.featureID), curveIndex: $0.curveIndex) },
+                curves: try feature.curves.map {
+                    ImprintCurveReference(
+                        curve: CurveOutputReference(featureID: try transform($0.curve.featureID), curveIndex: $0.curve.curveIndex),
+                        placement: $0.placement
+                    )
+                },
                 projection: feature.projection, completion: feature.completion
             ))
         case .extract(let feature):

@@ -1,17 +1,19 @@
 import CADCore
+import CADGeometry
 import CADTopology
 
-/// Edges on a target where curves project onto it (Imprint Curve Body): each curve is projected
-/// onto the target's faces, which are split along the projection, both sides kept.
+/// Edges on a target where curves project onto it (Imprint Curve Body): each curve, placed in the
+/// target's frame, is projected onto the target's faces, which are split along the projection,
+/// both sides kept.
 public struct ImprintCurvesFeature: Codable, Hashable, Sendable {
     public var target: PatternTargetReference
-    public var curves: [CurveOutputReference]
+    public var curves: [ImprintCurveReference]
     public var projection: ImprintProjection
     public var completion: ImprintCompletion
 
     public init(
         target: PatternTargetReference,
-        curves: [CurveOutputReference],
+        curves: [ImprintCurveReference],
         projection: ImprintProjection,
         completion: ImprintCompletion
     ) {
@@ -26,7 +28,7 @@ public struct ImprintCurvesFeature: Codable, Hashable, Sendable {
         guard curves.isEmpty == false else {
             throw FeatureEvaluationError.invalidGraph("Imprint needs at least one curve.")
         }
-        for curve in curves { try curve.validate() }
+        for curve in curves { try curve.curve.validate() }
         guard Set(curves).count == curves.count else {
             throw FeatureEvaluationError.invalidGraph("Imprint curves must be distinct.")
         }
@@ -36,7 +38,7 @@ public struct ImprintCurvesFeature: Codable, Hashable, Sendable {
     /// The curves' sources as graph inputs, each once.
     public var curveInputs: [FeatureInput] {
         var seen = Set<FeatureID>()
-        return curves.compactMap { seen.insert($0.featureID).inserted ? FeatureInput(featureID: $0.featureID, role: .curve) : nil }
+        return curves.compactMap { seen.insert($0.curve.featureID).inserted ? FeatureInput(featureID: $0.curve.featureID, role: .curve) : nil }
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -47,7 +49,7 @@ public struct ImprintCurvesFeature: Codable, Hashable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .curves, .projection, .completion], in: decoder)
         target = try container.decode(PatternTargetReference.self, forKey: .target)
-        curves = try container.decode([CurveOutputReference].self, forKey: .curves)
+        curves = try container.decode([ImprintCurveReference].self, forKey: .curves)
         projection = try container.decode(ImprintProjection.self, forKey: .projection)
         completion = try container.decode(ImprintCompletion.self, forKey: .completion)
         try validate()
@@ -116,5 +118,33 @@ extension ImprintProjection: Codable {
             try container.encode(bidirectional, forKey: .bidirectional)
             try container.encode(hidesOcclusion, forKey: .hidesOcclusion)
         }
+    }
+}
+
+/// One curve to imprint, where `placement` puts it in the target's frame (where it is, when nil).
+public struct ImprintCurveReference: Codable, Hashable, Sendable {
+    public var curve: CurveOutputReference
+    public var placement: RigidTransform3D?
+
+    public init(curve: CurveOutputReference, placement: RigidTransform3D? = nil) {
+        self.curve = curve
+        self.placement = placement
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case curve, placement
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.curve, .placement], in: decoder)
+        curve = try container.decode(CurveOutputReference.self, forKey: .curve)
+        placement = try container.decodeIfPresent(RigidTransform3D.self, forKey: .placement)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(curve, forKey: .curve)
+        try container.encodeIfPresent(placement, forKey: .placement)
     }
 }

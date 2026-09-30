@@ -210,12 +210,12 @@ struct ImprintFeatureTests {
             _ = sketch.line(from: sketchPoint(midX, extent.minimum.y - side), to: sketchPoint(midX, extent.maximum.y + side))
         }
         var through = builder
-        let crossed = try through.imprintCurves(box, curves: [CurveOutputReference(featureID: sketch.featureID)],
+        let crossed = try through.imprintCurves(box, curves: [ImprintCurveReference(curve: CurveOutputReference(featureID: sketch.featureID))],
             projection: .vector(direction: .unitZ, bidirectional: false, hidesOcclusion: false))
         let all = try evaluate(through)
         // Bottom, top and the two faces the line passes under are each cut in two.
         #expect(faceCount(try body(of: crossed, in: all), in: all) == 10)
-        let seen = try builder.imprintCurves(box, curves: [CurveOutputReference(featureID: sketch.featureID)],
+        let seen = try builder.imprintCurves(box, curves: [ImprintCurveReference(curve: CurveOutputReference(featureID: sketch.featureID))],
             projection: .vector(direction: .unitZ, bidirectional: false, hidesOcclusion: true))
         let first = try evaluate(builder)
         // Only the bottom, which the line meets first.
@@ -233,10 +233,10 @@ struct ImprintFeatureTests {
             _ = sketch.line(from: sketchPoint(midX, midY - side / 4), to: sketchPoint(midX, midY + side / 4))
         }
         var bare = builder
-        _ = try bare.imprintCurves(box, curves: [CurveOutputReference(featureID: sketch.featureID)],
+        _ = try bare.imprintCurves(box, curves: [ImprintCurveReference(curve: CurveOutputReference(featureID: sketch.featureID))],
             projection: .vector(direction: .unitZ, bidirectional: false, hidesOcclusion: true), completion: .none)
         #expect(throws: KernelError.self) { try evaluate(bare) }
-        let completed = try builder.imprintCurves(box, curves: [CurveOutputReference(featureID: sketch.featureID)],
+        let completed = try builder.imprintCurves(box, curves: [ImprintCurveReference(curve: CurveOutputReference(featureID: sketch.featureID))],
             projection: .vector(direction: .unitZ, bidirectional: false, hidesOcclusion: true), completion: .edge)
         let evaluated = try evaluate(builder)
         #expect(faceCount(try body(of: completed, in: evaluated), in: evaluated) == 7)
@@ -252,7 +252,7 @@ struct ImprintFeatureTests {
         let sketch = try builder.sketch(on: .xy, named: "Circle") { sketch in
             _ = sketch.circle(center: sketchPoint(midX, midY), radius: length(side / 4))
         }
-        let imprinted = try builder.imprintCurves(box, curves: [CurveOutputReference(featureID: sketch.featureID)], projection: .normal)
+        let imprinted = try builder.imprintCurves(box, curves: [ImprintCurveReference(curve: CurveOutputReference(featureID: sketch.featureID))], projection: .normal)
         let evaluated = try evaluate(builder)
         let solid = try body(of: imprinted, in: evaluated)
         #expect(faceCount(solid, in: evaluated) == 7)
@@ -267,6 +267,42 @@ struct ImprintFeatureTests {
             if abs(point.z - bottom) < 1e-9 && abs(radius - side / 4) < 1e-6 { rim += 1 }
         }
         #expect(rim == 2)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aPlacedToolAndAPlacedCurveImprintWhereTheyArePlaced() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (box, extent) = try liftedBox(&builder)
+        let midX = (extent.minimum.x + extent.maximum.x) / 2
+        let back = try RigidTransform3D(
+            basisX: .unitX, basisY: .unitY, basisZ: .unitZ, translation: Vector3D(x: -0.1, y: 0, z: 0), tolerance: .standard
+        )
+        // A line built a tenth of a metre away and placed back under the box.
+        let far = try builder.sketch(on: .xy, named: "Far line") { sketch in
+            _ = sketch.line(from: sketchPoint(midX + 0.1, extent.minimum.y - side), to: sketchPoint(midX + 0.1, extent.maximum.y + side))
+        }
+        var curveBuilder = builder
+        let placedCurve = try curveBuilder.imprintCurves(box, curves: [ImprintCurveReference(curve: CurveOutputReference(featureID: far.featureID), placement: back)],
+            projection: .vector(direction: .unitZ, bidirectional: false, hidesOcclusion: false))
+        let curved = try evaluate(curveBuilder)
+        #expect(faceCount(try body(of: placedCurve, in: curved), in: curved) == 10)
+        // Unplaced, the same line misses the box.
+        var missing = builder
+        _ = try missing.imprintCurves(box, curves: [ImprintCurveReference(curve: CurveOutputReference(featureID: far.featureID))],
+            projection: .vector(direction: .unitZ, bidirectional: false, hidesOcclusion: false))
+        #expect(throws: KernelError.self) { try evaluate(missing) }
+
+        // A sheet built as far away and placed back across the box's top.
+        let sheet = try builder.bSplineSurface(BSplineSurface3D(
+            uDegree: 1, vDegree: 1, uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+            controlPoints: [[Point3D(x: midX + 0.1, y: extent.minimum.y - side, z: extent.minimum.z - side), Point3D(x: midX + 0.1, y: extent.maximum.y + side, z: extent.minimum.z - side)],
+                            [Point3D(x: midX + 0.1, y: extent.minimum.y - side, z: extent.maximum.z + side), Point3D(x: midX + 0.1, y: extent.maximum.y + side, z: extent.maximum.z + side)]]
+        ))
+        let placedTool = try builder.imprintBody(box, tool: sheet, toolPlacement: back)
+        let tooled = try evaluate(builder)
+        #expect(faceCount(try body(of: placedTool, in: tooled), in: tooled) == 10)
+        // Nothing of the moved sheet is published.
+        #expect(tooled.subshapes.entries.keys.allSatisfy { tooled.document.designGraph.nodes[$0.featureID] != nil })
     }
 
     // MARK: Untrim

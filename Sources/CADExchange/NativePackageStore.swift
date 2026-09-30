@@ -464,7 +464,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
         try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
     }
     try validateObjectField("imprintBody", in: object, path: "\(path).imprintBody") { feature, featurePath in
-        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "tool", "completion"], objectName: featurePath)
+        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "tool", "toolPlacement", "completion"], objectName: featurePath)
         try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
         try validateObjectField("tool", in: feature, path: "\(featurePath).tool", using: validatePatternTargetReferenceObject)
     }

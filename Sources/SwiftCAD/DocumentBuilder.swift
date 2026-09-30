@@ -485,10 +485,11 @@ public struct DocumentBuilder {
     /// Imprints where `tool` crosses `target` (`ImprintBodyFeature`).
     @discardableResult
     public mutating func imprintBody(
-        _ target: FeatureID, tool: FeatureID, completion: ImprintCompletion = .none, named name: String? = nil
+        _ target: FeatureID, tool: FeatureID, toolPlacement: RigidTransform3D? = nil, completion: ImprintCompletion = .none, named name: String? = nil
     ) throws -> FeatureID {
         let feature = ImprintBodyFeature(
-            target: PatternTargetReference(featureID: target), tool: PatternTargetReference(featureID: tool), completion: completion
+            target: PatternTargetReference(featureID: target), tool: PatternTargetReference(featureID: tool),
+            toolPlacement: toolPlacement, completion: completion
         )
         try feature.validate()
         let featureID = FeatureID()
@@ -499,7 +500,7 @@ public struct DocumentBuilder {
     /// Imprints `curves` projected onto `target` (`ImprintCurvesFeature`).
     @discardableResult
     public mutating func imprintCurves(
-        _ target: FeatureID, curves: [CurveOutputReference], projection: ImprintProjection,
+        _ target: FeatureID, curves: [ImprintCurveReference], projection: ImprintProjection,
         completion: ImprintCompletion = .none, named name: String? = nil
     ) throws -> FeatureID {
         let feature = ImprintCurvesFeature(

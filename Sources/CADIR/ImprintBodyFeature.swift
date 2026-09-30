@@ -1,18 +1,24 @@
 import CADCore
+import CADGeometry
 import CADTopology
 
 /// Edges on a target where a tool solid or sheet crosses it (Imprint Body Body): every face of
 /// the target the tool's faces cross is split along the crossing, both sides kept, and the tool
-/// stays as it is. With `completion` `.edge`, a crossing that ends inside a face is carried on
-/// along its own direction on the face until it meets an edge.
+/// stays as it is. The tool crosses the target where `toolPlacement` puts it in the target's
+/// frame (where it is, when nil). With `completion` `.edge`, a crossing that ends inside a face is
+/// carried on along its own direction on the face until it meets an edge.
 public struct ImprintBodyFeature: Codable, Hashable, Sendable {
     public var target: PatternTargetReference
     public var tool: PatternTargetReference
+    public var toolPlacement: RigidTransform3D?
     public var completion: ImprintCompletion
 
-    public init(target: PatternTargetReference, tool: PatternTargetReference, completion: ImprintCompletion) {
+    public init(
+        target: PatternTargetReference, tool: PatternTargetReference, toolPlacement: RigidTransform3D? = nil, completion: ImprintCompletion
+    ) {
         self.target = target
         self.tool = tool
+        self.toolPlacement = toolPlacement
         self.completion = completion
     }
 
@@ -25,14 +31,15 @@ public struct ImprintBodyFeature: Codable, Hashable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case target, tool, completion
+        case target, tool, toolPlacement, completion
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.target, .tool, .completion], in: decoder)
+        try container.validateOnlyExpectedKeys([.target, .tool, .toolPlacement, .completion], in: decoder)
         target = try container.decode(PatternTargetReference.self, forKey: .target)
         tool = try container.decode(PatternTargetReference.self, forKey: .tool)
+        toolPlacement = try container.decodeIfPresent(RigidTransform3D.self, forKey: .toolPlacement)
         completion = try container.decode(ImprintCompletion.self, forKey: .completion)
         try validate()
     }
@@ -42,6 +49,7 @@ public struct ImprintBodyFeature: Codable, Hashable, Sendable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(target, forKey: .target)
         try container.encode(tool, forKey: .tool)
+        try container.encodeIfPresent(toolPlacement, forKey: .toolPlacement)
         try container.encode(completion, forKey: .completion)
     }
 }
