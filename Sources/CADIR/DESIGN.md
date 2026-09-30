@@ -298,6 +298,25 @@ claimed.
     provenance, which is the truthful state of a mesh an exchange reader built
     from a triangle soup; it is not a fallback that a CAD consumer may accept
     silently. `CADKernel` owns which face produced which run.
+17. The source fingerprint is SHA-256 over the sorted-key JSON of the
+    fingerprint payload (`sha256-cad-source-dev`). A `ValidatedCADDocument`
+    computes it at most once, on first use, and every copy of that validated
+    document reads the same value
+    (`ValidatedCADDocumentSourceFingerprintMemo`): the validated document never
+    changes, so the evaluation engine, a cache seed and a freshness check
+    reading one validated document hash its source once. A mutation
+    (`replacingGraphStableFeatures`, `appendingFeatures`) is a new validated
+    document with an empty memo. The memo stores through `Mutex`, so before
+    macOS 15, iOS 18 and visionOS 2 it stores nothing and each read hashes the
+    same value again. `CADDocument.sourceFingerprint(tolerance:)`
+    validates a new document and therefore hashes again; a caller that already
+    holds the validated document reads it there. `SHA256Digest` is written in
+    Swift so the fingerprint exists on WASI, and hashes in place: one stack
+    message schedule serves every block and only the padded tail is copied.
+    `SHA256DigestTests` checks the published vectors and every padding
+    boundary against the platform digest, and
+    `ValidatedCADDocumentMutationTests.aValidatedDocumentComputesItsSourceFingerprintOnce`
+    checks the memo, its sharing by copies and a mutation's fresh value.
 
 ### Curve continuity levels
 

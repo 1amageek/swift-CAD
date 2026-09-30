@@ -5,6 +5,9 @@ public struct ValidatedCADDocument: Sendable {
     public let tolerance: ModelingTolerance
     package let identity: ValidatedCADDocumentIdentity
     package let transition: ValidatedCADDocumentTransition?
+    /// The fingerprint of `document`, computed on first use; a mutation makes a new validated
+    /// document and therefore a new, empty memo.
+    let sourceFingerprintMemo = ValidatedCADDocumentSourceFingerprintMemo()
 
     public init(
         _ document: CADDocument,

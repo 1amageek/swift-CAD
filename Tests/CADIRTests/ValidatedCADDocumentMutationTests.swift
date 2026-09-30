@@ -27,6 +27,31 @@ struct ValidatedCADDocumentMutationTests {
         try updated.document.validate(tolerance: updated.tolerance)
     }
 
+    /// A validated document hashes its source once, every copy reads that one value, and a
+    /// mutation, being a new validated document, hashes its own source.
+    @Test(.timeLimit(.minutes(1)))
+    func aValidatedDocumentComputesItsSourceFingerprintOnce() throws {
+        let fixture = try makeExtrudeDocument()
+        let validated = try ValidatedCADDocument(fixture.document, tolerance: .standard)
+        let copy = validated
+        #expect(!validated.sourceFingerprintMemo.hasValue)
+        let fingerprint = try validated.sourceFingerprint()
+        #expect(copy.sourceFingerprintMemo.hasValue)
+        #expect(try copy.sourceFingerprint() == fingerprint)
+        #expect(try fixture.document.sourceFingerprint(tolerance: .standard) == fingerprint)
+
+        var replacement = try #require(fixture.document.designGraph.nodes[fixture.extrudeID])
+        replacement.operation = .extrude(ExtrudeFeature(
+            profile: ProfileReference(featureID: fixture.sketchID),
+            distance: .constant(.length(2.0, unit: .meter))
+        ))
+        let updated = try validated.replacingGraphStableFeature(replacement)
+        #expect(!updated.sourceFingerprintMemo.hasValue)
+        let updatedFingerprint = try updated.sourceFingerprint()
+        #expect(updatedFingerprint != fingerprint)
+        #expect(try updated.document.sourceFingerprint(tolerance: .standard) == updatedFingerprint)
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func graphStableReplacementRejectsDependencyChanges() throws {
         let fixture = try makeExtrudeDocument()
