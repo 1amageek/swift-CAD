@@ -353,28 +353,8 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         extended = isU
             ? try extended.trimmed(uFrom: eu0, uTo: eu1, vFrom: across.lowerBound, vTo: across.upperBound, tolerance: tolerance)
             : try extended.trimmed(uFrom: across.lowerBound, uTo: across.upperBound, vFrom: ev0, vTo: ev1, tolerance: tolerance)
-        let stripSurface = Surface3D.bSpline(extended)
-        let (a, b, c, d) = (extended.uKnots.first ?? 0, extended.uKnots.last ?? 0, extended.vKnots.first ?? 0, extended.vKnots.last ?? 0)
-        // Counterclockwise around the strip's parameter rectangle.
-        let corners = [SurfaceParameter(u: a, v: c), SurfaceParameter(u: b, v: c), SurfaceParameter(u: b, v: d), SurfaceParameter(u: a, v: d)]
-        let sides: [SurfaceParameterCurve] = [
-            .constantV(v: c, uStart: a, uEnd: b), .constantU(u: b, vStart: c, vEnd: d),
-            .constantV(v: d, uStart: b, uEnd: a), .constantU(u: a, vStart: d, vEnd: c),
-        ]
-        let edges = try sides.enumerated().map { index, side -> BRepSewingEdge in
-            let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(surface: stripSurface, parameterCurve: side))
-            let startPoint = try stripSurface.differentialGeometry(u: corners[index].u, v: corners[index].v, tolerance: tolerance).position
-            let next = corners[(index + 1) % 4]
-            let endPoint = try stripSurface.differentialGeometry(u: next.u, v: next.v, tolerance: tolerance).position
-            return BRepSewingEdge(
-                stableID: "\(stableID):side:\(index)", curve: curve, startParameter: 0, endParameter: 1,
-                startPoint: startPoint, endPoint: endPoint, surfaceParameterCurve: side, parentSubshapeIDs: parents
-            )
-        }
-        return BRepSewingFacePatch(
-            stableID: stableID, surface: stripSurface, orientation: face.orientation,
-            loops: [BRepSewingLoop(stableID: "\(stableID):outer", role: .outer, edges: edges)],
-            parentSubshapeIDs: parents
+        return try BSplineParameterRectanglePatchBuilder().patch(
+            extended, stableID: stableID, orientation: face.orientation, parentSubshapeIDs: parents, tolerance: tolerance
         )
     }
 

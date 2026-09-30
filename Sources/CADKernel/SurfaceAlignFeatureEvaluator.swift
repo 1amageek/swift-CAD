@@ -86,27 +86,9 @@ public struct SurfaceAlignFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
             tolerance: tolerance
         )
         // The sheet sewn anew on the aligned surface, bounded by its parameter lines.
-        let surface = Surface3D.bSpline(aligned)
-        let (a, b, c, d) = (aligned.uKnots.first ?? 0, aligned.uKnots.last ?? 0, aligned.vKnots.first ?? 0, aligned.vKnots.last ?? 0)
-        let corners = [SurfaceParameter(u: a, v: c), SurfaceParameter(u: b, v: c), SurfaceParameter(u: b, v: d), SurfaceParameter(u: a, v: d)]
-        let sides: [SurfaceParameterCurve] = [
-            .constantV(v: c, uStart: a, uEnd: b), .constantU(u: b, vStart: c, vEnd: d),
-            .constantV(v: d, uStart: b, uEnd: a), .constantU(u: a, vStart: d, vEnd: c),
-        ]
         let parents = context.subshapeIDs(for: .face(faceID))
-        let edges = try sides.enumerated().map { index, side -> BRepSewingEdge in
-            let next = corners[(index + 1) % 4]
-            return BRepSewingEdge(
-                stableID: "surface-align:side:\(index)",
-                curve: .surfaceLift(SurfaceLiftCurve3D(surface: surface, parameterCurve: side)), startParameter: 0, endParameter: 1,
-                startPoint: try surface.differentialGeometry(u: corners[index].u, v: corners[index].v, tolerance: tolerance).position,
-                endPoint: try surface.differentialGeometry(u: next.u, v: next.v, tolerance: tolerance).position,
-                surfaceParameterCurve: side, parentSubshapeIDs: parents
-            )
-        }
-        let patch = BRepSewingFacePatch(
-            stableID: "surface-align:face", surface: surface, orientation: face.orientation,
-            loops: [BRepSewingLoop(stableID: "surface-align:outer", role: .outer, edges: edges)], parentSubshapeIDs: parents
+        let patch = try BSplineParameterRectanglePatchBuilder().patch(
+            aligned, stableID: "surface-align:face", orientation: face.orientation, parentSubshapeIDs: parents, tolerance: tolerance
         )
         let sewn = try sewer.sew(
             BRepSewingRequest(featureID: feature.id, bodyKind: .sheet, shells: [BRepSewingShell(stableID: "surface-align:shell", patches: [patch])]),

@@ -833,7 +833,9 @@ and running straight between those rows otherwise. Partial start and end fade th
 and out along the edge (smoothstep in each column's Greville abscissa), and a layout refits the
 target to its degrees and spans on its own parameters first (`MappedBSplineSurfaceFitter`); the
 reference's knots along the edge are merged in after, so the continuity stays exact. The sheet is
-sewn anew on the aligned surface. Rational surfaces, trimmed faces and edges inside a domain are
+sewn anew on the aligned surface by `BSplineParameterRectanglePatchBuilder`, whose four sides are
+the surface's isoparametric B-spline curves exactly (as Extend Sheet's strips are), so measuring an
+edge reads its own control points rather than bounding the surface's derivatives cell by cell. Rational surfaces, trimmed faces and edges inside a domain are
 refused. The cross-edge flow follows the reference's (Plasticity's Adjacent); Natural, Normal
 and Next flows are not provided. `SurfaceAlignTests` prove a flat sheet following an arch across
 a gap at G0, G1 and G2 with its far edge kept, a partial alignment on a refitted layout leaving
