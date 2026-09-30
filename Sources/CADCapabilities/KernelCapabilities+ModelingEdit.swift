@@ -333,24 +333,21 @@ extension KernelCapabilities {
       operation: "shell",
       topology: .solidBody,
       inputs: [
-        "oneOrthogonalHexahedralSolid",
-        "oneTargetBodyOwnedRemovedPlanarFace",
-        "positiveUniformInwardThickness",
+        "oneValidatedSolid",
+        "zeroOrMoreTargetBodyOwnedOpenedFaces",
+        "positiveUniformInwardThicknessEveryFaceCanBePushedInBy",
       ],
       outputs: [
         "validatedExactBRep",
-        "fiveOuterFaces",
-        "fiveInnerOffsetFaces",
-        "fourOpeningRimFaces",
+        "wallsEveryFacePushedInByTheThickness",
+        "voidOpeningThroughTheOpenedFacesOrClosedInsideTheSolid",
+        "openedFacesLeftAsRimsAroundTheOpenings",
         "analyticVolume",
         "deterministicEvaluation",
         "strictRequestDecoding",
         "strictCurrentSchemaNativePersistence",
-        "targetBodyScopedCavityDepth",
         "targetBodyScopedIdentityReplacement",
         "targetBodyScopedLineageParents",
-        "typedAmbiguousRemovedFaceSelectionAfterSplit",
-        "dimensionPreservingTopologyLineage",
         "preservedUnrelatedBodiesAndSelections",
       ],
       fixtures: [
@@ -358,6 +355,7 @@ extension KernelCapabilities {
         "ShellOwnershipTests",
         "CrossBodyReplacementFeatureTests",
         "ModelingFeatureSchemaTests",
+        "HollowTests",
       ],
       status: .partial,
       failureCodes: [
@@ -366,9 +364,8 @@ extension KernelCapabilities {
         .unsupportedCapability,
         .topologyFailure,
         .nonManifoldResult,
-        .ambiguousSelection,
       ],
-      additionalPublicAPIs: ["CADModeling.ShellFeatureEvaluator"]
+      additionalPublicAPIs: ["CADKernel.ShellFeatureEvaluator"]
     ),
     feature(
       id: "MODEL-EDGEMOVE-001",

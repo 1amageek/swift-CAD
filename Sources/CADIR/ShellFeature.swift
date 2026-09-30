@@ -1,6 +1,8 @@
 import CADCore
 import CADTopology
 
+/// Hollow: a solid emptied to walls `thickness` thick inside it, opening through `removedFaces`,
+/// or closed inside it when there are none.
 public struct ShellFeature: Codable, Hashable, Sendable {
     public let target: ShellTargetReference
     public let removedFaces: [StableSubshapeReference]
@@ -18,8 +20,7 @@ public struct ShellFeature: Codable, Hashable, Sendable {
 
     public func validate() throws {
         try target.validate()
-        guard removedFaces.isEmpty == false,
-              Set(removedFaces).count == removedFaces.count else {
+        guard Set(removedFaces).count == removedFaces.count else {
             throw KernelError(
                 phase: .validation,
                 code: .invalidInput,

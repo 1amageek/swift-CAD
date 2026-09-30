@@ -136,7 +136,7 @@ struct ShellOwnershipTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func rejectsMultipleRemovalFaces() throws {
+    func rejectsARemovalFaceGivenTwice() throws {
         let source = try evaluatedSolid()
         let sourceFeatureID = try #require(source.document.designGraph.order.last)
         let face = try stableStartFace(featureID: sourceFeatureID, in: source)
@@ -156,9 +156,9 @@ struct ShellOwnershipTests {
                     source.lineage
                 ))
             )
-            Issue.record("The bounded shell contract must reject multiple removal faces.")
+            Issue.record("A removal face given twice must be rejected.")
         } catch let error as KernelError {
-            #expect(error.code == .unsupportedCapability)
+            #expect(error.code == .invalidInput)
             #expect(error.featureID == shellFeatureID)
             #expect(error.tolerance == .standard)
         } catch {
@@ -189,7 +189,8 @@ struct ShellOwnershipTests {
             )
             Issue.record("A shell thickness that removes the cavity must be rejected.")
         } catch let error as KernelError {
-            #expect(error.code == .unsupportedCapability)
+            // Pushing the walls in by more than the solid is wide turns its edges around.
+            #expect(error.code == .topologyFailure)
             #expect(error.featureID == shellFeatureID)
             #expect(error.tolerance == .standard)
         } catch {

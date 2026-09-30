@@ -34,7 +34,7 @@ struct ShellBuilderTests {
         let loaded = try pipeline.loadDocument(from: BorrowedBytes(sink.bytes))
 
         try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
-        #expect(evaluated.brep.faces.count == 14)
+        #expect(evaluated.brep.faces.count == 11)
         guard case .shell = loaded.designGraph.nodes[shellID]?.operation else {
             Issue.record("Native package persistence must preserve the shared shell operation.")
             return

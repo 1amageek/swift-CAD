@@ -38,8 +38,10 @@ struct ShellFeatureTests {
         try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.shells.count == 1)
-        #expect(evaluated.brep.faces.count == 14)
-        #expect(evaluated.brep.edges.count == 28)
+        // The outer and the cavity's five faces, and the opened face left as the rim around the
+        // opening.
+        #expect(evaluated.brep.faces.count == 11)
+        #expect(evaluated.brep.edges.count == 24)
         #expect(evaluated.brep.vertices.count == 16)
         #expect(evaluated.brep.loops.values.flatMap(\.coedges).allSatisfy {
             $0.surfaceParameterCurve != nil
@@ -51,25 +53,20 @@ struct ShellFeatureTests {
             * (0.020 - 2.0 * thickness)
             * (0.010 - thickness)
         #expect(abs(try evaluated.brep.volume(tolerance: .standard) - (sourceVolume - cavityVolume)) <= 1.0e-12)
-        let removedFaceDescendants = evaluated.lineage.values.filter {
-            $0.output.featureID == shellID
-                && $0.output.role == GeneratedSubshapeRole.face.rawValue
-                && $0.parents.contains(removedFace.subshapeID)
+        // The opened face's only descendant is the rim face it leaves.
+        let descendants = evaluated.lineage.values.filter {
+            $0.output.featureID == shellID && $0.parents.contains(removedFace.subshapeID)
         }
-        #expect(removedFaceDescendants.count == 4)
-        #expect(removedFaceDescendants.allSatisfy { $0.relation == .merged })
-        let crossDimensionDescendants = evaluated.lineage.values.filter {
-            $0.output.featureID == shellID
-                && $0.output.role != GeneratedSubshapeRole.face.rawValue
-                && $0.parents.contains(removedFace.subshapeID)
+        let faceDescendants = descendants.filter {
+            if case .face = evaluated.subshapes[$0.output] { return true }
+            return false
         }
-        #expect(crossDimensionDescendants.isEmpty)
-        do {
-            _ = try evaluated.topologyReference(for: removedFace)
-            Issue.record("A removed shell face must not resolve to one opening rim implicitly.")
-        } catch let error as KernelError {
-            #expect(error.code == .ambiguousSelection)
-            #expect(error.subshapeID == removedFace.subshapeID)
+        #expect(faceDescendants.count == 1)
+        #expect(faceDescendants.count == descendants.count)
+        // The opened face resolves to the rim it leaves.
+        guard case .face = try evaluated.topologyReference(for: removedFace) else {
+            Issue.record("An opened face must resolve to the rim it leaves.")
+            return
         }
     }
 }

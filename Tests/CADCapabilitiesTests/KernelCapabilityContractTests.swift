@@ -1067,24 +1067,14 @@ struct KernelCapabilityContractTests {
     let capability = try partialCapability(operation: "shell")
     #expect(capability.status == .partial)
     #expect(capability.topology == .solidBody)
-    #expect(
-      capability.acceptedInputs.contains(
-        "oneTargetBodyOwnedRemovedPlanarFace"
-      ))
-    #expect(capability.exactOutputs.contains("targetBodyScopedCavityDepth"))
-    #expect(
-      capability.exactOutputs.contains(
-        "targetBodyScopedLineageParents"
-      ))
-    #expect(
-      capability.exactOutputs.contains(
-        "typedAmbiguousRemovedFaceSelectionAfterSplit"
-      ))
+    #expect(capability.acceptedInputs.contains("zeroOrMoreTargetBodyOwnedOpenedFaces"))
+    #expect(capability.exactOutputs.contains("voidOpeningThroughTheOpenedFacesOrClosedInsideTheSolid"))
+    #expect(capability.exactOutputs.contains("targetBodyScopedLineageParents"))
     #expect(capability.testFixtures.contains("ShellOwnershipTests"))
     #expect(capability.failureCodes.contains(.missingReference))
     #expect(capability.failureCodes.contains(.unsupportedCapability))
     #expect(capability.failureCodes.contains(.topologyFailure))
-    #expect(capability.failureCodes.contains(.ambiguousSelection))
+    #expect(capability.failureCodes.contains(.topologyFailure))
   }
 
   @Test

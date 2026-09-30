@@ -802,6 +802,20 @@ another curve already joins). They replace the earlier planar, line-only
 evaluators and work on solids and sheets alike. `EdgeOffsetFeatureTests` own
 these contracts.
 
+## Hollow
+
+`ShellFeatureEvaluator` hollows a solid to walls of a uniform inward thickness. An inner
+copy of the solid is sewn from its own faces (`DefaultBRepFacePatchExtractor`) in the
+unpublished `hollowInnerBody` stage, its faces tracing to the solid's through the sewing
+lineage. Every copied face is pushed in by the thickness, and each opened face out by it
+(`FaceSurfaceOffsetter`, `FaceSurfaceReplacementRebuilder`), so the copy reaches through the
+openings; the solid less the copy (`BooleanPipeline`, difference) is the hollow, the opened
+faces left as rims around the openings. With no face opened the void is closed inside the
+solid, its own shell. A thickness a face cannot be pushed in by (a round narrower than it, a
+wall it passes) is refused with the feature's own identity. `HollowTests` prove boxes open
+through one or two faces or closed, a cylinder and a rounded box by exact volumes, and the
+refusal.
+
 ## Reverse Sheet
 
 `ReverseSheetFeatureEvaluator` turns a sheet over in its place, consuming it: the
