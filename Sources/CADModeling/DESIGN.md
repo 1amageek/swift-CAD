@@ -662,6 +662,21 @@ the stable signature owners, and the `CADIR` all-edge fillet domain statement.
 
 [ConstrainedSurface](ConstrainedSurface/DESIGN.md) owns point-constrained sheet construction and its bounded fitting contract.
 
+### Extrusion draft
+
+An extrusion's `draftAngle` narrows its section along the extrusion by the angle's tangent per
+unit of height, one taper running straight through the sketch plane (a symmetric extrusion is
+wider below the plane than above). `ExactDraftedProfileBoundaryBuilder` offsets each loop at the
+bottom and top heights exactly: lines move parallel to themselves, arcs keep their centres and
+change radius (holes grow as outlines shrink), tangent joints move along their common normal and
+line corners to their miter. `ExactPrismaticFacePatchBuilder.request(bottom:top:…)` then rules
+each wall between its bottom and top segment: a plane between two lines, and between two arcs the
+rational quadratic spans at one angle, which is the exact cone; caps close both ends with the
+prism's stable names. Spline sections, sharp corners at arcs, curve sections and directions off
+the normal are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). `ExtrudeDraftTests` own the
+rectangle frustum's volume and wall angle, the symmetric taper, the circle's cone and the oblique
+refusal.
+
 ### Extrusion Boolean composition
 
 Extrude owns its retained target references and operation, while the existing

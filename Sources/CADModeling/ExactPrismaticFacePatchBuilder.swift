@@ -136,6 +136,132 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         )
     }
 
+    /// A drafted prism: caps on the `bottom` and `top` boundaries (outer first, holes after) and
+    /// one side between each bottom segment and the top segment it corresponds to, which must be of
+    /// one kind: two lines (the plane through them) or two B-splines on one basis (the surface ruled
+    /// between them, straight across). Stable identities follow the prismatic request's.
+    package func request(
+        bottom: [[ExactPrismaticBoundarySegment]],
+        top: [[ExactPrismaticBoundarySegment]],
+        featureID: FeatureID,
+        stablePrefix: String,
+        bodyKind: BodyKind = .solid,
+        includesCaps: Bool = true,
+        sideOrientation: Orientation = .forward,
+        capNormal: Vector3D
+    ) throws -> BRepSewingRequest {
+        try tolerance.validate()
+        let capNormal = try capNormal.normalized(tolerance: tolerance.distance)
+        guard bottom.isEmpty == false, bottom.count == top.count,
+              zip(bottom, top).allSatisfy({ $0.count == $1.count && $0.count >= 2 }),
+              stablePrefix.isEmpty == false, bodyKind != .solid || includesCaps else {
+            throw KernelError(phase: .topology, code: .invalidInput, tolerance: tolerance,
+                              message: "A drafted prism needs corresponding closed bottom and top boundaries.")
+        }
+        for boundary in bottom + top { try validateClosure(boundary) }
+        var patches: [BRepSewingFacePatch] = []
+        if includesCaps {
+            patches.append(try capPatch(
+                outerBoundary: bottom[0], innerBoundaries: Array(bottom.dropFirst()), capNormal: capNormal,
+                offset: .zero, isTop: false, stableID: "\(stablePrefix):cap:lower"
+            ))
+            patches.append(try capPatch(
+                outerBoundary: top[0], innerBoundaries: Array(top.dropFirst()), capNormal: capNormal,
+                offset: .zero, isTop: true, stableID: "\(stablePrefix):cap:upper"
+            ))
+        }
+        // With caps, one shell whose holes are inner loops; without, one shell per loop, named as a
+        // component when there are several.
+        var shells: [BRepSewingShell] = []
+        for (loopIndex, pair) in zip(bottom, top).enumerated() {
+            let loopPrefix: String = if includesCaps {
+                loopIndex == 0 ? stablePrefix : "\(stablePrefix):inner:\(loopIndex - 1)"
+            } else {
+                bottom.count == 1 ? stablePrefix : "\(stablePrefix):component:\(loopIndex)"
+            }
+            var sides: [BRepSewingFacePatch] = []
+            for (index, segments) in zip(pair.0, pair.1).enumerated() {
+                sides.append(try taperedSidePatch(
+                    bottom: segments.0, top: segments.1, stableID: "\(loopPrefix):side:\(index)",
+                    requestedOrientation: sideOrientation
+                ))
+            }
+            if includesCaps {
+                patches.append(contentsOf: sides)
+            } else {
+                shells.append(BRepSewingShell(stableID: "\(loopPrefix):shell", patches: sides))
+            }
+        }
+        if includesCaps {
+            shells = [BRepSewingShell(stableID: "\(stablePrefix):shell", patches: patches)]
+        }
+        return BRepSewingRequest(featureID: featureID, bodyKind: bodyKind, shells: shells)
+    }
+
+    private func taperedSidePatch(
+        bottom: ExactPrismaticBoundarySegment,
+        top: ExactPrismaticBoundarySegment,
+        stableID: String,
+        requestedOrientation: Orientation
+    ) throws -> BRepSewingFacePatch {
+        let surface: Surface3D
+        var ruled: (lower: Double, upper: Double)?
+        switch (bottom.geometry, top.geometry) {
+        case (.line, .line):
+            let direction = try (bottom.endPoint - bottom.startPoint).normalized(tolerance: tolerance.distance)
+            let rising = top.startPoint - bottom.startPoint
+            surface = .plane(Plane3D(
+                origin: bottom.startPoint,
+                normal: try direction.cross(rising).normalized(tolerance: tolerance.distance)
+            ))
+            guard abs((top.endPoint - bottom.startPoint).dot(try direction.cross(rising).normalized(tolerance: tolerance.distance)))
+                    <= tolerance.distance else {
+                throw KernelError(phase: .geometry, code: .topologyFailure, tolerance: tolerance,
+                                  message: "A drafted wall's two lines do not lie in one plane.")
+            }
+        case let (.bSpline(lower), .bSpline(upper)):
+            guard lower.degree == upper.degree, lower.knots == upper.knots, lower.weights == upper.weights,
+                  lower.controlPoints.count == upper.controlPoints.count else {
+                throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                                  message: "A drafted wall's spans lie on different bases.")
+            }
+            let ruledSurface = BSplineSurface3D(
+                uDegree: lower.degree, vDegree: 1, uKnots: lower.knots, vKnots: [0, 0, 1, 1],
+                controlPoints: [lower.controlPoints, upper.controlPoints], weights: [lower.weights, upper.weights]
+            )
+            try ruledSurface.validate(tolerance: tolerance)
+            surface = .bSpline(ruledSurface)
+            ruled = try ruledSurfaceParameters(for: bottom)
+        default:
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                              message: "A drafted wall joins segments of different kinds.")
+        }
+        let bottomEdge = try boundaryEdge(
+            bottom, offset: .zero, reversed: false, surface: surface,
+            ruledSurfaceV: ruled == nil ? nil : 0.0, stableID: "\(stableID):bottom"
+        )
+        let endEdge = try lineEdge(
+            from: bottom.endPoint, to: top.endPoint, surface: surface,
+            surfaceParameterCurve: ruled.map { .constantU(u: $0.upper, vStart: 0.0, vEnd: 1.0) },
+            stableID: "\(stableID):end"
+        )
+        let topEdge = try boundaryEdge(
+            top, offset: .zero, reversed: true, surface: surface,
+            ruledSurfaceV: ruled == nil ? nil : 1.0, stableID: "\(stableID):top"
+        )
+        let startEdge = try lineEdge(
+            from: top.startPoint, to: bottom.startPoint, surface: surface,
+            surfaceParameterCurve: ruled.map { .constantU(u: $0.lower, vStart: 1.0, vEnd: 0.0) },
+            stableID: "\(stableID):start"
+        )
+        return BRepSewingFacePatch(
+            stableID: stableID,
+            surface: surface,
+            orientation: combined(.forward, with: requestedOrientation),
+            loops: [BRepSewingLoop(stableID: "\(stableID):loop", role: .outer, edges: [bottomEdge, endEdge, topEdge, startEdge])]
+        )
+    }
+
     private func shell(
         outerBoundary: [ExactPrismaticBoundarySegment],
         innerBoundaries: [[ExactPrismaticBoundarySegment]],

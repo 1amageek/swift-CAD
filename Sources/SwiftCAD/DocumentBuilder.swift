@@ -197,6 +197,7 @@ public struct DocumentBuilder {
         distance: CADExpression,
         startDistance: CADExpression? = nil,
         direction: ExtrudeDirection = .normal,
+        draftAngle: CADExpression? = nil,
         named name: String? = nil
     ) throws -> FeatureID {
         let featureID = FeatureID()
@@ -209,7 +210,8 @@ public struct DocumentBuilder {
                     distance: distance,
                     startDistance: startDistance,
                     direction: direction,
-                    operation: .newBody
+                    operation: .newBody,
+                    draftAngle: draftAngle
                 )
             )
         )

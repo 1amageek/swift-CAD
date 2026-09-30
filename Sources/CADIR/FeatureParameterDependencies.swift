@@ -16,6 +16,7 @@ public extension FeatureOperation {
         case let .extrude(extrude):
             return extrude.distance.referencedParameterIDs
                 .union(extrude.startDistance?.referencedParameterIDs ?? [])
+                .union(extrude.draftAngle?.referencedParameterIDs ?? [])
         case let .revolve(revolve):
             return revolve.angle.referencedParameterIDs
         case let .sweep(sweep):

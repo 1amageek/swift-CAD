@@ -121,10 +121,12 @@ extension KernelCapabilities {
         "positiveLengthExpression",
         "normalSymmetricOrNonTangentialVectorDirection",
         "optionalUnionDifferenceIntersectOrSliceWithPlacedTargetsAndKeepTools",
+        "optionalDraftAngleOnLineAndTangentArcSectionsAlongTheirNormal",
       ],
       outputs: [
         "validatedExactBRep",
         "booleanWithTargetsMovedToTheirPlacementsFirst",
+        "draftedWallsOfPlanesAndExactRuledConesTaperingThroughTheSketchPlane",
         "analyticPlanarAndCylindricalFaces",
         "rationalBSplineRuledSurfaces",
         "mandatoryFaceLocalPcurves",
@@ -139,6 +141,7 @@ extension KernelCapabilities {
         "ExactSplineExtrudeFeatureTests",
         "ExactSplineExtrudeCommandParityTests",
         "TwoSidedExtrudeTests",
+        "ExtrudeDraftTests",
       ],
       status: .supported,
       failureCodes: [

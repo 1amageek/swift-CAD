@@ -23,7 +23,8 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
         distance: Double,
         startOffset: Double = 0,
         bodyKind: BodyKind,
-        includesCaps: Bool
+        includesCaps: Bool,
+        draftTangent: Double = 0
     ) throws -> EvaluationResult {
         try context.tolerance.validate()
         guard profile.vertices.count >= 3 else {
@@ -45,20 +46,44 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
         case .normal, .vector:
             bottomOffset = axis * startOffset
         }
-        let boundaries = try ExactProfileBoundaryConverter(
-            tolerance: context.tolerance
-        ).boundaries(
-            from: profile,
-            offset: bottomOffset,
-            extrusionAxis: axis
-        )
         let sideOrientation: Orientation = normalComponent >= 0.0
             ? .forward
             : .reversed
         let capNormal = profileNormal * (normalComponent >= 0.0 ? 1.0 : -1.0)
         let patchBuilder = ExactPrismaticFacePatchBuilder(tolerance: context.tolerance)
+        let boundaries: [[ExactPrismaticBoundarySegment]]
         let request: BRepSewingRequest
-        if includesCaps {
+        if draftTangent != 0 {
+            // A draft tapers the walls by one angle through the whole span, measured from the
+            // sketch plane along the axis, so the axis must be the plane's normal.
+            guard draftTangent.isFinite, abs(abs(normalComponent) - 1) <= context.tolerance.angle else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): an oblique extrusion is refused a draft.
+                // Production path: ExactProfileExtrudeBodyBuilder for every extrude with a draft
+                // angle. Complete only when an oblique drafted extrusion's walls keep the angle to
+                // the extrusion direction, verified by its wall normals.
+                throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: context.tolerance,
+                                  message: "A drafted extrusion runs along its section's normal.")
+            }
+            let lower = axis.dot(bottomOffset)
+            let drafted = ExactDraftedProfileBoundaryBuilder(tolerance: context.tolerance)
+            boundaries = try drafted.boundaries(
+                from: profile, planeNormal: profileNormal, axis: axis, height: lower, tangent: draftTangent
+            )
+            let top = try drafted.boundaries(
+                from: profile, planeNormal: profileNormal, axis: axis, height: lower + distance, tangent: draftTangent
+            )
+            request = try patchBuilder.request(
+                bottom: boundaries, top: top, featureID: featureID, stablePrefix: "extrude", bodyKind: bodyKind,
+                includesCaps: includesCaps, sideOrientation: sideOrientation, capNormal: capNormal
+            )
+        } else if includesCaps {
+            boundaries = try ExactProfileBoundaryConverter(
+                tolerance: context.tolerance
+            ).boundaries(
+                from: profile,
+                offset: bottomOffset,
+                extrusionAxis: axis
+            )
             request = try patchBuilder.request(
                 outerBoundary: boundaries[0],
                 innerBoundaries: Array(boundaries.dropFirst()),
@@ -72,6 +97,13 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
                 capNormal: capNormal
             )
         } else {
+            boundaries = try ExactProfileBoundaryConverter(
+                tolerance: context.tolerance
+            ).boundaries(
+                from: profile,
+                offset: bottomOffset,
+                extrusionAxis: axis
+            )
             request = try patchBuilder.request(
                 boundaries: boundaries,
                 axis: axis,

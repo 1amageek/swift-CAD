@@ -9,6 +9,9 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
     public var targets: [BooleanTargetReference]
     public var keepTools: Bool
     public var resultKind: ExtrudeResultKind
+    /// The walls' draft: a positive angle narrows the section along the extrusion direction, one
+    /// taper running straight through the sketch plane; nil or zero leaves the walls straight.
+    public var draftAngle: CADExpression?
 
     public init(
         profile: ProfileReference,
@@ -18,10 +21,11 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         operation: SolidOperation = .newBody,
         targets: [BooleanTargetReference] = [],
         keepTools: Bool = false,
-        resultKind: ExtrudeResultKind = .solid
+        resultKind: ExtrudeResultKind = .solid,
+        draftAngle: CADExpression? = nil
     ) {
         self.init(section: .profile(profile), distance: distance, startDistance: startDistance, direction: direction,
-                  operation: operation, targets: targets, keepTools: keepTools, resultKind: resultKind)
+                  operation: operation, targets: targets, keepTools: keepTools, resultKind: resultKind, draftAngle: draftAngle)
     }
 
     public init(
@@ -32,7 +36,8 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         operation: SolidOperation = .newBody,
         targets: [BooleanTargetReference] = [],
         keepTools: Bool = false,
-        resultKind: ExtrudeResultKind
+        resultKind: ExtrudeResultKind,
+        draftAngle: CADExpression? = nil
     ) {
         self.section = section
         self.distance = distance
@@ -42,6 +47,7 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         self.targets = targets
         self.keepTools = keepTools
         self.resultKind = resultKind
+        self.draftAngle = draftAngle
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -52,12 +58,13 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         case operation
         case targets, keepTools
         case resultKind
+        case draftAngle
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
-            [.section, .distance, .startDistance, .direction, .operation, .targets, .keepTools, .resultKind],
+            [.section, .distance, .startDistance, .direction, .operation, .targets, .keepTools, .resultKind, .draftAngle],
             in: decoder
         )
         section = try container.decode(SectionReference.self, forKey: .section)
@@ -68,6 +75,7 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         targets = try container.decodeIfPresent([BooleanTargetReference].self, forKey: .targets) ?? []
         keepTools = try container.decodeIfPresent(Bool.self, forKey: .keepTools) ?? false
         resultKind = try container.decode(ExtrudeResultKind.self, forKey: .resultKind)
+        draftAngle = try container.decodeIfPresent(CADExpression.self, forKey: .draftAngle)
         try validate()
     }
 
@@ -82,6 +90,7 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         if !targets.isEmpty { try container.encode(targets, forKey: .targets) }
         if keepTools { try container.encode(keepTools, forKey: .keepTools) }
         try container.encode(resultKind, forKey: .resultKind)
+        try container.encodeIfPresent(draftAngle, forKey: .draftAngle)
     }
 
     public func validate() throws {
@@ -100,6 +109,7 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         }
         try distance.validateLiteralQuantities()
         try startDistance?.validateLiteralQuantities()
+        try draftAngle?.validateLiteralQuantities()
         guard direction != .symmetric || startDistance == nil else {
             throw FeatureEvaluationError.invalidGraph("Symmetric extrusion cannot also specify a start position.")
         }

@@ -1,3 +1,4 @@
+import Foundation
 import CADCore
 import CADGeometry
 import CADIR
@@ -56,6 +57,15 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             try resolver.evaluate($0, parameters: context.parameters, variables: [:])
         }
         let span = range.upperBound - range.lowerBound
+        var draftTangent = 0.0
+        if let draftAngle = extrude.draftAngle {
+            let quantity = try resolver.evaluate(draftAngle, parameters: context.parameters, variables: [:])
+            guard quantity.kind == .angle, quantity.value.isFinite, abs(quantity.value) < Double.pi / 2 - context.tolerance.angle else {
+                throw KernelError(phase: .evaluation, code: .invalidInput, featureID: feature.id, tolerance: context.tolerance,
+                                  message: "An extrusion's draft is an angle under 90 degrees.")
+            }
+            draftTangent = abs(quantity.value) > context.tolerance.angle ? tan(quantity.value) : 0
+        }
         // A placed Boolean target moves into the extrusion's frame first, as a staged body, the
         // way a Boolean moves its placed operands; the tool is built beside it.
         var stages = FeatureEvaluationStages(context)
@@ -101,9 +111,18 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 distance: span,
                 startOffset: range.lowerBound,
                 bodyKind: extrude.resultKind == .solid ? .solid : .sheet,
-                includesCaps: extrude.resultKind == .solid
+                includesCaps: extrude.resultKind == .solid,
+                draftTangent: draftTangent
             )
         case .curve(let reference):
+            guard draftTangent == 0 else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): a curve extrusion is refused a draft.
+                // Production path: PlanarExtrudeFeatureEvaluator for every curve extrude with a
+                // draft angle. Complete only when a drafted curve sheet leans by the angle, verified
+                // by its wall normals.
+                throw KernelError(phase: .geometry, code: .unsupportedCapability, featureID: feature.id,
+                                  tolerance: context.tolerance, message: "A drafted extrusion drafts a closed section.")
+            }
             let curve = try ResolvedModelingSection.resolveCurve(
                 reference, from: context.curves[reference.featureID], tolerance: context.tolerance
             )
