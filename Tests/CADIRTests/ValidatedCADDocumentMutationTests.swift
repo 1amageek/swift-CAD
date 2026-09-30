@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 import CADCore
 @testable import CADIR
@@ -50,6 +51,28 @@ struct ValidatedCADDocumentMutationTests {
         let updatedFingerprint = try updated.sourceFingerprint()
         #expect(updatedFingerprint != fingerprint)
         #expect(try updated.document.sourceFingerprint(tolerance: .standard) == updatedFingerprint)
+    }
+
+    /// A document equals what its own encoding decodes to, and a change to any stored value,
+    /// envelope included, makes it unequal.
+    @Test(.timeLimit(.minutes(1)))
+    func aDocumentEqualsItsDecodedEncodingAndNothingElse() throws {
+        var fixture = try makeExtrudeDocument()
+        fixture.document.metadata.name = "Round trip"
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        let decoded = try JSONDecoder().decode(CADDocument.self, from: encoder.encode(fixture.document))
+        #expect(decoded == fixture.document)
+
+        var renamed = fixture.document
+        renamed.metadata.name = "Other"
+        #expect(renamed != fixture.document)
+        var revised = fixture.document
+        revised.parameters.revision = revised.parameters.revision.advanced()
+        #expect(revised != fixture.document)
+        var reordered = fixture.document
+        reordered.designGraph.revision = reordered.designGraph.revision.advanced()
+        #expect(reordered != fixture.document)
     }
 
     @Test(.timeLimit(.minutes(1)))

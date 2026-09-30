@@ -1,7 +1,7 @@
 import Foundation
 import CADCore
 
-public struct DocumentMetadata: Codable, Sendable {
+public struct DocumentMetadata: Codable, Equatable, Sendable {
     public var name: String?
     public var createdAt: Date
     public var updatedAt: Date

@@ -1,6 +1,9 @@
 import CADCore
 
-public struct CADDocument: Codable, Sendable {
+/// Equality is member-wise over every stored value: a document equals the one its own encoding
+/// decodes to exactly when the encoding reproduces it, which is how a project proves that its
+/// package sources reproduce the edited document.
+public struct CADDocument: Codable, Equatable, Sendable {
     public var id: DocumentID
     public var schemaVersion: SchemaVersion
     public var units: UnitSystem

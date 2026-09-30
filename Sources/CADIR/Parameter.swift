@@ -1,7 +1,7 @@
 import Foundation
 import CADCore
 
-public struct ParameterTable: Codable, Sendable {
+public struct ParameterTable: Codable, Equatable, Sendable {
     public var parameters: [ParameterID: Parameter]
     public var revision: DocumentRevision
 

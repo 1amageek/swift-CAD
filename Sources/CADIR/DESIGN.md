@@ -317,6 +317,14 @@ claimed.
     boundary against the platform digest, and
     `ValidatedCADDocumentMutationTests.aValidatedDocumentComputesItsSourceFingerprintOnce`
     checks the memo, its sharing by copies and a mutation's fresh value.
+18. `CADDocument` (with `ParameterTable` and `DocumentMetadata`) is
+    `Equatable` member-wise over every stored value. A document equals what its
+    own encoding decodes to exactly when the encoding reproduces it, so an
+    application proves a persisted round trip by comparing the two documents
+    rather than hashing both; the fingerprint stays the semantic identity for
+    caches and provenance.
+    `ValidatedCADDocumentMutationTests.aDocumentEqualsItsDecodedEncodingAndNothingElse`
+    checks the round trip and envelope changes.
 
 ### Curve continuity levels
 
