@@ -247,6 +247,15 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 guard distance.value.isFinite, distance.value != 0.0 else {
                     throw FeatureEvaluationError.invalidDistance(distance.value)
                 }
+                if let adjacentAngle = offset.adjacentAngle {
+                    let angle = try parameters.resolvedValue(for: adjacentAngle)
+                    guard angle.kind == .angle else {
+                        throw UnitError.expectedQuantity(operation: "faceOffset.adjacentAngle", expected: .angle, actual: angle.kind)
+                    }
+                    guard angle.value.isFinite, abs(angle.value) < Double.pi / 2 else {
+                        throw FeatureEvaluationError.invalidGraph("Push Face adjacent angle must lie strictly between -90 and 90 degrees.")
+                    }
+                }
             case let .faceMove(move):
                 try move.validate(tolerance: tolerance)
                 let distance = try parameters.resolvedValue(for: move.translation.distance)
@@ -377,6 +386,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             case let .isoparam(feature):
                 try feature.validate()
             case let .imprintBody(feature):
+                try feature.validate()
+            case let .faceMatch(feature):
                 try feature.validate()
             case let .untrimFace(feature):
                 try feature.validate()
@@ -664,6 +675,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             try validateReverseSheetContract(node, outputRoles: outputRoles)
         case .isoparam, .imprintBody, .untrimFace, .imprintCurves:
             try validateImprintContract(node, outputRoles: outputRoles)
+        case .faceMatch:
+            try validateFaceMatchContract(node, outputRoles: outputRoles)
         case .extract:
             try validateExtractContract(node, outputRoles: outputRoles)
         case .wrap:
@@ -1464,6 +1477,27 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         }
         guard outputRoles == [.sheet] else {
             throw FeatureEvaluationError.invalidGraph("Unjoin faces features must declare one sheet output.")
+        }
+    }
+
+    /// Match Face reshapes its target and publishes it as the same kind of body, reading the
+    /// reference face's body as well when that is another.
+    private func validateFaceMatchContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        guard case let .faceMatch(feature) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a faceMatch operation.")
+        }
+        try feature.validate()
+        guard node.inputs == feature.inputs else {
+            throw FeatureEvaluationError.invalidGraph("Match Face features must consume exactly their referenced inputs.")
+        }
+        guard let targetPort = nodes[feature.target.featureID]?.bodyOrSheetOutput else {
+            throw FeatureEvaluationError.invalidGraph("Match Face target must declare one body or sheet output.")
+        }
+        guard nodes[feature.source.featureID]?.bodyOrSheetOutput != nil else {
+            throw FeatureEvaluationError.invalidGraph("Match Face reference body must declare one body or sheet output.")
+        }
+        guard outputRoles == [targetPort] else {
+            throw FeatureEvaluationError.invalidGraph("Match Face features must publish their target's kind of body.")
         }
     }
 

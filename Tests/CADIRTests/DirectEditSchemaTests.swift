@@ -25,7 +25,7 @@ struct DirectEditSchemaTests {
         ))
         try expectUnknownFieldRejected(FaceOffsetFeature.self, value: FaceOffsetFeature(
             target: FaceOffsetTargetReference(featureID: sourceID),
-            face: face,
+            faces: [face],
             distance: .constant(.length(0.005, unit: .meter))
         ))
         try expectUnknownFieldRejected(EdgeMoveFeature.self, value: EdgeMoveFeature(

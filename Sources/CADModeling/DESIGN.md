@@ -515,12 +515,50 @@ then keeps the outward side the map carries it to, and a curved edge moves only
 under a translation. `TopologyTransformTests` prove shared corners, a tilted
 face and a frustum by exact volumes, and the refusals.
 
+`FaceSurfaceReplacementRebuilder` owns the local face operations that give faces
+new surfaces: Push Face (`FaceOffsetFeatureEvaluator`, each face onto its offset
+from `FaceSurfaceOffsetter`: planes shift, cylinders, spheres and tori change
+radius, cones slide along their axis, any other surface takes its exact procedural
+offset, and with an adjacent angle each planar neighbour of a planar pushed face
+turns about their straight shared edge), Draft Face (`FaceDraftFeatureEvaluator`,
+isocline: a planar face turns about its crossing with the neutral plane, optionally
+offset along the neutral face's outward side, and a cylinder along the pull
+direction becomes the cone through its neutral circle, each making the angle with
+the pull direction) and Match Face (`FaceMatchFeatureEvaluator`, onto a reference
+face's surface, of another body where its relative placement puts it, keeping the
+face's outward side or taking the reference's front). The engine re-solves
+everything around the changed faces from the surfaces alone and keeps topology
+and identities:
+
+```text
+new surfaces ──▶ each changed edge: its two faces' intersection branch nearest
+                  its old middle (DefaultSurfaceSurfaceIntersector); a straight
+                  edge whose faces now share a surface, or an open sheet edge,
+                  the line through its re-solved ends
+             ──▶ each changed vertex: where its faces' distinct surfaces cross,
+                  nearest where it was (tangent-plane Newton; along a re-solved
+                  edge where two of them touch tangentially)
+             ──▶ edges trimmed between their re-solved ends, keeping their sense;
+                  edges between unchanged faces run on their own curves to moved
+                  vertices; parameter curves cleared for ExactFacePcurveBuilder
+```
+
+`SurfaceFootResolver` gives the nearest point and normal of a whole surface to
+any point, on it or off it, in closed form for analytic surfaces. An edge that
+would collapse or reverse, surfaces that no longer meet near an edge or vertex,
+and a face whose outward side would turn over are refused, so every Grow mode
+refuses a face running into another wall
+(`FIXME(INCOMPLETE_IMPLEMENTATION)` in each evaluator); a face crossing the
+neutral plane is refused likewise until it is split along it. `PushFaceTests`,
+`DraftFaceTests` and `MatchFaceTests` prove boxes, rounded boxes, cylinders,
+holes, adjacent angles, pyramid and cone frustums and placed references by exact
+volumes, and the refusals.
+
 `LocalVertexDisplacementRebuilder` owns the direct edits that move vertices: a
 straight edge's two ends (`EdgeMoveFeatureEvaluator`), a planar face's boundary
 (`FaceMoveFeatureEvaluator`), and a vertex of any body other than a single-shell
 polyhedral solid (`VertexMoveFeatureEvaluator`, which keeps re-sewing and
-triangulating that polyhedral case), and a planar face moved along its outward
-normal (`FaceOffsetFeatureEvaluator`). Only the faces around the moved vertices are
+triangulating that polyhedral case). Only the faces around the moved vertices are
 re-solved, so solids and sheets with curved faces elsewhere can be edited. A
 straight edge at a moved vertex becomes the line through its moved ends and must
 keep its sense. A curved edge (circle or B-spline) moves only when both its ends

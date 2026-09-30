@@ -63,6 +63,7 @@ struct KernelCapabilityContractTests {
       "MODEL-UNJOIN-002",
       "MODEL-REVERSE-SHEET-001",
       "MODEL-IMPRINT-001",
+      "MODEL-FACEMATCH-001",
       "MODEL-ISOPARAM-001",
       "MODEL-UNTRIM-001",
       "MODEL-IMPRINT-002",
@@ -979,18 +980,14 @@ struct KernelCapabilityContractTests {
 
     #expect(capability.status == .partial)
     #expect(capability.topology == .solidBody)
-    #expect(
-      capability.acceptedInputs.contains(
-        "finiteNonzeroSignedIncrementalAngleBelowNinetyDegrees"
-      ))
-    #expect(capability.exactOutputs.contains("verifiedConstraintResiduals"))
+    #expect(capability.acceptedInputs.contains("finiteNonzeroIsoclineAngleBelowNinetyDegrees"))
+    #expect(capability.exactOutputs.contains("planesTurnedAboutTheirNeutralCrossingAndCylindersIntoCones"))
     #expect(
       capability.exactOutputs.contains(
         "preservedUnrelatedBodiesAndSelections"
       ))
     #expect(capability.failureCodes.contains(.missingReference))
-    #expect(capability.failureCodes.contains(.singularSystem))
-    #expect(capability.failureCodes.contains(.conflictingConstraints))
+    #expect(capability.failureCodes.contains(.topologyFailure))
     #expect(capability.failureCodes.contains(.unsupportedCapability))
   }
 
@@ -1120,7 +1117,8 @@ struct KernelCapabilityContractTests {
     let faceOffset = try partialCapability(operation: "faceOffset")
     #expect(faceOffset.status == .partial)
     #expect(faceOffset.topology == .sheetOrSolidBody)
-    #expect(faceOffset.acceptedInputs.contains("oneTargetBodyOwnedPlanarFace"))
+    #expect(faceOffset.acceptedInputs.contains("optionalAdjacentAngleTiltingPlanarNeighboursAboutStraightEdges"))
+    #expect(faceOffset.exactOutputs.contains("neighbouringEdgesAndVerticesResolvedFromTheirSurfaces"))
     #expect(faceOffset.exactOutputs.contains("targetBodyScopedIdentityReplacement"))
     #expect(faceOffset.exactOutputs.contains("targetBodyScopedLineageParents"))
     #expect(faceOffset.exactOutputs.contains("stableOffsetFaceSelection"))

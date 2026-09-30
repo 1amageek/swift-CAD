@@ -245,7 +245,7 @@ struct CADCommandTests {
         let command = CADCommand.appendFeature(FeatureRequest(
             operation: .faceOffset(FaceOffsetFeature(
                 target: FaceOffsetTargetReference(featureID: targetID),
-                face: face,
+                faces: [face],
                 distance: .constant(.length(2.0, unit: .millimeter))
             ))
         ))

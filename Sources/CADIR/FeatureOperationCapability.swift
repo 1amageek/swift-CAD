@@ -37,6 +37,7 @@ public extension FeatureOperation {
         case .reverseSheet: return "reverseSheet"
         case .isoparam: return "isoparam"
         case .imprintBody: return "imprintBody"
+        case .faceMatch: return "faceMatch"
         case .untrimFace: return "untrimFace"
         case .imprintCurves: return "imprintCurves"
         case .extract: return "extract"

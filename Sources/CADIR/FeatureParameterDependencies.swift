@@ -31,9 +31,9 @@ public extension FeatureOperation {
         case let .edgeOffset(offset):
             return offset.distance.referencedParameterIDs
         case let .faceDraft(draft):
-            return draft.angle.referencedParameterIDs
+            return draft.angle.referencedParameterIDs.union(draft.neutralOffset?.referencedParameterIDs ?? [])
         case let .faceOffset(offset):
-            return offset.distance.referencedParameterIDs
+            return offset.distance.referencedParameterIDs.union(offset.adjacentAngle?.referencedParameterIDs ?? [])
         case let .faceMove(move):
             return move.translation.distance.referencedParameterIDs
         case let .edgeMove(move):
@@ -96,6 +96,7 @@ public extension FeatureOperation {
              .reverseSheet,
              .isoparam,
              .imprintBody,
+             .faceMatch,
              .untrimFace,
              .imprintCurves,
              .extract:

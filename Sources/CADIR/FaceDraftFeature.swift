@@ -1,22 +1,33 @@
 import CADCore
 import CADTopology
 
+/// Draft Face, isocline: faces of one solid turned about where they cross the neutral plane (the
+/// neutral face's plane, moved `neutralOffset` along its outward side) so each makes `angle` with
+/// the pull direction, the neutral face's outward normal. A positive angle leans each face out
+/// as it runs away from the neutral plane. Planar faces stay planar; a cylinder along the pull
+/// direction becomes the cone through its circle on the neutral plane.
 public struct FaceDraftFeature: Codable, Hashable, Sendable {
     public var target: FaceDraftTargetReference
     public var faces: [StableSubshapeReference]
     public var neutralFace: StableSubshapeReference
     public var angle: CADExpression
+    public var neutralOffset: CADExpression?
+    public var grow: FaceEditGrow
 
     public init(
         target: FaceDraftTargetReference,
         faces: [StableSubshapeReference],
         neutralFace: StableSubshapeReference,
-        angle: CADExpression
+        angle: CADExpression,
+        neutralOffset: CADExpression? = nil,
+        grow: FaceEditGrow = .moving
     ) {
         self.target = target
         self.faces = faces
         self.neutralFace = neutralFace
         self.angle = angle
+        self.neutralOffset = neutralOffset
+        self.grow = grow
     }
 
     public func validate() throws {
@@ -36,6 +47,7 @@ public struct FaceDraftFeature: Codable, Hashable, Sendable {
             throw FeatureEvaluationError.invalidGraph("Face Draft neutral face must be distinct from target faces.")
         }
         try angle.validateLiteralQuantities()
+        try neutralOffset?.validateLiteralQuantities()
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -43,18 +55,22 @@ public struct FaceDraftFeature: Codable, Hashable, Sendable {
         case faces
         case neutralFace
         case angle
+        case neutralOffset
+        case grow
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
-            [.target, .faces, .neutralFace, .angle],
+            [.target, .faces, .neutralFace, .angle, .neutralOffset, .grow],
             in: decoder
         )
         target = try container.decode(FaceDraftTargetReference.self, forKey: .target)
         faces = try container.decode([StableSubshapeReference].self, forKey: .faces)
         neutralFace = try container.decode(StableSubshapeReference.self, forKey: .neutralFace)
         angle = try container.decode(CADExpression.self, forKey: .angle)
+        neutralOffset = try container.decodeIfPresent(CADExpression.self, forKey: .neutralOffset)
+        grow = try container.decode(FaceEditGrow.self, forKey: .grow)
         try validate()
     }
 
@@ -65,6 +81,8 @@ public struct FaceDraftFeature: Codable, Hashable, Sendable {
         try container.encode(faces, forKey: .faces)
         try container.encode(neutralFace, forKey: .neutralFace)
         try container.encode(angle, forKey: .angle)
+        try container.encodeIfPresent(neutralOffset, forKey: .neutralOffset)
+        try container.encode(grow, forKey: .grow)
     }
 }
 

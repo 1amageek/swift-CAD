@@ -8,64 +8,16 @@ import CADTopology
 @Suite("Face offset feature")
 struct FaceOffsetFeatureTests {
     @Test(.timeLimit(.minutes(1)))
-    func translatesImportedAnalyticPlaneRepresentation() throws {
-        let document = makeRectangleExtrudeDocument(documentUnits: .meters)
-        let sourceFeatureID = try #require(document.designGraph.order.last)
-        let source = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
-        let faceSubshapeID = SubshapeID(
-            featureID: sourceFeatureID,
-            role: GeneratedSubshapeRole.endFace.rawValue,
-            ordinal: 0
-        )
-        let resolved = try StableSubshapeResolver().topologyReference(
-            for: source.stableSubshapeReference(for: faceSubshapeID),
-            model: source.brep,
-            subshapes: source.subshapes,
-            lineage: source.lineage,
-            tolerance: .standard
-        )
-        guard case let .face(faceID) = resolved,
-              let face = source.brep.faces[faceID],
-              case let .plane(plane) = source.brep.geometry.surfaces[face.surfaceID] else {
-            Issue.record("Extruded end face must provide the canonical planar fixture.")
+    func offsetsImportedAnalyticPlaneRepresentationAlongTheOutwardSide() throws {
+        let plane = Surface3D.analytic(.plane(origin: Point3D(x: 0, y: 0, z: 0.01), normal: .unitZ))
+        let outward = try FaceSurfaceOffsetter().offset(plane, orientation: .forward, by: 0.002, tolerance: .standard)
+        let inward = try FaceSurfaceOffsetter().offset(plane, orientation: .reversed, by: 0.002, tolerance: .standard)
+        guard case let .analytic(.plane(outwardOrigin, _)) = outward, case let .analytic(.plane(inwardOrigin, _)) = inward else {
+            Issue.record("An analytic plane offsets to an analytic plane.")
             return
         }
-        let bodyID = try #require(source.brep.bodies.keys.first)
-        let loopID = try #require(face.loops.first)
-        let vertexIDs = try source.brep.orderedVertexIDs(for: loopID)
-        let originalPoints = try Dictionary(uniqueKeysWithValues: vertexIDs.map { vertexID in
-            (vertexID, try #require(source.brep.vertices[vertexID]).point)
-        })
-        var importedModel = source.brep
-        importedModel.geometry.surfaces[face.surfaceID] = .analytic(.plane(
-            origin: plane.origin,
-            normal: plane.normal
-        ))
-        let displacement = Vector3D(x: 0.001, y: 0.002, z: 0.003)
-        let translator = PlanarFaceTranslator()
-
-        let outwardNormal = try translator.outwardNormal(
-            faceID: faceID,
-            bodyID: bodyID,
-            featureID: FeatureID(),
-            model: importedModel,
-            tolerance: .standard
-        )
-        try translator.translate(
-            faceID: faceID,
-            bodyID: bodyID,
-            displacement: displacement,
-            featureID: FeatureID(),
-            model: &importedModel,
-            tolerance: .standard
-        )
-
-        #expect(outwardNormal.dot(.unitZ) > 1.0 - 1.0e-12)
-        for vertexID in vertexIDs {
-            let original = try #require(originalPoints[vertexID])
-            let translated = try #require(importedModel.vertices[vertexID]).point
-            #expect((translated - (original + displacement)).length <= 1.0e-12)
-        }
+        #expect(abs(outwardOrigin.z - 0.012) <= 1.0e-12)
+        #expect(abs(inwardOrigin.z - 0.008) <= 1.0e-12)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -85,7 +37,7 @@ struct FaceOffsetFeatureTests {
             let offsetID = FeatureID()
             let operation = FeatureOperation.faceOffset(FaceOffsetFeature(
                 target: FaceOffsetTargetReference(featureID: sourceFeatureID),
-                face: faceReference,
+                faces: [faceReference],
                 distance: .constant(.length(distance, unit: .meter))
             ))
             let node = try FeatureNodeFactory.make(operation: operation, id: offsetID, in: document, tolerance: .standard)
@@ -151,7 +103,7 @@ struct FaceOffsetFeatureTests {
                 id: offsetID,
                 operation: .faceOffset(FaceOffsetFeature(
                     target: FaceOffsetTargetReference(featureID: targetFeatureID),
-                    face: try target.stableSubshapeReference(for: faceSubshapeID),
+                    faces: [try target.stableSubshapeReference(for: faceSubshapeID)],
                     distance: .constant(.length(0.005, unit: .meter))
                 )),
                 inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],
@@ -203,7 +155,7 @@ struct FaceOffsetFeatureTests {
                     id: offsetID,
                     operation: .faceOffset(FaceOffsetFeature(
                         target: FaceOffsetTargetReference(featureID: targetFeatureID),
-                        face: foreignFace,
+                        faces: [foreignFace],
                         distance: .constant(.length(0.005, unit: .meter))
                     )),
                     inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],

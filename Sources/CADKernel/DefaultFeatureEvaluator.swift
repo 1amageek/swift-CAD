@@ -268,6 +268,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             return try IsoparamFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .imprintBody:
             return try ImprintBodyFeatureEvaluator().evaluateValidated(feature: feature, context: context)
+        case .faceMatch:
+            return try FaceMatchFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .untrimFace:
             return try UntrimFaceFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .imprintCurves:

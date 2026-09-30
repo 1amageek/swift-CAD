@@ -80,6 +80,7 @@ private extension FeatureOperation {
              .reverseSheet,
              .isoparam,
              .imprintBody,
+             .faceMatch,
              .untrimFace,
              .imprintCurves,
              .extract,

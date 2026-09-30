@@ -35,6 +35,7 @@ public enum FeatureOperationKind: String, Codable, CaseIterable, Hashable, Senda
     case reverseSheet
     case isoparam
     case imprintBody
+    case faceMatch
     case untrimFace
     case imprintCurves
     case extract

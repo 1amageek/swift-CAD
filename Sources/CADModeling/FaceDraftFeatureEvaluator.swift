@@ -1,14 +1,17 @@
 import Foundation
 import CADCore
+import CADGeometry
 import CADIR
 import CADTopology
 
+/// Draft Face, isocline: each drafted face turns about where it crosses the neutral plane so it
+/// makes the draft angle with the pull direction, and the faces around it are re-solved to meet
+/// it (`FaceSurfaceReplacementRebuilder`). A planar face becomes the plane through its pivot line;
+/// a cylinder along the pull direction becomes the cone through its pivot circle.
 public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let resolver: ParameterResolving
     private let subshapeResolver: any StableSubshapeResolving
     private let identityBuilder: any CarriedTopologyIdentityBuilding
-    private let geometryRebuilder: any PlanarBodyGeometryRebuilding
-    private let constraintSolver: any PlanarDraftConstraintSolving
 
     public init(
         resolver: ParameterResolving = ParameterResolver(),
@@ -17,8 +20,6 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         self.resolver = resolver
         self.subshapeResolver = subshapeResolver
         identityBuilder = DefaultCarriedTopologyIdentityBuilder()
-        geometryRebuilder = DefaultPlanarBodyGeometryRebuilder()
-        constraintSolver = DefaultPlanarDraftConstraintSolver()
     }
 
     public func evaluate(
@@ -32,190 +33,228 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         feature: FeatureNode,
         context: EvaluationContext
     ) throws -> ValidatedFeatureEvaluation {
-        do {
-            try context.tolerance.validate()
-            let result = try evaluateFaceDraft(feature: feature, context: context)
-            return try ValidatedFeatureEvaluation(
-                validating: result,
-                tolerance: context.tolerance
-            )
-        } catch {
-            throw KernelError.wrapping(
-                error,
-                phase: .evaluation,
-                featureID: feature.id,
-                tolerance: context.tolerance
-            )
+        try FeatureEvaluationBoundary.evaluateValidated(featureID: feature.id, tolerance: context.tolerance) {
+            try evaluateFaceDraft(feature: feature, context: context)
         }
     }
 
-    private func evaluateFaceDraft(
-        feature: FeatureNode,
-        context: EvaluationContext
-    ) throws -> EvaluationResult {
-        guard case let .faceDraft(faceDraft) = feature.operation else {
-            throw kernelError(
-                .invalidInput,
-                featureID: feature.id,
-                tolerance: context.tolerance,
-                "Face draft evaluator requires a faceDraft feature."
-            )
+    private func evaluateFaceDraft(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+        guard case let .faceDraft(draft) = feature.operation else {
+            throw kernelError(.invalidInput, featureID: feature.id, tolerance: context.tolerance, "Face draft evaluator requires a faceDraft feature.")
         }
-        do {
-            try faceDraft.validate()
-        } catch {
-            throw KernelError.wrapping(
-                error,
-                phase: .validation,
-                featureID: feature.id,
-                tolerance: context.tolerance
-            )
+        try FeatureEvaluationBoundary.validateRequest(featureID: feature.id, tolerance: context.tolerance) {
+            try draft.validate()
         }
-        do {
-            try FeatureEvaluationBoundary.validateExactInput(
-                context,
-                featureID: feature.id,
-                tolerance: context.tolerance
-            )
-        } catch {
-            throw KernelError.wrapping(
-                error,
-                phase: .topology,
-                featureID: feature.id,
-                tolerance: context.tolerance
-            )
+        try FeatureEvaluationBoundary.validateExactInput(context, featureID: feature.id, tolerance: context.tolerance)
+        let tolerance = context.tolerance
+        let angle = try resolvedAngle(draft.angle, featureID: feature.id, context: context)
+        let neutralOffset = try draft.neutralOffset.map { try resolvedLength($0, featureID: feature.id, context: context) } ?? 0
+        let bodyID = try context.bodyID(generatedBy: draft.target.featureID)
+        guard context.brep.bodies[bodyID]?.kind == .solid else {
+            throw kernelError(.unsupportedCapability, featureID: feature.id, tolerance: tolerance, "Face draft requires a solid target body.")
         }
-
-        let angle = try resolvedAngle(
-            faceDraft.angle,
-            featureID: feature.id,
-            context: context
-        )
-        let bodyID = try context.bodyID(generatedBy: faceDraft.target.featureID)
-        let replacedSubshapeIDs = try BodyTopologyScope(
-            bodyID: bodyID,
-            model: context.brep
-        ).subshapeIDs(in: context.subshapes)
-        var targetFaceSubshapeIDs: [FaceID: SubshapeID] = [:]
-        for stableReference in faceDraft.faces {
-            let faceID = try targetFaceID(
-                for: stableReference,
-                featureID: feature.id,
-                context: context
-            )
-            guard targetFaceSubshapeIDs[faceID] == nil else {
-                throw kernelError(
-                    .invalidInput,
-                    featureID: feature.id,
-                    subshapeID: stableReference.subshapeID,
-                    tolerance: context.tolerance,
-                    "Face draft selections resolve to the same face."
-                )
+        let bodyScope = try BodyTopologyScope(bodyID: bodyID, model: context.brep)
+        var faceIDs: [FaceID] = []
+        for reference in draft.faces {
+            let faceID = try targetFaceID(reference, bodyScope: bodyScope, featureID: feature.id, context: context)
+            guard faceIDs.contains(faceID) == false else {
+                throw kernelError(.invalidInput, featureID: feature.id, subshapeID: reference.subshapeID, tolerance: tolerance,
+                                  "Face draft selections resolve to the same face.")
             }
-            targetFaceSubshapeIDs[faceID] = stableReference.subshapeID
+            faceIDs.append(faceID)
         }
-        let neutralFaceID = try targetFaceID(
-            for: faceDraft.neutralFace,
-            featureID: feature.id,
-            context: context
-        )
-        guard targetFaceSubshapeIDs[neutralFaceID] == nil else {
-            throw kernelError(
-                .invalidInput,
-                featureID: feature.id,
-                subshapeID: faceDraft.neutralFace.subshapeID,
-                tolerance: context.tolerance,
-                "Face draft neutral face must be distinct from its target faces."
-            )
+        let neutralFaceID = try targetFaceID(draft.neutralFace, bodyScope: bodyScope, featureID: feature.id, context: context)
+        guard faceIDs.contains(neutralFaceID) == false else {
+            throw kernelError(.invalidInput, featureID: feature.id, subshapeID: draft.neutralFace.subshapeID, tolerance: tolerance,
+                              "Face draft neutral face must be distinct from its target faces.")
         }
-
         var model = context.brep
-        try draftFaces(
-            targetFaceSubshapeIDs,
-            neutralFaceID: neutralFaceID,
-            angle: angle,
-            bodyID: bodyID,
-            featureID: feature.id,
-            model: &model,
-            tolerance: context.tolerance
-        )
-        try geometryRebuilder.rebuild(
-            featureID: feature.id,
-            bodyID: bodyID,
-            in: &model,
-            tolerance: context.tolerance
-        )
-        try ExactFacePcurveBuilder().populateMissingPcurves(
-            in: &model,
-            tolerance: context.tolerance
-        )
-        do {
-            try model.validate(level: .volumetric, tolerance: context.tolerance)
-        } catch {
-            throw KernelError.wrapping(
-                error,
-                phase: .topology,
-                featureID: feature.id,
-                tolerance: context.tolerance
-            )
+        // The neutral plane and the pull direction: the neutral face's plane, moved along its
+        // outward side by the offset, and that outward side.
+        guard let neutralFace = model.faces[neutralFaceID], let neutralSurface = model.geometry.surfaces[neutralFace.surfaceID],
+              let neutralPlane = try DefaultPlanarSurfaceResolver().exactPlane(for: neutralSurface, tolerance: tolerance) else {
+            throw kernelError(.unsupportedCapability, featureID: feature.id, subshapeID: draft.neutralFace.subshapeID, tolerance: tolerance,
+                              "Face draft needs a planar neutral face.")
         }
-        let identity = try identityBuilder.identity(
-            featureID: feature.id,
-            bodyID: bodyID,
-            model: model,
-            context: context
-        )
+        let planeNormal = try neutralPlane.normal.normalized(tolerance: tolerance.distance)
+        let pull = neutralFace.orientation == .forward ? planeNormal : planeNormal * -1
+        let neutralOrigin = neutralPlane.origin + pull * neutralOffset
+
+        var replacements: [FaceID: FaceSurfaceReplacementRebuilder.Replacement] = [:]
+        for faceID in faceIDs.sorted() {
+            guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
+                throw TopologyError.missingReference("Face draft face is missing.")
+            }
+            let drafted = try draftedSurface(
+                of: face, surface: surface, pull: pull, neutralOrigin: neutralOrigin, angle: angle,
+                featureID: feature.id, model: model, tolerance: tolerance
+            )
+            replacements[faceID] = drafted
+        }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): every Grow mode re-solves the faces around the drafted
+        // faces in place, so a draft that runs into another wall is refused as a topology failure
+        // under Moving and Fixed too. Production path: FaceDraftFeatureEvaluator for every
+        // faceDraft feature. Moving and Fixed are complete only when a drafted face meeting a wall
+        // extends that wall or stops at it, verified by tests of a concave face drafted into a wall.
+        try FaceSurfaceReplacementRebuilder().replace(replacements, bodyID: bodyID, featureID: feature.id, model: &model, tolerance: tolerance)
+        try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: tolerance)
+        try model.validate(level: .volumetric, tolerance: tolerance)
+        let identity = try identityBuilder.identity(featureID: feature.id, bodyID: bodyID, model: model, context: context)
         return EvaluationResult(
             brep: model,
             subshapes: identity.subshapes,
-            removedSubshapeIDs: replacedSubshapeIDs,
+            removedSubshapeIDs: bodyScope.subshapeIDs(in: context.subshapes),
             lineage: identity.lineage
         )
     }
 
-    private func resolvedAngle(
-        _ expression: CADExpression,
+    /// The surface a drafted face turns onto. The face must lie on one side of the neutral plane:
+    /// it turns about its crossing with the plane so that, running away from it, it leans out by
+    /// `angle` from the pull direction.
+    private func draftedSurface(
+        of face: Face,
+        surface: Surface3D,
+        pull: Vector3D,
+        neutralOrigin: Point3D,
+        angle: Double,
         featureID: FeatureID,
-        context: EvaluationContext
-    ) throws -> Double {
-        let quantity = try resolver.evaluate(
-            expression,
-            parameters: context.parameters,
-            variables: [:]
+        model: BRepModel,
+        tolerance: ModelingTolerance
+    ) throws -> FaceSurfaceReplacementRebuilder.Replacement {
+        let points = try face.loops.flatMap { try model.orderedPoints(for: $0) }
+        let heights = points.map { ($0 - neutralOrigin).dot(pull) }
+        let side: Double
+        if heights.allSatisfy({ $0 >= -tolerance.distance }), heights.contains(where: { $0 > tolerance.distance }) {
+            side = 1
+        } else if heights.allSatisfy({ $0 <= tolerance.distance }), heights.contains(where: { $0 < -tolerance.distance }) {
+            side = -1
+        } else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): a face crossing the neutral plane would be split
+            // along it and each part drafted away from it. Production path: FaceDraftFeatureEvaluator.
+            // Complete only when such a face is split and both parts drafted, verified by a test of a
+            // wall crossing an offset neutral plane.
+            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                              "Face draft needs each drafted face on one side of the neutral plane.")
+        }
+        let tangent = tan(angle)
+        let replacement: Surface3D
+        if let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) {
+            let normal = try plane.normal.normalized(tolerance: tolerance.distance)
+            let outward = face.orientation == .forward ? normal : normal * -1
+            // The pivot line, where the face's plane crosses the neutral plane.
+            let lineDirection = normal.cross(pull)
+            guard lineDirection.length > tolerance.angle else {
+                throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                                  "Face draft cannot turn a face parallel to the neutral plane.")
+            }
+            let axis = try lineDirection.normalized(tolerance: tolerance.distance)
+            let across = try (outward - pull * outward.dot(pull)).normalized(tolerance: tolerance.distance)
+            // The pivot: the point of the face's plane on the neutral plane nearest its centre.
+            let center = points.reduce(Vector3D.zero) { $0 + ($1 - .origin) } / Double(points.count)
+            let onPlane = Point3D.origin + center
+            let pivot = try pivotPoint(near: onPlane, planeOrigin: plane.origin, planeNormal: normal,
+                                       neutralOrigin: neutralOrigin, pull: pull, tolerance: tolerance)
+            // Running away from the neutral plane along `side * pull`, the face leans out along
+            // `across` by the angle.
+            let running = pull * side + across * tangent
+            var drafted = try axis.cross(running).normalized(tolerance: tolerance.distance)
+            if drafted.dot(outward) < 0 { drafted = drafted * -1 }
+            replacement = .plane(Plane3D(origin: pivot, normal: drafted))
+        } else if let (origin, axis, radius) = cylinder(surface), axis.cross(pull).length <= tolerance.angle * max(axis.length, 1) {
+            // The pivot circle lies where the cylinder crosses the neutral plane; the cone through it
+            // widens or narrows along the pull direction as the face leans out.
+            let unitAxis = try axis.normalized(tolerance: tolerance.distance)
+            let center = origin + unitAxis * (neutralOrigin - origin).dot(unitAxis)
+            let sample = try surface.differentialGeometry(u: 0, v: 0, tolerance: tolerance)
+            let radial = sample.position - origin - unitAxis * (sample.position - origin).dot(unitAxis)
+            let normalAway = sample.normal.dot(radial) > 0
+            let outwardAway = normalAway == (face.orientation == .forward)
+            // The radius changes by `tangent` per unit of height away from the plane, growing when
+            // the face's outward side points away from the axis.
+            let growth = outwardAway ? tangent : -tangent
+            guard abs(growth) > tolerance.angle else {
+                throw kernelError(.invalidInput, featureID: featureID, tolerance: tolerance, "Face draft angle is too small to turn a cylinder.")
+            }
+            // Radius r + growth * side * h along `pull * h`; zero at h = -r / (growth * side).
+            let apex = center + pull * (-radius / (growth * side))
+            let opening = pull * (growth * side > 0 ? 1 : -1)
+            replacement = .analytic(.cone(apex: apex, axis: opening, halfAngle: abs(angle)))
+        } else {
+            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                              "Face draft turns planar faces, and cylinders along the pull direction.")
+        }
+        // The drafted face keeps its outward side: its orientation follows the new surface's normal.
+        let center = points.reduce(Vector3D.zero) { $0 + ($1 - .origin) } / Double(points.count)
+        let before = try SurfaceFootResolver().foot(of: .origin + center, on: surface, tolerance: tolerance).normal
+        let outwardBefore = face.orientation == .forward ? before : before * -1
+        let after = try SurfaceFootResolver().foot(of: .origin + center, on: replacement, tolerance: tolerance).normal
+        return FaceSurfaceReplacementRebuilder.Replacement(
+            surface: replacement,
+            orientation: after.dot(outwardBefore) > 0 ? .forward : .reversed
         )
+    }
+
+    /// The point on both the face's plane and the neutral plane nearest `point`.
+    private func pivotPoint(
+        near point: Point3D, planeOrigin: Point3D, planeNormal: Vector3D,
+        neutralOrigin: Point3D, pull: Vector3D, tolerance: ModelingTolerance
+    ) throws -> Point3D {
+        // Solve n1·X = n1·o1, n2·X = n2·o2 and (n1×n2)·X = (n1×n2)·point.
+        let along = planeNormal.cross(pull)
+        let rows = [(planeNormal, planeNormal.dot(planeOrigin - .origin)), (pull, pull.dot(neutralOrigin - .origin)), (along, along.dot(point - .origin))]
+        let m = rows.map { [$0.0.x, $0.0.y, $0.0.z] }
+        func det(_ m: [[Double]]) -> Double {
+            m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
+                + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0])
+        }
+        let d = det(m)
+        guard abs(d) > tolerance.angle * tolerance.angle else {
+            throw KernelError(phase: .evaluation, code: .unsupportedCapability, tolerance: tolerance, message: "Face draft cannot turn a face parallel to the neutral plane.")
+        }
+        var result = [0.0, 0.0, 0.0]
+        for column in 0..<3 {
+            var replaced = m
+            for row in 0..<3 { replaced[row][column] = rows[row].1 }
+            result[column] = det(replaced) / d
+        }
+        return Point3D(x: result[0], y: result[1], z: result[2])
+    }
+
+    private func cylinder(_ surface: Surface3D) -> (origin: Point3D, axis: Vector3D, radius: Double)? {
+        switch surface {
+        case let .cylinder(cylinder): (cylinder.origin, cylinder.axis, cylinder.radius)
+        case let .analytic(.cylinder(origin, axis, radius)): (origin, axis, radius)
+        default: nil
+        }
+    }
+
+    private func resolvedAngle(_ expression: CADExpression, featureID: FeatureID, context: EvaluationContext) throws -> Double {
+        let quantity = try resolver.evaluate(expression, parameters: context.parameters, variables: [:])
         guard quantity.kind == .angle else {
-            throw kernelError(
-                .invalidInput,
-                featureID: featureID,
-                tolerance: context.tolerance,
-                "Face draft angle must resolve to an angle quantity."
-            )
+            throw kernelError(.invalidInput, featureID: featureID, tolerance: context.tolerance, "Face draft angle must resolve to an angle quantity.")
         }
-        guard quantity.value.isFinite,
-              abs(quantity.value) > context.tolerance.angle else {
-            throw kernelError(
-                .invalidInput,
-                featureID: featureID,
-                residual: quantity.value,
-                tolerance: context.tolerance,
-                "Face draft angle must be finite and larger than angular tolerance."
-            )
+        guard quantity.value.isFinite, abs(quantity.value) > context.tolerance.angle else {
+            throw kernelError(.invalidInput, featureID: featureID, residual: quantity.value, tolerance: context.tolerance,
+                              "Face draft angle must be finite and larger than angular tolerance.")
         }
-        let maximum = Double.pi / 2.0 - context.tolerance.angle
-        guard abs(quantity.value) < maximum else {
-            throw kernelError(
-                .unsupportedCapability,
-                featureID: featureID,
-                residual: quantity.value,
-                tolerance: context.tolerance,
-                "Face draft angle magnitude must be smaller than 90 degrees."
-            )
+        guard abs(quantity.value) < Double.pi / 2.0 - context.tolerance.angle else {
+            throw kernelError(.unsupportedCapability, featureID: featureID, residual: quantity.value, tolerance: context.tolerance,
+                              "Face draft angle magnitude must be smaller than 90 degrees.")
+        }
+        return quantity.value
+    }
+
+    private func resolvedLength(_ expression: CADExpression, featureID: FeatureID, context: EvaluationContext) throws -> Double {
+        let quantity = try resolver.evaluate(expression, parameters: context.parameters, variables: [:])
+        guard quantity.kind == .length, quantity.value.isFinite else {
+            throw kernelError(.invalidInput, featureID: featureID, tolerance: context.tolerance, "Face draft neutral offset must resolve to a finite length.")
         }
         return quantity.value
     }
 
     private func targetFaceID(
-        for stableReference: StableSubshapeReference,
+        _ stableReference: StableSubshapeReference,
+        bodyScope: BodyTopologyScope,
         featureID: FeatureID,
         context: EvaluationContext
     ) throws -> FaceID {
@@ -227,245 +266,19 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             tolerance: context.tolerance
         )
         guard case let .face(faceID) = reference else {
-            throw kernelError(
-                .missingReference,
-                featureID: featureID,
-                subshapeID: stableReference.subshapeID,
-                tolerance: context.tolerance,
-                "Face draft selection did not resolve to a face."
-            )
+            throw kernelError(.missingReference, featureID: featureID, subshapeID: stableReference.subshapeID, tolerance: context.tolerance,
+                              "Face draft selection did not resolve to a face.")
+        }
+        guard bodyScope.references.contains(.face(faceID)) else {
+            throw kernelError(.missingReference, featureID: featureID, subshapeID: stableReference.subshapeID, tolerance: context.tolerance,
+                              "Face draft target and neutral faces must belong to the target body.")
         }
         return faceID
     }
 
-    private func draftFaces(
-        _ targetFaceSubshapeIDs: [FaceID: SubshapeID],
-        neutralFaceID: FaceID,
-        angle: Double,
-        bodyID: BodyID,
-        featureID: FeatureID,
-        model: inout BRepModel,
-        tolerance: ModelingTolerance
-    ) throws {
-        guard let body = model.bodies[bodyID], body.kind == .solid else {
-            throw kernelError(
-                .unsupportedCapability,
-                featureID: featureID,
-                tolerance: tolerance,
-                "Face draft requires a solid target body."
-            )
-        }
-        let bodyFaceIDs = try collectFaceIDs(in: body, model: model)
-        guard Set(targetFaceSubshapeIDs.keys).isSubset(of: bodyFaceIDs),
-              bodyFaceIDs.contains(neutralFaceID) else {
-            throw kernelError(
-                .missingReference,
-                featureID: featureID,
-                tolerance: tolerance,
-                "Face draft target and neutral faces must belong to the target body."
-            )
-        }
-        try validateLineOnly(body: body, model: model, featureID: featureID, tolerance: tolerance)
-        let (_, neutralPlane) = try planarFace(
-            neutralFaceID,
-            featureID: featureID,
-            subshapeID: nil,
-            model: model,
-            tolerance: tolerance
-        )
-        let neutralNormal = try neutralPlane.normal.normalized(tolerance: tolerance.distance)
-        let neutralEdgeIDs = try edgeIDs(on: neutralFaceID, model: model)
-        let tangent = tan(angle)
-        var constraints: [VertexID: [PlanarDraftConstraint]] = [:]
-
-        for faceID in targetFaceSubshapeIDs.keys.sorted() {
-            let subshapeID = targetFaceSubshapeIDs[faceID]
-            let (face, targetPlane) = try planarFace(
-                faceID,
-                featureID: featureID,
-                subshapeID: subshapeID,
-                model: model,
-                tolerance: tolerance
-            )
-            let targetEdgeIDs = try edgeIDs(on: faceID, model: model)
-            let sharedEdgeIDs = targetEdgeIDs.intersection(neutralEdgeIDs).sorted()
-            guard sharedEdgeIDs.count == 1,
-                  let sharedEdgeID = sharedEdgeIDs.first,
-                  let sharedEdge = model.edges[sharedEdgeID] else {
-                throw kernelError(
-                    .unsupportedCapability,
-                    featureID: featureID,
-                    subshapeID: subshapeID,
-                    tolerance: tolerance,
-                    "Each face draft target must share exactly one topological edge with the neutral face."
-                )
-            }
-            let sharedVertexIDs: Set<VertexID> = [
-                sharedEdge.startVertexID,
-                sharedEdge.endVertexID,
-            ]
-            let outwardNormal = face.orientation == .forward
-                ? targetPlane.normal
-                : -targetPlane.normal
-            let projectedNormal = outwardNormal - neutralNormal * outwardNormal.dot(neutralNormal)
-            guard projectedNormal.length > max(tolerance.distance, tolerance.angle) else {
-                throw kernelError(
-                    .unsupportedCapability,
-                    featureID: featureID,
-                    subshapeID: subshapeID,
-                    tolerance: tolerance,
-                    "Face draft target normal must have a stable component in the neutral plane."
-                )
-            }
-            let draftDirection = try projectedNormal.normalized(tolerance: tolerance.distance)
-            let targetVertexIDs = try vertexIDs(on: faceID, model: model)
-            var neutralVertexIDs = Set<VertexID>()
-            var movedVertexCount = 0
-            for vertexID in targetVertexIDs.sorted() {
-                guard let vertex = model.vertices[vertexID] else {
-                    throw TopologyError.missingReference("Face draft vertex is missing.")
-                }
-                let signedDistance = (vertex.point - neutralPlane.origin).dot(neutralNormal)
-                if abs(signedDistance) <= tolerance.distance {
-                    neutralVertexIDs.insert(vertexID)
-                    continue
-                }
-                constraints[vertexID, default: []].append(PlanarDraftConstraint(
-                    direction: draftDirection,
-                    value: abs(signedDistance) * tangent
-                ))
-                movedVertexCount += 1
-            }
-            guard neutralVertexIDs == sharedVertexIDs,
-                  movedVertexCount >= 1 else {
-                throw kernelError(
-                    .unsupportedCapability,
-                    featureID: featureID,
-                    subshapeID: subshapeID,
-                    tolerance: tolerance,
-                    "Face draft target must meet the neutral plane only at its shared edge."
-                )
-            }
-        }
-
-        let displacements = try constraintSolver.displacements(
-            for: constraints,
-            neutralNormal: neutralNormal,
-            featureID: featureID,
-            tolerance: tolerance
-        )
-        guard displacements.isEmpty == false else {
-            throw kernelError(
-                .unsupportedCapability,
-                featureID: featureID,
-                tolerance: tolerance,
-                "Face draft did not resolve any movable vertices."
-            )
-        }
-        for vertexID in displacements.keys.sorted() {
-            guard var vertex = model.vertices[vertexID],
-                  let displacement = displacements[vertexID] else {
-                throw TopologyError.missingReference("Face draft displacement vertex is missing.")
-            }
-            vertex.point = vertex.point + displacement
-            try vertex.point.validate()
-            model.vertices[vertexID] = vertex
-        }
-    }
-
-    private func validateLineOnly(
-        body: Body,
-        model: BRepModel,
-        featureID: FeatureID,
-        tolerance: ModelingTolerance
-    ) throws {
-        for shellID in body.shellIDs {
-            guard let shell = model.shells[shellID] else {
-                throw TopologyError.missingReference("Face draft shell is missing.")
-            }
-            for faceID in shell.faceIDs {
-                guard let face = model.faces[faceID] else {
-                    throw TopologyError.missingReference("Face draft face is missing.")
-                }
-                for loopID in face.loops {
-                    guard let loop = model.loops[loopID] else {
-                        throw TopologyError.missingReference("Face draft loop is missing.")
-                    }
-                    for coedge in loop.coedges {
-                        guard let edge = model.edges[coedge.edgeID],
-                              case .line = model.geometry.curves[edge.curveID] else {
-                            throw kernelError(
-                                .unsupportedCapability,
-                                featureID: featureID,
-                                tolerance: tolerance,
-                                "Face draft requires line-only body topology."
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func collectFaceIDs(in body: Body, model: BRepModel) throws -> Set<FaceID> {
-        var result = Set<FaceID>()
-        for shellID in body.shellIDs {
-            guard let shell = model.shells[shellID] else {
-                throw TopologyError.missingReference("Face draft shell is missing.")
-            }
-            result.formUnion(shell.faceIDs)
-        }
-        return result
-    }
-
-    private func planarFace(
-        _ faceID: FaceID,
-        featureID: FeatureID,
-        subshapeID: SubshapeID?,
-        model: BRepModel,
-        tolerance: ModelingTolerance
-    ) throws -> (Face, Plane3D) {
-        guard let face = model.faces[faceID],
-              case let .plane(plane) = model.geometry.surfaces[face.surfaceID] else {
-            throw kernelError(
-                .unsupportedCapability,
-                featureID: featureID,
-                subshapeID: subshapeID,
-                tolerance: tolerance,
-                "Face draft requires planar target and neutral faces."
-            )
-        }
-        return (face, plane)
-    }
-
-    private func edgeIDs(on faceID: FaceID, model: BRepModel) throws -> Set<EdgeID> {
-        guard let face = model.faces[faceID] else {
-            throw TopologyError.missingReference("Face draft face is missing.")
-        }
-        var result = Set<EdgeID>()
-        for loopID in face.loops {
-            guard let loop = model.loops[loopID] else {
-                throw TopologyError.missingReference("Face draft loop is missing.")
-            }
-            result.formUnion(loop.coedges.map(\.edgeID))
-        }
-        return result
-    }
-
-    private func vertexIDs(on faceID: FaceID, model: BRepModel) throws -> Set<VertexID> {
-        guard let face = model.faces[faceID] else {
-            throw TopologyError.missingReference("Face draft face is missing.")
-        }
-        var result = Set<VertexID>()
-        for loopID in face.loops {
-            result.formUnion(try model.orderedVertexIDs(for: loopID))
-        }
-        return result
-    }
-
     private func kernelError(
         _ code: KernelErrorCode,
-        featureID: FeatureID,
+        featureID: FeatureID? = nil,
         subshapeID: SubshapeID? = nil,
         residual: Double? = nil,
         tolerance: ModelingTolerance,

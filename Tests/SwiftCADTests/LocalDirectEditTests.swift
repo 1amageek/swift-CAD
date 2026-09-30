@@ -236,7 +236,7 @@ struct LocalDirectEditTests {
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
         let extrudeID = try roundedBox(&builder)
         let top = try topFace(of: extrudeID, in: builder, z: 0.010)
-        _ = try builder.offsetFace(target: extrudeID, face: top, distance: millimeters(4))
+        _ = try builder.offsetFace(target: extrudeID, faces: [top], distance: millimeters(4))
         let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
         try model.validate(level: .volumetric, tolerance: .standard)
         let area = 0.040 * 0.020 - (4 - Double.pi) * 0.005 * 0.005
@@ -251,7 +251,7 @@ struct LocalDirectEditTests {
                   case let .plane(plane) = model.geometry.surfaces[face.surfaceID] else { return false }
             return abs(abs(plane.normal.x) - 1) < 1e-9 && near(plane.origin.x, 0.020)
         }
-        _ = try sheet.offsetFace(target: openID, face: wall, distance: millimeters(3))
+        _ = try sheet.offsetFace(target: openID, faces: [wall], distance: millimeters(3))
         let open = try CADPipeline(tolerance: .standard).evaluate(sheet.build()).brep
         try open.validate(level: .exact, tolerance: .standard)
         #expect(open.bodies.values.first?.kind == .sheet)

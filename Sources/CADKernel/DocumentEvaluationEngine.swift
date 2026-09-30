@@ -330,6 +330,7 @@ struct DocumentEvaluationEngine {
                  .reverseSheet,
                  .isoparam,
                  .imprintBody,
+                 .faceMatch,
                  .untrimFace,
                  .imprintCurves,
                  .extract,

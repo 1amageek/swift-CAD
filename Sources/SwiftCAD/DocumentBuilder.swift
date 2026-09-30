@@ -340,13 +340,17 @@ public struct DocumentBuilder {
         faces: [StableSubshapeReference],
         neutralFace: StableSubshapeReference,
         angle: CADExpression,
+        neutralOffset: CADExpression? = nil,
+        grow: FaceEditGrow = .moving,
         named name: String? = nil
     ) throws -> FeatureID {
         let faceDraft = FaceDraftFeature(
             target: FaceDraftTargetReference(featureID: targetFeatureID),
             faces: faces,
             neutralFace: neutralFace,
-            angle: angle
+            angle: angle,
+            neutralOffset: neutralOffset,
+            grow: grow
         )
         try faceDraft.validate()
         let featureID = FeatureID()
@@ -357,14 +361,18 @@ public struct DocumentBuilder {
     @discardableResult
     public mutating func offsetFace(
         target targetFeatureID: FeatureID,
-        face: StableSubshapeReference,
+        faces: [StableSubshapeReference],
         distance: CADExpression,
+        adjacentAngle: CADExpression? = nil,
+        grow: FaceEditGrow = .moving,
         named name: String? = nil
     ) throws -> FeatureID {
         let offset = FaceOffsetFeature(
             target: FaceOffsetTargetReference(featureID: targetFeatureID),
-            face: face,
-            distance: distance
+            faces: faces,
+            distance: distance,
+            adjacentAngle: adjacentAngle,
+            grow: grow
         )
         try offset.validate()
         let featureID = FeatureID()
@@ -483,6 +491,30 @@ public struct DocumentBuilder {
     }
 
     /// Imprints where `tool` crosses `target` (`ImprintBodyFeature`).
+    /// Match Face: `faces` of `target` take the surface of `referenceFace`, a face of `source`
+    /// placed by `sourcePlacement` in the target's frame when `source` is another body.
+    @discardableResult
+    public mutating func matchFace(
+        target: FeatureID,
+        faces: [StableSubshapeReference],
+        source: FeatureID,
+        referenceFace: StableSubshapeReference,
+        sourcePlacement: RigidTransform3D? = nil,
+        front: Bool = false,
+        grow: FaceEditGrow = .moving,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let feature = FaceMatchFeature(
+            target: PatternTargetReference(featureID: target), faces: faces,
+            source: PatternTargetReference(featureID: source), referenceFace: referenceFace,
+            sourcePlacement: sourcePlacement, front: front, grow: grow
+        )
+        try feature.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .faceMatch(feature))
+        return featureID
+    }
+
     @discardableResult
     public mutating func imprintBody(
         _ target: FeatureID, tool: FeatureID, toolPlacement: RigidTransform3D? = nil, completion: ImprintCompletion = .none, named name: String? = nil
@@ -810,13 +842,13 @@ public struct DocumentBuilder {
     @discardableResult
     public mutating func offsetFace(
         target targetFeatureID: FeatureID,
-        face: StableSubshapeReference,
+        faces: [StableSubshapeReference],
         distance parameterID: ParameterID,
         named name: String? = nil
     ) throws -> FeatureID {
         try offsetFace(
             target: targetFeatureID,
-            face: face,
+            faces: faces,
             distance: .reference(parameterID),
             named: name
         )

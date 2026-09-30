@@ -23,7 +23,7 @@ struct FaceOffsetBuilderTests {
         )
         let offsetID = try builder.offsetFace(
             target: extrudeID,
-            face: face,
+            faces: [face],
             distance: .constant(.length(5.0, unit: .millimeter))
         )
         let document = try builder.build(name: "Face offset parity")

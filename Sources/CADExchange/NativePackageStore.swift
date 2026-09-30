@@ -463,6 +463,15 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
         try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "face", "direction", "fractions", "subdividesControlNet"], objectName: featurePath)
         try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
     }
+    try validateObjectField("faceMatch", in: object, path: "\(path).faceMatch") { feature, featurePath in
+        try rejectUnsupportedNativeKeys(
+            in: feature, supportedKeys: ["target", "faces", "source", "referenceFace", "sourcePlacement", "front", "grow"], objectName: featurePath
+        )
+        try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
+        try validateObjectField("source", in: feature, path: "\(featurePath).source", using: validatePatternTargetReferenceObject)
+        try validateArrayField("faces", in: feature, path: "\(featurePath).faces", using: validateStableSubshapeReferenceObject)
+        try validateObjectField("referenceFace", in: feature, path: "\(featurePath).referenceFace", using: validateStableSubshapeReferenceObject)
+    }
     try validateObjectField("imprintBody", in: object, path: "\(path).imprintBody") { feature, featurePath in
         try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "tool", "toolPlacement", "completion"], objectName: featurePath)
         try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
@@ -1544,7 +1553,7 @@ private func validateFaceDeleteTargetReferenceObject(_ object: [String: Any], pa
 private func validateFaceDraftFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["target", "faces", "neutralFace", "angle"],
+        supportedKeys: ["target", "faces", "neutralFace", "angle", "neutralOffset", "grow"],
         objectName: path
     )
     try validateObjectField("target", in: object, path: "\(path).target", using: validateFaceDraftTargetReferenceObject)
@@ -1585,12 +1594,15 @@ private func validateFaceMoveTargetReferenceObject(_ object: [String: Any], path
 private func validateFaceOffsetFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["target", "face", "distance"],
+        supportedKeys: ["target", "faces", "distance", "adjacentAngle", "grow"],
         objectName: path
     )
     try validateObjectField("target", in: object, path: "\(path).target", using: validateFaceOffsetTargetReferenceObject)
-    try validateObjectField("face", in: object, path: "\(path).face", using: validateStableSubshapeReferenceObject)
+    try validateArrayField("faces", in: object, path: "\(path).faces", using: validateStableSubshapeReferenceObject)
     try validateObjectField("distance", in: object, path: "\(path).distance", using: validateExpressionObject)
+    if object["adjacentAngle"] != nil {
+        try validateObjectField("adjacentAngle", in: object, path: "\(path).adjacentAngle", using: validateExpressionObject)
+    }
 }
 
 private func validateFaceOffsetTargetReferenceObject(_ object: [String: Any], path: String) throws {

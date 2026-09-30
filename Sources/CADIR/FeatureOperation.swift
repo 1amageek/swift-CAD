@@ -37,6 +37,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case reverseSheet(ReverseSheetFeature)
     case isoparam(IsoparamFeature)
     case imprintBody(ImprintBodyFeature)
+    case faceMatch(FaceMatchFeature)
     case untrimFace(UntrimFaceFeature)
     case imprintCurves(ImprintCurvesFeature)
     case extract(ExtractFeature)
@@ -98,6 +99,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case reverseSheet
         case isoparam
         case imprintBody
+        case faceMatch
         case untrimFace
         case imprintCurves
         case extract
@@ -236,6 +238,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .imprintBody:
             try container.validateOnlyExpectedKeys([.kind, .imprintBody], in: decoder)
             self = .imprintBody(try container.decode(ImprintBodyFeature.self, forKey: .imprintBody))
+        case .faceMatch:
+            try container.validateOnlyExpectedKeys([.kind, .faceMatch], in: decoder)
+            self = .faceMatch(try container.decode(FaceMatchFeature.self, forKey: .faceMatch))
         case .untrimFace:
             try container.validateOnlyExpectedKeys([.kind, .untrimFace], in: decoder)
             self = .untrimFace(try container.decode(UntrimFaceFeature.self, forKey: .untrimFace))
@@ -416,6 +421,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .imprintBody(feature):
             try container.encode(Kind.imprintBody, forKey: .kind)
             try container.encode(feature, forKey: .imprintBody)
+        case let .faceMatch(feature):
+            try container.encode(Kind.faceMatch, forKey: .kind)
+            try container.encode(feature, forKey: .faceMatch)
         case let .untrimFace(feature):
             try container.encode(Kind.untrimFace, forKey: .kind)
             try container.encode(feature, forKey: .untrimFace)

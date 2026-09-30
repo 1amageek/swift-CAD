@@ -166,8 +166,10 @@ extension FeatureOperation {
         case .faceOffset(let feature):
             return .faceOffset(FaceOffsetFeature(
                 target: FaceOffsetTargetReference(featureID: try transform(feature.target.featureID)),
-                face: try subshape(feature.face),
-                distance: feature.distance
+                faces: try feature.faces.map(subshape),
+                distance: feature.distance,
+                adjacentAngle: feature.adjacentAngle,
+                grow: feature.grow
             ))
         case .faceMove(let feature):
             return .faceMove(FaceMoveFeature(
@@ -338,6 +340,12 @@ extension FeatureOperation {
                 target: try pattern(feature.target), face: try subshape(feature.face), direction: feature.direction,
                 fractions: feature.fractions, subdividesControlNet: feature.subdividesControlNet
             ))
+        case .faceMatch(var feature):
+            feature.target = try pattern(feature.target)
+            feature.source = try pattern(feature.source)
+            feature.faces = try feature.faces.map(subshape)
+            feature.referenceFace = try subshape(feature.referenceFace)
+            return .faceMatch(feature)
         case .imprintBody(let feature):
             return .imprintBody(ImprintBodyFeature(
                 target: try pattern(feature.target), tool: try pattern(feature.tool), toolPlacement: feature.toolPlacement,

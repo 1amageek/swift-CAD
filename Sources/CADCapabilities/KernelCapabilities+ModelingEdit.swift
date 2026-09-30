@@ -124,14 +124,17 @@ extension KernelCapabilities {
       operation: "faceDraft",
       topology: .solidBody,
       inputs: [
-        "oneValidatedLineOnlyPlanarSolid",
-        "oneOrMoreUniquePlanarSideFacesOwnedByTargetBody",
-        "eachTargetSharingExactlyOneEdgeWithOnePlanarNeutralFace",
-        "finiteNonzeroSignedIncrementalAngleBelowNinetyDegrees",
+        "oneValidatedSolid",
+        "oneOrMoreUniquePlanarFacesOrCylindersAlongThePullDirectionOwnedByTargetBody",
+        "eachDraftedFaceOnOneSideOfTheNeutralPlane",
+        "onePlanarNeutralFaceOptionallyOffsetAlongItsOutwardSide",
+        "finiteNonzeroIsoclineAngleBelowNinetyDegrees",
+        "growMovingFixedOrNone",
       ],
       outputs: [
-        "constraintSolvedExactPlanarBRep",
-        "verifiedConstraintResiduals",
+        "validatedExactBRep",
+        "planesTurnedAboutTheirNeutralCrossingAndCylindersIntoCones",
+        "neighbouringEdgesAndVerticesResolvedFromTheirSurfaces",
         "deterministicGeometryIDs",
         "mandatoryFaceLocalPcurves",
         "analyticVolume",
@@ -144,6 +147,7 @@ extension KernelCapabilities {
         "FaceDraftFeatureTests",
         "FaceDraftSchemaTests",
         "FaceDraftBuilderTests",
+        "DraftFaceTests",
       ],
       status: .partial,
       failureCodes: [
@@ -152,8 +156,6 @@ extension KernelCapabilities {
         .unsupportedCapability,
         .topologyFailure,
         .nonManifoldResult,
-        .singularSystem,
-        .conflictingConstraints,
       ],
       additionalPublicAPIs: ["CADModeling.FaceDraftFeatureEvaluator"]
     ),
@@ -443,9 +445,11 @@ extension KernelCapabilities {
       operation: "faceOffset",
       topology: .sheetOrSolidBody,
       inputs: [
-        "oneSolidOrSheetWhoseFacesAroundTheOffsetFaceArePlanarOrCylindersAlongItsNormal",
-        "oneTargetBodyOwnedPlanarFace",
-        "finiteSignedNormalDistanceKeepingEveryFaceFromTurningOver",
+        "oneValidatedSolidOrSheet",
+        "oneOrMoreTargetBodyOwnedFacesOnPlanesCylindersConesSpheresToriOrOffsettableSurfaces",
+        "finiteSignedOutwardDistanceKeepingEveryEdgeAndFaceFromTurningOver",
+        "optionalAdjacentAngleTiltingPlanarNeighboursAboutStraightEdges",
+        "growMovingFixedOrNone",
       ],
       outputs: [
         "validatedExactBRep",
@@ -459,9 +463,9 @@ extension KernelCapabilities {
         "stableOffsetFaceSelection",
         "dimensionPreservingTopologyLineage",
         "preservedUnrelatedBodiesAndSelections",
-        "locallyResolvedPlanarOrBilinearIncidentFaces",
+        "neighbouringEdgesAndVerticesResolvedFromTheirSurfaces",
       ],
-      fixtures: ["FaceOffsetFeatureTests", "FaceOffsetBuilderTests", "DirectEditSchemaTests", "LocalDirectEditTests"],
+      fixtures: ["FaceOffsetFeatureTests", "FaceOffsetBuilderTests", "DirectEditSchemaTests", "LocalDirectEditTests", "PushFaceTests"],
       status: .partial,
       failureCodes: [
         .invalidInput,
@@ -859,6 +863,34 @@ extension KernelCapabilities {
       failureCodes: [
         .invalidInput,
         .missingReference,
+        .topologyFailure,
+      ]
+    ),
+    feature(
+      id: "MODEL-FACEMATCH-001",
+      operation: "faceMatch",
+      topology: .sheetOrSolidBody,
+      inputs: [
+        "oneValidatedSolidOrSheetTargetBody",
+        "oneOrMoreUniqueFacesOfTheTarget",
+        "oneReferenceFaceOfTheTargetOrOfAnotherBodyWithItsRelativePlacement",
+        "frontOrKeptOutwardSide",
+        "growMovingFixedOrNone",
+      ],
+      outputs: [
+        "validatedExactBRep",
+        "matchedFacesOnTheReferenceSurface",
+        "neighbouringEdgesAndVerticesResolvedFromTheirSurfaces",
+        "sameSolidOrSheetTargetInItsPlace",
+        "untouchedReferenceBody",
+        "strictCurrentSchemaNativePersistence",
+      ],
+      fixtures: ["MatchFaceTests"],
+      status: .partial,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .unsupportedCapability,
         .topologyFailure,
       ]
     ),

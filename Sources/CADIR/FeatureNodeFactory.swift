@@ -546,6 +546,14 @@ public enum FeatureNodeFactory {
                 inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
                 outputs: [FeatureOutput(role: .sheet)]
             )
+        case .faceMatch:
+            guard case let .faceMatch(feature) = operation else {
+                throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+            }
+            try feature.validate()
+            let targetPort = try bodyOrSheetPort(of: feature.target.featureID, in: document)
+            _ = try bodyOrSheetPort(of: feature.source.featureID, in: document)
+            return FeatureNode(id: id, name: name, operation: operation, inputs: feature.inputs, outputs: [FeatureOutput(role: targetPort)])
         case .isoparam, .imprintBody, .untrimFace, .imprintCurves:
             let target: FeatureID
             var inputs: [FeatureInput]
