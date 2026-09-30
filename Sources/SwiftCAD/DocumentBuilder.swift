@@ -1085,14 +1085,14 @@ public struct DocumentBuilder {
     @discardableResult
     public mutating func thicken(
         target targetFeatureID: FeatureID,
-        thickness: CADExpression,
-        side: ThickenSide = .symmetric,
+        front: CADExpression,
+        back: CADExpression,
         named name: String? = nil
     ) throws -> FeatureID {
         let thicken = ThickenFeature(
             target: ThickenTargetReference(featureID: targetFeatureID),
-            thickness: thickness,
-            side: side
+            front: front,
+            back: back
         )
         try thicken.validate()
         let featureID = FeatureID()
@@ -1103,16 +1103,11 @@ public struct DocumentBuilder {
     @discardableResult
     public mutating func thicken(
         target targetFeatureID: FeatureID,
-        thickness parameterID: ParameterID,
-        side: ThickenSide = .symmetric,
+        front parameterID: ParameterID,
+        back: CADExpression,
         named name: String? = nil
     ) throws -> FeatureID {
-        try thicken(
-            target: targetFeatureID,
-            thickness: .reference(parameterID),
-            side: side,
-            named: name
-        )
+        try thicken(target: targetFeatureID, front: .reference(parameterID), back: back, named: name)
     }
 
     @discardableResult

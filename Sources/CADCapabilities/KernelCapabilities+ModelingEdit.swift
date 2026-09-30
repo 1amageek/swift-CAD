@@ -1105,8 +1105,7 @@ extension KernelCapabilities {
         "oneValidatedSingleShellSheetBody",
         "oneRegularExactTrimmedFaceOrManifoldCanonicalPlanarLineBoundaryFaceNetwork",
         "oneOuterLoopAndZeroOrMoreInnerLoopsPerFace",
-        "positiveUniformThickness",
-        "positiveNegativeOrSymmetricSide",
+        "frontAndBackThicknessesNeitherNegativeNotBothZero",
       ],
       outputs: [
         "validatedExactBRep",

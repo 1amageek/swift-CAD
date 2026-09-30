@@ -1,37 +1,40 @@
 import CADCore
 
+/// Thicken: a sheet grown into a solid, `front` along its normal and `back` against it; either may
+/// be zero, not both.
 public struct ThickenFeature: Codable, Hashable, Sendable {
     public let target: ThickenTargetReference
-    public let thickness: CADExpression
-    public let side: ThickenSide
+    public let front: CADExpression
+    public let back: CADExpression
 
     public init(
         target: ThickenTargetReference,
-        thickness: CADExpression,
-        side: ThickenSide = .symmetric
+        front: CADExpression,
+        back: CADExpression
     ) {
         self.target = target
-        self.thickness = thickness
-        self.side = side
+        self.front = front
+        self.back = back
     }
 
     public func validate() throws {
         try target.validate()
-        try thickness.validateLiteralQuantities()
+        try front.validateLiteralQuantities()
+        try back.validateLiteralQuantities()
     }
 
     private enum CodingKeys: String, CodingKey {
         case target
-        case thickness
-        case side
+        case front
+        case back
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.target, .thickness, .side], in: decoder)
+        try container.validateOnlyExpectedKeys([.target, .front, .back], in: decoder)
         target = try container.decode(ThickenTargetReference.self, forKey: .target)
-        thickness = try container.decode(CADExpression.self, forKey: .thickness)
-        side = try container.decode(ThickenSide.self, forKey: .side)
+        front = try container.decode(CADExpression.self, forKey: .front)
+        back = try container.decode(CADExpression.self, forKey: .back)
         try validate()
     }
 
@@ -39,7 +42,7 @@ public struct ThickenFeature: Codable, Hashable, Sendable {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(target, forKey: .target)
-        try container.encode(thickness, forKey: .thickness)
-        try container.encode(side, forKey: .side)
+        try container.encode(front, forKey: .front)
+        try container.encode(back, forKey: .back)
     }
 }

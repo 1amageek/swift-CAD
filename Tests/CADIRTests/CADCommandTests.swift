@@ -201,8 +201,8 @@ struct CADCommandTests {
         let command = CADCommand.appendFeature(FeatureRequest(
             operation: .thicken(ThickenFeature(
                 target: ThickenTargetReference(featureID: targetID),
-                thickness: .constant(.length(2.0, unit: .millimeter)),
-                side: .positive
+                front: .constant(.length(2.0, unit: .millimeter)),
+                back: .constant(.length(0, unit: .millimeter))
             ))
         ))
 

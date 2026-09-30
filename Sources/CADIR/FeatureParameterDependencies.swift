@@ -64,7 +64,7 @@ public extension FeatureOperation {
         case let .shell(shell):
             return shell.thickness.referencedParameterIDs
         case let .thicken(thicken):
-            return thicken.thickness.referencedParameterIDs
+            return thicken.front.referencedParameterIDs.union(thicken.back.referencedParameterIDs)
         case let .curveOffset(offset):
             return offset.distance.referencedParameterIDs
         case let .curveExtend(extensionRequest):

@@ -10,19 +10,19 @@ package struct ExactThickenRequestBuilder: Sendable {
     package func request(
         featureID: FeatureID,
         bodyID: BodyID,
-        thickness: Double,
-        side: ThickenSide,
+        offsets: (lower: Double, upper: Double),
         model: BRepModel,
         subshapes: SubshapeIndex,
         tolerance: ModelingTolerance
     ) throws -> BRepSewingRequest {
         try tolerance.validate()
-        guard thickness.isFinite, thickness > tolerance.distance else {
+        guard offsets.lower.isFinite, offsets.upper.isFinite, offsets.lower <= 0, offsets.upper >= 0,
+              offsets.upper - offsets.lower > tolerance.distance else {
             throw failure(
                 .invalidInput,
                 featureID: featureID,
                 tolerance: tolerance,
-                message: "Thicken requires a finite positive thickness above modeling tolerance."
+                message: "Thicken requires offsets on either side of the sheet spanning more than modeling tolerance."
             )
         }
         let source = try sourceSheet(
@@ -35,8 +35,7 @@ package struct ExactThickenRequestBuilder: Sendable {
         guard source.faces.count > 1 else {
             return try singleFaceRequest(
                 featureID: featureID,
-                thickness: thickness,
-                side: side,
+                offsets: offsets,
                 source: source.faces[0],
                 bodyParents: source.bodyParents,
                 tolerance: tolerance
@@ -44,8 +43,7 @@ package struct ExactThickenRequestBuilder: Sendable {
         }
         return try planarMultiFaceRequest(
             featureID: featureID,
-            thickness: thickness,
-            side: side,
+            offsets: offsets,
             source: source,
             tolerance: tolerance
         )
@@ -53,13 +51,12 @@ package struct ExactThickenRequestBuilder: Sendable {
 
     private func singleFaceRequest(
         featureID: FeatureID,
-        thickness: Double,
-        side: ThickenSide,
+        offsets: (lower: Double, upper: Double),
         source: SourceFace,
         bodyParents: [SubshapeID],
         tolerance: ModelingTolerance
     ) throws -> BRepSewingRequest {
-        let signedOffsets = offsets(thickness: thickness, side: side)
+        let signedOffsets = offsets
         let orientationSign = source.orientation == .forward ? 1.0 : -1.0
         let lowerSurface = offsetSurface(
             source.surface,
@@ -262,8 +259,7 @@ package struct ExactThickenRequestBuilder: Sendable {
 
     private func planarMultiFaceRequest(
         featureID: FeatureID,
-        thickness: Double,
-        side: ThickenSide,
+        offsets: (lower: Double, upper: Double),
         source: SourceSheet,
         tolerance: ModelingTolerance
     ) throws -> BRepSewingRequest {
@@ -298,7 +294,7 @@ package struct ExactThickenRequestBuilder: Sendable {
                 message: "Multi-face thicken requires a manifold source sheet."
             )
         }
-        let signedOffsets = offsets(thickness: thickness, side: side)
+        let signedOffsets = offsets
         let lowerSurfaces = try layerSurfaces(
             source: source,
             signedOffset: signedOffsets.lower,
@@ -1125,20 +1121,6 @@ package struct ExactThickenRequestBuilder: Sendable {
             over: parameters,
             tolerance: tolerance
         )
-    }
-
-    private func offsets(
-        thickness: Double,
-        side: ThickenSide
-    ) -> (lower: Double, upper: Double) {
-        switch side {
-        case .positive:
-            (0.0, thickness)
-        case .negative:
-            (-thickness, 0.0)
-        case .symmetric:
-            (-0.5 * thickness, 0.5 * thickness)
-        }
     }
 
     private func reversed(_ orientation: Orientation) -> Orientation {

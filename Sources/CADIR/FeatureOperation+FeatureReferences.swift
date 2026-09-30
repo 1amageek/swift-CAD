@@ -262,8 +262,8 @@ extension FeatureOperation {
         case .thicken(let feature):
             return .thicken(ThickenFeature(
                 target: ThickenTargetReference(featureID: try transform(feature.target.featureID)),
-                thickness: feature.thickness,
-                side: feature.side
+                front: feature.front,
+                back: feature.back
             ))
         case .curveExtend(let feature):
             return .curveExtend(CurveExtendFeature(

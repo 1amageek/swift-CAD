@@ -40,8 +40,8 @@ struct ModelingFeatureSchemaTests {
         ))
         try expectUnknownFieldRejected(ThickenFeature.self, value: ThickenFeature(
             target: ThickenTargetReference(featureID: sourceID),
-            thickness: .constant(.length(0.002, unit: .meter)),
-            side: .symmetric
+            front: .constant(.length(0.001, unit: .meter)),
+            back: .constant(.length(0.001, unit: .meter))
         ))
         try expectUnknownFieldRejected(LinearPatternFeature.self, value: LinearPatternFeature(
             target: PatternTargetReference(featureID: sourceID),

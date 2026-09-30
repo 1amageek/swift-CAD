@@ -22,8 +22,8 @@ struct CrossBodyReplacementFeatureTests {
                 id: featureID,
                 operation: .thicken(ThickenFeature(
                     target: ThickenTargetReference(featureID: sourceFeatureID),
-                    thickness: .constant(.length(0.004, unit: .meter)),
-                    side: .positive
+                    front: .constant(.length(0.004, unit: .meter)),
+                    back: .constant(.length(0, unit: .meter))
                 )),
                 inputs: [FeatureInput(featureID: sourceFeatureID, role: .target)],
                 outputs: [FeatureOutput(role: .body)]

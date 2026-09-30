@@ -471,16 +471,18 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 }
             case let .thicken(thicken):
                 try thicken.validate()
-                let thickness = try parameters.resolvedValue(for: thicken.thickness)
-                guard thickness.kind == .length else {
-                    throw UnitError.expectedQuantity(
-                        operation: "thicken.thickness",
-                        expected: .length,
-                        actual: thickness.kind
-                    )
+                let front = try parameters.resolvedValue(for: thicken.front)
+                let back = try parameters.resolvedValue(for: thicken.back)
+                for (side, value) in [("thicken.front", front), ("thicken.back", back)] {
+                    guard value.kind == .length else {
+                        throw UnitError.expectedQuantity(operation: side, expected: .length, actual: value.kind)
+                    }
+                    guard value.value >= 0.0 else {
+                        throw FeatureEvaluationError.invalidDistance(value.value)
+                    }
                 }
-                guard thickness.value > 0.0 else {
-                    throw FeatureEvaluationError.invalidDistance(thickness.value)
+                guard front.value + back.value > 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(front.value + back.value)
                 }
             case let .bridgeCurve(bridgeCurve):
                 try bridgeCurve.validate(tolerance: tolerance)

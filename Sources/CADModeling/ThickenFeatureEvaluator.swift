@@ -41,11 +41,12 @@ public struct ThickenFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         guard case let .thicken(thicken) = feature.operation else {
             throw kernelError(.invalidInput, featureID: feature.id, tolerance: context.tolerance, "Thicken evaluator requires a thicken feature.")
         }
-        let quantity = try resolver.evaluate(thicken.thickness, parameters: context.parameters, variables: [:])
-        guard quantity.kind == .length,
-              quantity.value.isFinite,
-              quantity.value > context.tolerance.distance else {
-            throw kernelError(.invalidInput, featureID: feature.id, tolerance: context.tolerance, "Thicken thickness must be a positive length above modeling tolerance.")
+        let front = try resolver.evaluate(thicken.front, parameters: context.parameters, variables: [:])
+        let back = try resolver.evaluate(thicken.back, parameters: context.parameters, variables: [:])
+        guard front.kind == .length, back.kind == .length, front.value.isFinite, back.value.isFinite,
+              front.value >= 0, back.value >= 0, front.value + back.value > context.tolerance.distance else {
+            throw kernelError(.invalidInput, featureID: feature.id, tolerance: context.tolerance,
+                              "Thicken takes two lengths, neither negative, adding up to more than modeling tolerance.")
         }
         let bodyID = try targetBodyID(thicken.target.featureID, featureID: feature.id, context: context)
         let replacedSubshapeIDs = try BodyTopologyScope(
@@ -55,8 +56,7 @@ public struct ThickenFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         let request = try ExactThickenRequestBuilder().request(
             featureID: feature.id,
             bodyID: bodyID,
-            thickness: quantity.value,
-            side: thicken.side,
+            offsets: (lower: -back.value, upper: front.value),
             model: context.brep,
             subshapes: context.subshapes,
             tolerance: context.tolerance

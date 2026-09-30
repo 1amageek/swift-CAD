@@ -1893,11 +1893,12 @@ private func validateShellTargetReferenceObject(_ object: [String: Any], path: S
 private func validateThickenFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["target", "thickness", "side"],
+        supportedKeys: ["target", "front", "back"],
         objectName: path
     )
     try validateObjectField("target", in: object, path: "\(path).target", using: validateThickenTargetReferenceObject)
-    try validateObjectField("thickness", in: object, path: "\(path).thickness", using: validateExpressionObject)
+    try validateObjectField("front", in: object, path: "\(path).front", using: validateExpressionObject)
+    try validateObjectField("back", in: object, path: "\(path).back", using: validateExpressionObject)
 }
 
 private func validateThickenTargetReferenceObject(_ object: [String: Any], path: String) throws {

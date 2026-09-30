@@ -74,7 +74,7 @@ struct ThickenFeatureTests {
         #expect(source.brep.faces.count == 2)
         #expect(source.brep.edges.count == 7)
         #expect(source.brep.vertices.count == 6)
-        for side in [ThickenSide.positive, .negative, .symmetric] {
+        for side in [TestSide.positive, .negative, .symmetric] {
             let result = try evaluateThicken(
                 source: source,
                 sourceFeatureID: sourceFeatureID,
@@ -247,8 +247,8 @@ struct ThickenFeatureTests {
                 id: featureID,
                 operation: .thicken(ThickenFeature(
                     target: ThickenTargetReference(featureID: sourceFeatureID),
-                    thickness: .constant(.length(0.001, unit: .meter)),
-                    side: .symmetric
+                    front: .constant(.length(0.0005, unit: .meter)),
+                    back: .constant(.length(0.0005, unit: .meter))
                 ))
             ),
             context: EvaluationContext(
@@ -299,13 +299,13 @@ struct ThickenFeatureTests {
             z: plane.origin.z
         ).dot(normal)
         let thickness = 0.004
-        for side in [ThickenSide.positive, .negative, .symmetric] {
+        for side in [TestSide.positive, .negative, .symmetric] {
             var document = fixture.document
             let featureID = FeatureID()
             let operation = FeatureOperation.thicken(ThickenFeature(
                 target: ThickenTargetReference(featureID: fixture.sheetFeatureID),
-                thickness: .constant(.length(thickness, unit: .meter)),
-                side: side
+                front: .constant(.length(side.front(thickness), unit: .meter)),
+                back: .constant(.length(side.back(thickness), unit: .meter))
             ))
             let node = try FeatureNodeFactory.make(operation: operation, id: featureID, in: document, tolerance: .standard)
             document.designGraph.nodes[featureID] = node
@@ -475,15 +475,15 @@ struct ThickenFeatureTests {
         source: BRepSewingResult,
         sourceFeatureID: FeatureID,
         thickness: Double,
-        side: ThickenSide,
+        side: TestSide,
         tolerance: ModelingTolerance
     ) throws -> EvaluationResult {
         try ThickenFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: FeatureNode(
                 operation: .thicken(ThickenFeature(
                     target: ThickenTargetReference(featureID: sourceFeatureID),
-                    thickness: .constant(.length(thickness, unit: .meter)),
-                    side: side
+                    front: .constant(.length(side.front(thickness), unit: .meter)),
+                    back: .constant(.length(side.back(thickness), unit: .meter))
                 ))
             ),
             context: EvaluationContext(
@@ -503,4 +503,19 @@ private extension TopologyReference {
         if case let .face(faceID) = self { return faceID }
         return nil
     }
+}
+
+/// The three ways the tests grow a sheet: all along its normal, all against it, or half each way.
+private enum TestSide {
+    case positive, negative, symmetric
+
+    func front(_ thickness: Double) -> Double {
+        switch self {
+        case .positive: thickness
+        case .negative: 0
+        case .symmetric: thickness / 2
+        }
+    }
+
+    func back(_ thickness: Double) -> Double { thickness - front(thickness) }
 }
