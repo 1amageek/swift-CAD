@@ -54,8 +54,11 @@ path spans (rational Bezier) ─► interval homogeneous jets per piece (order 5
 - The section never reaches past the path's bend on any piece (`reach · κ < 1`).
 - Two pieces that do not touch are proved apart: their path boxes are farther
   apart than twice the reach, or the plane across the path at the middle of a piece
-  between them has one wholly behind and the other wholly ahead. Otherwise the
-  sweep is refused as possibly self-overlapping.
+  between them has one wholly behind and the other wholly ahead. Each piece is
+  judged in eighths, each bounding the path point, tangent and the frame's two
+  lateral axes, with the section's extent along the start tangent and those axes
+  (so a section spread along a planar path's binormal does not count as tilt).
+  Otherwise the sweep is refused as possibly self-overlapping.
 - Refusals of what the sweep asks for report the evaluation phase with the Sweep
   error codes; exhausted budgets report `resourceLimitExceeded`.
 
@@ -69,6 +72,8 @@ and subdivision depth 20; they refuse, never degrade. A path corner refuses with
 ## Verification and Change Impact
 
 `CurvedPathNormalSweepTests` own the planar-curve volume (Pappus, within the
-allowance over the side), the end cap across the end tangent, and the refusals.
+allowance over the side), the end cap across the end tangent, and the refusals;
+`SweepFaceTests` own a body's face swept along straight and curved paths and
+united with its own body.
 Changing the frame, the error bound or the separation certificate re-runs these
 and the Sweep suites (`CADKernelTests`, `SweepEvaluationPlanServiceTests`).

@@ -61,12 +61,6 @@ public struct SweepFeature: Codable, Hashable, Sendable {
         guard sections.count == 1 else {
             throw FeatureEvaluationError.invalidGraph("Sweep features currently require exactly one section.")
         }
-        // FIXME(INCOMPLETE_IMPLEMENTATION): a face section is refused. Production path:
-        // SweepFeature.validate for every sweep. Complete only when a planar face sweeps like a
-        // profile, verified by a swept face's volume.
-        if sections.contains(where: { if case .face = $0 { return true }; return false }) {
-            throw FeatureEvaluationError.invalidGraph("Sweep takes a profile or a curve section.")
-        }
         let sectionFeatureIDs = sections.map(\.featureID)
         guard Set(sectionFeatureIDs).count == sectionFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Sweep section references must be unique.")
@@ -90,13 +84,15 @@ public struct SweepFeature: Codable, Hashable, Sendable {
         guard guideFeatureIDs.allSatisfy({ reservedCurveFeatureIDs.contains($0) == false }) else {
             throw FeatureEvaluationError.invalidGraph("Sweep guides must be distinct from sections and path.")
         }
+        // A face section may combine with the body it lies on, as a face extrusion does.
         let reservedSourceFeatureIDs = reservedCurveFeatureIDs.union(guideFeatureIDs)
+            .subtracting(sections.filter(\.isFace).map(\.featureID))
         guard targetFeatureIDs.allSatisfy({ reservedSourceFeatureIDs.contains($0) == false }) else {
             throw FeatureEvaluationError.invalidGraph("Sweep targets must be distinct from sections, path, and guides.")
         }
         if options.resultKind == .solid {
-            guard sections.allSatisfy(\.isProfile) else {
-                throw FeatureEvaluationError.invalidGraph("Solid sweep sections must reference closed profiles.")
+            guard sections.allSatisfy(\.isClosedRegion) else {
+                throw FeatureEvaluationError.invalidGraph("Solid sweep sections must reference closed profiles or planar faces.")
             }
         }
         switch options.booleanOperation {

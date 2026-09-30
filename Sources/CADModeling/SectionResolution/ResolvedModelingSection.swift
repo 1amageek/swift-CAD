@@ -4,7 +4,8 @@ import CADIR
 
 /// Source admission shared by modeling evaluators and their preflight consumers.
 package enum ResolvedModelingSection: Sendable {
-    case profile(Profile, ProfileReference)
+    /// A closed region and the section naming it: a sketch profile or a planar face of a body.
+    case profile(Profile, SectionReference)
     case curve(EvaluatedCurve)
 
     package static func resolveProfile(
@@ -75,10 +76,11 @@ package enum ResolvedModelingSection: Sendable {
         }
     }
 
-    package func profileReference() throws -> ProfileReference {
-        guard case .profile(_, let reference) = self else {
+    /// The section naming a closed region, for a feature that reads the region itself.
+    package func regionSection() throws -> SectionReference {
+        guard case .profile(_, let section) = self else {
             throw FeatureEvaluationError.invalidGraph("A curve section cannot be used as a closed profile.")
         }
-        return reference
+        return section
     }
 }

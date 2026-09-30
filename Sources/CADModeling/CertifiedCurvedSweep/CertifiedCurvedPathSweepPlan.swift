@@ -157,12 +157,19 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         // The section's control points as offsets from the path start, with the section normal
         // carried alongside; all move with the frame.
         let sectionPoints = sectionLoops.flatMap { $0.flatMap(\.curve.controlPoints) }
-        var carried: [[Interval]] = sectionPoints.map { Self.values($0 - pathStart) } + [Self.values(normal)]
+        // Across the start tangent the section spans two lateral axes the frame also carries, so
+        // the overlap certificate reads the section's extent along each of them.
+        let lateral = try Self.lateralAxes(of: startTangent, tolerance: tolerance)
+        let pointCount = sectionPoints.count
+        var carried: [[Interval]] = sectionPoints.map { Self.values($0 - pathStart) }
+            + [Self.values(normal), Self.values(lateral.0), Self.values(lateral.1)]
         let offsets = sectionPoints.map { $0 - pathStart }
         let reach = offsets.map(\.length).max() ?? 0
-        let alongTangent = offsets.map { $0.dot(startTangent) }
-        let across = offsets.map { ($0 - startTangent * $0.dot(startTangent)).length }.max() ?? 0
-        let alongRange = (alongTangent.min() ?? 0, alongTangent.max() ?? 0)
+        let extent = { (axis: Vector3D) -> Interval in
+            let values = offsets.map { $0.dot(axis) }
+            return Interval(lower: (values.min() ?? 0).nextDown, upper: (values.max() ?? 0).nextUp)
+        }
+        let sectionExtent = SectionExtent(along: extent(startTangent), first: extent(lateral.0), second: extent(lateral.1))
 
         var frameReference = startTangent
         var chunkStarted = true
@@ -214,7 +221,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             let speed = max(0, speedSquared).squareRoot().nextDown
             let curvature = speed > 0 ? (bendUpper / (speed * speed * speed).nextDown).nextUp : .infinity
             var remainder = 0.0
-            for vector in carried.dropLast() {
+            for vector in carried.prefix(pointCount) {
                 let moved = path + frame.rotated(vector)
                 let fourth = moved.derivative(4).reduce(Interval.exact(0)) { $0 + .exact($1.absoluteUpperBound) }
                 remainder = max(remainder, (fourth * .exact(1.0 / 384)).upper)
@@ -235,7 +242,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             var pieceRows: [[Point3D]] = Array(repeating: [], count: 4)
             var numeric = 0.0
             var nextStation: [[Interval]] = []
-            for (index, vector) in carried.dropLast().enumerated() {
+            for (index, vector) in carried.prefix(pointCount).enumerated() {
                 let atStart = startPath + startFrame.rotated(vector)
                 let atEnd = endPath + endFrame.rotated(vector)
                 let s0 = stationValues?[index] ?? atStart.derivative(0)
@@ -269,12 +276,29 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             guard let middlePoint = middle.position?.derivative(0), let middleTangent = try middle.tangent() else {
                 throw Self.failure(.invalidInput, "The sweep piece's middle is not certified.", featureID, tolerance)
             }
+            // Eighths of the piece bound where its sections can be, finely enough that a nearby
+            // piece's distance and tilt are read at the same place.
+            var parts = [bezier]
+            for _ in 0..<3 { parts = parts.flatMap { part -> [HomogeneousBezier] in let halves = part.halves(); return [halves.0, halves.1] } }
+            let bounds = try parts.map { part -> PartBounds in
+                let jet = try part.jet(over: .whole, order: 1)
+                guard let position = jet.position, let direction = jet.unitTangent(),
+                      let partFrame = try RotationJet(reference: frameReference,
+                          tangent: .constant(direction.derivative(0), order: 0)) else {
+                    throw Self.failure(.sweepPathNormalUnavailable, "The sweep path's frame is not certified along a piece.", featureID, tolerance)
+                }
+                return PartBounds(
+                    box: position.derivative(0), tangent: direction.derivative(0),
+                    first: partFrame.rotated(carried[pointCount + 1]).derivative(0),
+                    second: partFrame.rotated(carried[pointCount + 2]).derivative(0)
+                )
+            }
             pieces.append(AcceptedPiece(
-                box: path.derivative(0), tangentBox: tangent.derivative(0),
+                box: path.derivative(0), parts: bounds,
                 middle: Point3D(x: middlePoint[0].midpoint, y: middlePoint[1].midpoint, z: middlePoint[2].midpoint),
                 middleTangent: middleTangent
             ))
-            endNormalEnclosure = endFrame.rotated(carried[carried.count - 1]).derivative(0)
+            endNormalEnclosure = endFrame.rotated(carried[pointCount]).derivative(0)
         }
 
         func split(_ bezier: HomogeneousBezier, depth: Int, _ reason: String) throws {
@@ -289,7 +313,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         for bezier in beziers {
             try accept(bezier, depth: 0)
         }
-        try Self.certifyApart(pieces, reach: reach, across: across, along: alongRange, featureID: featureID, tolerance: tolerance)
+        try Self.certifyApart(pieces, reach: reach, extent: sectionExtent, featureID: featureID, tolerance: tolerance)
 
         // Surfaces: every section span of every loop, row by row.
         var built: [[[BSplineSurface3D]]] = sectionLoops.map { _ in [] }
@@ -328,21 +352,26 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
     /// farther apart than twice the section's reach, or the plane across the path in the middle
     /// of a piece between them has one wholly behind it and the other wholly ahead.
     private static func certifyApart(
-        _ pieces: [AcceptedPiece], reach: Double, across: Double, along: (Double, Double),
+        _ pieces: [AcceptedPiece], reach: Double, extent: SectionExtent,
         featureID: FeatureID?, tolerance: ModelingTolerance
     ) throws {
         guard pieces.count >= 3 else { return }
+        /// The signed distances from `plane` of the sections of every part of `piece`.
         func side(_ piece: AcceptedPiece, of plane: (Point3D, Vector3D)) -> (lower: Double, upper: Double) {
             let origin = values(plane.0)
             let normal = values(plane.1)
-            let distance = (0..<3).reduce(Interval.exact(0)) { $0 + (piece.box[$1] - origin[$1]) * normal[$1] }
-            let alignment = (0..<3).reduce(Interval.exact(0)) { $0 + piece.tangentBox[$1] * normal[$1] }
-            let cosine = max(alignment.lower, -1)
-            let sine = cosine > 0 ? max(0, 1 - cosine * cosine).squareRoot().nextUp : 1
-            let carried = [alignment * .exact(along.0), alignment * .exact(along.1)]
-            let spread = across * sine
-            return ((distance.lower + min(carried[0].lower, carried[1].lower) - spread).nextDown,
-                    (distance.upper + max(carried[0].upper, carried[1].upper) + spread).nextUp)
+            var lower = Double.infinity, upper = -Double.infinity
+            func along(_ axis: [Interval]) -> Interval { (0..<3).reduce(Interval.exact(0)) { $0 + axis[$1] * normal[$1] } }
+            for part in piece.parts {
+                // A section point is the path point plus its offsets along the tangent and the
+                // two lateral axes, each within the section's extent.
+                let distance = (0..<3).reduce(Interval.exact(0)) { $0 + (part.box[$1] - origin[$1]) * normal[$1] }
+                let reach = distance + along(part.tangent) * extent.along + along(part.first) * extent.first
+                    + along(part.second) * extent.second
+                lower = min(lower, reach.lower)
+                upper = max(upper, reach.upper)
+            }
+            return (lower, upper)
         }
         for first in pieces.indices {
             for second in stride(from: first + 2, to: pieces.count, by: 1) {
@@ -364,9 +393,31 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         }
     }
 
+    /// The section's offsets from the path start along the start tangent and two lateral axes.
+    private struct SectionExtent {
+        let along: Interval
+        let first: Interval
+        let second: Interval
+    }
+
+    /// Where a part of a piece and its frame can be.
+    private struct PartBounds {
+        let box: [Interval]
+        let tangent: [Interval]
+        let first: [Interval]
+        let second: [Interval]
+    }
+
+    /// Two unit axes across `tangent`, completing a right-handed frame.
+    private static func lateralAxes(of tangent: Vector3D, tolerance: ModelingTolerance) throws -> (Vector3D, Vector3D) {
+        let seed: Vector3D = abs(tangent.x) < 0.6 ? .unitX : .unitY
+        let first = try tangent.cross(seed).normalized(tolerance: tolerance.distance)
+        return (first, tangent.cross(first))
+    }
+
     private struct AcceptedPiece {
         let box: [Interval]
-        let tangentBox: [Interval]
+        let parts: [PartBounds]
         let middle: Point3D
         let middleTangent: Vector3D
     }

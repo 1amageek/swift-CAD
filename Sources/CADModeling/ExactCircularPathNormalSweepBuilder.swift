@@ -18,7 +18,7 @@ package struct ExactCircularPathNormalSweepBuilder: Sendable {
 
     package func build(
         profile: Profile,
-        profileReference: ProfileReference,
+        section: SectionReference,
         path: ExactCircularSweepPath
     ) throws -> EvaluationResult {
         try context.tolerance.validate()
@@ -30,10 +30,11 @@ package struct ExactCircularPathNormalSweepBuilder: Sendable {
         let revolveFeature = FeatureNode(
             id: featureID,
             operation: .revolve(RevolveFeature(
-                profile: profileReference,
+                section: section,
                 axis: path.axis,
                 angle: .constant(.angle(path.angle, unit: .radian)),
-                operation: .newBody
+                operation: .newBody,
+                resultKind: .solid
             )),
             outputs: [FeatureOutput(role: .body)]
         )

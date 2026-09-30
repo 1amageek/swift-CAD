@@ -1535,13 +1535,25 @@ public struct DocumentBuilder {
         options: SweepOptions = SweepOptions(),
         named name: String? = nil
     ) throws -> FeatureID {
-        let guides = guideFeatureIDs.map(SweepGuideReference.init)
-        let targets = targetFeatureIDs.map(SweepTargetReference.init)
+        try sweep(section: .profile(profile), along: pathFeatureID, guides: guideFeatureIDs, targets: targetFeatureIDs,
+                  options: options, named: name)
+    }
+
+    /// Sweeps any section (a profile, a curve, or a planar face of a body) along a path.
+    @discardableResult
+    public mutating func sweep(
+        section: SectionReference,
+        along pathFeatureID: FeatureID,
+        guides guideFeatureIDs: [FeatureID] = [],
+        targets targetFeatureIDs: [FeatureID] = [],
+        options: SweepOptions = SweepOptions(),
+        named name: String? = nil
+    ) throws -> FeatureID {
         let sweep = SweepFeature(
-            sections: [.profile(profile)],
+            sections: [section],
             path: SweepPathReference(featureID: pathFeatureID),
-            guides: guides,
-            targets: targets,
+            guides: guideFeatureIDs.map(SweepGuideReference.init),
+            targets: targetFeatureIDs.map(SweepTargetReference.init),
             options: options
         )
         let featureID = FeatureID()

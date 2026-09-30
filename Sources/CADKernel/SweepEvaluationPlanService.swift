@@ -522,9 +522,17 @@ public struct SweepEvaluationPlanService: Sendable {
         tolerance: ModelingTolerance
     ) throws -> ResolvedModelingSection {
         switch section {
-        case .face:
-            // Refused by the sweep's validation; a face section is not planned here.
-            throw FeatureEvaluationError.invalidGraph("Sweep takes a profile or a curve section.")
+        case .face(let reference):
+            // A planar face is read from the evaluated body it lies on.
+            guard let evaluated = evaluatedDocument else {
+                throw FeatureEvaluationError.invalidGraph("Sweep planning did not evaluate the body a face section lies on.")
+            }
+            let context = EvaluationContext(parameters: parameters, brep: evaluated.brep, profiles: [:],
+                subshapes: evaluated.subshapes, lineage: evaluated.lineage, tolerance: tolerance)
+            return .profile(
+                try FaceSectionProfileResolver().profile(for: reference, context: context, featureID: reference.featureID),
+                section
+            )
         case .profile(let profileReference):
             let sourceProfiles = try profiles(
                 for: profileReference.featureID,
@@ -534,7 +542,7 @@ public struct SweepEvaluationPlanService: Sendable {
             )
             return .profile(
                 try ResolvedModelingSection.resolveProfile(profileReference, from: sourceProfiles),
-                profileReference
+                section
             )
         case .curve(let curveReference):
             let sourceCurves = try curves(

@@ -88,7 +88,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 "Round sweep corner style requires curved corner-transition topology for multi-curve paths."
             )
         }
-        let section = try resolvedSection(sectionReference, context: context)
+        let section = try resolvedSection(sectionReference, context: context, featureID: feature.id)
         let preferredStartPlane = try ExactSweepSectionPlane(
             try section.plane(),
             tolerance: context.tolerance
@@ -222,7 +222,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                     message: "Sweep capability planning selected exact circular evaluation without circular path geometry."
                 )
             }
-            guard case let .profile(profile, profileReference) = section else {
+            guard case let .profile(profile, region) = section else {
                 throw KernelError(
                     phase: .evaluation,
                     code: .sweepPathNormalUnavailable,
@@ -237,7 +237,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 revolveEvaluator: revolveEvaluator
             ).build(
                 profile: profile,
-                profileReference: profileReference,
+                section: region,
                 path: exactCircularPath
             )
             return try applyBooleanIfNeeded(
@@ -373,10 +373,11 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             id: feature.id,
             name: feature.name,
             operation: .extrude(ExtrudeFeature(
-                profile: try section.profileReference(),
+                section: try section.regionSection(),
                 distance: .constant(.length(straightPath.distance, unit: .meter)),
                 direction: .vector(straightPath.direction),
-                operation: .newBody
+                operation: .newBody,
+                resultKind: .solid
             )),
             inputs: feature.inputs,
             outputs: feature.outputs,
@@ -406,18 +407,22 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
 
     private func resolvedSection(
         _ section: SectionReference,
-        context: EvaluationContext
+        context: EvaluationContext,
+        featureID: FeatureID
     ) throws -> ResolvedModelingSection {
         switch section {
-        case .face:
-            // Refused by the feature's validation; a face section is not read here.
-            throw FeatureEvaluationError.invalidGraph("Sweep takes a profile or a curve section.")
+        case .face(let reference):
+            // A planar face read as a profile where its body is.
+            return .profile(
+                try FaceSectionProfileResolver().profile(for: reference, context: context, featureID: featureID),
+                section
+            )
         case .profile(let profileReference):
             let profile = try ResolvedModelingSection.resolveProfile(
                 profileReference,
                 from: context.profiles[profileReference.featureID]
             )
-            return .profile(profile, profileReference)
+            return .profile(profile, section)
         case .curve(let curveReference):
             let curve = try ResolvedModelingSection.resolveCurve(
                 curveReference,

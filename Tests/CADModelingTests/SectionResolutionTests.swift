@@ -36,9 +36,9 @@ struct SectionResolutionTests {
                 ProfileReference(featureID: source), from: [profile(source: FeatureID())]
             )
         }
-        let section = ResolvedModelingSection.profile(selected, reference)
+        let section = ResolvedModelingSection.profile(selected, .profile(reference))
         #expect(try section.plane() == .yz)
-        #expect(try section.profileReference() == reference)
+        #expect(try section.regionSection() == .profile(reference))
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -71,7 +71,7 @@ struct SectionResolutionTests {
         )
         let section = ResolvedModelingSection.curve(resolved)
         #expect(throws: FeatureEvaluationError.self) { try section.plane() }
-        #expect(throws: FeatureEvaluationError.self) { try section.profileReference() }
+        #expect(throws: FeatureEvaluationError.self) { try section.regionSection() }
         #expect(try ResolvedModelingSection.curve(curve(source: source, plane: .xy)).plane() == .xy)
     }
 
