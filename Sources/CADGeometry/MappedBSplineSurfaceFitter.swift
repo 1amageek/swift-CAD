@@ -1,11 +1,13 @@
 import CADCore
 
-/// A bicubic B-spline surface on a parameter rectangle through a smooth map of it, refined until
-/// it stays within a deviation of the map: the surface a face takes when its support is carried
-/// through a deformation, on the face's own parameters, so its trimming curves stay valid.
+/// A B-spline surface on a parameter rectangle through a smooth map of it, bicubic unless other
+/// degrees are asked for, refined until it stays within a deviation of the map: the surface a face
+/// takes when its support is carried through a deformation, or rebuilt, on the face's own
+/// parameters, so its trimming curves stay valid.
 ///
 /// The surface is clamped with uniform knots and interpolates the map at the tensor grid of
-/// Greville abscissae, solved one direction at a time. Its distance to the map is checked at the
+/// Greville abscissae, solved one direction at a time. `fit(layout:u:v:tolerance:point:)` fits one
+/// given layout of degrees and spans and reports how far it strays. Its distance to the map is checked at the
 /// quarter points of every knot cell, and while it exceeds the deviation one direction doubles its
 /// spans, from one each: the one whose doubling brings the fit closer, so a map that bends one way
 /// only is not split the other way. Each direction stops at `maximumSpanCount`
@@ -17,18 +19,35 @@ package struct MappedBSplineSurfaceFitter: Sendable {
         package var maximumDeviation: Double
     }
 
-    package static let degree = 3
+    /// The degrees and span counts of a fitted surface along U and V.
+    package struct Layout: Hashable, Sendable {
+        package var uDegree: Int
+        package var vDegree: Int
+        package var uSpans: Int
+        package var vSpans: Int
+
+        package init(uDegree: Int, vDegree: Int, uSpans: Int, vSpans: Int) {
+            self.uDegree = uDegree
+            self.vDegree = vDegree
+            self.uSpans = uSpans
+            self.vSpans = vSpans
+        }
+    }
 
     package let deviation: Double
     package let maximumSpanCount: Int
+    package let uDegree: Int
+    package let vDegree: Int
 
-    package init(deviation: Double, maximumSpanCount: Int = 128) throws {
-        guard deviation.isFinite, deviation > 0, maximumSpanCount >= 1 else {
+    package init(deviation: Double, maximumSpanCount: Int = 128, uDegree: Int = 3, vDegree: Int = 3) throws {
+        guard deviation.isFinite, deviation > 0, maximumSpanCount >= 1, uDegree >= 1, vDegree >= 1 else {
             throw KernelError(phase: .validation, code: .invalidInput, tolerance: nil,
-                message: "A surface fit needs a positive deviation and span budget.")
+                message: "A surface fit needs a positive deviation, span budget and degrees.")
         }
         self.deviation = deviation
         self.maximumSpanCount = maximumSpanCount
+        self.uDegree = uDegree
+        self.vDegree = vDegree
     }
 
     package func fit(
@@ -43,16 +62,16 @@ package struct MappedBSplineSurfaceFitter: Sendable {
         }
         // One span first: a map that is affine over the rectangle is fitted exactly by it.
         var spans = (u: 1, v: 1)
-        var result = try fit(uSpans: 1, vSpans: 1, u: u, v: v, tolerance: tolerance, point: point)
+        var result = try Self.fit(layout: layout(1, 1), u: u, v: v, tolerance: tolerance, point: point)
         while result.maximumDeviation > deviation {
             var candidates: [((u: Int, v: Int), Result)] = []
             if spans.u < maximumSpanCount {
                 let next = (u: min(spans.u * 2, maximumSpanCount), v: spans.v)
-                candidates.append((next, try fit(uSpans: next.u, vSpans: next.v, u: u, v: v, tolerance: tolerance, point: point)))
+                candidates.append((next, try Self.fit(layout: layout(next.u, next.v), u: u, v: v, tolerance: tolerance, point: point)))
             }
             if spans.v < maximumSpanCount {
                 let next = (u: spans.u, v: min(spans.v * 2, maximumSpanCount))
-                candidates.append((next, try fit(uSpans: next.u, vSpans: next.v, u: u, v: v, tolerance: tolerance, point: point)))
+                candidates.append((next, try Self.fit(layout: layout(next.u, next.v), u: u, v: v, tolerance: tolerance, point: point)))
             }
             guard let best = candidates.min(by: { $0.1.maximumDeviation < $1.1.maximumDeviation }) else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded, residual: result.maximumDeviation, tolerance: tolerance,
@@ -63,22 +82,35 @@ package struct MappedBSplineSurfaceFitter: Sendable {
         return result
     }
 
-    private func fit(
-        uSpans: Int,
-        vSpans: Int,
+    private func layout(_ uSpans: Int, _ vSpans: Int) -> Layout {
+        Layout(uDegree: uDegree, vDegree: vDegree, uSpans: uSpans, vSpans: vSpans)
+    }
+
+    /// The surface of `layout` through `point` at its Greville grid, and its largest distance from
+    /// `point` at the quarter points of every knot cell and along the far sides.
+    package static func fit(
+        layout: Layout,
         u: ScalarInterval,
         v: ScalarInterval,
         tolerance: ModelingTolerance,
         point: (Double, Double) throws -> Point3D
     ) throws -> Result {
-        let p = Self.degree
-        let knotsU = Self.clampedUniformKnots(spans: uSpans, on: u, degree: p)
-        let knotsV = Self.clampedUniformKnots(spans: vSpans, on: v, degree: p)
-        let uCount = uSpans + p, vCount = vSpans + p
-        let grevilleU = Self.greville(knotsU, degree: p, count: uCount)
-        let grevilleV = Self.greville(knotsV, degree: p, count: vCount)
-        let solverU = try BandedCollocation(knots: knotsU, degree: p, abscissae: grevilleU)
-        let solverV = try BandedCollocation(knots: knotsV, degree: p, abscissae: grevilleV)
+        guard layout.uDegree >= 1, layout.vDegree >= 1, layout.uSpans >= 1, layout.vSpans >= 1 else {
+            throw KernelError(phase: .validation, code: .invalidInput, tolerance: tolerance,
+                message: "A surface fit's layout needs degrees and spans of at least one.")
+        }
+        guard u.width > 0, v.width > 0, u.lower.isFinite, u.upper.isFinite, v.lower.isFinite, v.upper.isFinite else {
+            throw KernelError(phase: .validation, code: .invalidInput, tolerance: tolerance,
+                message: "A surface fit needs a finite parameter rectangle of positive extent.")
+        }
+        let (uSpans, vSpans) = (layout.uSpans, layout.vSpans)
+        let knotsU = clampedUniformKnots(spans: uSpans, on: u, degree: layout.uDegree)
+        let knotsV = clampedUniformKnots(spans: vSpans, on: v, degree: layout.vDegree)
+        let uCount = uSpans + layout.uDegree, vCount = vSpans + layout.vDegree
+        let grevilleU = greville(knotsU, degree: layout.uDegree, count: uCount)
+        let grevilleV = greville(knotsV, degree: layout.vDegree, count: vCount)
+        let solverU = try BandedCollocation(knots: knotsU, degree: layout.uDegree, abscissae: grevilleU)
+        let solverV = try BandedCollocation(knots: knotsV, degree: layout.vDegree, abscissae: grevilleV)
         // samples[j][i] = map at (grevilleU[i], grevilleV[j]).
         let samples = try grevilleV.map { t in try grevilleU.map { s in try point(s, t) } }
         // Along u for each v row, then along v for each u column.
@@ -88,7 +120,7 @@ package struct MappedBSplineSurfaceFitter: Sendable {
             let column = try solverV.solve(rows.map { $0[i] })
             for j in 0..<vCount { controlPoints[j][i] = column[j] }
         }
-        let surface = BSplineSurface3D(uDegree: p, vDegree: p, uKnots: knotsU, vKnots: knotsV, controlPoints: controlPoints)
+        let surface = BSplineSurface3D(uDegree: layout.uDegree, vDegree: layout.vDegree, uKnots: knotsU, vKnots: knotsV, controlPoints: controlPoints)
         var maximum = 0.0
         let fractions = [0.0, 0.25, 0.5, 0.75]
         for cellV in 0..<vSpans {

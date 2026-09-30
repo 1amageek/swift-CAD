@@ -827,10 +827,18 @@ exact basis along the edge; refines the target along U until it has the rows the
 sets, the rows blended and a far row; then sets its first row to the reference's boundary (G0),
 its second so the cross-edge derivative is the reference's times the tension times the target's
 own speed ratio (G1), its third so the second derivative is that factor squared times the
-reference's (G2), and fades the last row's displacement over the blended rows. The sheet is sewn
-anew on the aligned surface. Rational surfaces, trimmed faces and edges inside a domain are
-refused. `SurfaceAlignTests` prove a flat sheet following an arch across a gap at G0, G1 and G2
-with its far edge kept.
+reference's (G2), and fades the last row's displacement over the blended rows by their Greville
+abscissae toward the first row left alone, each blended row keeping the input shape's influence
+and running straight between those rows otherwise. Partial start and end fade the whole change in
+and out along the edge (smoothstep in each column's Greville abscissa), and a layout refits the
+target to its degrees and spans on its own parameters first (`MappedBSplineSurfaceFitter`); the
+reference's knots along the edge are merged in after, so the continuity stays exact. The sheet is
+sewn anew on the aligned surface. Rational surfaces, trimmed faces and edges inside a domain are
+refused. The cross-edge flow follows the reference's (Plasticity's Adjacent); Natural, Normal
+and Next flows are not provided. `SurfaceAlignTests` prove a flat sheet following an arch across
+a gap at G0, G1 and G2 with its far edge kept, a partial alignment on a refitted layout leaving
+the edge's ends and meeting in the middle, and blended rows without input shape influence
+running straight.
 
 ## Extend Sheet
 

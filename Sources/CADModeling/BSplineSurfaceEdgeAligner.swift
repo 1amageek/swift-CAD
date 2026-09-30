@@ -10,9 +10,13 @@ import CADGeometry
 /// target's control rows at the edge can be set from the reference's end rows: the first row to
 /// the reference's boundary curve (G0), the second so the cross-edge derivative is the
 /// reference's times the tension-scaled speed ratio (G1), the third so the second derivative is
-/// its square times the reference's (G2). The displacement of the last row set fades linearly over
-/// `blendRows` further rows. Both surfaces must be non-rational, whose control points combine
-/// affinely.
+/// its square times the reference's (G2). The displacement of the last row set fades over
+/// `blendRows` further rows, by their Greville abscissae, toward the first row left alone; a
+/// blended row keeps `inputShapeInfluence` of its own shape, the rest running straight between
+/// those two rows. The whole change fades in over the first `partialStart` of the edge and out
+/// over its last `partialEnd` (smoothstep in each column's Greville abscissa along the edge), and
+/// a `layout` refits the target to its degrees and spans on its own parameters first. Both
+/// surfaces must be non-rational, whose control points combine affinely.
 package struct BSplineSurfaceEdgeAligner: Sendable {
     package typealias Side = BSplineSurfaceBoundaryExtender.Side
 
@@ -23,13 +27,26 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
     package func aligned(
         _ target: BSplineSurface3D, side targetSide: Side,
         to reference: BSplineSurface3D, side referenceSide: Side,
-        continuity: Int, tension: Double, blendRows: Int, tolerance: ModelingTolerance
+        continuity: Int, tension: Double, blendRows: Int, inputShapeInfluence: Double = 1,
+        partialStart: Double = 0, partialEnd: Double = 0, layout: MappedBSplineSurfaceFitter.Layout? = nil,
+        tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
-        guard (0...2).contains(continuity), tension.isFinite, tension > 0, blendRows >= 0 else {
-            throw failure(.invalidInput, "Align Surface takes G0, G1 or G2, a positive tension and blended rows none or more.", tolerance)
+        guard (0...2).contains(continuity), tension.isFinite, tension > 0, blendRows >= 0, (0...1).contains(inputShapeInfluence),
+              (0...1).contains(partialStart), (0...1).contains(partialEnd), partialStart + partialEnd <= 1 else {
+            throw failure(.invalidInput, "Align Surface takes G0, G1 or G2, a positive tension, blended rows none or more, an influence and partial fractions within 0 to 1.", tolerance)
         }
         for surface in [target, reference] where surface.weights.joined().contains(where: { abs($0 - 1) > 1e-12 }) {
             throw failure(.unsupportedCapability, "Align Surface aligns non-rational B-spline surfaces.", tolerance)
+        }
+        var target = target
+        if let layout {
+            let own = target
+            guard let u0 = own.uKnots.first, let u1 = own.uKnots.last, let v0 = own.vKnots.first, let v1 = own.vKnots.last else {
+                throw failure(.invalidInput, "A target surface has no parameter domain.", tolerance)
+            }
+            target = try MappedBSplineSurfaceFitter.fit(
+                layout: layout, u: ScalarInterval(lower: u0, upper: u1), v: ScalarInterval(lower: v0, upper: v1), tolerance: tolerance
+            ) { u, v in try Surface3D.bSpline(own).differentialGeometry(u: u, v: v, tolerance: tolerance).position }.surface
         }
         // The target's edge at its lower U boundary, its interior after it; the reference's at its
         // upper U boundary, its interior before it.
@@ -99,6 +116,11 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
         }
         let scale = tension * ownSpeed / guideSpeed
         var aligned = working.controlPoints
+        // Greville abscissae across the edge (rows) and along it (columns, on [0, 1]).
+        let rowAbscissae = greville(V, degree: q, count: working.controlPoints[0].count)
+        let columnAbscissae = greville(working.vKnots, degree: working.vDegree, count: columns)
+        let lastSet = setRows - 1
+        let firstLeft = setRows + blendRows
         for j in 0..<columns {
             let (point, first, second) = derivatives[j]
             let old = working.controlPoints[j]
@@ -111,10 +133,20 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
                 let q1 = q0 + second * (scale * scale * (V[q + 1] - V[2]) / Double(q - 1))
                 aligned[j][2] = aligned[j][1] + q1 * ((V[q + 2] - V[2]) / Double(q))
             }
-            // The last row set carries the rows after it part of its way.
-            let displacement = aligned[j][setRows - 1] - old[setRows - 1]
-            for r in 0..<blendRows {
-                aligned[j][setRows + r] = old[setRows + r] + displacement * (1 - Double(r + 1) / Double(blendRows + 1))
+            // The last row set carries the rows after it part of its way, each keeping the input
+            // shape's influence and running straight toward the first row left alone otherwise.
+            let displacement = aligned[j][lastSet] - old[lastSet]
+            let span = rowAbscissae[firstLeft] - rowAbscissae[lastSet]
+            for k in setRows..<firstLeft {
+                let t = (rowAbscissae[k] - rowAbscissae[lastSet]) / span
+                let carried = old[k] + displacement * (1 - t)
+                let straight = aligned[j][lastSet] + (old[firstLeft] - aligned[j][lastSet]) * t
+                aligned[j][k] = carried + (straight - carried) * (1 - inputShapeInfluence)
+            }
+            // Partial alignment: the change fades in and out along the edge.
+            let weight = partialWeight(at: columnAbscissae[j], start: partialStart, end: partialEnd)
+            for k in 0..<firstLeft {
+                aligned[j][k] = old[k] + (aligned[j][k] - old[k]) * weight
             }
         }
         working.controlPoints = aligned
@@ -136,6 +168,20 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
         var result = transposes ? transposed(surface) : surface
         if reverses { result = reversedU(result) }
         return result
+    }
+
+    private func greville(_ knots: [Double], degree: Int, count: Int) -> [Double] {
+        (0..<count).map { index in knots[(index + 1)...(index + degree)].reduce(0, +) / Double(degree) }
+    }
+
+    /// How much of the alignment a column at `s` along the edge takes: none at either end within a
+    /// partial fraction, rising smoothly to all of it where the fraction ends.
+    private func partialWeight(at s: Double, start: Double, end: Double) -> Double {
+        func smooth(_ x: Double) -> Double { let t = min(max(x, 0), 1); return t * t * (3 - 2 * t) }
+        var weight = 1.0
+        if start > 0, s < start { weight = min(weight, smooth(s / start)) }
+        if end > 0, s > 1 - end { weight = min(weight, smooth((1 - s) / end)) }
+        return weight
     }
 
     /// The surface with its V parameter mapped onto `[0, 1]`.

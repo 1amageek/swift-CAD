@@ -78,7 +78,12 @@ public struct SurfaceAlignFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
         }
         let aligned = try BSplineSurfaceEdgeAligner().aligned(
             targetSurface, side: targetSide, to: reference, side: referenceSide,
-            continuity: continuity, tension: align.tension, blendRows: align.blendRows, tolerance: tolerance
+            continuity: continuity, tension: align.tension, blendRows: align.blendRows,
+            inputShapeInfluence: align.inputShapeInfluence, partialStart: align.partialStart, partialEnd: align.partialEnd,
+            layout: align.layout.map {
+                MappedBSplineSurfaceFitter.Layout(uDegree: $0.uDegree, vDegree: $0.vDegree, uSpans: $0.uSpans, vSpans: $0.vSpans)
+            },
+            tolerance: tolerance
         )
         // The sheet sewn anew on the aligned surface, bounded by its parameter lines.
         let surface = Surface3D.bSpline(aligned)

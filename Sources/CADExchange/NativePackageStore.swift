@@ -466,7 +466,10 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("surfaceAlign", in: object, path: "\(path).surfaceAlign") { feature, featurePath in
         try rejectUnsupportedNativeKeys(
             in: feature,
-            supportedKeys: ["target", "targetEdge", "reference", "referenceEdge", "referencePlacement", "continuity", "tension", "blendRows"],
+            supportedKeys: [
+                "target", "targetEdge", "reference", "referenceEdge", "referencePlacement", "continuity", "tension", "blendRows",
+                "inputShapeInfluence", "partialStart", "partialEnd", "layout",
+            ],
             objectName: featurePath
         )
         try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)

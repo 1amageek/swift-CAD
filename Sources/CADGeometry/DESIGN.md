@@ -431,9 +431,11 @@ over 1,024 control points, an unclamped direction or a nonpositive raised weight
 throws. `BSplineSurfaceDegreeElevationTests` proves a rational surface with a
 doubled interior knot is unchanged in both directions.
 
-`MappedBSplineSurfaceFitter` fits a bicubic, clamped, uniformly knotted B-spline
-on a parameter rectangle to a smooth map of it (Wrap carries a face's support this
-way, on the face's own parameters, so its trimming curves stay valid). It
+`MappedBSplineSurfaceFitter` fits a clamped, uniformly knotted B-spline, bicubic
+unless given other degrees, on a parameter rectangle to a smooth map of it (Wrap
+carries a face's support this way, on the face's own parameters, so its trimming
+curves stay valid; `fit(layout:…)` fits one given layout of degrees and spans and
+reports its deviation, for Align Surface's and Rebuild Face's explicit layouts). It
 interpolates the map at the tensor grid of Greville abscissae, one direction at a
 time through one factored collocation matrix per direction, checks the distance
 at the quarter points of every knot cell and along the far edges, and from one
