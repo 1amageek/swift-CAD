@@ -2,11 +2,16 @@ import CADCore
 import CADIR
 import CADTopology
 
+/// Joins bodies as its mode says: solids whose material does not meet become the components of one
+/// solid body, and sheets are sewn along the edges where they meet exactly into a sheet or a solid
+/// (`SheetBodyJoining`).
 public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let validator: any BodyJoinValidating
+    private let sheetJoiner: any SheetBodyJoining
 
-    package init(validator: any BodyJoinValidating) {
+    package init(validator: any BodyJoinValidating, sheetJoiner: any SheetBodyJoining) {
         self.validator = validator
+        self.sheetJoiner = sheetJoiner
     }
 
     public func evaluate(
@@ -55,15 +60,46 @@ public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             guard let body = context.brep.bodies[bodyID] else {
                 throw TopologyError.missingReference("Join bodies source body is missing.")
             }
-            guard body.kind == .solid else {
+            return body
+        }
+        let removedSubshapeIDs = Set(bodyIDs.flatMap { bodyID in
+            context.subshapeIDs(for: .body(bodyID))
+        })
+        if join.mode != .solidComponents {
+            guard bodies.allSatisfy({ $0.kind == .sheet }) else {
                 throw error(
                     .invalidInput,
                     featureID: feature.id,
                     tolerance: context.tolerance,
-                    "Join bodies requires every source body to be a solid."
+                    "Join bodies sews sheets only."
                 )
             }
-            return body
+            let sewn = try sheetJoiner.joinSheets(
+                bodyIDs: bodyIDs, closed: join.mode == .sewnSolid, featureID: feature.id, context: context
+            )
+            // Sewing rebuilds every face, edge and vertex, so every subshape of the sources goes.
+            let replacedSubshapeIDs = try bodyIDs.reduce(into: Set<SubshapeID>()) { replaced, bodyID in
+                replaced.formUnion(try BodyTopologyScope(bodyID: bodyID, model: context.brep).subshapeIDs(in: context.subshapes))
+            }
+            let model = try BRepBodyModelReplacer().replacing(
+                bodyIDs: Set(bodyIDs),
+                with: sewn.brep,
+                in: context.brep
+            )
+            return EvaluationResult(
+                brep: model,
+                subshapes: sewn.subshapes,
+                removedSubshapeIDs: replacedSubshapeIDs.union(removedSubshapeIDs),
+                lineage: sewn.lineage
+            )
+        }
+        guard bodies.allSatisfy({ $0.kind == .solid }) else {
+            throw error(
+                .invalidInput,
+                featureID: feature.id,
+                tolerance: context.tolerance,
+                "Join bodies combines solids only; sheets are sewn."
+            )
         }
         try validator.validateDisjointMaterial(
             bodyIDs: bodyIDs,
@@ -105,9 +141,6 @@ public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             role: GeneratedSubshapeRole.body.rawValue,
             ordinal: 0
         )
-        let removedSubshapeIDs = Set(bodyIDs.flatMap { bodyID in
-            context.subshapeIDs(for: .body(bodyID))
-        })
         return EvaluationResult(
             brep: model,
             subshapes: [joinedSubshapeID: .body(joinedBodyID)],

@@ -132,7 +132,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             sideClassifier: BRepBodyPlaneSideClassifier()
         )
         self.joinBodiesEvaluator = JoinBodiesFeatureEvaluator(
-            validator: ExactBodyJoinValidator()
+            validator: ExactBodyJoinValidator(),
+            sheetJoiner: DefaultSheetBodyJoiner(sewer: sewer)
         )
         self.unjoinBodyEvaluator = UnjoinBodyFeatureEvaluator()
         self.chamferEvaluator = ChamferFeatureEvaluator(

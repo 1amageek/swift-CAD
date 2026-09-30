@@ -765,10 +765,11 @@ extension KernelCapabilities {
     feature(
       id: "MODEL-JOIN-001",
       operation: "joinBodies",
-      topology: .solidBody,
+      topology: .sheetOrSolidBody,
       inputs: [
-        "twoOrMoreValidatedSolidBodies",
-        "pairwiseDisjointMaterialRegionsAndBoundaries",
+        "twoOrMoreValidatedSolidBodiesOrTwoOrMoreValidatedSheetBodies",
+        "pairwiseDisjointMaterialRegionsAndBoundariesForSolids",
+        "sheetsConnectedThroughBoundaryEdgesCoincidentWithinModelingTolerance",
       ],
       outputs: [
         "validatedExactMultiShellBRep",
@@ -776,6 +777,8 @@ extension KernelCapabilities {
         "singleJoinedBodyOwningEverySourceShell",
         "explicitSolidComponentAndVoidShellOwnership",
         "fullIntersectionAndContainmentValidationWhenBoundsOverlap",
+        "sheetsSewnIntoOneShellWithOneFrontSideAgreeingWithTheFirstSheet",
+        "closedSewnSheetsBecomeAnOutwardFacingSolid",
         "mergedBodyTopologyLineage",
         "strictCurrentSchemaNativePersistence",
         "preservedUnrelatedBodiesAndSelections",

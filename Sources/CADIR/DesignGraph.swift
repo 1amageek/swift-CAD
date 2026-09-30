@@ -1389,12 +1389,16 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         }
         for target in join.targets {
             guard let targetSource = nodes[target.featureID],
-                  targetSource.outputs.contains(where: { $0.role == .body }) else {
-                throw FeatureEvaluationError.invalidGraph("Join bodies target source must declare a body output.")
+                  targetSource.outputs.contains(where: { $0.role == join.mode.targetPort }) else {
+                throw FeatureEvaluationError.invalidGraph(
+                    "Join bodies target source must declare a \(join.mode.targetPort.rawValue) output."
+                )
             }
         }
-        guard outputRoles == [.body] else {
-            throw FeatureEvaluationError.invalidGraph("Join bodies features must declare one body output.")
+        guard outputRoles == [join.mode.outputPort] else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Join bodies features must declare one \(join.mode.outputPort.rawValue) output."
+            )
         }
     }
 

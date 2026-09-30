@@ -317,7 +317,7 @@ extension FeatureOperation {
                 cutsAtPlane: feature.cutsAtPlane
             ))
         case .joinBodies(let feature):
-            return .joinBodies(JoinBodiesFeature(targets: try feature.targets.map(pattern)))
+            return .joinBodies(JoinBodiesFeature(targets: try feature.targets.map(pattern), mode: feature.mode))
         case .unjoinBody(let feature):
             return .unjoinBody(UnjoinBodyFeature(target: try pattern(feature.target)))
         case .extract(let feature):

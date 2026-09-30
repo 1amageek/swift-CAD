@@ -318,6 +318,20 @@ public struct BRepModel: Codable, Equatable, Sendable {
     )
   }
 
+  /// The certified signed volume one shell encloses under its own and its faces' orientation:
+  /// positive when its faces face out of the region it bounds. A closed shell of a sheet body
+  /// has a sign as well, which says which way its faces must face for it to bound a solid.
+  public func signedVolume(
+    ofShell shellID: ShellID,
+    tolerance: ModelingTolerance
+  ) throws -> Double {
+    try validate(tolerance: tolerance)
+    guard let shell = shells[shellID] else {
+      throw TopologyError.missingReference("Missing measurable shell \(shellID).")
+    }
+    return try exactVolumeContribution(of: shell, tolerance: tolerance)
+  }
+
   func volumeAfterBaseValidation(
     tolerance: ModelingTolerance
   ) throws -> Double {

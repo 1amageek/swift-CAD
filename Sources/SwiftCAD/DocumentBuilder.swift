@@ -697,10 +697,12 @@ public struct DocumentBuilder {
     @discardableResult
     public mutating func joinBodies(
         _ targets: [FeatureID],
+        mode: JoinBodiesMode = .solidComponents,
         named name: String? = nil
     ) throws -> FeatureID {
         let join = JoinBodiesFeature(
-            targets: targets.map { PatternTargetReference(featureID: $0) }
+            targets: targets.map { PatternTargetReference(featureID: $0) },
+            mode: mode
         )
         try join.validate()
         let featureID = FeatureID()

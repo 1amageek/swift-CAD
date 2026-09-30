@@ -104,6 +104,29 @@ touching solids stay separate shells. Uses that do not pair so are a typed
 which the Region cell complex also uses. `SheetBooleanTests` re-slice a slice's
 touching pieces.
 
+### Joining bodies
+
+`JoinBodiesFeature.mode` says what a join makes, and so which port its targets and
+its result use. `.solidComponents` makes solids whose material does not meet the
+components of one solid body, each shell untouched. `.sewnSheet` and `.sewnSolid`
+sew sheets along the boundary edges that coincide within the modeling tolerance
+(`SheetBodyJoining`, implemented by `DefaultSheetBodyJoiner` in CADKernel, which
+owns the face patch extractor and the sewer): each source's faces become patches
+under a prefix of their own, edge uses pair through `BRepSewingEdgeFan`, and a pair
+traversed the same way by both faces turns the later face over, spreading from the
+first source's first face. An edge met by more than two faces (`nonManifoldResult`),
+sheets that do not all meet, and faces that cannot agree on one front side are
+refused (`invalidInput`). `.sewnSolid` requires a shell with no boundary edge left
+and faces it outward (its certified signed volume, `BRepModel.signedVolume(ofShell:)`,
+decides whether every face turns over); `.sewnSheet` requires a boundary edge left.
+A result of the other kind than the mode names is refused, never produced, so an
+upstream edit that opens or closes the sheets fails the join explicitly. Sewing
+rebuilds every face, edge and vertex, so every subshape of the sources is removed.
+An author chooses the mode with `JoinSheetClosure`, which runs the same plan.
+`JoinSheetsFeatureTests` cover a cube of mixed-facing sheets, an open join both
+ways, sheets that do not meet, three faces on one edge, mixed kinds, the closure
+query and a mode that does not match.
+
 ### Curve translation
 
 Curve Extrude supplies start/end displacement vectors to the existing exact

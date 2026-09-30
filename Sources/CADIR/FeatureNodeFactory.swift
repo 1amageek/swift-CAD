@@ -474,14 +474,14 @@ public enum FeatureNodeFactory {
                 }
                 try feature.validate()
                 for target in feature.targets {
-                    try validateSource(target.featureID, role: .body, in: document)
+                    try validateSource(target.featureID, role: feature.mode.targetPort, in: document)
                 }
                 return FeatureNode(
                     id: id,
                     name: name,
                     operation: operation,
                     inputs: feature.targets.map { FeatureInput(featureID: $0.featureID, role: .target) },
-                    outputs: [FeatureOutput(role: .body)]
+                    outputs: [FeatureOutput(role: feature.mode.outputPort)]
                 )
             }
             return try run()
