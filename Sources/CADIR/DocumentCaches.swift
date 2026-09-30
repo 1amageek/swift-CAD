@@ -61,11 +61,48 @@ public struct DocumentCaches: Codable, Sendable {
 public struct BRepCache: Codable, Sendable {
     public var designRevision: DocumentRevision
     public var parameterRevision: DocumentRevision
-    public var sourceFingerprint: CADDocumentSourceFingerprint
+    private var sourceFingerprintRecord: CacheSourceFingerprint
     public var kernelVersion: SchemaVersion
     public var tolerance: ModelingTolerance
     public var model: BRepModel
     public var subshapes: SubshapeIndex
+
+    /// The fingerprint of the source this cache was evaluated from. A cache an evaluation made
+    /// hashes its source only when this is first read (`CacheSourceFingerprint`).
+    public var sourceFingerprint: CADDocumentSourceFingerprint {
+        get throws { try sourceFingerprintRecord.resolve() }
+    }
+
+    /// Records `fingerprint` as the source this cache was made from.
+    public mutating func replaceSourceFingerprint(with fingerprint: CADDocumentSourceFingerprint) {
+        sourceFingerprintRecord = .value(fingerprint)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case designRevision, parameterRevision, sourceFingerprint, kernelVersion, tolerance, model, subshapes
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        designRevision = try container.decode(DocumentRevision.self, forKey: .designRevision)
+        parameterRevision = try container.decode(DocumentRevision.self, forKey: .parameterRevision)
+        sourceFingerprintRecord = .value(try container.decode(CADDocumentSourceFingerprint.self, forKey: .sourceFingerprint))
+        kernelVersion = try container.decode(SchemaVersion.self, forKey: .kernelVersion)
+        tolerance = try container.decode(ModelingTolerance.self, forKey: .tolerance)
+        model = try container.decode(BRepModel.self, forKey: .model)
+        subshapes = try container.decode(SubshapeIndex.self, forKey: .subshapes)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(designRevision, forKey: .designRevision)
+        try container.encode(parameterRevision, forKey: .parameterRevision)
+        try container.encode(try sourceFingerprint, forKey: .sourceFingerprint)
+        try container.encode(kernelVersion, forKey: .kernelVersion)
+        try container.encode(tolerance, forKey: .tolerance)
+        try container.encode(model, forKey: .model)
+        try container.encode(subshapes, forKey: .subshapes)
+    }
 
     public init(
         designRevision: DocumentRevision,
@@ -76,9 +113,29 @@ public struct BRepCache: Codable, Sendable {
         model: BRepModel,
         subshapes: SubshapeIndex = SubshapeIndex()
     ) {
+        self.init(
+            designRevision: designRevision,
+            parameterRevision: parameterRevision,
+            sourceFingerprintRecord: .value(sourceFingerprint),
+            kernelVersion: kernelVersion,
+            tolerance: tolerance,
+            model: model,
+            subshapes: subshapes
+        )
+    }
+
+    package init(
+        designRevision: DocumentRevision,
+        parameterRevision: DocumentRevision,
+        sourceFingerprintRecord: CacheSourceFingerprint,
+        kernelVersion: SchemaVersion,
+        tolerance: ModelingTolerance,
+        model: BRepModel,
+        subshapes: SubshapeIndex
+    ) {
         self.designRevision = designRevision
         self.parameterRevision = parameterRevision
-        self.sourceFingerprint = sourceFingerprint
+        self.sourceFingerprintRecord = sourceFingerprintRecord
         self.kernelVersion = kernelVersion
         self.tolerance = tolerance
         self.model = model
@@ -114,7 +171,7 @@ public struct BRepCache: Codable, Sendable {
         guard parameterRevision == document.parameters.revision else {
             throw CacheValidationError.staleBRepCache("Parameter revision does not match the source document.")
         }
-        guard sourceFingerprint == expectedSourceFingerprint else {
+        guard try sourceFingerprint == expectedSourceFingerprint else {
             throw CacheValidationError.staleBRepCache("Source fingerprint does not match the source document.")
         }
         guard kernelVersion == expectedKernelVersion else {
@@ -131,7 +188,7 @@ public struct MeshCache: Codable, Sendable {
     public var bodyID: BodyID
     public var designRevision: DocumentRevision
     public var parameterRevision: DocumentRevision
-    public var sourceFingerprint: CADDocumentSourceFingerprint
+    private var sourceFingerprintRecord: CacheSourceFingerprint
     public var kernelVersion: SchemaVersion
     public var tolerance: ModelingTolerance
     public var tessellationOptions: TessellationOptions
@@ -145,6 +202,50 @@ public struct MeshCache: Codable, Sendable {
     public var recordedUsage: TessellationUsage
     public var mesh: Mesh
 
+    /// The fingerprint of the source this artifact was evaluated from. An artifact an evaluation
+    /// made hashes its source only when this is first read (`CacheSourceFingerprint`).
+    public var sourceFingerprint: CADDocumentSourceFingerprint {
+        get throws { try sourceFingerprintRecord.resolve() }
+    }
+
+    /// Records `fingerprint` as the source this artifact was made from.
+    public mutating func replaceSourceFingerprint(with fingerprint: CADDocumentSourceFingerprint) {
+        sourceFingerprintRecord = .value(fingerprint)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case bodyID, designRevision, parameterRevision, sourceFingerprint, kernelVersion, tolerance
+        case tessellationOptions, purpose, recordedUsage, mesh
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        bodyID = try container.decode(BodyID.self, forKey: .bodyID)
+        designRevision = try container.decode(DocumentRevision.self, forKey: .designRevision)
+        parameterRevision = try container.decode(DocumentRevision.self, forKey: .parameterRevision)
+        sourceFingerprintRecord = .value(try container.decode(CADDocumentSourceFingerprint.self, forKey: .sourceFingerprint))
+        kernelVersion = try container.decode(SchemaVersion.self, forKey: .kernelVersion)
+        tolerance = try container.decode(ModelingTolerance.self, forKey: .tolerance)
+        tessellationOptions = try container.decode(TessellationOptions.self, forKey: .tessellationOptions)
+        purpose = try container.decode(MeshArtifactPurpose.self, forKey: .purpose)
+        recordedUsage = try container.decode(TessellationUsage.self, forKey: .recordedUsage)
+        mesh = try container.decode(Mesh.self, forKey: .mesh)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(bodyID, forKey: .bodyID)
+        try container.encode(designRevision, forKey: .designRevision)
+        try container.encode(parameterRevision, forKey: .parameterRevision)
+        try container.encode(try sourceFingerprint, forKey: .sourceFingerprint)
+        try container.encode(kernelVersion, forKey: .kernelVersion)
+        try container.encode(tolerance, forKey: .tolerance)
+        try container.encode(tessellationOptions, forKey: .tessellationOptions)
+        try container.encode(purpose, forKey: .purpose)
+        try container.encode(recordedUsage, forKey: .recordedUsage)
+        try container.encode(mesh, forKey: .mesh)
+    }
+
     public init(
         bodyID: BodyID,
         designRevision: DocumentRevision,
@@ -157,10 +258,36 @@ public struct MeshCache: Codable, Sendable {
         recordedUsage: TessellationUsage,
         mesh: Mesh
     ) {
+        self.init(
+            bodyID: bodyID,
+            designRevision: designRevision,
+            parameterRevision: parameterRevision,
+            sourceFingerprintRecord: .value(sourceFingerprint),
+            kernelVersion: kernelVersion,
+            tolerance: tolerance,
+            tessellationOptions: tessellationOptions,
+            purpose: purpose,
+            recordedUsage: recordedUsage,
+            mesh: mesh
+        )
+    }
+
+    package init(
+        bodyID: BodyID,
+        designRevision: DocumentRevision,
+        parameterRevision: DocumentRevision,
+        sourceFingerprintRecord: CacheSourceFingerprint,
+        kernelVersion: SchemaVersion,
+        tolerance: ModelingTolerance,
+        tessellationOptions: TessellationOptions,
+        purpose: MeshArtifactPurpose,
+        recordedUsage: TessellationUsage,
+        mesh: Mesh
+    ) {
         self.bodyID = bodyID
         self.designRevision = designRevision
         self.parameterRevision = parameterRevision
-        self.sourceFingerprint = sourceFingerprint
+        self.sourceFingerprintRecord = sourceFingerprintRecord
         self.kernelVersion = kernelVersion
         self.tolerance = tolerance
         self.tessellationOptions = tessellationOptions
@@ -246,8 +373,8 @@ public struct MeshCache: Codable, Sendable {
                 reason: "Parameter revision does not match the source document or B-rep cache."
             )
         }
-        guard sourceFingerprint == expectedSourceFingerprint,
-              sourceFingerprint == brep.sourceFingerprint else {
+        guard try sourceFingerprint == expectedSourceFingerprint,
+              try sourceFingerprint == brep.sourceFingerprint else {
             throw CacheValidationError.staleMeshCache(
                 bodyID: bodyID,
                 reason: "Source fingerprint does not match the source document or B-rep cache."

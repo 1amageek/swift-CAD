@@ -300,7 +300,14 @@ body quality, and cumulative resource refusal.
    face, and bounded inner-loop checkpoints. Emission is all-or-nothing: a
    failed or cancelled invocation returns no Mesh map and cannot publish a
    partial evaluated document.
-7. Exact B-rep incremental reuse is independent of tessellation fidelity and
+7. An incremental evaluation finalizes its B-rep through the exact per-body
+   certificates it carried forward. When no rollback or rebuilt feature touched
+   the model (a revision- or envelope-only change, or a document equal to the
+   previous one), `BRepEditBuffer` returns the previous validated model itself
+   instead of re-extracting and recomposing every body; any delta or replacement
+   drops that baseline, so a changed model is always composed.
+   `DocumentEvaluatorIncrementalTests` compares both paths with full evaluation.
+   Exact B-rep incremental reuse is independent of tessellation fidelity and
    mesh artifact purpose. The exact evaluator reuses only compatible
    source/evaluator/modeling state. Mesh reuse is a separate admission step for
    each unchanged body: its cache metadata, complete fidelity configuration,

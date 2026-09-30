@@ -6,15 +6,20 @@ import CADTopology
 final class BRepEditBuffer {
     private var storage: BRepModel
     private var exactBodyCertificates: [BodyID: ValidatedBRepModel]
+    /// The validated model the buffer started from, while nothing has changed it: an evaluation
+    /// that rebuilt no feature finalizes to it without composing its bodies again.
+    private var unmodifiedBaseline: ValidatedBRepModel?
 
     init() {
         storage = BRepModel()
         exactBodyCertificates = [:]
+        unmodifiedBaseline = nil
     }
 
     init(validatedModel: ValidatedBRepModel) {
         storage = validatedModel.model
         exactBodyCertificates = [:]
+        unmodifiedBaseline = validatedModel.validationLevel == .modeling ? nil : validatedModel
         certifyBodies(in: validatedModel)
     }
 
@@ -58,6 +63,7 @@ final class BRepEditBuffer {
         _ delta: BRepModelDelta,
         invalidatingBodyIDs: Set<BodyID>
     ) throws {
+        unmodifiedBaseline = nil
         try delta.apply(to: &storage)
         for bodyID in invalidatingBodyIDs {
             exactBodyCertificates.removeValue(forKey: bodyID)
@@ -69,6 +75,7 @@ final class BRepEditBuffer {
         replacingBodyIDs: Set<BodyID>,
         with validatedModel: ValidatedBRepModel
     ) throws {
+        unmodifiedBaseline = nil
         try delta.apply(to: &storage)
         for bodyID in replacingBodyIDs {
             exactBodyCertificates.removeValue(forKey: bodyID)
@@ -81,6 +88,7 @@ final class BRepEditBuffer {
     }
 
     func replace(with validatedModel: ValidatedBRepModel) {
+        unmodifiedBaseline = nil
         storage = validatedModel.model
         exactBodyCertificates.removeAll(keepingCapacity: true)
         certifyBodies(in: validatedModel)
@@ -89,6 +97,9 @@ final class BRepEditBuffer {
     func finalizedValidatedModel(
         tolerance: ModelingTolerance
     ) throws -> ValidatedBRepModel {
+        if let unmodifiedBaseline, unmodifiedBaseline.tolerance == tolerance {
+            return unmodifiedBaseline
+        }
         let bodyIDs = Set(storage.bodies.keys)
         let certificates = Dictionary(uniqueKeysWithValues: bodyIDs.compactMap { bodyID in
             exactBodyCertificates[bodyID].map { (bodyID, $0) }

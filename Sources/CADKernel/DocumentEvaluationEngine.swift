@@ -31,13 +31,6 @@ struct DocumentEvaluationEngine {
         try tolerance.validate()
         try tessellationOptions.validate()
 
-        let sourceFingerprint: CADDocumentSourceFingerprint?
-        switch artifactPolicy {
-        case .deferred:
-            sourceFingerprint = nil
-        case .materialized:
-            sourceFingerprint = try validatedDocument.sourceFingerprint()
-        }
         let parameters = try parameterResolver.resolve(document.parameters)
         let reusableState = reusableState(for: document, from: previous)
         let graphStableChanges: Set<FeatureID>?
@@ -205,11 +198,12 @@ struct DocumentEvaluationEngine {
             lineage: lineage.materializedDictionary()
         )
 
+        // The caches record the validated document rather than its fingerprint, which is hashed
+        // only when something reads it (`CacheSourceFingerprint`).
         let caches: DocumentCaches
-        if let sourceFingerprint {
+        if artifactPolicy == .materialized {
             caches = try makeCaches(
-                document: document,
-                sourceFingerprint: sourceFingerprint,
+                validatedDocument: validatedDocument,
                 brep: brep,
                 meshes: meshResult.meshes,
                 subshapes: subshapeIndex
@@ -812,16 +806,16 @@ struct DocumentEvaluationEngine {
     }
 
     private func makeCaches(
-        document: CADDocument,
-        sourceFingerprint: CADDocumentSourceFingerprint,
+        validatedDocument: ValidatedCADDocument,
         brep: BRepModel,
         meshes: PersistentMap<BodyID, Mesh>,
         subshapes: SubshapeIndex
     ) throws -> DocumentCaches {
+        let document = validatedDocument.document
         let brepCache = BRepCache(
             designRevision: document.designGraph.revision,
             parameterRevision: document.parameters.revision,
-            sourceFingerprint: sourceFingerprint,
+            sourceFingerprintRecord: .validatedDocument(validatedDocument),
             kernelVersion: .current,
             tolerance: tolerance,
             model: brep,
@@ -831,15 +825,16 @@ struct DocumentEvaluationEngine {
             uniqueKeysWithValues: meshes.map { bodyID, mesh in
                 (
                     bodyID,
-                    try MeshCache(
+                    MeshCache(
                         bodyID: bodyID,
                         designRevision: document.designGraph.revision,
                         parameterRevision: document.parameters.revision,
-                        sourceFingerprint: sourceFingerprint,
+                        sourceFingerprintRecord: .validatedDocument(validatedDocument),
                         kernelVersion: .current,
                         tolerance: tolerance,
                         tessellationOptions: tessellationOptions,
                         purpose: meshArtifactPurpose,
+                        recordedUsage: try TessellationUsage(mesh: mesh),
                         mesh: mesh
                     )
                 )

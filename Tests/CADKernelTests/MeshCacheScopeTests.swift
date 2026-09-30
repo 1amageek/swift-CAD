@@ -248,7 +248,7 @@ struct MeshCacheScopeTests {
         let standardBRep = try #require(standardFidelity.caches.brep)
         let coarseBRep = try #require(coarseFidelity.caches.brep)
         #expect(standardBRep.model == coarseBRep.model)
-        #expect(standardBRep.sourceFingerprint == coarseBRep.sourceFingerprint)
+        #expect(try standardBRep.sourceFingerprint == coarseBRep.sourceFingerprint)
         #expect(standardBRep.designRevision == coarseBRep.designRevision)
         #expect(standardBRep.parameterRevision == coarseBRep.parameterRevision)
 

@@ -4530,11 +4530,11 @@ struct CADKernelTests {
         let sourceFingerprint = try document.sourceFingerprint(tolerance: .standard)
         staleCaches.brep?.designRevision = document.designGraph.revision
         staleCaches.brep?.parameterRevision = document.parameters.revision
-        staleCaches.brep?.sourceFingerprint = sourceFingerprint
+        staleCaches.brep?.replaceSourceFingerprint(with: sourceFingerprint)
         for bodyID in staleCaches.meshes.keys {
             staleCaches.meshes[bodyID]?.designRevision = document.designGraph.revision
             staleCaches.meshes[bodyID]?.parameterRevision = document.parameters.revision
-            staleCaches.meshes[bodyID]?.sourceFingerprint = sourceFingerprint
+            staleCaches.meshes[bodyID]?.replaceSourceFingerprint(with: sourceFingerprint)
         }
 
         #expect(throws: CacheValidationError.self) {

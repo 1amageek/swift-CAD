@@ -317,6 +317,16 @@ claimed.
     boundary against the platform digest, and
     `ValidatedCADDocumentMutationTests.aValidatedDocumentComputesItsSourceFingerprintOnce`
     checks the memo, its sharing by copies and a mutation's fresh value.
+19. `BRepCache` and `MeshCache` record the source they were made from as a
+    `CacheSourceFingerprint`: the fingerprint value, or the validated document
+    an evaluation evaluated. `sourceFingerprint` is `get throws` and hashes that
+    document only when first read, once for every cache of the evaluation (the
+    validated document's memo), so a materialized evaluation no longer hashes
+    its source. Encoding writes the value, decoding reads it, and
+    `replaceSourceFingerprint(with:)` records another value.
+    `DocumentEvaluatorIncrementalTests.anEvaluationHashesItsSourceOnlyWhenACacheFingerprintIsRead`
+    checks the deferred hash, agreement across caches, freshness and the
+    Codable round trip.
 18. `CADDocument` (with `ParameterTable` and `DocumentMetadata`) is
     `Equatable` member-wise over every stored value. A document equals what its
     own encoding decodes to exactly when the encoding reproduces it, so an

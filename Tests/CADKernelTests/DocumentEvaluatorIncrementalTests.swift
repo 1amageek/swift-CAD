@@ -1,6 +1,7 @@
+import Foundation
 import Testing
 import CADCore
-import CADIR
+@testable import CADIR
 import CADTopology
 @testable import CADKernel
 
@@ -29,6 +30,28 @@ struct DocumentEvaluatorIncrementalTests {
         try expectExactCertificate(initial)
         try expectExactCertificate(incremental)
         try incremental.validate()
+    }
+
+    /// A materialized evaluation records its validated source in its caches instead of hashing
+    /// it; the first read of a cache fingerprint hashes it once, and every cache agrees.
+    @Test(.timeLimit(.minutes(1)))
+    func anEvaluationHashesItsSourceOnlyWhenACacheFingerprintIsRead() throws {
+        let fixture = makeIndependentExtrusionFixture()
+        let validated = try ValidatedCADDocument(fixture.document, tolerance: .standard)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(validated)
+        #expect(!validated.sourceFingerprintMemo.hasValue)
+
+        let brepCache = try #require(evaluated.caches.brep)
+        let fingerprint = try brepCache.sourceFingerprint
+        #expect(validated.sourceFingerprintMemo.hasValue)
+        #expect(fingerprint == (try fixture.document.sourceFingerprint(tolerance: .standard)))
+        for meshCache in evaluated.caches.meshes.values {
+            #expect(try meshCache.sourceFingerprint == fingerprint)
+        }
+        try evaluated.caches.validateFreshness(for: fixture.document, tolerance: .standard)
+
+        let decoded = try JSONDecoder().decode(DocumentCaches.self, from: JSONEncoder().encode(evaluated.caches))
+        #expect(try decoded.brep?.sourceFingerprint == fingerprint)
     }
 
     @Test(.timeLimit(.minutes(1)))
