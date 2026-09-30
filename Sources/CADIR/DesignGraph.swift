@@ -391,6 +391,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 try feature.validate()
             case let .removeFillets(feature):
                 try feature.validate()
+            case let .removeRedundantTopology(feature):
+                try feature.validate()
             case let .untrimFace(feature):
                 try feature.validate()
             case let .imprintCurves(feature):
@@ -681,6 +683,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             try validateFaceMatchContract(node, outputRoles: outputRoles)
         case .removeFillets:
             try validateRemoveFilletsContract(node, outputRoles: outputRoles)
+        case .removeRedundantTopology:
+            try validateRemoveRedundantTopologyContract(node, outputRoles: outputRoles)
         case .extract:
             try validateExtractContract(node, outputRoles: outputRoles)
         case .wrap:
@@ -1481,6 +1485,20 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         }
         guard outputRoles == [.sheet] else {
             throw FeatureEvaluationError.invalidGraph("Unjoin faces features must declare one sheet output.")
+        }
+    }
+
+    /// Delete Redundant Topology keeps its target's kind of body in its place.
+    private func validateRemoveRedundantTopologyContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        guard case let .removeRedundantTopology(feature) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a removeRedundantTopology operation.")
+        }
+        try feature.validate()
+        guard node.inputs == [FeatureInput(featureID: feature.target.featureID, role: .target)] else {
+            throw FeatureEvaluationError.invalidGraph("Delete Redundant Topology features must consume exactly their target.")
+        }
+        guard let targetPort = nodes[feature.target.featureID]?.bodyOrSheetOutput, outputRoles == [targetPort] else {
+            throw FeatureEvaluationError.invalidGraph("Delete Redundant Topology publishes its target's kind of body.")
         }
     }
 

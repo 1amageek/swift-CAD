@@ -82,6 +82,7 @@ private extension FeatureOperation {
              .imprintBody,
              .faceMatch,
              .removeFillets,
+             .removeRedundantTopology,
              .untrimFace,
              .imprintCurves,
              .extract,

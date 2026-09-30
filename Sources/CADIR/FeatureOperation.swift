@@ -39,6 +39,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case imprintBody(ImprintBodyFeature)
     case faceMatch(FaceMatchFeature)
     case removeFillets(RemoveFilletsFeature)
+    case removeRedundantTopology(RemoveRedundantTopologyFeature)
     case untrimFace(UntrimFaceFeature)
     case imprintCurves(ImprintCurvesFeature)
     case extract(ExtractFeature)
@@ -102,6 +103,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case imprintBody
         case faceMatch
         case removeFillets
+        case removeRedundantTopology
         case untrimFace
         case imprintCurves
         case extract
@@ -246,6 +248,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .removeFillets:
             try container.validateOnlyExpectedKeys([.kind, .removeFillets], in: decoder)
             self = .removeFillets(try container.decode(RemoveFilletsFeature.self, forKey: .removeFillets))
+        case .removeRedundantTopology:
+            try container.validateOnlyExpectedKeys([.kind, .removeRedundantTopology], in: decoder)
+            self = .removeRedundantTopology(try container.decode(RemoveRedundantTopologyFeature.self, forKey: .removeRedundantTopology))
         case .untrimFace:
             try container.validateOnlyExpectedKeys([.kind, .untrimFace], in: decoder)
             self = .untrimFace(try container.decode(UntrimFaceFeature.self, forKey: .untrimFace))
@@ -432,6 +437,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .removeFillets(feature):
             try container.encode(Kind.removeFillets, forKey: .kind)
             try container.encode(feature, forKey: .removeFillets)
+        case let .removeRedundantTopology(feature):
+            try container.encode(Kind.removeRedundantTopology, forKey: .kind)
+            try container.encode(feature, forKey: .removeRedundantTopology)
         case let .untrimFace(feature):
             try container.encode(Kind.untrimFace, forKey: .kind)
             try container.encode(feature, forKey: .untrimFace)

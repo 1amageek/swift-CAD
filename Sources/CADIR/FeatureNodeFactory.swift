@@ -546,6 +546,16 @@ public enum FeatureNodeFactory {
                 inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
                 outputs: [FeatureOutput(role: .sheet)]
             )
+        case .removeRedundantTopology:
+            guard case let .removeRedundantTopology(feature) = operation else {
+                throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+            }
+            try feature.validate()
+            let targetPort = try bodyOrSheetPort(of: feature.target.featureID, in: document)
+            return FeatureNode(
+                id: id, name: name, operation: operation,
+                inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)], outputs: [FeatureOutput(role: targetPort)]
+            )
         case .removeFillets:
             guard case let .removeFillets(feature) = operation else {
                 throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")

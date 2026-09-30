@@ -39,6 +39,7 @@ public extension FeatureOperation {
         case .imprintBody: return "imprintBody"
         case .faceMatch: return "faceMatch"
         case .removeFillets: return "removeFillets"
+        case .removeRedundantTopology: return "removeRedundantTopology"
         case .untrimFace: return "untrimFace"
         case .imprintCurves: return "imprintCurves"
         case .extract: return "extract"

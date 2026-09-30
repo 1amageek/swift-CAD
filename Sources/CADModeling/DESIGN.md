@@ -579,6 +579,18 @@ prove a filled hole, a sharpened rounded box, one sharpened corner, a restored
 chamfered edge, radius and convexity filters and the refusal of a top no neighbours
 close over.
 
+`RedundantTopologyRemover` owns Delete Redundant Topology on solids and sheets
+(`RemoveRedundantTopologyFeatureEvaluator`): faces on one plane, or on one
+non-periodic B-spline surface, facing out the same way merge across the edges
+between them, their remaining coedges chained into loops (the one enclosing the
+largest area on the surface outer) with their parameter curves kept; then each
+vertex between just two edges on one line or circle, bounding the same faces, goes
+and the edges run on as one, their isoline or polyline parameter curves joined.
+Faces on periodic surfaces keep their splits, which bound a full turn, and two edges
+closing one curve stay two. The shape does not change; a body with nothing redundant
+is refused. `RedundantTopologyTests` prove a box's split top and its cut edges made
+whole, a split sheet made one face, and the refusal.
+
 `LocalVertexDisplacementRebuilder` owns the direct edits that move vertices: a
 straight edge's two ends (`EdgeMoveFeatureEvaluator`), a planar face's boundary
 (`FaceMoveFeatureEvaluator`), and a vertex of any body other than a single-shell

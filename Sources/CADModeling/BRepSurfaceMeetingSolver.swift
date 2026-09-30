@@ -148,10 +148,14 @@ package struct BRepSurfaceMeetingSolver: Sendable {
         return CurveTrim(startParameter: first, endParameter: endParameter)
     }
 
-    /// The direction a curve runs at a parameter, by a central difference.
+    /// The direction a curve runs at a parameter, by a difference kept within its domain.
     package func tangent(of curve: Curve3D, at parameter: Double) throws -> Vector3D {
         let step = max(1e-6, abs(parameter) * 1e-9)
-        return try curve.point(at: parameter + step, tolerance: tolerance) - curve.point(at: parameter - step, tolerance: tolerance)
+        var (before, after) = (parameter - step, parameter + step)
+        if case let .closed(lower, upper) = curve.parameterDomain {
+            (before, after) = (max(lower, before), min(upper, after))
+        }
+        return try curve.point(at: after, tolerance: tolerance) - curve.point(at: before, tolerance: tolerance)
     }
 
     /// The point best satisfying `normal · X = value` for every row; nil when the rows leave a

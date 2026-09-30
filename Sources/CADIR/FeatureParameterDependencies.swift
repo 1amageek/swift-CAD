@@ -99,6 +99,7 @@ public extension FeatureOperation {
              .isoparam,
              .imprintBody,
              .faceMatch,
+             .removeRedundantTopology,
              .untrimFace,
              .imprintCurves,
              .extract:

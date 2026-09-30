@@ -493,6 +493,17 @@ public struct DocumentBuilder {
     }
 
     /// Imprints where `tool` crosses `target` (`ImprintBodyFeature`).
+    /// Delete Redundant Topology: faces of `target` on one surface merged across the edges between
+    /// them, and edges on one curve across the vertices between them.
+    @discardableResult
+    public mutating func removeRedundantTopology(target: FeatureID, named name: String? = nil) throws -> FeatureID {
+        let feature = RemoveRedundantTopologyFeature(target: PatternTargetReference(featureID: target))
+        try feature.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .removeRedundantTopology(feature))
+        return featureID
+    }
+
     /// Remove Fillets From Shell: the fillets of `target` no wider than `maximumRadius` (any, when
     /// nil) and of `convexity`, taken out and the faces they joined grown to meet.
     @discardableResult

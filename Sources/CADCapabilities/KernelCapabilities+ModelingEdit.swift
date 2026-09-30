@@ -871,6 +871,26 @@ extension KernelCapabilities {
       ]
     ),
     feature(
+      id: "MODEL-REDUNDANTTOPOLOGY-001",
+      operation: "removeRedundantTopology",
+      topology: .sheetOrSolidBody,
+      inputs: ["oneValidatedSolidOrSheet"],
+      outputs: [
+        "validatedExactBRep",
+        "facesOnOnePlaneOrNonPeriodicBSplineMergedAcrossTheEdgesBetweenThem",
+        "edgesOnOneLineOrCircleMergedAcrossTheVerticesBetweenThem",
+        "unchangedShape",
+        "strictCurrentSchemaNativePersistence",
+      ],
+      fixtures: ["RedundantTopologyTests"],
+      status: .supported,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .topologyFailure,
+      ]
+    ),
+    feature(
       id: "MODEL-REMOVEFILLETS-001",
       operation: "removeFillets",
       topology: .solidBody,

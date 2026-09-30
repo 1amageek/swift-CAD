@@ -272,6 +272,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             return try FaceMatchFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .removeFillets:
             return try RemoveFilletsFeatureEvaluator().evaluateValidated(feature: feature, context: context)
+        case .removeRedundantTopology:
+            return try RemoveRedundantTopologyFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .untrimFace:
             return try UntrimFaceFeatureEvaluator().evaluateValidated(feature: feature, context: context)
         case .imprintCurves:
