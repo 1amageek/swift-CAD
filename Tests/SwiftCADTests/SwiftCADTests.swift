@@ -510,8 +510,6 @@ struct SwiftCADTests {
 
     @Test(.timeLimit(.minutes(1)))
     func facadeBuildsPlanarEditFeaturesThroughSharedOperations() throws {
-        var knifeCenterFaceName: SubshapeID?
-        var knifeFeatureID: FeatureID?
         let document = try CADDocument.millimeters(tolerance: .standard, named: "Planar Edit Chain") { cad in
             let width = try cad.lengthParameter(named: "width", 40.0)
             let height = try cad.lengthParameter(named: "height", 20.0)
@@ -526,73 +524,28 @@ struct SwiftCADTests {
                 generatedBy: extrudeID,
                 selector: .generated(role: .startFace)
             )
-            let offsetID = try cad.faceLoopOffset(
+            _ = try cad.faceLoopOffset(
                 target: extrudeID,
-                face: startFace,
-                distance: offsetDistance,
+                faces: [startFace],
+                distance: .reference(offsetDistance),
                 named: "Offset"
-            )
-            let offsetCenterFace = try cad.stableSubshape(
-                generatedBy: offsetID,
-                selector: .faceLoopOffsetCenterFace
-            )
-            let knifeID = try cad.faceKnife(
-                target: offsetID,
-                face: offsetCenterFace,
-                loop: [
-                    Point3D(x: -0.004, y: -0.002, z: 0.0),
-                    Point3D(x: 0.004, y: -0.002, z: 0.0),
-                    Point3D(x: 0.004, y: 0.002, z: 0.0),
-                    Point3D(x: -0.004, y: 0.002, z: 0.0),
-                ],
-                named: "Knife"
-            )
-            knifeFeatureID = knifeID
-            knifeCenterFaceName = SubshapeID(
-                featureID: knifeID,
-                role: "faceKnife.centerFace",
-                ordinal: 0
             )
         }
 
         let pipeline = CADPipeline(tolerance: .standard)
         let evaluated = try pipeline.evaluate(document)
-        let faceName = try #require(knifeCenterFaceName)
-        let knifeID = try #require(knifeFeatureID)
-        guard case let .face(faceID) = try #require(evaluated.subshapes.entries[faceName]) else {
-            Issue.record("Expected face knife center face to be generated.")
-            return
+        // The start face's outline offset 2 mm inward leaves a 36 by 16 mm face inside a ring.
+        #expect(evaluated.brep.faces.count == 7)
+        // Inward offsets of a convex outline cross at every corner, so the inner face keeps sharp
+        // corners 2 mm in from each of the outline's.
+        for (x, y) in [(0.018, 0.008), (-0.018, 0.008), (-0.018, -0.008), (0.018, -0.008)] {
+            #expect(evaluated.brep.vertices.values.contains { abs(abs($0.point.x) - abs(x)) < 1e-9 && abs(abs($0.point.y) - abs(y)) < 1e-9 && $0.point.x * x > 0 && $0.point.y * y > 0 })
         }
-        let face = try #require(evaluated.brep.faces[faceID])
-        let loopID = try #require(face.loops.first)
-        let loop = try #require(evaluated.brep.loops[loopID])
-        let storedParameterCurve = try #require(loop.edges.first?.surfaceParameterCurve)
-        let trim = try SurfaceQueryEvaluator(tolerance: .standard).trimCurve(
-            SurfaceTrimReference(
-                surface: SurfaceReference(
-                    subshape: try evaluated.stableSubshapeReference(
-                        for: SubshapeID(
-                            featureID: knifeID,
-                            role: "faceKnife.centerFace",
-                            ordinal: 0
-                        )
-                    )
-                ),
-                loopIndex: 0,
-                edgeIndex: 0
-            ),
-            in: evaluated
-        )
-
-        #expect(document.designGraph.order.count == 4)
-        #expect(evaluated.brep.faces.count > 7)
-        #expect(loop.edges.allSatisfy { $0.surfaceParameterCurve != nil })
-        #expect(trim.parameterCurve == storedParameterCurve)
 
         let packageData = try pipeline.packageData(for: document)
         let loaded = try pipeline.loadDocument(fromPackageData: packageData)
         #expect(loaded.metadata.name == "Planar Edit Chain")
-        #expect(loaded.designGraph.order.count == 4)
+        #expect(loaded.designGraph.order.count == 3)
     }
 
     @Test(.timeLimit(.minutes(1)))

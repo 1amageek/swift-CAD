@@ -261,8 +261,12 @@ public enum FeatureNodeFactory {
                     throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
                 }
                 try feature.validate()
-                try validateSource(feature.target.featureID, role: .body, in: document)
-                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+                let port = try bodyOrSheetPort(of: feature.target.featureID, in: document)
+                return FeatureNode(
+                    id: id, name: name, operation: operation,
+                    inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                    outputs: [FeatureOutput(role: port)]
+                )
             }
             return try run()
         case .edgeOffset:
@@ -271,8 +275,12 @@ public enum FeatureNodeFactory {
                     throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
                 }
                 try feature.validate()
-                try validateSource(feature.target.featureID, role: .body, in: document)
-                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+                let port = try bodyOrSheetPort(of: feature.target.featureID, in: document)
+                return FeatureNode(
+                    id: id, name: name, operation: operation,
+                    inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                    outputs: [FeatureOutput(role: port)]
+                )
             }
             return try run()
         case .faceKnife:

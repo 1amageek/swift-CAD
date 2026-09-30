@@ -301,39 +301,6 @@ public struct DocumentBuilder {
     }
 
     @discardableResult
-    public mutating func faceLoopOffset(
-        target targetFeatureID: FeatureID,
-        face: StableSubshapeReference,
-        distance: CADExpression,
-        named name: String? = nil
-    ) throws -> FeatureID {
-        let faceLoopOffset = FaceLoopOffsetFeature(
-            target: FaceLoopOffsetTargetReference(featureID: targetFeatureID),
-            face: face,
-            distance: distance
-        )
-        try faceLoopOffset.validate()
-        let featureID = FeatureID()
-        try append(id: featureID, name: name, operation: .faceLoopOffset(faceLoopOffset))
-        return featureID
-    }
-
-    @discardableResult
-    public mutating func faceLoopOffset(
-        target targetFeatureID: FeatureID,
-        face: StableSubshapeReference,
-        distance parameterID: ParameterID,
-        named name: String? = nil
-    ) throws -> FeatureID {
-        try faceLoopOffset(
-            target: targetFeatureID,
-            face: face,
-            distance: .reference(parameterID),
-            named: name
-        )
-    }
-
-    @discardableResult
     public mutating func faceKnife(
         target targetFeatureID: FeatureID,
         face: StableSubshapeReference,

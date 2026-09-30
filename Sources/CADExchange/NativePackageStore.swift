@@ -1495,21 +1495,11 @@ private func validateBooleanToolReferenceObject(_ object: [String: Any], path: S
 private func validateFaceLoopOffsetFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["target", "face", "distance"],
+        supportedKeys: ["target", "faces", "distance", "side", "gapFill", "isIndividual"],
         objectName: path
     )
-    try validateObjectField("target", in: object, path: "\(path).target", using: validateFaceLoopOffsetTargetReferenceObject)
-    try validateObjectField(
-        "face",
-        in: object,
-        path: "\(path).face",
-        using: validateStableSubshapeReferenceObject
-    )
+    try validateObjectField("target", in: object, path: "\(path).target", using: validatePatternTargetReferenceObject)
     try validateObjectField("distance", in: object, path: "\(path).distance", using: validateExpressionObject)
-}
-
-private func validateFaceLoopOffsetTargetReferenceObject(_ object: [String: Any], path: String) throws {
-    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID"], objectName: path)
 }
 
 private func validateFaceKnifeFeatureObject(_ object: [String: Any], path: String) throws {
@@ -1896,33 +1886,12 @@ private func validateThickenTargetReferenceObject(_ object: [String: Any], path:
 private func validateEdgeOffsetFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: [
-            "target",
-            "edge",
-            "supportFace",
-            "distance",
-            "isSymmetric",
-        ],
+        supportedKeys: ["target", "edges", "supportFace", "distance", "isSymmetric", "gapFill"],
         objectName: path
     )
-    try validateObjectField("target", in: object, path: "\(path).target", using: validateEdgeOffsetTargetReferenceObject)
-    try validateObjectField(
-        "edge",
-        in: object,
-        path: "\(path).edge",
-        using: validateStableSubshapeReferenceObject
-    )
-    try validateObjectField(
-        "supportFace",
-        in: object,
-        path: "\(path).supportFace",
-        using: validateStableSubshapeReferenceObject
-    )
+    try validateObjectField("target", in: object, path: "\(path).target", using: validatePatternTargetReferenceObject)
+    try validateObjectField("supportFace", in: object, path: "\(path).supportFace", using: validateStableSubshapeReferenceObject)
     try validateObjectField("distance", in: object, path: "\(path).distance", using: validateExpressionObject)
-}
-
-private func validateEdgeOffsetTargetReferenceObject(_ object: [String: Any], path: String) throws {
-    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID"], objectName: path)
 }
 
 private func validateBridgeCurveFeatureObject(_ object: [String: Any], path: String) throws {

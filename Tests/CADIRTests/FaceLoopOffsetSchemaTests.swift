@@ -6,27 +6,44 @@ import CADTopology
 
 @Suite("Face Loop Offset Schema")
 struct FaceLoopOffsetSchemaTests {
+    private func face(_ featureID: FeatureID, _ ordinal: Int) -> StableSubshapeReference {
+        StableSubshapeReference(
+            subshapeID: SubshapeID(featureID: featureID, role: "face", ordinal: ordinal),
+            geometrySignature: .untrimmedPlane(origin: .origin)
+        )
+    }
+
     @Test(.timeLimit(.minutes(1)))
-    func rejectsRemovedGapFillField() throws {
+    func roundTripsEveryOptionAndRejectsUnknownFields() throws {
         let featureID = FeatureID()
         let feature = FaceLoopOffsetFeature(
-            target: FaceLoopOffsetTargetReference(featureID: featureID),
-            face: StableSubshapeReference(
-                subshapeID: SubshapeID(featureID: featureID, role: "face", ordinal: 0),
-                geometrySignature: .untrimmedPlane(origin: .origin)
-            ),
-            distance: .constant(.length(2.0, unit: .millimeter))
+            target: PatternTargetReference(featureID: featureID),
+            faces: [face(featureID, 0), face(featureID, 1)],
+            distance: .constant(.length(2.0, unit: .millimeter)),
+            side: .symmetric, gapFill: .natural, isIndividual: false
         )
         let encoded = try JSONEncoder().encode(feature)
+        #expect(try JSONDecoder().decode(FaceLoopOffsetFeature.self, from: encoded) == feature)
         guard var object = try JSONSerialization.jsonObject(with: encoded) as? [String: Any] else {
             Issue.record("Expected an encoded face loop offset object.")
             return
         }
-        object["gapFill"] = "linear"
-        let removedSchema = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+        object["face"] = object["faces"]
+        let unknown = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+        #expect(throws: DecodingError.self) { _ = try JSONDecoder().decode(FaceLoopOffsetFeature.self, from: unknown) }
+    }
 
-        #expect(throws: DecodingError.self) {
-            _ = try JSONDecoder().decode(FaceLoopOffsetFeature.self, from: removedSchema)
+    @Test(.timeLimit(.minutes(1)))
+    func refusesNoFaceAndRepeatedFaces() throws {
+        let featureID = FeatureID()
+        #expect(throws: FeatureEvaluationError.self) {
+            try FaceLoopOffsetFeature(target: PatternTargetReference(featureID: featureID), faces: [], distance: .constant(.length(1, unit: .millimeter))).validate()
+        }
+        #expect(throws: FeatureEvaluationError.self) {
+            try FaceLoopOffsetFeature(
+                target: PatternTargetReference(featureID: featureID), faces: [face(featureID, 0), face(featureID, 0)],
+                distance: .constant(.length(1, unit: .millimeter))
+            ).validate()
         }
     }
 }

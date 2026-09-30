@@ -8,7 +8,8 @@ import CADTopology
 /// straight line in the face's parameters continues the curve's direction there until it meets
 /// the face's boundary, stopping at another curve on the face first for `.edge` and crossing it
 /// for `.boundary`, and becomes a curve of its own. An end already on the boundary goes no
-/// further, since its continuation leaves the face at once. `.none` completes nothing.
+/// further, since its continuation leaves the face at once, and neither does an end another
+/// curve on the face starts or ends at, which a chain already joins. `.none` completes nothing.
 struct BRepImprintCompletion {
     func completed(
         _ curves: [BRepFaceImprinter.Curve],
@@ -29,7 +30,8 @@ struct BRepImprintCompletion {
             let reach = 2 * ((bounds.u.upperBound - bounds.u.lowerBound) + (bounds.v.upperBound - bounds.v.lowerBound))
             let others = curves.filter { $0.faceID == curve.faceID && $0.edge.stableID != curve.edge.stableID }.map(\.edge)
             let pcurve = curve.edge.surfaceParameterCurve
-            for (end, fraction, inward) in [(curve.edge.startPoint, 0.0, 0.001), (curve.edge.endPoint, 1.0, 0.999)] {
+            for (end, fraction, inward) in [(curve.edge.startPoint, 0.0, 0.001), (curve.edge.endPoint, 1.0, 0.999)]
+            where others.contains(where: { ($0.startPoint - end).length <= tolerance.distance * 8 || ($0.endPoint - end).length <= tolerance.distance * 8 }) == false {
                 let at = try pcurve.parameter(atNormalizedFraction: fraction, tolerance: tolerance)
                 let before = try pcurve.parameter(atNormalizedFraction: inward, tolerance: tolerance)
                 let direction = Point2D(x: at.u - before.u, y: at.v - before.v)

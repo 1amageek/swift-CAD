@@ -917,32 +917,21 @@ struct KernelCapabilityContractTests {
   }
 
   @Test
-  func boundedFaceLoopOffsetIsExecutableAsPartial() throws {
-    let capability = try partialCapability(operation: "faceLoopOffset")
-
-    #expect(capability.status == .partial)
-    #expect(
-      capability.acceptedInputs.contains(
-        "oneStableSelectedStrictlyConvexLineOnlyPlanarFace"
-      ))
-    #expect(capability.exactOutputs.contains("preservedAnalyticVolume"))
-    #expect(capability.failureCodes.contains(.classificationFailure))
-    #expect(capability.failureCodes.contains(.unsupportedCapability))
+  func faceLoopOffsetIsSupportedOnSolidsAndSheets() throws {
+    let capability = try KernelCapabilities.current.requireSupported(operation: "faceLoopOffset")
+    #expect(capability.topology == .sheetOrSolidBody)
+    #expect(capability.acceptedInputs.contains("positiveDistanceIntoTheFacesOverTheFacesAroundThemOrBoth"))
+    #expect(capability.exactOutputs.contains("offsetOverTheSurfaceOnPlanesAndCurvedFaces"))
+    #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
   }
 
   @Test
-  func boundedEdgeOffsetIsExecutableAsPartial() throws {
-    let capability = try partialCapability(operation: "edgeOffset")
-
-    #expect(capability.status == .partial)
-    #expect(capability.topology == .solidBody)
-    #expect(
-      capability.acceptedInputs.contains(
-        "optionalSymmetricSplitAcrossUniqueOppositeSupportFace"
-      ))
-    #expect(capability.exactOutputs.contains("preservedAnalyticVolume"))
-    #expect(capability.failureCodes.contains(.classificationFailure))
-    #expect(capability.failureCodes.contains(.unsupportedCapability))
+  func edgeOffsetIsSupportedOnSolidsAndSheets() throws {
+    let capability = try KernelCapabilities.current.requireSupported(operation: "edgeOffset")
+    #expect(capability.topology == .sheetOrSolidBody)
+    #expect(capability.acceptedInputs.contains("symmetricAcrossEachEdgeWithRoundLinearOrNaturalGapFill"))
+    #expect(capability.exactOutputs.contains("openChainEndsCarriedToTheFaceBoundary"))
+    #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
   }
 
   @Test

@@ -108,12 +108,12 @@ extension FeatureOperation {
             }
             return .boolean(feature)
         case .faceLoopOffset(var feature):
-            feature.target = FaceLoopOffsetTargetReference(featureID: try transform(feature.target.featureID))
-            feature.face = try subshape(feature.face)
+            feature.target = try pattern(feature.target)
+            feature.faces = try feature.faces.map(subshape)
             return .faceLoopOffset(feature)
         case .edgeOffset(var feature):
-            feature.target = EdgeOffsetTargetReference(featureID: try transform(feature.target.featureID))
-            feature.edge = try subshape(feature.edge)
+            feature.target = try pattern(feature.target)
+            feature.edges = try feature.edges.map(subshape)
             feature.supportFace = try subshape(feature.supportFace)
             return .edgeOffset(feature)
         case .faceKnife(var feature):

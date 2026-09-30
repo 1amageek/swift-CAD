@@ -693,74 +693,6 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func faceLoopOffsetSplitsRectangularCapFaceWithStableOffsetEdges() throws {
-        var document = makeRectangleExtrudeDocument(documentUnits: .meters)
-        let extrudeFeatureID = try #require(document.designGraph.order.last)
-        let offsetFeatureID = FeatureID()
-        let targetFaceName = testSubshapeID(extrudeFeatureID, .startFace)
-        let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
-        let offsetFeature = FeatureNode(
-            id: offsetFeatureID,
-            operation: .faceLoopOffset(
-                FaceLoopOffsetFeature(
-                    target: FaceLoopOffsetTargetReference(featureID: extrudeFeatureID),
-                    face: try stableSubshapeReference(targetFaceName, in: source),
-                    distance: .constant(.length(2.0, unit: .millimeter))
-                )
-            ),
-            inputs: [FeatureInput(featureID: extrudeFeatureID, role: .target)],
-            outputs: [FeatureOutput(role: .body)]
-        )
-        document.designGraph.nodes[offsetFeatureID] = offsetFeature
-        document.designGraph.order.append(offsetFeatureID)
-        document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: offsetFeatureID))
-        document.designGraph.revision = document.designGraph.revision.advanced()
-
-        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
-        let offsetEdgeNames = evaluated.subshapes.entries.filter { subshapeID, reference in
-            reference.isEdge &&
-                subshapeID.featureID == offsetFeatureID &&
-                subshapeID.role == "faceLoopOffset.offsetEdge"
-        }
-        let centerFaceName = semanticSubshapeID(
-            offsetFeatureID,
-            generatedRole: "faceLoopOffset",
-            semanticRole: "centerFace"
-        )
-
-        #expect(evaluated.brep.faces.count == 7)
-        #expect(evaluated.brep.edges.count == 16)
-        #expect(evaluated.brep.vertices.count == 12)
-        #expect(offsetEdgeNames.count == 4)
-        #expect(evaluated.subshapes.entries[centerFaceName] != nil)
-        #expect(evaluated.subshapes.entries[targetFaceName] != nil)
-        try evaluated.brep.validate(tolerance: .standard)
-
-        guard case let .face(centerFaceID) = try #require(evaluated.subshapes.entries[centerFaceName]) else {
-            Issue.record("Expected face loop offset center face to be named.")
-            return
-        }
-        let centerFace = try #require(evaluated.brep.faces[centerFaceID])
-        let centerLoopID = try #require(centerFace.loops.first)
-        let centerLoop = try #require(evaluated.brep.loops[centerLoopID])
-        let storedParameterCurve = try #require(centerLoop.edges.first?.surfaceParameterCurve)
-        let trim = try SurfaceQueryEvaluator(tolerance: .standard).trimCurve(
-            SurfaceTrimReference(
-                surface: try stableSurfaceReference(centerFaceName, in: evaluated),
-                loopIndex: 0,
-                edgeIndex: 0
-            ),
-            in: evaluated
-        )
-        #expect(centerLoop.edges.allSatisfy { $0.surfaceParameterCurve != nil })
-        #expect(trim.parameterCurve == storedParameterCurve)
-
-        let mesh = try #require(evaluated.meshes.values.first)
-        #expect(mesh.indices.count > 36)
-        #expect(mesh.indices.count % 3 == 0)
-    }
-
-    @Test(.timeLimit(.minutes(1)))
     func faceKnifeSplitsPlanarFaceWithStableKnifeTopology() throws {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
@@ -1164,169 +1096,6 @@ struct CADKernelTests {
         #expect(knifeEdgeNames.count == 5)
         #expect(faceKnifeFaceNames.count == 2)
         #expect(evaluated.subshapes.entries[centerFaceName] != nil)
-        try evaluated.brep.validate(tolerance: .standard)
-
-        let mesh = try #require(evaluated.meshes.values.first)
-        #expect(mesh.indices.count > 36)
-        #expect(mesh.indices.count % 3 == 0)
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func faceLoopOffsetSplitsNonRectangularConvexFace() throws {
-        var document = makeParallelogramExtrudeDocument(documentUnits: .meters)
-        let extrudeFeatureID = try #require(document.designGraph.order.last)
-        let offsetFeatureID = FeatureID()
-        let targetFaceName = testSubshapeID(extrudeFeatureID, .startFace)
-        let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
-        let offsetFeature = FeatureNode(
-            id: offsetFeatureID,
-            operation: .faceLoopOffset(
-                FaceLoopOffsetFeature(
-                    target: FaceLoopOffsetTargetReference(featureID: extrudeFeatureID),
-                    face: try stableSubshapeReference(targetFaceName, in: source),
-                    distance: .constant(.length(2.0, unit: .millimeter))
-                )
-            ),
-            inputs: [FeatureInput(featureID: extrudeFeatureID, role: .target)],
-            outputs: [FeatureOutput(role: .body)]
-        )
-        document.designGraph.nodes[offsetFeatureID] = offsetFeature
-        document.designGraph.order.append(offsetFeatureID)
-        document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: offsetFeatureID))
-        document.designGraph.revision = document.designGraph.revision.advanced()
-
-        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
-        let offsetEdges = evaluated.subshapes.entries.filter { subshapeID, reference in
-            reference.isEdge &&
-                subshapeID.featureID == offsetFeatureID &&
-                subshapeID.role == "faceLoopOffset.offsetEdge"
-        }
-
-        #expect(evaluated.brep.faces.count == 7)
-        #expect(evaluated.brep.edges.count == 16)
-        #expect(evaluated.brep.vertices.count == 12)
-        #expect(offsetEdges.count == 4)
-        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - source.brep.volume(tolerance: .standard)) <= 1.0e-12)
-        try evaluated.brep.validate(level: .exact, tolerance: .standard)
-        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func edgeOffsetSplitsRectangularSupportFaceAndBoundaryEdges() throws {
-        var document = makeRectangleExtrudeDocument(documentUnits: .meters)
-        let extrudeFeatureID = try #require(document.designGraph.order.last)
-        let offsetFeatureID = FeatureID()
-        let selectedEdgeName = testSubshapeID(extrudeFeatureID, .edge, ordinal: 0)
-        let removedNextEdgeName = testSubshapeID(extrudeFeatureID, .edge, ordinal: 1)
-        let removedPreviousEdgeName = testSubshapeID(extrudeFeatureID, .edge, ordinal: 3)
-        let supportFaceName = testSubshapeID(extrudeFeatureID, .startFace)
-        let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
-        let offsetFeature = FeatureNode(
-            id: offsetFeatureID,
-            operation: .edgeOffset(
-                EdgeOffsetFeature(
-                    target: EdgeOffsetTargetReference(featureID: extrudeFeatureID),
-                    edge: try stableSubshapeReference(selectedEdgeName, in: source),
-                    supportFace: try stableSubshapeReference(supportFaceName, in: source),
-                    distance: .constant(.length(2.0, unit: .millimeter))
-                )
-            ),
-            inputs: [FeatureInput(featureID: extrudeFeatureID, role: .target)],
-            outputs: [FeatureOutput(role: .body)]
-        )
-        document.designGraph.nodes[offsetFeatureID] = offsetFeature
-        document.designGraph.order.append(offsetFeatureID)
-        document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: offsetFeatureID))
-        document.designGraph.revision = document.designGraph.revision.advanced()
-
-        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
-        let offsetEdgeName = semanticSubshapeID(
-            offsetFeatureID,
-            generatedRole: "edgeOffset",
-            semanticRole: "offsetEdge"
-        )
-        let remainderFaceName = semanticSubshapeID(
-            offsetFeatureID,
-            generatedRole: "edgeOffset",
-            semanticRole: "remainderFace"
-        )
-
-        #expect(evaluated.brep.faces.count == 7)
-        #expect(evaluated.brep.edges.count == 15)
-        #expect(evaluated.brep.vertices.count == 10)
-        #expect(evaluated.subshapes.entries[selectedEdgeName]?.isEdge == true)
-        #expect(evaluated.subshapes.entries[removedNextEdgeName] == nil)
-        #expect(evaluated.subshapes.entries[removedPreviousEdgeName] == nil)
-        #expect(evaluated.subshapes.entries[offsetEdgeName]?.isEdge == true)
-        #expect(evaluated.subshapes.entries[remainderFaceName]?.isFace == true)
-        try evaluated.brep.validate(tolerance: .standard)
-
-        let mesh = try #require(evaluated.meshes.values.first)
-        #expect(mesh.indices.count > 36)
-        #expect(mesh.indices.count % 3 == 0)
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func symmetricEdgeOffsetSplitsBothAdjacentRectangularSupportFaces() throws {
-        var document = makeRectangleExtrudeDocument(documentUnits: .meters)
-        let extrudeFeatureID = try #require(document.designGraph.order.last)
-        let offsetFeatureID = FeatureID()
-        let selectedEdgeName = testSubshapeID(extrudeFeatureID, .edge, ordinal: 0)
-        let supportFaceName = testSubshapeID(extrudeFeatureID, .startFace)
-        let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
-        let offsetFeature = FeatureNode(
-            id: offsetFeatureID,
-            operation: .edgeOffset(
-                EdgeOffsetFeature(
-                    target: EdgeOffsetTargetReference(featureID: extrudeFeatureID),
-                    edge: try stableSubshapeReference(selectedEdgeName, in: source),
-                    supportFace: try stableSubshapeReference(supportFaceName, in: source),
-                    distance: .constant(.length(2.0, unit: .millimeter)),
-                    isSymmetric: true
-                )
-            ),
-            inputs: [FeatureInput(featureID: extrudeFeatureID, role: .target)],
-            outputs: [FeatureOutput(role: .body)]
-        )
-        document.designGraph.nodes[offsetFeatureID] = offsetFeature
-        document.designGraph.order.append(offsetFeatureID)
-        document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: offsetFeatureID))
-        document.designGraph.revision = document.designGraph.revision.advanced()
-
-        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
-        let firstOffsetEdgeName = semanticSubshapeID(
-            offsetFeatureID,
-            generatedRole: "edgeOffset",
-            semanticRole: "offsetEdge",
-            ordinal: 0
-        )
-        let secondOffsetEdgeName = semanticSubshapeID(
-            offsetFeatureID,
-            generatedRole: "edgeOffset",
-            semanticRole: "offsetEdge",
-            ordinal: 1
-        )
-        let firstRemainderFaceName = semanticSubshapeID(
-            offsetFeatureID,
-            generatedRole: "edgeOffset",
-            semanticRole: "remainderFace",
-            ordinal: 0
-        )
-        let secondRemainderFaceName = semanticSubshapeID(
-            offsetFeatureID,
-            generatedRole: "edgeOffset",
-            semanticRole: "remainderFace",
-            ordinal: 1
-        )
-
-        #expect(evaluated.brep.faces.count == 8)
-        #expect(evaluated.brep.edges.count == 18)
-        #expect(evaluated.brep.vertices.count == 12)
-        #expect(evaluated.subshapes.entries[selectedEdgeName]?.isEdge == true)
-        #expect(evaluated.subshapes.entries[firstOffsetEdgeName]?.isEdge == true)
-        #expect(evaluated.subshapes.entries[secondOffsetEdgeName]?.isEdge == true)
-        #expect(evaluated.subshapes.entries[firstRemainderFaceName]?.isFace == true)
-        #expect(evaluated.subshapes.entries[secondRemainderFaceName]?.isFace == true)
         try evaluated.brep.validate(tolerance: .standard)
 
         let mesh = try #require(evaluated.meshes.values.first)
@@ -5734,8 +5503,8 @@ struct CADKernelTests {
             id: offsetFeatureID,
             operation: .faceLoopOffset(
                 FaceLoopOffsetFeature(
-                    target: FaceLoopOffsetTargetReference(featureID: extrudeFeatureID),
-                    face: try stableSubshapeReference(targetFaceName, in: source),
+                    target: PatternTargetReference(featureID: extrudeFeatureID),
+                    faces: [try stableSubshapeReference(targetFaceName, in: source)],
                     distance: .constant(.length(2.0, unit: .millimeter))
                 )
             ),
@@ -5748,11 +5517,15 @@ struct CADKernelTests {
         document.designGraph.revision = document.designGraph.revision.advanced()
 
         let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
-        let centerFaceName = semanticSubshapeID(
-            offsetFeatureID,
-            generatedRole: "faceLoopOffset",
-            semanticRole: "centerFace"
-        )
+        // The face inside the offset outline: every vertex of it is 2 mm in from the start face's.
+        let centerFaceNames = evaluated.subshapes.entries.filter { key, value in
+            guard key.featureID == offsetFeatureID, case let .face(faceID) = value, let face = evaluated.brep.faces[faceID] else { return false }
+            let points = face.loops.flatMap { evaluated.brep.loops[$0]?.coedges ?? [] }.compactMap { coedge in
+                evaluated.brep.edges[coedge.edgeID].flatMap { evaluated.brep.vertices[$0.startVertexID]?.point }
+            }
+            return points.isEmpty == false && points.allSatisfy { abs($0.z) < 1e-12 && abs($0.x) <= 0.018 + 1e-12 }
+        }.keys.sorted()
+        let centerFaceName = try #require(centerFaceNames.first)
         let surfaceReference = try stableSurfaceReference(centerFaceName, in: evaluated)
         let evaluator = SurfaceQueryEvaluator(tolerance: .standard)
 

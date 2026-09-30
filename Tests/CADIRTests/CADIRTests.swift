@@ -3222,8 +3222,8 @@ struct CADIRTests {
         let face = testSurfaceReference().subshape
         let operation = FeatureOperation.faceLoopOffset(
             FaceLoopOffsetFeature(
-                target: FaceLoopOffsetTargetReference(featureID: targetID),
-                face: face,
+                target: PatternTargetReference(featureID: targetID),
+                faces: [face],
                 distance: .constant(.length(2.0, unit: .millimeter))
             )
         )
@@ -3235,8 +3235,8 @@ struct CADIRTests {
             Issue.record("Face loop offset operation must round-trip with its discriminator.")
             return
         }
-        #expect(offset.target == FaceLoopOffsetTargetReference(featureID: targetID))
-        #expect(offset.face == face)
+        #expect(offset.target == PatternTargetReference(featureID: targetID))
+        #expect(offset.faces == [face])
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -3246,8 +3246,8 @@ struct CADIRTests {
         let supportFace = testSurfaceReference().subshape
         let operation = FeatureOperation.edgeOffset(
             EdgeOffsetFeature(
-                target: EdgeOffsetTargetReference(featureID: targetID),
-                edge: edge,
+                target: PatternTargetReference(featureID: targetID),
+                edges: [edge],
                 supportFace: supportFace,
                 distance: .constant(.length(2.0, unit: .millimeter)),
                 isSymmetric: true
@@ -3261,8 +3261,8 @@ struct CADIRTests {
             Issue.record("Edge offset operation must round-trip with its discriminator.")
             return
         }
-        #expect(offset.target == EdgeOffsetTargetReference(featureID: targetID))
-        #expect(offset.edge == edge)
+        #expect(offset.target == PatternTargetReference(featureID: targetID))
+        #expect(offset.edges == [edge])
         #expect(offset.supportFace == supportFace)
         #expect(offset.isSymmetric)
     }
@@ -3406,13 +3406,13 @@ struct CADIRTests {
             path: SweepPathReference(featureID: FeatureID())
         )))
         operationObject["faceLoopOffset"] = try jsonObject(from: JSONEncoder().encode(FaceLoopOffsetFeature(
-            target: FaceLoopOffsetTargetReference(featureID: FeatureID()),
-            face: testSurfaceReference().subshape,
+            target: PatternTargetReference(featureID: FeatureID()),
+            faces: [testSurfaceReference().subshape],
             distance: .constant(.length(1.0, unit: .millimeter))
         )))
         operationObject["edgeOffset"] = try jsonObject(from: JSONEncoder().encode(EdgeOffsetFeature(
-            target: EdgeOffsetTargetReference(featureID: FeatureID()),
-            edge: try testEdgeReference().subshape,
+            target: PatternTargetReference(featureID: FeatureID()),
+            edges: [try testEdgeReference().subshape],
             supportFace: testSurfaceReference().subshape,
             distance: .constant(.length(1.0, unit: .millimeter))
         )))

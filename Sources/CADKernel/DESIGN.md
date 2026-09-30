@@ -771,6 +771,29 @@ dropped from the crossings' lineage. Completion is `.none`, `.edge` (stopping at
 the first other curve) or `.boundary` (reaching the face's boundary across other
 curves). `ImprintFeatureTests` own these contracts.
 
+## Edge Offset
+
+`BRepEdgeChainOffsetter` offsets chosen edges of a face over the face, as curves
+for `BRepFaceImprinter`. The edges are taken in the order the face's loops run
+(matched by the patch builder's stable keys, so seams and split circles resolve
+by identity), neighbours forming a chain and a whole loop a closed chain. Each
+edge is offset point by point to the face's side (left of it seen from the
+face's outer side) in four steps each projected back onto the surface
+(`BRepFaceClosestPointProjector`), exact on a plane and along the surface on a
+curved face, and the points become a cubic parameter curve. Neighbouring offsets
+that cross are cut at the crossing; offsets that part are joined by
+`OffsetGapFill`: an arc of the offset distance around the corner, a straight
+line, or both offsets carried straight on until they meet. An offset that closes
+on itself is halved. `EdgeOffsetFeatureEvaluator` offsets edges over their
+support face, and with symmetry over the face across each edge;
+`FaceLoopOffsetFeatureEvaluator` offsets faces' outer loops into the faces, over
+the faces around them, or both (`FaceLoopOffsetSide`), each face's own outline
+or, combined, the outline of the chosen faces together. Open chain ends are
+carried to the face's boundary (`BRepImprintCompletion`, which leaves an end
+another curve already joins). They replace the earlier planar, line-only
+evaluators and work on solids and sheets alike. `EdgeOffsetFeatureTests` own
+these contracts.
+
 ## Reverse Sheet
 
 `ReverseSheetFeatureEvaluator` turns a sheet over in its place, consuming it: the

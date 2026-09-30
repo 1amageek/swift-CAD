@@ -1047,12 +1047,11 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         guard node.inputs == [FeatureInput(featureID: faceLoopOffset.target.featureID, role: .target)] else {
             throw FeatureEvaluationError.invalidGraph("Face loop offset features must consume the referenced target body input.")
         }
-        guard let targetSource = nodes[faceLoopOffset.target.featureID],
-              targetSource.outputs.contains(where: { $0.role == .body }) else {
-            throw FeatureEvaluationError.invalidGraph("Face loop offset target source must declare a body output.")
+        guard let targetPort = nodes[faceLoopOffset.target.featureID]?.bodyOrSheetOutput else {
+            throw FeatureEvaluationError.invalidGraph("Face loop offset target source must declare one body or sheet output.")
         }
-        guard outputRoles == [.body] else {
-            throw FeatureEvaluationError.invalidGraph("Face loop offset features must declare one body output.")
+        guard outputRoles == [targetPort] else {
+            throw FeatureEvaluationError.invalidGraph("Face loop offset features must declare their target's body or sheet output.")
         }
     }
 
@@ -1069,12 +1068,11 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         guard node.inputs == [FeatureInput(featureID: edgeOffset.target.featureID, role: .target)] else {
             throw FeatureEvaluationError.invalidGraph("Edge offset features must consume the referenced target body input.")
         }
-        guard let targetSource = nodes[edgeOffset.target.featureID],
-              targetSource.outputs.contains(where: { $0.role == .body }) else {
-            throw FeatureEvaluationError.invalidGraph("Edge offset target source must declare a body output.")
+        guard let targetPort = nodes[edgeOffset.target.featureID]?.bodyOrSheetOutput else {
+            throw FeatureEvaluationError.invalidGraph("Edge offset target source must declare one body or sheet output.")
         }
-        guard outputRoles == [.body] else {
-            throw FeatureEvaluationError.invalidGraph("Edge offset features must declare one body output.")
+        guard outputRoles == [targetPort] else {
+            throw FeatureEvaluationError.invalidGraph("Edge offset features must declare their target's body or sheet output.")
         }
     }
 

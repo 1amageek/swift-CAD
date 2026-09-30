@@ -3,7 +3,6 @@ import CADIR
 
 enum GeneratedSubshapeSelector: Hashable, Sendable {
     case generated(role: GeneratedSubshapeRole, index: Int? = nil)
-    case faceLoopOffsetCenterFace
     case faceKnifeCenterFace
 
     func subshapeID(featureID: FeatureID) throws -> SubshapeID {
@@ -19,15 +18,6 @@ enum GeneratedSubshapeSelector: Hashable, Sendable {
                 )
             }
             return SubshapeID(featureID: featureID, role: role.rawValue, ordinal: index ?? 0)
-        case .faceLoopOffsetCenterFace:
-            return SubshapeID(
-                featureID: featureID,
-                role: SubshapeIdentityRole.compose(
-                    generatedRole: "faceLoopOffset",
-                    subshapeRole: "centerFace"
-                ),
-                ordinal: 0
-            )
         case .faceKnifeCenterFace:
             return SubshapeID(
                 featureID: featureID,

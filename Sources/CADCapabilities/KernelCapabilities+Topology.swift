@@ -63,7 +63,6 @@ extension KernelCapabilities {
         "StableSelectionResolverTests",
         "BooleanEvaluationPlanServiceTests",
         "CADCommandTests",
-        "FaceLoopOffsetFeatureTests",
         "EdgeOffsetFeatureTests",
         "SubshapeGeometrySignatureTests",
         "NativeStableSelectionPackageTests",

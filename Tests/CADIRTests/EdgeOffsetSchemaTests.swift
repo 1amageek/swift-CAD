@@ -6,36 +6,30 @@ import CADTopology
 
 @Suite("Edge Offset Schema")
 struct EdgeOffsetSchemaTests {
-    @Test(.timeLimit(.minutes(1)))
-    func rejectsRemovedGapFillField() throws {
-        let featureID = FeatureID()
-        let edge = StableSubshapeReference(
-            subshapeID: SubshapeID(featureID: featureID, role: "edge", ordinal: 0),
-            geometrySignature: try .lineEdge(
-                startPoint: .origin,
-                endPoint: Point3D(x: 1.0, y: 0.0, z: 0.0)
-            )
-        )
-        let face = StableSubshapeReference(
-            subshapeID: SubshapeID(featureID: featureID, role: "face", ordinal: 0),
+    private func reference(_ featureID: FeatureID, _ role: String, _ ordinal: Int) -> StableSubshapeReference {
+        StableSubshapeReference(
+            subshapeID: SubshapeID(featureID: featureID, role: role, ordinal: ordinal),
             geometrySignature: .untrimmedPlane(origin: .origin)
         )
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func roundTripsEveryOptionAndRefusesNoEdge() throws {
+        let featureID = FeatureID()
         let feature = EdgeOffsetFeature(
-            target: EdgeOffsetTargetReference(featureID: featureID),
-            edge: edge,
-            supportFace: face,
-            distance: .constant(.length(2.0, unit: .millimeter))
+            target: PatternTargetReference(featureID: featureID),
+            edges: [reference(featureID, "edge", 0), reference(featureID, "edge", 1)],
+            supportFace: reference(featureID, "face", 0),
+            distance: .constant(.length(2.0, unit: .millimeter)),
+            isSymmetric: true, gapFill: .linear
         )
         let encoded = try JSONEncoder().encode(feature)
-        guard var object = try JSONSerialization.jsonObject(with: encoded) as? [String: Any] else {
-            Issue.record("Expected an encoded edge offset object.")
-            return
-        }
-        object["gapFill"] = "linear"
-        let removedSchema = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
-
-        #expect(throws: DecodingError.self) {
-            _ = try JSONDecoder().decode(EdgeOffsetFeature.self, from: removedSchema)
+        #expect(try JSONDecoder().decode(EdgeOffsetFeature.self, from: encoded) == feature)
+        #expect(throws: FeatureEvaluationError.self) {
+            try EdgeOffsetFeature(
+                target: PatternTargetReference(featureID: featureID), edges: [],
+                supportFace: reference(featureID, "face", 0), distance: .constant(.length(1, unit: .millimeter))
+            ).validate()
         }
     }
 }

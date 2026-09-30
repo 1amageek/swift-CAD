@@ -1,38 +1,60 @@
 import CADCore
+import CADTopology
 
+/// Face outlines offset (Offset Face Loop): the outer loop of each chosen face is offset by
+/// `distance` into the face, over the faces around it, or both ways, as `side` says, with corners
+/// joined as `gapFill` says, and imprinted. Individually,
+/// each face's own outline is offset; combined, the outline of the faces together is, so edges
+/// between two chosen faces are not.
 public struct FaceLoopOffsetFeature: Codable, Hashable, Sendable {
-    public var target: FaceLoopOffsetTargetReference
-    public var face: StableSubshapeReference
+    public var target: PatternTargetReference
+    public var faces: [StableSubshapeReference]
     public var distance: CADExpression
+    public var side: FaceLoopOffsetSide
+    public var gapFill: OffsetGapFill
+    public var isIndividual: Bool
 
     public init(
-        target: FaceLoopOffsetTargetReference,
-        face: StableSubshapeReference,
-        distance: CADExpression
+        target: PatternTargetReference,
+        faces: [StableSubshapeReference],
+        distance: CADExpression,
+        side: FaceLoopOffsetSide = .inward,
+        gapFill: OffsetGapFill = .round,
+        isIndividual: Bool = true
     ) {
         self.target = target
-        self.face = face
+        self.faces = faces
         self.distance = distance
+        self.side = side
+        self.gapFill = gapFill
+        self.isIndividual = isIndividual
     }
 
     public func validate() throws {
         try target.validate()
-        try face.validate()
+        guard faces.isEmpty == false else {
+            throw FeatureEvaluationError.invalidGraph("Offset Face Loop needs at least one face.")
+        }
+        for face in faces { try face.validate() }
+        guard Set(faces).count == faces.count else {
+            throw FeatureEvaluationError.invalidGraph("Offset Face Loop's faces must be distinct.")
+        }
         try distance.validateLiteralQuantities()
     }
 
     private enum CodingKeys: String, CodingKey {
-        case target
-        case face
-        case distance
+        case target, faces, distance, side, gapFill, isIndividual
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.target, .face, .distance], in: decoder)
-        target = try container.decode(FaceLoopOffsetTargetReference.self, forKey: .target)
-        face = try container.decode(StableSubshapeReference.self, forKey: .face)
+        try container.validateOnlyExpectedKeys([.target, .faces, .distance, .side, .gapFill, .isIndividual], in: decoder)
+        target = try container.decode(PatternTargetReference.self, forKey: .target)
+        faces = try container.decode([StableSubshapeReference].self, forKey: .faces)
         distance = try container.decode(CADExpression.self, forKey: .distance)
+        side = try container.decode(FaceLoopOffsetSide.self, forKey: .side)
+        gapFill = try container.decode(OffsetGapFill.self, forKey: .gapFill)
+        isIndividual = try container.decode(Bool.self, forKey: .isIndividual)
         try validate()
     }
 
@@ -40,34 +62,20 @@ public struct FaceLoopOffsetFeature: Codable, Hashable, Sendable {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(target, forKey: .target)
-        try container.encode(face, forKey: .face)
+        try container.encode(faces, forKey: .faces)
         try container.encode(distance, forKey: .distance)
+        try container.encode(side, forKey: .side)
+        try container.encode(gapFill, forKey: .gapFill)
+        try container.encode(isIndividual, forKey: .isIndividual)
     }
 }
 
-public struct FaceLoopOffsetTargetReference: Codable, Hashable, Sendable {
-    public var featureID: FeatureID
-
-    public init(featureID: FeatureID) {
-        self.featureID = featureID
-    }
-
-    public func validate() throws {}
-
-    private enum CodingKeys: String, CodingKey {
-        case featureID
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.featureID], in: decoder)
-        featureID = try container.decode(FeatureID.self, forKey: .featureID)
-        try validate()
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        try validate()
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(featureID, forKey: .featureID)
-    }
+/// Where Offset Face Loop offsets a face's outline.
+public enum FaceLoopOffsetSide: String, Codable, Hashable, Sendable {
+    /// Into the face.
+    case inward
+    /// Over the faces around it.
+    case outward
+    /// Both ways, the same distance.
+    case symmetric
 }
