@@ -76,6 +76,49 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         }
     }
 
+    /// The rings of a thin section in its own plane, one profile per loop: the outline's ring
+    /// runs inside it, a hole's around the hole, each `thickness` wide with exact lines and arcs.
+    package func wallProfiles(from profile: Profile, planeNormal: Vector3D, thickness: Double) throws -> [Profile] {
+        try tolerance.validate()
+        guard thickness.isFinite, thickness > tolerance.distance else {
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                              message: "A thin section's wall thickness must be a positive length.")
+        }
+        let normal = try planeNormal.normalized(tolerance: tolerance.distance)
+        return try profile.boundaryLoops.enumerated().map { index, loop in
+            let source = try elements(of: loop)
+            let back = reversed(try offset(source, normal: normal, shift: -thickness))
+            let (outer, inner) = index == 0 ? (source, back) : (back, source)
+            return Profile(
+                sourceFeatureID: profile.sourceFeatureID,
+                plane: profile.plane,
+                outerLoop: try profileLoop(outer),
+                innerLoops: [try profileLoop(inner)]
+            )
+        }
+    }
+
+    /// `elements` as a profile loop, sampled at every line's start and eight points along each arc.
+    private func profileLoop(_ elements: [Element]) throws -> ProfileLoop {
+        var vertices: [Point3D] = []
+        let segments = try elements.map { element -> ProfileBoundarySegment in
+            switch element {
+            case let .line(start, end):
+                vertices.append(start)
+                return .line(ProfileLineSegment(start: start, end: end))
+            case let .arc(arc):
+                let radial = arc.start - arc.center
+                let axis = try arc.normal.normalized(tolerance: tolerance.distance).cross(radial)
+                for index in 0..<8 {
+                    let angle = arc.sweepAngle * Double(index) / 8
+                    vertices.append(arc.center + radial * cos(angle) + axis * sin(angle))
+                }
+                return .circularArc(arc)
+            }
+        }
+        return ProfileLoop(vertices: vertices, boundarySegments: segments)
+    }
+
     private func elements(of loop: ProfileLoop) throws -> [Element] {
         let elements = try loop.boundarySegments.map { segment -> Element in
             switch segment {

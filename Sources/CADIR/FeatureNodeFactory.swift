@@ -93,13 +93,17 @@ public enum FeatureNodeFactory {
                 switch revolve.section {
                 case .profile(let reference): try validateProfileSource(reference, in: document)
                 case .curve(let reference): try validateCurveSource(reference.featureID, owner: "Revolve", in: document)
-                case .face: throw FeatureEvaluationError.invalidGraph("Revolve takes a profile or a curve section.")
+                case .face(let reference): try validateSource(reference.featureID, role: reference.bodyRole, in: document)
+                }
+                for target in revolve.targets {
+                    try validateSource(target.featureID, role: .body, in: document)
                 }
                 return FeatureNode(
                     id: id,
                     name: name,
                     operation: operation,
-                    inputs: [FeatureInput(featureID: revolve.section.featureID, role: revolve.section.inputRole)],
+                    inputs: [FeatureInput(featureID: revolve.section.featureID, role: revolve.section.inputRole)]
+                        + revolve.targets.map { FeatureInput(featureID: $0.featureID, role: .target) },
                     outputs: [FeatureOutput(role: revolve.resultKind == .solid ? .body : .sheet)]
                 )
             }

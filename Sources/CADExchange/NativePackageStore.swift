@@ -1109,12 +1109,18 @@ private func validateExtrudeFeatureObject(_ object: [String: Any], path: String)
 private func validateRevolveFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["section", "axis", "angle", "operation", "resultKind"],
+        supportedKeys: ["section", "axis", "angle", "operation", "targets", "keepTools", "resultKind", "thickness"],
         objectName: path
     )
     try validateObjectField("section", in: object, path: "\(path).section", using: validateSectionReferenceObject)
     try validateObjectField("axis", in: object, path: "\(path).axis", using: validateRevolveAxisObject)
     try validateObjectField("angle", in: object, path: "\(path).angle", using: validateExpressionObject)
+    if object["targets"] != nil {
+        try validateArrayField("targets", in: object, path: "\(path).targets", using: validateBooleanTargetReferenceObject)
+    }
+    if object["thickness"] != nil {
+        try validateObjectField("thickness", in: object, path: "\(path).thickness", using: validateExpressionObject)
+    }
 }
 
 private func validateRevolveAxisObject(_ object: [String: Any], path: String) throws {

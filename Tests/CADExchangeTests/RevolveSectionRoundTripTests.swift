@@ -48,8 +48,14 @@ struct RevolveSectionRoundTripTests {
         let edited = try evaluator.evaluateExact(restored)
         #expect(edited.brep.faces.count == (profile ? 4 : 1))
         if !profile {
+            // A curve may ask for a solid; this one runs beside the axis, so its revolution stays
+            // open and evaluating it as a solid fails.
             operation.resultKind = .solid
-            #expect(throws: FeatureEvaluationError.self) { try operation.validate(tolerance: .standard) }
+            try operation.validate(tolerance: .standard)
+            restored.designGraph.nodes[node.id] = try FeatureNodeFactory.make(
+                operation: .revolve(operation), id: node.id, in: restored, tolerance: .standard
+            )
+            #expect(throws: (any Error).self) { try evaluator.evaluateExact(restored) }
         }
     }
 }

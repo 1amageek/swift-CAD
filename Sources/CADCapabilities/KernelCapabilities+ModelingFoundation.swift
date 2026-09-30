@@ -169,6 +169,10 @@ extension KernelCapabilities {
         "partialOrFullAngleUpToOneTurn",
         "profileBoundaryInClosedRadialHalfSpace",
         "radialAxialConicalSegments",
+        "planarFaceSection",
+        "curveClosedOnItselfOrAlongTheAxisForSolidOutput",
+        "optionalUnionDifferenceIntersectSliceWithPlacedSolidTargetsAndKeepTools",
+        "optionalWallThicknessOnOneLoopLineAndTangentArcSections",
       ],
       outputs: [
         "validatedExactBRep",
@@ -184,6 +188,7 @@ extension KernelCapabilities {
         "CurvedRevolveFeatureTests",
         "SketchSplineProfileExtractionTests",
         "CurvedRevolveCommandParityTests",
+        "RevolveOptionsTests",
       ],
       status: .supported,
       failureCodes: [

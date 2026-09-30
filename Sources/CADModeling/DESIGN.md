@@ -196,6 +196,19 @@ owns uncapped open-generator geometry, full-turn seams and invalid generators.
 Source/API adoption is separately required before this builder is an exposed
 Surface Creation operation.
 
+A revolve's section may also be a planar face (`FaceSectionProfileResolver`, read before any target
+moves) or, for solid output, a curve: a closed planar curve revolves as the region it bounds and an
+open one is closed along the axis between its ends, which must both lie on it; a curve whose ends
+miss the axis refuses solid output. A `thickness` makes the revolve thin: `wallProfiles` offsets
+the section's one loop toward the material into an exact line/arc ring, which revolves with the
+general builder; a section with holes (several rings) refuses. A Boolean revolve stages its placed
+targets with `PlacedBooleanTargetStager`, shared with Extrude, fills the analytic fast path's
+missing pcurves (the Boolean's face arrangement reads them) and combines through the sweep Boolean
+applicator; Keep Tools keeps every operand, as a Boolean feature does. The general builder's
+rational surfaces of revolution are Boolean operands only as far as the plane/B-spline
+intersector certifies them. `RevolveOptionsTests` own the Boolean volumes, thin volumes, the curve
+solid and the face section.
+
 ### Loft section topology
 
 Guide contact resolution consumes exact boundary loops (`ExactLoftGuideSection`),

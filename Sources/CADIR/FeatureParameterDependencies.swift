@@ -19,7 +19,7 @@ public extension FeatureOperation {
                 .union(extrude.draftAngle?.referencedParameterIDs ?? [])
                 .union(extrude.thickness?.referencedParameterIDs ?? [])
         case let .revolve(revolve):
-            return revolve.angle.referencedParameterIDs
+            return revolve.angle.referencedParameterIDs.union(revolve.thickness?.referencedParameterIDs ?? [])
         case let .sweep(sweep):
             return sweep.options.twistAngle.referencedParameterIDs
                 .union(sweep.options.endScale.referencedParameterIDs)

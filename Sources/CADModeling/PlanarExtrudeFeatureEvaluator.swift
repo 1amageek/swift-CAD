@@ -80,28 +80,9 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         var stages = FeatureEvaluationStages(context)
         var targetBodyIDs: [BodyID] = []
         if extrude.operation != .newBody {
-            for (ordinal, target) in extrude.targets.enumerated() {
-                let bodyID = try context.bodyID(generatedBy: target.featureID)
-                guard let placement = target.placement else {
-                    targetBodyIDs.append(bodyID)
-                    continue
-                }
-                guard let targetRelocator else {
-                    throw KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: feature.id,
-                                      tolerance: context.tolerance, message: "This evaluator cannot move a placed extrusion target.")
-                }
-                try placement.validate(tolerance: context.tolerance)
-                let stageID = featureEvaluationStageID(featureID: feature.id, domain: .booleanOperandPlacement, ordinal: UInt64(ordinal))
-                let staged = stages.context
-                let moved = try FeatureEvaluationBoundary.evaluate(featureID: feature.id, tolerance: context.tolerance) {
-                    try targetRelocator.relocate(
-                        featureID: stageID, sourceBodyID: bodyID, transform: placement,
-                        stablePrefix: "extrude:placedTarget", context: staged
-                    )
-                }
-                stages.apply(moved)
-                targetBodyIDs.append(try stages.publishedBody(of: moved, featureID: feature.id, what: "Moving an extrusion target"))
-            }
+            targetBodyIDs = try PlacedBooleanTargetStager(relocator: targetRelocator).stage(
+                extrude.targets, featureID: feature.id, stablePrefix: "extrude:placedTarget", stages: &stages, what: "an extrusion"
+            )
         }
         // A face section is read where its face is before any target moves.
         var faceProfile: Profile?

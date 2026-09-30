@@ -255,7 +255,8 @@ struct RevolveBodyBuilder {
             }
             return nil
         })
-        let missingEdgeIDs = Set(model.edges.keys).subtracting(namedEdgeIDs)
+        // The edges of bodies already in the model are theirs, not the revolve's.
+        let missingEdgeIDs = Set(model.edges.keys).subtracting(context.brep.edges.keys).subtracting(namedEdgeIDs)
         if missingEdgeIDs.isEmpty == false {
             throw FeatureEvaluationError.invalidGraph(
                 "Revolve generated unnamed edges: model=\(model.edges.count) profile=\(profileEdges.count) arc=\(arcEdges.count) named=\(namedEdgeIDs.count) missing=\(missingEdgeIDs.count)."

@@ -99,10 +99,11 @@ struct ValidatedCADDocumentMutationTests {
         )
         replacement.operation = .extrude(ExtrudeFeature(
             profile: ProfileReference(featureID: fixture.sketchID),
-            distance: .constant(.length(-1.0, unit: .meter))
+            distance: .constant(.angle(1.0, unit: .degree))
         ))
 
-        #expect(throws: FeatureEvaluationError.self) {
+        // Extents are signed, so an extrusion distance is invalid only when it is not a length.
+        #expect(throws: (any Error).self) {
             try validated.replacingGraphStableFeature(replacement)
         }
     }
