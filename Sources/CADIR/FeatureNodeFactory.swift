@@ -133,6 +133,20 @@ public enum FeatureNodeFactory {
                 )
             }
             return try run()
+        case .edgeCurve:
+            func run() throws -> FeatureNode {
+                guard case let .edgeCurve(edgeCurve) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try edgeCurve.validate()
+                try validateSource(edgeCurve.source, role: edgeCurve.bodyRole, in: document)
+                return FeatureNode(
+                    id: id, name: name, operation: operation,
+                    inputs: [FeatureInput(featureID: edgeCurve.source, role: edgeCurve.bodyRole)],
+                    outputs: [FeatureOutput(role: .curve)]
+                )
+            }
+            return try run()
         case .pipe:
             func run() throws -> FeatureNode {
                 guard case let .pipe(pipe) = operation else {

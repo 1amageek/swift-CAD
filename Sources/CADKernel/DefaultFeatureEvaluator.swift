@@ -231,6 +231,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         case .revolve: return revolveEvaluator
         case .sweep: return sweepEvaluator
         case .pipe: return PipeFeatureEvaluator(sweep: sweepEvaluator)
+        case .edgeCurve: return EdgeCurveFeatureEvaluator()
         case .loft: return loftEvaluator
         case .boolean: return booleanEvaluator
         case .polySpline: return polySplineEvaluator

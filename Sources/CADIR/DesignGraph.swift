@@ -190,6 +190,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                         "Sweep distance fraction must be greater than 0 and less than or equal to 1."
                     )
                 }
+            case let .edgeCurve(edgeCurve):
+                try edgeCurve.validate()
             case let .pipe(pipe):
                 try pipe.validate()
                 func resolved(_ expression: CADExpression, _ kind: QuantityKind, _ name: String) throws -> Double {
@@ -656,6 +658,16 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             try validateSweepContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .pipe:
             try validatePipeContract(node, outputRoles: outputRoles)
+        case .edgeCurve:
+            guard case let .edgeCurve(edgeCurve) = node.operation else {
+                throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected an edgeCurve operation.")
+            }
+            try edgeCurve.validate()
+            guard node.inputs == [FeatureInput(featureID: edgeCurve.source, role: edgeCurve.bodyRole)],
+                  nodes[edgeCurve.source]?.outputs.contains(where: { $0.role == edgeCurve.bodyRole }) == true,
+                  outputRoles == [.curve] else {
+                throw FeatureEvaluationError.invalidGraph("Edge curves consume their body and declare one curve output.")
+            }
         case .loft:
             try validateLoftContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .boolean:

@@ -271,6 +271,29 @@ extension KernelCapabilities {
       ]
     ),
     feature(
+      id: "MODEL-EDGE-CURVE-001",
+      operation: "edgeCurve",
+      topology: .curve,
+      inputs: [
+        "oneOrMoreDistinctEdgesOfOneBodyOrSheetByStableReference",
+      ],
+      outputs: [
+        "exactEdgeCurvesOverTheirTrimsAsTheFeaturesCurveOutput",
+      ],
+      fixtures: [
+        "EdgeCurveTests",
+      ],
+      status: .supported,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+      ],
+      additionalPublicAPIs: [
+        "CADModeling.EdgeCurveFeatureEvaluator",
+        "DocumentBuilder.edgeCurves",
+      ]
+    ),
+    feature(
       id: "MODEL-PIPE-001",
       operation: "pipe",
       topology: .solidBody,

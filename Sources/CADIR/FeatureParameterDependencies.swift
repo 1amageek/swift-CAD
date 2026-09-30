@@ -28,6 +28,8 @@ public extension FeatureOperation {
                 .union((sweep.options.twistLaw ?? []).reduce(into: Set<ParameterID>()) {
                     $0.formUnion($1.angle.referencedParameterIDs)
                 })
+        case .edgeCurve:
+            return []
         case let .pipe(pipe):
             return pipe.expressions.reduce(into: Set<ParameterID>()) { $0.formUnion($1.referencedParameterIDs) }
         case let .faceLoopOffset(offset):

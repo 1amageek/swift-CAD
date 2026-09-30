@@ -1539,6 +1539,16 @@ public struct DocumentBuilder {
                   options: options, named: name)
     }
 
+    /// Curves along `edges` of the body or sheet `source` makes, for curve consumers to follow.
+    @discardableResult
+    public mutating func edgeCurves(
+        of source: FeatureID, bodyRole: FeaturePort = .body, edges: [StableSubshapeReference], named name: String? = nil
+    ) throws -> FeatureID {
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .edgeCurve(EdgeCurveFeature(source: source, bodyRole: bodyRole, edges: edges)))
+        return featureID
+    }
+
     /// A pipe along the curve `pathFeatureID` makes: a circle (or polygon) of `diameter` across its
     /// start, hollow to `thickness` when given, swept within `approximationTolerance`.
     @discardableResult

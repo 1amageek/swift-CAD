@@ -10,6 +10,7 @@ public extension FeatureOperation {
         case .revolve: return "revolve"
         case .sweep: return "sweep"
         case .pipe: return "pipe"
+        case .edgeCurve: return "edgeCurve"
         case .loft: return "loft"
         case .boolean: return "boolean"
         case .polySpline: return "polySpline"

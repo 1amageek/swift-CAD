@@ -210,6 +210,12 @@ rational surfaces of revolution are Boolean operands only as far as the plane/B-
 intersector certifies them. `RevolveOptionsTests` own the Boolean volumes, thin volumes, the curve
 solid and the face section.
 
+### Edge curves
+
+`EdgeCurveFeatureEvaluator` publishes the exact curves of chosen edges of one body or sheet (each
+over its trim, in its own parameter order) as the feature's curve output, so any curve consumer can
+follow an edge. `EdgeCurveTests` own a pipe along a box's edge and the native round trip.
+
 ### Pipe
 
 `PipeFeatureEvaluator` owns a pipe's section and path, not its surfaces: it cuts the exact path

@@ -424,6 +424,9 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("revolve", in: object, path: "\(path).revolve", using: validateRevolveFeatureObject)
     try validateObjectField("sweep", in: object, path: "\(path).sweep", using: validateSweepFeatureObject)
     try validateObjectField("pipe", in: object, path: "\(path).pipe", using: validatePipeFeatureObject)
+    try validateObjectField("edgeCurve", in: object, path: "\(path).edgeCurve") { feature, featurePath in
+        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["source", "bodyRole", "edges"], objectName: featurePath)
+    }
     try validateObjectField("loft", in: object, path: "\(path).loft", using: validateLoftFeatureObject)
     try validateObjectField("boolean", in: object, path: "\(path).boolean", using: validateBooleanFeatureObject)
     try validateObjectField("polySpline", in: object, path: "\(path).polySpline", using: validatePolySplineFeatureObject)
