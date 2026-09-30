@@ -538,6 +538,33 @@ public enum FeatureNodeFactory {
                 inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
                 outputs: [FeatureOutput(role: .sheet)]
             )
+        case .isoparam, .imprintBody, .untrimFace:
+            let target: FeatureID
+            var inputs: [FeatureInput]
+            var output: FeaturePort?
+            switch operation {
+            case let .isoparam(feature):
+                try feature.validate()
+                target = feature.target.featureID
+                inputs = [FeatureInput(featureID: target, role: .target)]
+            case let .imprintBody(feature):
+                try feature.validate()
+                target = feature.target.featureID
+                _ = try bodyOrSheetPort(of: feature.tool.featureID, in: document)
+                inputs = [FeatureInput(featureID: target, role: .target), FeatureInput(featureID: feature.tool.featureID, role: .body)]
+            case let .untrimFace(feature):
+                try feature.validate()
+                target = feature.target.featureID
+                inputs = [FeatureInput(featureID: target, role: .target)]
+                output = .sheet
+            default:
+                throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+            }
+            let targetPort = try bodyOrSheetPort(of: target, in: document)
+            return FeatureNode(
+                id: id, name: name, operation: operation, inputs: inputs,
+                outputs: [FeatureOutput(role: output ?? targetPort)]
+            )
         case .reverseSheet:
             guard case let .reverseSheet(feature) = operation else {
                 throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")

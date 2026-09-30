@@ -94,6 +94,9 @@ public extension FeatureOperation {
              .unjoinBody,
              .unjoinFaces,
              .reverseSheet,
+             .isoparam,
+             .imprintBody,
+             .untrimFace,
              .extract:
             return []
         }

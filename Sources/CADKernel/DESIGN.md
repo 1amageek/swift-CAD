@@ -719,6 +719,43 @@ component (`ExtractSelection.component`). `UnjoinFacesFeatureTests` own every
 face, chosen faces and pieces, the round trip back to a solid through Join, a
 foreign face refused and persistence.
 
+## Imprint
+
+`BRepFaceImprinter` splits faces of one body along curves that lie on them and
+keeps every piece, the body staying the same solid or sheet. Each curve is an
+exact edge on one face (a model-space curve and its parameter curve there) whose
+ends lie on the face's boundary, on another curve, or close a chain. It reuses
+the Boolean arrangement (`BooleanOpenFaceArrangementBuilder`) with both sides of
+every curve kept and partitioning forced, in two passes: the first finds where
+each face's arrangement splits its curves and edges, and every such point is
+shared, so the second splits each edge the same way on both of its faces; a
+neighbouring face no curve reaches is re-segmented at those points without being
+split (`forcedAction: .keep`), which keeps solids sewable. Faces keep their
+surfaces and sides, every shell keeps its role, and the source body with every
+subshape in it is replaced. `BRepFaceCurveClipper` gives the pieces of a
+parameter curve inside a face (split where it crosses the face's edges and kept
+where its middle is inside), halving a piece that closes on itself; a curve
+along one of the face's own edges is refused, or yields nothing when the caller
+expects that (Untrim keeping edges). `BRepImprintCompletion` carries a curve on
+from an end inside its face along its own direction in the parameters until the
+face's boundary or another curve (`ImprintCompletion.edge`).
+
+`IsoparamFeatureEvaluator` imprints parameter lines at fractions of a face's
+extent, reaching a twentieth past it within the surface's domain and clipped to
+the face; subdividing a B-spline surface first inserts each line's knot up to the
+degree, keeping its shape and parameters. `ImprintBodyFeatureEvaluator` imprints
+the exact Boolean intersection of a tool's faces with a target's
+(`BooleanPipeline.completeIntersectionGraph`, `uvSplitGraph`,
+`BooleanFaceArrangementBoundary.edges`) and leaves the tool as it is; a tool face
+lying on a target face is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+`UntrimFaceFeatureEvaluator` builds a sheet of a face's surface bounded by four
+parameter lines, the surface's own domain where bounded and the face's extent
+where unbounded or periodic (the whole period, meeting in a seam, when the face
+goes around), turned to the face's side; keeping edges imprints the face's own
+boundary on it and traces that lineage past the unpublished bare sheet. A side
+that collapses to a point is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+`ImprintFeatureTests` own these contracts.
+
 ## Reverse Sheet
 
 `ReverseSheetFeatureEvaluator` turns a sheet over in its place, consuming it: the

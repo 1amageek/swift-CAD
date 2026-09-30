@@ -876,6 +876,82 @@ extension KernelCapabilities {
       ]
     ),
     feature(
+      id: "MODEL-IMPRINT-001",
+      operation: "imprintBody",
+      topology: .sheetOrSolidBody,
+      inputs: [
+        "oneValidatedSolidOrSheetTargetBody",
+        "oneValidatedSolidOrSheetToolBody",
+        "completionNoneOrEdge",
+      ],
+      outputs: [
+        "validatedExactBRep",
+        "targetFacesSplitWhereTheToolCrossesThem",
+        "bothSidesOfEveryCrossingKept",
+        "sameSolidOrSheetTargetInItsPlace",
+        "untouchedToolBody",
+        "endsInsideAFaceCarriedToAnEdgeWithEdgeCompletion",
+        "strictCurrentSchemaNativePersistence",
+      ],
+      fixtures: ["ImprintFeatureTests"],
+      status: .partial,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .unsupportedCapability,
+        .topologyFailure,
+      ]
+    ),
+    feature(
+      id: "MODEL-ISOPARAM-001",
+      operation: "isoparam",
+      topology: .sheetOrSolidBody,
+      inputs: [
+        "oneValidatedSolidOrSheetBody",
+        "oneStableFaceOfThatBody",
+        "uOrVLinesAtFractionsOfTheFaceExtent",
+      ],
+      outputs: [
+        "validatedExactBRep",
+        "faceSplitAlongItsParameterLines",
+        "neighbouringEdgesSplitWhereTheLinesMeetThem",
+        "optionalControlNetSubdivisionKeepingShape",
+        "strictCurrentSchemaNativePersistence",
+      ],
+      fixtures: ["ImprintFeatureTests"],
+      status: .supported,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .topologyFailure,
+      ]
+    ),
+    feature(
+      id: "MODEL-UNTRIM-001",
+      operation: "untrimFace",
+      topology: .sheetOrSolidBody,
+      inputs: [
+        "oneValidatedSolidOrSheetBody",
+        "oneStableFaceOfThatBody",
+      ],
+      outputs: [
+        "validatedExactBRep",
+        "oneSheetOfTheFacesUntrimmedSurface",
+        "boundedDomainOrFaceExtentInEachDirection",
+        "optionalFaceBoundaryImprintedOnTheSheet",
+        "untouchedSourceBody",
+        "strictCurrentSchemaNativePersistence",
+      ],
+      fixtures: ["ImprintFeatureTests"],
+      status: .partial,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .unsupportedCapability,
+        .topologyFailure,
+      ]
+    ),
+    feature(
       id: "MODEL-EXTRACT-001",
       operation: "extract",
       topology: .sheetOrSolidBody,

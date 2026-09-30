@@ -333,6 +333,19 @@ extension FeatureOperation {
             return .unjoinFaces(UnjoinFacesFeature(target: try pattern(feature.target), selection: selection))
         case .reverseSheet(let feature):
             return .reverseSheet(ReverseSheetFeature(target: try pattern(feature.target)))
+        case .isoparam(let feature):
+            return .isoparam(IsoparamFeature(
+                target: try pattern(feature.target), face: try subshape(feature.face), direction: feature.direction,
+                fractions: feature.fractions, subdividesControlNet: feature.subdividesControlNet
+            ))
+        case .imprintBody(let feature):
+            return .imprintBody(ImprintBodyFeature(
+                target: try pattern(feature.target), tool: try pattern(feature.tool), completion: feature.completion
+            ))
+        case .untrimFace(let feature):
+            return .untrimFace(UntrimFaceFeature(
+                target: try pattern(feature.target), face: try subshape(feature.face), keepsEdges: feature.keepsEdges
+            ))
         case .extract(let feature):
             let selection: ExtractSelection = switch feature.selection {
             case .component: feature.selection

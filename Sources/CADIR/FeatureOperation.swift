@@ -35,6 +35,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case unjoinBody(UnjoinBodyFeature)
     case unjoinFaces(UnjoinFacesFeature)
     case reverseSheet(ReverseSheetFeature)
+    case isoparam(IsoparamFeature)
+    case imprintBody(ImprintBodyFeature)
+    case untrimFace(UntrimFaceFeature)
     case extract(ExtractFeature)
     case wrap(WrapFeature)
     case chamfer(ChamferFeature)
@@ -92,6 +95,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case unjoinBody
         case unjoinFaces
         case reverseSheet
+        case isoparam
+        case imprintBody
+        case untrimFace
         case extract
         case wrap
         case chamfer
@@ -222,6 +228,15 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .reverseSheet:
             try container.validateOnlyExpectedKeys([.kind, .reverseSheet], in: decoder)
             self = .reverseSheet(try container.decode(ReverseSheetFeature.self, forKey: .reverseSheet))
+        case .isoparam:
+            try container.validateOnlyExpectedKeys([.kind, .isoparam], in: decoder)
+            self = .isoparam(try container.decode(IsoparamFeature.self, forKey: .isoparam))
+        case .imprintBody:
+            try container.validateOnlyExpectedKeys([.kind, .imprintBody], in: decoder)
+            self = .imprintBody(try container.decode(ImprintBodyFeature.self, forKey: .imprintBody))
+        case .untrimFace:
+            try container.validateOnlyExpectedKeys([.kind, .untrimFace], in: decoder)
+            self = .untrimFace(try container.decode(UntrimFaceFeature.self, forKey: .untrimFace))
         case .extract:
             try container.validateOnlyExpectedKeys([.kind, .extract], in: decoder)
             self = .extract(try container.decode(ExtractFeature.self, forKey: .extract))
@@ -390,6 +405,15 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .reverseSheet(reverseSheet):
             try container.encode(Kind.reverseSheet, forKey: .kind)
             try container.encode(reverseSheet, forKey: .reverseSheet)
+        case let .isoparam(feature):
+            try container.encode(Kind.isoparam, forKey: .kind)
+            try container.encode(feature, forKey: .isoparam)
+        case let .imprintBody(feature):
+            try container.encode(Kind.imprintBody, forKey: .kind)
+            try container.encode(feature, forKey: .imprintBody)
+        case let .untrimFace(feature):
+            try container.encode(Kind.untrimFace, forKey: .kind)
+            try container.encode(feature, forKey: .untrimFace)
         case let .extract(extract):
             try container.encode(Kind.extract, forKey: .kind)
             try container.encode(extract, forKey: .extract)

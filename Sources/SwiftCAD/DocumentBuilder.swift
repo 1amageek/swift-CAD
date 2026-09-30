@@ -499,6 +499,48 @@ public struct DocumentBuilder {
         return featureID
     }
 
+    /// Imprints parameter lines on a face of `target` (`IsoparamFeature`).
+    @discardableResult
+    public mutating func isoparam(
+        _ target: FeatureID, face: StableSubshapeReference, direction: SurfaceParameterDirection,
+        fractions: [Double], subdividesControlNet: Bool = false, named name: String? = nil
+    ) throws -> FeatureID {
+        let feature = IsoparamFeature(
+            target: PatternTargetReference(featureID: target), face: face, direction: direction,
+            fractions: fractions, subdividesControlNet: subdividesControlNet
+        )
+        try feature.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .isoparam(feature))
+        return featureID
+    }
+
+    /// Imprints where `tool` crosses `target` (`ImprintBodyFeature`).
+    @discardableResult
+    public mutating func imprintBody(
+        _ target: FeatureID, tool: FeatureID, completion: ImprintCompletion = .none, named name: String? = nil
+    ) throws -> FeatureID {
+        let feature = ImprintBodyFeature(
+            target: PatternTargetReference(featureID: target), tool: PatternTargetReference(featureID: tool), completion: completion
+        )
+        try feature.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .imprintBody(feature))
+        return featureID
+    }
+
+    /// A sheet of a face's untrimmed surface beside `target` (`UntrimFaceFeature`).
+    @discardableResult
+    public mutating func untrimFace(
+        _ target: FeatureID, face: StableSubshapeReference, keepsEdges: Bool = false, named name: String? = nil
+    ) throws -> FeatureID {
+        let feature = UntrimFaceFeature(target: PatternTargetReference(featureID: target), face: face, keepsEdges: keepsEdges)
+        try feature.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .untrimFace(feature))
+        return featureID
+    }
+
     /// Turns the sheet `target` over in its place (`ReverseSheetFeature`).
     @discardableResult
     public mutating func reverseSheet(_ target: FeatureID, named name: String? = nil) throws -> FeatureID {

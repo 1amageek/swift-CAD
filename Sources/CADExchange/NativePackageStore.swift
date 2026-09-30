@@ -459,6 +459,19 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("unjoinBody", in: object, path: "\(path).unjoinBody", using: validateUnjoinBodyFeatureObject)
     try validateObjectField("unjoinFaces", in: object, path: "\(path).unjoinFaces", using: validateUnjoinFacesFeatureObject)
     try validateObjectField("reverseSheet", in: object, path: "\(path).reverseSheet", using: validateReverseSheetFeatureObject)
+    try validateObjectField("isoparam", in: object, path: "\(path).isoparam") { feature, featurePath in
+        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "face", "direction", "fractions", "subdividesControlNet"], objectName: featurePath)
+        try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
+    }
+    try validateObjectField("imprintBody", in: object, path: "\(path).imprintBody") { feature, featurePath in
+        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "tool", "completion"], objectName: featurePath)
+        try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
+        try validateObjectField("tool", in: feature, path: "\(featurePath).tool", using: validatePatternTargetReferenceObject)
+    }
+    try validateObjectField("untrimFace", in: object, path: "\(path).untrimFace") { feature, featurePath in
+        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "face", "keepsEdges"], objectName: featurePath)
+        try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
+    }
     try validateObjectField("extract", in: object, path: "\(path).extract", using: validateExtractFeatureObject)
     try validateObjectField("chamfer", in: object, path: "\(path).chamfer", using: validateChamferFeatureObject)
     try validateObjectField("fillet", in: object, path: "\(path).fillet", using: validateFilletFeatureObject)

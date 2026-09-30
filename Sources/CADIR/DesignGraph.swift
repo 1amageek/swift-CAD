@@ -374,6 +374,12 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 try unjoin.validate()
             case let .reverseSheet(reverse):
                 try reverse.validate()
+            case let .isoparam(feature):
+                try feature.validate()
+            case let .imprintBody(feature):
+                try feature.validate()
+            case let .untrimFace(feature):
+                try feature.validate()
             case let .extract(extract):
                 try extract.validate()
             case let .wrap(wrap):
@@ -654,6 +660,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             try validateUnjoinFacesContract(node, outputRoles: outputRoles)
         case .reverseSheet:
             try validateReverseSheetContract(node, outputRoles: outputRoles)
+        case .isoparam, .imprintBody, .untrimFace:
+            try validateImprintContract(node, outputRoles: outputRoles)
         case .extract:
             try validateExtractContract(node, outputRoles: outputRoles)
         case .wrap:
@@ -1456,6 +1464,43 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         }
         guard outputRoles == [.sheet] else {
             throw FeatureEvaluationError.invalidGraph("Unjoin faces features must declare one sheet output.")
+        }
+    }
+
+    /// Isoparam and Imprint split their target and publish it as the same kind of body; Imprint
+    /// reads its tool as well; Untrim publishes a sheet beside its target.
+    private func validateImprintContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        let target: FeatureID
+        var inputs: [FeatureInput]
+        var output: FeaturePort?
+        switch node.operation {
+        case let .isoparam(feature):
+            try feature.validate()
+            target = feature.target.featureID
+            inputs = [FeatureInput(featureID: target, role: .target)]
+        case let .imprintBody(feature):
+            try feature.validate()
+            target = feature.target.featureID
+            inputs = [FeatureInput(featureID: target, role: .target), FeatureInput(featureID: feature.tool.featureID, role: .body)]
+            guard nodes[feature.tool.featureID]?.bodyOrSheetOutput != nil else {
+                throw FeatureEvaluationError.invalidGraph("Imprint's tool must declare one body or sheet output.")
+            }
+        case let .untrimFace(feature):
+            try feature.validate()
+            target = feature.target.featureID
+            inputs = [FeatureInput(featureID: target, role: .target)]
+            output = .sheet
+        default:
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected an imprint operation.")
+        }
+        guard node.inputs == inputs else {
+            throw FeatureEvaluationError.invalidGraph("Imprint features must consume exactly their referenced inputs.")
+        }
+        guard let targetPort = nodes[target]?.bodyOrSheetOutput else {
+            throw FeatureEvaluationError.invalidGraph("An imprint's target must declare one body or sheet output.")
+        }
+        guard outputRoles == [output ?? targetPort] else {
+            throw FeatureEvaluationError.invalidGraph("Imprint features must declare the one output their operation gives.")
         }
     }
 
