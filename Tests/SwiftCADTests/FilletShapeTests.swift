@@ -188,6 +188,7 @@ struct FilletShapeTests {
             return [start, end].allSatisfy { abs($0.y) < 1e-12 && abs($0.z) < 1e-12 }
         }?.key)
         let r = 0.005
+        var g2Builder = builder
         let fillet = try builder.fillet(target: sheet, edges: [try builder.stableSubshape(bend)], radius: length(r))
         let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "bend"))
         try evaluated.brep.validate(level: .exact, tolerance: .standard)
@@ -213,5 +214,15 @@ struct FilletShapeTests {
         #expect(points.contains { abs($0.y - r) < 1e-12 && abs($0.z) < 1e-12 })
         #expect(points.contains { abs($0.z - r) < 1e-12 && abs($0.y) < 1e-12 })
         #expect(points.allSatisfy { !(abs($0.y) < 1e-9 && abs($0.z) < 1e-9) })
+
+        // A G2 blend of the same bend is a sheet too, flat across both contacts.
+        let blend = try g2Builder.g2Blend(target: sheet, edges: [try g2Builder.stableSubshape(bend)], distance: length(r))
+        let blended = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try g2Builder.build(name: "bend"))
+        try blended.brep.validate(level: .exact, tolerance: .standard)
+        let blendBody = try #require(blended.subshapes.entries.compactMap { key, value -> BodyID? in
+            guard key.featureID == blend, case let .body(id) = value else { return nil }
+            return id
+        }.first)
+        #expect(blended.brep.bodies[blendBody]?.kind == .sheet)
     }
 }

@@ -306,8 +306,8 @@ an arc and a line meeting at a corner.
 ### Fillet shapes
 
 `FilletFeature.shape` is Fillet Shell's Shape. `round` keeps the rolling-ball fillet of the radius
-on solids. A fillet of a sheet's edge (its node declaring the sheet output its target does) takes the
-profile blend below at every shape, Round as the exact quarter circle of the radius, each face's
+on solids. A fillet or G2 blend of a sheet's edge (its node declaring the sheet output its target
+does) takes the profile blend below at every shape, Round as the exact quarter circle of the radius, each face's
 direction away from the edge read from where the face lies, and an end without a face beside it left
 open with the section curve as boundary.
 The other shapes round one straight edge between perpendicular planes through
