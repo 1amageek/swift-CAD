@@ -30,6 +30,8 @@ public extension FeatureOperation {
                 })
         case .edgeCurve, .squareSurface, .curvePatch:
             return []
+        case let .sheetBridge(bridge):
+            return bridge.expressions.reduce(into: Set<ParameterID>()) { $0.formUnion($1.referencedParameterIDs) }
         case let .pipe(pipe):
             return pipe.expressions.reduce(into: Set<ParameterID>()) { $0.formUnion($1.referencedParameterIDs) }
         case let .faceLoopOffset(offset):

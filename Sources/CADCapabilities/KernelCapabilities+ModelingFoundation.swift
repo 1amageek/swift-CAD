@@ -274,6 +274,30 @@ extension KernelCapabilities {
       ]
     ),
     feature(
+      id: "MODEL-SHEET-BRIDGE-001",
+      operation: "sheetBridge",
+      topology: .sheetBody,
+      inputs: [
+        "twoSingleFacePlanarSheetsWhosePlanesMeet",
+        "widthTensionG2OrChamferShapeAndSense",
+      ],
+      outputs: [
+        "oneBridgeSheetTangentAndCurvatureContinuousWithBothPlanesOrAChamfer",
+      ],
+      fixtures: [
+        "SheetBridgeTests",
+      ],
+      status: .partial,
+      failureCodes: [
+        .invalidInput,
+        .unsupportedCapability,
+      ],
+      additionalPublicAPIs: [
+        "CADModeling.SheetBridgeFeatureEvaluator",
+        "DocumentBuilder.bridgeSurface",
+      ]
+    ),
+    feature(
       id: "MODEL-CURVE-PATCH-001",
       operation: "curvePatch",
       topology: .sheetBody,

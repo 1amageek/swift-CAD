@@ -65,6 +65,7 @@ private extension FeatureOperation {
              .edgeCurve,
              .squareSurface,
              .curvePatch,
+             .sheetBridge,
              .loft,
              .boolean,
              .faceLoopOffset,

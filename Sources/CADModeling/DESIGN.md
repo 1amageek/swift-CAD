@@ -233,6 +233,19 @@ face subshapes after the arms'. `RoundSweepCornerTests` own the L-shaped and clo
 sweeps' exact volumes (the arms less the inner overlap plus the outer sectors) and the circle's
 refusal.
 
+### Bridge Surface
+
+`SheetBridgeFeatureEvaluator` is Bridge Surface between two single-face planar sheets (Rupa's
+reading of the official page, which names Width, Tension, Shape, Trim walls and Sense but not where
+the bridge stands): the planes' meeting line L, each sheet's direction away from L in its plane
+(toward the sheet, or by Sense for a sheet crossing L), the contact lines the width along them, and
+the bridge swept along L over the stretch both sheets cover — a quintic whose first and last three
+control points lie on the sheets' planes (tangent and curvature continuous with both, handles the
+tension times a third of the width) or a straight chamfer. Trim walls other than None, curved or
+many-faced sheets and parallel planes are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+`SheetBridgeTests` own the G2 bridge's normals and vanishing curvature at both contacts, the flat
+chamfer, the round trip and the trimming refusal.
+
 ### Curve patch
 
 `CurvePatchFeatureEvaluator` is Patch from closed curves: each curve's exact spans joined end to end

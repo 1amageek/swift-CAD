@@ -1605,6 +1605,16 @@ public struct DocumentBuilder {
         return featureID
     }
 
+    /// Bridge Surface: a G2 or chamfer blend between two sheets set back by `width` from where
+    /// they meet.
+    @discardableResult
+    public mutating func bridgeSurface(_ bridge: SheetBridgeFeature, named name: String? = nil) throws -> FeatureID {
+        try bridge.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .sheetBridge(bridge))
+        return featureID
+    }
+
     /// Patch from closed curves: the sheet spanning curves joined end to end into one closed loop.
     @discardableResult
     public mutating func patch(curves: [CurveSectionReference], named name: String? = nil) throws -> FeatureID {

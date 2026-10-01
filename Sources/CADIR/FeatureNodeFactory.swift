@@ -133,6 +133,18 @@ public enum FeatureNodeFactory {
                 )
             }
             return try run()
+        case .sheetBridge:
+            func run() throws -> FeatureNode {
+                guard case let .sheetBridge(bridge) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try bridge.validate()
+                try validateSource(bridge.first, role: .sheet, in: document)
+                try validateSource(bridge.second, role: .sheet, in: document)
+                return FeatureNode(id: id, name: name, operation: operation, inputs: bridge.inputs,
+                                   outputs: [FeatureOutput(role: .sheet)])
+            }
+            return try run()
         case .curvePatch:
             func run() throws -> FeatureNode {
                 guard case let .curvePatch(patch) = operation else {

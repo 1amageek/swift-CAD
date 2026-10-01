@@ -97,6 +97,10 @@ extension FeatureOperation {
             feature.guides = try feature.guides.map { SweepGuideReference(featureID: try transform($0.featureID)) }
             feature.targets = try feature.targets.map { SweepTargetReference(featureID: try transform($0.featureID)) }
             return .sweep(feature)
+        case .sheetBridge(var feature):
+            feature.first = try transform(feature.first)
+            feature.second = try transform(feature.second)
+            return .sheetBridge(feature)
         case .curvePatch(var feature):
             feature.curves = try feature.curves.map { curve in
                 guard case let .curve(remapped) = try section(.curve(curve)) else {

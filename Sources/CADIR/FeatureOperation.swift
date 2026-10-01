@@ -13,6 +13,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case edgeCurve(EdgeCurveFeature)
     case squareSurface(SquareSurfaceFeature)
     case curvePatch(CurvePatchFeature)
+    case sheetBridge(SheetBridgeFeature)
     case loft(LoftFeature)
     case boolean(BooleanFeature)
     case polySpline(PolySplineFeature)
@@ -85,6 +86,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case edgeCurve
         case squareSurface
         case curvePatch
+        case sheetBridge
         case loft
         case boolean
         case polySpline
@@ -186,6 +188,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .curvePatch:
             try container.validateOnlyExpectedKeys([.kind, .curvePatch], in: decoder)
             self = .curvePatch(try container.decode(CurvePatchFeature.self, forKey: .curvePatch))
+        case .sheetBridge:
+            try container.validateOnlyExpectedKeys([.kind, .sheetBridge], in: decoder)
+            self = .sheetBridge(try container.decode(SheetBridgeFeature.self, forKey: .sheetBridge))
         case .loft:
             try container.validateOnlyExpectedKeys([.kind, .loft], in: decoder)
             self = .loft(try container.decode(LoftFeature.self, forKey: .loft))
@@ -399,6 +404,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .curvePatch(patch):
             try container.encode(Kind.curvePatch, forKey: .kind)
             try container.encode(patch, forKey: .curvePatch)
+        case let .sheetBridge(bridge):
+            try container.encode(Kind.sheetBridge, forKey: .kind)
+            try container.encode(bridge, forKey: .sheetBridge)
         case let .loft(loft):
             try container.encode(Kind.loft, forKey: .kind)
             try container.encode(loft, forKey: .loft)

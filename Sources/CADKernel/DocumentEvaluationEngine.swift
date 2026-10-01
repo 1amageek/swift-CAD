@@ -300,6 +300,7 @@ struct DocumentEvaluationEngine {
                  .edgeCurve,
                  .squareSurface,
                  .curvePatch,
+                 .sheetBridge,
                  .loft,
                  .boolean,
                  .chamfer,

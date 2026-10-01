@@ -196,6 +196,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 try square.validate()
             case let .curvePatch(patch):
                 try patch.validate()
+            case let .sheetBridge(bridge):
+                try bridge.validate()
             case let .pipe(pipe):
                 try pipe.validate()
                 func resolved(_ expression: CADExpression, _ kind: QuantityKind, _ name: String) throws -> Double {
@@ -675,6 +677,16 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                   nodes[edgeCurve.source]?.outputs.contains(where: { $0.role == edgeCurve.bodyRole }) == true,
                   outputRoles == [.curve] else {
                 throw FeatureEvaluationError.invalidGraph("Edge curves consume their body and declare one curve output.")
+            }
+        case .sheetBridge:
+            guard case let .sheetBridge(bridge) = node.operation else {
+                throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a sheetBridge operation.")
+            }
+            try bridge.validate()
+            guard node.inputs == bridge.inputs,
+                  bridge.inputs.allSatisfy({ input in nodes[input.featureID]?.outputs.contains(where: { $0.role == .sheet }) == true }),
+                  outputRoles == [.sheet] else {
+                throw FeatureEvaluationError.invalidGraph("A Bridge Surface consumes two sheets and declares one sheet output.")
             }
         case .curvePatch:
             guard case let .curvePatch(patch) = node.operation else {
