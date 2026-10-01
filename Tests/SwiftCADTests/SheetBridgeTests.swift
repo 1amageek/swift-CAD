@@ -17,7 +17,7 @@ struct SheetBridgeTests {
 
     /// A floor sheet on z = 0 over x ∈ [0, 40], y ∈ [10, 40] mm and a wall sheet on y = 0 over
     /// x ∈ [0, 40], z ∈ [10, 40] mm (sketch x is world z and sketch y world x on the ZX plane).
-    private func sheets(in builder: inout DocumentBuilder) throws -> (FeatureID, FeatureID) {
+    private func sheets(in builder: inout DocumentBuilder, wallTop: Double = 0.04) throws -> (FeatureID, FeatureID) {
         func square(on plane: SketchPlane, _ corners: [(Double, Double)]) throws -> FeatureID {
             let lines = try corners.indices.map { index in
                 try builder.sketch(on: plane) { sketch in
@@ -28,7 +28,7 @@ struct SheetBridgeTests {
             return try builder.patch(curves: lines.map { CurveSectionReference(featureID: $0) })
         }
         let floor = try square(on: .xy, [(0, 0.01), (0.04, 0.01), (0.04, 0.04), (0, 0.04)])
-        let wall = try square(on: .zx, [(0.01, 0), (0.01, 0.04), (0.04, 0.04), (0.04, 0)])
+        let wall = try square(on: .zx, [(0.01, 0), (0.01, 0.04), (wallTop, 0.04), (wallTop, 0)])
         return (floor, wall)
     }
 
@@ -114,5 +114,31 @@ struct SheetBridgeTests {
         #expect(vertices.allSatisfy { $0.y >= 0.02 - 1e-9 || $0.z >= 0.02 - 1e-9 })
         // The untrimmed floor and wall are gone.
         #expect(evaluated.brep.bodies.count == 1)
+    }
+
+    @Test(.timeLimit(.minutes(3)))
+    func theShortWallIsTheOneReachingLessAndOnlyItIsTrimmed() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // The floor reaches 40 mm from where the planes meet, the wall 30 mm.
+        let (floor, wall) = try sheets(in: &builder, wallTop: 0.03)
+        let before = try evaluate(builder)
+        let reach = SheetBridgeWallReach()
+        #expect(try reach.trimWalls(.short, first: floor, second: wall, reversesSense: false, in: before) == .second)
+        #expect(try reach.trimWalls(.long, first: floor, second: wall, reversesSense: false, in: before) == .first)
+        let bridge = try builder.bridgeSurface(SheetBridgeFeature(first: floor, second: wall, width: length(0.02),
+                                                                  shape: .chamfer, trimWalls: .second))
+        let evaluated = try evaluate(builder)
+        // The bridge's sheet: the chamfer strip and the wall above z = 20 mm; the floor stays whole.
+        let faces = evaluated.subshapes.entries.compactMap { key, value -> FaceID? in
+            guard key.featureID == bridge, case let .face(id) = value else { return nil }
+            return id
+        }
+        #expect(faces.count == 2)
+        #expect(evaluated.brep.bodies.count == 2)
+        let floorBody = try #require(evaluated.subshapes.entries.compactMap { key, value -> BodyID? in
+            guard key.featureID == floor, case let .body(id) = value else { return nil }
+            return id
+        }.first)
+        #expect(evaluated.brep.bodies[floorBody] != nil)
     }
 }

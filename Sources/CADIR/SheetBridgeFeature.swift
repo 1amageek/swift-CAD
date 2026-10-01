@@ -10,12 +10,14 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
         case chamfer
     }
 
-    /// Which sheets the bridge trims back to its contacts.
+    /// Which sheets the bridge trims back to its contacts. Bridge Surface's Short and Long name the
+    /// sheet reaching less or more far from where the sheets meet; authors resolve them into the
+    /// first or second sheet (`SheetBridgeWallReach`), so the feature keeps which wall it consumes.
     public enum TrimWalls: String, Codable, Hashable, Sendable {
         case none
         case both
-        case short
-        case long
+        case first
+        case second
     }
 
     public var first: FeatureID
