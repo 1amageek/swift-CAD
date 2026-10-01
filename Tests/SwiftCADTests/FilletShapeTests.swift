@@ -454,6 +454,57 @@ struct FilletShapeTests {
         #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
     }
 
+    /// A 40 × 30 mm rectangle with 5 mm round corners at the origin, extruded 10 mm, and one of
+    /// its top edges along X.
+    private func roundedBlock(_ builder: inout DocumentBuilder) throws -> (FeatureID, StableSubshapeReference) {
+        let (w, h, c) = (0.04, 0.03, 0.005)
+        func point(_ x: Double, _ y: Double) -> SketchPoint { SketchPoint(x: length(x), y: length(y)) }
+        func degrees(_ value: Double) -> CADExpression { .constant(.angle(value, unit: .degree)) }
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.line(from: point(c, 0), to: point(w - c, 0))
+            _ = sketch.arc(center: point(w - c, c), radius: length(c), startAngle: degrees(-90), endAngle: degrees(0))
+            _ = sketch.line(from: point(w, c), to: point(w, h - c))
+            _ = sketch.arc(center: point(w - c, h - c), radius: length(c), startAngle: degrees(0), endAngle: degrees(90))
+            _ = sketch.line(from: point(w - c, h), to: point(c, h))
+            _ = sketch.arc(center: point(c, h - c), radius: length(c), startAngle: degrees(90), endAngle: degrees(180))
+            _ = sketch.line(from: point(0, h - c), to: point(0, c))
+            _ = sketch.arc(center: point(c, c), radius: length(c), startAngle: degrees(180), endAngle: degrees(270))
+        }.featureID
+        let block = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(0.01))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "r"))
+        let edge = try #require(before.subshapes.entries.first { key, value in
+            guard key.featureID == block, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  case .line? = before.brep.geometry.curves[edge.curveID],
+                  let start = before.brep.vertices[edge.startVertexID]?.point,
+                  let end = before.brep.vertices[edge.endVertexID]?.point else { return false }
+            return abs(start.z - 0.01) < 1e-12 && abs(end.z - 0.01) < 1e-12 && abs(start.y) < 1e-12 && abs(end.y) < 1e-12
+        }?.key)
+        return (block, try builder.stableSubshape(edge))
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aRoundedBlocksTopOutlineRoundsAndChamfersAllTheWayRound() throws {
+        let (w, h, c, height, r) = (0.04, 0.03, 0.005, 0.01, 0.002)
+        let solid = (w * h - (4 - Double.pi) * c * c) * height
+        // The straight runs between the corners, and the corners' quarter turns about their axes.
+        let straight = 2 * (w - 2 * c) + 2 * (h - 2 * c)
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (block, edge) = try roundedBlock(&builder)
+        var chamfered = builder
+        _ = try builder.fillet(target: block, edges: [edge], radius: length(r))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "r"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        let section = r * r * (1 - Double.pi / 4)
+        let inset = r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+        let roundVolume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(roundVolume - (solid - section * (straight + 2 * Double.pi * (c - inset)))) < 5e-12, "\(roundVolume)")
+        _ = try chamfered.chamfer(target: block, edges: [edge], distance: length(r))
+        let cut = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try chamfered.build(name: "r"))
+        try cut.brep.validate(level: .volumetric, tolerance: .standard)
+        let chamferVolume = try cut.brep.volume(tolerance: .standard)
+        #expect(abs(chamferVolume - (solid - r * r / 2 * (straight + 2 * Double.pi * (c - r / 3)))) < 5e-12, "\(chamferVolume)")
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func rimsChamferIntoConeBands() throws {
         let d = 0.002

@@ -80,8 +80,8 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
                 tolerance: context.tolerance
             )
         }
-        // A circular rim's edge is cut all the way round by the profile chamfer's cone band.
-        if CircularRimBlendBuilder.admits([edgeID], model: context.brep) {
+        // An edge of a tangent loop on a planar cap is chamfered along the whole loop.
+        if try CapLoopBlendBuilder(tolerance: context.tolerance).admits([edgeID], model: context.brep) {
             return try EdgeBlendFeatureEvaluator(sewer: sewer).evaluateProfileChamfer(
                 feature: feature, target: chamfer.target.featureID, selected: chamfer.edges, distance: distance, context: context)
         }

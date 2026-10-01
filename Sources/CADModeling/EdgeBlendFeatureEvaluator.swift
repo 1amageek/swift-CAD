@@ -39,14 +39,15 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             return try evaluateProfileBlend(feature: feature, target: fillet.target.featureID, selected: fillet.edges[0],
                                             section: try section(radius), endSection: try section(endRadius), context: context)
         }
-        // Round circular rims take the torus band about their circles.
+        // Tangent loops of lines and arcs on a planar cap (a cylinder's rim, a rounded outline) take
+        // the band swept along the whole loop.
         if fillet.allEdges == false, fillet.shape == .round, targetKind == .solid {
             let bodyID = try targetBodyID(fillet.target.featureID, featureID: feature.id, context: context)
             let selections = try fillet.edges.map { reference in
                 (reference, try scopedEdgeSelection(reference, bodyID: bodyID, featureID: feature.id, context: context))
             }
-            if CircularRimBlendBuilder.admits(selections.map(\.1.edgeID), model: context.brep) {
-                let request = try CircularRimBlendBuilder(tolerance: context.tolerance).request(
+            if try CapLoopBlendBuilder(tolerance: context.tolerance).admits(selections.map(\.1.edgeID), model: context.brep) {
+                let request = try CapLoopBlendBuilder(tolerance: context.tolerance).request(
                     featureID: feature.id, bodyID: bodyID, selected: selections.map { ($0.1.edgeID, $0.0.subshapeID) },
                     section: .round(radius), context: context)
                 let sewn = try sewer.sew(request, tolerance: context.tolerance)
@@ -826,14 +827,14 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
     /// each edge along both faces, swept along it.
     package func evaluateProfileChamfer(feature: FeatureNode, target: FeatureID, selected: [StableSubshapeReference],
                                         distance: Double, context: EvaluationContext) throws -> EvaluationResult {
-        // Circular rims take the cone band about their circles.
+        // Tangent loops of lines and arcs on a planar cap take the chamfer's band along the whole loop.
         let bodyID = try targetBodyID(target, featureID: feature.id, context: context)
         if context.brep.bodies[bodyID]?.kind == .solid {
             let selections = try selected.map { reference in
                 (reference, try scopedEdgeSelection(reference, bodyID: bodyID, featureID: feature.id, context: context))
             }
-            if CircularRimBlendBuilder.admits(selections.map(\.1.edgeID), model: context.brep) {
-                let request = try CircularRimBlendBuilder(tolerance: context.tolerance).request(
+            if try CapLoopBlendBuilder(tolerance: context.tolerance).admits(selections.map(\.1.edgeID), model: context.brep) {
+                let request = try CapLoopBlendBuilder(tolerance: context.tolerance).request(
                     featureID: feature.id, bodyID: bodyID, selected: selections.map { ($0.1.edgeID, $0.0.subshapeID) },
                     section: .chamfer(distance), context: context)
                 let sewn = try sewer.sew(request, tolerance: context.tolerance)
