@@ -69,7 +69,7 @@ public extension FeatureOperation {
         case let .wrap(wrap):
             return wrap.options.offsetN.referencedParameterIDs
         case let .fillet(fillet):
-            return fillet.radius.referencedParameterIDs
+            return fillet.radius.referencedParameterIDs.union(fillet.endRadius?.referencedParameterIDs ?? [])
         case let .g2Blend(blend):
             return blend.distance.referencedParameterIDs
         case let .setbackCorner(corner):

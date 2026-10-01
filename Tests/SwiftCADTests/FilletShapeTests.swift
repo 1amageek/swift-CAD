@@ -363,4 +363,27 @@ struct FilletShapeTests {
             _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
         }
     }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aVariableFilletGrowsAlongItsEdgeAndSurvivesARoundTrip() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (box, edges) = try boxEdges(&builder, [(0, 0.02)])
+        let (r0, r1) = (0.002, 0.006)
+        _ = try builder.fillet(target: box, edges: edges, radius: length(r0), endRadius: length(r1))
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        // The removed cross-section (1 − π/4)·r² with r linear along the 20 mm edge integrates to
+        // (1 − π/4)·(r0² + r0·r1 + r1²)/3 · L.
+        let removed = (1 - Double.pi / 4) * (r0 * r0 + r0 * r1 + r1 * r1) / 3 * 0.02
+        let volume = try evaluated.brep.volume(tolerance: .standard)
+        #expect(abs(volume - (0.02 * 0.02 * 0.02 - removed)) < 5e-12, "\(volume)")
+
+        // A shaped fillet and a variable one round-trip through the native package.
+        _ = try builder.fillet(target: box, edges: try boxEdges(&builder, [(0.02, 0)]).1, radius: length(0.003), shape: .conic, tension: 0.4)
+        let document = try builder.build(name: "box")
+        let sink = DataByteSink()
+        let store = NativePackageStore(tolerance: .standard)
+        try store.writePackage(for: document, to: sink)
+        #expect(try store.loadDocument(from: BorrowedBytes(sink.bytes)).designGraph.nodes == document.designGraph.nodes)
+    }
 }

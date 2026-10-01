@@ -331,11 +331,14 @@ faces close on its cross-section. The feature's radius must state the radius the
 (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Several edges (any shape, chamfers and G2 blends too) are blended in turn as stages, each found
 by its ends after the ones before, faces not beside it kept with their own edges (an earlier blend's
 arcs included) and end faces cut back only at its corner; edges meeting at a corner are refused
-(`FIXME(INCOMPLETE_IMPLEMENTATION)`: their corner blend is not built). Variable and limit points,
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`: their corner blend is not built). A variable fillet (`FilletFeature.endRadius`) runs its section from the radius at the edge's
+start to the end radius at its end, the blend ruled between the two sections (each cross-section
+the shape at the radius there, tangent to both faces along straight contact lines). Limit points,
 tangent chains and Y-blends are not built (FE2). `FilletShapeTests` own each
 shape's removed cross-section times the edge's length, the tension and one-edge admission, and the
 rib's and a drafted rib's full rounds (their volumes and radii) with the refusals of a misstated radius and of edges that do not face each other across one face, and an L sheet's bend rounded into a quarter cylinder, blended and chamfered into sheets, a hexagonal prism's 120° edge rounded (its volume) an L block's inside corner filled (its volume), two edges of a box that do not meet rounded and
-chamfered together, and a pair meeting at a corner refused.
+chamfered together, a pair meeting at a corner refused, and a variable fillet's volume
+(1 − π/4)·(r₀² + r₀r₁ + r₁²)/3·L with shaped and variable fillets round-tripping natively.
 
 ### Point guides
 

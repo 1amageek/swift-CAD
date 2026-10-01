@@ -1053,6 +1053,7 @@ public struct DocumentBuilder {
         radius: CADExpression,
         shape: FilletShape = .round,
         tension: Double? = nil,
+        endRadius: CADExpression? = nil,
         named name: String? = nil
     ) throws -> FeatureID {
         let fillet = FilletFeature(
@@ -1060,7 +1061,8 @@ public struct DocumentBuilder {
             edges: edges,
             radius: radius,
             shape: shape,
-            tension: tension
+            tension: tension,
+            endRadius: endRadius
         )
         try fillet.validate()
         let featureID = FeatureID()

@@ -30,6 +30,15 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         // A sheet's edges, several edges, or any shape but a single round edge take the profile
         // blend, a round one its exact arc.
         let targetKind = context.brep.bodies[try targetBodyID(fillet.target.featureID, featureID: feature.id, context: context)]?.kind
+        // A variable fillet runs from its radius at the edge's start to its end radius at its end.
+        if let endExpression = fillet.endRadius {
+            let endRadius = try resolvedRadius(endExpression, featureID: feature.id, context: context)
+            func section(_ value: Double) throws -> BlendSection {
+                fillet.shape == .round ? roundSection(radius: value) : try self.section(for: fillet.shape, tension: fillet.tension, distance: value)
+            }
+            return try evaluateProfileBlend(feature: feature, target: fillet.target.featureID, selected: fillet.edges[0],
+                                            section: try section(radius), endSection: try section(endRadius), context: context)
+        }
         if fillet.allEdges == false, fillet.shape != .round || fillet.edges.count > 1 || targetKind == .sheet {
             let section = fillet.shape == .round
                 ? roundSection(radius: radius)
@@ -875,7 +884,8 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
     /// One straight edge between perpendicular planes blended by `section` swept along it, the
     /// faces cut back to its contacts and the end faces closed by its curve.
     private func evaluateProfileBlend(
-        feature: FeatureNode, target: FeatureID, selected: StableSubshapeReference, section: BlendSection, context: EvaluationContext
+        feature: FeatureNode, target: FeatureID, selected: StableSubshapeReference, section: BlendSection,
+        endSection: BlendSection? = nil, context: EvaluationContext
     ) throws -> EvaluationResult {
         let bodyID = try targetBodyID(target, featureID: feature.id, context: context)
         guard let body = context.brep.bodies[bodyID],
@@ -895,6 +905,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             selectedSubshapeID: selected.subshapeID,
             sourceEdgeIDs: selection.sourceEdgeIDs,
             section: section,
+            endSection: endSection,
             context: context
         )
         let result = try sewer.sew(request, tolerance: context.tolerance)
@@ -981,6 +992,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         selectedSubshapeID: SubshapeID,
         sourceEdgeIDs: Set<EdgeID>,
         section blendSection: BlendSection,
+        endSection: BlendSection? = nil,
         context: EvaluationContext
     ) throws -> BRepSewingRequest {
         let model = context.brep
@@ -1021,8 +1033,16 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         }
         let section = blendSection.resolve(alpha)
         let distance = section.setback
+        // A variable blend's section at the edge's end; its setback varies linearly along the edge.
+        let endResolved = endSection.map { $0.resolve(alpha) } ?? section
+        let endDistance = endResolved.setback
+        guard endResolved.degree == section.degree, endResolved.weights == section.weights else {
+            throw failure(.invalidInput, featureID: featureID, tolerance: context.tolerance, "A variable blend's sections share one shape.")
+        }
         let lowerControlPoints = section.controlPoints(startVertex.point, secondInward, firstInward)
-        let upperControlPoints = lowerControlPoints.map { $0 + axis * height }
+        let upperControlPoints = endSection == nil
+            ? lowerControlPoints.map { $0 + axis * height }
+            : endResolved.controlPoints(endVertex.point, secondInward, firstInward)
         let knots = Array(repeating: 0.0, count: section.degree + 1) + Array(repeating: 1.0, count: section.degree + 1)
         let lowerCurve = BSplineCurve3D(degree: section.degree, knots: knots, controlPoints: lowerControlPoints, weights: section.weights)
         let upperCurve = BSplineCurve3D(degree: section.degree, knots: knots, controlPoints: upperControlPoints, weights: section.weights)
@@ -1058,9 +1078,13 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 }
                 let oriented = try orientedPlane(faceID, model: model, featureID: featureID, tolerance: context.tolerance)
                 let polygon = try outerPolygon(faceID, model: model, featureID: featureID, tolerance: context.tolerance)
-                let clippingNormal = faceID == incidentFaceIDs[0] ? secondInward : firstInward
+                // Cut along the contact line, from the setback at the start to the one at the end.
+                let along = faceID == incidentFaceIDs[0] ? secondInward : firstInward
+                let (from, to) = (startVertex.point + along * distance, endVertex.point + along * endDistance)
+                let line = to - from
+                let clippingNormal = try (along - line * (along.dot(line) / line.dot(line))).normalized(tolerance: context.tolerance.distance)
                 let clipped = simplified(
-                    clip(polygon, origin: startVertex.point, normal: clippingNormal, offset: distance, tolerance: context.tolerance),
+                    clip(polygon, origin: from, normal: clippingNormal, offset: 0, tolerance: context.tolerance),
                     tolerance: context.tolerance
                 )
                 guard clipped.count >= 3 else {
@@ -1086,7 +1110,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             if let cap = try cornerCap(source, corner: startVertex.point, curve: lowerCurve, distance: distance, axis: axis, context: context) {
                 patches.append(cap.patch)
                 lowerCap = cap.boundary
-            } else if let cap = try cornerCap(source, corner: endVertex.point, curve: upperCurve, distance: distance, axis: axis, context: context) {
+            } else if let cap = try cornerCap(source, corner: endVertex.point, curve: upperCurve, distance: endDistance, axis: axis, context: context) {
                 patches.append(cap.patch)
                 upperCap = cap.boundary
             } else {

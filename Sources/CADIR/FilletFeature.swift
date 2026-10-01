@@ -24,6 +24,9 @@ public struct FilletFeature: Codable, Hashable, Sendable {
     public let shape: FilletShape
     /// A conic's rho in (0, 1), or the scale of a curvature fillet's handles; 1 otherwise.
     public let tension: Double
+    /// A variable fillet's radius (or distance) at its edge's end, `radius` being the one at its
+    /// start, varying linearly between; nil for a constant one.
+    public let endRadius: CADExpression?
 
     public init(
         target: FilletTargetReference,
@@ -31,7 +34,8 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         radius: CADExpression,
         allEdges: Bool = false,
         shape: FilletShape = .round,
-        tension: Double? = nil
+        tension: Double? = nil,
+        endRadius: CADExpression? = nil
     ) {
         self.target = target
         self.edges = edges
@@ -39,6 +43,7 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         self.allEdges = allEdges
         self.shape = shape
         self.tension = tension ?? (shape == .conic ? 0.5 : 1)
+        self.endRadius = endRadius
     }
 
     public func validate() throws {
@@ -56,6 +61,13 @@ public struct FilletFeature: Codable, Hashable, Sendable {
             try edge.validate()
         }
         try radius.validateLiteralQuantities()
+        if let endRadius {
+            try endRadius.validateLiteralQuantities()
+            guard !allEdges, edges.count == 1, shape != .full else {
+                throw KernelError(phase: .validation, code: .invalidInput, tolerance: nil,
+                                  message: "A variable fillet rounds one edge, not a full round.")
+            }
+        }
         switch shape {
         case .round, .chordal, .full:
             guard tension == 1 else {
@@ -88,17 +100,19 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         case allEdges
         case shape
         case tension
+        case endRadius
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.target, .edges, .radius, .allEdges, .shape, .tension], in: decoder)
+        try container.validateOnlyExpectedKeys([.target, .edges, .radius, .allEdges, .shape, .tension, .endRadius], in: decoder)
         target = try container.decode(FilletTargetReference.self, forKey: .target)
         edges = try container.decode([StableSubshapeReference].self, forKey: .edges)
         radius = try container.decode(CADExpression.self, forKey: .radius)
         allEdges = try container.decodeIfPresent(Bool.self, forKey: .allEdges) ?? false
         shape = try container.decodeIfPresent(FilletShape.self, forKey: .shape) ?? .round
         tension = try container.decodeIfPresent(Double.self, forKey: .tension) ?? (shape == .conic ? 0.5 : 1)
+        endRadius = try container.decodeIfPresent(CADExpression.self, forKey: .endRadius)
         try validate()
     }
 
@@ -113,5 +127,6 @@ public struct FilletFeature: Codable, Hashable, Sendable {
             try container.encode(shape, forKey: .shape)
             try container.encode(tension, forKey: .tension)
         }
+        try container.encodeIfPresent(endRadius, forKey: .endRadius)
     }
 }

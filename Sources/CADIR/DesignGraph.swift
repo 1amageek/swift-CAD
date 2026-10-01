@@ -472,6 +472,15 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 guard radius.value > 0.0 else {
                     throw FeatureEvaluationError.invalidDistance(radius.value)
                 }
+                if let endRadius = fillet.endRadius {
+                    let end = try parameters.resolvedValue(for: endRadius)
+                    guard end.kind == .length else {
+                        throw UnitError.expectedQuantity(operation: "fillet.endRadius", expected: .length, actual: end.kind)
+                    }
+                    guard end.value > 0.0 else {
+                        throw FeatureEvaluationError.invalidDistance(end.value)
+                    }
+                }
             case let .g2Blend(blend):
                 try blend.validate()
                 let distance = try parameters.resolvedValue(for: blend.distance)
