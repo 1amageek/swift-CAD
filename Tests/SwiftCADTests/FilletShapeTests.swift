@@ -590,6 +590,28 @@ struct FilletShapeTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func limitPointsRoundOnlyTheirStretchOfTheEdge() throws {
+        let (s, r) = (0.02, 0.003)
+        let section = r * r * (1 - Double.pi / 4)
+        for (limits, shape) in [(EdgeBlendLimits(start: 0.25, end: 0.75), FilletShape.round),
+                                (EdgeBlendLimits(start: 0, end: 0.5), .round),
+                                (EdgeBlendLimits(start: 0.5, end: 1), .conic)] {
+            var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+            let (box, edges) = try boxEdges(&builder, [(0, 0.02)])
+            _ = try builder.fillet(target: box, edges: edges, radius: length(r), shape: shape, limits: limits)
+            let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+            try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+            // The section removed along the limited stretch only, the caps being flat: the round's
+            // corner, or for a conic of tension 0.5 the parabola's r²/6 (the corner's r²/2 less
+            // the parabolic segment's two thirds of it).
+            let removed = shape == .round ? section : r * r / 6
+            let stretch = (limits.end - limits.start) * s
+            let volume = try rounded.brep.volume(tolerance: .standard)
+            #expect(abs(volume - (s * s * s - removed * stretch)) < 5e-12, "\(limits): \(volume)")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func twoEdgesMeetingAtACornerJoinAtAMitre() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         // The top front edge along X and the top edge along Y it meets at (0, 0, 20) mm.
@@ -767,6 +789,9 @@ struct FilletShapeTests {
         #expect(abs(volume - (0.02 * 0.02 * 0.02 - removed)) < 5e-12, "\(volume)")
 
         // A shaped fillet and a variable one round-trip through the native package.
+        // A limited fillet of a second box's edge, chosen before the stored features are added.
+        let (limitedBox, limitedEdges) = try boxEdges(&builder, [(0, 0)])
+        _ = try builder.fillet(target: limitedBox, edges: limitedEdges, radius: length(0.002), limits: EdgeBlendLimits(start: 0.2, end: 0.6))
         _ = try builder.fillet(target: box, edges: try boxEdges(&builder, [(0.02, 0)]).1, radius: length(0.003), shape: .conic, tension: 0.4)
         let document = try builder.build(name: "box")
         let sink = DataByteSink()

@@ -1921,7 +1921,7 @@ private func validateChamferTargetReferenceObject(_ object: [String: Any], path:
 private func validateFilletFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["target", "edges", "radius", "allEdges", "shape", "tension", "endRadius"],
+        supportedKeys: ["target", "edges", "radius", "allEdges", "shape", "tension", "endRadius", "limits"],
         objectName: path
     )
     try validateObjectField("target", in: object, path: "\(path).target", using: validateFilletTargetReferenceObject)
