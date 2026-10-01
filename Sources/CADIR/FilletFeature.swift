@@ -59,15 +59,16 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         self.endRadius = endRadius
     }
 
-    /// This fillet with any of its target, edges or radius replaced, its shape kept.
+    /// This fillet with any of its target, edges, radius or Tangent Edges replaced, its shape kept.
     public func with(
         target: FilletTargetReference? = nil,
         edges: [StableSubshapeReference]? = nil,
-        radius: CADExpression? = nil
+        radius: CADExpression? = nil,
+        tangentEdges: Bool? = nil
     ) -> FilletFeature {
         FilletFeature(target: target ?? self.target, edges: edges ?? self.edges, radius: radius ?? self.radius,
                       allEdges: allEdges, shape: shape, tension: tension, endRadius: endRadius, limits: limits,
-                      variablePoints: variablePoints, tangentEdges: tangentEdges)
+                      variablePoints: variablePoints, tangentEdges: tangentEdges ?? self.tangentEdges)
     }
 
     public func validate() throws {

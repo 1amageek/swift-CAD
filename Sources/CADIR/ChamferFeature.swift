@@ -46,14 +46,15 @@ public struct ChamferFeature: Codable, Hashable, Sendable {
         self.limits = limits
     }
 
-    /// This chamfer with any of its target, edges or distance replaced, its shape kept.
+    /// This chamfer with any of its target, edges, distance or Tangent Edges replaced, its shape kept.
     public func with(
         target: ChamferTargetReference? = nil,
         edges: [StableSubshapeReference]? = nil,
-        distance: CADExpression? = nil
+        distance: CADExpression? = nil,
+        tangentEdges: Bool? = nil
     ) -> ChamferFeature {
         ChamferFeature(target: target ?? self.target, edges: edges ?? self.edges, distance: distance ?? self.distance,
-                       mode: mode, angle: angle, flipped: flipped, limits: limits, tangentEdges: tangentEdges)
+                       mode: mode, angle: angle, flipped: flipped, limits: limits, tangentEdges: tangentEdges ?? self.tangentEdges)
     }
 
     public func validate() throws {
