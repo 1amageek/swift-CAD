@@ -86,6 +86,31 @@ struct ChamferModeTests {
         #expect(abs(cuts[0] - e) < 1e-9 && abs(cuts[1] - d) < 1e-9, "\(cuts)")
     }
 
+    @Test(.timeLimit(.minutes(2)))
+    func limitPointsChamferOnlyTheirStretchOfTheEdge() throws {
+        let (s, d) = (0.02, 0.002)
+        let e = d * sin(Double.pi / 6) / sin(Double.pi / 2 + Double.pi / 6)
+        for (limits, angle) in [(EdgeBlendLimits(start: 0.25, end: 0.75), nil as Double?), (EdgeBlendLimits(start: 0, end: 0.5), 30)] {
+            var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+            let box = try builder.box(width: length(s), depth: length(s), height: length(s))
+            let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+            let edge = try #require(before.subshapes.entries.first { key, value in
+                guard key.featureID == box, case let .edge(id) = value, let edge = before.brep.edges[id],
+                      let start = before.brep.vertices[edge.startVertexID]?.point,
+                      let end = before.brep.vertices[edge.endVertexID]?.point else { return false }
+                return [start, end].allSatisfy { abs($0.y) < 1e-12 && abs($0.z - s) < 1e-12 }
+            }?.key)
+            _ = try builder.chamfer(target: box, edges: [try builder.stableSubshape(edge)], distance: length(d),
+                                    angle: angle.map(degrees), limits: limits)
+            let cut = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+            try cut.brep.validate(level: .volumetric, tolerance: .standard)
+            // The section's triangle along the limited stretch only, the ends flat.
+            let triangle = angle == nil ? d * d / 2 : d * e / 2
+            let volume = try cut.brep.volume(tolerance: .standard)
+            #expect(abs(volume - (s * s * s - triangle * (limits.end - limits.start) * s)) < 5e-12, "\(limits): \(volume)")
+        }
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func chamferModesRoundTripThroughTheNativePackage() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
@@ -96,7 +121,8 @@ struct ChamferModeTests {
             return true
         }.map(\.key).sorted().prefix(2).map { try builder.stableSubshape($0) }
         _ = try builder.chamfer(target: box, edges: [edges[0]], distance: length(0.001), mode: .apex)
-        _ = try builder.chamfer(target: box, edges: [edges[1]], distance: length(0.001), angle: degrees(40), flipped: true)
+        _ = try builder.chamfer(target: box, edges: [edges[1]], distance: length(0.001), angle: degrees(40), flipped: true,
+                                limits: EdgeBlendLimits(start: 0.1, end: 0.9))
         let document = try builder.build(name: "box")
         let sink = DataByteSink()
         let store = NativePackageStore(tolerance: .standard)

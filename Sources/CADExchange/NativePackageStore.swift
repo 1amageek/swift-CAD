@@ -1898,7 +1898,7 @@ private func validateDirectMoveVectorObject(_ object: [String: Any], path: Strin
 private func validateChamferFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["target", "edges", "distance", "mode", "angle", "flipped"],
+        supportedKeys: ["target", "edges", "distance", "mode", "angle", "flipped", "limits"],
         objectName: path
     )
     try validateObjectField("target", in: object, path: "\(path).target", using: validateChamferTargetReferenceObject)

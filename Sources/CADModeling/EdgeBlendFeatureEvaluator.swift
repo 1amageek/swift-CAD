@@ -938,6 +938,17 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         return try evaluateProfileBlends(feature: feature, target: target, selected: selected, section: section, context: context)
     }
 
+    /// A chamfer over its limited stretch of one edge: its straight section swept between the
+    /// limits, each limit inside the edge closed on the section.
+    package func evaluateLimitedChamfer(feature: FeatureNode, target: FeatureID, selected: StableSubshapeReference,
+                                       distance: Double, mode: ChamferMode, angle: Double?, flipped: Bool,
+                                       limits: EdgeBlendLimits, context: EvaluationContext) throws -> EvaluationResult {
+        let section = try chamferSection(distance: distance, mode: mode, angle: angle, flipped: flipped,
+                                         featureID: feature.id, tolerance: context.tolerance)
+        return try evaluateProfileBlend(feature: feature, target: target, selected: selected, section: section,
+                                        limits: limits, context: context)
+    }
+
     /// A chamfer's straight section for faces meeting at the interior angle α: `distance` along
     /// each face from the edge (apex), or where each face offset inward by `distance` meets the
     /// other (offset, `distance / sin α` along each); with an `angle`, `distance` along the

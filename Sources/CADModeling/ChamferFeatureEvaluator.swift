@@ -65,6 +65,12 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
                 feature: feature, target: chamfer.target.featureID, selected: chamfer.edges, distance: distance,
                 mode: chamfer.mode, angle: angle, flipped: chamfer.flipped, context: context)
         }
+        // A limited chamfer runs over its stretch of the edge, closing on its section at each limit.
+        if let limits = chamfer.limits {
+            return try EdgeBlendFeatureEvaluator(sewer: sewer).evaluateLimitedChamfer(
+                feature: feature, target: chamfer.target.featureID, selected: chamfer.edges[0], distance: distance,
+                mode: chamfer.mode, angle: angle, flipped: chamfer.flipped, limits: limits, context: context)
+        }
         // A sheet's edges, several edges, an angled chamfer, or an edge between faces that are not
         // square are cut by the profile blend's straight section.
         if chamfer.edges.count > 1, angle == nil, context.brep.bodies[bodyID]?.kind == .solid,

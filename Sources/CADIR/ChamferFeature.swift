@@ -20,6 +20,9 @@ public struct ChamferFeature: Codable, Hashable, Sendable {
     /// Whether the reference face of an angled chamfer is each edge's second face rather than its
     /// first.
     public let flipped: Bool
+    /// The stretch of the one edge the chamfer runs over, closed on its section at each limit
+    /// inside the edge; nil for the whole edge.
+    public let limits: EdgeBlendLimits?
 
     public init(
         target: ChamferTargetReference,
@@ -27,7 +30,8 @@ public struct ChamferFeature: Codable, Hashable, Sendable {
         distance: CADExpression,
         mode: ChamferMode = .offset,
         angle: CADExpression? = nil,
-        flipped: Bool = false
+        flipped: Bool = false,
+        limits: EdgeBlendLimits? = nil
     ) {
         self.target = target
         self.edges = edges
@@ -35,6 +39,7 @@ public struct ChamferFeature: Codable, Hashable, Sendable {
         self.mode = mode
         self.angle = angle
         self.flipped = flipped
+        self.limits = limits
     }
 
     /// This chamfer with any of its target, edges or distance replaced, its shape kept.
@@ -44,7 +49,7 @@ public struct ChamferFeature: Codable, Hashable, Sendable {
         distance: CADExpression? = nil
     ) -> ChamferFeature {
         ChamferFeature(target: target ?? self.target, edges: edges ?? self.edges, distance: distance ?? self.distance,
-                       mode: mode, angle: angle, flipped: flipped)
+                       mode: mode, angle: angle, flipped: flipped, limits: limits)
     }
 
     public func validate() throws {
@@ -67,6 +72,13 @@ public struct ChamferFeature: Codable, Hashable, Sendable {
             throw KernelError(phase: .validation, code: .invalidInput, tolerance: nil,
                               message: "Only an angled chamfer has a reference face to flip.")
         }
+        if let limits {
+            try limits.validate()
+            guard edges.count == 1 else {
+                throw KernelError(phase: .validation, code: .invalidInput, tolerance: nil,
+                                  message: "Limits bound one chamfer's edge.")
+            }
+        }
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -76,17 +88,19 @@ public struct ChamferFeature: Codable, Hashable, Sendable {
         case mode
         case angle
         case flipped
+        case limits
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.target, .edges, .distance, .mode, .angle, .flipped], in: decoder)
+        try container.validateOnlyExpectedKeys([.target, .edges, .distance, .mode, .angle, .flipped, .limits], in: decoder)
         target = try container.decode(ChamferTargetReference.self, forKey: .target)
         edges = try container.decode([StableSubshapeReference].self, forKey: .edges)
         distance = try container.decode(CADExpression.self, forKey: .distance)
         mode = try container.decodeIfPresent(ChamferMode.self, forKey: .mode) ?? .offset
         angle = try container.decodeIfPresent(CADExpression.self, forKey: .angle)
         flipped = try container.decodeIfPresent(Bool.self, forKey: .flipped) ?? false
+        limits = try container.decodeIfPresent(EdgeBlendLimits.self, forKey: .limits)
         try validate()
     }
 
@@ -99,5 +113,6 @@ public struct ChamferFeature: Codable, Hashable, Sendable {
         if mode != .offset { try container.encode(mode, forKey: .mode) }
         try container.encodeIfPresent(angle, forKey: .angle)
         if flipped { try container.encode(true, forKey: .flipped) }
+        try container.encodeIfPresent(limits, forKey: .limits)
     }
 }

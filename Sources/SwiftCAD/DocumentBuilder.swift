@@ -1021,6 +1021,7 @@ public struct DocumentBuilder {
         mode: ChamferMode = .offset,
         angle: CADExpression? = nil,
         flipped: Bool = false,
+        limits: EdgeBlendLimits? = nil,
         named name: String? = nil
     ) throws -> FeatureID {
         let chamfer = ChamferFeature(
@@ -1029,7 +1030,8 @@ public struct DocumentBuilder {
             distance: distance,
             mode: mode,
             angle: angle,
-            flipped: flipped
+            flipped: flipped,
+            limits: limits
         )
         try chamfer.validate()
         let featureID = FeatureID()
