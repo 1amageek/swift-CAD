@@ -743,6 +743,36 @@ struct FilletShapeTests {
     }
 
     @Test(.timeLimit(.minutes(3)))
+    func everyEdgeOfAHexagonalPrismRoundsAcrossItsAngles() throws {
+        // A regular hexagon of 10 mm sides extruded 20 mm: its top and bottom edges meet their
+        // faces at 90°, its upright ones at 120°, three meeting at every corner.
+        let (a, h, r) = (0.01, 0.02, 0.002)
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let corners = (0..<6).map { k in (a * cos(Double(k) * .pi / 3), a * sin(Double(k) * .pi / 3)) }
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            for (start, end) in zip(corners, corners.dropFirst() + corners.prefix(1)) {
+                _ = sketch.line(from: SketchPoint(x: length(start.0), y: length(start.1)), to: SketchPoint(x: length(end.0), y: length(end.1)))
+            }
+        }.featureID
+        let prism = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(h))
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "hex"))
+        let all = try edges(of: prism, in: evaluated, builder) { _ in true }
+        #expect(all.count == 18)
+        _ = try builder.fillet(target: prism, edges: all, radius: length(r))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "hex"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        // Steiner: the prism shrunk by r on every face, grown back by the ball. Its hexagon's inradius
+        // is r less; its edges take the ball's (π − α)·r²/2 per length, its corners the whole ball.
+        let inner = (a * 3.0.squareRoot() / 2 - r) * 2 / 3.0.squareRoot()
+        let height = h - 2 * r
+        let base = 3 * 3.0.squareRoot() / 2 * inner * inner
+        let volume = base * height + (2 * base + 6 * inner * height) * r
+            + r * r / 2 * (12 * inner * Double.pi / 2 + 6 * height * Double.pi / 3) + 4 * Double.pi * r * r * r / 3
+        let measured = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(measured - volume) < 5e-12, "\(measured) vs \(volume)")
+    }
+
+    @Test(.timeLimit(.minutes(3)))
     func aCornersRoundMeetsAMitreAlongItsEdge() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let (box, _) = try boxEdges(&builder, [])

@@ -355,15 +355,13 @@ profile path. A chamfer's faces are the planes through its contact lines, each
 cut by the planes of the chamfers it meets, so mitres and corners of any number of chamfered edges
 close on the planes' intersections. Two curved blends at a corner whose third edge is left sharp join
 at a mitre: both blends end on the section carried onto the plane bisecting the two edges, the same
-rational curve; at a corner turning inward the blends run on past it to that plane. Three mutually square edges rounded at a corner close on the rolling ball: each
-blend ends a radius short of the corner on its arc where the ball touches all three faces, and the
-ball's spherical triangle joins the three arcs. Each blend runs along its edge between its end
-curves (a mitre, a ball's arc, or its section at a free end); the faces beside the edges are cut
-back along their contact lines (each blended side moved into the face, its corners where the moved
-and kept sides' lines meet) and a free end's face closes on the section. A round without mitres
-is exact cylinders about the edges and analytic spheres bounded by great-circle pcurves; with a
-mitre each blend is its section ruled along its edge and the ball's triangle is its first edge's
-arc revolved a quarter turn (a rational biquadratic patch with one collapsed side). Asymmetric
+rational curve; at a corner turning inward the blends run on past it to that plane. Rounds without mitres take each edge as the exact cylinder for its own faces' angle, its axis
+`r / sin α` along the faces' bisector, and close every corner of three rounded edges (its three
+faces meeting there only) on the rolling ball touching those faces — an analytic sphere whose centre
+lies on all three cylinders' axes, so each cylinder ends on a great circle of it a radius short of its
+own corner along its edge. With a mitre each blend is its section ruled along its edge, and a corner
+of three square rounded edges among them takes the ball's octant as its first edge's arc revolved a
+quarter turn (a rational biquadratic patch with one collapsed side). Asymmetric
 corners of curved blends, concave edges meeting others, three curved edges at a corner for
 other shapes, and four or more curved edges at one corner are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A limited fillet (`FilletFeature.limits`, Fillet Shell's limit points) runs over its stretch of one
 straight edge: the faces beside it are notched there (the edge sharp up to each limit, then across to
@@ -376,7 +374,7 @@ section to section and the contact lines bending at each. Limit points,
 tangent chains and Y-blends are not built (FE2). `FilletShapeTests` own each
 shape's removed cross-section times the edge's length, the tension and one-edge admission, and the
 rib's and a drafted rib's full rounds (their volumes and radii) with the refusals of a misstated radius and of edges that do not face each other across one face, and an L sheet's bend rounded into a quarter cylinder, blended and chamfered into sheets, a hexagonal prism's 120° edge rounded (its volume) an L block's inside corner filled (its volume), a box edge's round through a variable point (its two halves' volumes), a box edge's limited round and conic over their stretches (the section times the stretch) with their native round trip; `ChamferModeTests` own Offset and Apex across a hexagon's 120° edge, an angled chamfer and its flip on a box's edge and on a cylinder's rim (their volumes and the reference face's cut) and the modes' native round trip; two edges of a box that do not meet rounded and
-chamfered together, a pair meeting at a corner, a box's three and four top edges mitred (volume `s³ − r²(1 − π/4)·ns + c·r³(5/3 − π/2)` for n edges and c corners), three edges at a corner rounded into the ball, every edge of a box rounded (the rounded box `a³ + 6a²r + 3πr²a + 4πr³/3`, a = s − 2r), a cylinder's and a hole's rims rounded and a cylinder's rim chamfered (Pappus volumes of the corner section about the axis), a rounded block's top outline rounded and chamfered (straight runs plus the corners' quarter turns), both rims of a hole rounded together, a boss's base filled by a round and by a chamfer, a corner's ball meeting a mitre, an L block's top edges mitred around its inside corner (removing `r³(5/3 − π/2)` more), a concave edge meeting a convex one refused, two, three (at a corner), four (around the top) and twelve chamfered edges (volumes from each edge's triangle less d³/3 per meeting pair plus d³/4 per corner), and a variable fillet's volume
+chamfered together, a pair meeting at a corner, a box's three and four top edges mitred (volume `s³ − r²(1 − π/4)·ns + c·r³(5/3 − π/2)` for n edges and c corners), three edges at a corner rounded into the ball, every edge of a box rounded (the rounded box `a³ + 6a²r + 3πr²a + 4πr³/3`, a = s − 2r), every edge of a hexagonal prism rounded across its 90° and 120° edges (Steiner's volume of the inner prism grown by the ball), a cylinder's and a hole's rims rounded and a cylinder's rim chamfered (Pappus volumes of the corner section about the axis), a rounded block's top outline rounded and chamfered (straight runs plus the corners' quarter turns), both rims of a hole rounded together, a boss's base filled by a round and by a chamfer, a corner's ball meeting a mitre, an L block's top edges mitred around its inside corner (removing `r³(5/3 − π/2)` more), a concave edge meeting a convex one refused, two, three (at a corner), four (around the top) and twelve chamfered edges (volumes from each edge's triangle less d³/3 per meeting pair plus d³/4 per corner), and a variable fillet's volume
 (1 − π/4)·(r₀² + r₀r₁ + r₁²)/3·L with shaped and variable fillets round-tripping natively.
 
 ### Point guides
