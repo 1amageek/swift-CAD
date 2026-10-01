@@ -1496,10 +1496,12 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             let secondOutward = try orientedPlane(link.faces.second, model: model, featureID: featureID, tolerance: tolerance).outward
             guard link.along.first.dot(secondOutward) < -tolerance.angle else {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): a concave edge's blend adds material across its
-                // empty wedge, which is built for an edge alone but not joined to blends it meets,
-                // so a concave edge meeting other blended edges is refused. Production path:
+                // empty wedge, which is built for an edge alone but not joined in this network to
+                // blends it meets (rounds reaching cap chains are staged by concaveEdgesThenChains
+                // first), so a concave edge meeting other blended edges here is refused: chamfers,
+                // and rounds of concave edges meeting each other. Production path:
                 // blendNetworkRequest. Complete only when concave and convex blends are joined at
-                // their corners, verified by an L block's inside edge filleted with a top edge.
+                // their corners, verified by an L block's every edge chamfered.
                 throw refuse("Blended edges that meet are convex.")
             }
         }
