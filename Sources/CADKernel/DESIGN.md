@@ -958,3 +958,13 @@ took minutes on such a body and every measurement of it stalled
 `BRepBodyHalfSpaceCutter` delegates sheet operands to `BRepSheetHalfSpaceCutter` after constructing its enclosing half-space box. The sheet cutter reuses the complete intersection graph, exact UV splitter, intersection edge materialization, and open-face arrangement. It classifies the two sides of each transverse intersection by the signed derivative of the plane distance, preserving the source surface and pcurves. Unsplit faces are classified only after the complete intersection graph establishes absence of transverse crossings. Connected retained patches form sheet shells; no solid caps or box faces are published. An empty retained side or ambiguous tangency fails explicitly. Cut-stage lineage names only source topology. `SheetMirrorCutTests` owns kept/reflected/combined curved-sheet results, exact topology and empty-side failure; Rupa's `SceneMirrorTests` owns the command integration.
 
 `CubicBezierChainExtension` keeps its public API and delegates numeric continuation to [CADCore](../CADCore/DESIGN.md), so persisted natural-extension expressions and direct kernel operations use identical geometry and failure semantics.
+
+## Revolve section axes
+
+`RevolveSectionAxis` gives Revolve's Normal, Binormal and Tangent axes from the section (decided
+2026-10-02): through the start of its boundary — a profile's outer loop's first segment, a curve's
+start (its end when reversed), a planar face's outer loop's first edge — Tangent along the boundary
+there, Normal along the section plane's normal (a curve's sketch plane, or the plane through its
+points; a non-planar curve has none), Binormal along Normal × Tangent. Authors read it as
+`FullFilletRadius` is read: against the evaluated document. `RevolveSectionAxisTests` own a
+rectangle's axes and its full turns about Tangent and Binormal (Pappus).
