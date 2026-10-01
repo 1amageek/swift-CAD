@@ -124,6 +124,14 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
             pathSpanCount: plan.pathSpans.count, includesCaps: resultKind == .solid)
     }
 
+    package func buildMitred(
+        _ mitred: MitredPolylineSweepBuilder.Request,
+        profileSpanCounts: [Int]
+    ) throws -> EvaluationResult {
+        try evaluationResult(request: mitred.request, profileSpanCounts: profileSpanCounts,
+            pathSpanCount: mitred.armCount, includesCaps: mitred.includesCaps)
+    }
+
     package func buildCertifiedCurvedPath(
         _ plan: CertifiedCurvedPathSweepPlan,
         resultKind: SweepResultKind

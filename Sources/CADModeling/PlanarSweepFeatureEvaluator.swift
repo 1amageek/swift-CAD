@@ -93,11 +93,42 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             try section.plane(),
             tolerance: context.tolerance
         ).plane
-        let pathSegments = try EvaluatedCurveChainBuilder(tolerance: context.tolerance).openSegments(
+        let chain = try EvaluatedCurveChainBuilder(tolerance: context.tolerance).connectedSegments(
             from: pathCurves,
             operationName: "Sweep path",
             preferredStartPlane: preferredStartPlane
         )
+        // A path of straight arms with corners, open or closed, sweeps with mitred corners.
+        if chain.segments.allSatisfy({ $0.curve.exactCurve != nil }) {
+            let spans = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance).pathSpans(
+                from: chain.segments, allowsClosed: chain.isClosed
+            )
+            if MitredPolylineSweepBuilder.applies(sweep.options, pathSpans: spans, tolerance: context.tolerance) {
+                let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: context.tolerance)
+                let loops: [[ExactBSplineCurveSpan]]
+                let closedSection: Bool
+                switch section {
+                case .profile(let profile, _):
+                    loops = try spanBuilder.profileLoopSpans(from: profile)
+                    closedSection = true
+                case .curve(let curve):
+                    loops = [try spanBuilder.sectionSpans(from: curve)]
+                    closedSection = curve.isClosed
+                }
+                let mitred = try MitredPolylineSweepBuilder(tolerance: context.tolerance).request(
+                    sectionLoops: loops, sectionIsClosed: closedSection, profilePlane: try section.plane(),
+                    pathSpans: spans, pathIsClosed: chain.isClosed, options: sweep.options, values: optionValues,
+                    featureID: feature.id
+                )
+                let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
+                    .buildMitred(mitred, profileSpanCounts: loops.map(\.count))
+                return try applyBooleanIfNeeded(sweep, featureID: feature.id, toolResult: tool, context: context)
+            }
+        }
+        guard chain.isClosed == false else {
+            throw SketchError.unsupportedEntity("Sweep path requires an open curve chain.")
+        }
+        let pathSegments = chain.segments
         let exactCircularPath = try ExactCircularSweepPath(
             segments: pathSegments,
             distanceFraction: optionValues.distanceFraction,
@@ -308,7 +339,8 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 endTransform = pointGuideEndTransform
             case .exactTranslationalSweep:
                 endTransform = .identity
-            case .exactStraightExtrude, .exactCircularPathRevolve, .certifiedStraightTwist, .certifiedCurvedPathNormal:
+            case .exactStraightExtrude, .exactCircularPathRevolve, .certifiedStraightTwist, .certifiedCurvedPathNormal,
+                 .exactMitredPolylineSweep:
                 throw KernelError(
                     phase: .evaluation,
                     code: .unsupportedCapability,

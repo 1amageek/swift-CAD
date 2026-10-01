@@ -210,6 +210,17 @@ rational surfaces of revolution are Boolean operands only as far as the plane/B-
 intersector certifies them. `RevolveOptionsTests` own the Boolean volumes, thin volumes, the curve
 solid and the face section.
 
+### Mitred polyline sweeps
+
+`MitredPolylineSweepBuilder` owns a path-normal Sweep along straight arms with corners, open or
+closed: the section slides along each arm and turns at a corner by the least rotation between the
+arms' directions; each arm is the exact prism between its two ends, each end the section pushed
+along the arm onto the mitre plane through the corner (normal the sum of the two directions), on
+which neighbouring arms provably meet in the same curve. Open paths are capped at their ends; a
+closed path must bring its frame back unturned (a planar loop). Round corners, twist, scale and
+guides are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)`. `MitredSweepTests` own an L-shaped path
+and a closed frame (exact volumes, the mitre plane's vertices, the frame's sixteen faces).
+
 ### Edge curves
 
 `EdgeCurveFeatureEvaluator` publishes the exact curves of chosen edges of one body or sheet (each

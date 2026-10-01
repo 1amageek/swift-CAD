@@ -217,6 +217,7 @@ extension KernelCapabilities {
         "circularPathNormalSolidReducibleToExactRevolve",
         "curvedTangentContinuousPathNormalWithinExplicitAllowanceAndCertifiedNoSelfOverlap",
         "planarFaceOfABodyAsSectionOptionallyCombinedWithThatBody",
+        "openOrClosedStraightArmPathWithMitredCornersPathNormal",
         "optionalExactPathPrefixDistanceFraction",
       ],
       outputs: [
@@ -242,6 +243,7 @@ extension KernelCapabilities {
         "ExactCircularPathNormalSweepCommandParityTests",
         "CurvedPathNormalSweepTests",
         "SweepFaceTests",
+        "MitredSweepTests",
       ],
       status: .partial,
       failureCodes: [

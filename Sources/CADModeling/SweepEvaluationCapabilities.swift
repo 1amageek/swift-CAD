@@ -61,6 +61,7 @@ public struct SweepEvaluationCapabilities: Sendable {
     public enum EvaluationKind: String, Codable, Equatable, Hashable, Sendable {
         case certifiedStraightTwist
         case certifiedCurvedPathNormal
+        case exactMitredPolylineSweep
         case exactStraightExtrude
         case exactTranslationalSweep
         case exactLinearScaleSweep
@@ -73,6 +74,8 @@ public struct SweepEvaluationCapabilities: Sendable {
         case certifiedTwistSheet
         case certifiedCurvedPathSolid
         case certifiedCurvedPathSheet
+        case exactMitredPolylineSolid
+        case exactMitredPolylineSheet
         case exactStraightSolid
         case exactStraightSheet
         case exactTranslationalSolid
@@ -120,6 +123,8 @@ public struct SweepEvaluationCapabilities: Sendable {
         public var certifiedTwistAvailable: Bool
         /// Whether a curved path-normal plan was admitted for this geometry.
         public var certifiedCurvedPathAvailable: Bool
+        /// Whether the path is straight arms with corners that a mitred sweep admits.
+        public var mitredPolylineAvailable: Bool
 
         public init(
             pathShape: PathShape,
@@ -127,7 +132,8 @@ public struct SweepEvaluationCapabilities: Sendable {
             guideConstraintCount: Int = 0,
             tolerance: ModelingTolerance,
             certifiedTwistAvailable: Bool = false,
-            certifiedCurvedPathAvailable: Bool = false
+            certifiedCurvedPathAvailable: Bool = false,
+            mitredPolylineAvailable: Bool = false
         ) {
             self.pathShape = pathShape
             self.sectionState = sectionState
@@ -135,6 +141,7 @@ public struct SweepEvaluationCapabilities: Sendable {
             self.tolerance = tolerance
             self.certifiedTwistAvailable = certifiedTwistAvailable
             self.certifiedCurvedPathAvailable = certifiedCurvedPathAvailable
+            self.mitredPolylineAvailable = mitredPolylineAvailable
         }
     }
 
@@ -172,6 +179,8 @@ public struct SweepEvaluationCapabilities: Sendable {
                 outputTopologyKind = .certifiedTwistSolid
             case .certifiedCurvedPathNormal:
                 outputTopologyKind = .certifiedCurvedPathSolid
+            case .exactMitredPolylineSweep:
+                outputTopologyKind = .exactMitredPolylineSolid
             case .exactStraightExtrude:
                 outputTopologyKind = .exactStraightSolid
             case .exactTranslationalSweep:
@@ -252,6 +261,9 @@ public struct SweepEvaluationCapabilities: Sendable {
         }
         if let unsupportedCase = staticUnsupportedCase(for: options) {
             return .unsupported(unsupportedCase)
+        }
+        if geometry.mitredPolylineAvailable {
+            return .supported(try supportedPlan(kind: .exactMitredPolylineSweep, options: options))
         }
         if geometry.certifiedCurvedPathAvailable {
             return .supported(try supportedPlan(kind: .certifiedCurvedPathNormal, options: options))
@@ -425,6 +437,10 @@ public struct SweepEvaluationCapabilities: Sendable {
             return .certifiedCurvedPathSolid
         case (.certifiedCurvedPathNormal, .sheet):
             return .certifiedCurvedPathSheet
+        case (.exactMitredPolylineSweep, .solid):
+            return .exactMitredPolylineSolid
+        case (.exactMitredPolylineSweep, .sheet):
+            return .exactMitredPolylineSheet
         case (.exactStraightExtrude, .solid):
             return .exactStraightSolid
         case (.exactStraightExtrude, .sheet):
@@ -520,6 +536,8 @@ private extension SweepEvaluationCapabilities.EvaluationKind {
         switch self {
         case .certifiedStraightTwist:
             return "Sweep uses certified cubic rotation surfaces with an explicit positional allowance."
+        case .exactMitredPolylineSweep:
+            return "Sweep runs exact prisms along straight arms joined at mitred corners."
         case .certifiedCurvedPathNormal:
             return "Sweep moves the section with the curved path's frame on certified cubic surfaces within an explicit positional allowance."
         case .exactStraightExtrude:

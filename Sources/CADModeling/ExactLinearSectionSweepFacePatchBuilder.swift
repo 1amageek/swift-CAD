@@ -433,7 +433,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
     }
 
     /// Whether every control point of `curve` lies on the line through its end points.
-    private func isStraight(_ curve: BSplineCurve3D) throws -> Bool {
+    package func isStraight(_ curve: BSplineCurve3D) throws -> Bool {
         guard let first = curve.controlPoints.first, let last = curve.controlPoints.last else { return false }
         let chord = last - first
         guard chord.length > tolerance.distance else { return false }
@@ -447,7 +447,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
     /// The side patch of a ruled surface that is a flat parallelogram, on its exact plane: its
     /// four boundary edges are the ruled surface's, their parameter curves projected on the plane,
     /// and the plane faces the way the ruled surface does (along the curve, then the translation).
-    private func planarSidePatch(ruled surface: BSplineSurface3D, translation: Vector3D, stableID: String) throws -> BRepSewingFacePatch {
+    package func planarSidePatch(ruled surface: BSplineSurface3D, translation: Vector3D, stableID: String) throws -> BRepSewingFacePatch {
         let u = try closedBounds(surface.uDomain)
         let v = try closedBounds(surface.vDomain)
         let bottom = try surface.uIsoparametricCurve(atV: v.lower, tolerance: tolerance)

@@ -166,11 +166,54 @@ public struct SweepEvaluationPlanService: Sendable {
             try section.plane(),
             tolerance: tolerance
         ).plane
-        let pathSegments = try EvaluatedCurveChainBuilder(tolerance: tolerance).openSegments(
+        let chain = try EvaluatedCurveChainBuilder(tolerance: tolerance).connectedSegments(
             from: pathCurves,
             operationName: "Sweep path",
             preferredStartPlane: preferredStartPlane
         )
+        // Straight arms with corners, open or closed, are admitted by building the mitred sweep.
+        if chain.segments.allSatisfy({ $0.curve.exactCurve != nil }) {
+            let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).pathSpans(from: chain.segments, allowsClosed: chain.isClosed)
+            if MitredPolylineSweepBuilder.applies(options, pathSpans: spans, tolerance: tolerance) {
+                let sectionState: SweepEvaluationCapabilities.SectionState = guideCurves.isEmpty ? .identity : .guided
+                do {
+                    let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: tolerance)
+                    let loops: [[ExactBSplineCurveSpan]]
+                    let closedSection: Bool
+                    switch section {
+                    case .profile(let profile, _):
+                        loops = try spanBuilder.profileLoopSpans(from: profile)
+                        closedSection = true
+                    case .curve(let curve):
+                        loops = [try spanBuilder.sectionSpans(from: curve)]
+                        closedSection = curve.isClosed
+                    }
+                    _ = try MitredPolylineSweepBuilder(tolerance: tolerance).request(
+                        sectionLoops: loops, sectionIsClosed: closedSection, profilePlane: try section.plane(),
+                        pathSpans: spans, pathIsClosed: chain.isClosed, options: options, values: optionValues,
+                        featureID: sweep.path.featureID
+                    )
+                    let geometry = SweepEvaluationCapabilities.Geometry(pathShape: .curved, sectionState: sectionState,
+                        guideConstraintCount: guides.count, tolerance: tolerance, mitredPolylineAvailable: true)
+                    let supported = try SweepEvaluationCapabilities().supportedPlan(options, geometry: geometry, tolerance: tolerance)
+                    return SweepEvaluationPlanResult(status: .supported, sectionCount: sections.count,
+                        pathSegmentCount: chain.segments.count, guideCount: guides.count, targetCount: targets.count,
+                        pathShape: geometry.pathShape, sectionState: sectionState, evaluationKind: supported.kind,
+                        outputTopologyKind: supported.outputTopologyKind, booleanSupportKind: supported.booleanSupportKind,
+                        unsupportedCode: nil, message: supported.message,
+                        checks: checks + [SweepEvaluationPreflightCheck(kind: .capabilityDecision, status: .passed, message: supported.message)])
+                } catch let error as KernelError {
+                    return unsupportedResult(sectionCount: sections.count, pathSegmentCount: chain.segments.count,
+                        guideCount: guides.count, targetCount: targets.count, pathShape: .curved, sectionState: sectionState,
+                        unsupportedCase: SweepEvaluationCapabilities.UnsupportedCase(code: error.code, message: error.message),
+                        checks: checks + [SweepEvaluationPreflightCheck(kind: .capabilityDecision, status: .unsupported, message: error.message)])
+                }
+            }
+        }
+        guard chain.isClosed == false else {
+            throw SketchError.unsupportedEntity("Sweep path requires an open curve chain.")
+        }
+        let pathSegments = chain.segments
         // A curved path-normal sweep is admitted by building its certified plan.
         let curvedFrames = try makePathSampler(tolerance).frames(
             for: pathSegments,

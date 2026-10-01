@@ -61,9 +61,12 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
         return result
     }
 
+    /// The exact spans of a path; a closed path only when `allowsClosed`, for a consumer that
+    /// closes it on itself.
     package func pathSpans(
         from segments: [EvaluatedCurvePathSegment],
-        endingAt requestedEndPoint: Point3D? = nil
+        endingAt requestedEndPoint: Point3D? = nil,
+        allowsClosed: Bool = false
     ) throws -> [ExactBSplineCurveSpan] {
         try tolerance.validate()
         guard segments.isEmpty == false else {
@@ -107,7 +110,7 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
         }
         guard let first = result.first,
               let last = result.last,
-              first.startPoint.isApproximatelyEqual(
+              allowsClosed || first.startPoint.isApproximatelyEqual(
                 to: last.endPoint,
                 tolerance: tolerance.distance
               ) == false else {
