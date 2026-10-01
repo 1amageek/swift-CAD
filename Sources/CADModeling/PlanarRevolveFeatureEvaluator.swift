@@ -185,16 +185,18 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             let rings = try ExactDraftedProfileBoundaryBuilder(tolerance: context.tolerance).wallProfiles(
                 from: profile, planeNormal: try normal(of: profile.plane, tolerance: context.tolerance), thickness: wallThickness
             )
-            guard rings.count == 1 else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): a thin revolve of a section with holes makes
-                // one ring per loop, disjoint solids the revolve builder cannot put in one body,
-                // so it is refused. Production path: PlanarRevolveFeatureEvaluator for every thin
-                // revolve. Complete only when every ring revolves into one body of several solids,
-                // verified by a thin revolve of a section with a hole's volume.
-                throw KernelError(phase: .geometry, code: .unsupportedCapability, featureID: featureID, tolerance: context.tolerance,
-                                  message: "A thin revolve walls a section without holes.")
+            // A section with holes walls each loop into a ring of its own: the rings revolve into one
+            // body, a solid for each.
+            guard let first = rings.first else {
+                throw KernelError(phase: .geometry, code: .invalidInput, featureID: featureID, tolerance: context.tolerance,
+                                  message: "A thin revolve's wall leaves no ring.")
             }
-            profile = rings[0]
+            if rings.count > 1 {
+                return try CurvedRevolveBodyBuilder(
+                    axis: revolve.axis, angle: angle, profile: first, featureID: featureID, context: context, sewer: sewer
+                ).build(fromRings: rings, resultKind: .solid)
+            }
+            profile = first
         }
 
         // Multi-loop regions require one topology authority for cap holes,

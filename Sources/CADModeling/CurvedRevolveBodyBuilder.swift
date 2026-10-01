@@ -70,7 +70,7 @@ struct CurvedRevolveBodyBuilder {
             try builder.makeSegment(curve: span.curve, boundaryIndex: index, spanIndex: 0)
         }
         return try builder.build(
-            loopData: [CurvedRevolveLoopData(segments: segments, areaSign: 1)], resultKind: .sheet)
+            rings: [[CurvedRevolveLoopData(segments: segments, areaSign: 1)]], resultKind: .sheet)
     }
 
     private init(
@@ -265,21 +265,33 @@ struct CurvedRevolveBodyBuilder {
     }
 
     func build(from profile: Profile, resultKind: BodyKind = .solid) throws -> EvaluationResult {
-        let loopData = try profile.boundaryLoops.map { loop in
-            let segments = try exactSegments(from: loop)
-            try validateClosure(segments)
-            return CurvedRevolveLoopData(
-                segments: segments,
-                areaSign: try signedProfileAreaSign(loop.vertices)
-            )
-        }
-        return try build(loopData: loopData, resultKind: resultKind)
+        try build(fromRings: [profile], resultKind: resultKind)
     }
 
-    private func build(loopData: [CurvedRevolveLoopData], resultKind: BodyKind) throws -> EvaluationResult {
-        guard let outerAreaSign = loopData.first?.areaSign else {
+    /// Several disjoint regions (a thin section's rings) revolved into one body, a solid
+    /// component for each.
+    func build(fromRings profiles: [Profile], resultKind: BodyKind = .solid) throws -> EvaluationResult {
+        let rings = try profiles.map { profile in
+            try profile.boundaryLoops.map { loop in
+                let segments = try exactSegments(from: loop)
+                try validateClosure(segments)
+                return CurvedRevolveLoopData(
+                    segments: segments,
+                    areaSign: try signedProfileAreaSign(loop.vertices)
+                )
+            }
+        }
+        return try build(rings: rings, resultKind: resultKind)
+    }
+
+    private func build(rings: [[CurvedRevolveLoopData]], resultKind: BodyKind) throws -> EvaluationResult {
+        guard rings.isEmpty == false, rings.allSatisfy({ $0.isEmpty == false }) else {
             throw SketchError.openProfile
         }
+        // Every loop of every ring by one index across them; each ring's first loop is its outer.
+        let loopData = rings.flatMap { $0 }
+        let ringOf = rings.indices.flatMap { ring in Array(repeating: ring, count: rings[ring].count) }
+        let ringStarts = rings.indices.map { ring in rings[..<ring].reduce(0) { $0 + $1.count } }
         var sidePatchesByLoop = Array(
             repeating: [BRepSewingFacePatch](),
             count: loopData.count
@@ -287,7 +299,8 @@ struct CurvedRevolveBodyBuilder {
         var sideSegmentIndices: [(loopIndex: Int, segmentIndex: Int)] = []
 
         for (loopIndex, loop) in loopData.enumerated() {
-            let materialAreaSign = loopIndex == 0
+            let outerAreaSign = loopData[ringStarts[ringOf[loopIndex]]].areaSign
+            let materialAreaSign = loopIndex == ringStarts[ringOf[loopIndex]]
                 ? outerAreaSign
                 : -outerAreaSign
             let shellLocalAreaSign = isFullTurn
@@ -310,19 +323,16 @@ struct CurvedRevolveBodyBuilder {
                 }
             }
         }
-        var capPatches: [BRepSewingFacePatch] = []
+        // Each ring's two caps.
+        var capPatches = Array(repeating: [BRepSewingFacePatch](), count: rings.count)
         let includesCaps = resultKind == .solid && !isFullTurn
         if includesCaps {
-            capPatches.append(try capPatch(
-                loopData: loopData,
-                angle: angleBreaks[0],
-                role: .startFace
-            ))
-            capPatches.append(try capPatch(
-                loopData: loopData,
-                angle: angleBreaks[angleBreaks.count - 1],
-                role: .endFace
-            ))
+            for ring in rings.indices {
+                capPatches[ring] = [
+                    try capPatch(loopData: rings[ring], angle: angleBreaks[0], role: .startFace, ring: ring),
+                    try capPatch(loopData: rings[ring], angle: angleBreaks[angleBreaks.count - 1], role: .endFace, ring: ring),
+                ]
+            }
         }
 
         let request: BRepSewingRequest
@@ -336,27 +346,44 @@ struct CurvedRevolveBodyBuilder {
                 BRepSewingShell(
                     stableID: shellStableID(loopIndex: loopIndex),
                     patches: patches,
-                    orientation: loopIndex == 0 ? .forward : .reversed
+                    orientation: ringStarts.contains(loopIndex) ? .forward : .reversed
                 )
             }
             request = BRepSewingRequest(
                 featureID: featureID,
-                bodyTopology: .solid(components: [BRepSewingSolidComponent(
-                    outerShellStableID: shellStableID(loopIndex: 0),
-                    voidShellStableIDs: loopData.indices.dropFirst().map {
-                        shellStableID(loopIndex: $0)
-                    }
-                )]),
+                bodyTopology: .solid(components: rings.indices.map { ring in
+                    BRepSewingSolidComponent(
+                        outerShellStableID: shellStableID(loopIndex: ringStarts[ring]),
+                        voidShellStableIDs: (ringStarts[ring] + 1 ..< ringStarts[ring] + rings[ring].count).map {
+                            shellStableID(loopIndex: $0)
+                        }
+                    )
+                }),
                 shells: shells
             )
-        } else {
+        } else if rings.count == 1 {
             request = BRepSewingRequest(
                 featureID: featureID,
                 bodyKind: .solid,
                 shells: [BRepSewingShell(
                 stableID: "revolve:shell",
-                    patches: capPatches + sidePatchesByLoop.flatMap { $0 }
+                    patches: capPatches[0] + sidePatchesByLoop.flatMap { $0 }
                 )]
+            )
+        } else {
+            // A partial turn closes each ring in a shell of its own: one solid component each.
+            let shells = rings.indices.map { ring in
+                BRepSewingShell(
+                    stableID: ringShellStableID(ring),
+                    patches: capPatches[ring] + (ringStarts[ring] ..< ringStarts[ring] + rings[ring].count).flatMap { sidePatchesByLoop[$0] }
+                )
+            }
+            request = BRepSewingRequest(
+                featureID: featureID,
+                bodyTopology: .solid(components: rings.indices.map { ring in
+                    BRepSewingSolidComponent(outerShellStableID: ringShellStableID(ring), voidShellStableIDs: [])
+                }),
+                shells: shells
             )
         }
         let sewn = try sewer.sew(
@@ -367,7 +394,7 @@ struct CurvedRevolveBodyBuilder {
         let subshapes = try semanticSubshapes(
             sewn: sewn,
             sideSegmentIndices: sideSegmentIndices,
-            includesCaps: includesCaps
+            capRings: includesCaps ? rings.count : 0
         )
         return EvaluationResult(
             brep: combined,
@@ -669,7 +696,8 @@ struct CurvedRevolveBodyBuilder {
     private func capPatch(
         loopData: [CurvedRevolveLoopData],
         angle: Double,
-        role: GeneratedSubshapeRole
+        role: GeneratedSubshapeRole,
+        ring: Int = 0
     ) throws -> BRepSewingFacePatch {
         let sweepSign = self.angle >= 0.0 ? 1.0 : -1.0
         let tangent = try axisDirection.cross(rotatedRadialDirection(angle: angle))
@@ -693,7 +721,7 @@ struct CurvedRevolveBodyBuilder {
             normal: normal
         )
         let surface = Surface3D.bSpline(cap.surface)
-        let prefix = "revolve:cap:\(role.rawValue)"
+        let prefix = capStableID(role: role, ring: ring)
         let loops = try loopData.enumerated().map { loopIndex, loop in
             let ordered = reversesBoundary
                 ? Array(loop.segments.enumerated().reversed())
@@ -957,7 +985,7 @@ struct CurvedRevolveBodyBuilder {
     private func semanticSubshapes(
         sewn: BRepSewingResult,
         sideSegmentIndices: [(loopIndex: Int, segmentIndex: Int)],
-        includesCaps: Bool
+        capRings: Int
     ) throws -> [SubshapeID: TopologyReference] {
         var result: [SubshapeID: TopologyReference] = [
             subshapeID(role: .body, ordinal: 0): .body(sewn.bodyID),
@@ -983,15 +1011,15 @@ struct CurvedRevolveBodyBuilder {
                 sideFaceOrdinal += 1
             }
         }
-        if includesCaps {
+        for ring in 0..<capRings {
             for role in [GeneratedSubshapeRole.startFace, .endFace] {
-                let stableID = "revolve:cap:\(role.rawValue)"
+                let stableID = capStableID(role: role, ring: ring)
                 guard let reference = sewn.stableReferences[.face(stableID)] else {
                     throw TopologyError.missingReference(
                         "Missing curved revolve cap face \(stableID)."
                     )
                 }
-                result[subshapeID(role: role, ordinal: 0)] = reference
+                result[subshapeID(role: role, ordinal: ring)] = reference
             }
         }
         for (ordinal, edgeID) in sewn.brep.edges.keys.sorted(by: {
@@ -1108,6 +1136,15 @@ struct CurvedRevolveBodyBuilder {
             return "revolve:side:\(segmentIndex):\(intervalIndex)"
         }
         return "revolve:inner:\(loopIndex - 1):side:\(segmentIndex):\(intervalIndex)"
+    }
+
+    /// A ring's cap: the first ring's keeps the single section's name.
+    private func capStableID(role: GeneratedSubshapeRole, ring: Int) -> String {
+        ring == 0 ? "revolve:cap:\(role.rawValue)" : "revolve:cap:\(role.rawValue):ring:\(ring)"
+    }
+
+    private func ringShellStableID(_ ring: Int) -> String {
+        ring == 0 ? "revolve:shell" : "revolve:ring:\(ring):shell"
     }
 
     private func shellStableID(loopIndex: Int) -> String {

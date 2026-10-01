@@ -203,8 +203,10 @@ A revolve's section may also be a planar face (`FaceSectionProfileResolver`, rea
 moves) or, for solid output, a curve: a closed planar curve revolves as the region it bounds and an
 open one is closed along the axis between its ends, which must both lie on it; a curve whose ends
 miss the axis refuses solid output. A `thickness` makes the revolve thin: `wallProfiles` offsets
-the section's one loop toward the material into an exact line/arc ring, which revolves with the
-general builder; a section with holes (several rings) refuses. A Boolean revolve stages its placed
+each of the section's loops toward the material into an exact line/arc ring, which revolves with the
+general builder; a section with holes walls into several rings, revolved together into one body with
+a solid component for each (`CurvedRevolveBodyBuilder.build(fromRings:)`: each ring's own caps on a
+partial turn, its own outer and void shells on a full one). A Boolean revolve stages its placed
 targets with `PlacedBooleanTargetStager`, shared with Extrude, fills the analytic fast path's
 missing pcurves (the Boolean's face arrangement reads them) and combines through the sweep Boolean
 applicator; Keep Tools keeps every operand, as a Boolean feature does. The general builder's

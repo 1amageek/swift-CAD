@@ -105,14 +105,22 @@ struct RevolveOptionsTests {
             #expect(abs(try evaluated.brep.volume(tolerance: .standard) - turn / 360 * 2 * Double.pi * 0.025 * ring) < 1e-12)
         }
 
-        var holed = DocumentBuilder(units: .meters, tolerance: .standard)
-        let profile = try holed.sketch(on: .xy) { sketch in
-            let corners = [point(0.02, -0.1), point(0.03, -0.1), point(0.03, 0.2), point(0.02, 0.2)]
-            for index in corners.indices { _ = sketch.line(from: corners[index], to: corners[(index + 1) % corners.count]) }
-            sketch.circle(center: point(0.025, 0), radius: length(0.002))
+        // A section with a hole walls each loop into a ring: both revolve into one body, a solid each.
+        for turn in [360.0, 90.0] {
+            var holed = DocumentBuilder(units: .meters, tolerance: .standard)
+            let profile = try holed.sketch(on: .xy) { sketch in
+                let corners = [point(0.02, -0.1), point(0.03, -0.1), point(0.03, 0.2), point(0.02, 0.2)]
+                for index in corners.indices { _ = sketch.line(from: corners[index], to: corners[(index + 1) % corners.count]) }
+                sketch.circle(center: point(0.025, 0), radius: length(0.002))
+            }
+            _ = try holed.revolve(profile, axis: axis, angle: degrees(turn), thickness: length(0.001))
+            let evaluated = try evaluate(holed)
+            // The strip's 1 mm ring (10 × 300 mm less 8 × 298 mm) and the hole's (radius 3 mm less
+            // 2 mm), both centred 25 mm from the axis.
+            let rings = 0.01 * 0.3 - 0.008 * 0.298 + Double.pi * (0.003 * 0.003 - 0.002 * 0.002)
+            #expect(evaluated.brep.bodies.count == 1)
+            #expect(abs(try evaluated.brep.volume(tolerance: .standard) - turn / 360 * 2 * Double.pi * 0.025 * rings) < 1e-12)
         }
-        _ = try holed.revolve(profile, axis: axis, thickness: length(0.001))
-        #expect(throws: (any Error).self) { _ = try evaluate(holed) }
     }
 
     @Test(.timeLimit(.minutes(2)))
