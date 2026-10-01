@@ -39,6 +39,23 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             return try evaluateProfileBlend(feature: feature, target: fillet.target.featureID, selected: fillet.edges[0],
                                             section: try section(radius), endSection: try section(endRadius), context: context)
         }
+        // Round circular rims take the torus band about their circles.
+        if fillet.allEdges == false, fillet.shape == .round, targetKind == .solid {
+            let bodyID = try targetBodyID(fillet.target.featureID, featureID: feature.id, context: context)
+            let selections = try fillet.edges.map { reference in
+                (reference, try scopedEdgeSelection(reference, bodyID: bodyID, featureID: feature.id, context: context))
+            }
+            if CircularRimBlendBuilder.admits(selections.map(\.1.edgeID), model: context.brep) {
+                let request = try CircularRimBlendBuilder(tolerance: context.tolerance).request(
+                    featureID: feature.id, bodyID: bodyID, selected: selections.map { ($0.1.edgeID, $0.0.subshapeID) },
+                    section: .round(radius), context: context)
+                let sewn = try sewer.sew(request, tolerance: context.tolerance)
+                let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: context.brep)
+                try model.validate(level: .volumetric, tolerance: context.tolerance)
+                return EvaluationResult(brep: model, subshapes: sewn.subshapes, removedSubshapeIDs: selections[0].1.replacedSubshapeIDs,
+                                        lineage: sewn.lineage)
+            }
+        }
         if fillet.allEdges == false, fillet.shape != .round || fillet.edges.count > 1 || targetKind == .sheet {
             let section = fillet.shape == .round
                 ? roundSection(radius: radius)
@@ -809,7 +826,24 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
     /// each edge along both faces, swept along it.
     package func evaluateProfileChamfer(feature: FeatureNode, target: FeatureID, selected: [StableSubshapeReference],
                                         distance: Double, context: EvaluationContext) throws -> EvaluationResult {
-        try evaluateProfileBlends(feature: feature, target: target, selected: selected,
+        // Circular rims take the cone band about their circles.
+        let bodyID = try targetBodyID(target, featureID: feature.id, context: context)
+        if context.brep.bodies[bodyID]?.kind == .solid {
+            let selections = try selected.map { reference in
+                (reference, try scopedEdgeSelection(reference, bodyID: bodyID, featureID: feature.id, context: context))
+            }
+            if CircularRimBlendBuilder.admits(selections.map(\.1.edgeID), model: context.brep) {
+                let request = try CircularRimBlendBuilder(tolerance: context.tolerance).request(
+                    featureID: feature.id, bodyID: bodyID, selected: selections.map { ($0.1.edgeID, $0.0.subshapeID) },
+                    section: .chamfer(distance), context: context)
+                let sewn = try sewer.sew(request, tolerance: context.tolerance)
+                let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: context.brep)
+                try model.validate(level: .volumetric, tolerance: context.tolerance)
+                return EvaluationResult(brep: model, subshapes: sewn.subshapes, removedSubshapeIDs: selections[0].1.replacedSubshapeIDs,
+                                        lineage: sewn.lineage)
+            }
+        }
+        return try evaluateProfileBlends(feature: feature, target: target, selected: selected,
             section: BlendSection { _ in
                 BlendSection.Resolved(setback: distance, degree: 1, weights: [1, 1]) { corner, first, second in
                     [corner + first * distance, corner + second * distance]

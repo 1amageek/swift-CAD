@@ -332,7 +332,12 @@ faces close on its cross-section. The feature's radius must state the radius the
 by its ends after the ones before, faces not beside it kept with their own edges (an earlier blend's
 arcs included) and end faces cut back only at its corner; one lying within an earlier blend is
 refused. Straight edges that meet, meeting their faces at one angle, are blended together as one
-network (`blendNetworkRequest`); every edge in it is convex, and each face's inward direction from
+network (`blendNetworkRequest`). Circular rims — a circle of arcs between a planar cap square to a
+coaxial cylinder, a solid's or a hole's, convex — are rounded or chamfered all the way round by
+`CircularRimBlendBuilder` (a selected arc takes its whole circle): a band of the analytic torus whose
+tube touches cap and wall, or of the 45° cone through both contact circles, one patch per arc, the
+cap's loop moved by the distance and the wall's rim lowered; part of a rim, a rim of one closed edge
+and concave rims are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). In a network every edge is convex, and each face's inward direction from
 a blended side is read from its outer loop's winding, so concave faces take part. A chamfer's faces are the planes through its contact lines, each
 cut by the planes of the chamfers it meets, so mitres and corners of any number of chamfered edges
 close on the planes' intersections. Two curved blends at a corner whose third edge is left sharp join
@@ -353,7 +358,7 @@ the shape at the radius there, tangent to both faces along straight contact line
 tangent chains and Y-blends are not built (FE2). `FilletShapeTests` own each
 shape's removed cross-section times the edge's length, the tension and one-edge admission, and the
 rib's and a drafted rib's full rounds (their volumes and radii) with the refusals of a misstated radius and of edges that do not face each other across one face, and an L sheet's bend rounded into a quarter cylinder, blended and chamfered into sheets, a hexagonal prism's 120° edge rounded (its volume) an L block's inside corner filled (its volume), two edges of a box that do not meet rounded and
-chamfered together, a pair meeting at a corner, a box's three and four top edges mitred (volume `s³ − r²(1 − π/4)·ns + c·r³(5/3 − π/2)` for n edges and c corners), three edges at a corner rounded into the ball, every edge of a box rounded (the rounded box `a³ + 6a²r + 3πr²a + 4πr³/3`, a = s − 2r), a corner's ball meeting a mitre, an L block's top edges mitred around its inside corner (removing `r³(5/3 − π/2)` more), a concave edge meeting a convex one refused, two, three (at a corner), four (around the top) and twelve chamfered edges (volumes from each edge's triangle less d³/3 per meeting pair plus d³/4 per corner), and a variable fillet's volume
+chamfered together, a pair meeting at a corner, a box's three and four top edges mitred (volume `s³ − r²(1 − π/4)·ns + c·r³(5/3 − π/2)` for n edges and c corners), three edges at a corner rounded into the ball, every edge of a box rounded (the rounded box `a³ + 6a²r + 3πr²a + 4πr³/3`, a = s − 2r), a cylinder's and a hole's rims rounded and a cylinder's rim chamfered (Pappus volumes of the corner section about the axis), both rims of a hole rounded together, a corner's ball meeting a mitre, an L block's top edges mitred around its inside corner (removing `r³(5/3 − π/2)` more), a concave edge meeting a convex one refused, two, three (at a corner), four (around the top) and twelve chamfered edges (volumes from each edge's triangle less d³/3 per meeting pair plus d³/4 per corner), and a variable fillet's volume
 (1 − π/4)·(r₀² + r₀r₁ + r₁²)/3·L with shaped and variable fillets round-tripping natively.
 
 ### Point guides

@@ -345,6 +345,105 @@ struct FilletShapeTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func aCylindersRimRoundsIntoATorusBand() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // A disc of radius 10 mm extruded 20 mm; one arc of its top rim selects the whole rim.
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.circle(center: SketchPoint(x: length(0), y: length(0)), radius: length(0.01))
+        }.featureID
+        let cylinder = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(0.02))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "c"))
+        let rim = try #require(before.subshapes.entries.first { key, value in
+            guard key.featureID == cylinder, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  case .circle? = before.brep.geometry.curves[edge.curveID],
+                  let start = before.brep.vertices[edge.startVertexID]?.point else { return false }
+            return abs(start.z - 0.02) < 1e-12
+        }?.key)
+        let r = 0.002
+        _ = try builder.fillet(target: cylinder, edges: [try builder.stableSubshape(rim)], radius: length(r))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "c"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        // Pappus: the corner section r²(1 − π/4) swept about the axis at its centroid, r(10 − 3π)/(12 − 3π) in from the wall.
+        let (radius, height) = (0.01, 0.02)
+        let section = r * r * (1 - Double.pi / 4)
+        let inset = r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+        let expected = Double.pi * radius * radius * height - section * 2 * Double.pi * (radius - inset)
+        let volume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aHolesRimRoundsIntoATorusBandAndBothItsRimsTogether() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // A 40 mm square with a hole of radius 8 mm, extruded 20 mm.
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            let corners: [(Double, Double)] = [(-0.02, -0.02), (0.02, -0.02), (0.02, 0.02), (-0.02, 0.02)]
+            for (start, end) in zip(corners, corners.dropFirst() + corners.prefix(1)) {
+                _ = sketch.line(from: SketchPoint(x: length(start.0), y: length(start.1)), to: SketchPoint(x: length(end.0), y: length(end.1)))
+            }
+            _ = sketch.circle(center: SketchPoint(x: length(0), y: length(0)), radius: length(0.008))
+        }.featureID
+        let plate = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(0.02))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "h"))
+        let rims = try before.subshapes.entries.filter { key, value in
+            guard key.featureID == plate, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  case .circle? = before.brep.geometry.curves[edge.curveID] else { return false }
+            return true
+        }
+        let top = try #require(rims.first { key, value in
+            guard case let .edge(id) = value, let edge = before.brep.edges[id],
+                  let start = before.brep.vertices[edge.startVertexID]?.point else { return false }
+            return abs(start.z - 0.02) < 1e-12
+        }?.key)
+        let r = 0.002
+        let section = r * r * (1 - Double.pi / 4)
+        let inset = r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+        let solid = (0.04 * 0.04 - Double.pi * 0.008 * 0.008) * 0.02
+        var single = builder
+        _ = try single.fillet(target: plate, edges: [try single.stableSubshape(top)], radius: length(r))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try single.build(name: "h"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        // The corner section swept about the axis outside the hole's wall.
+        let volume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(volume - (solid - section * 2 * Double.pi * (0.008 + inset))) < 5e-12, "\(volume)")
+        // A top and a bottom arc select both rims of the hole.
+        let bottom = try #require(rims.first { key, value in
+            guard case let .edge(id) = value, let edge = before.brep.edges[id],
+                  let start = before.brep.vertices[edge.startVertexID]?.point else { return false }
+            return abs(start.z) < 1e-12
+        }?.key)
+        _ = try builder.fillet(target: plate, edges: [try builder.stableSubshape(top), try builder.stableSubshape(bottom)], radius: length(r))
+        let both = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "h"))
+        try both.brep.validate(level: .volumetric, tolerance: .standard)
+        let twice = try both.brep.volume(tolerance: .standard)
+        #expect(abs(twice - (solid - 2 * section * 2 * Double.pi * (0.008 + inset))) < 5e-12, "\(twice)")
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func rimsChamferIntoConeBands() throws {
+        let d = 0.002
+        // A cylinder's top rim: the corner triangle d²/2 swept about the axis at d/3 in from the wall.
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.circle(center: SketchPoint(x: length(0), y: length(0)), radius: length(0.01))
+        }.featureID
+        let cylinder = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(0.02))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "c"))
+        let rim = try #require(before.subshapes.entries.first { key, value in
+            guard key.featureID == cylinder, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  case .circle? = before.brep.geometry.curves[edge.curveID],
+                  let start = before.brep.vertices[edge.startVertexID]?.point else { return false }
+            return abs(start.z - 0.02) < 1e-12
+        }?.key)
+        _ = try builder.chamfer(target: cylinder, edges: [try builder.stableSubshape(rim)], distance: length(d))
+        let cut = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "c"))
+        try cut.brep.validate(level: .volumetric, tolerance: .standard)
+        let expected = Double.pi * 0.01 * 0.01 * 0.02 - d * d / 2 * 2 * Double.pi * (0.01 - d / 3)
+        let volume = try cut.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func anLBlocksTopEdgesMitreAroundItsInsideCorner() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         // An L of 40 mm arms 10 mm thick, extruded 20 mm; its inside corner at (10, 10) mm.

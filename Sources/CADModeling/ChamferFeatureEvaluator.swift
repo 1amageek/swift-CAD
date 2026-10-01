@@ -80,6 +80,11 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
                 tolerance: context.tolerance
             )
         }
+        // A circular rim's edge is cut all the way round by the profile chamfer's cone band.
+        if CircularRimBlendBuilder.admits([edgeID], model: context.brep) {
+            return try EdgeBlendFeatureEvaluator(sewer: sewer).evaluateProfileChamfer(
+                feature: feature, target: chamfer.target.featureID, selected: chamfer.edges, distance: distance, context: context)
+        }
         let sourceEdgeIDs = Set(bodyScope.references.compactMap { reference -> EdgeID? in
             guard case let .edge(scopedEdgeID) = reference else { return nil }
             return scopedEdgeID
