@@ -174,10 +174,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                                        frames: frames, guide: guide, values: optionValues, context: context)
         }
         if CertifiedTwistSweepPlan.requested(sweep.options) {
-            guard case let .profile(profile, _) = section else {
-                throw CertifiedTwistSweepPlan.failure("Certified twist initially requires a closed profile section.", context.tolerance)
-            }
-            let plan = try CertifiedTwistSweepPlan(profile: profile, pathSegments: pathSegments,
+            let plan = try CertifiedTwistSweepPlan(section: section, pathSegments: pathSegments,
                 sweep: sweep, values: optionValues, tolerance: context.tolerance)
             return try simplifiedIfRequested(sweep, featureID: feature.id, toolResult:
                 ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
@@ -536,13 +533,6 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         func failure(_ code: KernelErrorCode, _ message: String) -> KernelError {
             KernelError(phase: .evaluation, code: code, featureID: feature.id, tolerance: tolerance, message: message)
         }
-        guard case let .profile(profile, _) = section else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): the certified twist that carries a Chord guide
-            // sweeps closed profiles only, so a curve section is refused. Production path:
-            // PlanarSweepFeatureEvaluator.chordGuideSweep. Complete only when certified twist
-            // sweeps curve sections, verified by a Chord-guided sheet sweep.
-            throw failure(.unsupportedCapability, "A Chord-guided sweep takes a closed profile section.")
-        }
         guard let allowance = values.approximationTolerance, allowance > 0 else {
             throw failure(.invalidInput, "A Chord-guided sweep needs a positional approximation allowance.")
         }
@@ -563,7 +553,16 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             throw failure(.sweepGuideTransformCollapse, "A Chord guide passes through the path's axis.")
         }
         let axis = try (end - start).normalized(tolerance: tolerance.distance)
-        let radius = profile.boundaryLoops.flatMap(\.vertices).reduce(0.0) { result, point in
+        // The section's reach about the path: its control points bound every point of it.
+        let sectionPoints: [Point3D]
+        switch section {
+        case .profile(let profile, _):
+            sectionPoints = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).profileLoopSpans(from: profile)
+                .flatMap { $0.flatMap(\.curve.controlPoints) }
+        case .curve(let curve):
+            sectionPoints = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).sectionSpans(from: curve).flatMap(\.curve.controlPoints)
+        }
+        let radius = sectionPoints.reduce(0.0) { result, point in
             let offset = point - start
             return max(result, (offset - axis * offset.dot(axis)).length)
         } * 1.01
@@ -592,7 +591,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         var unguided = sweep
         unguided.guides = []
         unguided.options.guideMethod = .point
-        let plan = try CertifiedTwistSweepPlan(profile: profile, pathSegments: pathSegments, sweep: unguided,
+        let plan = try CertifiedTwistSweepPlan(section: section, pathSegments: pathSegments, sweep: unguided,
                                                values: turned, tolerance: tolerance)
         let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
             .buildCertifiedTwist(plan, resultKind: sweep.options.resultKind)

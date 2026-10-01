@@ -117,7 +117,7 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
     ) throws -> EvaluationResult {
         let request = try ExactLinearSectionSweepFacePatchBuilder(tolerance: context.tolerance).request(
             profileSpanLoops: plan.profileSpanLoops, pathSpans: plan.pathSpans,
-            profilePlane: plan.profilePlane, sectionIsClosed: true, resultKind: resultKind,
+            profilePlane: plan.profilePlane, sectionIsClosed: plan.sectionIsClosed, resultKind: resultKind,
             featureID: featureID, certifiedTwist: plan
         )
         return try evaluationResult(request: request, profileSpanCounts: plan.profileSpanLoops.map(\.count),

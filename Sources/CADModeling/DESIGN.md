@@ -322,9 +322,10 @@ start offset, as complex numbers in the section's plane) the turn at fraction `t
 twist a linear interpolation of θ at N nodes, N chosen from |θ″| ≤ 2|T − 1|²/d³ (d the least
 |1 + t(T − 1)|) so that interpolation stays within half the sweep's allowance, the twist's own
 approximation within the other half; capability planning reports it as the certified straight
-twist. Curve sections (`FIXME(INCOMPLETE_IMPLEMENTATION)`), curved paths and the Curve method are
-not built. `ChordGuideSweepTests` own the quarter-turned rectangle (end corners and volume within
-the allowance) and the refusal without an allowance.
+twist, which takes profiles and curve sections alike (an open curve sweeps a sheet). Curved paths
+and the Curve method are not built. `ChordGuideSweepTests` own the quarter-turned rectangle (end
+corners and volume within the allowance), the quarter-turned line's sheet and the refusal without an
+allowance.
 
 ### Simplify
 

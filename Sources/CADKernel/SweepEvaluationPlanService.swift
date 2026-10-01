@@ -254,10 +254,7 @@ public struct SweepEvaluationPlanService: Sendable {
         }
         if CertifiedTwistSweepPlan.requested(options) {
             do {
-                guard case let .profile(profile, _) = section else {
-                    throw CertifiedTwistSweepPlan.failure("Certified twist initially requires a closed profile section.", tolerance)
-                }
-                let certified = try CertifiedTwistSweepPlan(profile: profile, pathSegments: pathSegments,
+                let certified = try CertifiedTwistSweepPlan(section: section, pathSegments: pathSegments,
                     sweep: sweep, values: optionValues, tolerance: tolerance)
                 let geometry = SweepEvaluationCapabilities.Geometry(pathShape: .straight(profileNormalComponent: 1),
                     sectionState: .twisted, guideConstraintCount: guides.count, tolerance: tolerance,

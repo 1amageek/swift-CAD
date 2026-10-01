@@ -5,6 +5,8 @@ import CADIR
 /// Request-local proof and geometry, shared by preflight and actual evaluation.
 package struct CertifiedTwistSweepPlan: Sendable {
     package let profileSpanLoops: [[ExactBSplineCurveSpan]]
+    /// Whether the section's loops close (a profile, or a closed curve); an open curve sweeps a sheet.
+    package let sectionIsClosed: Bool
     package let pathSpans: [ExactBSplineCurveSpan]
     /// Indexed by loop, then axial interval, then profile span.
     package let surfaces: [[[BSplineSurface3D]]]
@@ -28,7 +30,43 @@ package struct CertifiedTwistSweepPlan: Sendable {
         values: SweepOptionValues,
         tolerance: ModelingTolerance
     ) throws {
+        try self.init(sectionLoops: try ExactBSplineCurveSpanBuilder(tolerance: tolerance).profileLoopSpans(from: profile),
+                      sectionIsClosed: true, profilePlane: profile.plane, pathSegments: pathSegments, sweep: sweep,
+                      values: values, tolerance: tolerance)
+    }
+
+    /// The plan for a resolved section: a profile's loops, or a curve as one open or closed loop.
+    package init(
+        section: ResolvedModelingSection,
+        pathSegments: [EvaluatedCurvePathSegment],
+        sweep: SweepFeature,
+        values: SweepOptionValues,
+        tolerance: ModelingTolerance
+    ) throws {
+        let spans = ExactBSplineCurveSpanBuilder(tolerance: tolerance)
+        switch section {
+        case .profile(let profile, _):
+            try self.init(sectionLoops: try spans.profileLoopSpans(from: profile), sectionIsClosed: true,
+                          profilePlane: profile.plane, pathSegments: pathSegments, sweep: sweep, values: values, tolerance: tolerance)
+        case .curve(let curve):
+            try self.init(sectionLoops: [try spans.sectionSpans(from: curve)], sectionIsClosed: curve.isClosed,
+                          profilePlane: try section.plane(), pathSegments: pathSegments, sweep: sweep, values: values, tolerance: tolerance)
+        }
+    }
+
+    private init(
+        sectionLoops loops: [[ExactBSplineCurveSpan]],
+        sectionIsClosed: Bool,
+        profilePlane: SketchPlane,
+        pathSegments: [EvaluatedCurvePathSegment],
+        sweep: SweepFeature,
+        values: SweepOptionValues,
+        tolerance: ModelingTolerance
+    ) throws {
         try tolerance.validate()
+        guard sweep.options.resultKind == .sheet || sectionIsClosed else {
+            throw Self.failure("A solid twisted sweep needs a closed section.", tolerance)
+        }
         try SweepEvaluationCapabilities().validateStaticOptions(sweep.options, tolerance: tolerance)
         guard let allowance = values.approximationTolerance, allowance.isFinite, allowance > 0,
               values.endScale == 1, sweep.guides.isEmpty,
@@ -47,12 +85,11 @@ package struct CertifiedTwistSweepPlan: Sendable {
         let fullEnd = path.endPoint
         let end = start + (fullEnd - start) * values.distanceFraction
         let direction = end - start
-        let plane = try ExactSweepSectionPlane(profile.plane, tolerance: tolerance)
+        let plane = try ExactSweepSectionPlane(profilePlane, tolerance: tolerance)
         let normal = try direction.normalized(tolerance: tolerance.distance)
         guard normal.cross(plane.plane.normal).length <= tolerance.angle else {
             throw Self.failure("Certified twist requires a profile-normal straight path.", tolerance)
         }
-        let loops = try spanBuilder.profileLoopSpans(from: profile)
         let spanCount = loops.reduce(0) { $0 + $1.count }
         let controlCount = loops.flatMap { $0 }.reduce(0) { $0 + $1.curve.controlPointCount }
         // Bounded work before tensor or topology allocation. These are refusal
@@ -69,7 +106,7 @@ package struct CertifiedTwistSweepPlan: Sendable {
             throw Self.failure("Certified twist requires finite source angles in [-16, 16] radians.", tolerance)
         }
         let sourcePlane: Plane3D
-        switch profile.plane {
+        switch profilePlane {
         case .xy: sourcePlane = Plane3D(origin: .origin, normal: .unitZ)
         case .yz: sourcePlane = Plane3D(origin: .origin, normal: .unitX)
         case .zx: sourcePlane = Plane3D(origin: .origin, normal: .unitY)
@@ -167,7 +204,8 @@ package struct CertifiedTwistSweepPlan: Sendable {
             }
         }
         profileSpanLoops = loops
-        profilePlane = profile.plane
+        self.sectionIsClosed = sectionIsClosed
+        self.profilePlane = profilePlane
         pathSpans = paths
         surfaces = built
         positionErrorUpperBound = maximumError

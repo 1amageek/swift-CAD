@@ -41,7 +41,9 @@ allowance. Profile and path geometry must be admitted before topology allocation
 Singular rotation, nonfinite arithmetic and resource exhaustion are failures.
 
 The initial domain is a single exact degree-one/two-control path span, a closed
-profile (including holes), unit scale, no guides and new-body solid or sheet.
+profile (including holes) or a curve section (open or closed; an open one makes
+only a sheet, its loop's ends left as boundary), unit scale, no guides and
+new-body solid or sheet.
 Source angles lie in [-16,16] radians: division by 16 puts them in the Taylor
 domain [-1,1], and exactly four double-angle steps bound evaluation cost. Twenty
 terms and an outward 2^-150 remainder enclose trigonometry before Hermite control
