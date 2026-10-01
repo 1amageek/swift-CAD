@@ -391,8 +391,25 @@ package struct MitredPolylineSweepBuilder {
         }
         // A piece reaching the axis turns into a face closing at it. The tensor surface has a pole
         // there, so the face takes the exact surface on which that point is regular: the plane a
-        // line across the axis sweeps.
+        // line across the axis sweeps, the sphere an arc about a point of the axis sweeps (both its
+        // ends on the axis), or the cone a slanted line from the axis sweeps.
         let support = try apexSupport(row, corner: corner)
+        if case let .analytic(.sphere(center, _)) = support {
+            // An end off the axis traces a circle about it, a great circle only level with the
+            // sphere's centre.
+            for (onAxis, parameter) in [(startOnAxis, u.lower), (endOnAxis, u.upper)] where !onAxis {
+                let end = try rowCurve.point(at: parameter, tolerance: tolerance)
+                guard abs((end - center).dot(corner.axis)) <= tolerance.distance else {
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): an arc about a point of the axis whose end
+                    // off it is not level with that point traces a small circle of its sphere, which
+                    // has no great-circle trimming curve, so it is refused. Production path:
+                    // MitredPolylineSweepBuilder for Round corners. Complete only when such faces
+                    // sew, verified by a Round sweep of a circle's arc short of its widest point.
+                    throw KernelError(phase: .evaluation, code: .unsupportedCapability, tolerance: tolerance,
+                                      message: "A Round corner turns an arc reaching its axis with its other end level with its centre.")
+                }
+            }
+        }
         let middle = try surface.differentialGeometry(u: 0.5 * (u.lower + u.upper), v: 0.5 * (v.lower + v.upper), tolerance: tolerance)
         let outward = middle.tangentU.cross(middle.tangentV) * (orientation == .forward ? 1 : -1)
         let projected = try support.parameterProjection(of: middle.position, tolerance: tolerance)
@@ -400,12 +417,19 @@ package struct MitredPolylineSweepBuilder {
         let pcurves = ExactFacePcurveBuilder()
         let edges = try boundary.map { side in
             let bounds = try patches.closedBounds(side.curve.domain)
-            let pcurve = try pcurves.surfaceParameterCurve(
-                for: .bSpline(side.curve),
-                startParameter: side.reversed ? bounds.upper : bounds.lower,
-                endParameter: side.reversed ? bounds.lower : bounds.upper,
-                on: support, tolerance: tolerance
-            )
+            let (first, last) = side.reversed ? (bounds.upper, bounds.lower) : (bounds.lower, bounds.upper)
+            let pcurve: SurfaceParameterCurve
+            switch support {
+            case let .analytic(.sphere(center, _)):
+                // A great circle's trimming curve follows its circle's own angle, so the edge is
+                // that circle (the arms' rational rows trace it exactly).
+                return try greatCircleEdge(side.curve, from: first, to: last, center: center, stableID: "\(stableID):\(side.name)")
+            case let .analytic(.cone(apex, _, _)):
+                pcurve = try conePcurve(side.curve, from: first, to: last, apex: apex, on: support)
+            default:
+                pcurve = try pcurves.surfaceParameterCurve(for: .bSpline(side.curve), startParameter: first, endParameter: last,
+                                                           on: support, tolerance: tolerance)
+            }
             return try patches.exactEdge(side.curve, reversed: side.reversed, surfaceParameterCurve: pcurve,
                                          stableID: "\(stableID):\(side.name)")
         }
@@ -427,14 +451,90 @@ package struct MitredPolylineSweepBuilder {
            abs(chord.dot(corner.axis)) <= tolerance.distance {
             return .plane(Plane3D(origin: first, normal: corner.axis))
         }
-        // FIXME(INCOMPLETE_IMPLEMENTATION): a section piece reaching the corner's axis other than a
-        // line across it (an arc of a circle making a sphere, a slanted line making a cone, a
-        // spline) turns into a face whose exact surface shares no edge representation with the
-        // arms' tensor faces, or whose tensor surface has a pole, so it is refused. Production
-        // path: MitredPolylineSweepBuilder for Round corners. Complete only when such faces sew
-        // with the arms, verified by Round sweeps of a circle, a diamond and an ellipse.
+        // A slanted line from the axis sweeps the cone with its apex where the line meets the axis.
+        if samples.allSatisfy({ ($0 - first).cross(chord).length <= tolerance.distance * chord.length }) {
+            func onAxis(_ point: Point3D) -> Bool {
+                let offset = point - corner.point
+                return (offset - corner.axis * offset.dot(corner.axis)).length <= tolerance.distance
+            }
+            let (apex, far) = onAxis(first) ? (first, last) : (last, first)
+            let along = try (far - apex).normalized(tolerance: tolerance.distance)
+            let axis = corner.axis * (along.dot(corner.axis) >= 0 ? 1 : -1)
+            let halfAngle = acos(min(1, abs(along.dot(corner.axis))))
+            guard onAxis(apex), halfAngle > tolerance.angle, halfAngle < 0.5 * Double.pi - tolerance.angle else {
+                throw KernelError(phase: .evaluation, code: .unsupportedCapability, tolerance: tolerance,
+                                  message: "A Round corner turns a line reaching its axis across it or slanted from it.")
+            }
+            return .analytic(.cone(apex: apex, axis: try axis.normalized(tolerance: tolerance.distance), halfAngle: halfAngle))
+        }
+        // An arc about a point of the axis sweeps the sphere about that point: the point of the axis
+        // as far from every sample.
+        let base = samples.map { $0 - corner.point }
+        if let pair = zip(base, base.dropFirst(4)).first(where: { abs(($0 - $1).dot(corner.axis)) > tolerance.distance }) {
+            let t = (pair.0.dot(pair.0) - pair.1.dot(pair.1)) / (2 * (pair.0 - pair.1).dot(corner.axis))
+            let center = corner.point + corner.axis * t
+            let radius = (first - center).length
+            if radius > tolerance.distance, samples.allSatisfy({ abs(($0 - center).length - radius) <= tolerance.distance }) {
+                return .analytic(.sphere(center: center, radius: radius))
+            }
+        }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): a section piece reaching the corner's axis as a spline
+        // (an ellipse's arc) sweeps a surface of revolution with no analytic form here, whose
+        // tensor surface has a pole on the axis, so it is refused. Production path:
+        // MitredPolylineSweepBuilder for Round corners. Complete only when such faces sew with the
+        // arms, verified by a Round sweep of an ellipse.
         throw KernelError(phase: .evaluation, code: .unsupportedCapability, tolerance: tolerance,
-                          message: "A Round corner turns a section piece reaching its axis only as a line across it.")
+                          message: "A Round corner turns a section piece reaching its axis as a line or a circle's arc.")
+    }
+
+    /// The great circle of the sphere about `center` that `curve` (a rational arc on it) traces from
+    /// `first` to `last`, as an edge: the circle turning from the arc's start through its middle,
+    /// its trimming curve the great circle on the circle's own angle.
+    private func greatCircleEdge(_ curve: BSplineCurve3D, from first: Double, to last: Double,
+                                 center: Point3D, stableID: String) throws -> BRepSewingEdge {
+        let spatial = Curve3D.bSpline(curve)
+        let (startPoint, endPoint) = (try spatial.point(at: first, tolerance: tolerance), try spatial.point(at: last, tolerance: tolerance))
+        let (start, middle) = (startPoint - center, try spatial.point(at: 0.5 * (first + last), tolerance: tolerance) - center)
+        let normal = try start.cross(middle).normalized(tolerance: tolerance.distance)
+        let circle = Circle3D(center: center, normal: normal, radius: start.length)
+        let full = Curve3D.circle(circle)
+        let t0 = try full.parameterProjection(of: startPoint, tolerance: tolerance).parameter
+        var span = try full.parameterProjection(of: endPoint, tolerance: tolerance).parameter - t0
+        span = span.truncatingRemainder(dividingBy: 2 * Double.pi)
+        if span <= tolerance.angle { span += 2 * Double.pi }
+        let cosine = try (try full.point(at: 0, tolerance: tolerance) - center).normalized(tolerance: tolerance.distance)
+        let sine = try (try full.point(at: 0.5 * Double.pi, tolerance: tolerance) - center).normalized(tolerance: tolerance.distance)
+        return BRepSewingEdge(stableID: stableID, curve: full, startParameter: t0, endParameter: t0 + span,
+                              startPoint: startPoint, endPoint: endPoint,
+                              surfaceParameterCurve: .sphericalGreatCircle(cosine: cosine, sine: sine, startParameter: t0, endParameter: t0 + span))
+    }
+
+    /// A ruling from the apex, or a circle about the axis, of the cone `surface` as a trimming
+    /// curve, run along `curve` from `first` to `last`.
+    private func conePcurve(_ curve: BSplineCurve3D, from first: Double, to last: Double, apex: Point3D,
+                            on surface: Surface3D) throws -> SurfaceParameterCurve {
+        let spatial = Curve3D.bSpline(curve)
+        let (start, end) = (try spatial.point(at: first, tolerance: tolerance), try spatial.point(at: last, tolerance: tolerance))
+        let middle = try spatial.point(at: 0.5 * (first + last), tolerance: tolerance)
+        let atApex = { (point: Point3D) in point.isApproximatelyEqual(to: apex, tolerance: self.tolerance.distance) }
+        if atApex(start) || atApex(end) {
+            // A ruling: its angle from the point off the apex, its distance from the apex along it.
+            let u = try surface.parameterProjection(of: atApex(start) ? end : start, tolerance: tolerance).u
+            return .constantU(u: u, vStart: (start - apex).length, vEnd: (end - apex).length)
+        }
+        // A circle about the axis at one distance from the apex, turning through its middle.
+        let a = try surface.parameterProjection(of: start, tolerance: tolerance)
+        let m = try surface.parameterProjection(of: middle, tolerance: tolerance)
+        let b = try surface.parameterProjection(of: end, tolerance: tolerance)
+        func turn(_ from: Double, _ to: Double) -> Double {
+            var delta = (to - from).truncatingRemainder(dividingBy: 2 * Double.pi)
+            if delta > Double.pi { delta -= 2 * Double.pi }
+            if delta < -Double.pi { delta += 2 * Double.pi }
+            return delta
+        }
+        let toMiddle = turn(a.u, m.u)
+        let total = toMiddle + turn(m.u, b.u)
+        return .constantV(v: a.v, uStart: a.u, uEnd: a.u + total)
     }
 
     private func cap(

@@ -52,15 +52,36 @@ struct RoundSweepCornerTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
-    func aCircleSectionsRoundCornerIsRefused() throws {
-        do {
-            _ = try evaluate([(0, 0), (0.03, 0), (0.03, 0.02)]) { sketch in
-                _ = sketch.circle(center: SketchPoint(x: length(0), y: length(0)), radius: length(h))
-            }
-            Issue.record("A circle's Round corner must be refused until its sphere sews with the arms.")
-        } catch let error as KernelError {
-            #expect(error.code == .unsupportedCapability && error.message.contains("line across it"))
+    func aCircleSectionsRoundCornerTurnsOnASphere() throws {
+        // A pipe of radius h: each arm's inner half ends on the mitre, losing ∫ d dA = (2/3)h³ over
+        // its half disc; the outer half turns a quarter of a ball about the corner's axis.
+        let evaluated = try evaluate([(0, 0), (0.03, 0), (0.03, 0.02)]) { sketch in
+            _ = sketch.circle(center: SketchPoint(x: length(0), y: length(0)), radius: length(h))
         }
+        #expect(evaluated.brep.faces.values.contains { face in
+            if case .analytic(.sphere)? = evaluated.brep.geometry.surfaces[face.surfaceID] { return true }
+            return false
+        })
+        let expected = 0.05 * Double.pi * h * h - 4 * h * h * h / 3 + Double.pi * h * h * h / 3
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - expected) < 1e-12)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aDiamondSectionsRoundCornerTurnsOnCones() throws {
+        // A square of half diagonal h with corners on the corner's axis: each arm loses ∫ d dA = h³/3
+        // over its inner triangle; the outer triangle (area h², centroid h/3 out) turns a quarter turn.
+        let evaluated = try evaluate([(0, 0), (0.03, 0), (0.03, 0.02)]) { sketch in
+            let corners = [(h, 0.0), (0, h), (-h, 0), (0, -h)]
+            for (start, end) in zip(corners, corners.dropFirst() + corners.prefix(1)) {
+                _ = sketch.line(from: SketchPoint(x: length(start.0), y: length(start.1)), to: SketchPoint(x: length(end.0), y: length(end.1)))
+            }
+        }
+        #expect(evaluated.brep.faces.values.contains { face in
+            if case .analytic(.cone)? = evaluated.brep.geometry.surfaces[face.surfaceID] { return true }
+            return false
+        })
+        let expected = 2 * h * h * 0.05 - 2 * h * h * h / 3 + Double.pi * h * h * h / 6
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - expected) < 1e-12)
     }
 
     @Test(.timeLimit(.minutes(2)))

@@ -230,12 +230,15 @@ crosses the plane through the path holding the arm and the corner's axis (the li
 corner across both arms, carried back to the section's frame); pieces on the outer side end on the
 plane across each arm through the corner and turn between those ends about the axis by the corner's
 angle (rational quadratic in the turn, two pieces past a right angle). A piece reaching the axis
-closes its face there; its tensor surface would have a pole, so a line across the axis takes the
-exact plane it sweeps, and other such pieces (a circle's arc making a sphere, a slanted line making
-a cone, a spline) are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)`. The corner faces map to side
-face subshapes after the arms'. `RoundSweepCornerTests` own the L-shaped and closed-frame square
-sweeps' exact volumes (the arms less the inner overlap plus the outer sectors) and the circle's
-refusal.
+closes its face there; its tensor surface would have a pole, so the face takes the exact surface the
+piece sweeps: a line across the axis its plane, a slanted line from the axis its cone (the rulings
+and the traced circle as the cone's iso lines), and a circle's arc about a point of the axis its
+sphere (each side a great circle as an exact circle edge on its own angle, which the arms' rational
+rows trace; an end off the axis must lie level with the centre). A spline, and an arc whose end off
+the axis traces a small circle, are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)`. The corner faces
+map to side face subshapes after the arms'. `RoundSweepCornerTests` own the L-shaped and
+closed-frame square sweeps' exact volumes (the arms less the inner overlap plus the outer sectors),
+a circle's (a quarter ball at the corner) and a diamond's (cones).
 
 ### Bridge Surface
 
