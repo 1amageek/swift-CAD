@@ -904,10 +904,28 @@ struct FilletShapeTests {
                                variablePoints: [FilletVariablePoint(position: 0.5, radius: length(r1))])
         let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
         try rounded.brep.validate(level: .volumetric, tolerance: .standard)
-        // Each half removes (1 − π/4)(a² + ab + b²)/3 times its length, the radius linear from a to b.
-        func half(_ a: Double, _ b: Double) -> Double { (1 - Double.pi / 4) * (a * a + a * b + b * b) / 3 * s / 2 }
+        // The radius follows the natural cubic spline through the three: its second derivative
+        // M1 halfway from M0 + 4M1 + M2 = 6(r0 − 2r1 + r2)/h², none at the ends; the round removes
+        // (1 − π/4)∫r², exact by four-point Gauss on each half's sextic.
+        let h = s / 2
+        let m1 = 6 * (r0 - 2 * r1 + r2) / (h * h) / 4
+        func radius(_ x: Double) -> Double {
+            let (y0, y1, ma, mb, x0) = x <= h ? (r0, r1, 0.0, m1, 0.0) : (r1, r2, m1, 0.0, h)
+            let (left, right) = (x0 + h - x, x - x0)
+            return ma * left * left * left / (6 * h) + mb * right * right * right / (6 * h)
+                + (y0 / h - ma * h / 6) * left + (y1 / h - mb * h / 6) * right
+        }
+        let nodes = [-0.861136311594053, -0.339981043584856, 0.339981043584856, 0.861136311594053]
+        let weights = [0.347854845137454, 0.652145154862546, 0.652145154862546, 0.347854845137454]
+        var squared = 0.0
+        for x0 in [0.0, h] {
+            for (node, weight) in zip(nodes, weights) {
+                let r = radius(x0 + h / 2 * (1 + node))
+                squared += weight * r * r * h / 2
+            }
+        }
         let volume = try rounded.brep.volume(tolerance: .standard)
-        #expect(abs(volume - (s * s * s - half(r0, r1) - half(r1, r2))) < 5e-12, "\(volume)")
+        #expect(abs(volume - (s * s * s - (1 - Double.pi / 4) * squared)) < 5e-12, "\(volume)")
     }
 
     @Test(.timeLimit(.minutes(2)))

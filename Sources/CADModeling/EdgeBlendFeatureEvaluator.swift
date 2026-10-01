@@ -2092,14 +2092,36 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         let lowerCurve = BSplineCurve3D(degree: section.degree, knots: knots, controlPoints: lowerControlPoints, weights: section.weights)
         let upperCurve = BSplineCurve3D(degree: section.degree, knots: knots, controlPoints: upperControlPoints, weights: section.weights)
         let rowHeights = [0.0] + interior.map(\.v) + [height]
-        let blendDefinition = BSplineSurface3D(
-            uDegree: section.degree,
-            vDegree: 1,
-            uKnots: knots,
-            vKnots: [0.0] + rowHeights + [height],
-            controlPoints: [lowerControlPoints] + interior.map(\.points) + [upperControlPoints],
-            weights: Array(repeating: section.weights, count: rowHeights.count)
-        )
+        let blendDefinition: BSplineSurface3D
+        if interior.isEmpty {
+            blendDefinition = BSplineSurface3D(
+                uDegree: section.degree, vDegree: 1, uKnots: knots, vKnots: [0.0, 0.0, height, height],
+                controlPoints: [lowerControlPoints, upperControlPoints], weights: [section.weights, section.weights])
+        } else {
+            // Variable points set the radius smoothly: each section control point runs along the
+            // natural cubic spline through its places at the sections, so the section varies with
+            // a radius law of continuous curvature (the edge's own points, linear, are kept).
+            let law = try NaturalCubicSplineInterpolator(sites: rowHeights, tolerance: context.tolerance)
+            let rows = [lowerControlPoints] + interior.map(\.points) + [upperControlPoints]
+            let columns = try lowerControlPoints.indices.map { index in try law.controlPoints(through: rows.map { $0[index] }) }
+            let rowCount = rowHeights.count + 2
+            blendDefinition = BSplineSurface3D(
+                uDegree: section.degree, vDegree: 3, uKnots: knots, vKnots: law.knots,
+                controlPoints: (0..<rowCount).map { row in columns.map { $0[row] } },
+                weights: Array(repeating: section.weights, count: rowCount))
+            // The setbacks stay positive between the sections.
+            for index in 0...(32 * (rowHeights.count - 1)) {
+                let v = height * Double(index) / Double(32 * (rowHeights.count - 1))
+                let edgePoint = startVertex.point + axis * v
+                for u in [0.0, 1.0] {
+                    let contact = try Surface3D.bSpline(blendDefinition).point(u: u, v: v, tolerance: context.tolerance)
+                    guard (contact - edgePoint).length > context.tolerance.distance else {
+                        throw failure(.invalidInput, featureID: featureID, tolerance: context.tolerance,
+                                      "A variable blend's radius law through its points reaches zero along the edge.")
+                    }
+                }
+            }
+        }
         try lowerCurve.validate(tolerance: context.tolerance)
         try upperCurve.validate(tolerance: context.tolerance)
         try blendDefinition.validate(tolerance: context.tolerance)
@@ -2131,13 +2153,17 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                                   (endSection == nil ? blendEnd : endVertex.point) + along * (first ? endDistance : endResolved.secondSetback))
                 let clipped: [Point3D]
                 if interior.isEmpty == false {
-                    // Variable points bend the contact line at each: the face's side along the edge
-                    // becomes the contact polyline.
-                    let middle = interior.map { station in
-                        startVertex.point + axis * station.v + along * (first ? station.setbacks.0 : station.setbacks.1)
-                    }
-                    clipped = try notched(polygon, edge: (startVertex.point, endVertex.point), start: nil, end: nil,
-                                          contacts: [from] + middle + [to], tolerance: context.tolerance)
+                    // Variable points curve the contact line: the face's side along the edge runs
+                    // from contact to contact, then takes the blend's contact curve.
+                    let straight = try notched(polygon, edge: (startVertex.point, endVertex.point), start: nil, end: nil,
+                                               contacts: [from, to], tolerance: context.tolerance)
+                    let flat = try linePatch(stableID: stableID, plane: oriented, vertices: straight, faceParents: faceParents,
+                                             edgeID: edgeID, selectedSubshapeID: selectedSubshapeID, sourceEdgeIDs: sourceEdgeIDs,
+                                             model: model, context: context)
+                    patches.append(try curvedContact(flat, from: from, to: to, along: try blendDefinition.vIsoparametricCurve(
+                        atU: first ? knots[0] : knots[knots.count - 1], tolerance: context.tolerance), height: height,
+                        plane: oriented, tolerance: context.tolerance))
+                    continue
                 } else if limits != nil {
                     // A limited blend notches the face: the edge stays from each vertex to its limit,
                     // then steps across to the contact line and back.
@@ -2212,7 +2238,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             lowerCap: lowerCap,
             upperCap: upperCap,
             height: height,
-            stations: interior.map(\.v),
+            stations: [],
             selectedSubshapeID: selectedSubshapeID,
             faceParents: incidentParents,
             firstOutward: firstPlane.outward,
@@ -2580,11 +2606,21 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             endPoint: try lowerCurve.point(at: lowerEnd, tolerance: tolerance),
             surfaceParameterCurve: .constantV(v: 0.0, uStart: lowerStart, uEnd: lowerEnd)
         )
-        // The contact lines, split at the variable points' sections where they bend.
+        // The contact lines, or with a smooth radius law the contact curves.
         let heights = [0.0] + stations + [height]
+        func contact(_ stableID: String, u: Double, start: Double, end: Double) throws -> BRepSewingEdge {
+            guard definition.vDegree > 1 else {
+                return try g2AxialEdge(stableID: stableID, surface: surface, u: u, start: start, end: end,
+                                       parents: [selectedSubshapeID], tolerance: tolerance)
+            }
+            let curve = try definition.vIsoparametricCurve(atU: u, tolerance: tolerance)
+            return BRepSewingEdge(stableID: stableID, curve: .bSpline(curve), startParameter: start, endParameter: end,
+                                  startPoint: try surface.point(u: u, v: start, tolerance: tolerance),
+                                  endPoint: try surface.point(u: u, v: end, tolerance: tolerance),
+                                  surfaceParameterCurve: .constantU(u: u, vStart: start, vEnd: end), parentSubshapeIDs: [selectedSubshapeID])
+        }
         let endLines = try zip(heights, heights.dropFirst()).enumerated().map { index, span in
-            try g2AxialEdge(stableID: index == 0 ? "g2:tangent:1" : "g2:tangent:1:\(index)", surface: surface, u: lowerEnd,
-                            start: span.0, end: span.1, parents: [selectedSubshapeID], tolerance: tolerance)
+            try contact(index == 0 ? "g2:tangent:1" : "g2:tangent:1:\(index)", u: lowerEnd, start: span.0, end: span.1)
         }
         let upper = BRepSewingEdge(
             stableID: "g2:upper",
@@ -2596,8 +2632,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             surfaceParameterCurve: .constantV(v: height, uStart: upperStart, uEnd: upperEnd)
         )
         let startLines = try zip(heights.reversed(), heights.reversed().dropFirst()).enumerated().map { index, span in
-            try g2AxialEdge(stableID: index == 0 ? "g2:tangent:0" : "g2:tangent:0:\(index)", surface: surface, u: lowerStart,
-                            start: span.0, end: span.1, parents: [selectedSubshapeID], tolerance: tolerance)
+            try contact(index == 0 ? "g2:tangent:0" : "g2:tangent:0:\(index)", u: lowerStart, start: span.0, end: span.1)
         }
         let normal = try definition.normal(u: 0.0, v: height * 0.5, tolerance: tolerance)
         let orientation: Orientation = normal.dot(firstOutward) >= 0.0 ? .forward : .reversed
@@ -2612,6 +2647,42 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             )],
             parentSubshapeIDs: faceParents
         )
+    }
+
+    /// A planar face's straight side from `from` to `to` (either way) replaced by the blend's
+    /// contact curve `along` (on parameters 0 to `height`), its trimming curve the curve's control
+    /// points carried onto the plane's parameters (the plane's chart being affine).
+    private func curvedContact(_ patch: BRepSewingFacePatch, from: Point3D, to: Point3D, along: BSplineCurve3D, height: Double,
+                               plane: OrientedPlane, tolerance: ModelingTolerance) throws -> BRepSewingFacePatch {
+        let surface = Surface3D.plane(plane.plane)
+        let projected = try along.controlPoints.map { point -> Point2D in
+            let uv = try surface.parameterProjection(of: point, tolerance: tolerance)
+            return Point2D(x: uv.u, y: uv.v)
+        }
+        let pcurve = SurfaceParameterCurve.bSpline(BSplineCurve2D(degree: along.degree, knots: along.knots, controlPoints: projected,
+                                                                  weights: along.weights))
+        var replaced = false
+        let loops = try patch.loops.map { loop in
+            BRepSewingLoop(stableID: loop.stableID, role: loop.role, edges: try loop.edges.map { edge in
+                let forward = edge.startPoint.isApproximatelyEqual(to: from, tolerance: tolerance.distance)
+                    && edge.endPoint.isApproximatelyEqual(to: to, tolerance: tolerance.distance)
+                let backward = edge.startPoint.isApproximatelyEqual(to: to, tolerance: tolerance.distance)
+                    && edge.endPoint.isApproximatelyEqual(to: from, tolerance: tolerance.distance)
+                guard forward || backward else { return edge }
+                replaced = true
+                return BRepSewingEdge(stableID: edge.stableID, curve: .bSpline(along), startParameter: forward ? 0 : height,
+                                      endParameter: forward ? height : 0, startPoint: edge.startPoint, endPoint: edge.endPoint,
+                                      surfaceParameterCurve: forward ? pcurve : try pcurve.reversed(tolerance: tolerance),
+                                      parentSubshapeIDs: edge.parentSubshapeIDs,
+                                      startVertexParentSubshapeIDs: edge.startVertexParentSubshapeIDs,
+                                      endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs)
+            })
+        }
+        guard replaced else {
+            throw failure(.topologyFailure, tolerance: tolerance, "A variable blend's face has no side along its contact.")
+        }
+        return BRepSewingFacePatch(stableID: patch.stableID, surface: patch.surface, orientation: patch.orientation, loops: loops,
+                                   parentSubshapeIDs: patch.parentSubshapeIDs)
     }
 
     private func g2AxialEdge(
