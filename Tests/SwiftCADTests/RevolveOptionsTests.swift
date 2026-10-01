@@ -124,6 +124,23 @@ struct RevolveOptionsTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func aThinRingTouchingTheAxisRevolvesAroundIt() throws {
+        for turn in [360.0, 90.0] {
+            var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+            // A 10 × 20 mm rectangle with its side on the axis x = 50 mm, walled 1 mm.
+            let profile = try builder.sketch(on: .xy) { sketch in
+                let corners = [point(0.04, 0), point(0.05, 0), point(0.05, 0.02), point(0.04, 0.02)]
+                for index in corners.indices { _ = sketch.line(from: corners[index], to: corners[(index + 1) % corners.count]) }
+            }
+            _ = try builder.revolve(profile, axis: axis, angle: degrees(turn), thickness: length(0.001))
+            let evaluated = try evaluate(builder)
+            // Pappus: the ring of 10 × 20 mm less 8 × 18 mm, centred 5 mm from the axis.
+            let ring = 0.01 * 0.02 - 0.008 * 0.018
+            #expect(abs(try evaluated.brep.volume(tolerance: .standard) - turn / 360 * 2 * Double.pi * 0.005 * ring) < 1e-12)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func aCurveClosingAlongTheAxisRevolvesIntoASolid() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let arc = try builder.sketch(on: .xy) { sketch in
