@@ -233,6 +233,24 @@ face subshapes after the arms'. `RoundSweepCornerTests` own the L-shaped and clo
 sweeps' exact volumes (the arms less the inner overlap plus the outer sectors) and the circle's
 refusal.
 
+### Square
+
+`SquareSurfaceFeatureEvaluator` joins its four side curves (each exact, composed when several
+spans) end to end from the first, turning any that runs the other way, and spans the frame. With
+every side at G0 the sheet is `ExactCoonsBSplineSurfaceBuilder`'s exact Coons patch. With
+continuity (`SurfaceEdgeContinuity`, its planar face found by `ExactEdgeContinuityPlaneResolver`)
+along one side or two opposite ones, those sides run along u at v = 0 and v = 1 and
+`ExactHermiteCoonsSurfaceBuilder` forms the exact Boolean sum of a Hermite blend across v (cubic,
+or quintic for curvature) and the linear blend across u of the other two sides, less their tensor
+product: in common polynomial bases the Hermite functions' coefficients are their blossoms at the
+v knots and the linear blend's the u Greville abscissae. A continuous side's derivative rows lie in
+its face's plane, end on the neighbouring sides' derivatives (which must therefore lie in the
+plane and leave or enter the face) and are scaled by the tension; curvature rows lie in the plane
+too, so the sheet is exactly G1 or G2 with the plane. Neighbouring continuous sides, rational sides
+with continuity and curved faces are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)`.
+`SquareSurfaceTests` own the flat frame in any order, the G1 and G2 sheets between two boxes'
+edges, the round trip and the refusal of rails bending out of the faces' planes.
+
 ### Simplify
 
 `PlanarFaceSimplifier` serves Sweep's and Loft's Simplify: the faces of the new body whose
@@ -274,8 +292,8 @@ face across a path along another axis, the refusals and the native round trip.
 ### Loft edge continuity
 
 An end curve section along a body edge may be tangent (G1) or curvature (G2) continuous with the
-face beside the edge (`LoftEdgeContinuity` on the section, its body an input of the Loft).
-`ExactLoftEdgeContinuityResolver` resolves the edge in its body, takes of the faces bordering it
+face beside the edge (`SurfaceEdgeContinuity` on the section, its body an input of the Loft).
+`ExactEdgeContinuityPlaneResolver` resolves the edge in its body, takes of the faces bordering it
 the one whose outward direction across the edge (the coedge's travel crossed with the face's
 outward normal; the face lies left of its coedges) points most toward the other sections, and
 requires it planar (`FIXME(INCOMPLETE_IMPLEMENTATION)` for curved faces). The connection beside the
@@ -287,7 +305,7 @@ second derivative across the edge vanishes as a plane's does (exact G2). The far
 chord between the two sections' control points; neighbouring spans share their vertex's row, a
 corner there is refused, and the connectors are the sides' boundary columns. Guides, middle
 sections, closed section loops and smooth Lofts of more than two sections are refused with
-continuity. `LoftEdgeContinuityTests` own the S-shaped G1 and G2 sheets between two boxes'
+continuity. `SurfaceEdgeContinuityTests` own the S-shaped G1 and G2 sheets between two boxes'
 edges, the round trip and the curved-face refusal.
 
 ### Loft section topology

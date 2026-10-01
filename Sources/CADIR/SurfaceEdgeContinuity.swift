@@ -1,9 +1,9 @@
 import CADCore
 
-/// How a Loft meets the body at an end section that runs along one of the body's edges: tangent
-/// (G1) or curvature (G2) continuous with the face beside the edge the loft leaves (or arrives
-/// at), its cross-boundary derivative `tension` times the distance between the end sections.
-public struct LoftEdgeContinuity: Codable, Hashable, Sendable {
+/// How a surface (a Loft's end section, a Square's side) meets a body along one of the body's
+/// edges: tangent (G1) or curvature (G2) continuous with the face beside the edge, its
+/// cross-boundary derivative scaled by `tension`.
+public struct SurfaceEdgeContinuity: Codable, Hashable, Sendable {
     public enum Order: String, Codable, Hashable, Sendable {
         case tangent
         case curvature
@@ -53,10 +53,10 @@ public struct LoftEdgeContinuity: Codable, Hashable, Sendable {
     public func validate() throws {
         try edge.validate()
         guard bodyRole == .body || bodyRole == .sheet else {
-            throw FeatureEvaluationError.invalidGraph("A Loft continuity edge's owner publishes a body or a sheet.")
+            throw FeatureEvaluationError.invalidGraph("A continuity edge's owner publishes a body or a sheet.")
         }
         guard tension.isFinite, tension > 0 else {
-            throw FeatureEvaluationError.invalidGraph("A Loft continuity's tension must be finite and greater than zero.")
+            throw FeatureEvaluationError.invalidGraph("A continuity's tension must be finite and greater than zero.")
         }
     }
 }

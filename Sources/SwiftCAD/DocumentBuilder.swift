@@ -1601,6 +1601,17 @@ public struct DocumentBuilder {
         return featureID
     }
 
+    /// Square: the sheet framed by four curves meeting end to end, each side G0 or continuous with
+    /// the face beside the body edge it runs along.
+    @discardableResult
+    public mutating func square(sides: [SquareSide], named name: String? = nil) throws -> FeatureID {
+        let square = SquareSurfaceFeature(sides: sides)
+        try square.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .squareSurface(square))
+        return featureID
+    }
+
     @discardableResult
     public mutating func loft(
         sections: [LoftSectionReference],

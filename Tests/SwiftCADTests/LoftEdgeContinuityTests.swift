@@ -11,7 +11,7 @@ import CADTopology
 /// A Loft between edges of two boxes leaves one box's top face and arrives at the other's bottom
 /// face tangent (G1) or curvature (G2) continuous with them.
 @Suite("Loft edge continuity")
-struct LoftEdgeContinuityTests {
+struct SurfaceEdgeContinuityTests {
     private func length(_ value: Double) -> CADExpression { .constant(.length(value, unit: .meter)) }
 
     private func evaluate(_ builder: DocumentBuilder) throws -> EvaluatedDocument {
@@ -40,7 +40,7 @@ struct LoftEdgeContinuityTests {
 
     /// Box A spans [0, 20 mm]³; box B [0, 20] × [-70, -50] × [30, 50] mm. The loft runs from A's
     /// top front edge (y = 0, z = 20 mm) to B's bottom back edge (y = -50, z = 30 mm).
-    private func loft(order: LoftEdgeContinuity.Order?, tension: Double = 1) throws -> (DocumentBuilder, FeatureID) {
+    private func loft(order: SurfaceEdgeContinuity.Order?, tension: Double = 1) throws -> (DocumentBuilder, FeatureID) {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let first = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
         let second = try builder.box(
@@ -54,7 +54,7 @@ struct LoftEdgeContinuityTests {
         let sections = [(first, firstEdge, firstCurve, firstReversed), (second, secondEdge, secondCurve, secondReversed)].map { body, edge, curve, reversed in
             LoftSectionReference(
                 section: .curve(CurveSectionReference(featureID: curve, isReversed: reversed)),
-                continuity: order.map { LoftEdgeContinuity(source: body, bodyRole: .body, edge: edge, order: $0, tension: tension) }
+                continuity: order.map { SurfaceEdgeContinuity(source: body, bodyRole: .body, edge: edge, order: $0, tension: tension) }
             )
         }
         let loft = try builder.loft(sections: sections, options: LoftOptions(resultKind: .sheet))
@@ -137,7 +137,7 @@ struct LoftEdgeContinuityTests {
         let target = try builder.edgeCurves(of: upper, edges: [try builder.stableSubshape(upperKey)])
         _ = try builder.loft(sections: [
             LoftSectionReference(section: .curve(CurveSectionReference(featureID: curve)),
-                                 continuity: LoftEdgeContinuity(source: cylinder, bodyRole: .body, edge: rim, order: .tangent)),
+                                 continuity: SurfaceEdgeContinuity(source: cylinder, bodyRole: .body, edge: rim, order: .tangent)),
             LoftSectionReference(section: .curve(CurveSectionReference(featureID: target))),
         ], options: LoftOptions(resultKind: .sheet))
         do {

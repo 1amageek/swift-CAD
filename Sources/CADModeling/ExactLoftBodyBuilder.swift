@@ -1803,14 +1803,14 @@ package struct ExactLoftBodyBuilder {
             let sum = ring.reduce(Vector3D.zero) { $0 + ($1 - .origin) }
             return .origin + sum * (1 / Double(ring.count))
         }
-        var planes: [Int: ExactLoftEdgeContinuityPlane] = [:]
+        var planes: [Int: ExactEdgeContinuityPlane] = [:]
         for sectionIndex in Set([0, sectionCount - 1]) {
             guard let continuity = loft.sections[sectionIndex].continuity else { continue }
             let other = sectionIndex == 0 ? 1 : sectionCount - 2
             let span = partition.curves[sectionIndex][0]
             guard case let .closed(lower, _) = span.domain else { throw invalidGeometry("A Loft section span is unbounded.") }
             let start = try span.differentialGeometry(at: lower, tolerance: tolerance)
-            planes[sectionIndex] = try ExactLoftEdgeContinuityResolver().plane(
+            planes[sectionIndex] = try ExactEdgeContinuityPlaneResolver().plane(
                 for: continuity, point: start.position, derivative: start.firstDerivative,
                 toward: centroid(partition.rings[other]) - centroid(partition.rings[sectionIndex]),
                 context: context, featureID: featureID

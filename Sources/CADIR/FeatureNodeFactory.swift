@@ -133,6 +133,22 @@ public enum FeatureNodeFactory {
                 )
             }
             return try run()
+        case .squareSurface:
+            func run() throws -> FeatureNode {
+                guard case let .squareSurface(square) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try square.validate()
+                for side in square.sides {
+                    try validateCurveSource(side.curve.featureID, owner: "Square side", in: document)
+                    if let continuity = side.continuity {
+                        try validateSource(continuity.source, role: continuity.bodyRole, in: document)
+                    }
+                }
+                return FeatureNode(id: id, name: name, operation: operation, inputs: square.inputs,
+                                   outputs: [FeatureOutput(role: .sheet)])
+            }
+            return try run()
         case .edgeCurve:
             func run() throws -> FeatureNode {
                 guard case let .edgeCurve(edgeCurve) = operation else {

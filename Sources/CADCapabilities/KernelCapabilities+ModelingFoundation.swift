@@ -274,6 +274,31 @@ extension KernelCapabilities {
       ]
     ),
     feature(
+      id: "MODEL-SQUARE-001",
+      operation: "squareSurface",
+      topology: .sheetBody,
+      inputs: [
+        "fourDistinctCurvesMeetingEndToEndAnyOrderOrDirection",
+        "optionalTangentOrCurvatureContinuityPerSideWithThePlanarFaceBesideABodyEdge",
+      ],
+      outputs: [
+        "oneExactBSplineSheetCoonsAtG0HermiteBooleanSumAlongContinuousSides",
+      ],
+      fixtures: [
+        "SquareSurfaceTests",
+      ],
+      status: .partial,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .unsupportedCapability,
+      ],
+      additionalPublicAPIs: [
+        "CADModeling.SquareSurfaceFeatureEvaluator",
+        "DocumentBuilder.square",
+      ]
+    ),
+    feature(
       id: "MODEL-EDGE-CURVE-001",
       operation: "edgeCurve",
       topology: .curve,

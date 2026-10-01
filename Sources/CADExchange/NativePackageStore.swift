@@ -427,6 +427,15 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("edgeCurve", in: object, path: "\(path).edgeCurve") { feature, featurePath in
         try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["source", "bodyRole", "edges"], objectName: featurePath)
     }
+    try validateObjectField("squareSurface", in: object, path: "\(path).squareSurface") { feature, featurePath in
+        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["sides"], objectName: featurePath)
+        try validateArrayField("sides", in: feature, path: "\(featurePath).sides") { side, sidePath in
+            try rejectUnsupportedNativeKeys(in: side, supportedKeys: ["curve", "continuity"], objectName: sidePath)
+            if side["continuity"] != nil {
+                try validateObjectField("continuity", in: side, path: "\(sidePath).continuity", using: validateSurfaceEdgeContinuityObject)
+            }
+        }
+    }
     try validateObjectField("loft", in: object, path: "\(path).loft", using: validateLoftFeatureObject)
     try validateObjectField("boolean", in: object, path: "\(path).boolean", using: validateBooleanFeatureObject)
     try validateObjectField("polySpline", in: object, path: "\(path).polySpline", using: validatePolySplineFeatureObject)
@@ -2322,7 +2331,7 @@ private func validateLoftGuideReferenceObject(_ object: [String: Any], path: Str
     )
 }
 
-private func validateLoftEdgeContinuityObject(_ object: [String: Any], path: String) throws {
+private func validateSurfaceEdgeContinuityObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["source", "bodyRole", "edge", "order", "tension"], objectName: path)
     try validateObjectField("edge", in: object, path: "\(path).edge", using: validateStableSubshapeReferenceObject)
     try validateLoftOptionString("order", in: object, path: "\(path).order", supportedValues: ["tangent", "curvature"])
@@ -2338,7 +2347,7 @@ private func validateLoftSectionReferenceObject(_ object: [String: Any], path: S
         objectName: path
     )
     if object["continuity"] != nil {
-        try validateObjectField("continuity", in: object, path: "\(path).continuity", using: validateLoftEdgeContinuityObject)
+        try validateObjectField("continuity", in: object, path: "\(path).continuity", using: validateSurfaceEdgeContinuityObject)
     }
     try validateObjectField("section", in: object, path: "\(path).section", using: validateSectionReferenceObject)
     try validateLoftOptionString("profileDirection", in: object, path: "\(path).profileDirection",

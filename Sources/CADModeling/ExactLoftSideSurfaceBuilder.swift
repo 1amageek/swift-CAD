@@ -72,7 +72,7 @@ package struct ExactLoftSideSurfaceBuilder: Sendable {
         return try validated(surface, tolerance: tolerance)
     }
 
-    private func validated(_ surface: BSplineSurface3D, tolerance: ModelingTolerance) throws -> BSplineSurface3D {
+    package func validated(_ surface: BSplineSurface3D, tolerance: ModelingTolerance) throws -> BSplineSurface3D {
         // The returned tensor chart is a construction map. The body builder
         // publishes the certified planar support for a collinear corner.
         if try BSplineSurfaceEmbeddingValidator.stationaryPlanarSupport(for: surface, tolerance: tolerance) == nil {

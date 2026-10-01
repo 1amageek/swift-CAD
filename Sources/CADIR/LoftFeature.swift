@@ -117,7 +117,7 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
     public var smoothTangentMode: LoftSectionSmoothTangentMode
     /// Tangent or curvature continuity with the face beside the body edge an end curve section
     /// runs along; nil for position (G0) only.
-    public var continuity: LoftEdgeContinuity?
+    public var continuity: SurfaceEdgeContinuity?
 
     private enum CodingKeys: String, CodingKey {
         case section
@@ -145,7 +145,7 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
         startSampleIndex: Int? = nil,
         smoothTangentScale: Double? = nil,
         smoothTangentMode: LoftSectionSmoothTangentMode = .automatic,
-        continuity: LoftEdgeContinuity? = nil
+        continuity: SurfaceEdgeContinuity? = nil
     ) {
         self.section = section
         self.profileDirection = profileDirection
@@ -170,7 +170,7 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
         startSampleIndex = try container.decodeIfPresent(Int.self, forKey: .startSampleIndex)
         smoothTangentScale = try container.decodeIfPresent(Double.self, forKey: .smoothTangentScale)
         smoothTangentMode = try container.decode(LoftSectionSmoothTangentMode.self, forKey: .smoothTangentMode)
-        continuity = try container.decodeIfPresent(LoftEdgeContinuity.self, forKey: .continuity)
+        continuity = try container.decodeIfPresent(SurfaceEdgeContinuity.self, forKey: .continuity)
         try validate()
     }
 

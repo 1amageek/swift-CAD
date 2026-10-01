@@ -32,6 +32,7 @@ struct KernelCapabilityContractTests {
       "MODEL-SWEEP-001",
       "MODEL-PIPE-001",
       "MODEL-EDGE-CURVE-001",
+      "MODEL-SQUARE-001",
       "MODEL-LOFT-001",
       "MODEL-BOOLEAN-001",
       "MODEL-POLYSPLINE-001",

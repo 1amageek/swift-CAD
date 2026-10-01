@@ -298,6 +298,7 @@ struct DocumentEvaluationEngine {
                  .sweep,
                  .pipe,
                  .edgeCurve,
+                 .squareSurface,
                  .loft,
                  .boolean,
                  .chamfer,

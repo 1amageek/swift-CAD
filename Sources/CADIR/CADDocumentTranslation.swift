@@ -63,6 +63,7 @@ private extension FeatureOperation {
              .sweep,
              .pipe,
              .edgeCurve,
+             .squareSurface,
              .loft,
              .boolean,
              .faceLoopOffset,
