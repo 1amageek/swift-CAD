@@ -200,7 +200,7 @@ struct ChamferFeatureTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func rejectsThreeEdgesMeetingAtOneCornerWithTypedCapabilityError() throws {
+    func chamfersThreeEdgesMeetingAtOneCorner() throws {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
         let source = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
@@ -225,15 +225,10 @@ struct ChamferFeatureTests {
         )
         append(node, dependingOn: extrudeFeatureID, to: &document)
 
-        do {
-            _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
-            Issue.record("A chamfer of three edges meeting at one corner needs a vertex blend and must be refused.")
-        } catch let error as KernelError {
-            #expect(error.phase == .evaluation)
-            #expect(error.code == .unsupportedCapability)
-            #expect(error.featureID == chamferFeatureID)
-            #expect(error.tolerance == .standard)
-        }
+        // The three chamfer planes meet at one point: the box keeps its six faces and gains three.
+        let chamfered = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+        try chamfered.brep.validate(level: .volumetric, tolerance: .standard)
+        #expect(chamfered.brep.faces.count == 9)
     }
 
     private func append(

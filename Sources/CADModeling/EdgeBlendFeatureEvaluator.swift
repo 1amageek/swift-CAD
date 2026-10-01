@@ -1061,12 +1061,129 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                         start: start, end: end, axis: axis, length: (end - start).length, faces: (faces[0], faces[1]),
                         along: (try away(faces[0], axis: axis, from: start), try away(faces[1], axis: axis, from: start)))
         }
+        /// The request from the blends' faces: every face beside a blended edge cut back along its
+        /// contact lines, and each free end's face closed on its section.
+        func finish(_ blends: [BRepSewingFacePatch], freeEnds: [(corner: Point3D, curve: Curve3D, axis: Vector3D)],
+                    distance: Double) throws -> BRepSewingRequest {
+            var patches = blends
+            var capped = 0
+            for (faceIndex, faceID) in shell.faceIDs.enumerated() {
+                let stableID = "source-face:\(faceIndex)"
+                let faceParents = subshapeIDs(for: .face(faceID), context: context)
+                // The faces beside the edges are cut back along their contact lines.
+                var cuts: [(origin: Point3D, normal: Vector3D, link: Int)] = []
+                for (index, link) in links.enumerated() {
+                    if faceID == link.faces.first { cuts.append((link.start, link.along.first, index)) }
+                    if faceID == link.faces.second { cuts.append((link.start, link.along.second, index)) }
+                }
+                if cuts.isEmpty == false {
+                    var polygon = try outerPolygon(faceID, model: model, featureID: featureID, tolerance: tolerance)
+                    let plane = try orientedPlane(faceID, model: model, featureID: featureID, tolerance: tolerance)
+                    guard isConvex(polygon, normal: plane.outward, tolerance: tolerance) else {
+                        // FIXME(INCOMPLETE_IMPLEMENTATION): a face beside blended edges that meet is
+                        // cut back by half-planes, which holds only for convex faces, so a concave one
+                        // is refused. Production path: blendNetworkRequest. Complete only when concave
+                        // faces are cut along their contact lines alone, verified by an L block's top
+                        // edges blended together.
+                        throw refuse("Blended edges that meet bound convex faces.")
+                    }
+                    for cut in cuts {
+                        polygon = simplified(clip(polygon, origin: cut.origin, normal: cut.normal, offset: distance, tolerance: tolerance), tolerance: tolerance)
+                    }
+                    guard polygon.count >= 3 else {
+                        throw failure(.topologyFailure, featureID: featureID, tolerance: tolerance, "A blend removes a face beside its edges.")
+                    }
+                    let surface = Surface3D.plane(plane.plane)
+                    let edges = try polygon.indices.map { index in
+                        let (start, end) = (polygon[index], polygon[(index + 1) % polygon.count])
+                        // A contact line takes the edge it runs along; any other side its source edge.
+                        let contact = cuts.first { cut in
+                            abs((start - cut.origin).dot(cut.normal) - distance) <= tolerance.distance
+                                && abs((end - cut.origin).dot(cut.normal) - distance) <= tolerance.distance
+                        }
+                        let parents = contact.map { [links[$0.link].subshapeID] }
+                            ?? sourceEdgeParents(start: start, end: end, sourceEdgeIDs: sourceEdgeIDs, model: model, context: context,
+                                                 allowsSelectedFallback: false)
+                        return try lineEdge(stableID: "\(stableID):edge:\(index)", start: start, end: end, surface: surface,
+                                            parents: parents, tolerance: tolerance)
+                    }
+                    patches.append(BRepSewingFacePatch(stableID: stableID, surface: surface, orientation: plane.orientation,
+                                                       loops: [BRepSewingLoop(stableID: "\(stableID):outer", role: .outer, edges: edges)],
+                                                       parentSubshapeIDs: faceParents))
+                    continue
+                }
+                var patch = try SourceBRepFacePatchBuilder().build(faceID: faceID, stableID: stableID, from: model,
+                                                                   sourceSubshapes: context.subshapes.entries, tolerance: tolerance).patch
+                for end in freeEnds {
+                    if let cap = try cornerCap(patch, corner: end.corner, curve: end.curve, distance: distance, axis: end.axis, context: context) {
+                        patch = cap.patch
+                        capped += 1
+                    }
+                }
+                patches.append(patch)
+            }
+            guard capped == freeEnds.count else {
+                throw refuse("A blend's free end lies on a face square across its edge, apart from the faces beside the blended edges.")
+            }
+            return BRepSewingRequest(featureID: featureID, bodyKind: body.kind == .sheet ? .sheet : .solid,
+                                     shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
+                                     bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context))
+        }
         let alpha = acos(max(-1, min(1, links[0].along.first.dot(links[0].along.second))))
+        if blendSection.resolve(alpha).degree == 1 {
+            // A chamfer's faces are planes through its contact lines; where chamfered edges meet,
+            // each is cut by its neighbours' planes, so mitres and corners of any number of edges
+            // close on the planes' intersections.
+            let distance = blendSection.resolve(alpha).setback
+            let planes = try links.map { link -> (origin: Point3D, normal: Vector3D) in
+                let (first, second) = (link.start + link.along.first * distance, link.start + link.along.second * distance)
+                var normal = try (second - first).cross(link.axis).normalized(tolerance: tolerance.distance)
+                // Facing the material the chamfer keeps, away from the edge it removes.
+                if (link.start - first).dot(normal) > 0 { normal = normal * -1 }
+                return (first, normal)
+            }
+            var chamfers: [BRepSewingFacePatch] = []
+            var freeEnds: [(corner: Point3D, curve: Curve3D, axis: Vector3D)] = []
+            for (index, link) in links.enumerated() {
+                let neighbours = links.indices.filter { other in
+                    other != index && [links[other].vertices.start, links[other].vertices.end].contains { [link.vertices.start, link.vertices.end].contains($0) }
+                }
+                let ends = [link.start, link.end].map { point in (point + link.along.first * distance, point + link.along.second * distance) }
+                var polygon = [ends[0].0, ends[1].0, ends[1].1, ends[0].1]
+                for other in neighbours {
+                    polygon = simplified(clip(polygon, origin: planes[other].origin, normal: planes[other].normal, offset: 0, tolerance: tolerance),
+                                         tolerance: tolerance)
+                }
+                guard polygon.count >= 3 else {
+                    throw failure(.topologyFailure, featureID: featureID, tolerance: tolerance, "A chamfer is consumed by the chamfers beside it.")
+                }
+                for (vertex, end, axis) in [(link.vertices.start, ends[0], link.axis), (link.vertices.end, ends[1], link.axis * -1)]
+                    where neighbours.allSatisfy({ [links[$0].vertices.start, links[$0].vertices.end].contains(vertex) == false }) {
+                    freeEnds.append((vertex == link.vertices.start ? link.start : link.end,
+                                     .bSpline(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1], controlPoints: [end.0, end.1])), axis))
+                }
+                // The face looks away from the material, its loop counterclockwise about that.
+                let outward = planes[index].normal * -1
+                var turning = Vector3D.zero
+                for (a, b) in zip(polygon, polygon.dropFirst() + polygon.prefix(1)) { turning = turning + (a - polygon[0]).cross(b - polygon[0]) }
+                if turning.dot(outward) < 0 { polygon.reverse() }
+                let surface = Surface3D.plane(Plane3D(origin: planes[index].origin, normal: outward))
+                let edges = try polygon.indices.map { corner in
+                    try lineEdge(stableID: "chamfer:\(index):edge:\(corner)", start: polygon[corner], end: polygon[(corner + 1) % polygon.count],
+                                 surface: surface, parents: [link.subshapeID], tolerance: tolerance)
+                }
+                chamfers.append(BRepSewingFacePatch(stableID: "chamfer:\(index)", surface: surface, orientation: .forward,
+                                                    loops: [BRepSewingLoop(stableID: "chamfer:\(index):outer", role: .outer, edges: edges)],
+                                                    parentSubshapeIDs: [link.faces.first, link.faces.second].flatMap { subshapeIDs(for: .face($0), context: context) }))
+            }
+            return try finish(chamfers, freeEnds: freeEnds, distance: distance)
+        }
         guard alpha > tolerance.angle, alpha < .pi - tolerance.angle,
               links.allSatisfy({ abs(acos(max(-1, min(1, $0.along.first.dot($0.along.second)))) - alpha) <= tolerance.angle }) else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): edges whose faces meet at different angles have
-            // sections that do not mirror each other across a corner, so their blends meet along a
-            // non-planar curve, which is not built, and they are refused. Production path:
+            // FIXME(INCOMPLETE_IMPLEMENTATION): curved blends of edges whose faces meet at
+            // different angles have sections that do not mirror each other across a corner, so
+            // they meet along a non-planar curve, which is not built, and they are refused
+            // (chamfers meet on their planes' intersections). Production path:
             // blendNetworkRequest for every blend of edges meeting at corners. Complete only when
             // asymmetric corners are joined along their blends' intersection, verified by a corner
             // between a right-angled and a drafted edge.
@@ -1169,12 +1286,12 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     return edge.startVertexID == vertexID || edge.endVertexID == vertexID
                 }.count == 3
                 guard round, square, paired, sharp else {
-                    // FIXME(INCOMPLETE_IMPLEMENTATION): three blended edges meet at a corner closed
-                    // only for a round section across three square faces (the rolling ball's
-                    // octant); other shapes, angles or corners need a general vertex blend, which
-                    // is not built, so they are refused. Production path: blendNetworkRequest.
-                    // Complete only when such corners are closed by a vertex blend, verified by a
-                    // box corner's three edges chamfered together.
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): three curved blends meeting at a corner
+                    // close only for a round section across three square faces (the rolling ball's
+                    // octant; chamfers close on their planes); other shapes, angles or corners need
+                    // a general vertex blend, which is not built, so they are refused. Production
+                    // path: blendNetworkRequest. Complete only when such corners are closed by a
+                    // vertex blend, verified by a box corner's three edges G2-blended together.
                     throw refuse("Three blended edges meeting at a corner are closed for a round section across square faces.")
                 }
                 for (use, direction) in zip(meeting, directions) {
@@ -1282,68 +1399,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 return (outward(use.index, atStart: use.atStart), curve)
             }, radius: distance, parents: parents, tolerance: tolerance))
         }
-        var capped = 0
-        for (faceIndex, faceID) in shell.faceIDs.enumerated() {
-            let stableID = "source-face:\(faceIndex)"
-            let faceParents = subshapeIDs(for: .face(faceID), context: context)
-            // The faces beside the edges are cut back along their contact lines.
-            var cuts: [(origin: Point3D, normal: Vector3D, link: Int)] = []
-            for (index, link) in links.enumerated() {
-                if faceID == link.faces.first { cuts.append((link.start, link.along.first, index)) }
-                if faceID == link.faces.second { cuts.append((link.start, link.along.second, index)) }
-            }
-            if cuts.isEmpty == false {
-                var polygon = try outerPolygon(faceID, model: model, featureID: featureID, tolerance: tolerance)
-                let plane = try orientedPlane(faceID, model: model, featureID: featureID, tolerance: tolerance)
-                guard isConvex(polygon, normal: plane.outward, tolerance: tolerance) else {
-                    // FIXME(INCOMPLETE_IMPLEMENTATION): a face beside blended edges that meet is
-                    // cut back by half-planes, which holds only for convex faces, so a concave one
-                    // is refused. Production path: blendNetworkRequest. Complete only when concave
-                    // faces are cut along their contact lines alone, verified by an L block's top
-                    // edges blended together.
-                    throw refuse("Blended edges that meet bound convex faces.")
-                }
-                for cut in cuts {
-                    polygon = simplified(clip(polygon, origin: cut.origin, normal: cut.normal, offset: distance, tolerance: tolerance), tolerance: tolerance)
-                }
-                guard polygon.count >= 3 else {
-                    throw failure(.topologyFailure, featureID: featureID, tolerance: tolerance, "A blend removes a face beside its edges.")
-                }
-                let surface = Surface3D.plane(plane.plane)
-                let edges = try polygon.indices.map { index in
-                    let (start, end) = (polygon[index], polygon[(index + 1) % polygon.count])
-                    // A contact line takes the edge it runs along; any other side its source edge.
-                    let contact = cuts.first { cut in
-                        abs((start - cut.origin).dot(cut.normal) - distance) <= tolerance.distance
-                            && abs((end - cut.origin).dot(cut.normal) - distance) <= tolerance.distance
-                    }
-                    let parents = contact.map { [links[$0.link].subshapeID] }
-                        ?? sourceEdgeParents(start: start, end: end, sourceEdgeIDs: sourceEdgeIDs, model: model, context: context,
-                                             allowsSelectedFallback: false)
-                    return try lineEdge(stableID: "\(stableID):edge:\(index)", start: start, end: end, surface: surface,
-                                        parents: parents, tolerance: tolerance)
-                }
-                patches.append(BRepSewingFacePatch(stableID: stableID, surface: surface, orientation: plane.orientation,
-                                                   loops: [BRepSewingLoop(stableID: "\(stableID):outer", role: .outer, edges: edges)],
-                                                   parentSubshapeIDs: faceParents))
-                continue
-            }
-            var patch = try SourceBRepFacePatchBuilder().build(faceID: faceID, stableID: stableID, from: model,
-                                                               sourceSubshapes: context.subshapes.entries, tolerance: tolerance).patch
-            for end in freeEnds {
-                if let cap = try cornerCap(patch, corner: end.corner, curve: end.curve, distance: distance, axis: end.axis, context: context) {
-                    patch = cap.patch
-                    capped += 1
-                }
-            }
-            patches.append(patch)
-        }
-        guard capped == freeEnds.count else {
-            throw refuse("A blend's free end lies on a face square across its edge, apart from the faces beside the blended edges.")
-        }
-        return BRepSewingRequest(featureID: featureID, bodyKind: body.kind == .sheet ? .sheet : .solid,
-                                 shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
-                                 bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context))
+        return try finish(patches, freeEnds: freeEnds, distance: distance)
     }
 
     /// A patch over `surface` bounded by `edges`, counterclockwise in (u, v): facing the surface's

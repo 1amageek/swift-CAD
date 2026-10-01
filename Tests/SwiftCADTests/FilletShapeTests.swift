@@ -480,19 +480,31 @@ struct FilletShapeTests {
         #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
     }
 
-    @Test(.timeLimit(.minutes(2)))
-    func threeEdgesChamferedAtOneCornerAreRefused() throws {
+    /// The box after chamfering `select`ed edges by `d`, evaluated and validated.
+    private func chamferedBox(_ select: (Point3D) -> Bool, count: Int, d: Double) throws -> Double {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let (box, _) = try boxEdges(&builder, [])
         let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
-        let corner = try edges(of: box, in: evaluated, builder) { point in
-            [point.x, point.y, point.z].filter { abs($0) < 1e-12 }.count >= 2
-        }
-        #expect(corner.count == 3)
-        _ = try builder.chamfer(target: box, edges: corner, distance: length(0.003))
-        #expect(throws: KernelError.self) {
-            _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
-        }
+        let selected = try edges(of: box, in: evaluated, builder, where: select)
+        #expect(selected.count == count)
+        _ = try builder.chamfer(target: box, edges: selected, distance: length(d))
+        let chamfered = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        try chamfered.brep.validate(level: .volumetric, tolerance: .standard)
+        return try chamfered.brep.volume(tolerance: .standard)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func chamfersMeetAtTheirPlanesIntersections() throws {
+        let (s, d) = (0.02, 0.003)
+        // Each edge's triangle along it, less d³/3 where two meet, plus d³/4 where three meet.
+        let pair = try chamferedBox({ abs($0.z - s) < 1e-12 && (abs($0.y) < 1e-12 || abs($0.x) < 1e-12) }, count: 2, d: d)
+        #expect(abs(pair - (s * s * s - d * d * s + d * d * d / 3)) < 5e-12, "\(pair)")
+        let top = try chamferedBox({ abs($0.z - s) < 1e-12 }, count: 4, d: d)
+        #expect(abs(top - (s * s * s - 2 * d * d * s + 4 * d * d * d / 3)) < 5e-12, "\(top)")
+        let corner = try chamferedBox({ point in [point.x, point.y, point.z].filter { abs($0) < 1e-12 }.count >= 2 }, count: 3, d: d)
+        #expect(abs(corner - (s * s * s - 1.5 * d * d * s + 0.75 * d * d * d)) < 5e-12, "\(corner)")
+        let all = try chamferedBox({ _ in true }, count: 12, d: d)
+        #expect(abs(all - (s * s * s - 6 * d * d * s + 6 * d * d * d)) < 5e-12, "\(all)")
     }
 
     @Test(.timeLimit(.minutes(2)))
