@@ -274,16 +274,18 @@ v knots and the linear blend's the u Greville abscissae. A continuous side's der
 its face's plane, end on the neighbouring sides' derivatives (which must therefore lie in the
 plane and leave or enter the face) and are scaled by the tension; curvature rows lie in the plane
 too, so the sheet is exactly G1 or G2 with the plane. Continuity along neighbouring sides takes
-`buildAllSides`: the Boolean sum of cubic Hermite blends across both directions less the corners'
-tensor, every side's rows (a continuous side's from its support, a G0 side's linear) ending on the
-neighbouring sides' derivatives, and both rows through a corner taking one twist, the mean of
-their natural ones kept in the corner's tangent plane; planar faces meeting at a corner must be one
-plane, curved faces are certified within their allowances (a curved side's curvature rows are the
-face's normal curvature across it). Curvature along neighbouring sides and
-rational sides with continuity are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)`.
+`buildAllSides`: the Boolean sum of Hermite blends across both directions (cubic, or quintic with
+second-derivative rows when any side is curvature continuous) less the tensor of the corners'
+jets, every side's rows (a continuous side's from its support, otherwise linear) ending on the
+corner jets. Each corner's mixed derivatives are agreed once for the rows and columns through it:
+the mean of their natural ones, the twist kept in the corner's tangent plane and, beside a planar
+face, the higher ones too, imposed through each row's end control points. Planar faces meeting at
+a corner must be one plane; curved faces are certified within their allowances. Rational sides
+with continuity are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)`.
 `SquareSurfaceTests` own the flat frame in any order, the G1 and G2 sheets between two boxes'
 edges, the round trip, the refusal of rails bending out of the faces' planes, a plate's hole filled
-tangent along all four sides and the refusal across a box's walls.
+tangent along all four sides, the refusal across a box's walls, and a plate notch's sheet flat
+across two neighbouring edges at curvature order (and bent across them at tangent order).
 
 ### Fillet shapes
 

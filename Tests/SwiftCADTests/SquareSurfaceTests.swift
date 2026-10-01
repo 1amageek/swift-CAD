@@ -219,4 +219,71 @@ struct SquareSurfaceTests {
             #expect(error.code == .invalidInput && error.message.contains("bend out"))
         }
     }
+
+    /// A Square in the notch of an L-shaped plate 10 mm thick, continuous at `order` with the
+    /// plate's top along the notch's two edges (x = 0 and y = 20 mm), its other two sides rails
+    /// that leave and reach the top level and flat (two cubic spans each), rising 5 mm between. Returns the Square's
+    /// normals and normal curvatures at points along both continuous sides.
+    private func notchSquare(order: SurfaceEdgeContinuity.Order) throws -> (spline: BSplineSurface3D, samples: [(normal: Vector3D, curvatures: [Double])]) {
+        let (a, t, h) = (0.02, 0.01, 0.005)
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let outline: [(Double, Double)] = [(-a, 0), (0, 0), (0, a), (a, a), (a, 2 * a), (-a, 2 * a)]
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            for (start, end) in zip(outline, outline.dropFirst() + outline.prefix(1)) {
+                _ = sketch.line(from: point(start.0, start.1), to: point(end.0, end.1))
+            }
+        }.featureID
+        let plate = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(t))
+        let evaluated = try evaluate(builder)
+        func edge(from p: (Double, Double), to q: (Double, Double)) throws -> StableSubshapeReference {
+            let key = try #require(evaluated.subshapes.entries.first { key, value in
+                guard key.featureID == plate, case let .edge(id) = value, let edge = evaluated.brep.edges[id],
+                      let start = evaluated.brep.vertices[edge.startVertexID]?.point,
+                      let end = evaluated.brep.vertices[edge.endVertexID]?.point else { return false }
+                let ends = [Point3D(x: p.0, y: p.1, z: t), Point3D(x: q.0, y: q.1, z: t)]
+                return [start, end].allSatisfy { point in ends.contains { ($0 - point).length < 1e-12 } }
+            }?.key)
+            return try builder.stableSubshape(key)
+        }
+        let edges = [try edge(from: (0, 0), to: (0, a)), try edge(from: (0, a), to: (a, a))]
+        let curves = try edges.map { try builder.edgeCurves(of: plate, edges: [$0]) }
+        // On the plane through the origin across Y, sketch x is -x and sketch y is z; across X at
+        // x = a, sketch x is y and sketch y is z.
+        let bottom = try builder.sketch(on: .plane(Plane3D(origin: .origin, normal: .unitY))) { sketch in
+            _ = sketch.spline(SketchSpline(controlPoints: [(0, t), (a / 6, t), (a / 3, t), (a / 2, t + h / 2), (2 * a / 3, t + h), (5 * a / 6, t + h), (a, t + h)].map { point(-$0.0, $0.1) }))
+        }.featureID
+        let right = try builder.sketch(on: .plane(Plane3D(origin: Point3D(x: a, y: 0, z: 0), normal: .unitX))) { sketch in
+            _ = sketch.spline(SketchSpline(controlPoints: [(0, t + h), (a / 6, t + h), (a / 3, t + h), (a / 2, t + h / 2), (2 * a / 3, t), (5 * a / 6, t), (a, t)].map { point($0.0, $0.1) }))
+        }.featureID
+        let square = try builder.square(sides: zip(curves, edges).map { curve, edge in
+            SquareSide(curve: CurveSectionReference(featureID: curve),
+                       continuity: SurfaceEdgeContinuity(source: plate, bodyRole: .body, edge: edge, order: order))
+        } + [SquareSide(curve: CurveSectionReference(featureID: right)), SquareSide(curve: CurveSectionReference(featureID: bottom))])
+        let result = try evaluate(builder)
+        let surface = try #require(result.subshapes.entries.compactMap { key, value -> Surface3D? in
+            guard key.featureID == square, case let .face(id) = value, let face = result.brep.faces[id] else { return nil }
+            return result.brep.geometry.surfaces[face.surfaceID]
+        }.first)
+        guard case let .bSpline(spline) = surface else { throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: .standard, message: "A Square is a B-spline sheet.") }
+        let samples = try [0.004, 0.01, 0.016].flatMap { s in
+            try [Point3D(x: 0, y: s, z: t), Point3D(x: s, y: a, z: t)].map { point in
+                let projected = try surface.parameterProjection(of: point, tolerance: .standard)
+                #expect(projected.residual < 1e-9)
+                let geometry = try surface.differentialGeometry(u: projected.u, v: projected.v, tolerance: .standard)
+                return (geometry.normal, [geometry.normalCurvatureU, geometry.normalCurvatureV])
+            }
+        }
+        return (spline, samples)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aCurvatureSquareIsFlatAcrossTwoNeighbouringEdges() throws {
+        let curvature = try notchSquare(order: .curvature)
+        #expect(curvature.spline.uDegree == 5 && curvature.spline.vDegree == 5)
+        #expect(curvature.samples.allSatisfy { abs(abs($0.normal.z) - 1) < 1e-9 && $0.curvatures.allSatisfy { abs($0) < 1e-6 } })
+        // Tangent continuity alone keeps the plane but bends across the edges.
+        let tangent = try notchSquare(order: .tangent)
+        #expect(tangent.samples.allSatisfy { abs(abs($0.normal.z) - 1) < 1e-9 })
+        #expect(tangent.samples.contains { $0.curvatures.contains { abs($0) > 1 } })
+    }
 }

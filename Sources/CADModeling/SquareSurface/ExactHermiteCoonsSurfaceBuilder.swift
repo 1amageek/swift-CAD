@@ -177,11 +177,13 @@ package struct ExactHermiteCoonsSurfaceBuilder {
 
     /// The surface continuous along neighbouring sides too: the Boolean sum of the Hermite blends
     /// across v (between bottom and top with their rows) and across u (between left and right with
-    /// theirs), less the tensor of the corners' positions, derivatives and twists. Rows meet at the
-    /// corners on the sides' derivatives, and both rows through a corner take one twist there: the
-    /// mean of their natural ones, kept in the corner's tangent plane. Only tangent order is built;
-    /// planar faces meeting at a corner must be one plane, and curved faces are certified within
-    /// their allowance, the sides refined until they are.
+    /// theirs), less the tensor of the corners' jets. The blends are cubic at tangent order and
+    /// quintic, with second-derivative rows, when any side is curvature continuous. Rows meet at
+    /// the corners on the sides' derivatives, and the rows and columns through a corner take one
+    /// set of mixed derivatives there: the mean of their natural ones, the twist kept in the
+    /// corner's tangent plane and, beside a planar face, the higher ones too. Planar faces meeting
+    /// at a corner must be one plane, and curved faces are certified within their allowances, the
+    /// sides refined until they are.
     package func buildAllSides(
         bottom: BSplineCurve3D, top: BSplineCurve3D, left: BSplineCurve3D, right: BSplineCurve3D,
         bottomSupport: ExactEdgeContinuitySupport?, topSupport: ExactEdgeContinuitySupport?,
@@ -191,14 +193,6 @@ package struct ExactHermiteCoonsSurfaceBuilder {
         let supports = [bottomSupport, topSupport, leftSupport, rightSupport]
         guard [bottom, top, left, right].allSatisfy({ $0.weights.allSatisfy { $0 == 1 } }) else {
             throw failure(.unsupportedCapability, "A continuous Square's sides are polynomial curves.", featureID)
-        }
-        guard supports.allSatisfy({ $0?.order != .curvature }) else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): curvature continuity along neighbouring sides needs
-            // quintic blends with compatible corner second derivatives, which are not built, so it
-            // is refused. Production path: ExactHermiteCoonsSurfaceBuilder.buildAllSides for every
-            // Square and Patch continuous along neighbouring sides. Complete only when the quintic
-            // Boolean sum with compatible corners is built, verified by a G2 four-sided patch.
-            throw failure(.unsupportedCapability, "Curvature continuity is along one side or two opposite ones.", featureID)
         }
         let exact = supports.allSatisfy { $0?.isExact ?? true }
         var lastFailure: (any Error)?
@@ -216,7 +210,7 @@ package struct ExactHermiteCoonsSurfaceBuilder {
             }
         }
         throw failure(.classificationFailure,
-            "A surface could not meet its curved faces within the angular allowance: \(String(describing: lastFailure))", featureID)
+            "A surface could not meet its curved faces within their allowances: \(String(describing: lastFailure))", featureID)
     }
 
     private func allSides(
@@ -224,10 +218,15 @@ package struct ExactHermiteCoonsSurfaceBuilder {
         supports: [ExactEdgeContinuitySupport?], level: Int, featureID: FeatureID
     ) throws -> (BSplineSurface3D, [BSplineCurve3D]) {
         try tolerance.validate()
-        let bezier = BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1], controlPoints: Array(repeating: .origin, count: 4))
-        func cubicPair(_ first: BSplineCurve3D, _ second: BSplineCurve3D) throws -> (BSplineCurve3D, BSplineCurve3D) {
+        // Order 1 blends cubic Hermite functions (positions and first derivatives); order 2 quintic
+        // ones, adding second derivatives.
+        let order = supports.contains { $0?.order == .curvature } ? 2 : 1
+        let degree = 2 * order + 1
+        let bezier = BSplineCurve3D(degree: degree, knots: Array(repeating: 0, count: degree + 1) + Array(repeating: 1, count: degree + 1),
+                                    controlPoints: Array(repeating: .origin, count: degree + 1))
+        func commonPair(_ first: BSplineCurve3D, _ second: BSplineCurve3D) throws -> (BSplineCurve3D, BSplineCurve3D) {
             var pair = try resolver.resolve(first: first, second: second, tolerance: tolerance)
-            if pair.first.degree < 3 {
+            if pair.first.degree < degree {
                 pair = BSplineCurveCommonBasisPair(
                     first: try resolver.resolve(first: pair.first, second: bezier, tolerance: tolerance).first,
                     second: try resolver.resolve(first: pair.second, second: bezier, tolerance: tolerance).first
@@ -235,27 +234,42 @@ package struct ExactHermiteCoonsSurfaceBuilder {
             }
             return (try refined(pair.first, level: level), try refined(pair.second, level: level))
         }
-        let (b0, b1) = try cubicPair(bottom, top)
-        let (a0, a1) = try cubicPair(left, right)
+        // Bottom (v = 0) and top along u; left (u = 0) and right along v.
+        let (b0, b1) = try commonPair(bottom, top)
+        let (a0, a1) = try commonPair(left, right)
         for (side, along, sideAt, alongAt) in [(b0, a0, 0.0, 0.0), (b0, a1, 1.0, 0.0), (b1, a0, 0.0, 1.0), (b1, a1, 1.0, 1.0)] {
             guard (try point(side, sideAt) - point(along, alongAt)).length <= tolerance.distance else {
                 throw failure(.invalidInput, "A surface's sides do not meet at its corners.", featureID)
             }
         }
-        func derivative(_ curve: BSplineCurve3D, _ t: Double) throws -> Vector3D {
-            try curve.differentialGeometry(at: t, tolerance: tolerance).firstDerivative
+        let alongU = [b0, b1], alongV = [a0, a1]
+        // The corner jets: jet[cu][cv][j][k] is ∂ʲ⁺ᵏS/∂uʲ∂vᵏ at the corner (u, v) = (cu, cv). The
+        // sides give the pure derivatives; the mixed ones are agreed below.
+        var jet = Array(repeating: Array(repeating: Array(repeating: Array(repeating: Vector3D.zero, count: order + 1), count: order + 1), count: 2), count: 2)
+        for cu in 0...1 {
+            for cv in 0...1 {
+                let u = try alongU[cv].differentialGeometry(at: Double(cu), tolerance: tolerance)
+                let v = try alongV[cu].differentialGeometry(at: Double(cv), tolerance: tolerance)
+                jet[cu][cv][0][0] = u.position - .origin
+                jet[cu][cv][1][0] = u.firstDerivative
+                jet[cu][cv][0][1] = v.firstDerivative
+                if order == 2 {
+                    jet[cu][cv][2][0] = u.secondDerivative
+                    jet[cu][cv][0][2] = v.secondDerivative
+                }
+            }
         }
-        // Corner derivatives: along u on the bottom and top, along v on the left and right.
-        let su = [[try derivative(b0, 0), try derivative(b1, 0)], [try derivative(b0, 1), try derivative(b1, 1)]]
-        let sv = [[try derivative(a0, 0), try derivative(a0, 1)], [try derivative(a1, 0), try derivative(a1, 1)]]
         func grevilles(_ curve: BSplineCurve3D) -> [Double] {
             (0..<curve.controlPointCount).map { i in curve.knots[(i + 1)...(i + curve.degree)].reduce(0, +) / Double(curve.degree) }
         }
-        /// The rows across a side from its support (ending on the given corner derivatives), or their
-        /// linear blend.
-        func rows(_ side: BSplineCurve3D, support: ExactEdgeContinuitySupport?, start: Vector3D, end: Vector3D, entering: Bool) throws -> [Vector3D] {
-            let g = grevilles(side)
-            guard let support else { return g.map { start * (1 - $0) + end * $0 } }
+        func linear(_ curve: BSplineCurve3D, _ start: Vector3D, _ end: Vector3D) -> [Vector3D] {
+            grevilles(curve).map { start * (1 - $0) + end * $0 }
+        }
+        /// The first-derivative rows across a side from its support (ending on the given corner
+        /// derivatives, which must leave the side within the face's tangent plane), or their linear
+        /// blend.
+        func firstRows(_ side: BSplineCurve3D, support: ExactEdgeContinuitySupport?, start: Vector3D, end: Vector3D, entering: Bool) throws -> [Vector3D] {
+            guard let support else { return linear(side, start, end) }
             let directions = try support.leavingDirections(along: side, tolerance: tolerance).map { $0 * (entering ? -1 : 1) }
             let ends = (try point(side, 0), try point(side, 1))
             for (value, direction, at) in [(start, directions[0], ends.0), (end, directions[directions.count - 1], ends.1)] {
@@ -272,69 +286,110 @@ package struct ExactHermiteCoonsSurfaceBuilder {
             result[result.count - 1] = end
             return result
         }
-        var d0 = try rows(b0, support: supports[0], start: sv[0][0], end: sv[1][0], entering: false)
-        var d1 = try rows(b1, support: supports[1], start: sv[0][1], end: sv[1][1], entering: true)
-        var e0 = try rows(a0, support: supports[2], start: su[0][0], end: su[0][1], entering: false)
-        var e1 = try rows(a1, support: supports[3], start: su[1][0], end: su[1][1], entering: true)
-        // A clamped spline's end derivatives come from its two end control points.
-        func startScale(_ curve: BSplineCurve3D) -> Double { Double(curve.degree) / (curve.knots[curve.degree + 1] - curve.knots[1]) }
-        func endScale(_ curve: BSplineCurve3D) -> Double {
-            let n = curve.controlPointCount
-            return Double(curve.degree) / (curve.knots[n - 1 + curve.degree] - curve.knots[n - 1])
-        }
-        func startDerivative(_ rows: [Vector3D], _ curve: BSplineCurve3D) -> Vector3D { (rows[1] - rows[0]) * startScale(curve) }
-        func endDerivative(_ rows: [Vector3D], _ curve: BSplineCurve3D) -> Vector3D { (rows[rows.count - 1] - rows[rows.count - 2]) * endScale(curve) }
-        // One twist per corner, in the corner's tangent plane; planar faces meeting there must be
-        // one plane for any twist to keep both.
-        func twist(_ first: Vector3D, _ second: Vector3D, tangents: (Vector3D, Vector3D),
-                   supports pair: (ExactEdgeContinuitySupport?, ExactEdgeContinuitySupport?), at corner: Point3D) throws -> Vector3D {
-            let normal = try tangents.0.cross(tangents.1).normalized(tolerance: tolerance.distance)
-            if let p = pair.0, let q = pair.1, p.isExact, q.isExact {
-                let (m, n) = (try p.normal(at: corner, tolerance: tolerance), try q.normal(at: corner, tolerance: tolerance))
-                guard m.cross(n).length <= tolerance.angle else {
-                    throw failure(.invalidInput, "Planar faces meeting at a continuous corner must be one plane.", featureID)
+        /// The second-derivative rows across a side: beside a curvature-continuous support the
+        /// face's normal curvature along the first rows (zero beside a plane, whose neighbouring
+        /// sides must then not bend out of it at the corners), otherwise the linear blend.
+        func secondRows(_ side: BSplineCurve3D, support: ExactEdgeContinuitySupport?, first: [Vector3D], start: Vector3D, end: Vector3D) throws -> [Vector3D] {
+            guard let support, support.order == .curvature else { return linear(side, start, end) }
+            if support.isExact {
+                let scale = max(start.length, end.length, 1)
+                let (n0, n1) = (try support.normal(at: try point(side, 0), tolerance: tolerance),
+                                try support.normal(at: try point(side, 1), tolerance: tolerance))
+                guard abs(start.dot(n0)) <= tolerance.angle * scale, abs(end.dot(n1)) <= tolerance.angle * scale else {
+                    throw failure(.invalidInput,
+                        "The sides beside a curvature-continuous side must not bend out of the face's plane there.", featureID)
                 }
             }
-            let mean = (first + second) * 0.5
-            return mean - normal * mean.dot(normal)
+            var result = try support.curvatureRows(along: side, rows: first, tolerance: tolerance)
+            result[0] = start
+            result[result.count - 1] = end
+            return result
         }
-        let p00 = try point(b0, 0), p10 = try point(b0, 1), p01 = try point(b1, 0), p11 = try point(b1, 1)
-        let t00 = try twist(startDerivative(d0, b0), startDerivative(e0, a0), tangents: (su[0][0], sv[0][0]), supports: (supports[0], supports[2]), at: p00)
-        let t10 = try twist(endDerivative(d0, b0), startDerivative(e1, a1), tangents: (su[1][0], sv[1][0]), supports: (supports[0], supports[3]), at: p10)
-        let t01 = try twist(startDerivative(d1, b1), endDerivative(e0, a0), tangents: (su[0][1], sv[0][1]), supports: (supports[1], supports[2]), at: p01)
-        let t11 = try twist(endDerivative(d1, b1), endDerivative(e1, a1), tangents: (su[1][1], sv[1][1]), supports: (supports[1], supports[3]), at: p11)
-        func impose(_ rows: inout [Vector3D], _ curve: BSplineCurve3D, start: Vector3D, end: Vector3D) {
-            rows[1] = rows[0] + start * (1 / startScale(curve))
-            rows[rows.count - 2] = rows[rows.count - 1] - end * (1 / endScale(curve))
+        // rows[k][c]: the k-th derivative across the side at v = c (along u) and columns[k][c] at
+        // u = c (along v); k = 0 is the side itself.
+        let vectors = { (curve: BSplineCurve3D) in curve.controlPoints.map { $0 - Point3D.origin } }
+        var rows: [[[Vector3D]]] = [[vectors(b0), vectors(b1)]]
+        var columns: [[[Vector3D]]] = [[vectors(a0), vectors(a1)]]
+        rows.append([
+            try firstRows(b0, support: supports[0], start: jet[0][0][0][1], end: jet[1][0][0][1], entering: false),
+            try firstRows(b1, support: supports[1], start: jet[0][1][0][1], end: jet[1][1][0][1], entering: true),
+        ])
+        columns.append([
+            try firstRows(a0, support: supports[2], start: jet[0][0][1][0], end: jet[0][1][1][0], entering: false),
+            try firstRows(a1, support: supports[3], start: jet[1][0][1][0], end: jet[1][1][1][0], entering: true),
+        ])
+        if order == 2 {
+            rows.append([
+                try secondRows(b0, support: supports[0], first: rows[1][0], start: jet[0][0][0][2], end: jet[1][0][0][2]),
+                try secondRows(b1, support: supports[1], first: rows[1][1], start: jet[0][1][0][2], end: jet[1][1][0][2]),
+            ])
+            columns.append([
+                try secondRows(a0, support: supports[2], first: columns[1][0], start: jet[0][0][2][0], end: jet[0][1][2][0]),
+                try secondRows(a1, support: supports[3], first: columns[1][1], start: jet[1][0][2][0], end: jet[1][1][2][0]),
+            ])
         }
-        impose(&d0, b0, start: t00, end: t10)
-        impose(&d1, b1, start: t01, end: t11)
-        impose(&e0, a0, start: t00, end: t01)
-        impose(&e1, a1, start: t10, end: t11)
-        // The cubic Hermite functions as Bézier coefficients, and their coefficients in each basis.
-        let hermite: [[Double]] = [[1, 1, 0, 0], [0, 0, 1, 1], [0, 1.0 / 3, 0, 0], [0, 0, -1.0 / 3, 0]]
+        // Each mixed derivative at a corner is read from the rows along u and the columns along v
+        // and agreed as their mean; in the corner's tangent plane when a support borders it (where
+        // planar faces must be one plane, so the agreed jets keep both exactly).
+        let rowSupports = [supports[0], supports[1]], columnSupports = [supports[2], supports[3]]
+        for cu in 0...1 {
+            for cv in 0...1 {
+                let pair = (rowSupports[cv], columnSupports[cu])
+                let corner = Point3D.origin + jet[cu][cv][0][0]
+                if let p = pair.0, let q = pair.1, p.isExact, q.isExact {
+                    let (m, n) = (try p.normal(at: corner, tolerance: tolerance), try q.normal(at: corner, tolerance: tolerance))
+                    guard m.cross(n).length <= tolerance.angle else {
+                        throw failure(.invalidInput, "Planar faces meeting at a continuous corner must be one plane.", featureID)
+                    }
+                }
+                let normal = try jet[cu][cv][1][0].cross(jet[cu][cv][0][1]).normalized(tolerance: tolerance.distance)
+                let exactPlane = [pair.0, pair.1].contains { $0?.isExact == true }
+                for j in 1...order {
+                    for k in 1...order {
+                        // ∂ʲ/∂uʲ of the k-th row across v = cv, and ∂ᵏ/∂vᵏ of the j-th column.
+                        let fromRow = endDerivatives(rows[k][cv], alongU[cv], atEnd: cu == 1)[j - 1]
+                        let fromColumn = endDerivatives(columns[j][cu], alongV[cu], atEnd: cv == 1)[k - 1]
+                        let mean = (fromRow + fromColumn) * 0.5
+                        // The twist always keeps the tangent plane; higher jets only beside a plane,
+                        // whose rows lie in it (a curved face's rows bend out of it as the face does).
+                        jet[cu][cv][j][k] = (j == 1 && k == 1) || exactPlane ? mean - normal * mean.dot(normal) : mean
+                    }
+                }
+            }
+        }
+        for k in 1...order {
+            for c in 0...1 {
+                rows[k][c] = try impose(rows[k][c], alongU[c],
+                                        start: (1...order).map { jet[0][c][$0][k] }, end: (1...order).map { jet[1][c][$0][k] })
+                columns[k][c] = try impose(columns[k][c], alongV[c],
+                                           start: (1...order).map { jet[c][0][k][$0] }, end: (1...order).map { jet[c][1][k][$0] })
+            }
+        }
+        // The Hermite functions as Bézier coefficients on [0, 1], each with the corner it is at and
+        // the derivative order it carries, and their coefficients in each basis.
+        let hermite: [(bezier: [Double], corner: Int, order: Int)] = order == 1
+            ? [([1, 1, 0, 0], 0, 0), ([0, 0, 1, 1], 1, 0), ([0, 1.0 / 3, 0, 0], 0, 1), ([0, 0, -1.0 / 3, 0], 1, 1)]
+            : [([1, 1, 1, 0, 0, 0], 0, 0), ([0, 0, 0, 1, 1, 1], 1, 0), ([0, 0.2, 0.4, 0, 0, 0], 0, 1),
+               ([0, 0, 0, -0.4, -0.2, 0], 1, 1), ([0, 0, 0.05, 0, 0, 0], 0, 2), ([0, 0, 0, 0.05, 0, 0], 1, 2)]
         func coefficients(_ curve: BSplineCurve3D) -> [[Double]] {
             hermite.map { function in
-                let elevated = elevate(function, to: curve.degree)
+                let elevated = elevate(function.bezier, to: curve.degree)
                 return (0..<curve.controlPointCount).map { j in blossom(elevated, Array(curve.knots[(j + 1)...(j + curve.degree)])) }
             }
         }
         let cu = coefficients(b0), cv = coefficients(a0)
-        let vec = { (curve: BSplineCurve3D) in curve.controlPoints.map { $0 - Point3D.origin } }
-        let r = [vec(b0), vec(b1), d0, d1]
-        let q = [vec(a0), vec(a1), e0, e1]
-        let o = Point3D.origin
-        let corners: [[Vector3D]] = [
-            [p00 - o, p01 - o, sv[0][0], sv[0][1]],
-            [p10 - o, p11 - o, sv[1][0], sv[1][1]],
-            [su[0][0], su[0][1], t00, t01],
-            [su[1][0], su[1][1], t10, t11],
-        ]
         let net = try (0..<a0.controlPointCount).map { j in
             try (0..<b0.controlPointCount).map { i -> Point3D in
                 var value = Vector3D.zero
-                for k in 0..<4 { value = value + r[k][i] * cv[k][j] + q[k][j] * cu[k][i] }
-                for a in 0..<4 { for b in 0..<4 { value = value - corners[a][b] * (cu[a][i] * cv[b][j]) } }
+                for (k, function) in hermite.enumerated() {
+                    value = value + rows[function.order][function.corner][i] * cv[k][j]
+                        + columns[function.order][function.corner][j] * cu[k][i]
+                }
+                for (a, f) in hermite.enumerated() {
+                    for (b, g) in hermite.enumerated() {
+                        value = value - jet[f.corner][g.corner][f.order][g.order] * (cu[a][i] * cv[b][j])
+                    }
+                }
                 try value.validate()
                 return .origin + value
             }
@@ -342,6 +397,48 @@ package struct ExactHermiteCoonsSurfaceBuilder {
         let surface = BSplineSurface3D(uDegree: b0.degree, vDegree: a0.degree, uKnots: b0.knots, vKnots: a0.knots, controlPoints: net)
         try surface.validate(tolerance: tolerance)
         return (try ExactLoftSideSurfaceBuilder().validated(surface, tolerance: tolerance), [b0, b1, a0, a1])
+    }
+
+    /// The first and second derivatives of the clamped spline with `coefficients` in `curve`'s
+    /// basis at its start or end: the derivative splines' end coefficients.
+    private func endDerivatives(_ coefficients: [Vector3D], _ curve: BSplineCurve3D, atEnd: Bool) -> [Vector3D] {
+        let (values, knots) = atEnd ? reversed(coefficients, curve) : (coefficients, curve.knots)
+        let p = Double(curve.degree)
+        let q0 = (values[1] - values[0]) * (p / (knots[curve.degree + 1] - knots[1]))
+        let q1 = (values[2] - values[1]) * (p / (knots[curve.degree + 2] - knots[2]))
+        let second = (q1 - q0) * ((p - 1) / (knots[curve.degree + 1] - knots[2]))
+        return atEnd ? [q0 * -1, second] : [q0, second]
+    }
+
+    /// `coefficients` with their first (and second) derivatives at the start and end replaced by
+    /// the given ones: the two (three) end coefficients at each end, which need a basis of at least
+    /// twice as many.
+    private func impose(_ coefficients: [Vector3D], _ curve: BSplineCurve3D, start: [Vector3D], end: [Vector3D]) throws -> [Vector3D] {
+        guard coefficients.count >= 2 * (start.count + 1) else {
+            throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: tolerance,
+                              message: "A side's basis is too small for its corner derivatives.")
+        }
+        func imposingStart(_ values: [Vector3D], _ knots: [Double], _ derivatives: [Vector3D]) -> [Vector3D] {
+            var values = values
+            let p = Double(curve.degree)
+            let q0 = derivatives[0]
+            values[1] = values[0] + q0 * ((knots[curve.degree + 1] - knots[1]) / p)
+            if derivatives.count > 1 {
+                let q1 = q0 + derivatives[1] * ((knots[curve.degree + 1] - knots[2]) / (p - 1))
+                values[2] = values[1] + q1 * ((knots[curve.degree + 2] - knots[2]) / p)
+            }
+            return values
+        }
+        let started = imposingStart(coefficients, curve.knots, start)
+        let (back, knots) = reversed(started, curve)
+        let ended = imposingStart(back, knots, end.enumerated().map { $0.offset == 0 ? $0.element * -1 : $0.element })
+        return Array(ended.reversed())
+    }
+
+    /// The coefficients and knots of `curve`'s basis run backwards over the same domain.
+    private func reversed(_ coefficients: [Vector3D], _ curve: BSplineCurve3D) -> ([Vector3D], [Double]) {
+        let (first, last) = (curve.knots[0], curve.knots[curve.knots.count - 1])
+        return (Array(coefficients.reversed()), curve.knots.reversed().map { first + last - $0 })
     }
 
     /// `curve` with the midpoint of every knot span inserted `level` times over.
