@@ -99,7 +99,13 @@ struct FilletShapeTests {
         }
         #expect(top.count == 2)
         let edges = try top.map { try builder.stableSubshape($0) }
-        _ = try builder.fillet(target: rib, edges: edges, radius: length(0.001), shape: .full)
+        // A radius other than the half width the faces fix is refused.
+        var stated = builder
+        _ = try stated.fillet(target: rib, edges: edges, radius: length(0.009), shape: .full)
+        #expect(throws: KernelError.self) {
+            _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try stated.build(name: "rib"))
+        }
+        _ = try builder.fillet(target: rib, edges: edges, radius: length(0.01), shape: .full)
         let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "rib"))
         try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
         // The top 10 mm of the cross-section becomes a half disc of radius 10 mm.
@@ -115,7 +121,7 @@ struct FilletShapeTests {
         var wrong = DocumentBuilder(units: .meters, tolerance: .standard)
         let other = try wrong.box(width: length(0.02), depth: length(0.04), height: length(0.03))
         let twoEdges = try [0, 1].map { try wrong.stableSubshape(generatedBy: other, selector: .generated(role: .edge, index: $0)) }
-        _ = try wrong.fillet(target: other, edges: twoEdges, radius: length(0.001), shape: .full)
+        _ = try wrong.fillet(target: other, edges: twoEdges, radius: length(0.01), shape: .full)
         #expect(throws: KernelError.self) {
             _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try wrong.build(name: "rib"))
         }

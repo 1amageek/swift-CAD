@@ -1074,6 +1074,11 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                           "A full fillet's edges run side by side across a rectangular center face.")
         }
         let radius = width / 2
+        let stated = try resolvedRadius(fillet.radius, featureID: featureID, context: context)
+        guard abs(stated - radius) <= tolerance.distance else {
+            throw failure(.invalidInput, featureID: featureID, tolerance: tolerance,
+                          "A full fillet's radius is half its center face's width, \(radius); it states \(stated).")
+        }
         let down = center.outward * -1
         let axisVector = b1 - a1
         let height = axisVector.length

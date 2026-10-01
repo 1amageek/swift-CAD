@@ -313,7 +313,7 @@ distance. `full` (`evaluateFullRound`) takes the two straight edges bounding a c
 other faces are parallel planes perpendicular to it (a rib's top): the round is the half cylinder of
 half their distance tangent to all three faces, two exact quarter circles meeting on the center's
 middle line; the center face goes, the side faces are cut back by the radius and the end faces close
-on the semicircle (its radius comes from the faces, not the feature's distance). Full across
+on the semicircle (its radius comes from the faces, and the feature's radius must state it). Full across
 tapered or curved neighbours is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Variable and limit
 points, several edges, tangent chains and Y-blends are not built (FE2). `FilletShapeTests` own each
 shape's removed cross-section times the edge's length, the tension and one-edge admission, and the

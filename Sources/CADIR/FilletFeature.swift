@@ -5,7 +5,8 @@ import CADCore
 /// tension (the conic's rho); a `chordal` circular arc whose chord is the distance; or a
 /// `curvature` (G2) quintic meeting both faces at the distance with zero curvature there, its
 /// handles scaled by the tension; or a `full` round tangent to the three faces across a center face
-/// between the two selected edges, its size set by those faces (the radius is not used).
+/// between the two selected edges, whose radius those faces fix (half the face's width) and the
+/// feature's radius must state.
 public enum FilletShape: String, Codable, Hashable, Sendable {
     case round
     case conic
