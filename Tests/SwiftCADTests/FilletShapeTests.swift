@@ -162,4 +162,56 @@ struct FilletShapeTests {
         let volume = try evaluated.brep.volume(tolerance: .standard)
         #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
     }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aSheetsBendRoundsIntoAQuarterCylinder() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // An L of a 40 mm floor (z = 0, y from 0 to 40 mm) and wall (y = 0, z from 0 to 40 mm) joined
+        // along x; on the ZX plane sketch x is z and sketch y is x.
+        func square(on plane: SketchPlane, _ corners: [(Double, Double)]) throws -> FeatureID {
+            let lines = try corners.indices.map { index in
+                try builder.sketch(on: plane) { sketch in
+                    let (start, end) = (corners[index], corners[(index + 1) % corners.count])
+                    _ = sketch.line(from: SketchPoint(x: length(start.0), y: length(start.1)), to: SketchPoint(x: length(end.0), y: length(end.1)))
+                }.featureID
+            }
+            return try builder.patch(curves: lines.map { CurveSectionReference(featureID: $0) })
+        }
+        let floor = try square(on: .xy, [(0, 0), (0.04, 0), (0.04, 0.04), (0, 0.04)])
+        let wall = try square(on: .zx, [(0, 0), (0, 0.04), (0.04, 0.04), (0.04, 0)])
+        let sheet = try builder.joinBodies([floor, wall], mode: .sewnSheet)
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "bend"))
+        let bend = try #require(before.subshapes.entries.first { key, value in
+            guard key.featureID == sheet, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  let start = before.brep.vertices[edge.startVertexID]?.point,
+                  let end = before.brep.vertices[edge.endVertexID]?.point else { return false }
+            return [start, end].allSatisfy { abs($0.y) < 1e-12 && abs($0.z) < 1e-12 }
+        }?.key)
+        let r = 0.005
+        let fillet = try builder.fillet(target: sheet, edges: [try builder.stableSubshape(bend)], radius: length(r))
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "bend"))
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        let body = try #require(evaluated.subshapes.entries.compactMap { key, value -> BodyID? in
+            guard key.featureID == fillet, case let .body(id) = value else { return nil }
+            return id
+        }.first)
+        #expect(evaluated.brep.bodies[body]?.kind == .sheet)
+        let faces = try BodyTopologyScope(bodyID: body, model: evaluated.brep).references.compactMap { reference -> FaceID? in
+            if case let .face(id) = reference { return id }
+            return nil
+        }
+        #expect(faces.count == 3)
+        // The round meets the floor at y = r and the wall at z = r, passing (·, r − r/√2, r − r/√2).
+        let round = try #require(faces.compactMap { id -> Surface3D? in
+            guard let face = evaluated.brep.faces[id], let surface = evaluated.brep.geometry.surfaces[face.surfaceID],
+                  case .bSpline = surface else { return nil }
+            return surface
+        }.first)
+        let middle = r - r / 2.0.squareRoot()
+        #expect(try round.parameterProjection(of: Point3D(x: 0.02, y: middle, z: middle), tolerance: .standard).residual < 1e-9)
+        let points = evaluated.brep.vertices.values.map(\.point)
+        #expect(points.contains { abs($0.y - r) < 1e-12 && abs($0.z) < 1e-12 })
+        #expect(points.contains { abs($0.z - r) < 1e-12 && abs($0.y) < 1e-12 })
+        #expect(points.allSatisfy { !(abs($0.y) < 1e-9 && abs($0.z) < 1e-9) })
+    }
 }

@@ -30,6 +30,19 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             throw failure(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance, "Current exact fillet supports one selected edge per feature.")
         }
         let radius = try resolvedRadius(fillet.radius, featureID: feature.id, context: context)
+        // A sheet's edge between perpendicular planes takes the profile blend, a round one its
+        // exact quarter circle.
+        if fillet.allEdges == false,
+           let sheet = context.brep.bodies[try targetBodyID(fillet.target.featureID, featureID: feature.id, context: context)],
+           sheet.kind == .sheet {
+            let section = fillet.shape == .round
+                ? BlendSection(setback: radius, degree: 2, weights: [1, 0.5.squareRoot(), 1]) { corner, first, second in
+                    [corner + first * radius, corner, corner + second * radius]
+                }
+                : try self.section(for: fillet.shape, tension: fillet.tension, distance: radius)
+            return try evaluateProfileBlend(feature: feature, target: fillet.target.featureID, selected: fillet.edges[0],
+                                            section: section, context: context)
+        }
         if fillet.shape != .round {
             return try evaluateProfileBlend(feature: feature, target: fillet.target.featureID, selected: fillet.edges[0],
                                             section: try section(for: fillet.shape, tension: fillet.tension, distance: radius),
@@ -831,9 +844,8 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
     ) throws -> EvaluationResult {
         let bodyID = try targetBodyID(target, featureID: feature.id, context: context)
         guard let body = context.brep.bodies[bodyID],
-              body.kind == .solid,
               body.shellIDs.count == 1 else {
-            throw failure(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance, "Current exact G2 blend requires one single-shell solid body.")
+            throw failure(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance, "A blend rounds an edge of one single-shell solid or sheet.")
         }
         let selection = try scopedEdgeSelection(
             selected,
@@ -857,7 +869,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             from: result.brep,
             in: context.brep
         )
-        try model.validate(level: .volumetric, tolerance: context.tolerance)
+        try model.validate(level: body.kind == .solid ? .volumetric : .exact, tolerance: context.tolerance)
         return EvaluationResult(
             brep: model,
             subshapes: result.subshapes,
@@ -897,8 +909,18 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         let axisVector = endVertex.point - startVertex.point
         let height = axisVector.length
         let axis = try axisVector.normalized(tolerance: context.tolerance.distance)
-        let firstInward = -firstPlane.outward
-        let secondInward = -secondPlane.outward
+        let isSheet = body.kind == .sheet
+        /// The direction within a face away from the edge: against the other face's outward normal
+        /// beside a solid's convex edge; a sheet's toward where the face lies.
+        func away(_ faceID: FaceID, other: Vector3D) throws -> Vector3D {
+            guard isSheet else { return -other }
+            let polygon = try outerPolygon(faceID, model: model, featureID: featureID, tolerance: context.tolerance)
+            let centroid = polygon.reduce(Vector3D.zero) { $0 + ($1 - startVertex.point) } * (1 / Double(polygon.count))
+            return centroid.dot(other) > 0 ? other : -other
+        }
+        // `secondInward` runs along the first face, `firstInward` along the second.
+        let secondInward = try away(incidentFaceIDs[0], other: secondPlane.outward)
+        let firstInward = try away(incidentFaceIDs[1], other: firstPlane.outward)
         let lowerControlPoints = section.controlPoints(startVertex.point, secondInward, firstInward)
         let upperControlPoints = lowerControlPoints.map { $0 + axis * height }
         let knots = Array(repeating: 0.0, count: section.degree + 1) + Array(repeating: 1.0, count: section.degree + 1)
@@ -992,7 +1014,8 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 ))
             }
         }
-        guard let lowerCap, let upperCap else {
+        // A sheet's blend may end open, its section curves left as boundary.
+        guard isSheet || (lowerCap != nil && upperCap != nil) else {
             throw failure(.unsupportedCapability, featureID: featureID, tolerance: context.tolerance, "G2 blend requires planar cap faces at both edge endpoints.")
         }
         patches.append(try g2SurfacePatch(
@@ -1010,7 +1033,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         ))
         return BRepSewingRequest(
             featureID: featureID,
-            bodyKind: .solid,
+            bodyKind: isSheet ? .sheet : .solid,
             shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
             bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context)
         )
@@ -1252,24 +1275,27 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         definition: BSplineSurface3D,
         lowerCurve: BSplineCurve3D,
         upperCurve: BSplineCurve3D,
-        lowerCap: BSplineCapBoundary,
-        upperCap: BSplineCapBoundary,
+        lowerCap: BSplineCapBoundary?,
+        upperCap: BSplineCapBoundary?,
         height: Double,
         selectedSubshapeID: SubshapeID,
         faceParents: [SubshapeID],
         firstOutward: Vector3D,
         tolerance: ModelingTolerance
     ) throws -> BRepSewingFacePatch {
-        let lowerForward = lowerCap.endPoint.isApproximatelyEqual(to: lowerCurve.controlPoints[0], tolerance: tolerance.distance)
+        // Beside caps the section curves run as the caps' boundaries do; an open end runs forward.
+        let lowerForward = lowerCap.map { $0.endPoint.isApproximatelyEqual(to: lowerCurve.controlPoints[0], tolerance: tolerance.distance) } ?? true
         let lowerStart = lowerForward ? 0.0 : 1.0
         let lowerEnd = lowerForward ? 1.0 : 0.0
         let upperStart = lowerEnd
         let upperEnd = lowerStart
         let expectedUpperStart = try upperCurve.point(at: upperStart, tolerance: tolerance)
         let expectedUpperEnd = try upperCurve.point(at: upperEnd, tolerance: tolerance)
-        guard upperCap.endPoint.isApproximatelyEqual(to: expectedUpperStart, tolerance: tolerance.distance),
-              upperCap.startPoint.isApproximatelyEqual(to: expectedUpperEnd, tolerance: tolerance.distance) else {
-            throw failure(.topologyFailure, tolerance: tolerance, "G2 blend cap orientations are inconsistent.")
+        if let upperCap {
+            guard upperCap.endPoint.isApproximatelyEqual(to: expectedUpperStart, tolerance: tolerance.distance),
+                  upperCap.startPoint.isApproximatelyEqual(to: expectedUpperEnd, tolerance: tolerance.distance) else {
+                throw failure(.topologyFailure, tolerance: tolerance, "G2 blend cap orientations are inconsistent.")
+            }
         }
         let lower = BRepSewingEdge(
             stableID: "g2:lower",

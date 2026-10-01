@@ -1842,11 +1842,11 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             throw FeatureEvaluationError.invalidGraph("Fillet features must consume the referenced target body input.")
         }
         guard let targetSource = nodes[fillet.target.featureID],
-              targetSource.outputs.contains(where: { $0.role == .body }) else {
-            throw FeatureEvaluationError.invalidGraph("Fillet target source must declare a body output.")
+              let port = [FeaturePort.body, .sheet].first(where: { port in targetSource.outputs.contains { $0.role == port } }) else {
+            throw FeatureEvaluationError.invalidGraph("Fillet target source must declare a body or sheet output.")
         }
-        guard outputRoles == [.body] else {
-            throw FeatureEvaluationError.invalidGraph("Fillet features must declare one body output.")
+        guard outputRoles == [port] else {
+            throw FeatureEvaluationError.invalidGraph("A fillet declares the output its target does: a body, or a sheet.")
         }
     }
 
