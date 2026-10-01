@@ -25,7 +25,8 @@ public struct FilletFeature: Codable, Hashable, Sendable {
     /// A conic's rho in (0, 1), or the scale of a curvature fillet's handles; 1 otherwise.
     public let tension: Double
     /// A variable fillet's radius (or distance) at its edge's end, `radius` being the one at its
-    /// start, varying linearly between; nil for a constant one.
+    /// start, varying linearly between when there are no variable points (along the natural cubic
+    /// spline through them when there are); nil for a constant one.
     public let endRadius: CADExpression?
     /// The stretch of the edge the fillet runs over; nil for all of it.
     public let limits: EdgeBlendLimits?
