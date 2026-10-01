@@ -306,8 +306,8 @@ an arc and a line meeting at a corner.
 ### Fillet shapes
 
 `FilletFeature.shape` is Fillet Shell's Shape. `round` keeps the rolling-ball fillet of the radius
-on solids. A fillet or G2 blend of a sheet's edge (its node declaring the sheet output its target
-does) takes the profile blend below at every shape, Round as the exact quarter circle of the radius, each face's
+on solids. A fillet, chamfer or G2 blend of a sheet's edge (its node declaring the sheet output its
+target does) takes the profile blend below at every shape (a chamfer its straight section), Round as the exact quarter circle of the radius, each face's
 direction away from the edge read from where the face lies, and an end without a face beside it left
 open with the section curve as boundary.
 The other shapes round one straight edge between perpendicular planes through
@@ -327,7 +327,7 @@ faces close on its cross-section. The feature's radius must state the radius the
 (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Variable and limit
 points, several edges, tangent chains and Y-blends are not built (FE2). `FilletShapeTests` own each
 shape's removed cross-section times the edge's length, the tension and one-edge admission, and the
-rib's and a drafted rib's full rounds (their volumes and radii) with the refusals of a misstated radius and of edges that do not face each other across one face, and an L sheet's bend rounded into a quarter cylinder.
+rib's and a drafted rib's full rounds (their volumes and radii) with the refusals of a misstated radius and of edges that do not face each other across one face, and an L sheet's bend rounded into a quarter cylinder, blended and chamfered into sheets.
 
 ### Point guides
 

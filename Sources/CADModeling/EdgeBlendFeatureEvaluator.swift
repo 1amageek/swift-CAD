@@ -793,6 +793,16 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                                         section: try section(for: .curvature, tension: 1, distance: quantity.value), context: context)
     }
 
+    /// A chamfer of a sheet's edge between perpendicular planes: the straight section `distance` from
+    /// the edge along both faces, swept along it.
+    package func evaluateSheetChamfer(feature: FeatureNode, target: FeatureID, selected: StableSubshapeReference,
+                                      distance: Double, context: EvaluationContext) throws -> EvaluationResult {
+        try evaluateProfileBlend(feature: feature, target: target, selected: selected,
+            section: BlendSection(setback: distance, degree: 1, weights: [1, 1]) { corner, first, second in
+                [corner + first * distance, corner + second * distance]
+            }, context: context)
+    }
+
     /// A blend's cross-section across an edge between perpendicular planes: its distance from the
     /// edge along both faces, and its curve from the contact on the first face to the one on the
     /// second, given the corner and the unit directions along the first and second faces away from

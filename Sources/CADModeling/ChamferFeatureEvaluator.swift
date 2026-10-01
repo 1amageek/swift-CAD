@@ -59,6 +59,11 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         }
         let distance = try resolvedDistance(chamfer.distance, context: context, featureID: feature.id)
         let bodyID = try targetBodyID(chamfer.target.featureID, context: context, featureID: feature.id)
+        // A sheet's edge between perpendicular planes is cut by the profile blend's straight section.
+        if context.brep.bodies[bodyID]?.kind == .sheet {
+            return try EdgeBlendFeatureEvaluator(sewer: sewer).evaluateSheetChamfer(
+                feature: feature, target: chamfer.target.featureID, selected: chamfer.edges[0], distance: distance, context: context)
+        }
         guard let body = context.brep.bodies[bodyID],
               body.kind == .solid,
               body.shellIDs.count == 1 else {

@@ -745,8 +745,15 @@ public enum FeatureNodeFactory {
                     throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
                 }
                 try feature.validate()
-                try validateSource(feature.target.featureID, role: .body, in: document)
-                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+                // A chamfer cuts a solid's edge into a solid, a sheet's into a sheet.
+                guard let source = document.designGraph.nodes[feature.target.featureID] else {
+                    throw FeatureEvaluationError.missingInput("Feature source \(feature.target.featureID) was not found.")
+                }
+                let port: FeaturePort = source.outputs.contains(where: { $0.role == .body }) ? .body : .sheet
+                try validateSource(feature.target.featureID, role: port, in: document)
+                return FeatureNode(id: id, name: name, operation: operation,
+                                   inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                                   outputs: [FeatureOutput(role: port)])
             }
             return try run()
         case .fillet:

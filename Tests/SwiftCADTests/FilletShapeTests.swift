@@ -189,6 +189,7 @@ struct FilletShapeTests {
         }?.key)
         let r = 0.005
         var g2Builder = builder
+        var chamferBuilder = builder
         let fillet = try builder.fillet(target: sheet, edges: [try builder.stableSubshape(bend)], radius: length(r))
         let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "bend"))
         try evaluated.brep.validate(level: .exact, tolerance: .standard)
@@ -224,5 +225,27 @@ struct FilletShapeTests {
             return id
         }.first)
         #expect(blended.brep.bodies[blendBody]?.kind == .sheet)
+
+        // A chamfer of the bend: a flat strip from y = r on the floor to z = r on the wall.
+        let chamfer = try chamferBuilder.chamfer(target: sheet, edges: [try chamferBuilder.stableSubshape(bend)], distance: length(r))
+        let chamfered = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try chamferBuilder.build(name: "bend"))
+        try chamfered.brep.validate(level: .exact, tolerance: .standard)
+        let chamferBody = try #require(chamfered.subshapes.entries.compactMap { key, value -> BodyID? in
+            guard key.featureID == chamfer, case let .body(id) = value else { return nil }
+            return id
+        }.first)
+        #expect(chamfered.brep.bodies[chamferBody]?.kind == .sheet)
+        let chamferFaces = try BodyTopologyScope(bodyID: chamferBody, model: chamfered.brep).references.compactMap { reference -> FaceID? in
+            if case let .face(id) = reference { return id }
+            return nil
+        }
+        #expect(chamferFaces.count == 3)
+        // The strip's control points all on the plane y + z = r.
+        let splines = chamferFaces.compactMap { id -> BSplineSurface3D? in
+            guard let face = chamfered.brep.faces[id], case let .bSpline(spline)? = chamfered.brep.geometry.surfaces[face.surfaceID] else { return nil }
+            return spline
+        }
+        let strip = try #require(splines.first)
+        #expect(strip.controlPoints.joined().allSatisfy { abs($0.y + $0.z - r) < 1e-12 })
     }
 }
