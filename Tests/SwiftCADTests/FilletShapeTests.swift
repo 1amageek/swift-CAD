@@ -590,6 +590,22 @@ struct FilletShapeTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func variablePointsSetTheRadiusBetweenTheEnds() throws {
+        let (s, r0, r1, r2) = (0.02, 0.002, 0.005, 0.003)
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (box, edges) = try boxEdges(&builder, [(0, 0.02)])
+        // 2 mm at the start, 5 mm halfway, 3 mm at the end.
+        _ = try builder.fillet(target: box, edges: edges, radius: length(r0), endRadius: length(r2),
+                               variablePoints: [FilletVariablePoint(position: 0.5, radius: length(r1))])
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        // Each half removes (1 − π/4)(a² + ab + b²)/3 times its length, the radius linear from a to b.
+        func half(_ a: Double, _ b: Double) -> Double { (1 - Double.pi / 4) * (a * a + a * b + b * b) / 3 * s / 2 }
+        let volume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(volume - (s * s * s - half(r0, r1) - half(r1, r2))) < 5e-12, "\(volume)")
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func limitPointsRoundOnlyTheirStretchOfTheEdge() throws {
         let (s, r) = (0.02, 0.003)
         let section = r * r * (1 - Double.pi / 4)
@@ -792,6 +808,9 @@ struct FilletShapeTests {
         // A limited fillet of a second box's edge, chosen before the stored features are added.
         let (limitedBox, limitedEdges) = try boxEdges(&builder, [(0, 0)])
         _ = try builder.fillet(target: limitedBox, edges: limitedEdges, radius: length(0.002), limits: EdgeBlendLimits(start: 0.2, end: 0.6))
+        let (pointedBox, pointedEdges) = try boxEdges(&builder, [(0, 0)])
+        _ = try builder.fillet(target: pointedBox, edges: pointedEdges, radius: length(0.002),
+                               variablePoints: [FilletVariablePoint(position: 0.3, radius: length(0.004))])
         _ = try builder.fillet(target: box, edges: try boxEdges(&builder, [(0.02, 0)]).1, radius: length(0.003), shape: .conic, tension: 0.4)
         let document = try builder.build(name: "box")
         let sink = DataByteSink()

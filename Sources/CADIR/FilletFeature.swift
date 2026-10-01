@@ -29,6 +29,8 @@ public struct FilletFeature: Codable, Hashable, Sendable {
     public let endRadius: CADExpression?
     /// The stretch of the edge the fillet runs over; nil for all of it.
     public let limits: EdgeBlendLimits?
+    /// The radii at points between the edge's ends, in order along it; empty for none.
+    public let variablePoints: [FilletVariablePoint]
 
     public init(
         target: FilletTargetReference,
@@ -38,9 +40,11 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         shape: FilletShape = .round,
         tension: Double? = nil,
         endRadius: CADExpression? = nil,
-        limits: EdgeBlendLimits? = nil
+        limits: EdgeBlendLimits? = nil,
+        variablePoints: [FilletVariablePoint] = []
     ) {
         self.limits = limits
+        self.variablePoints = variablePoints
         self.target = target
         self.edges = edges
         self.radius = radius
@@ -57,7 +61,8 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         radius: CADExpression? = nil
     ) -> FilletFeature {
         FilletFeature(target: target ?? self.target, edges: edges ?? self.edges, radius: radius ?? self.radius,
-                      allEdges: allEdges, shape: shape, tension: tension, endRadius: endRadius, limits: limits)
+                      allEdges: allEdges, shape: shape, tension: tension, endRadius: endRadius, limits: limits,
+                      variablePoints: variablePoints)
     }
 
     public func validate() throws {
@@ -99,6 +104,15 @@ public struct FilletFeature: Codable, Hashable, Sendable {
                                   message: "A curvature fillet's tension lies in (0, 1.5].")
             }
         }
+        if variablePoints.isEmpty == false {
+            let positions = variablePoints.map(\.position)
+            guard !allEdges, edges.count == 1, shape != .full, limits == nil,
+                  positions.allSatisfy({ $0.isFinite && $0 > 0 && $0 < 1 }), zip(positions, positions.dropFirst()).allSatisfy({ $0 < $1 }) else {
+                throw KernelError(phase: .validation, code: .invalidInput, tolerance: nil,
+                                  message: "A fillet's variable points lie in order strictly inside its one edge.")
+            }
+            for point in variablePoints { try point.radius.validateLiteralQuantities() }
+        }
         if let limits {
             try limits.validate()
             guard !allEdges, edges.count == 1, shape != .full, endRadius == nil else {
@@ -123,11 +137,12 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         case tension
         case endRadius
         case limits
+        case variablePoints
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.target, .edges, .radius, .allEdges, .shape, .tension, .endRadius, .limits], in: decoder)
+        try container.validateOnlyExpectedKeys([.target, .edges, .radius, .allEdges, .shape, .tension, .endRadius, .limits, .variablePoints], in: decoder)
         target = try container.decode(FilletTargetReference.self, forKey: .target)
         edges = try container.decode([StableSubshapeReference].self, forKey: .edges)
         radius = try container.decode(CADExpression.self, forKey: .radius)
@@ -136,6 +151,7 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         tension = try container.decodeIfPresent(Double.self, forKey: .tension) ?? (shape == .conic ? 0.5 : 1)
         endRadius = try container.decodeIfPresent(CADExpression.self, forKey: .endRadius)
         limits = try container.decodeIfPresent(EdgeBlendLimits.self, forKey: .limits)
+        variablePoints = try container.decodeIfPresent([FilletVariablePoint].self, forKey: .variablePoints) ?? []
         try validate()
     }
 
@@ -152,5 +168,6 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         }
         try container.encodeIfPresent(endRadius, forKey: .endRadius)
         try container.encodeIfPresent(limits, forKey: .limits)
+        if variablePoints.isEmpty == false { try container.encode(variablePoints, forKey: .variablePoints) }
     }
 }
