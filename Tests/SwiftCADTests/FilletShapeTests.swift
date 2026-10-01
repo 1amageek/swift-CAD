@@ -78,4 +78,46 @@ struct FilletShapeTests {
         #expect(throws: KernelError.self) { _ = try fillet(shape: .chordal, tension: 0.4, distance: 0.004) }
         #expect(throws: KernelError.self) { _ = try fillet(shape: .conic, tension: 1, distance: 0.004) }
     }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aFullFilletRoundsARibsTopAcrossItsWidth() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // A rib 20 mm wide, 40 mm long and 30 mm tall; its top's two long edges bound the round.
+        let rib = try builder.box(width: length(0.02), depth: length(0.04), height: length(0.03))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "rib"))
+        let topEdges = try before.subshapes.entries.compactMap { key, value -> SubshapeID? in
+            guard key.featureID == rib, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  let start = before.brep.vertices[edge.startVertexID]?.point,
+                  let end = before.brep.vertices[edge.endVertexID]?.point,
+                  abs(start.z - end.z) < 1e-12, abs(start.x - end.x) < 1e-12, abs(start.y - end.y) > 0.03 else { return nil }
+            return (try before.brep.vertices[edge.startVertexID].map { abs($0.point.z - start.z) } ?? 1) < 1e-12 ? key : nil
+        }
+        let top = topEdges.filter { key in
+            guard case let .edge(id) = before.subshapes.entries[key], let edge = before.brep.edges[id],
+                  let start = before.brep.vertices[edge.startVertexID]?.point else { return false }
+            return start.z > 0.02
+        }
+        #expect(top.count == 2)
+        let edges = try top.map { try builder.stableSubshape($0) }
+        _ = try builder.fillet(target: rib, edges: edges, radius: length(0.001), shape: .full)
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "rib"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        // The top 10 mm of the cross-section becomes a half disc of radius 10 mm.
+        let r = 0.01
+        let expected = 0.02 * 0.04 * 0.03 - 0.04 * (2 * r * r - Double.pi * r * r / 2)
+        let volume = try evaluated.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+        // The highest point is the top's middle line, still at 30 mm.
+        let highest = evaluated.brep.vertices.values.map(\.point.z).max() ?? 0
+        #expect(highest < 0.03 - 1e-6)
+
+        // Two edges that do not bound one face are refused.
+        var wrong = DocumentBuilder(units: .meters, tolerance: .standard)
+        let other = try wrong.box(width: length(0.02), depth: length(0.04), height: length(0.03))
+        let twoEdges = try [0, 1].map { try wrong.stableSubshape(generatedBy: other, selector: .generated(role: .edge, index: $0)) }
+        _ = try wrong.fillet(target: other, edges: twoEdges, radius: length(0.001), shape: .full)
+        #expect(throws: KernelError.self) {
+            _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try wrong.build(name: "rib"))
+        }
+    }
 }

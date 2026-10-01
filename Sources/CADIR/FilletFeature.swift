@@ -4,12 +4,14 @@ import CADCore
 /// the radius; a `conic` meeting both faces at the distance from the edge, its sharpness the
 /// tension (the conic's rho); a `chordal` circular arc whose chord is the distance; or a
 /// `curvature` (G2) quintic meeting both faces at the distance with zero curvature there, its
-/// handles scaled by the tension.
+/// handles scaled by the tension; or a `full` round tangent to the three faces across a center face
+/// between the two selected edges, its size set by those faces (the radius is not used).
 public enum FilletShape: String, Codable, Hashable, Sendable {
     case round
     case conic
     case chordal
     case curvature
+    case full
 }
 
 public struct FilletFeature: Codable, Hashable, Sendable {
@@ -54,10 +56,10 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         }
         try radius.validateLiteralQuantities()
         switch shape {
-        case .round, .chordal:
+        case .round, .chordal, .full:
             guard tension == 1 else {
                 throw KernelError(phase: .validation, code: .invalidInput, tolerance: nil,
-                                  message: "A round or chordal fillet takes no tension.")
+                                  message: "A round, chordal or full fillet takes no tension.")
             }
         case .conic:
             guard tension.isFinite, tension > 0, tension < 1 else {
@@ -70,9 +72,11 @@ public struct FilletFeature: Codable, Hashable, Sendable {
                                   message: "A curvature fillet's tension lies in (0, 1.5].")
             }
         }
-        guard shape == .round || (!allEdges && edges.count == 1) else {
+        guard shape == .round || (!allEdges && edges.count == (shape == .full ? 2 : 1)) else {
             throw KernelError(phase: .validation, code: .invalidInput, tolerance: nil,
-                              message: "A conic, chordal or curvature fillet rounds one edge.")
+                              message: shape == .full
+                                ? "A full fillet rounds across the face between two edges."
+                                : "A conic, chordal or curvature fillet rounds one edge.")
         }
     }
 

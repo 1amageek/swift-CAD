@@ -309,9 +309,15 @@ is the rational quadratic through the corner with middle weight ρ/(1 − ρ), �
 both faces at the distance; a `chordal` is the quarter circle whose chord is the distance (contacts
 at distance/√2); a `curvature` fillet is the quintic whose first and last three control points lie
 on the faces (zero curvature at the contacts), its handles the tension times a third of the
-distance. Full, variable and limit points, several edges, tangent chains and Y-blends are not built
-(FE2). `FilletShapeTests` own each shape's removed cross-section times the edge's length and the
-tension and one-edge admission.
+distance. `full` (`evaluateFullRound`) takes the two straight edges bounding a center face whose
+other faces are parallel planes perpendicular to it (a rib's top): the round is the half cylinder of
+half their distance tangent to all three faces, two exact quarter circles meeting on the center's
+middle line; the center face goes, the side faces are cut back by the radius and the end faces close
+on the semicircle (its radius comes from the faces, not the feature's distance). Full across
+tapered or curved neighbours is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Variable and limit
+points, several edges, tangent chains and Y-blends are not built (FE2). `FilletShapeTests` own each
+shape's removed cross-section times the edge's length, the tension and one-edge admission, and the
+rib's full round (its volume) with the refusal of edges that do not face each other across one face.
 
 ### Chord guides
 
