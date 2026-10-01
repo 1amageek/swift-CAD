@@ -215,7 +215,8 @@ package struct ExactLoftBodyBuilder {
             )
         }
 
-        let hermiteSides = try continuitySides(loft: loft, partitions: partitions, connectionCount: connectionCount)
+        let hermiteSides = try continuitySides(loft: loft, partitions: partitions, connectionCount: connectionCount,
+                                               tangents: tangentsByLoop[0], connectionSpans: connectionSpans)
 
         var model = context.brep
         var geometry = model.geometry
@@ -1780,9 +1781,12 @@ package struct ExactLoftBodyBuilder {
     /// connection one Hermite surface per span: leaving (or arriving at) the face across the edge
     /// with the section's tension times the distance between the two sections, cubic in v, or
     /// quintic with vanishing second derivatives for curvature continuity. The other end follows
-    /// the chord between the two sections' control points.
+    /// the chord between the two sections' control points; in a smooth Loft of more than two
+    /// sections that chord ends on the Loft's tangents at the section's ring vertices (times the
+    /// connection's span), so the side meets the next connection as smoothly as the Loft's own.
     private func continuitySides(
-        loft: LoftFeature, partitions: [SectionPartition], connectionCount: Int
+        loft: LoftFeature, partitions: [SectionPartition], connectionCount: Int,
+        tangents: [[Vector3D]], connectionSpans: [Double]
     ) throws -> [Int: [BSplineSurface3D]] {
         guard loft.sections.contains(where: { $0.continuity != nil }) else { return [:] }
         let tolerance = context.tolerance
@@ -1790,15 +1794,7 @@ package struct ExactLoftBodyBuilder {
             throw invalidGeometry("Loft continuity belongs to a single curve boundary.")
         }
         let sectionCount = partition.curves.count
-        guard loft.options.surfaceMode == .ruled || sectionCount == 2 else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): a smooth Loft's interior section tangents live
-            // only at ring vertices, so a continuity side cannot meet them along a whole span.
-            // Production path: ExactLoftBodyBuilder for smooth Lofts of three or more sections
-            // with continuity. Complete only when section tangent rows are per control point,
-            // verified by a smooth three-section G1 loft.
-            throw KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance,
-                              message: "A smooth Loft of more than two sections has no edge continuity yet.")
-        }
+        let followsTangents = loft.options.surfaceMode == .smooth && sectionCount > 2
         func centroid(_ ring: [Point3D]) -> Point3D {
             let sum = ring.reduce(Vector3D.zero) { $0 + ($1 - .origin) }
             return .origin + sum * (1 / Double(ring.count))
@@ -1833,8 +1829,21 @@ package struct ExactLoftBodyBuilder {
                 let secondCurves = try partition.curves[second].map { try refined($0, level: level) }
                 func derivatives(of section: Int, curves: [BSplineCurve3D], leaving: Bool) throws -> [[Vector3D]] {
                     guard let plane = planes[section] else {
-                        return firstCurves.indices.map { span in
-                            zip(secondCurves[span].controlPoints, firstCurves[span].controlPoints).map { $0 - $1 }
+                        return try firstCurves.indices.map { span in
+                            let chord = zip(secondCurves[span].controlPoints, firstCurves[span].controlPoints).map { $0 - $1 }
+                            guard followsTangents else { return chord }
+                            // The chord ending on the Loft's tangents at the span's two vertices.
+                            let ring = tangents[section]
+                            let (start, end) = (ring[span] * connectionSpans[connection], ring[(span + 1) % ring.count] * connectionSpans[connection])
+                            let curve = curves[span]
+                            guard case let .closed(lower, upper) = curve.domain, upper > lower else {
+                                throw invalidGeometry("A Loft section span is unbounded.")
+                            }
+                            return chord.indices.map { i in
+                                let greville = curve.knots[(i + 1)...(i + curve.degree)].reduce(0, +) / Double(curve.degree)
+                                let g = (greville - lower) / (upper - lower)
+                                return chord[i] + (start - chord[0]) * (1 - g) + (end - chord[chord.count - 1]) * g
+                            }
                         }
                     }
                     let magnitude = plane.tension * scale * (leaving ? 1 : -1)

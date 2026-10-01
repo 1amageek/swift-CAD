@@ -40,7 +40,8 @@ struct SurfaceEdgeContinuityTests {
 
     /// Box A spans [0, 20 mm]³; box B [0, 20] × [-70, -50] × [30, 50] mm. The loft runs from A's
     /// top front edge (y = 0, z = 20 mm) to B's bottom back edge (y = -50, z = 30 mm).
-    private func loft(order: SurfaceEdgeContinuity.Order?, tension: Double = 1) throws -> (DocumentBuilder, FeatureID) {
+    private func loft(order: SurfaceEdgeContinuity.Order?, tension: Double = 1, middle: (y: Double, z: Double)? = nil,
+                      surfaceMode: LoftSurfaceMode = .ruled) throws -> (DocumentBuilder, FeatureID) {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let first = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
         let second = try builder.box(
@@ -57,7 +58,15 @@ struct SurfaceEdgeContinuityTests {
                 continuity: order.map { SurfaceEdgeContinuity(source: body, bodyRole: .body, edge: edge, order: $0, tension: tension) }
             )
         }
-        let loft = try builder.loft(sections: sections, options: LoftOptions(resultKind: .sheet))
+        var all = sections
+        if let middle {
+            // A line along X through the middle, between the edges.
+            let line = try builder.sketch(on: .plane(Plane3D(origin: Point3D(x: 0, y: middle.y, z: middle.z), normal: .unitZ))) { sketch in
+                _ = sketch.line(from: SketchPoint(x: length(0), y: length(0)), to: SketchPoint(x: length(0.02), y: length(0)))
+            }.featureID
+            all.insert(LoftSectionReference(section: .curve(CurveSectionReference(featureID: line))), at: 1)
+        }
+        let loft = try builder.loft(sections: all, options: LoftOptions(resultKind: .sheet, surfaceMode: surfaceMode))
         return (builder, loft)
     }
 
@@ -99,6 +108,37 @@ struct SurfaceEdgeContinuityTests {
         try store.writePackage(for: document, to: sink)
         let restored = try store.loadDocument(from: BorrowedBytes(sink.bytes))
         #expect(restored.designGraph.nodes == document.designGraph.nodes)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aSmoothThreeSectionLoftLeavesBothFacesAndStaysSmoothThroughItsMiddle() throws {
+        let (builder, loft) = try loft(order: .tangent, middle: (-0.025, 0.025), surfaceMode: .smooth)
+        let evaluated = try evaluate(builder)
+        let surfaces = evaluated.subshapes.entries.compactMap { key, value -> Surface3D? in
+            guard key.featureID == loft, case let .face(id) = value, let face = evaluated.brep.faces[id] else { return nil }
+            return evaluated.brep.geometry.surfaces[face.surfaceID]
+        }
+        #expect(surfaces.count == 2)
+        // Each face's normal at a point it passes through.
+        func normals(at point: Point3D) throws -> [Vector3D] {
+            try surfaces.compactMap { surface in
+                guard case let .projected(projected) = try surface.parameterProjectionResult(of: point, tolerance: .standard),
+                      projected.residual < 1e-9 else { return nil }
+                return try surface.differentialGeometry(u: projected.u, v: projected.v, tolerance: .standard).normal
+            }
+        }
+        for x in [0.004, 0.01, 0.016] {
+            for point in [Point3D(x: x, y: 0, z: 0.02), Point3D(x: x, y: -0.05, z: 0.03)] {
+                let found = try normals(at: point)
+                #expect(found.count == 1 && found.allSatisfy { abs(abs($0.z) - 1) < 1e-9 })
+            }
+        }
+        // Both faces meet the middle line's ends with one tangent plane, as the Loft's own sections do.
+        for x in [0.0, 0.02] {
+            let found = try normals(at: Point3D(x: x, y: -0.025, z: 0.025))
+            #expect(found.count == 2)
+            if found.count == 2 { #expect(found[0].cross(found[1]).length < 1e-9) }
+        }
     }
 
     @Test(.timeLimit(.minutes(2)))

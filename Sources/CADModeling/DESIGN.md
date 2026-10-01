@@ -378,12 +378,15 @@ along `normal × C′` at each control point's Greville abscissa (unit, times te
 distance between the two sections), so every cross-boundary derivative lies in the face's plane
 (exact G1); curvature continuity uses quintic rows whose second rows continue the first, so the
 second derivative across the edge vanishes as a plane's does (exact G2). The far end follows the
-chord between the two sections' control points; neighbouring spans share their vertex's row, a
-corner there is refused, and the connectors are the sides' boundary columns. Guides, middle
-sections, closed section loops and smooth Lofts of more than two sections are refused with
+chord between the two sections' control points; in a smooth Loft of more than two sections that
+chord ends on the Loft's own tangents at the section's ring vertices (times the connection's span),
+so the side meets the next connection with one tangent plane there, as the Loft's sections meet.
+Neighbouring spans share their vertex's row, a corner there is refused, and the connectors are the
+sides' boundary columns. Guides, middle sections and closed section loops are refused with
 continuity. `SurfaceEdgeContinuityTests` own the S-shaped G1 and G2 sheets between two boxes'
-edges, the round trip, the G1 and G2 lofts from a cylinder's side certified within their
-allowances, and the refusals of a curved face without its allowances.
+edges, the round trip, the smooth three-section G1 loft through a middle line, the G1 and G2 lofts
+from a cylinder's side certified within their allowances, and the refusals of a curved face
+without its allowances.
 
 ### Loft section topology
 
