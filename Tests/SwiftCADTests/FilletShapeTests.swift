@@ -417,6 +417,36 @@ struct FilletShapeTests {
         try both.brep.validate(level: .volumetric, tolerance: .standard)
         let twice = try both.brep.volume(tolerance: .standard)
         #expect(abs(twice - (solid - 2 * section * 2 * Double.pi * (0.008 + inset))) < 5e-12, "\(twice)")
+        // Every sharp edge: the upright corners first, then all four rims, the plate's outline
+        // closing on spheres at its corners — the rounded box (its inner box swept by the ball)
+        // less the hole and its rims' bands.
+        var every = DocumentBuilder(units: .meters, tolerance: .standard)
+        let everySketch = try every.sketch(on: .xy) { sketch in
+            let corners: [(Double, Double)] = [(-0.02, -0.02), (0.02, -0.02), (0.02, 0.02), (-0.02, 0.02)]
+            for (start, end) in zip(corners, corners.dropFirst() + corners.prefix(1)) {
+                _ = sketch.line(from: SketchPoint(x: length(start.0), y: length(start.1)), to: SketchPoint(x: length(end.0), y: length(end.1)))
+            }
+            _ = sketch.circle(center: SketchPoint(x: length(0), y: length(0)), radius: length(0.008))
+        }.featureID
+        let everyPlate = try every.extrude(ProfileReference(featureID: everySketch, profileIndex: 0), distance: length(0.02))
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try every.build(name: "h"))
+        let sharp = try evaluated.subshapes.entries.filter { key, value in
+            guard key.featureID == everyPlate, case let .edge(id) = value, let edge = evaluated.brep.edges[id],
+                  let start = evaluated.brep.vertices[edge.startVertexID]?.point,
+                  let end = evaluated.brep.vertices[edge.endVertexID]?.point else { return false }
+            // The hole's seams, along its wall between its arcs, are smooth.
+            let onHole = { (p: Point3D) in abs((p.x * p.x + p.y * p.y).squareRoot() - 0.008) < 1e-9 }
+            guard case .line? = evaluated.brep.geometry.curves[edge.curveID], onHole(start), onHole(end) else { return true }
+            return false
+        }.map { try every.stableSubshape($0.key) }
+        _ = try every.fillet(target: everyPlate, edges: sharp, radius: length(r))
+        let all = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try every.build(name: "h"))
+        try all.brep.validate(level: .volumetric, tolerance: .standard)
+        let (a, b, c) = (0.04 - 2 * r, 0.04 - 2 * r, 0.02 - 2 * r)
+        let roundedBox = a * b * c + 2 * r * (a * b + a * c + b * c) + Double.pi * r * r * (a + b + c) + 4 * Double.pi * r * r * r / 3
+        let allVolume = try all.brep.volume(tolerance: .standard)
+        let expected = roundedBox - Double.pi * 0.008 * 0.008 * 0.02 - 2 * section * 2 * Double.pi * (0.008 + inset)
+        #expect(abs(allVolume - expected) < 5e-12, "\(allVolume) vs \(expected)")
     }
 
     @Test(.timeLimit(.minutes(3)))

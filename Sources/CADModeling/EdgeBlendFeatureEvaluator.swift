@@ -945,8 +945,23 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 && builder.isConcave(selection.edgeID, bodyID: initialBodyID, model: model)) {
             concave.append(index)
         }
-        guard concave.isEmpty == false else { return nil }
         let originals = try selections.map { try geometry($0.edgeID, in: model) }
+        // Without such seeds, straight edges between planes along the selected arcs' axes seed the
+        // order (a holed box's upright edges among its every edge), which the network of straight
+        // blends does not take.
+        if concave.isEmpty {
+            let axes = originals.compactMap { original -> Vector3D? in
+                if case let .circle(circle) = original.curve { return circle.normal }
+                return nil
+            }
+            for (index, selection) in selections.enumerated() {
+                guard case let .line(line) = originals[index].curve,
+                      axes.contains(where: { $0.cross(line.direction).length <= tolerance.angle * max($0.length, 1) }),
+                      try builder.admits(selection.edgeID, bodyID: initialBodyID, model: model, betweenPlanes: true) else { continue }
+                concave.append(index)
+            }
+        }
+        guard concave.isEmpty == false else { return nil }
         // Straight edges running along a concave one (an extrusion's other upright edges) round
         // with it first: the cap chains then turn on their arcs, the convex ones closing on spheres.
         var first = concave
