@@ -882,8 +882,10 @@ isometric — and other surfaces by arc length along their middle parameter line
 Gauss–Legendre over 64 cells). The sheet keeps the face's parameters and trimming curves, so it
 serves as Deform's reference: its surface is a planar B-spline fitted to the map within a quarter
 of the distance tolerance, and each edge a B-spline fitted to that surface along the edge's
-trimming curve. A seam comes apart into two edges; a loop that does not close when laid flat (a
-face around its surface's period with no seam) is refused. `FaceUnwrapTests` own a cylinder's
+trimming curve. A seam comes apart into two edges. A face around its surface's period with no
+seam cannot reach it: a loop winding around the period encloses no parameter area, which B-rep
+validation rejects (`degenerateLoop`), so the refusal of a loop that does not close when laid flat
+only guards against invalid input. `FaceUnwrapTests` own a cylinder's
 quarter wall unrolled to its arc length and height about the origin, and an arch laid out to its
 parabola's length.
 
