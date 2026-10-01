@@ -2332,7 +2332,7 @@ private func validateLoftGuideReferenceObject(_ object: [String: Any], path: Str
 }
 
 private func validateSurfaceEdgeContinuityObject(_ object: [String: Any], path: String) throws {
-    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["source", "bodyRole", "edge", "order", "tension"], objectName: path)
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["source", "bodyRole", "edge", "order", "tension", "angularAllowance"], objectName: path)
     try validateObjectField("edge", in: object, path: "\(path).edge", using: validateStableSubshapeReferenceObject)
     try validateLoftOptionString("order", in: object, path: "\(path).order", supportedValues: ["tangent", "curvature"])
     guard let tension = object["tension"], isFinitePositiveJSONNumber(tension) else {

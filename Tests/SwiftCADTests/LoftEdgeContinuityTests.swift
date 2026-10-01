@@ -108,43 +108,73 @@ struct SurfaceEdgeContinuityTests {
         #expect(samples.allSatisfy { abs(abs($0.normal.z) - 1) < 1e-9 && abs($0.curvature) < 1e-6 })
     }
 
-    @Test(.timeLimit(.minutes(2)))
-    func continuityWithACurvedFaceIsRefused() throws {
+    /// A loft between the first-quadrant quarters of the top rim of a 10 mm cylinder and the bottom
+    /// rim of a 15 mm one 30 mm above, with continuity along both when `order` is given.
+    private func cylinders(order: SurfaceEdgeContinuity.Order?, allowance: Double?) throws -> (DocumentBuilder, FeatureID) {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
-        let cylinder = try builder.cylinder(radius: length(0.01), height: length(0.02))
-        let evaluated = try evaluate(builder)
-        // The top rim: a circle edge at z = 20 mm.
-        let key = try #require(evaluated.subshapes.entries.first { key, value in
-            guard key.featureID == cylinder, case let .edge(id) = value, let edge = evaluated.brep.edges[id],
-                  let curve = evaluated.brep.geometry.curves[edge.curveID], case .circle = curve,
-                  let start = evaluated.brep.vertices[edge.startVertexID]?.point else { return false }
-            return abs(start.z - 0.02) < 1e-12
-        }?.key)
-        let rim = try builder.stableSubshape(key)
-        let curve = try builder.edgeCurves(of: cylinder, edges: [rim])
-        // A second cylinder above: the loft runs up, leaving the first's side face.
+        let lower = try builder.cylinder(radius: length(0.01), height: length(0.02))
         let upper = try builder.cylinder(
             placement: PrimitivePlacement(origin: Point3D(x: 0, y: 0, z: 0.05), axis: .unitZ, referenceDirection: .unitX),
-            radius: length(0.01), height: length(0.02)
+            radius: length(0.015), height: length(0.02)
         )
-        let upperEvaluated = try evaluate(builder)
-        let upperKey = try #require(upperEvaluated.subshapes.entries.first { key, value in
-            guard key.featureID == upper, case let .edge(id) = value, let edge = upperEvaluated.brep.edges[id],
-                  let curve = upperEvaluated.brep.geometry.curves[edge.curveID], case .circle = curve,
-                  let start = upperEvaluated.brep.vertices[edge.startVertexID]?.point else { return false }
-            return abs(start.z - 0.05) < 1e-12
-        }?.key)
-        let target = try builder.edgeCurves(of: upper, edges: [try builder.stableSubshape(upperKey)])
-        _ = try builder.loft(sections: [
-            LoftSectionReference(section: .curve(CurveSectionReference(featureID: curve)),
-                                 continuity: SurfaceEdgeContinuity(source: cylinder, bodyRole: .body, edge: rim, order: .tangent)),
-            LoftSectionReference(section: .curve(CurveSectionReference(featureID: target))),
-        ], options: LoftOptions(resultKind: .sheet))
-        do {
-            _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "loft"))
-            Issue.record("Continuity with a cylinder's side must be refused.")
-        } catch let error as KernelError {
-            #expect(error.code == .unsupportedCapability && error.message.contains("planar face"))
+        let evaluated = try evaluate(builder)
+        /// The rim's quarter at `z` between +X and +Y; its edge curve runs from +X to +Y.
+        func rim(of cylinder: FeatureID, z: Double) throws -> StableSubshapeReference {
+            let key = try #require(evaluated.subshapes.entries.first { key, value in
+                guard key.featureID == cylinder, case let .edge(id) = value, let edge = evaluated.brep.edges[id],
+                      let curve = evaluated.brep.geometry.curves[edge.curveID], case .circle = curve,
+                      let start = evaluated.brep.vertices[edge.startVertexID]?.point,
+                      let end = evaluated.brep.vertices[edge.endVertexID]?.point else { return false }
+                return abs(start.z - z) < 1e-12 && start.x + end.x > 1e-9 && start.y + end.y > 1e-9
+            }?.key)
+            return try builder.stableSubshape(key)
+        }
+        let rims = [(lower, try rim(of: lower, z: 0.02)), (upper, try rim(of: upper, z: 0.05))]
+        let curves = try rims.map { try builder.edgeCurves(of: $0.0, edges: [$0.1]) }
+        let loft = try builder.loft(sections: zip(rims, curves).map { rim, curve in
+            LoftSectionReference(section: .curve(CurveSectionReference(featureID: curve)), continuity: order.map {
+                SurfaceEdgeContinuity(source: rim.0, bodyRole: .body, edge: rim.1, order: $0, angularAllowance: allowance)
+            })
+        }, options: LoftOptions(resultKind: .sheet))
+        return (builder, loft)
+    }
+
+    @Test(.timeLimit(.minutes(3)))
+    func aLoftLeavesACylindersSideTangentWithinItsAllowance() throws {
+        let (builder, loft) = try cylinders(order: .tangent, allowance: 1e-3)
+        let evaluated = try evaluate(builder)
+        let surfaces = evaluated.subshapes.entries.compactMap { key, value -> Surface3D? in
+            guard key.featureID == loft, case let .face(id) = value, let face = evaluated.brep.faces[id] else { return nil }
+            return evaluated.brep.geometry.surfaces[face.surfaceID]
+        }
+        #expect(surfaces.isEmpty == false)
+        // Along both rims the loft's normal is the cylinders' radial normal.
+        var checked = 0
+        for angle in stride(from: 0.2, to: 1.5, by: 0.3) {
+            for (radius, z) in [(0.01, 0.02), (0.015, 0.05)] {
+                let point = Point3D(x: radius * cos(angle), y: radius * sin(angle), z: z)
+                for surface in surfaces {
+                    guard case let .projected(projected) = try surface.parameterProjectionResult(of: point, tolerance: .standard),
+                          projected.residual < 1e-7 else { continue }
+                    let normal = try surface.differentialGeometry(u: projected.u, v: projected.v, tolerance: .standard).normal
+                    #expect(abs(normal.z) < 1e-3 && abs(abs(normal.x * cos(angle) + normal.y * sin(angle)) - 1) < 1e-6)
+                    checked += 1
+                }
+            }
+        }
+        #expect(checked >= 10)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func continuityWithACurvedFaceNeedsAnAllowanceAndTangencyOnly() throws {
+        for (order, allowance, code) in [(SurfaceEdgeContinuity.Order.tangent, nil, KernelErrorCode.invalidInput),
+                                         (.curvature, 1e-3, .unsupportedCapability)] as [(SurfaceEdgeContinuity.Order, Double?, KernelErrorCode)] {
+            do {
+                _ = try evaluate(try cylinders(order: order, allowance: allowance).0)
+                Issue.record("Continuity \(order) with a cylinder's side and allowance \(String(describing: allowance)) must be refused.")
+            } catch let error as KernelError {
+                #expect(error.code == code)
+            }
         }
     }
 }

@@ -238,7 +238,7 @@ refusal.
 `SquareSurfaceFeatureEvaluator` joins its four side curves (each exact, composed when several
 spans) end to end from the first, turning any that runs the other way, and spans the frame. With
 every side at G0 the sheet is `ExactCoonsBSplineSurfaceBuilder`'s exact Coons patch. With
-continuity (`SurfaceEdgeContinuity`, its planar face found by `ExactEdgeContinuityPlaneResolver`)
+continuity (`SurfaceEdgeContinuity`, its planar face found by `ExactEdgeContinuitySupportResolver`)
 along one side or two opposite ones, those sides run along u at v = 0 and v = 1 and
 `ExactHermiteCoonsSurfaceBuilder` forms the exact Boolean sum of a Hermite blend across v (cubic,
 or quintic for curvature) and the linear blend across u of the other two sides, less their tensor
@@ -293,10 +293,16 @@ face across a path along another axis, the refusals and the native round trip.
 
 An end curve section along a body edge may be tangent (G1) or curvature (G2) continuous with the
 face beside the edge (`SurfaceEdgeContinuity` on the section, its body an input of the Loft).
-`ExactEdgeContinuityPlaneResolver` resolves the edge in its body, takes of the faces bordering it
+`ExactEdgeContinuitySupportResolver` resolves the edge in its body, takes of the faces bordering it
 the one whose outward direction across the edge (the coedge's travel crossed with the face's
 outward normal; the face lies left of its coedges) points most toward the other sections, and
-requires it planar (`FIXME(INCOMPLETE_IMPLEMENTATION)` for curved faces). The connection beside the
+meets a planar face exactly. Beside a curved face (tangent order only, with the continuity's
+angular allowance; curvature with a curved face is refused with `FIXME(INCOMPLETE_IMPLEMENTATION)`)
+the rows interpolate the unit leaving direction `n(C) × C′` at the side's Greville abscissae, and
+`ExactEdgeContinuitySupport.certify` proves the built surface's normals within the allowance of the
+face's through `SurfaceBoundaryContinuityEvaluator`, the face's side being the cubic spline through
+the face chart's projections of the span at the span's own fractions; the consumer refines the
+sides (midpoints of every knot span, up to four times) until certified, or refuses. The connection beside the
 section is built by `ExactLoftSideSurfaceBuilder.buildHermite`: per span, rows leaving the section
 along `normal × C′` at each control point's Greville abscissa (unit, times tension and the average
 distance between the two sections), so every cross-boundary derivative lies in the face's plane
@@ -306,7 +312,8 @@ chord between the two sections' control points; neighbouring spans share their v
 corner there is refused, and the connectors are the sides' boundary columns. Guides, middle
 sections, closed section loops and smooth Lofts of more than two sections are refused with
 continuity. `SurfaceEdgeContinuityTests` own the S-shaped G1 and G2 sheets between two boxes'
-edges, the round trip and the curved-face refusal.
+edges, the round trip, the G1 loft from a cylinder's side certified within its allowance, and the
+refusals of a curved face without an allowance or at curvature order.
 
 ### Loft section topology
 

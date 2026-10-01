@@ -1803,14 +1803,14 @@ package struct ExactLoftBodyBuilder {
             let sum = ring.reduce(Vector3D.zero) { $0 + ($1 - .origin) }
             return .origin + sum * (1 / Double(ring.count))
         }
-        var planes: [Int: ExactEdgeContinuityPlane] = [:]
+        var planes: [Int: ExactEdgeContinuitySupport] = [:]
         for sectionIndex in Set([0, sectionCount - 1]) {
             guard let continuity = loft.sections[sectionIndex].continuity else { continue }
             let other = sectionIndex == 0 ? 1 : sectionCount - 2
             let span = partition.curves[sectionIndex][0]
             guard case let .closed(lower, _) = span.domain else { throw invalidGeometry("A Loft section span is unbounded.") }
             let start = try span.differentialGeometry(at: lower, tolerance: tolerance)
-            planes[sectionIndex] = try ExactEdgeContinuityPlaneResolver().plane(
+            planes[sectionIndex] = try ExactEdgeContinuitySupportResolver().support(
                 for: continuity, point: start.position, derivative: start.firstDerivative,
                 toward: centroid(partition.rings[other]) - centroid(partition.rings[sectionIndex]),
                 context: context, featureID: featureID
@@ -1824,37 +1824,73 @@ package struct ExactLoftBodyBuilder {
             guard planes[first] != nil || planes[second] != nil else { continue }
             let scale = averageRingDistance(from: partition.rings[first], to: partition.rings[second])
             let degree = [planes[first], planes[second]].contains { $0?.order == .curvature } ? 5 : 3
-            func derivatives(of section: Int, leaving: Bool) throws -> [[Vector3D]] {
-                guard let plane = planes[section] else {
-                    return partition.curves[first].indices.map { span in
-                        zip(partition.curves[second][span].controlPoints, partition.curves[first][span].controlPoints).map { $0 - $1 }
+            // Beside a curved face the rows only approximate its tangent planes: the sides are
+            // refined until the built surface is certified within the allowance.
+            let exact = [planes[first], planes[second]].allSatisfy { $0?.isExact ?? true }
+            var lastFailure: (any Error)?
+            for level in 0...(exact ? 0 : 4) {
+                let firstCurves = try partition.curves[first].map { try refined($0, level: level) }
+                let secondCurves = try partition.curves[second].map { try refined($0, level: level) }
+                func derivatives(of section: Int, curves: [BSplineCurve3D], leaving: Bool) throws -> [[Vector3D]] {
+                    guard let plane = planes[section] else {
+                        return firstCurves.indices.map { span in
+                            zip(secondCurves[span].controlPoints, firstCurves[span].controlPoints).map { $0 - $1 }
+                        }
                     }
-                }
-                let magnitude = plane.tension * scale * (leaving ? 1 : -1)
-                var rows = try partition.curves[section].map { span in
-                    try plane.leavingDirections(along: span, tolerance: tolerance).map { $0 * magnitude }
-                }
-                // Neighbouring spans share their vertex's row, so the section must not turn a
-                // corner there.
-                for span in rows.indices where span + 1 < rows.count || closed {
-                    let next = (span + 1) % rows.count
-                    guard let end = rows[span].last, let start = rows[next].first,
-                          (end - start).length <= abs(magnitude) * tolerance.angle else {
-                        throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
-                                          message: "A Loft continuity section turns a corner.")
+                    let magnitude = plane.tension * scale * (leaving ? 1 : -1)
+                    var rows = try curves.map { span in
+                        try plane.leavingDirections(along: span, tolerance: tolerance).map { $0 * magnitude }
                     }
-                    rows[next][0] = end
+                    // Neighbouring spans share their vertex's row, so the section must not turn a
+                    // corner there.
+                    for span in rows.indices where span + 1 < rows.count || closed {
+                        let next = (span + 1) % rows.count
+                        guard let end = rows[span].last, let start = rows[next].first,
+                              (end - start).length <= abs(magnitude) * max(tolerance.angle, plane.isExact ? 0 : 1e-6) else {
+                            throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
+                                              message: "A Loft continuity section turns a corner.")
+                        }
+                        rows[next][0] = end
+                    }
+                    return rows
                 }
-                return rows
+                let leaving = try derivatives(of: first, curves: firstCurves, leaving: true)
+                let arriving = try derivatives(of: second, curves: secondCurves, leaving: false)
+                let surfaces = try firstCurves.indices.map { span in
+                    try builder.buildHermite(
+                        start: firstCurves[span], startDerivatives: leaving[span],
+                        end: secondCurves[span], endDerivatives: arriving[span],
+                        degree: degree, tolerance: tolerance
+                    )
+                }
+                do {
+                    for (span, surface) in surfaces.enumerated() {
+                        try planes[first]?.certify(surface, boundaryV: 0, span: firstCurves[span], tolerance: tolerance, featureID: featureID)
+                        try planes[second]?.certify(surface, boundaryV: 1, span: secondCurves[span], tolerance: tolerance, featureID: featureID)
+                    }
+                    result[connection] = surfaces
+                    lastFailure = nil
+                    break
+                } catch let error as KernelError where error.code == .classificationFailure || error.code == .resourceLimitExceeded {
+                    lastFailure = error
+                }
             }
-            let leaving = try derivatives(of: first, leaving: true)
-            let arriving = try derivatives(of: second, leaving: false)
-            result[connection] = try partition.curves[first].indices.map { span in
-                try builder.buildHermite(
-                    start: partition.curves[first][span], startDerivatives: leaving[span],
-                    end: partition.curves[second][span], endDerivatives: arriving[span],
-                    degree: degree, tolerance: tolerance
-                )
+            if let lastFailure {
+                throw KernelError(phase: .evaluation, code: .classificationFailure, featureID: featureID, tolerance: tolerance,
+                                  message: "A Loft could not meet a curved face within its angular allowance: \(lastFailure)")
+            }
+        }
+        return result
+    }
+
+    /// `curve` with the midpoint of every knot span inserted `level` times over.
+    private func refined(_ curve: BSplineCurve3D, level: Int) throws -> BSplineCurve3D {
+        var result = curve
+        for _ in 0..<level {
+            var distinct: [Double] = []
+            for knot in result.knots where distinct.last.map({ knot > $0 }) ?? true { distinct.append(knot) }
+            for (lower, upper) in zip(distinct, distinct.dropFirst()) {
+                result = try result.insertingKnot(0.5 * (lower + upper), tolerance: context.tolerance)
             }
         }
         return result

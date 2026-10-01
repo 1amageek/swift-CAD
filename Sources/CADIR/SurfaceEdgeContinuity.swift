@@ -16,27 +16,33 @@ public struct SurfaceEdgeContinuity: Codable, Hashable, Sendable {
     public var edge: StableSubshapeReference
     public var order: Order
     public var tension: Double
+    /// The largest angle between the surface's and the face's normals along the edge when the face
+    /// is curved and the surface approximates its tangent planes; a planar face is met exactly.
+    public var angularAllowance: Double?
 
-    public init(source: FeatureID, bodyRole: FeaturePort, edge: StableSubshapeReference, order: Order, tension: Double = 1) {
+    public init(source: FeatureID, bodyRole: FeaturePort, edge: StableSubshapeReference, order: Order, tension: Double = 1,
+                angularAllowance: Double? = nil) {
         self.source = source
         self.bodyRole = bodyRole
         self.edge = edge
         self.order = order
         self.tension = tension
+        self.angularAllowance = angularAllowance
     }
 
     private enum CodingKeys: String, CodingKey {
-        case source, bodyRole, edge, order, tension
+        case source, bodyRole, edge, order, tension, angularAllowance
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.source, .bodyRole, .edge, .order, .tension], in: decoder)
+        try container.validateOnlyExpectedKeys([.source, .bodyRole, .edge, .order, .tension, .angularAllowance], in: decoder)
         source = try container.decode(FeatureID.self, forKey: .source)
         bodyRole = try container.decode(FeaturePort.self, forKey: .bodyRole)
         edge = try container.decode(StableSubshapeReference.self, forKey: .edge)
         order = try container.decode(Order.self, forKey: .order)
         tension = try container.decode(Double.self, forKey: .tension)
+        angularAllowance = try container.decodeIfPresent(Double.self, forKey: .angularAllowance)
         try validate()
     }
 
@@ -48,6 +54,7 @@ public struct SurfaceEdgeContinuity: Codable, Hashable, Sendable {
         try container.encode(edge, forKey: .edge)
         try container.encode(order, forKey: .order)
         try container.encode(tension, forKey: .tension)
+        try container.encodeIfPresent(angularAllowance, forKey: .angularAllowance)
     }
 
     public func validate() throws {
@@ -57,6 +64,11 @@ public struct SurfaceEdgeContinuity: Codable, Hashable, Sendable {
         }
         guard tension.isFinite, tension > 0 else {
             throw FeatureEvaluationError.invalidGraph("A continuity's tension must be finite and greater than zero.")
+        }
+        if let angularAllowance {
+            guard angularAllowance.isFinite, angularAllowance > 0, angularAllowance < Double.pi / 2 else {
+                throw FeatureEvaluationError.invalidGraph("A continuity's angular allowance is a positive angle below a right angle.")
+            }
         }
     }
 }

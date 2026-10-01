@@ -86,11 +86,11 @@ public struct SquareSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             let bottom = turned[0].curve, right = turned[1].curve
             let top = try turned[2].curve.reversed(tolerance: tolerance), left = try turned[3].curve.reversed(tolerance: tolerance)
             let center = try [bottom, right, top, left].map { try ends($0).0 }.reduce(Vector3D.zero) { $0 + ($1 - .origin) } * 0.25
-            func plane(_ curve: BSplineCurve3D, side: Int) throws -> ExactEdgeContinuityPlane? {
+            func plane(_ curve: BSplineCurve3D, side: Int) throws -> ExactEdgeContinuitySupport? {
                 guard let continuity = square.sides[side].continuity else { return nil }
                 let start = try curve.differentialGeometry(at: 0, tolerance: tolerance)
                 let middle = try curve.differentialGeometry(at: 0.5, tolerance: tolerance).position
-                return try ExactEdgeContinuityPlaneResolver().plane(
+                return try ExactEdgeContinuitySupportResolver().support(
                     for: continuity, point: start.position, derivative: start.firstDerivative,
                     toward: (Point3D.origin + center) - middle, context: context, featureID: feature.id
                 )

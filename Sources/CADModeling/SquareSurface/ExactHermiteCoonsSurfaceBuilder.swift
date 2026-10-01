@@ -1,3 +1,4 @@
+import Foundation
 import CADCore
 import CADGeometry
 import CADIR
@@ -23,11 +24,35 @@ package struct ExactHermiteCoonsSurfaceBuilder {
         self.tolerance = tolerance
     }
 
+    /// The surface, its continuous sides refined until a curved face's tangent planes are met
+    /// within its allowance (a planar face is met at once, exactly).
     package func build(
         bottom: BSplineCurve3D, top: BSplineCurve3D, left: BSplineCurve3D, right: BSplineCurve3D,
-        bottomPlane: ExactEdgeContinuityPlane?, topPlane: ExactEdgeContinuityPlane?,
+        bottomPlane: ExactEdgeContinuitySupport?, topPlane: ExactEdgeContinuitySupport?,
         featureID: FeatureID
     ) throws -> BSplineSurface3D {
+        let exact = [bottomPlane, topPlane].allSatisfy { $0?.isExact ?? true }
+        var lastFailure: (any Error)?
+        for level in 0...(exact ? 0 : 4) {
+            let (surface, b0, b1) = try build(bottom: bottom, top: top, left: left, right: right,
+                                              bottomPlane: bottomPlane, topPlane: topPlane, level: level, featureID: featureID)
+            do {
+                try bottomPlane?.certify(surface, boundaryV: 0, span: b0, tolerance: tolerance, featureID: featureID)
+                try topPlane?.certify(surface, boundaryV: 1, span: b1, tolerance: tolerance, featureID: featureID)
+                return surface
+            } catch let error as KernelError where error.code == .classificationFailure || error.code == .resourceLimitExceeded {
+                lastFailure = error
+            }
+        }
+        throw failure(.classificationFailure,
+            "A Square could not meet a curved face within its angular allowance: \(String(describing: lastFailure))", featureID)
+    }
+
+    private func build(
+        bottom: BSplineCurve3D, top: BSplineCurve3D, left: BSplineCurve3D, right: BSplineCurve3D,
+        bottomPlane: ExactEdgeContinuitySupport?, topPlane: ExactEdgeContinuitySupport?,
+        level: Int, featureID: FeatureID
+    ) throws -> (BSplineSurface3D, BSplineCurve3D, BSplineCurve3D) {
         try tolerance.validate()
         guard [bottom, top, left, right].allSatisfy({ $0.weights.allSatisfy { $0 == 1 } }) else {
             // FIXME(INCOMPLETE_IMPLEMENTATION): a rational side (an arc) makes the Boolean sum
@@ -49,7 +74,8 @@ package struct ExactHermiteCoonsSurfaceBuilder {
                 second: try resolver.resolve(first: along.second, second: bezier, tolerance: tolerance).first
             )
         }
-        let (b0, b1, a0, a1) = (across.first, across.second, along.first, along.second)
+        let (b0, b1) = (try refined(across.first, level: level), try refined(across.second, level: level))
+        let (a0, a1) = (along.first, along.second)
         for (side, along, sideAt, alongAt) in [(b0, a0, 0.0, 0.0), (b0, a1, 1.0, 0.0), (b1, a0, 0.0, 1.0), (b1, a1, 1.0, 1.0)] {
             guard (try point(side, sideAt) - point(along, alongAt)).length <= tolerance.distance else {
                 throw failure(.invalidInput, "A Square's sides do not meet at its corners.", featureID)
@@ -66,11 +92,14 @@ package struct ExactHermiteCoonsSurfaceBuilder {
         func linear(_ start: Vector3D, _ end: Vector3D) -> [Vector3D] { greville.map { start * (1 - $0) + end * $0 } }
         /// The v-derivative rows along a side: from its plane, leaving (or entering) it, ending on
         /// the left and right sides' derivatives; otherwise their linear blend.
-        func firstRows(_ side: BSplineCurve3D, plane: ExactEdgeContinuityPlane?, start: Vector3D, end: Vector3D, entering: Bool) throws -> [Vector3D] {
+        func firstRows(_ side: BSplineCurve3D, plane: ExactEdgeContinuitySupport?, start: Vector3D, end: Vector3D, entering: Bool) throws -> [Vector3D] {
             guard let plane else { return linear(start, end) }
             let directions = try plane.leavingDirections(along: side, tolerance: tolerance).map { $0 * (entering ? -1 : 1) }
-            for (value, direction) in [(start, directions[0]), (end, directions[directions.count - 1])] {
-                guard abs(value.dot(plane.normal)) <= tolerance.angle * value.length, value.dot(direction) > 0 else {
+            let sideEnds = (try point(side, 0), try point(side, 1))
+            for (value, direction, at) in [(start, directions[0], sideEnds.0), (end, directions[directions.count - 1], sideEnds.1)] {
+                let normal = try plane.normal(at: at, tolerance: tolerance)
+                let slack = plane.isExact ? tolerance.angle : sin(plane.allowance)
+                guard abs(value.dot(normal)) <= slack * value.length, value.dot(direction) > 0 else {
                     throw failure(.invalidInput,
                         "A Square's sides beside a continuous side must leave it within the face's plane.", featureID)
                 }
@@ -81,10 +110,11 @@ package struct ExactHermiteCoonsSurfaceBuilder {
             rows[rows.count - 1] = end
             return rows
         }
-        func secondRows(plane: ExactEdgeContinuityPlane?, start: Vector3D, end: Vector3D) throws -> [Vector3D] {
+        func secondRows(plane: ExactEdgeContinuitySupport?, side: BSplineCurve3D, start: Vector3D, end: Vector3D) throws -> [Vector3D] {
             guard let plane else { return linear(start, end) }
             let scale = max(start.length, end.length, 1)
-            guard abs(start.dot(plane.normal)) <= tolerance.angle * scale, abs(end.dot(plane.normal)) <= tolerance.angle * scale else {
+            let (n0, n1) = (try plane.normal(at: try point(side, 0), tolerance: tolerance), try plane.normal(at: try point(side, 1), tolerance: tolerance))
+            guard abs(start.dot(n0)) <= tolerance.angle * scale, abs(end.dot(n1)) <= tolerance.angle * scale else {
                 throw failure(.invalidInput,
                     "A Square's sides beside a curvature-continuous side must not bend out of the face's plane there.", featureID)
             }
@@ -107,8 +137,8 @@ package struct ExactHermiteCoonsSurfaceBuilder {
                 ([0, 0, -1.0 / 3, 0], d1, a0d1, a1d1),
             ]
         } else {
-            let k0 = try secondRows(plane: bottomPlane, start: a0s0, end: a1s0)
-            let k1 = try secondRows(plane: topPlane, start: a0s1, end: a1s1)
+            let k0 = try secondRows(plane: bottomPlane, side: b0, start: a0s0, end: a1s0)
+            let k1 = try secondRows(plane: topPlane, side: b1, start: a0s1, end: a1s1)
             terms = [
                 ([1, 1, 1, 0, 0, 0], vectors(b0), try point(a0, 0) - .origin, try point(a1, 0) - .origin),
                 ([0, 0, 0, 1, 1, 1], vectors(b1), try point(a0, 1) - .origin, try point(a1, 1) - .origin),
@@ -137,7 +167,20 @@ package struct ExactHermiteCoonsSurfaceBuilder {
         }
         let surface = BSplineSurface3D(uDegree: b0.degree, vDegree: vDegree, uKnots: b0.knots, vKnots: a0.knots, controlPoints: rows)
         try surface.validate(tolerance: tolerance)
-        return try ExactLoftSideSurfaceBuilder().validated(surface, tolerance: tolerance)
+        return (try ExactLoftSideSurfaceBuilder().validated(surface, tolerance: tolerance), b0, b1)
+    }
+
+    /// `curve` with the midpoint of every knot span inserted `level` times over.
+    private func refined(_ curve: BSplineCurve3D, level: Int) throws -> BSplineCurve3D {
+        var result = curve
+        for _ in 0..<level {
+            var distinct: [Double] = []
+            for knot in result.knots where distinct.last.map({ knot > $0 }) ?? true { distinct.append(knot) }
+            for (lower, upper) in zip(distinct, distinct.dropFirst()) {
+                result = try result.insertingKnot(0.5 * (lower + upper), tolerance: tolerance)
+            }
+        }
+        return result
     }
 
     private func point(_ curve: BSplineCurve3D, _ t: Double) throws -> Point3D {
