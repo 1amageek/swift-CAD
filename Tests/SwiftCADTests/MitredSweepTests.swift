@@ -48,5 +48,8 @@ struct MitredSweepTests {
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.faces.count == 16)
         #expect(abs(try evaluated.brep.volume(tolerance: .standard) - 0.004 * 0.004 * 0.14) < 1e-12)
+        // Drawn from another corner the other way round, the frame starts where the section is.
+        let redrawn = try evaluate([(0.04, 0.03), (0, 0.03), (0, 0), (0.04, 0), (0.04, 0.03)])
+        #expect(abs(try redrawn.brep.volume(tolerance: .standard) - 0.004 * 0.004 * 0.14) < 1e-12)
     }
 }

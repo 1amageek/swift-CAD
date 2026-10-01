@@ -86,13 +86,32 @@ package struct MitredPolylineSweepBuilder {
                 corners.append(span.endPoint)
             }
         }
-        if pathIsClosed, directions.count > 1, let first = directions.first, let last = directions.last,
-           last.cross(first).length <= sin(tolerance.angle), last.dot(first) > 0 {
-            // The closing arm runs on into the first: one arm through the path's start.
-            throw failure(.invalidInput, "A closed sweep path starts at a corner.", featureID)
+        let normal = try sectionPlane.normal.normalized(tolerance: tolerance.distance)
+        if pathIsClosed {
+            if directions.count > 1, let first = directions.first, let last = directions.last,
+               last.cross(first).length <= sin(tolerance.angle), last.dot(first) > 0 {
+                // The closing arm runs on into the first: one arm through the path's start.
+                directions.removeFirst()
+                corners = Array(corners[1..<(corners.count - 1)]) + [corners[1]]
+            }
+            // A closed path starts at the corner nearest the section, leaving along the arm that
+            // runs most across the section's plane.
+            let sectionPoints = sectionLoops.flatMap { $0.flatMap(\.curve.controlPoints) }
+            let centroid = sectionPoints.reduce(Vector3D.zero) { $0 + ($1 - .origin) } * (1 / Double(max(sectionPoints.count, 1)))
+            let ring = Array(corners.dropLast())
+            guard let nearest = ring.indices.min(by: { (ring[$0] - .origin - centroid).length < (ring[$1] - .origin - centroid).length }) else {
+                throw failure(.invalidInput, "A closed sweep path has no corners.", featureID)
+            }
+            var rotatedCorners = Array(ring[nearest...] + ring[..<nearest])
+            var rotatedDirections = Array(directions[nearest...] + directions[..<nearest])
+            if abs(normal.dot(rotatedDirections[rotatedDirections.count - 1])) > abs(normal.dot(rotatedDirections[0])) {
+                rotatedCorners = [rotatedCorners[0]] + rotatedCorners.dropFirst().reversed()
+                rotatedDirections = rotatedDirections.reversed().map { $0 * -1 }
+            }
+            corners = rotatedCorners + [rotatedCorners[0]]
+            directions = rotatedDirections
         }
         let armCount = directions.count
-        let normal = try sectionPlane.normal.normalized(tolerance: tolerance.distance)
         let advance = normal.dot(directions[0])
         guard abs(advance) > max(tolerance.relative, sin(tolerance.angle)) else {
             throw failure(.sweepProfilePlaneDegenerate, "The section's plane runs along the path.", featureID)
