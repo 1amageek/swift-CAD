@@ -95,11 +95,13 @@ public struct CurvePatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
                                     subshapes: sewn.subshapes, lineage: sewn.lineage)
         }
         // Otherwise the loop's four sides span the exact Coons patch.
-        // FIXME(INCOMPLETE_IMPLEMENTATION): a non-planar loop is spanned only through four sides;
-        // an N-sided constrained fill (XNURBS's solver) is not built, so a loop that does not group
-        // into four sides is refused by the side grouping. Production path:
+        // FIXME(INCOMPLETE_IMPLEMENTATION): a non-planar loop is spanned only through four sides
+        // (`fourSides` groups any loop by its perimeter), so a loop with more than four corners
+        // keeps the others inside sides, each leaving a crease across the exact Coons sheet; a
+        // smooth N-sided fill (XNURBS's solver) is not built. Production path:
         // CurvePatchFeatureEvaluator for every non-planar curve patch. Complete only when N-sided
-        // loops are spanned with stated precision, verified by a five-sided non-planar patch.
+        // loops are spanned smoothly with stated precision, verified by a five-sided non-planar
+        // patch smooth across its interior.
         let sides = try surfaceFill.fourSides(from: loop, tolerance: tolerance)
         let surface = try ExactCoonsBSplineSurfaceBuilder().build(
             vMinimumBoundary: sides[0], vMaximumBoundary: try sides[2].reversed(tolerance: tolerance),

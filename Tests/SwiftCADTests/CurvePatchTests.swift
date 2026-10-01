@@ -78,4 +78,29 @@ struct CurvePatchTests {
         // The arched rails lift the middle of the sheet.
         #expect(spline.controlPoints.joined().contains { $0.z > 0.005 })
     }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aNonPlanarFiveSidedLoopSpansOneSheet() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // A pentagon of lines on z = 0 but for one corner lifted 5 mm.
+        let corners = (0..<5).map { k -> Point3D in
+            let angle = 2 * Double.pi * Double(k) / 5
+            return Point3D(x: 0.02 * cos(angle), y: 0.02 * sin(angle), z: k == 2 ? 0.005 : 0)
+        }
+        let path = FeatureID()
+        try builder.append(id: path, name: "Pentagon", operation: .spatialPath(SpatialPathFeature(kind: .polyline,
+            knots: (corners + [corners[0]]).map { SpatialPathKnot(position: $0) })))
+        let patch = try builder.patch(curves: [CurveSectionReference(featureID: path)])
+        let evaluated = try evaluate(builder)
+        let faces = evaluated.subshapes.entries.compactMap { key, value -> FaceID? in
+            guard key.featureID == patch, case let .face(id) = value else { return nil }
+            return id
+        }
+        #expect(faces.count == 1)
+        // The sheet passes through every corner.
+        let surface = try #require(faces.first.flatMap { evaluated.brep.faces[$0] }.flatMap { evaluated.brep.geometry.surfaces[$0.surfaceID] })
+        for corner in corners {
+            #expect(try surface.parameterProjection(of: corner, tolerance: .standard).residual < 1e-9)
+        }
+    }
 }

@@ -263,9 +263,11 @@ bridge joined along its share.
 from the first (turning those that run the other way) into one closed loop, or one closed curve. A
 planar loop spans its exact trimmed plane, sewn from the spans with their projected parameter
 curves; otherwise the loop's four sides (`SurfaceFillFeatureEvaluator.fourSides`) span the exact
-Coons patch. N-sided non-planar loops are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
-`CurvePatchTests` own a circle's disc and a triangle of lines (its area), an arched four-sided loop
-and the round trip.
+Coons patch; a loop of more than four corners is grouped into four sides by its perimeter, the
+other corners inside sides leaving creases across the sheet (a smooth N-sided fill is
+`FIXME(INCOMPLETE_IMPLEMENTATION)`). `CurvePatchTests` own a circle's disc and a triangle of lines
+(its area), an arched four-sided loop, a non-planar pentagon's one sheet through its corners and
+the round trip.
 
 ### Square
 
