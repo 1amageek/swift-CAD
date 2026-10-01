@@ -128,4 +128,43 @@ struct ChamferModeTests {
         let volume = try cut.brep.volume(tolerance: .standard)
         #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
     }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aDsCornerBetweenItsFlatAndItsArcChamfersByOffsetOrApex() throws {
+        let (big, height, d) = (0.01, 0.01, 0.002)
+        let solid = Double.pi * big * big / 2 * height
+        for mode in [ChamferMode.offset, .apex] {
+            var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+            let sketch = try builder.sketch(on: .xy) { sketch in
+                _ = sketch.arc(center: SketchPoint(x: length(0), y: length(0)), radius: length(big),
+                               startAngle: degrees(0), endAngle: degrees(180))
+                _ = sketch.line(from: SketchPoint(x: length(-big), y: length(0)), to: SketchPoint(x: length(big), y: length(0)))
+            }.featureID
+            let shape = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(height))
+            let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "d"))
+            let key = try #require(before.subshapes.entries.first { key, value in
+                guard key.featureID == shape, case let .edge(id) = value, let edge = before.brep.edges[id],
+                      let start = before.brep.vertices[edge.startVertexID]?.point,
+                      let end = before.brep.vertices[edge.endVertexID]?.point else { return false }
+                return [start, end].allSatisfy { abs($0.x - big) < 1e-12 && abs($0.y) < 1e-12 }
+            }?.key)
+            _ = try builder.chamfer(target: shape, edges: [try builder.stableSubshape(key)], distance: length(d), mode: mode)
+            let cut = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "d"))
+            try cut.brep.validate(level: .volumetric, tolerance: .standard)
+            // The corner cut off by the chord between the contacts, by Green's theorem: the arc from
+            // the corner to the arc's contact, the chord back to the flat's.
+            let removed: Double
+            if mode == .offset {
+                // Each face's offset by d meets the other: (r − d, 0) on the flat, (√(r² − d²), d) on the arc.
+                removed = big * big * asin(d / big) / 2 - (big - d) * d / 2
+            } else {
+                // d from the corner along each: the arc's contact turned 2·asin(d / 2r).
+                let phi = 2 * asin(d / (2 * big))
+                removed = big * big * phi / 2 - (big - d) * big * sin(phi) / 2
+            }
+            let volume = try cut.brep.volume(tolerance: .standard)
+            #expect(abs(volume - (solid - removed * height)) < 5e-12, "\(mode): \(volume)")
+        }
+    }
+
 }

@@ -93,6 +93,16 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
                 tolerance: context.tolerance
             )
         }
+        // A straight edge beside a cylinder running along it is chamfered across their traces.
+        if angle == nil, try ParallelEdgeRoundBuilder(tolerance: context.tolerance).admits(edgeID, bodyID: bodyID, model: context.brep) {
+            let request = try ParallelEdgeRoundBuilder(tolerance: context.tolerance).request(
+                featureID: feature.id, bodyID: bodyID, edgeID: edgeID, subshapeID: selectedReference.subshapeID,
+                section: .chamfer(distance, apex: chamfer.mode == .apex), context: context)
+            let sewn = try sewer.sew(request, tolerance: context.tolerance)
+            let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: context.brep)
+            try model.validate(level: .volumetric, tolerance: context.tolerance)
+            return EvaluationResult(brep: model, subshapes: sewn.subshapes, removedSubshapeIDs: replacedSubshapeIDs, lineage: sewn.lineage)
+        }
         // An edge of a tangent loop on a planar cap, or one between faces that are not square, is
         // chamfered by the profile chamfer.
         if try CapLoopBlendBuilder(tolerance: context.tolerance).admits([edgeID], model: context.brep)

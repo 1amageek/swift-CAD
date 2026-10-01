@@ -18,6 +18,13 @@ package struct ParallelEdgeRoundBuilder {
         self.tolerance = tolerance
     }
 
+    /// The blend across the edge: a round of the radius, or a chamfer whose contacts lie where each
+    /// face offset by the distance meets the other (offset) or the distance from the edge (apex).
+    package enum Section: Sendable {
+        case round(Double)
+        case chamfer(Double, apex: Bool)
+    }
+
     /// A face's trace across the edge: a line through a point along a direction, or a circle.
     private enum Trace {
         case line(point: Point3D, direction: Vector3D)
@@ -40,8 +47,13 @@ package struct ParallelEdgeRoundBuilder {
         }
     }
 
-    package func request(featureID: FeatureID, bodyID: BodyID, edgeID: EdgeID, subshapeID: SubshapeID, radius r: Double,
+    package func request(featureID: FeatureID, bodyID: BodyID, edgeID: EdgeID, subshapeID: SubshapeID, section: Section,
                          context: EvaluationContext) throws -> BRepSewingRequest {
+        let r: Double
+        switch section {
+        case let .round(radius): r = radius
+        case let .chamfer(distance, _): r = distance
+        }
         let model = context.brep
         func refuse(_ message: String) -> KernelError {
             KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance, message: message)
@@ -134,18 +146,34 @@ package struct ParallelEdgeRoundBuilder {
                 return .circle(center: center, radius: radius + shift * outward.dot(radial))
             }
         }
-        guard let center = try crossing(shifted(a.trace, outward: a.outward), shifted(b.trace, outward: b.outward), near: p0, d: d) else {
-            throw refuse("A round of this radius does not fit between the edge's faces.")
-        }
-        func touch(_ trace: Trace, outward: Vector3D) -> Point3D {
-            switch trace {
-            case .line: return center + outward * -shift
-            case let .circle(c, radius):
-                let toward = center - c
-                return c + toward * (radius / toward.length)
+        // A round touches the faces where its centre's circle does; a chamfer's contacts lie on the
+        // faces where the other face's offset (or the distance's circle about the corner) crosses.
+        var center = p0
+        let ta: Point3D, tb: Point3D
+        switch section {
+        case .round:
+            guard let found = try crossing(shifted(a.trace, outward: a.outward), shifted(b.trace, outward: b.outward), near: p0, d: d) else {
+                throw refuse("A round of this radius does not fit between the edge's faces.")
             }
+            center = found
+            func touch(_ trace: Trace, outward: Vector3D) -> Point3D {
+                switch trace {
+                case .line: return found + outward * -shift
+                case let .circle(c, radius):
+                    let toward = found - c
+                    return c + toward * (radius / toward.length)
+                }
+            }
+            (ta, tb) = (touch(a.trace, outward: a.outward), touch(b.trace, outward: b.outward))
+        case let .chamfer(_, apex):
+            let reach = Trace.circle(center: p0, radius: r)
+            let intoA = try intoFace(a.trace, outward: a.outward, faceID: besides[0])
+            guard let onA = try crossing(a.trace, apex ? reach : shifted(b.trace, outward: b.outward), near: p0, d: d, toward: intoA),
+                  let onB = try crossing(b.trace, apex ? reach : shifted(a.trace, outward: a.outward), near: p0, d: d, toward: intoB) else {
+                throw refuse("A chamfer of this distance does not fit between the edge's faces.")
+            }
+            (ta, tb) = (onA, onB)
         }
-        let (ta, tb) = (touch(a.trace, outward: a.outward), touch(b.trace, outward: b.outward))
         // The ruled faces the round runs between at each end, and the vertex moves.
         let lift = d * length
         let moves: [FaceID: [(from: Point3D, to: Point3D)]] = [
@@ -153,35 +181,51 @@ package struct ParallelEdgeRoundBuilder {
             besides[1]: [(p0, tb), (p1, tb + lift)],
         ]
         let parents = [subshapeID]
-        let cylinder = Surface3D.cylinder(Cylinder3D(origin: center, axis: d, radius: r))
-        func arc(at height: Double, from start: Point3D, to end: Point3D, _ name: String) throws -> BRepSewingEdge {
-            let curve = Curve3D.circle(Circle3D(center: center + d * height, normal: d, radius: r))
-            let t0 = try curve.parameterProjection(of: start, tolerance: tolerance).parameter
-            let t1 = nearestTurn(from: t0, to: try curve.parameterProjection(of: end, tolerance: tolerance).parameter)
-            return BRepSewingEdge(stableID: "round:\(name)", curve: curve, startParameter: t0, endParameter: t1, startPoint: start, endPoint: end,
-                                  surfaceParameterCurve: .polyline([]), parentSubshapeIDs: parents)
-        }
         func line(_ start: Point3D, _ end: Point3D, _ name: String) throws -> BRepSewingEdge {
             let delta = end - start
             return BRepSewingEdge(stableID: "round:\(name)", curve: .line(Line3D(origin: start, direction: try delta.normalized(tolerance: tolerance.distance))),
                                   startParameter: 0, endParameter: delta.length, startPoint: start, endPoint: end,
                                   surfaceParameterCurve: .polyline([]), parentSubshapeIDs: parents)
         }
-        // The band: the arc at the start from A's ruling to B's, B's ruling up, the arc back, A's down.
-        var band = [try arc(at: 0, from: ta, to: tb, "start"), try line(tb, tb + lift, "second"),
-                    try arc(at: length, from: tb + lift, to: ta + lift, "end"), try line(ta + lift, ta, "first")]
-        band = try band.map { try withPcurve($0, on: cylinder) }
-        // Away from the material: from the centre at a convex corner, toward it at a concave one,
-        // judged at the band's middle; the loop winds about that.
-        let halfway = ta + (tb - ta) * 0.5
-        let toward = try (halfway - center).normalized(tolerance: tolerance.distance)
-        let middle = center + d * (length / 2) + toward * r
-        let fromAxis = middle - (center + d * (length / 2))
-        let outward = convex ? fromAxis : fromAxis * -1
-        let uv = try cylinder.parameterProjection(of: middle, tolerance: tolerance)
-        let facing = try cylinder.normal(u: uv.u, v: uv.v, tolerance: tolerance).dot(outward) >= 0
+        let surface: Surface3D
+        let cut: (Double, Point3D, Point3D, String) throws -> BRepSewingEdge
+        let outward: Vector3D
+        switch section {
+        case .round:
+            surface = .cylinder(Cylinder3D(origin: center, axis: d, radius: r))
+            cut = { height, start, end, name in
+                let curve = Curve3D.circle(Circle3D(center: center + d * height, normal: d, radius: r))
+                let t0 = try curve.parameterProjection(of: start, tolerance: tolerance).parameter
+                let t1 = nearestTurn(from: t0, to: try curve.parameterProjection(of: end, tolerance: tolerance).parameter)
+                return BRepSewingEdge(stableID: "round:\(name)", curve: curve, startParameter: t0, endParameter: t1, startPoint: start,
+                                      endPoint: end, surfaceParameterCurve: .polyline([]), parentSubshapeIDs: parents)
+            }
+            // Away from the material: from the centre at a convex corner, toward it at a concave one.
+            let toward = try (ta + (tb - ta) * 0.5 - center).normalized(tolerance: tolerance.distance)
+            outward = convex ? toward : toward * -1
+        case .chamfer:
+            let normal = try (tb - ta).cross(d).normalized(tolerance: tolerance.distance)
+            // Away from the material: toward the corner it cuts off, or away from the one it fills.
+            let toCorner = (p0 - ta).dot(normal) >= 0 ? normal : normal * -1
+            outward = convex ? toCorner : toCorner * -1
+            surface = .plane(Plane3D(origin: ta, normal: outward))
+            cut = { _, start, end, name in try line(start, end, name) }
+        }
+        // The band: across at the start from A's ruling to B's, B's ruling up, across back, A's down.
+        var band = [try cut(0, ta, tb, "start"), try line(tb, tb + lift, "second"),
+                    try cut(length, tb + lift, ta + lift, "end"), try line(ta + lift, ta, "first")]
+        band = try band.map { try withPcurve($0, on: surface) }
+        // The band's middle: on the round's arc, or the chamfer's midpoint.
+        let across = ta + (tb - ta) * 0.5
+        let middle: Point3D
+        switch section {
+        case .round: middle = center + (try (across - center).normalized(tolerance: tolerance.distance)) * r + d * (length / 2)
+        case .chamfer: middle = across + d * (length / 2)
+        }
+        let uv = try surface.parameterProjection(of: middle, tolerance: tolerance)
+        let facing = try surface.normal(u: uv.u, v: uv.v, tolerance: tolerance).dot(outward) >= 0
         let loop = (tb - ta).cross(d).dot(outward) > 0 ? band : try band.reversed().map(reversed)
-        var patches = [BRepSewingFacePatch(stableID: "round:band", surface: cylinder, orientation: facing ? .forward : .reversed,
+        var patches = [BRepSewingFacePatch(stableID: "round:band", surface: surface, orientation: facing ? .forward : .reversed,
                                            loops: [BRepSewingLoop(stableID: "round:band:outer", role: .outer, edges: loop)],
                                            parentSubshapeIDs: besides.flatMap { context.subshapeIDs(for: .face($0)) })]
         // Every face, the two beside the edge and its end faces edited, the rest as they were.
@@ -193,7 +237,7 @@ package struct ParallelEdgeRoundBuilder {
             } else if faceID == ends.0 || faceID == ends.1 {
                 let (corner, a, b) = faceID == ends.0 ? (p0, ta, tb) : (p1, ta + lift, tb + lift)
                 let height = faceID == ends.0 ? 0.0 : length
-                patches.append(try cornered(source, corner: corner, onA: a, onB: b, height: height, arc: arc, refuse))
+                patches.append(try cornered(source, corner: corner, onA: a, onB: b, height: height, arc: cut, refuse))
             } else {
                 patches.append(source)
             }
@@ -204,7 +248,7 @@ package struct ParallelEdgeRoundBuilder {
     }
 
     /// Where two traces cross nearest `point`, in the plane across `d` through it.
-    private func crossing(_ first: Trace, _ second: Trace, near point: Point3D, d: Vector3D) throws -> Point3D? {
+    private func crossing(_ first: Trace, _ second: Trace, near point: Point3D, d: Vector3D, toward: Vector3D? = nil) throws -> Point3D? {
         let seed: Vector3D = abs(d.x) < 0.6 ? .unitX : .unitY
         let u = try d.cross(seed).normalized(tolerance: tolerance.distance)
         let v = d.cross(u)
@@ -239,7 +283,11 @@ package struct ParallelEdgeRoundBuilder {
             candidates.append((mx - ey * h / distance, my + ex * h / distance))
             candidates.append((mx + ey * h / distance, my - ex * h / distance))
         }
-        guard let nearest = candidates.min(by: { $0.0 * $0.0 + $0.1 * $0.1 < $1.0 * $1.0 + $1.1 * $1.1 }) else { return nil }
+        // A chamfer's contact lies off the corner along its face: the nearest crossing that way.
+        let kept = toward.map { direction in
+            candidates.filter { $0.0 * direction.dot(u) + $0.1 * direction.dot(v) > tolerance.distance }
+        } ?? candidates
+        guard let nearest = kept.min(by: { $0.0 * $0.0 + $0.1 * $0.1 < $1.0 * $1.0 + $1.1 * $1.1 }) else { return nil }
         return point + u * nearest.0 + v * nearest.1
     }
 
