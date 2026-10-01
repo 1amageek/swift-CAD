@@ -36,9 +36,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
            let sheet = context.brep.bodies[try targetBodyID(fillet.target.featureID, featureID: feature.id, context: context)],
            sheet.kind == .sheet {
             let section = fillet.shape == .round
-                ? BlendSection(setback: radius, degree: 2, weights: [1, 0.5.squareRoot(), 1]) { corner, first, second in
-                    [corner + first * radius, corner, corner + second * radius]
-                }
+                ? roundSection(radius: radius)
                 : try self.section(for: fillet.shape, tension: fillet.tension, distance: radius)
             return try evaluateProfileBlend(feature: feature, target: fillet.target.featureID, selected: fillet.edges[0],
                                             section: section, context: context)
@@ -72,6 +70,15 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             featureID: feature.id,
             context: context
         )
+        // Planes meeting at other than a right angle take the profile blend's exact arc.
+        if let shell = body.shellIDs.first.flatMap({ context.brep.shells[$0] }) {
+            let incident = try shell.faceIDs.filter { try faceUses(edgeID: selection.edgeID, faceID: $0, model: context.brep) }
+            let planes = try incident.map { try orientedPlane($0, model: context.brep, featureID: feature.id, tolerance: context.tolerance) }
+            if planes.count == 2, abs(planes[0].outward.dot(planes[1].outward)) > context.tolerance.angle {
+                return try evaluateProfileBlend(feature: feature, target: fillet.target.featureID, selected: selected,
+                                                section: roundSection(radius: radius), context: context)
+            }
+        }
         let request = try request(
             featureID: feature.id,
             bodyID: bodyID,
@@ -798,20 +805,36 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
     package func evaluateSheetChamfer(feature: FeatureNode, target: FeatureID, selected: StableSubshapeReference,
                                       distance: Double, context: EvaluationContext) throws -> EvaluationResult {
         try evaluateProfileBlend(feature: feature, target: target, selected: selected,
-            section: BlendSection(setback: distance, degree: 1, weights: [1, 1]) { corner, first, second in
-                [corner + first * distance, corner + second * distance]
+            section: BlendSection { _ in
+                BlendSection.Resolved(setback: distance, degree: 1, weights: [1, 1]) { corner, first, second in
+                    [corner + first * distance, corner + second * distance]
+                }
             }, context: context)
     }
 
-    /// A blend's cross-section across an edge between perpendicular planes: its distance from the
-    /// edge along both faces, and its curve from the contact on the first face to the one on the
-    /// second, given the corner and the unit directions along the first and second faces away from
-    /// the edge.
+    /// A blend's cross-section across an edge between planes, made for the corner's interior angle:
+    /// its distance from the edge along both faces, and its curve from the contact on the first face
+    /// to the one on the second, given the corner and the unit directions along the first and second
+    /// faces away from the edge.
     private struct BlendSection {
-        let setback: Double
-        let degree: Int
-        let weights: [Double]
-        let controlPoints: (Point3D, Vector3D, Vector3D) -> [Point3D]
+        struct Resolved {
+            let setback: Double
+            let degree: Int
+            let weights: [Double]
+            let controlPoints: (Point3D, Vector3D, Vector3D) -> [Point3D]
+        }
+        /// The section where the faces leave the edge at the interior angle `α`.
+        let resolve: (Double) -> Resolved
+
+        /// A circular arc tangent to both faces: `setback(α)` along each, weight sin(α/2).
+        static func arc(setback: @escaping (Double) -> Double) -> BlendSection {
+            BlendSection { alpha in
+                let distance = setback(alpha)
+                return Resolved(setback: distance, degree: 2, weights: [1, sin(alpha / 2), 1]) { corner, first, second in
+                    [corner + first * distance, corner, corner + second * distance]
+                }
+            }
+        }
     }
 
     /// The cross-section of a Fillet Shell `shape`.
@@ -820,31 +843,37 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         case .curvature:
             // A quintic leaving each face along it with zero curvature: its first three control
             // points on the first face, its last three on the second.
-            return BlendSection(setback: distance, degree: 5, weights: Array(repeating: 1, count: 6)) { corner, first, second in
-                let start: Point3D = corner + first * distance
-                let end: Point3D = corner + second * distance
-                let handle: Double = tension * distance / 3
-                let startHandle: Point3D = start + first * -handle
-                let startCurvature: Point3D = start + first * (-2 * handle)
-                let endCurvature: Point3D = end + second * (-2 * handle)
-                let endHandle: Point3D = end + second * -handle
-                return [start, startHandle, startCurvature, endCurvature, endHandle, end]
+            return BlendSection { _ in
+                BlendSection.Resolved(setback: distance, degree: 5, weights: Array(repeating: 1, count: 6)) { corner, first, second in
+                    let start: Point3D = corner + first * distance
+                    let end: Point3D = corner + second * distance
+                    let handle: Double = tension * distance / 3
+                    let startHandle: Point3D = start + first * -handle
+                    let startCurvature: Point3D = start + first * (-2 * handle)
+                    let endCurvature: Point3D = end + second * (-2 * handle)
+                    let endHandle: Point3D = end + second * -handle
+                    return [start, startHandle, startCurvature, endCurvature, endHandle, end]
+                }
             }
         case .conic:
             // A rational quadratic through the corner's tangents, rho the tension.
-            return BlendSection(setback: distance, degree: 2, weights: [1, tension / (1 - tension), 1]) { corner, first, second in
-                [corner + first * distance, corner, corner + second * distance]
+            return BlendSection { _ in
+                BlendSection.Resolved(setback: distance, degree: 2, weights: [1, tension / (1 - tension), 1]) { corner, first, second in
+                    [corner + first * distance, corner, corner + second * distance]
+                }
             }
         case .chordal:
-            // A quarter circle whose chord is the distance.
-            let setback = distance / 2.0.squareRoot()
-            return BlendSection(setback: setback, degree: 2, weights: [1, 0.5.squareRoot(), 1]) { corner, first, second in
-                [corner + first * setback, corner, corner + second * setback]
-            }
+            // The circular arc whose chord is the distance.
+            return .arc { alpha in distance / (2 * sin(alpha / 2)) }
         case .round, .full:
             throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: nil,
                               message: "A round or full fillet takes its own route.")
         }
+    }
+
+    /// A round fillet's arc of `radius`, tangent to both faces.
+    private func roundSection(radius: Double) -> BlendSection {
+        .arc { alpha in radius / tan(alpha / 2) }
     }
 
     /// One straight edge between perpendicular planes blended by `section` swept along it, the
@@ -894,10 +923,9 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         edgeID: EdgeID,
         selectedSubshapeID: SubshapeID,
         sourceEdgeIDs: Set<EdgeID>,
-        section: BlendSection,
+        section blendSection: BlendSection,
         context: EvaluationContext
     ) throws -> BRepSewingRequest {
-        let distance = section.setback
         let model = context.brep
         guard let body = model.bodies[bodyID],
               let shellID = body.shellIDs.first,
@@ -913,24 +941,35 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         }
         let firstPlane = try orientedPlane(incidentFaceIDs[0], model: model, featureID: featureID, tolerance: context.tolerance)
         let secondPlane = try orientedPlane(incidentFaceIDs[1], model: model, featureID: featureID, tolerance: context.tolerance)
-        guard abs(firstPlane.outward.dot(secondPlane.outward)) <= context.tolerance.angle else {
-            throw failure(.unsupportedCapability, featureID: featureID, tolerance: context.tolerance, "G2 blend incident faces must be perpendicular planes.")
-        }
         let axisVector = endVertex.point - startVertex.point
         let height = axisVector.length
         let axis = try axisVector.normalized(tolerance: context.tolerance.distance)
         let isSheet = body.kind == .sheet
-        /// The direction within a face away from the edge: against the other face's outward normal
-        /// beside a solid's convex edge; a sheet's toward where the face lies.
-        func away(_ faceID: FaceID, other: Vector3D) throws -> Vector3D {
-            guard isSheet else { return -other }
+        /// The direction within a face away from the edge, across it, toward where the face lies.
+        func away(_ faceID: FaceID, normal: Vector3D) throws -> Vector3D {
+            let direction = try axis.cross(normal).normalized(tolerance: context.tolerance.distance)
             let polygon = try outerPolygon(faceID, model: model, featureID: featureID, tolerance: context.tolerance)
             let centroid = polygon.reduce(Vector3D.zero) { $0 + ($1 - startVertex.point) } * (1 / Double(polygon.count))
-            return centroid.dot(other) > 0 ? other : -other
+            return centroid.dot(direction) > 0 ? direction : -direction
         }
         // `secondInward` runs along the first face, `firstInward` along the second.
-        let secondInward = try away(incidentFaceIDs[0], other: secondPlane.outward)
-        let firstInward = try away(incidentFaceIDs[1], other: firstPlane.outward)
+        let secondInward = try away(incidentFaceIDs[0], normal: firstPlane.outward)
+        let firstInward = try away(incidentFaceIDs[1], normal: secondPlane.outward)
+        // The faces' interior angle at the edge; a solid's edge must be convex (each face's outward
+        // normal turned from the other face).
+        let alpha = acos(max(-1, min(1, secondInward.dot(firstInward))))
+        guard alpha > context.tolerance.angle, alpha < .pi - context.tolerance.angle,
+              isSheet || (firstPlane.outward.dot(firstInward) < 0 && secondPlane.outward.dot(secondInward) < 0) else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): a concave edge of a solid is blended by adding
+            // material outside the faces, which the profile blend (cutting back from the corner)
+            // does not build, so it is refused. Production path: EdgeBlendFeatureEvaluator.g2Request
+            // for every profile blend. Complete only when concave edges are filled, verified by a
+            // fillet inside an L-shaped block's corner.
+            throw failure(.unsupportedCapability, featureID: featureID, tolerance: context.tolerance,
+                          "A blend rounds a convex edge between planes that are not flat to each other.")
+        }
+        let section = blendSection.resolve(alpha)
+        let distance = section.setback
         let lowerControlPoints = section.controlPoints(startVertex.point, secondInward, firstInward)
         let upperControlPoints = lowerControlPoints.map { $0 + axis * height }
         let knots = Array(repeating: 0.0, count: section.degree + 1) + Array(repeating: 1.0, count: section.degree + 1)
@@ -986,6 +1025,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     cornerIndex: cornerIndex,
                     curve: lowerCurve,
                     distance: distance,
+                    axis: axis,
                     faceParents: faceParents,
                     sourceEdgeIDs: sourceEdgeIDs,
                     model: model,
@@ -1003,6 +1043,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     cornerIndex: cornerIndex,
                     curve: upperCurve,
                     distance: distance,
+                    axis: axis,
                     faceParents: faceParents,
                     sourceEdgeIDs: sourceEdgeIDs,
                     model: model,
@@ -1196,11 +1237,16 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         cornerIndex: Int,
         curve: BSplineCurve3D,
         distance: Double,
+        axis: Vector3D,
         faceParents: [SubshapeID],
         sourceEdgeIDs: Set<EdgeID>,
         model: BRepModel,
         context: EvaluationContext
     ) throws -> G2Cap {
+        // The section lies across the edge, so an end face holding it runs square across the edge.
+        guard plane.plane.normal.cross(axis).length <= context.tolerance.angle else {
+            throw failure(.unsupportedCapability, tolerance: context.tolerance, "A blend's end faces run square across its edge.")
+        }
         let rotated = polygon.indices.map { polygon[(cornerIndex + $0) % polygon.count] }
         let corner = rotated[0]
         let nextDirection = rotated[1] - corner

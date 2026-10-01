@@ -248,4 +248,33 @@ struct FilletShapeTests {
         let strip = try #require(splines.first)
         #expect(strip.controlPoints.joined().allSatisfy { abs($0.y + $0.z - r) < 1e-12 })
     }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aHexagonalPrismsEdgeRoundsAcrossItsHundredTwentyDegrees() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // A regular hexagon of 10 mm sides extruded 20 mm; its edges up the sides meet at 120°.
+        let corners = (0..<6).map { k in (0.01 * cos(Double(k) * .pi / 3), 0.01 * sin(Double(k) * .pi / 3)) }
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            for (start, end) in zip(corners, corners.dropFirst() + corners.prefix(1)) {
+                _ = sketch.line(from: SketchPoint(x: length(start.0), y: length(start.1)), to: SketchPoint(x: length(end.0), y: length(end.1)))
+            }
+        }.featureID
+        let prism = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(0.02))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "hex"))
+        let side = try #require(before.subshapes.entries.first { key, value in
+            guard key.featureID == prism, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  let start = before.brep.vertices[edge.startVertexID]?.point,
+                  let end = before.brep.vertices[edge.endVertexID]?.point else { return false }
+            return [start, end].allSatisfy { abs($0.x - 0.01) < 1e-12 && abs($0.y) < 1e-12 }
+        }?.key)
+        let r = 0.002
+        _ = try builder.fillet(target: prism, edges: [try builder.stableSubshape(side)], radius: length(r))
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "hex"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        // The corner loses the kite of its two r/√3 tangents less the arc's 60° sector.
+        let removed = r * r / 3.0.squareRoot() - Double.pi / 6 * r * r
+        let expected = 3 * 3.0.squareRoot() / 2 * 0.01 * 0.01 * 0.02 - removed * 0.02
+        let volume = try evaluated.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+    }
 }
