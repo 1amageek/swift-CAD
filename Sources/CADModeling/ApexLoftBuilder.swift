@@ -45,20 +45,20 @@ package struct ApexLoftBuilder {
             }
         }
         normal = try normal.normalized(tolerance: tolerance.distance)
-        guard collinear || points.allSatisfy({ abs(($0 - centroid).dot(normal)) <= tolerance.distance }) else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): a non-planar section has no plane to cap it or to
-            // tell its rulings' side, so a Loft from it to a vertex is refused. Production path:
-            // ApexLoftBuilder for every Loft to a vertex. Complete only when non-planar sections
-            // loft to a vertex as sheets, verified by a sheet from a bent curve to a point.
-            throw failure(.unsupportedCapability, "A Loft to a vertex takes a planar section.")
+        let planar = collinear || points.allSatisfy({ abs(($0 - centroid).dot(normal)) <= tolerance.distance })
+        // A solid's section is a region, always planar; only a curve section, which lofts into a
+        // sheet, may bend out of a plane.
+        guard planar || resultKind == .sheet else {
+            throw failure(.invalidInput, "A solid Loft to a vertex takes a planar section.")
         }
         let height = (apex - centroid).dot(normal)
         if height < 0 { normal = normal * -1 }
-        guard collinear || abs(height) > tolerance.distance else {
+        guard collinear || planar == false || abs(height) > tolerance.distance else {
             throw failure(.invalidInput, "A Loft's vertex lies in its section's plane.")
         }
-        // Rulings from a loop wound counterclockwise about the normal toward the apex face out.
-        let winding = isClosed ? try patches.profileWindingSign(spans, normal: normal, featureID: featureID) : 1
+        // Rulings from a loop wound counterclockwise about the normal toward the apex face out; a
+        // non-planar section's sheet keeps the rulings' own side, which every face shares.
+        let winding = isClosed && planar ? try patches.profileWindingSign(spans, normal: normal, featureID: featureID) : 1
         let sideOrientation: Orientation = winding > 0 ? .forward : .reversed
         var faces: [BRepSewingFacePatch] = []
         for (index, span) in spans.enumerated() {

@@ -493,9 +493,10 @@ the exact plane of its triangle; a curved span's is the ruled surface between th
 with its row at the apex collapsed (a pole its three edges meet at, as a cone's faces do). The
 section's plane (its normal turned toward the apex) orients the faces outward by the loop's winding,
 and a closed section caps the solid with its planar region; an open straight section and the apex
-make one flat fan. Guides, continuity, holes and non-planar sections are refused (the last with
-`FIXME(INCOMPLETE_IMPLEMENTATION)`). `ApexLoftTests` own the square's pyramid (five planes, a third of
-base times height, the round trip), the circle's cone (its volume) and the line's fan sheet.
+make one flat fan. A curve section bending out of a plane lofts into a sheet whose faces keep their
+rulings' own side (a solid's section is a planar region). Guides, continuity and holes are refused.
+`ApexLoftTests` own the square's pyramid (five planes, a third of base times height, the round trip),
+the circle's cone (its volume), the line's fan sheet and a bent cubic's sheet to a vertex.
 
 ### Loft section topology
 
