@@ -60,11 +60,12 @@ package struct FullRoundLayout {
         /// A face's plane normal, outward from the solid.
         func outward(_ faceID: FaceID) throws -> Vector3D {
             guard let face = model.faces[faceID], case let .plane(plane) = model.geometry.surfaces[face.surfaceID] else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): a full round beside curved faces needs the
-                // circle tangent to curves across the edges, which is not built, so it is refused.
-                // Production path: FullRoundLayout for every Full fillet. Complete only when curved
-                // neighbours are rounded within a stated allowance, verified by a full round
-                // across a face between two cylinders.
+                // FIXME(INCOMPLETE_IMPLEMENTATION): a full round beside curved faces other than a
+                // tube end's coaxial walls (FullRimRoundBuilder) needs the circle tangent to curves
+                // across the edges, which is not built, so it is refused. Production path:
+                // FullRoundLayout for every other Full fillet. Complete only when such neighbours
+                // are rounded, verified by a full round across a face between a plane and a
+                // cylinder running along it.
                 throw failure(.unsupportedCapability, "A full fillet rounds across planar faces.")
             }
             return try (face.orientation == .forward ? plane.normal : plane.normal * -1).normalized(tolerance: tolerance.distance)

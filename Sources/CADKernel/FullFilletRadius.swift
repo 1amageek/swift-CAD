@@ -4,7 +4,8 @@ import CADModeling
 import CADTopology
 
 /// The radius of Fillet Shell's Full round across the face between two edges of a body, which the
-/// faces fix (`FullRoundLayout`) and a full `FilletFeature` states.
+/// faces fix (`FullRoundLayout`, or `FullRimRoundBuilder` across a tube's end) and a full
+/// `FilletFeature` states.
 public struct FullFilletRadius {
     public init() {}
 
@@ -23,7 +24,12 @@ public struct FullFilletRadius {
             }
             return edgeID
         }
-        return try FullRoundLayout(model: document.brep, bodyID: bodyID, firstEdgeID: try edgeID(edges.0),
-                                   secondEdgeID: try edgeID(edges.1), featureID: nil, tolerance: tolerance).radius
+        let (first, second) = (try edgeID(edges.0), try edgeID(edges.1))
+        // Across a tube's end, the half torus's tube radius.
+        if let tube = try FullRimRoundBuilder(tolerance: tolerance).radius(first, second, model: document.brep) {
+            return tube
+        }
+        return try FullRoundLayout(model: document.brep, bodyID: bodyID, firstEdgeID: first,
+                                   secondEdgeID: second, featureID: nil, tolerance: tolerance).radius
     }
 }

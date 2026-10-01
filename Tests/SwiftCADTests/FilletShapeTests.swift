@@ -770,6 +770,39 @@ struct FilletShapeTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func aTubesEndRoundsFullIntoAHalfTorus() throws {
+        // A tube of 10 mm and 6 mm radii, 10 mm long; its end rounded full between its rims: the
+        // half torus of tube radius 2 mm about the circle midway, 8 mm out.
+        let (outer, inner, height) = (0.01, 0.006, 0.01)
+        let rho = (outer - inner) / 2
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.circle(center: SketchPoint(x: length(0), y: length(0)), radius: length(outer))
+            _ = sketch.circle(center: SketchPoint(x: length(0), y: length(0)), radius: length(inner))
+        }.featureID
+        let tube = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(height))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "tube"))
+        func rim(_ radius: Double) throws -> StableSubshapeReference {
+            let key = try #require(before.subshapes.entries.first { key, value in
+                guard key.featureID == tube, case let .edge(id) = value, let edge = before.brep.edges[id],
+                      case .circle? = before.brep.geometry.curves[edge.curveID],
+                      let start = before.brep.vertices[edge.startVertexID]?.point else { return false }
+                return abs(start.z - height) < 1e-12 && abs((start.x * start.x + start.y * start.y).squareRoot() - radius) < 1e-9
+            }?.key)
+            return try builder.stableSubshape(key)
+        }
+        _ = try builder.fillet(target: tube, edges: [try rim(outer), try rim(inner)], radius: length(rho), shape: .full)
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "tube"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        // The two corners' sections, a 2ρ × ρ rectangle less the half disc, about the axis at the
+        // middle radius by symmetry.
+        let middle = (outer + inner) / 2
+        let removed = 2 * Double.pi * middle * (2 * rho * rho - Double.pi * rho * rho / 2)
+        let volume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(volume - (Double.pi * (outer * outer - inner * inner) * height - removed)) < 5e-12, "\(volume)")
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func aTabsConcaveRootBetweenItsEdgeAndItsArcFills() throws {
         // A 20 mm square with a half disc of radius 5 mm standing on its top edge, extruded 10 mm;
         // the upright edge at (15, 20) mm joins the top edge and the disc's arc in a concave corner.

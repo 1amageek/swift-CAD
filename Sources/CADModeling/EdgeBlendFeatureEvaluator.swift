@@ -2262,6 +2262,21 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         let model = context.brep
         let first = try scopedEdgeSelection(fillet.edges[0], bodyID: bodyID, featureID: featureID, context: context)
         let second = try scopedEdgeSelection(fillet.edges[1], bodyID: bodyID, featureID: featureID, context: context)
+        // Across a tube's end, between its coaxial rims: the half torus.
+        let rimRound = FullRimRoundBuilder(tolerance: tolerance)
+        if let tube = try rimRound.radius(first.edgeID, second.edgeID, model: model) {
+            let stated = try resolvedRadius(fillet.radius, featureID: featureID, context: context)
+            guard abs(stated - tube) <= tolerance.distance else {
+                throw failure(.invalidInput, featureID: featureID, tolerance: tolerance,
+                              "A full fillet's radius is fixed by its faces, \(tube); it states \(stated).")
+            }
+            let request = try rimRound.request(featureID: featureID, bodyID: bodyID, edges: (first.edgeID, second.edgeID),
+                                               parents: fillet.edges.map(\.subshapeID), context: context)
+            let sewn = try sewer.sew(request, tolerance: tolerance)
+            let replaced = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: model)
+            try replaced.validate(level: .volumetric, tolerance: tolerance)
+            return EvaluationResult(brep: replaced, subshapes: sewn.subshapes, removedSubshapeIDs: first.replacedSubshapeIDs, lineage: sewn.lineage)
+        }
         let layout = try FullRoundLayout(model: model, bodyID: bodyID, firstEdgeID: first.edgeID, secondEdgeID: second.edgeID,
                                          featureID: featureID, tolerance: tolerance)
         guard let shell = model.bodies[bodyID].flatMap({ model.shells[$0.shellIDs[0]] }) else {
