@@ -217,9 +217,21 @@ closed: the section slides along each arm and turns at a corner by the least rot
 arms' directions; each arm is the exact prism between its two ends, each end the section pushed
 along the arm onto the mitre plane through the corner (normal the sum of the two directions), on
 which neighbouring arms provably meet in the same curve. Open paths are capped at their ends; a
-closed path must bring its frame back unturned (a planar loop). Round corners, twist, scale and
-guides are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)`. `MitredSweepTests` own an L-shaped path
-and a closed frame (exact volumes, the mitre plane's vertices, the frame's sixteen faces).
+closed path must bring its frame back unturned (a planar loop). Twist, scale and guides are refused
+with `FIXME(INCOMPLETE_IMPLEMENTATION)`. `MitredSweepTests` own an L-shaped path and a closed frame
+(exact volumes, the mitre plane's vertices, the frame's sixteen faces).
+
+Round corners keep the mitre inside each turn and round the outside: the section is split where it
+crosses the plane through the path holding the arm and the corner's axis (the line through the
+corner across both arms, carried back to the section's frame); pieces on the outer side end on the
+plane across each arm through the corner and turn between those ends about the axis by the corner's
+angle (rational quadratic in the turn, two pieces past a right angle). A piece reaching the axis
+closes its face there; its tensor surface would have a pole, so a line across the axis takes the
+exact plane it sweeps, and other such pieces (a circle's arc making a sphere, a slanted line making
+a cone, a spline) are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)`. The corner faces map to side
+face subshapes after the arms'. `RoundSweepCornerTests` own the L-shaped and closed-frame square
+sweeps' exact volumes (the arms less the inner overlap plus the outer sectors) and the circle's
+refusal.
 
 ### Edge curves
 

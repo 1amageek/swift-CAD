@@ -83,11 +83,6 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 "Sweep evaluation requires a path curve feature."
             )
         }
-        if pathCurves.count > 1, sweep.options.cornerStyle == .round {
-            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance, message:
-                "Round sweep corner style requires curved corner-transition topology for multi-curve paths."
-            )
-        }
         let section = try ResolvedModelingSection.resolve(sectionReference, context: context, featureID: feature.id)
         let preferredStartPlane = try ExactSweepSectionPlane(
             try section.plane(),
@@ -121,7 +116,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                     featureID: feature.id
                 )
                 let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
-                    .buildMitred(mitred, profileSpanCounts: loops.map(\.count))
+                    .buildMitred(mitred)
                 return try applyBooleanIfNeeded(sweep, featureID: feature.id, toolResult: tool, context: context)
             }
         }

@@ -124,12 +124,9 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
             pathSpanCount: plan.pathSpans.count, includesCaps: resultKind == .solid)
     }
 
-    package func buildMitred(
-        _ mitred: MitredPolylineSweepBuilder.Request,
-        profileSpanCounts: [Int]
-    ) throws -> EvaluationResult {
-        try evaluationResult(request: mitred.request, profileSpanCounts: profileSpanCounts,
-            pathSpanCount: mitred.armCount, includesCaps: mitred.includesCaps)
+    package func buildMitred(_ mitred: MitredPolylineSweepBuilder.Request) throws -> EvaluationResult {
+        try evaluationResult(request: mitred.request, profileSpanCounts: mitred.profileSpanCounts,
+            pathSpanCount: mitred.armCount, includesCaps: mitred.includesCaps, extraSideFaceIDs: mitred.cornerFaceIDs)
     }
 
     package func buildCertifiedCurvedPath(
@@ -143,12 +140,13 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
     }
 
     private func evaluationResult(
-        request: BRepSewingRequest, profileSpanCounts: [Int], pathSpanCount: Int, includesCaps: Bool
+        request: BRepSewingRequest, profileSpanCounts: [Int], pathSpanCount: Int, includesCaps: Bool,
+        extraSideFaceIDs: [String] = []
     ) throws -> EvaluationResult {
         let sewn = try sewer.sew(request, tolerance: context.tolerance)
         let combined = try BRepModelCombiner().combined([context.brep, sewn.brep])
-        let subshapes = try semanticSubshapes(sewn: sewn,
-            profileSpanCounts: profileSpanCounts, pathSpanCount: pathSpanCount, includesCaps: includesCaps)
+        let subshapes = try semanticSubshapes(sewn: sewn, profileSpanCounts: profileSpanCounts,
+            pathSpanCount: pathSpanCount, includesCaps: includesCaps, extraSideFaceIDs: extraSideFaceIDs)
         return EvaluationResult(brep: combined, subshapes: subshapes,
             lineage: try GeneratedTopologyLineageBuilder().build(featureID: featureID, subshapes: subshapes))
     }
@@ -157,7 +155,8 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
         sewn: BRepSewingResult,
         profileSpanCounts: [Int],
         pathSpanCount: Int,
-        includesCaps: Bool
+        includesCaps: Bool,
+        extraSideFaceIDs: [String]
     ) throws -> [SubshapeID: TopologyReference] {
         var result: [SubshapeID: TopologyReference] = [
             subshapeID(role: .body, ordinal: 0): .body(sewn.bodyID),
@@ -189,6 +188,10 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
                     sideOrdinal += 1
                 }
             }
+        }
+        for stableID in extraSideFaceIDs {
+            result[subshapeID(role: .sideFace, ordinal: sideOrdinal)] = try reference(.face(stableID), in: sewn)
+            sideOrdinal += 1
         }
         for (ordinal, edgeID) in sewn.brep.edges.keys.sorted(by: {
             $0.description < $1.description
