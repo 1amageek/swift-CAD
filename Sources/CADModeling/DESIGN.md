@@ -350,7 +350,7 @@ takes its loop): the round's tube or the chamfer's line (across the cap, then al
 cylinder or plane along a line and a torus or cone along an arc, meeting on the section at their
 tangent joints; the cap's loop moves the distance into the cap and each wall's edge the distance along
 the wall (a concave loop's band filling the corner). Loops whose walls change side and loops of one
-closed circular edge are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). In a network every edge is convex, and each face's inward direction from
+closed circular edge are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A loop with sharp corners blends the tangent chain holding the selected edge, open at them (a D's top arc, a U's line–arc–line run), when its walls run down from the cap and each end's neighbour wall is a plane square to the chain there: the band ends on its section in that plane, whose corner vertex splits into the cap and wall contacts with the section between them; concave open chains, ends on oblique faces and chains blended on both sides of a corner are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). In a network every edge is convex, and each face's inward direction from
 a blended side is read from its outer loop's winding, so concave faces take part. A chamfer's
 section (`chamferSection`) follows Fillet Shell's modes for faces meeting at the interior angle α:
 Offset (the default) meets each face where the other, offset inward by the distance, does —

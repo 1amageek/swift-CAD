@@ -544,6 +544,73 @@ struct FilletShapeTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func aDsTopArcRoundsAndChamfersEndingOnItsFlatSide() throws {
+        // A D of radius 10 mm extruded 10 mm; its top arc, sharp at the flat side, ends on that
+        // side square to it: the band is half a torus (or cone) ending on its sections there.
+        let (big, height, r) = (0.01, 0.01, 0.002)
+        let solid = Double.pi * big * big / 2 * height
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.arc(center: SketchPoint(x: length(0), y: length(0)), radius: length(big),
+                           startAngle: .constant(.angle(0, unit: .degree)), endAngle: .constant(.angle(180, unit: .degree)))
+            _ = sketch.line(from: SketchPoint(x: length(-big), y: length(0)), to: SketchPoint(x: length(big), y: length(0)))
+        }.featureID
+        let d = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(height))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "d"))
+        let rim = try #require(before.subshapes.entries.first { key, value in
+            guard key.featureID == d, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  case .circle? = before.brep.geometry.curves[edge.curveID],
+                  let start = before.brep.vertices[edge.startVertexID]?.point else { return false }
+            return abs(start.z - height) < 1e-12
+        }?.key)
+        var chamfered = builder
+        _ = try builder.fillet(target: d, edges: [try builder.stableSubshape(rim)], radius: length(r))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "d"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        // Pappus over half a turn: the corner's section about the axis at its centroid's radius.
+        let inset = r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+        let roundVolume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(roundVolume - (solid - r * r * (1 - Double.pi / 4) * Double.pi * (big - inset))) < 5e-12, "\(roundVolume)")
+        _ = try chamfered.chamfer(target: d, edges: [try chamfered.stableSubshape(rim)], distance: length(r))
+        let cut = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try chamfered.build(name: "d"))
+        try cut.brep.validate(level: .volumetric, tolerance: .standard)
+        let chamferVolume = try cut.brep.volume(tolerance: .standard)
+        #expect(abs(chamferVolume - (solid - r * r / 2 * Double.pi * (big - r / 3))) < 5e-12, "\(chamferVolume)")
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aUsTangentRunOfLinesAndArcRoundsBetweenItsSharpCorners() throws {
+        // A U: 20 mm straight sides joined by a half circle of radius 5 mm, closed by a straight
+        // back at x = 0, extruded 10 mm; the top's line–arc–line run ends square on the back.
+        let (l, c, height, r) = (0.02, 0.005, 0.01, 0.002)
+        func p(_ x: Double, _ y: Double) -> SketchPoint { SketchPoint(x: length(x), y: length(y)) }
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.line(from: p(0, 0), to: p(l, 0))
+            _ = sketch.arc(center: p(l, c), radius: length(c),
+                           startAngle: .constant(.angle(-90, unit: .degree)), endAngle: .constant(.angle(90, unit: .degree)))
+            _ = sketch.line(from: p(l, 2 * c), to: p(0, 2 * c))
+            _ = sketch.line(from: p(0, 2 * c), to: p(0, 0))
+        }.featureID
+        let u = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(height))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "u"))
+        let side = try #require(before.subshapes.entries.first { key, value in
+            guard key.featureID == u, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  let start = before.brep.vertices[edge.startVertexID]?.point,
+                  let end = before.brep.vertices[edge.endVertexID]?.point else { return false }
+            return [start, end].allSatisfy { abs($0.y) < 1e-12 && abs($0.z - height) < 1e-12 }
+        }?.key)
+        _ = try builder.fillet(target: u, edges: [try builder.stableSubshape(side)], radius: length(r))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "u"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        let solid = (l * 2 * c + Double.pi * c * c / 2) * height
+        let section = r * r * (1 - Double.pi / 4)
+        let inset = r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+        let volume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(volume - (solid - section * (2 * l + Double.pi * (c - inset)))) < 5e-12, "\(volume)")
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func aTabsConcaveRootBetweenItsEdgeAndItsArcFills() throws {
         // A 20 mm square with a half disc of radius 5 mm standing on its top edge, extruded 10 mm;
         // the upright edge at (15, 20) mm joins the top edge and the disc's arc in a concave corner.

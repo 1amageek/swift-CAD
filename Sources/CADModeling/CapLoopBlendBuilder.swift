@@ -12,7 +12,10 @@ import CADTopology
 /// line swept along the loop: a cylinder or a plane along a line, a torus or a cone along an arc,
 /// meeting its neighbours on the section at their tangent joint. The cap's loop moves the distance
 /// into the cap and each wall's edge the distance along the wall. A selected edge of such a loop
-/// takes the whole loop, as a tangent chain does.
+/// takes the whole loop, as a tangent chain does. A loop with sharp corners blends the tangent chain
+/// holding the selected edge, open at those corners, when its walls run down from the cap and each
+/// end lies on a plane square to the chain there (a D's rim ending on its flat side): the band ends
+/// on its section in that plane, which takes the section across its corner.
 package struct CapLoopBlendBuilder {
     private let tolerance: ModelingTolerance
 
@@ -46,22 +49,52 @@ package struct CapLoopBlendBuilder {
         let arc: (circle: Circle3D, from: Double, to: Double)?
     }
 
-    /// A cap loop: the cap, its outward normal, whether the walls rise (+1) or fall (−1) from it,
-    /// its segments in order, and the sense (+1 or −1) that turns `normal × tangent` into the cap.
+    /// Where an open chain ends: the loop vertex, the chain's segment ending there (its first or its
+    /// last), and the end face — the plane square to the chain through the vertex.
+    private struct ChainEnd {
+        let vertex: Point3D
+        let segment: Segment
+        let faceID: FaceID
+        let neighbourEdgeID: EdgeID
+    }
+
+    /// The tangent chain of a cap's loop holding an edge: the cap face and loop, the chain's first
+    /// loop index and length, and whether it is the whole loop closed on itself.
+    private struct CapChain {
+        let capFaceID: FaceID
+        let loopID: LoopID
+        let first: Int
+        let count: Int
+        let closed: Bool
+    }
+
+    /// A cap chain: the cap, its outward normal, whether the walls rise (+1) or fall (−1) from it,
+    /// the chain's segments in order, the sense (+1 or −1) that turns `normal × tangent` into the
+    /// cap, and the chain's two ends when it is open.
     private struct CapLoop {
         let capFaceID: FaceID
         let normal: Vector3D
         let rise: Double
         let segments: [Segment]
         let inwardSense: Double
+        let ends: [ChainEnd]
+    }
+
+    /// A chain this builder blends, or why it does not.
+    private enum Admission {
+        case admitted(CapLoop)
+        case refused(String)
     }
 
     /// Whether every edge of `edgeIDs` lies on a tangent loop of lines and arcs, holding an arc, of
-    /// a planar face: the loops this builder takes, which straight blends do not.
+    /// a planar face, or on such an open chain of a loop of lines and arcs that this builder ends:
+    /// the chains this builder takes, which straight blends do not.
     package func admits(_ edgeIDs: [EdgeID], model: BRepModel) throws -> Bool {
         guard edgeIDs.isEmpty == false else { return false }
-        for edgeID in edgeIDs where try capLoopID(containing: edgeID, model: model) == nil {
-            return false
+        for edgeID in edgeIDs {
+            guard let chain = try capChain(containing: edgeID, model: model) else { return false }
+            if chain.closed { continue }
+            guard case .admitted = try capLoop(chain, model: model) else { return false }
         }
         return true
     }
@@ -77,15 +110,31 @@ package struct CapLoopBlendBuilder {
               let shell = model.shells[body.shellIDs[0]] else {
             throw refuse("A cap loop is blended on one single-shell solid.")
         }
-        // Every loop the selection touches.
+        // Every chain the selection touches.
         var loops: [CapLoop] = []
-        var seen: Set<LoopID> = []
+        var seen: Set<String> = []
         for selection in selected {
-            guard let (capFaceID, loopID) = try capLoopID(containing: selection.edgeID, model: model) else {
+            guard let chain = try capChain(containing: selection.edgeID, model: model) else {
                 throw refuse("A blended loop is a tangent loop of lines and arcs on a planar cap.")
             }
-            guard seen.insert(loopID).inserted else { continue }
-            loops.append(try capLoop(capFaceID: capFaceID, loopID: loopID, shell: shell, model: model, featureID: featureID))
+            guard seen.insert("\(chain.loopID):\(chain.first)").inserted else { continue }
+            switch try capLoop(chain, model: model) {
+            case let .admitted(loop):
+                guard shell.faceIDs.contains(loop.capFaceID) else {
+                    throw refuse("A blended loop lies on the blended solid.")
+                }
+                loops.append(loop)
+            case let .refused(message):
+                throw refuse(message)
+            }
+        }
+        let chainEdgeIDs = Set(loops.flatMap { $0.segments.map(\.edgeID) })
+        for end in loops.flatMap(\.ends) where chainEdgeIDs.contains(end.neighbourEdgeID) {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): chains blended on both sides of a sharp corner of
+            // their cap meet at a mitre between their bands, which is not built, so they are
+            // refused. Production path: CapLoopBlendBuilder from Fillet and Chamfer. Complete only
+            // when such corners close, verified by a D's whole rim rounded.
+            throw refuse("Blended chains of a cap meet at its sharp corners.")
         }
         let selectedParent = Dictionary(selected.map { ($0.edgeID, $0.subshapeID) }, uniquingKeysWith: { first, _ in first })
         var patches: [BRepSewingFacePatch] = []
@@ -93,6 +142,9 @@ package struct CapLoopBlendBuilder {
         // edges move to.
         var vertexMoves: [FaceID: [(from: Point3D, to: Point3D)]] = [:]
         var segmentMoves: [FaceID: [(from: Segment, to: Segment)]] = [:]
+        // Each open chain's end vertex on its end face: split into the cap contact and the wall
+        // contact, the section between them.
+        var endSplits: [FaceID: [(vertex: Point3D, cap: Point3D, wall: Point3D, inward: Vector3D, section: BRepSewingEdge)]] = [:]
         for (loopIndex, loop) in loops.enumerated() {
             let n = loop.normal
             let wall = n * loop.rise
@@ -136,6 +188,17 @@ package struct CapLoopBlendBuilder {
                                              normal: n, rise: loop.rise, parents: parents,
                                              faceParents: [loop.capFaceID, segment.wallFaceID].flatMap { context.subshapeIDs(for: .face($0)) }))
             }
+            for (endIndex, end) in loop.ends.enumerated() {
+                let m = try inward(end.segment, at: end.vertex)
+                let (capPoint, wallPoint) = (end.vertex + m * dc, end.vertex + wall * dw)
+                let parents = selectedParent[end.segment.edgeID].map { [$0] } ?? context.subshapeIDs(for: .edge(end.segment.edgeID))
+                let curve = try section(shape, at: end.vertex, inward: m, wallDirection: wall,
+                                        tangent: try segmentTangent(end.segment, at: end.vertex), from: capPoint, to: wallPoint)
+                let edge = BRepSewingEdge(stableID: "loop:\(loopIndex):end:\(endIndex)", curve: curve.curve,
+                                          startParameter: curve.start, endParameter: curve.end, startPoint: capPoint, endPoint: wallPoint,
+                                          surfaceParameterCurve: .polyline([]), parentSubshapeIDs: parents)
+                endSplits[end.faceID, default: []].append((end.vertex, capPoint, wallPoint, m, edge))
+            }
         }
         // Every face beside a loop with its loop edges moved and the straight edges reaching them
         // shortened; every other face as it was.
@@ -143,9 +206,25 @@ package struct CapLoopBlendBuilder {
             let source = try SourceBRepFacePatchBuilder().build(faceID: faceID, stableID: "source-face:\(faceIndex)", from: model,
                                                                 sourceSubshapes: context.subshapes.entries, tolerance: tolerance).patch
             let moves = vertexMoves[faceID] ?? []
-            guard moves.isEmpty == false else {
+            let splits = endSplits[faceID] ?? []
+            guard moves.isEmpty == false || splits.isEmpty == false else {
                 patches.append(source)
                 continue
+            }
+            guard moves.isEmpty || splits.isEmpty else {
+                throw refuse("A blended chain ends on a face it also blends.")
+            }
+            /// Where an end face's edge leaving a split vertex toward `other` starts now: the cap
+            /// contact along the cap's line, the wall contact along the wall's.
+            func split(_ vertex: Point3D, toward other: Point3D) throws -> Point3D? {
+                guard let split = splits.first(where: { $0.vertex.isApproximatelyEqual(to: vertex, tolerance: tolerance.distance) }) else {
+                    return nil
+                }
+                let direction = try (other - vertex).normalized(tolerance: tolerance.distance)
+                let down = try (split.wall - split.vertex).normalized(tolerance: tolerance.distance)
+                if direction.cross(split.inward).length <= tolerance.angle, direction.dot(split.inward) > 0 { return split.cap }
+                if direction.cross(down).length <= tolerance.angle, direction.dot(down) > 0 { return split.wall }
+                throw refuse("A blended chain's end face runs along the cap and the wall from its corner.")
             }
             let segments = segmentMoves[faceID] ?? []
             func moved(_ point: Point3D) -> Point3D? {
@@ -157,37 +236,49 @@ package struct CapLoopBlendBuilder {
                     || (edge.startPoint.isApproximatelyEqual(to: segment.end, tolerance: tolerance.distance)
                         && edge.endPoint.isApproximatelyEqual(to: segment.start, tolerance: tolerance.distance))
             }
-            let loops = try source.loops.map { loop in
-                BRepSewingLoop(stableID: loop.stableID, role: loop.role, edges: try loop.edges.map { edge in
-                    let (start, end) = (moved(edge.startPoint), moved(edge.endPoint))
-                    guard start != nil || end != nil else { return edge }
-                    let (p, q) = (start ?? edge.startPoint, end ?? edge.endPoint)
-                    // A loop segment becomes its moved segment, run the way the edge runs.
-                    if let move = segments.first(where: { matches(edge, $0.from) }), let arc = move.to.arc {
-                        let forward = edge.startPoint.isApproximatelyEqual(to: move.from.start, tolerance: tolerance.distance)
-                        let (t0, t1) = forward ? (arc.from, arc.to) : (arc.to, arc.from)
-                        return BRepSewingEdge(stableID: edge.stableID, curve: .circle(arc.circle), startParameter: t0, endParameter: t1,
-                                              startPoint: p, endPoint: q,
-                                              surfaceParameterCurve: try circlePcurve(arc.circle, from: t0, to: t1, on: source.surface),
-                                              parentSubshapeIDs: edge.parentSubshapeIDs,
-                                              startVertexParentSubshapeIDs: edge.startVertexParentSubshapeIDs,
-                                              endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs)
-                    }
-                    guard case .line = edge.curve else {
-                        throw refuse("A blended loop's vertices end straight edges of its faces.")
-                    }
-                    let delta = q - p
-                    guard delta.dot(edge.endPoint - edge.startPoint) > tolerance.distance * delta.length else {
-                        throw KernelError(phase: .evaluation, code: .topologyFailure, featureID: featureID, tolerance: tolerance,
-                                          message: "A loop's blend removes an edge beside it.")
-                    }
-                    return BRepSewingEdge(stableID: edge.stableID,
-                                          curve: .line(Line3D(origin: p, direction: try delta.normalized(tolerance: tolerance.distance))),
-                                          startParameter: 0, endParameter: delta.length, startPoint: p, endPoint: q,
-                                          surfaceParameterCurve: try linePcurve(from: p, to: q, on: source.surface),
+            /// An edge with its ends moved: a loop segment becomes its moved segment, run the way the
+            /// edge runs; a straight edge reaching a moved vertex is shortened.
+            func movedEdge(_ edge: BRepSewingEdge, start: Point3D?, end: Point3D?) throws -> BRepSewingEdge {
+                guard start != nil || end != nil else { return edge }
+                let (p, q) = (start ?? edge.startPoint, end ?? edge.endPoint)
+                if let move = segments.first(where: { matches(edge, $0.from) }), let arc = move.to.arc {
+                    let forward = edge.startPoint.isApproximatelyEqual(to: move.from.start, tolerance: tolerance.distance)
+                    let (t0, t1) = forward ? (arc.from, arc.to) : (arc.to, arc.from)
+                    return BRepSewingEdge(stableID: edge.stableID, curve: .circle(arc.circle), startParameter: t0, endParameter: t1,
+                                          startPoint: p, endPoint: q,
+                                          surfaceParameterCurve: try circlePcurve(arc.circle, from: t0, to: t1, on: source.surface),
                                           parentSubshapeIDs: edge.parentSubshapeIDs,
                                           startVertexParentSubshapeIDs: edge.startVertexParentSubshapeIDs,
                                           endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs)
+                }
+                guard case .line = edge.curve else {
+                    throw refuse("A blended loop's vertices end straight edges of its faces.")
+                }
+                let delta = q - p
+                guard delta.dot(edge.endPoint - edge.startPoint) > tolerance.distance * delta.length else {
+                    throw KernelError(phase: .evaluation, code: .topologyFailure, featureID: featureID, tolerance: tolerance,
+                                      message: "A loop's blend removes an edge beside it.")
+                }
+                return BRepSewingEdge(stableID: edge.stableID,
+                                      curve: .line(Line3D(origin: p, direction: try delta.normalized(tolerance: tolerance.distance))),
+                                      startParameter: 0, endParameter: delta.length, startPoint: p, endPoint: q,
+                                      surfaceParameterCurve: try linePcurve(from: p, to: q, on: source.surface),
+                                      parentSubshapeIDs: edge.parentSubshapeIDs,
+                                      startVertexParentSubshapeIDs: edge.startVertexParentSubshapeIDs,
+                                      endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs)
+            }
+            let loops = try source.loops.map { loop in
+                BRepSewingLoop(stableID: loop.stableID, role: loop.role, edges: try loop.edges.flatMap { edge -> [BRepSewingEdge] in
+                    let start = try split(edge.startPoint, toward: edge.endPoint) ?? moved(edge.startPoint)
+                    let end = try split(edge.endPoint, toward: edge.startPoint) ?? moved(edge.endPoint)
+                    let shortened = try movedEdge(edge, start: start, end: end)
+                    // The section at a split corner follows the edge running into it.
+                    guard let corner = splits.first(where: { $0.vertex.isApproximatelyEqual(to: edge.endPoint, tolerance: tolerance.distance) }) else {
+                        return [shortened]
+                    }
+                    let section = shortened.endPoint.isApproximatelyEqual(to: corner.cap, tolerance: tolerance.distance)
+                        ? corner.section : try reversed(corner.section)
+                    return [shortened, try planarSection(section, on: source.surface)]
                 })
             }
             patches.append(BRepSewingFacePatch(stableID: source.stableID, surface: source.surface, orientation: source.orientation,
@@ -214,19 +305,9 @@ package struct CapLoopBlendBuilder {
         func sectionEdge(_ name: String, at point: Point3D, inward m: Vector3D, tangent: Vector3D, reversed: Bool) throws -> BRepSewingEdge {
             let (capPoint, wallPoint) = (point + m * dc, point + wallDirection * dw)
             let (p, q) = reversed ? (wallPoint, capPoint) : (capPoint, wallPoint)
-            switch shape {
-            case .round:
-                let circle = Circle3D(center: point + (m + wallDirection) * d, normal: tangent, radius: d)
-                let (t0, t1) = try shortParameters(circle, from: p, to: q)
-                return BRepSewingEdge(stableID: "\(stableID):\(name)", curve: .circle(circle), startParameter: t0, endParameter: t1,
-                                      startPoint: p, endPoint: q, surfaceParameterCurve: .polyline([]), parentSubshapeIDs: parents)
-            case .chamfer:
-                let delta = q - p
-                return BRepSewingEdge(stableID: "\(stableID):\(name)",
-                                      curve: .line(Line3D(origin: p, direction: try delta.normalized(tolerance: tolerance.distance))),
-                                      startParameter: 0, endParameter: delta.length, startPoint: p, endPoint: q,
-                                      surfaceParameterCurve: .polyline([]), parentSubshapeIDs: parents)
-            }
+            let curve = try section(shape, at: point, inward: m, wallDirection: wallDirection, tangent: tangent, from: p, to: q)
+            return BRepSewingEdge(stableID: "\(stableID):\(name)", curve: curve.curve, startParameter: curve.start, endParameter: curve.end,
+                                  startPoint: p, endPoint: q, surfaceParameterCurve: .polyline([]), parentSubshapeIDs: parents)
         }
         let surface: Surface3D
         if let arc = segment.arc {
@@ -255,14 +336,7 @@ package struct CapLoopBlendBuilder {
                 surface = .plane(Plane3D(origin: cap.start, normal: planeNormal))
             }
         }
-        // Tangents at the segment's ends, along the loop.
-        func tangent(at point: Point3D) throws -> Vector3D {
-            if let arc = segment.arc {
-                let radial = try (point - arc.circle.center).normalized(tolerance: tolerance.distance)
-                return try (arc.circle.normal.cross(radial) * (arc.to >= arc.from ? 1 : -1)).normalized(tolerance: tolerance.distance)
-            }
-            return try (segment.end - segment.start).normalized(tolerance: tolerance.distance)
-        }
+        func tangent(at point: Point3D) throws -> Vector3D { try segmentTangent(segment, at: point) }
         // The loop: cap contact forward, the end's section to the wall, wall contact back, the start's
         // section up to the cap; pcurves from the band's own parameters.
         var edges = [
@@ -291,6 +365,44 @@ package struct CapLoopBlendBuilder {
         return BRepSewingFacePatch(stableID: stableID, surface: surface, orientation: facing ? .forward : .reversed,
                                    loops: [BRepSewingLoop(stableID: "\(stableID):outer", role: .outer, edges: loopEdges)],
                                    parentSubshapeIDs: faceParents)
+    }
+
+    /// The band's section at a chain point from `p` to `q` (its cap and wall contacts, either way):
+    /// a round's quarter circle about its centre `d` in from both, square to the chain, or a
+    /// chamfer's line.
+    private func section(_ shape: Section, at point: Point3D, inward m: Vector3D, wallDirection: Vector3D, tangent: Vector3D,
+                         from p: Point3D, to q: Point3D) throws -> (curve: Curve3D, start: Double, end: Double) {
+        switch shape {
+        case let .round(d):
+            let circle = Circle3D(center: point + (m + wallDirection) * d, normal: tangent, radius: d)
+            let (t0, t1) = try shortParameters(circle, from: p, to: q)
+            return (.circle(circle), t0, t1)
+        case .chamfer:
+            let delta = q - p
+            return (.line(Line3D(origin: p, direction: try delta.normalized(tolerance: tolerance.distance))), 0, delta.length)
+        }
+    }
+
+    /// A segment's unit tangent at a point, along the chain.
+    private func segmentTangent(_ segment: Segment, at point: Point3D) throws -> Vector3D {
+        if let arc = segment.arc {
+            let radial = try (point - arc.circle.center).normalized(tolerance: tolerance.distance)
+            return try (arc.circle.normal.cross(radial) * (arc.to >= arc.from ? 1 : -1)).normalized(tolerance: tolerance.distance)
+        }
+        return try (segment.end - segment.start).normalized(tolerance: tolerance.distance)
+    }
+
+    /// A section edge on the plane it ends a chain in, with its pcurve there.
+    private func planarSection(_ edge: BRepSewingEdge, on surface: Surface3D) throws -> BRepSewingEdge {
+        let pcurve: SurfaceParameterCurve
+        if case let .circle(circle) = edge.curve {
+            pcurve = try circlePcurve(circle, from: edge.startParameter, to: edge.endParameter, on: surface)
+        } else {
+            pcurve = try linePcurve(from: edge.startPoint, to: edge.endPoint, on: surface)
+        }
+        return BRepSewingEdge(stableID: edge.stableID, curve: edge.curve, startParameter: edge.startParameter,
+                              endParameter: edge.endParameter, startPoint: edge.startPoint, endPoint: edge.endPoint,
+                              surfaceParameterCurve: pcurve, parentSubshapeIDs: edge.parentSubshapeIDs)
     }
 
     /// A contact segment as an edge, run forward or back.
@@ -373,24 +485,37 @@ package struct CapLoopBlendBuilder {
 
     // MARK: - Finding the loop
 
-    /// The planar face and its loop holding `edgeID` when that loop is a tangent loop of lines and
-    /// arcs with at least one arc; nil otherwise.
-    private func capLoopID(containing edgeID: EdgeID, model: BRepModel) throws -> (FaceID, LoopID)? {
+    /// The tangent chain holding `edgeID` on a planar face's loop of lines and arcs: the whole loop
+    /// when it is tangent at every joint, otherwise the run of segments tangent at their joints
+    /// between two sharp corners; nil when the loop is not of lines and arcs or the chain holds no arc.
+    private func capChain(containing edgeID: EdgeID, model: BRepModel) throws -> CapChain? {
         for (faceID, face) in model.faces.sorted(by: { $0.key < $1.key }) {
             guard case .plane? = model.geometry.surfaces[face.surfaceID] else { continue }
             for loopID in face.loops {
-                guard let loop = model.loops[loopID], loop.edges.contains(where: { $0.edgeID == edgeID }) else { continue }
+                guard let loop = model.loops[loopID], let index = loop.edges.firstIndex(where: { $0.edgeID == edgeID }) else { continue }
                 let curves = loop.edges.compactMap { use in model.edges[use.edgeID].flatMap { model.geometry.curves[$0.curveID] } }
                 guard curves.count == loop.edges.count,
                       curves.allSatisfy({ curve in
                           switch curve { case .line, .circle: return true; default: return false }
-                      }),
-                      curves.contains(where: { if case .circle = $0 { return true } else { return false } }) else { continue }
+                      }) else { continue }
                 let runs = try loop.edges.map { try run(of: $0, model: model) }
-                let tangentAtJoints = zip(runs, runs.dropFirst() + runs.prefix(1)).allSatisfy { before, after in
-                    before.endTangent.cross(after.startTangent).length <= 1e-7 && before.endTangent.dot(after.startTangent) > 0
+                let count = runs.count
+                // Whether the loop runs on tangent from each segment into the next.
+                let tangent = (0..<count).map { i in
+                    let (before, after) = (runs[i], runs[(i + 1) % count])
+                    return before.endTangent.cross(after.startTangent).length <= 1e-7 && before.endTangent.dot(after.startTangent) > 0
                 }
-                if tangentAtJoints { return (faceID, loopID) }
+                let chain: CapChain
+                if tangent.allSatisfy({ $0 }) {
+                    chain = CapChain(capFaceID: faceID, loopID: loopID, first: 0, count: count, closed: true)
+                } else {
+                    var first = index
+                    while tangent[(first - 1 + count) % count] { first = (first - 1 + count) % count }
+                    var last = index
+                    while tangent[last] { last = (last + 1) % count }
+                    chain = CapChain(capFaceID: faceID, loopID: loopID, first: first, count: (last - first + count) % count + 1, closed: false)
+                }
+                if (0..<chain.count).contains(where: { runs[(chain.first + $0) % count].arc != nil }) { return chain }
             }
         }
         return nil
@@ -433,77 +558,130 @@ package struct CapLoopBlendBuilder {
         return (start, end, direction, direction, nil)
     }
 
-    /// The loop with its walls, checked: each segment's other face a wall square to the cap (a
-    /// plane through a line, the coaxial cylinder through an arc), the walls all on one side.
-    private func capLoop(capFaceID: FaceID, loopID: LoopID, shell: Shell, model: BRepModel, featureID: FeatureID) throws -> CapLoop {
-        func refuse(_ message: String) -> KernelError {
-            KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance, message: message)
-        }
-        guard let capFace = model.faces[capFaceID], case let .plane(plane)? = model.geometry.surfaces[capFace.surfaceID],
-              let loop = model.loops[loopID] else {
+    /// The chain with its walls, checked: each segment's other face a wall square to the cap (a
+    /// plane through a line, the coaxial cylinder through an arc), the walls all on one side; an
+    /// open chain's walls running down from the cap and each end on a plane square to the chain.
+    private func capLoop(_ chain: CapChain, model: BRepModel) throws -> Admission {
+        guard let capFace = model.faces[chain.capFaceID], case let .plane(plane)? = model.geometry.surfaces[capFace.surfaceID],
+              let loop = model.loops[chain.loopID] else {
             throw TopologyError.missingReference("Missing cap.")
         }
+        guard let shell = model.shells.values.first(where: { $0.faceIDs.contains(chain.capFaceID) }) else {
+            throw TopologyError.missingReference("Missing cap shell.")
+        }
         let normal = try (capFace.orientation == .forward ? plane.normal : plane.normal * -1).normalized(tolerance: tolerance.distance)
-        var segments: [Segment] = []
-        var rise = 0.0
-        var samples: [Point3D] = []
-        for use in loop.edges {
-            let run = try run(of: use, model: model)
+        /// The one face other than the cap holding a loop edge, with its surface.
+        func wall(of use: Coedge) throws -> (FaceID, Surface3D)? {
             let walls = try shell.faceIDs.filter { faceID in
-                guard faceID != capFaceID, let face = model.faces[faceID] else { return false }
+                guard faceID != chain.capFaceID, let face = model.faces[faceID] else { return false }
                 return try face.loops.contains { id in
                     guard let other = model.loops[id] else { throw TopologyError.missingReference("Missing loop.") }
                     return other.edges.contains { $0.edgeID == use.edgeID }
                 }
             }
-            guard walls.count == 1, let wallFace = model.faces[walls[0]], let wallSurface = model.geometry.surfaces[wallFace.surfaceID] else {
-                throw refuse("A blended loop's edges each bound the cap and one wall.")
+            guard walls.count == 1, let face = model.faces[walls[0]], let surface = model.geometry.surfaces[face.surfaceID] else { return nil }
+            return (walls[0], surface)
+        }
+        let count = loop.edges.count
+        var segments: [Segment] = []
+        var rise = 0.0
+        for offset in 0..<chain.count {
+            let use = loop.edges[(chain.first + offset) % count]
+            let run = try run(of: use, model: model)
+            guard let (wallFaceID, wallSurface) = try wall(of: use) else {
+                return .refused("A blended loop's edges each bound the cap and one wall.")
             }
             // The wall square to the cap: a plane holding the cap's normal, or the arc's coaxial cylinder.
             switch (wallSurface, run.arc) {
             case let (.plane(wallPlane), nil):
                 guard abs(wallPlane.normal.dot(normal)) <= tolerance.angle * max(wallPlane.normal.length, 1) else {
-                    throw refuse("A blended loop's walls are square to its cap.")
+                    return .refused("A blended loop's walls are square to its cap.")
                 }
             case let (.cylinder(cylinder), arc?):
-                try checkCoaxial(origin: cylinder.origin, axis: cylinder.axis, radius: cylinder.radius, arc: arc.circle, normal: normal, refuse)
+                guard coaxial(origin: cylinder.origin, axis: cylinder.axis, radius: cylinder.radius, arc: arc.circle, normal: normal) else {
+                    return .refused("A blended loop's arcs bound cylinders coaxial with them.")
+                }
             case let (.analytic(.cylinder(origin, axis, radius)), arc?):
-                try checkCoaxial(origin: origin, axis: axis, radius: radius, arc: arc.circle, normal: normal, refuse)
+                guard coaxial(origin: origin, axis: axis, radius: radius, arc: arc.circle, normal: normal) else {
+                    return .refused("A blended loop's arcs bound cylinders coaxial with them.")
+                }
             default:
-                throw refuse("A blended loop's walls are planes through its lines and cylinders through its arcs.")
+                return .refused("A blended loop's walls are planes through its lines and cylinders through its arcs.")
             }
-            let side = try wallSide(walls[0], cap: normal, at: run.start, model: model)
+            let side = try wallSide(wallFaceID, cap: normal, at: run.start, model: model)
             guard side != 0, rise == 0 || rise == side else {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): a loop whose walls run down from the cap at
                 // some edges and up at others turns between a convex and a concave band, which is
                 // not built, so it is refused. Production path: CapLoopBlendBuilder from Fillet and
                 // Chamfer. Complete only when such loops blend, verified by a plate's step.
-                throw refuse("A blended loop's walls all run down from its cap or all rise from it.")
+                return .refused("A blended loop's walls all run down from its cap or all rise from it.")
             }
             rise = side
-            segments.append(Segment(edgeID: use.edgeID, wallFaceID: walls[0], start: run.start, end: run.end, arc: run.arc))
+            segments.append(Segment(edgeID: use.edgeID, wallFaceID: wallFaceID, start: run.start, end: run.end, arc: run.arc))
+        }
+        // The cap lies to the left of the loop about its normal when the loop winds that way about
+        // the region it bounds: counterclockwise for the outer loop, clockwise for a hole's.
+        var samples: [Point3D] = []
+        for use in loop.edges {
+            let run = try run(of: use, model: model)
             samples.append(run.start)
             if let arc = run.arc {
                 samples.append(try Curve3D.circle(arc.circle).point(at: (arc.from + arc.to) / 2, tolerance: tolerance))
             }
         }
-        // The cap lies to the left of the loop about its normal when the loop winds that way about
-        // the region it bounds: counterclockwise for the outer loop, clockwise for a hole's.
         var winding = Vector3D.zero
         for (a, b) in zip(samples, samples.dropFirst() + samples.prefix(1)) { winding = winding + (a - samples[0]).cross(b - samples[0]) }
         let counterclockwise = winding.dot(normal) > 0
         let inwardSense: Double = (loop.role == .outer) == counterclockwise ? 1 : -1
-        return CapLoop(capFaceID: capFaceID, normal: normal, rise: rise, segments: segments, inwardSense: inwardSense)
+        guard chain.closed == false else {
+            return .admitted(CapLoop(capFaceID: chain.capFaceID, normal: normal, rise: rise, segments: segments,
+                                     inwardSense: inwardSense, ends: []))
+        }
+        guard chain.count < count else {
+            return .refused("A blended chain ends at sharp corners of its cap's loop beside other edges.")
+        }
+        guard rise < 0 else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): an open chain whose walls rise from the cap (part
+            // of a boss's base) fills its corner up to faces its ends meet, which is not built, so
+            // it is refused. Production path: CapLoopBlendBuilder from Fillet and Chamfer. Complete
+            // only when such chains blend, verified by a half disc's base on a plate.
+            return .refused("An open blended chain's walls run down from its cap.")
+        }
+        // Each end on its neighbour's wall: a plane square to the chain there.
+        var ends: [ChainEnd] = []
+        for (neighbourIndex, segment, vertex) in [((chain.first - 1 + count) % count, segments[0], segments[0].start),
+                                                  ((chain.first + chain.count) % count, segments[segments.count - 1],
+                                                   segments[segments.count - 1].end)] {
+            let neighbour = loop.edges[neighbourIndex]
+            guard let (faceID, surface) = try wall(of: neighbour), case let .plane(endPlane) = surface else {
+                return .refused("An open blended chain ends on planes.")
+            }
+            let tangent = try segmentTangent(segment, at: vertex)
+            let planeNormal = try endPlane.normal.normalized(tolerance: tolerance.distance)
+            guard planeNormal.cross(tangent).length <= tolerance.angle else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): an open chain ending on a face oblique to it
+                // needs its band trimmed by that face, which is not built, so it is refused.
+                // Production path: CapLoopBlendBuilder from Fillet and Chamfer. Complete only when
+                // such chains blend, verified by an arc's rim ending on a slanted side.
+                return .refused("An open blended chain ends on planes square to it.")
+            }
+            // The neighbour runs from the corner into the cap, as the band's cap contact does.
+            let other = try run(of: neighbour, model: model)
+            let away = other.start.isApproximatelyEqual(to: vertex, tolerance: tolerance.distance) ? other.end - other.start : other.start - other.end
+            guard away.dot(normal.cross(tangent) * inwardSense) > 0 else {
+                return .refused("An open blended chain ends at convex corners of its cap.")
+            }
+            ends.append(ChainEnd(vertex: vertex, segment: segment, faceID: faceID, neighbourEdgeID: neighbour.edgeID))
+        }
+        return .admitted(CapLoop(capFaceID: chain.capFaceID, normal: normal, rise: rise, segments: segments,
+                                 inwardSense: inwardSense, ends: ends))
     }
 
-    private func checkCoaxial(origin: Point3D, axis: Vector3D, radius: Double, arc: Circle3D, normal: Vector3D,
-                              _ refuse: (String) -> KernelError) throws {
+    private func coaxial(origin: Point3D, axis: Vector3D, radius: Double, arc: Circle3D, normal: Vector3D) -> Bool {
         let offset = arc.center - origin
-        guard axis.cross(normal).length <= tolerance.angle * max(axis.length, 1),
-              abs(radius - arc.radius) <= tolerance.distance,
-              (offset - axis * (offset.dot(axis) / axis.dot(axis))).length <= tolerance.distance else {
-            throw refuse("A blended loop's arcs bound cylinders coaxial with them.")
-        }
+        return axis.cross(normal).length <= tolerance.angle * max(axis.length, 1)
+            && abs(radius - arc.radius) <= tolerance.distance
+            && (offset - axis * (offset.dot(axis) / axis.dot(axis))).length <= tolerance.distance
     }
 
     /// −1 when the wall's vertices all lie below the cap's plane through `point` (against its
