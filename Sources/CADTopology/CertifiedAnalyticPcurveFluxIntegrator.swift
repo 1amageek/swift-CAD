@@ -4755,11 +4755,21 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     }
     let ascendingLower = min(startParameter, endParameter)
     let ascendingUpper = max(startParameter, endParameter)
+    // The curve's longitude where it starts, as its chart lift (and so the loop unwrapper that
+    // translates it) reads it; the integration keeps to that branch of the periodic chart.
+    let startLongitude = sphericalEndpointLongitude(
+      cosine: cosine,
+      sine: sine,
+      parameter: startParameter,
+      approachDirection: endParameter > startParameter ? 1.0 : -1.0
+    )
     if let meridian = meridianFluxBounds(
       cosine: cosine,
       sine: sine,
       lower: ascendingLower,
       upper: ascendingUpper,
+      startAtLower: startParameter <= endParameter,
+      startLongitude: startLongitude,
       integrand: integrand
     ) {
       return startParameter <= endParameter ? meridian : -meridian
@@ -4775,11 +4785,33 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       )
       + [ascendingUpper]
     let totalSpan = ascendingUpper - ascendingLower
+    // Each seam-free segment's shift onto the continuous branch running from the start: walked
+    // from the start, a segment's entry longitude (read from inside it) meets the running
+    // longitude on the nearest branch, and the segment carries it on without wrapping.
+    let period = 2.0 * Double.pi
+    let forward = startParameter <= endParameter
+    var shifts = Array(repeating: 0.0, count: breakpoints.count)
+    var running = startLongitude
+    for index in (forward ? Array(1..<breakpoints.count) : Array((1..<breakpoints.count).reversed())) {
+      let (entry, exit) = forward
+        ? (breakpoints[index - 1], breakpoints[index])
+        : (breakpoints[index], breakpoints[index - 1])
+      guard entry != exit else { continue }
+      let direction = exit > entry ? 1.0 : -1.0
+      let entryLongitude = sphericalEndpointLongitude(
+        cosine: cosine, sine: sine, parameter: entry, approachDirection: direction)
+      let exitLongitude = sphericalEndpointLongitude(
+        cosine: cosine, sine: sine, parameter: exit, approachDirection: -direction)
+      let shift = ((running - entryLongitude) / period).rounded() * period
+      shifts[index] = shift
+      running = exitLongitude + shift
+    }
     var result = Interval.exact(0.0)
     for index in 1..<breakpoints.count {
       let lower = breakpoints[index - 1]
       let upper = breakpoints[index]
       guard upper > lower else { continue }
+      let segmentShift = shifts[index]
       let segmentWidth = requestedWidth * (upper - lower) / totalSpan
       result =
         result
@@ -4797,7 +4829,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
           )
           return greenPrimitive(
             integrand: integrand,
-            u: geometry.u,
+            u: geometry.u + Jet.constant(segmentShift),
             v: geometry.v
           ) * geometry.v.derivative()
         })
@@ -4940,6 +4972,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     sine: Vector3D,
     lower: Double,
     upper: Double,
+    startAtLower: Bool,
+    startLongitude: Double,
     integrand: Integrand
   ) -> Interval? {
     let verticalRadius = hypot(cosine.z, sine.z)
@@ -4978,6 +5012,12 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       let radial = cosine * cos(midpoint) + sine * sin(midpoint)
       var longitude = atan2(-radial.x, radial.y)
       if longitude < 0.0 { longitude += 2.0 * Double.pi }
+      // The segment the curve starts on keeps the branch its chart lift starts on, which a
+      // meridian along the seam may read as either end of the period.
+      let startsHere = startAtLower ? index == 1 : index == breakpoints.count - 1
+      if startsHere {
+        longitude += ((startLongitude - longitude) / (2.0 * Double.pi)).rounded() * (2.0 * Double.pi)
+      }
       let lowerLatitude = asin(
         min(
           max(

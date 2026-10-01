@@ -59,6 +59,12 @@ flowchart LR
   area, so loop traversal sense cancels. Other supports, and pcurves with no
   closed form on the support (rational B-splines anywhere; harmonic,
   B-spline and certified pcurves on a cylinder), throw `unsupportedCapability`.
+- Volume integrates each face loop as one chain on the periodic chart the
+  `SurfaceParameterLoopUnwrapper` lifts it to. A great-circle pcurve on a
+  sphere keeps the branch of longitude its chart lift starts on — a meridian
+  along the seam reads as either end of the period — and a great circle split
+  at the seam carries that branch on across it, so the integrated longitudes
+  meet the unwrapper's translations.
 
 ## Verification and Change Impact
 
@@ -66,6 +72,9 @@ flowchart LR
 multiple disjoint loops, and refusal to report branched or open boundary
 components, and the single-face inner/outer fillability rule.
 `FaceAreaMeasurementTests` (SwiftCADTests) prove box, L-shaped, full and half
-cylinder areas and centroids against closed forms and the typed refusal. Changes affect
+cylinder areas and centroids against closed forms and the typed refusal.
+`FilletShapeTests.everyEdgeOfABoxRoundsIntoARoundedBox` proves the sphere chain
+at all eight octants of a box, including those whose meridians lie on the
+seam, against the rounded box's closed-form volume. Changes affect
 CADModeling Surface Fill and RupaCore body display topology; both consumers
 must continue to agree on the exact cycle and whether it is actionable.
