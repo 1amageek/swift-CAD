@@ -135,9 +135,11 @@ struct EdgeBlendOwnershipTests {
         }
     }
 
+    /// A round closes such a corner with the rolling ball (`FilletShapeTests`); a G2 blend's
+    /// section has no vertex blend.
     @Test(
         .timeLimit(.minutes(1)),
-        arguments: BlendKind.allCases
+        arguments: [BlendKind.g2]
     )
     func rejectsThreeEdgesMeetingAtOneCorner(kind: BlendKind) throws {
         let source = try evaluatedSolid()

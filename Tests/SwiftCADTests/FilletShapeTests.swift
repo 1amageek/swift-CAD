@@ -422,7 +422,7 @@ struct FilletShapeTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
-    func threeEdgesAtOneCornerAreRefused() throws {
+    func threeEdgesAtACornerRoundIntoTheBallsOctant() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let (box, _) = try boxEdges(&builder, [])
         let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
@@ -430,7 +430,66 @@ struct FilletShapeTests {
             [point.x, point.y, point.z].filter { abs($0) < 1e-12 }.count >= 2
         }
         #expect(corner.count == 3)
-        _ = try builder.fillet(target: box, edges: corner, radius: length(0.003))
+        let r = 0.003
+        _ = try builder.fillet(target: box, edges: corner, radius: length(r))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        // Each edge's section removed beyond the ball, and the corner cube less the ball's octant.
+        let expected = 0.02 * 0.02 * 0.02 - 3 * r * r * (1 - Double.pi / 4) * (0.02 - r) - r * r * r * (1 - Double.pi / 6)
+        let volume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func everyEdgeOfABoxRoundsIntoARoundedBox() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (box, _) = try boxEdges(&builder, [])
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        let all = try edges(of: box, in: evaluated, builder) { _ in true }
+        #expect(all.count == 12)
+        let r = 0.003
+        _ = try builder.fillet(target: box, edges: all, radius: length(r))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        // The inner box swept by the ball: its volume, faces, edges and corners grown by r.
+        let a = 0.02 - 2 * r
+        let expected = a * a * a + 6 * a * a * r + 3 * Double.pi * r * r * a + 4 * Double.pi * r * r * r / 3
+        let volume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+        #expect(rounded.brep.faces.count == 26)
+    }
+
+    @Test(.timeLimit(.minutes(3)))
+    func aCornersRoundMeetsAMitreAlongItsEdge() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (box, _) = try boxEdges(&builder, [])
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        // The three edges at (0, 0, 20) mm, and the top edge at x = 20 mm meeting the first at a mitre.
+        let corner = try edges(of: box, in: evaluated, builder) { point in
+            [point.x, point.y, abs(point.z - 0.02)].filter { abs($0) < 1e-12 }.count >= 2
+        }
+        let side = try edges(of: box, in: evaluated, builder) { abs($0.x - 0.02) < 1e-12 && abs($0.z - 0.02) < 1e-12 }
+        #expect(corner.count == 3 && side.count == 1)
+        let r = 0.003
+        _ = try builder.fillet(target: box, edges: corner + side, radius: length(r))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        let (s, a) = (0.02, r * r * (1 - Double.pi / 4))
+        // The ball's corner, three edges beyond it, the fourth edge, less the mitre's overlap.
+        let expected = s * s * s - r * r * r * (1 - Double.pi / 6) - 3 * a * (s - r) - a * s + r * r * r * (5.0 / 3 - Double.pi / 2)
+        let volume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func threeEdgesChamferedAtOneCornerAreRefused() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (box, _) = try boxEdges(&builder, [])
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        let corner = try edges(of: box, in: evaluated, builder) { point in
+            [point.x, point.y, point.z].filter { abs($0) < 1e-12 }.count >= 2
+        }
+        #expect(corner.count == 3)
+        _ = try builder.chamfer(target: box, edges: corner, distance: length(0.003))
         #expect(throws: KernelError.self) {
             _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
         }

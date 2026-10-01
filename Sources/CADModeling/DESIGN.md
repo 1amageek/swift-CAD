@@ -331,20 +331,25 @@ faces close on its cross-section. The feature's radius must state the radius the
 (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Several edges (any shape, chamfers and G2 blends too) are blended in turn as stages, each found
 by its ends after the ones before, faces not beside it kept with their own edges (an earlier blend's
 arcs included) and end faces cut back only at its corner; one lying within an earlier blend is
-refused. Edges joined end to end at outward corners (the third edge at each left sharp), all
-bounding one face and meeting their faces at one angle, form a chain, open or closed, joined at
-mitres: at each corner both blends end on the section carried onto the plane bisecting the two
-edges, the same rational curve, and each blend is ruled along its edge between its two end curves
-(a mitre, or its section at an open end). The shared face and each side face are cut back along
-their contact lines, and an open chain's end faces close on the section. Asymmetric and inward
-corners, three or more edges at one corner (a vertex blend), and a chain beside edges apart from it
-are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A variable fillet (`FilletFeature.endRadius`) runs its section from the radius at the edge's
+refused. Straight edges that meet, meeting their faces at one angle, are blended together as one
+network (`blendNetworkRequest`). Two edges at an outward corner whose third edge is left sharp join
+at a mitre: both blends end on the section carried onto the plane bisecting the two edges, the same
+rational curve. Three mutually square edges rounded at a corner close on the rolling ball: each
+blend ends a radius short of the corner on its arc where the ball touches all three faces, and the
+ball's spherical triangle joins the three arcs. Each blend runs along its edge between its end
+curves (a mitre, a ball's arc, or its section at a free end); the faces beside the edges are cut
+back along their contact lines and a free end's face closes on the section. A round without mitres
+is exact cylinders about the edges and analytic spheres bounded by great-circle pcurves; with a
+mitre each blend is its section ruled along its edge and the ball's triangle is its first edge's
+arc revolved a quarter turn (a rational biquadratic patch with one collapsed side). Asymmetric and
+inward corners, concave faces beside the network, three edges at a corner for other shapes, and
+four or more edges at one corner are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A variable fillet (`FilletFeature.endRadius`) runs its section from the radius at the edge's
 start to the end radius at its end, the blend ruled between the two sections (each cross-section
 the shape at the radius there, tangent to both faces along straight contact lines). Limit points,
 tangent chains and Y-blends are not built (FE2). `FilletShapeTests` own each
 shape's removed cross-section times the edge's length, the tension and one-edge admission, and the
 rib's and a drafted rib's full rounds (their volumes and radii) with the refusals of a misstated radius and of edges that do not face each other across one face, and an L sheet's bend rounded into a quarter cylinder, blended and chamfered into sheets, a hexagonal prism's 120° edge rounded (its volume) an L block's inside corner filled (its volume), two edges of a box that do not meet rounded and
-chamfered together, a pair meeting at a corner, a box's three and four top edges mitred (volume `s³ − r²(1 − π/4)·ns + c·r³(5/3 − π/2)` for n edges and c corners), three edges at one corner refused, and a variable fillet's volume
+chamfered together, a pair meeting at a corner, a box's three and four top edges mitred (volume `s³ − r²(1 − π/4)·ns + c·r³(5/3 − π/2)` for n edges and c corners), three edges at a corner rounded into the ball, every edge of a box rounded (the rounded box `a³ + 6a²r + 3πr²a + 4πr³/3`, a = s − 2r), a corner's ball meeting a mitre, three edges chamfered at a corner refused, and a variable fillet's volume
 (1 − π/4)·(r₀² + r₀r₁ + r₁²)/3·L with shaped and variable fillets round-tripping natively.
 
 ### Point guides
