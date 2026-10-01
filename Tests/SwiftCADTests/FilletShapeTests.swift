@@ -345,11 +345,9 @@ struct FilletShapeTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
-    func edgesMeetingAtACornerAreRefusedTogether() throws {
+    func twoEdgesMeetingAtACornerJoinAtAMitre() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
-        // The top front edge along X and the top back one share no corner; the front's bottom edge
-        // and its top one share the front face, not a corner: the refused pair is a top edge along
-        // X and the top edge along Y it meets, found by its ends.
+        // The top front edge along X and the top edge along Y it meets at (0, 0, 20) mm.
         let (box, alongX) = try boxEdges(&builder, [(0, 0.02)])
         let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
         let alongY = try #require(evaluated.subshapes.entries.first { key, value in
@@ -358,10 +356,15 @@ struct FilletShapeTests {
                   let end = evaluated.brep.vertices[edge.endVertexID]?.point else { return false }
             return [start, end].allSatisfy { abs($0.x) < 1e-12 && abs($0.z - 0.02) < 1e-12 }
         }?.key)
-        _ = try builder.fillet(target: box, edges: alongX + [try builder.stableSubshape(alongY)], radius: length(0.003))
-        #expect(throws: KernelError.self) {
-            _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
-        }
+        let r = 0.003
+        _ = try builder.fillet(target: box, edges: alongX + [try builder.stableSubshape(alongY)], radius: length(r))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        // Both edges' removed prisms, less their overlap at the corner ∫(r − √(r² − ζ²))² dζ.
+        let section = r * r * (1 - Double.pi / 4)
+        let expected = 0.02 * 0.02 * 0.02 - section * (0.02 + 0.02) + r * r * r * (5.0 / 3 - Double.pi / 2)
+        let volume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
     }
 
     @Test(.timeLimit(.minutes(2)))

@@ -200,11 +200,11 @@ struct ChamferFeatureTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func rejectsMultipleEdgesWithTypedCapabilityError() throws {
+    func rejectsThreeEdgesMeetingAtCornersWithTypedCapabilityError() throws {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
         let source = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
-        let references = try [0, 1].map { index in
+        let references = try [0, 1, 2].map { index in
             try source.stableSubshapeReference(for: SubshapeID(
                 featureID: extrudeFeatureID,
                 role: GeneratedSubshapeRole.edge.rawValue,
@@ -227,7 +227,7 @@ struct ChamferFeatureTests {
 
         do {
             _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
-            Issue.record("The declared chamfer envelope must reject multiple selected edges.")
+            Issue.record("A chamfer of three edges meeting at corners needs a corner blend and must be refused.")
         } catch let error as KernelError {
             #expect(error.phase == .evaluation)
             #expect(error.code == .unsupportedCapability)

@@ -944,6 +944,21 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             return (start, end)
         }
         let kind = context.brep.bodies[bodyID]?.kind
+        // Two edges meeting at a corner join at a mitre.
+        if selected.count == 2 {
+            let shares = [ends[0].0, ends[0].1].contains { a in [ends[1].0, ends[1].1].contains { $0.isApproximatelyEqual(to: a, tolerance: tolerance.distance) } }
+            if shares {
+                let first = try scopedEdgeSelection(selected[0], bodyID: bodyID, featureID: feature.id, context: context)
+                let second = try scopedEdgeSelection(selected[1], bodyID: bodyID, featureID: feature.id, context: context)
+                let request = try mitredPairRequest(featureID: feature.id, bodyID: bodyID, edges: (first.edgeID, second.edgeID),
+                                                    selected: (selected[0].subshapeID, selected[1].subshapeID),
+                                                    sourceEdgeIDs: first.sourceEdgeIDs, section: section, context: context)
+                let sewn = try sewer.sew(request, tolerance: tolerance)
+                let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: context.brep)
+                try model.validate(level: kind == .solid ? .volumetric : .exact, tolerance: tolerance)
+                return EvaluationResult(brep: model, subshapes: sewn.subshapes, removedSubshapeIDs: first.replacedSubshapeIDs, lineage: sewn.lineage)
+            }
+        }
         var stages = FeatureEvaluationStages(context)
         for (index, (a, b)) in ends.enumerated() {
             let staged = stages.context
@@ -958,12 +973,13 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 return (start.isApproximatelyEqual(to: a, tolerance: tolerance.distance) && end.isApproximatelyEqual(to: b, tolerance: tolerance.distance))
                     || (start.isApproximatelyEqual(to: b, tolerance: tolerance.distance) && end.isApproximatelyEqual(to: a, tolerance: tolerance.distance))
             }) else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): edges meeting at a corner are blended in turn,
-                // so a later one has lost its corner to an earlier one; their corner blend (a
-                // vertex blend or setback) is not built, so it is refused. Production path:
+                // FIXME(INCOMPLETE_IMPLEMENTATION): two edges meeting at a corner join at a mitre,
+                // but three or more edges with shared corners are blended in turn, so a later one
+                // has lost its corner to an earlier one; their corner blend (a vertex blend or
+                // setback) is not built, so it is refused. Production path:
                 // EdgeBlendFeatureEvaluator.evaluateProfileBlends for every several-edge blend.
-                // Complete only when edges meeting at a corner are blended with the corner closed,
-                // verified by a box's top edges filleted together.
+                // Complete only when chains of edges meeting at corners are blended with the
+                // corners closed, verified by a box's four top edges filleted together.
                 throw failure(.unsupportedCapability, featureID: feature.id, tolerance: tolerance,
                               "Blended edges meeting at a corner need a corner blend; blend edges that do not meet.")
             }
@@ -983,6 +999,177 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             bodyID = sewn.bodyID
         }
         throw failure(.invalidInput, featureID: feature.id, tolerance: tolerance, "A blend has no edges.")
+    }
+
+    /// Two edges meeting at a corner (the third edge there left sharp) blended by one section and
+    /// joined at a mitre: each blend runs from its far end to the plane bisecting the edges at the
+    /// corner, where the section reflected across that plane is the other's, so both end on one
+    /// curve — the section carried along its edge onto the plane. The face both edges bound is cut
+    /// back from both, each other face beside an edge from its own, and the far ends' faces close on
+    /// the section.
+    private func mitredPairRequest(
+        featureID: FeatureID, bodyID: BodyID, edges: (EdgeID, EdgeID), selected: (SubshapeID, SubshapeID),
+        sourceEdgeIDs: Set<EdgeID>, section blendSection: BlendSection, context: EvaluationContext
+    ) throws -> BRepSewingRequest {
+        let tolerance = context.tolerance
+        let model = context.brep
+        func refuse(_ message: String) -> KernelError {
+            failure(.unsupportedCapability, featureID: featureID, tolerance: tolerance, message)
+        }
+        guard let body = model.bodies[bodyID], let shell = body.shellIDs.first.flatMap({ model.shells[$0] }),
+              let first = model.edges[edges.0], let second = model.edges[edges.1] else {
+            throw failure(.missingReference, featureID: featureID, tolerance: tolerance, "A mitred blend's edges are missing.")
+        }
+        let firstEnds = [first.startVertexID, first.endVertexID], secondEnds = [second.startVertexID, second.endVertexID]
+        guard let shared = firstEnds.first(where: { secondEnds.contains($0) }),
+              let cornerPoint = model.vertices[shared]?.point,
+              let far1 = firstEnds.first(where: { $0 != shared }).flatMap({ model.vertices[$0]?.point }),
+              let far2 = secondEnds.first(where: { $0 != shared }).flatMap({ model.vertices[$0]?.point }) else {
+            throw refuse("A mitred blend's edges meet at one corner.")
+        }
+        let (a1, a2) = (try (far1 - cornerPoint).normalized(tolerance: tolerance.distance), try (far2 - cornerPoint).normalized(tolerance: tolerance.distance))
+        let (length1, length2) = ((far1 - cornerPoint).length, (far2 - cornerPoint).length)
+        let faces1 = try shell.faceIDs.filter { try faceUses(edgeID: edges.0, faceID: $0, model: model) }
+        let faces2 = try shell.faceIDs.filter { try faceUses(edgeID: edges.1, faceID: $0, model: model) }
+        let common = faces1.filter { faces2.contains($0) }
+        guard faces1.count == 2, faces2.count == 2, common.count == 1,
+              let sideB = faces1.first(where: { $0 != common[0] }), let sideC = faces2.first(where: { $0 != common[0] }) else {
+            throw refuse("Edges meeting at a corner are mitred when they bound one face between them.")
+        }
+        let shared0 = common[0]
+        let (planeA, planeB, planeC) = (try orientedPlane(shared0, model: model, featureID: featureID, tolerance: tolerance),
+                                        try orientedPlane(sideB, model: model, featureID: featureID, tolerance: tolerance),
+                                        try orientedPlane(sideC, model: model, featureID: featureID, tolerance: tolerance))
+        /// The direction within a face away from an edge along `axis`, toward where the face lies.
+        func away(_ faceID: FaceID, normal: Vector3D, axis: Vector3D, from point: Point3D) throws -> Vector3D {
+            let direction = try axis.cross(normal).normalized(tolerance: tolerance.distance)
+            let polygon = try outerPolygon(faceID, model: model, featureID: featureID, tolerance: tolerance)
+            let centroid = polygon.reduce(Vector3D.zero) { $0 + ($1 - point) } * (1 / Double(polygon.count))
+            return centroid.dot(direction) > 0 ? direction : -direction
+        }
+        let (alongA1, alongB) = (try away(shared0, normal: planeA.outward, axis: a1, from: cornerPoint),
+                                 try away(sideB, normal: planeB.outward, axis: a1, from: cornerPoint))
+        let (alongA2, alongC) = (try away(shared0, normal: planeA.outward, axis: a2, from: cornerPoint),
+                                 try away(sideC, normal: planeC.outward, axis: a2, from: cornerPoint))
+        let alpha1 = acos(max(-1, min(1, alongA1.dot(alongB)))), alpha2 = acos(max(-1, min(1, alongA2.dot(alongC))))
+        guard abs(alpha1 - alpha2) <= tolerance.angle, alpha1 > tolerance.angle, alpha1 < .pi - tolerance.angle else {
+            throw refuse("Edges meeting at a corner are mitred when both meet their faces at one angle.")
+        }
+        let section = blendSection.resolve(alpha1)
+        let distance = section.setback
+        let section1 = section.controlPoints(cornerPoint, alongA1, alongB)
+        let section2 = section.controlPoints(cornerPoint, alongA2, alongC)
+        let mitre = try (a1 - a2).normalized(tolerance: tolerance.distance)
+        func reflected(_ point: Point3D) -> Point3D { point + mitre * (-2 * mitre.dot(point - cornerPoint)) }
+        guard zip(section1, section2).allSatisfy({ reflected($0).isApproximatelyEqual(to: $1, tolerance: tolerance.distance) }) else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): edges whose sections do not mirror each other across
+            // the corner's bisecting plane meet along a non-planar curve of their blends, which is
+            // not built, so they are refused. Production path: mitredPairRequest. Complete only when
+            // asymmetric corners are joined along their blends' intersection, verified by a corner
+            // between a right-angled and a drafted edge.
+            throw refuse("Edges meeting at a corner are mitred when their sections mirror each other across the corner.")
+        }
+        // How far each section point runs along its edge to the mitre plane.
+        let reach1 = section1.map { -mitre.dot($0 - cornerPoint) / mitre.dot(a1) }
+        let reach2 = section2.map { -mitre.dot($0 - cornerPoint) / mitre.dot(a2) }
+        guard reach1.allSatisfy({ $0 >= -tolerance.distance && $0 < length1 }), reach2.allSatisfy({ $0 >= -tolerance.distance && $0 < length2 }) else {
+            throw refuse("A mitred blend's section must fit its edges.")
+        }
+        let mitreCurvePoints = zip(section1, reach1).map { $0 + a1 * $1 }
+        let degree = section.degree
+        let knots = Array(repeating: 0.0, count: degree + 1) + Array(repeating: 1.0, count: degree + 1)
+        let mitreCurve = BSplineCurve3D(degree: degree, knots: knots, controlPoints: mitreCurvePoints, weights: section.weights)
+        try mitreCurve.validate(tolerance: tolerance)
+        var patches: [BRepSewingFacePatch] = []
+        /// One blend: ruled from its section at its far end (v = 0) to the mitre curve (v = 1), the
+        /// two sharing the section's weights, so every ruling runs along the edge and the face is
+        /// the swept section cut at the mitre with only isoparametric sides.
+        func blendPatch(index: Int, points: [Point3D], along axis: Vector3D, length: Double,
+                        faceOutward: Vector3D, selected: SubshapeID) throws -> (patch: BRepSewingFacePatch, farCurve: BSplineCurve3D) {
+            let farRow = points.map { $0 + axis * length }
+            let surface = BSplineSurface3D(uDegree: degree, vDegree: 1, uKnots: knots, vKnots: [0, 0, 1, 1],
+                                           controlPoints: [farRow, mitreCurvePoints], weights: [section.weights, section.weights])
+            try surface.validate(tolerance: tolerance)
+            let farCurve = BSplineCurve3D(degree: degree, knots: knots, controlPoints: farRow, weights: section.weights)
+            let farEnd = try surface.point(u: 1, v: 0, tolerance: tolerance), farStart = try surface.point(u: 0, v: 0, tolerance: tolerance)
+            let mitreStart = try mitreCurve.point(at: 0, tolerance: tolerance), mitreEnd = try mitreCurve.point(at: 1, tolerance: tolerance)
+            func line(_ start: Point3D, _ end: Point3D, u: Double, from v0: Double, to v1: Double, _ name: String) throws -> BRepSewingEdge {
+                let delta = end - start
+                return BRepSewingEdge(stableID: "mitre:\(index):\(name)",
+                    curve: .line(Line3D(origin: start, direction: try delta.normalized(tolerance: tolerance.distance))),
+                    startParameter: 0, endParameter: delta.length, startPoint: start, endPoint: end,
+                    surfaceParameterCurve: .constantU(u: u, vStart: v0, vEnd: v1), parentSubshapeIDs: [selected])
+            }
+            let edges = [
+                BRepSewingEdge(stableID: "mitre:\(index):far", curve: .bSpline(farCurve), startParameter: 0, endParameter: 1,
+                               startPoint: farStart, endPoint: farEnd, surfaceParameterCurve: .constantV(v: 0, uStart: 0, uEnd: 1)),
+                try line(farEnd, mitreEnd, u: 1, from: 0, to: 1, "side"),
+                BRepSewingEdge(stableID: "mitre:\(index):mitre", curve: .bSpline(mitreCurve), startParameter: 1, endParameter: 0,
+                               startPoint: mitreEnd, endPoint: mitreStart,
+                               surfaceParameterCurve: .constantV(v: 1, uStart: 1, uEnd: 0)),
+                try line(mitreStart, farStart, u: 0, from: 1, to: 0, "shared"),
+            ]
+            // The loop runs counterclockwise in (u, v), about the surface's own normal; facing the
+            // other way it runs back.
+            let normal = try surface.normal(u: 0, v: 0.5, tolerance: tolerance)
+            let forward = normal.dot(faceOutward) >= 0
+            let loop = forward ? edges : try edges.reversed().map { edge in
+                BRepSewingEdge(stableID: edge.stableID, curve: edge.curve, startParameter: edge.endParameter,
+                               endParameter: edge.startParameter, startPoint: edge.endPoint, endPoint: edge.startPoint,
+                               surfaceParameterCurve: try edge.surfaceParameterCurve.reversed(tolerance: tolerance),
+                               parentSubshapeIDs: edge.parentSubshapeIDs,
+                               startVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs,
+                               endVertexParentSubshapeIDs: edge.startVertexParentSubshapeIDs)
+            }
+            return (BRepSewingFacePatch(stableID: "mitre:\(index)", surface: .bSpline(surface),
+                                        orientation: forward ? .forward : .reversed,
+                                        loops: [BRepSewingLoop(stableID: "mitre:\(index):outer", role: .outer, edges: loop)],
+                                        parentSubshapeIDs: [shared0, faceID(of: index)].flatMap { subshapeIDs(for: .face($0), context: context) }),
+                    farCurve)
+        }
+        func faceID(of index: Int) -> FaceID { index == 0 ? sideB : sideC }
+        let blend1 = try blendPatch(index: 0, points: section1, along: a1, length: length1,
+                                    faceOutward: planeA.outward, selected: selected.0)
+        let blend2 = try blendPatch(index: 1, points: section2, along: a2, length: length2,
+                                    faceOutward: planeA.outward, selected: selected.1)
+        patches += [blend1.patch, blend2.patch]
+        for (faceIndex, faceID) in shell.faceIDs.enumerated() {
+            let stableID = "source-face:\(faceIndex)"
+            let faceParents = subshapeIDs(for: .face(faceID), context: context)
+            // The faces beside the edges are cut back along their contact lines.
+            let cuts: [(Point3D, Vector3D)]
+            switch faceID {
+            case shared0: cuts = [(cornerPoint, alongA1), (cornerPoint, alongA2)]
+            case sideB: cuts = [(cornerPoint, alongB)]
+            case sideC: cuts = [(cornerPoint, alongC)]
+            default: cuts = []
+            }
+            if cuts.isEmpty == false {
+                var polygon = try outerPolygon(faceID, model: model, featureID: featureID, tolerance: tolerance)
+                for (origin, normal) in cuts {
+                    polygon = simplified(clip(polygon, origin: origin, normal: normal, offset: distance, tolerance: tolerance), tolerance: tolerance)
+                }
+                guard polygon.count >= 3 else {
+                    throw failure(.topologyFailure, featureID: featureID, tolerance: tolerance, "A mitred blend removes a face beside its edges.")
+                }
+                patches.append(try linePatch(stableID: stableID, plane: try orientedPlane(faceID, model: model, featureID: featureID, tolerance: tolerance),
+                    vertices: polygon, faceParents: faceParents, edgeID: edges.0, selectedSubshapeID: selected.0,
+                    sourceEdgeIDs: sourceEdgeIDs, model: model, context: context))
+                continue
+            }
+            let source = try SourceBRepFacePatchBuilder().build(faceID: faceID, stableID: stableID, from: model,
+                                                                sourceSubshapes: context.subshapes.entries, tolerance: tolerance).patch
+            if let cap = try cornerCap(source, corner: far1, curve: blend1.farCurve, distance: distance, axis: a1, context: context) {
+                patches.append(cap.patch)
+            } else if let cap = try cornerCap(source, corner: far2, curve: blend2.farCurve, distance: distance, axis: a2, context: context) {
+                patches.append(cap.patch)
+            } else {
+                patches.append(source)
+            }
+        }
+        return BRepSewingRequest(featureID: featureID, bodyKind: body.kind == .sheet ? .sheet : .solid,
+                                 shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
+                                 bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context))
     }
 
     private func g2Request(

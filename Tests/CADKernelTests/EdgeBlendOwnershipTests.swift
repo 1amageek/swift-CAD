@@ -139,10 +139,10 @@ struct EdgeBlendOwnershipTests {
         .timeLimit(.minutes(1)),
         arguments: BlendKind.allCases
     )
-    func rejectsMultipleSelectedEdges(kind: BlendKind) throws {
+    func rejectsThreeEdgesMeetingAtCorners(kind: BlendKind) throws {
         let source = try evaluatedSolid()
         let sourceFeatureID = try #require(source.document.designGraph.order.last)
-        let edges = try [0, 1].map {
+        let edges = try [0, 1, 2].map {
             try stableEdge(featureID: sourceFeatureID, ordinal: $0, in: source)
         }
         let blendFeatureID = FeatureID()
@@ -162,7 +162,7 @@ struct EdgeBlendOwnershipTests {
                     source.lineage
                 ))
             )
-            Issue.record("The bounded edge blend must reject multiple selected edges.")
+            Issue.record("A blend of three edges meeting at corners needs a corner blend and must be refused.")
         } catch let error as KernelError {
             #expect(error.code == .unsupportedCapability)
             #expect(error.featureID == blendFeatureID)
