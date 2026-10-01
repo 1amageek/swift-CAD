@@ -181,6 +181,9 @@ public enum FeatureNodeFactory {
                     case .curve(let reference): try validateCurveSource(reference.featureID, owner: "Loft", in: document)
                     case .face(let reference): try validateSource(reference.featureID, role: reference.bodyRole, in: document)
                     }
+                    if let continuity = section.continuity {
+                        try validateSource(continuity.source, role: continuity.bodyRole, in: document)
+                    }
                 }
                 for guide in loft.guides {
                     try validateCurveSource(guide.featureID, owner: "Loft guide", in: document)
@@ -1007,7 +1010,7 @@ public enum FeatureNodeFactory {
     }
 
     private static func loftInputs(for loft: LoftFeature) -> [FeatureInput] {
-        loft.sections.map { FeatureInput(featureID: $0.featureID, role: $0.section.inputRole) }
+        loft.sections.flatMap(\.inputs)
             + loft.guides.map { FeatureInput(featureID: $0.featureID, role: .guide) }
     }
 

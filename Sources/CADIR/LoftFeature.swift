@@ -40,6 +40,9 @@ public struct LoftFeature: Codable, Hashable, Sendable {
         guard sections.count >= 2 else {
             throw FeatureEvaluationError.invalidGraph("Loft features require at least two profile sections.")
         }
+        guard !options.closesSectionLoop || sections.allSatisfy({ $0.continuity == nil }) else {
+            throw FeatureEvaluationError.invalidGraph("A closed Loft has no end sections to be continuous at.")
+        }
         for section in sections {
             try section.validate()
         }
@@ -53,6 +56,16 @@ public struct LoftFeature: Codable, Hashable, Sendable {
         let uniqueFeatureIDs = Set(sections.map(\.featureID))
         guard uniqueFeatureIDs.count == sections.count else {
             throw FeatureEvaluationError.invalidGraph("Loft profile section features must be unique.")
+        }
+        guard sections.dropFirst().dropLast().allSatisfy({ $0.continuity == nil }) else {
+            throw FeatureEvaluationError.invalidGraph("Loft continuity belongs to the first or last section.")
+        }
+        guard guides.isEmpty || sections.allSatisfy({ $0.continuity == nil }) else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): guides reshape the connectors that a continuity
+            // section's cross-boundary rows fix, so a guided Loft with continuity is refused.
+            // Production path: LoftFeature.validate for every Loft. Complete only when guide
+            // curves and continuity rows are solved together, verified by a guided G1 loft.
+            throw FeatureEvaluationError.invalidGraph("A guided Loft has no edge continuity yet.")
         }
         let guideFeatureIDs = guides.map(\.featureID)
         guard Set(guideFeatureIDs).count == guideFeatureIDs.count else {
@@ -102,6 +115,9 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
     public var startSampleIndex: Int?
     public var smoothTangentScale: Double?
     public var smoothTangentMode: LoftSectionSmoothTangentMode
+    /// Tangent or curvature continuity with the face beside the body edge an end curve section
+    /// runs along; nil for position (G0) only.
+    public var continuity: LoftEdgeContinuity?
 
     private enum CodingKeys: String, CodingKey {
         case section
@@ -109,6 +125,7 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
         case startSampleIndex
         case smoothTangentScale
         case smoothTangentMode
+        case continuity
     }
 
     public init(
@@ -127,13 +144,15 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
         profileDirection: LoftProfileDirection = .automatic,
         startSampleIndex: Int? = nil,
         smoothTangentScale: Double? = nil,
-        smoothTangentMode: LoftSectionSmoothTangentMode = .automatic
+        smoothTangentMode: LoftSectionSmoothTangentMode = .automatic,
+        continuity: LoftEdgeContinuity? = nil
     ) {
         self.section = section
         self.profileDirection = profileDirection
         self.startSampleIndex = startSampleIndex
         self.smoothTangentScale = smoothTangentScale
         self.smoothTangentMode = smoothTangentMode
+        self.continuity = continuity
     }
 
     public init(from decoder: Decoder) throws {
@@ -144,12 +163,14 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
             .startSampleIndex,
             .smoothTangentScale,
             .smoothTangentMode,
+            .continuity,
         ], in: decoder)
         section = try container.decode(SectionReference.self, forKey: .section)
         profileDirection = try container.decode(LoftProfileDirection.self, forKey: .profileDirection)
         startSampleIndex = try container.decodeIfPresent(Int.self, forKey: .startSampleIndex)
         smoothTangentScale = try container.decodeIfPresent(Double.self, forKey: .smoothTangentScale)
         smoothTangentMode = try container.decode(LoftSectionSmoothTangentMode.self, forKey: .smoothTangentMode)
+        continuity = try container.decodeIfPresent(LoftEdgeContinuity.self, forKey: .continuity)
         try validate()
     }
 
@@ -161,10 +182,17 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
         try container.encodeIfPresent(startSampleIndex, forKey: .startSampleIndex)
         try container.encodeIfPresent(smoothTangentScale, forKey: .smoothTangentScale)
         try container.encode(smoothTangentMode, forKey: .smoothTangentMode)
+        try container.encodeIfPresent(continuity, forKey: .continuity)
     }
 
     public var featureID: FeatureID {
         section.featureID
+    }
+
+    /// The features the section consumes: its source and, with continuity, the edge's body.
+    public var inputs: [FeatureInput] {
+        [FeatureInput(featureID: featureID, role: section.inputRole)]
+            + (continuity.map { [FeatureInput(featureID: $0.source, role: $0.bodyRole)] } ?? [])
     }
 
     public func validate() throws {
@@ -183,6 +211,12 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
                 throw FeatureEvaluationError.invalidGraph(
                     "Loft section smooth tangent scale must be finite and greater than zero."
                 )
+            }
+        }
+        if let continuity {
+            try continuity.validate()
+            guard case .curve = section else {
+                throw FeatureEvaluationError.invalidGraph("Loft continuity belongs to a curve section along a body edge.")
             }
         }
     }

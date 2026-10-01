@@ -215,6 +215,8 @@ package struct ExactLoftBodyBuilder {
             )
         }
 
+        let hermiteSides = try continuitySides(loft: loft, partitions: partitions, connectionCount: connectionCount)
+
         var model = context.brep
         var geometry = model.geometry
         var generatedSubshapes: [SubshapeID: TopologyReference] = [:]
@@ -243,7 +245,7 @@ package struct ExactLoftBodyBuilder {
                 generatedSubshapes: &generatedSubshapes
             )
             edgeOrdinal += partition.curves.reduce(0) { $0 + $1.count }
-            let connectorCurves = try makeConnectorCurves(
+            var connectorCurves = try makeConnectorCurves(
                 rings: partition.rings,
                 tangents: tangentsByLoop[loopIndex],
                 connectionSpans: connectionSpans,
@@ -253,6 +255,19 @@ package struct ExactLoftBodyBuilder {
                     $0.boundaryLoopIndex == loopIndex
                 }
             )
+            // A Hermite side's connectors are its own boundary columns.
+            for (connection, sides) in hermiteSides where loopIndex == 0 {
+                connectorCurves[connection] = try partition.rings[connection].indices.map { vertex in
+                    let isLast = vertex == sides.count
+                    let surface = sides[isLast ? vertex - 1 : vertex]
+                    let curve = BSplineCurve3D(
+                        degree: surface.vDegree, knots: surface.vKnots,
+                        controlPoints: surface.controlPoints.map { isLast ? $0[$0.count - 1] : $0[0] }
+                    )
+                    try curve.validate(tolerance: context.tolerance)
+                    return curve
+                }
+            }
             let connectorEdgeIDs = try addConnectorEdges(
                 connectorCurves,
                 vertexIDs: vertexIDs,
@@ -342,7 +357,7 @@ package struct ExactLoftBodyBuilder {
                 let nextSectionIndex = (connectionIndex + 1) % sectionCount
                 for spanIndex in 0..<boundarySpanCount {
                     let nextSpanIndex = (spanIndex + 1) % partition.rings[connectionIndex].count
-                    let surface = try sideSurfaceBuilder.build(
+                    let surface = try hermiteSides[connectionIndex].map { $0[spanIndex] } ?? sideSurfaceBuilder.build(
                         vMinimumBoundary: partition.curves[connectionIndex][spanIndex],
                         vMaximumBoundary: partition.curves[nextSectionIndex][spanIndex],
                         uMinimumBoundary: connectorCurvesByLoop[loopIndex][connectionIndex][spanIndex],
@@ -1759,6 +1774,90 @@ package struct ExactLoftBodyBuilder {
         )
         generatedSubshapes[subshapeID(role: role, index: nil)] = .face(faceID)
         return faceID
+    }
+
+    /// The sides of the connections beside end sections continuous with a body's face, per
+    /// connection one Hermite surface per span: leaving (or arriving at) the face across the edge
+    /// with the section's tension times the distance between the two sections, cubic in v, or
+    /// quintic with vanishing second derivatives for curvature continuity. The other end follows
+    /// the chord between the two sections' control points.
+    private func continuitySides(
+        loft: LoftFeature, partitions: [SectionPartition], connectionCount: Int
+    ) throws -> [Int: [BSplineSurface3D]] {
+        guard loft.sections.contains(where: { $0.continuity != nil }) else { return [:] }
+        let tolerance = context.tolerance
+        guard partitions.count == 1, let partition = partitions.first else {
+            throw invalidGeometry("Loft continuity belongs to a single curve boundary.")
+        }
+        let sectionCount = partition.curves.count
+        guard loft.options.surfaceMode == .ruled || sectionCount == 2 else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): a smooth Loft's interior section tangents live
+            // only at ring vertices, so a continuity side cannot meet them along a whole span.
+            // Production path: ExactLoftBodyBuilder for smooth Lofts of three or more sections
+            // with continuity. Complete only when section tangent rows are per control point,
+            // verified by a smooth three-section G1 loft.
+            throw KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                              message: "A smooth Loft of more than two sections has no edge continuity yet.")
+        }
+        func centroid(_ ring: [Point3D]) -> Point3D {
+            let sum = ring.reduce(Vector3D.zero) { $0 + ($1 - .origin) }
+            return .origin + sum * (1 / Double(ring.count))
+        }
+        var planes: [Int: ExactLoftEdgeContinuityPlane] = [:]
+        for sectionIndex in Set([0, sectionCount - 1]) {
+            guard let continuity = loft.sections[sectionIndex].continuity else { continue }
+            let other = sectionIndex == 0 ? 1 : sectionCount - 2
+            let span = partition.curves[sectionIndex][0]
+            guard case let .closed(lower, _) = span.domain else { throw invalidGeometry("A Loft section span is unbounded.") }
+            let start = try span.differentialGeometry(at: lower, tolerance: tolerance)
+            planes[sectionIndex] = try ExactLoftEdgeContinuityResolver().plane(
+                for: continuity, point: start.position, derivative: start.firstDerivative,
+                toward: centroid(partition.rings[other]) - centroid(partition.rings[sectionIndex]),
+                context: context, featureID: featureID
+            )
+        }
+        let closed = partition.rings[0].count == partition.curves[0].count
+        let builder = ExactLoftSideSurfaceBuilder()
+        var result: [Int: [BSplineSurface3D]] = [:]
+        for connection in Set([0, connectionCount - 1]) {
+            let (first, second) = (connection, connection + 1)
+            guard planes[first] != nil || planes[second] != nil else { continue }
+            let scale = averageRingDistance(from: partition.rings[first], to: partition.rings[second])
+            let degree = [planes[first], planes[second]].contains { $0?.order == .curvature } ? 5 : 3
+            func derivatives(of section: Int, leaving: Bool) throws -> [[Vector3D]] {
+                guard let plane = planes[section] else {
+                    return partition.curves[first].indices.map { span in
+                        zip(partition.curves[second][span].controlPoints, partition.curves[first][span].controlPoints).map { $0 - $1 }
+                    }
+                }
+                let magnitude = plane.tension * scale * (leaving ? 1 : -1)
+                var rows = try partition.curves[section].map { span in
+                    try plane.leavingDirections(along: span, tolerance: tolerance).map { $0 * magnitude }
+                }
+                // Neighbouring spans share their vertex's row, so the section must not turn a
+                // corner there.
+                for span in rows.indices where span + 1 < rows.count || closed {
+                    let next = (span + 1) % rows.count
+                    guard let end = rows[span].last, let start = rows[next].first,
+                          (end - start).length <= abs(magnitude) * tolerance.angle else {
+                        throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
+                                          message: "A Loft continuity section turns a corner.")
+                    }
+                    rows[next][0] = end
+                }
+                return rows
+            }
+            let leaving = try derivatives(of: first, leaving: true)
+            let arriving = try derivatives(of: second, leaving: false)
+            result[connection] = try partition.curves[first].indices.map { span in
+                try builder.buildHermite(
+                    start: partition.curves[first][span], startDerivatives: leaving[span],
+                    end: partition.curves[second][span], endDerivatives: arriving[span],
+                    degree: degree, tolerance: tolerance
+                )
+            }
+        }
+        return result
     }
 
     private func sectionConnectionSpans(

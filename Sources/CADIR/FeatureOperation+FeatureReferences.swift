@@ -109,6 +109,11 @@ extension FeatureOperation {
             feature.sections = try feature.sections.map { reference in
                 var result = reference
                 result.section = try section(reference.section)
+                if var continuity = reference.continuity {
+                    continuity.source = try transform(continuity.source)
+                    continuity.edge = try subshape(continuity.edge)
+                    result.continuity = continuity
+                }
                 return result
             }
             feature.guides = try feature.guides.map { LoftGuideReference(featureID: try transform($0.featureID)) }

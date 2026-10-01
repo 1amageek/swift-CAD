@@ -250,6 +250,25 @@ with holes of its own is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`: Sweep take
 `PipeCustomProfileTests` own the placed and turned triangle, the hollow off-centre circle, a box's
 face across a path along another axis, the refusals and the native round trip.
 
+### Loft edge continuity
+
+An end curve section along a body edge may be tangent (G1) or curvature (G2) continuous with the
+face beside the edge (`LoftEdgeContinuity` on the section, its body an input of the Loft).
+`ExactLoftEdgeContinuityResolver` resolves the edge in its body, takes of the faces bordering it
+the one whose outward direction across the edge (the coedge's travel crossed with the face's
+outward normal; the face lies left of its coedges) points most toward the other sections, and
+requires it planar (`FIXME(INCOMPLETE_IMPLEMENTATION)` for curved faces). The connection beside the
+section is built by `ExactLoftSideSurfaceBuilder.buildHermite`: per span, rows leaving the section
+along `normal × C′` at each control point's Greville abscissa (unit, times tension and the average
+distance between the two sections), so every cross-boundary derivative lies in the face's plane
+(exact G1); curvature continuity uses quintic rows whose second rows continue the first, so the
+second derivative across the edge vanishes as a plane's does (exact G2). The far end follows the
+chord between the two sections' control points; neighbouring spans share their vertex's row, a
+corner there is refused, and the connectors are the sides' boundary columns. Guides, middle
+sections, closed section loops and smooth Lofts of more than two sections are refused with
+continuity. `LoftEdgeContinuityTests` own the S-shaped G1 and G2 sheets between two boxes'
+edges, the round trip and the curved-face refusal.
+
 ### Loft section topology
 
 A planar face of a body is a closed Loft section: `FaceSectionProfileResolver` reads it as the
