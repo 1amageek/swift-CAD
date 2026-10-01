@@ -701,6 +701,44 @@ struct FilletShapeTests {
         #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
     }
 
+    @Test(.timeLimit(.minutes(3)))
+    func everyEdgeOfADRounds() throws {
+        // A D of radius 10 mm extruded 10 mm, every edge rounded by 2 mm: the upright corners
+        // first, each a cylinder tangent to the flat and the arc, then both rims all the way round
+        // — a torus along the big arc, spheres at the corners, a cylinder along the flat.
+        let (big, height, r) = (0.01, 0.01, 0.002)
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.arc(center: SketchPoint(x: length(0), y: length(0)), radius: length(big),
+                           startAngle: .constant(.angle(0, unit: .degree)), endAngle: .constant(.angle(180, unit: .degree)))
+            _ = sketch.line(from: SketchPoint(x: length(-big), y: length(0)), to: SketchPoint(x: length(big), y: length(0)))
+        }.featureID
+        let d = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(height))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "d"))
+        // Every sharp edge: the arc's two quarter faces meet smoothly along the upright at (0, 10) mm.
+        let smooth = try edges(of: d, in: before, builder) { abs($0.x) < 1e-9 && abs($0.y - big) < 1e-9 }
+        let all = try edges(of: d, in: before, builder) { _ in true }.filter { smooth.contains($0) == false }
+        #expect(all.count == 8)
+        _ = try builder.fillet(target: d, edges: all, radius: length(r))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "d"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        // Each upright round's centre sits r above the flat and r inside the arc, at x = ±cx; it
+        // turns θ = π/2 + atan2(r, cx) from the flat's normal to the arc's.
+        let cx = ((big - r) * (big - r) - r * r).squareRoot()
+        let phi = atan2(r, cx)
+        let small = r * r * (-Double.pi / 2 - phi) + r * (-cx - (cx * sin(phi) - r * cos(phi)))
+        let removed = big * big * phi / 2 + small / 2
+        // Each rim: the section along the flat between the rounds (2·cx) and, by Pappus, about the
+        // big arc's axis over its remaining π − 2φ at big − inset, and about each round's axis over
+        // its turn π/2 + φ at r − inset.
+        let section = r * r * (1 - Double.pi / 4)
+        let inset = r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+        let rim = section * (2 * cx + (Double.pi - 2 * phi) * (big - inset) + 2 * (Double.pi / 2 + phi) * (r - inset))
+        let expected = (Double.pi * big * big / 2 - 2 * removed) * height - 2 * rim
+        let volume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func aTabsConcaveRootBetweenItsEdgeAndItsArcFills() throws {
         // A 20 mm square with a half disc of radius 5 mm standing on its top edge, extruded 10 mm;

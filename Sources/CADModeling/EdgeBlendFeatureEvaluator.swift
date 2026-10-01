@@ -916,8 +916,8 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         return nil
     }
 
-    /// Concave straight edges rounded first, each the exact cylinder between its faces, then the
-    /// other selected edges they reach — which their rounds leave as tangent chains of a cap, a
+    /// Concave straight edges (and straight edges beside cylinders running along them) rounded
+    /// first, each the exact cylinder between its faces, then the other selected edges they reach — which their rounds leave as tangent chains of a cap, a
     /// concave arc between lines (an L block's inside corner and the top edges meeting it) — rounded
     /// along those chains: the rolling ball's blend around the concave corner, a torus. Nil when the
     /// selection holds no concave edge meeting another; refused when the others are not then such
@@ -937,9 +937,12 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             return (curve, a, b)
         }
         var concave: [Int] = []
+        // The seeds: concave edges between faces along them, and straight edges beside a cylinder
+        // running along them (a D's upright corners), whose rounds leave the caps' chains tangent.
         for (index, selection) in selections.enumerated()
-        where try builder.admits(selection.edgeID, bodyID: initialBodyID, model: model, betweenPlanes: true)
-            && builder.isConcave(selection.edgeID, bodyID: initialBodyID, model: model) {
+        where try builder.admits(selection.edgeID, bodyID: initialBodyID, model: model)
+            || (builder.admits(selection.edgeID, bodyID: initialBodyID, model: model, betweenPlanes: true)
+                && builder.isConcave(selection.edgeID, bodyID: initialBodyID, model: model)) {
             concave.append(index)
         }
         guard concave.isEmpty == false else { return nil }
@@ -995,7 +998,25 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                                           lineage: sewn.lineage))
             bodyID = sewn.bodyID
         }
-        // Each other edge as the concave rounds left it: the staged edge along it, shortened where
+        /// The middle of a selected arc on the source body, along its own interval.
+        func arcMiddle(_ index: Int) throws -> Point3D {
+            guard let edge = model.edges[selections[index].edgeID], let curve = model.geometry.curves[edge.curveID] else {
+                throw failure(.missingReference, featureID: feature.id, tolerance: tolerance, "A blended arc has no curve.")
+            }
+            let t0 = try curve.parameterProjection(of: originals[index].start, tolerance: tolerance).parameter
+            let t1: Double
+            if let trim = edge.trim {
+                t1 = t0 + (trim.endParameter - trim.startParameter)
+            } else {
+                let raw = try curve.parameterProjection(of: originals[index].end, tolerance: tolerance).parameter
+                var delta = (raw - t0).truncatingRemainder(dividingBy: 2 * Double.pi)
+                if delta > Double.pi { delta -= 2 * Double.pi }
+                if delta < -Double.pi { delta += 2 * Double.pi }
+                t1 = t0 + delta
+            }
+            return try curve.point(at: (t0 + t1) / 2, tolerance: tolerance)
+        }
+        // Each other edge as the first rounds left it: the staged edge along it, shortened where
         // a round met its end.
         let staged = stages.context
         let remaining = try others.map { index -> (EdgeID, SubshapeID) in
@@ -1008,6 +1029,19 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     let length = (original.end - original.start).length
                     return (offset - line.direction * along).length <= tolerance.distance
                         && along >= -tolerance.distance && along <= length + tolerance.distance
+                case let .circle(circle):
+                    // On the circle, and within the arc's half span of its middle.
+                    let offset = point - circle.center
+                    let normal = try circle.normal.normalized(tolerance: tolerance.distance)
+                    guard abs(offset.dot(normal)) <= tolerance.distance, abs(offset.length - circle.radius) <= tolerance.distance else {
+                        return false
+                    }
+                    let middle = try arcMiddle(index)
+                    func angle(_ a: Point3D, _ b: Point3D) -> Double {
+                        let (u, v) = (a - circle.center, b - circle.center)
+                        return atan2(u.cross(v).length, u.dot(v))
+                    }
+                    return angle(point, middle) <= angle(original.start, middle) + tolerance.distance / circle.radius
                 default:
                     return point.isApproximatelyEqual(to: original.start, tolerance: tolerance.distance)
                         || point.isApproximatelyEqual(to: original.end, tolerance: tolerance.distance)
@@ -1022,7 +1056,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 }
             }) else {
                 throw failure(.unsupportedCapability, featureID: feature.id, tolerance: tolerance,
-                              "An edge meeting a concave round lies within it.")
+                              "An edge meeting a round made first lies within it.")
             }
             return (edgeID, selected[index].subshapeID)
         }

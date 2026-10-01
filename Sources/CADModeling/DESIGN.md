@@ -376,7 +376,8 @@ exact cylinder between its faces (`ParallelEdgeRoundBuilder` admitting two plane
 then round as the cap's tangent chains those rounds leave (`CapLoopBlendBuilder`): an L block's inside
 corner and the top edges meeting it take a torus about the inside round's axis, the rolling ball's
 blend. Straight edges running along a concave one (an extrusion's other upright edges) round with it
-first, so every edge of an L block rounds: the rims' convex arcs as round as the blend collapse the
+first, and straight edges beside cylinders running along them seed the same order, so every edge of
+an L block or of a D rounds (shortened arcs re-found within their span): the rims' convex arcs as round as the blend collapse the
 cap contact to the arc's centre and close on the ball's sphere (`CapLoopBlendBuilder` drops the
 collapsed cap edge; a blend larger than a convex arc, and a chamfer as large, are refused). Others not
 left as such chains are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A limited fillet (`FilletFeature.limits`, Fillet Shell's limit points) runs over its stretch of one
