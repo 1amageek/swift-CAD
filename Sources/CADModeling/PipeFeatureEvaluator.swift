@@ -59,19 +59,19 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
         )
         let geometry = try spans[0].curve.differentialGeometry(at: try lower(of: spans[0].curve), tolerance: tolerance)
         let tangent = try geometry.firstDerivative.normalized(tolerance: tolerance.distance)
-        let section: Profile
+        let sections: [Profile]
         if let custom = pipe.profile {
             guard case let .profile(source, _) = try ResolvedModelingSection.resolve(custom, context: context, featureID: feature.id) else {
                 throw failure(.invalidInput, feature.id, tolerance, "A pipe's custom profile is a region or a planar face.")
             }
-            section = try PipeCustomSectionPlacement(tolerance: tolerance).placed(
+            sections = try PipeCustomSectionPlacement(tolerance: tolerance).placed(
                 source, featureID: feature.id, origin: geometry.position, tangent: tangent, angle: angle, wall: wall
             )
         } else if let radius {
-            section = try profile(
+            sections = [try profile(
                 featureID: feature.id, origin: geometry.position, normal: tangent,
                 radius: radius, wall: wall, vertexCount: pipe.vertexCount, angle: angle, tolerance: tolerance
-            )
+            )]
         } else {
             throw failure(.invalidInput, feature.id, tolerance, "A pipe has either a diameter or a custom profile.")
         }
@@ -82,30 +82,68 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
         let parameters = (0...32).map { pathLower + (pathUpper - pathLower) * Double($0) / 32 }
         let pathID = featureEvaluationStageID(featureID: feature.id, domain: .pipePath, ordinal: 0)
         var staged = context
-        staged.profiles[feature.id] = [section]
         staged.curves[pathID] = [EvaluatedCurve(
             sourceFeatureID: pathID, source: .generatedFeature, kind: .spline,
             points: try parameters.map { try path.point(at: $0, tolerance: tolerance) },
             exactCurve: .bSpline(path), exactParameterDomain: path.domain, exactPointParameters: parameters
         )]
-        let swept = SweepFeature(
-            sections: [.profile(ProfileReference(featureID: feature.id))],
-            path: SweepPathReference(featureID: pathID),
-            targets: pipe.targets,
-            options: SweepOptions(
-                endScale: pipe.endScale,
-                alignment: .normal,
-                booleanOperation: pipe.booleanOperation,
-                keepTools: pipe.keepTools,
-                resultKind: .solid,
-                approximationTolerance: pipe.approximationTolerance
-            )
-        )
-        return try sweep.evaluateValidated(
-            feature: FeatureNode(id: feature.id, name: feature.name, operation: .sweep(swept),
-                                 inputs: feature.inputs, outputs: feature.outputs, isSuppressed: feature.isSuppressed),
-            context: staged
-        )
+        /// The sweep of one section along the path under `id`, combined by `operation` with
+        /// `targets`.
+        func sweepNode(_ id: FeatureID, operation: SweepBooleanOperation, targets: [SweepTargetReference]) -> FeatureNode {
+            FeatureNode(id: id, name: feature.name, operation: .sweep(SweepFeature(
+                sections: [.profile(ProfileReference(featureID: id))],
+                path: SweepPathReference(featureID: pathID),
+                targets: targets,
+                options: SweepOptions(
+                    endScale: pipe.endScale,
+                    alignment: .normal,
+                    booleanOperation: operation,
+                    keepTools: pipe.keepTools,
+                    resultKind: .solid,
+                    approximationTolerance: pipe.approximationTolerance
+                )
+            )), inputs: feature.inputs, outputs: feature.outputs, isSuppressed: feature.isSuppressed)
+        }
+        guard sections.count > 1 else {
+            staged.profiles[feature.id] = sections
+            return try sweep.evaluateValidated(feature: sweepNode(feature.id, operation: pipe.booleanOperation, targets: pipe.targets),
+                                               context: staged)
+        }
+        // A hollow custom section with holes: one ring per loop, swept in turn. Each ring after the
+        // first joins the ones before (or, with a Boolean, works on the targets they left), so the
+        // last sweep publishes one body.
+        guard [.newBody, .union, .difference].contains(pipe.booleanOperation), pipe.keepTools == false else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): a hollow pipe of a section with holes intersected
+            // with or slicing its targets, or keeping its tools, would apply the Boolean to the
+            // rings' union, which the staged sweeps do not build, so it is refused. Production
+            // path: PipeFeatureEvaluator for a custom profile with holes and a thickness. Complete
+            // only when the rings' union takes every Boolean, verified by intersecting such a pipe.
+            throw failure(.unsupportedCapability, feature.id, tolerance,
+                          "A hollow pipe of a section with holes makes a new body, or joins or cuts its targets without keeping its tools.")
+        }
+        var stages = FeatureEvaluationStages(staged)
+        var previous: [SweepTargetReference] = pipe.targets
+        for (index, ring) in sections.enumerated() {
+            let last = index == sections.count - 1
+            let id = last ? feature.id : featureEvaluationStageID(featureID: feature.id, domain: .pipeRing, ordinal: UInt64(index))
+            var context = stages.context
+            context.profiles[id] = [Profile(sourceFeatureID: id, plane: ring.plane, outerLoop: ring.outerLoop, innerLoops: ring.innerLoops)]
+            let operation: SweepBooleanOperation
+            let targets: [SweepTargetReference]
+            if pipe.booleanOperation == .newBody {
+                // The first ring stands alone; each next joins the body before it.
+                (operation, targets) = index == 0 ? (.newBody, []) : (.union, previous)
+            } else {
+                (operation, targets) = (pipe.booleanOperation, previous)
+            }
+            let result = try sweep.evaluateValidated(feature: sweepNode(id, operation: operation, targets: targets), context: context).result
+            if last {
+                return try ValidatedFeatureEvaluation(validating: try stages.publish(result, featureID: feature.id), tolerance: tolerance)
+            }
+            stages.apply(result)
+            previous = [SweepTargetReference(featureID: id)]
+        }
+        throw failure(.invalidInput, feature.id, tolerance, "A pipe has a section.")
     }
 
     /// The circle or regular polygon of `radius` across `normal` at `origin`, its first vertex (or

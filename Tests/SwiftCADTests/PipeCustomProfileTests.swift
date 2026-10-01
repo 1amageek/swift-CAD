@@ -107,7 +107,7 @@ struct PipeCustomProfileTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
-    func aHollowSectionWithHolesOrABothSizedPipeIsRefused() throws {
+    func aHollowSectionWithHolesSweepsARingPerLoopAndABothSizedPipeIsRefused() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let washer = try builder.sketch(on: .xy) { sketch in
             _ = sketch.circle(center: point(0, 0), radius: length(0.004))
@@ -117,11 +117,25 @@ struct PipeCustomProfileTests {
         var both = builder
         _ = try builder.pipe(along: line, profile: .profile(ProfileReference(featureID: washer)),
                              thickness: length(0.0005), approximationTolerance: length(1e-7))
-        do {
-            _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "pipe"))
-            Issue.record("A hollow pipe of a section with holes must be refused.")
-        } catch let error as KernelError {
-            #expect(error.code == .unsupportedCapability)
+        // The washer's outline walls inward and its hole outward: two rings, one body.
+        let evaluated = try evaluate(builder)
+        #expect(evaluated.brep.bodies.count == 1)
+        let rings = Double.pi * (0.004 * 0.004 - 0.0035 * 0.0035 + 0.0025 * 0.0025 - 0.002 * 0.002)
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - rings * 0.05) < 1e-12)
+        // Cutting a 20 mm block at the origin, both rings take their material away where they pass
+        // through it: the half of them at y ≥ 0 over its 20 mm of height.
+        var cut = both
+        let block = try cut.box(width: length(0.02), depth: length(0.02), height: length(0.02))
+        _ = try cut.pipe(along: line, profile: .profile(ProfileReference(featureID: washer)), thickness: length(0.0005),
+                         booleanOperation: .difference, targets: [block], approximationTolerance: length(1e-7))
+        let cutBlock = try evaluate(cut)
+        #expect(abs(try cutBlock.brep.volume(tolerance: .standard) - (0.02 * 0.02 * 0.02 - rings / 2 * 0.02)) < 1e-12)
+        var intersecting = both
+        let target = try intersecting.box(width: length(0.02), depth: length(0.02), height: length(0.02))
+        _ = try intersecting.pipe(along: line, profile: .profile(ProfileReference(featureID: washer)), thickness: length(0.0005),
+                                  booleanOperation: .intersect, targets: [target], approximationTolerance: length(1e-7))
+        #expect(throws: KernelError.self) {
+            _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try intersecting.build(name: "pipe"))
         }
         #expect(throws: KernelError.self) {
             _ = try both.pipe(along: line, diameter: length(0.01), profile: .profile(ProfileReference(featureID: washer)),

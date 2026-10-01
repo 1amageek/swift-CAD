@@ -6,7 +6,8 @@ import CADIR
 /// A pipe's custom section stood across its path: the region is carried rigidly so its area
 /// centroid sits on the path's start and its normal turns onto the path's tangent by the least
 /// rotation (the normal's sign taken nearer the tangent), then turned by the pipe's angle about the
-/// tangent. A wall hollows the placed region's outline by the exact line and arc offset.
+/// tangent. A wall hollows each of the placed region's loops into a ring by the exact line and arc
+/// offset.
 package struct PipeCustomSectionPlacement: Sendable {
     private let tolerance: ModelingTolerance
 
@@ -14,7 +15,8 @@ package struct PipeCustomSectionPlacement: Sendable {
         self.tolerance = tolerance
     }
 
-    /// `source` placed at `origin` across `tangent`, turned by `angle`, under `featureID`.
+    /// `source` placed at `origin` across `tangent`, turned by `angle`, under `featureID`: the
+    /// region itself, or with a wall the ring of each of its loops.
     package func placed(
         _ source: Profile,
         featureID: FeatureID,
@@ -22,7 +24,7 @@ package struct PipeCustomSectionPlacement: Sendable {
         tangent: Vector3D,
         angle: Double,
         wall: Double?
-    ) throws -> Profile {
+    ) throws -> [Profile] {
         let normal = try ExactSweepSectionPlane(source.plane, tolerance: tolerance).plane.normal
         let centroid = try areaCentroid(of: source, normal: normal)
         let placement = try RigidTransform3D.followingPath(
@@ -59,23 +61,15 @@ package struct PipeCustomSectionPlacement: Sendable {
             outerLoop: try loop(source.outerLoop),
             innerLoops: try source.innerLoops.map(loop)
         )
-        guard let wall else { return placed }
-        guard placed.innerLoops.isEmpty else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): a hollow pipe of a custom section with holes would
-            // be one ring per loop swept together, but Sweep takes one section, so it is refused.
-            // Production path: PipeFeatureEvaluator for a custom profile with a thickness.
-            // Complete only when every ring is swept into one body, verified by a hollow pipe of a
-            // washer-shaped section's volume.
-            throw KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance,
-                              message: "A hollow pipe's custom section has no holes of its own.")
-        }
+        guard let wall else { return [placed] }
+        // Each loop walls into a ring of its own: the outline inward, each hole outward.
         let rings = try ExactDraftedProfileBoundaryBuilder(tolerance: tolerance)
             .wallProfiles(from: placed, planeNormal: placedNormal, thickness: wall)
-        guard rings.count == 1, let ring = rings.first else {
+        guard rings.isEmpty == false else {
             throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
-                              message: "A hollow pipe's custom section makes one ring.")
+                              message: "A hollow pipe's custom section makes no ring.")
         }
-        return ring
+        return rings
     }
 
     /// The area centroid of `profile`'s region (holes subtracted) by Green's theorem: closed forms

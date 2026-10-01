@@ -439,10 +439,14 @@ Sweep shares) replaces the circle: `PipeCustomSectionPlacement` carries it rigid
 centroid (Green's theorem: closed forms for lines and arcs, Gauss–Legendre over each spline's knot
 spans) sits on the cut path's start and its normal, with the sign nearer the tangent, turns onto the
 tangent by the least rotation, then turns it by the angle about the tangent. A wall hollows the
-placed outline through `ExactDraftedProfileBoundaryBuilder.wallProfiles`; a hollow custom section
-with holes of its own is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`: Sweep takes one section).
+placed region's loops through `ExactDraftedProfileBoundaryBuilder.wallProfiles`, the outline inward
+and each hole outward into a ring of its own. Sweep takes one section, so several rings sweep in
+turn as stages (`FeatureEvaluationStageDomain.pipeRing`): each after the first joins the ones before
+(or, with Union or Difference, works on the targets they left), the last publishing one body;
+Intersect, Slice and Keep Tools with several rings are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
 `PipeCustomProfileTests` own the placed and turned triangle, the hollow off-centre circle, a box's
-face across a path along another axis, the refusals and the native round trip.
+face across a path along another axis, a hollow washer's two rings as one body and cutting a block,
+the refusals and the native round trip.
 
 ### Loft edge continuity
 
