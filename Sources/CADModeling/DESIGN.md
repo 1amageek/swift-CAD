@@ -392,7 +392,7 @@ collapsed cap edge; a blend larger than a convex arc, and a chamfer as large, ar
 left as such chains are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A limited fillet (`FilletFeature.limits`, Fillet Shell's limit points) runs over its stretch of one
 straight edge: the faces beside it are notched there (the edge sharp up to each limit, then across to
 the contact line and back), and a limit inside the edge closes the blend on the flat face between its
-section and the edge's corner; a limited chamfer (`ChamferFeature.limits`) does the same with its straight section (`evaluateLimitedChamfer`). A variable fillet (`FilletFeature.endRadius`) runs its section from the radius at the edge's
+section and the edge's corner; a limited chamfer (`ChamferFeature.limits`) does the same with its straight section (`evaluateLimitedChamfer`). Reversed limits (a limit point clicked) blend the rest of the edge: between two limits, the stretch from the edge's start first, then, on the sharp edge it leaves, the stretch to its end (`evaluateLimitedBlend`). A variable fillet (`FilletFeature.endRadius`) runs its section from the radius at the edge's
 start to the end radius at its end, the blend ruled between the two sections (each cross-section
 the shape at the radius there, tangent to both faces along straight contact lines); variable points
 (`FilletFeature.variablePoints`) set the radius between the ends along a smooth law: each section

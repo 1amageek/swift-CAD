@@ -35,7 +35,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             let section = fillet.shape == .round
                 ? roundSection(radius: radius)
                 : try self.section(for: fillet.shape, tension: fillet.tension, distance: radius)
-            return try evaluateProfileBlend(feature: feature, target: fillet.target.featureID, selected: fillet.edges[0],
+            return try evaluateLimitedBlend(feature: feature, target: fillet.target.featureID, selected: fillet.edges[0],
                                             section: section, limits: limits, context: context)
         }
         // A variable fillet runs from its radius at the edge's start to its end radius at its end.
@@ -1128,8 +1128,72 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                                        limits: EdgeBlendLimits, context: EvaluationContext) throws -> EvaluationResult {
         let section = try chamferSection(distance: distance, mode: mode, angle: angle, flipped: flipped,
                                          featureID: feature.id, tolerance: context.tolerance)
-        return try evaluateProfileBlend(feature: feature, target: target, selected: selected, section: section,
+        return try evaluateLimitedBlend(feature: feature, target: target, selected: selected, section: section,
                                         limits: limits, context: context)
+    }
+
+    /// A blend of `section` over the stretches of one edge its limits leave: one stretch closed on
+    /// its section at each limit inside the edge, or, reversed between two limits, the stretch from
+    /// the edge's start blended first and then the one to its end, on the sharp edge the first
+    /// leaves.
+    private func evaluateLimitedBlend(feature: FeatureNode, target: FeatureID, selected: StableSubshapeReference,
+                                      section: BlendSection, limits: EdgeBlendLimits, context: EvaluationContext) throws -> EvaluationResult {
+        let stretches = limits.stretches
+        guard stretches.count == 2 else {
+            guard let stretch = stretches.first else {
+                throw failure(.invalidInput, featureID: feature.id, tolerance: context.tolerance, "A blend's limits leave it no stretch.")
+            }
+            return try evaluateProfileBlend(feature: feature, target: target, selected: selected, section: section,
+                                            limits: EdgeBlendLimits(start: stretch.start, end: stretch.end), context: context)
+        }
+        let tolerance = context.tolerance
+        var bodyID = try targetBodyID(target, featureID: feature.id, context: context)
+        let selection = try scopedEdgeSelection(selected, bodyID: bodyID, featureID: feature.id, context: context)
+        guard let edge = context.brep.edges[selection.edgeID], let a = context.brep.vertices[edge.startVertexID]?.point,
+              let b = context.brep.vertices[edge.endVertexID]?.point else {
+            throw failure(.missingReference, featureID: feature.id, tolerance: tolerance, "A limited blend's edge has no ends.")
+        }
+        var stages = FeatureEvaluationStages(context)
+        // The stretch from the edge's start to the first limit.
+        let scope = try BodyTopologyScope(bodyID: bodyID, model: context.brep)
+        let first = try g2Request(featureID: featureEvaluationStageID(featureID: feature.id, domain: .edgeBlend, ordinal: 0),
+                                  bodyID: bodyID, edgeID: selection.edgeID, selectedSubshapeID: selected.subshapeID,
+                                  sourceEdgeIDs: selection.sourceEdgeIDs, section: section,
+                                  limits: EdgeBlendLimits(start: 0, end: stretches[0].end), context: context)
+        let firstSewn = try sewer.sew(first, tolerance: tolerance)
+        stages.apply(EvaluationResult(
+            brep: try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: firstSewn.bodyID, from: firstSewn.brep, in: context.brep),
+            subshapes: firstSewn.subshapes, removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes), lineage: firstSewn.lineage))
+        bodyID = firstSewn.bodyID
+        // The sharp edge left from the first limit to the edge's end, blended from the second.
+        let staged = stages.context
+        let limitPoint = a + (b - a) * stretches[0].end
+        let stagedScope = try BodyTopologyScope(bodyID: bodyID, model: staged.brep)
+        let edgeIDs = stagedScope.references.compactMap { reference -> EdgeID? in
+            if case let .edge(id) = reference { return id }
+            return nil
+        }
+        guard let rest = edgeIDs.first(where: { id in
+            guard let edge = staged.brep.edges[id], let start = staged.brep.vertices[edge.startVertexID]?.point,
+                  let end = staged.brep.vertices[edge.endVertexID]?.point else { return false }
+            return (start.isApproximatelyEqual(to: limitPoint, tolerance: tolerance.distance) && end.isApproximatelyEqual(to: b, tolerance: tolerance.distance))
+                || (start.isApproximatelyEqual(to: b, tolerance: tolerance.distance) && end.isApproximatelyEqual(to: limitPoint, tolerance: tolerance.distance))
+        }), let restEdge = staged.brep.edges[rest], let restStart = staged.brep.vertices[restEdge.startVertexID]?.point else {
+            throw failure(.topologyFailure, featureID: feature.id, tolerance: tolerance, "A reversed limit's first stretch left no sharp edge after it.")
+        }
+        // The second stretch as fractions of the edge left, run as that edge runs.
+        let restStartsAtLimit = restStart.isApproximatelyEqual(to: limitPoint, tolerance: tolerance.distance)
+        let fraction = (stretches[1].start - stretches[0].end) / (1 - stretches[0].end)
+        let second = try g2Request(featureID: feature.id, bodyID: bodyID, edgeID: rest, selectedSubshapeID: selected.subshapeID,
+                                   sourceEdgeIDs: Set(edgeIDs), section: section,
+                                   limits: restStartsAtLimit ? EdgeBlendLimits(start: fraction, end: 1) : EdgeBlendLimits(start: 0, end: 1 - fraction),
+                                   context: staged)
+        let secondSewn = try sewer.sew(second, tolerance: tolerance)
+        let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: secondSewn.bodyID, from: secondSewn.brep, in: staged.brep)
+        try model.validate(level: model.bodies[secondSewn.bodyID]?.kind == .solid ? .volumetric : .exact, tolerance: tolerance)
+        return try stages.publish(EvaluationResult(brep: model, subshapes: secondSewn.subshapes,
+                                                   removedSubshapeIDs: stagedScope.subshapeIDs(in: staged.subshapes), lineage: secondSewn.lineage),
+                                  featureID: feature.id)
     }
 
     /// A chamfer's straight section for faces meeting at the interior angle α: `distance` along

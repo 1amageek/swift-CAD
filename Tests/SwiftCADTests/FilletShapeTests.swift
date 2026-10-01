@@ -967,7 +967,9 @@ struct FilletShapeTests {
         let section = r * r * (1 - Double.pi / 4)
         for (limits, shape) in [(EdgeBlendLimits(start: 0.25, end: 0.75), FilletShape.round),
                                 (EdgeBlendLimits(start: 0, end: 0.5), .round),
-                                (EdgeBlendLimits(start: 0.5, end: 1), .conic)] {
+                                (EdgeBlendLimits(start: 0.5, end: 1), .conic),
+                                (EdgeBlendLimits(start: 0.25, end: 0.75, reversed: true), .round),
+                                (EdgeBlendLimits(start: 0.4, end: 1, reversed: true), .round)] {
             var builder = DocumentBuilder(units: .meters, tolerance: .standard)
             let (box, edges) = try boxEdges(&builder, [(0, 0.02)])
             _ = try builder.fillet(target: box, edges: edges, radius: length(r), shape: shape, limits: limits)
@@ -977,7 +979,7 @@ struct FilletShapeTests {
             // corner, or for a conic of tension 0.5 the parabola's r²/6 (the corner's r²/2 less
             // the parabolic segment's two thirds of it).
             let removed = shape == .round ? section : r * r / 6
-            let stretch = (limits.end - limits.start) * s
+            let stretch = limits.stretches.reduce(0.0) { $0 + ($1.end - $1.start) } * s
             let volume = try rounded.brep.volume(tolerance: .standard)
             #expect(abs(volume - (s * s * s - removed * stretch)) < 5e-12, "\(limits): \(volume)")
         }

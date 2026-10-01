@@ -90,7 +90,8 @@ struct ChamferModeTests {
     func limitPointsChamferOnlyTheirStretchOfTheEdge() throws {
         let (s, d) = (0.02, 0.002)
         let e = d * sin(Double.pi / 6) / sin(Double.pi / 2 + Double.pi / 6)
-        for (limits, angle) in [(EdgeBlendLimits(start: 0.25, end: 0.75), nil as Double?), (EdgeBlendLimits(start: 0, end: 0.5), 30)] {
+        for (limits, angle) in [(EdgeBlendLimits(start: 0.25, end: 0.75), nil as Double?), (EdgeBlendLimits(start: 0, end: 0.5), 30),
+                                (EdgeBlendLimits(start: 0.3, end: 0.6, reversed: true), nil)] {
             var builder = DocumentBuilder(units: .meters, tolerance: .standard)
             let box = try builder.box(width: length(s), depth: length(s), height: length(s))
             let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
@@ -107,7 +108,8 @@ struct ChamferModeTests {
             // The section's triangle along the limited stretch only, the ends flat.
             let triangle = angle == nil ? d * d / 2 : d * e / 2
             let volume = try cut.brep.volume(tolerance: .standard)
-            #expect(abs(volume - (s * s * s - triangle * (limits.end - limits.start) * s)) < 5e-12, "\(limits): \(volume)")
+            let stretch = limits.stretches.reduce(0.0) { $0 + ($1.end - $1.start) }
+            #expect(abs(volume - (s * s * s - triangle * stretch * s)) < 5e-12, "\(limits): \(volume)")
         }
     }
 
@@ -122,7 +124,7 @@ struct ChamferModeTests {
         }.map(\.key).sorted().prefix(2).map { try builder.stableSubshape($0) }
         _ = try builder.chamfer(target: box, edges: [edges[0]], distance: length(0.001), mode: .apex)
         _ = try builder.chamfer(target: box, edges: [edges[1]], distance: length(0.001), angle: degrees(40), flipped: true,
-                                limits: EdgeBlendLimits(start: 0.1, end: 0.9))
+                                limits: EdgeBlendLimits(start: 0.1, end: 0.9, reversed: true))
         let document = try builder.build(name: "box")
         let sink = DataByteSink()
         let store = NativePackageStore(tolerance: .standard)
