@@ -339,19 +339,18 @@ public struct SweepEvaluationPlanService: Sendable {
             tolerance: tolerance
         )
         let sectionState: SweepEvaluationCapabilities.SectionState
-        if guideCurves.count == 1,
+        if (1...2).contains(guideCurves.count),
            options.guideMethod == .point,
            baseSectionState == .identity,
            straightPath != nil,
            let pathStart = frames.first?.origin,
-           let pathEnd = frames.last?.origin,
-           let guide = guideCurves.first {
+           let pathEnd = frames.last?.origin {
             do {
                 _ = try exactPointGuideTransform(
                     section: section,
                     pathStart: pathStart,
                     pathEnd: pathEnd,
-                    guide: guide,
+                    guides: guideCurves,
                     distanceFraction: optionValues.distanceFraction,
                     tolerance: tolerance
                 )
@@ -749,33 +748,14 @@ public struct SweepEvaluationPlanService: Sendable {
         section: ResolvedModelingSection,
         pathStart: Point3D,
         pathEnd: Point3D,
-        guide: EvaluatedCurve,
+        guides: [EvaluatedCurve],
         distanceFraction: Double,
         tolerance: ModelingTolerance
     ) throws -> ExactSectionTransform2D {
-        let resolver = ExactPointGuideSectionTransformResolver(
-            tolerance: tolerance
+        try ExactPointGuideSectionTransformResolver(tolerance: tolerance).resolve(
+            section: section, pathStart: pathStart, pathEnd: pathEnd, guides: guides,
+            distanceFraction: distanceFraction, featureID: nil
         )
-        switch section {
-        case .profile(let profile, _):
-            return try resolver.resolve(
-                profile: profile,
-                pathStart: pathStart,
-                pathEnd: pathEnd,
-                guide: guide,
-                distanceFraction: distanceFraction,
-                featureID: nil
-            )
-        case .curve(let curve):
-            return try resolver.resolve(
-                section: curve,
-                pathStart: pathStart,
-                pathEnd: pathEnd,
-                guide: guide,
-                distanceFraction: distanceFraction,
-                featureID: nil
-            )
-        }
     }
 
 }

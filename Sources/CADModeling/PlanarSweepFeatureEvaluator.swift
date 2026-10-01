@@ -187,18 +187,17 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         )
         var pointGuideEndTransform: ExactSectionTransform2D?
         let sectionState: SweepEvaluationCapabilities.SectionState
-        if guideCurves.count == 1,
+        if (1...2).contains(guideCurves.count),
            sweep.options.guideMethod == .point,
            baseSectionState == .identity,
            straightPathCandidate != nil,
            let pathStart = frames.first?.origin,
-           let pathEnd = frames.last?.origin,
-           let guide = guideCurves.first {
+           let pathEnd = frames.last?.origin {
             pointGuideEndTransform = try exactPointGuideTransform(
                 section: section,
                 pathStart: pathStart,
                 pathEnd: pathEnd,
-                guide: guide,
+                guides: guideCurves,
                 distanceFraction: optionValues.distanceFraction,
                 featureID: feature.id,
                 tolerance: context.tolerance
@@ -487,34 +486,15 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         section: ResolvedModelingSection,
         pathStart: Point3D,
         pathEnd: Point3D,
-        guide: EvaluatedCurve,
+        guides: [EvaluatedCurve],
         distanceFraction: Double,
         featureID: FeatureID,
         tolerance: ModelingTolerance
     ) throws -> ExactSectionTransform2D {
-        let resolver = ExactPointGuideSectionTransformResolver(
-            tolerance: tolerance
+        try ExactPointGuideSectionTransformResolver(tolerance: tolerance).resolve(
+            section: section, pathStart: pathStart, pathEnd: pathEnd, guides: guides,
+            distanceFraction: distanceFraction, featureID: featureID
         )
-        switch section {
-        case .profile(let profile, _):
-            return try resolver.resolve(
-                profile: profile,
-                pathStart: pathStart,
-                pathEnd: pathEnd,
-                guide: guide,
-                distanceFraction: distanceFraction,
-                featureID: featureID
-            )
-        case .curve(let curve):
-            return try resolver.resolve(
-                section: curve,
-                pathStart: pathStart,
-                pathEnd: pathEnd,
-                guide: guide,
-                distanceFraction: distanceFraction,
-                featureID: featureID
-            )
-        }
     }
 
     /// A Chord guide turns the section about a straight path so the direction from the path to the
@@ -542,7 +522,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         guard let start = frames.first?.origin, let end = frames.last?.origin else {
             throw failure(.invalidInput, "A Chord-guided sweep has no path.")
         }
-        let transform = try exactPointGuideTransform(section: section, pathStart: start, pathEnd: end, guide: guide,
+        let transform = try exactPointGuideTransform(section: section, pathStart: start, pathEnd: end, guides: [guide],
             distanceFraction: values.distanceFraction, featureID: feature.id, tolerance: tolerance)
         // T as a complex number: the similarity's rotation-scale.
         let (re, im) = (transform.m11 - 1, transform.m21)

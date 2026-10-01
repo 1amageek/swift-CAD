@@ -323,6 +323,19 @@ points, several edges, tangent chains and Y-blends are not built (FE2). `FilletS
 shape's removed cross-section times the edge's length, the tension and one-edge admission, and the
 rib's and a drafted rib's full rounds (their volumes and radii) with the refusals of a misstated radius and of edges that do not face each other across one face.
 
+### Point guides
+
+A Point guide along a straight path is a straight guide from a point of the section's boundary:
+`ExactPointGuideSectionTransformResolver` reads its contact and its end as offsets from the path in
+the section's plane, and the sweep's sections run from the identity to the end transform by linear
+interpolation, so the contact runs along the guide exactly (a ruled sweep). One guide's end transform
+is the similarity turning and scaling the contact onto its end; two guides' is the linear map
+`ExactSectionTransform2D.linear` taking both contacts to their ends (their contacts must span the
+plane), refused when `det(I + t(M − I))` reaches zero on the way (the section would fold). A third
+guide is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). `TwoPointGuideSweepTests` own the sheared and
+stretched section (its end corners and volume `A·L·(1 + tr(M − I)/2 + det(M − I)/3)`) and the fold's
+refusal.
+
 ### Chord guides
 
 A Chord guide along a straight path turns the section to keep pointing at a straight guide,

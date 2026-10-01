@@ -289,7 +289,7 @@ public struct SweepEvaluationCapabilities: Sendable {
         case .twisted:
             return .unsupported(UnsupportedCase(code: .sweepTwistUnavailable))
         case .pointGuide:
-            guard geometry.guideConstraintCount == 1,
+            guard (1...2).contains(geometry.guideConstraintCount),
                   options.guideMethod == .point else {
                 return .unsupported(UnsupportedCase(code: .sweepInvalidGuideConstraintCount))
             }
