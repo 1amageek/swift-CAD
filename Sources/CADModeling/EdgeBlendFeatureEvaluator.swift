@@ -1016,115 +1016,72 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         )
     }
 
-    /// Fillet Shell's Full shape across a rib: the two selected straight edges bound the center
-    /// face, their other faces (left and right) are parallel planes perpendicular to it, and the
-    /// round is the half cylinder of half their distance tangent to all three. The center face goes,
-    /// the side faces are cut back by the radius, and the end faces close on the semicircle.
+    /// Fillet Shell's Full shape across a prismatic center face (`FullRoundLayout`): the center face
+    /// goes, the side faces are cut back to the round's contacts, and the end faces close on its
+    /// cross-section.
     private func evaluateFullRound(feature: FeatureNode, fillet: FilletFeature, context: EvaluationContext) throws -> EvaluationResult {
         let tolerance = context.tolerance
         let featureID = feature.id
         let bodyID = try targetBodyID(fillet.target.featureID, featureID: featureID, context: context)
         let model = context.brep
-        guard let body = model.bodies[bodyID], body.kind == .solid, body.shellIDs.count == 1,
-              let shell = model.shells[body.shellIDs[0]] else {
-            throw failure(.unsupportedCapability, featureID: featureID, tolerance: tolerance, "A full fillet rounds one single-shell solid body.")
-        }
         let first = try scopedEdgeSelection(fillet.edges[0], bodyID: bodyID, featureID: featureID, context: context)
         let second = try scopedEdgeSelection(fillet.edges[1], bodyID: bodyID, featureID: featureID, context: context)
-        let firstFaces = try shell.faceIDs.filter { try faceUses(edgeID: first.edgeID, faceID: $0, model: model) }
-        let secondFaces = try shell.faceIDs.filter { try faceUses(edgeID: second.edgeID, faceID: $0, model: model) }
-        let shared = firstFaces.filter { secondFaces.contains($0) }
-        guard firstFaces.count == 2, secondFaces.count == 2, shared.count == 1,
-              let leftID = firstFaces.first(where: { $0 != shared[0] }),
-              let rightID = secondFaces.first(where: { $0 != shared[0] }) else {
-            throw failure(.invalidInput, featureID: featureID, tolerance: tolerance,
-                          "A full fillet's two edges bound one face between two others.")
+        let layout = try FullRoundLayout(model: model, bodyID: bodyID, firstEdgeID: first.edgeID, secondEdgeID: second.edgeID,
+                                         featureID: featureID, tolerance: tolerance)
+        guard let shell = model.bodies[bodyID].flatMap({ model.shells[$0.shellIDs[0]] }) else {
+            throw failure(.missingReference, featureID: featureID, tolerance: tolerance, "A full fillet's body has no shell.")
         }
-        let centerID = shared[0]
-        let (center, left, right) = (try orientedPlane(centerID, model: model, featureID: featureID, tolerance: tolerance),
-                                     try orientedPlane(leftID, model: model, featureID: featureID, tolerance: tolerance),
-                                     try orientedPlane(rightID, model: model, featureID: featureID, tolerance: tolerance))
-        guard left.outward.dot(right.outward) <= -1 + tolerance.angle,
-              abs(center.outward.dot(left.outward)) <= tolerance.angle else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): a full round between side faces that are not
-            // parallel planes perpendicular to the center face is the circle tangent to three
-            // general lines, swept along non-parallel edges, which is not built, so it is refused.
-            // Production path: EdgeBlendFeatureEvaluator.evaluateFullRound for every Full fillet.
-            // Complete only when tapered and curved neighbours are rounded, verified by a full
-            // round across a drafted rib's top.
-            throw failure(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
-                          "A full fillet rounds a center face between parallel side faces perpendicular to it.")
-        }
-        func ends(_ edgeID: EdgeID) throws -> (Point3D, Point3D) {
-            guard let edge = model.edges[edgeID], case .line = model.geometry.curves[edge.curveID],
-                  let start = model.vertices[edge.startVertexID]?.point, let end = model.vertices[edge.endVertexID]?.point else {
-                throw failure(.unsupportedCapability, featureID: featureID, tolerance: tolerance, "A full fillet's edges are straight.")
-            }
-            return (start, end)
-        }
-        let (a1, b1) = try ends(first.edgeID)
-        var (a2, b2) = try ends(second.edgeID)
-        let across = left.outward * -1
-        let width = (a2 - a1).dot(across)
-        // The second edge's ends opposite the first's.
-        if (a2 - (a1 + across * width)).length > (b2 - (a1 + across * width)).length { swap(&a2, &b2) }
-        guard width > tolerance.distance, (a2 - (a1 + across * width)).length <= tolerance.distance,
-              (b2 - (b1 + across * width)).length <= tolerance.distance else {
-            throw failure(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
-                          "A full fillet's edges run side by side across a rectangular center face.")
-        }
-        let radius = width / 2
         let stated = try resolvedRadius(fillet.radius, featureID: featureID, context: context)
-        guard abs(stated - radius) <= tolerance.distance else {
+        guard abs(stated - layout.radius) <= tolerance.distance else {
             throw failure(.invalidInput, featureID: featureID, tolerance: tolerance,
-                          "A full fillet's radius is half its center face's width, \(radius); it states \(stated).")
+                          "A full fillet's radius is fixed by its faces, \(layout.radius); it states \(stated).")
         }
-        let down = center.outward * -1
-        let axisVector = b1 - a1
-        let height = axisVector.length
-        let axis = try axisVector.normalized(tolerance: tolerance.distance)
-        // The semicircle from the left face's contact over the center to the right face's: two
-        // quarter circles meeting on the center face's middle line.
-        let lowerPoints = [a1 + down * radius, a1, a1 + across * radius, a2, a2 + down * radius]
-        let upperPoints = lowerPoints.map { $0 + axis * height }
-        let weights = [1, 0.5.squareRoot(), 1, 0.5.squareRoot(), 1]
+        let (a1, b1) = layout.firstEnds, (a2, b2) = layout.secondEnds
+        let height = (b1 - a1).length
+        let lower = layout.section(first: a1, second: a2)
+        let upper = layout.section(first: b1, second: b2)
         let knots = [0.0, 0, 0, 0.5, 0.5, 1, 1, 1]
-        let lowerCurve = BSplineCurve3D(degree: 2, knots: knots, controlPoints: lowerPoints, weights: weights)
-        let upperCurve = BSplineCurve3D(degree: 2, knots: knots, controlPoints: upperPoints, weights: weights)
+        let lowerCurve = BSplineCurve3D(degree: 2, knots: knots, controlPoints: lower.points, weights: lower.weights)
+        let upperCurve = BSplineCurve3D(degree: 2, knots: knots, controlPoints: upper.points, weights: upper.weights)
         let definition = BSplineSurface3D(uDegree: 2, vDegree: 1, uKnots: knots, vKnots: [0, 0, height, height],
-                                          controlPoints: [lowerPoints, upperPoints], weights: [weights, weights])
+                                          controlPoints: [lower.points, upper.points], weights: [lower.weights, upper.weights])
         try lowerCurve.validate(tolerance: tolerance)
         try upperCurve.validate(tolerance: tolerance)
         try definition.validate(tolerance: tolerance)
+        let setbacks = (layout.leftSetback, layout.rightSetback)
         var patches: [BRepSewingFacePatch] = []
         var lowerCap: BSplineCapBoundary?
         var upperCap: BSplineCapBoundary?
-        for (faceIndex, faceID) in shell.faceIDs.enumerated() where faceID != centerID {
+        var leftOutward = Vector3D.zero
+        for (faceIndex, faceID) in shell.faceIDs.enumerated() where faceID != layout.centerFaceID {
             let oriented = try orientedPlane(faceID, model: model, featureID: featureID, tolerance: tolerance)
             let polygon = try outerPolygon(faceID, model: model, featureID: featureID, tolerance: tolerance)
             let parents = subshapeIDs(for: .face(faceID), context: context)
             let stableID = "source-face:\(faceIndex)"
-            if faceID == leftID || faceID == rightID {
-                let selected = faceID == leftID ? first : second
-                let clipped = simplified(clip(polygon, origin: faceID == leftID ? a1 : a2, normal: down, offset: radius,
-                                              tolerance: tolerance), tolerance: tolerance)
+            if faceID == layout.leftFaceID || faceID == layout.rightFaceID {
+                let isLeft = faceID == layout.leftFaceID
+                if isLeft { leftOutward = oriented.outward }
+                let clipped = simplified(clip(polygon, origin: isLeft ? a1 : a2, normal: isLeft ? layout.intoLeft : layout.intoRight,
+                                              offset: isLeft ? setbacks.0 : setbacks.1, tolerance: tolerance), tolerance: tolerance)
                 guard clipped.count >= 3 else {
                     throw failure(.topologyFailure, featureID: featureID, tolerance: tolerance, "A full fillet removes a side face.")
                 }
                 patches.append(try linePatch(stableID: stableID, plane: oriented, vertices: clipped, faceParents: parents,
-                    edgeID: selected.edgeID, selectedSubshapeID: fillet.edges[faceID == leftID ? 0 : 1].subshapeID,
+                    edgeID: isLeft ? first.edgeID : second.edgeID, selectedSubshapeID: fillet.edges[isLeft ? 0 : 1].subshapeID,
                     sourceEdgeIDs: first.sourceEdgeIDs, model: model, context: context))
-            } else if let cap = try fullCapPatch(stableID: stableID, plane: oriented, polygon: polygon, corners: (a1, a2),
-                                                 curve: lowerCurve, radius: radius, faceParents: parents,
-                                                 sourceEdgeIDs: first.sourceEdgeIDs, model: model, context: context) {
+                continue
+            }
+            var capped = false
+            for (corners, curve) in [((a1, a2), lowerCurve), ((b1, b2), upperCurve)] {
+                guard let cap = try fullCapPatch(stableID: stableID, plane: oriented, polygon: polygon, corners: corners,
+                                                 setbacks: setbacks, axis: layout.axis, curve: curve, faceParents: parents,
+                                                 sourceEdgeIDs: first.sourceEdgeIDs, model: model, context: context) else { continue }
                 patches.append(cap.patch)
-                lowerCap = cap.boundary
-            } else if let cap = try fullCapPatch(stableID: stableID, plane: oriented, polygon: polygon, corners: (b1, b2),
-                                                 curve: upperCurve, radius: radius, faceParents: parents,
-                                                 sourceEdgeIDs: first.sourceEdgeIDs, model: model, context: context) {
-                patches.append(cap.patch)
-                upperCap = cap.boundary
-            } else {
+                if corners.0 == a1 { lowerCap = cap.boundary } else { upperCap = cap.boundary }
+                capped = true
+                break
+            }
+            if capped == false {
                 patches.append(try linePatch(stableID: stableID, plane: oriented, vertices: polygon, faceParents: parents,
                     edgeID: first.edgeID, selectedSubshapeID: fillet.edges[0].subshapeID,
                     sourceEdgeIDs: first.sourceEdgeIDs, model: model, context: context))
@@ -1137,8 +1094,8 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         patches.append(try g2SurfacePatch(
             surface: .bSpline(definition), definition: definition, lowerCurve: lowerCurve, upperCurve: upperCurve,
             lowerCap: lowerCap, upperCap: upperCap, height: height, selectedSubshapeID: fillet.edges[0].subshapeID,
-            faceParents: [leftID, centerID, rightID].flatMap { subshapeIDs(for: .face($0), context: context) },
-            firstOutward: left.outward, tolerance: tolerance
+            faceParents: [layout.leftFaceID, layout.centerFaceID, layout.rightFaceID].flatMap { subshapeIDs(for: .face($0), context: context) },
+            firstOutward: leftOutward, tolerance: tolerance
         ))
         let request = BRepSewingRequest(featureID: featureID, bodyKind: .solid,
             shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
@@ -1150,12 +1107,14 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                                 removedSubshapeIDs: first.replacedSubshapeIDs, lineage: result.lineage)
     }
 
-    /// An end face holding both `corners` next to each other on its outline: the two corners and
-    /// the edge between them replaced by the contacts `radius` down its sides and the semicircle
-    /// `curve` between them; nil for a face without them.
+    /// An end face holding both `corners` next to each other on its outline, across `axis`: the
+    /// two corners and the edge between them replaced by the contacts `setbacks` down its sides
+    /// (the first corner's, then the second's) and the round's cross-section `curve` between them;
+    /// nil for a face without them.
     private func fullCapPatch(
-        stableID: String, plane: OrientedPlane, polygon: [Point3D], corners: (Point3D, Point3D), curve: BSplineCurve3D,
-        radius: Double, faceParents: [SubshapeID], sourceEdgeIDs: Set<EdgeID>, model: BRepModel, context: EvaluationContext
+        stableID: String, plane: OrientedPlane, polygon: [Point3D], corners: (Point3D, Point3D), setbacks: (Double, Double),
+        axis: Vector3D, curve: BSplineCurve3D, faceParents: [SubshapeID], sourceEdgeIDs: Set<EdgeID>, model: BRepModel,
+        context: EvaluationContext
     ) throws -> G2Cap? {
         let tolerance = context.tolerance
         func matches(_ point: Point3D, _ corner: Point3D) -> Bool { point.isApproximatelyEqual(to: corner, tolerance: tolerance.distance) }
@@ -1163,14 +1122,18 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             let (here, next) = (polygon[index], polygon[(index + 1) % polygon.count])
             return (matches(here, corners.0) && matches(next, corners.1)) || (matches(here, corners.1) && matches(next, corners.0))
         }) else { return nil }
+        guard plane.plane.normal.cross(axis).length <= tolerance.angle else {
+            throw failure(.unsupportedCapability, tolerance: tolerance, "A full fillet's end faces run square across its edges.")
+        }
         let rotated = polygon.indices.map { polygon[(index + $0) % polygon.count] }
         let (a, b) = (rotated[0], rotated[1])
-        guard rotated.count >= 4, (rotated[rotated.count - 1] - a).length > radius + tolerance.distance,
-              (rotated[2] - b).length > radius + tolerance.distance else {
-            throw failure(.unsupportedCapability, tolerance: tolerance, "A full fillet's radius must fit the end faces' sides.")
+        let (setbackA, setbackB) = matches(a, corners.0) ? setbacks : (setbacks.1, setbacks.0)
+        guard rotated.count >= 4, (rotated[rotated.count - 1] - a).length > setbackA + tolerance.distance,
+              (rotated[2] - b).length > setbackB + tolerance.distance else {
+            throw failure(.unsupportedCapability, tolerance: tolerance, "A full fillet's round must fit the end faces' sides.")
         }
-        let tangentA = a + (try (rotated[rotated.count - 1] - a).normalized(tolerance: tolerance.distance)) * radius
-        let tangentB = b + (try (rotated[2] - b).normalized(tolerance: tolerance.distance)) * radius
+        let tangentA = a + (try (rotated[rotated.count - 1] - a).normalized(tolerance: tolerance.distance)) * setbackA
+        let tangentB = b + (try (rotated[2] - b).normalized(tolerance: tolerance.distance)) * setbackB
         let boundary = [tangentB] + Array(rotated.dropFirst(2)) + [tangentA]
         let surface = Surface3D.plane(plane.plane)
         var edges = try (0..<(boundary.count - 1)).map { index in

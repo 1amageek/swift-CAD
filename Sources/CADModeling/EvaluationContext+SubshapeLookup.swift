@@ -21,7 +21,7 @@ package extension EvaluationContext {
         return reference
     }
 
-    func bodyID(generatedBy featureID: FeatureID) throws -> BodyID {
+    package func bodyID(generatedBy featureID: FeatureID) throws -> BodyID {
         let reference = try topologyReference(
             generatedBy: featureID,
             role: GeneratedSubshapeRole.body.rawValue

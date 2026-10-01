@@ -126,4 +126,40 @@ struct FilletShapeTests {
             _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try wrong.build(name: "rib"))
         }
     }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aFullFilletRoundsADraftedRibsTopTangentToItsSlopingSides() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // A rib 30 mm wide at its foot and 20 mm at its 30 mm top, 40 mm long along Y (on the plane
+        // across Y sketch x is -x and sketch y is z).
+        let outline: [(Double, Double)] = [(-0.015, 0), (0.015, 0), (0.01, 0.03), (-0.01, 0.03)]
+        let sketch = try builder.sketch(on: .plane(Plane3D(origin: .origin, normal: .unitY))) { sketch in
+            for (start, end) in zip(outline, outline.dropFirst() + outline.prefix(1)) {
+                _ = sketch.line(from: SketchPoint(x: length(-start.0), y: length(start.1)), to: SketchPoint(x: length(-end.0), y: length(end.1)))
+            }
+        }.featureID
+        let rib = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(0.04))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "rib"))
+        let top = try before.subshapes.entries.compactMap { key, value -> SubshapeID? in
+            guard key.featureID == rib, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  let start = before.brep.vertices[edge.startVertexID]?.point,
+                  let end = before.brep.vertices[edge.endVertexID]?.point,
+                  abs(start.z - 0.03) < 1e-12, abs(end.z - 0.03) < 1e-12, abs(start.y - end.y) > 0.03 else { return nil }
+            return key
+        }
+        #expect(top.count == 2)
+        let edges = try top.map { try builder.stableSubshape($0) }
+        // The corners' interior angle α: cos α = -5/√925; the round's radius 10 / cot(α/2) mm.
+        let alpha = acos(-5 / 925.0.squareRoot())
+        let r = 0.01 / (1 / tan(alpha / 2))
+        #expect(abs(try FullFilletRadius().radius(target: rib, edges: (edges[0], edges[1]), in: before) - r) < 1e-12)
+        _ = try builder.fillet(target: rib, edges: edges, radius: length(r), shape: .full)
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "rib"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        // Each corner loses the kite of its two 10 mm tangents less the arc's sector.
+        let removed = 2 * (0.01 * r - (Double.pi - alpha) * r * r / 2)
+        let expected = (0.03 + 0.02) / 2 * 0.03 * 0.04 - removed * 0.04
+        let volume = try evaluated.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+    }
 }

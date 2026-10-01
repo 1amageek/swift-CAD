@@ -310,14 +310,16 @@ both faces at the distance; a `chordal` is the quarter circle whose chord is the
 at distance/√2); a `curvature` fillet is the quintic whose first and last three control points lie
 on the faces (zero curvature at the contacts), its handles the tension times a third of the
 distance. `full` (`evaluateFullRound`) takes the two straight edges bounding a center face whose
-other faces are parallel planes perpendicular to it (a rib's top): the round is the half cylinder of
-half their distance tangent to all three faces, two exact quarter circles meeting on the center's
-middle line; the center face goes, the side faces are cut back by the radius and the end faces close
-on the semicircle (its radius comes from the faces, and the feature's radius must state it). Full across
-tapered or curved neighbours is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Variable and limit
+other faces are planes along the same direction (`FullRoundLayout`): the round is the circle tangent
+to the three faces' lines across that direction, its radius `width / (cot(α₁/2) + cot(α₂/2))` for
+the corners' interior angles, two exact circular arcs (weights `sin(α/2)`) meeting where it touches
+the center face; the center face goes, the side faces are cut back to its contacts and the square end
+faces close on its cross-section. The feature's radius must state the radius the faces fix, which
+`FullFilletRadius` (CADKernel) reads for authors. Full beside curved faces is refused
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`). Variable and limit
 points, several edges, tangent chains and Y-blends are not built (FE2). `FilletShapeTests` own each
 shape's removed cross-section times the edge's length, the tension and one-edge admission, and the
-rib's full round (its volume) with the refusal of edges that do not face each other across one face.
+rib's and a drafted rib's full rounds (their volumes and radii) with the refusals of a misstated radius and of edges that do not face each other across one face.
 
 ### Chord guides
 
