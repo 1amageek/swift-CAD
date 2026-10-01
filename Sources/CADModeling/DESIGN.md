@@ -257,6 +257,19 @@ rational sides with continuity are refused with `FIXME(INCOMPLETE_IMPLEMENTATION
 edges, the round trip, the refusal of rails bending out of the faces' planes, a plate's hole filled
 tangent along all four sides and the refusal across a box's walls.
 
+### Chord guides
+
+A Chord guide along a straight path turns the section to keep pointing at a straight guide,
+without the Point guide's scaling: with the point guide's end similarity `T` (guide end offset over
+start offset, as complex numbers in the section's plane) the turn at fraction `t` is
+θ(t) = arg(1 + t(T − 1)). `PlanarSweepFeatureEvaluator.chordGuideSweep` hands the certified straight
+twist a linear interpolation of θ at N nodes, N chosen from |θ″| ≤ 2|T − 1|²/d³ (d the least
+|1 + t(T − 1)|) so that interpolation stays within half the sweep's allowance, the twist's own
+approximation within the other half; capability planning reports it as the certified straight
+twist. Curve sections (`FIXME(INCOMPLETE_IMPLEMENTATION)`), curved paths and the Curve method are
+not built. `ChordGuideSweepTests` own the quarter-turned rectangle (end corners and volume within
+the allowance) and the refusal without an allowance.
+
 ### Simplify
 
 `PlanarFaceSimplifier` serves Sweep's and Loft's Simplify: the faces of the new body whose

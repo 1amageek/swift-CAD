@@ -2710,7 +2710,7 @@ struct CADKernelTests {
         #expect(chordGuideDecision.unsupportedCase?.code == .sweepGuideConstraintUnavailable)
         #expect(exactPointGuideDecision.supportedPlan?.kind == .exactPointGuideSweep)
         #expect(exactPointGuideDecision.supportedPlan?.outputTopologyKind == .exactPointGuideSolid)
-        #expect(SweepEvaluationCapabilities.currentOptionMatrix.guideMethods == [.point])
+        #expect(SweepEvaluationCapabilities.currentOptionMatrix.guideMethods == [.point, .chord])
         #expect(SweepEvaluationCapabilities.currentOptionMatrix.unsupportedOptionCodes.contains(.sweepBooleanRequiresSolid))
         #expect(SweepEvaluationCapabilities.currentOptionMatrix.unsupportedOptionCodes.contains(.sweepPathNormalUnavailable))
         #expect(SweepEvaluationCapabilities.currentOptionMatrix.unsupportedOptionCodes.contains(.sweepScaleCollapse))
@@ -3091,7 +3091,10 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func guidedSweepRejectsNonExactGuideMethodsBeforeTopologyMutation() throws {
-        let guideMethods: [SweepGuideMethod] = [.chord, .curve]
+        // A Chord guide is carried by the certified twist, which needs an allowance; Curve is not built.
+        let chordDocument = makeGuidedStraightPathSweepDocument(guideEndOffset: 20.0, guideMethod: .chord)
+        #expect(throws: KernelError.self) { _ = try DocumentEvaluator(tolerance: .standard).evaluate(chordDocument) }
+        let guideMethods: [SweepGuideMethod] = [.curve]
 
         for guideMethod in guideMethods {
             let document = makeGuidedStraightPathSweepDocument(

@@ -1,3 +1,4 @@
+import Foundation
 import CADCore
 import CADIR
 
@@ -167,6 +168,10 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
                 .buildCertifiedCurvedPath(plan, resultKind: sweep.options.resultKind)
             return try applyBooleanIfNeeded(sweep, featureID: feature.id, toolResult: tool, context: context)
+        }
+        if sweep.options.guideMethod == .chord, let guide = guideCurves.onlyElement {
+            return try chordGuideSweep(sweep, feature: feature, section: section, pathSegments: pathSegments,
+                                       frames: frames, guide: guide, values: optionValues, context: context)
         }
         if CertifiedTwistSweepPlan.requested(sweep.options) {
             guard case let .profile(profile, _) = section else {
@@ -513,6 +518,85 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 featureID: featureID
             )
         }
+    }
+
+    /// A Chord guide turns the section about a straight path so the direction from the path to the
+    /// guide is kept, without scaling: with the point guide's end similarity `T` (the guide's end
+    /// offset over its start offset, as complex numbers in the section's plane) the turn at a
+    /// fraction `t` of the path is θ(t) = arg(1 + t(T − 1)). The certified twist sweeps a linear
+    /// interpolation of θ at N nodes; |θ″| ≤ 2|T − 1|² / d³, d the least |1 + t(T − 1)|, bounds that
+    /// interpolation's error by R·|θ″|/(8N²) for the section's reach R, kept within half the
+    /// allowance, the twist's own approximation within the other half.
+    private func chordGuideSweep(
+        _ sweep: SweepFeature, feature: FeatureNode, section: ResolvedModelingSection,
+        pathSegments: [EvaluatedCurvePathSegment], frames: [SweepPathFrame], guide: EvaluatedCurve,
+        values: SweepOptionValues, context: EvaluationContext
+    ) throws -> EvaluationResult {
+        let tolerance = context.tolerance
+        func failure(_ code: KernelErrorCode, _ message: String) -> KernelError {
+            KernelError(phase: .evaluation, code: code, featureID: feature.id, tolerance: tolerance, message: message)
+        }
+        guard case let .profile(profile, _) = section else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): the certified twist that carries a Chord guide
+            // sweeps closed profiles only, so a curve section is refused. Production path:
+            // PlanarSweepFeatureEvaluator.chordGuideSweep. Complete only when certified twist
+            // sweeps curve sections, verified by a Chord-guided sheet sweep.
+            throw failure(.unsupportedCapability, "A Chord-guided sweep takes a closed profile section.")
+        }
+        guard let allowance = values.approximationTolerance, allowance > 0 else {
+            throw failure(.invalidInput, "A Chord-guided sweep needs a positional approximation allowance.")
+        }
+        guard values.twistAngle == 0, sweep.options.twistLaw == nil, values.endScale == 1 else {
+            throw failure(.unsupportedCapability, "A Chord-guided sweep takes no twist or scale of its own.")
+        }
+        guard let start = frames.first?.origin, let end = frames.last?.origin else {
+            throw failure(.invalidInput, "A Chord-guided sweep has no path.")
+        }
+        let transform = try exactPointGuideTransform(section: section, pathStart: start, pathEnd: end, guide: guide,
+            distanceFraction: values.distanceFraction, featureID: feature.id, tolerance: tolerance)
+        // T as a complex number: the similarity's rotation-scale.
+        let (re, im) = (transform.m11 - 1, transform.m21)
+        let reach2 = re * re + im * im
+        let nearest = reach2 > 0 ? min(1, max(0, -re / reach2)) : 0
+        let least = hypot(1 + nearest * re, nearest * im)
+        guard least > tolerance.relative else {
+            throw failure(.sweepGuideTransformCollapse, "A Chord guide passes through the path's axis.")
+        }
+        let axis = try (end - start).normalized(tolerance: tolerance.distance)
+        let radius = profile.boundaryLoops.flatMap(\.vertices).reduce(0.0) { result, point in
+            let offset = point - start
+            return max(result, (offset - axis * offset.dot(axis)).length)
+        } * 1.01
+        let curvature = 2 * reach2 / (least * least * least)
+        let nodeCount = max(1, Int((radius * curvature / (4 * allowance)).squareRoot().rounded(.up)))
+        guard nodeCount <= 4096 else {
+            throw failure(.resourceLimitExceeded, "A Chord guide turns too sharply for its allowance.")
+        }
+        var positions: [Double] = []
+        var angles: [Double] = []
+        for k in 0...nodeCount {
+            let t = Double(k) / Double(nodeCount)
+            var angle: Double = atan2(t * im, 1 + t * re)
+            if let last = angles.last {
+                let turns: Double = ((last - angle) / (2 * Double.pi)).rounded()
+                angle += turns * 2 * Double.pi
+            }
+            positions.append(t)
+            angles.append(angle)
+        }
+        var turned = values
+        turned.approximationTolerance = allowance / 2
+        turned.twistPositions = positions
+        turned.twistAngles = angles
+        turned.twistAngle = angles[angles.count - 1]
+        var unguided = sweep
+        unguided.guides = []
+        unguided.options.guideMethod = .point
+        let plan = try CertifiedTwistSweepPlan(profile: profile, pathSegments: pathSegments, sweep: unguided,
+                                               values: turned, tolerance: tolerance)
+        let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
+            .buildCertifiedTwist(plan, resultKind: sweep.options.resultKind)
+        return try applyBooleanIfNeeded(sweep, featureID: feature.id, toolResult: tool, context: context)
     }
 
     /// The swept body with its flat faces made trimmed planes when the sweep simplifies.

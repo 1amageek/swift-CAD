@@ -219,7 +219,7 @@ public struct SweepEvaluationCapabilities: Sendable {
 
     public static let currentOptionMatrix = OptionMatrix(
         alignments: [.parallel, .normal],
-        guideMethods: [.point],
+        guideMethods: [.point, .chord],
         booleanOperations: [.newBody, .union, .difference, .intersect, .slice],
         resultKinds: [.solid, .sheet],
         unsupportedOptionCodes: [
@@ -263,6 +263,11 @@ public struct SweepEvaluationCapabilities: Sendable {
         }
         if geometry.certifiedCurvedPathAvailable {
             return .supported(try supportedPlan(kind: .certifiedCurvedPathNormal, options: options))
+        }
+        // A Chord guide along a straight path is carried by the certified twist.
+        if options.guideMethod == .chord, geometry.sectionState == .guided, geometry.guideConstraintCount == 1,
+           case .straight = geometry.pathShape, options.approximationTolerance != nil {
+            return .supported(try supportedPlan(kind: .certifiedStraightTwist, options: options))
         }
         if CertifiedTwistSweepPlan.requested(options) {
             guard geometry.certifiedTwistAvailable else {
