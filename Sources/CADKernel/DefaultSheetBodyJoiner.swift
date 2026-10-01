@@ -7,7 +7,8 @@ import CADTopology
 /// Sews sheet bodies along their exactly matching edges (`SheetBodyJoining`).
 ///
 /// Each source's exact faces become sewing patches under a prefix of its own, so identities from
-/// different sources never collide. Boundary edges pair wherever they coincide within the
+/// different sources never collide. An edge another sheet's edge ends inside is split there
+/// (`BRepSewingTJunctionSplitter`), and boundary edges pair wherever they coincide within the
 /// tolerance (`BRepSewingEdgeFan`); a pair traversed the same way by both faces means the faces
 /// disagree about which side is front, so the second is reoriented, spreading from the first
 /// source's first face. An edge met by more than two faces, a set of sheets that falls apart into
@@ -49,6 +50,8 @@ struct DefaultSheetBodyJoiner: SheetBodyJoining {
                 prefixed($0, "sheet:\(index)")
             }
         }
+        // Edges sharing only part of their length meet end to end once split at each other's ends.
+        patches = try BRepSewingTJunctionSplitter(tolerance: tolerance).split(patches)
         let groups = try BRepSewingEdgeFan(tolerance: tolerance).groups(of: patches)
         guard groups.allSatisfy({ $0.count <= 2 }) else {
             throw error(.nonManifoldResult, featureID, tolerance, "More than two sheet faces meet at one edge.")

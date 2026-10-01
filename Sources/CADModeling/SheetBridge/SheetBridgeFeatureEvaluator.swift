@@ -98,18 +98,6 @@ public struct SheetBridgeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         guard let cutter, let joiner else {
             throw failure(.unsupportedCapability, "This evaluator cannot trim a Bridge Surface's walls.")
         }
-        // A trimmed wall meets the bridge along its whole contact line only where it covers the
-        // bridge's stretch exactly.
-        for (sheet, _) in trimmed {
-            guard abs(sheet.stretch.low - t0) <= tolerance.distance, abs(sheet.stretch.high - t1) <= tolerance.distance else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): a trimmed wall longer than the bridge meets it
-                // along part of its cut edge, which joining by whole edges does not sew, so it is
-                // refused. Production path: SheetBridgeFeatureEvaluator for trimmed walls.
-                // Complete only when the cut edge is split at the bridge's ends, verified by a
-                // trimmed bridge between sheets of different lengths.
-                throw failure(.unsupportedCapability, "A trimmed wall covers exactly the bridge's stretch along where the sheets meet.")
-            }
-        }
         // Stages: each trimmed wall cut at its contact line keeping the side away from L, then the
         // bridge beside them; all joined into the feature's one sheet.
         var stages = FeatureEvaluationStages(context)

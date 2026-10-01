@@ -117,7 +117,9 @@ components of one solid body, each shell untouched. `.sewnSheet` and `.sewnSolid
 sew sheets along the boundary edges that coincide within the modeling tolerance
 (`SheetBodyJoining`, implemented by `DefaultSheetBodyJoiner` in CADKernel, which
 owns the face patch extractor and the sewer): each source's faces become patches
-under a prefix of their own, edge uses pair through `BRepSewingEdgeFan`, and a pair
+under a prefix of their own, an edge another source's edge ends inside is split there
+(`BRepSewingTJunctionSplitter`, keeping its curve, provenance and trimmed pcurve) so edges
+sharing part of their length pair along it, edge uses pair through `BRepSewingEdgeFan`, and a pair
 traversed the same way by both faces turns the later face over, spreading from the
 first source's first face. An edge met by more than two faces (`nonManifoldResult`),
 sheets that do not all meet, and faces that cannot agree on one front side are
@@ -247,11 +249,13 @@ for `SheetBridgeWallReach` (CADKernel), which resolves Bridge Surface's Short an
 first or second sheet: the one reaching less or more far from L, so the feature records the wall
 it consumes. Trim walls cut both sheets or the named one at its contact line through
 `BodyHalfSpaceCutting` stages, keeping the side away from L, and join them with the bridge
-(`SheetBodyJoining`) into the feature's one sheet, the trimmed sources consumed; a trimmed wall must
-cover exactly the bridge's stretch. Curved or many-faced sheets, parallel planes and longer trimmed
-walls are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). `SheetBridgeTests` own the G2 bridge's
-normals and vanishing curvature at both contacts, the flat chamfer, the round trip, both walls
-trimmed and joined into one three-face sheet, and the short wall resolved and trimmed alone.
+(`SheetBodyJoining`) into the feature's one sheet, the trimmed sources consumed; a trimmed wall
+longer than the bridge meets it along part of its cut edge, which the joiner splits at the bridge's
+ends (`BRepSewingTJunctionSplitter`). Curved or many-faced sheets and parallel planes are refused
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`). `SheetBridgeTests` own the G2 bridge's normals and vanishing
+curvature at both contacts, the flat chamfer, the round trip, both walls trimmed and joined into
+one three-face sheet, the short wall resolved and trimmed alone, and a trimmed wall longer than the
+bridge joined along its share.
 
 ### Curve patch
 

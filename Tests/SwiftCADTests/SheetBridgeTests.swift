@@ -17,7 +17,7 @@ struct SheetBridgeTests {
 
     /// A floor sheet on z = 0 over x ∈ [0, 40], y ∈ [10, 40] mm and a wall sheet on y = 0 over
     /// x ∈ [0, 40], z ∈ [10, 40] mm (sketch x is world z and sketch y world x on the ZX plane).
-    private func sheets(in builder: inout DocumentBuilder, wallTop: Double = 0.04) throws -> (FeatureID, FeatureID) {
+    private func sheets(in builder: inout DocumentBuilder, wallTop: Double = 0.04, wallLength: Double = 0.04) throws -> (FeatureID, FeatureID) {
         func square(on plane: SketchPlane, _ corners: [(Double, Double)]) throws -> FeatureID {
             let lines = try corners.indices.map { index in
                 try builder.sketch(on: plane) { sketch in
@@ -28,7 +28,7 @@ struct SheetBridgeTests {
             return try builder.patch(curves: lines.map { CurveSectionReference(featureID: $0) })
         }
         let floor = try square(on: .xy, [(0, 0.01), (0.04, 0.01), (0.04, 0.04), (0, 0.04)])
-        let wall = try square(on: .zx, [(0.01, 0), (0.01, 0.04), (wallTop, 0.04), (wallTop, 0)])
+        let wall = try square(on: .zx, [(0.01, 0), (0.01, wallLength), (wallTop, wallLength), (wallTop, 0)])
         return (floor, wall)
     }
 
@@ -140,5 +140,36 @@ struct SheetBridgeTests {
             return id
         }.first)
         #expect(evaluated.brep.bodies[floorBody] != nil)
+    }
+
+    @Test(.timeLimit(.minutes(3)))
+    func aTrimmedWallLongerThanTheBridgeJoinsAlongItsShare() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // The wall covers x from 0 to 30 mm, so the bridge does; the trimmed floor runs to 40 mm.
+        let (floor, wall) = try sheets(in: &builder, wallLength: 0.03)
+        let bridge = try builder.bridgeSurface(SheetBridgeFeature(first: floor, second: wall, width: length(0.02),
+                                                                  shape: .chamfer, trimWalls: .first))
+        let evaluated = try evaluate(builder)
+        let faces = evaluated.subshapes.entries.compactMap { key, value -> FaceID? in
+            guard key.featureID == bridge, case let .face(id) = value else { return nil }
+            return id
+        }
+        #expect(faces.count == 2)
+        // The joined sheet and the untrimmed wall.
+        #expect(evaluated.brep.bodies.count == 2)
+        // The floor beyond y = 20 mm keeps its 40 mm, its cut edge split where the 30 mm strip ends:
+        // five floor edges and three more of the strip.
+        let bodyID = try #require(evaluated.subshapes.entries.compactMap { key, value -> BodyID? in
+            guard key.featureID == bridge, case let .body(id) = value else { return nil }
+            return id
+        }.first)
+        let scope = try BodyTopologyScope(bodyID: bodyID, model: evaluated.brep)
+        let points = scope.references.compactMap { reference -> Point3D? in
+            if case let .vertex(id) = reference { return evaluated.brep.vertices[id]?.point }
+            return nil
+        }
+        #expect(scope.references.filter { if case .edge = $0 { return true } else { return false } }.count == 8)
+        #expect(points.contains { abs($0.x - 0.04) < 1e-12 && abs($0.y - 0.02) < 1e-12 && abs($0.z) < 1e-12 })
+        #expect(points.contains { abs($0.x - 0.03) < 1e-12 && abs($0.y - 0.02) < 1e-12 && abs($0.z) < 1e-12 })
     }
 }

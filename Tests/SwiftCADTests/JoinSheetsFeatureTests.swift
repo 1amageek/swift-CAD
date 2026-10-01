@@ -88,6 +88,21 @@ struct JoinSheetsFeatureTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func aSheetMeetingPartOfAnotherSheetsEdgeJoinsAlongThatPart() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // The wall stands on the first half of the floor's front edge.
+        let floor = try quad(&builder, corner(0, 0, 0), corner(2, 0, 0), corner(2, 1, 0), corner(0, 1, 0))
+        let wall = try quad(&builder, corner(0, 0, 0), corner(0, 0, 1), corner(1, 0, 1), corner(1, 0, 0))
+        let joined = try builder.joinBodies([floor, wall], mode: .sewnSheet)
+        let evaluated = try evaluate(builder)
+        let sheet = try body(of: joined, in: evaluated)
+        #expect(sheet.kind == .sheet && sheet.shellIDs.count == 1)
+        #expect(evaluated.brep.faces.count == 2)
+        // The floor's front edge split where the wall ends: five floor edges, three more of the wall.
+        #expect(evaluated.brep.edges.count == 8)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func sheetsThatDoNotMeetAreRefused() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let first = try quad(&builder, corner(0, 0, 0), corner(1, 0, 0), corner(1, 1, 0), corner(0, 1, 0))
