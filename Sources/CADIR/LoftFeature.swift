@@ -4,37 +4,44 @@ public struct LoftFeature: Codable, Hashable, Sendable {
     public var sections: [LoftSectionReference]
     public var guides: [LoftGuideReference]
     public var options: LoftOptions
+    /// A vertex the loft ends at after its one section (Loft from a vertex).
+    public var apex: LoftApex?
 
     public init(
         sections: [LoftSectionReference],
         guides: [LoftGuideReference] = [],
-        options: LoftOptions = LoftOptions()
+        options: LoftOptions = LoftOptions(),
+        apex: LoftApex? = nil
     ) {
         self.sections = sections
         self.guides = guides
         self.options = options
+        self.apex = apex
     }
 
     private enum CodingKeys: String, CodingKey {
         case sections
         case guides
         case options
+        case apex
     }
 
-    /// The features the loft consumes, each once: its sections' sources, continuity bodies and
-    /// guides.
+    /// The features the loft consumes, each once: its sections' sources, continuity bodies,
+    /// guides and the apex's body.
     public var inputs: [FeatureInput] {
         var seen = Set<FeatureInput>()
-        return (sections.flatMap(\.inputs) + guides.map { FeatureInput(featureID: $0.featureID, role: .guide) })
+        return (sections.flatMap(\.inputs) + guides.map { FeatureInput(featureID: $0.featureID, role: .guide) }
+                + (apex.map { [FeatureInput(featureID: $0.source, role: $0.bodyRole)] } ?? []))
             .filter { seen.insert($0).inserted }
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.sections, .guides, .options], in: decoder)
+        try container.validateOnlyExpectedKeys([.sections, .guides, .options, .apex], in: decoder)
         sections = try container.decode([LoftSectionReference].self, forKey: .sections)
         guides = try container.decode([LoftGuideReference].self, forKey: .guides)
         options = try container.decode(LoftOptions.self, forKey: .options)
+        apex = try container.decodeIfPresent(LoftApex.self, forKey: .apex)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -42,9 +49,22 @@ public struct LoftFeature: Codable, Hashable, Sendable {
         try container.encode(sections, forKey: .sections)
         try container.encode(guides, forKey: .guides)
         try container.encode(options, forKey: .options)
+        try container.encodeIfPresent(apex, forKey: .apex)
     }
 
     public func validate() throws {
+        if let apex {
+            try apex.vertex.validate()
+            guard sections.count == 1, guides.isEmpty, sections[0].continuity == nil, options.closesSectionLoop == false else {
+                throw FeatureEvaluationError.invalidGraph("A Loft to a vertex takes one section, no guides and no continuity.")
+            }
+            try sections[0].validate()
+            guard options.resultKind == .sheet || sections[0].section.isClosedRegion else {
+                throw FeatureEvaluationError.invalidGraph("Curve Loft sections require Sheet output.")
+            }
+            try options.validate()
+            return
+        }
         guard sections.count >= 2 else {
             throw FeatureEvaluationError.invalidGraph("Loft features require at least two profile sections.")
         }
@@ -310,4 +330,17 @@ public enum LoftSectionMatching: String, Codable, Hashable, Sendable {
 public enum LoftSurfaceMode: String, Codable, Hashable, Sendable {
     case ruled
     case smooth
+}
+
+/// The vertex of a body (or sheet) a Loft ends at.
+public struct LoftApex: Codable, Hashable, Sendable {
+    public var source: FeatureID
+    public var bodyRole: FeaturePort
+    public var vertex: StableSubshapeReference
+
+    public init(source: FeatureID, bodyRole: FeaturePort = .body, vertex: StableSubshapeReference) {
+        self.source = source
+        self.bodyRole = bodyRole
+        self.vertex = vertex
+    }
 }

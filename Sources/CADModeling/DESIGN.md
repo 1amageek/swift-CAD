@@ -412,6 +412,18 @@ through its guide and the refusal of a guide leaving out of the face's plane, th
 from a cylinder's side certified within their allowances, and the refusals of a curved face
 without its allowances.
 
+### Loft to a vertex
+
+`LoftFeature.apex` (a vertex of a body, its source an input) ends a Loft of one section at a point:
+`ApexLoftBuilder` rules each span of the section's one loop to the apex. A straight span's face is
+the exact plane of its triangle; a curved span's is the ruled surface between the span and the apex
+with its row at the apex collapsed (a pole its three edges meet at, as a cone's faces do). The
+section's plane (its normal turned toward the apex) orients the faces outward by the loop's winding,
+and a closed section caps the solid with its planar region; an open straight section and the apex
+make one flat fan. Guides, continuity, holes and non-planar sections are refused (the last with
+`FIXME(INCOMPLETE_IMPLEMENTATION)`). `ApexLoftTests` own the square's pyramid (five planes, a third of
+base times height, the round trip), the circle's cone (its volume) and the line's fan sheet.
+
 ### Loft section topology
 
 A planar face of a body is a closed Loft section: `FaceSectionProfileResolver` reads it as the

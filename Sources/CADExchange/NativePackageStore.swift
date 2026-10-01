@@ -2321,7 +2321,7 @@ private func validateSweepOptionsObject(_ object: [String: Any], path: String) t
 private func validateLoftFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["sections", "guides", "options"],
+        supportedKeys: ["sections", "guides", "options", "apex"],
         objectName: path
     )
     try validateArrayField("sections", in: object, path: "\(path).sections", using: validateLoftSectionReferenceObject)

@@ -144,6 +144,11 @@ extension FeatureOperation {
                 return result
             }
             feature.guides = try feature.guides.map { LoftGuideReference(featureID: try transform($0.featureID)) }
+            if var apex = feature.apex {
+                apex.source = try transform(apex.source)
+                apex.vertex = try subshape(apex.vertex)
+                feature.apex = apex
+            }
             return .loft(feature)
         case .boolean(var feature):
             feature.targets = try feature.targets.map {

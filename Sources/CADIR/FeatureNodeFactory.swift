@@ -229,6 +229,9 @@ public enum FeatureNodeFactory {
                 for guide in loft.guides {
                     try validateCurveSource(guide.featureID, owner: "Loft guide", in: document)
                 }
+                if let apex = loft.apex {
+                    try validateSource(apex.source, role: apex.bodyRole, in: document)
+                }
                 return FeatureNode(
                     id: id,
                     name: name,

@@ -88,7 +88,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             booleanApplicator: ExactSweepBooleanApplicator()
         )
         self.involuteGearEvaluator = InvoluteGearFeatureEvaluator(sweep: sweepEvaluator, resolver: resolver)
-        self.loftEvaluator = LoftFeatureEvaluator()
+        self.loftEvaluator = LoftFeatureEvaluator(sewer: sewer)
         self.booleanEvaluator = BooleanFeatureEvaluator(
             applicator: ExactBooleanOperationApplicator(),
             toolRelocator: DefaultExactBodyPatternRebuilder(

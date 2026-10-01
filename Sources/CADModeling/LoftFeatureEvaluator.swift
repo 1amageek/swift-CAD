@@ -4,7 +4,16 @@ import CADIR
 import CADTopology
 
 public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
-    public init() {}
+    /// Sews a Loft to a vertex (`ApexLoftBuilder`); without one such a Loft is refused.
+    private let sewer: (any BRepSewing)?
+
+    public init() {
+        self.sewer = nil
+    }
+
+    package init(sewer: any BRepSewing) {
+        self.sewer = sewer
+    }
 
     public func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
         try evaluateValidated(feature: feature, context: context).result
@@ -29,6 +38,48 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         )
     }
 
+    /// A Loft from its one section to a vertex of a body, the section's one loop ruled to it.
+    private func apexLoft(_ loft: LoftFeature, apex: LoftApex, featureID: FeatureID, context: EvaluationContext) throws -> EvaluationResult {
+        let tolerance = context.tolerance
+        guard let sewer else {
+            throw KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                              message: "This evaluator cannot sew a Loft to a vertex.")
+        }
+        let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: tolerance)
+        let section = loft.sections[0]
+        let loop: (spans: [ExactBSplineCurveSpan], closed: Bool)
+        switch section.section {
+        case .face(let reference):
+            let loops = try spanBuilder.profileLoopSpans(from: try FaceSectionProfileResolver().profile(for: reference, context: context, featureID: featureID))
+            guard loops.count == 1 else {
+                throw KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                                  message: "A Loft to a vertex takes a section without holes.")
+            }
+            loop = (loops[0], true)
+        case .profile(let reference):
+            let loops = try spanBuilder.profileLoopSpans(from: try ResolvedModelingSection.resolveProfile(reference, from: context.profiles[reference.featureID]))
+            guard loops.count == 1 else {
+                throw KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                                  message: "A Loft to a vertex takes a section without holes.")
+            }
+            loop = (loops[0], true)
+        case .curve(let reference):
+            let curve = try ResolvedModelingSection.resolveCurve(reference, from: context.curves[reference.featureID], tolerance: tolerance)
+            loop = (try spanBuilder.sectionSpans(from: curve), curve.isClosed)
+        }
+        guard case let .vertex(vertexID) = try StableSubshapeResolver().topologyReference(
+                for: apex.vertex, model: context.brep, subshapes: context.subshapes, lineage: context.lineage, tolerance: tolerance),
+              let point = context.brep.vertices[vertexID]?.point else {
+            throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
+                              message: "A Loft's apex is a vertex.")
+        }
+        let request = try ApexLoftBuilder(tolerance: tolerance).request(spans: loop.spans, isClosed: loop.closed, apex: point,
+                                                                       resultKind: loft.options.resultKind, featureID: featureID)
+        let sewn = try sewer.sew(request, tolerance: tolerance)
+        return EvaluationResult(brep: try BRepModelCombiner().combined([context.brep, sewn.brep]),
+                                subshapes: sewn.subshapes, lineage: sewn.lineage)
+    }
+
     private func evaluateUnvalidated(
         feature: FeatureNode,
         context: EvaluationContext
@@ -44,6 +95,9 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             )
         }
         try loft.validate()
+        if let apex = loft.apex {
+            return try apexLoft(loft, apex: apex, featureID: feature.id, context: context)
+        }
         if loft.sections.contains(where: { !$0.section.isClosedRegion }) {
             let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: context.tolerance)
             var seamPoints: [Point3D?] = []

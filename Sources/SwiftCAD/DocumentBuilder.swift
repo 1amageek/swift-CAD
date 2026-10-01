@@ -1641,9 +1641,10 @@ public struct DocumentBuilder {
         sections: [LoftSectionReference],
         guides: [LoftGuideReference] = [],
         options: LoftOptions = LoftOptions(),
+        apex: LoftApex? = nil,
         named name: String? = nil
     ) throws -> FeatureID {
-        let loft = LoftFeature(sections: sections, guides: guides, options: options)
+        let loft = LoftFeature(sections: sections, guides: guides, options: options, apex: apex)
         try loft.validate()
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .loft(loft))
