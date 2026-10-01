@@ -78,6 +78,11 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                                                     section: .round(radius), context: context) {
                 return result
             }
+            // Concave edges meeting others: rounded first, the cap chains they leave after.
+            if let result = try concaveEdgesThenChains(feature: feature, bodyID: bodyID, selected: fillet.edges,
+                                                       radius: radius, context: context) {
+                return result
+            }
         }
         if fillet.allEdges == false, fillet.shape != .round || fillet.edges.count > 1 || targetKind == .sheet {
             let section = fillet.shape == .round
@@ -909,6 +914,122 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             bodyID = sewn.bodyID
         }
         return nil
+    }
+
+    /// Concave straight edges rounded first, each the exact cylinder between its faces, then the
+    /// other selected edges they reach — which their rounds leave as tangent chains of a cap, a
+    /// concave arc between lines (an L block's inside corner and the top edges meeting it) — rounded
+    /// along those chains: the rolling ball's blend around the concave corner, a torus. Nil when the
+    /// selection holds no concave edge meeting another; refused when the others are not then such
+    /// chains.
+    package func concaveEdgesThenChains(feature: FeatureNode, bodyID initialBodyID: BodyID, selected: [StableSubshapeReference],
+                                        radius: Double, context: EvaluationContext) throws -> EvaluationResult? {
+        let tolerance = context.tolerance
+        let builder = ParallelEdgeRoundBuilder(tolerance: tolerance)
+        let model = context.brep
+        let selections = try selected.map { try scopedEdgeSelection($0, bodyID: initialBodyID, featureID: feature.id, context: context) }
+        /// An edge's curve and ends.
+        func geometry(_ edgeID: EdgeID, in brep: BRepModel) throws -> (curve: Curve3D, start: Point3D, end: Point3D) {
+            guard let edge = brep.edges[edgeID], let curve = brep.geometry.curves[edge.curveID],
+                  let a = brep.vertices[edge.startVertexID]?.point, let b = brep.vertices[edge.endVertexID]?.point else {
+                throw failure(.missingReference, featureID: feature.id, tolerance: tolerance, "A blended edge has no ends.")
+            }
+            return (curve, a, b)
+        }
+        var concave: [Int] = []
+        for (index, selection) in selections.enumerated()
+        where try builder.admits(selection.edgeID, bodyID: initialBodyID, model: model, betweenPlanes: true)
+            && builder.isConcave(selection.edgeID, bodyID: initialBodyID, model: model) {
+            concave.append(index)
+        }
+        let others = selections.indices.filter { concave.contains($0) == false }
+        guard concave.isEmpty == false, others.isEmpty == false else { return nil }
+        let originals = try selections.map { try geometry($0.edgeID, in: model) }
+        func meet(_ i: Int, _ j: Int) -> Bool {
+            [originals[i].start, originals[i].end].contains { p in
+                [originals[j].start, originals[j].end].contains { $0.isApproximatelyEqual(to: p, tolerance: tolerance.distance) }
+            }
+        }
+        // Concave edges apart from each other, each meeting another selected edge.
+        guard concave.allSatisfy({ i in concave.allSatisfy { j in i == j || meet(i, j) == false } }),
+              concave.allSatisfy({ i in others.contains { meet(i, $0) } }) else { return nil }
+        var bodyID = initialBodyID
+        var stages = FeatureEvaluationStages(context)
+        /// The staged body's edges.
+        func edgeIDs(_ staged: EvaluationContext) throws -> [EdgeID] {
+            try BodyTopologyScope(bodyID: bodyID, model: staged.brep).references.compactMap { reference -> EdgeID? in
+                if case let .edge(id) = reference { return id }
+                return nil
+            }
+        }
+        for (ordinal, index) in concave.enumerated() {
+            let staged = stages.context
+            let (_, a, b) = originals[index]
+            guard let edgeID = try edgeIDs(staged).first(where: { id in
+                let (_, start, end) = try geometry(id, in: staged.brep)
+                return (start.isApproximatelyEqual(to: a, tolerance: tolerance.distance) && end.isApproximatelyEqual(to: b, tolerance: tolerance.distance))
+                    || (start.isApproximatelyEqual(to: b, tolerance: tolerance.distance) && end.isApproximatelyEqual(to: a, tolerance: tolerance.distance))
+            }) else {
+                throw failure(.missingReference, featureID: feature.id, tolerance: tolerance, "A concave edge is no longer on the body.")
+            }
+            let scope = try BodyTopologyScope(bodyID: bodyID, model: staged.brep)
+            let request = try builder.request(featureID: featureEvaluationStageID(featureID: feature.id, domain: .edgeBlend, ordinal: UInt64(ordinal)),
+                                              bodyID: bodyID, edgeID: edgeID, subshapeID: selected[index].subshapeID,
+                                              section: .round(radius), context: staged)
+            let sewn = try sewer.sew(request, tolerance: tolerance)
+            let next = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: staged.brep)
+            stages.apply(EvaluationResult(brep: next, subshapes: sewn.subshapes, removedSubshapeIDs: scope.subshapeIDs(in: staged.subshapes),
+                                          lineage: sewn.lineage))
+            bodyID = sewn.bodyID
+        }
+        // Each other edge as the concave rounds left it: the staged edge along it, shortened where
+        // a round met its end.
+        let staged = stages.context
+        let remaining = try others.map { index -> (EdgeID, SubshapeID) in
+            let original = originals[index]
+            func onOriginal(_ point: Point3D) throws -> Bool {
+                switch original.curve {
+                case let .line(line):
+                    let offset = point - original.start
+                    let along = offset.dot(line.direction)
+                    let length = (original.end - original.start).length
+                    return (offset - line.direction * along).length <= tolerance.distance
+                        && along >= -tolerance.distance && along <= length + tolerance.distance
+                default:
+                    return point.isApproximatelyEqual(to: original.start, tolerance: tolerance.distance)
+                        || point.isApproximatelyEqual(to: original.end, tolerance: tolerance.distance)
+                }
+            }
+            guard let edgeID = try edgeIDs(staged).first(where: { id in
+                let (curve, start, end) = try geometry(id, in: staged.brep)
+                guard start.isApproximatelyEqual(to: end, tolerance: tolerance.distance) == false else { return false }
+                switch (original.curve, curve) {
+                case (.line, .line), (.circle, .circle): return try onOriginal(start) && onOriginal(end)
+                default: return false
+                }
+            }) else {
+                throw failure(.unsupportedCapability, featureID: feature.id, tolerance: tolerance,
+                              "An edge meeting a concave round lies within it.")
+            }
+            return (edgeID, selected[index].subshapeID)
+        }
+        let capLoops = CapLoopBlendBuilder(tolerance: tolerance)
+        guard try capLoops.admits(remaining.map(\.0), model: staged.brep) else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): edges meeting a concave edge that its round does not
+            // leave as a cap's tangent chain ending on square planes (convex edges meeting each
+            // other there, walls rising from the cap) need the rolling ball's corner, which is not
+            // built, so they are refused. Production path: Fillet through concaveEdgesThenChains.
+            // Complete only when such corners blend, verified by an L block's every edge rounded.
+            throw failure(.unsupportedCapability, featureID: feature.id, tolerance: tolerance,
+                          "The edges meeting a concave edge round along a cap's tangent chain its round leaves.")
+        }
+        let scope = try BodyTopologyScope(bodyID: bodyID, model: staged.brep)
+        let request = try capLoops.request(featureID: feature.id, bodyID: bodyID, selected: remaining, section: .round(radius), context: staged)
+        let sewn = try sewer.sew(request, tolerance: tolerance)
+        let next = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: staged.brep)
+        try next.validate(level: .volumetric, tolerance: tolerance)
+        return try stages.publish(EvaluationResult(brep: next, subshapes: sewn.subshapes, removedSubshapeIDs: scope.subshapeIDs(in: staged.subshapes),
+                                                   lineage: sewn.lineage), featureID: feature.id)
     }
 
     /// A chamfer of edges between planes by the profile blend: the straight section between its

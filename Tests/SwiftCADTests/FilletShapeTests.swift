@@ -611,6 +611,47 @@ struct FilletShapeTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func anLBlocksInsideCornerRoundsWithTheTopEdgesMeetingIt() throws {
+        // An L of 20 mm arms 10 mm wide, extruded 10 mm; its inside upright edge at (10, 10) mm and
+        // the two top edges meeting it rounded together: the inside round first, then the top's run
+        // around it, a torus about the inside round's axis, ending square on the arms' ends.
+        let (h, r) = (0.01, 0.002)
+        func p(_ x: Double, _ y: Double) -> SketchPoint { SketchPoint(x: length(x), y: length(y)) }
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let corners = [(0.0, 0.0), (0.02, 0.0), (0.02, 0.01), (0.01, 0.01), (0.01, 0.02), (0.0, 0.02)]
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            for (start, end) in zip(corners, corners.dropFirst() + corners.prefix(1)) {
+                _ = sketch.line(from: p(start.0, start.1), to: p(end.0, end.1))
+            }
+        }.featureID
+        let block = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(h))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "l"))
+        let inside = try edges(of: block, in: before, builder) { abs($0.x - 0.01) < 1e-12 && abs($0.y - 0.01) < 1e-12 }
+        let alongX = try edges(of: block, in: before, builder) { abs($0.y - 0.01) < 1e-12 && $0.x > 0.01 - 1e-12 && abs($0.z - h) < 1e-12 }
+        let alongY = try edges(of: block, in: before, builder) { abs($0.x - 0.01) < 1e-12 && $0.y > 0.01 - 1e-12 && abs($0.z - h) < 1e-12 }
+        #expect(inside.count == 1 && alongX.count == 1 && alongY.count == 1)
+        // With every top edge, the outer corners meet blended edges at convex corners: refused.
+        var everyTop = builder
+        let top = try edges(of: block, in: before, everyTop) { abs($0.z - h) < 1e-12 }
+        #expect(top.count == 6)
+        _ = try everyTop.fillet(target: block, edges: inside + top, radius: length(r))
+        #expect(throws: KernelError.self) {
+            _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try everyTop.build(name: "l"))
+        }
+        _ = try builder.fillet(target: block, edges: inside + alongX + alongY, radius: length(r))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "l"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        // The inside round adds its corner's section over the height; the top's round removes it
+        // along the two shortened arms and, by Pappus, around the quarter turn at its centroid's
+        // radius from the inside round's axis (the arc's r plus the centroid's inset).
+        let section = r * r * (1 - Double.pi / 4)
+        let inset = r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+        let expected = 0.0003 * h + section * h - section * (2 * (0.01 - r) + Double.pi / 2 * (r + inset))
+        let volume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func aTabsConcaveRootBetweenItsEdgeAndItsArcFills() throws {
         // A 20 mm square with a half disc of radius 5 mm standing on its top edge, extruded 10 mm;
         // the upright edge at (15, 20) mm joins the top edge and the disc's arc in a concave corner.
@@ -702,7 +743,7 @@ struct FilletShapeTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
-    func aConcaveEdgeMeetingAConvexOneIsRefused() throws {
+    func aConcaveEdgeMeetingAConvexOneRoundsItsTangentRun() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let outline: [(Double, Double)] = [(0, 0), (0.04, 0), (0.04, 0.01), (0.01, 0.01), (0.01, 0.04), (0, 0.04)]
         let sketch = try builder.sketch(on: .xy) { sketch in
@@ -723,9 +764,16 @@ struct FilletShapeTests {
         }.map { try builder.stableSubshape($0.key) }
         #expect(edges.count == 2)
         _ = try builder.fillet(target: block, edges: edges, radius: length(0.002))
-        #expect(throws: KernelError.self) {
-            _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "l"))
-        }
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "l"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        // The inside round leaves the top edge tangent to the inside arc and the edge along Y: the
+        // round takes that whole run, both arms' 30 mm less r and the quarter turn by Pappus.
+        let r = 0.002
+        let section = r * r * (1 - Double.pi / 4)
+        let inset = r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+        let expected = 0.0007 * 0.02 + section * 0.02 - section * (2 * (0.03 - r) + Double.pi / 2 * (r + inset))
+        let volume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
     }
 
     @Test(.timeLimit(.minutes(2)))

@@ -32,19 +32,67 @@ package struct ParallelEdgeRoundBuilder {
     }
 
     /// Whether `edgeID` is a straight edge between two faces running along it at least one of
-    /// which is a cylinder — the edges this builder takes beyond the plane–plane blends.
-    package func admits(_ edgeID: EdgeID, bodyID: BodyID, model: BRepModel) throws -> Bool {
+    /// which is a cylinder — the edges this builder takes beyond the plane–plane blends — or, with
+    /// `betweenPlanes`, two planes as well (an edge staged before the cap chains it reaches).
+    package func admits(_ edgeID: EdgeID, bodyID: BodyID, model: BRepModel, betweenPlanes: Bool = false) throws -> Bool {
         guard let edge = model.edges[edgeID], case .line? = model.geometry.curves[edge.curveID],
               let shell = model.bodies[bodyID]?.shellIDs.first.flatMap({ model.shells[$0] }) else { return false }
         let faces = try shell.faceIDs.filter { try uses(edgeID, face: $0, model: model) }
         guard faces.count == 2 else { return false }
-        return faces.contains { faceID in
-            guard let face = model.faces[faceID] else { return false }
+        let kinds = faces.map { faceID -> Int in
+            guard let face = model.faces[faceID] else { return 0 }
             switch model.geometry.surfaces[face.surfaceID] {
-            case .cylinder?, .analytic(.cylinder)?: return true
-            default: return false
+            case .cylinder?, .analytic(.cylinder)?: return 2
+            case .plane?: return 1
+            default: return 0
             }
         }
+        return kinds.contains(2) || (betweenPlanes && kinds.allSatisfy { $0 == 1 })
+    }
+
+    /// Whether the material lies outside the corner at `edgeID` between its two faces: a concave
+    /// edge, whose round adds material.
+    package func isConcave(_ edgeID: EdgeID, bodyID: BodyID, model: BRepModel) throws -> Bool {
+        guard let edge = model.edges[edgeID], let shell = model.bodies[bodyID]?.shellIDs.first.flatMap({ model.shells[$0] }),
+              let p0 = model.vertices[edge.startVertexID]?.point, let p1 = model.vertices[edge.endVertexID]?.point else {
+            throw TopologyError.missingReference("Missing edge.")
+        }
+        let d = try (p1 - p0).normalized(tolerance: tolerance.distance)
+        let besides = try shell.faceIDs.filter { try uses(edgeID, face: $0, model: model) }
+        guard besides.count == 2 else { throw TopologyError.missingReference("An edge bounds two faces.") }
+        let (a, b) = (try outward(besides[0], at: p0, model: model), try outward(besides[1], at: p0, model: model))
+        return try into(besides[1], outward: b, p0: p0, d: d, model: model).dot(a) >= 0
+    }
+
+    /// A face's unit outward normal at a point on it.
+    private func outward(_ faceID: FaceID, at point: Point3D, model: BRepModel) throws -> Vector3D {
+        guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
+            throw TopologyError.missingReference("Missing face beside an edge.")
+        }
+        let uv = try surface.parameterProjection(of: point, tolerance: tolerance)
+        let normal = try surface.normal(u: uv.u, v: uv.v, tolerance: tolerance)
+        return try (face.orientation == .forward ? normal : normal * -1).normalized(tolerance: tolerance.distance)
+    }
+
+    /// Along a face, square to the edge `d` through `p0`, the direction away from the edge toward
+    /// where the face lies (toward its vertices off the edge).
+    private func into(_ faceID: FaceID, outward: Vector3D, p0: Point3D, d: Vector3D, model: BRepModel) throws -> Vector3D {
+        let along = d.cross(outward)
+        guard let face = model.faces[faceID] else { throw TopologyError.missingReference("Missing face.") }
+        var points: [Point3D] = []
+        for loopID in face.loops {
+            for use in model.loops[loopID]?.edges ?? [] {
+                guard let other = model.edges[use.edgeID] else { continue }
+                for id in [other.startVertexID, other.endVertexID] {
+                    if let point = model.vertices[id]?.point { points.append(point) }
+                }
+            }
+        }
+        let side = points.map { offset -> Double in
+            let relative = offset - p0
+            return (relative - d * relative.dot(d)).dot(along)
+        }.max(by: { abs($0) < abs($1) }) ?? 1
+        return side >= 0 ? along : along * -1
     }
 
     package func request(featureID: FeatureID, bodyID: BodyID, edgeID: EdgeID, subshapeID: SubshapeID, section: Section,
@@ -115,23 +163,7 @@ package struct ParallelEdgeRoundBuilder {
         // Convex where the second face runs into the first's inside: along the second face away
         // from the edge, its trace heads below the first face.
         func intoFace(_ trace: Trace, outward: Vector3D, faceID: FaceID) throws -> Vector3D {
-            let along = d.cross(outward)
-            // The face lies to one side of the edge across it: toward its vertices off the edge.
-            guard let face = model.faces[faceID] else { throw TopologyError.missingReference("Missing face.") }
-            var points: [Point3D] = []
-            for loopID in face.loops {
-                for use in model.loops[loopID]?.edges ?? [] {
-                    guard let other = model.edges[use.edgeID] else { continue }
-                    for id in [other.startVertexID, other.endVertexID] {
-                        if let point = model.vertices[id]?.point { points.append(point) }
-                    }
-                }
-            }
-            let side = points.map { offset -> Double in
-                let relative = offset - p0
-                return (relative - d * relative.dot(d)).dot(along)
-            }.max(by: { abs($0) < abs($1) }) ?? 1
-            return side >= 0 ? along : along * -1
+            try into(faceID, outward: outward, p0: p0, d: d, model: model)
         }
         let intoB = try intoFace(b.trace, outward: b.outward, faceID: besides[1])
         let convex = intoB.dot(a.outward) < 0

@@ -369,8 +369,14 @@ lies on all three cylinders' axes, so each cylinder ends on a great circle of it
 own corner along its edge. With a mitre each blend is its section ruled along its edge, and a corner
 of three square rounded edges among them takes the ball's octant as its first edge's arc revolved a
 quarter turn (a rational biquadratic patch with one collapsed side). Asymmetric
-corners of curved blends, concave edges meeting others, three curved edges at a corner for
-other shapes, and four or more curved edges at one corner are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A limited fillet (`FilletFeature.limits`, Fillet Shell's limit points) runs over its stretch of one
+corners of curved blends, three curved edges at a corner for
+other shapes, and four or more curved edges at one corner are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+Concave straight edges meeting other selected edges round first (`concaveEdgesThenChains`), each the
+exact cylinder between its faces (`ParallelEdgeRoundBuilder` admitting two planes), and the others
+then round as the cap's tangent chains those rounds leave (`CapLoopBlendBuilder`): an L block's inside
+corner and the top edges meeting it take a torus about the inside round's axis, the rolling ball's
+blend; others not left as such chains (convex corners among them) are refused
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`). A limited fillet (`FilletFeature.limits`, Fillet Shell's limit points) runs over its stretch of one
 straight edge: the faces beside it are notched there (the edge sharp up to each limit, then across to
 the contact line and back), and a limit inside the edge closes the blend on the flat face between its
 section and the edge's corner; a limited chamfer (`ChamferFeature.limits`) does the same with its straight section (`evaluateLimitedChamfer`). A variable fillet (`FilletFeature.endRadius`) runs its section from the radius at the edge's
