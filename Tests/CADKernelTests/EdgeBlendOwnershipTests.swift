@@ -139,10 +139,10 @@ struct EdgeBlendOwnershipTests {
         .timeLimit(.minutes(1)),
         arguments: BlendKind.allCases
     )
-    func rejectsThreeEdgesMeetingAtCorners(kind: BlendKind) throws {
+    func rejectsThreeEdgesMeetingAtOneCorner(kind: BlendKind) throws {
         let source = try evaluatedSolid()
         let sourceFeatureID = try #require(source.document.designGraph.order.last)
-        let edges = try [0, 1, 2].map {
+        let edges = try cornerEdgeOrdinals(featureID: sourceFeatureID, in: source).map {
             try stableEdge(featureID: sourceFeatureID, ordinal: $0, in: source)
         }
         let blendFeatureID = FeatureID()
@@ -162,7 +162,7 @@ struct EdgeBlendOwnershipTests {
                     source.lineage
                 ))
             )
-            Issue.record("A blend of three edges meeting at corners needs a corner blend and must be refused.")
+            Issue.record("A blend of three edges meeting at one corner needs a vertex blend and must be refused.")
         } catch let error as KernelError {
             #expect(error.code == .unsupportedCapability)
             #expect(error.featureID == blendFeatureID)
@@ -261,4 +261,21 @@ struct EdgeBlendOwnershipTests {
             }
         }
     }
+
+    /// The ordinals of the three edges meeting at the start of edge 0's corner.
+    private func cornerEdgeOrdinals(featureID: FeatureID, in document: EvaluatedDocument) throws -> [Int] {
+        func edge(_ ordinal: Int) -> Edge? {
+            let key = SubshapeID(featureID: featureID, role: GeneratedSubshapeRole.edge.rawValue, ordinal: ordinal)
+            guard case let .edge(id)? = document.subshapes.entries[key] else { return nil }
+            return document.brep.edges[id]
+        }
+        let corner = try #require(edge(0)?.startVertexID)
+        let ordinals = (0..<12).filter { ordinal in
+            guard let edge = edge(ordinal) else { return false }
+            return edge.startVertexID == corner || edge.endVertexID == corner
+        }
+        try #require(ordinals.count == 3)
+        return ordinals
+    }
+
 }

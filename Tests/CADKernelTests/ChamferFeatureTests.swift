@@ -200,11 +200,11 @@ struct ChamferFeatureTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func rejectsThreeEdgesMeetingAtCornersWithTypedCapabilityError() throws {
+    func rejectsThreeEdgesMeetingAtOneCornerWithTypedCapabilityError() throws {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
         let source = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
-        let references = try [0, 1, 2].map { index in
+        let references = try cornerEdgeOrdinals(featureID: extrudeFeatureID, in: source).map { index in
             try source.stableSubshapeReference(for: SubshapeID(
                 featureID: extrudeFeatureID,
                 role: GeneratedSubshapeRole.edge.rawValue,
@@ -227,7 +227,7 @@ struct ChamferFeatureTests {
 
         do {
             _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
-            Issue.record("A chamfer of three edges meeting at corners needs a corner blend and must be refused.")
+            Issue.record("A chamfer of three edges meeting at one corner needs a vertex blend and must be refused.")
         } catch let error as KernelError {
             #expect(error.phase == .evaluation)
             #expect(error.code == .unsupportedCapability)
@@ -281,4 +281,21 @@ struct ChamferFeatureTests {
             tolerance: .standard
         )
     }
+
+    /// The ordinals of the three edges meeting at the start of edge 0's corner.
+    private func cornerEdgeOrdinals(featureID: FeatureID, in document: EvaluatedDocument) throws -> [Int] {
+        func edge(_ ordinal: Int) -> Edge? {
+            let key = SubshapeID(featureID: featureID, role: GeneratedSubshapeRole.edge.rawValue, ordinal: ordinal)
+            guard case let .edge(id)? = document.subshapes.entries[key] else { return nil }
+            return document.brep.edges[id]
+        }
+        let corner = try #require(edge(0)?.startVertexID)
+        let ordinals = (0..<12).filter { ordinal in
+            guard let edge = edge(ordinal) else { return false }
+            return edge.startVertexID == corner || edge.endVertexID == corner
+        }
+        try #require(ordinals.count == 3)
+        return ordinals
+    }
+
 }

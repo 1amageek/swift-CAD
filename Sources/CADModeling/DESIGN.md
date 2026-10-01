@@ -330,18 +330,21 @@ faces close on its cross-section. The feature's radius must state the radius the
 `FullFilletRadius` (CADKernel) reads for authors. Full beside curved faces is refused
 (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Several edges (any shape, chamfers and G2 blends too) are blended in turn as stages, each found
 by its ends after the ones before, faces not beside it kept with their own edges (an earlier blend's
-arcs included) and end faces cut back only at its corner. Two edges meeting at a corner (the third
-edge there left sharp) whose sections mirror across the plane bisecting them join at a mitre: each
-blend is ruled along its edge from its far section to the section carried onto that plane, both
-ending on that one rational curve, the face they share and each side face cut back along their
-contact lines. Asymmetric corners, and three or more edges sharing corners, are refused
-(`FIXME(INCOMPLETE_IMPLEMENTATION)`: their corner blend is not built). A variable fillet (`FilletFeature.endRadius`) runs its section from the radius at the edge's
+arcs included) and end faces cut back only at its corner; one lying within an earlier blend is
+refused. Edges joined end to end at outward corners (the third edge at each left sharp), all
+bounding one face and meeting their faces at one angle, form a chain, open or closed, joined at
+mitres: at each corner both blends end on the section carried onto the plane bisecting the two
+edges, the same rational curve, and each blend is ruled along its edge between its two end curves
+(a mitre, or its section at an open end). The shared face and each side face are cut back along
+their contact lines, and an open chain's end faces close on the section. Asymmetric and inward
+corners, three or more edges at one corner (a vertex blend), and a chain beside edges apart from it
+are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A variable fillet (`FilletFeature.endRadius`) runs its section from the radius at the edge's
 start to the end radius at its end, the blend ruled between the two sections (each cross-section
 the shape at the radius there, tangent to both faces along straight contact lines). Limit points,
 tangent chains and Y-blends are not built (FE2). `FilletShapeTests` own each
 shape's removed cross-section times the edge's length, the tension and one-edge admission, and the
 rib's and a drafted rib's full rounds (their volumes and radii) with the refusals of a misstated radius and of edges that do not face each other across one face, and an L sheet's bend rounded into a quarter cylinder, blended and chamfered into sheets, a hexagonal prism's 120° edge rounded (its volume) an L block's inside corner filled (its volume), two edges of a box that do not meet rounded and
-chamfered together, a pair meeting at a corner mitred (its volume `s³ − r²(1 − π/4)·2s + r³(5/3 − π/2)`), and a variable fillet's volume
+chamfered together, a pair meeting at a corner, a box's three and four top edges mitred (volume `s³ − r²(1 − π/4)·ns + c·r³(5/3 − π/2)` for n edges and c corners), three edges at one corner refused, and a variable fillet's volume
 (1 − π/4)·(r₀² + r₀r₁ + r₁²)/3·L with shaped and variable fillets round-tripping natively.
 
 ### Point guides
