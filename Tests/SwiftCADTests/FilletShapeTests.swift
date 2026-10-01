@@ -419,6 +419,41 @@ struct FilletShapeTests {
         #expect(abs(twice - (solid - 2 * section * 2 * Double.pi * (0.008 + inset))) < 5e-12, "\(twice)")
     }
 
+    @Test(.timeLimit(.minutes(3)))
+    func aBossesBaseFillsWithATorusOrConeBand() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // A 40 × 20 × 10 mm plate with a boss of radius 3 mm standing 5 mm on its top.
+        let plate = try builder.box(width: length(0.04), depth: length(0.02), height: length(0.01))
+        let boss = try builder.cylinder(
+            placement: PrimitivePlacement(origin: Point3D(x: 0.02, y: 0.01, z: 0.005), axis: .unitZ, referenceDirection: .unitX),
+            radius: length(0.003), height: length(0.01))
+        let body = try builder.boolean(targets: [plate], tool: boss, operation: .union)
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "b"))
+        let base = try #require(before.subshapes.entries.first { key, value in
+            guard key.featureID == body, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  case .circle? = before.brep.geometry.curves[edge.curveID],
+                  let start = before.brep.vertices[edge.startVertexID]?.point else { return false }
+            return abs(start.z - 0.01) < 1e-12
+        }?.key)
+        let r = 0.001
+        // A chamfer there fills the corner with the triangle r²/2 about the axis at r/3 out.
+        var chamfered = builder
+        _ = try chamfered.chamfer(target: body, edges: [try chamfered.stableSubshape(base)], distance: length(r))
+        let cut = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try chamfered.build(name: "b"))
+        try cut.brep.validate(level: .volumetric, tolerance: .standard)
+        let solid = 0.04 * 0.02 * 0.01 + Double.pi * 0.003 * 0.003 * 0.005
+        let chamferVolume = try cut.brep.volume(tolerance: .standard)
+        #expect(abs(chamferVolume - (solid + r * r / 2 * 2 * Double.pi * (0.003 + r / 3))) < 5e-12, "\(chamferVolume)")
+        _ = try builder.fillet(target: body, edges: [try builder.stableSubshape(base)], radius: length(r))
+        let filled = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "b"))
+        try filled.brep.validate(level: .volumetric, tolerance: .standard)
+        // Pappus: the corner section gained, about the axis at its centroid outside the boss's wall.
+        let inset = r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+        let expected = 0.04 * 0.02 * 0.01 + Double.pi * 0.003 * 0.003 * 0.005 + r * r * (1 - Double.pi / 4) * 2 * Double.pi * (0.003 + inset)
+        let volume = try filled.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func rimsChamferIntoConeBands() throws {
         let d = 0.002

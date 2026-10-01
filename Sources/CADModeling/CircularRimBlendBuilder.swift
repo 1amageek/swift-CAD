@@ -4,11 +4,13 @@ import CADGeometry
 import CADTopology
 
 /// A round or chamfer across whole circular rims: each rim a circle of edges between a planar cap
-/// square to it and the coaxial cylinder below the cap, convex — a solid cylinder's rim (the cap
-/// inside the circle) or a hole's (the cap outside it). A round is a band of the torus whose tube
+/// square to it and the coaxial cylinder running from it — down from it at a convex rim (a solid
+/// cylinder's, the cap inside the circle, or a hole's, the cap outside it), up from it at a concave
+/// one (a boss on its base, or a blind hole's floor). A round is a band of the torus whose tube
 /// of the radius touches the cap and the cylinder, one quarter of the tube turned toward the edge;
 /// a chamfer is a band of the 45° cone through both contact circles. The cap shrinks (or its hole
-/// grows) by the distance and the cylinder stops the distance short of the cap. A selected edge of
+/// grows) by the distance and the cylinder stops the distance short of the cap; a concave rim's band
+/// fills the corner instead. A selected edge of
 /// a rim takes its whole circle, as a tangent chain does.
 package struct CircularRimBlendBuilder {
     private let tolerance: ModelingTolerance
@@ -41,6 +43,9 @@ package struct CircularRimBlendBuilder {
         let radius: Double
         /// +1 when the cap lies inside the circle (a cylinder's rim), −1 outside (a hole's).
         let side: Double
+        /// −1 when the wall runs down from the cap (a convex rim, the band cutting the corner
+        /// away), +1 when it rises from it (a concave rim, the band filling the corner).
+        let rise: Double
         let capFaceID: FaceID
         let arcs: [(edgeID: EdgeID, cylinderFaceID: FaceID)]
     }
@@ -111,6 +116,7 @@ package struct CircularRimBlendBuilder {
             var capFaceID: FaceID?
             var capNormal = normal
             var side = 0.0
+            var rise = 0.0
             var bounded: [(EdgeID, FaceID)] = []
             var span = 0.0
             for edgeID in arcs {
@@ -141,18 +147,16 @@ package struct CircularRimBlendBuilder {
                 let rimSide: Double = role == .outer ? 1 : -1
                 guard side == 0 || side == rimSide else { throw refuse("A rim bounds its cap from one side.") }
                 side = rimSide
-                // Convex: the wall runs below the cap, facing away from the cap's side of the circle.
+                // Convex, the wall running down from the cap and facing away from the cap's side of
+                // the circle; or concave, rising from it and facing toward that side.
                 let middle = try Curve3D.circle(circle).point(at: midParameter(circle, start, end), tolerance: tolerance)
                 let radial = try (middle - circle.center).normalized(tolerance: tolerance.distance)
-                guard try outward(wall, at: middle).dot(radial) * rimSide > 1 - tolerance.angle,
-                      try wallBelow(wall, cap: capOutward, at: circle.center, model: model) else {
-                    // FIXME(INCOMPLETE_IMPLEMENTATION): a concave rim (a boss standing on its base)
-                    // needs the torus band outside the corner adding material, which is not built,
-                    // so it is refused. Production path: CircularRimBlendBuilder from the Fillet
-                    // command. Complete only when concave rims are rounded, verified by a boss's
-                    // base filleted to its exact volume.
-                    throw refuse("A rounded rim is convex.")
+                let wallRise = try wallSide(wall, cap: capOutward, at: circle.center, model: model)
+                guard wallRise != 0, rise == 0 || rise == wallRise,
+                      abs(try outward(wall, at: middle).dot(radial) * rimSide + wallRise) <= tolerance.angle else {
+                    throw refuse("A rim's wall runs straight down or up from its cap, facing across its edge.")
                 }
+                rise = wallRise
                 guard start.isApproximatelyEqual(to: end, tolerance: tolerance.distance) == false else {
                     // FIXME(INCOMPLETE_IMPLEMENTATION): a rim of one closed edge needs its band
                     // split along a seam, which is not built, so it is refused. Production path:
@@ -173,7 +177,7 @@ package struct CircularRimBlendBuilder {
             guard side > 0 ? circle.radius > 2 * r + tolerance.distance : true else {
                 throw refuse("A rim's band must fit inside its circle.")
             }
-            rims.append(Rim(center: circle.center, normal: capNormal, circleNormal: normal, radius: circle.radius, side: side, capFaceID: capFaceID,
+            rims.append(Rim(center: circle.center, normal: capNormal, circleNormal: normal, radius: circle.radius, side: side, rise: rise, capFaceID: capFaceID,
                             arcs: bounded.map { (edgeID: $0.0, cylinderFaceID: $0.1) }))
         }
         let selectedParent: [EdgeID: SubshapeID] = Dictionary(selected.map { ($0.edgeID, $0.subshapeID) }, uniquingKeysWith: { first, _ in first })
@@ -185,7 +189,7 @@ package struct CircularRimBlendBuilder {
         var arcMoves: [FaceID: [(from: Circle3D, to: Circle3D)]] = [:]
         for (rimIndex, rim) in rims.enumerated() {
             let n = rim.normal
-            let wallCenter = rim.center + n * -r
+            let wallCenter = rim.center + n * (rim.rise * r)
             let capCircle = Circle3D(center: rim.center, normal: rim.circleNormal, radius: rim.radius - rim.side * r)
             let wallCircle = Circle3D(center: wallCenter, normal: rim.circleNormal, radius: rim.radius)
             // The band's surface and the parameters v of its contacts with the cap and the wall: the
@@ -195,13 +199,17 @@ package struct CircularRimBlendBuilder {
             let (capV, wallV): (Double, Double)
             switch shape {
             case .round:
+                // The cap's contact lies straight across the tube from its centre toward the cap,
+                // the wall's straight across toward the wall; the band is the quarter between.
                 band = .analytic(.torus(center: wallCenter, axis: n, majorRadius: rim.radius - rim.side * r, minorRadius: r))
-                (capV, wallV) = (Double.pi / 2, rim.side > 0 ? 0.0 : Double.pi)
+                let wall = rim.side > 0 ? 0.0 : Double.pi
+                (capV, wallV) = (nearestTurn(from: wall, to: -rim.rise * Double.pi / 2), wall)
             case .chamfer:
                 // The 45° line from the cap's contact to the wall's meets the axis at the apex.
-                let rise = rim.radius - rim.side * r
-                band = .analytic(.cone(apex: rim.center + n * (rim.side * rise), axis: n * -rim.side, halfAngle: Double.pi / 4))
-                (capV, wallV) = (rise * 2.0.squareRoot(), rim.radius * 2.0.squareRoot())
+                let inset = rim.radius - rim.side * r
+                band = .analytic(.cone(apex: rim.center + n * (-rim.rise * rim.side * inset), axis: n * (rim.rise * rim.side),
+                                       halfAngle: Double.pi / 4))
+                (capV, wallV) = (inset * 2.0.squareRoot(), rim.radius * 2.0.squareRoot())
             }
             let (lowV, highV) = (min(capV, wallV), max(capV, wallV))
             for (arcIndex, arc) in rim.arcs.enumerated() {
@@ -210,7 +218,7 @@ package struct CircularRimBlendBuilder {
                     throw TopologyError.missingReference("Missing rim arc.")
                 }
                 func onCap(_ p: Point3D) -> Point3D { rim.center + (p - rim.center) * ((rim.radius - rim.side * r) / rim.radius) }
-                func onWall(_ p: Point3D) -> Point3D { p + n * -r }
+                func onWall(_ p: Point3D) -> Point3D { p + n * (rim.rise * r) }
                 capMoves[rim.capFaceID, default: []] += [(a, onCap(a)), (b, onCap(b))]
                 wallMoves[arc.cylinderFaceID, default: []] += [(a, onWall(a)), (b, onWall(b))]
                 let rimCircle = Circle3D(center: rim.center, normal: rim.circleNormal, radius: rim.radius)
@@ -237,7 +245,7 @@ package struct CircularRimBlendBuilder {
                     let pcurve = SurfaceParameterCurve.constantU(u: u, vStart: v0, vEnd: v1)
                     switch shape {
                     case .round:
-                        let tubeCenter = try point(u, capV) + n * -r
+                        let tubeCenter = try point(u, capV) + n * (rim.rise * r)
                         let radial = try (tubeCenter - wallCenter).normalized(tolerance: tolerance.distance)
                         return try arcEdge(name, Circle3D(center: tubeCenter, normal: n.cross(radial), radius: r), from: (u, v0), to: (u, v1), pcurve)
                     case .chamfer:
@@ -255,12 +263,13 @@ package struct CircularRimBlendBuilder {
                     try arcEdge("high", highCircle, from: (u1, highV), to: (u0, highV), .constantV(v: highV, uStart: u1, uEnd: u0)),
                     try sectionEdge("start", at: u0, from: highV, to: lowV),
                 ]
-                // The band faces away from the material: toward the rim it cuts off.
+                // The band faces away from the material: toward the corner it cuts off, or away
+                // from the corner it fills.
                 let (middleU, middleV) = ((u0 + u1) / 2, (lowV + highV) / 2)
                 let middle = try point(middleU, middleV)
                 let capContact = try point(middleU, capV)
                 let rimPoint = rim.center + (capContact - rim.center) * (rim.radius / (rim.radius - rim.side * r))
-                let facing = try band.normal(u: middleU, v: middleV, tolerance: tolerance).dot(rimPoint - middle) >= 0
+                let facing = try band.normal(u: middleU, v: middleV, tolerance: tolerance).dot(rimPoint - middle) * -rim.rise >= 0
                 let loop = facing ? edges : try edges.reversed().map(reversed)
                 patches.append(BRepSewingFacePatch(stableID: stableID, surface: band, orientation: facing ? .forward : .reversed,
                                                    loops: [BRepSewingLoop(stableID: "\(stableID):outer", role: .outer, edges: loop)],
@@ -331,9 +340,9 @@ package struct CircularRimBlendBuilder {
             && a.normal.cross(b.normal).length <= tolerance.angle * max(a.normal.length * b.normal.length, 1)
     }
 
-    /// Whether the wall's vertices all lie on the far side of the cap's plane through `center`
-    /// from its outward normal `cap`, some of them strictly.
-    private func wallBelow(_ wall: FaceID, cap: Vector3D, at center: Point3D, model: BRepModel) throws -> Bool {
+    /// −1 when the wall's vertices all lie below the cap's plane through `center` (against its
+    /// outward normal `cap`), +1 when all lie above it, some strictly; 0 when it crosses the plane.
+    private func wallSide(_ wall: FaceID, cap: Vector3D, at center: Point3D, model: BRepModel) throws -> Double {
         guard let face = model.faces[wall] else { throw TopologyError.missingReference("Missing rim wall.") }
         let heights = try face.loops.flatMap { loopID -> [Double] in
             guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("Missing rim wall loop.") }
@@ -345,7 +354,9 @@ package struct CircularRimBlendBuilder {
                 return [(start - center).dot(cap), (end - center).dot(cap)]
             }
         }
-        return heights.allSatisfy { $0 <= tolerance.distance } && heights.contains { $0 < -tolerance.distance }
+        if heights.allSatisfy({ $0 <= tolerance.distance }), heights.contains(where: { $0 < -tolerance.distance }) { return -1 }
+        if heights.allSatisfy({ $0 >= -tolerance.distance }), heights.contains(where: { $0 > tolerance.distance }) { return 1 }
+        return 0
     }
 
     private func midParameter(_ circle: Circle3D, _ start: Point3D, _ end: Point3D) throws -> Double {
