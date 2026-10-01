@@ -70,7 +70,9 @@ package struct ExactLoftGuideCurveResolver {
                 tolerance: context.tolerance
             )
             let oriented = try oriented(
-                canonicalGuide(source),
+                trimmedToEndSections(canonicalGuide(source), guideFeatureID: guide.featureID,
+                                     firstSection: sections[0], lastSection: sections[sections.index(before: sections.endIndex)],
+                                     tolerance: context.tolerance),
                 guideFeatureID: guide.featureID,
                 firstSection: sections[0],
                 lastSection: sections[sections.index(before: sections.endIndex)],
@@ -90,6 +92,45 @@ package struct ExactLoftGuideCurveResolver {
                 sectionParameters: contacts.map(\.parameter)
             )
         }
+    }
+
+    /// The guide trimmed to the stretch between the end sections: where it runs on past the first
+    /// or the last section's boundary, the overlap is cut off at its one crossing of that boundary
+    /// (the profiles stand, the guides are trimmed); an end already on its boundary stays.
+    private func trimmedToEndSections(
+        _ curve: BSplineCurve3D, guideFeatureID: FeatureID, firstSection: ExactLoftGuideSection,
+        lastSection: ExactLoftGuideSection, tolerance: ModelingTolerance
+    ) throws -> BSplineCurve3D {
+        guard case let .closed(lower, upper) = curve.domain else { return curve }
+        let (start, end) = (try curve.point(at: lower, tolerance: tolerance), try curve.point(at: upper, tolerance: tolerance))
+        func onEnds(_ point: Point3D) throws -> Bool {
+            try boundaryLoopIndex(containing: point, section: firstSection, tolerance: tolerance) != nil
+                || boundaryLoopIndex(containing: point, section: lastSection, tolerance: tolerance) != nil
+        }
+        if try onEnds(start), try onEnds(end) { return curve }
+        /// The guide's crossings of a section's boundary, away from the guide's own ends.
+        func crossings(_ section: ExactLoftGuideSection) throws -> [Double] {
+            var parameters: [Double] = []
+            for loop in section.loops {
+                for span in loop {
+                    for contact in try spatialContacts(guide: curve, boundary: span.curve, tolerance: tolerance)
+                    where try boundaryContains(contact.point, spans: loop, tolerance: tolerance)
+                        && parameters.contains(where: { abs($0 - contact.curveParameter) <= tolerance.relative * max(1, abs(upper - lower)) }) == false {
+                        parameters.append(contact.curveParameter)
+                    }
+                }
+            }
+            return parameters
+        }
+        let (first, last) = (try crossings(firstSection), try crossings(lastSection))
+        guard first.count == 1, last.count == 1, abs(first[0] - last[0]) > tolerance.relative * max(1, abs(upper - lower)) else {
+            throw KernelError(
+                phase: .geometry, code: first.isEmpty || last.isEmpty ? .intersectionFailure : .ambiguousSelection,
+                featureID: guideFeatureID, tolerance: tolerance,
+                message: "A Loft guide running past its end sections crosses each end section's boundary once."
+            )
+        }
+        return try curve.trimmed(from: min(first[0], last[0]), to: max(first[0], last[0]), tolerance: tolerance)
     }
 
     private func canonicalGuide(_ curve: BSplineCurve3D) throws -> BSplineCurve3D {

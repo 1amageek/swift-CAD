@@ -173,6 +173,26 @@ struct SurfaceEdgeContinuityTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func aGuideRunningPastTheEndSectionsIsTrimmedAtThem() throws {
+        // The straight guide through both edges' ends at x = 0, run on 10 mm past each: trimmed at
+        // the sections, the loft follows the line between them.
+        let line = (0..<4).map { index -> (y: Double, z: Double) in
+            let y = 0.01 - 0.07 * Double(index) / 3
+            return (y, 0.02 - 0.2 * y)
+        }
+        let (builder, loft) = try loft(order: nil, guide: line)
+        let evaluated = try evaluate(builder)
+        let surface = try #require(evaluated.subshapes.entries.compactMap { key, value -> Surface3D? in
+            guard key.featureID == loft, case let .face(id) = value, let face = evaluated.brep.faces[id] else { return nil }
+            return evaluated.brep.geometry.surfaces[face.surfaceID]
+        }.first)
+        let halfway = try surface.parameterProjection(of: Point3D(x: 0, y: -0.025, z: 0.025), tolerance: .standard)
+        #expect(halfway.residual < 1e-9)
+        // Nothing of the loft lies past the sections along the guide.
+        #expect(evaluated.brep.vertices.values.allSatisfy { $0.point.y <= 1e-9 || $0.point.z < 0.0200001 })
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func aCurvatureLoftIsFlatAcrossItsEdges() throws {
         let (builder, loft) = try loft(order: .curvature, tension: 1.5)
         let samples = try boundary(try evaluate(builder), loft: loft)
