@@ -148,3 +148,38 @@ struct LoftEdgeContinuityTests {
         }
     }
 }
+
+/// A Loft's Simplify makes its flat faces trimmed planes.
+@Suite("Loft simplify")
+struct LoftSimplifyTests {
+    private func length(_ value: Double) -> CADExpression { .constant(.length(value, unit: .meter)) }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aLoftBetweenTwoSquaresHasPlanarSides() throws {
+        func evaluate(simplify: Bool) throws -> EvaluatedDocument {
+            var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+            let lower = try builder.sketch(on: .xy) { $0.rectangle(width: length(0.02), height: length(0.02)) }
+            let upper = try builder.sketch(on: .plane(Plane3D(origin: Point3D(x: 0, y: 0, z: 0.03), normal: .unitZ))) {
+                $0.rectangle(width: length(0.01), height: length(0.01))
+            }
+            _ = try builder.loft(sections: [lower, upper].map { LoftSectionReference(profile: $0) },
+                                 options: LoftOptions(simplify: simplify))
+            let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "loft"))
+            try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+            return evaluated
+        }
+        func planes(_ evaluated: EvaluatedDocument) -> Int {
+            evaluated.brep.faces.values.filter { face in
+                if case .plane = evaluated.brep.geometry.surfaces[face.surfaceID] { return true }
+                return false
+            }.count
+        }
+        let plain = try evaluate(simplify: false)
+        let simplified = try evaluate(simplify: true)
+        #expect(planes(plain) == 2)
+        #expect(planes(simplified) == 6 && simplified.brep.faces.count == 6)
+        // A frustum of squares 20 and 10 mm, 30 mm high.
+        let volume = 0.03 / 3 * (0.0004 + 0.0001 + (0.0004 * 0.0001).squareRoot())
+        #expect(abs(try simplified.brep.volume(tolerance: .standard) - volume) < 1e-12)
+    }
+}

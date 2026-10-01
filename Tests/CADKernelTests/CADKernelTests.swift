@@ -2567,7 +2567,6 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func sweepEvaluationRejectsUnsupportedOptionSemantics() throws {
         let unsupportedCases: [(options: SweepOptions, code: KernelErrorCode)] = [
-            (SweepOptions(simplify: true), .sweepSimplifyUnavailable),
         ]
 
         for unsupportedCase in unsupportedCases {

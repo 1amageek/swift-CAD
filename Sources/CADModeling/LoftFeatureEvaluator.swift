@@ -14,7 +14,15 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         feature: FeatureNode,
         context: EvaluationContext
     ) throws -> ValidatedFeatureEvaluation {
-        let result = try evaluateUnvalidated(feature: feature, context: context)
+        var result = try evaluateUnvalidated(feature: feature, context: context)
+        // Simplify: the loft's flat faces are trimmed planes.
+        if case let .loft(loft) = feature.operation, loft.options.simplify {
+            let bodyReference = result.subshapes[SubshapeID(featureID: feature.id, role: GeneratedSubshapeRole.body.rawValue, ordinal: 0)]
+            guard case let .body(bodyID)? = bodyReference else {
+                throw FeatureEvaluationError.missingInput("A simplified Loft publishes no body.")
+            }
+            result = try PlanarFaceSimplifier(tolerance: context.tolerance).simplified(result, bodyID: bodyID)
+        }
         return try ValidatedFeatureEvaluation(
             validating: result,
             tolerance: context.tolerance

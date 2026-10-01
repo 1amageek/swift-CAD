@@ -233,6 +233,8 @@ public struct LoftOptions: Codable, Hashable, Sendable {
     public var closesSectionLoop: Bool
     public var surfaceMode: LoftSurfaceMode
     public var smoothTangentScale: Double
+    /// Whether the loft's flat faces are trimmed planes rather than flat B-spline patches.
+    public var simplify: Bool
 
     private enum CodingKeys: String, CodingKey {
         case resultKind
@@ -240,6 +242,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         case closesSectionLoop
         case surfaceMode
         case smoothTangentScale
+        case simplify
     }
 
     public init(
@@ -247,13 +250,15 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         sectionMatching: LoftSectionMatching = .byBoundaryProgress,
         closesSectionLoop: Bool = false,
         surfaceMode: LoftSurfaceMode = .ruled,
-        smoothTangentScale: Double = 1.0
+        smoothTangentScale: Double = 1.0,
+        simplify: Bool = false
     ) {
         self.resultKind = resultKind
         self.sectionMatching = sectionMatching
         self.closesSectionLoop = closesSectionLoop
         self.surfaceMode = surfaceMode
         self.smoothTangentScale = smoothTangentScale
+        self.simplify = simplify
     }
 
     public init(from decoder: Decoder) throws {
@@ -264,12 +269,14 @@ public struct LoftOptions: Codable, Hashable, Sendable {
             .closesSectionLoop,
             .surfaceMode,
             .smoothTangentScale,
+            .simplify,
         ], in: decoder)
         resultKind = try container.decode(LoftResultKind.self, forKey: .resultKind)
         sectionMatching = try container.decode(LoftSectionMatching.self, forKey: .sectionMatching)
         closesSectionLoop = try container.decode(Bool.self, forKey: .closesSectionLoop)
         surfaceMode = try container.decode(LoftSurfaceMode.self, forKey: .surfaceMode)
         smoothTangentScale = try container.decode(Double.self, forKey: .smoothTangentScale)
+        simplify = try container.decodeIfPresent(Bool.self, forKey: .simplify) ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -279,6 +286,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         try container.encode(closesSectionLoop, forKey: .closesSectionLoop)
         try container.encode(surfaceMode, forKey: .surfaceMode)
         try container.encode(smoothTangentScale, forKey: .smoothTangentScale)
+        if simplify { try container.encode(simplify, forKey: .simplify) }
     }
 
     public func validate() throws {

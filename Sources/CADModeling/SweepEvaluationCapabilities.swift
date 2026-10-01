@@ -223,7 +223,6 @@ public struct SweepEvaluationCapabilities: Sendable {
         booleanOperations: [.newBody, .union, .difference, .intersect, .slice],
         resultKinds: [.solid, .sheet],
         unsupportedOptionCodes: [
-            .sweepSimplifyUnavailable,
             .sweepProfilePlaneDegenerate,
             .sweepMixedNormalAdvance,
             .sweepMonotonicityCertificateUnavailable,
@@ -241,9 +240,6 @@ public struct SweepEvaluationCapabilities: Sendable {
     )
 
     public func staticUnsupportedCase(for options: SweepOptions) -> UnsupportedCase? {
-        if options.simplify {
-            return UnsupportedCase(code: .sweepSimplifyUnavailable)
-        }
         if options.booleanOperation != .newBody,
            options.resultKind != .solid {
             return UnsupportedCase(code: .sweepBooleanRequiresSolid)

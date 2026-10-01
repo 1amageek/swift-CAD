@@ -233,6 +233,15 @@ face subshapes after the arms'. `RoundSweepCornerTests` own the L-shaped and clo
 sweeps' exact volumes (the arms less the inner overlap plus the outer sectors) and the circle's
 refusal.
 
+### Simplify
+
+`PlanarFaceSimplifier` serves Sweep's and Loft's Simplify: the faces of the new body whose
+B-spline surfaces `DefaultPlanarSurfaceResolver` certifies planar take that plane, facing the way the
+surface's natural normal did, and their coedges' parameter curves are rebuilt on it by
+`ExactFacePcurveBuilder`; edges, loops, face identities, subshapes and lineage are kept. Sweep
+simplifies the tool body before any Boolean. `SweepSimplifyTests` own an L-shaped square sweep made
+all planes and a circle sweep keeping its curved side; `LoftSimplifyTests` own a frustum of squares.
+
 ### Edge curves
 
 `EdgeCurveFeatureEvaluator` publishes the exact curves of chosen edges of one body or sheet (each

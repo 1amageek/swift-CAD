@@ -2365,7 +2365,7 @@ private func validateLoftSectionReferenceObject(_ object: [String: Any], path: S
 private func validateLoftOptionsObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["resultKind", "sectionMatching", "closesSectionLoop", "surfaceMode", "smoothTangentScale"],
+        supportedKeys: ["resultKind", "sectionMatching", "closesSectionLoop", "surfaceMode", "smoothTangentScale", "simplify"],
         objectName: path
     )
     try validateLoftOptionString(

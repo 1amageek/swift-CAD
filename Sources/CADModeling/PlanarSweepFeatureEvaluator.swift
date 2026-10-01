@@ -174,8 +174,9 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             }
             let plan = try CertifiedTwistSweepPlan(profile: profile, pathSegments: pathSegments,
                 sweep: sweep, values: optionValues, tolerance: context.tolerance)
-            return try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
-                .buildCertifiedTwist(plan, resultKind: sweep.options.resultKind)
+            return try simplifiedIfRequested(sweep, featureID: feature.id, toolResult:
+                ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
+                    .buildCertifiedTwist(plan, resultKind: sweep.options.resultKind), context: context)
         }
         let toolResult: EvaluationResult
         let straightPathCandidate = try sampler.straightPath(from: frames)
@@ -514,12 +515,25 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         }
     }
 
-    private func applyBooleanIfNeeded(
+    /// The swept body with its flat faces made trimmed planes when the sweep simplifies.
+    private func simplifiedIfRequested(
         _ sweep: SweepFeature,
         featureID: FeatureID,
         toolResult: EvaluationResult,
         context: EvaluationContext
     ) throws -> EvaluationResult {
+        guard sweep.options.simplify else { return toolResult }
+        return try PlanarFaceSimplifier(tolerance: context.tolerance)
+            .simplified(toolResult, bodyID: try bodyID(for: featureID, in: toolResult.subshapes))
+    }
+
+    private func applyBooleanIfNeeded(
+        _ sweep: SweepFeature,
+        featureID: FeatureID,
+        toolResult unsimplified: EvaluationResult,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
+        let toolResult = try simplifiedIfRequested(sweep, featureID: featureID, toolResult: unsimplified, context: context)
         guard sweep.options.booleanOperation != .newBody else {
             return toolResult
         }
