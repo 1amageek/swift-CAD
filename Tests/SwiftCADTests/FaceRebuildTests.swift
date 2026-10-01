@@ -9,8 +9,8 @@ import CADTopology
 
 /// Rebuild Face refits a face's surface on its own parameters: a sheet of one face to an explicit
 /// layout or widened past its edges, and faces sharing edges in place within a tolerance, tangent
-/// neighbours and open edges and all; a face sharing edges refitted coarser than the modeling
-/// tolerance is refused.
+/// neighbours and open edges and all; a face sharing edges with planes it crosses refitted coarser
+/// than the modeling tolerance, its edges re-solved on them; a wall closed on itself refused.
 @Suite("Rebuild Face")
 struct FaceRebuildTests {
     private let s = 0.02
@@ -132,6 +132,63 @@ struct FaceRebuildTests {
         let point = try after.differentialGeometry(u: (u0 + u1) / 2, v: 0.01, tolerance: .standard).position
         #expect(abs(Vector3D(x: point.x, y: point.y, z: 0).length - 0.01) < 1e-8)
         #expect(abs(try self.volume(of: rebuilt, in: evaluated) - volume) < volume * 1e-5)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aCurvedWallRebuiltCoarselyHasItsEdgesResolvedOnItsPlanes() throws {
+        // A cubic arch over a 20 mm base, extruded 10 mm; its arched wall rebuilt as a quadratic
+        // strays from its edges, which are re-solved where the new wall crosses the base's wall
+        // and the two end planes.
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        func point(_ x: Double, _ y: Double) -> SketchPoint {
+            SketchPoint(x: .constant(.length(x, unit: .meter)), y: .constant(.length(y, unit: .meter)))
+        }
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.line(from: point(0, 0), to: point(0.02, 0))
+            _ = sketch.spline(SketchSpline(controlPoints: [point(0.02, 0), point(0.014, 0.016), point(0.004, 0.008), point(0, 0)]))
+        }.featureID
+        let height = 0.01
+        let tunnel = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: .constant(.length(height, unit: .meter)))
+        let (wall, _) = try #require(try faces(of: tunnel, in: builder) { if case .bSpline = $0 { return true }; return false }.first)
+        let rebuilt = try builder.rebuildFaces(target: tunnel, faces: [wall],
+                                               method: .explicit(SurfaceControlLayout(uDegree: 2, vDegree: 1, uSpans: 1, vSpans: 1)),
+                                               extendU: 0.25)
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "rebuild"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        let (_, after) = try #require(try faces(of: rebuilt, in: builder) { if case .bSpline = $0 { return true }; return false }.first)
+        guard case let .bSpline(surface) = after, surface.uDegree == 2, let u0 = surface.uKnots.first, let u1 = surface.uKnots.last else {
+            Issue.record("The rebuilt wall is a quadratic B-spline.")
+            return
+        }
+        // The wall's section at the base: where it crosses y = 0, by bisection; the area under it
+        // by Green's theorem, ∫ x dy along it, exact by five-point Gauss for its cubic integrand.
+        func at(_ u: Double) throws -> (point: Point3D, du: Vector3D) {
+            let geometry = try after.differentialGeometry(u: u, v: surface.vKnots[0], tolerance: .standard)
+            return (geometry.position, geometry.tangentU)
+        }
+        func crossing(_ a: Double, _ b: Double) throws -> Double {
+            var (low, high) = (a, b)
+            let lowSign = try at(low).point.y > 0
+            for _ in 0..<200 {
+                let middle = (low + high) / 2
+                if try (at(middle).point.y > 0) == lowSign { low = middle } else { high = middle }
+            }
+            return (low + high) / 2
+        }
+        let middle = (u0 + u1) / 2
+        let (ua, ub) = (try crossing(u0, middle), try crossing(middle, u1))
+        let nodes = [-0.906179845938664, -0.538469310105683, 0.0, 0.538469310105683, 0.906179845938664]
+        let weights = [0.236926885056189, 0.478628670499366, 0.568888888888889, 0.478628670499366, 0.236926885056189]
+        var area = 0.0
+        for (node, weight) in zip(nodes, weights) {
+            let u = (ua + ub) / 2 + (ub - ua) / 2 * node
+            let (p, du) = try at(u)
+            area += weight * p.x * du.y * (ub - ua) / 2
+        }
+        let volume = try self.volume(of: rebuilt, in: evaluated)
+        #expect(abs(volume - abs(area) * height) < 1e-10, "\(volume) vs \(abs(area) * height)")
+        // The stray: the quadratic leaves the cubic's corners.
+        #expect(abs(abs(area) * height - 0.02 * 0.008 / 2 * height) > 1e-9)
     }
 
     @Test(.timeLimit(.minutes(2)))

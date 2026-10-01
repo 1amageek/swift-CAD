@@ -17,8 +17,9 @@ import CADTopology
 ///
 /// A face whose new surface keeps within a quarter of the distance tolerance of its edges along
 /// their trimming curves takes it in place, its edges, vertices and trimming curves kept. One that
-/// strays further must be a sheet of its own (every edge open): it is sewn anew on its new surface,
-/// each edge a B-spline fitted along its trimming curve within that quarter.
+/// strays further is sewn anew on its new surface: a sheet of its own (every edge open) with each
+/// edge a B-spline fitted along its trimming curve within that quarter, a face sharing edges with
+/// them re-solved where its new surface crosses its neighbouring planes (`RebuiltFaceEdgeResolver`).
 struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let resolver: ParameterResolving
     private let subshapeResolver: any StableSubshapeResolving
@@ -110,18 +111,31 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 for coedge in model.loops[loopID]?.coedges ?? [] { facesOfEdge[coedge.edgeID, default: 0] += 1 }
             }
         }
+        // A coarse face sharing edges has them re-solved onto its new surface where its neighbours
+        // are planes crossing it (`RebuiltFaceEdgeResolver`); such faces neither meet each other nor
+        // share a neighbour.
+        var bordered: [FaceID: Set<FaceID>] = [:]
         for faceID in coarse {
             let edges = (model.faces[faceID]?.loops ?? []).flatMap { model.loops[$0]?.coedges.map(\.edgeID) ?? [] }
-            guard edges.allSatisfy({ facesOfEdge[$0] == 1 }) else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): a face sharing an edge with another face whose
-                // new surface strays from its edges by more than a quarter of the distance tolerance
-                // (a coarse explicit layout, or a tolerance above it) is refused. Production path:
-                // FaceRebuildFeatureEvaluator for every faceRebuild feature. Complete only when the
-                // edges around such a face are re-solved onto the new surface, tangent neighbours
-                // included, verified by rebuilding a fillet face of a solid to a coarse layout.
-                throw failure(.unsupportedCapability, feature.id, tolerance,
-                              "A face sharing edges is rebuilt only within a quarter of the distance tolerance of them; this one strays \(strays[faceID] ?? 0).")
+            guard edges.allSatisfy({ facesOfEdge[$0] == 1 }) == false else { continue }
+            guard edges.allSatisfy({ facesOfEdge[$0] == 2 }) else {
+                throw failure(.unsupportedCapability, feature.id, tolerance, "A face rebuilt coarsely has all its edges open or all shared.")
             }
+            let around = Set(model.faces.keys.filter { other in
+                other != faceID && (model.faces[other]?.loops ?? []).contains { loopID in
+                    model.loops[loopID]?.coedges.contains { edges.contains($0.edgeID) } ?? false
+                }
+            })
+            guard around.isDisjoint(with: coarse), bordered.values.allSatisfy({ $0.isDisjoint(with: around) }) else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): faces rebuilt coarser than their edges allow
+                // that meet each other or share a neighbour need their edges re-solved together,
+                // which is not built, so they are refused. Production path:
+                // FaceRebuildFeatureEvaluator. Complete only when such faces are rebuilt together,
+                // verified by two adjacent curved faces rebuilt coarsely.
+                throw failure(.unsupportedCapability, feature.id, tolerance,
+                              "Faces rebuilt coarser than their edges allow are apart, with no neighbour in common.")
+            }
+            bordered[faceID] = around
         }
         // In place: each face takes its new surface, its edges, vertices and trimming curves kept,
         // since the surface is refitted on the face's own parameters and keeps that close to them.
@@ -159,9 +173,15 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                       sourceShell.faceIDs.count == shell.patches.count else {
                     throw failure(.missingReference, feature.id, tolerance, "Rebuild Face lost the order of the body's faces.")
                 }
-                let patches = try zip(sourceShell.faceIDs, shell.patches).map { faceID, patch -> BRepSewingFacePatch in
-                    guard sewnAnew.contains(faceID), let fitted = surfaces[faceID] else { return patch }
+                var patches = try zip(sourceShell.faceIDs, shell.patches).map { faceID, patch -> BRepSewingFacePatch in
+                    guard sewnAnew.contains(faceID), bordered[faceID] == nil, let fitted = surfaces[faceID] else { return patch }
                     return try resewn(patch, on: fitted, curveFitter: curveFitter, featureID: feature.id, tolerance: tolerance)
+                }
+                for faceID in sourceShell.faceIDs where bordered[faceID] != nil {
+                    guard let fitted = surfaces[faceID] else { throw TopologyError.missingReference("A rebuilt face lost its surface.") }
+                    patches = try RebuiltFaceEdgeResolver(tolerance: tolerance).resolve(
+                        faceID: faceID, surface: fitted, patches: Array(zip(sourceShell.faceIDs, patches)).map { ($0.0, $0.1) },
+                        model: result, featureID: feature.id)
                 }
                 shells.append(BRepSewingShell(stableID: shell.stableID, patches: patches, orientation: shell.orientation))
             }
