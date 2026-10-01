@@ -48,12 +48,247 @@ package struct ExactThickenRequestBuilder: Sendable {
         if try sharesEdgesTangentially(source, tolerance: tolerance) {
             return try tangentMultiFaceRequest(featureID: featureID, offsets: offsets, source: source, tolerance: tolerance)
         }
+        // A strip of planes and cylinders along one direction thickens as its cross-section's
+        // offset band, extruded.
+        if let strip = try prismaticStrip(source, tolerance: tolerance) {
+            return try prismaticStripRequest(featureID: featureID, offsets: offsets, strip: strip, bodyParents: source.bodyParents,
+                                             tolerance: tolerance)
+        }
         return try planarMultiFaceRequest(
             featureID: featureID,
             offsets: offsets,
             source: source,
             tolerance: tolerance
         )
+    }
+
+    /// One face of a prismatic strip across its direction: its trace at the strip's base (a line or
+    /// an arc from the ruling it shares with the face before to the one after) and its outward normal.
+    private struct StripElement {
+        let start: Point3D
+        let end: Point3D
+        /// The arc's centre and its turn about the strip's direction (+1 or −1), or nil for a line.
+        let arc: (center: Point3D, radius: Double, sense: Double)?
+        let normal: (Point3D) throws -> Vector3D
+    }
+
+    private struct PrismaticStrip {
+        let direction: Vector3D
+        let base: Double
+        let height: Double
+        let elements: [StripElement]
+        let closed: Bool
+    }
+
+    /// The sheet as a strip: every face a plane or a cylinder along one direction, bounded by two
+    /// rulings along it and two curves at its base and top heights, the faces chained along their
+    /// shared rulings; nil when the sheet is not such a strip.
+    private func prismaticStrip(_ source: SourceSheet, tolerance: ModelingTolerance) throws -> PrismaticStrip? {
+        func cylinderAxis(_ surface: Surface3D) -> (origin: Point3D, axis: Vector3D, radius: Double)? {
+            switch surface {
+            case let .cylinder(cylinder): return (cylinder.origin, cylinder.axis, cylinder.radius)
+            case let .analytic(.cylinder(origin, axis, radius)): return (origin, axis, radius)
+            default: return nil
+            }
+        }
+        guard let axisFace = source.faces.compactMap({ cylinderAxis($0.surface) }).first else { return nil }
+        let d = try axisFace.axis.normalized(tolerance: tolerance.distance)
+        struct FaceStrip { let rulings: [SourceEdge]; let bottom: SourceEdge; let face: SourceFace }
+        var faces: [FaceStrip] = []
+        func level(_ point: Point3D) -> Double { (point - .origin).dot(d) }
+        var low = Double.infinity, high = -Double.infinity
+        for face in source.faces {
+            switch face.surface {
+            case .plane(let plane):
+                guard abs(try plane.normal.normalized(tolerance: tolerance.distance).dot(d)) <= tolerance.angle else { return nil }
+            default:
+                guard let cylinder = cylinderAxis(face.surface), cylinder.axis.cross(d).length <= tolerance.angle * max(cylinder.axis.length, 1) else {
+                    return nil
+                }
+            }
+            guard face.loops.count == 1, face.loops[0].edges.count == 4 else { return nil }
+            let edges = face.loops[0].edges
+            let rulings = edges.filter { edge in
+                let along = edge.endPoint - edge.startPoint
+                return along.cross(d).length <= tolerance.distance && along.length > tolerance.distance
+            }
+            let ends = edges.filter { edge in abs((edge.endPoint - edge.startPoint).dot(d)) <= tolerance.distance }
+            guard rulings.count == 2, ends.count == 2 else { return nil }
+            let levels = ends.map { level($0.startPoint) }
+            let bottom = levels[0] < levels[1] ? ends[0] : ends[1]
+            low = min(low, min(levels[0], levels[1])); high = max(high, max(levels[0], levels[1]))
+            faces.append(FaceStrip(rulings: rulings, bottom: bottom, face: face))
+        }
+        guard high - low > tolerance.distance,
+              faces.allSatisfy({ abs(level($0.bottom.startPoint) - low) <= tolerance.distance }) else { return nil }
+        // Chain the faces along their shared rulings.
+        let uses = edgeUses(in: source)
+        let free = faces.indices.flatMap { index in faces[index].rulings.filter { uses[$0.edgeID]?.count == 1 }.map { (index, $0) } }
+        guard free.count == 2 || free.isEmpty else { return nil }
+        var order: [(face: Int, entry: SourceEdge)] = []
+        var visited: Set<Int> = []
+        var current = free.first ?? (0, faces[0].rulings[0])
+        while visited.contains(current.0) == false {
+            visited.insert(current.0)
+            order.append((current.0, current.1))
+            guard let exit = faces[current.0].rulings.first(where: { $0.edgeID != current.1.edgeID }),
+                  let next = uses[exit.edgeID]?.first(where: { $0.faceIndex != current.0 }) else { break }
+            current = (next.faceIndex, exit)
+        }
+        guard order.count == faces.count else { return nil }
+        func base(_ point: Point3D) -> Point3D { point + d * (low - level(point)) }
+        let elements = try order.map { entry -> StripElement in
+            let strip = faces[entry.face]
+            guard let exit = strip.rulings.first(where: { $0.edgeID != entry.entry.edgeID }) else { throw failure(.invalidInput, tolerance: tolerance, message: "A strip face has two rulings.") }
+            let (start, end) = (base(entry.entry.startPoint), base(exit.startPoint))
+            let face = strip.face
+            func normal(_ point: Point3D) throws -> Vector3D {
+                let uv = try face.surface.parameterProjection(of: point, tolerance: tolerance)
+                let n = try face.surface.normal(u: uv.u, v: uv.v, tolerance: tolerance)
+                return face.orientation == .forward ? n : n * -1
+            }
+            if let cylinder = cylinderAxis(face.surface) {
+                let offset = start - cylinder.origin
+                let center = start + (offset - d * offset.dot(d)) * -1
+                let middleParameter = try strip.bottom.parameterCurve.parameter(atNormalizedFraction: 0.5, tolerance: tolerance)
+                let middle = base(try face.surface.point(u: middleParameter.u, v: middleParameter.v, tolerance: tolerance))
+                let sense: Double = (start - center).cross(middle - center).dot(d) >= 0 ? 1 : -1
+                return StripElement(start: start, end: end, arc: (center, cylinder.radius, sense), normal: normal)
+            }
+            return StripElement(start: start, end: end, arc: nil, normal: normal)
+        }
+        return PrismaticStrip(direction: d, base: low, height: high - low, elements: elements, closed: free.isEmpty)
+    }
+
+    /// The strip thickened: its trace offset by both sides' distances along the faces' normals,
+    /// joined where neighbouring traces cross (or along their common normal where they meet
+    /// tangentially), closed across its ends, and extruded through the strip's height.
+    private func prismaticStripRequest(featureID: FeatureID, offsets: (lower: Double, upper: Double), strip: PrismaticStrip,
+                                       bodyParents: [SubshapeID], tolerance: ModelingTolerance) throws -> BRepSewingRequest {
+        let d = strip.direction
+        func shiftedChain(_ distance: Double) throws -> [ExactPrismaticBoundarySegment] {
+            let elements = strip.elements
+            // Joints: each element's ends moved, crossings between neighbours.
+            var points: [Point3D] = []
+            func moved(_ element: StripElement, at point: Point3D) throws -> Point3D { point + (try element.normal(point)) * distance }
+            let count = elements.count
+            for index in 0...(strip.closed ? count - 1 : count) {
+                if strip.closed == false, index == 0 { points.append(try moved(elements[0], at: elements[0].start)); continue }
+                if strip.closed == false, index == count { points.append(try moved(elements[count - 1], at: elements[count - 1].end)); continue }
+                let (before, after) = (elements[(index + count - 1) % count], elements[index % count])
+                let corner = after.start
+                let (n0, n1) = (try before.normal(corner), try after.normal(corner))
+                if n0.cross(n1).length <= tolerance.angle * 1_000, n0.dot(n1) > 0 {
+                    points.append(corner + n0 * distance)
+                } else {
+                    guard let crossing = try crossing(before, after, at: corner, distance: distance, direction: d, tolerance: tolerance) else {
+                        throw failure(.unsupportedCapability, tolerance: tolerance, message: "A thickened strip's offset walls no longer meet at a corner.")
+                    }
+                    points.append(crossing)
+                }
+            }
+            if strip.closed { points.append(points[0]) }
+            return try elements.indices.map { index in
+                let (start, end) = (points[index], points[index + 1])
+                guard let arc = elements[index].arc else { return try .line(from: start, to: end, tolerance: tolerance) }
+                let radius = (start - arc.center).length
+                let circle = Circle3D(center: arc.center, normal: d, radius: radius)
+                let curve = Curve3D.circle(circle)
+                let t0 = try curve.parameterProjection(of: start, tolerance: tolerance).parameter
+                var t1 = try curve.parameterProjection(of: end, tolerance: tolerance).parameter
+                while (t1 - t0) * arc.sense <= 0 { t1 += 2 * Double.pi * arc.sense }
+                while (t1 - t0) * arc.sense > 2 * Double.pi { t1 -= 2 * Double.pi * arc.sense }
+                return try .circularArc(circle: circle, startParameter: t0, endParameter: t1, tolerance: tolerance)
+            }
+        }
+        let upper = try shiftedChain(offsets.upper)
+        let lower = try shiftedChain(offsets.lower)
+        let builder = ExactPrismaticFacePatchBuilder(tolerance: tolerance)
+        let request: BRepSewingRequest
+        if strip.closed {
+            // A tube: the band between the two offset loops, the one around the other its outline.
+            let (outer, inner) = abs(try enclosedArea(upper, about: d)) > abs(try enclosedArea(lower, about: d)) ? (upper, lower) : (lower, upper)
+            request = try builder.request(outerBoundary: try counterclockwise(outer, about: d, tolerance: tolerance),
+                                          innerBoundaries: [try counterclockwise(inner, about: d, tolerance: tolerance).reversedLoop(tolerance: tolerance)],
+                                          axis: d, height: strip.height, featureID: featureID, stablePrefix: "thicken:strip")
+        } else {
+            guard let upperStart = upper.first?.startPoint, let upperEnd = upper.last?.endPoint,
+                  let lowerStart = lower.first?.startPoint, let lowerEnd = lower.last?.endPoint else {
+                throw failure(.invalidInput, tolerance: tolerance, message: "A thickened strip has a trace.")
+            }
+            let loop = upper + [try .line(from: upperEnd, to: lowerEnd, tolerance: tolerance)]
+                + (try lower.reversedLoop(tolerance: tolerance)) + [try .line(from: lowerStart, to: upperStart, tolerance: tolerance)]
+            request = try builder.request(boundary: try counterclockwise(loop, about: d, tolerance: tolerance), axis: d, height: strip.height,
+                                          featureID: featureID, stablePrefix: "thicken:strip")
+        }
+        return BRepSewingRequest(featureID: featureID, bodyKind: .solid, shells: request.shells, bodyParentSubshapeIDs: bodyParents)
+    }
+
+    /// Where two neighbouring strip elements, each moved `distance` along its normal, cross nearest
+    /// their corner, in the plane across `direction`.
+    private func crossing(_ before: StripElement, _ after: StripElement, at corner: Point3D, distance: Double, direction d: Vector3D,
+                          tolerance: ModelingTolerance) throws -> Point3D? {
+        let seed: Vector3D = abs(d.x) < 0.6 ? .unitX : .unitY
+        let u = try d.cross(seed).normalized(tolerance: tolerance.distance)
+        let v = d.cross(u)
+        func flat(_ p: Point3D) -> (Double, Double) { ((p - corner).dot(u), (p - corner).dot(v)) }
+        func flat(_ w: Vector3D) -> (Double, Double) { (w.dot(u), w.dot(v)) }
+        enum Moved { case line(Point3D, Vector3D), circle(Point3D, Double) }
+        func moved(_ element: StripElement) throws -> Moved {
+            let n = try element.normal(corner)
+            if let arc = element.arc {
+                let radial = (corner - arc.center) * (1 / arc.radius)
+                return .circle(arc.center, arc.radius + distance * n.dot(radial))
+            }
+            return .line(corner + n * distance, element.end - element.start)
+        }
+        var candidates: [(Double, Double)] = []
+        switch (try moved(before), try moved(after)) {
+        case let (.line(p, dir), .line(q, eir)):
+            let (px, py) = flat(p), (dx, dy) = flat(dir), (qx, qy) = flat(q), (ex, ey) = flat(eir)
+            let determinant = dx * ey - dy * ex
+            guard abs(determinant) > tolerance.angle else { return nil }
+            let t = ((qx - px) * ey - (qy - py) * ex) / determinant
+            candidates.append((px + dx * t, py + dy * t))
+        case let (.line(p, dir), .circle(c, radius)), let (.circle(c, radius), .line(p, dir)):
+            let (px, py) = flat(p), (dx, dy) = flat(dir), (cx, cy) = flat(c)
+            let (fx, fy) = (px - cx, py - cy)
+            let scale = dx * dx + dy * dy
+            let half = (fx * dx + fy * dy) / scale
+            let discriminant = half * half - (fx * fx + fy * fy - radius * radius) / scale
+            guard discriminant >= 0 else { return nil }
+            for t in [-half - discriminant.squareRoot(), -half + discriminant.squareRoot()] { candidates.append((px + dx * t, py + dy * t)) }
+        case let (.circle(c1, r1), .circle(c2, r2)):
+            let (x1, y1) = flat(c1), (x2, y2) = flat(c2)
+            let (ex, ey) = (x2 - x1, y2 - y1)
+            let separation = (ex * ex + ey * ey).squareRoot()
+            guard separation > tolerance.distance else { return nil }
+            let along = (r1 * r1 - r2 * r2 + separation * separation) / (2 * separation)
+            let heightSquared = r1 * r1 - along * along
+            guard heightSquared >= 0 else { return nil }
+            let (mx, my) = (x1 + ex * along / separation, y1 + ey * along / separation)
+            let h = heightSquared.squareRoot()
+            candidates.append((mx - ey * h / separation, my + ex * h / separation))
+            candidates.append((mx + ey * h / separation, my - ex * h / separation))
+        }
+        guard let nearest = candidates.min(by: { $0.0 * $0.0 + $0.1 * $0.1 < $1.0 * $1.0 + $1.1 * $1.1 }) else { return nil }
+        return corner + u * nearest.0 + v * nearest.1
+    }
+
+    /// The signed area a closed boundary encloses about `direction`, from its segments' ends and
+    /// arcs' bulges sampled.
+    private func enclosedArea(_ loop: [ExactPrismaticBoundarySegment], about direction: Vector3D) throws -> Double {
+        var points: [Point3D] = []
+        for segment in loop { points.append(contentsOf: try segment.samples(count: 8)) }
+        guard let first = points.first else { return 0 }
+        var total = Vector3D.zero
+        for (a, b) in zip(points, points.dropFirst() + [first]) { total = total + (a - first).cross(b - first) }
+        return total.dot(direction) / 2
+    }
+
+    private func counterclockwise(_ loop: [ExactPrismaticBoundarySegment], about direction: Vector3D,
+                                  tolerance: ModelingTolerance) throws -> [ExactPrismaticBoundarySegment] {
+        try enclosedArea(loop, about: direction) >= 0 ? loop : loop.reversedLoop(tolerance: tolerance)
     }
 
     /// Whether every edge two faces share has their normals (as the faces face) agreeing along it.

@@ -460,9 +460,14 @@ the refusals and the native round trip.
 along every edge between the layers. Several faces meeting tangentially along every edge they share
 do the same face by face — their layers meet along the shared edges since the normals agree there —
 with walls only along the sheet's boundary edges. Planar faces meeting at angles re-solve each
-layer's vertices from the offset planes. Curved faces meeting at an angle are refused.
+layer's vertices from the offset planes. A strip of planes and cylinders along one direction, each
+face bounded by two rulings and its base and top curves (an extruded outline's wall, open or
+closed), thickens as its cross-section's band: each side's trace offset along the faces' normals,
+neighbours joined where their offsets cross (or along their common normal where tangent), closed
+across the strip's free ends, and extruded through its height. Other curved faces meeting at an angle
+are refused.
 `ThickenBuilderTests` own the planar sheet's slab, the two-sided offsets and half a cylinder's wall of
-two tangent faces (half an annulus).
+two tangent faces (half an annulus), a D's wall across its sharp corners and an open strip of a flat and an arc (their bands by circular segments).
 
 ### Loft edge continuity
 

@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import SwiftCAD
 
@@ -98,6 +99,70 @@ struct ThickenBuilderTests {
         try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
         let expected = Double.pi / 2 * (0.011 * 0.011 - 0.009 * 0.009) * 0.010
         #expect(abs(try evaluated.brep.volume(tolerance: .standard) - expected) <= 1.0e-12)
+    }
+
+
+    @Test(.timeLimit(.minutes(2)))
+    func aDsWallThickensAcrossItsSharpCorners() throws {
+        // A D's wall (its flat and its arc of radius 10 mm meeting at right angles), 10 mm tall,
+        // thickened 1 mm to each side: the D grown by 1 mm less the D shrunk by 1 mm.
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        func mm(_ value: Double) -> CADExpression { .constant(.length(value, unit: .millimeter)) }
+        let profile = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.arc(center: SketchPoint(x: mm(0), y: mm(0)), radius: mm(10),
+                           startAngle: .constant(.angle(0, unit: .degree)), endAngle: .constant(.angle(180, unit: .degree)))
+            _ = sketch.line(from: SketchPoint(x: mm(-10), y: mm(0)), to: SketchPoint(x: mm(10), y: mm(0)))
+        }
+        let d = try builder.extrude(profile, distance: mm(10))
+        let caps = try [GeneratedSubshapeSelector.generated(role: .startFace), .generated(role: .endFace)].map {
+            try builder.stableSubshape(generatedBy: d, selector: $0)
+        }
+        let wall = try builder.faceDelete(target: d, faces: caps)
+        _ = try builder.thicken(target: wall, front: mm(1), back: mm(1))
+        let evaluated = try CADPipeline(tolerance: .standard).evaluate(try builder.build(name: "d wall"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        // The disc of radius 11 above y = −1, less the disc of radius 9 above y = 1 (mm).
+        let outer = Double.pi * 121 - (121 * acos(1.0 / 11) - 120.0.squareRoot())
+        let inner = 81 * acos(1.0 / 9) - 80.0.squareRoot()
+        let expected = (outer - inner) * 10 * 1e-9
+        let volume = try evaluated.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) <= 1.0e-12, "\(volume) vs \(expected)")
+    }
+
+
+    @Test(.timeLimit(.minutes(2)))
+    func anOpenStripOfAFlatAndAnArcThickensAcrossItsCorner() throws {
+        // A quarter disc of radius 10 mm extruded 10 mm, kept as its flat along X and its arc,
+        // meeting at a right angle at (10, 0) mm, thickened 1 mm to each side.
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        func mm(_ value: Double) -> CADExpression { .constant(.length(value, unit: .millimeter)) }
+        let profile = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.line(from: SketchPoint(x: mm(0), y: mm(0)), to: SketchPoint(x: mm(10), y: mm(0)))
+            _ = sketch.arc(center: SketchPoint(x: mm(0), y: mm(0)), radius: mm(10),
+                           startAngle: .constant(.angle(0, unit: .degree)), endAngle: .constant(.angle(90, unit: .degree)))
+            _ = sketch.line(from: SketchPoint(x: mm(0), y: mm(10)), to: SketchPoint(x: mm(0), y: mm(0)))
+        }
+        let sector = try builder.extrude(profile, distance: mm(10))
+        let evaluated = try CADPipeline(tolerance: .standard).evaluate(try builder.build(name: "strip"))
+        // The face along the Y axis: the plane x = 0.
+        let side = try #require(evaluated.subshapes.entries.first { key, value in
+            guard key.featureID == sector, case let .face(id) = value, let face = evaluated.brep.faces[id],
+                  case let .plane(plane)? = evaluated.brep.geometry.surfaces[face.surfaceID] else { return false }
+            return abs(abs(plane.normal.x) - 1) < 1e-12
+        }?.key)
+        let removed = try [GeneratedSubshapeSelector.generated(role: .startFace), .generated(role: .endFace)].map {
+            try builder.stableSubshape(generatedBy: sector, selector: $0)
+        } + [try builder.stableSubshape(side)]
+        let strip = try builder.faceDelete(target: sector, faces: removed)
+        _ = try builder.thicken(target: strip, front: mm(1), back: mm(1))
+        let thick = try CADPipeline(tolerance: .standard).evaluate(try builder.build(name: "strip"))
+        try thick.brep.validate(level: .volumetric, tolerance: .standard)
+        // Each side's region right of x = 0 and above its flat's offset, inside its arc's offset.
+        func F(_ a: Double, _ u: Double) -> Double { (u * (a * a - u * u).squareRoot() + a * a * asin(u / a)) / 2 }
+        func region(_ rho: Double, _ c: Double) -> Double { F(rho, rho) - F(rho, c) }
+        let expected = (region(11, -1) - region(9, 1)) * 10 * 1e-9
+        let volume = try thick.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) <= 1.0e-12, "\(volume) vs \(expected)")
     }
 
 }
