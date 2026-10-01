@@ -286,4 +286,60 @@ struct SquareSurfaceTests {
         #expect(tangent.samples.allSatisfy { abs(abs($0.normal.z) - 1) < 1e-9 })
         #expect(tangent.samples.contains { $0.curvatures.contains { abs($0) > 1 } })
     }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aTangentSquareLeavesACylindersRimArcInItsTopPlane() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // A 10 mm cylinder 20 mm tall; the Square runs out from its top rim's first quadrant to an
+        // arc of 30 mm 10 mm higher, its rails leaving the top level flat.
+        let cylinder = try builder.cylinder(radius: length(0.01), height: length(0.02))
+        let evaluated = try evaluate(builder)
+        let rim = try #require(evaluated.subshapes.entries.first { key, value in
+            guard key.featureID == cylinder, case let .edge(id) = value, let edge = evaluated.brep.edges[id],
+                  let curve = evaluated.brep.geometry.curves[edge.curveID], case .circle = curve,
+                  let start = evaluated.brep.vertices[edge.startVertexID]?.point,
+                  let end = evaluated.brep.vertices[edge.endVertexID]?.point else { return false }
+            return abs(start.z - 0.02) < 1e-12 && start.x + end.x > 1e-9 && start.y + end.y > 1e-9
+        }?.key)
+        let edge = try builder.stableSubshape(rim)
+        let rimCurve = try builder.edgeCurves(of: cylinder, edges: [edge])
+        let rail: [(Double, Double)] = [(0.01, 0.02), (0.017, 0.02), (0.023, 0.03), (0.03, 0.03)]
+        // Across X sketch x is y; across Y sketch x is -x; sketch y is z on both.
+        let alongY = try builder.sketch(on: .plane(Plane3D(origin: .origin, normal: .unitX))) { sketch in
+            _ = sketch.spline(SketchSpline(controlPoints: rail.map { point($0.0, $0.1) }))
+        }.featureID
+        let alongX = try builder.sketch(on: .plane(Plane3D(origin: .origin, normal: .unitY))) { sketch in
+            _ = sketch.spline(SketchSpline(controlPoints: rail.map { point(-$0.0, $0.1) }))
+        }.featureID
+        let far = try builder.sketch(on: .plane(Plane3D(origin: Point3D(x: 0, y: 0, z: 0.03), normal: .unitZ))) { sketch in
+            _ = sketch.arc(center: point(0, 0), radius: length(0.03),
+                           startAngle: .constant(.angle(0, unit: .radian)), endAngle: .constant(.angle(.pi / 2, unit: .radian)))
+        }.featureID
+        let square = try builder.square(sides: [
+            SquareSide(curve: CurveSectionReference(featureID: rimCurve),
+                       continuity: SurfaceEdgeContinuity(source: cylinder, bodyRole: .body, edge: edge, order: .tangent)),
+            SquareSide(curve: CurveSectionReference(featureID: alongY)),
+            SquareSide(curve: CurveSectionReference(featureID: far)),
+            SquareSide(curve: CurveSectionReference(featureID: alongX)),
+        ])
+        let result = try evaluate(builder)
+        let surface = try #require(result.subshapes.entries.compactMap { key, value -> Surface3D? in
+            guard key.featureID == square, case let .face(id) = value, let face = result.brep.faces[id] else { return nil }
+            return result.brep.geometry.surfaces[face.surfaceID]
+        }.first)
+        guard case let .bSpline(spline) = surface else {
+            Issue.record("A Square is a B-spline sheet.")
+            return
+        }
+        #expect(spline.weights.joined().contains { abs($0 - 1) > 1e-6 })
+        // Along the rim the sheet keeps the top's plane; out at the far arc it has risen.
+        for angle in stride(from: 0.2, to: 1.5, by: 0.3) {
+            let projected = try surface.parameterProjection(of: Point3D(x: 0.01 * cos(angle), y: 0.01 * sin(angle), z: 0.02), tolerance: .standard)
+            #expect(projected.residual < 1e-9)
+            let normal = try surface.differentialGeometry(u: projected.u, v: projected.v, tolerance: .standard).normal
+            #expect(abs(abs(normal.z) - 1) < 1e-9)
+            let outer = try surface.parameterProjection(of: Point3D(x: 0.03 * cos(angle), y: 0.03 * sin(angle), z: 0.03), tolerance: .standard)
+            #expect(outer.residual < 1e-9)
+        }
+    }
 }

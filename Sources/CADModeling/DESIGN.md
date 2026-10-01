@@ -287,12 +287,17 @@ jets, every side's rows (a continuous side's from its support, otherwise linear)
 corner jets. Each corner's mixed derivatives are agreed once for the rows and columns through it:
 the mean of their natural ones, the twist kept in the corner's tangent plane and, beside a planar
 face, the higher ones too, imposed through each row's end control points. Planar faces meeting at
-a corner must be one plane; curved faces are certified within their allowances. Rational sides
-with continuity are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)`.
+a corner must be one plane; curved faces are certified within their allowances. With rational
+sides (arcs) along one side or two opposite ones the Boolean sum is rational over the product of
+the sides' weight functions, `w_b·w_t (u) · w_l·w_r (v)`: `ExactRationalBooleanSum` multiplies
+each term's factors piece by piece in the Bernstein basis and joins the pieces into one exact
+NURBS whose weights are that product. Rational sides along neighbouring sides are refused with
+`FIXME(INCOMPLETE_IMPLEMENTATION)`.
 `SquareSurfaceTests` own the flat frame in any order, the G1 and G2 sheets between two boxes'
 edges, the round trip, the refusal of rails bending out of the faces' planes, a plate's hole filled
 tangent along all four sides, the refusal across a box's walls, and a plate notch's sheet flat
-across two neighbouring edges at curvature order (and bent across them at tangent order).
+across two neighbouring edges at curvature order (and bent across them at tangent order), and a
+rational sheet leaving a cylinder's rim arc in its top plane.
 
 ### Fillet shapes
 

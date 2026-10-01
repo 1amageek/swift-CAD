@@ -54,19 +54,14 @@ package struct ExactHermiteCoonsSurfaceBuilder {
         level: Int, featureID: FeatureID
     ) throws -> (BSplineSurface3D, BSplineCurve3D, BSplineCurve3D) {
         try tolerance.validate()
-        guard [bottom, top, left, right].allSatisfy({ $0.weights.allSatisfy { $0 == 1 } }) else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): a rational side (an arc) makes the Boolean sum
-            // rational with a product denominator, which this builder does not form, so continuity
-            // along a Square with a rational side is refused. Production path:
-            // SquareSurfaceFeatureEvaluator for every Square with a continuous side. Complete only
-            // when rational sides are summed exactly, verified by a G1 Square with an arc side.
-            throw failure(.unsupportedCapability, "A continuous surface's sides are polynomial curves.", featureID)
-        }
+        // Rational sides (arcs) make the sum rational over the product of their weight functions
+        // (`ExactRationalBooleanSum`); polynomial ones keep one polynomial tensor.
+        let rational = [bottom, top, left, right].contains { $0.weights.contains { $0 != 1 } }
         let order = [bottomPlane, topPlane].contains { $0?.order == .curvature } ? 2 : 1
         let degree = order == 2 ? 5 : 3
         let across = try resolver.resolve(first: bottom, second: top, tolerance: tolerance)
         var along = try resolver.resolve(first: left, second: right, tolerance: tolerance)
-        if along.first.degree < degree {
+        if rational == false, along.first.degree < degree {
             let bezier = BSplineCurve3D(degree: degree, knots: Array(repeating: 0, count: degree + 1) + Array(repeating: 1, count: degree + 1),
                                         controlPoints: Array(repeating: .origin, count: degree + 1))
             along = BSplineCurveCommonBasisPair(
@@ -153,6 +148,11 @@ package struct ExactHermiteCoonsSurfaceBuilder {
                 ([0, 0, 0, 0.05, 0, 0], k1, a0s1, a1s1),
             ]
         }
+        if rational {
+            let surface = try rationalSum(terms: terms, b0: b0, b1: b1, a0: a0, a1: a1)
+            try surface.validate(tolerance: tolerance)
+            return (try ExactLoftSideSurfaceBuilder().validated(surface, tolerance: tolerance), b0, b1)
+        }
         let vDegree = a0.degree
         let coefficients = terms.map { term in
             let elevated = elevate(term.bezier, to: vDegree)
@@ -192,7 +192,13 @@ package struct ExactHermiteCoonsSurfaceBuilder {
     ) throws -> BSplineSurface3D {
         let supports = [bottomSupport, topSupport, leftSupport, rightSupport]
         guard [bottom, top, left, right].allSatisfy({ $0.weights.allSatisfy { $0 == 1 } }) else {
-            throw failure(.unsupportedCapability, "A continuous surface's sides are polynomial curves.", featureID)
+            // FIXME(INCOMPLETE_IMPLEMENTATION): continuity along neighbouring sides imposes corner
+            // jets on the rows through the rows' end control points, which a rational side's
+            // weights do not carry, so a rational side is refused here (one side or two opposite
+            // ones take `rationalSum`). Production path: buildAllSides for every Square continuous
+            // along neighbouring sides. Complete only when the four-sided sum is assembled over the
+            // sides' weight product, verified by a G1 Square along two neighbouring arc edges.
+            throw failure(.unsupportedCapability, "A surface continuous along neighbouring sides has polynomial sides.", featureID)
         }
         let exact = supports.allSatisfy { $0?.isExact ?? true }
         var lastFailure: (any Error)?
@@ -439,6 +445,54 @@ package struct ExactHermiteCoonsSurfaceBuilder {
     private func reversed(_ coefficients: [Vector3D], _ curve: BSplineCurve3D) -> ([Vector3D], [Double]) {
         let (first, last) = (curve.knots[0], curve.knots[curve.knots.count - 1])
         return (Array(coefficients.reversed()), curve.knots.reversed().map { first + last - $0 })
+    }
+
+    /// The Boolean sum with rational sides: `(1 − u)·left + u·right + Σ Hₖ(v)·(rowₖ(u) − the linear
+    /// blend of its ends)`, its rows the bottom and top sides themselves and then the derivative
+    /// rows, over the common denominator `w_b·w_t (u) · w_l·w_r (v)`.
+    private func rationalSum(
+        terms: [(bezier: [Double], rows: [Vector3D], left: Vector3D, right: Vector3D)],
+        b0: BSplineCurve3D, b1: BSplineCurve3D, a0: BSplineCurve3D, a1: BSplineCurve3D
+    ) throws -> BSplineSurface3D {
+        let sum = ExactRationalBooleanSum(tolerance: tolerance)
+        func breakpoints(_ knots: [Double]) -> [Double] {
+            var distinct: [Double] = []
+            for knot in knots where distinct.last.map({ knot > $0 }) ?? true { distinct.append(knot) }
+            return distinct
+        }
+        let (ub, vb) = (breakpoints(b0.knots), breakpoints(a0.knots))
+        func scalar(_ value: Double) -> Vector3D { Vector3D(x: value, y: 0, z: 0) }
+        /// A side's numerator (weighted control points) and its weight function.
+        func split(_ curve: BSplineCurve3D, on points: [Double]) throws -> (ExactRationalBooleanSum.Pieces, ExactRationalBooleanSum.Pieces) {
+            let numerator = try sum.pieces(coefficients: zip(curve.controlPoints, curve.weights).map { ($0 - .origin) * $1 },
+                                           knots: curve.knots, degree: curve.degree)
+            let weight = curve.weights.allSatisfy { $0 == 1 }
+                ? sum.pieces(bezier: [scalar(1)], breakpoints: points)
+                : try sum.pieces(coefficients: curve.weights.map(scalar), knots: curve.knots, degree: curve.degree)
+            return (numerator, weight)
+        }
+        let (nb, wb) = try split(b0, on: ub), (nt, wt) = try split(b1, on: ub)
+        let (nl, wl) = try split(a0, on: vb), (nr, wr) = try split(a1, on: vb)
+        let wu = try sum.product(wb, scalar: wt), wv = try sum.product(wl, scalar: wr)
+        let oneMinusU = sum.pieces(bezier: [scalar(1), scalar(0)], breakpoints: ub)
+        let u = sum.pieces(bezier: [scalar(0), scalar(1)], breakpoints: ub)
+        var products: [ExactRationalBooleanSum.Term] = [
+            .init(u: try sum.product(oneMinusU, scalar: wu), v: try sum.product(nl, scalar: wr), vectorAlongU: false),
+            .init(u: try sum.product(u, scalar: wu), v: try sum.product(nr, scalar: wl), vectorAlongU: false),
+        ]
+        for (index, term) in terms.enumerated() {
+            let blend = try sum.product(sum.pieces(bezier: [term.left, term.right], breakpoints: ub), scalar: wu)
+            let row: ExactRationalBooleanSum.Pieces
+            switch index {
+            case 0: row = try sum.product(nb, scalar: wt)
+            case 1: row = try sum.product(nt, scalar: wb)
+            default: row = try sum.product(try sum.pieces(coefficients: term.rows, knots: b0.knots, degree: b0.degree), scalar: wu)
+            }
+            products.append(.init(u: try sum.sum(row, sum.scaled(blend, by: -1)),
+                                  v: try sum.product(sum.pieces(bezier: term.bezier.map(scalar), breakpoints: vb), scalar: wv),
+                                  vectorAlongU: true))
+        }
+        return try sum.surface(terms: products, denominatorU: wu, denominatorV: wv)
     }
 
     /// `curve` with the midpoint of every knot span inserted `level` times over.
