@@ -1549,12 +1549,14 @@ public struct DocumentBuilder {
         return featureID
     }
 
-    /// A pipe along the curve `pathFeatureID` makes: a circle (or polygon) of `diameter` across its
-    /// start, hollow to `thickness` when given, swept within `approximationTolerance`.
+    /// A pipe along the curve `pathFeatureID` makes: a circle (or polygon) of `diameter`, or the
+    /// custom `profile`, across its start, hollow to `thickness` when given, swept within
+    /// `approximationTolerance`. Exactly one of `diameter` and `profile` is given.
     @discardableResult
     public mutating func pipe(
         along pathFeatureID: FeatureID,
-        diameter: CADExpression,
+        diameter: CADExpression? = nil,
+        profile: SectionReference? = nil,
         thickness: CADExpression? = nil,
         vertexCount: Int = 0,
         angle: CADExpression = .constant(.angle(0, unit: .degree)),
@@ -1569,7 +1571,7 @@ public struct DocumentBuilder {
     ) throws -> FeatureID {
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .pipe(PipeFeature(
-            path: SweepPathReference(featureID: pathFeatureID), diameter: diameter, thickness: thickness,
+            path: SweepPathReference(featureID: pathFeatureID), diameter: diameter, profile: profile, thickness: thickness,
             vertexCount: vertexCount, angle: angle, endScale: endScale, start: start, end: end,
             booleanOperation: booleanOperation, targets: targets.map(SweepTargetReference.init),
             keepTools: keepTools, approximationTolerance: approximationTolerance

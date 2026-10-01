@@ -88,7 +88,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 "Round sweep corner style requires curved corner-transition topology for multi-curve paths."
             )
         }
-        let section = try resolvedSection(sectionReference, context: context, featureID: feature.id)
+        let section = try ResolvedModelingSection.resolve(sectionReference, context: context, featureID: feature.id)
         let preferredStartPlane = try ExactSweepSectionPlane(
             try section.plane(),
             tolerance: context.tolerance
@@ -437,34 +437,6 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             return .unitY
         case let .plane(plane):
             return try plane.normal.normalized(tolerance: tolerance.distance)
-        }
-    }
-
-    private func resolvedSection(
-        _ section: SectionReference,
-        context: EvaluationContext,
-        featureID: FeatureID
-    ) throws -> ResolvedModelingSection {
-        switch section {
-        case .face(let reference):
-            // A planar face read as a profile where its body is.
-            return .profile(
-                try FaceSectionProfileResolver().profile(for: reference, context: context, featureID: featureID),
-                section
-            )
-        case .profile(let profileReference):
-            let profile = try ResolvedModelingSection.resolveProfile(
-                profileReference,
-                from: context.profiles[profileReference.featureID]
-            )
-            return .profile(profile, section)
-        case .curve(let curveReference):
-            let curve = try ResolvedModelingSection.resolveCurve(
-                curveReference,
-                from: context.curves[curveReference.featureID],
-                tolerance: context.tolerance
-            )
-            return .curve(curve)
         }
     }
 

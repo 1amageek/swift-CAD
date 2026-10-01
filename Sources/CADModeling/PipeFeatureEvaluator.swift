@@ -4,8 +4,9 @@ import CADGeometry
 import CADIR
 
 /// A pipe as the sweep of its section along its path: the path is cut to the pipe's start and end
-/// fractions of its length, the circle or polygon (hollow for a wall) is laid across the cut
-/// path's start, turned by the pipe's angle, and both are handed to Sweep in a context that holds
+/// fractions of its length, the circle or polygon, or the custom profile placed by
+/// `PipeCustomSectionPlacement` (hollow for a wall), is laid across the cut path's start, turned by
+/// the pipe's angle, and both are handed to Sweep in a context that holds
 /// them under the pipe's own identity. Straight paths, single arcs and curved paths then take
 /// Sweep's exact or certified routes, and a Boolean combines with the pipe's targets.
 package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
@@ -35,13 +36,13 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
             }
             return quantity.value
         }
-        let radius = try value(pipe.diameter, .length) / 2
+        let radius = try pipe.diameter.map { try value($0, .length) / 2 }
         let wall = try pipe.thickness.map { try value($0, .length) }
         let angle = try value(pipe.angle, .angle)
         let start = try value(pipe.start, .scalar)
         let end = try value(pipe.end, .scalar)
-        guard radius > tolerance.distance, wall.map({ $0 > tolerance.distance && $0 < radius }) ?? true,
-              0 <= start, start < end, end <= 1 else {
+        let sectionAdmitted = radius.map { radius in radius > tolerance.distance && (wall.map { $0 < radius } ?? true) } ?? true
+        guard sectionAdmitted, wall.map({ $0 > tolerance.distance }) ?? true, 0 <= start, start < end, end <= 1 else {
             throw failure(.invalidInput, feature.id, tolerance,
                 "A pipe needs a positive diameter, a wall thinner than its radius and 0 ≤ start < end ≤ 1.")
         }
@@ -58,10 +59,22 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
         )
         let geometry = try spans[0].curve.differentialGeometry(at: try lower(of: spans[0].curve), tolerance: tolerance)
         let tangent = try geometry.firstDerivative.normalized(tolerance: tolerance.distance)
-        let section = try profile(
-            featureID: feature.id, origin: geometry.position, normal: tangent,
-            radius: radius, wall: wall, vertexCount: pipe.vertexCount, angle: angle, tolerance: tolerance
-        )
+        let section: Profile
+        if let custom = pipe.profile {
+            guard case let .profile(source, _) = try ResolvedModelingSection.resolve(custom, context: context, featureID: feature.id) else {
+                throw failure(.invalidInput, feature.id, tolerance, "A pipe's custom profile is a region or a planar face.")
+            }
+            section = try PipeCustomSectionPlacement(tolerance: tolerance).placed(
+                source, featureID: feature.id, origin: geometry.position, tangent: tangent, angle: angle, wall: wall
+            )
+        } else if let radius {
+            section = try profile(
+                featureID: feature.id, origin: geometry.position, normal: tangent,
+                radius: radius, wall: wall, vertexCount: pipe.vertexCount, angle: angle, tolerance: tolerance
+            )
+        } else {
+            throw failure(.invalidInput, feature.id, tolerance, "A pipe has either a diameter or a custom profile.")
+        }
         let path = try ExactCompositeBSplineCurveBuilder().build(spans: spans.map(\.curve), tolerance: tolerance)
         guard case let .closed(pathLower, pathUpper) = path.domain else {
             throw failure(.invalidInput, feature.id, tolerance, "A pipe's path has no bounded domain.")

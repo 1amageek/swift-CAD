@@ -8,6 +8,27 @@ package enum ResolvedModelingSection: Sendable {
     case profile(Profile, SectionReference)
     case curve(EvaluatedCurve)
 
+    /// `section` read from `context`: a sketch region, a planar face where its body is, or a curve.
+    package static func resolve(
+        _ section: SectionReference,
+        context: EvaluationContext,
+        featureID: FeatureID
+    ) throws -> ResolvedModelingSection {
+        switch section {
+        case .face(let reference):
+            return .profile(
+                try FaceSectionProfileResolver().profile(for: reference, context: context, featureID: featureID),
+                section
+            )
+        case .profile(let profileReference):
+            return .profile(try resolveProfile(profileReference, from: context.profiles[profileReference.featureID]), section)
+        case .curve(let curveReference):
+            return .curve(try resolveCurve(
+                curveReference, from: context.curves[curveReference.featureID], tolerance: context.tolerance
+            ))
+        }
+    }
+
     package static func resolveProfile(
         _ reference: ProfileReference,
         from profiles: [Profile]?

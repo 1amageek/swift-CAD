@@ -101,6 +101,7 @@ extension FeatureOperation {
             feature.source = try transform(feature.source)
             return .edgeCurve(feature)
         case .pipe(var feature):
+            feature.profile = try feature.profile.map(section)
             feature.path = SweepPathReference(featureID: try transform(feature.path.featureID))
             feature.targets = try feature.targets.map { SweepTargetReference(featureID: try transform($0.featureID)) }
             return .pipe(feature)

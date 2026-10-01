@@ -240,6 +240,16 @@ certified curved sweep within the pipe's allowance; Booleans are Sweep's. `PipeT
 straight, hollow, cut and polygonal volumes, the curved volume within the allowance, the bored box and
 the native round trip.
 
+A custom profile (a region or a planar face, resolved by `ResolvedModelingSection.resolve`, which
+Sweep shares) replaces the circle: `PipeCustomSectionPlacement` carries it rigidly so its area
+centroid (Green's theorem: closed forms for lines and arcs, Gauss–Legendre over each spline's knot
+spans) sits on the cut path's start and its normal, with the sign nearer the tangent, turns onto the
+tangent by the least rotation, then turns it by the angle about the tangent. A wall hollows the
+placed outline through `ExactDraftedProfileBoundaryBuilder.wallProfiles`; a hollow custom section
+with holes of its own is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`: Sweep takes one section).
+`PipeCustomProfileTests` own the placed and turned triangle, the hollow off-centre circle, a box's
+face across a path along another axis, the refusals and the native round trip.
+
 ### Loft section topology
 
 A planar face of a body is a closed Loft section: `FaceSectionProfileResolver` reads it as the

@@ -1487,13 +1487,19 @@ private func validateSweepFeatureObject(_ object: [String: Any], path: String) t
 private func validatePipeFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["path", "diameter", "thickness", "vertexCount", "angle", "endScale", "start", "end",
+        supportedKeys: ["path", "diameter", "profile", "thickness", "vertexCount", "angle", "endScale", "start", "end",
                         "booleanOperation", "targets", "keepTools", "approximationTolerance"],
         objectName: path
     )
     try validateObjectField("path", in: object, path: "\(path).path", using: validateSweepPathReferenceObject)
-    for key in ["diameter", "angle", "endScale", "start", "end", "approximationTolerance"] {
+    for key in ["angle", "endScale", "start", "end", "approximationTolerance"] {
         try validateObjectField(key, in: object, path: "\(path).\(key)", using: validateExpressionObject)
+    }
+    if object["diameter"] != nil {
+        try validateObjectField("diameter", in: object, path: "\(path).diameter", using: validateExpressionObject)
+    }
+    if object["profile"] != nil {
+        try validateObjectField("profile", in: object, path: "\(path).profile", using: validateSectionReferenceObject)
     }
     if object["thickness"] != nil {
         try validateObjectField("thickness", in: object, path: "\(path).thickness", using: validateExpressionObject)

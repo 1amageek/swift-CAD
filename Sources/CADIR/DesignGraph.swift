@@ -201,14 +201,18 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                     }
                     return value.value
                 }
-                let diameter = try resolved(pipe.diameter, .length, "diameter")
+                let diameter = try pipe.diameter.map { try resolved($0, .length, "diameter") }
                 let thickness = try pipe.thickness.map { try resolved($0, .length, "thickness") }
                 let start = try resolved(pipe.start, .scalar, "start")
                 let end = try resolved(pipe.end, .scalar, "end")
                 _ = try resolved(pipe.angle, .angle, "angle")
                 let endScale = try resolved(pipe.endScale, .scalar, "endScale")
                 let allowance = try resolved(pipe.approximationTolerance, .length, "approximationTolerance")
-                guard diameter > tolerance.distance, thickness.map({ $0 > tolerance.distance && 2 * $0 < diameter }) ?? true,
+                // A custom profile's wall is checked against its section when it is offset.
+                let diameterAdmitted = diameter.map { diameter in
+                    diameter > tolerance.distance && (thickness.map { 2 * $0 < diameter } ?? true)
+                } ?? true
+                guard diameterAdmitted, thickness.map({ $0 > tolerance.distance }) ?? true,
                       0 <= start, start < end, end <= 1, endScale > tolerance.relative, allowance > 0 else {
                     throw FeatureEvaluationError.invalidGraph(
                         "A pipe needs a positive diameter, a wall thinner than its radius, 0 ≤ start < end ≤ 1, a positive end scale and allowance."
@@ -915,9 +919,13 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a pipe operation.")
         }
         try pipe.validate()
-        guard node.inputs == [FeatureInput(featureID: pipe.path.featureID, role: .path)]
-            + pipe.targets.map({ FeatureInput(featureID: $0.featureID, role: .target) }) else {
-            throw FeatureEvaluationError.invalidGraph("Pipe features must consume their path and target inputs.")
+        guard node.inputs == pipe.inputs else {
+            throw FeatureEvaluationError.invalidGraph("Pipe features must consume their profile, path and target inputs.")
+        }
+        if let profile = pipe.profile {
+            guard nodes[profile.featureID]?.outputs.contains(where: { $0.role == profile.inputRole }) == true else {
+                throw FeatureEvaluationError.invalidGraph("Pipe profile source must declare a \(profile.inputRole.rawValue) output.")
+            }
         }
         guard nodes[pipe.path.featureID]?.outputs.contains(where: { $0.role == .curve }) == true else {
             throw FeatureEvaluationError.invalidGraph("Pipe path source must declare a curve output.")

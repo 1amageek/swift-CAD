@@ -153,6 +153,9 @@ public enum FeatureNodeFactory {
                     throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
                 }
                 try pipe.validate()
+                if let profile = pipe.profile {
+                    try validateSource(profile.featureID, role: profile.inputRole, in: document)
+                }
                 try validateSource(pipe.path.featureID, role: .curve, in: document)
                 for target in pipe.targets {
                     try validateSource(target.featureID, role: .body, in: document)
@@ -161,8 +164,7 @@ public enum FeatureNodeFactory {
                     id: id,
                     name: name,
                     operation: operation,
-                    inputs: [FeatureInput(featureID: pipe.path.featureID, role: .path)]
-                        + pipe.targets.map { FeatureInput(featureID: $0.featureID, role: .target) },
+                    inputs: pipe.inputs,
                     outputs: [FeatureOutput(role: .body)]
                 )
             }
