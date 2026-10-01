@@ -872,6 +872,8 @@ rebuilt as a quadratic with its edges re-solved on its planes (the volume by Gre
 the new section), a box's round rebuilt flat into the chamfer through its contacts, and a cylinder's
 half wall rebuilt flat into the chord across its caps and its other half (their volumes).
 
+Remove Nominal Surface is Rebuild Face's `nominal` method: each spline face's surface cut exactly to its parameter extent (`BSplineSurface3D.trimmed`, on the same parameters, so its trimming curves hold and it takes its new surface in place), with no extension; an analytic face has no nominal surface beyond its edges and is refused. `FaceRebuildTests` own an arch extended past its edges and cut back (the same parabola on [0, 1]) and the plane's refusal.
+
 ## Unwrap Face
 
 `FaceUnwrapFeatureEvaluator` lays one face flat as a sheet of its own in the XY plane, centred on

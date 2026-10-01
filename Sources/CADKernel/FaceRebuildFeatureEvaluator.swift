@@ -205,6 +205,15 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             throw TopologyError.missingReference("A face to rebuild is missing.")
         }
         var box = try FaceParameterExtentResolver().bounds(for: faceID, in: model, tolerance: tolerance)
+        // Remove Nominal Surface: the face's own spline cut exactly to its extent, on the same
+        // parameters, so its trimming curves hold as they are.
+        if case .nominal = rebuild.method {
+            guard case let .bSpline(spline) = surface else {
+                throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
+                                  message: "Remove Nominal Surface takes spline faces; an analytic face has no nominal surface beyond its edges.")
+            }
+            return try spline.trimmed(uFrom: box.u.lower, uTo: box.u.upper, vFrom: box.v.lower, vTo: box.v.upper, tolerance: tolerance)
+        }
         let point: (Double, Double) throws -> Point3D
         if case let .bSpline(spline) = surface {
             if rebuild.shrinks == false, let u0 = spline.uKnots.first, let u1 = spline.uKnots.last,
@@ -231,6 +240,8 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 layout: MappedBSplineSurfaceFitter.Layout(uDegree: layout.uDegree, vDegree: layout.vDegree, uSpans: layout.uSpans, vSpans: layout.vSpans),
                 u: u, v: v, tolerance: tolerance, point: point
             ).surface
+        case .nominal:
+            throw failure(.invalidInput, featureID, tolerance, "Remove Nominal Surface is cut exactly, not fitted.")
         case .tolerance:
             guard let deviation else { throw failure(.invalidInput, featureID, tolerance, "Rebuild Face lost its tolerance.") }
             return try MappedBSplineSurfaceFitter(deviation: deviation).fit(u: u, v: v, tolerance: tolerance, point: point).surface

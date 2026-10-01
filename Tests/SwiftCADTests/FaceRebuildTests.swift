@@ -101,6 +101,35 @@ struct FaceRebuildTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func removingTheNominalSurfaceCutsTheSplineToItsEdges() throws {
+        // The arch extended a quarter past each end in u, then its nominal surface removed: the
+        // surface ends where the face does again, the same parabola on the same parameters.
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let sheet = try arch(&builder)
+        let (face, before) = try #require(try faces(of: sheet, in: builder).first)
+        let extended = try builder.rebuildFaces(target: sheet, faces: [face], method: .tolerance(.constant(.length(1e-7, unit: .meter))), extendU: 0.25)
+        let (wide, _) = try #require(try faces(of: extended, in: builder).first)
+        let trimmed = try builder.rebuildFaces(target: extended, faces: [wide], method: .nominal)
+        let evaluated = try evaluate(builder)
+        let (_, after) = try #require(try faces(of: trimmed, in: builder).first)
+        guard case let .bSpline(surface) = after else { Issue.record("The face keeps a spline."); return }
+        #expect(abs((surface.uKnots.first ?? 1)) < 1e-12 && abs((surface.uKnots.last ?? 0) - 1) < 1e-12)
+        for (u, v) in [(0.0, 0.0), (0.3, 0.7), (1.0, 1.0)] {
+            let a = try before.differentialGeometry(u: u, v: v, tolerance: .standard).position
+            let b = try after.differentialGeometry(u: u, v: v, tolerance: .standard).position
+            #expect((a - b).length < 1e-7)
+        }
+        #expect(evaluated.brep.faces.count == 1)
+        // A plane has no nominal surface beyond its edges.
+        var box = DocumentBuilder(units: .meters, tolerance: .standard)
+        let side = CADExpression.constant(.length(0.02, unit: .meter))
+        let cube = try box.box(width: side, depth: side, height: side)
+        let (top, _) = try #require(try faces(of: cube, in: box) { isPlane($0) }.first)
+        _ = try box.rebuildFaces(target: cube, faces: [top], method: .nominal)
+        #expect(throws: (any Error).self) { _ = try evaluate(box) }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func aBoxsTopIsRebuiltInPlace() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let side = CADExpression.constant(.length(0.02, unit: .meter))
