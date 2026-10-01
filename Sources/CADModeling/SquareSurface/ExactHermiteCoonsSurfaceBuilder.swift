@@ -191,15 +191,6 @@ package struct ExactHermiteCoonsSurfaceBuilder {
         featureID: FeatureID
     ) throws -> BSplineSurface3D {
         let supports = [bottomSupport, topSupport, leftSupport, rightSupport]
-        guard [bottom, top, left, right].allSatisfy({ $0.weights.allSatisfy { $0 == 1 } }) else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): continuity along neighbouring sides imposes corner
-            // jets on the rows through the rows' end control points, which a rational side's
-            // weights do not carry, so a rational side is refused here (one side or two opposite
-            // ones take `rationalSum`). Production path: buildAllSides for every Square continuous
-            // along neighbouring sides. Complete only when the four-sided sum is assembled over the
-            // sides' weight product, verified by a G1 Square along two neighbouring arc edges.
-            throw failure(.unsupportedCapability, "A surface continuous along neighbouring sides has polynomial sides.", featureID)
-        }
         let exact = supports.allSatisfy { $0?.isExact ?? true }
         var lastFailure: (any Error)?
         for level in 0...(exact ? 0 : 4) {
@@ -383,6 +374,11 @@ package struct ExactHermiteCoonsSurfaceBuilder {
                 return (0..<curve.controlPointCount).map { j in blossom(elevated, Array(curve.knots[(j + 1)...(j + curve.degree)])) }
             }
         }
+        if [b0, b1, a0, a1].contains(where: { $0.weights.contains { $0 != 1 } }) {
+            let surface = try rationalAllSides(hermite: hermite, rows: rows, columns: columns, jet: jet, b0: b0, b1: b1, a0: a0, a1: a1)
+            try surface.validate(tolerance: tolerance)
+            return (try ExactLoftSideSurfaceBuilder().validated(surface, tolerance: tolerance), [b0, b1, a0, a1])
+        }
         let cu = coefficients(b0), cv = coefficients(a0)
         let net = try (0..<a0.controlPointCount).map { j in
             try (0..<b0.controlPointCount).map { i -> Point3D in
@@ -445,6 +441,56 @@ package struct ExactHermiteCoonsSurfaceBuilder {
     private func reversed(_ coefficients: [Vector3D], _ curve: BSplineCurve3D) -> ([Vector3D], [Double]) {
         let (first, last) = (curve.knots[0], curve.knots[curve.knots.count - 1])
         return (Array(coefficients.reversed()), curve.knots.reversed().map { first + last - $0 })
+    }
+
+    /// The four-sided Boolean sum with rational sides: the Hermite blends of the rows across v and
+    /// of the columns across u less the tensor of the corner jets, the rows and columns of order
+    /// zero the sides themselves, over the common denominator `w_b·w_t (u) · w_l·w_r (v)`.
+    private func rationalAllSides(
+        hermite: [(bezier: [Double], corner: Int, order: Int)], rows: [[[Vector3D]]], columns: [[[Vector3D]]],
+        jet: [[[[Vector3D]]]], b0: BSplineCurve3D, b1: BSplineCurve3D, a0: BSplineCurve3D, a1: BSplineCurve3D
+    ) throws -> BSplineSurface3D {
+        let sum = ExactRationalBooleanSum(tolerance: tolerance)
+        func breakpoints(_ knots: [Double]) -> [Double] {
+            var distinct: [Double] = []
+            for knot in knots where distinct.last.map({ knot > $0 }) ?? true { distinct.append(knot) }
+            return distinct
+        }
+        let (ub, vb) = (breakpoints(b0.knots), breakpoints(a0.knots))
+        func scalar(_ value: Double) -> Vector3D { Vector3D(x: value, y: 0, z: 0) }
+        func split(_ curve: BSplineCurve3D, on points: [Double]) throws -> (ExactRationalBooleanSum.Pieces, ExactRationalBooleanSum.Pieces) {
+            let numerator = try sum.pieces(coefficients: zip(curve.controlPoints, curve.weights).map { ($0 - .origin) * $1 },
+                                           knots: curve.knots, degree: curve.degree)
+            let weight = curve.weights.allSatisfy { $0 == 1 }
+                ? sum.pieces(bezier: [scalar(1)], breakpoints: points)
+                : try sum.pieces(coefficients: curve.weights.map(scalar), knots: curve.knots, degree: curve.degree)
+            return (numerator, weight)
+        }
+        let (nb, wb) = try split(b0, on: ub), (nt, wt) = try split(b1, on: ub)
+        let (nl, wl) = try split(a0, on: vb), (nr, wr) = try split(a1, on: vb)
+        let wu = try sum.product(wb, scalar: wt), wv = try sum.product(wl, scalar: wr)
+        var products: [ExactRationalBooleanSum.Term] = []
+        for function in hermite {
+            let hv = try sum.product(sum.pieces(bezier: function.bezier.map(scalar), breakpoints: vb), scalar: wv)
+            let hu = try sum.product(sum.pieces(bezier: function.bezier.map(scalar), breakpoints: ub), scalar: wu)
+            let row = function.order == 0
+                ? try sum.product(function.corner == 0 ? nb : nt, scalar: function.corner == 0 ? wt : wb)
+                : try sum.product(try sum.pieces(coefficients: rows[function.order][function.corner], knots: b0.knots, degree: b0.degree), scalar: wu)
+            let column = function.order == 0
+                ? try sum.product(function.corner == 0 ? nl : nr, scalar: function.corner == 0 ? wr : wl)
+                : try sum.product(try sum.pieces(coefficients: columns[function.order][function.corner], knots: a0.knots, degree: a0.degree), scalar: wv)
+            products.append(.init(u: row, v: hv, vectorAlongU: true))
+            products.append(.init(u: hu, v: column, vectorAlongU: false))
+        }
+        for f in hermite {
+            let hu = try sum.product(sum.pieces(bezier: f.bezier.map(scalar), breakpoints: ub), scalar: wu)
+            for g in hermite {
+                let value = jet[f.corner][g.corner][f.order][g.order] * -1
+                let hv = try sum.product(sum.pieces(bezier: g.bezier.map { value * $0 }, breakpoints: vb), scalar: wv)
+                products.append(.init(u: hu, v: hv, vectorAlongU: false))
+            }
+        }
+        return try sum.surface(terms: products, denominatorU: wu, denominatorV: wv)
     }
 
     /// The Boolean sum with rational sides: `(1 − u)·left + u·right + Σ Hₖ(v)·(rowₖ(u) − the linear

@@ -224,13 +224,22 @@ struct SquareSurfaceTests {
     /// plate's top along the notch's two edges (x = 0 and y = 20 mm), its other two sides rails
     /// that leave and reach the top level and flat (two cubic spans each), rising 5 mm between. Returns the Square's
     /// normals and normal curvatures at points along both continuous sides.
-    private func notchSquare(order: SurfaceEdgeContinuity.Order) throws -> (spline: BSplineSurface3D, samples: [(normal: Vector3D, curvatures: [Double])]) {
+    /// With `arcSide` the notch's x = 0 side is an arc of 53° bulging into the notch (centre
+    /// (-a, a/2), radius √5·a/2), so the continuous sides are an arc and a line.
+    private func notchSquare(order: SurfaceEdgeContinuity.Order, arcSide: Bool = false) throws -> (spline: BSplineSurface3D, samples: [(normal: Vector3D, curvatures: [Double])]) {
         let (a, t, h) = (0.02, 0.01, 0.005)
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let outline: [(Double, Double)] = [(-a, 0), (0, 0), (0, a), (a, a), (a, 2 * a), (-a, 2 * a)]
+        let (c, r) = (a, 5.0.squareRoot() * a / 2)
         let sketch = try builder.sketch(on: .xy) { sketch in
             for (start, end) in zip(outline, outline.dropFirst() + outline.prefix(1)) {
-                _ = sketch.line(from: point(start.0, start.1), to: point(end.0, end.1))
+                if arcSide, start == (0, 0) {
+                    _ = sketch.arc(center: point(-c, a / 2), radius: length(r),
+                                   startAngle: .constant(.angle(atan2(-a / 2, c), unit: .radian)),
+                                   endAngle: .constant(.angle(atan2(a / 2, c), unit: .radian)))
+                } else {
+                    _ = sketch.line(from: point(start.0, start.1), to: point(end.0, end.1))
+                }
             }
         }.featureID
         let plate = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(t))
@@ -266,7 +275,9 @@ struct SquareSurfaceTests {
         }.first)
         guard case let .bSpline(spline) = surface else { throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: .standard, message: "A Square is a B-spline sheet.") }
         let samples = try [0.004, 0.01, 0.016].flatMap { s in
-            try [Point3D(x: 0, y: s, z: t), Point3D(x: s, y: a, z: t)].map { point in
+            // Along the x = 0 side: on the arc at the same height above y = 0 when it is one.
+            let side = arcSide ? Point3D(x: -c + (r * r - (s - a / 2) * (s - a / 2)).squareRoot(), y: s, z: t) : Point3D(x: 0, y: s, z: t)
+            return try [side, Point3D(x: s, y: a, z: t)].map { point in
                 let projected = try surface.parameterProjection(of: point, tolerance: .standard)
                 #expect(projected.residual < 1e-9)
                 let geometry = try surface.differentialGeometry(u: projected.u, v: projected.v, tolerance: .standard)
@@ -285,6 +296,18 @@ struct SquareSurfaceTests {
         let tangent = try notchSquare(order: .tangent)
         #expect(tangent.samples.allSatisfy { abs(abs($0.normal.z) - 1) < 1e-9 })
         #expect(tangent.samples.contains { $0.curvatures.contains { abs($0) > 1 } })
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aSquareAlongAnArcAndALineMeetingAtACornerIsRationalAndContinuous() throws {
+        for order in [SurfaceEdgeContinuity.Order.tangent, .curvature] {
+            let result = try notchSquare(order: order, arcSide: true)
+            #expect(result.spline.weights.joined().contains { abs($0 - 1) > 1e-6 })
+            #expect(result.samples.allSatisfy { abs(abs($0.normal.z) - 1) < 1e-9 })
+            if order == .curvature {
+                #expect(result.samples.allSatisfy { $0.curvatures.allSatisfy { abs($0) < 1e-6 } })
+            }
+        }
     }
 
     @Test(.timeLimit(.minutes(2)))
