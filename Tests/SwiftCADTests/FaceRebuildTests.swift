@@ -10,7 +10,7 @@ import CADTopology
 /// Rebuild Face refits a face's surface on its own parameters: a sheet of one face to an explicit
 /// layout or widened past its edges, and faces sharing edges in place within a tolerance, tangent
 /// neighbours and open edges and all; a face sharing edges with planes it crosses refitted coarser
-/// than the modeling tolerance, its edges re-solved on them; a wall closed on itself refused.
+/// than the modeling tolerance, its edges re-solved on them.
 @Suite("Rebuild Face")
 struct FaceRebuildTests {
     private let s = 0.02
@@ -192,12 +192,67 @@ struct FaceRebuildTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
-    func anEnclosedFaceRebuiltCoarselyIsRefused() throws {
+    func aRoundRebuiltFlatBecomesAChamfer() throws {
+        // A 20 mm box's top edge rounded by 4 mm, its round rebuilt bilinear: a flat face crossing
+        // the top and the side it was tangent to, its edges re-solved where it crosses them.
+        let (side, radius) = (0.02, 0.004)
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
-        let cylinder = try builder.cylinder(radius: .constant(.length(0.01, unit: .meter)), height: .constant(.length(0.02, unit: .meter)))
+        let length = { (value: Double) in CADExpression.constant(.length(value, unit: .meter)) }
+        let box = try builder.box(width: length(side), depth: length(side), height: length(side))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        let edge = try #require(before.subshapes.entries.first { key, value in
+            guard key.featureID == box, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  let start = before.brep.vertices[edge.startVertexID]?.point,
+                  let end = before.brep.vertices[edge.endVertexID]?.point else { return false }
+            return [start, end].allSatisfy { abs($0.y) < 1e-12 && abs($0.z - side) < 1e-12 }
+        }?.key)
+        let fillet = try builder.fillet(target: box, edges: [try builder.stableSubshape(edge)], radius: length(radius))
+        let (round, _) = try #require(try faces(of: fillet, in: builder) { isCylinder($0) }.first)
+        let rebuilt = try builder.rebuildFaces(target: fillet, faces: [round],
+                                               method: .explicit(SurfaceControlLayout(uDegree: 1, vDegree: 1, uSpans: 1, vSpans: 1)))
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "rebuild"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        let (_, flat) = try #require(try faces(of: rebuilt, in: builder) { if case .bSpline = $0 { return true }; return false }.first)
+        guard case let .bSpline(surface) = flat else { Issue.record("The flat face is a B-spline surface."); return }
+        let corner = try flat.differentialGeometry(u: surface.uKnots.first ?? 0, v: surface.vKnots.first ?? 0, tolerance: .standard)
+        let normal = try corner.tangentU.cross(corner.tangentV).normalized(tolerance: 1e-12)
+        // Where the flat face's line across the edge meets the top (z = side) and the side (y = 0).
+        let p = corner.position
+        let atTop = p.y - normal.z * (side - p.z) / normal.y
+        let atSide = p.z - normal.y * (0 - p.y) / normal.z
+        // The bilinear refit keeps the round's corners: the chord through its contact lines.
+        #expect(abs(atTop - radius) < 1e-9 && abs(atSide - (side - radius)) < 1e-9, "\(atTop) \(atSide)")
+        let volume = try self.volume(of: rebuilt, in: evaluated)
+        #expect(abs(volume - (side * side * side - atTop * (side - atSide) / 2 * side)) < 1e-10, "\(volume)")
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aCylindersHalfWallRebuiltFlatCutsItAlongAChord() throws {
+        // A bilinear refit of one half of a cylinder's wall is a flat wall: its edges re-solved
+        // where it crosses the caps and the other half's cylinder, the section the disc cut by
+        // that chord.
+        let (r, h) = (0.01, 0.02)
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let cylinder = try builder.cylinder(radius: .constant(.length(r, unit: .meter)), height: .constant(.length(h, unit: .meter)))
         let (wall, _) = try #require(try faces(of: cylinder, in: builder) { isCylinder($0) }.first)
-        _ = try builder.rebuildFaces(target: cylinder, faces: [wall], method: .explicit(SurfaceControlLayout(uDegree: 1, vDegree: 1, uSpans: 1, vSpans: 1)))
-        #expect(throws: (any Error).self) { _ = try evaluate(builder) }
+        let rebuilt = try builder.rebuildFaces(target: cylinder, faces: [wall],
+                                               method: .explicit(SurfaceControlLayout(uDegree: 1, vDegree: 1, uSpans: 1, vSpans: 1)))
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "rebuild"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        let (_, flat) = try #require(try faces(of: rebuilt, in: builder) { if case .bSpline = $0 { return true }; return false }.first)
+        guard case let .bSpline(surface) = flat else { Issue.record("The flat wall is a B-spline surface."); return }
+        // The flat wall's plane: its distance c from the axis, the same at its corners.
+        let corners = try [(surface.uKnots.first ?? 0, surface.vKnots.first ?? 0), (surface.uKnots.last ?? 0, surface.vKnots.last ?? 0)].map {
+            try flat.differentialGeometry(u: $0.0, v: $0.1, tolerance: .standard)
+        }
+        let normal = try corners[0].tangentU.cross(corners[0].tangentV).normalized(tolerance: 1e-12)
+        let c = abs(normal.dot(corners[0].position - Point3D(x: 0, y: 0, z: corners[0].position.z)))
+        #expect(abs(abs(normal.dot(corners[1].position - Point3D(x: 0, y: 0, z: corners[1].position.z))) - c) < 1e-12)
+        #expect(c < r)
+        // The disc less the segment beyond the chord at distance c.
+        let segment = r * r * acos(c / r) - c * (r * r - c * c).squareRoot()
+        let volume = try self.volume(of: rebuilt, in: evaluated)
+        #expect(abs(volume - (Double.pi * r * r - segment) * h) < 1e-10, "\(volume)")
     }
 
     @Test(.timeLimit(.minutes(2)))

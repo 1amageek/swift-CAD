@@ -5,17 +5,45 @@ import CADModeling
 import CADTopology
 
 /// The edges around a face rebuilt coarser than its edges allow, re-solved onto its new surface
-/// where its neighbours are planes crossing it: each vertex where the new surface meets its two
-/// neighbouring planes (Newton on the surface's parameters from the old vertex), each edge the new
-/// surface's intersection with its neighbour's plane between those vertices — its trimming curve
-/// on the new surface fitted through the intersection's parameters, the edge the surface along it,
-/// fitted within an eighth of the distance tolerance — and each neighbour's straight edges reaching
-/// a moved vertex run to it along their line, where the two planes still meet.
+/// where its neighbours are planes, cylinders or spheres crossing it: each corner where the new
+/// surface meets its two neighbours (Newton on the surface's parameters from the old corner, on the
+/// neighbours' signed distances), each edge the new surface's crossing of its neighbour between those
+/// corners — its trimming curve on the new surface fitted through the crossing's parameters, the edge
+/// the surface along it, fitted within an eighth of the distance tolerance — and each neighbour's
+/// straight or circular edges reaching a moved corner run to it along their own line or circle, where
+/// the two neighbours still meet.
 struct RebuiltFaceEdgeResolver {
     private let tolerance: ModelingTolerance
 
     init(tolerance: ModelingTolerance) {
         self.tolerance = tolerance
+    }
+
+    /// A neighbour as its signed distance: zero on it, its gradient a unit normal.
+    private enum Neighbour {
+        case plane(origin: Point3D, normal: Vector3D)
+        case cylinder(origin: Point3D, axis: Vector3D, radius: Double)
+        case sphere(center: Point3D, radius: Double)
+
+        func distance(_ point: Point3D) -> Double {
+            switch self {
+            case let .plane(origin, normal): return normal.dot(point - origin)
+            case let .cylinder(origin, axis, radius):
+                let offset = point - origin
+                return (offset - axis * offset.dot(axis)).length - radius
+            case let .sphere(center, radius): return (point - center).length - radius
+            }
+        }
+
+        func gradient(_ point: Point3D, tolerance: ModelingTolerance) throws -> Vector3D {
+            switch self {
+            case let .plane(_, normal): return normal
+            case let .cylinder(origin, axis, _):
+                let offset = point - origin
+                return try (offset - axis * offset.dot(axis)).normalized(tolerance: tolerance.distance)
+            case let .sphere(center, _): return try (point - center).normalized(tolerance: tolerance.distance)
+            }
+        }
     }
 
     /// The patches with the face's and its neighbours' re-solved: `patches` lists every face of the
@@ -25,10 +53,12 @@ struct RebuiltFaceEdgeResolver {
         func refuse(_ message: String) -> KernelError {
             KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance, message: message)
         }
-        guard let face = model.faces[faceID] else { throw TopologyError.missingReference("A rebuilt face is missing.") }
+        guard let face = model.faces[faceID], let oldSurface = model.geometry.surfaces[face.surfaceID] else {
+            throw TopologyError.missingReference("A rebuilt face is missing.")
+        }
         let new = Surface3D.bSpline(surface)
-        // Each edge of the face with its neighbour's plane.
-        var neighbours: [EdgeID: (faceID: FaceID, plane: Plane3D)] = [:]
+        // Each edge of the face with its neighbour.
+        var neighbours: [EdgeID: (faceID: FaceID, neighbour: Neighbour)] = [:]
         var vertexFaces: [VertexID: Set<FaceID>] = [:]
         for loopID in face.loops {
             for coedge in model.loops[loopID]?.coedges ?? [] {
@@ -38,15 +68,27 @@ struct RebuiltFaceEdgeResolver {
                 guard others.count == 1, let (otherID, other) = others.first else {
                     throw refuse("A rebuilt face's edges each bound one other face.")
                 }
-                guard case let .plane(plane)? = model.geometry.surfaces[other.surfaceID] else {
+                let neighbour: Neighbour
+                switch model.geometry.surfaces[other.surfaceID] {
+                case let .plane(plane)?:
+                    neighbour = .plane(origin: plane.origin, normal: try plane.normal.normalized(tolerance: tolerance.distance))
+                case let .cylinder(cylinder)?:
+                    neighbour = .cylinder(origin: cylinder.origin, axis: try cylinder.axis.normalized(tolerance: tolerance.distance),
+                                          radius: cylinder.radius)
+                case let .analytic(.cylinder(origin, axis, radius))?:
+                    neighbour = .cylinder(origin: origin, axis: try axis.normalized(tolerance: tolerance.distance), radius: radius)
+                case let .analytic(.sphere(center, radius))?:
+                    neighbour = .sphere(center: center, radius: radius)
+                default:
                     // FIXME(INCOMPLETE_IMPLEMENTATION): a face rebuilt coarser than its edges allow
-                    // beside a curved neighbour needs their surfaces intersected anew, which is not
-                    // built, so it is refused. Production path: FaceRebuildFeatureEvaluator through
-                    // RebuiltFaceEdgeResolver. Complete only when such edges are re-solved, verified
-                    // by rebuilding coarsely a face meeting a cylinder.
-                    throw refuse("A face rebuilt coarser than its edges allow meets planes.")
+                    // beside a cone, torus, spline or procedural neighbour needs their surfaces
+                    // intersected anew, which is not built, so it is refused. Production path:
+                    // FaceRebuildFeatureEvaluator through RebuiltFaceEdgeResolver. Complete only
+                    // when such edges are re-solved, verified by rebuilding coarsely a face meeting
+                    // a spline surface.
+                    throw refuse("A face rebuilt coarser than its edges allow meets planes, cylinders or spheres.")
                 }
-                neighbours[coedge.edgeID] = (otherID, plane)
+                neighbours[coedge.edgeID] = (otherID, neighbour)
                 guard let edge = model.edges[coedge.edgeID] else { throw TopologyError.missingReference("A rebuilt face's edge is missing.") }
                 for vertexID in [edge.startVertexID, edge.endVertexID] { vertexFaces[vertexID, default: []].insert(otherID) }
             }
@@ -60,18 +102,18 @@ struct RebuiltFaceEdgeResolver {
                 throw refuse("A rebuilt face's edges move past its new surface; extend it.")
             }
         }
-        // Each vertex where the new surface meets its two neighbouring planes.
+        // Each corner where the new surface meets its two neighbours.
         let oldPcurves = try pcurves(of: faceID, model: model)
         var moved: [VertexID: (point: Point3D, uv: SurfaceParameter)] = [:]
         for (vertexID, faces) in vertexFaces {
             guard faces.count == 2, let old = model.vertices[vertexID]?.point else {
                 throw refuse("A rebuilt face's corners each meet two other faces.")
             }
-            let planes = try faces.sorted().map { id -> Plane3D in
-                guard let plane = neighbours.values.first(where: { $0.faceID == id })?.plane else {
+            let pair = try faces.sorted().map { id -> Neighbour in
+                guard let neighbour = neighbours.values.first(where: { $0.faceID == id })?.neighbour else {
                     throw TopologyError.missingReference("A rebuilt face's neighbour is missing.")
                 }
-                return plane
+                return neighbour
             }
             guard let start = oldPcurves.first(where: { $0.start.point.isApproximatelyEqual(to: old, tolerance: tolerance.distance) })?.start.uv
                     ?? oldPcurves.first(where: { $0.end.point.isApproximatelyEqual(to: old, tolerance: tolerance.distance) })?.end.uv else {
@@ -80,19 +122,18 @@ struct RebuiltFaceEdgeResolver {
             var uv = start
             for _ in 0..<64 {
                 let (point, du, dv) = try jet(uv)
-                let n = try planes.map { try $0.normal.normalized(tolerance: tolerance.distance) }
-                let f = [n[0].dot(point - planes[0].origin), n[1].dot(point - planes[1].origin)]
-                let (a, b, c, d) = (n[0].dot(du), n[0].dot(dv), n[1].dot(du), n[1].dot(dv))
+                let f = pair.map { $0.distance(point) }
+                if abs(f[0]) + abs(f[1]) <= tolerance.distance * 1e-6 { break }
+                let g = try pair.map { try $0.gradient(point, tolerance: tolerance) }
+                let (a, b, c, d) = (g[0].dot(du), g[0].dot(dv), g[1].dot(du), g[1].dot(dv))
                 let determinant = a * d - b * c
                 guard abs(determinant) > 1e-14 * max(1, du.length * dv.length) else {
                     throw refuse("A rebuilt face's new surface runs along its neighbours at a corner.")
                 }
-                let step = SurfaceParameter(u: -(d * f[0] - b * f[1]) / determinant, v: -(-c * f[0] + a * f[1]) / determinant)
-                uv = SurfaceParameter(u: uv.u + step.u, v: uv.v + step.v)
-                if abs(f[0]) + abs(f[1]) <= tolerance.distance * 1e-6 { break }
+                uv = SurfaceParameter(u: uv.u - (d * f[0] - b * f[1]) / determinant, v: uv.v - (-c * f[0] + a * f[1]) / determinant)
             }
             let point = try jet(uv).point
-            for plane in planes where abs(try plane.normal.normalized(tolerance: tolerance.distance).dot(point - plane.origin)) > tolerance.distance / 16 {
+            guard pair.allSatisfy({ abs($0.distance(point)) <= tolerance.distance / 16 }) else {
                 throw refuse("A rebuilt face's new surface does not meet its neighbours at a corner.")
             }
             moved[vertexID] = (point, uv)
@@ -107,17 +148,16 @@ struct RebuiltFaceEdgeResolver {
         }
         let parameterFitter = try SpatialCurveFitter(deviation: tolerance.distance / (8 * max(scale, 1)))
         let curveFitter = try SpatialCurveFitter(deviation: tolerance.distance / 8)
-        // Each edge: the new surface's crossing of its neighbour's plane between its moved ends.
+        // Each edge: the new surface's crossing of its neighbour between its moved ends.
         var resolved: [EdgeID: (curve: BSplineCurve3D, pcurve: BSplineCurve2D, start: Point3D, end: Point3D)] = [:]
         for old in oldPcurves {
-            guard let neighbour = neighbours[old.edgeID], let edge = model.edges[old.edgeID],
+            guard let neighbour = neighbours[old.edgeID]?.neighbour, let edge = model.edges[old.edgeID],
                   let a = moved[old.forward ? edge.startVertexID : edge.endVertexID],
                   let b = moved[old.forward ? edge.endVertexID : edge.startVertexID] else {
                 throw TopologyError.missingReference("A rebuilt face's edge lost its corners.")
             }
-            let normal = try neighbour.plane.normal.normalized(tolerance: tolerance.distance)
             // Along the old trimming curve with its ends carried onto the new corners, each point
-            // slid across the curve's direction onto the plane.
+            // slid across the curve's direction onto the neighbour.
             let (startShift, endShift) = (SurfaceParameter(u: a.uv.u - old.start.uv.u, v: a.uv.v - old.start.uv.v),
                                           SurfaceParameter(u: b.uv.u - old.end.uv.u, v: b.uv.v - old.end.uv.v))
             func parameter(_ t: Double) throws -> SurfaceParameter {
@@ -126,28 +166,28 @@ struct RebuiltFaceEdgeResolver {
                 let base = try old.pcurve.parameter(atNormalizedFraction: t, tolerance: tolerance)
                 let ahead = try old.pcurve.parameter(atNormalizedFraction: min(1, t + 1e-4), tolerance: tolerance)
                 let behind = try old.pcurve.parameter(atNormalizedFraction: max(0, t - 1e-4), tolerance: tolerance)
-                let tangent = (ahead.u - behind.u, ahead.v - behind.v)
-                let across = (-tangent.1, tangent.0)
+                let across = (-(ahead.v - behind.v), ahead.u - behind.u)
                 var uv = SurfaceParameter(u: base.u + (1 - t) * startShift.u + t * endShift.u,
                                           v: base.v + (1 - t) * startShift.v + t * endShift.v)
                 for _ in 0..<64 {
                     let (point, du, dv) = try jet(uv)
-                    let f = normal.dot(point - neighbour.plane.origin)
+                    let f = neighbour.distance(point)
                     if abs(f) <= tolerance.distance * 1e-6 { break }
-                    let slope = normal.dot(du) * across.0 + normal.dot(dv) * across.1
+                    let g = try neighbour.gradient(point, tolerance: tolerance)
+                    let slope = g.dot(du) * across.0 + g.dot(dv) * across.1
                     guard abs(slope) > 1e-14 * max(1, du.length + dv.length) else {
-                        // FIXME(INCOMPLETE_IMPLEMENTATION): a face rebuilt coarser than its edges
-                        // allow beside a tangent neighbour has no crossing to re-solve its edge on,
-                        // so it is refused. Production path: FaceRebuildFeatureEvaluator through
-                        // RebuiltFaceEdgeResolver. Complete only when such edges are re-solved
-                        // tangent neighbours included, verified by rebuilding a fillet face of a
-                        // solid to a coarse layout.
+                        // FIXME(INCOMPLETE_IMPLEMENTATION): a new surface that strays from an edge
+                        // while touching its neighbour there without crossing it (a refit kept
+                        // tangent to the faces beside a round) has no crossing to re-solve the edge
+                        // on, so it is refused. Production path: FaceRebuildFeatureEvaluator through
+                        // RebuiltFaceEdgeResolver. Complete only when such edges are re-solved,
+                        // verified by a round refitted coarsely but tangent to its neighbours.
                         throw refuse("A face rebuilt coarser than its edges allow crosses its neighbours.")
                     }
                     let s = -f / slope
                     uv = SurfaceParameter(u: uv.u + s * across.0, v: uv.v + s * across.1)
                 }
-                guard abs(normal.dot(try jet(uv).point - neighbour.plane.origin)) <= tolerance.distance / 16 else {
+                guard abs(neighbour.distance(try jet(uv).point)) <= tolerance.distance / 16 else {
                     throw refuse("A face rebuilt coarser than its edges allow crosses its neighbours.")
                 }
                 return uv
@@ -165,14 +205,14 @@ struct RebuiltFaceEdgeResolver {
             let curve = try curveFitter.fitBSpline(breakpoints: [0, 1], tolerance: tolerance, point: along).curve
             for index in 0...32 {
                 let point = try curve.point(at: Double(index) / 32, tolerance: tolerance)
-                guard abs(normal.dot(point - neighbour.plane.origin)) <= tolerance.distance / 4 else {
-                    throw refuse("A re-solved edge strays from its neighbour's plane.")
+                guard abs(neighbour.distance(point)) <= tolerance.distance / 4 else {
+                    throw refuse("A re-solved edge strays from its neighbour.")
                 }
             }
             resolved[old.edgeID] = (curve, pcurve, a.point, b.point)
         }
         // The patches: the face on its new surface, its neighbours along the new edges and their
-        // straight edges to the moved corners.
+        // edges to the moved corners.
         let movedPoints = try moved.map { vertexID, value -> (from: Point3D, to: Point3D) in
             guard let point = model.vertices[vertexID]?.point else { throw TopologyError.missingReference("A moved corner is missing.") }
             return (point, value.point)
@@ -180,7 +220,6 @@ struct RebuiltFaceEdgeResolver {
         func movedPoint(_ point: Point3D) -> Point3D? {
             movedPoints.first { $0.from.isApproximatelyEqual(to: point, tolerance: tolerance.distance) }?.to
         }
-        guard let oldSurface = model.geometry.surfaces[face.surfaceID] else { throw TopologyError.missingReference("A rebuilt face's surface is missing.") }
         let oldEnds = try oldPcurves.map { pcurve -> (edgeID: EdgeID, start: Point3D, end: Point3D, middle: Point3D) in
             let uv = try pcurve.pcurve.parameter(atNormalizedFraction: 0.5, tolerance: tolerance)
             return (pcurve.edgeID, pcurve.start.point, pcurve.end.point, try oldSurface.point(u: uv.u, v: uv.v, tolerance: tolerance))
@@ -197,18 +236,10 @@ struct RebuiltFaceEdgeResolver {
                     && (candidate.middle - middle).length <= max(tolerance.distance, 1e-3 * (candidate.end - candidate.start).length)
             }), let new = resolved[match.edgeID] else { return nil }
             let forward = match.start.isApproximatelyEqual(to: edge.startPoint, tolerance: tolerance.distance)
-            let pcurve: SurfaceParameterCurve
-            if own {
-                pcurve = .bSpline(new.pcurve)
-            } else {
-                let projected = try new.curve.controlPoints.map { point -> Point2D in
-                    let uv = try surface.parameterProjection(of: point, tolerance: tolerance)
-                    return Point2D(x: uv.u, y: uv.v)
-                }
-                pcurve = .bSpline(BSplineCurve2D(degree: new.curve.degree, knots: new.curve.knots, controlPoints: projected, weights: new.curve.weights))
-            }
+            let curve = Curve3D.bSpline(new.curve)
+            let pcurve: SurfaceParameterCurve = own ? .bSpline(new.pcurve) : try fittedPcurve(curve, from: 0, to: 1, on: surface)
             let (t0, t1) = forward ? (0.0, 1.0) : (1.0, 0.0)
-            return BRepSewingEdge(stableID: edge.stableID, curve: .bSpline(new.curve), startParameter: t0, endParameter: t1,
+            return BRepSewingEdge(stableID: edge.stableID, curve: curve, startParameter: t0, endParameter: t1,
                                   startPoint: forward ? new.start : new.end, endPoint: forward ? new.end : new.start,
                                   surfaceParameterCurve: forward ? pcurve : try pcurve.reversed(tolerance: tolerance),
                                   parentSubshapeIDs: edge.parentSubshapeIDs,
@@ -236,28 +267,92 @@ struct RebuiltFaceEdgeResolver {
                     if let replaced = try replacement(edge, on: patch.surface, own: false) { return replaced }
                     let (start, end) = (movedPoint(edge.startPoint), movedPoint(edge.endPoint))
                     guard start != nil || end != nil else { return edge }
-                    guard case .line = edge.curve else {
-                        throw refuse("A rebuilt face's neighbours reach its corners along straight edges.")
-                    }
-                    let (p, q) = (start ?? edge.startPoint, end ?? edge.endPoint)
-                    let delta = q - p
-                    guard delta.dot(edge.endPoint - edge.startPoint) > tolerance.distance * delta.length else {
-                        throw refuse("A rebuilt face's new corners pass the ends of its neighbours' edges.")
-                    }
-                    let (pa, pb) = (try patch.surface.parameterProjection(of: p, tolerance: tolerance),
-                                    try patch.surface.parameterProjection(of: q, tolerance: tolerance))
-                    return BRepSewingEdge(stableID: edge.stableID,
-                                          curve: .line(Line3D(origin: p, direction: try delta.normalized(tolerance: tolerance.distance))),
-                                          startParameter: 0, endParameter: delta.length, startPoint: p, endPoint: q,
-                                          surfaceParameterCurve: .polyline([SurfaceParameter(u: pa.u, v: pa.v), SurfaceParameter(u: pb.u, v: pb.v)]),
-                                          parentSubshapeIDs: edge.parentSubshapeIDs,
-                                          startVertexParentSubshapeIDs: edge.startVertexParentSubshapeIDs,
-                                          endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs)
+                    return try movedEdge(edge, start: start ?? edge.startPoint, end: end ?? edge.endPoint, on: patch.surface, refuse)
                 })
             }
             return BRepSewingFacePatch(stableID: patch.stableID, surface: patch.surface, orientation: patch.orientation, loops: loops,
                                        parentSubshapeIDs: patch.parentSubshapeIDs)
         }
+    }
+
+    /// A neighbour's straight or circular edge run to its moved ends along its own line or circle,
+    /// with its trimming curve on the neighbour.
+    private func movedEdge(_ edge: BRepSewingEdge, start p: Point3D, end q: Point3D, on surface: Surface3D,
+                           _ refuse: (String) -> KernelError) throws -> BRepSewingEdge {
+        let curve: Curve3D
+        let (t0, t1): (Double, Double)
+        switch edge.curve {
+        case .line:
+            let delta = q - p
+            guard delta.dot(edge.endPoint - edge.startPoint) > tolerance.distance * delta.length else {
+                throw refuse("A rebuilt face's new corners pass the ends of its neighbours' edges.")
+            }
+            curve = .line(Line3D(origin: p, direction: try delta.normalized(tolerance: tolerance.distance)))
+            (t0, t1) = (0, delta.length)
+        case .circle:
+            // The same circle, each end's parameter the turn nearest its old one.
+            curve = edge.curve
+            func near(_ point: Point3D, _ old: Double) throws -> Double {
+                let raw = try curve.parameterProjection(of: point, tolerance: tolerance).parameter
+                var delta = (raw - old).truncatingRemainder(dividingBy: 2 * Double.pi)
+                if delta > Double.pi { delta -= 2 * Double.pi }
+                if delta < -Double.pi { delta += 2 * Double.pi }
+                return old + delta
+            }
+            (t0, t1) = (try near(p, edge.startParameter), try near(q, edge.endParameter))
+            guard (t1 - t0) * (edge.endParameter - edge.startParameter) > 0 else {
+                throw refuse("A rebuilt face's new corners pass the ends of its neighbours' edges.")
+            }
+        default:
+            throw refuse("A rebuilt face's neighbours reach its corners along straight or circular edges.")
+        }
+        let pcurve: SurfaceParameterCurve
+        if case .line = curve, case .plane = surface {
+            let (a, b) = (try surface.parameterProjection(of: p, tolerance: tolerance), try surface.parameterProjection(of: q, tolerance: tolerance))
+            pcurve = .polyline([SurfaceParameter(u: a.u, v: a.v), SurfaceParameter(u: b.u, v: b.v)])
+        } else {
+            pcurve = try fittedPcurve(curve, from: t0, to: t1, on: surface)
+        }
+        return BRepSewingEdge(stableID: edge.stableID, curve: curve, startParameter: t0, endParameter: t1, startPoint: p, endPoint: q,
+                              surfaceParameterCurve: pcurve, parentSubshapeIDs: edge.parentSubshapeIDs,
+                              startVertexParentSubshapeIDs: edge.startVertexParentSubshapeIDs,
+                              endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs)
+    }
+
+    /// `curve` from `t0` to `t1` as a trimming curve on `surface`: on a plane its control points'
+    /// image for a spline (exact, the plane's parameters being affine), otherwise its points'
+    /// parameters fitted within an eighth of the distance tolerance, a periodic parameter carried
+    /// on from the curve's middle.
+    private func fittedPcurve(_ curve: Curve3D, from t0: Double, to t1: Double, on surface: Surface3D) throws -> SurfaceParameterCurve {
+        if case .plane = surface, case let .bSpline(spline) = curve, t0 == spline.knots.first, t1 == spline.knots.last {
+            let projected = try spline.controlPoints.map { point -> Point2D in
+                let uv = try surface.parameterProjection(of: point, tolerance: tolerance)
+                return Point2D(x: uv.u, y: uv.v)
+            }
+            return .bSpline(BSplineCurve2D(degree: spline.degree, knots: spline.knots, controlPoints: projected, weights: spline.weights))
+        }
+        let uPeriod: Double?
+        switch surface {
+        case .cylinder, .analytic(.cylinder), .analytic(.sphere): uPeriod = 2 * Double.pi
+        default: uPeriod = nil
+        }
+        let reference = try surface.parameterProjection(of: try curve.point(at: (t0 + t1) / 2, tolerance: tolerance), tolerance: tolerance)
+        // A parameter step moves a point at most this far on the surface.
+        let samples = try [0.0, 0.5, 1.0].map { fraction -> Double in
+            let uv = try surface.parameterProjection(of: try curve.point(at: t0 + (t1 - t0) * fraction, tolerance: tolerance), tolerance: tolerance)
+            let geometry = try surface.differentialGeometry(u: uv.u, v: uv.v, tolerance: tolerance)
+            return max(geometry.tangentU.length, geometry.tangentV.length)
+        }
+        let fitter = try SpatialCurveFitter(deviation: tolerance.distance / (8 * max(samples.max() ?? 1, 1)))
+        let fitted = try fitter.fitBSpline(breakpoints: [0, 1], tolerance: tolerance) { fraction in
+            let uv = try surface.parameterProjection(of: try curve.point(at: t0 + (t1 - t0) * fraction, tolerance: tolerance), tolerance: tolerance)
+            var u = uv.u
+            if let period = uPeriod {
+                u = reference.u + (u - reference.u - period * ((u - reference.u) / period).rounded())
+            }
+            return Point3D(x: u, y: uv.v, z: 0)
+        }.curve
+        return .bSpline(BSplineCurve2D(degree: fitted.degree, knots: fitted.knots, controlPoints: fitted.controlPoints.map { Point2D(x: $0.x, y: $0.y) }))
     }
 
     /// The face's coedges with their trimming curves on its old surface, run as the loops run them,

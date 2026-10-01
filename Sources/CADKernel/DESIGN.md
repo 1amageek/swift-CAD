@@ -856,19 +856,21 @@ along its trimming curve within a quarter of the distance tolerance, so coarse l
 Any face whose new surface keeps within a quarter of the distance tolerance of the old one along
 its trimming curves takes it in place, its edges, vertices and trimming curves kept, whatever its
 neighbours. A coarser refit of a face sharing edges has them re-solved onto its new surface
-(`RebuiltFaceEdgeResolver`) where its neighbours are planes crossing it: each corner where the new
-surface meets its two neighbouring planes (Newton on the new surface's parameters), each edge the
-new surface's crossing of its neighbour's plane between them — the old trimming curve with its ends
-carried onto the new corners, each point slid across it onto the plane, fitted as the new trimming
-curve, the edge the surface along it within an eighth of the distance tolerance — and the
-neighbours' straight edges run along their lines to the moved corners. Curved and tangent
-neighbours, and coarse faces meeting each other or sharing a neighbour, are refused
-(`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+(`RebuiltFaceEdgeResolver`) where its neighbours are planes, cylinders or spheres crossing it (their
+signed distances): each corner where the new surface meets its two neighbours (Newton on the new
+surface's parameters), each edge the new surface's crossing of its neighbour between them — the old
+trimming curve with its ends carried onto the new corners, each point slid across it onto the
+neighbour, fitted as the new trimming curve, the edge the surface along it within an eighth of the
+distance tolerance, its trimming curve on a curved neighbour fitted likewise — and the neighbours'
+straight and circular edges run along their own line or circle to the moved corners. Other
+neighbours, a refit touching a neighbour without crossing it, and coarse faces meeting each other or
+sharing a neighbour are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
 `FaceRebuildTests` own the explicit layout reproducing a quadratic arch exactly, the extension
 continuing it past its edge with the face kept, a box's top, a cylinder's quarter wall (tangent
 neighbours) and an open box's wall (open and shared edges) rebuilt in place, a cubic arch's wall
 rebuilt as a quadratic with its edges re-solved on its planes (the volume by Green's theorem over
-the new section), and the coarse refusal of a wall closed on itself.
+the new section), a box's round rebuilt flat into the chamfer through its contacts, and a cylinder's
+half wall rebuilt flat into the chord across its caps and its other half (their volumes).
 
 ## Unwrap Face
 
