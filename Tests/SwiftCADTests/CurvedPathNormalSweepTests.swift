@@ -74,6 +74,45 @@ struct CurvedPathNormalSweepTests {
         #expect(caps.contains { abs(abs($0.normal.dot(endTangent)) - 1) < 1e-9 })
     }
 
+    /// A 4 mm square about the origin swept along the path, twisted and scaled.
+    private func squareDocument(twist: Double, endScale: Double) throws -> CADDocument {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let profile = try builder.sketch(on: .xy) { $0.rectangle(width: length(0.004), height: length(0.004)) }
+        let path = try builder.sketch(on: .zx) { sketch in
+            _ = sketch.spline(SketchSpline(controlPoints: pathControls.map { SketchPoint(x: length($0.z), y: length($0.x)) }))
+        }
+        var options = SweepOptions(
+            twistAngle: .constant(.angle(twist, unit: .degree)), endScale: .constant(.scalar(endScale)), alignment: .normal
+        )
+        options.approximationTolerance = length(1e-7)
+        _ = try builder.sweep(profile, along: path.featureID, options: options)
+        return try builder.build(name: "twisted sweep")
+    }
+
+    @Test(.timeLimit(.minutes(3)))
+    func aTwistedOrScaledSweepFollowsItsLawsAlongTheCurve() throws {
+        let evaluator = DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred)
+        // A twist turns the square in its plane about the path: the volume stays its area times
+        // the path's length.
+        let twisted = try evaluator.evaluate(try squareDocument(twist: 90, endScale: 1))
+        try twisted.brep.validate(level: .volumetric, tolerance: .standard)
+        let pathLength = pathLength()
+        #expect(abs(try twisted.brep.volume(tolerance: .standard) - 0.004 * 0.004 * pathLength)
+            <= 4 * 0.004 * pathLength * 1e-7 + 1e-12)
+        // A 90° twist and a scale of 2 put the end square's corners twice as far from the path's
+        // end, turned a quarter.
+        let scaled = try evaluator.evaluate(try squareDocument(twist: 90, endScale: 2))
+        try scaled.brep.validate(level: .volumetric, tolerance: .standard)
+        let end = Point3D(x: pathControls[3].x, y: 0, z: pathControls[3].z)
+        // The end cap's four corners: on the plane across the path's end tangent, twice as far
+        // from the path's end as the square's.
+        let endTangent = try Vector3D(x: pathControls[3].x - pathControls[2].x, y: 0, z: pathControls[3].z - pathControls[2].z)
+            .normalized(tolerance: 1e-12)
+        let corners = scaled.brep.vertices.values.map(\.point).filter { abs(($0 - end).dot(endTangent)) < 1e-6 }
+        #expect(corners.count == 4)
+        #expect(corners.allSatisfy { abs(($0 - end).length - 2 * 0.002 * 2.0.squareRoot()) < 1e-6 })
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func aCurvedSweepWithoutAnAllowanceOrPastItsBendIsRefused() throws {
         for (radius, allowance) in [(0.003, nil), (0.05, 1e-6)] as [(Double, Double?)] {

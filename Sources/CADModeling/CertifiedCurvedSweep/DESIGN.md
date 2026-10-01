@@ -13,8 +13,8 @@ the frame, and the Hermite tensor rows with their error bound, plus the cap and
 side face requests. Existing Sweep owns section resolution, path chaining and the
 distance prefix, sewing and semantic topology, and Booleans. Exact routes keep
 precedence: straight paths, and solid sweeps along one circular arc (the exact
-revolve), never take this plan. Twist, end scale, guides and path corners are
-refused with `FIXME(INCOMPLETE_IMPLEMENTATION)` in the plan.
+revolve), never take this plan. Guides and path corners are refused with
+`FIXME(INCOMPLETE_IMPLEMENTATION)` in the plan.
 
 ## Related Designs
 
@@ -46,6 +46,13 @@ path spans (rational Bezier) ─► interval homogeneous jets per piece (order 5
   tangent to the tangent at `s` by least rotations, restarting its reference where
   the tangent turns too far. For a planar path this is the rotation-minimizing
   frame; for a non-planar path the section's roll rate may change at a restart.
+- A section point is its offsets along the start tangent and two lateral axes the frame
+  carries: `S = p + s·(along·t + (a cosθ − b sinθ)·E1 + (a sinθ + b cosθ)·E2)`. The twist
+  `θ` and scale `s` laws are read at the fraction of the path's arc length run (numerical
+  quadrature) at every piece's ends and run linearly in the piece's parameter between them;
+  their derivative enclosures (`δᵏ` times the enclosed cosine and sine) enter the jets, so the
+  Hermite bound covers them. A twist lets the lateral extents turn within their radius and a
+  scale grows the reach for the bend and overlap certificates.
 - Each piece's rows are the cubic Hermite interpolant of every moved control point
   in the piece's own parameter. Its error is at most `Σ_c sup|S_c⁽⁴⁾| / 384` (an L1
   bound) plus the rows' rounding, both enclosed, within the allowance. Positive
