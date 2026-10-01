@@ -26,6 +26,32 @@ package struct SheetBridgeLayout {
     package let lineOrigin: Point3D
     package let direction: Vector3D
 
+    /// Whether the two sheets are planar, each on one plane, and their planes meet: the sheets this
+    /// layout bridges along where they meet. Others bridge between boundary edges.
+    package static func meets(first: FeatureID, second: FeatureID, context: EvaluationContext) throws -> Bool {
+        guard let a = try commonPlane(first, context: context), let b = try commonPlane(second, context: context) else { return false }
+        return a.normal.cross(b.normal).length > context.tolerance.angle * max(a.normal.length * b.normal.length, 1)
+    }
+
+    /// The one plane every face of a sheet lies on; nil when its faces do not share one.
+    private static func commonPlane(_ featureID: FeatureID, context: EvaluationContext) throws -> ResolvedPlaneGeometry? {
+        let tolerance = context.tolerance
+        let scope = try BodyTopologyScope(bodyID: try context.bodyID(generatedBy: featureID), model: context.brep)
+        let planes = try scope.references.compactMap { reference -> FaceID? in
+            if case let .face(id) = reference { return id }
+            return nil
+        }.map { faceID -> ResolvedPlaneGeometry? in
+            guard let face = context.brep.faces[faceID], let surface = context.brep.geometry.surfaces[face.surfaceID] else { return nil }
+            return try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance)
+        }
+        guard let first = planes.first ?? nil, planes.allSatisfy({ candidate in
+            guard let candidate else { return false }
+            return candidate.normal.cross(first.normal).length <= tolerance.angle
+                && abs((candidate.origin - first.origin).dot(first.normal)) <= tolerance.distance
+        }) else { return nil }
+        return first
+    }
+
     package init(first: FeatureID, second: FeatureID, reversesSense: Bool, featureID: FeatureID, context: EvaluationContext) throws {
         let tolerance = context.tolerance
         func failure(_ code: KernelErrorCode, _ message: String) -> KernelError {
@@ -35,29 +61,11 @@ package struct SheetBridgeLayout {
         func plane(_ featureID: FeatureID) throws -> (BodyID, Vector3D, Point3D, [Point3D]) {
             let bodyID = try context.bodyID(generatedBy: featureID)
             let scope = try BodyTopologyScope(bodyID: bodyID, model: context.brep)
-            let faces = scope.references.compactMap { reference -> FaceID? in
-                if case let .face(id) = reference { return id }
-                return nil
-            }
             // Every face of the sheet on one plane: a sheet of one face, or of several in a plane.
-            let planes = try faces.map { faceID -> ResolvedPlaneGeometry? in
-                guard let face = context.brep.faces[faceID], let surface = context.brep.geometry.surfaces[face.surfaceID] else { return nil }
-                return try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance)
+            // Other sheets bridge between boundary edges, where Width and Short/Long do not apply.
+            guard let plane = try Self.commonPlane(featureID, context: context) else {
+                throw failure(.unsupportedCapability, "A Bridge Surface's width and walls measure from where two planar sheets meet.")
             }
-            guard let first = planes.first ?? nil, planes.allSatisfy({ candidate in
-                guard let candidate else { return false }
-                return candidate.normal.cross(first.normal).length <= tolerance.angle
-                    && abs((candidate.origin - first.origin).dot(first.normal)) <= tolerance.distance
-            }) else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): a bridge from curved sheets, or sheets whose
-                // faces bend out of one plane, needs contact curves at the width along curved
-                // faces and their continuity rows, which are not built, so only planar sheets are
-                // bridged. Production path: SheetBridgeFeatureEvaluator and SheetBridgeWallReach
-                // through this layout. Complete only when curved sheets are bridged within a
-                // stated allowance, verified by a bridge between two cylinders.
-                throw failure(.unsupportedCapability, "A Bridge Surface joins two planar sheets.")
-            }
-            let plane = first
             let points = scope.references.compactMap { reference -> Point3D? in
                 if case let .vertex(id) = reference { return context.brep.vertices[id]?.point }
                 return nil
@@ -68,7 +76,7 @@ package struct SheetBridgeLayout {
         let a = try plane(first), b = try plane(second)
         let along = a.1.cross(b.1)
         guard along.length > tolerance.angle else {
-            throw failure(.unsupportedCapability, "A Bridge Surface joins sheets whose planes meet; these are parallel.")
+            throw failure(.unsupportedCapability, "A Bridge Surface's width and walls measure from where two planes meet; these are parallel.")
         }
         let d = try along.normalized(tolerance: tolerance.distance)
         // A point of both planes: the combination of their normals meeting each plane's offset.

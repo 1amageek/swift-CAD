@@ -3,7 +3,10 @@ import CADCore
 /// Bridge Surface: a blend between two sheets set back by `width` from where they meet — on their
 /// extensions when they do not — shaped as a curvature-continuous (G2) quintic or a straight
 /// chamfer across, its handles scaled by `tension`. `reversesSense` takes the other side of the
-/// meeting line for a sheet crossing it.
+/// meeting line for a sheet crossing it. Between sheets that are not two planes meeting (curved
+/// sheets, sheets bending out of one plane, parallel planes), or when boundary edges are named, the
+/// bridge spans between each sheet's named boundary edge — or the pair of boundary edges nearest
+/// each other — continuous with both sheets there (decided 2026-10-02).
 public struct SheetBridgeFeature: Codable, Hashable, Sendable {
     public enum Shape: String, Codable, Hashable, Sendable {
         case curvature
@@ -27,9 +30,21 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
     public var shape: Shape
     public var trimWalls: TrimWalls
     public var reversesSense: Bool
+    /// The boundary edges of the first and second sheet the bridge spans between; nil for the
+    /// meeting line's bridge between two planes, or the nearest boundary edges otherwise.
+    public var edges: (first: StableSubshapeReference, second: StableSubshapeReference)?
+    /// Beside a curved sheet, the angle (radians) and the curvature (1/length) a bridge between
+    /// boundary edges may stray from the sheet's, as a Loft's continuity does; nil beside planes.
+    public var angularAllowance: Double?
+    public var curvatureAllowance: Double?
 
     public init(first: FeatureID, second: FeatureID, width: CADExpression, tension: Double = 1, shape: Shape = .curvature,
-                trimWalls: TrimWalls = .none, reversesSense: Bool = false) {
+                trimWalls: TrimWalls = .none, reversesSense: Bool = false,
+                edges: (first: StableSubshapeReference, second: StableSubshapeReference)? = nil,
+                angularAllowance: Double? = nil, curvatureAllowance: Double? = nil) {
+        self.edges = edges
+        self.angularAllowance = angularAllowance
+        self.curvatureAllowance = curvatureAllowance
         self.first = first
         self.second = second
         self.width = width
@@ -40,12 +55,33 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case first, second, width, tension, shape, trimWalls, reversesSense
+        case first, second, width, tension, shape, trimWalls, reversesSense, firstEdge, secondEdge, angularAllowance, curvatureAllowance
+    }
+
+    public static func == (lhs: SheetBridgeFeature, rhs: SheetBridgeFeature) -> Bool {
+        lhs.first == rhs.first && lhs.second == rhs.second && lhs.width == rhs.width && lhs.tension == rhs.tension
+            && lhs.shape == rhs.shape && lhs.trimWalls == rhs.trimWalls && lhs.reversesSense == rhs.reversesSense
+            && lhs.edges?.first == rhs.edges?.first && lhs.edges?.second == rhs.edges?.second
+            && lhs.angularAllowance == rhs.angularAllowance && lhs.curvatureAllowance == rhs.curvatureAllowance
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(first)
+        hasher.combine(second)
+        hasher.combine(width)
+        hasher.combine(tension)
+        hasher.combine(shape)
+        hasher.combine(trimWalls)
+        hasher.combine(reversesSense)
+        hasher.combine(edges?.first)
+        hasher.combine(edges?.second)
+        hasher.combine(angularAllowance)
+        hasher.combine(curvatureAllowance)
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.first, .second, .width, .tension, .shape, .trimWalls, .reversesSense], in: decoder)
+        try container.validateOnlyExpectedKeys([.first, .second, .width, .tension, .shape, .trimWalls, .reversesSense, .firstEdge, .secondEdge, .angularAllowance, .curvatureAllowance], in: decoder)
         first = try container.decode(FeatureID.self, forKey: .first)
         second = try container.decode(FeatureID.self, forKey: .second)
         width = try container.decode(CADExpression.self, forKey: .width)
@@ -53,6 +89,15 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
         shape = try container.decode(Shape.self, forKey: .shape)
         trimWalls = try container.decode(TrimWalls.self, forKey: .trimWalls)
         reversesSense = try container.decodeIfPresent(Bool.self, forKey: .reversesSense) ?? false
+        angularAllowance = try container.decodeIfPresent(Double.self, forKey: .angularAllowance)
+        curvatureAllowance = try container.decodeIfPresent(Double.self, forKey: .curvatureAllowance)
+        let firstEdge = try container.decodeIfPresent(StableSubshapeReference.self, forKey: .firstEdge)
+        let secondEdge = try container.decodeIfPresent(StableSubshapeReference.self, forKey: .secondEdge)
+        switch (firstEdge, secondEdge) {
+        case let (a?, b?): edges = (a, b)
+        case (nil, nil): edges = nil
+        default: throw FeatureEvaluationError.invalidGraph("A Bridge Surface names a boundary edge of both sheets or of neither.")
+        }
         try validate()
     }
 
@@ -66,6 +111,10 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
         try container.encode(shape, forKey: .shape)
         try container.encode(trimWalls, forKey: .trimWalls)
         if reversesSense { try container.encode(true, forKey: .reversesSense) }
+        try container.encodeIfPresent(edges?.first, forKey: .firstEdge)
+        try container.encodeIfPresent(edges?.second, forKey: .secondEdge)
+        try container.encodeIfPresent(angularAllowance, forKey: .angularAllowance)
+        try container.encodeIfPresent(curvatureAllowance, forKey: .curvatureAllowance)
     }
 
     public func validate() throws {
@@ -76,6 +125,14 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
             throw FeatureEvaluationError.invalidGraph("A Bridge Surface's tension lies in (0, 1.5].")
         }
         try width.validateLiteralQuantities()
+        if let angularAllowance, !(angularAllowance.isFinite && angularAllowance > 0 && angularAllowance < Double.pi / 2) {
+            throw FeatureEvaluationError.invalidGraph("A Bridge Surface's angle allowance lies strictly between 0 and a right angle.")
+        }
+        if let curvatureAllowance, !(curvatureAllowance.isFinite && curvatureAllowance > 0) {
+            throw FeatureEvaluationError.invalidGraph("A Bridge Surface's curvature allowance is positive.")
+        }
+        try edges?.first.validate()
+        try edges?.second.validate()
     }
 
     /// The features the bridge consumes: its two sheets.

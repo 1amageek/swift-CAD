@@ -72,6 +72,74 @@ struct SheetBridgeTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func parallelSheetsBridgeBetweenTheirNearestEdges() throws {
+        // A floor on z = 0 over y ∈ [10, 40] mm and a shelf on z = 20 mm over y ∈ [-40, -10] mm: the
+        // bridge spans from the floor's edge at y = 10 mm to the shelf's at y = -10 mm.
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        func square(on plane: SketchPlane, _ corners: [(Double, Double)]) throws -> FeatureID {
+            let lines = try corners.indices.map { index in
+                try builder.sketch(on: plane) { sketch in
+                    let (start, end) = (corners[index], corners[(index + 1) % corners.count])
+                    _ = sketch.line(from: point(start.0, start.1), to: point(end.0, end.1))
+                }.featureID
+            }
+            return try builder.patch(curves: lines.map { CurveSectionReference(featureID: $0) })
+        }
+        let floor = try square(on: .xy, [(0, 0.01), (0.04, 0.01), (0.04, 0.04), (0, 0.04)])
+        let shelf = try square(on: .plane(Plane3D(origin: Point3D(x: 0, y: 0, z: 0.02), normal: .unitZ)),
+                               [(0, -0.04), (0.04, -0.04), (0.04, -0.01), (0, -0.01)])
+        var chamfered = builder
+        let bridge = try builder.bridgeSurface(SheetBridgeFeature(first: floor, second: shelf, width: length(0.01)))
+        let evaluated = try evaluate(builder)
+        let bridged = try surface(of: bridge, in: evaluated)
+        // G2: flat along both contacts, level with each sheet.
+        for x in [0.005, 0.02, 0.035] {
+            for point in [Point3D(x: x, y: 0.01, z: 0), Point3D(x: x, y: -0.01, z: 0.02)] {
+                let projected = try bridged.parameterProjection(of: point, tolerance: .standard)
+                #expect(projected.residual < 1e-9)
+                let geometry = try bridged.differentialGeometry(u: projected.u, v: projected.v, tolerance: .standard)
+                #expect(abs(abs(geometry.normal.z) - 1) < 1e-9)
+            }
+        }
+        // A chamfer: the flat strip between the edges.
+        let strip = try chamfered.bridgeSurface(SheetBridgeFeature(first: floor, second: shelf, width: length(0.01), shape: .chamfer))
+        let flat = try evaluate(chamfered)
+        let ruled = try surface(of: strip, in: flat)
+        for point in [Point3D(x: 0.01, y: 0, z: 0.01), Point3D(x: 0.03, y: 0.005, z: 0.005)] {
+            let projected = try ruled.parameterProjection(of: point, tolerance: .standard)
+            #expect(projected.residual < 1e-9)
+            let normal = try ruled.differentialGeometry(u: projected.u, v: projected.v, tolerance: .standard).normal
+            #expect(abs(abs(normal.y + normal.z) - 2.0.squareRoot()) < 1e-9 && abs(normal.x) < 1e-9)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aCurvedSheetBridgesFromItsEdgeTangentToIt() throws {
+        // A parabolic arch over x ∈ [0, 20] mm, y ∈ [0, 20] mm, and a floor at z = 0 over x ∈ [30, 50]
+        // mm: the bridge leaves the arch's edge at x = 20 mm along the arch, and reaches the floor's
+        // edge at x = 30 mm level with it.
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let s = 0.02
+        let row = { (y: Double) in [Point3D(x: 0, y: y, z: 0), Point3D(x: s / 2, y: y, z: s / 2), Point3D(x: s, y: y, z: 0)] }
+        let arch = try builder.bSplineSurface(BSplineSurface3D(
+            uDegree: 2, vDegree: 1, uKnots: [0, 0, 0, 1, 1, 1], vKnots: [0, 0, 1, 1], controlPoints: [row(0), row(s)]))
+        let floorRow = { (y: Double) in [Point3D(x: 0.03, y: y, z: 0), Point3D(x: 0.05, y: y, z: 0)] }
+        let floor = try builder.bSplineSurface(BSplineSurface3D(
+            uDegree: 1, vDegree: 1, uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1], controlPoints: [floorRow(0), floorRow(s)]))
+        let bridge = try builder.bridgeSurface(SheetBridgeFeature(first: arch, second: floor, width: length(0.01),
+                                                                  angularAllowance: 0.1 * Double.pi / 180, curvatureAllowance: 1))
+        let evaluated = try evaluate(builder)
+        let bridged = try surface(of: bridge, in: evaluated)
+        // The arch leaves x = s heading down at 45°: its normal there is (1, 0, 1)/√2.
+        for y in [0.005, 0.015] {
+            let projected = try bridged.parameterProjection(of: Point3D(x: s, y: y, z: 0), tolerance: .standard)
+            #expect(projected.residual < 1e-9)
+            let normal = try bridged.differentialGeometry(u: projected.u, v: projected.v, tolerance: .standard).normal
+            #expect(abs(abs(normal.x + normal.z) - 2.0.squareRoot()) < 1e-6 && abs(normal.y) < 1e-6, "\(normal)")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func aChamferBridgeIsAFlatStripAndTrimmingIsRefused() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let (floor, wall) = try sheets(in: &builder)
