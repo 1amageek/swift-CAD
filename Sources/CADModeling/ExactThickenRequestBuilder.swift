@@ -41,12 +41,73 @@ package struct ExactThickenRequestBuilder: Sendable {
                 tolerance: tolerance
             )
         }
+        // Faces meeting tangentially along every edge they share offset onto layers that meet
+        // along the same edges: each face's caps keep its loops and only the sheet's boundary
+        // edges take walls. Faces meeting at an angle need their layers re-solved, which the
+        // planar path does for planes.
+        if try sharesEdgesTangentially(source, tolerance: tolerance) {
+            return try tangentMultiFaceRequest(featureID: featureID, offsets: offsets, source: source, tolerance: tolerance)
+        }
         return try planarMultiFaceRequest(
             featureID: featureID,
             offsets: offsets,
             source: source,
             tolerance: tolerance
         )
+    }
+
+    /// Whether every edge two faces share has their normals (as the faces face) agreeing along it.
+    private func sharesEdgesTangentially(_ source: SourceSheet, tolerance: ModelingTolerance) throws -> Bool {
+        let uses = edgeUses(in: source)
+        guard uses.values.allSatisfy({ $0.count == 1 || $0.count == 2 }) else { return false }
+        for (_, edgeUses) in uses where edgeUses.count == 2 {
+            for fraction in [0.0, 0.25, 0.5, 0.75, 1.0] {
+                let normals = try edgeUses.map { use -> Vector3D in
+                    let face = source.faces[use.faceIndex]
+                    let parameter = try use.edge.parameterCurve.parameter(atNormalizedFraction: fraction, tolerance: tolerance)
+                    let normal = try face.surface.normal(u: parameter.u, v: parameter.v, tolerance: tolerance)
+                    return face.orientation == .forward ? normal : normal * -1
+                }
+                guard normals[0].cross(normals[1]).length <= tolerance.angle * 1_000, normals[0].dot(normals[1]) > 0 else { return false }
+            }
+        }
+        return true
+    }
+
+    /// A sheet of tangent faces thickened: each face's offset layers keep its own loops, the walls
+    /// rule only the sheet's boundary edges between the layers.
+    private func tangentMultiFaceRequest(
+        featureID: FeatureID,
+        offsets: (lower: Double, upper: Double),
+        source: SourceSheet,
+        tolerance: ModelingTolerance
+    ) throws -> BRepSewingRequest {
+        let uses = edgeUses(in: source)
+        var patches: [BRepSewingFacePatch] = []
+        for (faceIndex, face) in source.faces.enumerated() {
+            let orientationSign = face.orientation == .forward ? 1.0 : -1.0
+            let lowerSurface = offsetSurface(face.surface, distance: offsets.lower * orientationSign)
+            let upperSurface = offsetSurface(face.surface, distance: offsets.upper * orientationSign)
+            let bounds = try parameterBounds(loops: face.loops, surface: face.surface, tolerance: tolerance)
+            try validateOffsetRegularity(lowerSurface, source: face.surface, over: bounds, tolerance: tolerance)
+            try validateOffsetRegularity(upperSurface, source: face.surface, over: bounds, tolerance: tolerance)
+            patches.append(try capPatch(stableID: "thicken:lower:\(faceIndex)", surface: lowerSurface,
+                                        orientation: reversed(face.orientation), loops: face.loops, reverseTraversal: true,
+                                        faceParents: face.faceParents, tolerance: tolerance))
+            patches.append(try capPatch(stableID: "thicken:upper:\(faceIndex)", surface: upperSurface,
+                                        orientation: face.orientation, loops: face.loops, reverseTraversal: false,
+                                        faceParents: face.faceParents, tolerance: tolerance))
+            for (loopIndex, loop) in face.loops.enumerated() {
+                for (edgeIndex, edge) in loop.edges.enumerated() where uses[edge.edgeID]?.count == 1 {
+                    patches.append(try sidePatch(stableID: "thicken:side:\(faceIndex):\(loopIndex):\(edgeIndex)", source: edge,
+                                                 lowerSurface: lowerSurface, upperSurface: upperSurface,
+                                                 orientation: face.orientation, tolerance: tolerance))
+                }
+            }
+        }
+        return BRepSewingRequest(featureID: featureID, bodyKind: .solid,
+                                 shells: [BRepSewingShell(stableID: "thicken:shell", patches: patches)],
+                                 bodyParentSubshapeIDs: source.bodyParents)
     }
 
     private func singleFaceRequest(

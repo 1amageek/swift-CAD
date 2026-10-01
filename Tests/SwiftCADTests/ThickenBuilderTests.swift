@@ -77,4 +77,27 @@ struct ThickenBuilderTests {
         #expect(abs((zs.min() ?? 0) + 0.003) < 1e-12)
         #expect(abs((zs.max() ?? 0) - 0.001) < 1e-12)
     }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aSheetOfTangentCurvedFacesThickensIntoOneWall() throws {
+        // Half a cylinder's wall (two of its quarter faces, tangent along their seam), radius 10 mm
+        // and 10 mm tall, thickened 1 mm to each side: half an annulus 2 mm wide.
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let profile = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.circle(center: SketchPoint(x: .constant(.length(0, unit: .millimeter)), y: .constant(.length(0, unit: .millimeter))),
+                              radius: .constant(.length(10, unit: .millimeter)))
+        }
+        let cylinder = try builder.extrude(profile, distance: .constant(.length(10, unit: .millimeter)))
+        let removed = try [GeneratedSubshapeSelector.generated(role: .startFace), .generated(role: .endFace),
+                           .generated(role: .sideFace, index: 2), .generated(role: .sideFace, index: 3)].map {
+            try builder.stableSubshape(generatedBy: cylinder, selector: $0)
+        }
+        let sheet = try builder.faceDelete(target: cylinder, faces: removed)
+        _ = try builder.thicken(target: sheet, front: .constant(.length(1, unit: .millimeter)), back: .constant(.length(1, unit: .millimeter)))
+        let evaluated = try CADPipeline(tolerance: .standard).evaluate(try builder.build(name: "half wall"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        let expected = Double.pi / 2 * (0.011 * 0.011 - 0.009 * 0.009) * 0.010
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - expected) <= 1.0e-12)
+    }
+
 }
