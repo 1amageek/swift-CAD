@@ -310,10 +310,12 @@ on solids. A fillet, chamfer or G2 blend of a sheet's edge (its node declaring t
 target does) takes the profile blend below at every shape (a chamfer its straight section), Round as the exact quarter circle of the radius, each face's
 direction away from the edge read from where the face lies, and an end without a face beside it left
 open with the section curve as boundary.
-The other shapes round one straight convex edge between planes at any interior angle α through
+The other shapes round one straight edge between planes at any angle α between the faces'
+directions away from it (across the material at a convex edge, across the empty space at a concave
+one, where the blend adds material) through
 `EdgeBlendFeatureEvaluator`'s profile blend (shared with the G2 blend): a cross-section swept along
 the edge, made for α, the two faces cut back to its contacts and the square end faces closed by its
-curve; a solid's round edge between planes not at a right angle takes it too, as the exact arc of
+curve; a solid's round edge between planes not at a right angle, or concave, takes it too, as the exact arc of
 the radius (contacts r·cot(α/2) from the edge, weight sin(α/2)). A `conic` is the rational
 quadratic through the corner with middle weight ρ/(1 − ρ), ρ the tension, meeting both faces at the
 distance; a `chordal` is the circular arc whose chord is the distance (contacts at
@@ -329,7 +331,7 @@ faces close on its cross-section. The feature's radius must state the radius the
 (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Variable and limit
 points, several edges, tangent chains and Y-blends are not built (FE2). `FilletShapeTests` own each
 shape's removed cross-section times the edge's length, the tension and one-edge admission, and the
-rib's and a drafted rib's full rounds (their volumes and radii) with the refusals of a misstated radius and of edges that do not face each other across one face, and an L sheet's bend rounded into a quarter cylinder, blended and chamfered into sheets, and a hexagonal prism's 120° edge rounded (its volume). A concave edge is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+rib's and a drafted rib's full rounds (their volumes and radii) with the refusals of a misstated radius and of edges that do not face each other across one face, and an L sheet's bend rounded into a quarter cylinder, blended and chamfered into sheets, a hexagonal prism's 120° edge rounded (its volume) and an L block's inside corner filled (its volume).
 
 ### Point guides
 

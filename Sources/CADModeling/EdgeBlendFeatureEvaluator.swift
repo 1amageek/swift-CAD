@@ -70,13 +70,21 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             featureID: feature.id,
             context: context
         )
-        // Planes meeting at other than a right angle take the profile blend's exact arc.
+        // Planes meeting at other than a right angle, or at a concave edge, take the profile blend's
+        // exact arc; the rolling ball rounds convex right-angled edges.
         if let shell = body.shellIDs.first.flatMap({ context.brep.shells[$0] }) {
             let incident = try shell.faceIDs.filter { try faceUses(edgeID: selection.edgeID, faceID: $0, model: context.brep) }
             let planes = try incident.map { try orientedPlane($0, model: context.brep, featureID: feature.id, tolerance: context.tolerance) }
-            if planes.count == 2, abs(planes[0].outward.dot(planes[1].outward)) > context.tolerance.angle {
-                return try evaluateProfileBlend(feature: feature, target: fillet.target.featureID, selected: selected,
-                                                section: roundSection(radius: radius), context: context)
+            if planes.count == 2,
+               let edge = context.brep.edges[selection.edgeID], let start = context.brep.vertices[edge.startVertexID]?.point {
+                // The second face's direction away from the edge, toward where it lies.
+                let polygon = try outerPolygon(incident[1], model: context.brep, featureID: feature.id, tolerance: context.tolerance)
+                let centroid = polygon.reduce(Vector3D.zero) { $0 + ($1 - start) } * (1 / Double(polygon.count))
+                let concave = centroid.dot(planes[0].outward) > 0
+                if concave || abs(planes[0].outward.dot(planes[1].outward)) > context.tolerance.angle {
+                    return try evaluateProfileBlend(feature: feature, target: fillet.target.featureID, selected: selected,
+                                                    section: roundSection(radius: radius), context: context)
+                }
             }
         }
         let request = try request(
@@ -955,18 +963,12 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         // `secondInward` runs along the first face, `firstInward` along the second.
         let secondInward = try away(incidentFaceIDs[0], normal: firstPlane.outward)
         let firstInward = try away(incidentFaceIDs[1], normal: secondPlane.outward)
-        // The faces' interior angle at the edge; a solid's edge must be convex (each face's outward
-        // normal turned from the other face).
+        // The angle between the faces' directions away from the edge: across the material at a
+        // convex edge, across the empty space at a concave one, where the blend adds material.
         let alpha = acos(max(-1, min(1, secondInward.dot(firstInward))))
-        guard alpha > context.tolerance.angle, alpha < .pi - context.tolerance.angle,
-              isSheet || (firstPlane.outward.dot(firstInward) < 0 && secondPlane.outward.dot(secondInward) < 0) else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): a concave edge of a solid is blended by adding
-            // material outside the faces, which the profile blend (cutting back from the corner)
-            // does not build, so it is refused. Production path: EdgeBlendFeatureEvaluator.g2Request
-            // for every profile blend. Complete only when concave edges are filled, verified by a
-            // fillet inside an L-shaped block's corner.
+        guard alpha > context.tolerance.angle, alpha < .pi - context.tolerance.angle else {
             throw failure(.unsupportedCapability, featureID: featureID, tolerance: context.tolerance,
-                          "A blend rounds a convex edge between planes that are not flat to each other.")
+                          "A blend rounds an edge between planes that are not flat to each other.")
         }
         let section = blendSection.resolve(alpha)
         let distance = section.setback

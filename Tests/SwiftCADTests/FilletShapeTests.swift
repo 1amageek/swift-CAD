@@ -277,4 +277,32 @@ struct FilletShapeTests {
         let volume = try evaluated.brep.volume(tolerance: .standard)
         #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
     }
+
+    @Test(.timeLimit(.minutes(2)))
+    func anLBlocksInsideCornerFillsWithItsRound() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // An L of 40 mm arms 10 mm thick, extruded 20 mm; its inside corner edge runs up at (10, 10) mm.
+        let outline: [(Double, Double)] = [(0, 0), (0.04, 0), (0.04, 0.01), (0.01, 0.01), (0.01, 0.04), (0, 0.04)]
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            for (start, end) in zip(outline, outline.dropFirst() + outline.prefix(1)) {
+                _ = sketch.line(from: SketchPoint(x: length(start.0), y: length(start.1)), to: SketchPoint(x: length(end.0), y: length(end.1)))
+            }
+        }.featureID
+        let block = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(0.02))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "l"))
+        let inside = try #require(before.subshapes.entries.first { key, value in
+            guard key.featureID == block, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  let start = before.brep.vertices[edge.startVertexID]?.point,
+                  let end = before.brep.vertices[edge.endVertexID]?.point else { return false }
+            return [start, end].allSatisfy { abs($0.x - 0.01) < 1e-12 && abs($0.y - 0.01) < 1e-12 }
+        }?.key)
+        let r = 0.004
+        _ = try builder.fillet(target: block, edges: [try builder.stableSubshape(inside)], radius: length(r))
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "l"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        // The corner gains the r × r square less the quarter disc.
+        let expected = (0.04 * 0.01 + 0.03 * 0.01) * 0.02 + (r * r - Double.pi * r * r / 4) * 0.02
+        let volume = try evaluated.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+    }
 }
