@@ -21,6 +21,14 @@ public struct LoftFeature: Codable, Hashable, Sendable {
         case options
     }
 
+    /// The features the loft consumes, each once: its sections' sources, continuity bodies and
+    /// guides.
+    public var inputs: [FeatureInput] {
+        var seen = Set<FeatureInput>()
+        return (sections.flatMap(\.inputs) + guides.map { FeatureInput(featureID: $0.featureID, role: .guide) })
+            .filter { seen.insert($0).inserted }
+    }
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.sections, .guides, .options], in: decoder)

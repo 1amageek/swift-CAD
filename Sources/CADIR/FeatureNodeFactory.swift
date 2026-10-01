@@ -1026,8 +1026,7 @@ public enum FeatureNodeFactory {
     }
 
     private static func loftInputs(for loft: LoftFeature) -> [FeatureInput] {
-        loft.sections.flatMap(\.inputs)
-            + loft.guides.map { FeatureInput(featureID: $0.featureID, role: .guide) }
+        loft.inputs
     }
 
     private static func sweepOutputRole(for resultKind: SweepResultKind) -> FeaturePort {

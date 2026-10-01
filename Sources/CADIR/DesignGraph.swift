@@ -1019,9 +1019,7 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a loft operation.")
         }
         try loft.validate()
-        let expectedInputs = loft.sections.flatMap(\.inputs) + loft.guides.map { guide in
-            FeatureInput(featureID: guide.featureID, role: .guide)
-        }
+        let expectedInputs = loft.inputs
         guard Set(node.inputs) == Set(expectedInputs),
               node.inputs.count == expectedInputs.count else {
             throw FeatureEvaluationError.invalidGraph("Loft features must consume the declared section and guide inputs.")

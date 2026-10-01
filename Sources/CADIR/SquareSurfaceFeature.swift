@@ -41,8 +41,10 @@ public struct SquareSurfaceFeature: Codable, Hashable, Sendable {
 
     /// The features the Square consumes: its sides' curves and the bodies of continuous sides.
     public var inputs: [FeatureInput] {
-        sides.map { FeatureInput(featureID: $0.curve.featureID, role: .curve) }
-            + sides.compactMap(\.continuity).map { FeatureInput(featureID: $0.source, role: $0.bodyRole) }
+        var seen = Set<FeatureInput>()
+        return (sides.map { FeatureInput(featureID: $0.curve.featureID, role: .curve) }
+            + sides.compactMap(\.continuity).map { FeatureInput(featureID: $0.source, role: $0.bodyRole) })
+            .filter { seen.insert($0).inserted }
     }
 }
 

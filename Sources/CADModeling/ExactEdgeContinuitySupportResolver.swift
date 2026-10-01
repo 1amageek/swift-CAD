@@ -90,8 +90,20 @@ package struct ExactEdgeContinuitySupport: Sendable {
     /// periodic seam), its position kept within eight distance tolerances of the span.
     package func certify(_ surface: BSplineSurface3D, boundaryV v: Double, span: BSplineCurve3D,
                          tolerance: ModelingTolerance, featureID: FeatureID) throws {
+        try certify(surface, along: .v(v), span: span, tolerance: tolerance, featureID: featureID)
+    }
+
+    /// A boundary of a surface: the u-isocurve at a v value, or the v-isocurve at a u value.
+    package enum Boundary: Sendable {
+        case v(Double)
+        case u(Double)
+    }
+
+    package func certify(_ surface: BSplineSurface3D, along boundary: Boundary, span: BSplineCurve3D,
+                         tolerance: ModelingTolerance, featureID: FeatureID) throws {
         guard case let .curved(faceSurface, _, allowance) = face else { return }
-        guard case let .closed(u0, u1) = surface.uDomain, case let .closed(s0, s1) = span.domain else {
+        guard case let .closed(u0, u1) = surface.uDomain, case let .closed(v0, v1) = surface.vDomain,
+              case let .closed(s0, s1) = span.domain else {
             throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
                               message: "A continuous side's surface has an unbounded domain.")
         }
@@ -126,11 +138,16 @@ package struct ExactEdgeContinuitySupport: Sendable {
         let pcurve = BSplineCurve2D(degree: degree, knots: knots, controlPoints: zip(x, y).map { Point2D(x: $0, y: $1) })
         let faceSide = SurfaceContinuitySamplingSide(surface: faceSurface, parameterCurve: .bSpline(pcurve))
         // The surface's normal faces the way the face's does where they meet.
-        let middle = try surface.differentialGeometry(u: 0.5 * (u0 + u1), v: v, tolerance: tolerance)
+        let (middleU, middleV, isocurve): (Double, Double, SurfaceParameterCurve)
+        switch boundary {
+        case let .v(v): (middleU, middleV, isocurve) = (0.5 * (u0 + u1), v, .constantV(v: v, uStart: u0, uEnd: u1))
+        case let .u(u): (middleU, middleV, isocurve) = (u, 0.5 * (v0 + v1), .constantU(u: u, vStart: v0, vEnd: v1))
+        }
+        let middle = try surface.differentialGeometry(u: middleU, v: middleV, tolerance: tolerance)
         let faceMiddle = try faceSurface.parameterProjection(of: middle.position, tolerance: tolerance)
         let faceNormal = try faceSurface.normal(u: faceMiddle.u, v: faceMiddle.v, tolerance: tolerance)
         let surfaceSide = SurfaceContinuitySamplingSide(
-            surface: .bSpline(surface), parameterCurve: .constantV(v: v, uStart: u0, uEnd: u1),
+            surface: .bSpline(surface), parameterCurve: isocurve,
             frameOrientation: middle.normal.dot(faceNormal) >= 0 ? .forward : .reversed
         )
         _ = try SurfaceBoundaryContinuityEvaluator(modelingTolerance: tolerance).certify(

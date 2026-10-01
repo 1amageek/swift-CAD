@@ -72,14 +72,31 @@ public struct SquareSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             )
         } else {
             guard Set(continuous).isSubset(of: [0, 2]) || Set(continuous).isSubset(of: [1, 3]) else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): continuity along two neighbouring sides meets at
-                // a corner where both faces' planes must hold both sides' tangents, which planar
-                // neighbours allow only when coplanar, and the twist there must agree; such a
-                // Square is refused. Production path: SquareSurfaceFeatureEvaluator. Complete only
-                // when neighbouring continuous sides are solved with compatible corner twists,
-                // verified by a G1 Square inside a coplanar opening.
-                throw failure(.unsupportedCapability,
-                    "A Square is continuous along one side or two opposite sides.", feature.id, tolerance)
+                // Continuous along neighbouring sides: the four-sided Boolean sum with shared twists.
+                let bottom = frame[0].curve, right = frame[1].curve
+                let top = try frame[2].curve.reversed(tolerance: tolerance), left = try frame[3].curve.reversed(tolerance: tolerance)
+                let center = try [bottom, right, top, left].map { try ends($0).0 }.reduce(Vector3D.zero) { $0 + ($1 - .origin) } * 0.25
+                let curves = try [bottom, top, left, right].map(normalized)
+                let supports = try zip(curves, [frame[0].side, frame[2].side, frame[3].side, frame[1].side]).map { curve, side -> ExactEdgeContinuitySupport? in
+                    guard let continuity = square.sides[side].continuity else { return nil }
+                    let start = try curve.differentialGeometry(at: 0, tolerance: tolerance)
+                    let middle = try curve.differentialGeometry(at: 0.5, tolerance: tolerance).position
+                    return try ExactEdgeContinuitySupportResolver().support(
+                        for: continuity, point: start.position, derivative: start.firstDerivative,
+                        toward: (Point3D.origin + center) - middle, context: context, featureID: feature.id
+                    )
+                }
+                let spanning = try ExactHermiteCoonsSurfaceBuilder(tolerance: tolerance).buildAllSides(
+                    bottom: curves[0], top: curves[1], left: curves[2], right: curves[3],
+                    bottomSupport: supports[0], topSupport: supports[1], leftSupport: supports[2], rightSupport: supports[3],
+                    featureID: feature.id
+                )
+                return try surfaceEvaluator.evaluateValidated(
+                    feature: FeatureNode(id: feature.id, name: feature.name,
+                                         operation: .bSplineSurface(BSplineSurfaceFeature(surface: spanning, material: nil)),
+                                         outputs: feature.outputs, isSuppressed: feature.isSuppressed),
+                    context: context
+                ).result
             }
             // The continuous sides run along u at v = 0 and v = 1.
             let turned = Set(continuous).isSubset(of: [1, 3]) ? Array(frame[1...] + frame[..<1]) : frame

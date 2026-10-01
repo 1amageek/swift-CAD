@@ -131,6 +131,84 @@ struct SquareSurfaceTests {
         #expect(samples.allSatisfy { abs(abs($0.normal.z) - 1) < 1e-9 && abs($0.curvature) < 1e-6 })
     }
 
+    /// A Square over the four top edges of `edges`'s frame, tangent along all four to the faces
+    /// beside them.
+    private func squareOverEdges(_ edges: [StableSubshapeReference], of body: FeatureID, in builder: inout DocumentBuilder) throws -> FeatureID {
+        let curves = try edges.map { try builder.edgeCurves(of: body, edges: [$0]) }
+        return try builder.square(sides: zip(curves, edges).map { curve, edge in
+            SquareSide(curve: CurveSectionReference(featureID: curve),
+                       continuity: SurfaceEdgeContinuity(source: body, bodyRole: .body, edge: edge, order: .tangent))
+        })
+    }
+
+    private func topEdges(of body: FeatureID, inside: Bool, z: Double, in builder: DocumentBuilder) throws -> [StableSubshapeReference] {
+        let evaluated = try evaluate(builder)
+        return try evaluated.subshapes.entries.compactMap { key, value -> SubshapeID? in
+            guard key.featureID == body, case let .edge(id) = value, let edge = evaluated.brep.edges[id],
+                  let start = evaluated.brep.vertices[edge.startVertexID]?.point,
+                  let end = evaluated.brep.vertices[edge.endVertexID]?.point,
+                  abs(start.z - z) < 1e-12, abs(end.z - z) < 1e-12 else { return nil }
+            let reach = max(abs(start.x), abs(start.y), abs(end.x), abs(end.y))
+            return (reach < 0.015) == inside ? key : nil
+        }.sorted { "\($0)" < "\($1)" }.map { try builder.stableSubshape($0) }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aSquareFillsAHoleTangentToItsFaceAlongAllFourSides() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // A 40 mm plate 10 mm thick with a 20 mm square hole through it.
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.rectangle(width: length(0.04), height: length(0.04))
+            _ = sketch.rectangle(width: length(0.02), height: length(0.02))
+        }.featureID
+        // The sketch's region with the hole is the one extruding to the plate's volume.
+        var plateBuilder: DocumentBuilder?
+        var plateID: FeatureID?
+        for index in 0..<2 {
+            var candidate = builder
+            let extruded = try candidate.extrude(ProfileReference(featureID: sketch, profileIndex: index), distance: length(0.01))
+            do {
+                if abs(try evaluate(candidate).brep.volume(tolerance: .standard) - (0.04 * 0.04 - 0.02 * 0.02) * 0.01) < 1e-12 {
+                    (plateBuilder, plateID) = (candidate, extruded)
+                }
+            } catch FeatureEvaluationError.missingProfile {
+                continue
+            }
+        }
+        builder = try #require(plateBuilder)
+        let plate = try #require(plateID)
+        let hole = try topEdges(of: plate, inside: true, z: 0.01, in: builder)
+        #expect(hole.count == 4)
+        let square = try squareOverEdges(hole, of: plate, in: &builder)
+        let evaluated = try evaluate(builder)
+        let surface = try #require(evaluated.subshapes.entries.compactMap { key, value -> Surface3D? in
+            guard key.featureID == square, case let .face(id) = value, let face = evaluated.brep.faces[id] else { return nil }
+            return evaluated.brep.geometry.surfaces[face.surfaceID]
+        }.first)
+        guard case let .bSpline(spline) = surface else {
+            Issue.record("A Square is a B-spline sheet.")
+            return
+        }
+        // The plate's top face is one plane, so the patch lies in it.
+        #expect(spline.controlPoints.joined().allSatisfy { abs($0.z - 0.01) < 1e-12 })
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aSquareAcrossABoxsTopEdgesTangentToItsWallsIsRefused() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let box = try builder.box(placement: PrimitivePlacement(origin: Point3D(x: -0.01, y: -0.01, z: 0), axis: .unitZ, referenceDirection: .unitX),
+                                  width: length(0.02), depth: length(0.02), height: length(0.02))
+        let top = try topEdges(of: box, inside: true, z: 0.02, in: builder)
+        #expect(top.count == 4)
+        _ = try squareOverEdges(top, of: box, in: &builder)
+        do {
+            _ = try evaluate(builder)
+            Issue.record("Walls meeting at the Square's corners are different planes; G1 along all four sides must be refused.")
+        } catch let error as KernelError {
+            #expect(error.code == .invalidInput)
+        }
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func railsThatBendOutOfTheFacesPlaneAreRefusedForCurvature() throws {
         let (builder, _) = try boxesSquare(order: .curvature, rail: levelCubic)
