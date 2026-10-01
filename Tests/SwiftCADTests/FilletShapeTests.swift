@@ -520,6 +520,13 @@ struct FilletShapeTests {
         let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "d"))
         let corner = try edges(of: d, in: before, builder) { abs($0.x - big) < 1e-12 && abs($0.y) < 1e-12 }
         #expect(corner.count == 1)
+        // Both corners together round in turn, each removing as much.
+        var both = builder
+        let corners = try [big, -big].flatMap { x in try edges(of: d, in: before, both) { abs($0.x - x) < 1e-12 && abs($0.y) < 1e-12 } }
+        #expect(corners.count == 2)
+        _ = try both.fillet(target: d, edges: corners, radius: length(r))
+        let twice = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try both.build(name: "d"))
+        try twice.brep.validate(level: .volumetric, tolerance: .standard)
         _ = try builder.fillet(target: d, edges: corner, radius: length(r))
         let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "d"))
         try rounded.brep.validate(level: .volumetric, tolerance: .standard)
@@ -532,6 +539,8 @@ struct FilletShapeTests {
         let expected = (Double.pi * big * big / 2 - removed) * height
         let volume = try rounded.brep.volume(tolerance: .standard)
         #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+        let bothVolume = try twice.brep.volume(tolerance: .standard)
+        #expect(abs(bothVolume - (Double.pi * big * big / 2 - 2 * removed) * height) < 5e-12, "\(bothVolume)")
     }
 
     @Test(.timeLimit(.minutes(2)))

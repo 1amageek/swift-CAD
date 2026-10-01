@@ -70,6 +70,15 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                                         lineage: sewn.lineage)
             }
         }
+        // Several straight edges beside cylinders running along them, apart from each other,
+        // round in turn.
+        if fillet.allEdges == false, fillet.shape == .round, fillet.edges.count > 1, targetKind == .solid {
+            let bodyID = try targetBodyID(fillet.target.featureID, featureID: feature.id, context: context)
+            if let result = try parallelEdgesInTurn(feature: feature, bodyID: bodyID, selected: fillet.edges,
+                                                    section: .round(radius), context: context) {
+                return result
+            }
+        }
         if fillet.allEdges == false, fillet.shape != .round || fillet.edges.count > 1 || targetKind == .sheet {
             let section = fillet.shape == .round
                 ? roundSection(radius: radius)
@@ -844,6 +853,62 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         }
         return try evaluateProfileBlends(feature: feature, target: blend.target.featureID, selected: blend.edges,
                                          section: try section(for: .curvature, tension: 1, distance: quantity.value), context: context)
+    }
+
+    /// Several straight edges beside cylinders running along them (none sharing a vertex) blended
+    /// one after another by `ParallelEdgeRoundBuilder`, each found by its ends after the ones before;
+    /// nil when the edges are not all such edges apart.
+    package func parallelEdgesInTurn(feature: FeatureNode, bodyID initialBodyID: BodyID, selected: [StableSubshapeReference],
+                                     section: ParallelEdgeRoundBuilder.Section, context: EvaluationContext) throws -> EvaluationResult? {
+        let tolerance = context.tolerance
+        let builder = ParallelEdgeRoundBuilder(tolerance: tolerance)
+        let selections = try selected.map { try scopedEdgeSelection($0, bodyID: initialBodyID, featureID: feature.id, context: context) }
+        guard try selections.allSatisfy({ try builder.admits($0.edgeID, bodyID: initialBodyID, model: context.brep) }) else { return nil }
+        let ends = try selections.map { selection -> (Point3D, Point3D) in
+            guard let edge = context.brep.edges[selection.edgeID], let a = context.brep.vertices[edge.startVertexID]?.point,
+                  let b = context.brep.vertices[edge.endVertexID]?.point else {
+                throw failure(.missingReference, featureID: feature.id, tolerance: tolerance, "A blended edge has no ends.")
+            }
+            return (a, b)
+        }
+        let points = ends.flatMap { [$0.0, $0.1] }
+        for (i, p) in points.enumerated() where points[(i + 1)...].contains(where: { $0.isApproximatelyEqual(to: p, tolerance: tolerance.distance) }) {
+            return nil
+        }
+        var bodyID = initialBodyID
+        var stages = FeatureEvaluationStages(context)
+        for (index, (a, b)) in ends.enumerated() {
+            let staged = stages.context
+            let scope = try BodyTopologyScope(bodyID: bodyID, model: staged.brep)
+            let edgeIDs = scope.references.compactMap { reference -> EdgeID? in
+                if case let .edge(id) = reference { return id }
+                return nil
+            }
+            guard let edgeID = edgeIDs.first(where: { id in
+                guard let edge = staged.brep.edges[id], let start = staged.brep.vertices[edge.startVertexID]?.point,
+                      let end = staged.brep.vertices[edge.endVertexID]?.point else { return false }
+                return (start.isApproximatelyEqual(to: a, tolerance: tolerance.distance) && end.isApproximatelyEqual(to: b, tolerance: tolerance.distance))
+                    || (start.isApproximatelyEqual(to: b, tolerance: tolerance.distance) && end.isApproximatelyEqual(to: a, tolerance: tolerance.distance))
+            }) else {
+                throw failure(.invalidInput, featureID: feature.id, tolerance: tolerance,
+                              "A blended edge lies within an earlier edge's blend; blend edges farther apart.")
+            }
+            let last = index == ends.count - 1
+            let stageID = last ? feature.id : featureEvaluationStageID(featureID: feature.id, domain: .edgeBlend, ordinal: UInt64(index))
+            let request = try builder.request(featureID: stageID, bodyID: bodyID, edgeID: edgeID, subshapeID: selected[index].subshapeID,
+                                              section: section, context: staged)
+            let sewn = try sewer.sew(request, tolerance: tolerance)
+            let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: staged.brep)
+            let step = EvaluationResult(brep: model, subshapes: sewn.subshapes,
+                                        removedSubshapeIDs: scope.subshapeIDs(in: staged.subshapes), lineage: sewn.lineage)
+            if last {
+                try model.validate(level: .volumetric, tolerance: tolerance)
+                return try stages.publish(step, featureID: feature.id)
+            }
+            stages.apply(step)
+            bodyID = sewn.bodyID
+        }
+        return nil
     }
 
     /// A chamfer of edges between planes by the profile blend: the straight section between its

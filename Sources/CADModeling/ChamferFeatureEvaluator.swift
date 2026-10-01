@@ -67,6 +67,12 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         }
         // A sheet's edges, several edges, an angled chamfer, or an edge between faces that are not
         // square are cut by the profile blend's straight section.
+        if chamfer.edges.count > 1, angle == nil, context.brep.bodies[bodyID]?.kind == .solid,
+           let result = try EdgeBlendFeatureEvaluator(sewer: sewer).parallelEdgesInTurn(
+               feature: feature, bodyID: bodyID, selected: chamfer.edges, section: .chamfer(distance, apex: chamfer.mode == .apex),
+               context: context) {
+            return result
+        }
         if context.brep.bodies[bodyID]?.kind == .sheet || chamfer.edges.count > 1 || angle != nil {
             return try profile()
         }

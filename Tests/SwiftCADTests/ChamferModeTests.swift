@@ -148,6 +148,7 @@ struct ChamferModeTests {
                       let end = before.brep.vertices[edge.endVertexID]?.point else { return false }
                 return [start, end].allSatisfy { abs($0.x - big) < 1e-12 && abs($0.y) < 1e-12 }
             }?.key)
+            var both = builder
             _ = try builder.chamfer(target: shape, edges: [try builder.stableSubshape(key)], distance: length(d), mode: mode)
             let cut = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "d"))
             try cut.brep.validate(level: .volumetric, tolerance: .standard)
@@ -164,6 +165,19 @@ struct ChamferModeTests {
             }
             let volume = try cut.brep.volume(tolerance: .standard)
             #expect(abs(volume - (solid - removed * height)) < 5e-12, "\(mode): \(volume)")
+            // Both corners together are cut in turn, each removing as much.
+            let left = try #require(before.subshapes.entries.first { key, value in
+                guard key.featureID == shape, case let .edge(id) = value, let edge = before.brep.edges[id],
+                      let start = before.brep.vertices[edge.startVertexID]?.point,
+                      let end = before.brep.vertices[edge.endVertexID]?.point else { return false }
+                return [start, end].allSatisfy { abs($0.x + big) < 1e-12 && abs($0.y) < 1e-12 }
+            }?.key)
+            _ = try both.chamfer(target: shape, edges: [try both.stableSubshape(key), try both.stableSubshape(left)],
+                                 distance: length(d), mode: mode)
+            let twice = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try both.build(name: "d"))
+            try twice.brep.validate(level: .volumetric, tolerance: .standard)
+            let bothVolume = try twice.brep.volume(tolerance: .standard)
+            #expect(abs(bothVolume - (solid - 2 * removed * height)) < 5e-12, "\(mode): \(bothVolume)")
         }
     }
 
