@@ -165,10 +165,27 @@ package struct CapLoopBlendBuilder {
                 let capSegment: Segment
                 let wallSegment: Segment
                 if let arc = segment.arc {
+                    // A convex arc's cap contact runs the distance nearer its centre: a round of the
+                    // arc's own radius collapses it to the centre, where the band is the ball's
+                    // sphere; a larger one does not fit.
+                    let convexArc = mStart.dot(arc.circle.center - segment.start) > 0
+                    if convexArc, arc.circle.radius < dc - tolerance.distance {
+                        throw refuse("A cap loop's blend is no larger than its convex arcs.")
+                    }
+                    let collapses = convexArc && abs(arc.circle.radius - dc) <= tolerance.distance
+                    if collapses, case .chamfer = shape {
+                        // FIXME(INCOMPLETE_IMPLEMENTATION): a chamfer as large as a convex arc of its
+                        // cap closes on a cone's apex, which is not built, so it is refused.
+                        // Production path: CapLoopBlendBuilder from Chamfer. Complete only when such
+                        // chamfers close, verified by a rounded block's rim chamfered by its corner radius.
+                        throw refuse("A cap loop's chamfer is smaller than its convex arcs.")
+                    }
                     let capRadius = (segment.start + mStart * dc - arc.circle.center).length
-                    capSegment = Segment(edgeID: segment.edgeID, wallFaceID: segment.wallFaceID, start: segment.start + mStart * dc,
-                                         end: segment.end + mEnd * dc,
-                                         arc: (Circle3D(center: arc.circle.center, normal: arc.circle.normal, radius: capRadius), arc.from, arc.to))
+                    capSegment = collapses
+                        ? Segment(edgeID: segment.edgeID, wallFaceID: segment.wallFaceID, start: arc.circle.center, end: arc.circle.center, arc: nil)
+                        : Segment(edgeID: segment.edgeID, wallFaceID: segment.wallFaceID, start: segment.start + mStart * dc,
+                                  end: segment.end + mEnd * dc,
+                                  arc: (Circle3D(center: arc.circle.center, normal: arc.circle.normal, radius: capRadius), arc.from, arc.to))
                     wallSegment = Segment(edgeID: segment.edgeID, wallFaceID: segment.wallFaceID, start: segment.start + wall * dw,
                                           end: segment.end + wall * dw,
                                           arc: (Circle3D(center: arc.circle.center + wall * dw, normal: arc.circle.normal,
@@ -269,6 +286,11 @@ package struct CapLoopBlendBuilder {
             }
             let loops = try source.loops.map { loop in
                 BRepSewingLoop(stableID: loop.stableID, role: loop.role, edges: try loop.edges.flatMap { edge -> [BRepSewingEdge] in
+                    // A segment collapsing to its arc's centre leaves the cap.
+                    if let move = segments.first(where: { matches(edge, $0.from) }),
+                       move.to.start.isApproximatelyEqual(to: move.to.end, tolerance: tolerance.distance) {
+                        return []
+                    }
                     let start = try split(edge.startPoint, toward: edge.endPoint) ?? moved(edge.startPoint)
                     let end = try split(edge.endPoint, toward: edge.startPoint) ?? moved(edge.endPoint)
                     let shortened = try movedEdge(edge, start: start, end: end)
@@ -308,6 +330,17 @@ package struct CapLoopBlendBuilder {
             let curve = try section(shape, at: point, inward: m, wallDirection: wallDirection, tangent: tangent, from: p, to: q)
             return BRepSewingEdge(stableID: "\(stableID):\(name)", curve: curve.curve, startParameter: curve.start, endParameter: curve.end,
                                   startPoint: p, endPoint: q, surfaceParameterCurve: .polyline([]), parentSubshapeIDs: parents)
+        }
+        // A convex arc as round as the blend: the ball's sphere about the arc's centre, between the
+        // sections at its ends (meeting at the centre on the cap) and the wall contact.
+        if let arc = segment.arc, cap.start.isApproximatelyEqual(to: cap.end, tolerance: tolerance.distance) {
+            let center = arc.circle.center + wallDirection * d
+            let edges = [
+                try sectionEdge("end", at: segment.end, inward: inward.end, tangent: try segmentTangent(segment, at: segment.end), reversed: false),
+                try contactEdge("\(stableID):wall", wall, forward: false, parents: parents),
+                try sectionEdge("start", at: segment.start, inward: inward.start, tangent: try segmentTangent(segment, at: segment.start), reversed: true),
+            ]
+            return try spherePatch(stableID: stableID, center: center, radius: d, edges: edges, parents: faceParents)
         }
         let surface: Surface3D
         if let arc = segment.arc {
@@ -403,6 +436,34 @@ package struct CapLoopBlendBuilder {
         return BRepSewingEdge(stableID: edge.stableID, curve: edge.curve, startParameter: edge.startParameter,
                               endParameter: edge.endParameter, startPoint: edge.startPoint, endPoint: edge.endPoint,
                               surfaceParameterCurve: pcurve, parentSubshapeIDs: edge.parentSubshapeIDs)
+    }
+
+    /// A loop of great circles of the sphere about `center` as its patch, each edge's pcurve the
+    /// great circle's, run counterclockwise seen from outside and facing out: the ball inside the
+    /// material at a convex corner.
+    private func spherePatch(stableID: String, center: Point3D, radius: Double, edges: [BRepSewingEdge],
+                             parents: [SubshapeID]) throws -> BRepSewingFacePatch {
+        var loop = try edges.map { edge -> BRepSewingEdge in
+            let cosine = try (edge.curve.point(at: 0, tolerance: tolerance) - center).normalized(tolerance: tolerance.distance)
+            let sine = try (edge.curve.point(at: Double.pi / 2, tolerance: tolerance) - center).normalized(tolerance: tolerance.distance)
+            return BRepSewingEdge(stableID: edge.stableID, curve: edge.curve, startParameter: edge.startParameter, endParameter: edge.endParameter,
+                                  startPoint: edge.startPoint, endPoint: edge.endPoint,
+                                  surfaceParameterCurve: .sphericalGreatCircle(cosine: cosine, sine: sine, startParameter: edge.startParameter,
+                                                                               endParameter: edge.endParameter),
+                                  parentSubshapeIDs: edge.parentSubshapeIDs)
+        }
+        let corners = loop.map(\.startPoint)
+        let centroid = Point3D.origin + corners.reduce(Vector3D.zero) { $0 + ($1 - .origin) } * (1 / Double(corners.count))
+        if (corners[1] - corners[0]).cross(corners[2] - corners[0]).dot(centroid - center) < 0 {
+            loop = try loop.reversed().map(reversed)
+        }
+        let surface = Surface3D.analytic(.sphere(center: center, radius: radius))
+        let outward = try (centroid - center).normalized(tolerance: tolerance.distance)
+        let uv = try surface.parameterProjection(of: center + outward * radius, tolerance: tolerance)
+        let facing = try surface.normal(u: uv.u, v: uv.v, tolerance: tolerance).dot(outward) >= 0
+        return BRepSewingFacePatch(stableID: stableID, surface: surface, orientation: facing ? .forward : .reversed,
+                                   loops: [BRepSewingLoop(stableID: "\(stableID):outer", role: .outer, edges: loop)],
+                                   parentSubshapeIDs: parents)
     }
 
     /// A contact segment as an edge, run forward or back.

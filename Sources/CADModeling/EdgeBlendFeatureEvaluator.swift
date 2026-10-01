@@ -942,16 +942,29 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             && builder.isConcave(selection.edgeID, bodyID: initialBodyID, model: model) {
             concave.append(index)
         }
-        let others = selections.indices.filter { concave.contains($0) == false }
-        guard concave.isEmpty == false, others.isEmpty == false else { return nil }
+        guard concave.isEmpty == false else { return nil }
         let originals = try selections.map { try geometry($0.edgeID, in: model) }
+        // Straight edges running along a concave one (an extrusion's other upright edges) round
+        // with it first: the cap chains then turn on their arcs, the convex ones closing on spheres.
+        var first = concave
+        for index in selections.indices where concave.contains(index) == false {
+            guard case let .line(line) = originals[index].curve,
+                  concave.contains(where: { j in
+                      guard case let .line(other) = originals[j].curve else { return false }
+                      return line.direction.cross(other.direction).length <= tolerance.angle
+                  }),
+                  try builder.admits(selections[index].edgeID, bodyID: initialBodyID, model: model, betweenPlanes: true) else { continue }
+            first.append(index)
+        }
+        let others = selections.indices.filter { first.contains($0) == false }
+        guard others.isEmpty == false else { return nil }
         func meet(_ i: Int, _ j: Int) -> Bool {
             [originals[i].start, originals[i].end].contains { p in
                 [originals[j].start, originals[j].end].contains { $0.isApproximatelyEqual(to: p, tolerance: tolerance.distance) }
             }
         }
-        // Concave edges apart from each other, each meeting another selected edge.
-        guard concave.allSatisfy({ i in concave.allSatisfy { j in i == j || meet(i, j) == false } }),
+        // The edges rounded first apart from each other, each concave one meeting another selected edge.
+        guard first.allSatisfy({ i in first.allSatisfy { j in i == j || meet(i, j) == false } }),
               concave.allSatisfy({ i in others.contains { meet(i, $0) } }) else { return nil }
         var bodyID = initialBodyID
         var stages = FeatureEvaluationStages(context)
@@ -962,7 +975,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 return nil
             }
         }
-        for (ordinal, index) in concave.enumerated() {
+        for (ordinal, index) in first.enumerated() {
             let staged = stages.context
             let (_, a, b) = originals[index]
             guard let edgeID = try edgeIDs(staged).first(where: { id in
@@ -970,7 +983,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 return (start.isApproximatelyEqual(to: a, tolerance: tolerance.distance) && end.isApproximatelyEqual(to: b, tolerance: tolerance.distance))
                     || (start.isApproximatelyEqual(to: b, tolerance: tolerance.distance) && end.isApproximatelyEqual(to: a, tolerance: tolerance.distance))
             }) else {
-                throw failure(.missingReference, featureID: feature.id, tolerance: tolerance, "A concave edge is no longer on the body.")
+                throw failure(.missingReference, featureID: feature.id, tolerance: tolerance, "An edge rounded first is no longer on the body.")
             }
             let scope = try BodyTopologyScope(bodyID: bodyID, model: staged.brep)
             let request = try builder.request(featureID: featureEvaluationStageID(featureID: feature.id, domain: .edgeBlend, ordinal: UInt64(ordinal)),

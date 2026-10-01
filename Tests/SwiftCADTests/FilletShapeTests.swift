@@ -652,6 +652,56 @@ struct FilletShapeTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func aRimRoundAsLargeAsItsCornersClosesOnSpheres() throws {
+        // The rounded block's top rim rounded by its 5 mm corner radius: each corner's band is the
+        // ball's sphere about the corner's axis.
+        let (w, h, c, height) = (0.04, 0.03, 0.005, 0.01)
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (block, edge) = try roundedBlock(&builder)
+        _ = try builder.fillet(target: block, edges: [edge], radius: length(c))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "r"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        let solid = (w * h - (4 - Double.pi) * c * c) * height
+        let section = c * c * (1 - Double.pi / 4)
+        let inset = c * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+        let straight = 2 * (w - 2 * c) + 2 * (h - 2 * c)
+        let volume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(volume - (solid - section * (straight + 2 * Double.pi * (c - inset)))) < 5e-12, "\(volume)")
+    }
+
+    @Test(.timeLimit(.minutes(3)))
+    func everyEdgeOfAnLBlockRounds() throws {
+        // The L's six upright edges round first (five convex, one concave), then its top and bottom
+        // rims all the way round: spheres at the convex corners, a torus at the concave one.
+        let (h, r) = (0.01, 0.002)
+        func p(_ x: Double, _ y: Double) -> SketchPoint { SketchPoint(x: length(x), y: length(y)) }
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let corners = [(0.0, 0.0), (0.02, 0.0), (0.02, 0.01), (0.01, 0.01), (0.01, 0.02), (0.0, 0.02)]
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            for (start, end) in zip(corners, corners.dropFirst() + corners.prefix(1)) {
+                _ = sketch.line(from: p(start.0, start.1), to: p(end.0, end.1))
+            }
+        }.featureID
+        let block = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(h))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "l"))
+        let all = try edges(of: block, in: before, builder) { _ in true }
+        #expect(all.count == 18)
+        _ = try builder.fillet(target: block, edges: all, radius: length(r))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "l"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        // Upright rounds: five corners cut, one filled. Each rim: the section along its straight
+        // runs (the 80 mm outline less r at both ends of each side) and, by Pappus, around each
+        // quarter turn at the centroid's radius, r less the inset at a convex corner, r plus it at
+        // the concave one.
+        let section = r * r * (1 - Double.pi / 4)
+        let inset = r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+        let rim = section * ((0.08 - 12 * r) + 5 * Double.pi / 2 * (r - inset) + Double.pi / 2 * (r + inset))
+        let expected = 0.0003 * h - 4 * section * h - 2 * rim
+        let volume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func aTabsConcaveRootBetweenItsEdgeAndItsArcFills() throws {
         // A 20 mm square with a half disc of radius 5 mm standing on its top edge, extruded 10 mm;
         // the upright edge at (15, 20) mm joins the top edge and the disc's arc in a concave corner.
