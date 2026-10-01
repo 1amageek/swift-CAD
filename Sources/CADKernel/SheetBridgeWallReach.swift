@@ -5,7 +5,7 @@ import CADModeling
 /// Bridge Surface's Short and Long walls: of two planar sheets, the one reaching less (Short) or
 /// more (Long) far from where their planes meet, as the trimmed wall a `SheetBridgeFeature` names.
 public struct SheetBridgeWallReach {
-    public enum Wall: Sendable {
+    public enum Wall: String, Codable, Hashable, Sendable {
         case short
         case long
     }
