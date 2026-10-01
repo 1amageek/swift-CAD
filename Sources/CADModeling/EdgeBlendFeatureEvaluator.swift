@@ -1598,9 +1598,18 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 let ends = [link.start, link.end].map { point in
                     (point + link.along.first * setbacks[index].0, point + link.along.second * setbacks[index].1)
                 }
-                var polygon = [ends[0].0, ends[1].0, ends[1].1, ends[0].1]
+                // The strip between the contact lines, run on past each end a neighbour meets so it
+                // reaches that neighbour's plane at a reflex corner of the face beside too, then cut
+                // by each neighbour's plane on the strip's own side: a mitre at every corner.
+                let reach = link.length + 10 * (setbacks[index].0 + setbacks[index].1)
+                let startMeets = neighbours.contains { [links[$0].vertices.start, links[$0].vertices.end].contains(link.vertices.start) }
+                let endMeets = neighbours.contains { [links[$0].vertices.start, links[$0].vertices.end].contains(link.vertices.end) }
+                let (back, ahead) = (link.axis * (startMeets ? -reach : 0), link.axis * (endMeets ? reach : 0))
+                var polygon = [ends[0].0 + back, ends[1].0 + ahead, ends[1].1 + ahead, ends[0].1 + back]
+                let middle = Point3D.origin + ((ends[0].0 - .origin) + (ends[1].0 - .origin) + (ends[1].1 - .origin) + (ends[0].1 - .origin)) * 0.25
                 for other in neighbours {
-                    polygon = simplified(clip(polygon, origin: planes[other].origin, normal: planes[other].normal, offset: 0, tolerance: tolerance),
+                    let keep = (middle - planes[other].origin).dot(planes[other].normal) >= 0 ? planes[other].normal : planes[other].normal * -1
+                    polygon = simplified(clip(polygon, origin: planes[other].origin, normal: keep, offset: 0, tolerance: tolerance),
                                          tolerance: tolerance)
                 }
                 guard polygon.count >= 3 else {

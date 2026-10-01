@@ -113,6 +113,36 @@ struct ChamferModeTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(2)))
+    func twoChamfersMeetingAtAReflexCornerMitre() throws {
+        let (h, d) = (0.01, 0.002)
+        func p(_ x: Double, _ y: Double) -> SketchPoint { SketchPoint(x: length(x), y: length(y)) }
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let corners = [(0.0, 0.0), (0.02, 0.0), (0.02, 0.01), (0.01, 0.01), (0.01, 0.02), (0.0, 0.02)]
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            for (start, end) in zip(corners, corners.dropFirst() + corners.prefix(1)) {
+                _ = sketch.line(from: p(start.0, start.1), to: p(end.0, end.1))
+            }
+        }.featureID
+        let block = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(h))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "l"))
+        let top = try before.subshapes.entries.filter { key, value in
+            guard key.featureID == block, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  let a = before.brep.vertices[edge.startVertexID]?.point, let b = before.brep.vertices[edge.endVertexID]?.point else { return false }
+            return abs(a.z - h) < 1e-12 && abs(b.z - h) < 1e-12 && [a, b].contains { abs($0.x - 0.01) < 1e-12 && abs($0.y - 0.01) < 1e-12 }
+        }.map { try builder.stableSubshape($0.key) }
+        #expect(top.count == 2)
+        _ = try builder.chamfer(target: block, edges: top, distance: length(d))
+        let cut = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "l"))
+        try cut.brep.validate(level: .volumetric, tolerance: .standard)
+        // Each chamfer runs from the arm's end to the mitre x = y across the reflex corner: its
+        // triangle (legs d) times the run, 20 mm less y, from y = 10 mm − d up to 10 mm.
+        let arm = 0.01
+        let removed = 2 * ((arm + d) * d * d / 2 - d * d * d / 3)
+        let volume = try cut.brep.volume(tolerance: .standard)
+        #expect(abs(volume - (0.0003 * h - removed)) < 5e-12, "\(volume)")
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func chamferModesRoundTripThroughTheNativePackage() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)

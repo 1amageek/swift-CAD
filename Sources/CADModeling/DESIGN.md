@@ -367,7 +367,7 @@ distance along the reference face (each edge's first face, its second when flipp
 the angle, `distance · sin θ / sin(α + θ)` along the other (a cap loop's reference is its cap). Single
 square edges keep the chamfer's own builder; angled, oblique, several and sheet edges take the
 profile path. A chamfer's faces are the planes through its contact lines, each
-cut by the planes of the chamfers it meets, so mitres and corners of any number of chamfered edges
+cut by the planes of the chamfers it meets (each strip first run on past every end a neighbour meets and cut on its own side, so two chamfers meeting at a reflex corner of the face beside mitre too), so mitres and corners of any number of chamfered edges
 close on the planes' intersections. Two curved blends at a corner whose third edge is left sharp join
 at a mitre: both blends end on the section carried onto the plane bisecting the two edges, the same
 rational curve; at a corner turning inward the blends run on past it to that plane. Rounds without mitres take each edge as the exact cylinder for its own faces' angle, its axis
