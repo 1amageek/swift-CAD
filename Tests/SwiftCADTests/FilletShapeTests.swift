@@ -506,6 +506,69 @@ struct FilletShapeTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func aDsUprightCornerBetweenItsFlatAndItsArcRounds() throws {
+        // A D of radius 10 mm extruded 10 mm; its upright edge at (10, 0) mm joins the flat side
+        // (y = 0) and the round one at a right angle.
+        let (big, height, r) = (0.01, 0.01, 0.002)
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.arc(center: SketchPoint(x: length(0), y: length(0)), radius: length(big),
+                           startAngle: .constant(.angle(0, unit: .degree)), endAngle: .constant(.angle(180, unit: .degree)))
+            _ = sketch.line(from: SketchPoint(x: length(-big), y: length(0)), to: SketchPoint(x: length(big), y: length(0)))
+        }.featureID
+        let d = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(height))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "d"))
+        let corner = try edges(of: d, in: before, builder) { abs($0.x - big) < 1e-12 && abs($0.y) < 1e-12 }
+        #expect(corner.count == 1)
+        _ = try builder.fillet(target: d, edges: corner, radius: length(r))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "d"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        // The round's centre r above the flat and r inside the arc; the corner it cuts off by Green's
+        // theorem: the big arc from the corner to the touch, the small arc back down to the flat.
+        let cx = ((big - r) * (big - r) - r * r).squareRoot()
+        let theta = atan2(r, cx)
+        let small = r * r * (-Double.pi / 2 - theta) + r * (-cx - (cx * sin(theta) - r * cos(theta)))
+        let removed = big * big * theta / 2 + small / 2
+        let expected = (Double.pi * big * big / 2 - removed) * height
+        let volume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aTabsConcaveRootBetweenItsEdgeAndItsArcFills() throws {
+        // A 20 mm square with a half disc of radius 5 mm standing on its top edge, extruded 10 mm;
+        // the upright edge at (15, 20) mm joins the top edge and the disc's arc in a concave corner.
+        let (a, c, height, r) = (0.02, 0.005, 0.01, 0.002)
+        func p(_ x: Double, _ y: Double) -> SketchPoint { SketchPoint(x: length(x), y: length(y)) }
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.line(from: p(0, 0), to: p(a, 0))
+            _ = sketch.line(from: p(a, 0), to: p(a, a))
+            _ = sketch.line(from: p(a, a), to: p(a / 2 + c, a))
+            _ = sketch.arc(center: p(a / 2, a), radius: length(c),
+                           startAngle: .constant(.angle(0, unit: .degree)), endAngle: .constant(.angle(180, unit: .degree)))
+            _ = sketch.line(from: p(a / 2 - c, a), to: p(0, a))
+            _ = sketch.line(from: p(0, a), to: p(0, 0))
+        }.featureID
+        let tab = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(height))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "tab"))
+        let root = try edges(of: tab, in: before, builder) { abs($0.x - (a / 2 + c)) < 1e-12 && abs($0.y - a) < 1e-12 }
+        #expect(root.count == 1)
+        _ = try builder.fillet(target: tab, edges: root, radius: length(r))
+        let filled = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "tab"))
+        try filled.brep.validate(level: .volumetric, tolerance: .standard)
+        // The round's centre r above the edge and r outside the disc; it fills the wedge between them.
+        func F(_ radius: Double, _ u: Double) -> Double { (u * (radius * radius - u * u).squareRoot() + radius * radius * asin(u / radius)) / 2 }
+        let cx = (c + r) * (c + r) - r * r
+        let centre = cx.squareRoot()
+        let xb = centre * c / (c + r)
+        let added = (F(c, xb) - F(c, c)) + r * (centre - xb) - (F(r, 0) - F(r, xb - centre))
+        let expected = (a * a + Double.pi * c * c / 2 + added) * height
+        let volume = try filled.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func rimsChamferIntoConeBands() throws {
         let d = 0.002
         // A cylinder's top rim: the corner triangle d²/2 swept about the axis at d/3 in from the wall.

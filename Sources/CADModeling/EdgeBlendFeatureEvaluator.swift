@@ -101,6 +101,16 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             featureID: feature.id,
             context: context
         )
+        // A straight edge beside a cylinder running along it rounds as a cylinder tangent to both.
+        if try ParallelEdgeRoundBuilder(tolerance: context.tolerance).admits(selection.edgeID, bodyID: bodyID, model: context.brep) {
+            let request = try ParallelEdgeRoundBuilder(tolerance: context.tolerance).request(
+                featureID: feature.id, bodyID: bodyID, edgeID: selection.edgeID, subshapeID: selected.subshapeID, radius: radius, context: context)
+            let sewn = try sewer.sew(request, tolerance: context.tolerance)
+            let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: context.brep)
+            try model.validate(level: .volumetric, tolerance: context.tolerance)
+            return EvaluationResult(brep: model, subshapes: sewn.subshapes, removedSubshapeIDs: selection.replacedSubshapeIDs,
+                                    lineage: sewn.lineage)
+        }
         // Planes meeting at other than a right angle, or at a concave edge, take the profile blend's
         // exact arc; the rolling ball rounds convex right-angled edges.
         if let shell = body.shellIDs.first.flatMap({ context.brep.shells[$0] }) {
