@@ -110,15 +110,20 @@ package struct ExactHermiteCoonsSurfaceBuilder {
             rows[rows.count - 1] = end
             return rows
         }
-        func secondRows(plane: ExactEdgeContinuitySupport?, side: BSplineCurve3D, start: Vector3D, end: Vector3D) throws -> [Vector3D] {
+        func secondRows(plane: ExactEdgeContinuitySupport?, side: BSplineCurve3D, firstRows: [Vector3D],
+                        start: Vector3D, end: Vector3D) throws -> [Vector3D] {
             guard let plane else { return linear(start, end) }
-            let scale = max(start.length, end.length, 1)
-            let (n0, n1) = (try plane.normal(at: try point(side, 0), tolerance: tolerance), try plane.normal(at: try point(side, 1), tolerance: tolerance))
-            guard abs(start.dot(n0)) <= tolerance.angle * scale, abs(end.dot(n1)) <= tolerance.angle * scale else {
-                throw failure(.invalidInput,
-                    "A Square's sides beside a curvature-continuous side must not bend out of the face's plane there.", featureID)
+            if plane.isExact {
+                let scale = max(start.length, end.length, 1)
+                let (n0, n1) = (try plane.normal(at: try point(side, 0), tolerance: tolerance), try plane.normal(at: try point(side, 1), tolerance: tolerance))
+                guard abs(start.dot(n0)) <= tolerance.angle * scale, abs(end.dot(n1)) <= tolerance.angle * scale else {
+                    throw failure(.invalidInput,
+                        "A Square's sides beside a curvature-continuous side must not bend out of the face's plane there.", featureID)
+                }
             }
-            var rows = Array(repeating: Vector3D.zero, count: greville.count)
+            // Beside a curved face the rows take its normal curvature across the edge; the sides'
+            // own second derivatives end them, certified with the surface.
+            var rows = try plane.curvatureRows(along: side, rows: firstRows, tolerance: tolerance)
             rows[0] = start
             rows[rows.count - 1] = end
             return rows
@@ -137,8 +142,8 @@ package struct ExactHermiteCoonsSurfaceBuilder {
                 ([0, 0, -1.0 / 3, 0], d1, a0d1, a1d1),
             ]
         } else {
-            let k0 = try secondRows(plane: bottomPlane, side: b0, start: a0s0, end: a1s0)
-            let k1 = try secondRows(plane: topPlane, side: b1, start: a0s1, end: a1s1)
+            let k0 = try secondRows(plane: bottomPlane, side: b0, firstRows: d0, start: a0s0, end: a1s0)
+            let k1 = try secondRows(plane: topPlane, side: b1, firstRows: d1, start: a0s1, end: a1s1)
             terms = [
                 ([1, 1, 1, 0, 0, 0], vectors(b0), try point(a0, 0) - .origin, try point(a1, 0) - .origin),
                 ([0, 0, 0, 1, 1, 1], vectors(b1), try point(a0, 1) - .origin, try point(a1, 1) - .origin),

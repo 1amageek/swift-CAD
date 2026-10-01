@@ -1856,11 +1856,19 @@ package struct ExactLoftBodyBuilder {
                 }
                 let leaving = try derivatives(of: first, curves: firstCurves, leaving: true)
                 let arriving = try derivatives(of: second, curves: secondCurves, leaving: false)
+                // Curvature ends take the face's normal curvature across the edge.
+                func seconds(of section: Int, curves: [BSplineCurve3D], rows: [[Vector3D]]) throws -> [[Vector3D]]? {
+                    guard let plane = planes[section], plane.order == .curvature else { return nil }
+                    return try curves.indices.map { try plane.curvatureRows(along: curves[$0], rows: rows[$0], tolerance: tolerance) }
+                }
+                let leavingSeconds = try seconds(of: first, curves: firstCurves, rows: leaving)
+                let arrivingSeconds = try seconds(of: second, curves: secondCurves, rows: arriving)
                 let surfaces = try firstCurves.indices.map { span in
                     try builder.buildHermite(
                         start: firstCurves[span], startDerivatives: leaving[span],
                         end: secondCurves[span], endDerivatives: arriving[span],
-                        degree: degree, tolerance: tolerance
+                        degree: degree, startSecondDerivatives: leavingSeconds?[span], endSecondDerivatives: arrivingSeconds?[span],
+                        tolerance: tolerance
                     )
                 }
                 do {

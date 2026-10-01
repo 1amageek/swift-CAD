@@ -278,7 +278,8 @@ too, so the sheet is exactly G1 or G2 with the plane. Continuity along neighbour
 tensor, every side's rows (a continuous side's from its support, a G0 side's linear) ending on the
 neighbouring sides' derivatives, and both rows through a corner taking one twist, the mean of
 their natural ones kept in the corner's tangent plane; planar faces meeting at a corner must be one
-plane, curved faces are certified within their allowance. Curvature along neighbouring sides and
+plane, curved faces are certified within their allowances (a curved side's curvature rows are the
+face's normal curvature across it). Curvature along neighbouring sides and
 rational sides with continuity are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)`.
 `SquareSurfaceTests` own the flat frame in any order, the G1 and G2 sheets between two boxes'
 edges, the round trip, the refusal of rails bending out of the faces' planes, a plate's hole filled
@@ -356,13 +357,17 @@ face beside the edge (`SurfaceEdgeContinuity` on the section, its body an input 
 `ExactEdgeContinuitySupportResolver` resolves the edge in its body, takes of the faces bordering it
 the one whose outward direction across the edge (the coedge's travel crossed with the face's
 outward normal; the face lies left of its coedges) points most toward the other sections, and
-meets a planar face exactly. Beside a curved face (tangent order only, with the continuity's
-angular allowance; curvature with a curved face is refused with `FIXME(INCOMPLETE_IMPLEMENTATION)`)
-the rows interpolate the unit leaving direction `n(C) × C′` at the side's Greville abscissae, and
-`ExactEdgeContinuitySupport.certify` proves the built surface's normals within the allowance of the
-face's through `SurfaceBoundaryContinuityEvaluator`, the face's side being the cubic spline through
-the face chart's projections of the span at the span's own fractions; the consumer refines the
-sides (midpoints of every knot span, up to four times) until certified, or refuses. The connection beside the
+meets a planar face exactly. Beside a curved face (the continuity's angular allowance required, and
+its curvature allowance at curvature order) the rows interpolate the unit leaving direction
+`n(C) × C′` at the side's Greville abscissae; at curvature order the second rows interpolate
+`K = n · II(D, D)` along the face normal, the face's normal curvature in the leaving direction D
+(the chart's tangent-plane coordinates of D through its second derivatives), so the surface bends
+across the edge as the face does. `ExactEdgeContinuitySupport.certify` proves the built surface's
+normals within the angular allowance, and at curvature order its principal curvatures within the
+curvature allowance, of the face's through `SurfaceBoundaryContinuityEvaluator`, the face's side
+being the cubic spline through the face chart's projections of the span at the span's own
+fractions; the consumer refines the sides (midpoints of every knot span, up to four times) until
+certified, or refuses. The connection beside the
 section is built by `ExactLoftSideSurfaceBuilder.buildHermite`: per span, rows leaving the section
 along `normal × C′` at each control point's Greville abscissa (unit, times tension and the average
 distance between the two sections), so every cross-boundary derivative lies in the face's plane
@@ -372,8 +377,8 @@ chord between the two sections' control points; neighbouring spans share their v
 corner there is refused, and the connectors are the sides' boundary columns. Guides, middle
 sections, closed section loops and smooth Lofts of more than two sections are refused with
 continuity. `SurfaceEdgeContinuityTests` own the S-shaped G1 and G2 sheets between two boxes'
-edges, the round trip, the G1 loft from a cylinder's side certified within its allowance, and the
-refusals of a curved face without an allowance or at curvature order.
+edges, the round trip, the G1 and G2 lofts from a cylinder's side certified within their
+allowances, and the refusals of a curved face without its allowances.
 
 ### Loft section topology
 

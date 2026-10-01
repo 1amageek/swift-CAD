@@ -110,7 +110,7 @@ struct SurfaceEdgeContinuityTests {
 
     /// A loft between the first-quadrant quarters of the top rim of a 10 mm cylinder and the bottom
     /// rim of a 15 mm one 30 mm above, with continuity along both when `order` is given.
-    private func cylinders(order: SurfaceEdgeContinuity.Order?, allowance: Double?) throws -> (DocumentBuilder, FeatureID) {
+    private func cylinders(order: SurfaceEdgeContinuity.Order?, allowance: Double?, curvatureAllowance: Double? = nil) throws -> (DocumentBuilder, FeatureID) {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let lower = try builder.cylinder(radius: length(0.01), height: length(0.02))
         let upper = try builder.cylinder(
@@ -133,7 +133,8 @@ struct SurfaceEdgeContinuityTests {
         let curves = try rims.map { try builder.edgeCurves(of: $0.0, edges: [$0.1]) }
         let loft = try builder.loft(sections: zip(rims, curves).map { rim, curve in
             LoftSectionReference(section: .curve(CurveSectionReference(featureID: curve)), continuity: order.map {
-                SurfaceEdgeContinuity(source: rim.0, bodyRole: .body, edge: rim.1, order: $0, angularAllowance: allowance)
+                SurfaceEdgeContinuity(source: rim.0, bodyRole: .body, edge: rim.1, order: $0, angularAllowance: allowance,
+                                      curvatureAllowance: curvatureAllowance)
             })
         }, options: LoftOptions(resultKind: .sheet))
         return (builder, loft)
@@ -165,10 +166,19 @@ struct SurfaceEdgeContinuityTests {
         #expect(checked >= 10)
     }
 
+    @Test(.timeLimit(.minutes(3)))
+    func aCurvatureLoftMeetsACylindersSideWithinItsAllowances() throws {
+        // Along a cylinder's side the cross-boundary curvature is the generator's, zero; the
+        // loft's curvature certificate holds within the allowances.
+        let (builder, loft) = try cylinders(order: .curvature, allowance: 1e-3, curvatureAllowance: 1)
+        let evaluated = try evaluate(builder)
+        #expect(evaluated.subshapes.entries.contains { $0.key.featureID == loft })
+    }
+
     @Test(.timeLimit(.minutes(2)))
-    func continuityWithACurvedFaceNeedsAnAllowanceAndTangencyOnly() throws {
+    func continuityWithACurvedFaceNeedsItsAllowances() throws {
         for (order, allowance, code) in [(SurfaceEdgeContinuity.Order.tangent, nil, KernelErrorCode.invalidInput),
-                                         (.curvature, 1e-3, .unsupportedCapability)] as [(SurfaceEdgeContinuity.Order, Double?, KernelErrorCode)] {
+                                         (.curvature, 1e-3, .invalidInput)] as [(SurfaceEdgeContinuity.Order, Double?, KernelErrorCode)] {
             do {
                 _ = try evaluate(try cylinders(order: order, allowance: allowance).0)
                 Issue.record("Continuity \(order) with a cylinder's side and allowance \(String(describing: allowance)) must be refused.")

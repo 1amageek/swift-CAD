@@ -16,8 +16,9 @@ package struct ExactEdgeContinuitySupport: Sendable {
     package enum Face: Sendable {
         /// The face's unit outward normal.
         case plane(normal: Vector3D)
-        /// The face's surface and the sign turning its normal outward.
-        case curved(surface: Surface3D, outwardSign: Double, angularAllowance: Double)
+        /// The face's surface, the sign turning its normal outward, and the allowances its normals
+        /// and (for curvature order) its principal curvatures are met within.
+        case curved(surface: Surface3D, outwardSign: Double, angularAllowance: Double, curvatureAllowance: Double?)
     }
 
     package let face: Face
@@ -28,7 +29,7 @@ package struct ExactEdgeContinuitySupport: Sendable {
 
     /// The angle the surface's normal may stray from a curved face's; zero for a plane.
     package var allowance: Double {
-        if case let .curved(_, _, angularAllowance) = face { return angularAllowance }
+        if case let .curved(_, _, angularAllowance, _) = face { return angularAllowance }
         return 0
     }
 
@@ -43,7 +44,7 @@ package struct ExactEdgeContinuitySupport: Sendable {
         switch face {
         case let .plane(normal):
             return normal
-        case let .curved(surface, outwardSign, _):
+        case let .curved(surface, outwardSign, _, _):
             let projected = try surface.parameterProjection(of: point, tolerance: tolerance)
             return try (surface.normal(u: projected.u, v: projected.v, tolerance: tolerance) * outwardSign)
                 .normalized(tolerance: tolerance.distance)
@@ -63,20 +64,67 @@ package struct ExactEdgeContinuitySupport: Sendable {
                 .normalized(tolerance: tolerance.distance)
         }
         guard case .curved = face else { return targets }
-        // Collocation: the (rational) basis functions at the Greville abscissae, each read as the
-        // x coordinate of the span with a unit control point.
+        return try interpolating(targets, over: span, at: grevilles, tolerance: tolerance)
+    }
+
+    /// The second-derivative rows across `span` for curvature continuity: zero beside a plane (its
+    /// curvature is nil), beside a curved face the rows interpolating n·II(D, D) at the Greville
+    /// abscissae — the face's normal curvature along the cross-boundary derivative `D` that the
+    /// (rational) spline of `rows` takes there, which is all curvature continuity adds once the
+    /// side lies on the face and `D` in its tangent planes.
+    package func curvatureRows(along span: BSplineCurve3D, rows: [Vector3D], tolerance: ModelingTolerance) throws -> [Vector3D] {
+        guard case let .curved(surface, outwardSign, _, _) = face else {
+            return Array(repeating: .zero, count: rows.count)
+        }
+        let degree = span.degree
+        let grevilles = span.controlPoints.indices.map { span.knots[($0 + 1)...($0 + degree)].reduce(0, +) / Double(degree) }
+        let matrix = try basis(of: span, at: grevilles, tolerance: tolerance)
+        let count = rows.count
+        let targets = try grevilles.enumerated().map { i, t -> Vector3D in
+            var derivative = Vector3D.zero
+            for j in 0..<count { derivative = derivative + rows[j] * matrix[i * count + j] }
+            let point = try Curve3D.bSpline(span).point(at: t, tolerance: tolerance)
+            let projected = try surface.parameterProjection(of: point, tolerance: tolerance)
+            let geometry = try surface.differentialGeometry(u: projected.u, v: projected.v, tolerance: tolerance)
+            let normal = try (geometry.normal * outwardSign).normalized(tolerance: tolerance.distance)
+            // D in the chart's tangents: D = a·Su + b·Sv.
+            let (su, sv) = (geometry.tangentU, geometry.tangentV)
+            let (e, f, g) = (su.dot(su), su.dot(sv), sv.dot(sv))
+            let determinant = e * g - f * f
+            guard abs(determinant) > tolerance.relative * e * g else {
+                throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: tolerance,
+                                  message: "A curved face's chart is singular where its curvature is read.")
+            }
+            let (p, q) = (derivative.dot(su), derivative.dot(sv))
+            let a = (p * g - q * f) / determinant, b = (q * e - p * f) / determinant
+            let second = geometry.secondDerivativeUU * (a * a) + geometry.secondDerivativeUV * (2 * a * b) + geometry.secondDerivativeVV * (b * b)
+            return normal * second.dot(normal)
+        }
+        return try interpolating(targets, over: span, at: grevilles, tolerance: tolerance)
+    }
+
+    /// The (rational) basis functions of `span` at `parameters`, row by row, each read as the x
+    /// coordinate of the span with a unit control point.
+    private func basis(of span: BSplineCurve3D, at parameters: [Double], tolerance: ModelingTolerance) throws -> [Double] {
         let count = span.controlPoints.count
         var matrix: [Double] = []
-        matrix.reserveCapacity(count * count)
-        for t in grevilles {
+        matrix.reserveCapacity(parameters.count * count)
+        for t in parameters {
             for column in 0..<count {
-                let unit = BSplineCurve3D(degree: degree, knots: span.knots,
+                let unit = BSplineCurve3D(degree: span.degree, knots: span.knots,
                     controlPoints: (0..<count).map { $0 == column ? Point3D(x: 1, y: 0, z: 0) : .origin }, weights: span.weights)
                 matrix.append(try Curve3D.bSpline(unit).point(at: t, tolerance: tolerance).x)
             }
         }
-        let qr = try SurfaceFittingQR(coefficients: matrix, rows: count, columns: count,
-                                      relativeRankTolerance: 1e-12, maximumElements: 1 << 20)
+        return matrix
+    }
+
+    /// The rows whose (rational) spline over `span`'s basis takes `targets` at `parameters`.
+    private func interpolating(_ targets: [Vector3D], over span: BSplineCurve3D, at parameters: [Double],
+                               tolerance: ModelingTolerance) throws -> [Vector3D] {
+        let count = span.controlPoints.count
+        let qr = try SurfaceFittingQR(coefficients: try basis(of: span, at: parameters, tolerance: tolerance),
+                                      rows: count, columns: count, relativeRankTolerance: 1e-12, maximumElements: 1 << 20)
         let x = try qr.solveFullRankLeastSquares(targets.map(\.x))
         let y = try qr.solveFullRankLeastSquares(targets.map(\.y))
         let z = try qr.solveFullRankLeastSquares(targets.map(\.z))
@@ -101,7 +149,7 @@ package struct ExactEdgeContinuitySupport: Sendable {
 
     package func certify(_ surface: BSplineSurface3D, along boundary: Boundary, span: BSplineCurve3D,
                          tolerance: ModelingTolerance, featureID: FeatureID) throws {
-        guard case let .curved(faceSurface, _, allowance) = face else { return }
+        guard case let .curved(faceSurface, _, allowance, curvatureAllowance) = face else { return }
         guard case let .closed(u0, u1) = surface.uDomain, case let .closed(v0, v1) = surface.vDomain,
               case let .closed(s0, s1) = span.domain else {
             throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
@@ -151,8 +199,9 @@ package struct ExactEdgeContinuitySupport: Sendable {
             frameOrientation: middle.normal.dot(faceNormal) >= 0 ? .forward : .reversed
         )
         _ = try SurfaceBoundaryContinuityEvaluator(modelingTolerance: tolerance).certify(
-            first: surfaceSide, second: faceSide, requiredLevel: .tangentPlane,
-            tolerances: SurfaceContinuityTolerances(positionDistance: tolerance.distance * 8, normalAngle: allowance, principalCurvature: 1),
+            first: surfaceSide, second: faceSide, requiredLevel: order == .curvature ? .curvature : .tangentPlane,
+            tolerances: SurfaceContinuityTolerances(positionDistance: tolerance.distance * 8, normalAngle: allowance,
+                                                    principalCurvature: curvatureAllowance ?? 1),
             maximumIntervals: 4096, maximumDepth: 24
         )
     }
@@ -226,21 +275,16 @@ package struct ExactEdgeContinuitySupportResolver: Sendable {
         if let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) {
             face = .plane(normal: try (plane.normal * outwardSign).normalized(tolerance: tolerance.distance))
         } else {
-            guard continuity.order == .tangent else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): curvature continuity with a curved face needs
-                // second-derivative rows matching the face's normal curvature across the edge,
-                // which are not fitted, so it is refused. Production path:
-                // ExactEdgeContinuitySupportResolver for every Loft section and Square side with
-                // curvature continuity. Complete only when those rows are fitted and the
-                // curvature certified, verified by a G2 loft from a cylinder's rim.
-                throw KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance,
-                                  message: "Curvature continuity is with a planar face.")
-            }
             guard let allowance = continuity.angularAllowance else {
                 throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
-                                  message: "Tangent continuity with a curved face needs an angular allowance.")
+                                  message: "Continuity with a curved face needs an angular allowance.")
             }
-            face = .curved(surface: surface, outwardSign: outwardSign, angularAllowance: allowance)
+            guard continuity.order == .tangent || continuity.curvatureAllowance != nil else {
+                throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
+                                  message: "Curvature continuity with a curved face needs a curvature allowance.")
+            }
+            face = .curved(surface: surface, outwardSign: outwardSign, angularAllowance: allowance,
+                           curvatureAllowance: continuity.order == .curvature ? continuity.curvatureAllowance : nil)
         }
         let across = best.outwardNormal.cross(derivative)
         guard across.length > tolerance.distance else {

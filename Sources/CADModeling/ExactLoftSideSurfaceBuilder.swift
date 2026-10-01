@@ -44,13 +44,16 @@ package struct ExactLoftSideSurfaceBuilder: Sendable {
     /// The Hermite side between two section spans of one basis and one set of weights: in v a
     /// Bézier of `degree` 3 or 5 leaving `start` with the derivative rows `startDerivatives` and
     /// arriving at `end` with `endDerivatives`, one per control point. A quintic's second rows
-    /// continue its first, so its second derivative at both ends vanishes.
+    /// give it the second derivatives `startSecondDerivatives` and `endSecondDerivatives` (zero
+    /// when nil) at its ends.
     package func buildHermite(
         start: BSplineCurve3D,
         startDerivatives: [Vector3D],
         end: BSplineCurve3D,
         endDerivatives: [Vector3D],
         degree: Int,
+        startSecondDerivatives: [Vector3D]? = nil,
+        endSecondDerivatives: [Vector3D]? = nil,
         tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
         try tolerance.validate()
@@ -61,8 +64,13 @@ package struct ExactLoftSideSurfaceBuilder: Sendable {
                               message: "A Hermite Loft side needs two spans of one basis with a derivative per control point.")
         }
         let steps = degree == 3 ? [0.0, 1.0 / 3] : [0.0, 1.0 / 5, 2.0 / 5]
-        let leading = steps.map { step in zip(start.controlPoints, startDerivatives).map { $0 + $1 * step } }
-        let trailing = steps.reversed().map { step in zip(end.controlPoints, endDerivatives).map { $0 + $1 * -step } }
+        var leading = steps.map { step in zip(start.controlPoints, startDerivatives).map { $0 + $1 * step } }
+        var trailing = steps.reversed().map { step in zip(end.controlPoints, endDerivatives).map { $0 + $1 * -step } }
+        // A quintic's second derivative at an end is twenty times its second difference there.
+        if degree == 5 {
+            if let second = startSecondDerivatives { leading[2] = zip(leading[2], second).map { $0 + $1 * (1.0 / 20) } }
+            if let second = endSecondDerivatives { trailing[0] = zip(trailing[0], second).map { $0 + $1 * (1.0 / 20) } }
+        }
         let rows = leading + trailing
         let surface = BSplineSurface3D(
             uDegree: start.degree, vDegree: degree, uKnots: start.knots,
