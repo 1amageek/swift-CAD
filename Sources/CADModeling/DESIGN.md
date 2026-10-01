@@ -257,6 +257,20 @@ rational sides with continuity are refused with `FIXME(INCOMPLETE_IMPLEMENTATION
 edges, the round trip, the refusal of rails bending out of the faces' planes, a plate's hole filled
 tangent along all four sides and the refusal across a box's walls.
 
+### Fillet shapes
+
+`FilletFeature.shape` is Fillet Shell's Shape. `round` keeps the rolling-ball fillet of the radius.
+The other shapes round one straight edge between perpendicular planes through
+`EdgeBlendFeatureEvaluator`'s profile blend (shared with the G2 blend): a cross-section swept along
+the edge, the two faces cut back to its contacts and the end faces closed by its curve. A `conic`
+is the rational quadratic through the corner with middle weight ρ/(1 − ρ), ρ the tension, meeting
+both faces at the distance; a `chordal` is the quarter circle whose chord is the distance (contacts
+at distance/√2); a `curvature` fillet is the quintic whose first and last three control points lie
+on the faces (zero curvature at the contacts), its handles the tension times a third of the
+distance. Full, variable and limit points, several edges, tangent chains and Y-blends are not built
+(FE2). `FilletShapeTests` own each shape's removed cross-section times the edge's length and the
+tension and one-edge admission.
+
 ### Chord guides
 
 A Chord guide along a straight path turns the section to keep pointing at a straight guide,

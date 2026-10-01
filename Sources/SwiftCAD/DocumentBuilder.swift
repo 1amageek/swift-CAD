@@ -1051,12 +1051,16 @@ public struct DocumentBuilder {
         target targetFeatureID: FeatureID,
         edges: [StableSubshapeReference],
         radius: CADExpression,
+        shape: FilletShape = .round,
+        tension: Double? = nil,
         named name: String? = nil
     ) throws -> FeatureID {
         let fillet = FilletFeature(
             target: FilletTargetReference(featureID: targetFeatureID),
             edges: edges,
-            radius: radius
+            radius: radius,
+            shape: shape,
+            tension: tension
         )
         try fillet.validate()
         let featureID = FeatureID()

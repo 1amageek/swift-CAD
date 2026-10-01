@@ -27,6 +27,11 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             throw failure(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance, "Current exact fillet supports one selected edge per feature.")
         }
         let radius = try resolvedRadius(fillet.radius, featureID: feature.id, context: context)
+        if fillet.shape != .round {
+            return try evaluateProfileBlend(feature: feature, target: fillet.target.featureID, selected: fillet.edges[0],
+                                            section: try section(for: fillet.shape, tension: fillet.tension, distance: radius),
+                                            context: context)
+        }
         let bodyID = try targetBodyID(fillet.target.featureID, featureID: feature.id, context: context)
         guard let body = context.brep.bodies[bodyID],
               body.kind == .solid,
@@ -768,13 +773,65 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
               quantity.value > context.tolerance.distance else {
             throw failure(.invalidInput, featureID: feature.id, tolerance: context.tolerance, "G2 blend distance must be a positive length above modeling tolerance.")
         }
-        let bodyID = try targetBodyID(blend.target.featureID, featureID: feature.id, context: context)
+        return try evaluateProfileBlend(feature: feature, target: blend.target.featureID, selected: blend.edges[0],
+                                        section: try section(for: .curvature, tension: 1, distance: quantity.value), context: context)
+    }
+
+    /// A blend's cross-section across an edge between perpendicular planes: its distance from the
+    /// edge along both faces, and its curve from the contact on the first face to the one on the
+    /// second, given the corner and the unit directions along the first and second faces away from
+    /// the edge.
+    private struct BlendSection {
+        let setback: Double
+        let degree: Int
+        let weights: [Double]
+        let controlPoints: (Point3D, Vector3D, Vector3D) -> [Point3D]
+    }
+
+    /// The cross-section of a Fillet Shell `shape`.
+    private func section(for shape: FilletShape, tension: Double, distance: Double) throws -> BlendSection {
+        switch shape {
+        case .curvature:
+            // A quintic leaving each face along it with zero curvature: its first three control
+            // points on the first face, its last three on the second.
+            return BlendSection(setback: distance, degree: 5, weights: Array(repeating: 1, count: 6)) { corner, first, second in
+                let start: Point3D = corner + first * distance
+                let end: Point3D = corner + second * distance
+                let handle: Double = tension * distance / 3
+                let startHandle: Point3D = start + first * -handle
+                let startCurvature: Point3D = start + first * (-2 * handle)
+                let endCurvature: Point3D = end + second * (-2 * handle)
+                let endHandle: Point3D = end + second * -handle
+                return [start, startHandle, startCurvature, endCurvature, endHandle, end]
+            }
+        case .conic:
+            // A rational quadratic through the corner's tangents, rho the tension.
+            return BlendSection(setback: distance, degree: 2, weights: [1, tension / (1 - tension), 1]) { corner, first, second in
+                [corner + first * distance, corner, corner + second * distance]
+            }
+        case .chordal:
+            // A quarter circle whose chord is the distance.
+            let setback = distance / 2.0.squareRoot()
+            return BlendSection(setback: setback, degree: 2, weights: [1, 0.5.squareRoot(), 1]) { corner, first, second in
+                [corner + first * setback, corner, corner + second * setback]
+            }
+        case .round:
+            throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: nil,
+                              message: "A round fillet takes the rolling-ball route.")
+        }
+    }
+
+    /// One straight edge between perpendicular planes blended by `section` swept along it, the
+    /// faces cut back to its contacts and the end faces closed by its curve.
+    private func evaluateProfileBlend(
+        feature: FeatureNode, target: FeatureID, selected: StableSubshapeReference, section: BlendSection, context: EvaluationContext
+    ) throws -> EvaluationResult {
+        let bodyID = try targetBodyID(target, featureID: feature.id, context: context)
         guard let body = context.brep.bodies[bodyID],
               body.kind == .solid,
               body.shellIDs.count == 1 else {
             throw failure(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance, "Current exact G2 blend requires one single-shell solid body.")
         }
-        let selected = blend.edges[0]
         let selection = try scopedEdgeSelection(
             selected,
             bodyID: bodyID,
@@ -787,7 +844,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             edgeID: selection.edgeID,
             selectedSubshapeID: selected.subshapeID,
             sourceEdgeIDs: selection.sourceEdgeIDs,
-            distance: quantity.value,
+            section: section,
             context: context
         )
         let result = try sewer.sew(request, tolerance: context.tolerance)
@@ -812,9 +869,10 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         edgeID: EdgeID,
         selectedSubshapeID: SubshapeID,
         sourceEdgeIDs: Set<EdgeID>,
-        distance: Double,
+        section: BlendSection,
         context: EvaluationContext
     ) throws -> BRepSewingRequest {
+        let distance = section.setback
         let model = context.brep
         guard let body = model.bodies[bodyID],
               let shellID = body.shellIDs.first,
@@ -838,22 +896,18 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         let axis = try axisVector.normalized(tolerance: context.tolerance.distance)
         let firstInward = -firstPlane.outward
         let secondInward = -secondPlane.outward
-        let lowerControlPoints = quinticControlPoints(
-            corner: startVertex.point,
-            firstInward: firstInward,
-            secondInward: secondInward,
-            distance: distance
-        )
+        let lowerControlPoints = section.controlPoints(startVertex.point, secondInward, firstInward)
         let upperControlPoints = lowerControlPoints.map { $0 + axis * height }
-        let knots = Array(repeating: 0.0, count: 6) + Array(repeating: 1.0, count: 6)
-        let lowerCurve = BSplineCurve3D(degree: 5, knots: knots, controlPoints: lowerControlPoints)
-        let upperCurve = BSplineCurve3D(degree: 5, knots: knots, controlPoints: upperControlPoints)
+        let knots = Array(repeating: 0.0, count: section.degree + 1) + Array(repeating: 1.0, count: section.degree + 1)
+        let lowerCurve = BSplineCurve3D(degree: section.degree, knots: knots, controlPoints: lowerControlPoints, weights: section.weights)
+        let upperCurve = BSplineCurve3D(degree: section.degree, knots: knots, controlPoints: upperControlPoints, weights: section.weights)
         let blendDefinition = BSplineSurface3D(
-            uDegree: 5,
+            uDegree: section.degree,
             vDegree: 1,
             uKnots: knots,
             vKnots: [0.0, 0.0, height, height],
-            controlPoints: [lowerControlPoints, upperControlPoints]
+            controlPoints: [lowerControlPoints, upperControlPoints],
+            weights: [section.weights, section.weights]
         )
         try lowerCurve.validate(tolerance: context.tolerance)
         try upperCurve.validate(tolerance: context.tolerance)
@@ -957,29 +1011,6 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
             bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context)
         )
-    }
-
-    private func quinticControlPoints(
-        corner: Point3D,
-        firstInward: Vector3D,
-        secondInward: Vector3D,
-        distance: Double
-    ) -> [Point3D] {
-        let first = corner + secondInward * distance
-        let second = corner + firstInward * distance
-        let handle = distance / 3.0
-        let firstHandle = first + secondInward * (-handle)
-        let firstCurvature = first + secondInward * (-2.0 * handle)
-        let secondCurvature = second + firstInward * (-2.0 * handle)
-        let secondHandle = second + firstInward * (-handle)
-        return [
-            first,
-            firstHandle,
-            firstCurvature,
-            secondCurvature,
-            secondHandle,
-            second,
-        ]
     }
 
     private func g2CapPatch(
