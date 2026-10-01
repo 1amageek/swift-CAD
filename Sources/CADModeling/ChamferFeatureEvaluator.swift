@@ -51,11 +51,24 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             )
         }
         let distance = try resolvedDistance(chamfer.distance, context: context, featureID: feature.id)
+        let angle = try chamfer.angle.map { expression -> Double in
+            let quantity = try resolver.evaluate(expression, parameters: context.parameters, variables: [:])
+            guard quantity.kind == .angle, quantity.value.isFinite else {
+                throw KernelError(phase: .validation, code: .invalidInput, featureID: feature.id, tolerance: context.tolerance,
+                                  message: "A chamfer's angle is an angle.")
+            }
+            return quantity.value
+        }
         let bodyID = try targetBodyID(chamfer.target.featureID, context: context, featureID: feature.id)
-        // A sheet's edges, or several edges, are cut in turn by the profile blend's straight section.
-        if context.brep.bodies[bodyID]?.kind == .sheet || chamfer.edges.count > 1 {
-            return try EdgeBlendFeatureEvaluator(sewer: sewer).evaluateProfileChamfer(
-                feature: feature, target: chamfer.target.featureID, selected: chamfer.edges, distance: distance, context: context)
+        func profile() throws -> EvaluationResult {
+            try EdgeBlendFeatureEvaluator(sewer: sewer).evaluateProfileChamfer(
+                feature: feature, target: chamfer.target.featureID, selected: chamfer.edges, distance: distance,
+                mode: chamfer.mode, angle: angle, flipped: chamfer.flipped, context: context)
+        }
+        // A sheet's edges, several edges, an angled chamfer, or an edge between faces that are not
+        // square are cut by the profile blend's straight section.
+        if context.brep.bodies[bodyID]?.kind == .sheet || chamfer.edges.count > 1 || angle != nil {
+            return try profile()
         }
         guard let body = context.brep.bodies[bodyID],
               body.kind == .solid,
@@ -80,10 +93,11 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
                 tolerance: context.tolerance
             )
         }
-        // An edge of a tangent loop on a planar cap is chamfered along the whole loop.
-        if try CapLoopBlendBuilder(tolerance: context.tolerance).admits([edgeID], model: context.brep) {
-            return try EdgeBlendFeatureEvaluator(sewer: sewer).evaluateProfileChamfer(
-                feature: feature, target: chamfer.target.featureID, selected: chamfer.edges, distance: distance, context: context)
+        // An edge of a tangent loop on a planar cap, or one between faces that are not square, is
+        // chamfered by the profile chamfer.
+        if try CapLoopBlendBuilder(tolerance: context.tolerance).admits([edgeID], model: context.brep)
+            || squareFaces(around: edgeID, bodyID: bodyID, context: context) == false {
+            return try profile()
         }
         let sourceEdgeIDs = Set(bodyScope.references.compactMap { reference -> EdgeID? in
             guard case let .edge(scopedEdgeID) = reference else { return nil }
@@ -112,6 +126,18 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             removedSubshapeIDs: replacedSubshapeIDs,
             lineage: sewn.lineage
         )
+    }
+
+    /// Whether the edge lies between two planes square to each other.
+    private func squareFaces(around edgeID: EdgeID, bodyID: BodyID, context: EvaluationContext) throws -> Bool {
+        let model = context.brep
+        guard let shell = model.bodies[bodyID]?.shellIDs.first.flatMap({ model.shells[$0] }) else { return false }
+        let faces = try shell.faceIDs.filter { try faceUses(edgeID: edgeID, faceID: $0, model: model) }
+        let normals = faces.compactMap { faceID -> Vector3D? in
+            guard let face = model.faces[faceID], case let .plane(plane)? = model.geometry.surfaces[face.surfaceID] else { return nil }
+            return plane.normal
+        }
+        return normals.count == 2 && abs(normals[0].dot(normals[1])) <= context.tolerance.angle * normals[0].length * normals[1].length
     }
 
     private func resolvedDistance(

@@ -823,10 +823,13 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                                          section: try section(for: .curvature, tension: 1, distance: quantity.value), context: context)
     }
 
-    /// A chamfer of edges between planes by the profile blend: the straight section `distance` from
-    /// each edge along both faces, swept along it.
+    /// A chamfer of edges between planes by the profile blend: the straight section between its
+    /// contacts on the two faces, set by `chamferSection`, swept along each edge.
     package func evaluateProfileChamfer(feature: FeatureNode, target: FeatureID, selected: [StableSubshapeReference],
-                                        distance: Double, context: EvaluationContext) throws -> EvaluationResult {
+                                        distance: Double, mode: ChamferMode = .apex, angle: Double? = nil, flipped: Bool = false,
+                                        context: EvaluationContext) throws -> EvaluationResult {
+        let section = try chamferSection(distance: distance, mode: mode, angle: angle, flipped: flipped,
+                                         featureID: feature.id, tolerance: context.tolerance)
         // Tangent loops of lines and arcs on a planar cap take the chamfer's band along the whole loop.
         let bodyID = try targetBodyID(target, featureID: feature.id, context: context)
         if context.brep.bodies[bodyID]?.kind == .solid {
@@ -836,7 +839,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             if try CapLoopBlendBuilder(tolerance: context.tolerance).admits(selections.map(\.1.edgeID), model: context.brep) {
                 let request = try CapLoopBlendBuilder(tolerance: context.tolerance).request(
                     featureID: feature.id, bodyID: bodyID, selected: selections.map { ($0.1.edgeID, $0.0.subshapeID) },
-                    section: .chamfer(distance), context: context)
+                    section: try capLoopChamfer(section), context: context)
                 let sewn = try sewer.sew(request, tolerance: context.tolerance)
                 let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: context.brep)
                 try model.validate(level: .volumetric, tolerance: context.tolerance)
@@ -844,12 +847,42 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                                         lineage: sewn.lineage)
             }
         }
-        return try evaluateProfileBlends(feature: feature, target: target, selected: selected,
-            section: BlendSection { _ in
-                BlendSection.Resolved(setback: distance, degree: 1, weights: [1, 1]) { corner, first, second in
-                    [corner + first * distance, corner + second * distance]
-                }
-            }, context: context)
+        return try evaluateProfileBlends(feature: feature, target: target, selected: selected, section: section, context: context)
+    }
+
+    /// A chamfer's straight section for faces meeting at the interior angle α: `distance` along
+    /// each face from the edge (apex), or where each face offset inward by `distance` meets the
+    /// other (offset, `distance / sin α` along each); with an `angle`, `distance` along the
+    /// reference face (the first, or the second when `flipped`) and the other contact where the
+    /// section leaves that face at the angle, `distance · sin θ / sin(α + θ)` along it.
+    private func chamferSection(distance: Double, mode: ChamferMode, angle: Double?, flipped: Bool,
+                                featureID: FeatureID, tolerance: ModelingTolerance) throws -> BlendSection {
+        if let angle {
+            guard angle > tolerance.angle, angle < .pi - tolerance.angle else {
+                throw failure(.invalidInput, featureID: featureID, tolerance: tolerance, "A chamfer's angle lies strictly between 0° and 180°.")
+            }
+        }
+        return BlendSection { alpha in
+            let (first, second): (Double, Double)
+            if let angle {
+                // Past α + θ = π the section would never meet the other face; it stays far along it.
+                let other = distance * sin(angle) / max(sin(alpha + angle), Double.leastNonzeroMagnitude)
+                (first, second) = flipped ? (other, distance) : (distance, other)
+            } else {
+                let along = mode == .offset ? distance / sin(alpha) : distance
+                (first, second) = (along, along)
+            }
+            return BlendSection.Resolved(setback: first, secondSetback: second, degree: 1, weights: [1, 1]) { corner, a, b in
+                [corner + a * first, corner + b * second]
+            }
+        }
+    }
+
+    /// A tangent cap loop's chamfer from `section` at the right angle its walls meet the cap at: the
+    /// cap taken as the first face.
+    private func capLoopChamfer(_ section: BlendSection) throws -> CapLoopBlendBuilder.Section {
+        let resolved = section.resolve(.pi / 2)
+        return .chamfer(cap: resolved.setback, wall: resolved.secondSetback)
     }
 
     /// A blend's cross-section across an edge between planes, made for the corner's interior angle:
@@ -858,10 +891,22 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
     /// faces away from the edge.
     private struct BlendSection {
         struct Resolved {
+            /// The setback along the first face, and along the second (the same unless the
+            /// section is asymmetric, as an angled chamfer is).
             let setback: Double
+            let secondSetback: Double
             let degree: Int
             let weights: [Double]
             let controlPoints: (Point3D, Vector3D, Vector3D) -> [Point3D]
+
+            init(setback: Double, secondSetback: Double? = nil, degree: Int, weights: [Double],
+                 controlPoints: @escaping (Point3D, Vector3D, Vector3D) -> [Point3D]) {
+                self.setback = setback
+                self.secondSetback = secondSetback ?? setback
+                self.degree = degree
+                self.weights = weights
+                self.controlPoints = controlPoints
+            }
         }
         /// The section where the faces leave the edge at the interior angle `α`.
         let resolve: (Double) -> Resolved
@@ -1108,31 +1153,31 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         }
         /// The request from the blends' faces: every face beside a blended edge cut back along its
         /// contact lines, and each free end's face closed on its section.
-        func finish(_ blends: [BRepSewingFacePatch], freeEnds: [(corner: Point3D, curve: Curve3D, axis: Vector3D)],
-                    distance: Double) throws -> BRepSewingRequest {
+        func finish(_ blends: [BRepSewingFacePatch], freeEnds: [(corner: Point3D, curve: Curve3D, ends: (Point3D, Point3D), axis: Vector3D)],
+                    setbacks: [(Double, Double)]) throws -> BRepSewingRequest {
             var patches = blends
             var capped = 0
             for (faceIndex, faceID) in shell.faceIDs.enumerated() {
                 let stableID = "source-face:\(faceIndex)"
                 let faceParents = subshapeIDs(for: .face(faceID), context: context)
                 // The faces beside the edges are cut back along their contact lines.
-                var cuts: [(origin: Point3D, normal: Vector3D, link: Int)] = []
+                var cuts: [(origin: Point3D, normal: Vector3D, distance: Double, link: Int)] = []
                 for (index, link) in links.enumerated() {
-                    if faceID == link.faces.first { cuts.append((link.start, link.along.first, index)) }
-                    if faceID == link.faces.second { cuts.append((link.start, link.along.second, index)) }
+                    if faceID == link.faces.first { cuts.append((link.start, link.along.first, setbacks[index].0, index)) }
+                    if faceID == link.faces.second { cuts.append((link.start, link.along.second, setbacks[index].1, index)) }
                 }
                 if cuts.isEmpty == false {
                     let plane = try orientedPlane(faceID, model: model, featureID: featureID, tolerance: tolerance)
                     let polygon = try movedSides(try outerPolygon(faceID, model: model, featureID: featureID, tolerance: tolerance),
-                                                 cuts: cuts.map { (links[$0.link].start, links[$0.link].end, $0.normal) },
-                                                 distance: distance, featureID: featureID, tolerance: tolerance)
+                                                 cuts: cuts.map { (links[$0.link].start, links[$0.link].end, $0.normal, $0.distance) },
+                                                 featureID: featureID, tolerance: tolerance)
                     let surface = Surface3D.plane(plane.plane)
                     let edges = try polygon.indices.map { index in
                         let (start, end) = (polygon[index], polygon[(index + 1) % polygon.count])
                         // A contact line takes the edge it runs along; any other side its source edge.
                         let contact = cuts.first { cut in
-                            abs((start - cut.origin).dot(cut.normal) - distance) <= tolerance.distance
-                                && abs((end - cut.origin).dot(cut.normal) - distance) <= tolerance.distance
+                            abs((start - cut.origin).dot(cut.normal) - cut.distance) <= tolerance.distance
+                                && abs((end - cut.origin).dot(cut.normal) - cut.distance) <= tolerance.distance
                         }
                         let parents = contact.map { [links[$0.link].subshapeID] }
                             ?? sourceEdgeParents(start: start, end: end, sourceEdgeIDs: sourceEdgeIDs, model: model, context: context,
@@ -1148,7 +1193,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 var patch = try SourceBRepFacePatchBuilder().build(faceID: faceID, stableID: stableID, from: model,
                                                                    sourceSubshapes: context.subshapes.entries, tolerance: tolerance).patch
                 for end in freeEnds {
-                    if let cap = try cornerCap(patch, corner: end.corner, curve: end.curve, distance: distance, axis: end.axis, context: context) {
+                    if let cap = try cornerCap(patch, corner: end.corner, curve: end.curve, ends: end.ends, axis: end.axis, context: context) {
                         patch = cap.patch
                         capped += 1
                     }
@@ -1178,21 +1223,28 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             // A chamfer's faces are planes through its contact lines; where chamfered edges meet,
             // each is cut by its neighbours' planes, so mitres and corners of any number of edges
             // close on the planes' intersections.
-            let distance = blendSection.resolve(alpha).setback
-            let planes = try links.map { link -> (origin: Point3D, normal: Vector3D) in
-                let (first, second) = (link.start + link.along.first * distance, link.start + link.along.second * distance)
+            // Each edge's setbacks along its first and second faces, for the angle its faces meet at.
+            let setbacks = links.map { link in
+                let resolved = blendSection.resolve(acos(max(-1, min(1, link.along.first.dot(link.along.second)))))
+                return (resolved.setback, resolved.secondSetback)
+            }
+            let planes = try links.indices.map { index -> (origin: Point3D, normal: Vector3D) in
+                let link = links[index]
+                let (first, second) = (link.start + link.along.first * setbacks[index].0, link.start + link.along.second * setbacks[index].1)
                 var normal = try (second - first).cross(link.axis).normalized(tolerance: tolerance.distance)
                 // Facing the material the chamfer keeps, away from the edge it removes.
                 if (link.start - first).dot(normal) > 0 { normal = normal * -1 }
                 return (first, normal)
             }
             var chamfers: [BRepSewingFacePatch] = []
-            var freeEnds: [(corner: Point3D, curve: Curve3D, axis: Vector3D)] = []
+            var freeEnds: [(corner: Point3D, curve: Curve3D, ends: (Point3D, Point3D), axis: Vector3D)] = []
             for (index, link) in links.enumerated() {
                 let neighbours = links.indices.filter { other in
                     other != index && [links[other].vertices.start, links[other].vertices.end].contains { [link.vertices.start, link.vertices.end].contains($0) }
                 }
-                let ends = [link.start, link.end].map { point in (point + link.along.first * distance, point + link.along.second * distance) }
+                let ends = [link.start, link.end].map { point in
+                    (point + link.along.first * setbacks[index].0, point + link.along.second * setbacks[index].1)
+                }
                 var polygon = [ends[0].0, ends[1].0, ends[1].1, ends[0].1]
                 for other in neighbours {
                     polygon = simplified(clip(polygon, origin: planes[other].origin, normal: planes[other].normal, offset: 0, tolerance: tolerance),
@@ -1204,7 +1256,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 for (vertex, end, axis) in [(link.vertices.start, ends[0], link.axis), (link.vertices.end, ends[1], link.axis * -1)]
                     where neighbours.allSatisfy({ [links[$0].vertices.start, links[$0].vertices.end].contains(vertex) == false }) {
                     freeEnds.append((vertex == link.vertices.start ? link.start : link.end,
-                                     .bSpline(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1], controlPoints: [end.0, end.1])), axis))
+                                     .bSpline(BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1], controlPoints: [end.0, end.1])), end, axis))
                 }
                 // The face looks away from the material, its loop counterclockwise about that.
                 let outward = planes[index].normal * -1
@@ -1220,7 +1272,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                                                     loops: [BRepSewingLoop(stableID: "chamfer:\(index):outer", role: .outer, edges: edges)],
                                                     parentSubshapeIDs: [link.faces.first, link.faces.second].flatMap { subshapeIDs(for: .face($0), context: context) }))
             }
-            return try finish(chamfers, freeEnds: freeEnds, distance: distance)
+            return try finish(chamfers, freeEnds: freeEnds, setbacks: setbacks)
         }
         guard alpha > tolerance.angle, alpha < .pi - tolerance.angle,
               links.allSatisfy({ abs(acos(max(-1, min(1, $0.along.first.dot($0.along.second)))) - alpha) <= tolerance.angle }) else {
@@ -1354,7 +1406,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         var patches: [BRepSewingFacePatch] = []
         var curves: [Int: (start: BSplineCurve3D, end: BSplineCurve3D)] = [:]
         var circles: [Int: (start: BRepSewingEdge, end: BRepSewingEdge)] = [:]
-        var freeEnds: [(corner: Point3D, curve: Curve3D, axis: Vector3D)] = []
+        var freeEnds: [(corner: Point3D, curve: Curve3D, ends: (Point3D, Point3D), axis: Vector3D)] = []
         for (index, link) in links.enumerated() {
             guard let (lower, upper) = rows[index] else { continue }
             guard zip(lower.reach, upper.reach).allSatisfy({ $0 + $1 < link.length - tolerance.distance }) else {
@@ -1387,8 +1439,8 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 }
                 let lowerArc = try arc(at: v0, from: ua, to: ub, "start"), upperArc = try arc(at: v1, from: ub, to: ua, "end")
                 circles[index] = (lowerArc, upperArc)
-                if lower.free { freeEnds.append((link.start, lowerArc.curve, link.axis)) }
-                if upper.free { freeEnds.append((link.end, upperArc.curve, link.axis * -1)) }
+                if lower.free { freeEnds.append((link.start, lowerArc.curve, (lowerArc.startPoint, lowerArc.endPoint), link.axis)) }
+                if upper.free { freeEnds.append((link.end, upperArc.curve, (upperArc.startPoint, upperArc.endPoint), link.axis * -1)) }
                 let edges = [lowerArc, try line(lowerArc.endPoint, upperArc.startPoint, u: ub, from: v0, to: v1, "second"),
                              upperArc, try line(upperArc.endPoint, lowerArc.startPoint, u: ua, from: v1, to: v0, "first")]
                 let (middleU, middleV) = ((ua + ub) / 2, (v0 + v1) / 2)
@@ -1407,8 +1459,8 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             try lowerCurve.validate(tolerance: tolerance)
             try upperCurve.validate(tolerance: tolerance)
             curves[index] = (lowerCurve, upperCurve)
-            if lower.free { freeEnds.append((link.start, .bSpline(lowerCurve), link.axis)) }
-            if upper.free { freeEnds.append((link.end, .bSpline(upperCurve), link.axis * -1)) }
+            if lower.free { freeEnds.append((link.start, .bSpline(lowerCurve), (lower.points[0], lower.points[lower.points.count - 1]), link.axis)) }
+            if upper.free { freeEnds.append((link.end, .bSpline(upperCurve), (upper.points[0], upper.points[upper.points.count - 1]), link.axis * -1)) }
             let (l0, l1) = (try surface.point(u: 0, v: 0, tolerance: tolerance), try surface.point(u: 1, v: 0, tolerance: tolerance))
             let (u0, u1) = (try surface.point(u: 0, v: 1, tolerance: tolerance), try surface.point(u: 1, v: 1, tolerance: tolerance))
             let edges = [
@@ -1437,7 +1489,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 return (outward(use.index, atStart: use.atStart), curve)
             }, radius: distance, parents: parents, tolerance: tolerance))
         }
-        return try finish(patches, freeEnds: freeEnds, distance: distance)
+        return try finish(patches, freeEnds: freeEnds, setbacks: links.map { _ in (distance, distance) })
     }
 
     /// A patch over `surface` bounded by `edges`, counterclockwise in (u, v): facing the surface's
@@ -1567,10 +1619,10 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
     }
 
     /// A face's outer `polygon` with each side along a blended edge (`cuts`: the edge's ends and
-    /// its direction into the face) moved `distance` into the face, every corner where its two
+    /// its direction into the face and how far) moved that far into the face, every corner where its two
     /// sides' lines now meet; nil sides keep their place. A side that would reverse means the
     /// blends consume the face.
-    private func movedSides(_ polygon: [Point3D], cuts: [(start: Point3D, end: Point3D, inward: Vector3D)], distance: Double,
+    private func movedSides(_ polygon: [Point3D], cuts: [(start: Point3D, end: Point3D, inward: Vector3D, distance: Double)],
                             featureID: FeatureID, tolerance: ModelingTolerance) throws -> [Point3D] {
         let count = polygon.count
         let lines = try (0..<count).map { index -> (point: Point3D, direction: Vector3D, moved: Bool) in
@@ -1580,7 +1632,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 (a.isApproximatelyEqual(to: cut.start, tolerance: tolerance.distance) && b.isApproximatelyEqual(to: cut.end, tolerance: tolerance.distance))
                     || (a.isApproximatelyEqual(to: cut.end, tolerance: tolerance.distance) && b.isApproximatelyEqual(to: cut.start, tolerance: tolerance.distance))
             }
-            return (cut.map { a + $0.inward * distance } ?? a, direction, cut != nil)
+            return (cut.map { a + $0.inward * $0.distance } ?? a, direction, cut != nil)
         }
         let corners = try (0..<count).map { index -> Point3D in
             let (previous, next) = (lines[(index + count - 1) % count], lines[index])
@@ -1696,8 +1748,10 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 let oriented = try orientedPlane(faceID, model: model, featureID: featureID, tolerance: context.tolerance)
                 let polygon = try outerPolygon(faceID, model: model, featureID: featureID, tolerance: context.tolerance)
                 // Cut along the contact line, from the setback at the start to the one at the end.
-                let along = faceID == incidentFaceIDs[0] ? secondInward : firstInward
-                let (from, to) = (startVertex.point + along * distance, endVertex.point + along * endDistance)
+                let first = faceID == incidentFaceIDs[0]
+                let along = first ? secondInward : firstInward
+                let (from, to) = (startVertex.point + along * (first ? distance : section.secondSetback),
+                                  endVertex.point + along * (first ? endDistance : endResolved.secondSetback))
                 let line = to - from
                 let clippingNormal = try (along - line * (along.dot(line) / line.dot(line))).normalized(tolerance: context.tolerance.distance)
                 let clipped = simplified(
@@ -1724,10 +1778,12 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             // corner of the edge has that corner cut back to the section.
             let source = try SourceBRepFacePatchBuilder().build(faceID: faceID, stableID: stableID, from: model,
                                                                 sourceSubshapes: context.subshapes.entries, tolerance: context.tolerance).patch
-            if let cap = try cornerCap(source, corner: startVertex.point, curve: .bSpline(lowerCurve), distance: distance, axis: axis, context: context) {
+            if let cap = try cornerCap(source, corner: startVertex.point, curve: .bSpline(lowerCurve),
+                                       ends: (lowerControlPoints[0], lowerControlPoints[lowerControlPoints.count - 1]), axis: axis, context: context) {
                 patches.append(cap.patch)
                 lowerCap = cap.boundary
-            } else if let cap = try cornerCap(source, corner: endVertex.point, curve: .bSpline(upperCurve), distance: endDistance, axis: axis, context: context) {
+            } else if let cap = try cornerCap(source, corner: endVertex.point, curve: .bSpline(upperCurve),
+                                              ends: (upperControlPoints[0], upperControlPoints[upperControlPoints.count - 1]), axis: axis, context: context) {
                 patches.append(cap.patch)
                 upperCap = cap.boundary
             } else {
@@ -1921,7 +1977,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
     /// `face` with the corner where two straight edges of its outer loop meet the blended edge
     /// cut back `distance` along both and closed by the section `curve`; nil when it holds no such
     /// corner. The face runs square across the edge, as the section does.
-    private func cornerCap(_ face: BRepSewingFacePatch, corner: Point3D, curve: Curve3D, distance: Double,
+    private func cornerCap(_ face: BRepSewingFacePatch, corner: Point3D, curve: Curve3D, ends: (Point3D, Point3D),
                            axis: Vector3D, context: EvaluationContext) throws -> G2Cap? {
         let tolerance = context.tolerance
         guard let outerIndex = face.loops.firstIndex(where: { $0.role == .outer }) else { return nil }
@@ -1935,14 +1991,20 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         }
         let rotated = Array(loop[index...] + loop[..<index])
         let (previous, next) = (rotated[0], rotated[1])
+        // The section's ends lie on the two straight edges beside the corner, one each.
+        func lies(_ point: Point3D, along edge: Point3D) -> Bool {
+            let (offset, direction) = (point - corner, edge - corner)
+            let along = offset.dot(direction) / direction.dot(direction)
+            return (offset - direction * along).length <= tolerance.distance && along > 0
+        }
+        let (tangentPrevious, tangentNext) = lies(ends.0, along: previous.startPoint) ? ends : (ends.1, ends.0)
         guard isStraight(previous.curve, tolerance: tolerance), isStraight(next.curve, tolerance: tolerance),
-              (previous.startPoint - corner).length > distance + tolerance.distance,
-              (next.endPoint - corner).length > distance + tolerance.distance else {
+              lies(tangentPrevious, along: previous.startPoint), lies(tangentNext, along: next.endPoint),
+              (previous.startPoint - corner).length > (tangentPrevious - corner).length + tolerance.distance,
+              (next.endPoint - corner).length > (tangentNext - corner).length + tolerance.distance else {
             throw failure(.unsupportedCapability, tolerance: tolerance,
                           "A blend's distance must fit the straight end edges beside its corner.")
         }
-        let tangentPrevious = corner + (try (previous.startPoint - corner).normalized(tolerance: tolerance.distance)) * distance
-        let tangentNext = corner + (try (next.endPoint - corner).normalized(tolerance: tolerance.distance)) * distance
         func shortened(_ edge: BRepSewingEdge, from start: Point3D, to end: Point3D, keepsStart: Bool) throws -> BRepSewingEdge {
             let line = try lineEdge(stableID: edge.stableID, start: start, end: end, surface: face.surface,
                                     parents: edge.parentSubshapeIDs, tolerance: tolerance)

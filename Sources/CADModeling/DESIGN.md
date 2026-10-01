@@ -337,12 +337,19 @@ an arc (a cylinder's rim, a rounded rectangle's or a slot's outline, a hole's), 
 cap and a wall square to it (a plane through a line, the coaxial cylinder through an arc), the walls
 all running down from the cap (convex) or all rising from it (concave: a boss's base, a blind hole's
 floor) — are rounded or chamfered along the whole loop by `CapLoopBlendBuilder` (a selected edge
-takes its loop): the round's tube or the chamfer's 45° line swept along each segment, an analytic
+takes its loop): the round's tube or the chamfer's line (across the cap, then along the wall) swept along each segment, an analytic
 cylinder or plane along a line and a torus or cone along an arc, meeting on the section at their
 tangent joints; the cap's loop moves the distance into the cap and each wall's edge the distance along
 the wall (a concave loop's band filling the corner). Loops whose walls change side and loops of one
 closed circular edge are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). In a network every edge is convex, and each face's inward direction from
-a blended side is read from its outer loop's winding, so concave faces take part. A chamfer's faces are the planes through its contact lines, each
+a blended side is read from its outer loop's winding, so concave faces take part. A chamfer's
+section (`chamferSection`) follows Fillet Shell's modes for faces meeting at the interior angle α:
+Offset (the default) meets each face where the other, offset inward by the distance, does —
+`distance / sin α` along each; Apex measures the distance along each face; an Angle takes the
+distance along the reference face (each edge's first face, its second when flipped) and leaves it at
+the angle, `distance · sin θ / sin(α + θ)` along the other (a cap loop's reference is its cap). Single
+square edges keep the chamfer's own builder; angled, oblique, several and sheet edges take the
+profile path. A chamfer's faces are the planes through its contact lines, each
 cut by the planes of the chamfers it meets, so mitres and corners of any number of chamfered edges
 close on the planes' intersections. Two curved blends at a corner whose third edge is left sharp join
 at a mitre: both blends end on the section carried onto the plane bisecting the two edges, the same
@@ -361,7 +368,7 @@ start to the end radius at its end, the blend ruled between the two sections (ea
 the shape at the radius there, tangent to both faces along straight contact lines). Limit points,
 tangent chains and Y-blends are not built (FE2). `FilletShapeTests` own each
 shape's removed cross-section times the edge's length, the tension and one-edge admission, and the
-rib's and a drafted rib's full rounds (their volumes and radii) with the refusals of a misstated radius and of edges that do not face each other across one face, and an L sheet's bend rounded into a quarter cylinder, blended and chamfered into sheets, a hexagonal prism's 120° edge rounded (its volume) an L block's inside corner filled (its volume), two edges of a box that do not meet rounded and
+rib's and a drafted rib's full rounds (their volumes and radii) with the refusals of a misstated radius and of edges that do not face each other across one face, and an L sheet's bend rounded into a quarter cylinder, blended and chamfered into sheets, a hexagonal prism's 120° edge rounded (its volume) an L block's inside corner filled (its volume), `ChamferModeTests` own Offset and Apex across a hexagon's 120° edge, an angled chamfer and its flip on a box's edge and on a cylinder's rim (their volumes and the reference face's cut) and the modes' native round trip; two edges of a box that do not meet rounded and
 chamfered together, a pair meeting at a corner, a box's three and four top edges mitred (volume `s³ − r²(1 − π/4)·ns + c·r³(5/3 − π/2)` for n edges and c corners), three edges at a corner rounded into the ball, every edge of a box rounded (the rounded box `a³ + 6a²r + 3πr²a + 4πr³/3`, a = s − 2r), a cylinder's and a hole's rims rounded and a cylinder's rim chamfered (Pappus volumes of the corner section about the axis), a rounded block's top outline rounded and chamfered (straight runs plus the corners' quarter turns), both rims of a hole rounded together, a boss's base filled by a round and by a chamfer, a corner's ball meeting a mitre, an L block's top edges mitred around its inside corner (removing `r³(5/3 − π/2)` more), a concave edge meeting a convex one refused, two, three (at a corner), four (around the top) and twelve chamfered edges (volumes from each edge's triangle less d³/3 per meeting pair plus d³/4 per corner), and a variable fillet's volume
 (1 − π/4)·(r₀² + r₀r₁ + r₁²)/3·L with shaped and variable fillets round-tripping natively.
 

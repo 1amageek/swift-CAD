@@ -20,15 +20,18 @@ package struct CapLoopBlendBuilder {
         self.tolerance = tolerance
     }
 
-    /// The band's cross-section: a round's quarter circle or a chamfer's line, each `distance`
-    /// along the cap and along the wall.
+    /// The band's cross-section: a round's quarter circle of the radius along the cap and the
+    /// wall, or a chamfer's line from its contact `cap` along the cap to its contact `wall` along
+    /// the wall.
     package enum Section: Sendable {
         case round(Double)
-        case chamfer(Double)
+        case chamfer(cap: Double, wall: Double)
 
-        var distance: Double {
+        /// How far the band reaches along the cap, and along the wall.
+        var distances: (cap: Double, wall: Double) {
             switch self {
-            case let .round(distance), let .chamfer(distance): distance
+            case let .round(radius): (radius, radius)
+            case let .chamfer(cap, wall): (cap, wall)
             }
         }
     }
@@ -65,7 +68,7 @@ package struct CapLoopBlendBuilder {
 
     package func request(featureID: FeatureID, bodyID: BodyID, selected: [(edgeID: EdgeID, subshapeID: SubshapeID)],
                          section shape: Section, context: EvaluationContext) throws -> BRepSewingRequest {
-        let d = shape.distance
+        let (dc, dw) = shape.distances
         let model = context.brep
         func refuse(_ message: String) -> KernelError {
             KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance, message: message)
@@ -110,19 +113,19 @@ package struct CapLoopBlendBuilder {
                 let capSegment: Segment
                 let wallSegment: Segment
                 if let arc = segment.arc {
-                    let capRadius = (segment.start + mStart * d - arc.circle.center).length
-                    capSegment = Segment(edgeID: segment.edgeID, wallFaceID: segment.wallFaceID, start: segment.start + mStart * d,
-                                         end: segment.end + mEnd * d,
+                    let capRadius = (segment.start + mStart * dc - arc.circle.center).length
+                    capSegment = Segment(edgeID: segment.edgeID, wallFaceID: segment.wallFaceID, start: segment.start + mStart * dc,
+                                         end: segment.end + mEnd * dc,
                                          arc: (Circle3D(center: arc.circle.center, normal: arc.circle.normal, radius: capRadius), arc.from, arc.to))
-                    wallSegment = Segment(edgeID: segment.edgeID, wallFaceID: segment.wallFaceID, start: segment.start + wall * d,
-                                          end: segment.end + wall * d,
-                                          arc: (Circle3D(center: arc.circle.center + wall * d, normal: arc.circle.normal,
+                    wallSegment = Segment(edgeID: segment.edgeID, wallFaceID: segment.wallFaceID, start: segment.start + wall * dw,
+                                          end: segment.end + wall * dw,
+                                          arc: (Circle3D(center: arc.circle.center + wall * dw, normal: arc.circle.normal,
                                                          radius: arc.circle.radius), arc.from, arc.to))
                 } else {
-                    capSegment = Segment(edgeID: segment.edgeID, wallFaceID: segment.wallFaceID, start: segment.start + mStart * d,
-                                         end: segment.end + mEnd * d, arc: nil)
-                    wallSegment = Segment(edgeID: segment.edgeID, wallFaceID: segment.wallFaceID, start: segment.start + wall * d,
-                                          end: segment.end + wall * d, arc: nil)
+                    capSegment = Segment(edgeID: segment.edgeID, wallFaceID: segment.wallFaceID, start: segment.start + mStart * dc,
+                                         end: segment.end + mEnd * dc, arc: nil)
+                    wallSegment = Segment(edgeID: segment.edgeID, wallFaceID: segment.wallFaceID, start: segment.start + wall * dw,
+                                          end: segment.end + wall * dw, arc: nil)
                 }
                 vertexMoves[loop.capFaceID, default: []] += [(segment.start, capSegment.start), (segment.end, capSegment.end)]
                 vertexMoves[segment.wallFaceID, default: []] += [(segment.start, wallSegment.start), (segment.end, wallSegment.end)]
@@ -204,11 +207,12 @@ package struct CapLoopBlendBuilder {
                            inward: (start: Vector3D, end: Vector3D), inwardAt: (Point3D) throws -> Vector3D,
                            normal n: Vector3D, rise: Double,
                            parents: [SubshapeID], faceParents: [SubshapeID]) throws -> BRepSewingFacePatch {
-        let d = shape.distance
+        let (dc, dw) = shape.distances
+        let d = dc
         let wallDirection = n * rise
         /// The section at a loop point: from the cap contact to the wall contact.
         func sectionEdge(_ name: String, at point: Point3D, inward m: Vector3D, tangent: Vector3D, reversed: Bool) throws -> BRepSewingEdge {
-            let (capPoint, wallPoint) = (point + m * d, point + wallDirection * d)
+            let (capPoint, wallPoint) = (point + m * dc, point + wallDirection * dw)
             let (p, q) = reversed ? (wallPoint, capPoint) : (capPoint, wallPoint)
             switch shape {
             case .round:
@@ -233,11 +237,12 @@ package struct CapLoopBlendBuilder {
             case .round:
                 surface = .analytic(.torus(center: center + wallDirection * d, axis: axisNormal, majorRadius: capRadius, minorRadius: d))
             case .chamfer:
-                // The 45° line from the cap's contact to the wall's meets the axis at the apex.
+                // The line from the cap's contact to the wall's, turning `dc` across in `dw` along the
+                // wall, meets the axis at the apex.
                 let outward = arc.circle.radius > capRadius ? 1.0 : -1.0
-                let apexHeight = -rise * outward * capRadius
+                let apexHeight = -rise * outward * capRadius * dw / dc
                 let axisDirection = n * (rise * outward)
-                surface = .analytic(.cone(apex: center + n * apexHeight, axis: axisDirection, halfAngle: Double.pi / 4))
+                surface = .analytic(.cone(apex: center + n * apexHeight, axis: axisDirection, halfAngle: atan2(dc, dw)))
             }
         } else {
             let along = try (segment.end - segment.start).normalized(tolerance: tolerance.distance)
@@ -275,12 +280,11 @@ package struct CapLoopBlendBuilder {
         } else {
             corner = segment.start + (segment.end - segment.start) * 0.5
         }
-        let reach: Double
+        let bandPoint: Point3D
         switch shape {
-        case .round: reach = d * (1 - 0.5.squareRoot())
-        case .chamfer: reach = d / 2
+        case .round: bandPoint = corner + (try inwardAt(corner) + wallDirection) * (d * (1 - 0.5.squareRoot()))
+        case .chamfer: bandPoint = corner + (try inwardAt(corner)) * (dc / 2) + wallDirection * (dw / 2)
         }
-        let bandPoint = corner + (try inwardAt(corner) + wallDirection) * reach
         let uv = try surface.parameterProjection(of: bandPoint, tolerance: tolerance)
         let facing = try surface.normal(u: uv.u, v: uv.v, tolerance: tolerance).dot(corner - bandPoint) * -rise >= 0
         let loopEdges = try orientedLoop(edges, on: surface, facing: facing)

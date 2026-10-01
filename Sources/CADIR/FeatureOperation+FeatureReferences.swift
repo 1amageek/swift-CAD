@@ -280,17 +280,14 @@ extension FeatureOperation {
                 count: feature.count
             ))
         case .chamfer(let feature):
-            return .chamfer(ChamferFeature(
+            return .chamfer(feature.with(
                 target: ChamferTargetReference(featureID: try transform(feature.target.featureID)),
-                edges: try feature.edges.map(subshape),
-                distance: feature.distance
+                edges: try feature.edges.map(subshape)
             ))
         case .fillet(let feature):
-            return .fillet(FilletFeature(
+            return .fillet(feature.with(
                 target: FilletTargetReference(featureID: try transform(feature.target.featureID)),
-                edges: try feature.edges.map(subshape),
-                radius: feature.radius,
-                allEdges: feature.allEdges
+                edges: try feature.edges.map(subshape)
             ))
         case .g2Blend(let feature):
             return .g2Blend(G2BlendFeature(

@@ -1018,12 +1018,18 @@ public struct DocumentBuilder {
         target targetFeatureID: FeatureID,
         edges: [StableSubshapeReference],
         distance: CADExpression,
+        mode: ChamferMode = .offset,
+        angle: CADExpression? = nil,
+        flipped: Bool = false,
         named name: String? = nil
     ) throws -> FeatureID {
         let chamfer = ChamferFeature(
             target: ChamferTargetReference(featureID: targetFeatureID),
             edges: edges,
-            distance: distance
+            distance: distance,
+            mode: mode,
+            angle: angle,
+            flipped: flipped
         )
         try chamfer.validate()
         let featureID = FeatureID()
