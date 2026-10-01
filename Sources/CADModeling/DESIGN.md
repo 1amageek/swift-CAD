@@ -237,7 +237,8 @@ refusal.
 
 ### Bridge Surface
 
-`SheetBridgeFeatureEvaluator` is Bridge Surface between two single-face planar sheets (Rupa's
+`SheetBridgeFeatureEvaluator` is Bridge Surface between two planar sheets, each of one face or of
+several in one plane (Rupa's
 reading of the official page, which names Width, Tension, Shape, Trim walls and Sense but not where
 the bridge stands): the planes' meeting line L, each sheet's direction away from L in its plane
 (toward the sheet, or by Sense for a sheet crossing L), the contact lines the width along them, and
@@ -251,11 +252,12 @@ it consumes. Trim walls cut both sheets or the named one at its contact line thr
 `BodyHalfSpaceCutting` stages, keeping the side away from L, and join them with the bridge
 (`SheetBodyJoining`) into the feature's one sheet, the trimmed sources consumed; a trimmed wall
 longer than the bridge meets it along part of its cut edge, which the joiner splits at the bridge's
-ends (`BRepSewingTJunctionSplitter`). Curved or many-faced sheets and parallel planes are refused
+ends (`BRepSewingTJunctionSplitter`). Curved sheets, sheets bending out of one plane and parallel
+planes are refused
 (`FIXME(INCOMPLETE_IMPLEMENTATION)`). `SheetBridgeTests` own the G2 bridge's normals and vanishing
 curvature at both contacts, the flat chamfer, the round trip, both walls trimmed and joined into
-one three-face sheet, the short wall resolved and trimmed alone, and a trimmed wall longer than the
-bridge joined along its share.
+one three-face sheet, the short wall resolved and trimmed alone, a trimmed wall longer than the
+bridge joined along its share, and a floor joined from two pieces trimmed and joined as one.
 
 ### Curve patch
 

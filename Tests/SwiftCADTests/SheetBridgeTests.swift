@@ -172,4 +172,34 @@ struct SheetBridgeTests {
         #expect(points.contains { abs($0.x - 0.04) < 1e-12 && abs($0.y - 0.02) < 1e-12 && abs($0.z) < 1e-12 })
         #expect(points.contains { abs($0.x - 0.03) < 1e-12 && abs($0.y - 0.02) < 1e-12 && abs($0.z) < 1e-12 })
     }
+
+    @Test(.timeLimit(.minutes(3)))
+    func aFloorJoinedFromTwoPiecesBridgesAndTrimsAsOne() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        func square(on plane: SketchPlane, _ corners: [(Double, Double)]) throws -> FeatureID {
+            let lines = try corners.indices.map { index in
+                try builder.sketch(on: plane) { sketch in
+                    let (start, end) = (corners[index], corners[(index + 1) % corners.count])
+                    _ = sketch.line(from: point(start.0, start.1), to: point(end.0, end.1))
+                }.featureID
+            }
+            return try builder.patch(curves: lines.map { CurveSectionReference(featureID: $0) })
+        }
+        // The floor of the other tests in two halves along X, joined into one sheet of two faces.
+        let halves = try [(0.0, 0.02), (0.02, 0.04)].map { x0, x1 in
+            try square(on: .xy, [(x0, 0.01), (x1, 0.01), (x1, 0.04), (x0, 0.04)])
+        }
+        let floor = try builder.joinBodies(halves, mode: .sewnSheet)
+        let wall = try square(on: .zx, [(0.01, 0), (0.01, 0.04), (0.04, 0.04), (0.04, 0)])
+        let bridge = try builder.bridgeSurface(SheetBridgeFeature(first: floor, second: wall, width: length(0.02),
+                                                                  shape: .chamfer, trimWalls: .both))
+        let evaluated = try evaluate(builder)
+        let faces = evaluated.subshapes.entries.compactMap { key, value -> FaceID? in
+            guard key.featureID == bridge, case let .face(id) = value else { return nil }
+            return id
+        }
+        // Both floor halves cut back, the strip and the wall: one sheet of four faces.
+        #expect(faces.count == 4)
+        #expect(evaluated.brep.bodies.count == 1)
+    }
 }

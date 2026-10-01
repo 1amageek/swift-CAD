@@ -39,17 +39,25 @@ package struct SheetBridgeLayout {
                 if case let .face(id) = reference { return id }
                 return nil
             }
-            guard faces.count == 1, let face = context.brep.faces[faces[0]],
-                  let surface = context.brep.geometry.surfaces[face.surfaceID],
-                  let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): a bridge between curved or many-faced sheets
-                // needs contact curves at the width along curved faces and their continuity
-                // rows, which are not built, so only single planar faces are bridged. Production
-                // path: SheetBridgeFeatureEvaluator and SheetBridgeWallReach through this layout.
-                // Complete only when curved sheets are bridged within a stated allowance,
-                // verified by a bridge between two cylinders.
-                throw failure(.unsupportedCapability, "A Bridge Surface joins two single-face planar sheets.")
+            // Every face of the sheet on one plane: a sheet of one face, or of several in a plane.
+            let planes = try faces.map { faceID -> ResolvedPlaneGeometry? in
+                guard let face = context.brep.faces[faceID], let surface = context.brep.geometry.surfaces[face.surfaceID] else { return nil }
+                return try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance)
             }
+            guard let first = planes.first ?? nil, planes.allSatisfy({ candidate in
+                guard let candidate else { return false }
+                return candidate.normal.cross(first.normal).length <= tolerance.angle
+                    && abs((candidate.origin - first.origin).dot(first.normal)) <= tolerance.distance
+            }) else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): a bridge from curved sheets, or sheets whose
+                // faces bend out of one plane, needs contact curves at the width along curved
+                // faces and their continuity rows, which are not built, so only planar sheets are
+                // bridged. Production path: SheetBridgeFeatureEvaluator and SheetBridgeWallReach
+                // through this layout. Complete only when curved sheets are bridged within a
+                // stated allowance, verified by a bridge between two cylinders.
+                throw failure(.unsupportedCapability, "A Bridge Surface joins two planar sheets.")
+            }
+            let plane = first
             let points = scope.references.compactMap { reference -> Point3D? in
                 if case let .vertex(id) = reference { return context.brep.vertices[id]?.point }
                 return nil
