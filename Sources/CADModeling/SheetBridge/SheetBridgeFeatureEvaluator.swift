@@ -7,14 +7,21 @@ import CADTopology
 /// Bridge Surface between two planar sheets: the planes' meeting line L, each sheet's direction
 /// away from L in its plane, the contact lines `width` along them, and the bridge swept along L
 /// over the stretch both sheets cover: a quintic whose first and last three control points lie on
-/// the sheets' planes (tangent and curvature continuous with them) or a straight chamfer.
+/// the sheets' planes (tangent and curvature continuous with them) or a straight chamfer. Trimmed
+/// walls are cut at their contact lines, keeping the side away from L, and joined with the bridge
+/// into one sheet.
 public struct SheetBridgeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let sewer: any BRepSewing
     private let resolver: ParameterResolving
+    private let cutter: (any BodyHalfSpaceCutting)?
+    private let joiner: (any SheetBodyJoining)?
 
-    public init(sewer: any BRepSewing, resolver: ParameterResolving = ParameterResolver()) {
+    package init(sewer: any BRepSewing, resolver: ParameterResolving = ParameterResolver(),
+                 cutter: (any BodyHalfSpaceCutting)? = nil, joiner: (any SheetBodyJoining)? = nil) {
         self.sewer = sewer
         self.resolver = resolver
+        self.cutter = cutter
+        self.joiner = joiner
     }
 
     public func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
@@ -28,6 +35,7 @@ public struct SheetBridgeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
     }
 
     private struct Sheet {
+        let bodyID: BodyID
         let normal: Vector3D
         let origin: Point3D
         let points: [Point3D]
@@ -42,14 +50,6 @@ public struct SheetBridgeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         try bridge.validate()
         func failure(_ code: KernelErrorCode, _ message: String) -> KernelError {
             KernelError(phase: .evaluation, code: code, featureID: feature.id, tolerance: tolerance, message: message)
-        }
-        guard bridge.trimWalls == .none else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): trimming the sheets back to the bridge's contacts
-            // replaces them with cut sheets in the same result, which this evaluator does not
-            // compose, so Trim walls other than None are refused. Production path:
-            // SheetBridgeFeatureEvaluator for every Bridge Surface. Complete only when the cut
-            // sheets and the bridge are published together, verified by a Both-trimmed bridge.
-            throw failure(.unsupportedCapability, "Bridge Surface trims no walls yet.")
         }
         let width = try resolver.evaluate(bridge.width, parameters: context.parameters, variables: [:])
         guard width.kind == .length, width.value.isFinite, width.value > tolerance.distance else {
@@ -77,7 +77,7 @@ public struct SheetBridgeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 if case let .vertex(id) = reference { return context.brep.vertices[id]?.point }
                 return nil
             }
-            return Sheet(normal: try plane.normal.normalized(tolerance: tolerance.distance), origin: plane.origin, points: points)
+            return Sheet(bodyID: bodyID, normal: try plane.normal.normalized(tolerance: tolerance.distance), origin: plane.origin, points: points)
         }
         let a = try sheet(bridge.first), b = try sheet(bridge.second)
         let along = a.normal.cross(b.normal)
@@ -138,9 +138,64 @@ public struct SheetBridgeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         try surface.validate(tolerance: tolerance)
         let patch = try ExactLinearSectionSweepFacePatchBuilder(tolerance: tolerance)
             .tensorSidePatch(surface: surface, orientation: .forward, stableID: "bridgeSurface:face")
-        let sewn = try sewer.sew(BRepSewingRequest(featureID: feature.id, bodyKind: .sheet,
+        // Which walls are trimmed: both, or the one reaching less (Short) or more (Long) far from L.
+        func reach(_ sheet: Sheet, _ away: Vector3D) -> Double {
+            sheet.points.map { ($0 - lineOrigin).dot(away) }.max() ?? 0
+        }
+        let trimmed: [(Sheet, Point3D, Vector3D)]
+        switch bridge.trimWalls {
+        case .none: trimmed = []
+        case .both: trimmed = [(a, p1, m1), (b, p2, m2)]
+        case .short: trimmed = reach(a, m1) <= reach(b, m2) ? [(a, p1, m1)] : [(b, p2, m2)]
+        case .long: trimmed = reach(a, m1) > reach(b, m2) ? [(a, p1, m1)] : [(b, p2, m2)]
+        }
+        guard trimmed.isEmpty == false else {
+            let sewn = try sewer.sew(BRepSewingRequest(featureID: feature.id, bodyKind: .sheet,
+                shells: [BRepSewingShell(stableID: "bridgeSurface:shell", patches: [patch])]), tolerance: tolerance)
+            return EvaluationResult(brep: try BRepModelCombiner().combined([context.brep, sewn.brep]),
+                                    subshapes: sewn.subshapes, lineage: sewn.lineage)
+        }
+        guard let cutter, let joiner else {
+            throw failure(.unsupportedCapability, "This evaluator cannot trim a Bridge Surface's walls.")
+        }
+        // A trimmed wall meets the bridge along its whole contact line only where it covers the
+        // bridge's stretch exactly.
+        for (sheet, _, _) in trimmed {
+            let (s0, s1) = stretch(sheet)
+            guard abs(s0 - t0) <= tolerance.distance, abs(s1 - t1) <= tolerance.distance else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): a trimmed wall longer than the bridge meets it
+                // along part of its cut edge, which joining by whole edges does not sew, so it is
+                // refused. Production path: SheetBridgeFeatureEvaluator for trimmed walls.
+                // Complete only when the cut edge is split at the bridge's ends, verified by a
+                // trimmed bridge between sheets of different lengths.
+                throw failure(.unsupportedCapability, "A trimmed wall covers exactly the bridge's stretch along where the sheets meet.")
+            }
+        }
+        // Stages: each trimmed wall cut at its contact line keeping the side away from L, then the
+        // bridge beside them; all joined into the feature's one sheet.
+        var stages = FeatureEvaluationStages(context)
+        var joined: [BodyID] = []
+        for (ordinal, (sheet, contact, away)) in trimmed.enumerated() {
+            let stageID = featureEvaluationStageID(featureID: feature.id, domain: .sheetBridgeTrim, ordinal: UInt64(ordinal))
+            guard let cut = try cutter.cut(bodyID: sheet.bodyID, planeOrigin: contact, planeNormal: away * -1,
+                                           featureID: stageID, context: stages.context) else {
+                throw failure(.invalidInput, "A trimmed wall lies wholly beyond the bridge's contact.")
+            }
+            stages.apply(cut)
+            joined.append(try stages.publishedBody(of: cut, featureID: feature.id, what: "Trimming a Bridge Surface's wall"))
+        }
+        let bridgeStage = featureEvaluationStageID(featureID: feature.id, domain: .sheetBridgeTrim, ordinal: 2)
+        let bridged = try sewer.sew(BRepSewingRequest(featureID: bridgeStage, bodyKind: .sheet,
             shells: [BRepSewingShell(stableID: "bridgeSurface:shell", patches: [patch])]), tolerance: tolerance)
-        return EvaluationResult(brep: try BRepModelCombiner().combined([context.brep, sewn.brep]),
-                                subshapes: sewn.subshapes, lineage: sewn.lineage)
+        stages.apply(EvaluationResult(brep: try BRepModelCombiner().combined([stages.context.brep, bridged.brep]),
+                                      subshapes: bridged.subshapes, lineage: bridged.lineage))
+        joined.append(bridged.bodyID)
+        let sewn = try joiner.joinSheets(bodyIDs: joined, closed: false, featureID: feature.id, context: stages.context)
+        let replaced = try joined.reduce(into: Set<SubshapeID>()) { result, bodyID in
+            result.formUnion(try BodyTopologyScope(bodyID: bodyID, model: stages.context.brep).subshapeIDs(in: stages.context.subshapes))
+        }
+        let model = try BRepBodyModelReplacer().replacing(bodyIDs: Set(joined), with: sewn.brep, in: stages.context.brep)
+        return try stages.publish(EvaluationResult(brep: model, subshapes: sewn.subshapes,
+                                                   removedSubshapeIDs: replaced, lineage: sewn.lineage), featureID: feature.id)
     }
 }

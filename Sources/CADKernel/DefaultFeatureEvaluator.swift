@@ -102,7 +102,11 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.patchSurfaceEvaluator = PatchSurfaceFeatureEvaluator()
         self.surfaceFillEvaluator = SurfaceFillFeatureEvaluator(sewer: sewer)
         self.curvePatchEvaluator = CurvePatchFeatureEvaluator(sewer: sewer)
-        self.sheetBridgeEvaluator = SheetBridgeFeatureEvaluator(sewer: sewer, resolver: resolver)
+        self.sheetBridgeEvaluator = SheetBridgeFeatureEvaluator(
+            sewer: sewer, resolver: resolver,
+            cutter: BRepBodyHalfSpaceCutter(sewer: sewer, applicator: ExactBooleanOperationApplicator()),
+            joiner: DefaultSheetBodyJoiner(sewer: sewer)
+        )
         self.faceLoopOffsetEvaluator = FaceLoopOffsetFeatureEvaluator(parameterResolver: resolver)
         self.edgeOffsetEvaluator = EdgeOffsetFeatureEvaluator(parameterResolver: resolver)
         self.faceKnifeEvaluator = FaceKnifeFeatureEvaluator()

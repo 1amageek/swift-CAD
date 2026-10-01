@@ -84,12 +84,35 @@ struct SheetBridgeTests {
         }
         // Every control point on the plane y + z = 20 mm.
         #expect(spline.controlPoints.joined().allSatisfy { abs($0.y + $0.z - 0.02) < 1e-12 })
-        _ = try builder.bridgeSurface(SheetBridgeFeature(first: floor, second: wall, width: length(0.02), trimWalls: .both))
-        do {
-            _ = try evaluate(builder)
-            Issue.record("Trimming walls is not built yet.")
-        } catch let error as KernelError {
-            #expect(error.code == .unsupportedCapability)
+    }
+
+    @Test(.timeLimit(.minutes(3)))
+    func trimmedWallsJoinTheBridgeIntoOneSheet() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (floor, wall) = try sheets(in: &builder)
+        let bridge = try builder.bridgeSurface(SheetBridgeFeature(first: floor, second: wall, width: length(0.02),
+                                                                  shape: .chamfer, trimWalls: .both))
+        let evaluated = try evaluate(builder)
+        // One sheet: the floor from y = 20 to 40 mm, the chamfer strip and the wall from z = 20 to
+        // 40 mm, each 40 mm long.
+        let bodies = Set(evaluated.subshapes.entries.compactMap { key, value -> BodyID? in
+            guard key.featureID == bridge, case let .body(id) = value else { return nil }
+            return id
+        })
+        #expect(bodies.count == 1)
+        let faces = evaluated.subshapes.entries.compactMap { key, value -> FaceID? in
+            guard key.featureID == bridge, case let .face(id) = value else { return nil }
+            return id
         }
+        #expect(faces.count == 3)
+        let vertices = try #require(bodies.first).flatMap { bodyID in
+            try BodyTopologyScope(bodyID: bodyID, model: evaluated.brep).references.compactMap { reference -> Point3D? in
+                if case let .vertex(id) = reference { return evaluated.brep.vertices[id]?.point }
+                return nil
+            }
+        } ?? []
+        #expect(vertices.allSatisfy { $0.y >= 0.02 - 1e-9 || $0.z >= 0.02 - 1e-9 })
+        // The untrimmed floor and wall are gone.
+        #expect(evaluated.brep.bodies.count == 1)
     }
 }

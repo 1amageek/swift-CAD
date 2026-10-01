@@ -241,10 +241,14 @@ the bridge stands): the planes' meeting line L, each sheet's direction away from
 (toward the sheet, or by Sense for a sheet crossing L), the contact lines the width along them, and
 the bridge swept along L over the stretch both sheets cover — a quintic whose first and last three
 control points lie on the sheets' planes (tangent and curvature continuous with both, handles the
-tension times a third of the width) or a straight chamfer. Trim walls other than None, curved or
-many-faced sheets and parallel planes are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
-`SheetBridgeTests` own the G2 bridge's normals and vanishing curvature at both contacts, the flat
-chamfer, the round trip and the trimming refusal.
+tension times a third of the width) or a straight chamfer. Trim walls cut both sheets (Both) or the
+one reaching less (Short) or more (Long) far from L at its contact line through
+`BodyHalfSpaceCutting` stages, keeping the side away from L, and join them with the bridge
+(`SheetBodyJoining`) into the feature's one sheet, the trimmed sources consumed; a trimmed wall must
+cover exactly the bridge's stretch. Curved or many-faced sheets, parallel planes and longer trimmed
+walls are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). `SheetBridgeTests` own the G2 bridge's
+normals and vanishing curvature at both contacts, the flat chamfer, the round trip and both walls
+trimmed and joined into one three-face sheet.
 
 ### Curve patch
 
