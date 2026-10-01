@@ -113,6 +113,33 @@ struct ExtrudeWallThicknessTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func aSectionWithSharpArcCornersWallsAtItsOffsetsCrossings() throws {
+        // A D: a semicircle of radius 10 mm closed by its diameter, meeting it at right angles.
+        let (r, t) = (0.01, 0.001)
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let profile = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.arc(center: SketchPoint(x: length(0), y: length(0)), radius: length(r),
+                           startAngle: .constant(.angle(0, unit: .degree)), endAngle: .constant(.angle(180, unit: .degree)))
+            _ = sketch.line(from: SketchPoint(x: length(-r), y: length(0)), to: SketchPoint(x: length(r), y: length(0)))
+        }
+        _ = try builder.extrude(profile, distance: length(0.01), thickness: length(t))
+        let evaluated = try evaluate(builder)
+        // The wall is the D less the inner D: the segment of radius r − t above the chord t off the centre.
+        let rho = r - t
+        let inner = rho * rho * acos(t / rho) - t * (rho * rho - t * t).squareRoot()
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - (Double.pi * r * r / 2 - inner) * 0.01) < 1e-12)
+        // A draft keeps the refusal: its sharp arc corner would sweep a conic between heights.
+        var drafted = DocumentBuilder(units: .meters, tolerance: .standard)
+        let section = try drafted.sketch(on: .xy) { sketch in
+            _ = sketch.arc(center: SketchPoint(x: length(0), y: length(0)), radius: length(r),
+                           startAngle: .constant(.angle(0, unit: .degree)), endAngle: .constant(.angle(180, unit: .degree)))
+            _ = sketch.line(from: SketchPoint(x: length(-r), y: length(0)), to: SketchPoint(x: length(r), y: length(0)))
+        }
+        _ = try drafted.extrude(section, distance: length(0.01), draftAngle: .constant(.angle(5, unit: .degree)))
+        #expect(throws: (any Error).self) { _ = try evaluate(drafted) }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func aThicknessWiderThanTheSectionIsRefused() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let profile = try builder.sketch(on: .xy) { $0.rectangle(width: length(0.02), height: length(0.01)) }

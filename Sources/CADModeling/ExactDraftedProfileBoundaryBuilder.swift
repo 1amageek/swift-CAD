@@ -40,7 +40,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         let lift = try axis.normalized(tolerance: tolerance.distance) * height
         // Toward the material is inward: a positive draft narrows the section along the axis.
         return try profile.boundaryLoops.map { loop in
-            try segments(try offset(try elements(of: loop), normal: normal, shift: -height * tangent), lift: lift)
+            try segments(try offset(try elements(of: loop), normal: normal, shift: -height * tangent, crossings: tangent == 0), lift: lift)
         }
     }
 
@@ -65,8 +65,10 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         let shift = -height * tangent
         return try profile.boundaryLoops.enumerated().map { index, loop in
             let source = try elements(of: loop)
-            let face = try offset(source, normal: normal, shift: shift)
-            let back = try offset(source, normal: normal, shift: shift - thickness)
+            // Without a draft every height takes the same section, so a sharp arc corner may join
+            // at its offset curves' crossing.
+            let face = try offset(source, normal: normal, shift: shift, crossings: tangent == 0)
+            let back = try offset(source, normal: normal, shift: shift - thickness, crossings: tangent == 0)
             // The outline's ring is bounded by the outline and, as its hole, the wall's inner
             // face turned around; a hole's ring by the grown hole turned around and the hole.
             if index == 0 {
@@ -87,7 +89,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         let normal = try planeNormal.normalized(tolerance: tolerance.distance)
         return try profile.boundaryLoops.enumerated().map { index, loop in
             let source = try elements(of: loop)
-            let back = reversed(try offset(source, normal: normal, shift: -thickness))
+            let back = reversed(try offset(source, normal: normal, shift: -thickness, crossings: true))
             let (outer, inner) = index == 0 ? (source, back) : (back, source)
             return Profile(
                 sourceFeatureID: profile.sourceFeatureID,
@@ -139,8 +141,10 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
     }
 
     /// `elements` with every wall moved by `shift` along its outward side (negative: toward the
-    /// material), joints moved with them.
-    private func offset(_ elements: [Element], normal: Vector3D, shift: Double) throws -> [Element] {
+    /// material), joints moved with them. With `crossings`, a sharp corner at an arc joins where the
+    /// two moved walls cross; without, such a corner is refused, as a drafted section's would sweep
+    /// a conic between heights.
+    private func offset(_ elements: [Element], normal: Vector3D, shift: Double, crossings: Bool) throws -> [Element] {
         var joints: [Point3D] = []
         for index in elements.indices {
             let this = elements[index]
@@ -159,15 +163,16 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
                                       message: "An offset section turns back on itself at a corner.")
                 }
                 joints.append(corner + (outBefore + outAfter) * (shift / denominator))
+            } else if crossings {
+                joints.append(try crossing(this, next, at: corner, normal: normal, shift: shift))
             } else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): a corner where a circular arc meets another
-                // element at an angle offsets along a conic, not a ruling, so it is refused.
-                // Production path: ExactProfileExtrudeBodyBuilder for every extrude with a draft
-                // angle or a wall thickness. Complete only when such a corner's offset joint is the
-                // offset curves' crossing and its drafted edge the surfaces' intersection, verified
-                // by a drafted and a thin slot with sharp arc corners.
+                // FIXME(INCOMPLETE_IMPLEMENTATION): a drafted section's corner where a circular arc
+                // meets another element at an angle moves along a conic between heights, not a
+                // ruling, so it is refused. Production path: ExactProfileExtrudeBodyBuilder for every
+                // extrude with a draft angle. Complete only when such a corner's drafted edge is the
+                // surfaces' intersection, verified by a drafted slot with sharp arc corners.
                 throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                                  message: "An offset section's arcs must meet their neighbours tangentially.")
+                                  message: "A drafted section's arcs must meet their neighbours tangentially.")
             }
         }
         return try elements.indices.map { index in
@@ -190,11 +195,76 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
                     throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                                       message: "An offset section's arc shrinks to nothing.")
                 }
+                // The turn from the moved start to the moved end, the way the arc runs.
+                let arcNormal = try arc.normal.normalized(tolerance: tolerance.distance)
+                let (a, b) = (start - arc.center, end - arc.center)
+                var sweep = atan2(arcNormal.dot(a.cross(b)), a.dot(b))
+                if arc.sweepAngle > 0, sweep <= tolerance.angle { sweep += 2 * Double.pi }
+                if arc.sweepAngle < 0, sweep >= -tolerance.angle { sweep -= 2 * Double.pi }
                 return .arc(ProfileCircularArcSegment(
-                    center: arc.center, normal: arc.normal, radius: radius, start: start, end: end, sweepAngle: arc.sweepAngle
+                    center: arc.center, normal: arc.normal, radius: radius, start: start, end: end, sweepAngle: sweep
                 ))
             }
         }
+    }
+
+    /// Where `before` and `after`, both moved by `shift`, cross nearest their corner: a line's
+    /// parallel and an arc's concentric circle meeting in the section's plane.
+    private func crossing(_ before: Element, _ after: Element, at corner: Point3D, normal: Vector3D, shift: Double) throws -> Point3D {
+        enum Moved {
+            case line(point: Point3D, direction: Vector3D)
+            case circle(center: Point3D, radius: Double)
+        }
+        func moved(_ element: Element) throws -> Moved {
+            let out = try travel(of: element, at: corner).cross(normal)
+            switch element {
+            case let .line(start, end):
+                return .line(point: corner + out * shift, direction: try (end - start).normalized(tolerance: tolerance.distance))
+            case let .arc(arc):
+                let radial = try (corner - arc.center).normalized(tolerance: tolerance.distance)
+                return .circle(center: arc.center, radius: arc.radius + shift * out.dot(radial))
+            }
+        }
+        // Coordinates in the section's plane about the corner.
+        let seed: Vector3D = abs(normal.x) < 0.6 ? .unitX : .unitY
+        let u = try normal.cross(seed).normalized(tolerance: tolerance.distance)
+        let v = normal.cross(u)
+        func flat(_ point: Point3D) -> (Double, Double) { ((point - corner).dot(u), (point - corner).dot(v)) }
+        func flat(_ vector: Vector3D) -> (Double, Double) { (vector.dot(u), vector.dot(v)) }
+        func back(_ x: Double, _ y: Double) -> Point3D { corner + u * x + v * y }
+        var candidates: [(Double, Double)] = []
+        switch (try moved(before), try moved(after)) {
+        case let (.line(p, d), .circle(c, r)), let (.circle(c, r), .line(p, d)):
+            let (px, py) = flat(p), (dx, dy) = flat(d), (cx, cy) = flat(c)
+            let (fx, fy) = (px - cx, py - cy)
+            let b = fx * dx + fy * dy
+            let discriminant = b * b - (fx * fx + fy * fy - r * r)
+            if discriminant >= 0 {
+                for t in [-b - discriminant.squareRoot(), -b + discriminant.squareRoot()] { candidates.append((px + dx * t, py + dy * t)) }
+            }
+        case let (.circle(c1, r1), .circle(c2, r2)):
+            let (x1, y1) = flat(c1), (x2, y2) = flat(c2)
+            let (ex, ey) = (x2 - x1, y2 - y1)
+            let distance = (ex * ex + ey * ey).squareRoot()
+            if distance > tolerance.distance {
+                let along = (r1 * r1 - r2 * r2 + distance * distance) / (2 * distance)
+                let height = r1 * r1 - along * along
+                if height >= 0 {
+                    let (mx, my) = (x1 + ex * along / distance, y1 + ey * along / distance)
+                    let h = height.squareRoot()
+                    candidates.append((mx - ey * h / distance, my + ex * h / distance))
+                    candidates.append((mx + ey * h / distance, my - ex * h / distance))
+                }
+            }
+        case (.line, .line):
+            break
+        }
+        guard let nearest = candidates.min(by: { ($0.0 * $0.0 + $0.1 * $0.1) < ($1.0 * $1.0 + $1.1 * $1.1) }),
+              (nearest.0 * nearest.0 + nearest.1 * nearest.1).squareRoot() <= 10 * abs(shift) + tolerance.distance else {
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                              message: "An offset section's walls no longer meet at a corner.")
+        }
+        return back(nearest.0, nearest.1)
     }
 
     /// `elements` run the other way.

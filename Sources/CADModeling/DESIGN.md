@@ -980,8 +980,8 @@ change radius (holes grow as outlines shrink), tangent joints move along their c
 line corners to their miter. `ExactPrismaticFacePatchBuilder.request(bottom:top:…)` then rules
 each wall between its bottom and top segment: a plane between two lines, and between two arcs the
 rational quadratic spans at one angle, which is the exact cone; caps close both ends with the
-prism's stable names. Spline sections, sharp corners at arcs, curve sections and directions off
-the normal are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). `ExtrudeDraftTests` own the
+prism's stable names. Spline sections, drafted sharp corners at arcs, curve sections and directions
+off the normal are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). `ExtrudeDraftTests` own the
 rectangle frustum's volume and wall angle, the symmetric taper, the circle's cone and the oblique
 refusal.
 
@@ -989,8 +989,11 @@ A `thickness` makes the extrusion thin: `wallRegions` offsets every loop a furth
 toward the material, and each loop's ring (the outline with its inward offset as a hole, a hole's
 outward offset with the hole inside it) is extruded as a solid of its own, drafted with the
 section, open at both ends; the rings are named `extrude:wall:i` and published ring by ring.
-A thickness wider than the section refuses as the offset turns a wall over.
-`ExtrudeWallThicknessTests` own the rectangular and round tubes' volumes and the refusal.
+Without a draft a sharp corner at an arc joins where the moved walls cross (a line's parallel and the
+arc's concentric circle, or two circles), every height taking the same section; thin revolves and
+hollow pipes share it through `wallProfiles`. A thickness wider than the section refuses as the
+offset turns a wall over. `ExtrudeWallThicknessTests` own the rectangular and round tubes' volumes,
+a D section's wall (the inner D a circular segment) with the drafted D's refusal, and the refusal.
 
 A face section extrudes as the profile `FaceSectionProfileResolver` reads from the face where it is
 before any Boolean target moves: its plane with the face's outward normal, its outer loop
