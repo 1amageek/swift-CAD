@@ -1026,13 +1026,23 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             }
             return point
         }
-        /// The direction within a face away from an edge along `axis`, toward where the face lies.
+        /// The direction within a face away from its side along `axis` through `point`, toward where
+        /// the face lies: to the left of the side as the outer loop, wound about the outward normal,
+        /// runs along it — which holds for concave faces too.
         func away(_ faceID: FaceID, axis: Vector3D, from point: Point3D) throws -> Vector3D {
             let normal = try orientedPlane(faceID, model: model, featureID: featureID, tolerance: tolerance).outward
-            let direction = try axis.cross(normal).normalized(tolerance: tolerance.distance)
             let polygon = try outerPolygon(faceID, model: model, featureID: featureID, tolerance: tolerance)
-            let centroid = polygon.reduce(Vector3D.zero) { $0 + ($1 - point) } * (1 / Double(polygon.count))
-            return centroid.dot(direction) > 0 ? direction : -direction
+            var winding = Vector3D.zero
+            for (a, b) in zip(polygon, polygon.dropFirst() + polygon.prefix(1)) { winding = winding + (a - polygon[0]).cross(b - polygon[0]) }
+            func onLine(_ candidate: Point3D) -> Bool {
+                let offset = candidate - point
+                return (offset - axis * offset.dot(axis)).length <= tolerance.distance
+            }
+            guard let side = zip(polygon, polygon.dropFirst() + polygon.prefix(1)).first(where: { onLine($0.0) && onLine($0.1) }) else {
+                throw failure(.topologyFailure, featureID: featureID, tolerance: tolerance, "A blended edge is not a side of its face.")
+            }
+            let left = try normal.cross(side.1 - side.0).normalized(tolerance: tolerance.distance)
+            return winding.dot(normal) > 0 ? left : left * -1
         }
         struct Link {
             let edgeID: EdgeID
@@ -1077,22 +1087,10 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     if faceID == link.faces.second { cuts.append((link.start, link.along.second, index)) }
                 }
                 if cuts.isEmpty == false {
-                    var polygon = try outerPolygon(faceID, model: model, featureID: featureID, tolerance: tolerance)
                     let plane = try orientedPlane(faceID, model: model, featureID: featureID, tolerance: tolerance)
-                    guard isConvex(polygon, normal: plane.outward, tolerance: tolerance) else {
-                        // FIXME(INCOMPLETE_IMPLEMENTATION): a face beside blended edges that meet is
-                        // cut back by half-planes, which holds only for convex faces, so a concave one
-                        // is refused. Production path: blendNetworkRequest. Complete only when concave
-                        // faces are cut along their contact lines alone, verified by an L block's top
-                        // edges blended together.
-                        throw refuse("Blended edges that meet bound convex faces.")
-                    }
-                    for cut in cuts {
-                        polygon = simplified(clip(polygon, origin: cut.origin, normal: cut.normal, offset: distance, tolerance: tolerance), tolerance: tolerance)
-                    }
-                    guard polygon.count >= 3 else {
-                        throw failure(.topologyFailure, featureID: featureID, tolerance: tolerance, "A blend removes a face beside its edges.")
-                    }
+                    let polygon = try movedSides(try outerPolygon(faceID, model: model, featureID: featureID, tolerance: tolerance),
+                                                 cuts: cuts.map { (links[$0.link].start, links[$0.link].end, $0.normal) },
+                                                 distance: distance, featureID: featureID, tolerance: tolerance)
                     let surface = Surface3D.plane(plane.plane)
                     let edges = try polygon.indices.map { index in
                         let (start, end) = (polygon[index], polygon[(index + 1) % polygon.count])
@@ -1128,6 +1126,17 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             return BRepSewingRequest(featureID: featureID, bodyKind: body.kind == .sheet ? .sheet : .solid,
                                      shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
                                      bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context))
+        }
+        for link in links {
+            let secondOutward = try orientedPlane(link.faces.second, model: model, featureID: featureID, tolerance: tolerance).outward
+            guard link.along.first.dot(secondOutward) < -tolerance.angle else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): a concave edge's blend adds material across its
+                // empty wedge, which is built for an edge alone but not joined to blends it meets,
+                // so a concave edge meeting other blended edges is refused. Production path:
+                // blendNetworkRequest. Complete only when concave and convex blends are joined at
+                // their corners, verified by an L block's inside edge filleted with a top edge.
+                throw refuse("Blended edges that meet are convex.")
+            }
         }
         let alpha = acos(max(-1, min(1, links[0].along.first.dot(links[0].along.second))))
         if blendSection.resolve(alpha).degree == 1 {
@@ -1253,15 +1262,9 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 guard zip(before, after).allSatisfy({ reflected($0).isApproximatelyEqual(to: $1, tolerance: tolerance.distance) }) else {
                     throw refuse("Edges meeting at a corner are mitred when their sections mirror each other across the corner.")
                 }
+                // At a corner turning inward from the face both edges bound, the blends run on past
+                // the corner (a negative reach) until they meet on the plane.
                 let reach = before.map { -mitre.dot($0 - corner) / mitre.dot(incoming) }
-                guard reach.allSatisfy({ $0 >= -tolerance.distance }) else {
-                    // FIXME(INCOMPLETE_IMPLEMENTATION): at a corner turning inward from the face
-                    // both edges bound, the blends overlap past the corner, which is not trimmed,
-                    // so it is refused. Production path: blendNetworkRequest. Complete only when
-                    // inward corners are mitred, verified by an L block's top edges around its
-                    // inside corner.
-                    throw refuse("Edges meeting at a corner are mitred when the corner turns outward.")
-                }
                 let points = zip(before, reach).map { $0 + incoming * $1 }
                 mitred = true
                 for use in [first, second] {
@@ -1528,16 +1531,40 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                                    parentSubshapeIDs: parents)
     }
 
-    /// Whether a planar polygon turns one way about `normal` at every corner.
-    private func isConvex(_ polygon: [Point3D], normal: Vector3D, tolerance: ModelingTolerance) -> Bool {
-        var sign = 0.0
-        for index in polygon.indices {
-            let (a, b, c) = (polygon[index], polygon[(index + 1) % polygon.count], polygon[(index + 2) % polygon.count])
-            let turn = (b - a).cross(c - b).dot(normal)
-            guard abs(turn) > tolerance.distance * tolerance.distance else { continue }
-            if sign == 0 { sign = turn } else if sign * turn < 0 { return false }
+    /// A face's outer `polygon` with each side along a blended edge (`cuts`: the edge's ends and
+    /// its direction into the face) moved `distance` into the face, every corner where its two
+    /// sides' lines now meet; nil sides keep their place. A side that would reverse means the
+    /// blends consume the face.
+    private func movedSides(_ polygon: [Point3D], cuts: [(start: Point3D, end: Point3D, inward: Vector3D)], distance: Double,
+                            featureID: FeatureID, tolerance: ModelingTolerance) throws -> [Point3D] {
+        let count = polygon.count
+        let lines = try (0..<count).map { index -> (point: Point3D, direction: Vector3D, moved: Bool) in
+            let (a, b) = (polygon[index], polygon[(index + 1) % count])
+            let direction = try (b - a).normalized(tolerance: tolerance.distance)
+            let cut = cuts.first { cut in
+                (a.isApproximatelyEqual(to: cut.start, tolerance: tolerance.distance) && b.isApproximatelyEqual(to: cut.end, tolerance: tolerance.distance))
+                    || (a.isApproximatelyEqual(to: cut.end, tolerance: tolerance.distance) && b.isApproximatelyEqual(to: cut.start, tolerance: tolerance.distance))
+            }
+            return (cut.map { a + $0.inward * distance } ?? a, direction, cut != nil)
         }
-        return true
+        let corners = try (0..<count).map { index -> Point3D in
+            let (previous, next) = (lines[(index + count - 1) % count], lines[index])
+            let turn = previous.direction.cross(next.direction)
+            guard turn.length > tolerance.angle else {
+                // Collinear sides: they move together or not at all.
+                guard previous.moved == next.moved else {
+                    throw failure(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                                  "A blended edge continues straight into an edge left sharp.")
+                }
+                return next.point
+            }
+            let along = (next.point - previous.point).cross(next.direction).dot(turn) / turn.dot(turn)
+            return previous.point + previous.direction * along
+        }
+        for index in 0..<count where (corners[(index + 1) % count] - corners[index]).dot(lines[index].direction) <= tolerance.distance {
+            throw failure(.topologyFailure, featureID: featureID, tolerance: tolerance, "A blend removes a side of a face beside its edges.")
+        }
+        return corners
     }
 
     private func g2Request(

@@ -345,6 +345,66 @@ struct FilletShapeTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func anLBlocksTopEdgesMitreAroundItsInsideCorner() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // An L of 40 mm arms 10 mm thick, extruded 20 mm; its inside corner at (10, 10) mm.
+        let outline: [(Double, Double)] = [(0, 0), (0.04, 0), (0.04, 0.01), (0.01, 0.01), (0.01, 0.04), (0, 0.04)]
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            for (start, end) in zip(outline, outline.dropFirst() + outline.prefix(1)) {
+                _ = sketch.line(from: SketchPoint(x: length(start.0), y: length(start.1)), to: SketchPoint(x: length(end.0), y: length(end.1)))
+            }
+        }.featureID
+        let block = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(0.02))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "l"))
+        // The two top edges meeting at the inside corner.
+        let inner = try before.subshapes.entries.filter { key, value in
+            guard key.featureID == block, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  let start = before.brep.vertices[edge.startVertexID]?.point,
+                  let end = before.brep.vertices[edge.endVertexID]?.point else { return false }
+            return [start, end].allSatisfy { abs($0.z - 0.02) < 1e-12 }
+                && [start, end].contains { abs($0.x - 0.01) < 1e-12 && abs($0.y - 0.01) < 1e-12 }
+        }.map { try builder.stableSubshape($0.key) }
+        #expect(inner.count == 2)
+        let r = 0.004
+        _ = try builder.fillet(target: block, edges: inner, radius: length(r))
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "l"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        // Both edges' removed sections, and the blends run on past the corner to their mitre, removing
+        // as much more as an outward mitre gives back.
+        let expected = (0.04 * 0.01 + 0.03 * 0.01) * 0.02 - r * r * (1 - Double.pi / 4) * 0.06 - r * r * r * (5.0 / 3 - Double.pi / 2)
+        // Measured under a tight tolerance: the standard one's enclosure leaves a few 1e-12 m³ here.
+        let volume = try evaluated.brep.volume(tolerance: ModelingTolerance(distance: 1e-9, angle: 1e-12, relative: 1e-12))
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aConcaveEdgeMeetingAConvexOneIsRefused() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let outline: [(Double, Double)] = [(0, 0), (0.04, 0), (0.04, 0.01), (0.01, 0.01), (0.01, 0.04), (0, 0.04)]
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            for (start, end) in zip(outline, outline.dropFirst() + outline.prefix(1)) {
+                _ = sketch.line(from: SketchPoint(x: length(start.0), y: length(start.1)), to: SketchPoint(x: length(end.0), y: length(end.1)))
+            }
+        }.featureID
+        let block = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(0.02))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "l"))
+        // The inside corner's upright edge and the top edge along X it meets.
+        let edges = try before.subshapes.entries.filter { key, value in
+            guard key.featureID == block, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  let start = before.brep.vertices[edge.startVertexID]?.point,
+                  let end = before.brep.vertices[edge.endVertexID]?.point else { return false }
+            let upright = [start, end].allSatisfy { abs($0.x - 0.01) < 1e-12 && abs($0.y - 0.01) < 1e-12 }
+            let top = [start, end].allSatisfy { abs($0.z - 0.02) < 1e-12 && abs($0.y - 0.01) < 1e-12 }
+            return upright || top
+        }.map { try builder.stableSubshape($0.key) }
+        #expect(edges.count == 2)
+        _ = try builder.fillet(target: block, edges: edges, radius: length(0.002))
+        #expect(throws: KernelError.self) {
+            _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "l"))
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func twoEdgesMeetingAtACornerJoinAtAMitre() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         // The top front edge along X and the top edge along Y it meets at (0, 0, 20) mm.
