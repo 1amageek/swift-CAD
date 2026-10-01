@@ -26,25 +26,16 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         if fillet.shape == .full {
             return try evaluateFullRound(feature: feature, fillet: fillet, context: context)
         }
-        guard fillet.allEdges || fillet.edges.count == 1 else {
-            throw failure(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance, "Current exact fillet supports one selected edge per feature.")
-        }
         let radius = try resolvedRadius(fillet.radius, featureID: feature.id, context: context)
-        // A sheet's edge between perpendicular planes takes the profile blend, a round one its
-        // exact quarter circle.
-        if fillet.allEdges == false,
-           let sheet = context.brep.bodies[try targetBodyID(fillet.target.featureID, featureID: feature.id, context: context)],
-           sheet.kind == .sheet {
+        // A sheet's edges, several edges, or any shape but a single round edge take the profile
+        // blend, a round one its exact arc.
+        let targetKind = context.brep.bodies[try targetBodyID(fillet.target.featureID, featureID: feature.id, context: context)]?.kind
+        if fillet.allEdges == false, fillet.shape != .round || fillet.edges.count > 1 || targetKind == .sheet {
             let section = fillet.shape == .round
                 ? roundSection(radius: radius)
                 : try self.section(for: fillet.shape, tension: fillet.tension, distance: radius)
-            return try evaluateProfileBlend(feature: feature, target: fillet.target.featureID, selected: fillet.edges[0],
-                                            section: section, context: context)
-        }
-        if fillet.shape != .round {
-            return try evaluateProfileBlend(feature: feature, target: fillet.target.featureID, selected: fillet.edges[0],
-                                            section: try section(for: fillet.shape, tension: fillet.tension, distance: radius),
-                                            context: context)
+            return try evaluateProfileBlends(feature: feature, target: fillet.target.featureID, selected: fillet.edges,
+                                             section: section, context: context)
         }
         let bodyID = try targetBodyID(fillet.target.featureID, featureID: feature.id, context: context)
         guard let body = context.brep.bodies[bodyID],
@@ -795,24 +786,21 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         blend: G2BlendFeature,
         context: EvaluationContext
     ) throws -> EvaluationResult {
-        guard blend.edges.count == 1 else {
-            throw failure(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance, "Current exact G2 blend supports one selected edge per feature.")
-        }
         let quantity = try resolver.evaluate(blend.distance, parameters: context.parameters, variables: [:])
         guard quantity.kind == .length,
               quantity.value.isFinite,
               quantity.value > context.tolerance.distance else {
             throw failure(.invalidInput, featureID: feature.id, tolerance: context.tolerance, "G2 blend distance must be a positive length above modeling tolerance.")
         }
-        return try evaluateProfileBlend(feature: feature, target: blend.target.featureID, selected: blend.edges[0],
-                                        section: try section(for: .curvature, tension: 1, distance: quantity.value), context: context)
+        return try evaluateProfileBlends(feature: feature, target: blend.target.featureID, selected: blend.edges,
+                                         section: try section(for: .curvature, tension: 1, distance: quantity.value), context: context)
     }
 
-    /// A chamfer of a sheet's edge between perpendicular planes: the straight section `distance` from
-    /// the edge along both faces, swept along it.
-    package func evaluateSheetChamfer(feature: FeatureNode, target: FeatureID, selected: StableSubshapeReference,
-                                      distance: Double, context: EvaluationContext) throws -> EvaluationResult {
-        try evaluateProfileBlend(feature: feature, target: target, selected: selected,
+    /// A chamfer of edges between planes by the profile blend: the straight section `distance` from
+    /// each edge along both faces, swept along it.
+    package func evaluateProfileChamfer(feature: FeatureNode, target: FeatureID, selected: [StableSubshapeReference],
+                                        distance: Double, context: EvaluationContext) throws -> EvaluationResult {
+        try evaluateProfileBlends(feature: feature, target: target, selected: selected,
             section: BlendSection { _ in
                 BlendSection.Resolved(setback: distance, degree: 1, weights: [1, 1]) { corner, first, second in
                     [corner + first * distance, corner + second * distance]
@@ -925,6 +913,67 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         )
     }
 
+    /// Several edges blended in turn by `section`: each found where it lies after the ones before
+    /// (by its ends, which a blend of an edge not meeting it keeps) and blended as a stage of its
+    /// own, the last published as the feature.
+    private func evaluateProfileBlends(
+        feature: FeatureNode, target: FeatureID, selected: [StableSubshapeReference], section: BlendSection, context: EvaluationContext
+    ) throws -> EvaluationResult {
+        guard selected.count > 1 else {
+            return try evaluateProfileBlend(feature: feature, target: target, selected: selected[0], section: section, context: context)
+        }
+        let tolerance = context.tolerance
+        var bodyID = try targetBodyID(target, featureID: feature.id, context: context)
+        let ends = try selected.map { reference -> (Point3D, Point3D) in
+            let selection = try scopedEdgeSelection(reference, bodyID: bodyID, featureID: feature.id, context: context)
+            guard let edge = context.brep.edges[selection.edgeID], let start = context.brep.vertices[edge.startVertexID]?.point,
+                  let end = context.brep.vertices[edge.endVertexID]?.point else {
+                throw failure(.missingReference, featureID: feature.id, tolerance: tolerance, "A blended edge has no ends.")
+            }
+            return (start, end)
+        }
+        let kind = context.brep.bodies[bodyID]?.kind
+        var stages = FeatureEvaluationStages(context)
+        for (index, (a, b)) in ends.enumerated() {
+            let staged = stages.context
+            let scope = try BodyTopologyScope(bodyID: bodyID, model: staged.brep)
+            let edgeIDs = scope.references.compactMap { reference -> EdgeID? in
+                if case let .edge(id) = reference { return id }
+                return nil
+            }
+            guard let edgeID = edgeIDs.first(where: { id in
+                guard let edge = staged.brep.edges[id], let start = staged.brep.vertices[edge.startVertexID]?.point,
+                      let end = staged.brep.vertices[edge.endVertexID]?.point else { return false }
+                return (start.isApproximatelyEqual(to: a, tolerance: tolerance.distance) && end.isApproximatelyEqual(to: b, tolerance: tolerance.distance))
+                    || (start.isApproximatelyEqual(to: b, tolerance: tolerance.distance) && end.isApproximatelyEqual(to: a, tolerance: tolerance.distance))
+            }) else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): edges meeting at a corner are blended in turn,
+                // so a later one has lost its corner to an earlier one; their corner blend (a
+                // vertex blend or setback) is not built, so it is refused. Production path:
+                // EdgeBlendFeatureEvaluator.evaluateProfileBlends for every several-edge blend.
+                // Complete only when edges meeting at a corner are blended with the corner closed,
+                // verified by a box's top edges filleted together.
+                throw failure(.unsupportedCapability, featureID: feature.id, tolerance: tolerance,
+                              "Blended edges meeting at a corner need a corner blend; blend edges that do not meet.")
+            }
+            let last = index == ends.count - 1
+            let stageID = last ? feature.id : featureEvaluationStageID(featureID: feature.id, domain: .edgeBlend, ordinal: UInt64(index))
+            let request = try g2Request(featureID: stageID, bodyID: bodyID, edgeID: edgeID, selectedSubshapeID: selected[index].subshapeID,
+                                        sourceEdgeIDs: Set(edgeIDs), section: section, context: staged)
+            let sewn = try sewer.sew(request, tolerance: tolerance)
+            let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: staged.brep)
+            let step = EvaluationResult(brep: model, subshapes: sewn.subshapes,
+                                        removedSubshapeIDs: scope.subshapeIDs(in: staged.subshapes), lineage: sewn.lineage)
+            if last {
+                try model.validate(level: kind == .solid ? .volumetric : .exact, tolerance: tolerance)
+                return try stages.publish(step, featureID: feature.id)
+            }
+            stages.apply(step)
+            bodyID = sewn.bodyID
+        }
+        throw failure(.invalidInput, featureID: feature.id, tolerance: tolerance, "A blend has no edges.")
+    }
+
     private func g2Request(
         featureID: FeatureID,
         bodyID: BodyID,
@@ -994,10 +1043,21 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         var lowerCap: BSplineCapBoundary?
         var upperCap: BSplineCapBoundary?
         for (faceIndex, faceID) in shell.faceIDs.enumerated() {
-            let oriented = try orientedPlane(faceID, model: model, featureID: featureID, tolerance: context.tolerance)
-            let polygon = try outerPolygon(faceID, model: model, featureID: featureID, tolerance: context.tolerance)
             let faceParents = subshapeIDs(for: .face(faceID), context: context)
+            let stableID = "source-face:\(faceIndex)"
             if faceID == incidentFaceIDs[0] || faceID == incidentFaceIDs[1] {
+                // The faces beside the edge are cut back along their straight outline.
+                guard let face = model.faces[faceID], try face.loops.allSatisfy({ loopID in
+                    try (model.loops[loopID]?.edges ?? []).allSatisfy { coedge in
+                        guard let edge = model.edges[coedge.edgeID] else { throw TopologyError.missingReference("Missing blend face edge.") }
+                        return model.geometry.curves[edge.curveID].map { isStraight($0, tolerance: context.tolerance) } ?? false
+                    }
+                }) else {
+                    throw failure(.unsupportedCapability, featureID: featureID, tolerance: context.tolerance,
+                                  "A blend cuts back faces bounded by straight edges; a face beside this edge is rounded already.")
+                }
+                let oriented = try orientedPlane(faceID, model: model, featureID: featureID, tolerance: context.tolerance)
+                let polygon = try outerPolygon(faceID, model: model, featureID: featureID, tolerance: context.tolerance)
                 let clippingNormal = faceID == incidentFaceIDs[0] ? secondInward : firstInward
                 let clipped = simplified(
                     clip(polygon, origin: startVertex.point, normal: clippingNormal, offset: distance, tolerance: context.tolerance),
@@ -1007,7 +1067,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     throw failure(.topologyFailure, featureID: featureID, tolerance: context.tolerance, "G2 blend distance removes an incident face.")
                 }
                 patches.append(try linePatch(
-                    stableID: "source-face:\(faceIndex)",
+                    stableID: stableID,
                     plane: oriented,
                     vertices: clipped,
                     faceParents: faceParents,
@@ -1017,54 +1077,20 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     model: model,
                     context: context
                 ))
-            } else if let cornerIndex = polygon.firstIndex(where: {
-                $0.isApproximatelyEqual(to: startVertex.point, tolerance: context.tolerance.distance)
-            }) {
-                let cap = try g2CapPatch(
-                    stableID: "source-face:\(faceIndex)",
-                    plane: oriented,
-                    polygon: polygon,
-                    cornerIndex: cornerIndex,
-                    curve: lowerCurve,
-                    distance: distance,
-                    axis: axis,
-                    faceParents: faceParents,
-                    sourceEdgeIDs: sourceEdgeIDs,
-                    model: model,
-                    context: context
-                )
+                continue
+            }
+            // Every other face keeps its own edges (rounded ones too); an end face holding a
+            // corner of the edge has that corner cut back to the section.
+            let source = try SourceBRepFacePatchBuilder().build(faceID: faceID, stableID: stableID, from: model,
+                                                                sourceSubshapes: context.subshapes.entries, tolerance: context.tolerance).patch
+            if let cap = try cornerCap(source, corner: startVertex.point, curve: lowerCurve, distance: distance, axis: axis, context: context) {
                 patches.append(cap.patch)
                 lowerCap = cap.boundary
-            } else if let cornerIndex = polygon.firstIndex(where: {
-                $0.isApproximatelyEqual(to: endVertex.point, tolerance: context.tolerance.distance)
-            }) {
-                let cap = try g2CapPatch(
-                    stableID: "source-face:\(faceIndex)",
-                    plane: oriented,
-                    polygon: polygon,
-                    cornerIndex: cornerIndex,
-                    curve: upperCurve,
-                    distance: distance,
-                    axis: axis,
-                    faceParents: faceParents,
-                    sourceEdgeIDs: sourceEdgeIDs,
-                    model: model,
-                    context: context
-                )
+            } else if let cap = try cornerCap(source, corner: endVertex.point, curve: upperCurve, distance: distance, axis: axis, context: context) {
                 patches.append(cap.patch)
                 upperCap = cap.boundary
             } else {
-                patches.append(try linePatch(
-                    stableID: "source-face:\(faceIndex)",
-                    plane: oriented,
-                    vertices: polygon,
-                    faceParents: faceParents,
-                    edgeID: edgeID,
-                    selectedSubshapeID: selectedSubshapeID,
-                    sourceEdgeIDs: sourceEdgeIDs,
-                    model: model,
-                    context: context
-                ))
+                patches.append(source)
             }
         }
         // A sheet's blend may end open, its section curves left as boundary.
@@ -1232,79 +1258,77 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         )
     }
 
-    private func g2CapPatch(
-        stableID: String,
-        plane: OrientedPlane,
-        polygon: [Point3D],
-        cornerIndex: Int,
-        curve: BSplineCurve3D,
-        distance: Double,
-        axis: Vector3D,
-        faceParents: [SubshapeID],
-        sourceEdgeIDs: Set<EdgeID>,
-        model: BRepModel,
-        context: EvaluationContext
-    ) throws -> G2Cap {
-        // The section lies across the edge, so an end face holding it runs square across the edge.
-        guard plane.plane.normal.cross(axis).length <= context.tolerance.angle else {
-            throw failure(.unsupportedCapability, tolerance: context.tolerance, "A blend's end faces run square across its edge.")
+    /// Whether `curve` is straight: a line, or a B-spline whose control points lie on one line.
+    private func isStraight(_ curve: Curve3D, tolerance: ModelingTolerance) -> Bool {
+        switch curve {
+        case .line:
+            return true
+        case let .bSpline(spline):
+            guard let first = spline.controlPoints.first, let last = spline.controlPoints.last else { return false }
+            let chord = last - first
+            guard chord.length > tolerance.distance else { return false }
+            let direction = chord * (1 / chord.length)
+            return spline.controlPoints.allSatisfy { point in
+                let offset = point - first
+                return (offset - direction * offset.dot(direction)).length <= tolerance.distance
+            }
+        default:
+            return false
         }
-        let rotated = polygon.indices.map { polygon[(cornerIndex + $0) % polygon.count] }
-        let corner = rotated[0]
-        let nextDirection = rotated[1] - corner
-        let previousDirection = rotated[rotated.count - 1] - corner
-        guard nextDirection.length > distance + context.tolerance.distance,
-              previousDirection.length > distance + context.tolerance.distance else {
-            throw failure(.unsupportedCapability, tolerance: context.tolerance, "G2 blend distance must fit both endpoint edges.")
+    }
+
+    /// `face` with the corner where two straight edges of its outer loop meet the blended edge
+    /// cut back `distance` along both and closed by the section `curve`; nil when it holds no such
+    /// corner. The face runs square across the edge, as the section does.
+    private func cornerCap(_ face: BRepSewingFacePatch, corner: Point3D, curve: BSplineCurve3D, distance: Double,
+                           axis: Vector3D, context: EvaluationContext) throws -> G2Cap? {
+        let tolerance = context.tolerance
+        guard let outerIndex = face.loops.firstIndex(where: { $0.role == .outer }) else { return nil }
+        let loop = face.loops[outerIndex].edges
+        guard let index = loop.indices.first(where: { index in
+            loop[index].endPoint.isApproximatelyEqual(to: corner, tolerance: tolerance.distance)
+                && loop[(index + 1) % loop.count].startPoint.isApproximatelyEqual(to: corner, tolerance: tolerance.distance)
+        }) else { return nil }
+        guard case let .plane(plane) = face.surface, plane.normal.cross(axis).length <= tolerance.angle else {
+            throw failure(.unsupportedCapability, tolerance: tolerance, "A blend's end faces are planes square across its edge.")
         }
-        let tangentNext = corner + (try nextDirection.normalized(tolerance: context.tolerance.distance)) * distance
-        let tangentPrevious = corner + (try previousDirection.normalized(tolerance: context.tolerance.distance)) * distance
-        let boundary = [tangentNext] + Array(rotated.dropFirst()) + [tangentPrevious]
-        let surface = Surface3D.plane(plane.plane)
-        var edges = try (0..<(boundary.count - 1)).map { index in
-            try lineEdge(
-                stableID: "\(stableID):edge:\(index)",
-                start: boundary[index],
-                end: boundary[index + 1],
-                surface: surface,
-                parents: sourceEdgeParents(
-                    start: boundary[index],
-                    end: boundary[index + 1],
-                    sourceEdgeIDs: sourceEdgeIDs,
-                    model: model,
-                    context: context,
-                    allowsSelectedFallback: false
-                ),
-                tolerance: context.tolerance
-            )
+        let rotated = Array(loop[index...] + loop[..<index])
+        let (previous, next) = (rotated[0], rotated[1])
+        guard isStraight(previous.curve, tolerance: tolerance), isStraight(next.curve, tolerance: tolerance),
+              (previous.startPoint - corner).length > distance + tolerance.distance,
+              (next.endPoint - corner).length > distance + tolerance.distance else {
+            throw failure(.unsupportedCapability, tolerance: tolerance,
+                          "A blend's distance must fit the straight end edges beside its corner.")
         }
-        let curveStart = curve.controlPoints[0]
-        let forward = tangentPrevious.isApproximatelyEqual(to: curveStart, tolerance: context.tolerance.distance)
-        let startParameter = forward ? 0.0 : 1.0
-        let endParameter = forward ? 1.0 : 0.0
-        let parameterCurve = try planarParameterCurve(
-            curve: curve,
-            surface: surface,
-            reversed: forward == false,
-            tolerance: context.tolerance
-        )
-        edges.append(BRepSewingEdge(
-            stableID: "\(stableID):g2",
+        let tangentPrevious = corner + (try (previous.startPoint - corner).normalized(tolerance: tolerance.distance)) * distance
+        let tangentNext = corner + (try (next.endPoint - corner).normalized(tolerance: tolerance.distance)) * distance
+        func shortened(_ edge: BRepSewingEdge, from start: Point3D, to end: Point3D, keepsStart: Bool) throws -> BRepSewingEdge {
+            let line = try lineEdge(stableID: edge.stableID, start: start, end: end, surface: face.surface,
+                                    parents: edge.parentSubshapeIDs, tolerance: tolerance)
+            return BRepSewingEdge(stableID: line.stableID, curve: line.curve, startParameter: line.startParameter,
+                                  endParameter: line.endParameter, startPoint: line.startPoint, endPoint: line.endPoint,
+                                  surfaceParameterCurve: line.surfaceParameterCurve, parentSubshapeIDs: edge.parentSubshapeIDs,
+                                  startVertexParentSubshapeIDs: keepsStart ? edge.startVertexParentSubshapeIDs : [],
+                                  endVertexParentSubshapeIDs: keepsStart ? [] : edge.endVertexParentSubshapeIDs)
+        }
+        let forward = tangentPrevious.isApproximatelyEqual(to: curve.controlPoints[0], tolerance: tolerance.distance)
+        let parameterCurve = try planarParameterCurve(curve: curve, surface: face.surface, reversed: forward == false, tolerance: tolerance)
+        let section = BRepSewingEdge(
+            stableID: "\(face.stableID):blend",
             curve: .bSpline(curve),
-            startParameter: startParameter,
-            endParameter: endParameter,
+            startParameter: forward ? 0.0 : 1.0,
+            endParameter: forward ? 1.0 : 0.0,
             startPoint: tangentPrevious,
             endPoint: tangentNext,
             surfaceParameterCurve: .bSpline(parameterCurve)
-        ))
+        )
+        let edges = [try shortened(previous, from: previous.startPoint, to: tangentPrevious, keepsStart: true), section,
+                     try shortened(next, from: tangentNext, to: next.endPoint, keepsStart: false)] + Array(rotated.dropFirst(2))
+        var loops = face.loops
+        loops[outerIndex] = BRepSewingLoop(stableID: loops[outerIndex].stableID, role: .outer, edges: edges)
         return G2Cap(
-            patch: BRepSewingFacePatch(
-                stableID: stableID,
-                surface: surface,
-                orientation: plane.orientation,
-                loops: [BRepSewingLoop(stableID: "\(stableID):outer", role: .outer, edges: edges)],
-                parentSubshapeIDs: faceParents
-            ),
+            patch: BRepSewingFacePatch(stableID: face.stableID, surface: face.surface, orientation: face.orientation,
+                                       loops: loops, parentSubshapeIDs: face.parentSubshapeIDs),
             boundary: BSplineCapBoundary(startPoint: tangentPrevious, endPoint: tangentNext)
         )
     }

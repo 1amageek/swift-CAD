@@ -305,4 +305,62 @@ struct FilletShapeTests {
         let volume = try evaluated.brep.volume(tolerance: .standard)
         #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
     }
+
+    /// A 20 mm box and the edge of it along X at `y` and `z`.
+    private func boxEdges(_ builder: inout DocumentBuilder, _ spots: [(Double, Double)]) throws -> (FeatureID, [StableSubshapeReference]) {
+        let box = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        let edges = try spots.map { y, z in
+            let key = try #require(evaluated.subshapes.entries.first { key, value in
+                guard key.featureID == box, case let .edge(id) = value, let edge = evaluated.brep.edges[id],
+                      let start = evaluated.brep.vertices[edge.startVertexID]?.point,
+                      let end = evaluated.brep.vertices[edge.endVertexID]?.point else { return false }
+                return [start, end].allSatisfy { abs($0.y - y) < 1e-12 && abs($0.z - z) < 1e-12 }
+            }?.key)
+            return try builder.stableSubshape(key)
+        }
+        return (box, edges)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func twoEdgesThatDoNotMeetRoundTogether() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // The box's top front and bottom back edges along X share only their end faces.
+        let (box, edges) = try boxEdges(&builder, [(0, 0.02), (0.02, 0)])
+        let r = 0.003
+        _ = try builder.fillet(target: box, edges: edges, radius: length(r))
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        let expected = 0.02 * 0.02 * 0.02 - 2 * (r * r - Double.pi * r * r / 4) * 0.02
+        let volume = try evaluated.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+
+        // Two chamfers likewise, each cutting a right triangle of the distance.
+        var chamfers = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (other, otherEdges) = try boxEdges(&chamfers, [(0, 0.02), (0.02, 0)])
+        _ = try chamfers.chamfer(target: other, edges: otherEdges, distance: length(r))
+        let chamfered = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try chamfers.build(name: "box"))
+        try chamfered.brep.validate(level: .volumetric, tolerance: .standard)
+        #expect(abs(try chamfered.brep.volume(tolerance: .standard) - (0.02 * 0.02 * 0.02 - 2 * r * r / 2 * 0.02)) < 1e-12)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func edgesMeetingAtACornerAreRefusedTogether() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // The top front edge along X and the top back one share no corner; the front's bottom edge
+        // and its top one share the front face, not a corner: the refused pair is a top edge along
+        // X and the top edge along Y it meets, found by its ends.
+        let (box, alongX) = try boxEdges(&builder, [(0, 0.02)])
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        let alongY = try #require(evaluated.subshapes.entries.first { key, value in
+            guard key.featureID == box, case let .edge(id) = value, let edge = evaluated.brep.edges[id],
+                  let start = evaluated.brep.vertices[edge.startVertexID]?.point,
+                  let end = evaluated.brep.vertices[edge.endVertexID]?.point else { return false }
+            return [start, end].allSatisfy { abs($0.x) < 1e-12 && abs($0.z - 0.02) < 1e-12 }
+        }?.key)
+        _ = try builder.fillet(target: box, edges: alongX + [try builder.stableSubshape(alongY)], radius: length(0.003))
+        #expect(throws: KernelError.self) {
+            _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        }
+    }
 }

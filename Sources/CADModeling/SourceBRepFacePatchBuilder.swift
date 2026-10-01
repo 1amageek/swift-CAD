@@ -1,15 +1,16 @@
 import CADCore
 import CADIR
-import CADModeling
 import CADTopology
 
-struct SourceBRepFacePatchBuilder {
-    struct Result {
-        let patch: BRepSewingFacePatch
-        let stableKeys: [TopologyReference: BRepSewingStableKey]
+package struct SourceBRepFacePatchBuilder {
+    package struct Result {
+        package let patch: BRepSewingFacePatch
+        package let stableKeys: [TopologyReference: BRepSewingStableKey]
     }
 
-    func build(
+    package init() {}
+
+    package func build(
         faceID: FaceID,
         stableID: String,
         from model: BRepModel,

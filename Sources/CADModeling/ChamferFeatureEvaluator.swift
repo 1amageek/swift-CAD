@@ -50,19 +50,12 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
                 message: "Chamfer evaluator requires a chamfer feature."
             )
         }
-        guard chamfer.edges.count == 1 else {
-            throw unsupported(
-                featureID: feature.id,
-                tolerance: context.tolerance,
-                message: "Current exact chamfer supports one selected edge per feature."
-            )
-        }
         let distance = try resolvedDistance(chamfer.distance, context: context, featureID: feature.id)
         let bodyID = try targetBodyID(chamfer.target.featureID, context: context, featureID: feature.id)
-        // A sheet's edge between perpendicular planes is cut by the profile blend's straight section.
-        if context.brep.bodies[bodyID]?.kind == .sheet {
-            return try EdgeBlendFeatureEvaluator(sewer: sewer).evaluateSheetChamfer(
-                feature: feature, target: chamfer.target.featureID, selected: chamfer.edges[0], distance: distance, context: context)
+        // A sheet's edges, or several edges, are cut in turn by the profile blend's straight section.
+        if context.brep.bodies[bodyID]?.kind == .sheet || chamfer.edges.count > 1 {
+            return try EdgeBlendFeatureEvaluator(sewer: sewer).evaluateProfileChamfer(
+                feature: feature, target: chamfer.target.featureID, selected: chamfer.edges, distance: distance, context: context)
         }
         guard let body = context.brep.bodies[bodyID],
               body.kind == .solid,

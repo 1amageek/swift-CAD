@@ -73,7 +73,7 @@ public struct FilletFeature: Codable, Hashable, Sendable {
                                   message: "A curvature fillet's tension lies in (0, 1.5].")
             }
         }
-        guard shape == .round || (!allEdges && edges.count == (shape == .full ? 2 : 1)) else {
+        guard shape == .round || (!allEdges && (shape == .full ? edges.count == 2 : edges.isEmpty == false)) else {
             throw KernelError(phase: .validation, code: .invalidInput, tolerance: nil,
                               message: shape == .full
                                 ? "A full fillet rounds across the face between two edges."

@@ -12,6 +12,7 @@ package enum FeatureEvaluationStageDomain: UInt64, Sendable {
     case hollowInnerBody = 0x6E3B_A1F7_0D52_C98B
     case pipePath = 0xB15D_4C08_E3A7_62F9
     case sheetBridgeTrim = 0xD3A6_58E1_2B9C_47F0
+    case edgeBlend = 0x8C41_E2D9_5A07_B36E
 }
 
 /// Derives a deterministic, non-published identity for one internal evaluation stage.
