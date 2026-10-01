@@ -45,7 +45,7 @@ package struct ExactHermiteCoonsSurfaceBuilder {
             }
         }
         throw failure(.classificationFailure,
-            "A Square could not meet a curved face within its angular allowance: \(String(describing: lastFailure))", featureID)
+            "A surface could not meet a curved face within its allowances: \(String(describing: lastFailure))", featureID)
     }
 
     private func build(
@@ -60,7 +60,7 @@ package struct ExactHermiteCoonsSurfaceBuilder {
             // along a Square with a rational side is refused. Production path:
             // SquareSurfaceFeatureEvaluator for every Square with a continuous side. Complete only
             // when rational sides are summed exactly, verified by a G1 Square with an arc side.
-            throw failure(.unsupportedCapability, "A continuous Square's sides are polynomial curves.", featureID)
+            throw failure(.unsupportedCapability, "A continuous surface's sides are polynomial curves.", featureID)
         }
         let order = [bottomPlane, topPlane].contains { $0?.order == .curvature } ? 2 : 1
         let degree = order == 2 ? 5 : 3
@@ -78,7 +78,7 @@ package struct ExactHermiteCoonsSurfaceBuilder {
         let (a0, a1) = (along.first, along.second)
         for (side, along, sideAt, alongAt) in [(b0, a0, 0.0, 0.0), (b0, a1, 1.0, 0.0), (b1, a0, 0.0, 1.0), (b1, a1, 1.0, 1.0)] {
             guard (try point(side, sideAt) - point(along, alongAt)).length <= tolerance.distance else {
-                throw failure(.invalidInput, "A Square's sides do not meet at its corners.", featureID)
+                throw failure(.invalidInput, "A surface's sides do not meet at its corners.", featureID)
             }
         }
         // The left and right sides' derivatives at both ends, first and (for curvature) second.
@@ -101,7 +101,7 @@ package struct ExactHermiteCoonsSurfaceBuilder {
                 let slack = plane.isExact ? tolerance.angle : sin(plane.allowance)
                 guard abs(value.dot(normal)) <= slack * value.length, value.dot(direction) > 0 else {
                     throw failure(.invalidInput,
-                        "A Square's sides beside a continuous side must leave it within the face's plane.", featureID)
+                        "The sides beside a continuous side must leave it within the face's plane.", featureID)
                 }
             }
             let magnitude = plane.tension * 0.5 * (start.length + end.length)
@@ -118,7 +118,7 @@ package struct ExactHermiteCoonsSurfaceBuilder {
                 let (n0, n1) = (try plane.normal(at: try point(side, 0), tolerance: tolerance), try plane.normal(at: try point(side, 1), tolerance: tolerance))
                 guard abs(start.dot(n0)) <= tolerance.angle * scale, abs(end.dot(n1)) <= tolerance.angle * scale else {
                     throw failure(.invalidInput,
-                        "A Square's sides beside a curvature-continuous side must not bend out of the face's plane there.", featureID)
+                        "The sides beside a curvature-continuous side must not bend out of the face's plane there.", featureID)
                 }
             }
             // Beside a curved face the rows take its normal curvature across the edge; the sides'
@@ -192,7 +192,7 @@ package struct ExactHermiteCoonsSurfaceBuilder {
     ) throws -> BSplineSurface3D {
         let supports = [bottomSupport, topSupport, leftSupport, rightSupport]
         guard [bottom, top, left, right].allSatisfy({ $0.weights.allSatisfy { $0 == 1 } }) else {
-            throw failure(.unsupportedCapability, "A continuous Square's sides are polynomial curves.", featureID)
+            throw failure(.unsupportedCapability, "A continuous surface's sides are polynomial curves.", featureID)
         }
         let exact = supports.allSatisfy { $0?.isExact ?? true }
         var lastFailure: (any Error)?

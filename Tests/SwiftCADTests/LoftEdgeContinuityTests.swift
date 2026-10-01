@@ -41,7 +41,7 @@ struct SurfaceEdgeContinuityTests {
     /// Box A spans [0, 20 mm]³; box B [0, 20] × [-70, -50] × [30, 50] mm. The loft runs from A's
     /// top front edge (y = 0, z = 20 mm) to B's bottom back edge (y = -50, z = 30 mm).
     private func loft(order: SurfaceEdgeContinuity.Order?, tension: Double = 1, middle: (y: Double, z: Double)? = nil,
-                      surfaceMode: LoftSurfaceMode = .ruled) throws -> (DocumentBuilder, FeatureID) {
+                      surfaceMode: LoftSurfaceMode = .ruled, guide: [(y: Double, z: Double)]? = nil) throws -> (DocumentBuilder, FeatureID) {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let first = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
         let second = try builder.box(
@@ -66,7 +66,13 @@ struct SurfaceEdgeContinuityTests {
             }.featureID
             all.insert(LoftSectionReference(section: .curve(CurveSectionReference(featureID: line))), at: 1)
         }
-        let loft = try builder.loft(sections: all, options: LoftOptions(resultKind: .sheet, surfaceMode: surfaceMode))
+        // A guide through the edges' ends at x = 0 (sketch x is y and sketch y is z across X).
+        let guides = try guide.map { points in
+            [LoftGuideReference(featureID: try builder.sketch(on: .plane(Plane3D(origin: .origin, normal: .unitX))) { sketch in
+                _ = sketch.spline(SketchSpline(controlPoints: points.map { SketchPoint(x: length($0.y), y: length($0.z)) }))
+            }.featureID)]
+        } ?? []
+        let loft = try builder.loft(sections: all, guides: guides, options: LoftOptions(resultKind: .sheet, surfaceMode: surfaceMode))
         return (builder, loft)
     }
 
@@ -138,6 +144,31 @@ struct SurfaceEdgeContinuityTests {
             let found = try normals(at: Point3D(x: x, y: -0.025, z: 0.025))
             #expect(found.count == 2)
             if found.count == 2 { #expect(found[0].cross(found[1]).length < 1e-9) }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aGuidedTangentLoftFollowsItsGuideAndLeavesBothFaces() throws {
+        // The guide leaves A's top and reaches B's bottom level, through (0, -21.25, 25) mm halfway,
+        // where the unguided connector would pass (0, -25, 25) mm.
+        let (builder, loft) = try loft(order: .tangent, guide: [(0, 0.02), (-0.01, 0.02), (-0.03, 0.03), (-0.05, 0.03)])
+        let evaluated = try evaluate(builder)
+        let samples = try boundary(evaluated, loft: loft)
+        #expect(samples.allSatisfy { abs(abs($0.normal.z) - 1) < 1e-9 })
+        let surface = try #require(evaluated.subshapes.entries.compactMap { key, value -> Surface3D? in
+            guard key.featureID == loft, case let .face(id) = value, let face = evaluated.brep.faces[id] else { return nil }
+            return evaluated.brep.geometry.surfaces[face.surfaceID]
+        }.first)
+        let halfway = try surface.parameterProjection(of: Point3D(x: 0, y: -0.02125, z: 0.025), tolerance: .standard)
+        #expect(halfway.residual < 1e-9)
+
+        // A guide leaving across A's top face cannot keep the tangent plane.
+        let (steep, _) = try self.loft(order: .tangent, guide: [(0, 0.02), (-0.015, 0.03), (-0.035, 0.03), (-0.05, 0.03)])
+        do {
+            _ = try evaluate(steep)
+            Issue.record("A guide leaving out of the face's plane must be refused for tangent continuity.")
+        } catch let error as KernelError {
+            #expect(error.code == .invalidInput)
         }
     }
 

@@ -68,13 +68,6 @@ public struct LoftFeature: Codable, Hashable, Sendable {
         guard sections.dropFirst().dropLast().allSatisfy({ $0.continuity == nil }) else {
             throw FeatureEvaluationError.invalidGraph("Loft continuity belongs to the first or last section.")
         }
-        guard guides.isEmpty || sections.allSatisfy({ $0.continuity == nil }) else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): guides reshape the connectors that a continuity
-            // section's cross-boundary rows fix, so a guided Loft with continuity is refused.
-            // Production path: LoftFeature.validate for every Loft. Complete only when guide
-            // curves and continuity rows are solved together, verified by a guided G1 loft.
-            throw FeatureEvaluationError.invalidGraph("A guided Loft has no edge continuity yet.")
-        }
         let guideFeatureIDs = guides.map(\.featureID)
         guard Set(guideFeatureIDs).count == guideFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Loft guide references must be unique.")

@@ -382,9 +382,13 @@ chord between the two sections' control points; in a smooth Loft of more than tw
 chord ends on the Loft's own tangents at the section's ring vertices (times the connection's span),
 so the side meets the next connection with one tangent plane there, as the Loft's sections meet.
 Neighbouring spans share their vertex's row, a corner there is refused, and the connectors are the
-sides' boundary columns. Guides, middle sections and closed section loops are refused with
-continuity. `SurfaceEdgeContinuityTests` own the S-shaped G1 and G2 sheets between two boxes'
-edges, the round trip, the smooth three-section G1 loft through a middle line, the G1 and G2 lofts
+sides' boundary columns. A span beside a guide is instead `ExactHermiteCoonsSurfaceBuilder`'s
+Hermite Boolean sum with its connectors as the other two sides: the guide's piece, which must leave
+the face within its tangent plane (else refused), and across an unguided vertex the neighbouring
+Hermite side's column, so neighbouring spans still share it. Middle sections and closed section
+loops are refused with continuity. `SurfaceEdgeContinuityTests` own the S-shaped G1 and G2 sheets between two boxes'
+edges, the round trip, the smooth three-section G1 loft through a middle line, the guided G1 loft
+through its guide and the refusal of a guide leaving out of the face's plane, the G1 and G2 lofts
 from a cylinder's side certified within their allowances, and the refusals of a curved face
 without its allowances.
 

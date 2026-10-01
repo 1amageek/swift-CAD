@@ -216,7 +216,8 @@ package struct ExactLoftBodyBuilder {
         }
 
         let hermiteSides = try continuitySides(loft: loft, partitions: partitions, connectionCount: connectionCount,
-                                               tangents: tangentsByLoop[0], connectionSpans: connectionSpans)
+                                               tangents: tangentsByLoop[0], connectionSpans: connectionSpans,
+                                               guides: guideCurves.filter { $0.boundaryLoopIndex == 0 })
 
         var model = context.brep
         var geometry = model.geometry
@@ -1505,7 +1506,16 @@ package struct ExactLoftBodyBuilder {
         rings: [[Point3D]],
         to connectorCurves: inout [[BSplineCurve3D]]
     ) throws {
-        guard guides.isEmpty == false else { return }
+        for (connectionIndex, curves) in try guideConnectors(guides, rings: rings).enumerated() {
+            for (vertexIndex, curve) in curves { connectorCurves[connectionIndex][vertexIndex] = curve }
+        }
+    }
+
+    /// Per connection, the guides' pieces between its two sections by the ring vertex each guide
+    /// passes through.
+    private func guideConnectors(_ guides: [ExactLoftGuideCurve], rings: [[Point3D]]) throws -> [[Int: BSplineCurve3D]] {
+        var connectorCurves: [[Int: BSplineCurve3D]] = Array(repeating: [:], count: max(rings.count - 1, 0))
+        guard guides.isEmpty == false else { return connectorCurves }
         var usedVertexIndexes: Set<Int> = []
         for guide in guides {
             guard guide.sectionPoints.count == rings.count,
@@ -1557,6 +1567,7 @@ package struct ExactLoftBodyBuilder {
                 )
             }
         }
+        return connectorCurves
     }
 
     private func addConnectorEdges(
@@ -1784,9 +1795,12 @@ package struct ExactLoftBodyBuilder {
     /// the chord between the two sections' control points; in a smooth Loft of more than two
     /// sections that chord ends on the Loft's tangents at the section's ring vertices (times the
     /// connection's span), so the side meets the next connection as smoothly as the Loft's own.
+    /// A span beside a guide is the Hermite Boolean sum with its connectors as the other two
+    /// sides (`ExactHermiteCoonsSurfaceBuilder`): the guide, which must leave the face within its
+    /// tangent plane, and across an unguided vertex the neighbouring Hermite side's column.
     private func continuitySides(
         loft: LoftFeature, partitions: [SectionPartition], connectionCount: Int,
-        tangents: [[Vector3D]], connectionSpans: [Double]
+        tangents: [[Vector3D]], connectionSpans: [Double], guides: [ExactLoftGuideCurve]
     ) throws -> [Int: [BSplineSurface3D]] {
         guard loft.sections.contains(where: { $0.continuity != nil }) else { return [:] }
         let tolerance = context.tolerance
@@ -1813,6 +1827,7 @@ package struct ExactLoftBodyBuilder {
             )
         }
         let closed = partition.rings[0].count == partition.curves[0].count
+        let guided = try guideConnectors(guides, rings: partition.rings)
         let builder = ExactLoftSideSurfaceBuilder()
         var result: [Int: [BSplineSurface3D]] = [:]
         for connection in Set([0, connectionCount - 1]) {
@@ -1896,6 +1911,26 @@ package struct ExactLoftBodyBuilder {
                 throw KernelError(phase: .evaluation, code: .classificationFailure, featureID: featureID, tolerance: tolerance,
                                   message: "A Loft could not meet a curved face within its angular allowance: \(lastFailure)")
             }
+            guard guided[connection].isEmpty == false, var sides = result[connection] else { continue }
+            func column(_ surface: BSplineSurface3D, last: Bool) throws -> BSplineCurve3D {
+                let curve = BSplineCurve3D(degree: surface.vDegree, knots: surface.vKnots,
+                                           controlPoints: surface.controlPoints.map { last ? $0[$0.count - 1] : $0[0] })
+                try curve.validate(tolerance: tolerance)
+                return curve
+            }
+            let vertexCount = partition.rings[first].count
+            let hermite = sides
+            for span in sides.indices {
+                let next = (span + 1) % vertexCount
+                guard guided[connection][span] != nil || guided[connection][next] != nil else { continue }
+                sides[span] = try ExactHermiteCoonsSurfaceBuilder(tolerance: tolerance).build(
+                    bottom: partition.curves[first][span], top: partition.curves[second][span],
+                    left: try guided[connection][span] ?? column(hermite[span], last: false),
+                    right: try guided[connection][next] ?? column(hermite[span], last: true),
+                    bottomPlane: planes[first], topPlane: planes[second], featureID: featureID
+                )
+            }
+            result[connection] = sides
         }
         return result
     }
