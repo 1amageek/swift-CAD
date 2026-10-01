@@ -14,6 +14,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
     private let bSplineSurfaceEvaluator: BSplineSurfaceFeatureEvaluator
     private let patchSurfaceEvaluator: PatchSurfaceFeatureEvaluator
     private let surfaceFillEvaluator: SurfaceFillFeatureEvaluator
+    private let curvePatchEvaluator: CurvePatchFeatureEvaluator
     private let faceLoopOffsetEvaluator: FaceLoopOffsetFeatureEvaluator
     private let edgeOffsetEvaluator: EdgeOffsetFeatureEvaluator
     private let faceKnifeEvaluator: FaceKnifeFeatureEvaluator
@@ -99,6 +100,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.bSplineSurfaceEvaluator = BSplineSurfaceFeatureEvaluator()
         self.patchSurfaceEvaluator = PatchSurfaceFeatureEvaluator()
         self.surfaceFillEvaluator = SurfaceFillFeatureEvaluator(sewer: sewer)
+        self.curvePatchEvaluator = CurvePatchFeatureEvaluator(sewer: sewer)
         self.faceLoopOffsetEvaluator = FaceLoopOffsetFeatureEvaluator(parameterResolver: resolver)
         self.edgeOffsetEvaluator = EdgeOffsetFeatureEvaluator(parameterResolver: resolver)
         self.faceKnifeEvaluator = FaceKnifeFeatureEvaluator()
@@ -233,6 +235,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         case .pipe: return PipeFeatureEvaluator(sweep: sweepEvaluator)
         case .edgeCurve: return EdgeCurveFeatureEvaluator()
         case .squareSurface: return SquareSurfaceFeatureEvaluator()
+        case .curvePatch: return curvePatchEvaluator
         case .loft: return loftEvaluator
         case .boolean: return booleanEvaluator
         case .polySpline: return polySplineEvaluator

@@ -12,6 +12,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case pipe(PipeFeature)
     case edgeCurve(EdgeCurveFeature)
     case squareSurface(SquareSurfaceFeature)
+    case curvePatch(CurvePatchFeature)
     case loft(LoftFeature)
     case boolean(BooleanFeature)
     case polySpline(PolySplineFeature)
@@ -83,6 +84,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case pipe
         case edgeCurve
         case squareSurface
+        case curvePatch
         case loft
         case boolean
         case polySpline
@@ -181,6 +183,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .squareSurface:
             try container.validateOnlyExpectedKeys([.kind, .squareSurface], in: decoder)
             self = .squareSurface(try container.decode(SquareSurfaceFeature.self, forKey: .squareSurface))
+        case .curvePatch:
+            try container.validateOnlyExpectedKeys([.kind, .curvePatch], in: decoder)
+            self = .curvePatch(try container.decode(CurvePatchFeature.self, forKey: .curvePatch))
         case .loft:
             try container.validateOnlyExpectedKeys([.kind, .loft], in: decoder)
             self = .loft(try container.decode(LoftFeature.self, forKey: .loft))
@@ -391,6 +396,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .squareSurface(square):
             try container.encode(Kind.squareSurface, forKey: .kind)
             try container.encode(square, forKey: .squareSurface)
+        case let .curvePatch(patch):
+            try container.encode(Kind.curvePatch, forKey: .kind)
+            try container.encode(patch, forKey: .curvePatch)
         case let .loft(loft):
             try container.encode(Kind.loft, forKey: .kind)
             try container.encode(loft, forKey: .loft)

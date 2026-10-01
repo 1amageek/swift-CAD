@@ -12,6 +12,7 @@ public extension FeatureOperation {
         case .pipe: return "pipe"
         case .edgeCurve: return "edgeCurve"
         case .squareSurface: return "squareSurface"
+        case .curvePatch: return "curvePatch"
         case .loft: return "loft"
         case .boolean: return "boolean"
         case .polySpline: return "polySpline"

@@ -274,6 +274,29 @@ extension KernelCapabilities {
       ]
     ),
     feature(
+      id: "MODEL-CURVE-PATCH-001",
+      operation: "curvePatch",
+      topology: .sheetBody,
+      inputs: [
+        "distinctCurvesJoiningEndToEndIntoOneClosedLoopOrOneClosedCurve",
+      ],
+      outputs: [
+        "exactTrimmedPlaneForAPlanarLoopOrExactCoonsPatchForFourSides",
+      ],
+      fixtures: [
+        "CurvePatchTests",
+      ],
+      status: .partial,
+      failureCodes: [
+        .invalidInput,
+        .unsupportedCapability,
+      ],
+      additionalPublicAPIs: [
+        "CADModeling.CurvePatchFeatureEvaluator",
+        "DocumentBuilder.patch",
+      ]
+    ),
+    feature(
       id: "MODEL-SQUARE-001",
       operation: "squareSurface",
       topology: .sheetBody,

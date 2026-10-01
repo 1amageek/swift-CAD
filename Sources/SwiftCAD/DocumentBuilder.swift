@@ -1605,6 +1605,16 @@ public struct DocumentBuilder {
         return featureID
     }
 
+    /// Patch from closed curves: the sheet spanning curves joined end to end into one closed loop.
+    @discardableResult
+    public mutating func patch(curves: [CurveSectionReference], named name: String? = nil) throws -> FeatureID {
+        let patch = CurvePatchFeature(curves: curves)
+        try patch.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .curvePatch(patch))
+        return featureID
+    }
+
     /// Square: the sheet framed by four curves meeting end to end, each side G0 or continuous with
     /// the face beside the body edge it runs along.
     @discardableResult

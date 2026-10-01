@@ -64,6 +64,7 @@ private extension FeatureOperation {
              .pipe,
              .edgeCurve,
              .squareSurface,
+             .curvePatch,
              .loft,
              .boolean,
              .faceLoopOffset,

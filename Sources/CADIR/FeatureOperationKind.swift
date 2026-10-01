@@ -10,6 +10,7 @@ public enum FeatureOperationKind: String, Codable, CaseIterable, Hashable, Senda
     case pipe
     case edgeCurve
     case squareSurface
+    case curvePatch
     case loft
     case boolean
     case polySpline
@@ -86,6 +87,7 @@ public extension FeatureOperation {
         case .pipe: .pipe
         case .edgeCurve: .edgeCurve
         case .squareSurface: .squareSurface
+        case .curvePatch: .curvePatch
         case .loft: .loft
         case .boolean: .boolean
         case .polySpline: .polySpline

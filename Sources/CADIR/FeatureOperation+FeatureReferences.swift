@@ -97,6 +97,14 @@ extension FeatureOperation {
             feature.guides = try feature.guides.map { SweepGuideReference(featureID: try transform($0.featureID)) }
             feature.targets = try feature.targets.map { SweepTargetReference(featureID: try transform($0.featureID)) }
             return .sweep(feature)
+        case .curvePatch(var feature):
+            feature.curves = try feature.curves.map { curve in
+                guard case let .curve(remapped) = try section(.curve(curve)) else {
+                    throw FeatureEvaluationError.invalidGraph("A curve patch's curve remapped to another section kind.")
+                }
+                return remapped
+            }
+            return .curvePatch(feature)
         case .squareSurface(var feature):
             feature.sides = try feature.sides.map { side in
                 var result = side

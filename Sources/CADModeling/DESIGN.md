@@ -233,6 +233,16 @@ face subshapes after the arms'. `RoundSweepCornerTests` own the L-shaped and clo
 sweeps' exact volumes (the arms less the inner overlap plus the outer sectors) and the circle's
 refusal.
 
+### Curve patch
+
+`CurvePatchFeatureEvaluator` is Patch from closed curves: each curve's exact spans joined end to end
+from the first (turning those that run the other way) into one closed loop, or one closed curve. A
+planar loop spans its exact trimmed plane, sewn from the spans with their projected parameter
+curves; otherwise the loop's four sides (`SurfaceFillFeatureEvaluator.fourSides`) span the exact
+Coons patch. N-sided non-planar loops are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+`CurvePatchTests` own a circle's disc and a triangle of lines (its area), an arched four-sided loop
+and the round trip.
+
 ### Square
 
 `SquareSurfaceFeatureEvaluator` joins its four side curves (each exact, composed when several
