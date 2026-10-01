@@ -1022,6 +1022,7 @@ public struct DocumentBuilder {
         angle: CADExpression? = nil,
         flipped: Bool = false,
         limits: EdgeBlendLimits? = nil,
+        tangentEdges: Bool = true,
         named name: String? = nil
     ) throws -> FeatureID {
         let chamfer = ChamferFeature(
@@ -1031,7 +1032,8 @@ public struct DocumentBuilder {
             mode: mode,
             angle: angle,
             flipped: flipped,
-            limits: limits
+            limits: limits,
+            tangentEdges: tangentEdges
         )
         try chamfer.validate()
         let featureID = FeatureID()
@@ -1064,6 +1066,7 @@ public struct DocumentBuilder {
         endRadius: CADExpression? = nil,
         limits: EdgeBlendLimits? = nil,
         variablePoints: [FilletVariablePoint] = [],
+        tangentEdges: Bool = true,
         named name: String? = nil
     ) throws -> FeatureID {
         let fillet = FilletFeature(
@@ -1074,7 +1077,8 @@ public struct DocumentBuilder {
             tension: tension,
             endRadius: endRadius,
             limits: limits,
-            variablePoints: variablePoints
+            variablePoints: variablePoints,
+            tangentEdges: tangentEdges
         )
         try fillet.validate()
         let featureID = FeatureID()

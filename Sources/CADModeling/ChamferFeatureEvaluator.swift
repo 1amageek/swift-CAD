@@ -63,7 +63,7 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         func profile() throws -> EvaluationResult {
             try EdgeBlendFeatureEvaluator(sewer: sewer).evaluateProfileChamfer(
                 feature: feature, target: chamfer.target.featureID, selected: chamfer.edges, distance: distance,
-                mode: chamfer.mode, angle: angle, flipped: chamfer.flipped, context: context)
+                mode: chamfer.mode, angle: angle, flipped: chamfer.flipped, tangentEdges: chamfer.tangentEdges, context: context)
         }
         // A limited chamfer runs over its stretch of the edge, closing on its section at each limit.
         if let limits = chamfer.limits {
@@ -117,7 +117,7 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         }
         // An edge of a tangent loop on a planar cap, or one between faces that are not square, is
         // chamfered by the profile chamfer.
-        if try CapLoopBlendBuilder(tolerance: context.tolerance).admits([edgeID], model: context.brep)
+        if try CapLoopBlendBuilder(tolerance: context.tolerance, followsTangents: chamfer.tangentEdges).admits([edgeID], model: context.brep)
             || squareFaces(around: edgeID, bodyID: bodyID, context: context) == false {
             return try profile()
         }

@@ -682,6 +682,43 @@ struct FilletShapeTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func withTangentEdgesOffOnlyTheSelectedEdgesBlendClosingAtTheirJoints() throws {
+        // The rounded block's top edge along X alone, then one corner's arc alone: each band ends on
+        // its section at the tangent joints, closed by a flat face; only its own stretch is cut.
+        let (w, h, c, height, r) = (0.04, 0.03, 0.005, 0.01, 0.002)
+        let solid = (w * h - (4 - Double.pi) * c * c) * height
+        let section = r * r * (1 - Double.pi / 4)
+        let inset = r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (block, edge) = try roundedBlock(&builder)
+        var chamfered = builder
+        var arcOnly = builder
+        _ = try builder.fillet(target: block, edges: [edge], radius: length(r), tangentEdges: false)
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "r"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        let roundVolume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(roundVolume - (solid - section * (w - 2 * c))) < 5e-12, "\(roundVolume)")
+        _ = try chamfered.chamfer(target: block, edges: [edge], distance: length(r), tangentEdges: false)
+        let cut = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try chamfered.build(name: "r"))
+        try cut.brep.validate(level: .volumetric, tolerance: .standard)
+        let chamferVolume = try cut.brep.volume(tolerance: .standard)
+        #expect(abs(chamferVolume - (solid - r * r / 2 * (w - 2 * c))) < 5e-12, "\(chamferVolume)")
+        // The corner arc at (w − c, c) alone: a quarter turn of the section about its axis.
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try arcOnly.build(name: "r"))
+        let arc = try #require(before.subshapes.entries.first { key, value in
+            guard key.featureID == block, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  case let .circle(circle)? = before.brep.geometry.curves[edge.curveID],
+                  let start = before.brep.vertices[edge.startVertexID]?.point else { return false }
+            return abs(start.z - height) < 1e-12 && abs(circle.center.x - (w - c)) < 1e-12 && abs(circle.center.y - c) < 1e-12
+        }?.key)
+        _ = try arcOnly.fillet(target: block, edges: [try arcOnly.stableSubshape(arc)], radius: length(r), tangentEdges: false)
+        let corner = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try arcOnly.build(name: "r"))
+        try corner.brep.validate(level: .volumetric, tolerance: .standard)
+        let cornerVolume = try corner.brep.volume(tolerance: .standard)
+        #expect(abs(cornerVolume - (solid - section * Double.pi / 2 * (c - inset))) < 5e-12, "\(cornerVolume)")
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func aRimRoundAsLargeAsItsCornersClosesOnSpheres() throws {
         // The rounded block's top rim rounded by its 5 mm corner radius: each corner's band is the
         // ball's sphere about the corner's axis.

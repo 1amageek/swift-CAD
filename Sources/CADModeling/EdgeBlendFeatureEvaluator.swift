@@ -59,8 +59,9 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             let selections = try fillet.edges.map { reference in
                 (reference, try scopedEdgeSelection(reference, bodyID: bodyID, featureID: feature.id, context: context))
             }
-            if try CapLoopBlendBuilder(tolerance: context.tolerance).admits(selections.map(\.1.edgeID), model: context.brep) {
-                let request = try CapLoopBlendBuilder(tolerance: context.tolerance).request(
+            let capLoops = CapLoopBlendBuilder(tolerance: context.tolerance, followsTangents: fillet.tangentEdges)
+            if try capLoops.admits(selections.map(\.1.edgeID), model: context.brep) {
+                let request = try capLoops.request(
                     featureID: feature.id, bodyID: bodyID, selected: selections.map { ($0.1.edgeID, $0.0.subshapeID) },
                     section: .round(radius), context: context)
                 let sewn = try sewer.sew(request, tolerance: context.tolerance)
@@ -1098,7 +1099,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
     /// contacts on the two faces, set by `chamferSection`, swept along each edge.
     package func evaluateProfileChamfer(feature: FeatureNode, target: FeatureID, selected: [StableSubshapeReference],
                                         distance: Double, mode: ChamferMode = .apex, angle: Double? = nil, flipped: Bool = false,
-                                        context: EvaluationContext) throws -> EvaluationResult {
+                                        tangentEdges: Bool = true, context: EvaluationContext) throws -> EvaluationResult {
         let section = try chamferSection(distance: distance, mode: mode, angle: angle, flipped: flipped,
                                          featureID: feature.id, tolerance: context.tolerance)
         // Tangent loops of lines and arcs on a planar cap take the chamfer's band along the whole loop.
@@ -1107,8 +1108,9 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             let selections = try selected.map { reference in
                 (reference, try scopedEdgeSelection(reference, bodyID: bodyID, featureID: feature.id, context: context))
             }
-            if try CapLoopBlendBuilder(tolerance: context.tolerance).admits(selections.map(\.1.edgeID), model: context.brep) {
-                let request = try CapLoopBlendBuilder(tolerance: context.tolerance).request(
+            let capLoops = CapLoopBlendBuilder(tolerance: context.tolerance, followsTangents: tangentEdges)
+            if try capLoops.admits(selections.map(\.1.edgeID), model: context.brep) {
+                let request = try capLoops.request(
                     featureID: feature.id, bodyID: bodyID, selected: selections.map { ($0.1.edgeID, $0.0.subshapeID) },
                     section: try capLoopChamfer(section), context: context)
                 let sewn = try sewer.sew(request, tolerance: context.tolerance)

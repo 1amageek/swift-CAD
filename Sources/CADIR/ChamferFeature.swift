@@ -23,6 +23,8 @@ public struct ChamferFeature: Codable, Hashable, Sendable {
     /// The stretch of the one edge the chamfer runs over, closed on its section at each limit
     /// inside the edge; nil for the whole edge.
     public let limits: EdgeBlendLimits?
+    /// Fillet Shell's Tangent Edges: whether an edge takes the edges continuing it tangentially.
+    public let tangentEdges: Bool
 
     public init(
         target: ChamferTargetReference,
@@ -31,8 +33,10 @@ public struct ChamferFeature: Codable, Hashable, Sendable {
         mode: ChamferMode = .offset,
         angle: CADExpression? = nil,
         flipped: Bool = false,
-        limits: EdgeBlendLimits? = nil
+        limits: EdgeBlendLimits? = nil,
+        tangentEdges: Bool = true
     ) {
+        self.tangentEdges = tangentEdges
         self.target = target
         self.edges = edges
         self.distance = distance
@@ -49,7 +53,7 @@ public struct ChamferFeature: Codable, Hashable, Sendable {
         distance: CADExpression? = nil
     ) -> ChamferFeature {
         ChamferFeature(target: target ?? self.target, edges: edges ?? self.edges, distance: distance ?? self.distance,
-                       mode: mode, angle: angle, flipped: flipped, limits: limits)
+                       mode: mode, angle: angle, flipped: flipped, limits: limits, tangentEdges: tangentEdges)
     }
 
     public func validate() throws {
@@ -89,11 +93,12 @@ public struct ChamferFeature: Codable, Hashable, Sendable {
         case angle
         case flipped
         case limits
+        case tangentEdges
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.target, .edges, .distance, .mode, .angle, .flipped, .limits], in: decoder)
+        try container.validateOnlyExpectedKeys([.target, .edges, .distance, .mode, .angle, .flipped, .limits, .tangentEdges], in: decoder)
         target = try container.decode(ChamferTargetReference.self, forKey: .target)
         edges = try container.decode([StableSubshapeReference].self, forKey: .edges)
         distance = try container.decode(CADExpression.self, forKey: .distance)
@@ -101,6 +106,7 @@ public struct ChamferFeature: Codable, Hashable, Sendable {
         angle = try container.decodeIfPresent(CADExpression.self, forKey: .angle)
         flipped = try container.decodeIfPresent(Bool.self, forKey: .flipped) ?? false
         limits = try container.decodeIfPresent(EdgeBlendLimits.self, forKey: .limits)
+        tangentEdges = try container.decodeIfPresent(Bool.self, forKey: .tangentEdges) ?? true
         try validate()
     }
 
@@ -114,5 +120,6 @@ public struct ChamferFeature: Codable, Hashable, Sendable {
         try container.encodeIfPresent(angle, forKey: .angle)
         if flipped { try container.encode(true, forKey: .flipped) }
         try container.encodeIfPresent(limits, forKey: .limits)
+        if tangentEdges == false { try container.encode(false, forKey: .tangentEdges) }
     }
 }

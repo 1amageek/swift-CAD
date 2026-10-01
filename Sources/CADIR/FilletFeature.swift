@@ -32,6 +32,8 @@ public struct FilletFeature: Codable, Hashable, Sendable {
     public let limits: EdgeBlendLimits?
     /// The radii at points between the edge's ends, in order along it; empty for none.
     public let variablePoints: [FilletVariablePoint]
+    /// Fillet Shell's Tangent Edges: whether an edge takes the edges continuing it tangentially.
+    public let tangentEdges: Bool
 
     public init(
         target: FilletTargetReference,
@@ -42,8 +44,10 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         tension: Double? = nil,
         endRadius: CADExpression? = nil,
         limits: EdgeBlendLimits? = nil,
-        variablePoints: [FilletVariablePoint] = []
+        variablePoints: [FilletVariablePoint] = [],
+        tangentEdges: Bool = true
     ) {
+        self.tangentEdges = tangentEdges
         self.limits = limits
         self.variablePoints = variablePoints
         self.target = target
@@ -63,7 +67,7 @@ public struct FilletFeature: Codable, Hashable, Sendable {
     ) -> FilletFeature {
         FilletFeature(target: target ?? self.target, edges: edges ?? self.edges, radius: radius ?? self.radius,
                       allEdges: allEdges, shape: shape, tension: tension, endRadius: endRadius, limits: limits,
-                      variablePoints: variablePoints)
+                      variablePoints: variablePoints, tangentEdges: tangentEdges)
     }
 
     public func validate() throws {
@@ -139,11 +143,12 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         case endRadius
         case limits
         case variablePoints
+        case tangentEdges
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.target, .edges, .radius, .allEdges, .shape, .tension, .endRadius, .limits, .variablePoints], in: decoder)
+        try container.validateOnlyExpectedKeys([.target, .edges, .radius, .allEdges, .shape, .tension, .endRadius, .limits, .variablePoints, .tangentEdges], in: decoder)
         target = try container.decode(FilletTargetReference.self, forKey: .target)
         edges = try container.decode([StableSubshapeReference].self, forKey: .edges)
         radius = try container.decode(CADExpression.self, forKey: .radius)
@@ -153,6 +158,7 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         endRadius = try container.decodeIfPresent(CADExpression.self, forKey: .endRadius)
         limits = try container.decodeIfPresent(EdgeBlendLimits.self, forKey: .limits)
         variablePoints = try container.decodeIfPresent([FilletVariablePoint].self, forKey: .variablePoints) ?? []
+        tangentEdges = try container.decodeIfPresent(Bool.self, forKey: .tangentEdges) ?? true
         try validate()
     }
 
@@ -170,5 +176,6 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         try container.encodeIfPresent(endRadius, forKey: .endRadius)
         try container.encodeIfPresent(limits, forKey: .limits)
         if variablePoints.isEmpty == false { try container.encode(variablePoints, forKey: .variablePoints) }
+        if tangentEdges == false { try container.encode(false, forKey: .tangentEdges) }
     }
 }
