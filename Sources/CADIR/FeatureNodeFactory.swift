@@ -291,7 +291,7 @@ public enum FeatureNodeFactory {
                     id: id,
                     name: name,
                     operation: operation,
-                    outputs: [FeatureOutput(role: .sheet)]
+                    outputs: [FeatureOutput(role: polySpline.sourceMesh.isClosedSurface ? .body : .sheet)]
                 )
             }
             return try run()

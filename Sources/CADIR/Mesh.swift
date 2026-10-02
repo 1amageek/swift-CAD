@@ -45,6 +45,20 @@ public struct Mesh: Codable, Sendable, Hashable {
         self.faceRuns = faceRuns
     }
 
+    /// Whether every edge of its triangles bounds two of them: a closed surface, whose
+    /// PolySplines close into a solid.
+    public var isClosedSurface: Bool {
+        guard indices.isEmpty == false else { return false }
+        var uses: [[UInt32]: Int] = [:]
+        for start in stride(from: 0, to: indices.count - indices.count % 3, by: 3) {
+            for k in 0..<3 {
+                let (a, b) = (indices[start + k], indices[start + (k + 1) % 3])
+                uses[[min(a, b), max(a, b)], default: 0] += 1
+            }
+        }
+        return uses.values.allSatisfy { $0 == 2 }
+    }
+
     private enum CodingKeys: String, CodingKey {
         case positions
         case normals

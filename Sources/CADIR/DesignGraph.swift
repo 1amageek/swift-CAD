@@ -1142,8 +1142,9 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         guard node.inputs.isEmpty else {
             throw FeatureEvaluationError.invalidGraph("PolySpline features must not declare inputs in the inline mesh subset.")
         }
-        guard outputRoles == [.sheet] else {
-            throw FeatureEvaluationError.invalidGraph("PolySpline features must declare one sheet output.")
+        // A closed mesh closes into a solid, any other into a sheet.
+        guard outputRoles == [polySpline.sourceMesh.isClosedSurface ? .body : .sheet] else {
+            throw FeatureEvaluationError.invalidGraph("PolySpline features declare one body output for a closed mesh and one sheet output otherwise.")
         }
     }
 

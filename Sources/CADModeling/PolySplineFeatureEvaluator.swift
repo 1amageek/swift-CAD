@@ -180,7 +180,7 @@ public struct PolySplineFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
                                        loops: [BRepSewingLoop(stableID: "\(id):outer", role: .outer, edges: edges)])
         }
         let sewn = try sewer.sew(BRepSewingRequest(
-            featureID: feature.id, bodyKind: network.isClosed ? .solid : .sheet,
+            featureID: feature.id, bodyKind: polySpline.sourceMesh.isClosedSurface ? .solid : .sheet,
             shells: [BRepSewingShell(stableID: "polyspline:shell", patches: patches)]
         ), tolerance: tolerance)
         let combined = try BRepModelCombiner().combined([context.brep, sewn.brep])
