@@ -48,9 +48,10 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
     }
 
     public func validate() throws {
-        guard boundaries.count >= 2, quadSided == false || boundaries.count <= 4 else {
+        // One closed curve frames a trimmed XNURBS on its own; a quad-sided one takes two to four.
+        guard boundaries.isEmpty == false, quadSided == false || (2...4).contains(boundaries.count) else {
             throw FeatureEvaluationError.invalidGraph(quadSided ? "A quad-sided XNURBS is framed by two to four curves."
-                                                               : "An XNURBS is framed by two or more boundary curves.")
+                                                               : "An XNURBS is framed by one closed curve or two or more boundary curves.")
         }
         let curves = boundaries.map(\.curve.featureID) + guides.map(\.featureID)
         guard Set(curves).count == curves.count else {

@@ -35,8 +35,32 @@ struct XNurbsFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating, Cu
             throw failure(.invalidInput, feature.id, tolerance, "The XNURBS evaluator received another feature.")
         }
         try xnurbs.validate()
-        let curves = try SquareSurfaceFeatureEvaluator.sideCurves(of: xnurbs.boundaries, curves: context.curves, tolerance: tolerance,
-                                                                  featureID: feature.id)
+        var curves: [BSplineCurve3D]
+        var boundaries = xnurbs.boundaries
+        if boundaries.count == 1 {
+            // One closed curve frames the sheet as its exact spans, each taking its continuity.
+            let evaluated = try ResolvedModelingSection.resolveCurve(boundaries[0].curve, from: context.curves[boundaries[0].curve.featureID],
+                                                                     tolerance: tolerance)
+            guard evaluated.isClosed else {
+                throw failure(.invalidInput, feature.id, tolerance, "An XNURBS framed by one curve needs that curve closed.")
+            }
+            curves = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).sectionSpans(from: evaluated).map(\.curve)
+            // Halved until four or more, so the fit's frame of sides is a polygon, not a digon.
+            while curves.count < 4 {
+                curves = try curves.flatMap { curve -> [BSplineCurve3D] in
+                    guard case let .closed(lower, upper) = curve.domain else {
+                        throw failure(.invalidInput, feature.id, tolerance, "An XNURBS boundary curve is unbounded.")
+                    }
+                    let middle = 0.5 * (lower + upper)
+                    return [try curve.trimmed(from: lower, to: middle, tolerance: tolerance),
+                            try curve.trimmed(from: middle, to: upper, tolerance: tolerance)]
+                }
+            }
+            boundaries = Array(repeating: boundaries[0], count: curves.count)
+        } else {
+            curves = try SquareSurfaceFeatureEvaluator.sideCurves(of: boundaries, curves: context.curves, tolerance: tolerance,
+                                                              featureID: feature.id)
+        }
         let guides = try SquareSurfaceFeatureEvaluator.sideCurves(of: xnurbs.guides.map { SquareSide(curve: $0) }, curves: context.curves,
                                                                   tolerance: tolerance, featureID: feature.id)
         if xnurbs.quadSided {
@@ -60,7 +84,7 @@ struct XNurbsFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating, Cu
         guard (try ends(loop[loop.count - 1].curve, tolerance).1 - ends(loop[0].curve, tolerance).0).length <= tolerance.distance else {
             throw failure(.invalidInput, feature.id, tolerance, "An XNURBS's boundary does not close; Quad sided spans an open frame.")
         }
-        return try trimmedSheet(loop: loop.map { ($0.curve, xnurbs.boundaries[$0.index].continuity) }, guides: guides,
+        return try trimmedSheet(loop: loop.map { ($0.curve, boundaries[$0.index].continuity) }, guides: guides,
                                 flatness: xnurbs.flatness, spans: xnurbs.quality.spans,
                                 satisfying: xnurbs.satisfiesTolerances ? (xnurbs.positionTolerance, xnurbs.angleTolerance) : nil,
                                 feature: feature, context: context)

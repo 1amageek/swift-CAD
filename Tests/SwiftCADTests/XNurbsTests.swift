@@ -65,6 +65,23 @@ struct XNurbsTests {
         #expect(face.loops.count == 1 && evaluated.brep.loops[face.loops[0]]?.coedges.count == 8)
     }
 
+    @Test(.timeLimit(.minutes(2)))
+    func oneClosedCurveFramesTheSheetOnItsOwn() throws {
+        // A circle of 10 mm: one closed boundary, filled flat as its four quarters.
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let circle = try builder.sketch(on: .xy) { _ = $0.circle(center: point(0, 0), radius: length(0.01)) }.featureID
+        let fill = try builder.xnurbs(XNurbsFeature(boundaries: [SquareSide(curve: CurveSectionReference(featureID: circle))]))
+        let evaluated = try evaluate(builder)
+        let (face, surface) = try sheet(of: fill, in: evaluated)
+        #expect(surface.controlPoints.joined().allSatisfy { abs($0.z) < 1e-12 })
+        #expect(face.loops.count == 1 && evaluated.brep.loops[face.loops[0]]?.coedges.count == 4)
+        // An open curve alone frames nothing.
+        var open = DocumentBuilder(units: .meters, tolerance: .standard)
+        let line = try open.sketch(on: .xy) { $0.line(from: point(0, 0), to: point(0.01, 0)) }.featureID
+        _ = try open.xnurbs(XNurbsFeature(boundaries: [SquareSide(curve: CurveSectionReference(featureID: line))]))
+        #expect(throws: (any Error).self) { _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try open.build(name: "x")) }
+    }
+
     @Test(.timeLimit(.minutes(3)))
     func aNonPlanarPentagonIsSpannedWithinItsTolerances() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)

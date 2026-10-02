@@ -85,7 +85,10 @@ package struct XNurbsSurfaceFitter {
         let flip = area < 0 ? -1.0 : 1.0
         let mapped = projected.map { ($0.0, $0.1 * flip) }
         try requireSimple(mapped, featureID: featureID)
-        let (xs, ys) = (mapped.map(\.0), mapped.map(\.1))
+        // The box holds every trimming curve's control points too (a rational arc's middle one lies
+        // outside the arc), so each trimming curve lies inside the sheet's domain.
+        let controls = boundaries.flatMap(\.curve.controlPoints).map(planar).map { ($0.0, $0.1 * flip) }
+        let (xs, ys) = ((mapped + controls).map(\.0), (mapped + controls).map(\.1))
         guard let x0 = xs.min(), let x1 = xs.max(), let y0 = ys.min(), let y1 = ys.max() else {
             throw failure(.invalidInput, "An XNURBS boundary has no points.", featureID)
         }

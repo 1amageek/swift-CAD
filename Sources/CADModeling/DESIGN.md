@@ -324,7 +324,9 @@ whose open side is straight, two apart a sheet ruled between them; Natural keeps
 straight while Normal, Next and Adjacent bend the cross flow at the sides; Free sides are followed
 loosely; a face refits as an untrimmed four-sided face with its sides' deviations; XNURBS fills an
 N-sided opening as one trimmed sheet over a coarse grid (Quality), within its position and angle
-tolerances (Satisfy tolerances), and as Square's untrimmed sheet with Quad sided.
+tolerances (Satisfy tolerances), and as Square's untrimmed sheet with Quad sided; one closed curve
+frames it alone as its exact spans halved to four or more sides, the sheet's domain holding every
+trimming curve's control points.
 
 The construction keeps the kernel's exactness contract: hard constraints are interpolated exactly
 and never relaxed; only what the page calls loose (Free sides, flow, guides) is a weighted term.
