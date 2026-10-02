@@ -900,7 +900,8 @@ the extension `BSplineSurfaceBoundaryExtender` builds past that boundary — the
 span continued by blossoming (natural), the straight strip along the cross-boundary derivative
 (linear), or the stretch before the boundary mirrored control row by control row across
 the plane perpendicular to the row's end tangent, as Extend Curve mirrors a curve's end
-(reflective) — as far as the
+(reflective), or the cubic strip matching the cross-boundary first and second derivatives with its
+second derivative fading to none at the far end (soft, decided 2026-10-02) — as far as the
 distance measured along the surface across the edge's middle. Modifying, the sheet's patches
 (`DefaultBRepFacePatchExtractor`) and the strips are sewn into one sheet in its place;
 otherwise the strips are sewn into a sheet of their own beside it, the sheet kept. Chosen edges

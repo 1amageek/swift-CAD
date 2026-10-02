@@ -10,15 +10,16 @@ import CADGeometry
 /// | natural | the source's own polynomial continued: its last span extrapolated by blossoming | the source itself, rational or not |
 /// | reflective | the source's last stretch mirrored, control row by control row, across the plane perpendicular to the row's end tangent | tangent, curvature mirrored |
 /// | linear | the ruled strip along the source's cross-boundary derivative | tangent |
+/// | soft | the cubic strip whose first and second cross-boundary derivatives are the source's, its second derivative fading to none at the far end | curvature continuous |
 ///
-/// Linear needs a non-rational source, whose control points combine affinely.
+/// Linear and soft need a non-rational source, whose control points combine affinely.
 package struct BSplineSurfaceBoundaryExtender: Sendable {
     package enum Side: Sendable {
         case uLower, uUpper, vLower, vUpper
     }
 
     package enum Shape: Sendable {
-        case natural, reflective, linear
+        case natural, reflective, linear, soft
     }
 
     package init() {}
@@ -43,6 +44,7 @@ package struct BSplineSurfaceBoundaryExtender: Sendable {
         case .natural: result = try naturalUpper(of: working, by: delta, tolerance: tolerance)
         case .reflective: result = try reflectiveUpper(of: working, by: delta, tolerance: tolerance)
         case .linear: result = try linearUpper(of: working, by: delta, tolerance: tolerance)
+        case .soft: result = try softUpper(of: working, by: delta, tolerance: tolerance)
         }
         if reverses { result = reversedU(result) }
         if transposes { result = transposed(result) }
@@ -107,6 +109,39 @@ package struct BSplineSurfaceBoundaryExtender: Sendable {
         return BSplineSurface3D(
             uDegree: stretch.uDegree, vDegree: stretch.vDegree, uKnots: knots, vKnots: stretch.vKnots,
             controlPoints: points, weights: stretch.weights
+        )
+    }
+
+    /// The cubic strip on [b, b + delta] in U: each row starts at the source's end with its first
+    /// derivative D1 and second D2 there (control points P0, P0 + δD1/3, 2P1 − P0 + δ²D2/6), and
+    /// ends with no second derivative (P3 = 2P2 − P1), so its curvature fades to none.
+    private func softUpper(of surface: BSplineSurface3D, by delta: Double, tolerance: ModelingTolerance) throws -> BSplineSurface3D {
+        try requireNonRational(surface, tolerance)
+        let p = surface.uDegree
+        let n = surface.controlPoints.first?.count ?? 0
+        let t = surface.uKnots
+        guard n >= 2, let upper = t.last else { throw failure("A surface extension needs a U span.", tolerance) }
+        // The clamped end's derivatives from the last control points.
+        let firstScale = Double(p) / (t[n + p - 1] - t[n - 1])
+        let points = try surface.controlPoints.map { row -> [Point3D] in
+            let d1 = (row[n - 1] - row[n - 2]) * firstScale
+            var d2 = Vector3D.zero
+            if p >= 2, n >= 3 {
+                let q1 = (row[n - 1] - row[n - 2]) * (Double(p) / (t[n + p - 1] - t[n - 1]))
+                let q0 = (row[n - 2] - row[n - 3]) * (Double(p) / (t[n + p - 2] - t[n - 2]))
+                let span = t[n + p - 2] - t[n - 1]
+                guard span > tolerance.distance else { throw failure("A surface's last U spans are degenerate.", tolerance) }
+                d2 = (q1 - q0) * (Double(p - 1) / span)
+            }
+            let p0 = row[n - 1]
+            let p1 = p0 + d1 * (delta / 3)
+            let p2 = p1 + (p1 - p0) + d2 * (delta * delta / 6)
+            let p3 = p2 + (p2 - p1)
+            return [p0, p1, p2, p3]
+        }
+        return BSplineSurface3D(
+            uDegree: 3, vDegree: surface.vDegree, uKnots: [upper, upper, upper, upper, upper + delta, upper + delta, upper + delta, upper + delta],
+            vKnots: surface.vKnots, controlPoints: points
         )
     }
 

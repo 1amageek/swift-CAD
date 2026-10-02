@@ -332,10 +332,11 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 if abs(error) <= tolerance.distance * 1e-3 { break }
                 delta = min(limit, max(1e-12, delta + error / (try speed(on: surface, at: reach))))
             }
-        case .natural:
+        case .natural, .soft:
             delta = distance / (try speed(on: surface, at: boundary))
             for _ in 0..<32 {
-                let extended = Surface3D.bSpline(try extender.extended(of: spline, past: side, by: delta, shape: .natural, tolerance: tolerance))
+                let extended = Surface3D.bSpline(try extender.extended(of: spline, past: side, by: delta,
+                                                                        shape: shape == .soft ? .soft : .natural, tolerance: tolerance))
                 let reach = boundary + outward * delta
                 let error = distance - (try length(on: extended, from: boundary, to: reach))
                 if abs(error) <= tolerance.distance * 1e-3 { break }
@@ -346,6 +347,7 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         case .natural: .natural
         case .linear: .linear
         case .reflective: .reflective
+        case .soft: .soft
         }
         var extended = try extender.extended(of: spline, past: side, by: delta, shape: kernelShape, tolerance: tolerance)
         // Only as wide as the edge.

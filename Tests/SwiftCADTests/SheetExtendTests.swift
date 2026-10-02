@@ -86,7 +86,7 @@ struct SheetExtendTests {
         #expect(far.contains { abs($0.y - side) < 1e-9 && abs($0.z - (1 - reach) * 0.005) < 1e-9 })
     }
 
-    @Test(.timeLimit(.minutes(2)), arguments: [SheetExtensionShape.natural, .linear, .reflective])
+    @Test(.timeLimit(.minutes(2)), arguments: [SheetExtensionShape.natural, .linear, .reflective, .soft])
     func aCurvedSheetCarriesOnInEachShape(shape: SheetExtensionShape) throws {
         let s = 0.02
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
@@ -110,6 +110,11 @@ struct SheetExtendTests {
             let mirrored = far + normal * (-2 * (far - Point3D(x: s, y: 0, z: 0)).dot(normal))
             #expect(abs(mirrored.z - mirrored.x * (s - mirrored.x) / s) < 1e-9)
             #expect(mirrored.x < s)
+        case .soft:
+            // The cubic matching the arch's slope and curvature at x = s, its curvature fading to
+            // none: x runs on linearly and z = −λs − 2λ²s/3 at the far end, λ = (x − s)/s.
+            let lambda = (far.x - s) / s
+            #expect(abs(far.z - (-lambda * s - 2 * lambda * lambda * s / 3)) < 1e-9)
         }
     }
 }
