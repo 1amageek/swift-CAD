@@ -46,13 +46,14 @@ package struct NeutralPlaneFaceSplitter {
                 if drafting.contains(faceID) { draftedKeys.append(stableID) }
                 continue
             }
-            guard patch.loops.count == 1, let loop = patch.loops.first, case .plane = patch.surface else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): a face with holes, or on a curved surface,
-                // crossing the neutral plane would be cut along its crossing with the plane, which is
-                // not built, so it is refused. Production path: FaceDraftFeatureEvaluator through
-                // NeutralPlaneFaceSplitter. Complete only when such faces are split and drafted,
-                // verified by a holed wall and a cylinder drafted across an offset neutral plane.
-                throw failure("Face draft splits planar faces of one loop across the neutral plane.")
+            guard patch.loops.count == 1, let loop = patch.loops.first, try cutSupport(patch.surface, pull: pull) else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): a face with holes, or on a surface other than a
+                // plane or a cylinder along the pull, crossing the neutral plane would be cut along
+                // its crossing with the plane, which is not built, so it is refused. Production
+                // path: FaceDraftFeatureEvaluator through NeutralPlaneFaceSplitter. Complete only when
+                // such faces are split and drafted, verified by a holed wall drafted across an offset
+                // neutral plane.
+                throw failure("Face draft splits planar and axial cylindrical faces of one loop across the neutral plane.")
             }
             // Edges crossing the plane split where they cross it.
             var edges: [BRepSewingEdge] = []
@@ -100,8 +101,8 @@ package struct NeutralPlaneFaceSplitter {
             guard let aboveEnd = above.last?.endPoint, let aboveStart = above.first?.startPoint else {
                 throw failure("Face draft lost a split face's run above the plane.")
             }
-            let cut = try line(from: aboveEnd, to: aboveStart, on: patch.surface, stableID: "\(stableID):cut:above")
-            let back = try line(from: aboveStart, to: aboveEnd, on: patch.surface, stableID: "\(stableID):cut:below")
+            let cut = try cutEdge(from: aboveEnd, to: aboveStart, on: patch.surface, stableID: "\(stableID):cut:above")
+            let back = try cutEdge(from: aboveStart, to: aboveEnd, on: patch.surface, stableID: "\(stableID):cut:below")
             for (part, run, closing) in [("above", above, cut), ("below", below, back)] {
                 let partID = "\(stableID):\(part)"
                 patches.append(BRepSewingFacePatch(
@@ -133,6 +134,38 @@ package struct NeutralPlaneFaceSplitter {
                        surfaceParameterCurve: try ExactFacePcurveBuilder().surfaceParameterCurve(
                            for: edge.curve, startParameter: t0, endParameter: t1, on: surface, tolerance: tolerance),
                        parentSubshapeIDs: edge.parentSubshapeIDs)
+    }
+
+    /// Whether a face on `surface` is cut along the plane square to `pull`: a plane (a line) or a
+    /// cylinder whose axis runs along the pull (an arc).
+    private func cutSupport(_ surface: Surface3D, pull: Vector3D) throws -> Bool {
+        switch surface {
+        case .plane: return true
+        case let .cylinder(cylinder): return cylinder.axis.cross(pull).length <= tolerance.angle * max(cylinder.axis.length, 1)
+        case let .analytic(.cylinder(_, axis, _)): return axis.cross(pull).length <= tolerance.angle * max(axis.length, 1)
+        default: return false
+        }
+    }
+
+    /// The cut across a face from `start` to `end` on the plane: a line on a plane; on a cylinder
+    /// along the pull the arc of its circle there, the shorter way round (a face of half the
+    /// cylinder or less).
+    private func cutEdge(from start: Point3D, to end: Point3D, on surface: Surface3D, stableID: String) throws -> BRepSewingEdge {
+        let (origin, axis, radius): (Point3D, Vector3D, Double)
+        switch surface {
+        case let .cylinder(cylinder): (origin, axis, radius) = (cylinder.origin, cylinder.axis, cylinder.radius)
+        case let .analytic(.cylinder(o, a, r)): (origin, axis, radius) = (o, a, r)
+        default: return try line(from: start, to: end, on: surface, stableID: stableID)
+        }
+        let unit = try axis.normalized(tolerance: tolerance.distance)
+        let circle = Curve3D.circle(Circle3D(center: origin + unit * (start - origin).dot(unit), normal: unit, radius: radius))
+        let t0 = try circle.parameterProjection(of: start, tolerance: tolerance).parameter
+        var t1 = try circle.parameterProjection(of: end, tolerance: tolerance).parameter
+        while t1 - t0 > Double.pi { t1 -= 2 * Double.pi }
+        while t1 - t0 < -Double.pi { t1 += 2 * Double.pi }
+        return BRepSewingEdge(stableID: stableID, curve: circle, startParameter: t0, endParameter: t1, startPoint: start, endPoint: end,
+                              surfaceParameterCurve: try ExactFacePcurveBuilder().surfaceParameterCurve(
+                                  for: circle, startParameter: t0, endParameter: t1, on: surface, tolerance: tolerance))
     }
 
     private func line(from start: Point3D, to end: Point3D, on surface: Surface3D, stableID: String) throws -> BRepSewingEdge {

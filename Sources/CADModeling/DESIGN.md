@@ -1013,15 +1013,18 @@ and joined outward, cut inward. Match Face of one planar face onto a parallel pl
 facing the same way is that push, Grow and all. Draft Face's Grow, and other matches,
 still refuse a face running into another wall (`FIXME(INCOMPLETE_IMPLEMENTATION)` in
 each). Planar faces of one outer
-loop crossing Draft Face's neutral plane are split along it (`NeutralPlaneFaceSplitter`: their
-edges crossing the plane cut there, the faces beside split at the same points, the body sewn anew)
-and each part drafted away from the plane about the cut both keep; holed or curved faces crossing
-it, or crossed more than twice, are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+loop, and faces of cylinders along the pull (half a cylinder or less), crossing Draft Face's
+neutral plane are split along it (`NeutralPlaneFaceSplitter`: a line or an arc of the cylinder's
+circle there, their edges crossing the plane cut there, the faces beside split at the same points,
+the body sewn anew) and each part drafted away from the plane about the cut both keep; holed or
+other curved faces crossing it, or crossed more than twice, are refused
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`).
 `PushFaceTests`, `DraftFaceTests` and `MatchFaceTests` prove boxes, rounded boxes,
 cylinders, holes, adjacent angles, pyramid and cone frustums and placed references
 by exact volumes, the refusals, the L prism's step pushed and matched past its
 wall by each mode (25 × 20, 20 × 20 and the 15 × 10 bar past the wall), and a box's wall and all
-four walls drafted both ways from a mid-height neutral plane (the wedges, the two frustums).
+four walls and a cylinder drafted both ways from a mid-height neutral plane (the wedges, the two
+frustums, the two cones).
 
 `FaceRemovalHealer` heals a solid over faces taken out of it (Delete Face with
 `heals`, and Remove Fillets From Shell): the faces around keep their surfaces and

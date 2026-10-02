@@ -106,4 +106,24 @@ struct DraftFaceTests {
         let frustum = 0.040 * 0.020 * h + (0.040 + 0.020) * t * h * h + 4 * t * t * h * h * h / 3
         #expect(abs(try model.volume(tolerance: .standard) - 2 * frustum) < 1e-12)
     }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aCylinderAcrossAMidHeightNeutralPlaneMakesTwoCones() throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let cylinderID = try builder.cylinder(radius: millimeters(10), height: millimeters(20))
+        let side = try faces(in: builder, of: cylinderID) { surface in
+            if case .cylinder = surface { return true }
+            if case .analytic(.cylinder) = surface { return true }
+            return false
+        }
+        let bottom = try #require(try faces(in: builder, of: cylinderID, where: isBottom).first)
+        _ = try builder.faceDraft(target: cylinderID, faces: side, neutralFace: bottom, angle: degrees(5), neutralOffset: millimeters(-10))
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        try model.validate(level: .volumetric, tolerance: .standard)
+        // Two frustums of 10 mm from the 10 mm waist, widening by tan 5° per unit away from it.
+        let r = 0.010, end = r + 0.010 * tan(5 * Double.pi / 180)
+        let frustum = Double.pi * 0.010 / 3 * (r * r + r * end + end * end)
+        #expect(abs(try model.volume(tolerance: .standard) - 2 * frustum) < 1e-12)
+    }
 }
+
