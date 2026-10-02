@@ -55,6 +55,42 @@ struct SheetExtendTests {
         #expect(apart.bodies.count == 2)
     }
 
+    @Test(.timeLimit(.minutes(2)))
+    func aNegativeDistanceMovesEdgesBackIntoTheSheet() throws {
+        // The planar sheet's right edge 5 mm back, then its right and top edges together.
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let sheet = try planarSheet(&builder)
+        let right = try #require(try edges(of: sheet, in: builder) { a, b in abs(a.x - 0.020) < 1e-9 && abs(b.x - 0.020) < 1e-9 }.first)
+        let top = try #require(try edges(of: sheet, in: builder) { a, b in abs(a.y - 0.010) < 1e-9 && abs(b.y - 0.010) < 1e-9 }.first)
+        var one = builder
+        _ = try one.extendSheet(target: sheet, edges: [right], distance: millimeters(-5))
+        let shorter = try evaluate(one).brep
+        #expect(shorter.bodies.count == 1)
+        let xs = shorter.vertices.values.map(\.point.x)
+        #expect(abs((xs.max() ?? 0) - 0.015) < 1e-12 && abs((xs.min() ?? 0) + 0.020) < 1e-12)
+        _ = try builder.extendSheet(target: sheet, edges: [right, top], distance: millimeters(-5))
+        let both = try evaluate(builder).brep
+        #expect(abs((both.vertices.values.map(\.point.x).max() ?? 0) - 0.015) < 1e-12)
+        #expect(abs((both.vertices.values.map(\.point.y).max() ?? 0) - 0.005) < 1e-12)
+
+        // A bilinear sheet's boundary moves back along the surface: the length across the edge's
+        // middle from the new boundary to the old is the distance.
+        let side = 0.02
+        var spline = DocumentBuilder(units: .meters, tolerance: .standard)
+        let surfaceSheet = try spline.bSplineSurface(BSplineSurface3D(
+            uDegree: 1, vDegree: 1, uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+            controlPoints: [[Point3D(x: 0, y: 0, z: 0), Point3D(x: side, y: 0, z: 0)],
+                            [Point3D(x: 0, y: side, z: 0.005), Point3D(x: side, y: side, z: 0)]]
+        ))
+        let edge = try #require(try edges(of: surfaceSheet, in: spline) { a, b in abs(a.x - side) < 1e-12 && abs(b.x - side) < 1e-12 }.first)
+        _ = try spline.extendSheet(target: surfaceSheet, edges: [edge], distance: meters(-0.005))
+        let trimmed = try evaluate(spline).brep
+        let speed = (Vector3D(x: side, y: 0, z: 0) * 0.5 + Vector3D(x: side, y: 0, z: -0.005) * 0.5).length
+        let reach = 1 - 0.005 / speed
+        #expect(trimmed.vertices.values.map(\.point).filter { abs($0.x - side * reach) < 1e-9 }.count == 2)
+        #expect(abs((trimmed.vertices.values.map(\.point.x).max() ?? 0) - side * reach) < 1e-9)
+    }
+
     @Test(.timeLimit(.minutes(2)), arguments: [(SheetExtensionLimit.Mode.minimal, 0.0255), (.inside, 0.0275), (.outside, 0.045)])
     func aSheetRunsOnToABody(mode: SheetExtensionLimit.Mode, reach: Double) throws {
         // A prism standing across z = 0 whose near face slants from x = 25.5 mm (at y = -10 mm) to

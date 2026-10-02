@@ -21,6 +21,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
     private let edgeOffsetEvaluator: EdgeOffsetFeatureEvaluator
     private let faceKnifeEvaluator: FaceKnifeFeatureEvaluator
     private let faceDeleteEvaluator: FaceDeleteFeatureEvaluator
+    private let sheetExtendEvaluator: SheetExtendFeatureEvaluator
     private let faceDraftEvaluator: FaceDraftFeatureEvaluator
     private let faceOffsetEvaluator: FaceOffsetFeatureEvaluator
     private let faceMoveEvaluator: FaceMoveFeatureEvaluator
@@ -113,6 +114,10 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.edgeOffsetEvaluator = EdgeOffsetFeatureEvaluator(parameterResolver: resolver)
         self.faceKnifeEvaluator = FaceKnifeFeatureEvaluator()
         self.faceDeleteEvaluator = FaceDeleteFeatureEvaluator()
+        self.sheetExtendEvaluator = SheetExtendFeatureEvaluator(
+            sewer: sewer, resolver: resolver, subshapeResolver: StableSubshapeResolver(),
+            cutter: BRepBodyHalfSpaceCutter(sewer: sewer, applicator: ExactBooleanOperationApplicator())
+        )
         self.faceDraftEvaluator = FaceDraftFeatureEvaluator(resolver: resolver)
         self.faceOffsetEvaluator = FaceOffsetFeatureEvaluator(resolver: resolver, faceExtruder: extrudeEvaluator)
         self.faceMoveEvaluator = FaceMoveFeatureEvaluator(resolver: resolver)
@@ -277,7 +282,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         case .faceMatch: return FaceMatchFeatureEvaluator(pusher: faceOffsetEvaluator)
         case .removeFillets: return RemoveFilletsFeatureEvaluator()
         case .removeRedundantTopology: return RemoveRedundantTopologyFeatureEvaluator()
-        case .sheetExtend: return SheetExtendFeatureEvaluator()
+        case .sheetExtend: return sheetExtendEvaluator
         case .faceRebuild: return FaceRebuildFeatureEvaluator()
         case .faceUnwrap: return FaceUnwrapFeatureEvaluator()
         case .surfaceAlign: return SurfaceAlignFeatureEvaluator()

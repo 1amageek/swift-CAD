@@ -935,7 +935,13 @@ parabola's length.
 
 ## Extend Sheet
 
-`SheetExtendFeatureEvaluator` carries a sheet's chosen open edges on by a distance. Each edge
+`SheetExtendFeatureEvaluator` carries a sheet's chosen open edges on by a distance, or, for a
+negative distance (Plasticity's drag below zero), moves them back into the sheet, which it then
+always modifies: straight edges of planar faces by cutting the sheet in turn at the plane square
+to the face that far inside each (`BodyHalfSpaceCutting`, staged), boundary edges of a one-face
+B-spline sheet by trimming its surface's domain where the length across the edge's middle reaches
+the distance; curved edges of planar faces and B-spline faces of several-face sheets are refused
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`), and a limit takes no negative distance. Each edge
 gets one strip patch: on a planar face the rectangle beside a straight edge or the ring sector
 around an arc, every shape alike; on a B-spline face, along one of its parameter boundaries,
 the extension `BSplineSurfaceBoundaryExtender` builds past that boundary — the surface's last
