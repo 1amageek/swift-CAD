@@ -101,5 +101,33 @@ struct MatchFaceTests {
                                             sourcePlacement: .translated(by: Vector3D(x: 0.005, y: 0, z: 0)), grow: grow)
         #expect(abs(try self.volume(of: matched, in: builder) - volume * 1e-9) < 1e-15)
     }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aTopMatchesACurvedFaceOfAnotherBody() throws {
+        // Push Face's dependant offset: the 40 × 20 mm box's top (centred, y -10...10) put onto a
+        // cylinder of another body lying along x (radius 30 mm, axis at y = 0, z = -15), whose
+        // crown is 15 mm up.
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let target = try box(&builder, height: 10)
+        // On the YZ plane sketch x is world y and sketch y is world z.
+        let circle = try builder.sketch(on: .yz) { _ = $0.circle(center: SketchPoint(x: millimeters(0), y: millimeters(-15)), radius: millimeters(30)) }
+        let roller = try builder.extrude(circle, distance: millimeters(40))
+        let evaluated = try CADPipeline(tolerance: .standard).evaluate(builder.build())
+        let curvedKey = try #require(evaluated.subshapes.entries.first { key, value in
+            guard key.featureID == roller, case let .face(id) = value, let face = evaluated.brep.faces[id] else { return false }
+            switch evaluated.brep.geometry.surfaces[face.surfaceID] {
+            case .cylinder, .analytic(.cylinder): return true
+            default: return false
+            }
+        }?.key)
+        let top = try horizontalFace(of: target, in: builder, z: 0.010)
+        let matched = try builder.matchFace(target: target, faces: [top], source: roller, referenceFace: try builder.stableSubshape(curvedKey))
+        // The section under the arc z = -15 + √(900 − y²) over y -10...10, times 40 mm.
+        let r = 30.0
+        let arcArea = 10 * (r * r - 100).squareRoot() + r * r * asin(10 / r)
+        let expected = 40 * (arcArea - 15 * 20) * 1e-9
+        let volume = try volume(of: matched, in: builder)
+        #expect(abs(volume - expected) < 1e-12, "\(volume) vs \(expected)")
+    }
 }
 
