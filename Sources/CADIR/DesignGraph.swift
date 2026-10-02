@@ -1283,9 +1283,10 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         guard node.inputs == [FeatureInput(featureID: faceDelete.target.featureID, role: .target)] else {
             throw FeatureEvaluationError.invalidGraph("Face Delete features must consume the referenced target body input.")
         }
+        // A solid heals over its deleted faces; a sheet, or a solid that does not heal, loses them.
         guard let targetSource = nodes[faceDelete.target.featureID],
-              targetSource.outputs.contains(where: { $0.role == .body }) else {
-            throw FeatureEvaluationError.invalidGraph("Face Delete target source must declare a body output.")
+              targetSource.outputs.contains(where: { $0.role == .body || (faceDelete.heals == false && $0.role == .sheet) }) else {
+            throw FeatureEvaluationError.invalidGraph("Face Delete target source must declare a body output, or a sheet output when it does not heal.")
         }
         guard outputRoles == [faceDelete.outputRole] else {
             throw FeatureEvaluationError.invalidGraph("Face Delete features must declare one sheet output, or one body output when they heal.")

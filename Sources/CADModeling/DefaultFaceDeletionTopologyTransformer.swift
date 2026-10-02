@@ -28,14 +28,7 @@ public struct DefaultFaceDeletionTopologyTransformer: FaceDeletionTopologyTransf
         guard var body = model.bodies[bodyID] else {
             throw TopologyError.missingReference("Missing Face Delete body \(bodyID).")
         }
-        guard body.kind == .solid else {
-            throw failure(
-                .invalidInput,
-                featureID: featureID,
-                tolerance: tolerance,
-                "Face delete requires a solid target body."
-            )
-        }
+        // A solid opens into a sheet; a sheet loses the faces and stays a sheet.
         let targetBodyFaceIDs = try collectFaceIDs(in: body, model: model)
         guard faceIDs.isSubset(of: targetBodyFaceIDs) else {
             throw failure(

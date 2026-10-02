@@ -408,7 +408,12 @@ public enum FeatureNodeFactory {
                     throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
                 }
                 try feature.validate()
-                try validateSource(feature.target.featureID, role: .body, in: document)
+                // A solid heals over its deleted faces; a sheet only loses them.
+                if feature.heals {
+                    try validateSource(feature.target.featureID, role: .body, in: document)
+                } else {
+                    _ = try bodyOrSheetSourceRole(feature.target.featureID, owner: "Face Delete target source", in: document)
+                }
                 return FeatureNode(
                     id: id,
                     name: name,

@@ -56,6 +56,28 @@ struct SheetExtendTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func aSheetLosesTheFacesDeletedFromIt() throws {
+        // The open box's bottom and one wall deleted from the sheet left of the box's top: a sheet
+        // of the other four faces, not healed.
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let profile = try builder.sketch(on: .xy) { $0.rectangle(width: millimeters(40), height: millimeters(20)) }
+        let box = try builder.extrude(profile, distance: millimeters(10))
+        let open = try builder.faceDelete(target: box, faces: [try builder.stableSubshape(generatedBy: box, selector: .generated(role: .endFace))])
+        let bottom = try #require(try edges(of: open, in: builder) { a, b in abs(a.z) < 1e-9 && abs(b.z) < 1e-9 }.first)
+        _ = bottom
+        let evaluated = try evaluate(builder)
+        let faces = try evaluated.subshapes.entries.filter { key, value in
+            guard key.featureID == open, case let .face(id) = value, let face = evaluated.brep.faces[id],
+                  case let .plane(plane)? = evaluated.brep.geometry.surfaces[face.surfaceID] else { return false }
+            return abs(abs(plane.normal.z) - 1) < 1e-9
+        }.map(\.key).sorted().map { try builder.stableSubshape($0) }
+        #expect(faces.count == 1)
+        _ = try builder.faceDelete(target: open, faces: faces)
+        let model = try evaluate(builder).brep
+        #expect(model.bodies.values.allSatisfy { $0.kind == .sheet } && model.faces.count == 4)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func aNegativeDistanceMovesEdgesBackIntoTheSheet() throws {
         // The planar sheet's right edge 5 mm back, then its right and top edges together.
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)

@@ -445,7 +445,7 @@ struct FaceDeleteFeatureTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func rejectsSheetBodyAsOutsideTheSupportedInputDomain() throws {
+    func aSheetTargetLosesTheDeletedFaceAndStaysASheet() throws {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let sourceFeatureID = try #require(document.designGraph.order.last)
         let source = try DocumentEvaluator(
@@ -488,25 +488,21 @@ struct FaceDeleteFeatureTests {
             outputs: [FeatureOutput(role: .sheet)]
         )
 
-        do {
-            _ = try FaceDeleteFeatureEvaluator().evaluate(
-                feature: feature,
-                context: EvaluationContext(
-                    parameters: sheet.parameters,
-                    brep: sheet.brep,
-                    profiles: [:],
-                    curves: sheet.curves,
-                    subshapes: sheet.subshapes,
-                    lineage: sheet.lineage,
-                    tolerance: .standard
-                )
+        let result = try FaceDeleteFeatureEvaluator().evaluate(
+            feature: feature,
+            context: EvaluationContext(
+                parameters: sheet.parameters,
+                brep: sheet.brep,
+                profiles: [:],
+                curves: sheet.curves,
+                subshapes: sheet.subshapes,
+                lineage: sheet.lineage,
+                tolerance: .standard
             )
-            Issue.record("Face delete must reject a sheet target body.")
-        } catch let error as KernelError {
-            #expect(error.code == .invalidInput)
-            #expect(error.featureID == secondDeleteFeatureID)
-            #expect(error.tolerance == .standard)
-        }
+        )
+        // The open box's five faces less the one deleted, still one sheet.
+        #expect(result.brep.faces.count == 4)
+        #expect(result.brep.bodies.values.allSatisfy { $0.kind == .sheet })
     }
 
     @Test(.timeLimit(.minutes(1)))
