@@ -166,8 +166,10 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             // The loop runs with the face on its left about the outward normal: across, away from it.
             let tangent = try BRepSurfaceMeetingSolver(tolerance: tolerance).tangent(of: curve, at: t) * (forward ? 1 : -1)
             let away = try tangent.cross(normal).normalized(tolerance: tolerance.distance)
-            let found = try crossings.crossings(from: point, direction: away, upperBound: 1e6, faceIDs: faceIDs, model: model,
-                                                containmentSession: nil, tolerance: tolerance)
+            // In the body's own frame when it is placed elsewhere.
+            let toBody = limit.placement?.inverted()
+            let found = try crossings.crossings(from: toBody?.applying(to: point) ?? point, direction: toBody?.applying(to: away) ?? away,
+                                                upperBound: 1e6, faceIDs: faceIDs, model: model, containmentSession: nil, tolerance: tolerance)
             switch limit.mode {
             case .minimal, .inside:
                 if let first = found.first { reaches.append(first.distance) } else if limit.mode == .inside {
