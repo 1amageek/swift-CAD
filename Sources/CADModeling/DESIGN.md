@@ -1110,17 +1110,21 @@ change radius (holes grow as outlines shrink), tangent joints move along their c
 line corners to their miter. `ExactPrismaticFacePatchBuilder.request(bottom:top:…)` then rules
 each wall between its bottom and top segment: a plane between two lines, and between two arcs the
 rational quadratic spans at one angle, which is the exact cone; caps close both ends with the
-prism's stable names. Spline sections, drafted sharp corners at arcs, curve sections and directions
-off the normal are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Decided 2026-10-02: a spline wall's
-offset is approximated by a B-spline through offset points at refined knots until its deviation from
-the true offset, sampled densely and bounded by the curve's derivative bound between samples, is
-within a quarter of the modeling tolerance (the Rebuild Face bound), and that deviation is the
-edge's tolerance; a drafted curve sheet rules each curve to its offset in the curve's plane at the
-far height; a curve with a thickness makes a solid wall on its left about the extrusion: an open
-curve's sheet thickened like Thicken (`PlanarExtrudeFeatureEvaluator.thickened`), a closed circle's
-region extruded thin (the ring inside it); a closed spline's wall waits for the spline offset
-(`FIXME(INCOMPLETE_IMPLEMENTATION)`), and a drafted curve sheet is refused until it is built.
-`ExtrudeCurveThicknessTests` own a line's slab on its left and a circle's ring. `ExtrudeDraftTests` own the
+prism's stable names. A spline wall's offset (decided 2026-10-02) is
+`PlanarCurveOffsetApproximator`'s: a cubic B-spline through the exact offset at the Greville
+abscissae of a basis refined until, for every shift the extrusion reaches, its deviation — sampled
+at 16 points per span plus half the spacing times the sampled derivative difference — is within a
+quarter of the modeling distance (the Rebuild Face bound); offsets at every height share that basis
+so walls rule point for point, and an offset past a centre of curvature is refused. A spline meets
+its neighbours tangentially; a sharp corner at a spline, drafted sharp corners at arcs and
+directions off the normal are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A curve section (decided
+2026-10-02) drafts as a sheet ruled between the curve moved toward its left about the extrusion at
+each end height (`openCurve`), and with a thickness makes a solid wall on its left: an open curve's
+sheet thickened like Thicken (`PlanarExtrudeFeatureEvaluator.thickened`), a closed circle's or
+closed spline's region drafted or extruded thin (the ring inside it). `ExtrudeSplineOffsetTests`
+own a convex D of a line and a spline drafted and thin to Steiner's volumes;
+`ExtrudeCurveThicknessTests` own a line's slab on its left, a circle's ring, a drafted line, arc and
+spline (its top within the deviation of the true offset) and a closed spline's ring. `ExtrudeDraftTests` own the
 rectangle frustum's volume and wall angle, the symmetric taper, the circle's cone and the oblique
 refusal.
 

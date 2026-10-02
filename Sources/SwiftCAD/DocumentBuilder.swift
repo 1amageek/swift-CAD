@@ -227,13 +227,14 @@ public struct DocumentBuilder {
         curve: CurveSectionReference,
         distance: CADExpression,
         direction: ExtrudeDirection = .normal,
+        draftAngle: CADExpression? = nil,
         thickness: CADExpression? = nil,
         named name: String? = nil
     ) throws -> FeatureID {
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .extrude(ExtrudeFeature(
             section: .curve(curve), distance: distance, direction: direction,
-            resultKind: thickness == nil ? .sheet : .solid, thickness: thickness
+            resultKind: thickness == nil ? .sheet : .solid, draftAngle: draftAngle, thickness: thickness
         )))
         return featureID
     }

@@ -13,17 +13,23 @@ import CADIR
 /// normal; where two lines meet at a corner it moves to their offset lines' crossing (the miter).
 /// Arcs come out as rational quadratic spans of at most a quarter turn, parameterised by angle,
 /// so the spans at two heights correspond point for point and the surface ruled between them is
-/// the exact cone.
+/// the exact cone. A spline's offset is `PlanarCurveOffsetApproximator`'s, on one basis for every
+/// shift up to `splineReach`, so its walls between heights rule point for point too; a spline
+/// meets its neighbours tangentially.
 package struct ExactDraftedProfileBoundaryBuilder: Sendable {
     private let tolerance: ModelingTolerance
+    /// The largest shift any height asks of a spline, which its offsets' shared basis serves.
+    private let splineReach: Double
 
-    package init(tolerance: ModelingTolerance) {
+    package init(tolerance: ModelingTolerance, splineReach: Double = 0) {
         self.tolerance = tolerance
+        self.splineReach = abs(splineReach)
     }
 
     private enum Element {
         case line(start: Point3D, end: Point3D)
         case arc(ProfileCircularArcSegment)
+        case spline(BSplineCurve3D)
     }
 
     /// The profile's loops, outer first, drafted to `height` along `axis` (the sketch plane's
@@ -41,6 +47,67 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         // Toward the material is inward: a positive draft narrows the section along the axis.
         return try profile.boundaryLoops.map { loop in
             try segments(try offset(try elements(of: loop), normal: normal, shift: -height * tangent, crossings: tangent == 0), lift: lift)
+        }
+    }
+
+    /// An open curve's section drafted to `height` along `axis` as B-spline curves (lines of
+    /// degree 1, arcs as rational quadratic spans, splines within the offset deviation), moved
+    /// toward the curve's left about `planeNormal` by `height · tangent`: its ends move along their
+    /// own normals, so a drafted curve sheet ruled between two heights leans by the draft.
+    package func openCurve(
+        _ curve: EvaluatedCurve,
+        planeNormal: Vector3D,
+        axis: Vector3D,
+        height: Double,
+        tangent: Double
+    ) throws -> [BSplineCurve3D] {
+        try tolerance.validate()
+        let normal = try planeNormal.normalized(tolerance: tolerance.distance)
+        let lift = try axis.normalized(tolerance: tolerance.distance) * height
+        guard case let .closed(lower, upper)? = curve.exactParameterDomain, let exact = curve.exactCurve else {
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance, message: "A drafted curve is unbounded.")
+        }
+        let element: Element
+        switch exact {
+        case let .line(line):
+            element = .line(start: try Curve3D.line(line).point(at: lower, tolerance: tolerance),
+                            end: try Curve3D.line(line).point(at: upper, tolerance: tolerance))
+        case .circle, .analytic(.circle):
+            let start = try exact.point(at: lower, tolerance: tolerance), end = try exact.point(at: upper, tolerance: tolerance)
+            let (center, axisNormal, radius): (Point3D, Vector3D, Double)
+            switch exact {
+            case let .circle(circle): (center, axisNormal, radius) = (circle.center, circle.normal, circle.radius)
+            case let .analytic(.circle(c, n, r)): (center, axisNormal, radius) = (c, n, r)
+            default: throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance, message: "A drafted arc lost its circle.")
+            }
+            element = .arc(ProfileCircularArcSegment(center: center, normal: axisNormal, radius: radius, start: start, end: end,
+                                                     sweepAngle: upper - lower))
+        default:
+            let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).sectionSpans(from: curve).map(\.curve)
+            element = .spline(spans.count == 1 ? spans[0] : try ExactCompositeBSplineCurveBuilder().build(spans: spans, tolerance: tolerance))
+        }
+        // Toward the curve's left: the shift along the outward (right-hand) normal is negative.
+        let shift = -height * tangent
+        let first = try startPoint(of: element), last = endPoint(of: element)
+        let start = try first + travel(of: element, at: first).cross(normal) * shift
+        let end = try last + travel(of: element, at: last).cross(normal) * shift
+        let moved = try place(element, from: start, to: end, normal: normal, shift: shift)
+        return try segments([moved], lift: lift).map { segment in
+            switch segment.geometry {
+            case .bSpline(let curve): return curve
+            case .line:
+                return BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1], controlPoints: [segment.startPoint, segment.endPoint], weights: [1, 1])
+            case .circularArc:
+                throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance, message: "A drafted arc came out unconverted.")
+            }
+        }
+    }
+
+    private func startPoint(of element: Element) throws -> Point3D {
+        switch element {
+        case let .line(start, _): return start
+        case let .arc(arc): return arc.start
+        case let .spline(curve): return curve.controlPoints[0]
         }
     }
 
@@ -116,6 +183,14 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
                     vertices.append(arc.center + radial * cos(angle) + axis * sin(angle))
                 }
                 return .circularArc(arc)
+            case let .spline(curve):
+                guard case let .closed(lower, upper) = curve.domain else {
+                    throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance, message: "A wall's spline is unbounded.")
+                }
+                for index in 0..<8 {
+                    vertices.append(try Curve3D.bSpline(curve).point(at: lower + (upper - lower) * Double(index) / 8, tolerance: tolerance))
+                }
+                return .spline(ProfileSplineSegment(curve: curve))
             }
         }
         return ProfileLoop(vertices: vertices, boundarySegments: segments)
@@ -126,14 +201,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
             switch segment {
             case let .line(line): return .line(start: line.start, end: line.end)
             case let .circularArc(arc): return .arc(arc)
-            case .spline:
-                // FIXME(INCOMPLETE_IMPLEMENTATION): a spline's offset is not a spline, so a
-                // drafted or thin extrusion of a spline section is refused. Production path:
-                // ExactProfileExtrudeBodyBuilder for every extrude with a draft angle or a wall
-                // thickness. Complete only when a spline wall is offset within a stated deviation,
-                // verified by a drafted and a thin spline section's volumes.
-                throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                                  message: "A drafted or thin extrusion offsets line and circular-arc sections.")
+            case let .spline(spline): return .spline(spline.curve)
             }
         }
         guard elements.isEmpty == false else { throw SketchError.openProfile }
@@ -163,8 +231,16 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
                                       message: "An offset section turns back on itself at a corner.")
                 }
                 joints.append(corner + (outBefore + outAfter) * (shift / denominator))
-            } else if crossings {
+            } else if crossings, isSpline(this) == false, isSpline(next) == false {
                 joints.append(try crossing(this, next, at: corner, normal: normal, shift: shift))
+            } else if isSpline(this) || isSpline(next) {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): a spline meeting its neighbour at a sharp
+                // corner needs the offsets' crossing on the approximated spline, which is not built,
+                // so it is refused. Production path: ExactDraftedProfileBoundaryBuilder for every
+                // drafted or thin section with a spline. Complete only when such a corner joins at
+                // the offsets' crossing, verified by a thin section of a spline and a line at an angle.
+                throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                                  message: "An offset section's splines must meet their neighbours tangentially.")
             } else {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): a drafted section's corner where a circular arc
                 // meets another element at an angle moves along a conic between heights, not a
@@ -176,35 +252,52 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
             }
         }
         return try elements.indices.map { index in
-            let start = joints[(index + elements.count - 1) % elements.count]
-            let end = joints[index]
-            switch elements[index] {
-            case let .line(originalStart, originalEnd):
-                guard (end - start).dot(originalEnd - originalStart) > 0, (end - start).length > tolerance.distance else {
-                    throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
-                                      message: "An offset section's wall vanishes or turns over.")
-                }
-                return .line(start: start, end: end)
-            case let .arc(arc):
-                let radial = try (arc.start - arc.center).normalized(tolerance: tolerance.distance)
-                let outward = try travel(of: elements[index], at: arc.start).cross(normal)
-                let radius = arc.radius + shift * outward.dot(radial)
-                guard radius > tolerance.distance,
-                      abs((start - arc.center).length - radius) <= tolerance.distance,
-                      abs((end - arc.center).length - radius) <= tolerance.distance else {
-                    throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
-                                      message: "An offset section's arc shrinks to nothing.")
-                }
-                // The turn from the moved start to the moved end, the way the arc runs.
-                let arcNormal = try arc.normal.normalized(tolerance: tolerance.distance)
-                let (a, b) = (start - arc.center, end - arc.center)
-                var sweep = atan2(arcNormal.dot(a.cross(b)), a.dot(b))
-                if arc.sweepAngle > 0, sweep <= tolerance.angle { sweep += 2 * Double.pi }
-                if arc.sweepAngle < 0, sweep >= -tolerance.angle { sweep -= 2 * Double.pi }
-                return .arc(ProfileCircularArcSegment(
-                    center: arc.center, normal: arc.normal, radius: radius, start: start, end: end, sweepAngle: sweep
-                ))
+            try place(elements[index], from: joints[(index + elements.count - 1) % elements.count], to: joints[index],
+                      normal: normal, shift: shift)
+        }
+    }
+
+    /// `element` moved by `shift` along its outward side to run from `start` to `end`.
+    private func place(_ element: Element, from start: Point3D, to end: Point3D, normal: Vector3D, shift: Double) throws -> Element {
+        switch element {
+        case let .line(originalStart, originalEnd):
+            guard (end - start).dot(originalEnd - originalStart) > 0, (end - start).length > tolerance.distance else {
+                throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                                  message: "An offset section's wall vanishes or turns over.")
             }
+            return .line(start: start, end: end)
+        case let .spline(curve):
+            let approximator = PlanarCurveOffsetApproximator(tolerance: tolerance)
+            let knots = try approximator.basis(for: curve, normal: normal, reach: max(splineReach, abs(shift)))
+            let moved = try approximator.offset(curve, normal: normal, shift: shift, knots: knots)
+            guard let first = moved.controlPoints.first, let last = moved.controlPoints.last,
+                  (first - start).length <= tolerance.distance, (last - end).length <= tolerance.distance else {
+                throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                                  message: "An offset spline does not meet its neighbours' joints.")
+            }
+            var points = moved.controlPoints
+            points[0] = start
+            points[points.count - 1] = end
+            return .spline(BSplineCurve3D(degree: moved.degree, knots: moved.knots, controlPoints: points, weights: moved.weights))
+        case let .arc(arc):
+            let radial = try (arc.start - arc.center).normalized(tolerance: tolerance.distance)
+            let outward = try travel(of: element, at: arc.start).cross(normal)
+            let radius = arc.radius + shift * outward.dot(radial)
+            guard radius > tolerance.distance,
+                  abs((start - arc.center).length - radius) <= tolerance.distance,
+                  abs((end - arc.center).length - radius) <= tolerance.distance else {
+                throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                                  message: "An offset section's arc shrinks to nothing.")
+            }
+            // The turn from the moved start to the moved end, the way the arc runs.
+            let arcNormal = try arc.normal.normalized(tolerance: tolerance.distance)
+            let (a, b) = (start - arc.center, end - arc.center)
+            var sweep = atan2(arcNormal.dot(a.cross(b)), a.dot(b))
+            if arc.sweepAngle > 0, sweep <= tolerance.angle { sweep += 2 * Double.pi }
+            if arc.sweepAngle < 0, sweep >= -tolerance.angle { sweep -= 2 * Double.pi }
+            return .arc(ProfileCircularArcSegment(
+                center: arc.center, normal: arc.normal, radius: radius, start: start, end: end, sweepAngle: sweep
+            ))
         }
     }
 
@@ -223,6 +316,9 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
             case let .arc(arc):
                 let radial = try (corner - arc.center).normalized(tolerance: tolerance.distance)
                 return .circle(center: arc.center, radius: arc.radius + shift * out.dot(radial))
+            case .spline:
+                throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                                  message: "An offset spline's crossing with its neighbour is not solved.")
             }
         }
         // Coordinates in the section's plane about the corner.
@@ -272,6 +368,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         elements.reversed().map { element in
             switch element {
             case let .line(start, end): .line(start: end, end: start)
+            case let .spline(curve): .spline(reversedSpline(curve))
             case let .arc(arc):
                 .arc(ProfileCircularArcSegment(
                     center: arc.center, normal: arc.normal, radius: arc.radius, start: arc.end, end: arc.start, sweepAngle: -arc.sweepAngle
@@ -292,6 +389,10 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
                     center: arc.center + lift, normal: arc.normal, radius: arc.radius,
                     start: arc.start + lift, sweep: arc.sweepAngle
                 ))
+            case let .spline(curve):
+                result.append(try .bSpline(BSplineCurve3D(degree: curve.degree, knots: curve.knots,
+                                                          controlPoints: curve.controlPoints.map { $0 + lift }, weights: curve.weights),
+                                           tolerance: tolerance))
             }
         }
         return result
@@ -301,7 +402,20 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         switch element {
         case let .line(_, end): end
         case let .arc(arc): arc.end
+        case let .spline(curve): curve.controlPoints[curve.controlPoints.count - 1]
         }
+    }
+
+    private func isSpline(_ element: Element) -> Bool {
+        if case .spline = element { return true }
+        return false
+    }
+
+    /// `curve` run the other way on the same parameter range.
+    private func reversedSpline(_ curve: BSplineCurve3D) -> BSplineCurve3D {
+        let (lower, upper) = (curve.knots[0], curve.knots[curve.knots.count - 1])
+        return BSplineCurve3D(degree: curve.degree, knots: curve.knots.reversed().map { lower + upper - $0 },
+                              controlPoints: curve.controlPoints.reversed(), weights: curve.weights.reversed())
     }
 
     /// The unit direction an element runs in at `point`, one of its ends.
@@ -313,6 +427,14 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
             let normal = try arc.normal.normalized(tolerance: tolerance.distance)
             let direction = normal.cross(point - arc.center) * (arc.sweepAngle >= 0 ? 1 : -1)
             return try direction.normalized(tolerance: tolerance.distance)
+        case let .spline(curve):
+            guard case let .closed(lower, upper) = curve.domain else {
+                throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance, message: "A wall's spline is unbounded.")
+            }
+            let atStart = (try Curve3D.bSpline(curve).point(at: lower, tolerance: tolerance) - point).length
+                <= (try Curve3D.bSpline(curve).point(at: upper, tolerance: tolerance) - point).length
+            return try Curve3D.bSpline(curve).differentialGeometry(at: atStart ? lower : upper, tolerance: tolerance)
+                .firstDerivative.normalized(tolerance: tolerance.distance)
         }
     }
 

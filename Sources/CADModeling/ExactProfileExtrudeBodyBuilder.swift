@@ -63,7 +63,8 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
                                   message: "A thin extrusion makes a solid wall; a drafted one runs along its section's normal.")
             }
             let lower = axis.dot(bottomOffset)
-            let walls = ExactDraftedProfileBoundaryBuilder(tolerance: context.tolerance)
+            let reach = max(abs(lower * draftTangent), abs((lower + distance) * draftTangent)) + wallThickness
+            let walls = ExactDraftedProfileBoundaryBuilder(tolerance: context.tolerance, splineReach: reach)
             let bottom = try walls.wallRegions(
                 from: profile, planeNormal: profileNormal, axis: axis, height: lower, tangent: draftTangent, thickness: wallThickness
             )
@@ -97,7 +98,9 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
                                   message: "A drafted extrusion runs along its section's normal.")
             }
             let lower = axis.dot(bottomOffset)
-            let drafted = ExactDraftedProfileBoundaryBuilder(tolerance: context.tolerance)
+            let drafted = ExactDraftedProfileBoundaryBuilder(
+                tolerance: context.tolerance, splineReach: max(abs(lower * draftTangent), abs((lower + distance) * draftTangent))
+            )
             boundaries = try drafted.boundaries(
                 from: profile, planeNormal: profileNormal, axis: axis, height: lower, tangent: draftTangent
             )
