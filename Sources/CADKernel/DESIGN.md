@@ -809,8 +809,11 @@ face's outer side) in four steps each projected back onto the surface
 (`BRepFaceClosestPointProjector`), exact on a plane and along the surface on a
 curved face, and the points become a cubic parameter curve. Neighbouring offsets
 that cross are cut at the crossing; offsets that part are joined by
-`OffsetGapFill`: an arc of the offset distance around the corner, a straight
-line, or both offsets carried straight on until they meet. An offset that closes
+`OffsetGapFill`, Plasticity's three: Round, an arc of the offset distance around
+the corner; Linear, straight lines carrying both offsets on until they meet, a
+sharp corner of edges of their own (a straight bridge where they never meet
+ahead); Natural, the straight offsets themselves running on to that point, no
+edge added (curved offsets refused, `FIXME(INCOMPLETE_IMPLEMENTATION)`). An offset that closes
 on itself is halved. `EdgeOffsetFeatureEvaluator` offsets edges over their
 support face, and with symmetry over the face across each edge;
 `FaceLoopOffsetFeatureEvaluator` offsets faces' outer loops into the faces, over

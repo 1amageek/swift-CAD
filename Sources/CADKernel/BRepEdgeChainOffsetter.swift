@@ -191,29 +191,61 @@ struct BRepEdgeChainOffsetter {
         func lifted(_ curve: SurfaceParameterCurve, _ ordinal: Int) throws -> BRepSewingEdge {
             try BRepFaceCurveClipper.edge(curve, on: surface, stableID: "\(stableID):\(ordinal)", parentSubshapeIDs: first.parentSubshapeIDs, tolerance: tolerance)
         }
-        switch gapFill {
-        case .linear:
-            return (first, second, [try lifted(try interpolator.curve(through: [a, b], tolerance: tolerance), 0)])
-        case .natural:
+        // Where the offsets carried straight on along their end tangents meet, ahead of both.
+        func meeting() throws -> SurfaceParameter? {
             let before = try first.surfaceParameterCurve.parameter(atNormalizedFraction: 0.999, tolerance: tolerance)
             let after = try second.surfaceParameterCurve.parameter(atNormalizedFraction: 0.001, tolerance: tolerance)
             let ta = (u: a.u - before.u, v: a.v - before.v)
             let tb = (u: after.u - b.u, v: after.v - b.v)
             // a + s·ta = b − t·tb: the first offset carried on and the second carried back meet.
             let determinant = ta.u * tb.v - ta.v * tb.u
-            if abs(determinant) > 1e-18 {
-                let du = b.u - a.u, dv = b.v - a.v
-                let s = (du * tb.v - dv * tb.u) / determinant
-                let t = (ta.u * dv - ta.v * du) / determinant
-                if s > 0, t > 0 {
-                    let meeting = SurfaceParameter(u: a.u + ta.u * s, v: a.v + ta.v * s)
-                    return (first, second, [
-                        try lifted(try interpolator.curve(through: [a, meeting], tolerance: tolerance), 0),
-                        try lifted(try interpolator.curve(through: [meeting, b], tolerance: tolerance), 1),
-                    ])
-                }
+            guard abs(determinant) > 1e-18 else { return nil }
+            let du = b.u - a.u, dv = b.v - a.v
+            let s = (du * tb.v - dv * tb.u) / determinant
+            let t = (ta.u * dv - ta.v * du) / determinant
+            guard s > 0, t > 0 else { return nil }
+            return SurfaceParameter(u: a.u + ta.u * s, v: a.v + ta.v * s)
+        }
+        switch gapFill {
+        case .linear:
+            // Plasticity's Linear: straight lines carry each offset on to where they meet, a sharp
+            // corner of edges of their own; offsets that never meet ahead are bridged straight.
+            if let meeting = try meeting() {
+                return (first, second, [
+                    try lifted(try interpolator.curve(through: [a, meeting], tolerance: tolerance), 0),
+                    try lifted(try interpolator.curve(through: [meeting, b], tolerance: tolerance), 1),
+                ])
             }
             return (first, second, [try lifted(try interpolator.curve(through: [a, b], tolerance: tolerance), 0)])
+        case .natural:
+            // Plasticity's Natural keeps the edges continuous: each straight offset itself runs on to
+            // the meeting point, adding no edge.
+            func straight(_ edge: BRepSewingEdge) throws -> (start: SurfaceParameter, end: SurfaceParameter)? {
+                let p0 = try edge.surfaceParameterCurve.parameter(atNormalizedFraction: 0, tolerance: tolerance)
+                let p1 = try edge.surfaceParameterCurve.parameter(atNormalizedFraction: 1, tolerance: tolerance)
+                let middle = try edge.surfaceParameterCurve.parameter(atNormalizedFraction: 0.5, tolerance: tolerance)
+                let (du, dv) = (p1.u - p0.u, p1.v - p0.v)
+                let length = hypot(du, dv)
+                guard length > 0, abs((middle.u - p0.u) * dv - (middle.v - p0.v) * du) / length <= 1e-9 * max(1, length) else { return nil }
+                return (p0, p1)
+            }
+            guard let firstLine = try straight(first), let secondLine = try straight(second) else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): curved offsets would run on along their own
+                // curves to where they meet, which is not built, so Natural is refused for them.
+                // Production path: BRepEdgeChainOffsetter for Offset Face Loop and Offset Edge with
+                // Natural. Complete only when a curved offset is continued along itself, verified
+                // by a rounded face's loop offset with Natural.
+                throw KernelError(phase: .evaluation, code: .unsupportedCapability, tolerance: tolerance,
+                                  message: "Natural gap fill continues straight offsets; use Linear or Round for curved ones.")
+            }
+            guard let meeting = try meeting() else {
+                return (first, second, [try lifted(try interpolator.curve(through: [a, b], tolerance: tolerance), 0)])
+            }
+            let head = try BRepFaceCurveClipper.edge(try interpolator.curve(through: [firstLine.start, meeting], tolerance: tolerance), on: surface,
+                                                     stableID: first.stableID, parentSubshapeIDs: first.parentSubshapeIDs, tolerance: tolerance)
+            let tail = try BRepFaceCurveClipper.edge(try interpolator.curve(through: [meeting, secondLine.end], tolerance: tolerance), on: surface,
+                                                     stableID: second.stableID, parentSubshapeIDs: second.parentSubshapeIDs, tolerance: tolerance)
+            return (head, tail, [])
         case .round:
             // An arc of the offset distance around the corner, from one offset's end to the next's start.
             let cornerParameter = try projector.closest(to: corner).parameter

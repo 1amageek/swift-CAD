@@ -140,9 +140,10 @@ struct EdgeOffsetFeatureTests {
             #expect(faces(of: solid, in: evaluated).count == 9)
             counts[gapFill] = evaluated.brep.edges.count
         }
-        // The reflex corner's gap is one arc, one line, or two lines meeting where the offsets would.
-        #expect(counts[.round] == counts[.linear])
-        #expect(counts[.natural] == (counts[.linear] ?? 0) + 1)
+        // The reflex corner's gap is one arc (Round), two lines meeting where the offsets would
+        // (Linear), or the offsets themselves run on to that point, adding no edge (Natural).
+        #expect(counts[.linear] == (counts[.round] ?? 0) + 1)
+        #expect(counts[.natural] == (counts[.round] ?? 0) - 1)
     }
 
     @Test(.timeLimit(.minutes(2)))

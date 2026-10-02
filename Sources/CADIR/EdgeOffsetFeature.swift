@@ -74,8 +74,10 @@ public struct EdgeOffsetFeature: Codable, Hashable, Sendable {
 public enum OffsetGapFill: String, Codable, Hashable, Sendable {
     /// An arc around the corner at the offset distance.
     case round
-    /// A straight line from one offset's end to the next one's start.
+    /// Straight lines carrying each offset on until they meet, a sharp corner of edges of their own
+    /// (Plasticity's Linear: "edges may be fragmented").
     case linear
-    /// Each offset carried straight on until the two meet.
+    /// Each offset itself carried on until the two meet, keeping the edges continuous (Plasticity's
+    /// Natural).
     case natural
 }
