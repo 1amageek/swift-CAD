@@ -8,7 +8,13 @@ solver. [CADIR](../../CADIR/DESIGN.md) owns the retained point/options source.
 
 ## Responsibilities and Boundaries
 
-Automatic parameterization selects a nondegenerate local projection plane.
+Automatic parameterization selects a nondegenerate local projection plane from
+the points alone, not their order: the least-squares plane (the covariance's
+least eigenvector, facing as the first three points turn) and, in it, the axes of
+the points' smallest enclosing rectangle (one side along a convex-hull edge), so
+four points of a square sit at the sheet's corners as Plasticity's do. The
+whole-patch normal-change bound relaxes the fit half as far whenever the
+candidate's own rounding leaves it unverified, down to the tight fit.
 The candidate is a cubic B-spline height graph over that plane. Only heights
 are unknown; projection coordinates remain affine, preventing folds in the
 parameterization. Angular tolerance bounds the normal change everywhere on the patch from the

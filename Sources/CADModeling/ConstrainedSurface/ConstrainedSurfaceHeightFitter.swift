@@ -11,15 +11,7 @@ package struct ConstrainedSurfaceHeightFitter {
         guard maximumMatrixElements > 0, source.points.count <= maximumMatrixElements / 16 else {
             throw failure(.resourceLimitExceeded, "Constrained Surface exceeded its point storage budget.")
         }
-        let origin = source.points[0].position
-        let longest = source.points.dropFirst().map { $0.position - origin }.max { $0.length < $1.length }!
-        let uAxis = try longest.normalized(tolerance: tolerance.distance)
-        let cross = source.points.map { uAxis.cross($0.position - origin) }.max { $0.length < $1.length }!
-        guard cross.length > tolerance.distance else {
-            throw failure(.invalidInput, "Constrained Surface points must span a nondegenerate projection plane.")
-        }
-        let normal = try cross.normalized(tolerance: tolerance.distance)
-        let vAxis = normal.cross(uAxis)
+        let (origin, uAxis, vAxis, normal) = try frame(of: source.points.map(\.position), tolerance: tolerance)
         let local = source.points.map { constraint -> Vector3D in
             let d = constraint.position - origin
             return Vector3D(x: d.dot(uAxis), y: d.dot(vAxis), z: d.dot(normal))
@@ -162,15 +154,17 @@ package struct ConstrainedSurfaceHeightFitter {
     ) throws -> [Double] {
         let bound = try normalChangeBound(from: tight, to: relaxed,
             count: count, knots: knots, width: width, height: height)
-        let fraction = bound == 0 ? 1 : min(1, angularTolerance / bound) * (1 - 32 * Double.ulpOfOne)
-        let candidate = zip(tight, relaxed).map { $0 + fraction * ($1 - $0) }
-        let verified = try normalChangeBound(from: tight, to: candidate,
-            count: count, knots: knots, width: width, height: height)
-        guard verified <= angularTolerance else {
-            throw KernelError(phase: .geometry, code: .conflictingConstraints, tolerance: nil,
-                message: "Constrained Surface failed its whole-patch normal-change bound.")
+        var fraction = bound == 0 ? 1 : min(1, angularTolerance / bound) * (1 - 32 * Double.ulpOfOne)
+        // The candidate's own rounding is outside the bound's intervals, so a candidate the bound
+        // does not verify relaxes half as far, down to the tight solution itself.
+        for _ in 0..<64 {
+            let candidate = zip(tight, relaxed).map { $0 + fraction * ($1 - $0) }
+            let verified = try normalChangeBound(from: tight, to: candidate,
+                count: count, knots: knots, width: width, height: height)
+            if verified <= angularTolerance { return candidate }
+            fraction *= 0.5
         }
-        return candidate
+        return tight
     }
 
     private static func normalChangeBound(
@@ -211,4 +205,95 @@ package struct ConstrainedSurfaceHeightFitter {
     private func failure(_ code: KernelErrorCode, _ message: String) -> KernelError {
         KernelError(phase: .geometry, code: code, tolerance: nil, message: message)
     }
+
+    /// The sheet's frame from the points alone, not their order: the least-squares plane's normal
+    /// (the covariance's least eigenvector, turned to face as the first three points turn), and in
+    /// it the axes of the points' smallest enclosing rectangle, one side along an edge of their
+    /// convex hull — so four points of a square sit at its corners and three of a triangle put two
+    /// at adjacent corners.
+    private func frame(of points: [Point3D], tolerance: ModelingTolerance) throws
+        -> (origin: Point3D, u: Vector3D, v: Vector3D, normal: Vector3D) {
+        let count = Double(points.count)
+        let centroid = Point3D.origin + points.reduce(Vector3D.zero) { $0 + ($1 - .origin) } * (1 / count)
+        var covariance = [[Double]](repeating: [0, 0, 0], count: 3)
+        for point in points {
+            let d = point - centroid
+            let c = [d.x, d.y, d.z]
+            for i in 0..<3 { for j in 0..<3 { covariance[i][j] += c[i] * c[j] } }
+        }
+        let (values, vectors) = Self.symmetricEigen(covariance)
+        let order = values.indices.sorted { values[$0] < values[$1] }
+        guard max(values[order[1]], 0).squareRoot() > tolerance.distance else {
+            throw failure(.invalidInput, "Constrained Surface points must span a nondegenerate projection plane.")
+        }
+        var normal = try Vector3D(x: vectors[0][order[0]], y: vectors[1][order[0]], z: vectors[2][order[0]])
+            .normalized(tolerance: tolerance.distance)
+        let turning = (points[1] - points[0]).cross(points[2] - points[0])
+        if turning.dot(normal) < 0 { normal = normal * -1 }
+        let seed = abs(normal.x) < 0.9 ? Vector3D(x: 1, y: 0, z: 0) : Vector3D(x: 0, y: 1, z: 0)
+        let e1 = try (seed - normal * seed.dot(normal)).normalized(tolerance: 1e-12)
+        let e2 = normal.cross(e1)
+        let flat = points.map { (($0 - centroid).dot(e1), ($0 - centroid).dot(e2)) }
+        // The convex hull (monotone chain), then the hull edge whose direction gives the least area.
+        let sorted = flat.sorted { $0.0 != $1.0 ? $0.0 < $1.0 : $0.1 < $1.1 }
+        func turn(_ o: (Double, Double), _ a: (Double, Double), _ b: (Double, Double)) -> Double {
+            (a.0 - o.0) * (b.1 - o.1) - (a.1 - o.1) * (b.0 - o.0)
+        }
+        var lower: [(Double, Double)] = [], upper: [(Double, Double)] = []
+        for p in sorted {
+            while lower.count >= 2, turn(lower[lower.count - 2], lower[lower.count - 1], p) <= 0 { lower.removeLast() }
+            lower.append(p)
+        }
+        for p in sorted.reversed() {
+            while upper.count >= 2, turn(upper[upper.count - 2], upper[upper.count - 1], p) <= 0 { upper.removeLast() }
+            upper.append(p)
+        }
+        let hull = Array(lower.dropLast() + upper.dropLast())
+        var best: (area: Double, angle: Double)?
+        for (a, b) in zip(hull, hull.dropFirst() + hull.prefix(1)) {
+            let length = hypot(b.0 - a.0, b.1 - a.1)
+            guard length > tolerance.distance else { continue }
+            let (c, s) = ((b.0 - a.0) / length, (b.1 - a.1) / length)
+            let us = flat.map { $0.0 * c + $0.1 * s }, vs = flat.map { -$0.0 * s + $0.1 * c }
+            guard let u0 = us.min(), let u1 = us.max(), let v0 = vs.min(), let v1 = vs.max() else { continue }
+            let area = (u1 - u0) * (v1 - v0)
+            if best.map({ area < $0.area * (1 - 1e-9) }) ?? true { best = (area, atan2(s, c)) }
+        }
+        guard let best else {
+            throw failure(.invalidInput, "Constrained Surface points must span a nondegenerate projection plane.")
+        }
+        let u = e1 * cos(best.angle) + e2 * sin(best.angle)
+        return (centroid, u, normal.cross(u), normal)
+    }
+
+    /// The eigenvalues and eigenvectors (as columns) of a symmetric 3 × 3 matrix, by Jacobi
+    /// rotations.
+    private static func symmetricEigen(_ matrix: [[Double]]) -> ([Double], [[Double]]) {
+        var a = matrix
+        var v: [[Double]] = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        for _ in 0..<64 {
+            var (p, q, largest) = (0, 1, 0.0)
+            for i in 0..<3 { for j in (i + 1)..<3 where abs(a[i][j]) > largest { (p, q, largest) = (i, j, abs(a[i][j])) } }
+            if largest <= 1e-300 { break }
+            let theta = 0.5 * atan2(2 * a[p][q], a[q][q] - a[p][p])
+            let (c, s) = (cos(theta), sin(theta))
+            for k in 0..<3 {
+                let (akp, akq) = (a[k][p], a[k][q])
+                a[k][p] = c * akp - s * akq
+                a[k][q] = s * akp + c * akq
+            }
+            for k in 0..<3 {
+                let (apk, aqk) = (a[p][k], a[q][k])
+                a[p][k] = c * apk - s * aqk
+                a[q][k] = s * apk + c * aqk
+            }
+            for k in 0..<3 {
+                let (vkp, vkq) = (v[k][p], v[k][q])
+                v[k][p] = c * vkp - s * vkq
+                v[k][q] = s * vkp + c * vkq
+            }
+        }
+        return ([a[0][0], a[1][1], a[2][2]], v)
+    }
+
 }

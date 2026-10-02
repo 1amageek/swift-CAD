@@ -66,6 +66,29 @@ struct ConstrainedSurfaceTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func theSheetFramesThePointsWhateverOrderTheyComeIn() throws {
+        // Four points of a square, clicked corner then diagonal: the sheet is the square with the
+        // points at its corners, not a diamond twice its size.
+        let fitter = ConstrainedSurfaceHeightFitter(maximumMatrixElements: 1_000_000)
+        let corners = [Point3D(x: 0, y: 0, z: 0), Point3D(x: 1, y: 1, z: 0), Point3D(x: 1, y: 0, z: 0), Point3D(x: 0, y: 1, z: 0)]
+        let source = ConstrainedSurfaceFeature(points: corners.map { .init(position: $0) },
+                                               positionTolerance: 1e-7, angularTolerance: 1e-4, optimization: .performance)
+        let sheet = try fitter.fit(source, tolerance: .standard)
+        let domainCorners = try [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (1.0, 1.0)].map { try sheet.point(u: $0.0, v: $0.1, tolerance: .standard) }
+        for corner in corners {
+            #expect(domainCorners.contains { ($0 - corner).length < 1e-6 }, "\(corner)")
+        }
+        // Three points of a triangle: two at adjacent corners, the third on the opposite side.
+        let triangle = ConstrainedSurfaceFeature(
+            points: [Point3D(x: 0, y: 0, z: 0), Point3D(x: 0.5, y: 0.8, z: 0), Point3D(x: 1, y: 0, z: 0)].map { .init(position: $0) },
+            positionTolerance: 1e-7, angularTolerance: 1e-4, optimization: .performance)
+        let tri = try fitter.fit(triangle, tolerance: .standard)
+        let triCorners = try [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (1.0, 1.0)].map { try tri.point(u: $0.0, v: $0.1, tolerance: .standard) }
+        let triPoints = [Point3D(x: 0, y: 0, z: 0), Point3D(x: 0.5, y: 0.8, z: 0), Point3D(x: 1, y: 0, z: 0)]
+        #expect(triPoints.filter { point in triCorners.contains { ($0 - point).length < 1e-6 } }.count == 2)
+    }
+
     private func fixture(mode: ConstrainedSurfaceFeature.Optimization) -> ConstrainedSurfaceFeature {
         ConstrainedSurfaceFeature(points: [
             .init(position: Point3D(x: 0, y: 0, z: 0)),
