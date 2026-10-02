@@ -77,13 +77,20 @@ struct SheetExtendTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
-    func edgesMeetingAtACornerAreRefused() throws {
+    func edgesMeetingAtACornerGrowOneLargerSheet() throws {
+        // The right and top edges out 5 mm: one 45 × 25 mm sheet, its corner filled by a 5 mm square.
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
         let sheet = try planarSheet(&builder)
         let right = try #require(try edges(of: sheet, in: builder) { a, b in abs(a.x - 0.020) < 1e-9 && abs(b.x - 0.020) < 1e-9 }.first)
         let top = try #require(try edges(of: sheet, in: builder) { a, b in abs(a.y - 0.010) < 1e-9 && abs(b.y - 0.010) < 1e-9 }.first)
         _ = try builder.extendSheet(target: sheet, edges: [right, top], distance: millimeters(5))
-        #expect(throws: (any Error).self) { _ = try evaluate(builder) }
+        let model = try evaluate(builder).brep
+        #expect(model.bodies.count == 1)
+        let points = model.vertices.values.map(\.point)
+        #expect(abs((points.map(\.x).max() ?? 0) - 0.025) < 1e-12 && abs((points.map(\.y).max() ?? 0) - 0.015) < 1e-12)
+        #expect(points.contains { abs($0.x - 0.025) < 1e-12 && abs($0.y - 0.015) < 1e-12 })
+        // The sheet, its two strips and the corner, sewn into one open shell.
+        #expect(model.faces.count == 4)
     }
 
     @Test(.timeLimit(.minutes(2)))

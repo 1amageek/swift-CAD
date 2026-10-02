@@ -937,11 +937,13 @@ the plane perpendicular to the row's end tangent, as Extend Curve mirrors a curv
 second derivative fading to none at the far end (soft, decided 2026-10-02) — as far as the
 distance measured along the surface across the edge's middle. Modifying, the sheet's patches
 (`DefaultBRepFacePatchExtractor`) and the strips are sewn into one sheet in its place;
-otherwise the strips are sewn into a sheet of their own beside it, the sheet kept. With a Limit (`SheetExtensionLimit`, decided 2026-10-02) the distance is where straight extensions (planar faces, or Linear) reach a body: rays across the edge from nine points along it meet the body's faces (`BRepRayFaceCrossings`) — the least first meeting (Minimal), the greatest first meeting (Inside) or the greatest first leaving (Outside); curved extensions run to a body are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Chosen edges
-meeting at a corner, faces on other surfaces and edges inside a B-spline domain are refused
-(`FIXME(INCOMPLETE_IMPLEMENTATION)`). `SheetExtendTests` prove a planar sheet grown in place and
-beside it, a bilinear sheet continued exactly, each shape of a parabolic arch, and the corner
-refusal.
+otherwise the strips are sewn into a sheet of their own beside it, the sheet kept. With a Limit (`SheetExtensionLimit`, decided 2026-10-02) the distance is where straight extensions (planar faces, or Linear) reach a body: rays across the edge from nine points along it meet the body's faces (`BRepRayFaceCrossings`) — the least first meeting (Minimal), the greatest first meeting (Inside) or the greatest first leaving (Outside); curved extensions run to a body are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Two
+straight edges of a planar face meeting at a convex corner are joined by a corner patch: the
+quadrilateral from the corner along each strip's side to where the far edges' lines meet.
+Chosen edges of curved faces meeting at a corner, faces on other surfaces and edges inside a
+B-spline domain are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). `SheetExtendTests` prove a
+planar sheet grown in place and beside it, a bilinear sheet continued exactly, each shape of a
+parabolic arch, and a rectangle's two edges grown together into one larger sheet.
 
 ## Reverse Sheet
 

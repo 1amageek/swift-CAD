@@ -83,23 +83,34 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             guard let edge = model.edges[edgeID] else { throw TopologyError.missingReference("An extended edge is missing.") }
             return [edge.startVertexID, edge.endVertexID]
         }
-        guard Set(vertices).count == vertices.count else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): chosen edges meeting at a corner would have their
-            // strips joined by a corner patch. Production path: SheetExtendFeatureEvaluator for every
-            // sheetExtend feature. Complete only when two edges of a rectangle extended together give
-            // one extended sheet, verified by an exact-area test.
-            throw failure(.unsupportedCapability, feature.id, tolerance, "Extend Sheet extends edges that do not meet one another.")
-        }
+        // Two chosen edges meeting at a corner: their strips meet a corner patch between them.
+        let corners = Dictionary(grouping: vertices, by: { $0 }).filter { $0.value.count > 1 }.keys.sorted()
         var strips: [BRepSewingFacePatch] = []
+        var reaches: [EdgeID: Double] = [:]
         for (ordinal, edgeID) in chosen.enumerated() {
             guard let use = coedgeOfEdge[edgeID]?.first else { continue }
             let reach = try extend.limit.map { limit in
                 try limitedDistance(edgeID: edgeID, faceID: use.face, coedge: use.coedge, shape: extend.shape, limit: limit,
                                     featureID: feature.id, context: context)
             } ?? distance
+            reaches[edgeID] = reach
             strips.append(try strip(
                 edgeID: edgeID, faceID: use.face, coedge: use.coedge, distance: reach, shape: extend.shape,
                 stableID: "sheet-extend:\(ordinal)", featureID: feature.id, context: context
+            ))
+        }
+        for (ordinal, vertexID) in corners.enumerated() {
+            let meeting = chosen.filter { edgeID in
+                guard let edge = model.edges[edgeID] else { return false }
+                return edge.startVertexID == vertexID || edge.endVertexID == vertexID
+            }
+            guard meeting.count == 2, let first = coedgeOfEdge[meeting[0]]?.first, let second = coedgeOfEdge[meeting[1]]?.first,
+                  first.face == second.face else {
+                throw failure(.unsupportedCapability, feature.id, tolerance, "Extend Sheet joins two edges of one face at a corner.")
+            }
+            strips.append(try cornerPatch(
+                at: vertexID, edges: [(meeting[0], first.coedge, reaches[meeting[0]] ?? distance), (meeting[1], second.coedge, reaches[meeting[1]] ?? distance)],
+                faceID: first.face, stableID: "sheet-extend:corner:\(ordinal)", featureID: feature.id, context: context
             ))
         }
         if extend.modifies {
@@ -269,6 +280,68 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             loops: [BRepSewingLoop(stableID: "\(stableID):outer", role: .outer, edges: [near, startSide, far, endSide])],
             parentSubshapeIDs: parents
         )
+    }
+
+    /// The patch between two extended straight edges of one planar face at a convex corner: the
+    /// quadrilateral from the corner along each strip's side to its far edge, closed where the far
+    /// edges' lines meet, so the strips and it make one larger outline of the face.
+    private func cornerPatch(
+        at vertexID: VertexID, edges: [(edgeID: EdgeID, coedge: Coedge, distance: Double)], faceID: FaceID,
+        stableID: String, featureID: FeatureID, context: EvaluationContext
+    ) throws -> BRepSewingFacePatch {
+        let model = context.brep
+        let tolerance = context.tolerance
+        guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID],
+              let corner = model.vertices[vertexID]?.point,
+              let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): edges of a curved face meeting at a corner would be
+            // joined by the surface continued past both boundaries. Production path:
+            // SheetExtendFeatureEvaluator for every sheetExtend feature with edges meeting at a
+            // corner. Complete only when a B-spline sheet's two boundaries extended together give
+            // one sheet, verified by an exact-area test.
+            throw failure(.unsupportedCapability, featureID, tolerance, "Extend Sheet joins edges meeting at a corner of a planar face.")
+        }
+        let outward = try plane.normal.normalized(tolerance: tolerance.distance) * (face.orientation == .forward ? 1 : -1)
+        // Each edge's direction from the corner and the way its strip runs off the face.
+        let sides = try edges.map { entry -> (along: Vector3D, far: Point3D) in
+            guard let edge = model.edges[entry.edgeID], let curve = model.geometry.curves[edge.curveID],
+                  let start = model.vertices[edge.startVertexID]?.point, let end = model.vertices[edge.endVertexID]?.point else {
+                throw TopologyError.missingReference("An extended edge is missing.")
+            }
+            guard case .line = curve else {
+                throw failure(.unsupportedCapability, featureID, tolerance, "Extend Sheet joins straight edges meeting at a corner.")
+            }
+            // As the face's loop runs the edge, the face on its left: the strip leaves to its right.
+            let (from, to) = entry.coedge.orientation == .forward ? (start, end) : (end, start)
+            let tangent = try (to - from).normalized(tolerance: tolerance.distance)
+            let away = try tangent.cross(outward).normalized(tolerance: tolerance.distance)
+            let other = edge.startVertexID == vertexID ? end : start
+            return (try (other - corner).normalized(tolerance: tolerance.distance), corner + away * entry.distance)
+        }
+        // Convex: each edge's strip leaves away from the other edge.
+        guard (sides[0].far - corner).dot(sides[1].along) < -tolerance.distance,
+              (sides[1].far - corner).dot(sides[0].along) < -tolerance.distance else {
+            throw failure(.unsupportedCapability, featureID, tolerance, "Extend Sheet joins edges meeting at a convex corner.")
+        }
+        // Where the far edges' lines meet: far₀ + a·along₀ = far₁ + b·along₁.
+        let (a0, a1) = (sides[0].along, sides[1].along)
+        let w = sides[1].far - sides[0].far
+        let (aa, ab, bb) = (a0.dot(a0), a0.dot(a1), a1.dot(a1))
+        let determinant = aa * bb - ab * ab
+        guard determinant > tolerance.angle else {
+            throw failure(.unsupportedCapability, featureID, tolerance, "Extend Sheet's edges at a corner run on one line.")
+        }
+        let t = (w.dot(a0) * bb - w.dot(a1) * ab) / determinant
+        let meet = sides[0].far + a0 * t
+        // Counterclockwise about the outward normal.
+        var points = [corner, sides[0].far, meet, sides[1].far]
+        if (points[1] - points[0]).cross(points[3] - points[0]).dot(outward) < 0 { points = [corner, sides[1].far, meet, sides[0].far] }
+        let parents = context.subshapeIDs(for: .face(faceID))
+        let loop = try points.indices.map { index in
+            try lineOnPlane("\(stableID):\(index)", from: points[index], to: points[(index + 1) % 4], surface: surface, parents: parents, tolerance: tolerance)
+        }
+        return BRepSewingFacePatch(stableID: stableID, surface: surface, orientation: face.orientation,
+                                   loops: [BRepSewingLoop(stableID: "\(stableID):outer", role: .outer, edges: loop)], parentSubshapeIDs: parents)
     }
 
     /// The arc concentric with an edge's, a distance further from the face, over the same angles.
