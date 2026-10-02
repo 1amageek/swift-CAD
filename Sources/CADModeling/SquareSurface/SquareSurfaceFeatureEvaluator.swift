@@ -32,7 +32,7 @@ public struct SquareSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         let frame = try SquareFrameBuilder(tolerance: tolerance).frame(of: curves, featureID: feature.id)
         // A Free side frames the exact sheet as a curve but takes no continuity.
         let continuities = frame.map { side in side.given.flatMap { square.sides[$0].isFree ? nil : square.sides[$0].continuity } }
-        let (exact, rotation) = try exactSheet(frame: frame, continuities: continuities, context: context, featureID: feature.id)
+        let (exact, rotation) = try Self.exactSheet(frame: frame, continuities: continuities, context: context, featureID: feature.id)
         let boundaries = (0..<4).map { boundary -> SquareSurfaceFitter.Boundary in
             let side = frame[(boundary + rotation) % 4]
             guard let given = side.given else { return .init(constraint: .none, flows: false) }
@@ -57,12 +57,12 @@ public struct SquareSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
     /// its boundary k (v = 0, u = 1, v = 1, u = 0). With every side at G0 it is the exact Coons
     /// patch; with continuity along one side or two opposite ones those run along u; along
     /// neighbouring sides it is the four-sided Boolean sum with shared twists.
-    private func exactSheet(frame: [SquareFrameBuilder.Side], continuities: [SurfaceEdgeContinuity?],
-                            context: EvaluationContext, featureID: FeatureID) throws -> (BSplineSurface3D, Int) {
+    package static func exactSheet(frame: [SquareFrameBuilder.Side], continuities: [SurfaceEdgeContinuity?],
+                                   context: EvaluationContext, featureID: FeatureID) throws -> (BSplineSurface3D, Int) {
         let tolerance = context.tolerance
         func ends(_ curve: BSplineCurve3D) throws -> (Point3D, Point3D) {
             guard case let .closed(lower, upper) = curve.domain else {
-                throw failure(.invalidInput, "A Square's side has an unbounded domain.", featureID, tolerance)
+                throw Self.failure(.invalidInput, "A Square's side has an unbounded domain.", featureID, tolerance)
             }
             return (try Curve3D.bSpline(curve).point(at: lower, tolerance: tolerance), try Curve3D.bSpline(curve).point(at: upper, tolerance: tolerance))
         }
@@ -130,7 +130,7 @@ public struct SquareSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
     }
 
     /// `curve` reparameterized over [0, 1].
-    private func normalized(_ curve: BSplineCurve3D) throws -> BSplineCurve3D {
+    private static func normalized(_ curve: BSplineCurve3D) throws -> BSplineCurve3D {
         guard let lower = curve.knots.first, let upper = curve.knots.last, upper > lower else {
             throw FeatureEvaluationError.invalidGraph("A Square's side has a degenerate knot vector.")
         }
@@ -138,7 +138,7 @@ public struct SquareSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                               controlPoints: curve.controlPoints, weights: curve.weights)
     }
 
-    private func failure(_ code: KernelErrorCode, _ message: String, _ featureID: FeatureID, _ tolerance: ModelingTolerance) -> KernelError {
+    private static func failure(_ code: KernelErrorCode, _ message: String, _ featureID: FeatureID, _ tolerance: ModelingTolerance) -> KernelError {
         KernelError(phase: .evaluation, code: code, featureID: featureID, tolerance: tolerance, message: message)
     }
 }

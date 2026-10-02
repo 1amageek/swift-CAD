@@ -13,6 +13,11 @@ package struct SquareFrameBuilder {
         package var curve: BSplineCurve3D
         /// The index of the given curve this side is, nil for a completed side.
         package var given: Int?
+
+        package init(curve: BSplineCurve3D, given: Int?) {
+            self.curve = curve
+            self.given = given
+        }
     }
 
     private let tolerance: ModelingTolerance

@@ -368,9 +368,12 @@ and never relaxed; only what the page calls loose (Free sides, flow, guides) is 
    tolerance or allowance it is judged against. Hard sides measure within the modeling tolerance;
    Free sides report their deviation.
 
-Refit is Square over a face: the result replaces the face in its body with hard G0 (or higher)
-sides on the face's own edge curves, so its neighbours keep their edges; Free is refused there
-(the face's edges must stay shared). XNURBS with Quad sided over four sides is Square. XNURBS over
+Refit is Square over a face (Rebuild Face's `square` method, owned by
+[CADKernel](../CADKernel/DESIGN.md)): the result replaces the face in its body with hard G0 (or
+higher) sides on the face's own edge curves, so its neighbours keep their edges; there is no Free
+(the face's edges stay shared). A curved face's continuity certificate keeps its fitted chart's
+control points in the face's closed domain, so an edge along the domain's boundary is not rounded
+off it. XNURBS with Quad sided over four sides is Square. XNURBS over
 N sides (or Quad sided off) fits one sheet over the boundary's best-fit plane: the projected
 boundary's bounding rectangle is the parameter domain, the grid Quality's (Auto 3 × 3, High 6 × 6,
 Max 12 × 12 spans, degree 3, 5 at G2), the boundary points hard rows at G0, guides weighted

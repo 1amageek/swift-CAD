@@ -507,8 +507,16 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
         try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
         try validateArrayField("faces", in: feature, path: "\(featurePath).faces", using: validateStableSubshapeReferenceObject)
         try validateObjectField("method", in: feature, path: "\(featurePath).method") { method, methodPath in
-            try rejectUnsupportedNativeKeys(in: method, supportedKeys: ["kind", "layout", "tolerance"], objectName: methodPath)
+            try rejectUnsupportedNativeKeys(in: method, supportedKeys: ["kind", "layout", "tolerance", "square"], objectName: methodPath)
             try validateObjectField("tolerance", in: method, path: "\(methodPath).tolerance", using: validateExpressionObject)
+            try validateObjectField("square", in: method, path: "\(methodPath).square") { refit, refitPath in
+                try rejectUnsupportedNativeKeys(in: refit, supportedKeys: ["options", "order", "angularAllowance", "curvatureAllowance"],
+                                                objectName: refitPath)
+                try validateObjectField("options", in: refit, path: "\(refitPath).options") { options, optionsPath in
+                    try rejectUnsupportedNativeKeys(in: options, supportedKeys: ["uDegree", "vDegree", "uSpans", "vSpans", "flatness", "weight", "boundaryFlow"],
+                                                    objectName: optionsPath)
+                }
+            }
         }
     }
     try validateObjectField("faceUnwrap", in: object, path: "\(path).faceUnwrap") { feature, featurePath in

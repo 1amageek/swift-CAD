@@ -45,6 +45,9 @@ public struct FaceRebuildFeature: Codable, Hashable, Sendable {
         if case .nominal = method, extendU != 0 || extendV != 0 {
             throw FeatureEvaluationError.invalidGraph("Remove Nominal Surface cuts a face's surface to its extent, with no extension.")
         }
+        if case .square = method, extendU != 0 || extendV != 0 || shrinks {
+            throw FeatureEvaluationError.invalidGraph("Square's Refit spans a face's own edges, with no extension.")
+        }
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -81,27 +84,30 @@ public struct FaceRebuildFeature: Codable, Hashable, Sendable {
 }
 
 /// How Rebuild Face lays out a face's new surface: an explicit layout of degrees and spans, as few
-/// bicubic spans as keep the surface within a distance of the old one, or — Remove Nominal Surface —
-/// the face's own spline surface cut exactly to its trimmed extent, its hidden spans gone.
+/// bicubic spans as keep the surface within a distance of the old one, — Remove Nominal Surface —
+/// the face's own spline surface cut exactly to its trimmed extent, its hidden spans gone, or —
+/// Square's Refit — an untrimmed four-sided sheet on the face's own edges.
 public enum FaceRebuildMethod: Codable, Hashable, Sendable {
     case explicit(SurfaceControlLayout)
     case tolerance(CADExpression)
     case nominal
+    case square(SquareRefit)
 
     public func validate() throws {
         switch self {
         case let .explicit(layout): try layout.validate()
         case let .tolerance(distance): try distance.validateLiteralQuantities()
         case .nominal: break
+        case let .square(refit): try refit.validate()
         }
     }
 
     private enum CodingKeys: String, CodingKey {
-        case kind, layout, tolerance
+        case kind, layout, tolerance, square
     }
 
     private enum Kind: String, Codable {
-        case explicit, tolerance, nominal
+        case explicit, tolerance, nominal, square
     }
 
     public init(from decoder: Decoder) throws {
@@ -116,6 +122,9 @@ public enum FaceRebuildMethod: Codable, Hashable, Sendable {
         case .nominal:
             try container.validateOnlyExpectedKeys([.kind], in: decoder)
             self = .nominal
+        case .square:
+            try container.validateOnlyExpectedKeys([.kind, .square], in: decoder)
+            self = .square(try container.decode(SquareRefit.self, forKey: .square))
         }
         try validate()
     }
@@ -132,6 +141,9 @@ public enum FaceRebuildMethod: Codable, Hashable, Sendable {
             try container.encode(distance, forKey: .tolerance)
         case .nominal:
             try container.encode(Kind.nominal, forKey: .kind)
+        case let .square(refit):
+            try container.encode(Kind.square, forKey: .kind)
+            try container.encode(refit, forKey: .square)
         }
     }
 }

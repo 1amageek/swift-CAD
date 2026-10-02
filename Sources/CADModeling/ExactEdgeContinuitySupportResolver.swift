@@ -181,8 +181,14 @@ package struct ExactEdgeContinuitySupport: Sendable {
         }
         let qr = try SurfaceFittingQR(coefficients: matrix, rows: count, columns: count,
                                       relativeRankTolerance: 1e-12, maximumElements: 1 << 20)
-        let x = try qr.solveFullRankLeastSquares(chart.map(\.x))
-        let y = try qr.solveFullRankLeastSquares(chart.map(\.y))
+        // The chart lies in the face's domain; its fitted control points are kept there too, so an
+        // edge along the domain's boundary (projected exactly onto it) is not rounded off it.
+        func clamped(_ values: [Double], to domain: ParameterDomain) -> [Double] {
+            guard case let .closed(lower, upper) = domain else { return values }
+            return values.map { min(upper, max(lower, $0)) }
+        }
+        let x = clamped(try qr.solveFullRankLeastSquares(chart.map(\.x)), to: faceSurface.uDomain)
+        let y = clamped(try qr.solveFullRankLeastSquares(chart.map(\.y)), to: faceSurface.vDomain)
         let pcurve = BSplineCurve2D(degree: degree, knots: knots, controlPoints: zip(x, y).map { Point2D(x: $0, y: $1) })
         let faceSide = SurfaceContinuitySamplingSide(surface: faceSurface, parameterCurve: .bSpline(pcurve))
         // The surface's normal faces the way the face's does where they meet.

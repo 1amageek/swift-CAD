@@ -74,6 +74,34 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         guard Set(faceIDs).count == faceIDs.count else {
             throw failure(.invalidInput, feature.id, tolerance, "Rebuild Face selections resolve to the same face.")
         }
+        // Square's Refit: each face an untrimmed sheet on its own edges, which it keeps, its
+        // coedges along the sheet's boundary.
+        if case let .square(refit) = rebuild.method {
+            var result = model
+            var ids = FeatureTopologyIDAllocator(featureID: feature.id)
+            for faceID in faceIDs {
+                let refitted = try SquareFaceRefitter(tolerance: tolerance).refit(
+                    faceID, refit: refit, source: rebuild.target.featureID, context: context, featureID: feature.id
+                )
+                guard var face = result.faces[faceID], let loopID = face.loops.first, var loop = result.loops[loopID] else {
+                    throw TopologyError.missingReference("A refitted face is missing.")
+                }
+                var surfaceID = ids.nextSurfaceID()
+                while result.geometry.surfaces[surfaceID] != nil { surfaceID = ids.nextSurfaceID() }
+                result.geometry.surfaces[surfaceID] = .bSpline(refitted.surface)
+                face.surfaceID = surfaceID
+                face.orientation = refitted.orientation
+                for index in loop.coedges.indices { loop.coedges[index].surfaceParameterCurve = refitted.pcurves[index] }
+                result.loops[loopID] = loop
+                result.faces[faceID] = face
+            }
+            let referencedSurfaces = Set(result.faces.values.map(\.surfaceID))
+            result.geometry.surfaces = result.geometry.surfaces.filter { referencedSurfaces.contains($0.key) }
+            try result.validate(level: model.bodies[bodyID]?.kind == .solid ? .volumetric : .exact, tolerance: tolerance)
+            let identity = try identityBuilder.identity(featureID: feature.id, bodyID: bodyID, model: result, context: context)
+            return EvaluationResult(brep: result, subshapes: identity.subshapes, removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes),
+                                    lineage: identity.lineage)
+        }
         var surfaces: [FaceID: BSplineSurface3D] = [:]
         for faceID in faceIDs {
             surfaces[faceID] = try refitted(faceID, rebuild: rebuild, deviation: deviation, model: model, featureID: feature.id, tolerance: tolerance)
@@ -242,6 +270,8 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             ).surface
         case .nominal:
             throw failure(.invalidInput, featureID, tolerance, "Remove Nominal Surface is cut exactly, not fitted.")
+        case .square:
+            throw failure(.invalidInput, featureID, tolerance, "Square's Refit spans the face's edges, not its surface.")
         case .tolerance:
             guard let deviation else { throw failure(.invalidInput, featureID, tolerance, "Rebuild Face lost its tolerance.") }
             return try MappedBSplineSurfaceFitter(deviation: deviation).fit(u: u, v: v, tolerance: tolerance, point: point).surface

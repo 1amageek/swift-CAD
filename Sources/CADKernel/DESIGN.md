@@ -874,6 +874,17 @@ half wall rebuilt flat into the chord across its caps and its other half (their 
 
 Remove Nominal Surface is Rebuild Face's `nominal` method: each spline face's surface cut exactly to its parameter extent (`BSplineSurface3D.trimmed`, on the same parameters, so its trimming curves hold and it takes its new surface in place), with no extension; an analytic face has no nominal surface beyond its edges and is refused. `FaceRebuildTests` own an arch extended past its edges and cut back (the same parabola on [0, 1]) and the plane's refusal.
 
+Square's Refit is Rebuild Face's `square` method (`SquareFaceRefitter`): a face bounded by one loop
+of at least four edges is split into four sides at the four vertices where the loop turns most,
+each side its edges' exact spans joined along the loop, and the face takes Square's fit of that
+frame with every side hard — G0, or tangent or curvature continuous with the one neighbouring face
+across it (a side on the sheet's open boundary stays G0) — so it keeps its edges and vertices;
+its coedges become constant-parameter curves along the new sheet's boundary, each over its edge's
+stretch of its side, and its orientation keeps its outward normal. No extension or shrinking
+applies. `SquareRefitTests` own a box's top refit flat to its Degree, a pentagonal prism's top
+split at its four sharpest corners (both keeping their volume) and a sheet's face refit tangent to
+a curved ramp beside it.
+
 ## Unwrap Face
 
 `FaceUnwrapFeatureEvaluator` lays one face flat as a sheet of its own in the XY plane, centred on
