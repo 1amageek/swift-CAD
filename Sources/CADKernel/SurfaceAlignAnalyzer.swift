@@ -12,6 +12,10 @@ import CADTopology
 /// continuity: the modeling distance, 10⁻⁶ rad and 10⁻³ m⁻¹ (sampling noise of an exact match).
 /// `samples` gives the points themselves, for drawing the analysis along the edge.
 public struct SurfaceAlignAnalyzer {
+    /// The largest normal angle (rad) and normal-curvature difference (m⁻¹) an exact match shows.
+    public static let angleLimit = 1e-6
+    public static let curvatureLimit = 1e-3
+
     public init() {}
 
     public func analyze(_ featureID: FeatureID, in document: EvaluatedDocument) throws -> SquareSideAnalysis {
@@ -26,8 +30,8 @@ public struct SurfaceAlignAnalyzer {
         let measuresAngle = align.continuity != .positional
         return SquareSideAnalysis(
             side: 0, position: position, positionLimit: tolerance.distance,
-            angle: measuresAngle ? angle : nil, angleLimit: measuresAngle ? 1e-6 : nil,
-            curvature: align.continuity == .curvature ? curvature : nil, curvatureLimit: align.continuity == .curvature ? 1e-3 : nil
+            angle: measuresAngle ? angle : nil, angleLimit: measuresAngle ? Self.angleLimit : nil,
+            curvature: align.continuity == .curvature ? curvature : nil, curvatureLimit: align.continuity == .curvature ? Self.curvatureLimit : nil
         )
     }
 
