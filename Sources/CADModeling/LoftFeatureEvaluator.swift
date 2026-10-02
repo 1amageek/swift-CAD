@@ -158,11 +158,29 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             guard let closed = boundaries.first?.closed, boundaries.allSatisfy({ $0.closed == closed }) else {
                 throw FeatureEvaluationError.invalidGraph("Loft sections must have matching boundary closure.")
             }
-            let guides = try ExactLoftGuideCurveResolver().resolve(guides: loft.guides,
-                sections: boundaries.map { ExactLoftGuideSection(loops: [$0.spans]) },
+            var boundarySpans = boundaries.map(\.spans)
+            var lofted = loft
+            if loft.sections.count == 1 {
+                // Continuous lofting: the far section is the one section carried to the guides'
+                // far ends, a section of its own (no continuity) for the builder.
+                let guideSpans = try loft.guides.map { guide in
+                    try spanBuilder.sectionSpans(from: ResolvedModelingSection.resolveCurve(
+                        CurveSectionReference(featureID: guide.featureID), from: context.curves[guide.featureID], tolerance: context.tolerance))
+                }
+                boundarySpans.append(try ContinuousLoftEndSectionBuilder(tolerance: context.tolerance)
+                    .endSection(of: boundarySpans[0], guides: guideSpans, featureID: feature.id))
+                var end = loft.sections[0]
+                end.section = .curve(CurveSectionReference(featureID: featureEvaluationStageID(featureID: feature.id, domain: .loftEndSection, ordinal: 0)))
+                end.continuity = nil
+                end.startSampleIndex = nil
+                lofted.sections.append(end)
+                seamPoints.append(nil)
+            }
+            let guides = try ExactLoftGuideCurveResolver().resolve(guides: lofted.guides,
+                sections: boundarySpans.map { ExactLoftGuideSection(loops: [$0]) },
                 context: context)
             return try ExactLoftBodyBuilder(featureID: feature.id, context: context)
-                .build(loft: loft, boundarySpans: boundaries.map(\.spans), isClosed: closed,
+                .build(loft: lofted, boundarySpans: boundarySpans, isClosed: closed,
                     guideCurves: guides, seamPoints: seamPoints)
         }
         let profiles = try resolvedProfiles(for: loft, context: context)

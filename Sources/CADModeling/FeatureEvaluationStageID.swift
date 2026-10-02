@@ -16,6 +16,7 @@ package enum FeatureEvaluationStageDomain: UInt64, Sendable {
     case pipeRing = 0x29E7_F04B_C61D_8A53
     case sheetShorten = 0x5C8E_13A9_F2D7_604B
     case draftGrowWedge = 0x2B7D_C41E_96A3_F05D
+    case loftEndSection = 0x6E19_A7C3_45DB_8F02
     case sliceToolRemainder = 0xE07B_9A24_6C1F_D358
 }
 

@@ -65,8 +65,11 @@ public struct LoftFeature: Codable, Hashable, Sendable {
             try options.validate()
             return
         }
-        guard sections.count >= 2 else {
-            throw FeatureEvaluationError.invalidGraph("Loft features require at least two profile sections.")
+        // Continuous lofting: one open curve section along two guides, one leaving each end.
+        let continuesFromOneSection = sections.count == 1 && guides.count == 2 && sections[0].section.isClosedRegion == false
+            && options.resultKind == .sheet && options.closesSectionLoop == false
+        guard sections.count >= 2 || continuesFromOneSection else {
+            throw FeatureEvaluationError.invalidGraph("Loft features require at least two profile sections, or one open section and two guides.")
         }
         guard !options.closesSectionLoop || sections.allSatisfy({ $0.continuity == nil }) else {
             throw FeatureEvaluationError.invalidGraph("A closed Loft has no end sections to be continuous at.")
