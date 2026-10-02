@@ -624,7 +624,12 @@ every phase reads the same `BooleanOperandContext`.
   unsupported.
 - Materialization: the special-case planners (orthogonal cells, convex planar,
   revolved, partial cylinder, disjoint union) are used only when both operands are
-  volumes; otherwise the general exact path materializes the selected regions. A
+  volumes; otherwise the general exact path materializes the selected regions. Every
+  planner keeps each face's material on the left of its loops about its outward normal
+  (outlines counterclockwise, holes clockwise): a face turned over turns its loops with it
+  (`BRepSewingPatchOrientationAdapter`), so a revolved tool's wall left facing into a hole
+  and the hole's circle in the cap it opens wind as an extruded holed profile's do
+  (`RevolvedBooleanLoopWindingTests`). A
   pass whose targets have no material produces a sheet body, any other a solid
   (`resultBodyKind`), and the sewing request must carry that kind. A face crossing
   an empty-shell operand is split along the crossing when both sides stay, and a

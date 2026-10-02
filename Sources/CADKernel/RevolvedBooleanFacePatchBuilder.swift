@@ -146,7 +146,7 @@ struct RevolvedBooleanFacePatchBuilder {
                 )),
                 orientation: .reversed,
                 circle: wallLowerCircle,
-                ascending: false
+                ascending: true
             ))
         }
         if plan.differenceOpensUpperCap == false {
@@ -158,9 +158,10 @@ struct RevolvedBooleanFacePatchBuilder {
                 )),
                 orientation: .reversed,
                 circle: wallUpperCircle,
-                ascending: true
+                ascending: false
             ))
         }
+        // The hole's wall faces into the hole: the tool's wall turned over, its loops with it.
         patches.append(contentsOf: try revolvedWallPatches(
             plan: plan,
             stableSegment: "middle",
@@ -168,8 +169,8 @@ struct RevolvedBooleanFacePatchBuilder {
             upperCenter: wallUpperCenter,
             lowerCircle: wallLowerCircle,
             upperCircle: wallUpperCircle,
-            orientation: .reversed
-        ))
+            orientation: .forward
+        ).map { try BRepSewingPatchOrientationAdapter().reorient($0, to: .reversed, tolerance: tolerance) })
         return BRepSewingRequest(
             featureID: featureID,
             bodyKind: .solid,
@@ -348,6 +349,8 @@ struct RevolvedBooleanFacePatchBuilder {
         }
     }
 
+    /// The target's faces, its caps opened by the tool's circles: each hole runs clockwise about
+    /// its cap's outward normal (the cap's material on its left), whichever operation opens it.
     private func openedTargetPatches(
         for plan: RevolvedBooleanPlan,
         lowerCircle: Curve3D,
@@ -366,7 +369,7 @@ struct RevolvedBooleanFacePatchBuilder {
                         surface: patch.surface,
                         circle: lowerCircle,
                         role: .inner,
-                        ascending: plan.operation == .union
+                        ascending: true
                     )
                     patches.append(BRepSewingFacePatch(
                         stableID: patch.stableID,
@@ -386,7 +389,7 @@ struct RevolvedBooleanFacePatchBuilder {
                         surface: patch.surface,
                         circle: upperCircle,
                         role: .inner,
-                        ascending: plan.operation != .union
+                        ascending: false
                     )
                     patches.append(BRepSewingFacePatch(
                         stableID: patch.stableID,
