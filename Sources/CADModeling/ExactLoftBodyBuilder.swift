@@ -68,7 +68,7 @@ package struct ExactLoftBodyBuilder {
               boundarySpans.allSatisfy({ !$0.isEmpty }) else {
             throw invalidGeometry("Boundary Loft requires Sheet output and nonempty section spans.")
         }
-        let sections = try boundarySpans.indices.map { index in
+        var sections = try boundarySpans.indices.map { index in
             let spans = boundarySpans[index]
             if let seam = seamPoints[index] ?? (isClosed ? guideCurves.first?.sectionPoints[index] : nil) {
                 if isClosed { return try parameterizedSpans(spansRotated(spans, toStartAt: seam)) }
@@ -77,6 +77,20 @@ package struct ExactLoftBodyBuilder {
                 }
             }
             return try parameterizedSpans(spans)
+        }
+        if isClosed == false, let guide = guideCurves.first, guide.boundaryLoopIndex == 0, let first = sections.first {
+            // An open section a guide meets at the other end from the first section runs the
+            // other way: it is turned to run as the first does, as Plasticity aligns its curves.
+            let resolution = max(context.tolerance.relative * 64, Double.ulpOfOne * 4_096)
+            let start = try boundaryProgress(of: guide.sectionPoints[0], in: first, closed: false)
+            for index in sections.indices.dropFirst() where index < guide.sectionPoints.count {
+                let contact = try boundaryProgress(of: guide.sectionPoints[index], in: sections[index], closed: false)
+                let opposite = (start <= resolution && contact >= 1 - resolution) || (start >= 1 - resolution && contact <= resolution)
+                guard opposite else { continue }
+                sections[index] = try parameterizedSpans(try boundarySpans[index].reversed().map { span in
+                    try ExactBSplineCurveSpan(curve: span.curve.reversed(tolerance: context.tolerance), tolerance: context.tolerance)
+                })
+            }
         }
         let anchors = try guideAnchors(guideCurves, sections: sections, closed: isClosed)
         let sortedBreaks = (try sections.indices.flatMap { index in

@@ -659,7 +659,7 @@ profile it bounds where its body is, and it takes the profile route (or, beside 
 its single loop takes the curve route). `LoftFaceTests` own a loft between two boxes' facing faces.
 
 
-A guide running on past the first or the last section is trimmed at its one crossing of that section's boundary (the profiles stand, the guides are trimmed — decided 2026-10-02); an end already on its boundary stays.
+A guide running on past the first or the last section is trimmed at its one crossing of that section's boundary (the profiles stand, the guides are trimmed — decided 2026-10-02); an end already on its boundary stays. An open section a guide meets at the other end from where it meets the first section is turned to run as the first does (Plasticity aligns its curves), so a guide along an edge joining two edges drawn opposite ways lofts.
 
 Guide contact resolution consumes exact boundary loops (`ExactLoftGuideSection`),
 not display vertices or an artificial closed Profile. The profile entry point
