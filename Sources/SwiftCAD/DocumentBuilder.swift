@@ -1647,8 +1647,9 @@ public struct DocumentBuilder {
     /// Square: the sheet framed by four curves meeting end to end, each side G0 or continuous with
     /// the face beside the body edge it runs along.
     @discardableResult
-    public mutating func square(sides: [SquareSide], named name: String? = nil) throws -> FeatureID {
-        let square = SquareSurfaceFeature(sides: sides)
+    public mutating func square(sides: [SquareSide], options: SquareFitOptions = SquareFitOptions(),
+                                named name: String? = nil) throws -> FeatureID {
+        let square = SquareSurfaceFeature(sides: sides, options: options)
         try square.validate()
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .squareSurface(square))

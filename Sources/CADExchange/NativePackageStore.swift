@@ -436,9 +436,13 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
         try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["curves"], objectName: featurePath)
     }
     try validateObjectField("squareSurface", in: object, path: "\(path).squareSurface") { feature, featurePath in
-        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["sides"], objectName: featurePath)
+        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["sides", "options"], objectName: featurePath)
+        try validateObjectField("options", in: feature, path: "\(featurePath).options") { options, optionsPath in
+            try rejectUnsupportedNativeKeys(in: options, supportedKeys: ["uDegree", "vDegree", "uSpans", "vSpans", "flatness", "weight", "boundaryFlow"],
+                                            objectName: optionsPath)
+        }
         try validateArrayField("sides", in: feature, path: "\(featurePath).sides") { side, sidePath in
-            try rejectUnsupportedNativeKeys(in: side, supportedKeys: ["curve", "continuity"], objectName: sidePath)
+            try rejectUnsupportedNativeKeys(in: side, supportedKeys: ["curve", "continuity", "isFree"], objectName: sidePath)
             if side["continuity"] != nil {
                 try validateObjectField("continuity", in: side, path: "\(sidePath).continuity", using: validateSurfaceEdgeContinuityObject)
             }

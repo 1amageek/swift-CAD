@@ -131,6 +131,17 @@ struct SquareSurfaceTests {
         #expect(samples.allSatisfy { abs(abs($0.normal.z) - 1) < 1e-9 && abs($0.curvature) < 1e-6 })
     }
 
+    @Test(.timeLimit(.minutes(2)))
+    func analysisMeasuresEachSideAgainstItsLimit() throws {
+        let (builder, square) = try boxesSquare(order: .curvature, rail: levelTwoSpans)
+        let analysis = try SquareSideAnalyzer().analyze(square, in: try evaluate(builder))
+        #expect(analysis.map(\.side) == [0, 1, 2, 3])
+        #expect(analysis.allSatisfy { $0.isWithin })
+        // The two edges' sides are measured against their faces at curvature order, the rails at G0.
+        #expect(analysis.filter { $0.curvature != nil }.map(\.side) == [0, 2])
+        #expect(analysis.allSatisfy { $0.position < 1e-9 && ($0.angle ?? 0) < 1e-6 })
+    }
+
     /// A Square over the four top edges of `edges`'s frame, tangent along all four to the faces
     /// beside them.
     private func squareOverEdges(_ edges: [StableSubshapeReference], of body: FeatureID, in builder: inout DocumentBuilder) throws -> FeatureID {

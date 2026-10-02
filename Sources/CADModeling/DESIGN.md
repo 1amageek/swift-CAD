@@ -313,6 +313,76 @@ across two neighbouring edges at curvature order (and bent across them at tangen
 rational sheet leaving a cylinder's rim arc in its top plane, and the notch's G1 and G2 sheets along
 an arc and a line meeting at a corner.
 
+### Square fit, Refit and XNURBS
+
+Decided 2026-10-02 from the official pages and their videos (square, square-1/2/3/5, xnurbs,
+xnurbs-quad-sided/flatness/tension/quality/profile-guides). Observed: Square's output carries
+exactly the dialog's Degree × Spans control net (degree 6 × spans 1 shows 7 × 7 points); every
+side's badge cycles Free/G0/G1/G2 and reports its measured deviation (✓ within tolerance, ⚠ or ⊘
+beyond); two touching curves give a corner sheet whose far sides copy the given ones, three a sheet
+whose open side is straight, two apart a sheet ruled between them; Natural keeps the columns
+straight while Normal, Next and Adjacent bend the cross flow at the sides; Free sides are followed
+loosely; a face refits as an untrimmed four-sided face with its sides' deviations; XNURBS fills an
+N-sided opening as one trimmed sheet over a coarse grid (Quality), within its position and angle
+tolerances (Satisfy tolerances), and as Square's untrimmed sheet with Quad sided.
+
+The construction keeps the kernel's exactness contract: hard constraints are interpolated exactly
+and never relaxed; only what the page calls loose (Free sides, flow, guides) is a weighted term.
+
+| Input | Square's frame | Sides without a curve |
+|---|---|---|
+| four curves meeting end to end | the frame itself | — |
+| three meeting end to end | the chain closed by the straight segment between its ends | unconstrained |
+| two meeting at one end | the translational frame: the far sides are the given ones translated | unconstrained |
+| two apart | the ruled frame: ends paired so the connectors are shortest, connectors straight | unconstrained |
+| a face (Refit) | its outer loop split into four chains at its four sharpest vertices | — |
+
+1. **Exact frame sheet.** The frame (with completed sides as G0 curves) spans the exact sheet E of
+   the section above, with every G1/G2 side's continuity.
+2. **Fit space.** The requested Degree (p, q) and Spans (m, n) with uniform clamped knots, raised to
+   E's degrees and joined with E's knots, so E lies in the space exactly; Degree and Spans are
+   minimums and the evaluated sheet reports its own. E is refined into the space exactly (degree
+   elevation, knot insertion); a rational E keeps its refined weights fixed and the fit works on
+   homogeneous control points.
+3. **Hard rows.** Along each G0, G1 or G2 side, control rows 0…k (k the continuity order) are E's
+   rows: on a clamped net the side's position and its first k cross derivatives depend only on
+   those rows, so position, tangent planes and curvature equal E's exactly (certified as E was).
+4. **Fairness.** Every other control point minimizes
+   `flatness·∫∫(|S_uu|² + 2|S_uv|² + |S_vv|²) + (1 − flatness)·∫∫(|S_u|² + |S_v|²)` over the unit
+   parameter square (Gauss–Legendre, degree + 1 points per span, exact for polynomial nets),
+   Flatness in (0, 1] (default 1, the thin plate; lower adds membrane tautness).
+5. **Weighted terms** (Weight w > 0, default 1, rows scaled by √w): a Free side's curve sampled at
+   its Greville-matched parameters as position rows; the Boundary flow on each G0 or Free side —
+   Natural none; Normal `S_v·t = 0` (the cross flow perpendicular to the side's unit tangent t);
+   Next `S_v·t = 0` and `S_v·n̄ = 0` (perpendicular within the frame's mean plane, n̄ its unit
+   normal); Adjacent `S_v` equal to the linear blend along the side of the neighbouring sides'
+   derivatives at its corners. G1/G2 sides take their flow from their faces. A flow at odds with a
+   hard neighbour's direction at a corner is met in least squares along the side, never by
+   loosening the neighbour. Normal and Next couple the coordinates, so the system is then assembled
+   over all three at once; otherwise the three share one matrix.
+6. **Solve.** Fixed points eliminated, the reduced least-squares system solved by column-pivoted
+   QR; a rank-deficient system (an underdetermined frame such as two collinear curves) is a typed
+   failure, never an arbitrary minimum.
+7. **Analysis.** Per side: the largest distance to its curve (G0), the largest angle to its face
+   (G1) and the largest normal-curvature difference (G2), measured on the result, with the
+   tolerance or allowance it is judged against. Hard sides measure within the modeling tolerance;
+   Free sides report their deviation.
+
+Refit is Square over a face: the result replaces the face in its body with hard G0 (or higher)
+sides on the face's own edge curves, so its neighbours keep their edges; Free is refused there
+(the face's edges must stay shared). XNURBS with Quad sided over four sides is Square. XNURBS over
+N sides (or Quad sided off) fits one sheet over the boundary's best-fit plane: the projected
+boundary's bounding rectangle is the parameter domain, the grid Quality's (Auto 3 × 3, High 6 × 6,
+Max 12 × 12 spans, degree 3, 5 at G2), the boundary points hard rows at G0, guides weighted
+position rows, the same fairness; the face is trimmed by the boundary's pcurves (their projection)
+and its edges are the boundary curves with the measured deviation as their tolerance. Satisfy
+tolerances refines the grid (doubling spans up to Max) until the boundary's position deviation and
+cross-angle meet the stated tolerances and fails otherwise; without it the measured values are
+reported. Tension applies only with Quad sided; flow off Quad sided behaves as Normal. `SquareSurfaceFitterTests` own Degree and Spans
+as the net with hard sides exact and no more bending than the exact sheet, each flow, a Free side's
+weight and the refusal of a frame one side cannot determine; `SquareFrameTests` own the ruled,
+translational and straight-closed frames and the options' round trip.
+
 ### Fillet shapes
 
 `FilletFeature.shape` is Fillet Shell's Shape. `round` keeps the rolling-ball fillet of the radius
@@ -1033,7 +1103,13 @@ line corners to their miter. `ExactPrismaticFacePatchBuilder.request(bottom:top:
 each wall between its bottom and top segment: a plane between two lines, and between two arcs the
 rational quadratic spans at one angle, which is the exact cone; caps close both ends with the
 prism's stable names. Spline sections, drafted sharp corners at arcs, curve sections and directions
-off the normal are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). `ExtrudeDraftTests` own the
+off the normal are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Decided 2026-10-02: a spline wall's
+offset is approximated by a B-spline through offset points at refined knots until its deviation from
+the true offset, sampled densely and bounded by the curve's derivative bound between samples, is
+within a quarter of the modeling tolerance (the Rebuild Face bound), and that deviation is the
+edge's tolerance; a drafted curve sheet rules each curve to its offset in the curve's plane at the
+far height; a curve sheet with a thickness is thickened like Thicken, the two thickness values its
+two sides. `ExtrudeDraftTests` own the
 rectangle frustum's volume and wall angle, the symmetric taper, the circle's cone and the oblique
 refusal.
 
