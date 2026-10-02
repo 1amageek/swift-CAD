@@ -40,6 +40,19 @@ package struct FeatureEvaluationStages {
         stageLineage.merge(stage.lineage) { _, staged in staged }
     }
 
+    /// Puts bodies a stage consumed back into the staged context as they were in `earlier` (an
+    /// earlier staged context), with their subshapes, for a later stage to consume again.
+    package mutating func restoreBodies(_ bodyIDs: [BodyID], from earlier: EvaluationContext) throws {
+        let submodel = try BRepBodySubmodelExtractor().extract(bodyIDs: Set(bodyIDs), from: earlier.brep)
+        try BRepModelCombiner().merge(submodel, into: &context.brep)
+        context.validatedBRep = nil
+        let bodySubshapes = earlier.subshapes.entries.filter { _, reference in
+            bodyIDs.contains { earlier.brep.contains(reference, inBody: $0) }
+        }
+        context.subshapes.entries.merge(bodySubshapes) { _, restored in restored }
+        consumedInputSubshapeIDs.subtract(bodySubshapes.keys)
+    }
+
     /// The one body a stage published.
     package func publishedBody(of stage: EvaluationResult, featureID: FeatureID, what: String) throws -> BodyID {
         let bodyIDs = Set(stage.subshapes.values.compactMap { reference -> BodyID? in

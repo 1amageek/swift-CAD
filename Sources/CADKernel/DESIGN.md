@@ -651,6 +651,20 @@ sheet−sheet split and empty intersection, the refused half-space union, a shee
 that does not reach across, the result port and material persistence; the
 existing Boolean suites prove volumes are unchanged.
 
+## Slice
+
+Plasticity's Slice keeps every piece: the targets' parts out of and in the tool, and the tool's
+parts outside the targets. A pass slices the targets only (`BooleanSliceSewingRequestBuilder`:
+`target \ tool` and `target ∩ tool` from one intersection graph), so for solid operands of default
+material `BooleanFeatureEvaluator` first takes the tool less each target in staged Difference
+passes (`sliceToolRemainder`), restores the operands as they were (`FeatureEvaluationStages
+.restoreBodies`), slices the targets, and adds the tool's pieces to the Slice's body as components
+of their own, published as `sliceToolPiece.*` subshapes tracing to their stage names. A tool the
+targets hold leaves no piece (the Difference's empty result). A Slice with a sheet operand or
+operand materials keeps only the targets' pieces (`FIXME(INCOMPLETE_IMPLEMENTATION)` in
+`ExactBooleanOperationApplicator`). `PrimitiveSphereBooleanIntegrationTests` own overlapping,
+separate and contained spheres.
+
 ## Region
 
 `BooleanOperation.region` divides space by the faces of every operand, targets and

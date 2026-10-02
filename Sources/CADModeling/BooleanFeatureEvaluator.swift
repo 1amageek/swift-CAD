@@ -138,11 +138,80 @@ public struct BooleanFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             stages.apply(united)
             tools = [try stages.publishedBody(of: united, featureID: featureID, what: "Uniting the Boolean tools")] + tools.dropFirst(2)
         }
-        let final = try combine(
+        // Plasticity's Slice keeps the tool's pieces outside the targets too: the tool less every
+        // target, made first, then the operands restored for the targets' slice.
+        let materials = BooleanMaterials(target: boolean.targetMaterial, tool: boolean.toolMaterial)
+        var remainder: [SubshapeID: TopologyReference] = [:]
+        if boolean.operation == .slice, materials == .default,
+           (targets + tools).allSatisfy({ stages.context.brep.bodies[$0]?.kind == .solid }) {
+            let operands = targets + tools
+            let beforeRemainder = stages.context
+            var piece = tools[0]
+            var applied = false
+            for (ordinal, target) in targets.enumerated() {
+                let stageID = featureEvaluationStageID(featureID: featureID, domain: .sliceToolRemainder, ordinal: UInt64(ordinal))
+                let cut: EvaluationResult
+                do {
+                    cut = try combine(.difference, targets: [piece], tool: target, materials: .default, featureID: stageID, context: stages.context)
+                } catch let error as KernelError where error.code == .emptyResult {
+                    // The targets hold all of the tool: it leaves no piece of its own, and a piece
+                    // an earlier target left goes.
+                    if applied {
+                        let model = stages.context.brep
+                        stages.apply(EvaluationResult(
+                            brep: try BRepBodySubmodelExtractor().extract(bodyIDs: Set(model.bodies.keys).subtracting([piece]), from: model),
+                            removedSubshapeIDs: Set(remainder.keys)
+                        ))
+                    }
+                    remainder = [:]
+                    break
+                }
+                stages.apply(cut)
+                applied = true
+                remainder = cut.subshapes
+                piece = try stages.publishedBody(of: cut, featureID: featureID, what: "The tool less a Slice target")
+            }
+            if applied { try stages.restoreBodies(operands, from: beforeRemainder) }
+        }
+        var final = try combine(
             boolean.operation, targets: targets, tool: tools[0],
-            materials: BooleanMaterials(target: boolean.targetMaterial, tool: boolean.toolMaterial),
-            featureID: featureID, context: stages.context
+            materials: materials, featureID: featureID, context: stages.context
         )
+        // The tool's pieces join the Slice's body as components of their own, so one body shows
+        // every piece, and publish under the Slice's identity, tracing to their stage names.
+        let pieceBodies = Set(remainder.values.compactMap { reference -> BodyID? in
+            if case let .body(id) = reference { return id }
+            return nil
+        })
+        if let pieceBody = pieceBodies.first, pieceBodies.count == 1,
+           let resultBody = final.subshapes.values.compactMap({ reference -> BodyID? in
+               if case let .body(id) = reference, id != pieceBody { return id }
+               return nil
+           }).first,
+           case let .solid(pieceComponents)? = final.brep.bodies[pieceBody]?.topology,
+           var body = final.brep.bodies[resultBody], case let .solid(components) = body.topology {
+            body.topology = .solid(components: components + pieceComponents)
+            final.brep.bodies[resultBody] = body
+            final.brep.bodies.removeValue(forKey: pieceBody)
+            remainder = remainder.filter { $0.value != .body(pieceBody) }
+        } else if remainder.isEmpty == false {
+            throw KernelError(phase: .topology, code: .topologyFailure, featureID: featureID, tolerance: context.tolerance,
+                              message: "A Slice's tool pieces and target pieces must each make one solid body.")
+        }
+        func exists(_ reference: TopologyReference) -> Bool {
+            switch reference {
+            case let .body(id): final.brep.bodies[id] != nil
+            case let .face(id): final.brep.faces[id] != nil
+            case let .edge(id): final.brep.edges[id] != nil
+            case let .vertex(id): final.brep.vertices[id] != nil
+            }
+        }
+        for (subshapeID, reference) in remainder.sorted(by: { $0.key < $1.key }) where exists(reference) {
+            let published = SubshapeID(featureID: featureID, role: "sliceToolPiece.\(subshapeID.role)", ordinal: subshapeID.ordinal)
+            final.subshapes[published] = reference
+            final.lineage[published] = TopologyLineage(output: published, parents: [subshapeID], relation: .preserved)
+        }
+        final.validatedBRep = nil
         let published = try stages.publish(final, featureID: featureID)
         guard boolean.keepTools else { return published }
         return try stages.restoringInputBodies(toolBodyIDs, into: published)

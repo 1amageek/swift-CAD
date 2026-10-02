@@ -37,12 +37,14 @@ struct PrimitiveSphereBooleanIntegrationTests {
     func offsetSphereSliceProducesExactComplementaryComponents() throws {
         let result = try evaluate(operation: .slice)
 
+        // Plasticity keeps every piece: the target out of and in the tool, and the tool's part
+        // outside the target, one body of three components, together the spheres' union.
         try result.document.brep.validate(level: .exact, tolerance: .standard)
         #expect(result.document.brep.bodies.count == 1)
-        #expect(result.document.brep.shells.count == 2)
+        #expect(result.document.brep.bodies.values.first?.solidComponents?.count == 3)
+        #expect(result.document.brep.shells.count == 3)
         let volume = try result.document.brep.volume(tolerance: .standard)
-        let expectedTargetVolume = 36.0 * Double.pi
-        #expect(abs(volume - expectedTargetVolume) <= 1.0e-8)
+        #expect(abs(volume - 160.0 * Double.pi / 3.0) <= 1.0e-8)
         let booleanLineage = result.document.lineage.values.filter {
             $0.output.featureID == result.featureID
         }
@@ -93,12 +95,12 @@ struct PrimitiveSphereBooleanIntegrationTests {
         )
 
         try result.document.brep.validate(level: .exact, tolerance: .standard)
-        let body = try #require(result.document.brep.bodies.values.first)
+        // The uncut target and the untouched tool both stay, components of one body.
         #expect(result.document.brep.bodies.count == 1)
-        #expect(body.solidComponents?.count == 1)
-        #expect(result.document.brep.shells.count == 1)
+        #expect(result.document.brep.bodies.values.first?.solidComponents?.count == 2)
+        #expect(result.document.brep.shells.count == 2)
         #expect(abs(
-            try result.document.brep.volume(tolerance: .standard) - 36.0 * Double.pi
+            try result.document.brep.volume(tolerance: .standard) - 72.0 * Double.pi
         ) <= 1.0e-8)
     }
 

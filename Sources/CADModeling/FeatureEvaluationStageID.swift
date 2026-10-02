@@ -15,6 +15,7 @@ package enum FeatureEvaluationStageDomain: UInt64, Sendable {
     case edgeBlend = 0x8C41_E2D9_5A07_B36E
     case pipeRing = 0x29E7_F04B_C61D_8A53
     case sheetShorten = 0x5C8E_13A9_F2D7_604B
+    case sliceToolRemainder = 0xE07B_9A24_6C1F_D358
 }
 
 /// Derives a deterministic, non-published identity for one internal evaluation stage.
