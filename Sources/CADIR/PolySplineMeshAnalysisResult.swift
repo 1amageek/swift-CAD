@@ -94,6 +94,13 @@ public struct PolySplineMeshAnalysisResult: Codable, Sendable, Hashable {
         self.diagnostics = diagnostics
     }
 
+    /// Whether PolySplines builds the mesh as a general patch network: a valid manifold mesh
+    /// whose only errors say no rectangular grid spans it (`PolySplineSubdivisionPatchBuilder`).
+    public var buildsGeneralPatchNetwork: Bool {
+        isSupported == false && triangleCount > 0 && errors.isEmpty == false
+            && errors.allSatisfy { $0.code == .unsupportedPatchNetwork || $0.code == .incompletePatchPartition }
+    }
+
     public var errors: [Diagnostic] {
         diagnostics.filter { $0.severity == .error }
     }

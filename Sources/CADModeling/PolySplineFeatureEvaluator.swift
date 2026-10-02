@@ -4,7 +4,12 @@ import CADIR
 import CADTopology
 
 public struct PolySplineFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating, Sendable {
-    public init() {}
+    /// Sews a general mesh's bicubic patches into one sheet (or solid, closed).
+    private let sewer: (any BRepSewing)?
+
+    public init(sewer: (any BRepSewing)? = nil) {
+        self.sewer = sewer
+    }
 
     public func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
         try evaluateValidated(feature: feature, context: context).result
@@ -38,6 +43,9 @@ public struct PolySplineFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             options: polySpline.options,
             tolerance: context.tolerance
         )
+        if analysis.result.buildsGeneralPatchNetwork {
+            return try generalMeshSheet(polySpline, graph: analysis.result.patchGraph, feature: feature, context: context)
+        }
         guard analysis.result.isSupported,
               !analysis.supportedPatches.isEmpty,
               let validatedReconstruction = analysis.reconstruction else {
@@ -102,6 +110,81 @@ public struct PolySplineFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             try surface.validate(tolerance: tolerance)
             reconstruction.patches[patchIndex].surface = surface
         }
+    }
+
+    /// A mesh no rectangular grid spans (triangles, quads of other valences): its paired quads
+    /// and leftover triangles as faces, wound as its triangles are, made into bicubic patches
+    /// (`PolySplineSubdivisionPatchBuilder`) sewn into one sheet, or a solid when closed.
+    private func generalMeshSheet(_ polySpline: PolySplineFeature, graph: PolySplinePatchGraph?,
+                                  feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+        let tolerance = context.tolerance
+        guard polySpline.controlPointOverrides.isEmpty, polySpline.options.roundedCorners == false else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): control-point edits and Rounded Corners address a
+            // rectangular patch grid, which a general mesh's patches do not form, so they are
+            // refused there. Production path: PolySplineFeatureEvaluator for every polySpline
+            // feature over a general mesh. Complete only when such patches take edits and rounded
+            // corners, verified by an edited control point of an extraordinary patch.
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
+                "PolySplines of a mesh other than a rectangular grid take no control-point edits or Rounded Corners.")
+        }
+        guard let sewer else {
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "PolySplines of a general mesh needs a sewer.")
+        }
+        let mesh = polySpline.sourceMesh
+        let triangles = stride(from: 0, to: mesh.indices.count, by: 3).map { [Int(mesh.indices[$0]), Int(mesh.indices[$0 + 1]), Int(mesh.indices[$0 + 2])] }
+        let directed = Set(triangles.flatMap { t in (0..<3).map { [t[$0], t[($0 + 1) % 3]] } })
+        var faces: [[Int]] = []
+        var covered = Set<Int>()
+        if let graph, let partition = graph.partition {
+            for candidate in graph.candidates where partition.selectedCandidateIDs.contains(candidate.id) {
+                // Wound as the triangles are: its first boundary edge runs as one of theirs does.
+                let quad = candidate.boundaryVertexIndices
+                faces.append(directed.contains([quad[0], quad[1]]) ? quad : quad.reversed())
+                covered.formUnion(candidate.triangleIndices)
+            }
+        }
+        for index in triangles.indices where covered.contains(index) == false { faces.append(triangles[index]) }
+        // Pairing that leaves an inner vertex on only two faces (a tetrahedron's triangles as two
+        // quads) folds the patches onto each other: the triangles are refined as they are instead.
+        var facesAt: [Int: Int] = [:], edgeUses: [[Int]: Int] = [:]
+        for face in faces {
+            for k in face.indices {
+                facesAt[face[k], default: 0] += 1
+                let (a, b) = (face[k], face[(k + 1) % face.count])
+                edgeUses[[min(a, b), max(a, b)], default: 0] += 1
+            }
+        }
+        let onBoundary = Set(edgeUses.filter { $0.value == 1 }.keys.flatMap { $0 })
+        if facesAt.contains(where: { $0.value < 3 && onBoundary.contains($0.key) == false }) { faces = triangles }
+        let network = try PolySplineSubdivisionPatchBuilder(tolerance: tolerance).network(positions: mesh.positions, faces: faces)
+        func bezier(_ points: [Point3D]) -> Curve3D {
+            .bSpline(BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1], controlPoints: points))
+        }
+        let patches = network.patches.enumerated().map { index, patch -> BRepSewingFacePatch in
+            let net = patch.net
+            let id = "polyspline:patch:\(index)"
+            let column = { (u: Int) in net.map { $0[u] } }
+            let edges = [
+                BRepSewingEdge(stableID: "\(id):0", curve: bezier(net[0]), startParameter: 0, endParameter: 1,
+                               startPoint: net[0][0], endPoint: net[0][3], surfaceParameterCurve: .constantV(v: 0, uStart: 0, uEnd: 1)),
+                BRepSewingEdge(stableID: "\(id):1", curve: bezier(column(3)), startParameter: 0, endParameter: 1,
+                               startPoint: net[0][3], endPoint: net[3][3], surfaceParameterCurve: .constantU(u: 1, vStart: 0, vEnd: 1)),
+                BRepSewingEdge(stableID: "\(id):2", curve: bezier(net[3]), startParameter: 1, endParameter: 0,
+                               startPoint: net[3][3], endPoint: net[3][0], surfaceParameterCurve: .constantV(v: 1, uStart: 1, uEnd: 0)),
+                BRepSewingEdge(stableID: "\(id):3", curve: bezier(column(0)), startParameter: 1, endParameter: 0,
+                               startPoint: net[3][0], endPoint: net[0][0], surfaceParameterCurve: .constantU(u: 0, vStart: 1, vEnd: 0)),
+            ]
+            let surface = BSplineSurface3D(uDegree: 3, vDegree: 3, uKnots: [0, 0, 0, 0, 1, 1, 1, 1], vKnots: [0, 0, 0, 0, 1, 1, 1, 1],
+                                           controlPoints: net)
+            return BRepSewingFacePatch(stableID: id, surface: .bSpline(surface), orientation: .forward,
+                                       loops: [BRepSewingLoop(stableID: "\(id):outer", role: .outer, edges: edges)])
+        }
+        let sewn = try sewer.sew(BRepSewingRequest(
+            featureID: feature.id, bodyKind: network.isClosed ? .solid : .sheet,
+            shells: [BRepSewingShell(stableID: "polyspline:shell", patches: patches)]
+        ), tolerance: tolerance)
+        let combined = try BRepModelCombiner().combined([context.brep, sewn.brep])
+        return EvaluationResult(brep: combined, subshapes: sewn.subshapes, lineage: sewn.lineage)
     }
 
     private func buildSheetBody(

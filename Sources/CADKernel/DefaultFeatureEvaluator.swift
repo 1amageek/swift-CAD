@@ -98,7 +98,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
                 separationValidator: ExactBodyJoinValidator()
             )
         )
-        self.polySplineEvaluator = PolySplineFeatureEvaluator()
+        self.polySplineEvaluator = PolySplineFeatureEvaluator(sewer: sewer)
         self.bSplineSurfaceEvaluator = BSplineSurfaceFeatureEvaluator()
         self.patchSurfaceEvaluator = PatchSurfaceFeatureEvaluator()
         self.surfaceFillEvaluator = SurfaceFillFeatureEvaluator(sewer: sewer)

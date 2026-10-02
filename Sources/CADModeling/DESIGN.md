@@ -1099,6 +1099,26 @@ passing through the body) are unsupported capabilities. Solids validate
 volumetrically and sheets exactly. `CircularEdgeMoveFeatureTests` owns the
 lengthened cylinder and both refusals.
 
+### PolySplines
+
+`PolySplineFeatureEvaluator` turns a triangle mesh into spline patches (Plasticity's PolySplines:
+quad-dominant meshes best, triangles and n-gons handled). A mesh whose paired triangles form a
+rectangular quad grid is the exact bicubic B-spline grid (`ExactPolySplinePatchNetworkReconstructor`,
+merged, rounded and edited as before). Any other valid manifold mesh
+(`PolySplineMeshAnalysisResult.buildsGeneralPatchNetwork`: its only errors say no rectangular grid
+spans it) is built by `PolySplineSubdivisionPatchBuilder`: its paired quads and leftover triangles
+(the triangles as they are when pairing would leave an inner vertex on two faces), refined once by
+Catmull–Clark when any face is not a quad, each quad one bicubic Bézier patch — inner points
+(n·v + 2e₋ + 2e₊ + d)/(n + 5), edge points the mean of the two inner points beside them, corners the
+Catmull–Clark limit (the mean of the inner points around), a boundary the cubic B-spline of its
+vertices with a one-face corner kept. Every boundary curve is shared exactly by its two patches, so
+the patches sew into one sheet, or a solid when the mesh is closed; where every corner has valence
+four they are the uniform B-spline exactly, elsewhere they meet in position and nearly in tangent
+(Plasticity states G2 there; `FIXME(INCOMPLETE_IMPLEMENTATION)` covers control-point edits and
+Rounded Corners on such networks). `PolySplineGeneralMeshTests` own a cube's six patches closing
+into a solid at the limit corners (half the cube's half-width for valence three) and a
+tetrahedron's twelve refined patches.
+
 ## Runtime Flows
 
 Primitive evaluation builds exact topology, validates it at the kernel
