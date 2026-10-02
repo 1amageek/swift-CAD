@@ -170,4 +170,44 @@ struct FaceRemovalHealingTests {
             _ = try CADPipeline(tolerance: .standard).evaluate(builder.build())
         }
     }
+
+    /// Remove Fillets' video: an L slab whose small top and bottom rounds wrap a large vertical
+    /// round and small convex and concave ones; every round up to 3 mm goes, the large one stays.
+    @Test(.timeLimit(.minutes(2)))
+    func smallRoundsWrappingALargeOneGoAndLeaveItWithSharpEdges() throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        func deg(_ d: Double) -> CADExpression { .constant(.angle(d * .pi / 180, unit: .radian)) }
+        let profile = try builder.sketch(on: .xy) { sketch in
+            // An L (x 0...40, y 0...40, notch x 20...40, y 20...40) with every vertical corner
+            // round: the front-left one 8 mm, the others 2 mm, the notch's inside corner concave.
+            _ = sketch.line(from: point(8, 0), to: point(38, 0))
+            _ = sketch.arc(center: point(38, 2), radius: millimeters(2), startAngle: deg(270), endAngle: deg(360))
+            _ = sketch.line(from: point(40, 2), to: point(40, 18))
+            _ = sketch.arc(center: point(38, 18), radius: millimeters(2), startAngle: deg(0), endAngle: deg(90))
+            _ = sketch.line(from: point(38, 20), to: point(22, 20))
+            _ = sketch.arc(center: point(22, 22), radius: millimeters(2), startAngle: deg(180), endAngle: deg(270))
+            _ = sketch.line(from: point(20, 22), to: point(20, 38))
+            _ = sketch.arc(center: point(18, 38), radius: millimeters(2), startAngle: deg(0), endAngle: deg(90))
+            _ = sketch.line(from: point(18, 40), to: point(2, 40))
+            _ = sketch.arc(center: point(2, 38), radius: millimeters(2), startAngle: deg(90), endAngle: deg(180))
+            _ = sketch.line(from: point(0, 38), to: point(0, 8))
+            _ = sketch.arc(center: point(8, 8), radius: millimeters(8), startAngle: deg(180), endAngle: deg(270))
+        }
+        let slab = try builder.extrude(profile, distance: millimeters(10))
+        let outline = try subshapes(in: builder, of: slab) { value, model in
+            guard case let .edge(id) = value, let edge = model.edges[id],
+                  let a = model.vertices[edge.startVertexID]?.point, let b = model.vertices[edge.endVertexID]?.point else { return false }
+            return (abs(a.z - 0.010) < 1e-9 && abs(b.z - 0.010) < 1e-9) || (abs(a.z) < 1e-9 && abs(b.z) < 1e-9)
+        }
+        #expect(outline.count == 24)
+        let rounded = try builder.fillet(target: slab, edges: outline, radius: millimeters(0.5))
+        #expect(try solid(builder).faces.count == 38)
+        _ = try builder.removeFillets(target: rounded, maximumRadius: millimeters(3), convexity: .any)
+        let removed = try solid(builder)
+        // Six side planes and the 8 mm round between the top and the bottom, the round's top and
+        // bottom edges now sharp arcs: the L's 1200 mm² less the 8 mm corner's (1 − π/4) 64 mm².
+        #expect(removed.faces.count == 9)
+        let volume = try removed.volume(tolerance: .standard)
+        #expect(abs(volume - (1200 - 64 * (1 - Double.pi / 4)) * 10 * 1e-9) < 1e-12, "\(volume)")
+    }
 }

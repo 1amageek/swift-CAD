@@ -8,8 +8,8 @@ import CADTopology
 ///
 /// A fillet is a face on a cylinder, a torus or a sphere no wider than the largest radius asked
 /// for, meeting two kept faces tangentially along two of its edges (a strip, which collapses
-/// onto their meeting), or lying where fillets meet with no kept face beside it tangentially (a
-/// corner, which collapses to a point). Its convexity is whether its centre of curvature lies in
+/// onto their meeting), or lying where fillets meet with at most one kept face beside it
+/// tangentially (a corner, which collapses to a point the kept face regrows to). Its convexity is whether its centre of curvature lies in
 /// the material.
 ///
 /// A deleted face that is not a fillet is tried each way it could collapse — dropping the holes
@@ -48,20 +48,24 @@ package struct FaceRemovalPlanner: Sendable {
                 return try meetsTangentially(faceID, other, along: edgeID, model: model, tolerance: tolerance)
             }
             let supports = Set(smooth.compactMap { topology.otherFace(of: $0, than: faceID) })
+            let othersAreFillets = try topology.edges(of: faceID).filter { smooth.contains($0) == false }.allSatisfy { edgeID in
+                topology.otherFace(of: edgeID, than: faceID).map { candidates[$0] != nil } ?? false
+            }
             if smooth.count == 2, supports.count == 2 {
                 guard matches(blend.convex, convexity) else { continue }
                 plan[faceID] = .toEdge(first: smooth[0], second: smooth[1])
-            } else if smooth.isEmpty, try topology.edges(of: faceID).allSatisfy({ edgeID in
-                topology.otherFace(of: edgeID, than: faceID).map { candidates[$0] != nil } ?? false
-            }) {
+            } else if supports.count <= 1, othersAreFillets {
+                // A corner where fillets meet: among fillets only, or rolling over one kept face
+                // (a small round wrapping a removed vertical round on a top face), which then
+                // regrows to the sharp corner the fillets leave.
                 guard matches(blend.convex, convexity) else { continue }
                 plan[faceID] = .toPoint
             }
         }
-        // A corner goes with the strips around it: one whose strips are all kept goes too.
+        // A corner goes with the fillets around it: one beside a fillet that stays stays too.
         for (faceID, collapse) in plan where collapse == .toPoint {
             let around = try topology.edges(of: faceID).compactMap { topology.otherFace(of: $0, than: faceID) }
-            if around.contains(where: { plan[$0] == nil }) { plan.removeValue(forKey: faceID) }
+            if around.contains(where: { candidates[$0] != nil && plan[$0] == nil }) { plan.removeValue(forKey: faceID) }
         }
         return plan
     }

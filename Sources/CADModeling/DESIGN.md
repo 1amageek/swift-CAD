@@ -1067,14 +1067,17 @@ meetings: the intersection branch nearest a seed, crossing points by tangent-pla
 Newton or along a curve where surfaces touch tangentially, and sense-keeping trims.
 A fillet is a face on a cylinder, torus or sphere no wider than the radius asked for,
 tangent to two kept faces along two of its edges (a strip), or lying where fillets
-meet (a corner, removed only with all the strips around it); its convexity is whether
+meet with at most one kept face tangent to it (a corner, removed only with every fillet
+around it — a small round wrapping a removed vertical round collapses to the sharp corner its
+kept top face regrows to); its convexity is whether
 its centre of curvature lies in the material. A deleted face that is not a fillet is
 tried every way it could collapse and the healed solid that validates and changes the
 volume least is kept. Faces touching one another go together: as a hole when they run
 through one; otherwise every combination of their collapses (at most 256) is healed at
 once and the one that validates and changes the volume least kept (chamfers meeting at a
 mitre each collapse onto their edge together); otherwise one at a time, each the first left
-that heals alone. `FaceRemovalHealingTests` prove a filled hole, a sharpened rounded box,
+that heals alone. `FaceRemovalHealingTests` prove a filled hole, a sharpened rounded box, the
+video's L slab whose small rounds wrap a kept 8 mm round (all rounds to 3 mm removed exactly),
 one sharpened corner, a restored chamfered edge, two chamfers meeting at a corner deleted
 together, radius and convexity filters and the refusal of a top no neighbours close over.
 
