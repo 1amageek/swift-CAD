@@ -55,8 +55,9 @@ struct FilletShapeTests {
         let d = 0.004, box = 0.02 * 0.02 * 0.02
         // Corner at the origin, the first face along +x, the second along +y.
         let cases: [(FilletShape, Double?, [(Double, Double)], [Double])] = [
-            (.conic, 0.5, [(d, 0), (0, 0), (0, d)], [1, 1, 1]),
-            (.conic, 0.3, [(d, 0), (0, 0), (0, d)], [1, 0.3 / 0.7, 1]),
+            // Conic 0.5 is the round of radius d (its arc's weight sin 45°); 0.3 is flatter.
+            (.conic, 0.5, [(d, 0), (0, 0), (0, d)], [1, 0.5.squareRoot(), 1]),
+            (.conic, 0.3, [(d, 0), (0, 0), (0, d)], [1, 0.5.squareRoot() * 0.3 / 0.7, 1]),
             (.chordal, nil, [(d / 2.0.squareRoot(), 0), (0, 0), (0, d / 2.0.squareRoot())], [1, 0.5.squareRoot(), 1]),
             (.curvature, 1, [(d, 0), (2 * d / 3, 0), (d / 3, 0), (0, d / 3), (0, 2 * d / 3), (0, d)], Array(repeating: 1, count: 6)),
         ]
@@ -1013,9 +1014,8 @@ struct FilletShapeTests {
             let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
             try rounded.brep.validate(level: .volumetric, tolerance: .standard)
             // The section removed along the limited stretch only, the caps being flat: the round's
-            // corner, or for a conic of tension 0.5 the parabola's r²/6 (the corner's r²/2 less
-            // the parabolic segment's two thirds of it).
-            let removed = shape == .round ? section : r * r / 6
+            // corner, which a conic of tension 0.5 is exactly.
+            let removed = section
             let stretch = limits.stretches.reduce(0.0) { $0 + ($1.end - $1.start) } * s
             let volume = try rounded.brep.volume(tolerance: .standard)
             #expect(abs(volume - (s * s * s - removed * stretch)) < 5e-12, "\(limits): \(volume)")

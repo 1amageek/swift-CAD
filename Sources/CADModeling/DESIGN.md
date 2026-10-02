@@ -407,9 +407,10 @@ one, where the blend adds material) through
 `EdgeBlendFeatureEvaluator`'s profile blend (shared with the G2 blend): a cross-section swept along
 the edge, made for α, the two faces cut back to its contacts and the square end faces closed by its
 curve; a solid's round edge between planes not at a right angle, or concave, takes it too, as the exact arc of
-the radius (contacts r·cot(α/2) from the edge, weight sin(α/2)). A `conic` is the rational
-quadratic through the corner with middle weight ρ/(1 − ρ), ρ the tension, meeting both faces at the
-distance; a `chordal` is the circular arc whose chord is the distance (contacts at
+the radius (contacts r·cot(α/2) from the edge, weight sin(α/2)). A `conic` is Plasticity's: the rational
+quadratic through the corner set back as the round of radius `distance` is (r·cot(α/2)), its middle
+weight the arc's sin(α/2) times t/(1 − t), t the tension — so 0.5 is that round exactly, lower
+flatter and higher fuller; a `chordal` is the circular arc whose chord is the distance (contacts at
 distance / (2 sin(α/2))); a `curvature` fillet is the quintic whose first and last three control points lie
 on the faces (zero curvature at the contacts), its handles the tension times a third of the
 distance. `full` (`evaluateFullRound`) takes the two straight edges bounding a center face whose

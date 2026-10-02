@@ -1289,10 +1289,13 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 }
             }
         case .conic:
-            // A rational quadratic through the corner's tangents, rho the tension.
-            return BlendSection { _ in
-                BlendSection.Resolved(setback: distance, degree: 2, weights: [1, tension / (1 - tension), 1]) { corner, first, second in
-                    [corner + first * distance, corner, corner + second * distance]
+            // Plasticity's Conic: a rational quadratic through the corner's tangents set back as a
+            // round of radius `distance` is, its middle weight the arc's sin(α/2) times t/(1 − t) —
+            // so tension 0.5 is that round exactly, lower flatter and higher fuller.
+            return BlendSection { alpha in
+                let setback = distance / tan(alpha / 2)
+                return BlendSection.Resolved(setback: setback, degree: 2, weights: [1, sin(alpha / 2) * tension / (1 - tension), 1]) { corner, first, second in
+                    [corner + first * setback, corner, corner + second * setback]
                 }
             }
         case .chordal:
