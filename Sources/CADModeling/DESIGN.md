@@ -1116,8 +1116,11 @@ offset is approximated by a B-spline through offset points at refined knots unti
 the true offset, sampled densely and bounded by the curve's derivative bound between samples, is
 within a quarter of the modeling tolerance (the Rebuild Face bound), and that deviation is the
 edge's tolerance; a drafted curve sheet rules each curve to its offset in the curve's plane at the
-far height; a curve sheet with a thickness is thickened like Thicken, the two thickness values its
-two sides. `ExtrudeDraftTests` own the
+far height; a curve with a thickness makes a solid wall on its left about the extrusion: an open
+curve's sheet thickened like Thicken (`PlanarExtrudeFeatureEvaluator.thickened`), a closed circle's
+region extruded thin (the ring inside it); a closed spline's wall waits for the spline offset
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`), and a drafted curve sheet is refused until it is built.
+`ExtrudeCurveThicknessTests` own a line's slab on its left and a circle's ring. `ExtrudeDraftTests` own the
 rectangle frustum's volume and wall angle, the symmetric taper, the circle's cone and the oblique
 refusal.
 

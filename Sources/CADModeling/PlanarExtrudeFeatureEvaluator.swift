@@ -116,21 +116,34 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 wallThickness: wallThickness
             )
         case .curve(let reference):
-            guard draftTangent == 0, wallThickness == 0 else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): a curve extrusion is refused a draft or a wall
-                // thickness. Production path: PlanarExtrudeFeatureEvaluator for every curve extrude
-                // with either. Complete only when a drafted curve sheet leans by the angle and a thin
-                // one is thickened into a solid wall, verified by their wall normals and volume.
+            guard draftTangent == 0 else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): a curve extrusion is refused a draft. Production
+                // path: PlanarExtrudeFeatureEvaluator for every drafted curve extrude. Complete only
+                // when a drafted curve sheet leans by the angle (each curve ruled to its offset in its
+                // plane at the far height), verified by its wall normals.
                 throw KernelError(phase: .geometry, code: .unsupportedCapability, featureID: feature.id,
-                                  tolerance: context.tolerance, message: "A drafted or thin extrusion takes a closed section.")
+                                  tolerance: context.tolerance, message: "A drafted extrusion takes a closed section.")
             }
             let curve = try ResolvedModelingSection.resolveCurve(
                 reference, from: context.curves[reference.featureID], tolerance: context.tolerance
             )
+            // A closed curve's wall is its region's thin extrusion: the ring inside it.
+            if wallThickness > 0, curve.isClosed {
+                result = try ExactProfileExtrudeBodyBuilder(featureID: feature.id, context: context, sewer: sewer).build(
+                    from: try circleProfile(curve, featureID: feature.id, tolerance: context.tolerance), direction: extrude.direction,
+                    distance: span, startOffset: range.lowerBound, bodyKind: .solid, includesCaps: true, draftTangent: 0,
+                    wallThickness: wallThickness
+                )
+                break
+            }
             result = try evaluateCurveSheet(
                 curve, featureID: feature.id, direction: extrude.direction,
                 distance: span, startOffset: range.lowerBound, context: context
             )
+            if wallThickness > 0 {
+                let axis = try curveAxis(curve, featureID: feature.id, direction: extrude.direction, context: context)
+                result = try thickened(result, curve: curve, axis: axis, thickness: wallThickness, featureID: feature.id, context: context)
+            }
         }
         if extrude.operation != .newBody {
             guard let booleanApplicator,
@@ -158,6 +171,87 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         )
     }
 
+    /// A closed circle's region as a profile of two half arcs running counterclockwise about its
+    /// sketch plane's normal.
+    private func circleProfile(_ curve: EvaluatedCurve, featureID: FeatureID, tolerance: ModelingTolerance) throws -> Profile {
+        let circle: Circle3D
+        switch curve.exactCurve {
+        case let .circle(value)?: circle = value
+        case let .analytic(.circle(center, normal, radius))?: circle = Circle3D(center: center, normal: normal, radius: radius)
+        default:
+            // FIXME(INCOMPLETE_IMPLEMENTATION): a closed spline curve's thin extrusion needs its
+            // offset inside it, which the profile walls build only for lines and arcs. Production
+            // path: PlanarExtrudeFeatureEvaluator for every thin closed curve extrude. Complete only
+            // when a closed spline's wall is offset within a stated deviation, verified by its volume.
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                              message: "A thin closed curve extrusion takes a circle.")
+        }
+        guard let plane = curve.plane, let start = curve.points.first else {
+            throw KernelError(phase: .geometry, code: .invalidInput, featureID: featureID, tolerance: tolerance,
+                              message: "A thin circle extrusion needs the circle's sketch plane.")
+        }
+        let normal = try ExactSweepSectionPlane(plane, tolerance: tolerance).plane.normal
+        let opposite = circle.center + (circle.center - start)
+        let arcs = [(start, opposite), (opposite, start)].map { from, to in
+            ProfileBoundarySegment.circularArc(ProfileCircularArcSegment(center: circle.center, normal: normal, radius: circle.radius,
+                                                                         start: from, end: to, sweepAngle: Double.pi))
+        }
+        let radial = try (start - circle.center).normalized(tolerance: tolerance.distance)
+        let across = normal.cross(radial)
+        let vertices = (0..<16).map { k -> Point3D in
+            let angle = 2 * Double.pi * Double(k) / 16
+            return circle.center + radial * (circle.radius * cos(angle)) + across * (circle.radius * sin(angle))
+        }
+        return Profile(sourceFeatureID: curve.sourceFeatureID, plane: plane, vertices: vertices, boundarySegments: arcs)
+    }
+
+    /// An open curve's extruded sheet thickened into a solid wall `thickness` wide toward the curve's
+    /// left about the extrusion `axis`, as Thicken does.
+    private func thickened(_ sheet: EvaluationResult, curve: EvaluatedCurve, axis: Vector3D, thickness: Double, featureID: FeatureID,
+                           context: EvaluationContext) throws -> EvaluationResult {
+        let tolerance = context.tolerance
+        guard case let .body(bodyID)? = sheet.subshapes[SubshapeID(featureID: featureID, role: GeneratedSubshapeRole.body.rawValue, ordinal: 0)],
+              curve.points.count >= 2 else {
+            throw KernelError(phase: .geometry, code: .missingReference, featureID: featureID, tolerance: tolerance,
+                              message: "A thin curve extrusion lost its sheet.")
+        }
+        // The face at the curve's start and its outward normal there, against the curve's left
+        // (the way the curve runs from its first sample to its second).
+        let start = (position: curve.points[0], firstDerivative: curve.points[1] - curve.points[0])
+        let left = axis.cross(start.firstDerivative)
+        // A face with a vertex at the curve's start meets it there.
+        let source = sheet.brep
+        var normal: Vector3D?
+        for case let .face(faceID) in try BodyTopologyScope(bodyID: bodyID, model: source).references {
+            guard let face = source.faces[faceID], let surface = source.geometry.surfaces[face.surfaceID] else { continue }
+            let touches = face.loops.contains { loopID in
+                source.loops[loopID]?.coedges.contains { coedge in
+                    guard let edge = source.edges[coedge.edgeID] else { return false }
+                    return [edge.startVertexID, edge.endVertexID].contains {
+                        source.vertices[$0].map { ($0.point - start.position).length <= tolerance.distance } ?? false
+                    }
+                } ?? false
+            }
+            guard touches else { continue }
+            let projected = try surface.parameterProjection(of: start.position, tolerance: tolerance)
+            normal = try surface.normal(u: projected.u, v: projected.v, tolerance: tolerance) * (face.orientation == .forward ? 1 : -1)
+            break
+        }
+        guard let normal else {
+            throw KernelError(phase: .geometry, code: .missingReference, featureID: featureID, tolerance: tolerance,
+                              message: "A thin curve extrusion's sheet does not meet its curve.")
+        }
+        let offsets = normal.dot(left) >= 0 ? (lower: 0.0, upper: thickness) : (lower: -thickness, upper: 0.0)
+        let request = try ExactThickenRequestBuilder().request(featureID: featureID, bodyID: bodyID, offsets: offsets, model: sheet.brep,
+                                                               subshapes: SubshapeIndex(sheet.subshapes), tolerance: tolerance)
+        let sewn = try sewer.sew(request, tolerance: tolerance)
+        let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: sheet.brep)
+        try model.validate(level: .volumetric, tolerance: tolerance)
+        // The wall is generated from the curve: its sheet was this feature's own stage.
+        let lineage = Dictionary(uniqueKeysWithValues: sewn.subshapes.keys.map { ($0, TopologyLineage(output: $0, relation: .generated)) })
+        return EvaluationResult(brep: model, subshapes: sewn.subshapes, lineage: lineage)
+    }
+
     private func evaluateCurveSheet(
         _ curve: EvaluatedCurve,
         featureID: FeatureID,
@@ -166,6 +260,16 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         startOffset: Double,
         context: EvaluationContext
     ) throws -> EvaluationResult {
+        let axis = try curveAxis(curve, featureID: featureID, direction: direction, context: context)
+        let start = axis * (direction == .symmetric ? -0.5 * distance : startOffset)
+        return try ExactLinearSectionSweepBodyBuilder(
+            featureID: featureID, context: context, sewer: sewer
+        ).buildTranslatedSheet(section: curve, startOffset: start, endOffset: start + axis * distance)
+    }
+
+    /// A curve extrusion's unit direction: its source plane's normal, or the explicit vector.
+    private func curveAxis(_ curve: EvaluatedCurve, featureID: FeatureID, direction: ExtrudeDirection,
+                           context: EvaluationContext) throws -> Vector3D {
         let axis: Vector3D
         switch direction {
         case .normal, .symmetric:
@@ -181,10 +285,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 throw FeatureEvaluationError.invalidDirection(vector)
             }
         }
-        let start = axis * (direction == .symmetric ? -0.5 * distance : startOffset)
-        return try ExactLinearSectionSweepBodyBuilder(
-            featureID: featureID, context: context, sewer: sewer
-        ).buildTranslatedSheet(section: curve, startOffset: start, endOffset: start + axis * distance)
+        return axis
     }
 
     package func evaluateSheet(

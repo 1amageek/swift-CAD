@@ -220,6 +220,24 @@ public struct DocumentBuilder {
         return featureID
     }
 
+    /// Extrudes a curve into a sheet, or with a `thickness` into a solid wall on the curve's left
+    /// about the extrusion.
+    @discardableResult
+    public mutating func extrude(
+        curve: CurveSectionReference,
+        distance: CADExpression,
+        direction: ExtrudeDirection = .normal,
+        thickness: CADExpression? = nil,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .extrude(ExtrudeFeature(
+            section: .curve(curve), distance: distance, direction: direction,
+            resultKind: thickness == nil ? .sheet : .solid, thickness: thickness
+        )))
+        return featureID
+    }
+
     /// Extrudes a planar `face` of the body or sheet `owner` makes, along its outward normal by
     /// default, as a new body or combined with `targets`.
     @discardableResult

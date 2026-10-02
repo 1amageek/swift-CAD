@@ -13,7 +13,9 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
     /// taper running straight through the sketch plane; nil or zero leaves the walls straight.
     public var draftAngle: CADExpression?
     /// A thin extrusion's wall thickness: every loop of the section becomes a wall of it on the
-    /// material's side, open at both ends; nil extrudes the whole section.
+    /// material's side, open at both ends — a curve's sheet thickened toward the curve's left about
+    /// the extrusion direction (inside a counterclockwise closed curve); nil extrudes the whole
+    /// section.
     public var thickness: CADExpression?
 
     public init(
@@ -129,8 +131,8 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         guard direction != .symmetric || startDistance == nil else {
             throw FeatureEvaluationError.invalidGraph("Symmetric extrusion cannot also specify a start position.")
         }
-        guard resultKind == .sheet || section.isClosedRegion else {
-            throw FeatureEvaluationError.invalidGraph("A curve extrusion requires sheet output.")
+        guard resultKind == .sheet || section.isClosedRegion || thickness != nil else {
+            throw FeatureEvaluationError.invalidGraph("A curve extrusion requires sheet output, or a thickness to make a solid wall.")
         }
         if case .vector(let vector) = direction { try vector.validate() }
     }
