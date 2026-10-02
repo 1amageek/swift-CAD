@@ -44,8 +44,8 @@ public struct SquareFitOptions: Codable, Hashable, Sendable {
         guard (1...Self.maximumSpans).contains(uSpans), (1...Self.maximumSpans).contains(vSpans) else {
             throw FeatureEvaluationError.invalidGraph("A Square's spans lie between 1 and \(Self.maximumSpans).")
         }
-        guard flatness.isFinite, flatness > 0, flatness <= 1 else {
-            throw FeatureEvaluationError.invalidGraph("A Square's flatness lies in (0, 1].")
+        guard flatness.isFinite, flatness >= 0, flatness <= 1 else {
+            throw FeatureEvaluationError.invalidGraph("A Square's flatness lies in [0, 1].")
         }
         guard weight.isFinite, weight > 0 else {
             throw FeatureEvaluationError.invalidGraph("A Square's weight is finite and positive.")

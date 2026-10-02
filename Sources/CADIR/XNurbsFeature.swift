@@ -64,8 +64,8 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
             }
         }
         for guide in guides { try guide.validate() }
-        guard flatness.isFinite, flatness > 0, flatness <= 1 else {
-            throw FeatureEvaluationError.invalidGraph("An XNURBS's flatness lies in (0, 1].")
+        guard flatness.isFinite, flatness >= 0, flatness <= 1 else {
+            throw FeatureEvaluationError.invalidGraph("An XNURBS's flatness lies in [0, 1].")
         }
         guard positionTolerance.isFinite, positionTolerance > 0, angleTolerance.isFinite, angleTolerance > 0, angleTolerance < Double.pi / 2 else {
             throw FeatureEvaluationError.invalidGraph("An XNURBS's tolerances are a positive length and an angle below a right angle.")

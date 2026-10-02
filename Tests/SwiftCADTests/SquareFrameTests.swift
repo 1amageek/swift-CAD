@@ -85,9 +85,26 @@ struct SquareFrameTests {
         )
         let decoded = try JSONDecoder().decode(SquareSurfaceFeature.self, from: try JSONEncoder().encode(feature))
         #expect(decoded == feature)
+        // Flatness 0 is the membrane alone, as Plasticity accepts it; past 1 is refused.
+        try SquareFitOptions(flatness: 0).validate()
         #expect(throws: (any Error).self) {
-            try SquareFitOptions(flatness: 0).validate()
+            try SquareFitOptions(flatness: 1.01).validate()
         }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aMembraneSquareAtFlatnessZeroSpansItsFrame() throws {
+        // Four lines of a planar quadrilateral, Flatness 0: the membrane fit spans the frame flat.
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let lines = try [(point(0, 0), point(0.02, 0)), (point(0.02, 0), point(0.02, 0.02)), (point(0.02, 0.02), point(0, 0.03)),
+                         (point(0, 0.03), point(0, 0))].map {
+            try line(&builder, $0.0, $0.1)
+        }
+        var options = natural()
+        options.flatness = 0
+        let square = try builder.square(sides: lines.map { SquareSide(curve: CurveSectionReference(featureID: $0)) }, options: options)
+        let spline = try sheet(builder, square)
+        #expect(spline.controlPoints.joined().allSatisfy { abs($0.z) < 1e-12 })
     }
 }
 

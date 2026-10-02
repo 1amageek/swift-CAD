@@ -352,7 +352,8 @@ and never relaxed; only what the page calls loose (Free sides, flow, guides) is 
 4. **Fairness.** Every other control point minimizes
    `flatness·∫∫(|S_uu|² + 2|S_uv|² + |S_vv|²) + (1 − flatness)·∫∫(|S_u|² + |S_v|²)` over the unit
    parameter square (Gauss–Legendre, degree + 1 points per span, exact for polynomial nets),
-   Flatness in (0, 1] (default 1, the thin plate; lower adds membrane tautness).
+   Flatness in [0, 1] (default 1, the thin plate; lower adds membrane tautness, 0 the membrane
+   alone, as Plasticity accepts 0.00).
 5. **Weighted terms** (Weight w > 0, default 1, rows scaled by √w): a Free side's curve sampled at
    its Greville-matched parameters as position rows; the Boundary flow on each G0 or Free side —
    Natural none; Normal `S_v·t = 0` (the cross flow perpendicular to the side's unit tangent t);
