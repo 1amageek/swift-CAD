@@ -8,13 +8,18 @@ public struct FaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
     private let resolver: ParameterResolving
     private let subshapeResolver: any StableSubshapeResolving
     private let identityBuilder: any CarriedTopologyIdentityBuilding
+    /// Extrude, for a pushed face that grows into a wall or past what its neighbours reach: the
+    /// face extruded and joined to (or cut from) its body.
+    private let faceExtruder: (any FeatureEvaluating)?
 
     public init(
         resolver: ParameterResolving = ParameterResolver(),
-        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver()
+        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver(),
+        faceExtruder: (any FeatureEvaluating)? = nil
     ) {
         self.resolver = resolver
         self.subshapeResolver = subshapeResolver
+        self.faceExtruder = faceExtruder
         identityBuilder = DefaultCarriedTopologyIdentityBuilder()
     }
 
@@ -54,6 +59,16 @@ public struct FaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             try targetFaceID($0, bodyScope: bodyScope, featureID: feature.id, context: context)
         }
         let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
+        // Grow (Moving or Fixed): one planar face pushed out past a parallel wall of its body
+        // facing the same way fills up to that wall (the face extruded and joined), then Moving
+        // pushes the wall it became part of on by the rest of the distance.
+        if offset.grow != .none, adjacentAngle == 0, faceIDs.count == 1, distance > 0,
+           let pushed = try outwardPlane(of: faceIDs[0], model: context.brep, tolerance: context.tolerance),
+           let gap = try wallGap(from: faceIDs[0], plane: pushed, distance: distance, bodyScope: bodyScope, model: context.brep,
+                                 tolerance: context.tolerance) {
+            return try grownToWall(offset, feature: feature, plane: pushed, gap: gap, distance: distance,
+                                   removing: replacedSubshapeIDs, context: context)
+        }
         var model = context.brep
         // Each face moves along its outward side onto the offset of its own surface.
         var replacements: [FaceID: FaceSurfaceReplacementRebuilder.Replacement] = [:]
@@ -74,17 +89,21 @@ public struct FaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
                 replacements[faceID] = FaceSurfaceReplacementRebuilder.Replacement(surface: surface, orientation: face.orientation)
             }
         }
-        // FIXME(INCOMPLETE_IMPLEMENTATION): every Grow mode re-solves the faces around the pushed
-        // faces in place, so a push that runs into another wall is refused as a topology failure
-        // under Moving and Fixed too. Production path: FaceOffsetFeatureEvaluator for every
-        // faceOffset feature. Moving and Fixed are complete only when a pushed face meeting a wall
-        // moves that wall or stops at it, verified by tests of a concave face pushed into a wall.
-        try FaceSurfaceReplacementRebuilder().replace(
-            replacements, bodyID: bodyID, featureID: feature.id, model: &model, tolerance: context.tolerance
-        )
-        try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: context.tolerance)
-        let isSolid = model.bodies[bodyID]?.kind == .solid
-        try model.validate(level: isSolid ? .volumetric : .exact, tolerance: context.tolerance)
+        // The faces around re-solved in place; under None a single planar face whose neighbours
+        // cannot follow it keeps going by itself: extruded and joined to its body (outward) or cut
+        // from it (inward).
+        do {
+            try FaceSurfaceReplacementRebuilder().replace(
+                replacements, bodyID: bodyID, featureID: feature.id, model: &model, tolerance: context.tolerance
+            )
+            try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: context.tolerance)
+            let isSolid = model.bodies[bodyID]?.kind == .solid
+            try model.validate(level: isSolid ? .volumetric : .exact, tolerance: context.tolerance)
+        } catch {
+            guard offset.grow == .none, adjacentAngle == 0, faceIDs.count == 1,
+                  let pushed = try outwardPlane(of: faceIDs[0], model: context.brep, tolerance: context.tolerance) else { throw error }
+            return try extruded(offset, feature: feature, plane: pushed, distance: distance, context: context)
+        }
         let identity = try identityBuilder.identity(featureID: feature.id, bodyID: bodyID, model: model, context: context)
         return EvaluationResult(
             brep: model,
@@ -92,6 +111,99 @@ public struct FaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             removedSubshapeIDs: replacedSubshapeIDs,
             lineage: identity.lineage
         )
+    }
+
+    /// A planar face's plane: a point of it, its surface normal and its outward normal; nil for
+    /// any other face.
+    private func outwardPlane(of faceID: FaceID, model: BRepModel, tolerance: ModelingTolerance)
+        throws -> (origin: Point3D, surfaceNormal: Vector3D, outward: Vector3D)? {
+        guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
+            throw TopologyError.missingReference("Face offset face is missing.")
+        }
+        guard let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) else { return nil }
+        let normal = try plane.normal.normalized(tolerance: tolerance.distance)
+        return (plane.origin, normal, face.orientation == .forward ? normal : normal * -1)
+    }
+
+    /// How far out the nearest wall a pushed planar face runs into lies: a planar face of its body
+    /// facing the same way whose plane the push crosses short of its distance; nil when none.
+    private func wallGap(from faceID: FaceID, plane: (origin: Point3D, surfaceNormal: Vector3D, outward: Vector3D), distance: Double,
+                         bodyScope: BodyTopologyScope, model: BRepModel, tolerance: ModelingTolerance) throws -> Double? {
+        var nearest: Double?
+        for case let .face(otherID) in bodyScope.references where otherID != faceID {
+            guard let other = try outwardPlane(of: otherID, model: model, tolerance: tolerance),
+                  other.outward.dot(plane.outward) >= 1 - tolerance.angle else { continue }
+            let gap = (other.origin - plane.origin).dot(plane.outward)
+            guard gap > tolerance.distance, gap < distance - tolerance.distance else { continue }
+            nearest = min(nearest ?? gap, gap)
+        }
+        return nearest
+    }
+
+    /// The pushed face extruded by `extent` (outward, joined; inward, cut) with the Extrude its
+    /// evaluator was given.
+    private func extrusion(_ offset: FaceOffsetFeature, feature: FeatureNode, extent: Double, inward: Vector3D?,
+                           context: EvaluationContext) throws -> EvaluationResult {
+        guard let faceExtruder else {
+            throw kernelError(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance,
+                              "Push Face's Grow needs an Extrude to carry the face past its neighbours.")
+        }
+        let node = FeatureNode(id: feature.id, name: feature.name, operation: .extrude(ExtrudeFeature(
+            section: .face(FaceSectionReference(featureID: offset.target.featureID, face: offset.faces[0], bodyRole: .body)),
+            distance: .constant(.length(extent, unit: .meter)), direction: inward.map { .vector($0) } ?? .normal,
+            operation: inward == nil ? .union : .difference,
+            targets: [BooleanTargetReference(featureID: offset.target.featureID)], resultKind: .solid
+        )), outputs: feature.outputs)
+        return try faceExtruder.evaluate(feature: node, context: context)
+    }
+
+    /// None past the neighbours: the face extruded its whole distance, joined outward, cut inward.
+    private func extruded(_ offset: FaceOffsetFeature, feature: FeatureNode, plane: (origin: Point3D, surfaceNormal: Vector3D, outward: Vector3D),
+                          distance: Double, context: EvaluationContext) throws -> EvaluationResult {
+        try extrusion(offset, feature: feature, extent: abs(distance), inward: distance < 0 ? plane.outward * -1 : nil, context: context)
+    }
+
+    /// Moving or Fixed into a wall: the face filled up to the wall (extruded by the gap and
+    /// joined); under Moving the face it then shares with the wall pushed on by the rest.
+    private func grownToWall(_ offset: FaceOffsetFeature, feature: FeatureNode, plane: (origin: Point3D, surfaceNormal: Vector3D, outward: Vector3D),
+                             gap: Double, distance: Double, removing replacedSubshapeIDs: Set<SubshapeID>,
+                             context: EvaluationContext) throws -> EvaluationResult {
+        let filled = try extrusion(offset, feature: feature, extent: gap, inward: nil, context: context)
+        guard offset.grow == .moving else { return filled }
+        var model = filled.brep
+        guard let bodyID = filled.subshapes.compactMap({ key, value -> BodyID? in
+            guard key.featureID == feature.id, case let .body(id) = value else { return nil }
+            return id
+        }).first else {
+            throw TopologyError.missingReference("Push Face's filled body is missing.")
+        }
+        let scope = try BodyTopologyScope(bodyID: bodyID, model: model)
+        let walls = try scope.references.compactMap { reference -> FaceID? in
+            guard case let .face(faceID) = reference, let wall = try outwardPlane(of: faceID, model: model, tolerance: context.tolerance),
+                  wall.outward.dot(plane.outward) >= 1 - context.tolerance.angle,
+                  abs((wall.origin - plane.origin).dot(plane.outward) - gap) <= context.tolerance.distance else { return nil }
+            return faceID
+        }
+        guard walls.isEmpty == false else {
+            throw kernelError(.topologyFailure, featureID: feature.id, tolerance: context.tolerance, "Push Face's filled face did not join its wall.")
+        }
+        var replacements: [FaceID: FaceSurfaceReplacementRebuilder.Replacement] = [:]
+        for faceID in walls {
+            guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
+                throw TopologyError.missingReference("Push Face's wall is missing.")
+            }
+            replacements[faceID] = FaceSurfaceReplacementRebuilder.Replacement(
+                surface: try FaceSurfaceOffsetter().offset(surface, orientation: face.orientation, by: distance - gap, tolerance: context.tolerance),
+                orientation: face.orientation
+            )
+        }
+        try FaceSurfaceReplacementRebuilder().replace(replacements, bodyID: bodyID, featureID: feature.id, model: &model, tolerance: context.tolerance)
+        try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: context.tolerance)
+        try model.validate(level: .volumetric, tolerance: context.tolerance)
+        let identity = try identityBuilder.identity(featureID: feature.id, bodyID: bodyID, model: model, context: context)
+        return EvaluationResult(brep: model, subshapes: identity.subshapes,
+                                removedSubshapeIDs: replacedSubshapeIDs.union(filled.removedSubshapeIDs),
+                                lineage: identity.lineage)
     }
 
     /// The planes the faces beside the pushed faces tilt onto: each planar neighbour of a pushed

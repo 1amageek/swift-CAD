@@ -1002,13 +1002,20 @@ new surfaces ──▶ each changed edge: its two faces' intersection branch nea
 `SurfaceFootResolver` gives the nearest point and normal of a whole surface to
 any point, on it or off it, in closed form for analytic surfaces. An edge that
 would collapse or reverse, surfaces that no longer meet near an edge or vertex,
-and a face whose outward side would turn over are refused, so every Grow mode
-refuses a face running into another wall
-(`FIXME(INCOMPLETE_IMPLEMENTATION)` in each evaluator); a face crossing the
-neutral plane is refused likewise until it is split along it. `PushFaceTests`,
-`DraftFaceTests` and `MatchFaceTests` prove boxes, rounded boxes, cylinders,
-holes, adjacent angles, pyramid and cone frustums and placed references by exact
-volumes, and the refusals.
+and a face whose outward side would turn over are refused. Push Face's Grow
+(Plasticity's video of an L-cube's notch pushed past its outer wall) takes one
+planar face pushed out, without an adjacent angle, past the plane of a parallel
+wall of its body facing the same way: Fixed fills up to that wall (the face extruded
+by the gap and joined, coplanar faces merging), Moving then pushes the face it shares
+with the wall on by the rest, in place; None re-solves in place and, when the faces
+around cannot follow, keeps the face going by itself — extruded its whole distance
+and joined outward, cut inward. Draft Face's and Match Face's Grow still refuse a
+face running into another wall (`FIXME(INCOMPLETE_IMPLEMENTATION)` in each); a face
+crossing the neutral plane is refused likewise until it is split along it.
+`PushFaceTests`, `DraftFaceTests` and `MatchFaceTests` prove boxes, rounded boxes,
+cylinders, holes, adjacent angles, pyramid and cone frustums and placed references
+by exact volumes, the refusals, and the L prism's step grown by each mode (25 × 20,
+20 × 20 and the 15 × 10 bar past the wall).
 
 `FaceRemovalHealer` heals a solid over faces taken out of it (Delete Face with
 `heals`, and Remove Fillets From Shell): the faces around keep their surfaces and

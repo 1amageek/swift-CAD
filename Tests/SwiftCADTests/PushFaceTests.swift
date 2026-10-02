@@ -160,4 +160,35 @@ struct PushFaceTests {
             _ = try CADPipeline(tolerance: .standard).evaluate(builder.build())
         }
     }
+
+    /// An L-shaped prism (a 20 mm square less its 10 mm corner, 20 mm tall) whose inner step
+    /// face, at x = 10 mm, is pushed 15 mm out past the outer wall at x = 20 mm.
+    private func pushedStep(_ grow: FaceEditGrow) throws -> BRepModel {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let corners = [(0.0, 0.0), (20.0, 0.0), (20.0, 10.0), (10.0, 10.0), (10.0, 20.0), (0.0, 20.0)]
+        let profile = try builder.sketch(on: .xy) { sketch in
+            for k in corners.indices {
+                let (a, b) = (corners[k], corners[(k + 1) % corners.count])
+                _ = sketch.line(from: point(a.0, a.1), to: point(b.0, b.1))
+            }
+        }
+        let body = try builder.extrude(profile, distance: millimeters(20))
+        let step = try faces(in: builder, of: body) { isPlane($0, normal: .unitX, at: 0.010) }
+        #expect(step.count == 1)
+        _ = try builder.offsetFace(target: body, faces: step, distance: millimeters(15), grow: grow)
+        return try solid(builder)
+    }
+
+    /// Grow, as the official video shows: Moving pushes the wall along (the square grows by the
+    /// rest, 25 × 20 × 20 mm³), Fixed stops at it (the 20 mm cube), None keeps going alone (a
+    /// 15 × 10 mm bar sticking out past the wall, 6000 + 3000 mm³).
+    @Test(.timeLimit(.minutes(2)), arguments: [(FaceEditGrow.moving, 10_000.0, 6), (FaceEditGrow.fixed, 8_000.0, 6),
+                                                (FaceEditGrow.none, 9_000.0, 8)])
+    func aStepPushedPastTheWallGrowsByItsMode(grow: FaceEditGrow, volume: Double, faces count: Int) throws {
+        let model = try pushedStep(grow)
+        let measured = try model.volume(tolerance: .standard)
+        #expect(abs(measured - volume * 1e-9) < 1e-15, "\(grow) \(measured)")
+        #expect(model.faces.count == count, "\(grow) \(model.faces.count)")
+    }
 }
+
