@@ -4,7 +4,8 @@ import Testing
 
 /// Draft Face turns faces about their crossing with the neutral plane so each makes the draft
 /// angle with the pull direction: a box's walls taper into a frustum of a pyramid, a cylinder into
-/// a frustum of a cone, and a face crossing the neutral plane is refused.
+/// a frustum of a cone, and a face crossing the neutral plane is split along it, each part
+/// drafted away from it.
 @Suite("Draft Face")
 struct DraftFaceTests {
     private func millimeters(_ value: Double) -> CADExpression { .constant(.length(value, unit: .millimeter)) }
@@ -73,16 +74,36 @@ struct DraftFaceTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func aFaceCrossingAnOffsetNeutralPlaneIsRefused() throws {
+    func aWallCrossingAnOffsetNeutralPlaneSplitsAndDraftsBothWays() throws {
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
         let profile = try builder.sketch(on: .xy) { $0.rectangle(width: millimeters(40), height: millimeters(20)) }
         let boxID = try builder.extrude(profile, distance: millimeters(10))
         let wall = try faces(in: builder, of: boxID) { plane($0).map { abs($0.normal.x) > 0.5 && $0.origin.x > 0 } ?? false }
         let bottom = try #require(try faces(in: builder, of: boxID, where: isBottom).first)
-        // The bottom faces down, so moving the neutral plane -5 mm along it lifts it to mid-height.
+        // The bottom faces down, so moving the neutral plane -5 mm along it lifts it to mid-height:
+        // the wall splits there and each half leans out away from it, a wedge added above and below.
         _ = try builder.faceDraft(target: boxID, faces: wall, neutralFace: bottom, angle: degrees(5), neutralOffset: millimeters(-5))
-        #expect(throws: (any Error).self) {
-            _ = try CADPipeline(tolerance: .standard).evaluate(builder.build())
-        }
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        try model.validate(level: .volumetric, tolerance: .standard)
+        let (t, h) = (tan(5 * Double.pi / 180), 0.005)
+        let expected = 0.040 * 0.020 * 0.010 + 2 * (0.5 * h * (t * h) * 0.020)
+        #expect(abs(try model.volume(tolerance: .standard) - expected) < 1e-12)
+        #expect(model.faces.count == 7)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func everyWallAcrossAMidHeightNeutralPlaneMakesTwoFrustums() throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let profile = try builder.sketch(on: .xy) { $0.rectangle(width: millimeters(40), height: millimeters(20)) }
+        let boxID = try builder.extrude(profile, distance: millimeters(10))
+        let walls = try faces(in: builder, of: boxID) { plane($0).map { abs($0.normal.z) < 1e-9 } ?? false }
+        let bottom = try #require(try faces(in: builder, of: boxID, where: isBottom).first)
+        _ = try builder.faceDraft(target: boxID, faces: walls, neutralFace: bottom, angle: degrees(5), neutralOffset: millimeters(-5))
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        try model.validate(level: .volumetric, tolerance: .standard)
+        // Two frustums of 5 mm from the 40 × 20 mm waist, each wall leaning out by tan 5°.
+        let (t, h) = (tan(5 * Double.pi / 180), 0.005)
+        let frustum = 0.040 * 0.020 * h + (0.040 + 0.020) * t * h * h + 4 * t * t * h * h * h / 3
+        #expect(abs(try model.volume(tolerance: .standard) - 2 * frustum) < 1e-12)
     }
 }

@@ -12,13 +12,17 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
     private let resolver: ParameterResolving
     private let subshapeResolver: any StableSubshapeResolving
     private let identityBuilder: any CarriedTopologyIdentityBuilding
+    /// Sews the body anew when faces crossing the neutral plane are split along it.
+    private let sewer: (any BRepSewing)?
 
     public init(
         resolver: ParameterResolving = ParameterResolver(),
-        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver()
+        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver(),
+        sewer: (any BRepSewing)? = nil
     ) {
         self.resolver = resolver
         self.subshapeResolver = subshapeResolver
+        self.sewer = sewer
         identityBuilder = DefaultCarriedTopologyIdentityBuilder()
     }
 
@@ -80,8 +84,31 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         let pull = neutralFace.orientation == .forward ? planeNormal : planeNormal * -1
         let neutralOrigin = neutralPlane.origin + pull * neutralOffset
 
+        // Faces crossing the neutral plane are split along it first, each part drafted away from it.
+        var draftedIDs = faceIDs
+        var draftedBodyID = bodyID
+        var sewnIdentity: (subshapes: [SubshapeID: TopologyReference], lineage: [SubshapeID: TopologyLineage])?
+        let crossing = try Set(faceIDs.filter { faceID in
+            guard let face = model.faces[faceID] else { throw TopologyError.missingReference("Face draft face is missing.") }
+            let heights = try face.loops.flatMap { try model.orderedPoints(for: $0) }.map { ($0 - neutralOrigin).dot(pull) }
+            return heights.contains { $0 > tolerance.distance } && heights.contains { $0 < -tolerance.distance }
+        })
+        if crossing.isEmpty == false {
+            guard let sewer else {
+                throw kernelError(.unsupportedCapability, featureID: feature.id, tolerance: tolerance,
+                                  "Face draft needs a sewer to split faces across the neutral plane.")
+            }
+            let split = try NeutralPlaneFaceSplitter(tolerance: tolerance).split(
+                crossing, drafting: faceIDs, bodyID: bodyID, planeOrigin: neutralOrigin, pull: pull, model: model, sewer: sewer,
+                featureID: feature.id, sourceSubshapes: context.subshapes.entries
+            )
+            model = split.model
+            draftedIDs = split.draftedFaces
+            draftedBodyID = split.bodyID
+            sewnIdentity = (split.sewn.subshapes, split.sewn.lineage)
+        }
         var replacements: [FaceID: FaceSurfaceReplacementRebuilder.Replacement] = [:]
-        for faceID in faceIDs.sorted() {
+        for faceID in draftedIDs.sorted() {
             guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference("Face draft face is missing.")
             }
@@ -96,9 +123,14 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         // under Moving and Fixed too. Production path: FaceDraftFeatureEvaluator for every
         // faceDraft feature. Moving and Fixed are complete only when a drafted face meeting a wall
         // extends that wall or stops at it, verified by tests of a concave face drafted into a wall.
-        try FaceSurfaceReplacementRebuilder().replace(replacements, bodyID: bodyID, featureID: feature.id, model: &model, tolerance: tolerance)
+        try FaceSurfaceReplacementRebuilder().replace(replacements, bodyID: draftedBodyID, featureID: feature.id, model: &model, tolerance: tolerance)
         try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: tolerance)
         try model.validate(level: .volumetric, tolerance: tolerance)
+        if let sewnIdentity {
+            // Split and sewn anew: the sewing's names, the faces keeping them as they turn in place.
+            return EvaluationResult(brep: model, subshapes: sewnIdentity.subshapes,
+                                    removedSubshapeIDs: bodyScope.subshapeIDs(in: context.subshapes), lineage: sewnIdentity.lineage)
+        }
         let identity = try identityBuilder.identity(featureID: feature.id, bodyID: bodyID, model: model, context: context)
         return EvaluationResult(
             brep: model,
@@ -129,10 +161,7 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         } else if heights.allSatisfy({ $0 <= tolerance.distance }), heights.contains(where: { $0 < -tolerance.distance }) {
             side = -1
         } else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): a face crossing the neutral plane would be split
-            // along it and each part drafted away from it. Production path: FaceDraftFeatureEvaluator.
-            // Complete only when such a face is split and both parts drafted, verified by a test of a
-            // wall crossing an offset neutral plane.
+            // Faces crossing the plane are split along it before they turn.
             throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
                               "Face draft needs each drafted face on one side of the neutral plane.")
         }
