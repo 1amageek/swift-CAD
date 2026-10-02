@@ -1,13 +1,18 @@
 import CADCore
 
 /// The cross-section a fillet rounds an edge with (Fillet Shell's Shape): a circular `round` of
-/// the radius; a `conic` meeting both faces at the distance from the edge, its sharpness the
-/// tension (the conic's rho); a `chordal` circular arc whose chord is the distance; or a
+/// the radius; a `conic` set back as the round of the distance's radius, its fullness the tension
+/// (0.5 that round); a `chordal` set back as the circular arc whose chord is the distance, its
+/// fullness the tension (0.5 that arc); or a
 /// `curvature` (G2) quintic meeting both faces at the distance with zero curvature there, its
 /// handles scaled by the tension; or a `full` round tangent to the three faces across a center face
 /// between the two selected edges, whose radius those faces fix (half the face's width) and the
 /// feature's radius must state.
 public enum FilletShape: String, Codable, Hashable, Sendable {
+    /// The tension a shape takes when none is given: 0.5 (the round, or the chordal arc) for the
+    /// conic shapes, 1 for the rest.
+    public var defaultTension: Double { self == .conic || self == .chordal ? 0.5 : 1 }
+
     case round
     case conic
     case chordal
@@ -55,7 +60,7 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         self.radius = radius
         self.allEdges = allEdges
         self.shape = shape
-        self.tension = tension ?? (shape == .conic ? 0.5 : 1)
+        self.tension = tension ?? shape.defaultTension
         self.endRadius = endRadius
     }
 
@@ -94,15 +99,15 @@ public struct FilletFeature: Codable, Hashable, Sendable {
             }
         }
         switch shape {
-        case .round, .chordal, .full:
+        case .round, .full:
             guard tension == 1 else {
                 throw KernelError(phase: .validation, code: .invalidInput, tolerance: nil,
-                                  message: "A round, chordal or full fillet takes no tension.")
+                                  message: "A round or full fillet takes no tension.")
             }
-        case .conic:
+        case .conic, .chordal:
             guard tension.isFinite, tension > 0, tension < 1 else {
                 throw KernelError(phase: .validation, code: .invalidInput, tolerance: nil,
-                                  message: "A conic fillet's tension (rho) lies strictly between 0 and 1.")
+                                  message: "A conic or chordal fillet's tension lies strictly between 0 and 1.")
             }
         case .curvature:
             guard tension.isFinite, tension > 0, tension <= 1.5 else {
@@ -155,7 +160,7 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         radius = try container.decode(CADExpression.self, forKey: .radius)
         allEdges = try container.decodeIfPresent(Bool.self, forKey: .allEdges) ?? false
         shape = try container.decodeIfPresent(FilletShape.self, forKey: .shape) ?? .round
-        tension = try container.decodeIfPresent(Double.self, forKey: .tension) ?? (shape == .conic ? 0.5 : 1)
+        tension = try container.decodeIfPresent(Double.self, forKey: .tension) ?? shape.defaultTension
         endRadius = try container.decodeIfPresent(CADExpression.self, forKey: .endRadius)
         limits = try container.decodeIfPresent(EdgeBlendLimits.self, forKey: .limits)
         variablePoints = try container.decodeIfPresent([FilletVariablePoint].self, forKey: .variablePoints) ?? []

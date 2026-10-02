@@ -658,10 +658,21 @@ package struct CapLoopBlendBuilder {
                 let count = runs.count
                 // Whether the chain runs on from each segment into the next: tangent there, and with
                 // Tangent Edges off the next one selected too.
-                let tangent = (0..<count).map { i in
+                let smooth = (0..<count).map { i in
                     let (before, after) = (runs[i], runs[(i + 1) % count])
                     return before.endTangent.cross(after.startTangent).length <= 1e-7 && before.endTangent.dot(after.startTangent) > 0
-                        && (followsTangents || (selected.contains(loop.edges[i].edgeID) && selected.contains(loop.edges[(i + 1) % count].edgeID)))
+                }
+                // The cap is the face whose loop runs on smoothly from the edge into an arc, whether or
+                // not the chain follows it (with Tangent Edges off the walls beside a rounded
+                // outline's line are planar too, and face order must not pick one of them).
+                var reach = Set([index])
+                var cursor = index
+                while smooth[cursor], reach.insert((cursor + 1) % count).inserted { cursor = (cursor + 1) % count }
+                cursor = index
+                while smooth[(cursor - 1 + count) % count], reach.insert((cursor - 1 + count) % count).inserted { cursor = (cursor - 1 + count) % count }
+                guard reach.contains(where: { runs[$0].arc != nil }) else { continue }
+                let tangent = (0..<count).map { i in
+                    smooth[i] && (followsTangents || (selected.contains(loop.edges[i].edgeID) && selected.contains(loop.edges[(i + 1) % count].edgeID)))
                 }
                 let chain: CapChain
                 if tangent.allSatisfy({ $0 }) {
@@ -673,7 +684,7 @@ package struct CapLoopBlendBuilder {
                     while tangent[last] { last = (last + 1) % count }
                     chain = CapChain(capFaceID: faceID, loopID: loopID, first: first, count: (last - first + count) % count + 1, closed: false)
                 }
-                if !followsTangents || (0..<chain.count).contains(where: { runs[(chain.first + $0) % count].arc != nil }) { return chain }
+                return chain
             }
         }
         return nil

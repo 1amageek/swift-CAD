@@ -1299,8 +1299,14 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 }
             }
         case .chordal:
-            // The circular arc whose chord is the distance.
-            return .arc { alpha in distance / (2 * sin(alpha / 2)) }
+            // Plasticity's Chordal: set back as the circular arc whose chord is the distance, its
+            // middle weight that arc's sin(α/2) times t/(1 − t) — 0.5 the arc itself.
+            return BlendSection { alpha in
+                let setback = distance / (2 * sin(alpha / 2))
+                return BlendSection.Resolved(setback: setback, degree: 2, weights: [1, sin(alpha / 2) * tension / (1 - tension), 1]) { corner, first, second in
+                    [corner + first * setback, corner, corner + second * setback]
+                }
+            }
         case .round, .full:
             throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: nil,
                               message: "A round or full fillet takes its own route.")

@@ -59,6 +59,8 @@ struct FilletShapeTests {
             (.conic, 0.5, [(d, 0), (0, 0), (0, d)], [1, 0.5.squareRoot(), 1]),
             (.conic, 0.3, [(d, 0), (0, 0), (0, d)], [1, 0.5.squareRoot() * 0.3 / 0.7, 1]),
             (.chordal, nil, [(d / 2.0.squareRoot(), 0), (0, 0), (0, d / 2.0.squareRoot())], [1, 0.5.squareRoot(), 1]),
+            // Chordal takes a tension too: 0.7 fuller than its arc.
+            (.chordal, 0.7, [(d / 2.0.squareRoot(), 0), (0, 0), (0, d / 2.0.squareRoot())], [1, 0.5.squareRoot() * 0.7 / 0.3, 1]),
             (.curvature, 1, [(d, 0), (2 * d / 3, 0), (d / 3, 0), (0, d / 3), (0, 2 * d / 3), (0, d)], Array(repeating: 1, count: 6)),
         ]
         for (shape, tension, points, weights) in cases {
@@ -76,7 +78,7 @@ struct FilletShapeTests {
             try FilletFeature(target: FilletTargetReference(featureID: FeatureID()), edges: [], radius: length(0.004),
                               allEdges: true, shape: .conic).validate()
         }
-        #expect(throws: KernelError.self) { _ = try fillet(shape: .chordal, tension: 0.4, distance: 0.004) }
+        #expect(throws: KernelError.self) { _ = try fillet(shape: .chordal, tension: 1, distance: 0.004) }
         #expect(throws: KernelError.self) { _ = try fillet(shape: .conic, tension: 1, distance: 0.004) }
     }
 
