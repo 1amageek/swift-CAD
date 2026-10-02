@@ -285,6 +285,96 @@ struct FaceRebuildTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func aDraftedCylindersQuarterWallRebuiltFlatMeetsTheConeBesideIt() throws {
+        // A circle extruded with a 10° draft: its wall a cone in four rational spline quarters.
+        // One quarter rebuilt bilinear is flat, its edges with the quarters beside it re-solved
+        // on those splines (not planes, cylinders or spheres): every point of them as far from
+        // the axis as the cone is there.
+        let (r, h) = (0.01, 0.02)
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let length = { (value: Double) in CADExpression.constant(.length(value, unit: .meter)) }
+        let profile = try builder.sketch(on: .xy) { _ = $0.circle(center: SketchPoint(x: length(0), y: length(0)), radius: length(r)) }
+        let extrusion = try builder.extrude(profile, distance: length(h), draftAngle: .constant(.angle(10, unit: .degree)))
+        let walls = try faces(of: extrusion, in: builder) { !isPlane($0) }
+        #expect(walls.count == 4)
+        let before = try evaluate(builder)
+        let top = try #require(before.brep.vertices.values.map(\.point).first { abs($0.z - h) < 1e-9 })
+        let topRadius = hypot(top.x, top.y)
+        #expect(abs(abs(topRadius - r) - h * tan(10 * Double.pi / 180)) < 1e-9)
+        let rebuilt = try builder.rebuildFaces(target: extrusion, faces: [walls[0].0],
+                                               method: .explicit(SurfaceControlLayout(uDegree: 1, vDegree: 1, uSpans: 1, vSpans: 1)))
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "rebuild"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        // The flat face: the one whose surface is a bilinear B-spline.
+        let flat = try #require(evaluated.brep.faces.values.first { face in
+            guard case let .bSpline(surface)? = evaluated.brep.geometry.surfaces[face.surfaceID] else { return false }
+            return surface.uDegree == 1 && surface.vDegree == 1
+        })
+        let flatEdges = Set(flat.loops.flatMap { evaluated.brep.loops[$0]?.coedges.map(\.edgeID) ?? [] })
+        var checked = 0
+        for edgeID in flatEdges {
+            guard let edge = evaluated.brep.edges[edgeID], let curve = evaluated.brep.geometry.curves[edge.curveID], let trim = edge.trim else { continue }
+            let points = try (0...16).map { try curve.point(at: trim.startParameter + (trim.endParameter - trim.startParameter) * Double($0) / 16,
+                                                             tolerance: .standard) }
+            // The edges running up the wall (not along a cap) meet the other half.
+            guard let low = points.map(\.z).min(), let high = points.map(\.z).max(), high - low > h / 2 else { continue }
+            for point in points {
+                let cone = r + (topRadius - r) * point.z / h
+                #expect(abs(hypot(point.x, point.y) - cone) < 1e-6, "\(point)")
+            }
+            checked += 1
+        }
+        #expect(checked == 2)
+    }
+
+    @Test(.timeLimit(.minutes(3)))
+    func oppositeQuartersRebuiltFlatShareTheirNeighbours() throws {
+        // Two opposite quarters of a drafted cylinder's cone, each rebuilt bilinear: they share
+        // the caps and the quarters between them but no corner, so each one's edges are re-solved
+        // in turn — the four edges up the wall on the cone, and the caps cut by both chords.
+        let (r, h) = (0.01, 0.02)
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let length = { (value: Double) in CADExpression.constant(.length(value, unit: .meter)) }
+        let profile = try builder.sketch(on: .xy) { _ = $0.circle(center: SketchPoint(x: length(0), y: length(0)), radius: length(r)) }
+        let extrusion = try builder.extrude(profile, distance: length(h), draftAngle: .constant(.angle(10, unit: .degree)))
+        let walls = try faces(of: extrusion, in: builder) { !isPlane($0) }
+        let before = try evaluate(builder)
+        let top = try #require(before.brep.vertices.values.map(\.point).first { abs($0.z - h) < 1e-9 })
+        let topRadius = hypot(top.x, top.y)
+        // Opposite quarters: the first and the one whose corners it does not share.
+        let first = try #require(walls.first)
+        func corners(_ surface: Surface3D) throws -> [Point3D] {
+            guard case let .bSpline(spline) = surface else { return [] }
+            return [spline.controlPoints[0][0], spline.controlPoints[0][spline.controlPoints[0].count - 1]]
+        }
+        let opposite = try #require(try walls.first { wall in
+            try corners(wall.1).allSatisfy { point in try corners(first.1).allSatisfy { (point - $0).length > 1e-6 } }
+        })
+        let rebuilt = try builder.rebuildFaces(target: extrusion, faces: [first.0, opposite.0],
+                                               method: .explicit(SurfaceControlLayout(uDegree: 1, vDegree: 1, uSpans: 1, vSpans: 1)))
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "rebuild"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        let flats = evaluated.brep.faces.values.filter { face in
+            guard case let .bSpline(surface)? = evaluated.brep.geometry.surfaces[face.surfaceID] else { return false }
+            return surface.uDegree == 1 && surface.vDegree == 1
+        }
+        #expect(flats.count == 2)
+        var checked = 0
+        for edgeID in Set(flats.flatMap { face in face.loops.flatMap { evaluated.brep.loops[$0]?.coedges.map(\.edgeID) ?? [] } }) {
+            guard let edge = evaluated.brep.edges[edgeID], let curve = evaluated.brep.geometry.curves[edge.curveID], let trim = edge.trim else { continue }
+            let points = try (0...16).map { try curve.point(at: trim.startParameter + (trim.endParameter - trim.startParameter) * Double($0) / 16,
+                                                             tolerance: .standard) }
+            guard let low = points.map(\.z).min(), let high = points.map(\.z).max(), high - low > h / 2 else { continue }
+            for point in points {
+                #expect(abs(hypot(point.x, point.y) - (r + (topRadius - r) * point.z / h)) < 1e-6, "\(point)")
+            }
+            checked += 1
+        }
+        #expect(checked == 4)
+        _ = rebuilt
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func aWallOfAnOpenBoxWithAnOpenEdgeIsRebuiltInPlace() throws {
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
         let profile = try builder.sketch(on: .xy) { $0.rectangle(width: .constant(.length(40, unit: .millimeter)), height: .constant(.length(20, unit: .millimeter))) }

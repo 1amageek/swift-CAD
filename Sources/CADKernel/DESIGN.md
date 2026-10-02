@@ -871,21 +871,28 @@ along its trimming curve within a quarter of the distance tolerance, so coarse l
 Any face whose new surface keeps within a quarter of the distance tolerance of the old one along
 its trimming curves takes it in place, its edges, vertices and trimming curves kept, whatever its
 neighbours. A coarser refit of a face sharing edges has them re-solved onto its new surface
-(`RebuiltFaceEdgeResolver`) where its neighbours are planes, cylinders or spheres crossing it (their
-signed distances): each corner where the new surface meets its two neighbours (Newton on the new
-surface's parameters), each edge the new surface's crossing of its neighbour between them — the old
-trimming curve with its ends carried onto the new corners, each point slid across it onto the
-neighbour, fitted as the new trimming curve, the edge the surface along it within an eighth of the
-distance tolerance, its trimming curve on a curved neighbour fitted likewise — and the neighbours'
-straight and circular edges run along their own line or circle to the moved corners. Other
-neighbours, a refit touching a neighbour without crossing it, and coarse faces meeting each other or
-sharing a neighbour are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+(`RebuiltFaceEdgeResolver`) where its neighbours cross it, by their signed distances — planes,
+cylinders and spheres in closed form, any other surface (cones, tori, splines) by the foot of the
+point on it, Newton on (S − p)·S_u = (S − p)·S_v = 0 from the old edge's point: each corner where the
+new surface meets its two neighbours (Newton on the new surface's parameters), each edge the new
+surface's crossing of its neighbour between them — the old trimming curve with its ends carried onto
+the new corners, each point slid across it onto the neighbour, fitted as the new trimming curve, the
+edge the surface along it within an eighth of the distance tolerance, its trimming curve on a curved
+neighbour fitted likewise — and the neighbours' edges run along their own line, circle or curve to
+the moved corners, a B-spline cut exactly to the new piece (`BSplineCurveSegmentExtractor`, Boehm
+insertion of both ends) and their old exact trimming curves cut to it (iso-lines, segments and
+B-splines) rather than fitted. An edge the new surface still runs through, ends and all, is kept.
+Coarse faces that share neighbours but no corner are resolved one after another on the patches the
+last left. A refit touching a neighbour without crossing it and coarse faces meeting each other or
+sharing a corner are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
 `FaceRebuildTests` own the explicit layout reproducing a quadratic arch exactly, the extension
 continuing it past its edge with the face kept, a box's top, a cylinder's quarter wall (tangent
 neighbours) and an open box's wall (open and shared edges) rebuilt in place, a cubic arch's wall
 rebuilt as a quadratic with its edges re-solved on its planes (the volume by Green's theorem over
 the new section), a box's round rebuilt flat into the chamfer through its contacts, and a cylinder's
-half wall rebuilt flat into the chord across its caps and its other half (their volumes).
+half wall rebuilt flat into the chord across its caps and its other half (their volumes), a
+drafted cylinder's rational cone quarter rebuilt flat with its edges up the wall on the quarters
+beside it, and two opposite quarters rebuilt flat together.
 
 Remove Nominal Surface is Rebuild Face's `nominal` method: each spline face's surface cut exactly to its parameter extent (`BSplineSurface3D.trimmed`, on the same parameters, so its trimming curves hold and it takes its new surface in place), with no extension; an analytic face has no nominal surface beyond its edges and is refused. `FaceRebuildTests` own an arch extended past its edges and cut back (the same parabola on [0, 1]) and the plane's refusal.
 

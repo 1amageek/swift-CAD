@@ -140,9 +140,11 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             }
         }
         // A coarse face sharing edges has them re-solved onto its new surface where its neighbours
-        // are planes crossing it (`RebuiltFaceEdgeResolver`); such faces neither meet each other nor
-        // share a neighbour.
+        // cross it (`RebuiltFaceEdgeResolver`), one face after another on the patches the last
+        // left: such faces do not meet each other or share a corner, so a neighbour they share has
+        // each one's edges moved apart from the other's.
         var bordered: [FaceID: Set<FaceID>] = [:]
+        var cornersOf: [FaceID: Set<VertexID>] = [:]
         for faceID in coarse {
             let edges = (model.faces[faceID]?.loops ?? []).flatMap { model.loops[$0]?.coedges.map(\.edgeID) ?? [] }
             guard edges.allSatisfy({ facesOfEdge[$0] == 1 }) == false else { continue }
@@ -154,16 +156,21 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                     model.loops[loopID]?.coedges.contains { edges.contains($0.edgeID) } ?? false
                 }
             })
-            guard around.isDisjoint(with: coarse), bordered.values.allSatisfy({ $0.isDisjoint(with: around) }) else {
+            let corners = Set(edges.flatMap { edgeID -> [VertexID] in
+                guard let edge = model.edges[edgeID] else { return [] }
+                return [edge.startVertexID, edge.endVertexID]
+            })
+            guard around.isDisjoint(with: coarse), cornersOf.values.allSatisfy({ $0.isDisjoint(with: corners) }) else {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): faces rebuilt coarser than their edges allow
-                // that meet each other or share a neighbour need their edges re-solved together,
+                // that meet each other or share a corner need their edges re-solved together,
                 // which is not built, so they are refused. Production path:
                 // FaceRebuildFeatureEvaluator. Complete only when such faces are rebuilt together,
                 // verified by two adjacent curved faces rebuilt coarsely.
                 throw failure(.unsupportedCapability, feature.id, tolerance,
-                              "Faces rebuilt coarser than their edges allow are apart, with no neighbour in common.")
+                              "Faces rebuilt coarser than their edges allow are apart, with no corner in common.")
             }
             bordered[faceID] = around
+            cornersOf[faceID] = corners
         }
         // In place: each face takes its new surface, its edges, vertices and trimming curves kept,
         // since the surface is refitted on the face's own parameters and keeps that close to them.
