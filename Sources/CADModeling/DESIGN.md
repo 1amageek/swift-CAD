@@ -410,8 +410,8 @@ curve; a solid's round edge between planes not at a right angle, or concave, tak
 the radius (contacts r·cot(α/2) from the edge, weight sin(α/2)). A `conic` is Plasticity's: the rational
 quadratic through the corner set back as the round of radius `distance` is (r·cot(α/2)), its middle
 weight the arc's sin(α/2) times t/(1 − t), t the tension — so 0.5 is that round exactly, lower
-flatter and higher fuller; a `chordal` is the circular arc whose chord is the distance (contacts at
-distance / (2 sin(α/2))); a `curvature` fillet is the quintic whose first and last three control points lie
+flatter and higher fuller; a `chordal` is set back as the circular arc whose chord is the distance (contacts at
+distance / (2 sin(α/2))), its middle weight that arc's sin(α/2) times t/(1 − t), 0.5 the arc; a `curvature` fillet is the quintic whose first and last three control points lie
 on the faces (zero curvature at the contacts), its handles the tension times a third of the
 distance. `full` (`evaluateFullRound`) takes the two straight edges bounding a center face whose
 other faces are planes along the same direction (`FullRoundLayout`): the round is the circle tangent
