@@ -513,9 +513,27 @@ twist a linear interpolation of θ at N nodes, N chosen from |θ″| ≤ 2|T −
 |1 + t(T − 1)|) so that interpolation stays within half the sweep's allowance, the twist's own
 approximation within the other half; capability planning reports it as the certified straight
 twist, which takes profiles and curve sections alike (an open curve sweeps a sheet). Curved paths
-and the Curve method are not built. `ChordGuideSweepTests` own the quarter-turned rectangle (end
-corners and volume within the allowance), the quarter-turned line's sheet and the refusal without an
-allowance.
+are not built. `ChordGuideSweepTests` own the quarter-turned rectangle (end corners and volume within
+the allowance), the quarter-turned line's sheet and the refusal without an allowance.
+
+### Curve guides
+
+Plasticity's Curve method (doc.plasticity.xyz/solid/sweep): the section is rotated but not scaled;
+the path's contact is a fixed point of the section, the guide's contact is free to move along the
+section. Along a straight path through the section's boundary, a guide curve (any exact B-spline
+whose control points advance along the path, from the section's plane, starting on the section's
+boundary, past the path's end) crosses the station plane at fraction t at the offset g(t) from the
+path. The section's boundary point q(t) as far from the path as g(t), continued from the guide's
+start (sign changes of |C(s) − start| − |g| between 64 samples per span, each sampled minimum refined
+first so roots closing on a tangency are both bracketed), is turned onto it: θ(t) = arg g(t) − arg q(t).
+`PlanarSweepFeatureEvaluator.curveGuideSweep` refines nodes where the linear interpolation of θ,
+checked at seven interior points, strays beyond a quarter of the allowance at the section's radius
+(the contact slides as √t where the guide starts at the foot of the path's perpendicular, so nodes
+crowd there), and hands them to the certified straight twist. A guide that comes nearer the path
+than the side it touches would make the contact jump across the section: a typed
+`sweepGuideContactUnavailable`, never a swept jump. `CurveGuideSweepTests` own the rectangle turned
+by a near-circular quarter guide (volume, the guide's and the path's end on the end cap's boundary)
+and the refused straight guide.
 
 ### Simplify
 

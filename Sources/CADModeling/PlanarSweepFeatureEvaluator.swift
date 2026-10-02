@@ -173,6 +173,10 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             return try chordGuideSweep(sweep, feature: feature, section: section, pathSegments: pathSegments,
                                        frames: frames, guide: guide, values: optionValues, context: context)
         }
+        if sweep.options.guideMethod == .curve, let guide = guideCurves.onlyElement {
+            return try curveGuideSweep(sweep, feature: feature, section: section, pathSegments: pathSegments,
+                                       frames: frames, guide: guide, values: optionValues, context: context)
+        }
         if CertifiedTwistSweepPlan.requested(sweep.options) {
             let plan = try CertifiedTwistSweepPlan(section: section, pathSegments: pathSegments,
                 sweep: sweep, values: optionValues, tolerance: context.tolerance)
@@ -568,6 +572,227 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         turned.twistPositions = positions
         turned.twistAngles = angles
         turned.twistAngle = angles[angles.count - 1]
+        var unguided = sweep
+        unguided.guides = []
+        unguided.options.guideMethod = .point
+        let plan = try CertifiedTwistSweepPlan(section: section, pathSegments: pathSegments, sweep: unguided,
+                                               values: turned, tolerance: tolerance)
+        let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
+            .buildCertifiedTwist(plan, resultKind: sweep.options.resultKind)
+        return try applyBooleanIfNeeded(sweep, featureID: feature.id, toolResult: tool, context: context)
+    }
+
+    /// A Curve guide (Plasticity's Curve method) turns the section about a straight path, unscaled,
+    /// so it touches both: the path at its fixed point of the section, the guide wherever on the
+    /// section that is. At the fraction t of the path the guide crosses the station's plane at the
+    /// offset g(t) from the path; the section's point q(t) as far from the path as that, continued
+    /// from the guide's start on the section, is turned onto it: θ(t) = arg g(t) − arg q(t). The
+    /// certified twist sweeps a linear interpolation of θ on nodes refined until it keeps within a
+    /// quarter of the allowance at the section's radius, the twist's own approximation within half.
+    private func curveGuideSweep(
+        _ sweep: SweepFeature, feature: FeatureNode, section: ResolvedModelingSection,
+        pathSegments: [EvaluatedCurvePathSegment], frames: [SweepPathFrame], guide: EvaluatedCurve,
+        values: SweepOptionValues, context: EvaluationContext
+    ) throws -> EvaluationResult {
+        let tolerance = context.tolerance
+        func failure(_ code: KernelErrorCode, _ message: String) -> KernelError {
+            KernelError(phase: .evaluation, code: code, featureID: feature.id, tolerance: tolerance, message: message)
+        }
+        guard let allowance = values.approximationTolerance, allowance > 0 else {
+            throw failure(.invalidInput, "A Curve-guided sweep needs a positional approximation allowance.")
+        }
+        guard values.twistAngle == 0, sweep.options.twistLaw == nil, values.endScale == 1 else {
+            throw failure(.unsupportedCapability, "A Curve-guided sweep takes no twist or scale of its own.")
+        }
+        guard let start = frames.first?.origin, let end = frames.last?.origin else {
+            throw failure(.invalidInput, "A Curve-guided sweep has no path.")
+        }
+        let axis = try (end - start).normalized(tolerance: tolerance.distance)
+        let length = (end - start).length
+        // The guide runs monotonically along the path from the section's plane past the path's
+        // end, so each station's plane crosses it once: its control points advance along the
+        // axis (a B-spline lies in its control points' hull, so the curve advances with them).
+        let guideSpans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).sectionSpans(from: guide).map(\.curve)
+        func advance(_ point: Point3D) -> Double { (point - start).dot(axis) }
+        let guidePoints = guideSpans.flatMap(\.controlPoints)
+        guard let firstGuidePoint = guidePoints.first, let lastGuidePoint = guidePoints.last else {
+            throw failure(.invalidInput, "A Curve-guided sweep has no guide.")
+        }
+        let direction: Double = advance(lastGuidePoint) >= advance(firstGuidePoint) ? 1 : -1
+        let advances = guidePoints.map { advance($0) * direction }
+        guard zip(advances, advances.dropFirst()).allSatisfy({ $1 >= $0 - tolerance.distance }) else {
+            throw failure(.sweepGuideConstraintUnavailable, "A Curve guide must advance along the path without turning back.")
+        }
+        let contact = direction > 0 ? firstGuidePoint : lastGuidePoint
+        guard abs(advance(contact)) <= tolerance.distance, max(advance(firstGuidePoint), advance(lastGuidePoint)) >= length - tolerance.distance else {
+            throw failure(.sweepGuideContactUnavailable, "A Curve guide must run from the section's plane to the path's end.")
+        }
+        // The guide's offset from the path at the fraction t of the path: where the station's
+        // plane crosses it, by bisection on the span whose ends bracket the station.
+        func guideOffset(at t: Double) throws -> Vector3D {
+            let station = t * length
+            for span in guideSpans {
+                guard case let .closed(lower, upper) = span.domain else { continue }
+                let curve = Curve3D.bSpline(span)
+                let (a, b) = (advance(try curve.point(at: lower, tolerance: tolerance)), advance(try curve.point(at: upper, tolerance: tolerance)))
+                guard min(a, b) - tolerance.distance <= station, station <= max(a, b) + tolerance.distance else { continue }
+                var (low, high) = a <= b ? (lower, upper) : (upper, lower)
+                for _ in 0..<64 {
+                    let middle = 0.5 * (low + high)
+                    if advance(try curve.point(at: middle, tolerance: tolerance)) < station { low = middle } else { high = middle }
+                }
+                let point = try curve.point(at: 0.5 * (low + high), tolerance: tolerance)
+                return point - (start + axis * station)
+            }
+            throw failure(.sweepGuideContactUnavailable, "A Curve guide does not reach a station of the path.")
+        }
+        let g0 = contact - start
+        let e1 = try g0.normalized(tolerance: tolerance.distance)
+        let e2 = axis.cross(e1)
+        let spans: [BSplineCurve3D]
+        switch section {
+        case .profile(let profile, _):
+            spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).profileLoopSpans(from: profile).flatMap { $0.map(\.curve) }
+        case .curve(let curve):
+            spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).sectionSpans(from: curve).map(\.curve)
+        }
+        // The path touches the section: its start lies on the section's boundary.
+        func distance(from point: Point3D, to span: BSplineCurve3D) throws -> Double {
+            guard case let .closed(lower, upper) = span.domain else { return .infinity }
+            let curve = Curve3D.bSpline(span)
+            func at(_ s: Double) throws -> Double { (try curve.point(at: s, tolerance: tolerance) - point).length }
+            var best = (s: lower, d: try at(lower))
+            for k in 1...64 {
+                let s = lower + (upper - lower) * Double(k) / 64
+                let d = try at(s)
+                if d < best.d { best = (s, d) }
+            }
+            var (a, b) = (max(lower, best.s - (upper - lower) / 64), min(upper, best.s + (upper - lower) / 64))
+            let ratio = (5.0.squareRoot() - 1) / 2
+            for _ in 0..<80 {
+                let (c, d) = (b - ratio * (b - a), a + ratio * (b - a))
+                if try at(c) < at(d) { b = d } else { a = c }
+            }
+            return min(best.d, try at(0.5 * (a + b)))
+        }
+        let touches = try spans.contains { try distance(from: start, to: $0) <= tolerance.distance }
+        guard touches else {
+            throw failure(.invalidInput, "A Curve guide's path must touch the section, which turns about that point.")
+        }
+        let radius = spans.flatMap(\.controlPoints).reduce(0.0) { max($0, ($1 - start).length) } * 1.01
+        guard try spans.contains(where: { try distance(from: contact, to: $0) <= tolerance.distance }) else {
+            throw failure(.invalidInput, "A Curve guide must start on the section's boundary.")
+        }
+        // The section's points as far from the path as `distance`, nearest `previous`: sign changes
+        // of |C(s) − start| − distance between 64 samples per span, with each sampled minimum
+        // refined by golden section first, so two roots closing in on a minimum (where the
+        // section's boundary turns tangent to the circle) are both bracketed.
+        func reaching(_ distance: Double, near previous: Point3D) throws -> Point3D? {
+            var best: Point3D?
+            let ratio = (5.0.squareRoot() - 1) / 2
+            for span in spans {
+                guard case let .closed(lower, upper) = span.domain else { continue }
+                let curve = Curve3D.bSpline(span)
+                func f(_ s: Double) throws -> Double { (try curve.point(at: s, tolerance: tolerance) - start).length - distance }
+                var samples = try (0...64).map { k -> (s: Double, f: Double) in
+                    let s = lower + (upper - lower) * Double(k) / 64
+                    return (s, try f(s))
+                }
+                var refined: [(s: Double, f: Double)] = [samples[0]]
+                for k in 1..<samples.count {
+                    if k + 1 < samples.count, samples[k].f <= samples[k - 1].f, samples[k].f <= samples[k + 1].f, samples[k].f > 0 {
+                        var (a, b) = (samples[k - 1].s, samples[k + 1].s)
+                        for _ in 0..<80 {
+                            let (c, d) = (b - ratio * (b - a), a + ratio * (b - a))
+                            if try f(c) < f(d) { b = d } else { a = c }
+                        }
+                        let middle = 0.5 * (a + b)
+                        let value = try f(middle)
+                        if value < samples[k].f {
+                            if middle < samples[k].s { refined.append((middle, value)); refined.append(samples[k]) }
+                            else { refined.append(samples[k]); refined.append((middle, value)) }
+                            continue
+                        }
+                    }
+                    refined.append(samples[k])
+                }
+                samples = refined
+                for k in 1..<samples.count {
+                    let (a, b) = (samples[k - 1], samples[k])
+                    var root: Double?
+                    if a.f == 0 {
+                        root = a.s
+                    } else if a.f * b.f < 0 {
+                        var (low, high, flow) = (a.s, b.s, a.f)
+                        for _ in 0..<60 {
+                            let middle = 0.5 * (low + high), fm = try f(middle)
+                            if (fm < 0) == (flow < 0) { low = middle; flow = fm } else { high = middle }
+                        }
+                        root = 0.5 * (low + high)
+                    }
+                    guard let root else { continue }
+                    let point = try curve.point(at: root, tolerance: tolerance)
+                    if best.map({ (point - previous).length < ($0 - previous).length }) ?? true { best = point }
+                }
+                if let last = samples.last, last.f == 0 {
+                    let point = try curve.point(at: last.s, tolerance: tolerance)
+                    if best.map({ (point - previous).length < ($0 - previous).length }) ?? true { best = point }
+                }
+            }
+            return best
+        }
+        // θ at t, with q continued from `previous` and θ unwrapped toward `reference`.
+        func turn(at t: Double, previous: Point3D, reference: Double) throws -> (angle: Double, contact: Point3D) {
+            let g = try guideOffset(at: t)
+            guard let q = try reaching(g.length, near: previous) else {
+                throw failure(.sweepGuideContactUnavailable, "A Curve guide runs farther from the path than the section reaches.")
+            }
+            let offset = q - start
+            var angle = atan2(g.dot(e2), g.dot(e1)) - atan2(offset.dot(e2), offset.dot(e1))
+            angle += ((reference - angle) / (2 * Double.pi)).rounded() * 2 * Double.pi
+            return (angle, q)
+        }
+        // Nodes refined where the linear interpolation of θ, checked at seven interior points
+        // (each continued from the interval's start), strays by more than a quarter of the
+        // allowance at the section's radius: the contact slides as √t where the guide starts at
+        // the foot of the path's perpendicular, so the nodes crowd there instead of everywhere.
+        // At the start the guide touches the section at its own start, θ = 0.
+        var nodes: [(t: Double, angle: Double, contact: Point3D)] = [(0, 0, contact)]
+        var pending: [Double] = [1]
+        while let upper = pending.last {
+            let lower = nodes[nodes.count - 1]
+            var inner: [(angle: Double, contact: Point3D)] = []
+            var previous = lower.contact, reference = lower.angle
+            for k in 1...8 {
+                let step = try turn(at: lower.t + (upper - lower.t) * Double(k) / 8, previous: previous, reference: reference)
+                (previous, reference) = (step.contact, step.angle)
+                inner.append(step)
+            }
+            let end = inner[7]
+            var deviation = 0.0
+            for k in 1...7 {
+                let fraction = Double(k) / 8
+                deviation = max(deviation, abs(inner[k - 1].angle - (lower.angle + (end.angle - lower.angle) * fraction)))
+            }
+            if radius * deviation <= allowance / 4 || upper - lower.t <= 0x1p-40 {
+                guard radius * deviation <= allowance / 4 else {
+                    throw failure(.sweepGuideContactUnavailable,
+                                  "A Curve guide's contact jumps across the section: the guide comes nearer the path than the side it touches.")
+                }
+                nodes.append((upper, end.angle, end.contact))
+                pending.removeLast()
+            } else {
+                pending.append(0.5 * (lower.t + upper))
+            }
+            guard nodes.count <= 1024 else {
+                throw failure(.resourceLimitExceeded, "A Curve guide turns too sharply for its allowance.")
+            }
+        }
+        var turned = values
+        turned.approximationTolerance = allowance / 2
+        turned.twistPositions = nodes.map(\.t)
+        turned.twistAngles = nodes.map(\.angle)
+        turned.twistAngle = nodes[nodes.count - 1].angle
         var unguided = sweep
         unguided.guides = []
         unguided.options.guideMethod = .point
