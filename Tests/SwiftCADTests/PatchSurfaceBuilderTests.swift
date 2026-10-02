@@ -59,11 +59,13 @@ struct PatchSurfaceBuilderTests {
             Issue.record("Patch surface must retain exact rational B-spline geometry.")
             return
         }
-        #expect(surface.uDegree == 7)
-        #expect(surface.vDegree == 5)
+        // The bilinearly blended Coons patch of cubic u-sides and quadratic v-sides is exactly
+        // cubic by quadratic, on one span each way.
+        #expect(surface.uDegree == 3)
+        #expect(surface.vDegree == 2)
         #expect(surface.isRational == false)
-        #expect(surface.uControlPointCount == 8)
-        #expect(surface.vControlPointCount == 6)
+        #expect(surface.uControlPointCount == 4)
+        #expect(surface.vControlPointCount == 3)
 
         let orientedVMaximum = try boundaries.vMaximumReversed.reversed(
             tolerance: Self.testTolerance
