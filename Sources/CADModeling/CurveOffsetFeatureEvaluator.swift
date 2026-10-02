@@ -187,10 +187,37 @@ public struct CurveOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                     "A certified plane-torus curve offset requires a certified offset-locus implementation."
                 )
             }
-        case .bSpline:
-            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
-                "Exact B-spline curve offsets are not available without an explicit offset-approximation contract."
+        case let .bSpline(spline):
+            // A spline's offset is not a spline: it is approximated within a quarter of the
+            // modeling distance (`PlanarCurveOffsetApproximator`, decided 2026-10-02).
+            let normal = try planeNormal.normalized(tolerance: tolerance.distance)
+            guard let origin = spline.controlPoints.first,
+                  spline.controlPoints.allSatisfy({ abs(($0 - origin).dot(normal)) <= tolerance.distance }) else {
+                throw kernelError(.invalidInput, featureID: featureID, tolerance: tolerance,
+                    "A spline offset runs in the spline's own plane."
+                )
+            }
+            // The approximator moves along T × n, the curve's right about the normal.
+            let shift = side == .left ? -distance : distance
+            let approximator = PlanarCurveOffsetApproximator(tolerance: tolerance)
+            let knots = try approximator.basis(for: spline, normal: normal, reach: distance)
+            let offset = try approximator.offset(spline, normal: normal, shift: shift, knots: knots)
+            guard case let .closed(lower, upper) = offset.domain else {
+                throw kernelError(.invalidInput, featureID: featureID, tolerance: tolerance, "A spline offset is unbounded.")
+            }
+            let parameters = (0...64).map { lower + (upper - lower) * Double($0) / 64 }
+            let evaluated = EvaluatedCurve(
+                sourceFeatureID: featureID,
+                source: .generatedFeature,
+                kind: .spline,
+                points: try parameters.map { try Curve3D.bSpline(offset).point(at: $0, tolerance: tolerance) },
+                plane: source.plane,
+                exactCurve: .bSpline(offset),
+                exactParameterDomain: .closed(lower, upper),
+                exactPointParameters: parameters
             )
+            try evaluated.validate(tolerance: tolerance)
+            return evaluated
         case .implicit:
             throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
                 "Implicit intersection curve offset requires a certified offset-locus implementation."

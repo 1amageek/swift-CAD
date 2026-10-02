@@ -1124,7 +1124,9 @@ sheet thickened like Thicken (`PlanarExtrudeFeatureEvaluator.thickened`), a clos
 closed spline's region drafted or extruded thin (the ring inside it). `ExtrudeSplineOffsetTests`
 own a convex D of a line and a spline drafted and thin to Steiner's volumes;
 `ExtrudeCurveThicknessTests` own a line's slab on its left, a circle's ring, a drafted line, arc and
-spline (its top within the deviation of the true offset) and a closed spline's ring. `ExtrudeDraftTests` own the
+spline (its top within the deviation of the true offset) and a closed spline's ring. Offset Curve
+(`CurveOffsetFeatureEvaluator`) offsets a planar spline through the same approximator, the side
+asked about the plane's normal; `CurveOffsetSplineTests` own both sides within the deviation. `ExtrudeDraftTests` own the
 rectangle frustum's volume and wall angle, the symmetric taper, the circle's cone and the oblique
 refusal.
 
