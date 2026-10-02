@@ -1,18 +1,26 @@
+import Foundation
 import CADCore
 import CADGeometry
 import CADIR
 
 /// Patch from closed curves: the curves joined end to end into one closed loop (or one closed
-/// curve) and the sheet spanning it — the exact trimmed plane of a planar loop, or the exact Coons
-/// patch of a loop that groups into four sides.
+/// curve) and the sheet spanning it — the exact trimmed plane of a planar loop, the exact Coons
+/// patch of a loop with at most four corners, or the `loopFiller`'s smooth trimmed sheet of a loop
+/// with more.
 public struct CurvePatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let sewer: any BRepSewing
     private let surfaceFill: SurfaceFillFeatureEvaluator
     private let sheetEvaluator = BSplineSurfaceFeatureEvaluator()
+    private let loopFiller: (any CurveLoopFilling)?
 
     public init(sewer: any BRepSewing) {
+        self.init(sewer: sewer, loopFiller: nil)
+    }
+
+    package init(sewer: any BRepSewing, loopFiller: (any CurveLoopFilling)?) {
         self.sewer = sewer
         surfaceFill = SurfaceFillFeatureEvaluator(sewer: sewer)
+        self.loopFiller = loopFiller
     }
 
     public func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
@@ -94,14 +102,22 @@ public struct CurvePatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             return EvaluationResult(brep: try BRepModelCombiner().combined([context.brep, sewn.brep]),
                                     subshapes: sewn.subshapes, lineage: sewn.lineage)
         }
-        // Otherwise the loop's four sides span the exact Coons patch.
-        // FIXME(INCOMPLETE_IMPLEMENTATION): a non-planar loop is spanned only through four sides
-        // (`fourSides` groups any loop by its perimeter), so a loop with more than four corners
-        // keeps the others inside sides, each leaving a crease across the exact Coons sheet; a
-        // smooth N-sided fill (XNURBS's solver) is not built. Production path:
-        // CurvePatchFeatureEvaluator for every non-planar curve patch. Complete only when N-sided
-        // loops are spanned smoothly with stated precision, verified by a five-sided non-planar
-        // patch smooth across its interior.
+        // A loop with more than four corners (where it turns sharply) is filled smoothly; one
+        // with at most four is the exact Coons patch of its four sides.
+        var corners = 0
+        for (span, next) in zip(loop, loop.dropFirst() + [loop[0]]) {
+            guard case let .closed(_, upper) = span.domain, case let .closed(lower, _) = next.domain else { continue }
+            let out = try span.differentialGeometry(at: upper, tolerance: tolerance).firstDerivative
+            let into = try next.differentialGeometry(at: lower, tolerance: tolerance).firstDerivative
+            if out.cross(into).length > sin(1e-6) * out.length * into.length || out.dot(into) <= 0 { corners += 1 }
+        }
+        if corners > 4 {
+            guard let loopFiller else {
+                throw KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: feature.id, tolerance: tolerance,
+                                  message: "A loop with more than four corners needs a loop filler to span smoothly.")
+            }
+            return try loopFiller.fill(loop: loop, feature: feature, context: context)
+        }
         let sides = try surfaceFill.fourSides(from: loop, tolerance: tolerance)
         let surface = try ExactCoonsBSplineSurfaceBuilder().build(
             vMinimumBoundary: sides[0], vMaximumBoundary: try sides[2].reversed(tolerance: tolerance),

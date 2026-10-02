@@ -97,10 +97,17 @@ struct CurvePatchTests {
             return id
         }
         #expect(faces.count == 1)
-        // The sheet passes through every corner.
-        let surface = try #require(faces.first.flatMap { evaluated.brep.faces[$0] }.flatMap { evaluated.brep.geometry.surfaces[$0.surfaceID] })
+        // More than four corners: one smooth sheet trimmed by the loop, five edges, passing within
+        // 0.01 mm of every corner (XNURBS's fill, not a Coons patch creased at the extra corners).
+        let face = try #require(faces.first.flatMap { evaluated.brep.faces[$0] })
+        let surface = try #require(evaluated.brep.geometry.surfaces[face.surfaceID])
+        guard case let .bSpline(spline) = surface else {
+            Issue.record("A five-cornered loop's patch is one B-spline sheet.")
+            return
+        }
+        #expect(spline.uDegree == 3 && evaluated.brep.loops[face.loops[0]]?.coedges.count == 5)
         for corner in corners {
-            #expect(try surface.parameterProjection(of: corner, tolerance: .standard).residual < 1e-9)
+            #expect(evaluated.brep.vertices.values.contains { ($0.point - corner).length < 1e-5 })
         }
     }
 }

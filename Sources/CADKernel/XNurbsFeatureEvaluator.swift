@@ -11,7 +11,7 @@ import CADTopology
 /// loop's mean plane, trimmed by the loop: one face whose edges are the sheet along each curve's
 /// trimming curve (fitted within a quarter of the modeling distance), its deviation from the
 /// boundary within the feature's tolerances when it satisfies them.
-struct XNurbsFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
+struct XNurbsFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating, CurveLoopFilling {
     private let sewer: any BRepSewing
     private let surfaceEvaluator = BSplineSurfaceFeatureEvaluator()
 
@@ -60,9 +60,28 @@ struct XNurbsFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
         guard (try ends(loop[loop.count - 1].curve, tolerance).1 - ends(loop[0].curve, tolerance).0).length <= tolerance.distance else {
             throw failure(.invalidInput, feature.id, tolerance, "An XNURBS's boundary does not close; Quad sided spans an open frame.")
         }
+        return try trimmedSheet(loop: loop.map { ($0.curve, xnurbs.boundaries[$0.index].continuity) }, guides: guides,
+                                flatness: xnurbs.flatness, spans: xnurbs.quality.spans,
+                                satisfying: xnurbs.satisfiesTolerances ? (xnurbs.positionTolerance, xnurbs.angleTolerance) : nil,
+                                feature: feature, context: context)
+    }
+
+    /// Patch's smooth fill of a loop with more than four corners: XNURBS's G0 trimmed sheet at its
+    /// defaults (flatness 0.95, Auto quality, within 0.01 mm and 0.1°).
+    func fill(loop: [BSplineCurve3D], feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+        try trimmedSheet(loop: loop.map { ($0, nil) }, guides: [], flatness: 0.95, spans: XNurbsFeature.Quality.auto.spans,
+                         satisfying: (1e-5, 0.1 * Double.pi / 180), feature: feature, context: context)
+    }
+
+    /// One face over the loop's mean plane trimmed by it, each edge the sheet along its curve's
+    /// trimming curve.
+    private func trimmedSheet(loop: [(curve: BSplineCurve3D, continuity: SurfaceEdgeContinuity?)], guides: [BSplineCurve3D],
+                              flatness: Double, spans: Int, satisfying: (position: Double, angle: Double)?,
+                              feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+        let tolerance = context.tolerance
         let centroid = try loop.map { try ends($0.curve, tolerance).0 }.reduce(Vector3D.zero) { $0 + ($1 - .origin) } * (1 / Double(loop.count))
         let boundaries = try loop.map { entry -> XNurbsSurfaceFitter.Boundary in
-            guard let continuity = xnurbs.boundaries[entry.index].continuity else { return .init(curve: entry.curve) }
+            guard let continuity = entry.continuity else { return .init(curve: entry.curve) }
             guard case let .closed(lower, upper) = entry.curve.domain else {
                 throw failure(.invalidInput, feature.id, tolerance, "An XNURBS boundary curve is unbounded.")
             }
@@ -74,8 +93,7 @@ struct XNurbsFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
             ))
         }
         let fit = try XNurbsSurfaceFitter(tolerance: tolerance).fit(
-            boundaries: boundaries, guides: guides, flatness: xnurbs.flatness, spans: xnurbs.quality.spans,
-            satisfying: xnurbs.satisfiesTolerances ? (xnurbs.positionTolerance, xnurbs.angleTolerance) : nil, featureID: feature.id
+            boundaries: boundaries, guides: guides, flatness: flatness, spans: spans, satisfying: satisfying, featureID: feature.id
         )
         // One face trimmed by the loop, each edge the sheet along its curve's trimming curve.
         let surface = Surface3D.bSpline(fit.surface)

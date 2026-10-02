@@ -274,12 +274,12 @@ bridge joined along its share, a floor joined from two pieces trimmed and joined
 `CurvePatchFeatureEvaluator` is Patch from closed curves: each curve's exact spans joined end to end
 from the first (turning those that run the other way) into one closed loop, or one closed curve. A
 planar loop spans its exact trimmed plane, sewn from the spans with their projected parameter
-curves; otherwise the loop's four sides (`SurfaceFillFeatureEvaluator.fourSides`) span the exact
-Coons patch; a loop of more than four corners is grouped into four sides by its perimeter, the
-other corners inside sides leaving creases across the sheet (a smooth N-sided fill is
-`FIXME(INCOMPLETE_IMPLEMENTATION)`). `CurvePatchTests` own a circle's disc and a triangle of lines
-(its area), an arched four-sided loop, a non-planar pentagon's one sheet through its corners and
-the round trip.
+curves; otherwise a loop of at most four corners (where it turns) spans the exact Coons patch of
+its four sides (`SurfaceFillFeatureEvaluator.fourSides`), and one of more is filled by the injected
+`CurveLoopFilling` — CADKernel's XNURBS G0 trimmed sheet at its defaults (within 0.01 mm and 0.1°),
+smooth across the corners. `CurvePatchTests` own a circle's disc and a triangle of lines (its area),
+an arched four-sided loop, a non-planar pentagon's one smooth sheet near its corners and the round
+trip.
 
 ### Square
 

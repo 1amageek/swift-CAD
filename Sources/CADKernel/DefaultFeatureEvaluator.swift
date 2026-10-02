@@ -102,8 +102,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.bSplineSurfaceEvaluator = BSplineSurfaceFeatureEvaluator()
         self.patchSurfaceEvaluator = PatchSurfaceFeatureEvaluator()
         self.surfaceFillEvaluator = SurfaceFillFeatureEvaluator(sewer: sewer)
-        self.curvePatchEvaluator = CurvePatchFeatureEvaluator(sewer: sewer)
         self.xnurbsEvaluator = XNurbsFeatureEvaluator(sewer: sewer)
+        self.curvePatchEvaluator = CurvePatchFeatureEvaluator(sewer: sewer, loopFiller: xnurbsEvaluator)
         self.sheetBridgeEvaluator = SheetBridgeFeatureEvaluator(
             sewer: sewer, resolver: resolver,
             cutter: BRepBodyHalfSpaceCutter(sewer: sewer, applicator: ExactBooleanOperationApplicator()),
