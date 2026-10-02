@@ -64,6 +64,7 @@ private extension FeatureOperation {
              .pipe,
              .edgeCurve,
              .squareSurface,
+             .xnurbs,
              .curvePatch,
              .sheetBridge,
              .loft,

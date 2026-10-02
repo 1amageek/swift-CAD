@@ -448,6 +448,17 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
             }
         }
     }
+    try validateObjectField("xnurbs", in: object, path: "\(path).xnurbs") { feature, featurePath in
+        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["boundaries", "guides", "quadSided", "flatness", "boundaryFlow", "quality",
+                                                                     "satisfiesTolerances", "positionTolerance", "angleTolerance"],
+                                        objectName: featurePath)
+        try validateArrayField("boundaries", in: feature, path: "\(featurePath).boundaries") { side, sidePath in
+            try rejectUnsupportedNativeKeys(in: side, supportedKeys: ["curve", "continuity", "isFree"], objectName: sidePath)
+            if side["continuity"] != nil {
+                try validateObjectField("continuity", in: side, path: "\(sidePath).continuity", using: validateSurfaceEdgeContinuityObject)
+            }
+        }
+    }
     try validateObjectField("loft", in: object, path: "\(path).loft", using: validateLoftFeatureObject)
     try validateObjectField("boolean", in: object, path: "\(path).boolean", using: validateBooleanFeatureObject)
     try validateObjectField("polySpline", in: object, path: "\(path).polySpline", using: validatePolySplineFeatureObject)

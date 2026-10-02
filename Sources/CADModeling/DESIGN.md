@@ -360,9 +360,10 @@ and never relaxed; only what the page calls loose (Free sides, flow, guides) is 
    hard neighbour's direction at a corner is met in least squares along the side, never by
    loosening the neighbour. Normal and Next couple the coordinates, so the system is then assembled
    over all three at once; otherwise the three share one matrix.
-6. **Solve.** Fixed points eliminated, the reduced least-squares system solved by column-pivoted
-   QR; a rank-deficient system (an underdetermined frame such as two collinear curves) is a typed
-   failure, never an arbitrary minimum.
+6. **Solve.** Fixed points eliminated (`FairSurfaceSystem`, shared with XNURBS): rows separable
+   over the coordinates by the normal equations accumulated from their sparse basis products and a
+   Cholesky factor, coupled ones (Normal, Next) by column-pivoted QR; a rank-deficient system (an
+   underdetermined frame such as a lone side) is a typed failure, never an arbitrary minimum.
 7. **Analysis.** Per side: the largest distance to its curve (G0), the largest angle to its face
    (G1) and the largest normal-curvature difference (G2), measured on the result, with the
    tolerance or allowance it is judged against. Hard sides measure within the modeling tolerance;
@@ -374,11 +375,15 @@ higher) sides on the face's own edge curves, so its neighbours keep their edges;
 (the face's edges stay shared). A curved face's continuity certificate keeps its fitted chart's
 control points in the face's closed domain, so an edge along the domain's boundary is not rounded
 off it. XNURBS with Quad sided over four sides is Square. XNURBS over
-N sides (or Quad sided off) fits one sheet over the boundary's best-fit plane: the projected
-boundary's bounding rectangle is the parameter domain, the grid Quality's (Auto 3 × 3, High 6 × 6,
-Max 12 × 12 spans, degree 3, 5 at G2), the boundary points hard rows at G0, guides weighted
-position rows, the same fairness; the face is trimmed by the boundary's pcurves (their projection)
-and its edges are the boundary curves with the measured deviation as their tolerance. Satisfy
+N sides (or Quad sided off) fits one sheet over the boundary's mean plane (`XNurbsSurfaceFitter`):
+the projected boundary's bounding rectangle, widened by 5 %, is the parameter domain, the grid
+Quality's (Auto 3 × 3, High 6 × 6, Max 12 × 12 spans, degree 3, 5 at G2), the boundary's points
+(Gauss points over each of its spans cut into twice the sheet's spans) and guides' points rows
+weighted 10⁸ against the same fairness, G1 and G2 further separable passes holding the
+cross-boundary first and second derivatives in the face's tangent plane and at its normal
+curvature; the face is trimmed by the boundary's exact projections and its edges are the sheet
+along them (fitted within a quarter of the modeling distance), the boundary's deviation measured
+at 64 points per curve. Satisfy
 tolerances refines the grid (doubling spans up to Max) until the boundary's position deviation and
 cross-angle meet the stated tolerances and fails otherwise; without it the measured values are
 reported. Tension applies only with Quad sided; flow off Quad sided behaves as Normal. `SquareSurfaceFitterTests` own Degree and Spans

@@ -1656,6 +1656,13 @@ public struct DocumentBuilder {
         return featureID
     }
 
+    public mutating func xnurbs(_ xnurbs: XNurbsFeature, named name: String? = nil) throws -> FeatureID {
+        try xnurbs.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .xnurbs(xnurbs))
+        return featureID
+    }
+
     @discardableResult
     public mutating func loft(
         sections: [LoftSectionReference],

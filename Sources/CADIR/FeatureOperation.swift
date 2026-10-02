@@ -12,6 +12,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case pipe(PipeFeature)
     case edgeCurve(EdgeCurveFeature)
     case squareSurface(SquareSurfaceFeature)
+    case xnurbs(XNurbsFeature)
     case curvePatch(CurvePatchFeature)
     case sheetBridge(SheetBridgeFeature)
     case loft(LoftFeature)
@@ -85,6 +86,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case pipe
         case edgeCurve
         case squareSurface
+        case xnurbs
         case curvePatch
         case sheetBridge
         case loft
@@ -185,6 +187,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .squareSurface:
             try container.validateOnlyExpectedKeys([.kind, .squareSurface], in: decoder)
             self = .squareSurface(try container.decode(SquareSurfaceFeature.self, forKey: .squareSurface))
+        case .xnurbs:
+            try container.validateOnlyExpectedKeys([.kind, .xnurbs], in: decoder)
+            self = .xnurbs(try container.decode(XNurbsFeature.self, forKey: .xnurbs))
         case .curvePatch:
             try container.validateOnlyExpectedKeys([.kind, .curvePatch], in: decoder)
             self = .curvePatch(try container.decode(CurvePatchFeature.self, forKey: .curvePatch))
@@ -401,6 +406,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .squareSurface(square):
             try container.encode(Kind.squareSurface, forKey: .kind)
             try container.encode(square, forKey: .squareSurface)
+        case let .xnurbs(xnurbs):
+            try container.encode(Kind.xnurbs, forKey: .kind)
+            try container.encode(xnurbs, forKey: .xnurbs)
         case let .curvePatch(patch):
             try container.encode(Kind.curvePatch, forKey: .kind)
             try container.encode(patch, forKey: .curvePatch)

@@ -27,7 +27,7 @@ public struct SquareSideAnalyzer {
         }).first, case let .closed(u0, u1) = sheet.uDomain, case let .closed(v0, v1) = sheet.vDomain else {
             throw refusal("The Square has no evaluated sheet to analyze.", featureID, tolerance)
         }
-        let curves = try SquareSurfaceFeatureEvaluator.sideCurves(of: square, curves: document.curves, tolerance: tolerance, featureID: featureID)
+        let curves = try SquareSurfaceFeatureEvaluator.sideCurves(of: square.sides, curves: document.curves, tolerance: tolerance, featureID: featureID)
         // The sheet's boundaries v = v0, u = u1, v = v1, u = u0 as (u, v) of a parameter along them.
         let boundaries: [(Double) -> (Double, Double)] = [{ ($0, v0) }, { (u1, $0) }, { ($0, v1) }, { (u0, $0) }]
         let ranges = [(u0, u1), (v0, v1), (u0, u1), (v0, v1)]

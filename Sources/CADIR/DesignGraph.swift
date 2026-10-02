@@ -194,6 +194,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 try edgeCurve.validate()
             case let .squareSurface(square):
                 try square.validate()
+            case let .xnurbs(xnurbs):
+                try xnurbs.validate()
             case let .curvePatch(patch):
                 try patch.validate()
             case let .sheetBridge(bridge):
@@ -716,6 +718,16 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                   square.inputs.allSatisfy({ input in nodes[input.featureID]?.outputs.contains(where: { $0.role == input.role }) == true }),
                   outputRoles == [.sheet] else {
                 throw FeatureEvaluationError.invalidGraph("A Square consumes its side curves and continuity bodies and declares one sheet output.")
+            }
+        case .xnurbs:
+            guard case let .xnurbs(xnurbs) = node.operation else {
+                throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected an xnurbs operation.")
+            }
+            try xnurbs.validate()
+            guard node.inputs == xnurbs.inputs,
+                  xnurbs.inputs.allSatisfy({ input in nodes[input.featureID]?.outputs.contains(where: { $0.role == input.role }) == true }),
+                  outputRoles == [.sheet] else {
+                throw FeatureEvaluationError.invalidGraph("An XNURBS consumes its boundary and guide curves and continuity bodies and declares one sheet output.")
             }
         case .loft:
             try validateLoftContract(node, outputRoles: outputRoles, tolerance: tolerance)

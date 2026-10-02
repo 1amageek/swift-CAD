@@ -325,11 +325,12 @@ extension KernelCapabilities {
       operation: "squareSurface",
       topology: .sheetBody,
       inputs: [
-        "fourDistinctCurvesMeetingEndToEndAnyOrderOrDirection",
-        "optionalTangentOrCurvatureContinuityPerSideWithThePlanarFaceBesideABodyEdge",
+        "twoToFourDistinctCurvesFramingAFourSidedFrameAnyOrderOrDirection",
+        "perSideFreeG0OrTangentOrCurvatureContinuityWithTheFaceBesideABodyEdge",
+        "degreeSpansFlatnessWeightAndBoundaryFlowOptions",
       ],
       outputs: [
-        "oneExactBSplineSheetCoonsAtG0HermiteBooleanSumAlongContinuousSides",
+        "oneBSplineSheetFittedIntoItsDegreeAndSpansWithItsHardSidesExact",
       ],
       fixtures: [
         "SquareSurfaceTests",
@@ -343,6 +344,33 @@ extension KernelCapabilities {
       additionalPublicAPIs: [
         "CADModeling.SquareSurfaceFeatureEvaluator",
         "DocumentBuilder.square",
+      ]
+    ),
+    feature(
+      id: "MODEL-XNURBS-001",
+      operation: "xnurbs",
+      topology: .sheetBody,
+      inputs: [
+        "twoOrMoreBoundaryCurvesClosingIntoALoopOrTwoToFourFramingAQuad",
+        "optionalTangentOrCurvatureContinuityPerBoundaryWithTheFaceBesideABodyEdge",
+        "optionalOpenProfileGuideCurves",
+      ],
+      outputs: [
+        "oneTrimmedBSplineSheetOverTheLoopsMeanPlaneWithinStatedTolerancesOrSquaresUntrimmedSheetWhenQuadSided",
+      ],
+      fixtures: [
+        "XNurbsTests",
+      ],
+      status: .partial,
+      failureCodes: [
+        .invalidInput,
+        .missingReference,
+        .classificationFailure,
+        .singularSystem,
+        .resourceLimitExceeded,
+      ],
+      additionalPublicAPIs: [
+        "DocumentBuilder.xnurbs",
       ]
     ),
     feature(

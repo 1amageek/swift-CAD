@@ -174,6 +174,25 @@ public enum FeatureNodeFactory {
                                    outputs: [FeatureOutput(role: .sheet)])
             }
             return try run()
+        case .xnurbs:
+            func run() throws -> FeatureNode {
+                guard case let .xnurbs(xnurbs) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try xnurbs.validate()
+                for boundary in xnurbs.boundaries {
+                    try validateCurveSource(boundary.curve.featureID, owner: "XNURBS boundary", in: document)
+                    if let continuity = boundary.continuity {
+                        try validateSource(continuity.source, role: continuity.bodyRole, in: document)
+                    }
+                }
+                for guide in xnurbs.guides {
+                    try validateCurveSource(guide.featureID, owner: "XNURBS guide", in: document)
+                }
+                return FeatureNode(id: id, name: name, operation: operation, inputs: xnurbs.inputs,
+                                   outputs: [FeatureOutput(role: .sheet)])
+            }
+            return try run()
         case .edgeCurve:
             func run() throws -> FeatureNode {
                 guard case let .edgeCurve(edgeCurve) = operation else {

@@ -299,6 +299,7 @@ struct DocumentEvaluationEngine {
                  .pipe,
                  .edgeCurve,
                  .squareSurface,
+                 .xnurbs,
                  .curvePatch,
                  .sheetBridge,
                  .loft,

@@ -28,7 +28,7 @@ public struct SquareSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                               message: "SquareSurfaceFeatureEvaluator requires a Square feature.")
         }
         try square.validate()
-        let curves = try Self.sideCurves(of: square, curves: context.curves, tolerance: tolerance, featureID: feature.id)
+        let curves = try Self.sideCurves(of: square.sides, curves: context.curves, tolerance: tolerance, featureID: feature.id)
         let frame = try SquareFrameBuilder(tolerance: tolerance).frame(of: curves, featureID: feature.id)
         // A Free side frames the exact sheet as a curve but takes no continuity.
         let continuities = frame.map { side in side.given.flatMap { square.sides[$0].isFree ? nil : square.sides[$0].continuity } }
@@ -114,10 +114,10 @@ public struct SquareSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         ), rotation)
     }
 
-    /// The Square's given side curves, in its order, each one exact B-spline.
-    package static func sideCurves(of square: SquareSurfaceFeature, curves: [FeatureID: [EvaluatedCurve]],
+    /// The given side curves, in order, each one exact B-spline.
+    package static func sideCurves(of sides: [SquareSide], curves: [FeatureID: [EvaluatedCurve]],
                                    tolerance: ModelingTolerance, featureID: FeatureID) throws -> [BSplineCurve3D] {
-        try square.sides.map { side -> BSplineCurve3D in
+        try sides.map { side -> BSplineCurve3D in
             let evaluated = try ResolvedModelingSection.resolveCurve(side.curve, from: curves[side.curve.featureID], tolerance: tolerance)
             guard evaluated.isClosed == false else {
                 throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,

@@ -15,6 +15,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
     private let patchSurfaceEvaluator: PatchSurfaceFeatureEvaluator
     private let surfaceFillEvaluator: SurfaceFillFeatureEvaluator
     private let curvePatchEvaluator: CurvePatchFeatureEvaluator
+    private let xnurbsEvaluator: XNurbsFeatureEvaluator
     private let sheetBridgeEvaluator: SheetBridgeFeatureEvaluator
     private let faceLoopOffsetEvaluator: FaceLoopOffsetFeatureEvaluator
     private let edgeOffsetEvaluator: EdgeOffsetFeatureEvaluator
@@ -102,6 +103,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.patchSurfaceEvaluator = PatchSurfaceFeatureEvaluator()
         self.surfaceFillEvaluator = SurfaceFillFeatureEvaluator(sewer: sewer)
         self.curvePatchEvaluator = CurvePatchFeatureEvaluator(sewer: sewer)
+        self.xnurbsEvaluator = XNurbsFeatureEvaluator(sewer: sewer)
         self.sheetBridgeEvaluator = SheetBridgeFeatureEvaluator(
             sewer: sewer, resolver: resolver,
             cutter: BRepBodyHalfSpaceCutter(sewer: sewer, applicator: ExactBooleanOperationApplicator()),
@@ -241,6 +243,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         case .pipe: return PipeFeatureEvaluator(sweep: sweepEvaluator)
         case .edgeCurve: return EdgeCurveFeatureEvaluator()
         case .squareSurface: return SquareSurfaceFeatureEvaluator()
+        case .xnurbs: return xnurbsEvaluator
         case .curvePatch: return curvePatchEvaluator
         case .sheetBridge: return sheetBridgeEvaluator
         case .loft: return loftEvaluator

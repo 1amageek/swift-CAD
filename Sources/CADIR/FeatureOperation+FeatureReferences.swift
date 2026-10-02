@@ -124,6 +124,27 @@ extension FeatureOperation {
                 return result
             }
             return .squareSurface(feature)
+        case .xnurbs(var feature):
+            feature.boundaries = try feature.boundaries.map { side in
+                var result = side
+                guard case let .curve(curve) = try section(.curve(side.curve)) else {
+                    throw FeatureEvaluationError.invalidGraph("An XNURBS boundary's curve remapped to another section kind.")
+                }
+                result.curve = curve
+                if var continuity = side.continuity {
+                    continuity.source = try transform(continuity.source)
+                    continuity.edge = try subshape(continuity.edge)
+                    result.continuity = continuity
+                }
+                return result
+            }
+            feature.guides = try feature.guides.map { guide in
+                guard case let .curve(curve) = try section(.curve(guide)) else {
+                    throw FeatureEvaluationError.invalidGraph("An XNURBS guide's curve remapped to another section kind.")
+                }
+                return curve
+            }
+            return .xnurbs(feature)
         case .edgeCurve(var feature):
             feature.source = try transform(feature.source)
             return .edgeCurve(feature)

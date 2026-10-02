@@ -51,6 +51,29 @@ package struct ExactEdgeContinuitySupport: Sendable {
         }
     }
 
+    /// The face's normal curvature at `point` along the tangent direction nearest `direction`,
+    /// signed about `normal` (a unit normal of the face there): zero for a plane.
+    package func normalCurvature(at point: Point3D, along direction: Vector3D, normal: Vector3D,
+                                 tolerance: ModelingTolerance) throws -> Double {
+        guard case let .curved(surface, _, _, _) = face else { return 0 }
+        let projected = try surface.parameterProjection(of: point, tolerance: tolerance)
+        let geometry = try surface.differentialGeometry(u: projected.u, v: projected.v, tolerance: tolerance)
+        let (su, sv) = (geometry.tangentU, geometry.tangentV)
+        let (e, f, g) = (su.dot(su), su.dot(sv), sv.dot(sv))
+        let determinant = e * g - f * f
+        guard determinant > 0 else {
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance, message: "A degenerate face has no curvature.")
+        }
+        let (p, q) = (direction.dot(su), direction.dot(sv))
+        let (a, b) = ((g * p - f * q) / determinant, (e * q - f * p) / determinant)
+        let first = e * a * a + 2 * f * a * b + g * b * b
+        guard first > 0 else {
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance, message: "A curvature direction lies off the face.")
+        }
+        return (geometry.secondDerivativeUU.dot(normal) * a * a + 2 * geometry.secondDerivativeUV.dot(normal) * a * b
+            + geometry.secondDerivativeVV.dot(normal) * b * b) / first
+    }
+
     /// The rows leaving the face across `span`, one per control point: for a plane the unit
     /// directions at the control points' Greville abscissae, in the plane; beside a curved face the
     /// rows whose (rational) spline over `span`'s basis takes the unit leaving direction at each

@@ -33,6 +33,7 @@ struct KernelCapabilityContractTests {
       "MODEL-PIPE-001",
       "MODEL-EDGE-CURVE-001",
       "MODEL-SQUARE-001",
+      "MODEL-XNURBS-001",
       "MODEL-CURVE-PATCH-001",
       "MODEL-SHEET-BRIDGE-001",
       "MODEL-LOFT-001",

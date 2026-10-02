@@ -28,7 +28,7 @@ public extension FeatureOperation {
                 .union((sweep.options.twistLaw ?? []).reduce(into: Set<ParameterID>()) {
                     $0.formUnion($1.angle.referencedParameterIDs)
                 })
-        case .edgeCurve, .squareSurface, .curvePatch:
+        case .edgeCurve, .squareSurface, .xnurbs, .curvePatch:
             return []
         case let .sheetBridge(bridge):
             return bridge.expressions.reduce(into: Set<ParameterID>()) { $0.formUnion($1.referencedParameterIDs) }
