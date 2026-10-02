@@ -241,5 +241,68 @@ struct DraftFaceTests {
         // the exact Boolean cannot yet unite that slab, so the draft is refused, not approximated.
         #expect(throws: KernelError.self) { _ = try notchWallDrafted70(grow: .none) }
     }
+
+    /// A 40 × 20 mm block (centred) whose top is a cylinder along x (radius 30 mm, axis at y = 0,
+    /// z = -15), its top matched onto a roller of another body; and the block's feature.
+    private func cylinderToppedBlock(_ builder: inout DocumentBuilder) throws -> FeatureID {
+        let profile = try builder.sketch(on: .xy) { $0.rectangle(width: millimeters(40), height: millimeters(20)) }
+        let box = try builder.extrude(profile, distance: millimeters(10))
+        // On the YZ plane sketch x is world y and sketch y is world z.
+        let circle = try builder.sketch(on: .yz) { _ = $0.circle(center: SketchPoint(x: millimeters(0), y: millimeters(-15)), radius: millimeters(30)) }
+        let roller = try builder.extrude(circle, distance: millimeters(40))
+        let rollerFace = try #require(try faces(in: builder, of: roller) { surface in
+            if case .cylinder = surface { return true }
+            if case .analytic(.cylinder) = surface { return true }
+            return false
+        }.first)
+        let top = try #require(try faces(in: builder, of: box) { plane($0).map { $0.normal.z > 0.5 && abs($0.origin.z - 0.010) < 1e-9 } ?? false }.first)
+        return try builder.matchFace(target: box, faces: [top], source: roller, referenceFace: rollerFace)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aWallTurnsAboutItsStraightEdgeOnACurvedReference() throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let block = try cylinderToppedBlock(&builder)
+        let isCylinder: (Surface3D) -> Bool = { surface in
+            if case .cylinder = surface { return true }
+            if case .analytic(.cylinder) = surface { return true }
+            return false
+        }
+        let top = try #require(try faces(in: builder, of: block, where: isCylinder).first)
+        let wall = try faces(in: builder, of: block) { plane($0).map { abs($0.normal.y - 1) < 1e-9 } ?? false }
+        #expect(wall.count == 1)
+        _ = try builder.faceDraft(target: block, faces: wall, neutralFace: top, angle: degrees(30))
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        try model.validate(level: .volumetric, tolerance: .standard)
+        // The wall (y = 10) turns about its top edge (z = h = √800 − 15), pulled along the
+        // cylinder's normal there (0, 1/3, √8/3): its rulings run down along −pull + across·tan 30°,
+        // moving out by k mm per mm of drop, which adds ½ h² k mm² over the 40 mm.
+        let pull = Vector3D(x: 0, y: 1.0 / 3, z: 8.0.squareRoot() / 3)
+        let across = Vector3D(x: 0, y: 8.0.squareRoot() / 3, z: -1.0 / 3)
+        let running = pull * -1 + across * tan(30 * Double.pi / 180)
+        let k = running.y / -running.z
+        let h = 800.0.squareRoot() - 15
+        let arcArea = 10 * 800.0.squareRoot() + 900 * asin(1.0 / 3)
+        let expected = (40 * (arcArea - 300) + 40 * h * h * k / 2) * 1e-9
+        // The model also holds the roller, π 30² 40 mm³.
+        let volume = try model.volume(tolerance: .standard) - Double.pi * 900 * 40 * 1e-9
+        #expect(abs(volume - expected) < 1e-12, "\(volume) vs \(expected)")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aWallMeetingACurvedReferenceAlongAnArcIsRefused() throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let block = try cylinderToppedBlock(&builder)
+        let top = try #require(try faces(in: builder, of: block) { surface in
+            if case .cylinder = surface { return true }
+            if case .analytic(.cylinder) = surface { return true }
+            return false
+        }.first)
+        // The end wall (x = 20) meets the cylinder along an arc: it would turn into a ruled
+        // surface, which is not built, so the draft is refused rather than approximated.
+        let end = try faces(in: builder, of: block) { plane($0).map { $0.normal.x > 0.5 } ?? false }
+        _ = try builder.faceDraft(target: block, faces: end, neutralFace: top, angle: degrees(30))
+        #expect(throws: KernelError.self) { _ = try CADPipeline(tolerance: .standard).evaluate(builder.build()) }
+    }
 }
 

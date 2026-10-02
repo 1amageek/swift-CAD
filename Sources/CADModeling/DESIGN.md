@@ -1035,7 +1035,11 @@ and bodies with curved edges or faces (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Draf
 plane (the reference face's plane, moved by the offset): the page's pivot. Running against the
 pull (into the body from the reference face) the face leans out by the angle, so beyond the plane
 along the pull it leans in — a face crossing the plane is not split, it simply passes through its
-pivot line (a plane) or circle (a cone from a cylinder along the pull). A hole's wall then meets
+pivot line (a plane) or circle (a cone from a cylinder along the pull). A curved reference face has no
+plane to move (Offset is refused): each planar face turns about the straight edge it shares with
+it, pulled along the reference's outward normal there, which must hold along the edge (a face
+meeting it along a curve would become a ruled surface and is refused,
+`FIXME(INCOMPLETE_IMPLEMENTATION)`). A hole's wall then meets
 the turned face along an ellipse, whose pcurve on the cylinder is projected exactly.
 `PushFaceTests`, `DraftFaceTests` and `MatchFaceTests` prove boxes, rounded boxes,
 cylinders, holes, adjacent angles, pyramid and cone frustums and placed references
@@ -1044,7 +1048,8 @@ wall by each mode (25 × 20, 20 × 20 and the 15 × 10 bar past the wall), and a
 four walls and a cylinder drafted about a mid-height neutral plane (one plane through it, one
 frustum, one cone), a U-shaped wall crossed four times, a drilled wall turning through its hole, and a notch wall
 drafted 70° past the block's end under Moving (200 + 50 t mm² of section) and Fixed (300 − 50 / t
-mm²) with None's refusal.
+mm²) with None's refusal, and a wall turned about its straight edge on a cylinder top with the
+arc-edged end wall's refusal.
 
 `FaceRemovalHealer` heals a solid over faces taken out of it (Delete Face with
 `heals`, and Remove Fillets From Shell): the faces around keep their surfaces and

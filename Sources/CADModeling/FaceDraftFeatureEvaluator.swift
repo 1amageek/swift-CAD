@@ -78,23 +78,36 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         }
         var model = context.brep
         // The neutral plane and the pull direction: the neutral face's plane, moved along its
-        // outward side by the offset, and that outward side.
-        guard let neutralFace = model.faces[neutralFaceID], let neutralSurface = model.geometry.surfaces[neutralFace.surfaceID],
-              let neutralPlane = try DefaultPlanarSurfaceResolver().exactPlane(for: neutralSurface, tolerance: tolerance) else {
-            throw kernelError(.unsupportedCapability, featureID: feature.id, subshapeID: draft.neutralFace.subshapeID, tolerance: tolerance,
-                              "Face draft needs a planar neutral face.")
+        // outward side by the offset, and that outward side. A curved reference has no plane to
+        // move: each face turns about the edge it shares with it, pulled along its outward side
+        // there.
+        guard let neutralFace = model.faces[neutralFaceID], let neutralSurface = model.geometry.surfaces[neutralFace.surfaceID] else {
+            throw TopologyError.missingReference("Face draft neutral face is missing.")
         }
-        let planeNormal = try neutralPlane.normal.normalized(tolerance: tolerance.distance)
-        let pull = neutralFace.orientation == .forward ? planeNormal : planeNormal * -1
-        let neutralOrigin = neutralPlane.origin + pull * neutralOffset
+        let neutralPlane = try DefaultPlanarSurfaceResolver().exactPlane(for: neutralSurface, tolerance: tolerance)
+        if neutralPlane == nil, neutralOffset != 0 {
+            throw kernelError(.invalidInput, featureID: feature.id, subshapeID: draft.neutralFace.subshapeID, tolerance: tolerance,
+                              "Face draft offsets only a planar reference face.")
+        }
+        var hinges: [FaceID: (pull: Vector3D, origin: Point3D)] = [:]
+        for faceID in faceIDs {
+            if let neutralPlane {
+                let planeNormal = try neutralPlane.normal.normalized(tolerance: tolerance.distance)
+                let pull = neutralFace.orientation == .forward ? planeNormal : planeNormal * -1
+                hinges[faceID] = (pull, neutralPlane.origin + pull * neutralOffset)
+            } else {
+                hinges[faceID] = try sharedEdgeHinge(of: faceID, reference: neutralFace, referenceSurface: neutralSurface,
+                                                     featureID: feature.id, model: model, tolerance: tolerance)
+            }
+        }
 
         var replacements: [FaceID: FaceSurfaceReplacementRebuilder.Replacement] = [:]
         for faceID in faceIDs.sorted() {
-            guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
+            guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID], let hinge = hinges[faceID] else {
                 throw TopologyError.missingReference("Face draft face is missing.")
             }
             let drafted = try draftedSurface(
-                of: face, surface: surface, pull: pull, neutralOrigin: neutralOrigin, angle: angle,
+                of: face, surface: surface, pull: hinge.pull, neutralOrigin: hinge.origin, angle: angle,
                 featureID: feature.id, model: model, tolerance: tolerance
             )
             replacements[faceID] = drafted
@@ -110,6 +123,7 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             // faceDraft feature. Complete when several drafted faces grow together, meeting each
             // other's wedges, verified by a frustum whose walls run into another wall.
             guard replacements.count == 1, let (faceID, replacement) = replacements.first,
+                  let pull = hinges[faceID]?.pull,
                   let grown = try grow(faceID: faceID, replacement: replacement, grow: draft.grow, pull: pull, bodyID: bodyID,
                                        featureID: feature.id, context: context) else {
                 throw error
@@ -267,6 +281,53 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             surface: replacement,
             orientation: after.dot(outwardBefore) > 0 ? .forward : .reversed
         )
+    }
+
+    /// Where a face turns about a curved reference: the straight edge it shares with it, pulled
+    /// along the reference's outward side there, which must not turn along the edge.
+    private func sharedEdgeHinge(
+        of faceID: FaceID,
+        reference: Face,
+        referenceSurface: Surface3D,
+        featureID: FeatureID,
+        model: BRepModel,
+        tolerance: ModelingTolerance
+    ) throws -> (pull: Vector3D, origin: Point3D) {
+        guard let face = model.faces[faceID] else { throw TopologyError.missingReference("Face draft face is missing.") }
+        func edgeIDs(of face: Face) throws -> Set<EdgeID> {
+            try Set(face.loops.flatMap { loopID -> [EdgeID] in
+                guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("Face draft loop is missing.") }
+                return loop.coedges.map(\.edgeID)
+            })
+        }
+        let shared = try edgeIDs(of: face).intersection(edgeIDs(of: reference))
+        // FIXME(INCOMPLETE_IMPLEMENTATION): a face drafted about a curved reference turns only
+        // about one straight shared edge along which the reference's normal stays put, so it stays
+        // a plane; a face meeting the reference along a curve (which would turn into a ruled
+        // surface) or not at all is refused here. Production path: FaceDraftFeatureEvaluator for a
+        // faceDraft whose neutral face is not planar. Complete when a face hinged on a curved edge
+        // of the reference drafts into its ruled surface, verified by an S-topped block's S side.
+        let isStraight: (Edge) -> Bool = { edge in
+            switch model.geometry.curves[edge.curveID] {
+            case .line, .analytic(.line): true
+            default: false
+            }
+        }
+        guard shared.count == 1, let edgeID = shared.first, let edge = model.edges[edgeID], isStraight(edge),
+              let start = model.vertices[edge.startVertexID]?.point, let end = model.vertices[edge.endVertexID]?.point else {
+            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                              "A face drafted about a curved reference turns about one straight edge it shares with it.")
+        }
+        let middle = start + (end - start) * 0.5
+        let normals = try [start, middle, end].map { point -> Vector3D in
+            let normal = try SurfaceFootResolver().foot(of: point, on: referenceSurface, tolerance: tolerance).normal
+            return reference.orientation == .forward ? normal : normal * -1
+        }
+        guard normals.allSatisfy({ $0.cross(normals[0]).length <= tolerance.angle }) else {
+            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                              "A face drafted about a curved reference needs the reference to keep its normal along their edge.")
+        }
+        return (try normals[1].normalized(tolerance: tolerance.distance), middle)
     }
 
     /// The point on both the face's plane and the neutral plane nearest `point`.

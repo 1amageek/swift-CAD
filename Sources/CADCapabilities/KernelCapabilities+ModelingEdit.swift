@@ -132,6 +132,7 @@ extension KernelCapabilities {
         "oneOrMoreUniquePlanarFacesOrCylindersAlongThePullDirectionOwnedByTargetBody",
         "eachDraftedFaceOnOneSideOfTheNeutralPlane",
         "onePlanarNeutralFaceOptionallyOffsetAlongItsOutwardSide",
+        "orOneCurvedNeutralFaceSharingAStraightEdgeOfConstantNormalWithEachPlanarFace",
         "finiteNonzeroIsoclineAngleBelowNinetyDegrees",
         "growMovingFixedOrNone",
       ],
