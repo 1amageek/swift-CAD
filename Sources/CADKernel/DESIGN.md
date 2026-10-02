@@ -809,17 +809,21 @@ these contracts.
 
 ## Hollow
 
-`ShellFeatureEvaluator` hollows a solid to walls of a uniform inward thickness. An inner
-copy of the solid is sewn from its own faces (`DefaultBRepFacePatchExtractor`) in the
-unpublished `hollowInnerBody` stage, its faces tracing to the solid's through the sewing
-lineage. Every copied face is pushed in by the thickness, and each opened face out by it
-(`FaceSurfaceOffsetter`, `FaceSurfaceReplacementRebuilder`), so the copy reaches through the
-openings; the solid less the copy (`BooleanPipeline`, difference) is the hollow, the opened
-faces left as rims around the openings. With no face opened the void is closed inside the
-solid, its own shell. A thickness a face cannot be pushed in by (a round narrower than it, a
-wall it passes) is refused with the feature's own identity. `HollowTests` prove boxes open
-through one or two faces or closed, a cylinder and a rounded box by exact volumes, and the
-refusal.
+`ShellFeatureEvaluator` walls a solid by a uniform thickness, Plasticity's sign: negative
+inside it, positive outside it (the solid itself becomes the cavity). Copies of the solid are
+sewn from its own faces (`DefaultBRepFacePatchExtractor`) in unpublished `hollowInnerBody`
+stages, their faces tracing to the solid's through the sewing lineage, and their faces pushed
+(`FaceSurfaceOffsetter`, `FaceSurfaceReplacementRebuilder`). Inward, one copy has every face
+pushed in by the thickness and each opened face out by it, so it reaches through the openings;
+the solid less the copy (`BooleanPipeline`, difference) is the hollow, the opened faces left as
+rims. Outward, an outer copy has every face but the opened ones pushed out, a second copy only the
+opened ones pushed out (reaching through the outer copy's openings), and the outer less the
+second replaces the solid: its subshapes are removed and the result's lineage composed through
+the copies to the solid's faces. With no face opened the cavity is closed, its own shell. An
+inward thickness a face cannot be pushed in by (a round narrower than it, a wall it passes) is
+refused with the feature's own identity. `HollowTests` prove boxes open through one or two faces
+or closed, a cylinder and a rounded box inward, boxes open and closed and a cylinder outward by
+exact volumes, and the refusal.
 
 ## Align Surface
 

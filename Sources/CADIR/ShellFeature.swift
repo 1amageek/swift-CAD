@@ -1,8 +1,9 @@
 import CADCore
 import CADTopology
 
-/// Hollow: a solid emptied to walls `thickness` thick inside it, opening through `removedFaces`,
-/// or closed inside it when there are none.
+/// Hollow: a solid walled `thickness` thick — outside it when positive (the solid becomes the
+/// cavity), inside it when negative — opening through `removedFaces`, or closed when there are
+/// none.
 public struct ShellFeature: Codable, Hashable, Sendable {
     public let target: ShellTargetReference
     public let removedFaces: [StableSubshapeReference]

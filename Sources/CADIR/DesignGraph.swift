@@ -523,7 +523,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                         actual: thickness.kind
                     )
                 }
-                guard thickness.value > 0.0 else {
+                // Positive walls outward (the solid the cavity), negative inward, as Plasticity's sign.
+                guard thickness.value != 0.0, thickness.value.isFinite else {
                     throw FeatureEvaluationError.invalidDistance(thickness.value)
                 }
             case let .thicken(thicken):
