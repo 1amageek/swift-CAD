@@ -55,6 +55,27 @@ struct SheetExtendTests {
         #expect(apart.bodies.count == 2)
     }
 
+    @Test(.timeLimit(.minutes(2)), arguments: [(SheetExtensionLimit.Mode.minimal, 0.0255), (.inside, 0.0275), (.outside, 0.045)])
+    func aSheetRunsOnToABody(mode: SheetExtensionLimit.Mode, reach: Double) throws {
+        // A prism standing across z = 0 whose near face slants from x = 25.5 mm (at y = -10 mm) to
+        // 27.5 mm (at y = 10 mm) before the sheet's edge at x = 20 mm; its far face at x = 45 mm.
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let sheet = try planarSheet(&builder)
+        let right = try #require(try edges(of: sheet, in: builder) { a, b in abs(a.x - 0.020) < 1e-9 && abs(b.x - 0.020) < 1e-9 }.first)
+        let corners = [(0.025, -0.015), (0.045, -0.015), (0.045, 0.015), (0.028, 0.015)]
+        let base = try builder.sketch(on: .plane(Plane3D(origin: Point3D(x: 0, y: 0, z: -0.005), normal: .unitZ))) { sketch in
+            for (start, end) in zip(corners, corners.dropFirst() + corners.prefix(1)) {
+                _ = sketch.line(from: SketchPoint(x: meters(start.0), y: meters(start.1)), to: SketchPoint(x: meters(end.0), y: meters(end.1)))
+            }
+        }
+        let prism = try builder.extrude(base, distance: millimeters(10))
+        _ = try builder.extendSheet(target: sheet, edges: [right], distance: millimeters(1), shape: .natural,
+                                    limit: SheetExtensionLimit(body: prism, mode: mode))
+        let model = try evaluate(builder).brep
+        let sheetPoints = model.vertices.values.map(\.point).filter { abs($0.z) < 1e-12 && abs(abs($0.y) - 0.01) < 1e-12 }
+        #expect(abs((sheetPoints.map(\.x).max() ?? 0) - reach) < 1e-9, "\(mode)")
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func edgesMeetingAtACornerAreRefused() throws {
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)

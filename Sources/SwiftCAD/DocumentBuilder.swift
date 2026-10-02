@@ -554,9 +554,10 @@ public struct DocumentBuilder {
     @discardableResult
     public mutating func extendSheet(
         target: FeatureID, edges: [StableSubshapeReference], distance: CADExpression,
-        shape: SheetExtensionShape = .natural, modifies: Bool = true, named name: String? = nil
+        shape: SheetExtensionShape = .natural, modifies: Bool = true, limit: SheetExtensionLimit? = nil, named name: String? = nil
     ) throws -> FeatureID {
-        let feature = SheetExtendFeature(target: PatternTargetReference(featureID: target), edges: edges, distance: distance, shape: shape, modifies: modifies)
+        let feature = SheetExtendFeature(target: PatternTargetReference(featureID: target), edges: edges, distance: distance, shape: shape,
+                                         modifies: modifies, limit: limit)
         try feature.validate()
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .sheetExtend(feature))

@@ -93,8 +93,12 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         var strips: [BRepSewingFacePatch] = []
         for (ordinal, edgeID) in chosen.enumerated() {
             guard let use = coedgeOfEdge[edgeID]?.first else { continue }
+            let reach = try extend.limit.map { limit in
+                try limitedDistance(edgeID: edgeID, faceID: use.face, coedge: use.coedge, shape: extend.shape, limit: limit,
+                                    featureID: feature.id, context: context)
+            } ?? distance
             strips.append(try strip(
-                edgeID: edgeID, faceID: use.face, coedge: use.coedge, distance: distance, shape: extend.shape,
+                edgeID: edgeID, faceID: use.face, coedge: use.coedge, distance: reach, shape: extend.shape,
                 stableID: "sheet-extend:\(ordinal)", featureID: feature.id, context: context
             ))
         }
@@ -122,6 +126,65 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         let combined = try BRepModelCombiner().combined([model, sewn.brep])
         try combined.validate(level: .exact, tolerance: tolerance)
         return EvaluationResult(brep: combined, subshapes: sewn.subshapes, removedSubshapeIDs: [], lineage: sewn.lineage)
+    }
+
+    /// How far an edge runs on straight across itself to reach the limit's body: rays from points
+    /// along the edge, across it in the face's tangent plane, meet the body's faces — the least
+    /// first meeting (Minimal), the greatest first meeting (Inside, all of the edge at the near
+    /// side) or the greatest first leaving (Outside, all of it through).
+    private func limitedDistance(edgeID: EdgeID, faceID: FaceID, coedge: Coedge, shape: SheetExtensionShape,
+                                 limit: SheetExtensionLimit, featureID: FeatureID, context: EvaluationContext) throws -> Double {
+        let model = context.brep
+        let tolerance = context.tolerance
+        guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID],
+              let edge = model.edges[edgeID], let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else {
+            throw TopologyError.missingReference("An extended edge's geometry is missing.")
+        }
+        let planar = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance)
+        guard planar != nil || shape == .linear else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): a curved extension (Natural, Reflective or Soft
+            // past a curved face) runs to a body along its own surface, which is not measured, so
+            // Limit takes straight extensions only. Production path: SheetExtendFeatureEvaluator.
+            // Complete only when a curved extension stops on a body, verified by an arch run to a box.
+            throw failure(.unsupportedCapability, featureID, tolerance, "Extend Sheet runs to a body along straight extensions: planar faces, or Linear.")
+        }
+        let target = try BodyTopologyScope(bodyID: try context.bodyID(generatedBy: limit.body), model: model)
+        let faceIDs = target.references.compactMap { reference -> FaceID? in
+            if case let .face(id) = reference { return id }
+            return nil
+        }
+        let crossings = BRepRayFaceCrossings(intersector: DefaultCurveSurfaceIntersector(),
+                                             facePointContainment: DefaultFacePointContainmentTester())
+        let outward = face.orientation == .forward ? 1.0 : -1.0
+        let forward = coedge.orientation == .forward
+        var reaches: [Double] = []
+        for index in 0...8 {
+            let t = trim.startParameter + (trim.endParameter - trim.startParameter) * Double(index) / 8
+            let point = try curve.point(at: t, tolerance: tolerance)
+            let uv = try surface.parameterProjection(of: point, tolerance: tolerance)
+            let normal = try surface.normal(u: uv.u, v: uv.v, tolerance: tolerance) * outward
+            // The loop runs with the face on its left about the outward normal: across, away from it.
+            let tangent = try BRepSurfaceMeetingSolver(tolerance: tolerance).tangent(of: curve, at: t) * (forward ? 1 : -1)
+            let away = try tangent.cross(normal).normalized(tolerance: tolerance.distance)
+            let found = try crossings.crossings(from: point, direction: away, upperBound: 1e6, faceIDs: faceIDs, model: model,
+                                                containmentSession: nil, tolerance: tolerance)
+            switch limit.mode {
+            case .minimal, .inside:
+                if let first = found.first { reaches.append(first.distance) } else if limit.mode == .inside {
+                    throw failure(.invalidInput, featureID, tolerance, "An extended edge's way across misses the limit's body.")
+                }
+            case .outside:
+                guard found.count >= 2 else {
+                    throw failure(.invalidInput, featureID, tolerance, "An extended edge's way across does not pass through the limit's body.")
+                }
+                reaches.append(found[1].distance)
+            }
+        }
+        let value = limit.mode == .minimal ? reaches.min() : reaches.max()
+        guard let value, value > tolerance.distance else {
+            throw failure(.invalidInput, featureID, tolerance, "An extended edge's way across misses the limit's body.")
+        }
+        return value
     }
 
     /// The strip carrying the face on past one of its open edges.

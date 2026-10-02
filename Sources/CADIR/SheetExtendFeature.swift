@@ -9,11 +9,14 @@ public struct SheetExtendFeature: Codable, Hashable, Sendable {
     public var distance: CADExpression
     public var shape: SheetExtensionShape
     public var modifies: Bool
+    /// Extending to a body instead of by `distance`; nil for the distance.
+    public var limit: SheetExtensionLimit?
 
     public init(
         target: PatternTargetReference, edges: [StableSubshapeReference], distance: CADExpression,
-        shape: SheetExtensionShape = .natural, modifies: Bool = true
+        shape: SheetExtensionShape = .natural, modifies: Bool = true, limit: SheetExtensionLimit? = nil
     ) {
+        self.limit = limit
         self.target = target
         self.edges = edges
         self.distance = distance
@@ -34,20 +37,24 @@ public struct SheetExtendFeature: Codable, Hashable, Sendable {
             }
         }
         try distance.validateLiteralQuantities()
+        if let limit, limit.body == target.featureID {
+            throw FeatureEvaluationError.invalidGraph("Extend Sheet runs to another body than its own sheet.")
+        }
     }
 
     private enum CodingKeys: String, CodingKey {
-        case target, edges, distance, shape, modifies
+        case target, edges, distance, shape, modifies, limit
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.target, .edges, .distance, .shape, .modifies], in: decoder)
+        try container.validateOnlyExpectedKeys([.target, .edges, .distance, .shape, .modifies, .limit], in: decoder)
         target = try container.decode(PatternTargetReference.self, forKey: .target)
         edges = try container.decode([StableSubshapeReference].self, forKey: .edges)
         distance = try container.decode(CADExpression.self, forKey: .distance)
         shape = try container.decode(SheetExtensionShape.self, forKey: .shape)
         modifies = try container.decode(Bool.self, forKey: .modifies)
+        limit = try container.decodeIfPresent(SheetExtensionLimit.self, forKey: .limit)
         try validate()
     }
 
@@ -59,11 +66,13 @@ public struct SheetExtendFeature: Codable, Hashable, Sendable {
         try container.encode(distance, forKey: .distance)
         try container.encode(shape, forKey: .shape)
         try container.encode(modifies, forKey: .modifies)
+        try container.encodeIfPresent(limit, forKey: .limit)
     }
 
     /// The inputs the feature reads: its target, consumed when the extensions join it.
     public var inputs: [FeatureInput] {
         [FeatureInput(featureID: target.featureID, role: modifies ? .target : .body)]
+            + (limit.map { [FeatureInput(featureID: $0.body, role: .body)] } ?? [])
     }
 }
 
