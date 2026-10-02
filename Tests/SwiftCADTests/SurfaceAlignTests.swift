@@ -184,6 +184,8 @@ struct SurfaceAlignFlowTests {
             referenceEdge: try edge(of: arch, atX: s, in: builder), continuity: .curvature, blendRows: 1, boundaryFlow: flow
         )
         let evaluated = try evaluate(builder)
+        let analysis = try SurfaceAlignAnalyzer().analyze(aligned, in: evaluated)
+        #expect(analysis.isWithin && analysis.curvature != nil, "\(analysis)")
         let result = try surface(of: aligned, in: evaluated), source = try surface(of: arch, in: evaluated)
         for v in [0.1, 0.5, 0.9] {
             let there = try source.differentialGeometry(u: 1, v: v, tolerance: .standard)

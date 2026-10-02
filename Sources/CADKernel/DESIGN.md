@@ -847,7 +847,10 @@ layout's degree along the edge. `SurfaceAlignTests` prove a flat sheet following
 a gap at G0, G1 and G2 with its far edge kept, a partial alignment on a refitted layout leaving
 the edge's ends and meeting in the middle, and blended rows without input shape influence
 running straight; `SurfaceAlignFlowTests` every flow curvature continuous over a sheared arch and
-Normal square to the edge.
+Normal square to the edge, its `SurfaceAlignAnalyzer` analysis within limits. `SurfaceAlignAnalyzer`
+measures an aligned sheet against its reference along the reference edge, placed in the sheet's
+frame, at 32 interior points: the largest distance (G0), normal angle (G1) and normal-curvature
+difference across the edge (G2), against the modeling distance, 10⁻⁶ rad and 10⁻³ m⁻¹.
 
 ## Rebuild Face
 
