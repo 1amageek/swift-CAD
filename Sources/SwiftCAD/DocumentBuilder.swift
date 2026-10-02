@@ -554,13 +554,15 @@ public struct DocumentBuilder {
         target: FeatureID, targetEdge: StableSubshapeReference, reference: FeatureID, referenceEdge: StableSubshapeReference,
         referencePlacement: RigidTransform3D? = nil, continuity: SurfaceContinuityLevel = .tangentPlane,
         tension: Double = 1, blendRows: Int = 0, inputShapeInfluence: Double = 1,
-        partialStart: Double = 0, partialEnd: Double = 0, layout: SurfaceControlLayout? = nil, named name: String? = nil
+        partialStart: Double = 0, partialEnd: Double = 0, layout: SurfaceControlLayout? = nil,
+        boundaryFlow: SquareFitOptions.BoundaryFlow = .next, named name: String? = nil
     ) throws -> FeatureID {
         let feature = SurfaceAlignFeature(
             target: PatternTargetReference(featureID: target), targetEdge: targetEdge,
             reference: PatternTargetReference(featureID: reference), referenceEdge: referenceEdge,
             referencePlacement: referencePlacement, continuity: continuity, tension: tension, blendRows: blendRows,
-            inputShapeInfluence: inputShapeInfluence, partialStart: partialStart, partialEnd: partialEnd, layout: layout
+            inputShapeInfluence: inputShapeInfluence, partialStart: partialStart, partialEnd: partialEnd, layout: layout,
+            boundaryFlow: boundaryFlow
         )
         try feature.validate()
         let featureID = FeatureID()

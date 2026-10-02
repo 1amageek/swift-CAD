@@ -76,6 +76,12 @@ public struct SurfaceAlignFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
         case .tangentPlane: 1
         case .curvature: 2
         }
+        let flow: BSplineSurfaceEdgeAligner.Flow = switch align.boundaryFlow {
+        case .natural: .natural
+        case .normal: .normal
+        case .next: .next
+        case .adjacent: .adjacent
+        }
         let aligned = try BSplineSurfaceEdgeAligner().aligned(
             targetSurface, side: targetSide, to: reference, side: referenceSide,
             continuity: continuity, tension: align.tension, blendRows: align.blendRows,
@@ -83,6 +89,7 @@ public struct SurfaceAlignFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
             layout: align.layout.map {
                 MappedBSplineSurfaceFitter.Layout(uDegree: $0.uDegree, vDegree: $0.vDegree, uSpans: $0.uSpans, vSpans: $0.vSpans)
             },
+            flow: flow,
             tolerance: tolerance
         )
         // The sheet sewn anew on the aligned surface, bounded by its parameter lines.

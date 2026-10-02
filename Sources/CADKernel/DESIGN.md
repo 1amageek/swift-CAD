@@ -836,11 +836,18 @@ reference's knots along the edge are merged in after, so the continuity stays ex
 sewn anew on the aligned surface by `BSplineParameterRectanglePatchBuilder`, whose four sides are
 the surface's isoparametric B-spline curves exactly (as Extend Sheet's strips are), so measuring an
 edge reads its own control points rather than bounding the surface's derivatives cell by cell. Rational surfaces, trimmed faces and edges inside a domain are
-refused. The cross-edge flow follows the reference's (Plasticity's Adjacent); Natural, Normal
-and Next flows are not provided. `SurfaceAlignTests` prove a flat sheet following an arch across
+refused. The cross-edge flow (Boundary, decided 2026-10-02) is the reference's own cross derivative
+scaled (Next: the reference's next inner row, the default, kept in the requested layout) or, for
+Normal (square to the edge), Natural (the target's own cross direction) and Adjacent (the blend of
+the target's side edges' directions), `a·R_v + b·R_u` with quadratic `a`, `b` fitted to the flow in
+the reference's tangent plane, the second derivative `b²·R_uu + 2ab·R_uv + a²·R_vv` — the reference
+reparameterised to second order, so G1 and G2 stay exact; those products need the edge's basis
+raised by 2 per order with its interior knots repeated once more per order, so these flows raise the
+layout's degree along the edge. `SurfaceAlignTests` prove a flat sheet following an arch across
 a gap at G0, G1 and G2 with its far edge kept, a partial alignment on a refitted layout leaving
 the edge's ends and meeting in the middle, and blended rows without input shape influence
-running straight.
+running straight; `SurfaceAlignFlowTests` every flow curvature continuous over a sheared arch and
+Normal square to the edge.
 
 ## Rebuild Face
 

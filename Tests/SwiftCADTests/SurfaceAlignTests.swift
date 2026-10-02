@@ -135,3 +135,81 @@ struct SurfaceAlignTests {
         }
     }
 }
+
+/// Align Surface's boundary flows over a sheared reference, whose own cross direction leans along
+/// the edge: Normal meets the edge square, every flow stays tangent (and curvature) continuous.
+@Suite("Align Surface flows")
+struct SurfaceAlignFlowTests {
+    private let s = 0.02
+
+    private func evaluate(_ builder: DocumentBuilder) throws -> EvaluatedDocument {
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "flow"))
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        return evaluated
+    }
+
+    private func edge(of feature: FeatureID, atX x: Double, in builder: DocumentBuilder) throws -> StableSubshapeReference {
+        let evaluated = try evaluate(builder)
+        let key = try #require(evaluated.subshapes.entries.first { key, value in
+            guard key.featureID == feature, case let .edge(id) = value, let edge = evaluated.brep.edges[id],
+                  let a = evaluated.brep.vertices[edge.startVertexID]?.point, let b = evaluated.brep.vertices[edge.endVertexID]?.point else { return false }
+            return abs(a.x - x) < 1e-12 && abs(b.x - x) < 1e-12
+        }?.key)
+        return try builder.stableSubshape(key)
+    }
+
+    private func surface(of feature: FeatureID, in evaluated: EvaluatedDocument) throws -> Surface3D {
+        let face = try #require(evaluated.subshapes.entries.compactMap { key, value -> Face? in
+            guard key.featureID == feature, case let .face(id) = value else { return nil }
+            return evaluated.brep.faces[id]
+        }.first)
+        return try #require(evaluated.brep.geometry.surfaces[face.surfaceID])
+    }
+
+    @Test(.timeLimit(.minutes(2)), arguments: [SquareFitOptions.BoundaryFlow.normal, .natural, .adjacent, .next])
+    func everyFlowStaysCurvatureContinuous(flow: SquareFitOptions.BoundaryFlow) throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // An arch across x whose rows shift along y as they rise: its cross direction leans along the edge.
+        let row = { (y: Double) in [Point3D(x: 0, y: y, z: 0), Point3D(x: s / 2, y: y + s / 4, z: s / 2), Point3D(x: s, y: y + s / 2, z: 0)] }
+        let arch = try builder.bSplineSurface(BSplineSurface3D(
+            uDegree: 2, vDegree: 1, uKnots: [0, 0, 0, 1, 1, 1], vKnots: [0, 0, 1, 1], controlPoints: [row(0), row(s)]
+        ))
+        let flat = try builder.bSplineSurface(BSplineSurface3D(
+            uDegree: 1, vDegree: 1, uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+            controlPoints: [[Point3D(x: s + 0.005, y: s / 2, z: 0), Point3D(x: 2 * s, y: s / 2, z: 0)],
+                            [Point3D(x: s + 0.005, y: 1.5 * s, z: 0), Point3D(x: 2 * s, y: 1.5 * s, z: 0)]]
+        ))
+        let aligned = try builder.alignSurface(
+            target: flat, targetEdge: try edge(of: flat, atX: s + 0.005, in: builder), reference: arch,
+            referenceEdge: try edge(of: arch, atX: s, in: builder), continuity: .curvature, blendRows: 1, boundaryFlow: flow
+        )
+        let evaluated = try evaluate(builder)
+        let result = try surface(of: aligned, in: evaluated), source = try surface(of: arch, in: evaluated)
+        for v in [0.1, 0.5, 0.9] {
+            let there = try source.differentialGeometry(u: 1, v: v, tolerance: .standard)
+            let projected = try result.parameterProjection(of: there.position, tolerance: .standard)
+            let here = try result.differentialGeometry(u: projected.u, v: projected.v, tolerance: .standard)
+            #expect(projected.residual < 1e-9)
+            #expect(here.normal.cross(there.normal).length < 1e-8)
+            // G2: both surfaces bend alike across the edge, along the target's cross direction.
+            let across = abs(projected.u) < 1e-9 || abs(projected.u - 1) < 1e-9 ? here.tangentU : here.tangentV
+            func curvature(_ jet: Surface3D.DifferentialGeometry, along direction: Vector3D) -> Double {
+                let (su, sv) = (jet.tangentU, jet.tangentV)
+                let (e, f, g) = (su.dot(su), su.dot(sv), sv.dot(sv))
+                let (p, q) = (direction.dot(su), direction.dot(sv))
+                let determinant = e * g - f * f
+                let (a, b) = ((g * p - f * q) / determinant, (e * q - f * p) / determinant)
+                let normal = jet.normal.dot(here.normal) >= 0 ? jet.normal : jet.normal * -1
+                return (jet.secondDerivativeUU.dot(normal) * a * a + 2 * jet.secondDerivativeUV.dot(normal) * a * b
+                    + jet.secondDerivativeVV.dot(normal) * b * b) / (e * a * a + 2 * f * a * b + g * b * b)
+            }
+            #expect(abs(curvature(here, along: across) - curvature(there, along: across)) < 1e-4, "\(curvature(here, along: across)) \(curvature(there, along: across))")
+            // Normal: the target's cross direction meets the edge square.
+            if flow == .normal {
+                let across = abs(projected.u) < 1e-9 || abs(projected.u - 1) < 1e-9 ? here.tangentU : here.tangentV
+                let along = abs(projected.u) < 1e-9 || abs(projected.u - 1) < 1e-9 ? here.tangentV : here.tangentU
+                #expect(abs(across.dot(along)) / (across.length * along.length) < 1e-3)
+            }
+        }
+    }
+}
