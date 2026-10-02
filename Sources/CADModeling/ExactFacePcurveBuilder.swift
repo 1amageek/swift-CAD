@@ -281,30 +281,7 @@ package struct ExactFacePcurveBuilder {
         surface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterCurve? {
-        let isOpenConic: Bool
-        switch curve {
-        case .analytic(.hyperbola), .analytic(.parabola):
-            isOpenConic = true
-        case .line,
-             .circle,
-             .analytic,
-             .bSpline,
-             .implicit,
-             .surfaceLift,
-             .certifiedIntersection,
-             .rigidImage,
-             .affineImage:
-            isOpenConic = false
-        }
-        guard isOpenConic else { return nil }
-        let isSupportedSurface: Bool
-        switch surface {
-        case .plane, .analytic(.plane), .analytic(.cone):
-            isSupportedSurface = true
-        case .cylinder, .analytic, .bSpline, .procedural:
-            isSupportedSurface = false
-        }
-        guard isSupportedSurface else { return nil }
+        guard ProjectedAnalyticSurfaceParameterCurve.supports(curve, on: surface) else { return nil }
         return .projectedAnalytic(try ProjectedAnalyticSurfaceParameterCurve(
             curve: curve,
             surface: surface,

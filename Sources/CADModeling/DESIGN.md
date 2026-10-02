@@ -1012,19 +1012,18 @@ around cannot follow, keeps the face going by itself — extruded its whole dist
 and joined outward, cut inward. Match Face of one planar face onto a parallel plane
 facing the same way is that push, Grow and all. Draft Face's Grow, and other matches,
 still refuse a face running into another wall (`FIXME(INCOMPLETE_IMPLEMENTATION)` in
-each). Planar faces of one outer
-loop, and faces of cylinders along the pull (half a cylinder or less), crossing Draft Face's
-neutral plane are split along it (`NeutralPlaneFaceSplitter`: a line or an arc of the cylinder's
-circle there, their edges crossing the plane cut there, the faces beside split at the same points,
-the body sewn anew) and each part drafted away from the plane about the cut both keep; holed or
-other curved faces crossing it, or crossed more than twice, are refused
-(`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+each). Draft Face turns each drafted face as one surface about its crossing with the neutral
+plane (the reference face's plane, moved by the offset): the page's pivot. Running against the
+pull (into the body from the reference face) the face leans out by the angle, so beyond the plane
+along the pull it leans in — a face crossing the plane is not split, it simply passes through its
+pivot line (a plane) or circle (a cone from a cylinder along the pull). A hole's wall then meets
+the turned face along an ellipse, whose pcurve on the cylinder is projected exactly.
 `PushFaceTests`, `DraftFaceTests` and `MatchFaceTests` prove boxes, rounded boxes,
 cylinders, holes, adjacent angles, pyramid and cone frustums and placed references
 by exact volumes, the refusals, the L prism's step pushed and matched past its
 wall by each mode (25 × 20, 20 × 20 and the 15 × 10 bar past the wall), and a box's wall and all
-four walls and a cylinder drafted both ways from a mid-height neutral plane (the wedges, the two
-frustums, the two cones).
+four walls and a cylinder drafted about a mid-height neutral plane (one plane through it, one
+frustum, one cone), a U-shaped wall crossed four times and a drilled wall turning through its hole.
 
 `FaceRemovalHealer` heals a solid over faces taken out of it (Delete Face with
 `heals`, and Remove Fillets From Shell): the faces around keep their surfaces and

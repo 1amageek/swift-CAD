@@ -5162,12 +5162,30 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         fraction: fraction,
         tolerance: tolerance
       )
-    case .cylinder, .analytic, .bSpline, .procedural:
+    case .cylinder(let cylinder):
+      return try cylindricalParameterJets(
+        point: point,
+        origin: cylinder.origin,
+        axis: cylinder.axis,
+        projected: projected,
+        fraction: fraction,
+        tolerance: tolerance
+      )
+    case .analytic(.cylinder(let origin, let axis, _)):
+      return try cylindricalParameterJets(
+        point: point,
+        origin: origin,
+        axis: axis,
+        projected: projected,
+        fraction: fraction,
+        tolerance: tolerance
+      )
+    case .analytic, .bSpline, .procedural:
       throw KernelError(
         phase: .topology,
         code: .invalidInput,
         tolerance: tolerance,
-        message: "Certified projected pcurve integration requires a plane or cone support."
+        message: "Certified projected pcurve integration requires a plane, cylinder or cone support."
       )
     }
   }
@@ -5219,13 +5237,27 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
           + .constant(transverseAxis.z) * parameter
           + .constant(parabola.axis.z * inverseFourFocalLength) * squared
       )
+    case .analytic(.ellipse(let center, let normal, let majorAxis, let majorRadius, let minorRadius)):
+      let minorAxis = try normal.cross(majorAxis).normalized(tolerance: tolerance.distance)
+      let values = parameter.sineAndCosine()
+      return (
+        .constant(center.x)
+          + .constant(majorAxis.x * majorRadius) * values.cosine
+          + .constant(minorAxis.x * minorRadius) * values.sine,
+        .constant(center.y)
+          + .constant(majorAxis.y * majorRadius) * values.cosine
+          + .constant(minorAxis.y * minorRadius) * values.sine,
+        .constant(center.z)
+          + .constant(majorAxis.z * majorRadius) * values.cosine
+          + .constant(minorAxis.z * minorRadius) * values.sine
+      )
     case .line, .circle, .analytic, .bSpline, .implicit, .surfaceLift,
       .certifiedIntersection, .rigidImage, .affineImage:
       throw KernelError(
         phase: .topology,
         code: .invalidInput,
         tolerance: tolerance,
-        message: "Certified projected pcurve integration requires a hyperbola or parabola."
+        message: "Certified projected pcurve integration requires a hyperbola, parabola or ellipse."
       )
     }
   }
@@ -5312,6 +5344,55 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       constant: Interval(
         lower: (unwrappedMiddle - angleRadius).nextDown,
         upper: (unwrappedMiddle + angleRadius).nextUp
+      ),
+      derivative: angleDerivative
+    )
+    return (u, v)
+  }
+
+  /// A cylinder's (angle, height) along a projected curve: the height its offset along the axis,
+  /// the angle the antiderivative of its turn about the axis from where the curve's own pcurve
+  /// puts the interval's middle (already continued along the curve).
+  private func cylindricalParameterJets(
+    point: (x: Jet, y: Jet, z: Jet),
+    origin: Point3D,
+    axis: Vector3D,
+    projected: ProjectedAnalyticSurfaceParameterCurve,
+    fraction: Jet,
+    tolerance: ModelingTolerance
+  ) throws -> (u: Jet, v: Jet) {
+    let unit = try axis.normalized(tolerance: tolerance.distance)
+    let basis = try projectedAnalyticBasis(unit, tolerance: tolerance)
+    let offset = (
+      x: point.x - .constant(origin.x),
+      y: point.y - .constant(origin.y),
+      z: point.z - .constant(origin.z)
+    )
+    let v = projectedAnalyticDot(offset, axis) * .constant(1.0 / axis.dot(axis))
+    let x = projectedAnalyticDot(offset, basis.u)
+    let y = projectedAnalyticDot(offset, basis.v)
+    let denominator = x * x + y * y
+    let angleDerivative = try (x * y.derivative() - y * x.derivative()).divided(by: denominator)
+    let fractionBounds = fraction.coefficients[0]
+    let middleFraction =
+      fractionBounds.lower
+      + (fractionBounds.upper - fractionBounds.lower) * 0.5
+    let middle = try projected.parameter(
+      atNormalizedFraction: middleFraction,
+      tolerance: tolerance
+    ).u
+    let angleRadius =
+      angleDerivative.coefficients[0].maximumAbsolute
+      * (fractionBounds.upper - fractionBounds.lower) * 0.5
+    guard angleRadius.isFinite,
+      angleRadius < Double.pi - tolerance.angle
+    else {
+      throw LocalProofFailure.intervalSingularity
+    }
+    let u = Jet.antiderivative(
+      constant: Interval(
+        lower: (middle - angleRadius).nextDown,
+        upper: (middle + angleRadius).nextUp
       ),
       derivative: angleDerivative
     )

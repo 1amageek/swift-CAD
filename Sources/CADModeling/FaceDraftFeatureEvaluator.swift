@@ -12,17 +12,13 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
     private let resolver: ParameterResolving
     private let subshapeResolver: any StableSubshapeResolving
     private let identityBuilder: any CarriedTopologyIdentityBuilding
-    /// Sews the body anew when faces crossing the neutral plane are split along it.
-    private let sewer: (any BRepSewing)?
 
     public init(
         resolver: ParameterResolving = ParameterResolver(),
-        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver(),
-        sewer: (any BRepSewing)? = nil
+        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver()
     ) {
         self.resolver = resolver
         self.subshapeResolver = subshapeResolver
-        self.sewer = sewer
         identityBuilder = DefaultCarriedTopologyIdentityBuilder()
     }
 
@@ -84,31 +80,8 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         let pull = neutralFace.orientation == .forward ? planeNormal : planeNormal * -1
         let neutralOrigin = neutralPlane.origin + pull * neutralOffset
 
-        // Faces crossing the neutral plane are split along it first, each part drafted away from it.
-        var draftedIDs = faceIDs
-        var draftedBodyID = bodyID
-        var sewnIdentity: (subshapes: [SubshapeID: TopologyReference], lineage: [SubshapeID: TopologyLineage])?
-        let crossing = try Set(faceIDs.filter { faceID in
-            guard let face = model.faces[faceID] else { throw TopologyError.missingReference("Face draft face is missing.") }
-            let heights = try face.loops.flatMap { try model.orderedPoints(for: $0) }.map { ($0 - neutralOrigin).dot(pull) }
-            return heights.contains { $0 > tolerance.distance } && heights.contains { $0 < -tolerance.distance }
-        })
-        if crossing.isEmpty == false {
-            guard let sewer else {
-                throw kernelError(.unsupportedCapability, featureID: feature.id, tolerance: tolerance,
-                                  "Face draft needs a sewer to split faces across the neutral plane.")
-            }
-            let split = try NeutralPlaneFaceSplitter(tolerance: tolerance).split(
-                crossing, drafting: faceIDs, bodyID: bodyID, planeOrigin: neutralOrigin, pull: pull, model: model, sewer: sewer,
-                featureID: feature.id, sourceSubshapes: context.subshapes.entries
-            )
-            model = split.model
-            draftedIDs = split.draftedFaces
-            draftedBodyID = split.bodyID
-            sewnIdentity = (split.sewn.subshapes, split.sewn.lineage)
-        }
         var replacements: [FaceID: FaceSurfaceReplacementRebuilder.Replacement] = [:]
-        for faceID in draftedIDs.sorted() {
+        for faceID in faceIDs.sorted() {
             guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference("Face draft face is missing.")
             }
@@ -123,14 +96,9 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         // under Moving and Fixed too. Production path: FaceDraftFeatureEvaluator for every
         // faceDraft feature. Moving and Fixed are complete only when a drafted face meeting a wall
         // extends that wall or stops at it, verified by tests of a concave face drafted into a wall.
-        try FaceSurfaceReplacementRebuilder().replace(replacements, bodyID: draftedBodyID, featureID: feature.id, model: &model, tolerance: tolerance)
+        try FaceSurfaceReplacementRebuilder().replace(replacements, bodyID: bodyID, featureID: feature.id, model: &model, tolerance: tolerance)
         try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: tolerance)
         try model.validate(level: .volumetric, tolerance: tolerance)
-        if let sewnIdentity {
-            // Split and sewn anew: the sewing's names, the faces keeping them as they turn in place.
-            return EvaluationResult(brep: model, subshapes: sewnIdentity.subshapes,
-                                    removedSubshapeIDs: bodyScope.subshapeIDs(in: context.subshapes), lineage: sewnIdentity.lineage)
-        }
         let identity = try identityBuilder.identity(featureID: feature.id, bodyID: bodyID, model: model, context: context)
         return EvaluationResult(
             brep: model,
@@ -140,9 +108,9 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         )
     }
 
-    /// The surface a drafted face turns onto. The face must lie on one side of the neutral plane:
-    /// it turns about its crossing with the plane so that, running away from it, it leans out by
-    /// `angle` from the pull direction.
+    /// The surface a drafted face turns onto: it turns as one surface about its crossing with the
+    /// neutral plane (the pivot), leaning out by `angle` from the pull direction as it runs against
+    /// the pull — in where it lies beyond the plane along the pull.
     private func draftedSurface(
         of face: Face,
         surface: Surface3D,
@@ -154,17 +122,6 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         tolerance: ModelingTolerance
     ) throws -> FaceSurfaceReplacementRebuilder.Replacement {
         let points = try face.loops.flatMap { try model.orderedPoints(for: $0) }
-        let heights = points.map { ($0 - neutralOrigin).dot(pull) }
-        let side: Double
-        if heights.allSatisfy({ $0 >= -tolerance.distance }), heights.contains(where: { $0 > tolerance.distance }) {
-            side = 1
-        } else if heights.allSatisfy({ $0 <= tolerance.distance }), heights.contains(where: { $0 < -tolerance.distance }) {
-            side = -1
-        } else {
-            // Faces crossing the plane are split along it before they turn.
-            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
-                              "Face draft needs each drafted face on one side of the neutral plane.")
-        }
         let tangent = tan(angle)
         let replacement: Surface3D
         if let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) {
@@ -183,9 +140,9 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             let onPlane = Point3D.origin + center
             let pivot = try pivotPoint(near: onPlane, planeOrigin: plane.origin, planeNormal: normal,
                                        neutralOrigin: neutralOrigin, pull: pull, tolerance: tolerance)
-            // Running away from the neutral plane along `side * pull`, the face leans out along
-            // `across` by the angle.
-            let running = pull * side + across * tangent
+            // The face turns as one plane about the pivot line: running against the pull it leans
+            // out along `across` by the angle (in along the pull, beyond the neutral plane).
+            let running = pull * -1 + across * tangent
             var drafted = try axis.cross(running).normalized(tolerance: tolerance.distance)
             if drafted.dot(outward) < 0 { drafted = drafted * -1 }
             replacement = .plane(Plane3D(origin: pivot, normal: drafted))
@@ -204,9 +161,10 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             guard abs(growth) > tolerance.angle else {
                 throw kernelError(.invalidInput, featureID: featureID, tolerance: tolerance, "Face draft angle is too small to turn a cylinder.")
             }
-            // Radius r + growth * side * h along `pull * h`; zero at h = -r / (growth * side).
-            let apex = center + pull * (-radius / (growth * side))
-            let opening = pull * (growth * side > 0 ? 1 : -1)
+            // One cone through the pivot circle: radius r - growth * h along `pull * h`, zero at
+            // h = r / growth.
+            let apex = center + pull * (radius / growth)
+            let opening = pull * (growth > 0 ? -1 : 1)
             replacement = .analytic(.cone(apex: apex, axis: opening, halfAngle: abs(angle)))
         } else {
             throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,

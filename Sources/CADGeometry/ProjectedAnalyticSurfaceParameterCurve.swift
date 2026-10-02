@@ -29,32 +29,16 @@ public struct ProjectedAnalyticSurfaceParameterCurve: Codable, Hashable, Sendabl
         try tolerance.validate()
         try curve.validate(tolerance: tolerance)
         try surface.validate(tolerance: tolerance)
-        let hasSupportedCurve: Bool
-        switch curve {
-        case .analytic(.hyperbola), .analytic(.parabola):
-            hasSupportedCurve = true
-        case .line, .circle, .analytic, .bSpline, .implicit, .surfaceLift,
-             .certifiedIntersection, .rigidImage, .affineImage:
-            hasSupportedCurve = false
-        }
-        let hasSupportedSurface: Bool
-        switch surface {
-        case .plane, .analytic(.plane), .analytic(.cone):
-            hasSupportedSurface = true
-        case .cylinder, .analytic, .bSpline, .procedural:
-            hasSupportedSurface = false
-        }
         guard requestedSurface == surface,
               startParameter.isFinite,
               endParameter.isFinite,
               abs(endParameter - startParameter) > tolerance.relative,
-              hasSupportedCurve,
-              hasSupportedSurface else {
+              Self.supports(curve, on: surface) else {
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,
                 tolerance: tolerance,
-                message: "A projected analytic pcurve requires a hyperbola or parabola on its exact plane or cone support and a finite verification interval."
+                message: "A projected analytic pcurve requires a hyperbola or parabola on its exact plane or cone support, or an ellipse on its cylinder or cone, and a finite verification interval."
             )
         }
         for parameter in [
@@ -97,19 +81,49 @@ public struct ProjectedAnalyticSurfaceParameterCurve: Codable, Hashable, Sendabl
             of: point,
             tolerance: tolerance
         )
-        guard case .analytic(.cone) = surface else {
+        guard Self.isAngular(surface) else {
             return SurfaceParameter(u: projection.u, v: projection.v)
         }
+        // The angle continues from the interval's middle through eighths of the way, so an arc
+        // turning most of the way round stays on one sheet of the angle.
         let middleParameter = startParameter + (endParameter - startParameter) * 0.5
-        let middlePoint = try curve.point(at: middleParameter, tolerance: tolerance)
-        let middleProjection = try surface.parameterProjection(
-            of: middlePoint,
+        var reference = try surface.parameterProjection(
+            of: try curve.point(at: middleParameter, tolerance: tolerance),
             tolerance: tolerance
-        )
+        ).u
+        for step in 1..<8 {
+            let between = middleParameter + (parameter - middleParameter) * Double(step) / 8.0
+            let angle = try surface.parameterProjection(
+                of: try curve.point(at: between, tolerance: tolerance),
+                tolerance: tolerance
+            ).u
+            reference = Self.unwrappedAngle(angle, nearest: reference)
+        }
         return SurfaceParameter(
-            u: Self.unwrappedAngle(projection.u, nearest: middleProjection.u),
+            u: Self.unwrappedAngle(projection.u, nearest: reference),
             v: projection.v
         )
+    }
+
+    /// Whether the curve projects onto the surface exactly: a hyperbola or parabola on its plane
+    /// or cone, or an ellipse (a plane's oblique section) on its cylinder or cone.
+    package static func supports(_ curve: Curve3D, on surface: Surface3D) -> Bool {
+        switch (curve, surface) {
+        case (.analytic(.hyperbola), .plane), (.analytic(.hyperbola), .analytic(.plane)), (.analytic(.hyperbola), .analytic(.cone)),
+             (.analytic(.parabola), .plane), (.analytic(.parabola), .analytic(.plane)), (.analytic(.parabola), .analytic(.cone)),
+             (.analytic(.ellipse), .cylinder), (.analytic(.ellipse), .analytic(.cylinder)), (.analytic(.ellipse), .analytic(.cone)):
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// Whether the surface's u is an angle about an axis, unwrapped along the curve.
+    private static func isAngular(_ surface: Surface3D) -> Bool {
+        switch surface {
+        case .cylinder, .analytic(.cylinder), .analytic(.cone): return true
+        default: return false
+        }
     }
 
     public func differential(

@@ -113,7 +113,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.edgeOffsetEvaluator = EdgeOffsetFeatureEvaluator(parameterResolver: resolver)
         self.faceKnifeEvaluator = FaceKnifeFeatureEvaluator()
         self.faceDeleteEvaluator = FaceDeleteFeatureEvaluator()
-        self.faceDraftEvaluator = FaceDraftFeatureEvaluator(resolver: resolver, sewer: sewer)
+        self.faceDraftEvaluator = FaceDraftFeatureEvaluator(resolver: resolver)
         self.faceOffsetEvaluator = FaceOffsetFeatureEvaluator(resolver: resolver, faceExtruder: extrudeEvaluator)
         self.faceMoveEvaluator = FaceMoveFeatureEvaluator(resolver: resolver)
         self.edgeMoveEvaluator = EdgeMoveFeatureEvaluator(resolver: resolver)
