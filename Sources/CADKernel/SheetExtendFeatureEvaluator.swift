@@ -164,7 +164,8 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             let uv = try surface.parameterProjection(of: point, tolerance: tolerance)
             let normal = try surface.normal(u: uv.u, v: uv.v, tolerance: tolerance) * outward
             // The loop runs with the face on its left about the outward normal: across, away from it.
-            let tangent = try BRepSurfaceMeetingSolver(tolerance: tolerance).tangent(of: curve, at: t) * (forward ? 1 : -1)
+            let tangent = try curve.differentialGeometry(at: t, tolerance: tolerance).firstDerivative
+                .normalized(tolerance: tolerance.distance) * (forward ? 1 : -1)
             let away = try tangent.cross(normal).normalized(tolerance: tolerance.distance)
             // In the body's own frame when it is placed elsewhere.
             let toBody = limit.placement?.inverted()
