@@ -139,6 +139,7 @@ extension KernelCapabilities {
         "validatedExactBRep",
         "planesTurnedAboutTheirNeutralCrossingAndCylindersIntoCones",
         "neighbouringEdgesAndVerticesResolvedFromTheirSurfaces",
+        "oneOutwardPlanarFaceRunningIntoAWallGrownByMovingOrFixedAsAUnitedWedge",
         "deterministicGeometryIDs",
         "mandatoryFaceLocalPcurves",
         "analyticVolume",

@@ -190,5 +190,56 @@ struct DraftFaceTests {
         }
         #expect(ellipses.isEmpty == false)
     }
+
+    /// A 30 × 10 × 10 mm block with a 10 × 5 mm notch along its top edge at x = 0 (open at x = 0
+    /// and the top), its notch wall (x = 10, z 5...10, facing -x) drafted 70° about the top face:
+    /// the wall's foot swings out past the block's end, so the in-place re-solve cannot close it.
+    private func notchWallDrafted70(grow: FaceEditGrow) throws -> BRepModel {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let outline = [(0.0, 0.0), (30.0, 0.0), (30.0, 10.0), (10.0, 10.0), (10.0, 5.0), (0.0, 5.0)]
+        // On the ZX plane sketch x is world z and sketch y is world x.
+        let profile = try builder.sketch(on: .zx) { sketch in
+            for k in outline.indices {
+                let (a, b) = (outline[k], outline[(k + 1) % outline.count])
+                _ = sketch.line(from: SketchPoint(x: millimeters(a.1), y: millimeters(a.0)), to: SketchPoint(x: millimeters(b.1), y: millimeters(b.0)))
+            }
+        }
+        let block = try builder.extrude(profile, distance: millimeters(10))
+        let wall = try faces(in: builder, of: block) { plane($0).map { abs(abs($0.normal.x) - 1) < 1e-9 && abs($0.origin.x - 0.010) < 1e-9 } ?? false }
+        let top = try faces(in: builder, of: block) { plane($0).map { abs(abs($0.normal.z) - 1) < 1e-9 && abs($0.origin.z - 0.010) < 1e-9 } ?? false }
+        #expect(wall.count == 1)
+        #expect(top.count == 1)
+        _ = try builder.faceDraft(target: block, faces: wall, neutralFace: try #require(top.first), angle: degrees(70), grow: grow)
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        try model.validate(level: .volumetric, tolerance: .standard)
+        return model
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aWallDraftedIntoTheBlocksEndRampsToTheBottomUnderMoving() throws {
+        // Moving: the drafted face grows down to the block's bottom, the walls beside it carried
+        // along — a ramp from the top edge past the block's end. Section 200 + 50 t mm².
+        let model = try notchWallDrafted70(grow: .moving)
+        let t = tan(70 * Double.pi / 180)
+        let volume = try model.volume(tolerance: .standard)
+        #expect(abs(volume - (200 + 50 * t) * 10 * 1e-9) < 1e-12, "\(volume)")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aWallDraftedIntoTheBlocksEndStopsAtItUnderFixed() throws {
+        // Fixed: the drafted face stops at the block's end (x = 0) and bottom; the other faces stay.
+        // Section 300 − 50 / t mm².
+        let model = try notchWallDrafted70(grow: .fixed)
+        let t = tan(70 * Double.pi / 180)
+        let volume = try model.volume(tolerance: .standard)
+        #expect(abs(volume - (300 - 50 / t) * 10 * 1e-9) < 1e-12, "\(volume)")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aWallDraftedIntoTheBlocksEndIsStillRefusedUnderNone() throws {
+        // None would leave the drafted face poking out past the block's end over its own floor;
+        // the exact Boolean cannot yet unite that slab, so the draft is refused, not approximated.
+        #expect(throws: KernelError.self) { _ = try notchWallDrafted70(grow: .none) }
+    }
 }
 

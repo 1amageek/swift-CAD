@@ -12,13 +12,21 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
     private let resolver: ParameterResolving
     private let subshapeResolver: any StableSubshapeResolving
     private let identityBuilder: any CarriedTopologyIdentityBuilding
+    private let sewer: (any BRepSewing)?
+    private let applicator: (any BooleanOperationApplying)?
 
+    /// Without a sewer and a Boolean applicator a drafted face that runs into another wall is
+    /// refused under every Grow mode; with them it grows as `FaceDraftGrowWedgeBuilder` says.
     public init(
         resolver: ParameterResolving = ParameterResolver(),
-        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver()
+        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver(),
+        sewer: (any BRepSewing)? = nil,
+        applicator: (any BooleanOperationApplying)? = nil
     ) {
         self.resolver = resolver
         self.subshapeResolver = subshapeResolver
+        self.sewer = sewer
+        self.applicator = applicator
         identityBuilder = DefaultCarriedTopologyIdentityBuilder()
     }
 
@@ -91,12 +99,23 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             )
             replacements[faceID] = drafted
         }
-        // FIXME(INCOMPLETE_IMPLEMENTATION): every Grow mode re-solves the faces around the drafted
-        // faces in place, so a draft that runs into another wall is refused as a topology failure
-        // under Moving and Fixed too. Production path: FaceDraftFeatureEvaluator for every
-        // faceDraft feature. Moving and Fixed are complete only when a drafted face meeting a wall
-        // extends that wall or stops at it, verified by tests of a concave face drafted into a wall.
-        try FaceSurfaceReplacementRebuilder().replace(replacements, bodyID: bodyID, featureID: feature.id, model: &model, tolerance: tolerance)
+        do {
+            try FaceSurfaceReplacementRebuilder().replace(replacements, bodyID: bodyID, featureID: feature.id, model: &model, tolerance: tolerance)
+        } catch let error as KernelError where error.code == .topologyFailure {
+            // The drafted faces ran into another wall, so the faces around them cannot simply be
+            // re-solved: Grow decides how far the drafted face reaches.
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Grow reaches past another wall only for one planar
+            // drafted face; several faces, or a cylinder, running into a wall are refused with the
+            // re-solve's topology failure. Production path: FaceDraftFeatureEvaluator for every
+            // faceDraft feature. Complete when several drafted faces grow together, meeting each
+            // other's wedges, verified by a frustum whose walls run into another wall.
+            guard replacements.count == 1, let (faceID, replacement) = replacements.first,
+                  let grown = try grow(faceID: faceID, replacement: replacement, grow: draft.grow, pull: pull, bodyID: bodyID,
+                                       featureID: feature.id, context: context) else {
+                throw error
+            }
+            return grown
+        }
         try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: tolerance)
         try model.validate(level: .volumetric, tolerance: tolerance)
         let identity = try identityBuilder.identity(featureID: feature.id, bodyID: bodyID, model: model, context: context)
@@ -106,6 +125,75 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             removedSubshapeIDs: bodyScope.subshapeIDs(in: context.subshapes),
             lineage: identity.lineage
         )
+    }
+
+    /// The body united with the material between `faceID`'s plane and its drafted plane, as far
+    /// as `grow` lets the drafted face reach; nil when this evaluator cannot grow it.
+    private func grow(
+        faceID: FaceID,
+        replacement: FaceSurfaceReplacementRebuilder.Replacement,
+        grow: FaceEditGrow,
+        pull: Vector3D,
+        bodyID: BodyID,
+        featureID: FeatureID,
+        context: EvaluationContext
+    ) throws -> EvaluationResult? {
+        let tolerance = context.tolerance
+        guard let sewer, let applicator, case let .plane(drafted) = replacement.surface,
+              let face = context.brep.faces[faceID], let surface = context.brep.geometry.surfaces[face.surfaceID],
+              let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) else {
+            return nil
+        }
+        let normal = try plane.normal.normalized(tolerance: tolerance.distance)
+        guard let wedge = try FaceDraftGrowWedgeBuilder(tolerance: tolerance).wedge(
+            for: .init(
+                faceID: faceID,
+                outward: face.orientation == .forward ? normal : normal * -1,
+                normal: normal,
+                draftedNormal: try drafted.normal.normalized(tolerance: tolerance.distance),
+                pivot: drafted.origin,
+                axis: normal.cross(pull),
+                pull: pull
+            ),
+            grow: grow, bodyID: bodyID, model: context.brep, featureID: featureID
+        ) else {
+            return nil
+        }
+        let toolFeatureID = featureEvaluationStageID(featureID: featureID, domain: .draftGrowWedge, ordinal: 0)
+        let request = try PolygonPrismRequestBuilder(tolerance: tolerance).request(
+            featureID: toolFeatureID, polygon: wedge.polygon, axis: wedge.axis, length: wedge.length, stablePrefix: "draftGrow"
+        )
+        let tool = try sewer.sew(request, tolerance: tolerance)
+        let toolBodyIDs = Set(tool.subshapes.values.compactMap { reference -> BodyID? in
+            guard case let .body(id) = reference else { return nil }
+            return id
+        })
+        guard toolBodyIDs.count == 1, let toolBodyID = toolBodyIDs.first else {
+            throw kernelError(.topologyFailure, featureID: featureID, tolerance: tolerance, "A draft's grown wedge is not one body.")
+        }
+        var subshapes = context.subshapes.entries
+        subshapes.merge(tool.subshapes) { current, _ in current }
+        var lineage = context.lineage
+        lineage.merge(tool.lineage) { current, _ in current }
+        var result = try applicator.apply(
+            operation: .union,
+            targetBodyIDs: [bodyID],
+            toolBodyID: toolBodyID,
+            keepTools: false,
+            featureID: featureID,
+            model: try BRepModelCombiner().combined([context.brep, tool.brep]),
+            subshapes: subshapes,
+            toolSubshapes: tool.subshapes,
+            inputLineage: lineage,
+            tolerance: tolerance
+        )
+        // The wedge was never published, so its identities are neither removed nor parents.
+        let toolSubshapeIDs = Set(tool.subshapes.keys)
+        result.removedSubshapeIDs.subtract(toolSubshapeIDs)
+        result.lineage = result.lineage.mapValues { entry in
+            TopologyLineage(output: entry.output, parents: entry.parents.filter { !toolSubshapeIDs.contains($0) }, relation: entry.relation)
+        }.withRelationsDerivedFromParents()
+        return result
     }
 
     /// The surface a drafted face turns onto: it turns as one surface about its crossing with the
