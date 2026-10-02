@@ -147,7 +147,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
 
     /// The rings of a thin section in its own plane, one profile per loop: the outline's ring
     /// runs inside it, a hole's around the hole, each `thickness` wide with exact lines and arcs.
-    package func wallProfiles(from profile: Profile, planeNormal: Vector3D, thickness: Double) throws -> [Profile] {
+    package func wallProfiles(from profile: Profile, planeNormal: Vector3D, thickness: Double, outward: Bool = false) throws -> [Profile] {
         try tolerance.validate()
         guard thickness.isFinite, thickness > tolerance.distance else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
@@ -156,8 +156,16 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         let normal = try planeNormal.normalized(tolerance: tolerance.distance)
         return try profile.boundaryLoops.enumerated().map { index, loop in
             let source = try elements(of: loop)
-            let back = reversed(try offset(source, normal: normal, shift: -thickness, crossings: true))
-            let (outer, inner) = index == 0 ? (source, back) : (back, source)
+            // Inward the wall runs into the region from each loop (the outline in, each hole out);
+            // outward it runs away from the region (the outline out, each hole in).
+            let shifted = try offset(source, normal: normal, shift: outward ? thickness : -thickness, crossings: true)
+            let (outer, inner): ([Element], [Element])
+            switch (index == 0, outward) {
+            case (true, false): (outer, inner) = (source, reversed(shifted))
+            case (true, true): (outer, inner) = (shifted, reversed(source))
+            case (false, false): (outer, inner) = (reversed(shifted), source)
+            case (false, true): (outer, inner) = (reversed(source), shifted)
+            }
             return Profile(
                 sourceFeatureID: profile.sourceFeatureID,
                 plane: profile.plane,

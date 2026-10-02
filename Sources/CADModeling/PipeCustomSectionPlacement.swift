@@ -16,7 +16,8 @@ package struct PipeCustomSectionPlacement: Sendable {
     }
 
     /// `source` placed at `origin` across `tangent`, turned by `angle`, under `featureID`: the
-    /// region itself, or with a wall the ring of each of its loops.
+    /// region itself, or with a wall the ring of each of its loops (positive outward, negative
+    /// inward).
     package func placed(
         _ source: Profile,
         featureID: FeatureID,
@@ -62,9 +63,10 @@ package struct PipeCustomSectionPlacement: Sendable {
             innerLoops: try source.innerLoops.map(loop)
         )
         guard let wall else { return [placed] }
-        // Each loop walls into a ring of its own: the outline inward, each hole outward.
+        // Each loop walls into a ring of its own: a positive wall away from the region (the outline
+        // out, each hole in), a negative one into it.
         let rings = try ExactDraftedProfileBoundaryBuilder(tolerance: tolerance)
-            .wallProfiles(from: placed, planeNormal: placedNormal, thickness: wall)
+            .wallProfiles(from: placed, planeNormal: placedNormal, thickness: abs(wall), outward: wall > 0)
         guard rings.isEmpty == false else {
             throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
                               message: "A hollow pipe's custom section makes no ring.")

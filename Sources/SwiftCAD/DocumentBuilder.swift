@@ -1604,6 +1604,7 @@ public struct DocumentBuilder {
         thickness: CADExpression? = nil,
         vertexCount: Int = 0,
         angle: CADExpression = .constant(.angle(0, unit: .degree)),
+        twist: CADExpression = .constant(.angle(0, unit: .degree)),
         endScale: CADExpression = .constant(.scalar(1)),
         start: CADExpression = .constant(.scalar(0)),
         end: CADExpression = .constant(.scalar(1)),
@@ -1616,7 +1617,7 @@ public struct DocumentBuilder {
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .pipe(PipeFeature(
             path: SweepPathReference(featureID: pathFeatureID), diameter: diameter, profile: profile, thickness: thickness,
-            vertexCount: vertexCount, angle: angle, endScale: endScale, start: start, end: end,
+            vertexCount: vertexCount, angle: angle, twist: twist, endScale: endScale, start: start, end: end,
             booleanOperation: booleanOperation, targets: targets.map(SweepTargetReference.init),
             keepTools: keepTools, approximationTolerance: approximationTolerance
         )))

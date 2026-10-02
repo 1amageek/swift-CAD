@@ -2,9 +2,11 @@ import CADCore
 
 /// A pipe along a curve: a circle (or a regular polygon) of `diameter`, or a custom `profile` (a
 /// region or a planar face), standing across the path at its start, hollow to a wall `thickness`
-/// when one is given, swept along the path between the `start` and `end` fractions of its length,
-/// turned by `angle` about the path and scaled to `endScale` at its end, as a new body or combined
-/// with `targets`. A pipe has exactly one of `diameter` and `profile`.
+/// when one is given (positive outward of the section, negative inward), swept along the path
+/// between the `start` and `end` fractions of its length (below 0 and above 1 the path runs on
+/// straight along its end tangents), turned by `angle` about the path, twisted by `twist` along it
+/// and scaled to `endScale` at its end, as a new body or combined with `targets`. A pipe has
+/// exactly one of `diameter` and `profile`.
 public struct PipeFeature: Codable, Hashable, Sendable {
     public var path: SweepPathReference
     /// The circle's or polygon's size; nil for a custom profile.
@@ -16,6 +18,8 @@ public struct PipeFeature: Codable, Hashable, Sendable {
     /// Zero for a circle, otherwise the regular polygon's vertex count.
     public var vertexCount: Int
     public var angle: CADExpression
+    /// The section's turn about the path from its start to its end.
+    public var twist: CADExpression
     public var endScale: CADExpression
     public var start: CADExpression
     public var end: CADExpression
@@ -32,6 +36,7 @@ public struct PipeFeature: Codable, Hashable, Sendable {
         thickness: CADExpression? = nil,
         vertexCount: Int = 0,
         angle: CADExpression = .constant(.angle(0, unit: .degree)),
+        twist: CADExpression = .constant(.angle(0, unit: .degree)),
         endScale: CADExpression = .constant(.scalar(1)),
         start: CADExpression = .constant(.scalar(0)),
         end: CADExpression = .constant(.scalar(1)),
@@ -46,6 +51,7 @@ public struct PipeFeature: Codable, Hashable, Sendable {
         self.thickness = thickness
         self.vertexCount = vertexCount
         self.angle = angle
+        self.twist = twist
         self.endScale = endScale
         self.start = start
         self.end = end
@@ -56,13 +62,13 @@ public struct PipeFeature: Codable, Hashable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case path, diameter, profile, thickness, vertexCount, angle, endScale, start, end, booleanOperation, targets, keepTools, approximationTolerance
+        case path, diameter, profile, thickness, vertexCount, angle, twist, endScale, start, end, booleanOperation, targets, keepTools, approximationTolerance
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([
-            .path, .diameter, .profile, .thickness, .vertexCount, .angle, .endScale, .start, .end,
+            .path, .diameter, .profile, .thickness, .vertexCount, .angle, .twist, .endScale, .start, .end,
             .booleanOperation, .targets, .keepTools, .approximationTolerance,
         ], in: decoder)
         path = try container.decode(SweepPathReference.self, forKey: .path)
@@ -71,6 +77,7 @@ public struct PipeFeature: Codable, Hashable, Sendable {
         thickness = try container.decodeIfPresent(CADExpression.self, forKey: .thickness)
         vertexCount = try container.decode(Int.self, forKey: .vertexCount)
         angle = try container.decode(CADExpression.self, forKey: .angle)
+        twist = try container.decodeIfPresent(CADExpression.self, forKey: .twist) ?? .constant(.angle(0, unit: .degree))
         endScale = try container.decode(CADExpression.self, forKey: .endScale)
         start = try container.decode(CADExpression.self, forKey: .start)
         end = try container.decode(CADExpression.self, forKey: .end)
@@ -90,6 +97,7 @@ public struct PipeFeature: Codable, Hashable, Sendable {
         try container.encodeIfPresent(thickness, forKey: .thickness)
         try container.encode(vertexCount, forKey: .vertexCount)
         try container.encode(angle, forKey: .angle)
+        if twist != .constant(.angle(0, unit: .degree)) { try container.encode(twist, forKey: .twist) }
         try container.encode(endScale, forKey: .endScale)
         try container.encode(start, forKey: .start)
         try container.encode(end, forKey: .end)
@@ -142,6 +150,6 @@ public struct PipeFeature: Codable, Hashable, Sendable {
 
     /// The expressions whose parameters the pipe depends on.
     public var expressions: [CADExpression] {
-        [angle, endScale, start, end, approximationTolerance] + [diameter, thickness].compactMap { $0 }
+        [angle, twist, endScale, start, end, approximationTolerance] + [diameter, thickness].compactMap { $0 }
     }
 }

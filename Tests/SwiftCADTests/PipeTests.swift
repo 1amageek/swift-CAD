@@ -35,10 +35,35 @@ struct PipeTests {
         _ = try round.pipe(along: try line(in: &round), diameter: length(2 * r), approximationTolerance: length(1e-7))
         #expect(abs(try evaluate(round).brep.volume(tolerance: .standard) - Double.pi * r * r * L) < 1e-12)
 
+        // A negative wall hollows the section; a positive one grows outside it, the hole the section.
         var hollow = DocumentBuilder(units: .meters, tolerance: .standard)
-        _ = try hollow.pipe(along: try line(in: &hollow), diameter: length(2 * r), thickness: length(0.001),
+        _ = try hollow.pipe(along: try line(in: &hollow), diameter: length(2 * r), thickness: length(-0.001),
                             start: scalar(0.2), end: scalar(0.8), approximationTolerance: length(1e-7))
         #expect(abs(try evaluate(hollow).brep.volume(tolerance: .standard) - Double.pi * (r * r - 0.004 * 0.004) * 0.6 * L) < 1e-12)
+        var sleeve = DocumentBuilder(units: .meters, tolerance: .standard)
+        _ = try sleeve.pipe(along: try line(in: &sleeve), diameter: length(2 * r), thickness: length(0.001),
+                            approximationTolerance: length(1e-7))
+        #expect(abs(try evaluate(sleeve).brep.volume(tolerance: .standard) - Double.pi * (0.006 * 0.006 - r * r) * L) < 1e-12)
+
+        // Start below 0 and end above 1 run the pipe on straight past the path's ends.
+        var longer = DocumentBuilder(units: .meters, tolerance: .standard)
+        _ = try longer.pipe(along: try line(in: &longer), diameter: length(2 * r), start: scalar(-0.5), end: scalar(1.2),
+                            approximationTolerance: length(1e-7))
+        let extended = try evaluate(longer).brep
+        #expect(abs(try extended.volume(tolerance: .standard) - Double.pi * r * r * 1.7 * L) < 1e-12)
+        let zs = extended.vertices.values.map(\.point.z)
+        #expect(abs((zs.min() ?? 0) + 0.5 * L) < 1e-12 && abs((zs.max() ?? 0) - 1.2 * L) < 1e-12)
+
+        // A twist turns the section along the path; a straight prism of a square keeps its volume.
+        var twisted = DocumentBuilder(units: .meters, tolerance: .standard)
+        _ = try twisted.pipe(along: try line(in: &twisted), diameter: length(2 * r), vertexCount: 4,
+                             twist: .constant(.angle(90, unit: .degree)), approximationTolerance: length(1e-7))
+        let turned = try evaluate(twisted).brep
+        #expect(abs(try turned.volume(tolerance: .standard) - 2 * r * r * L) < 1e-9)
+        #expect(turned.faces.values.contains { face in
+            if case .plane = turned.geometry.surfaces[face.surfaceID] { return false }
+            return true
+        })
 
         var hexagon = DocumentBuilder(units: .meters, tolerance: .standard)
         _ = try hexagon.pipe(along: try line(in: &hexagon), diameter: length(2 * r), vertexCount: 6,

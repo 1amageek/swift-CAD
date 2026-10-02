@@ -4,9 +4,11 @@ import CADGeometry
 import CADIR
 
 /// A pipe as the sweep of its section along its path: the path is cut to the pipe's start and end
-/// fractions of its length, the circle or polygon, or the custom profile placed by
-/// `PipeCustomSectionPlacement` (hollow for a wall), is laid across the cut path's start, turned by
-/// the pipe's angle, and both are handed to Sweep in a context that holds
+/// fractions of its length, or run on straight along its end tangents where they pass 0 or 1, the
+/// circle or polygon, or the custom profile placed by `PipeCustomSectionPlacement` (hollow for a
+/// wall: outward of the section when positive, inward when negative), is laid across the path's
+/// start, turned by the pipe's angle and twisted along it, and both are handed to Sweep in a
+/// context that holds
 /// them under the pipe's own identity. Straight paths, single arcs and curved paths then take
 /// Sweep's exact or certified routes, and a Boolean combines with the pipe's targets.
 package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
@@ -39,12 +41,15 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
         let radius = try pipe.diameter.map { try value($0, .length) / 2 }
         let wall = try pipe.thickness.map { try value($0, .length) }
         let angle = try value(pipe.angle, .angle)
+        // A circle turns into itself, so only a polygon's or a custom profile's twist is swept.
+        let twist = try value(pipe.twist, .angle) != 0 && (pipe.profile != nil || pipe.vertexCount > 0)
+            ? pipe.twist : .constant(.angle(0, unit: .degree))
         let start = try value(pipe.start, .scalar)
         let end = try value(pipe.end, .scalar)
-        let sectionAdmitted = radius.map { radius in radius > tolerance.distance && (wall.map { $0 < radius } ?? true) } ?? true
-        guard sectionAdmitted, wall.map({ $0 > tolerance.distance }) ?? true, 0 <= start, start < end, end <= 1 else {
+        let sectionAdmitted = radius.map { radius in radius > tolerance.distance && (wall.map { $0 > 0 || -$0 < radius } ?? true) } ?? true
+        guard sectionAdmitted, wall.map({ abs($0) > tolerance.distance }) ?? true, start < end, start < 1, end > 0 else {
             throw failure(.invalidInput, feature.id, tolerance,
-                "A pipe needs a positive diameter, a wall thinner than its radius and 0 ≤ start < end ≤ 1.")
+                "A pipe needs a positive diameter, a nonzero wall (inward thinner than its radius), and start < end with start below 1 and end above 0.")
         }
         guard let curves = context.curves[pipe.path.featureID], curves.isEmpty == false else {
             throw FeatureEvaluationError.missingInput("A pipe's path curve was not evaluated.")
@@ -53,9 +58,12 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
         guard segments.allSatisfy({ $0.curve.exactCurve != nil }) else {
             throw failure(.invalidInput, feature.id, tolerance, "A pipe follows an exact path curve.")
         }
-        let spans = try cut(
-            try ExactBSplineCurveSpanBuilder(tolerance: tolerance).pathSpans(from: segments),
-            from: start, to: end, featureID: feature.id, tolerance: tolerance
+        let spans = try extended(
+            try cut(
+                try ExactBSplineCurveSpanBuilder(tolerance: tolerance).pathSpans(from: segments),
+                from: max(start, 0), to: min(end, 1), featureID: feature.id, tolerance: tolerance
+            ),
+            before: -min(start, 0), after: max(end, 1) - 1, featureID: feature.id, tolerance: tolerance
         )
         let geometry = try spans[0].curve.differentialGeometry(at: try lower(of: spans[0].curve), tolerance: tolerance)
         let tangent = try geometry.firstDerivative.normalized(tolerance: tolerance.distance)
@@ -95,6 +103,7 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
                 path: SweepPathReference(featureID: pathID),
                 targets: targets,
                 options: SweepOptions(
+                    twistAngle: twist,
                     endScale: pipe.endScale,
                     alignment: .normal,
                     booleanOperation: operation,
@@ -187,15 +196,21 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
             }
             return ProfileLoop(vertices: vertices.reversed(), boundarySegments: segments)
         }
-        // The hole keeps the section's shape, its wall measured across the sides.
-        let inner = wall.map { radius - $0 / (vertexCount == 0 ? 1 : cos(Double.pi / Double(vertexCount))) }
+        // The wall keeps the section's shape, measured across the sides: a positive wall grows the
+        // outside past the section (the hole is the section), a negative one hollows it.
+        let across = vertexCount == 0 ? 1 : cos(Double.pi / Double(vertexCount))
+        let (outer, inner): (Double, Double?) = switch wall {
+        case let wall? where wall > 0: (radius + wall / across, radius)
+        case let wall?: (radius, radius + wall / across)
+        case nil: (radius, nil)
+        }
         if let inner, inner <= tolerance.distance {
             throw failure(.invalidInput, featureID, tolerance, "A pipe's wall is as thick as its section.")
         }
         return Profile(
             sourceFeatureID: featureID,
             plane: .plane(Plane3D(origin: origin, normal: normal)),
-            outerLoop: loop(radius, reversed: false),
+            outerLoop: loop(outer, reversed: false),
             innerLoops: inner.map { [loop($0, reversed: true)] } ?? []
         )
     }
@@ -223,6 +238,48 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
         }
         guard result.isEmpty == false else {
             throw failure(.invalidInput, featureID, tolerance, "A pipe's start and end leave no path.")
+        }
+        return result
+    }
+
+    /// `spans` run on straight along their start tangent by `before` and their end tangent by
+    /// `after`, each a fraction of the spans' length.
+    private func extended(
+        _ spans: [ExactBSplineCurveSpan], before: Double, after: Double, featureID: FeatureID, tolerance: ModelingTolerance
+    ) throws -> [ExactBSplineCurveSpan] {
+        guard before > 0 || after > 0, let first = spans.first, let last = spans.last else { return spans }
+        let total = try spans.reduce(0.0) { $0 + (try length(of: $1.curve, tolerance: tolerance)) }
+        func line(from start: Point3D, to end: Point3D) throws -> ExactBSplineCurveSpan {
+            try ExactBSplineCurveSpan(curve: BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1], controlPoints: [start, end], weights: [1, 1]),
+                                      tolerance: tolerance)
+        }
+        /// Whether `span` is a straight segment along `direction`, which an extension then lengthens.
+        func straight(_ span: ExactBSplineCurveSpan, along direction: Vector3D) -> Bool {
+            let chord = span.endPoint - span.startPoint
+            guard chord.length > tolerance.distance, chord.cross(direction).length <= tolerance.angle * chord.length else { return false }
+            return span.curve.controlPoints.allSatisfy { ($0 - span.startPoint).cross(chord).length <= tolerance.distance * chord.length }
+        }
+        var result = spans
+        if before > 0 {
+            let at = try first.curve.differentialGeometry(at: try lower(of: first.curve), tolerance: tolerance)
+            let tangent = try at.firstDerivative.normalized(tolerance: tolerance.distance)
+            let from = at.position + tangent * (-before * total)
+            // A straight first span runs back as one line, so a straight pipe stays one span.
+            if straight(first, along: tangent) {
+                result[0] = try line(from: from, to: first.endPoint)
+            } else {
+                result.insert(try line(from: from, to: at.position), at: 0)
+            }
+        }
+        if after > 0, let tail = result.last {
+            let at = try last.curve.differentialGeometry(at: try upper(of: last.curve), tolerance: tolerance)
+            let tangent = try at.firstDerivative.normalized(tolerance: tolerance.distance)
+            let to = at.position + tangent * (after * total)
+            if straight(tail, along: tangent) {
+                result[result.count - 1] = try line(from: tail.startPoint, to: to)
+            } else {
+                result.append(try line(from: at.position, to: to))
+            }
         }
         return result
     }

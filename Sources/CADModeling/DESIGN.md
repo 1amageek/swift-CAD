@@ -554,22 +554,28 @@ follow an edge. `EdgeCurveTests` own a pipe along a box's edge and the native ro
 
 `PipeFeatureEvaluator` owns a pipe's section and path, not its surfaces: it cuts the exact path
 spans to the pipe's start and end fractions of its length (arc length by Gauss–Legendre quadrature,
-the cut parameter by bisection), lays a circle (two exact half arcs) or a regular polygon of the
-diameter across the cut path's start in the path's normal plane, turned by the angle, with a hole of
-the same shape for a wall (a polygon's wall measured across its sides), and evaluates the Sweep of
-that section along the cut path in a context holding both under the pipe's identity (the path under
-a `pipePath` stage identity). Straight paths and single arcs so stay exact and curved paths take the
-certified curved sweep within the pipe's allowance; Booleans are Sweep's. `PipeTests` own the exact
-straight, hollow, cut and polygonal volumes, the curved volume within the allowance, the bored box and
-the native round trip.
+the cut parameter by bisection) and, where the start is below 0 or the end above 1 (Plasticity's
+Distance 1 and 2), runs the path on straight along its end tangent by that fraction of its length
+(a straight end span lengthened as one line). It lays a circle (two exact half arcs) or a regular
+polygon of the diameter across the path's start in the path's normal plane, turned by the angle,
+walled by the thickness — positive grows the outside past the section (the hole is the section),
+negative hollows it (a polygon's wall measured across its sides) — and evaluates the Sweep of that
+section, twisted by the pipe's twist (none for a circle, which turns into itself), along the path in
+a context holding both under the pipe's identity (the path under a `pipePath` stage identity).
+Straight paths and single arcs so stay exact and curved paths take the certified curved sweep
+within the pipe's allowance; Booleans are Sweep's. A closed path (Plasticity's capless ring) is
+refused by the open chain it needs. `PipeTests` own the exact straight, hollow (inward and outward),
+extended, twisted, cut and polygonal volumes, the curved volume within the allowance, the bored box
+and the native round trip.
 
 A custom profile (a region or a planar face, resolved by `ResolvedModelingSection.resolve`, which
 Sweep shares) replaces the circle: `PipeCustomSectionPlacement` carries it rigidly so its area
 centroid (Green's theorem: closed forms for lines and arcs, Gauss–Legendre over each spline's knot
 spans) sits on the cut path's start and its normal, with the sign nearer the tangent, turns onto the
 tangent by the least rotation, then turns it by the angle about the tangent. A wall hollows the
-placed region's loops through `ExactDraftedProfileBoundaryBuilder.wallProfiles`, the outline inward
-and each hole outward into a ring of its own. Sweep takes one section, so several rings sweep in
+placed region's loops through `ExactDraftedProfileBoundaryBuilder.wallProfiles` into a ring of
+its own each: a negative wall into the region (the outline inward, each hole outward), a positive
+one away from it (the outline outward, each hole inward). Sweep takes one section, so several rings sweep in
 turn as stages (`FeatureEvaluationStageDomain.pipeRing`): each after the first joins the ones before
 (or, with Union or Difference, works on the targets they left), the last publishing one body;
 Intersect, Slice and Keep Tools with several rings are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).

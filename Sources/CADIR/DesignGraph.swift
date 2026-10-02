@@ -214,16 +214,20 @@ public struct DesignGraph: Codable, Equatable, Sendable {
                 let start = try resolved(pipe.start, .scalar, "start")
                 let end = try resolved(pipe.end, .scalar, "end")
                 _ = try resolved(pipe.angle, .angle, "angle")
+                _ = try resolved(pipe.twist, .angle, "twist")
                 let endScale = try resolved(pipe.endScale, .scalar, "endScale")
                 let allowance = try resolved(pipe.approximationTolerance, .length, "approximationTolerance")
-                // A custom profile's wall is checked against its section when it is offset.
+                // A wall grows outward of the section when positive and inward when negative; an
+                // inward wall is thinner than the radius. A custom profile's wall is checked
+                // against its section when it is offset. Start below 0 and end above 1 run the
+                // path on along its end tangents.
                 let diameterAdmitted = diameter.map { diameter in
-                    diameter > tolerance.distance && (thickness.map { 2 * $0 < diameter } ?? true)
+                    diameter > tolerance.distance && (thickness.map { $0 > 0 || -2 * $0 < diameter } ?? true)
                 } ?? true
-                guard diameterAdmitted, thickness.map({ $0 > tolerance.distance }) ?? true,
-                      0 <= start, start < end, end <= 1, endScale > tolerance.relative, allowance > 0 else {
+                guard diameterAdmitted, thickness.map({ abs($0) > tolerance.distance }) ?? true,
+                      start < end, start < 1, end > 0, endScale > tolerance.relative, allowance > 0 else {
                     throw FeatureEvaluationError.invalidGraph(
-                        "A pipe needs a positive diameter, a wall thinner than its radius, 0 ≤ start < end ≤ 1, a positive end scale and allowance."
+                        "A pipe needs a positive diameter, a nonzero wall (inward thinner than its radius), start < end with start < 1 < end allowed past the path's ends, a positive end scale and allowance."
                     )
                 }
             case let .loft(loft):
