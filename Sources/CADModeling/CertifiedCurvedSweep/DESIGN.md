@@ -13,8 +13,8 @@ the frame, and the Hermite tensor rows with their error bound, plus the cap and
 side face requests. Existing Sweep owns section resolution, path chaining and the
 distance prefix, sewing and semantic topology, and Booleans. Exact routes keep
 precedence: straight paths, and solid sweeps along one circular arc (the exact
-revolve), never take this plan. Guides and path corners are refused with
-`FIXME(INCOMPLETE_IMPLEMENTATION)` in the plan.
+revolve), never take this plan. One guide steers the section (`CurvedSweepGuideLaw`); two or
+more guides and path corners are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)` in the plan.
 
 ## Related Designs
 
@@ -53,6 +53,20 @@ path spans (rational Bezier) ─► interval homogeneous jets per piece (order 5
   their derivative enclosures (`δᵏ` times the enclosed cosine and sine) enter the jets, so the
   Hermite bound covers them. A twist lets the lateral extents turn within their radius and a
   scale grows the reach for the bend and overlap certificates.
+- One guide replaces the laws (`CurvedSweepGuideLaw`, the straight-path guides' rules read in
+  the moving frame): at each station the guide crosses the plane across the path (bisection on
+  its spans, searching on from where it was last met) at a lateral offset `g`; Chord turns the
+  section by `arg g − arg g₀`, Point also scales it by `|g|/|g₀|`, Curve turns it by
+  `arg g − arg q` with `q` the section's point as far from the path as `g`, continued along the
+  section. The law is read at every piece's ends and middle; a piece whose linear law strays
+  from the middle's by more than a quarter of the allowance at the section's reach is halved
+  (to depth 40, on a stack rather than by recursion), and one no longer than sixteen modeling
+  distances that still strays is refused (a Curve guide starting square to the section's side
+  turns it as the square root of the run). The bend and overlap certificates take the largest
+  scale the accepted pieces reach. `CurvedPathGuidedSweepTests` own a Point guide scaling a
+  square by `1 + t` and a Chord guide leaving it as it is (their exact Pappus volumes), a Curve
+  guide turning a 30°-turned square so its side keeps touching it (volume, the guide's end on
+  the end cap's outline), and the refusal from a side's square.
 - Each piece's rows are the cubic Hermite interpolant of every moved control point
   in the piece's own parameter. Its error is at most `Σ_c sup|S_c⁽⁴⁾| / 384` (an L1
   bound) plus the rows' rounding, both enclosed, within the allowance. Positive

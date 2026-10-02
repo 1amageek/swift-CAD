@@ -161,8 +161,12 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             exactCircularSolid: exactCircularPath != nil && sweep.options.resultKind == .solid,
             tolerance: context.tolerance
         ) {
+            // One guide steers the section along the curved path by its method.
+            let guideSpans = try guideCurves.onlyElement.map {
+                try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance).sectionSpans(from: $0).map(\.curve)
+            }
             let plan = try CertifiedCurvedPathSweepPlan(
-                section: section, pathSpans: curvedPathSpans, sweep: sweep, values: optionValues,
+                section: section, pathSpans: curvedPathSpans, sweep: sweep, values: optionValues, guide: guideSpans,
                 featureID: feature.id, tolerance: context.tolerance
             )
             let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)

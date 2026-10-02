@@ -231,8 +231,11 @@ public struct SweepEvaluationPlanService: Sendable {
         if curvedPathSpans.isEmpty == false, CertifiedCurvedPathSweepPlan.applies(options, pathSpans: curvedPathSpans, exactCircularSolid: circularSolid, tolerance: tolerance) {
             let sectionState: SweepEvaluationCapabilities.SectionState = guideCurves.isEmpty ? .identity : .guided
             do {
+                let guideSpans = try (guideCurves.count == 1 ? guideCurves.first : nil).map {
+                    try ExactBSplineCurveSpanBuilder(tolerance: tolerance).sectionSpans(from: $0).map(\.curve)
+                }
                 let certified = try CertifiedCurvedPathSweepPlan(section: section, pathSpans: curvedPathSpans,
-                    sweep: sweep, values: optionValues, featureID: nil, tolerance: tolerance)
+                    sweep: sweep, values: optionValues, guide: guideSpans, featureID: nil, tolerance: tolerance)
                 let geometry = SweepEvaluationCapabilities.Geometry(pathShape: .curved, sectionState: sectionState,
                     guideConstraintCount: guides.count, tolerance: tolerance, certifiedCurvedPathAvailable: true)
                 let supported = try SweepEvaluationCapabilities().supportedPlan(options, geometry: geometry, tolerance: tolerance)
