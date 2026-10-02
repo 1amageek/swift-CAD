@@ -131,6 +131,33 @@ struct FaceRemovalHealingTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func deletingTwoChamfersThatMeetRestoresTheCorner() throws {
+        // Two top edges meeting at a corner chamfered together: the chamfers meet along a mitre,
+        // so they touch; deleted together they heal one after the other into the sharp box.
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let boxID = try box(&builder)
+        let edges = try subshapes(in: builder, of: boxID) { value, model in
+            guard case let .edge(id) = value, let edge = model.edges[id],
+                  let a = model.vertices[edge.startVertexID]?.point, let b = model.vertices[edge.endVertexID]?.point else { return false }
+            let top = abs(a.z - 0.010) < 1e-9 && abs(b.z - 0.010) < 1e-9
+            let right = abs(a.x - 0.020) < 1e-9 && abs(b.x - 0.020) < 1e-9
+            let front = abs(a.y + 0.010) < 1e-9 && abs(b.y + 0.010) < 1e-9
+            return top && (right || front)
+        }
+        #expect(edges.count == 2)
+        let chamfered = try builder.chamfer(target: boxID, edges: edges, distance: millimeters(2))
+        let chamfers = try subshapes(in: builder, of: chamfered) { value, model in
+            guard case let .face(id) = value, let face = model.faces[id], case let .plane(plane)? = model.geometry.surfaces[face.surfaceID] else { return false }
+            return abs(plane.normal.z) > 0.1 && (abs(plane.normal.x) > 0.1 || abs(plane.normal.y) > 0.1)
+        }
+        #expect(chamfers.count == 2)
+        _ = try builder.faceDelete(target: chamfered, faces: chamfers, heals: true)
+        let model = try solid(builder)
+        #expect(model.faces.count == 6)
+        #expect(abs(try model.volume(tolerance: .standard) - 0.040 * 0.020 * 0.010) < 1e-12)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func aFaceTheFacesAroundCannotCloseOverIsRefused() throws {
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
         let boxID = try box(&builder)

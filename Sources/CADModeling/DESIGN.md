@@ -1029,11 +1029,13 @@ tangent to two kept faces along two of its edges (a strip), or lying where fille
 meet (a corner, removed only with all the strips around it); its convexity is whether
 its centre of curvature lies in the material. A deleted face that is not a fillet is
 tried every way it could collapse and the healed solid that validates and changes the
-volume least is kept; faces touching one another go together only as a hole
-(`FIXME(INCOMPLETE_IMPLEMENTATION)` for any other cluster). `FaceRemovalHealingTests`
-prove a filled hole, a sharpened rounded box, one sharpened corner, a restored
-chamfered edge, radius and convexity filters and the refusal of a top no neighbours
-close over.
+volume least is kept. Faces touching one another go together: as a hole when they run
+through one; otherwise every combination of their collapses (at most 256) is healed at
+once and the one that validates and changes the volume least kept (chamfers meeting at a
+mitre each collapse onto their edge together); otherwise one at a time, each the first left
+that heals alone. `FaceRemovalHealingTests` prove a filled hole, a sharpened rounded box,
+one sharpened corner, a restored chamfered edge, two chamfers meeting at a corner deleted
+together, radius and convexity filters and the refusal of a top no neighbours close over.
 
 `RedundantTopologyRemover` owns Delete Redundant Topology on solids and sheets
 (`RemoveRedundantTopologyFeatureEvaluator`): faces on one plane, or on one

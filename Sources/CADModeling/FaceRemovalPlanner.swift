@@ -22,6 +22,9 @@ package struct FaceRemovalPlanner: Sendable {
 
     package init() {}
 
+    /// The most combinations of collapses tried for faces deleted together.
+    private static let maximumCombinations = 256
+
     /// The fillets of the body no wider than `maximumRadius` (any, when nil) of the asked
     /// convexity, and how each collapses.
     package func fillets(
@@ -65,7 +68,8 @@ package struct FaceRemovalPlanner: Sendable {
 
     /// Heals the body over `faces`: fillets among them collapse as fillets; each other face is
     /// tried every way it could collapse, the one that validates and changes the volume least
-    /// kept. Faces other than fillets must not touch one another.
+    /// kept; faces that touch go together as a hole, else by the best combination of their
+    /// collapses healed at once, else one at a time.
     package func heal(
         removing faces: Set<FaceID>,
         bodyID: BodyID,
@@ -79,8 +83,7 @@ package struct FaceRemovalPlanner: Sendable {
         }
         let fillets = try self.fillets(of: bodyID, maximumRadius: nil, convexity: .any, model: model, tolerance: tolerance)
             .filter { faces.contains($0.key) }
-        // Faces other than fillets that touch one another go together only as a hole they run
-        // through; each face touching no other is healed alone.
+        // Faces other than fillets gather into clusters of faces that touch.
         var clusters: [[FaceID]] = []
         var pending = faces.subtracting(fillets.keys)
         while let seed = pending.min() {
@@ -99,39 +102,101 @@ package struct FaceRemovalPlanner: Sendable {
             try FaceRemovalHealer().heal(fillets, bodyID: bodyID, featureID: featureID, model: &model, tolerance: tolerance)
         }
         for cluster in clusters where cluster.count > 1 {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): faces touching one another that are neither
-            // fillets nor a hole's faces would regrow the faces around them together. Production
-            // path: FaceRemovalPlanner.heal for faceDelete features that heal. Complete only when
-            // such neighbouring removed faces are healed together, verified by deleting two
-            // adjacent faces of a wedge.
-            try FaceRemovalHealer().heal(
-                Dictionary(uniqueKeysWithValues: cluster.map { ($0, .dropsHoles) }),
-                bodyID: bodyID, featureID: featureID, model: &model, tolerance: tolerance
-            )
-        }
-        for faceID in clusters.filter({ $0.count == 1 }).flatMap({ $0 }) {
-            let before = try model.volume(of: bodyID, tolerance: tolerance)
-            var best: (model: BRepModel, change: Double)?
-            var lastFailure: (any Error)?
-            for collapse in try collapses(of: faceID, bodyID: bodyID, model: model) {
-                var trial = model
-                do {
-                    try FaceRemovalHealer().heal([faceID: collapse], bodyID: bodyID, featureID: featureID, model: &trial, tolerance: tolerance)
-                    try ExactFacePcurveBuilder().populateMissingPcurves(in: &trial, tolerance: tolerance)
-                    try trial.validate(level: .volumetric, tolerance: tolerance)
-                    let change = abs(try trial.volume(of: bodyID, tolerance: tolerance) - before)
-                    if best.map({ change < $0.change }) ?? true { best = (trial, change) }
-                } catch {
-                    // Each way the face could collapse is a candidate; one that fails to heal is
-                    // not the way the face collapses, and the failure is reported when none heals.
-                    lastFailure = error
+            // The faces of a hole go together, dropping the loops they leave; faces that touch
+            // otherwise go one at a time, each the first of those left that heals alone (the
+            // faces around a healed face keep their identities as they regrow over it).
+            var dropped = model
+            do {
+                try FaceRemovalHealer().heal(Dictionary(uniqueKeysWithValues: cluster.map { ($0, .dropsHoles) }),
+                                             bodyID: bodyID, featureID: featureID, model: &dropped, tolerance: tolerance)
+                try ExactFacePcurveBuilder().populateMissingPcurves(in: &dropped, tolerance: tolerance)
+                try dropped.validate(level: .volumetric, tolerance: tolerance)
+                model = dropped
+                continue
+            } catch {
+                // Not a hole: the faces collapse together below.
+            }
+            // Every combination of the ways each face could collapse, healed at once (chamfers
+            // meeting at a mitre each collapse onto their edge together), the one that validates
+            // and changes the volume least kept.
+            let options = try cluster.map { try collapses(of: $0, bodyID: bodyID, model: model) }
+            let combinations = options.reduce(1) { $0 * $1.count }
+            if combinations <= Self.maximumCombinations {
+                let before = try model.volume(of: bodyID, tolerance: tolerance)
+                var best: (model: BRepModel, change: Double)?
+                for combination in 0..<combinations {
+                    var plan: [FaceID: FaceRemovalHealer.Collapse] = [:]
+                    var rest = combination
+                    for (faceID, choices) in zip(cluster, options) {
+                        plan[faceID] = choices[rest % choices.count]
+                        rest /= choices.count
+                    }
+                    var trial = model
+                    do {
+                        try FaceRemovalHealer().heal(plan, bodyID: bodyID, featureID: featureID, model: &trial, tolerance: tolerance)
+                        try ExactFacePcurveBuilder().populateMissingPcurves(in: &trial, tolerance: tolerance)
+                        try trial.validate(level: .volumetric, tolerance: tolerance)
+                        let change = abs(try trial.volume(of: bodyID, tolerance: tolerance) - before)
+                        if best.map({ change < $0.change }) ?? true { best = (trial, change) }
+                    } catch {
+                        // A combination that fails to heal is not how the faces collapse; the
+                        // faces are healed one at a time when none does.
+                    }
+                }
+                if let best {
+                    model = best.model
+                    continue
                 }
             }
-            guard let best else {
-                throw lastFailure ?? failure(.topologyFailure, featureID, tolerance, "The faces around a deleted face do not meet over it.")
+            var remaining = cluster
+            while remaining.isEmpty == false {
+                var healed: (index: Int, model: BRepModel)?
+                var lastFailure: (any Error)?
+                for (index, faceID) in remaining.enumerated() {
+                    do {
+                        healed = (index, try healedAlone(faceID, bodyID: bodyID, featureID: featureID, model: model, tolerance: tolerance))
+                        break
+                    } catch {
+                        lastFailure = error
+                    }
+                }
+                guard let healed else {
+                    throw lastFailure ?? failure(.topologyFailure, featureID, tolerance, "The faces around deleted faces do not meet over them.")
+                }
+                model = healed.model
+                remaining.remove(at: healed.index)
             }
-            model = best.model
         }
+        for faceID in clusters.filter({ $0.count == 1 }).flatMap({ $0 }) {
+            model = try healedAlone(faceID, bodyID: bodyID, featureID: featureID, model: model, tolerance: tolerance)
+        }
+    }
+
+    /// The body healed over one face: each way it could collapse tried, the one that validates and
+    /// changes the volume least kept.
+    private func healedAlone(_ faceID: FaceID, bodyID: BodyID, featureID: FeatureID, model: BRepModel,
+                             tolerance: ModelingTolerance) throws -> BRepModel {
+        let before = try model.volume(of: bodyID, tolerance: tolerance)
+        var best: (model: BRepModel, change: Double)?
+        var lastFailure: (any Error)?
+        for collapse in try collapses(of: faceID, bodyID: bodyID, model: model) {
+            var trial = model
+            do {
+                try FaceRemovalHealer().heal([faceID: collapse], bodyID: bodyID, featureID: featureID, model: &trial, tolerance: tolerance)
+                try ExactFacePcurveBuilder().populateMissingPcurves(in: &trial, tolerance: tolerance)
+                try trial.validate(level: .volumetric, tolerance: tolerance)
+                let change = abs(try trial.volume(of: bodyID, tolerance: tolerance) - before)
+                if best.map({ change < $0.change }) ?? true { best = (trial, change) }
+            } catch {
+                // Each way the face could collapse is a candidate; one that fails to heal is
+                // not the way the face collapses, and the failure is reported when none heals.
+                lastFailure = error
+            }
+        }
+        guard let best else {
+            throw lastFailure ?? failure(.topologyFailure, featureID, tolerance, "The faces around a deleted face do not meet over it.")
+        }
+        return best.model
     }
 
     /// Every way a face could collapse: dropping the holes it leaves, onto the meeting of the
