@@ -539,6 +539,36 @@ struct FilletShapeTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func aBoxsTopOutlineRoundsOverItsFilletedUprightEdges() throws {
+        // Plasticity's selection video: a box whose four upright edges one fillet rounded, then
+        // one top edge with tangent edges rounding the whole top outline over those rounds.
+        let (w, h, c, height, r) = (0.04, 0.03, 0.005, 0.01, 0.002)
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.rectangle(width: length(w), height: length(h))
+        }.featureID
+        let box = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(height))
+        let plain = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        // The rectangle is centred on the origin.
+        let uprights = try [(-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2)].flatMap { corner in
+            try edges(of: box, in: plain, builder) { abs($0.x - corner.0) < 1e-12 && abs($0.y - corner.1) < 1e-12 }
+        }
+        #expect(uprights.count == 4)
+        let roundedUprights = try builder.fillet(target: box, edges: uprights, radius: length(c))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        let top = try #require(try edges(of: roundedUprights, in: rounded, builder) { abs($0.z - height) < 1e-12 && abs($0.y + h / 2) < 1e-12 }.first)
+        _ = try builder.fillet(target: roundedUprights, edges: [top], radius: length(r))
+        let result = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        try result.brep.validate(level: .volumetric, tolerance: .standard)
+        let solid = (w * h - (4 - Double.pi) * c * c) * height
+        let straight = 2 * (w - 2 * c) + 2 * (h - 2 * c)
+        let section = r * r * (1 - Double.pi / 4)
+        let inset = r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+        let volume = try result.brep.volume(tolerance: .standard)
+        #expect(abs(volume - (solid - section * (straight + 2 * Double.pi * (c - inset)))) < 5e-12, "\(volume)")
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func aDsUprightCornerBetweenItsFlatAndItsArcRounds() throws {
         // A D of radius 10 mm extruded 10 mm; its upright edge at (10, 0) mm joins the flat side
         // (y = 0) and the round one at a right angle.

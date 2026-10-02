@@ -71,8 +71,8 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                                         lineage: sewn.lineage)
             }
         }
-        // Several straight edges beside cylinders running along them, apart from each other,
-        // round in turn.
+        // Several straight edges beside cylinders running along them or between planes, apart from
+        // each other and ending square, round in turn.
         if fillet.allEdges == false, fillet.shape == .round, fillet.edges.count > 1, targetKind == .solid {
             let bodyID = try targetBodyID(fillet.target.featureID, featureID: feature.id, context: context)
             if let result = try parallelEdgesInTurn(feature: feature, bodyID: bodyID, selected: fillet.edges,
@@ -869,7 +869,12 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         let tolerance = context.tolerance
         let builder = ParallelEdgeRoundBuilder(tolerance: tolerance)
         let selections = try selected.map { try scopedEdgeSelection($0, bodyID: initialBodyID, featureID: feature.id, context: context) }
-        guard try selections.allSatisfy({ try builder.admits($0.edgeID, bodyID: initialBodyID, model: context.brep) }) else { return nil }
+        // Edges beside cylinders running along them, or between planes, ending square on planes
+        // (a box's upright edges): each rounds as the exact cylinder between its faces.
+        guard try selections.allSatisfy({
+            try builder.admits($0.edgeID, bodyID: initialBodyID, model: context.brep, betweenPlanes: true)
+                && builder.endsOnSquareFaces($0.edgeID, bodyID: initialBodyID, model: context.brep)
+        }) else { return nil }
         let ends = try selections.map { selection -> (Point3D, Point3D) in
             guard let edge = context.brep.edges[selection.edgeID], let a = context.brep.vertices[edge.startVertexID]?.point,
                   let b = context.brep.vertices[edge.endVertexID]?.point else {

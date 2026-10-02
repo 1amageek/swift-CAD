@@ -50,6 +50,38 @@ package struct ParallelEdgeRoundBuilder {
         return kinds.contains(2) || (betweenPlanes && kinds.allSatisfy { $0 == 1 })
     }
 
+    /// Whether the straight edge ends at each vertex on one other face, a plane square to it, as
+    /// the round's ends need.
+    package func endsOnSquareFaces(_ edgeID: EdgeID, bodyID: BodyID, model: BRepModel) throws -> Bool {
+        guard let edge = model.edges[edgeID], let shell = model.bodies[bodyID]?.shellIDs.first.flatMap({ model.shells[$0] }),
+              let p0 = model.vertices[edge.startVertexID]?.point, let p1 = model.vertices[edge.endVertexID]?.point else {
+            throw TopologyError.missingReference("Missing edge.")
+        }
+        let d = try (p1 - p0).normalized(tolerance: tolerance.distance)
+        let besides = try shell.faceIDs.filter { try uses(edgeID, face: $0, model: model) }
+        return try squareEndFace(at: edge.startVertexID, besides: besides, direction: d, shell: shell, model: model) != nil
+            && squareEndFace(at: edge.endVertexID, besides: besides, direction: d, shell: shell, model: model) != nil
+    }
+
+    /// The one face other than `besides` holding the vertex, when it is a plane square to `d`.
+    private func squareEndFace(at vertexID: VertexID, besides: [FaceID], direction d: Vector3D, shell: Shell, model: BRepModel) throws -> FaceID? {
+        let holding = try shell.faceIDs.filter { faceID in
+            guard besides.contains(faceID) == false, let face = model.faces[faceID] else { return false }
+            return try face.loops.contains { id in
+                guard let loop = model.loops[id] else { throw TopologyError.missingReference("Missing loop.") }
+                return loop.edges.contains { use in
+                    guard let other = model.edges[use.edgeID] else { return false }
+                    return other.startVertexID == vertexID || other.endVertexID == vertexID
+                }
+            }
+        }
+        guard holding.count == 1, let face = model.faces[holding[0]], case let .plane(plane)? = model.geometry.surfaces[face.surfaceID],
+              plane.normal.cross(d).length <= tolerance.angle * max(plane.normal.length, 1) else {
+            return nil
+        }
+        return holding[0]
+    }
+
     /// Whether the material lies outside the corner at `edgeID` between its two faces: a concave
     /// edge, whose round adds material.
     package func isConcave(_ edgeID: EdgeID, bodyID: BodyID, model: BRepModel) throws -> Bool {
@@ -143,21 +175,10 @@ package struct ParallelEdgeRoundBuilder {
         let (a, b) = (try trace(besides[0]), try trace(besides[1]))
         // The end faces: at each end the one other face holding the vertex, a plane square to the edge.
         func endFace(_ vertexID: VertexID) throws -> FaceID {
-            let holding = try shell.faceIDs.filter { faceID in
-                guard besides.contains(faceID) == false, let face = model.faces[faceID] else { return false }
-                return try face.loops.contains { id in
-                    guard let loop = model.loops[id] else { throw TopologyError.missingReference("Missing loop.") }
-                    return loop.edges.contains { use in
-                        guard let other = model.edges[use.edgeID] else { return false }
-                        return other.startVertexID == vertexID || other.endVertexID == vertexID
-                    }
-                }
-            }
-            guard holding.count == 1, let face = model.faces[holding[0]], case let .plane(plane)? = model.geometry.surfaces[face.surfaceID],
-                  plane.normal.cross(d).length <= tolerance.angle * max(plane.normal.length, 1) else {
+            guard let face = try squareEndFace(at: vertexID, besides: besides, direction: d, shell: shell, model: model) else {
                 throw refuse("A rounded edge ends on faces square to it.")
             }
-            return holding[0]
+            return face
         }
         let ends = (try endFace(edge.startVertexID), try endFace(edge.endVertexID))
         // Convex where the second face runs into the first's inside: along the second face away

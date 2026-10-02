@@ -436,7 +436,7 @@ extruded outline's corner at an arc), ending on planes square to it, rounds thro
 one — where the traces moved the radius cross; the round is the exact cylinder about its centre, each
 face beside it ends on the ruling it touches and each end face takes the circle's arc across its
 corner. A chamfer there (Offset or Apex) is the plane through the rulings where each face's trace
-meets the other's offset by the distance, or the distance's circle about the corner. Several such edges sharing no vertex (a D's two corners) are blended in turn (`parallelEdgesInTurn`): each staged on the previous stage's body, re-found by its endpoints, the last published under the feature. Tangent loops of a planar cap — a closed loop of lines and arcs, tangent where they meet, holding
+meets the other's offset by the distance, or the distance's circle about the corner. Several such edges sharing no vertex (a D's two corners), and plane–plane edges ending square on planes (a box's four upright edges, which a tangent top outline then rounds over), are blended in turn (`parallelEdgesInTurn`), each the exact cylinder: each staged on the previous stage's body, re-found by its endpoints, the last published under the feature. Tangent loops of a planar cap — a closed loop of lines and arcs, tangent where they meet, holding
 an arc (a cylinder's rim, a rounded rectangle's or a slot's outline, a hole's), each edge between the
 cap and a wall square to it (a plane through a line, the coaxial cylinder through an arc), the walls
 all running down from the cap (convex) or all rising from it (concave: a boss's base, a blind hole's
