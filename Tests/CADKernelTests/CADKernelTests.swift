@@ -3091,24 +3091,17 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func guidedSweepRejectsNonExactGuideMethodsBeforeTopologyMutation() throws {
-        // A Chord guide is carried by the certified twist, which needs an allowance; Curve is not built.
-        let chordDocument = makeGuidedStraightPathSweepDocument(guideEndOffset: 20.0, guideMethod: .chord)
-        #expect(throws: KernelError.self) { _ = try DocumentEvaluator(tolerance: .standard).evaluate(chordDocument) }
-        let guideMethods: [SweepGuideMethod] = [.curve]
-
-        for guideMethod in guideMethods {
-            let document = makeGuidedStraightPathSweepDocument(
-                guideEndOffset: 20.0,
-                guideMethod: guideMethod
-            )
+        // Chord and Curve guides are carried by the certified twist, which needs a positional
+        // allowance: without one each is refused before any topology is made.
+        for guideMethod in [SweepGuideMethod.chord, .curve] {
+            let document = makeGuidedStraightPathSweepDocument(guideEndOffset: 20.0, guideMethod: guideMethod)
             do {
                 _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
-                Issue.record("Guided Sweep must not publish sampled guide topology.")
+                Issue.record("A \(guideMethod) guide without an allowance must be refused.")
             } catch let error as KernelError {
-                #expect(error.phase == .evaluation)
-                #expect(error.code == .sweepGuideConstraintUnavailable)
+                #expect(error.code == .invalidInput, "\(guideMethod) \(error)")
                 #expect(error.featureID == document.designGraph.order.last)
-                #expect(error.tolerance == .standard)
+                #expect(error.message.contains("allowance"), "\(error.message)")
             } catch {
                 Issue.record("Expected typed KernelError for guided Sweep, got \(error).")
             }

@@ -781,46 +781,40 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> RationalDerivatives {
-        let clampedU = BSplineBasis.clampedParameter(u, knots: uKnots, degree: uDegree)
-        let clampedV = BSplineBasis.clampedParameter(v, knots: vKnots, degree: vDegree)
-        let uBasis = BSplineBasis.values(parameter: clampedU, degree: uDegree, knots: uKnots, count: uControlPointCount)
-        let vBasis = BSplineBasis.values(parameter: clampedV, degree: vDegree, knots: vKnots, count: vControlPointCount)
-        let uFirstDerivative = BSplineBasis.derivativeValues(
-            parameter: clampedU,
-            degree: uDegree,
-            derivativeOrder: 1,
-            knots: uKnots,
-            count: uControlPointCount
-        )
-        let vFirstDerivative = BSplineBasis.derivativeValues(
-            parameter: clampedV,
-            degree: vDegree,
-            derivativeOrder: 1,
-            knots: vKnots,
-            count: vControlPointCount
-        )
-        let uSecondDerivative = BSplineBasis.derivativeValues(
-            parameter: clampedU,
-            degree: uDegree,
-            derivativeOrder: 2,
-            knots: uKnots,
-            count: uControlPointCount
-        )
-        let vSecondDerivative = BSplineBasis.derivativeValues(
-            parameter: clampedV,
-            degree: vDegree,
-            derivativeOrder: 2,
-            knots: vKnots,
-            count: vControlPointCount
-        )
-        let result = try rationalDerivatives(
-            uBasis: uBasis,
-            vBasis: vBasis,
-            uFirstDerivative: uFirstDerivative,
-            vFirstDerivative: vFirstDerivative,
-            uSecondDerivative: uSecondDerivative,
-            vSecondDerivative: vSecondDerivative
-        )
+        // Only the (p + 1)(q + 1) basis products of the knot spans holding (u, v) are nonzero:
+        // the local bases to second order, and one pass over those control points gathering the
+        // weighted position and its five derivatives together.
+        let uLocal = BSplineBasis.nonzeroDerivativeValues(parameter: u, degree: uDegree, throughDerivativeOrder: 2,
+                                                          knots: uKnots, count: uControlPointCount)
+        let vLocal = BSplineBasis.nonzeroDerivativeValues(parameter: v, degree: vDegree, throughDerivativeOrder: 2,
+                                                          knots: vKnots, count: vControlPointCount)
+        var (s0, su, sv, suu, suv, svv) = (Vector3D.zero, Vector3D.zero, Vector3D.zero, Vector3D.zero, Vector3D.zero, Vector3D.zero)
+        var (w0, wu, wv, wuu, wuv, wvv) = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        let (u0, v0) = (uLocal[0].startIndex, vLocal[0].startIndex)
+        let (uValues, uFirsts, uSeconds) = (uLocal[0].values, uLocal[1].values, uLocal[2].values)
+        let (vValues, vFirsts, vSeconds) = (vLocal[0].values, vLocal[1].values, vLocal[2].values)
+        for j in vValues.indices {
+            let vIndex = v0 + j
+            guard vIndex >= 0, vIndex < vControlPointCount else { continue }
+            let (bv, dv, ddv) = (vValues[j], vFirsts[j], vSeconds[j])
+            let pointRow = controlPoints[vIndex], weightRow = weights[vIndex]
+            for i in uValues.indices {
+                let uIndex = u0 + i
+                guard uIndex >= 0, uIndex < uControlPointCount else { continue }
+                let w = weightRow[uIndex]
+                let p = vector(from: pointRow[uIndex]) * w
+                let (bu, du, ddu) = (uValues[i], uFirsts[i], uSeconds[i])
+                // Position, ∂u, ∂v, ∂uu, ∂uv, ∂vv of the homogeneous surface.
+                let (f0, fu, fv, fuu, fuv, fvv) = (bu * bv, du * bv, bu * dv, ddu * bv, du * dv, bu * ddv)
+                s0 = s0 + p * f0; su = su + p * fu; sv = sv + p * fv
+                suu = suu + p * fuu; suv = suv + p * fuv; svv = svv + p * fvv
+                w0 += w * f0; wu += w * fu; wv += w * fv; wuu += w * fuu; wuv += w * fuv; wvv += w * fvv
+            }
+        }
+        let sums = [WeightedVector(point: s0, weight: w0), WeightedVector(point: su, weight: wu), WeightedVector(point: sv, weight: wv),
+                    WeightedVector(point: suu, weight: wuu), WeightedVector(point: suv, weight: wuv), WeightedVector(point: svv, weight: wvv)]
+        let result = try rationalDerivatives(base: sums[0], uFirst: sums[1], vFirst: sums[2], uSecond: sums[3], uvSecond: sums[4],
+                                             vSecond: sums[5])
         guard result.tangentU.isFinite,
               result.tangentV.isFinite,
               result.secondDerivativeUU.isFinite,
@@ -883,19 +877,13 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
     }
 
     private func rationalDerivatives(
-        uBasis: [Double],
-        vBasis: [Double],
-        uFirstDerivative: [Double],
-        vFirstDerivative: [Double],
-        uSecondDerivative: [Double],
-        vSecondDerivative: [Double]
+        base: WeightedVector,
+        uFirst: WeightedVector,
+        vFirst: WeightedVector,
+        uSecond: WeightedVector,
+        uvSecond: WeightedVector,
+        vSecond: WeightedVector
     ) throws -> RationalDerivatives {
-        let base = weightedSurfaceVector(uBasis: uBasis, vBasis: vBasis)
-        let uFirst = weightedSurfaceVector(uBasis: uFirstDerivative, vBasis: vBasis)
-        let vFirst = weightedSurfaceVector(uBasis: uBasis, vBasis: vFirstDerivative)
-        let uSecond = weightedSurfaceVector(uBasis: uSecondDerivative, vBasis: vBasis)
-        let uvSecond = weightedSurfaceVector(uBasis: uFirstDerivative, vBasis: vFirstDerivative)
-        let vSecond = weightedSurfaceVector(uBasis: uBasis, vBasis: vSecondDerivative)
         let positionVector = try rationalVector(base)
         let tangentU = (uFirst.point - positionVector * uFirst.weight) / base.weight
         let tangentV = (vFirst.point - positionVector * vFirst.weight) / base.weight
