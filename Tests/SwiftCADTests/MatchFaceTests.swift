@@ -72,4 +72,34 @@ struct MatchFaceTests {
             _ = try CADPipeline(tolerance: .standard).evaluate(builder.build())
         }
     }
+
+    /// An L prism's step (x = 10 mm) matched onto a wall placed at x = 25 mm, past its own outer
+    /// wall at x = 20 mm: a push, so Grow runs into that wall as Push Face's does.
+    @Test(.timeLimit(.minutes(2)), arguments: [(FaceEditGrow.moving, 10_000.0), (FaceEditGrow.fixed, 8_000.0)])
+    func aStepMatchedPastItsWallGrowsByItsMode(grow: FaceEditGrow, volume: Double) throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let corners = [(0.0, 0.0), (20.0, 0.0), (20.0, 10.0), (10.0, 10.0), (10.0, 20.0), (0.0, 20.0)]
+        let profile = try builder.sketch(on: .xy) { sketch in
+            for k in corners.indices {
+                let (a, b) = (corners[k], corners[(k + 1) % corners.count])
+                _ = sketch.line(from: SketchPoint(x: millimeters(a.0), y: millimeters(a.1)), to: SketchPoint(x: millimeters(b.0), y: millimeters(b.1)))
+            }
+        }
+        let body = try builder.extrude(profile, distance: millimeters(20))
+        let wall = try box(&builder, height: 10)
+        let evaluated = try CADPipeline(tolerance: .standard).evaluate(builder.build())
+        func face(of feature: FeatureID, atX x: Double) throws -> StableSubshapeReference {
+            let key = try #require(evaluated.subshapes.entries.first { key, value in
+                guard key.featureID == feature, case let .face(id) = value, let face = evaluated.brep.faces[id],
+                      case let .plane(plane) = evaluated.brep.geometry.surfaces[face.surfaceID] else { return false }
+                return abs(abs(plane.normal.x) - 1) < 1e-9 && abs(plane.origin.x - x) < 1e-9
+            }?.key)
+            return try builder.stableSubshape(key)
+        }
+        let matched = try builder.matchFace(target: body, faces: [try face(of: body, atX: 0.010)], source: wall,
+                                            referenceFace: try face(of: wall, atX: 0.020),
+                                            sourcePlacement: .translated(by: Vector3D(x: 0.005, y: 0, z: 0)), grow: grow)
+        #expect(abs(try self.volume(of: matched, in: builder) - volume * 1e-9) < 1e-15)
+    }
 }
+

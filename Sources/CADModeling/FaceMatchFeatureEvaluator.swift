@@ -9,9 +9,13 @@ import CADTopology
 public struct FaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let subshapeResolver: any StableSubshapeResolving
     private let identityBuilder: any CarriedTopologyIdentityBuilding
+    /// Push Face, which a match of one planar face onto a parallel plane facing the same way is:
+    /// its Grow then runs into walls as Push Face's does.
+    private let pusher: (any FeatureEvaluating)?
 
-    public init(subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver()) {
+    public init(subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver(), pusher: (any FeatureEvaluating)? = nil) {
         self.subshapeResolver = subshapeResolver
+        self.pusher = pusher
         identityBuilder = DefaultCarriedTopologyIdentityBuilder()
     }
 
@@ -78,11 +82,21 @@ public struct FaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             }
             replacements[faceID] = FaceSurfaceReplacementRebuilder.Replacement(surface: surface, orientation: orientation)
         }
-        // FIXME(INCOMPLETE_IMPLEMENTATION): every Grow mode re-solves the faces around the matched
-        // faces in place, so a match that runs into another wall is refused as a topology failure
-        // under Moving and Fixed too. Production path: FaceMatchFeatureEvaluator for every
-        // faceMatch feature. Moving and Fixed are complete only when a matched face meeting a wall
-        // moves that wall or stops at it, verified by tests of a concave face matched past a wall.
+        // One planar face onto a parallel plane, facing the same way: a push by the planes' distance.
+        if let pusher, faceIDs.count == 1, let face = model.faces[faceIDs[0]], let previous = model.geometry.surfaces[face.surfaceID],
+           let replacement = replacements[faceIDs[0]], let distance = try parallelPush(from: previous, orientation: face.orientation,
+                                                                                       onto: replacement, tolerance: tolerance) {
+            let push = FeatureNode(id: feature.id, name: feature.name, operation: .faceOffset(FaceOffsetFeature(
+                target: FaceOffsetTargetReference(featureID: match.target.featureID), faces: match.faces,
+                distance: .constant(.length(distance, unit: .meter)), grow: match.grow
+            )), outputs: feature.outputs)
+            return try pusher.evaluate(feature: push, context: context)
+        }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): a match other than one planar face onto a parallel
+        // plane re-solves the faces around in place under every Grow mode, so one that runs into
+        // another wall is refused as a topology failure. Production path: FaceMatchFeatureEvaluator
+        // for every faceMatch feature. Moving and Fixed are complete only when such a matched face
+        // meeting a wall moves that wall or stops at it, verified by a curved face matched past a wall.
         try FaceSurfaceReplacementRebuilder().replace(replacements, bodyID: bodyID, featureID: feature.id, model: &model, tolerance: tolerance)
         try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: tolerance)
         let isSolid = model.bodies[bodyID]?.kind == .solid
@@ -94,6 +108,20 @@ public struct FaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             removedSubshapeIDs: bodyScope.subshapeIDs(in: context.subshapes),
             lineage: identity.lineage
         )
+    }
+
+    /// How far a planar face moves along its outward side onto a parallel plane facing the same
+    /// way; nil for any other match.
+    private func parallelPush(from previous: Surface3D, orientation: Orientation, onto replacement: FaceSurfaceReplacementRebuilder.Replacement,
+                              tolerance: ModelingTolerance) throws -> Double? {
+        let planes = DefaultPlanarSurfaceResolver()
+        guard let old = try planes.exactPlane(for: previous, tolerance: tolerance),
+              let new = try planes.exactPlane(for: replacement.surface, tolerance: tolerance) else { return nil }
+        let outward = try old.normal.normalized(tolerance: tolerance.distance) * (orientation == .forward ? 1 : -1)
+        let newOutward = try new.normal.normalized(tolerance: tolerance.distance) * (replacement.orientation == .forward ? 1 : -1)
+        guard newOutward.dot(outward) >= 1 - tolerance.angle else { return nil }
+        let distance = (new.origin - old.origin).dot(outward)
+        return abs(distance) > tolerance.distance ? distance : nil
     }
 
     private func faceID(

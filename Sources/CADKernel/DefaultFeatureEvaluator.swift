@@ -274,7 +274,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         case .reverseSheet: return ReverseSheetFeatureEvaluator()
         case .isoparam: return IsoparamFeatureEvaluator()
         case .imprintBody: return ImprintBodyFeatureEvaluator()
-        case .faceMatch: return FaceMatchFeatureEvaluator()
+        case .faceMatch: return FaceMatchFeatureEvaluator(pusher: faceOffsetEvaluator)
         case .removeFillets: return RemoveFilletsFeatureEvaluator()
         case .removeRedundantTopology: return RemoveRedundantTopologyFeatureEvaluator()
         case .sheetExtend: return SheetExtendFeatureEvaluator()

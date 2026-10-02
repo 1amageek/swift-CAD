@@ -1009,13 +1009,15 @@ wall of its body facing the same way: Fixed fills up to that wall (the face extr
 by the gap and joined, coplanar faces merging), Moving then pushes the face it shares
 with the wall on by the rest, in place; None re-solves in place and, when the faces
 around cannot follow, keeps the face going by itself — extruded its whole distance
-and joined outward, cut inward. Draft Face's and Match Face's Grow still refuse a
-face running into another wall (`FIXME(INCOMPLETE_IMPLEMENTATION)` in each); a face
+and joined outward, cut inward. Match Face of one planar face onto a parallel plane
+facing the same way is that push, Grow and all. Draft Face's Grow, and other matches,
+still refuse a face running into another wall (`FIXME(INCOMPLETE_IMPLEMENTATION)` in
+each); a face
 crossing the neutral plane is refused likewise until it is split along it.
 `PushFaceTests`, `DraftFaceTests` and `MatchFaceTests` prove boxes, rounded boxes,
 cylinders, holes, adjacent angles, pyramid and cone frustums and placed references
-by exact volumes, the refusals, and the L prism's step grown by each mode (25 × 20,
-20 × 20 and the 15 × 10 bar past the wall).
+by exact volumes, the refusals, and the L prism's step pushed and matched past its
+wall by each mode (25 × 20, 20 × 20 and the 15 × 10 bar past the wall).
 
 `FaceRemovalHealer` heals a solid over faces taken out of it (Delete Face with
 `heals`, and Remove Fillets From Shell): the faces around keep their surfaces and
