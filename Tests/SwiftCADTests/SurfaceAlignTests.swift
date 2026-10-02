@@ -214,4 +214,38 @@ struct SurfaceAlignFlowTests {
             }
         }
     }
+
+    /// The analysis's samples along the edge: none with a gap or a normal turn once aligned at G1
+    /// or G2; at G2 the sheet bends across the edge as the arch does, at G1 it need not.
+    @Test(.timeLimit(.minutes(2)), arguments: [SurfaceContinuityLevel.tangentPlane, .curvature])
+    func theSamplesShowTheGapTurnAndBendAlongTheEdge(continuity: SurfaceContinuityLevel) throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let row = { (y: Double) in [Point3D(x: 0, y: y, z: 0), Point3D(x: s / 2, y: y, z: s / 2), Point3D(x: s, y: y, z: 0)] }
+        let arch = try builder.bSplineSurface(BSplineSurface3D(
+            uDegree: 2, vDegree: 1, uKnots: [0, 0, 0, 1, 1, 1], vKnots: [0, 0, 1, 1], controlPoints: [row(0), row(s)]
+        ))
+        let flat = try builder.bSplineSurface(BSplineSurface3D(
+            uDegree: 1, vDegree: 1, uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+            controlPoints: [[Point3D(x: s + 0.005, y: 0, z: 0), Point3D(x: 2 * s, y: 0, z: 0)],
+                            [Point3D(x: s + 0.005, y: s, z: 0), Point3D(x: 2 * s, y: s, z: 0)]]
+        ))
+        let aligned = try builder.alignSurface(
+            target: flat, targetEdge: try edge(of: flat, atX: s + 0.005, in: builder), reference: arch,
+            referenceEdge: try edge(of: arch, atX: s, in: builder), continuity: continuity, blendRows: 1
+        )
+        let samples = try SurfaceAlignAnalyzer().samples(aligned, in: try evaluate(builder))
+        #expect(samples.count == 32)
+        // The arch z = x(1 − x/s) at x = s: slope −1, z″ = −2/s, so it bends by (2/s)/2^{3/2} across.
+        let archCurvature = 2 / s / pow(2, 1.5)
+        for sample in samples {
+            #expect(abs(sample.edgePoint.x - s) < 1e-12 && abs(sample.edgePoint.z) < 1e-12)
+            #expect((sample.sheetPoint - sample.edgePoint).length < 1e-9)
+            #expect(sample.angle < 1e-6)
+            #expect(abs(abs(sample.referenceCurvature) - archCurvature) < 1e-6, "\(sample.referenceCurvature)")
+            if continuity == .curvature {
+                #expect(abs(sample.sheetCurvature - sample.referenceCurvature) < 1e-3)
+            }
+        }
+    }
 }
+

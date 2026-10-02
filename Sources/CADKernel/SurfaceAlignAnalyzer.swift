@@ -10,10 +10,29 @@ import CADTopology
 /// to the sheet (G0), the largest angle between their normals there (G1), and the largest
 /// difference of their normal curvatures across the edge (G2), each against the feature's
 /// continuity: the modeling distance, 10⁻⁶ rad and 10⁻³ m⁻¹ (sampling noise of an exact match).
+/// `samples` gives the points themselves, for drawing the analysis along the edge.
 public struct SurfaceAlignAnalyzer {
     public init() {}
 
     public func analyze(_ featureID: FeatureID, in document: EvaluatedDocument) throws -> SquareSideAnalysis {
+        let tolerance = document.configuration.tolerance
+        guard let node = document.document.designGraph.nodes[featureID], case let .surfaceAlign(align) = node.operation else {
+            throw refusal("Analysis takes an Align Surface feature.", featureID, tolerance)
+        }
+        let samples = try self.samples(featureID, in: document)
+        let position = samples.map { ($0.sheetPoint - $0.edgePoint).length }.max() ?? 0
+        let angle = samples.map(\.angle).max() ?? 0
+        let curvature = samples.map { abs($0.sheetCurvature - $0.referenceCurvature) }.max() ?? 0
+        let measuresAngle = align.continuity != .positional
+        return SquareSideAnalysis(
+            side: 0, position: position, positionLimit: tolerance.distance,
+            angle: measuresAngle ? angle : nil, angleLimit: measuresAngle ? 1e-6 : nil,
+            curvature: align.continuity == .curvature ? curvature : nil, curvatureLimit: align.continuity == .curvature ? 1e-3 : nil
+        )
+    }
+
+    /// The 32 interior points the analysis measures, in order along the reference edge.
+    public func samples(_ featureID: FeatureID, in document: EvaluatedDocument) throws -> [SurfaceAlignSample] {
         let tolerance = document.configuration.tolerance
         guard let node = document.document.designGraph.nodes[featureID], case let .surfaceAlign(align) = node.operation else {
             throw refusal("Analysis takes an Align Surface feature.", featureID, tolerance)
@@ -37,8 +56,7 @@ public struct SurfaceAlignAnalyzer {
         let placement = align.referencePlacement
         func placed(_ point: Point3D) -> Point3D { placement.map { $0.applying(to: point) } ?? point }
         func placed(_ vector: Vector3D) -> Vector3D { placement.map { $0.applying(to: vector) } ?? vector }
-        var position = 0.0, angle = 0.0, curvature = 0.0
-        for k in 0..<32 {
+        return try (0..<32).map { k in
             let t = trim.startParameter + (trim.endParameter - trim.startParameter) * (Double(k) + 0.5) / 32
             let point = try curve.point(at: t, tolerance: tolerance)
             let referenceUV = try reference.parameterProjection(of: point, tolerance: tolerance)
@@ -46,27 +64,20 @@ public struct SurfaceAlignAnalyzer {
             let target = placed(point)
             let projected = try sheet.parameterProjection(of: target, tolerance: tolerance)
             let here = try sheet.differentialGeometry(u: projected.u, v: projected.v, tolerance: tolerance)
-            position = max(position, (here.position - target).length)
-            let referenceNormal = placed(there.normal)
-            angle = max(angle, acos(min(1, abs(here.normal.dot(referenceNormal)))))
-            guard align.continuity == .curvature else { continue }
+            let aligned = placed(there.normal).dot(here.normal) >= 0 ? 1.0 : -1.0
+            let referenceNormal = placed(there.normal) * aligned
             // Across the edge: the sheet's tangent square to the edge's direction.
             let along = placed(try curve.differentialGeometry(at: t, tolerance: tolerance).firstDerivative)
             let across = try here.normal.cross(along).normalized(tolerance: tolerance.distance)
-            let aligned = referenceNormal.dot(here.normal) >= 0 ? 1.0 : -1.0
             let sheetCurvature = try normalCurvature(here.tangentU, here.tangentV, here.secondDerivativeUU, here.secondDerivativeUV,
                                                      here.secondDerivativeVV, normal: here.normal, direction: across)
             let referenceCurvature = try normalCurvature(placed(there.tangentU), placed(there.tangentV), placed(there.secondDerivativeUU),
                                                          placed(there.secondDerivativeUV), placed(there.secondDerivativeVV),
-                                                         normal: referenceNormal * aligned, direction: across)
-            curvature = max(curvature, abs(sheetCurvature - referenceCurvature))
+                                                         normal: referenceNormal, direction: across)
+            return SurfaceAlignSample(edgePoint: target, sheetPoint: here.position, sheetNormal: here.normal,
+                                      referenceNormal: referenceNormal, across: across,
+                                      sheetCurvature: sheetCurvature, referenceCurvature: referenceCurvature)
         }
-        let measuresAngle = align.continuity != .positional
-        return SquareSideAnalysis(
-            side: 0, position: position, positionLimit: tolerance.distance,
-            angle: measuresAngle ? angle : nil, angleLimit: measuresAngle ? 1e-6 : nil,
-            curvature: align.continuity == .curvature ? curvature : nil, curvatureLimit: align.continuity == .curvature ? 1e-3 : nil
-        )
     }
 
     private func normalCurvature(_ su: Vector3D, _ sv: Vector3D, _ suu: Vector3D, _ suv: Vector3D, _ svv: Vector3D,

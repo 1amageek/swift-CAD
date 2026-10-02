@@ -850,7 +850,12 @@ running straight; `SurfaceAlignFlowTests` every flow curvature continuous over a
 Normal square to the edge, its `SurfaceAlignAnalyzer` analysis within limits. `SurfaceAlignAnalyzer`
 measures an aligned sheet against its reference along the reference edge, placed in the sheet's
 frame, at 32 interior points: the largest distance (G0), normal angle (G1) and normal-curvature
-difference across the edge (G2), against the modeling distance, 10⁻⁶ rad and 10⁻³ m⁻¹.
+difference across the edge (G2), against the modeling distance, 10⁻⁶ rad and 10⁻³ m⁻¹. Its
+`samples` are those 32 points as `SurfaceAlignSample`s (edge point, the sheet's nearest point, both
+unit normals with the reference's turned to agree, the sheet's direction across the edge and both
+normal curvatures along it), from which the editor draws the analysis's G0 gaps, G1 normal turns and
+G2 combs; `SurfaceAlignFlowTests` own them over an arch (no gap or turn at G1 and G2, the arch's
+(2/s)/2^{3/2} bend across, matched by the sheet at G2).
 
 ## Rebuild Face
 
