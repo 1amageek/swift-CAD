@@ -156,8 +156,14 @@ public struct PolySplineFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         }
         let onBoundary = Set(edgeUses.filter { $0.value == 1 }.keys.flatMap { $0 })
         if facesAt.contains(where: { $0.value < 3 && onBoundary.contains($0.key) == false }) { faces = triangles }
+        // Interpolate Boundary Exactly: the boundary's control points moved so its curve passes
+        // through the mesh's boundary vertices.
+        let positions = polySpline.options.interpolateBoundaryExactly
+            ? PolySplineBoundaryInterpolator(tolerance: tolerance)
+                .interpolating(positions: mesh.positions, faces: faces, roundsCorners: polySpline.options.roundedCorners)
+            : mesh.positions
         let network = try PolySplineSubdivisionPatchBuilder(tolerance: tolerance)
-            .network(positions: mesh.positions, faces: faces, roundsCorners: polySpline.options.roundedCorners)
+            .network(positions: positions, faces: faces, roundsCorners: polySpline.options.roundedCorners)
         func bezier(_ points: [Point3D]) -> Curve3D {
             .bSpline(BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1], controlPoints: points))
         }

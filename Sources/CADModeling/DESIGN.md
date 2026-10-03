@@ -1146,13 +1146,16 @@ spans it) is built by `PolySplineSubdivisionPatchBuilder`: its paired quads and 
 Catmull–Clark when any face is not a quad, each quad one bicubic Bézier patch — inner points
 (n·v + 2e₋ + 2e₊ + d)/(n + 5), edge points the mean of the two inner points beside them, corners the
 Catmull–Clark limit (the mean of the inner points around), a boundary the cubic B-spline of its
-vertices with a one-face corner kept, or with Rounded Corners rounded over like any boundary vertex. Every boundary curve is shared exactly by its two patches, so
+vertices with a one-face corner kept, or with Rounded Corners rounded over like any boundary vertex; with
+Interpolate Boundary Exactly the boundary vertices are first replaced by the control points whose cubic
+B-spline passes through them (`PolySplineBoundaryInterpolator`, (P₋ + 4P + P₊)/6 = V, kept corners
+held). Every boundary curve is shared exactly by its two patches, so
 the patches sew into one sheet, or a solid when the mesh is closed; where every corner has valence
 four they are the uniform B-spline exactly, elsewhere they meet in position and nearly in tangent
 (Plasticity states G2 there; `FIXME(INCOMPLETE_IMPLEMENTATION)` covers control-point edits on
 such networks). `PolySplineGeneralMeshTests` own a cube's six patches closing into a solid at the
 limit corners (half the cube's half-width for valence three), a tetrahedron's twelve refined
-patches, and a triangle's corners kept or, rounded, turned short of.
+patches, and a triangle's corners kept, rounded short of, and interpolated again.
 
 ## Runtime Flows
 

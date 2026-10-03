@@ -66,9 +66,10 @@ struct PolySplineGeneralMeshTests {
         let s = 0.01
         let corners = [Point3D(x: 0, y: 0, z: 0), Point3D(x: 3 * s, y: 0, z: 0), Point3D(x: 0, y: 3 * s, z: 0)]
         let mesh = Mesh(positions: corners, indices: [0, 1, 2])
-        func sheet(rounded: Bool) throws -> BRepModel {
+        func sheet(rounded: Bool, interpolated: Bool = false) throws -> BRepModel {
             var builder = DocumentBuilder(units: .meters, tolerance: .standard)
-            _ = try builder.polySpline(sourceMesh: mesh, options: PolySplineOptions(roundedCorners: rounded, mergePatches: false))
+            _ = try builder.polySpline(sourceMesh: mesh, options: PolySplineOptions(
+                roundedCorners: rounded, mergePatches: false, interpolateBoundaryExactly: interpolated))
             let model = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "poly")).brep
             try model.validate(level: .exact, tolerance: .standard)
             return model
@@ -82,5 +83,8 @@ struct PolySplineGeneralMeshTests {
         let rounded = try sheet(rounded: true)
         #expect(corners.allSatisfy { reaches(rounded, $0) == false })
         #expect(rounded.faces.count == kept.faces.count)
+        // Interpolate Boundary Exactly: the rounded boundary passes through the corners again.
+        let interpolated = try sheet(rounded: true, interpolated: true)
+        #expect(corners.allSatisfy { corner in interpolated.vertices.values.contains { ($0.point - corner).length < 1e-12 } })
     }
 }
