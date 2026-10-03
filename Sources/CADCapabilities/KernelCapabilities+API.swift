@@ -59,6 +59,32 @@ extension KernelCapabilities {
         "KernelQueryPipelineTests",
         "StrictCurrentKernelQuerySchemaTests",
       ]
+    ),
+    KernelCapability(
+      id: "API-TRANSACTION-001",
+      operation: "documentTransaction",
+      status: .supported,
+      topology: .document,
+      acceptedInputs: [
+        "nonemptyExactEvaluatableDocument", "orderedCADCommandBatches",
+        "injectedDocumentEditorAndExactEvaluator", "explicitHistoryAndCommandLimits",
+        "sessionOwnedTokenAndMonotonicEpoch",
+      ],
+      exactOutputs: [
+        "atomicSourceAndExactEvaluationPublication", "rollbackWithoutPublication",
+        "completeSourceEvaluationAndStableIdentityUndoRedo",
+        "preservedReferenceDependencyAttributeAndParameterSnapshots",
+        "failedStageCommitOrCancellationPreservesCommittedStateAndHistory",
+      ],
+      failureCodes: [.invalidInput, .missingReference, .resourceLimitExceeded,
+        .emptyResult, .cancelled, .topologyFailure],
+      tolerance: .standard,
+      publicAPIs: [
+        "SwiftCAD.DocumentTransacting", "SwiftCAD.DocumentTransactionSession",
+        "SwiftCAD.DocumentTransactionToken", "SwiftCAD.DocumentTransactionLimits",
+        "SwiftCAD.DocumentTransactionError", "SwiftCAD.DocumentTransactionSnapshot",
+      ],
+      testFixtures: ["DocumentTransactionTests"]
     )
   ]
 }

@@ -5,7 +5,8 @@
 This component owns PARA.A1: typed document attributes, persistent object
 references, explicit inter-document reference resolution, and consistency with
 source edits and native persistence. Parent: [CADIR](../DESIGN.md). No children.
-Undo/redo and transaction history belong to A2; evaluated topology lineage and
+Undo/redo and transaction history belong to
+[Document Transaction](../../SwiftCAD/DocumentTransaction/DESIGN.md); evaluated topology lineage and
 split/merge correspondence belong to A3; cross-document feature evaluation and
 dependency scheduling belong to A4.
 

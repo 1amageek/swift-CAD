@@ -98,6 +98,7 @@ struct KernelCapabilityContractTests {
       "MODEL-SURFACEEXTEND-001",
       "MODEL-SURFACEMATCH-001",
       "API-PARITY-001",
+      "API-TRANSACTION-001",
       "API-NATIVEPERSISTENCE-001",
       "EXCHANGE-STEP-001",
       "EXCHANGE-IGES-001",
