@@ -15,7 +15,8 @@ import CADIR
 /// Catmull–Clark limit position. Where every corner has valence four these are the uniform
 /// bicubic B-spline's Bézier points exactly; around other valences the patches meet with
 /// position and nearly tangent. A boundary runs on the cubic B-spline of its vertices (a corner of
-/// one quad kept where it is), the inner points beside it taken with valence four.
+/// one quad kept where it is, or with Rounded Corners rounded over like any boundary vertex), the
+/// inner points beside it taken with valence four.
 package struct PolySplineSubdivisionPatchBuilder {
     /// One bicubic patch: its control net (rows along v, points along u) and its corners'
     /// vertices in the refined mesh, counterclockwise from (u, v) = (0, 0).
@@ -36,17 +37,18 @@ package struct PolySplineSubdivisionPatchBuilder {
         self.tolerance = tolerance
     }
 
-    /// The network over `faces` (each a counterclockwise cycle of indices into `positions`).
-    package func network(positions: [Point3D], faces: [[Int]]) throws -> Network {
+    /// The network over `faces` (each a counterclockwise cycle of indices into `positions`);
+    /// `roundsCorners` rounds the boundary over the corners of one face instead of keeping them.
+    package func network(positions: [Point3D], faces: [[Int]], roundsCorners: Bool = false) throws -> Network {
         guard faces.isEmpty == false, faces.allSatisfy({ $0.count >= 3 }) else {
             throw failure("PolySplines needs faces of three or more vertices.")
         }
         var points = positions
         var quads = faces
         if faces.contains(where: { $0.count != 4 }) {
-            (points, quads) = try catmullClark(positions: positions, faces: faces)
+            (points, quads) = try catmullClark(positions: positions, faces: faces, roundsCorners: roundsCorners)
         }
-        return try patches(positions: points, quads: quads)
+        return try patches(positions: points, quads: quads, roundsCorners: roundsCorners)
     }
 
     // MARK: - Topology
@@ -101,7 +103,7 @@ package struct PolySplineSubdivisionPatchBuilder {
     /// One Catmull–Clark step: a face point per face, an edge point per edge, every vertex moved
     /// (the boundary by the cubic B-spline's rule, a corner of one face kept), each face split into
     /// quads about its face point.
-    private func catmullClark(positions: [Point3D], faces: [[Int]]) throws -> ([Point3D], [[Int]]) {
+    private func catmullClark(positions: [Point3D], faces: [[Int]], roundsCorners: Bool) throws -> ([Point3D], [[Int]]) {
         let edges = try edgeFaces(faces)
         let boundary = try boundaryNeighbours(faces, edges: edges)
         func mean(_ list: [Point3D]) -> Point3D {
@@ -123,7 +125,7 @@ package struct PolySplineSubdivisionPatchBuilder {
             let v = positions[vertex]
             let moved: Point3D
             if let run = boundary[vertex] {
-                if facesAt[vertex]?.count == 1 {
+                if facesAt[vertex]?.count == 1, roundsCorners == false {
                     moved = v
                 } else {
                     moved = Point3D.origin + ((positions[run.previous] - .origin) + (v - .origin) * 6 + (positions[run.next] - .origin)) * (1.0 / 8)
@@ -162,7 +164,7 @@ package struct PolySplineSubdivisionPatchBuilder {
 
     // MARK: - Patches
 
-    private func patches(positions: [Point3D], quads: [[Int]]) throws -> Network {
+    private func patches(positions: [Point3D], quads: [[Int]], roundsCorners: Bool) throws -> Network {
         let edges = try edgeFaces(quads)
         let boundary = try boundaryNeighbours(quads, edges: edges)
         var facesAt: [Int: [Int]] = [:]
@@ -188,7 +190,7 @@ package struct PolySplineSubdivisionPatchBuilder {
         var cornerPoint: [Int: Point3D] = [:]
         for (vertex, around) in facesAt {
             if let run = boundary[vertex] {
-                if around.count == 1 {
+                if around.count == 1, roundsCorners == false {
                     cornerPoint[vertex] = positions[vertex]
                 } else {
                     cornerPoint[vertex] = Point3D.origin + (p(run.previous) + p(vertex) * 4 + p(run.next)) * (1.0 / 6)

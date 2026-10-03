@@ -59,4 +59,28 @@ struct PolySplineGeneralMeshTests {
         #expect(evaluated.brep.faces.count == 12)
         #expect(try evaluated.brep.volume(tolerance: .standard) > 0)
     }
+
+    @Test(.timeLimit(.minutes(2)))
+    func roundedCornersRoundAnOpenMeshsFreeCornersOver() throws {
+        // One triangle: an open general mesh, its three corners each on one face.
+        let s = 0.01
+        let corners = [Point3D(x: 0, y: 0, z: 0), Point3D(x: 3 * s, y: 0, z: 0), Point3D(x: 0, y: 3 * s, z: 0)]
+        let mesh = Mesh(positions: corners, indices: [0, 1, 2])
+        func sheet(rounded: Bool) throws -> BRepModel {
+            var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+            _ = try builder.polySpline(sourceMesh: mesh, options: PolySplineOptions(roundedCorners: rounded, mergePatches: false))
+            let model = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "poly")).brep
+            try model.validate(level: .exact, tolerance: .standard)
+            return model
+        }
+        func reaches(_ model: BRepModel, _ corner: Point3D) -> Bool {
+            model.vertices.values.contains { ($0.point - corner).length < 1e-12 }
+        }
+        // Kept, the sheet runs out to every corner; rounded, it turns short of each.
+        let kept = try sheet(rounded: false)
+        #expect(corners.allSatisfy { reaches(kept, $0) })
+        let rounded = try sheet(rounded: true)
+        #expect(corners.allSatisfy { reaches(rounded, $0) == false })
+        #expect(rounded.faces.count == kept.faces.count)
+    }
 }

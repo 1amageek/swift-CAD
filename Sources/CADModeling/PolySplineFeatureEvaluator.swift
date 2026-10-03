@@ -118,14 +118,14 @@ public struct PolySplineFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
     private func generalMeshSheet(_ polySpline: PolySplineFeature, graph: PolySplinePatchGraph?,
                                   feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
         let tolerance = context.tolerance
-        guard polySpline.controlPointOverrides.isEmpty, polySpline.options.roundedCorners == false else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): control-point edits and Rounded Corners address a
-            // rectangular patch grid, which a general mesh's patches do not form, so they are
-            // refused there. Production path: PolySplineFeatureEvaluator for every polySpline
-            // feature over a general mesh. Complete only when such patches take edits and rounded
-            // corners, verified by an edited control point of an extraordinary patch.
+        guard polySpline.controlPointOverrides.isEmpty else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): control-point edits address a rectangular patch
+            // grid, which a general mesh's patches do not form, so they are refused there.
+            // Production path: PolySplineFeatureEvaluator for every polySpline feature over a
+            // general mesh. Complete only when such patches take edits, verified by an edited
+            // control point of an extraordinary patch.
             throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "PolySplines of a mesh other than a rectangular grid take no control-point edits or Rounded Corners.")
+                "PolySplines of a mesh other than a rectangular grid take no control-point edits.")
         }
         guard let sewer else {
             throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "PolySplines of a general mesh needs a sewer.")
@@ -156,7 +156,8 @@ public struct PolySplineFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         }
         let onBoundary = Set(edgeUses.filter { $0.value == 1 }.keys.flatMap { $0 })
         if facesAt.contains(where: { $0.value < 3 && onBoundary.contains($0.key) == false }) { faces = triangles }
-        let network = try PolySplineSubdivisionPatchBuilder(tolerance: tolerance).network(positions: mesh.positions, faces: faces)
+        let network = try PolySplineSubdivisionPatchBuilder(tolerance: tolerance)
+            .network(positions: mesh.positions, faces: faces, roundsCorners: polySpline.options.roundedCorners)
         func bezier(_ points: [Point3D]) -> Curve3D {
             .bSpline(BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1], controlPoints: points))
         }
