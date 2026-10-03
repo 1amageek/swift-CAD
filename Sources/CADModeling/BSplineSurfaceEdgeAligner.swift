@@ -11,9 +11,10 @@ import CADGeometry
 /// the reference's boundary curve (G0), the second so the cross-edge derivative is the
 /// reference's times the tension-scaled speed ratio (G1), the third so the second derivative is
 /// its square times the reference's (G2). The displacement of the last row set fades over
-/// `blendRows` further rows, by their Greville abscissae, toward the first row left alone; a
-/// blended row keeps `inputShapeInfluence` of its own shape, the rest running straight between
-/// those two rows. The whole change fades in over the first `partialStart` of the edge and out
+/// `blendRows` further rows of the target's own net, by their Greville abscissae, toward the first
+/// row left alone (no rows are added); a blended row keeps `inputShapeInfluence` of its own shape,
+/// the rest running straight between those two rows. A blend reaching every remaining row moves
+/// the rest of the sheet, far edge included, with the last row set. The whole change fades in over the first `partialStart` of the edge and out
 /// over its last `partialEnd` (smoothstep in each column's Greville abscissa along the edge), and
 /// a `layout` refits the target to its degrees and spans on its own parameters first. Both
 /// surfaces must be non-rational, whose control points combine affinely.
@@ -95,10 +96,11 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
                 guide = try guide.insertingKnot(direction: .v, value: value, tolerance: tolerance)
             }
         }
-        // Enough rows along U: the rows set, the rows blended, and the far row untouched.
+        // Enough rows along U for the rows set and one more; blended rows are the target's own, so
+        // its control net keeps its size (Plasticity adds no rows for Blend).
         let setRows = continuity + 1
         while working.uDegree < max(continuity, 1) { working = try working.elevatingDegree(direction: .u, tolerance: tolerance) }
-        while (working.controlPoints.first?.count ?? 0) < setRows + blendRows + 1 {
+        while (working.controlPoints.first?.count ?? 0) < setRows + 1 {
             let knots = working.uKnots
             guard let first = knots.first, let next = knots.first(where: { $0 > first + tolerance.distance }) else {
                 throw failure(.invalidInput, "A target surface has no U span to refine.", tolerance)
@@ -160,22 +162,39 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
             // The last row set carries the rows after it part of its way, each keeping the input
             // shape's influence and running straight toward the first row left alone otherwise.
             let displacement = aligned[j][lastSet] - old[lastSet]
-            let span = rowAbscissae[firstLeft] - rowAbscissae[lastSet]
-            for k in setRows..<firstLeft {
-                let t = (rowAbscissae[k] - rowAbscissae[lastSet]) / span
-                let carried = old[k] + displacement * (1 - t)
-                let straight = aligned[j][lastSet] + (old[firstLeft] - aligned[j][lastSet]) * t
-                aligned[j][k] = carried + (straight - carried) * (1 - inputShapeInfluence)
-            }
+            blend(&aligned[j], old: old, displacement: displacement, lastSet: lastSet, firstLeft: firstLeft,
+                  rowAbscissae: rowAbscissae, inputShapeInfluence: inputShapeInfluence)
             // Partial alignment: the change fades in and out along the edge.
             let weight = partialWeight(at: columnAbscissae[j], start: partialStart, end: partialEnd)
-            for k in 0..<firstLeft {
+            for k in 0..<min(firstLeft, old.count) {
                 aligned[j][k] = old[k] + (aligned[j][k] - old[k]) * weight
             }
         }
         working.controlPoints = aligned
         // Back to the target's own orientation.
         return oriented(working, side: targetSide, toLower: true, undoing: true)
+    }
+
+    /// The rows after the last one set: the `blendRows` after it carried part of its displacement,
+    /// fading toward the first row left alone; when the blend reaches every remaining row there is
+    /// none left alone, and the rest of the sheet follows the last row set (Plasticity's "the
+    /// surface fully adjusts"), the far edge included.
+    private func blend(
+        _ row: inout [Point3D], old: [Point3D], displacement: Vector3D, lastSet: Int, firstLeft: Int,
+        rowAbscissae: [Double], inputShapeInfluence: Double
+    ) {
+        let setRows = lastSet + 1
+        guard firstLeft < old.count else {
+            for k in setRows..<old.count { row[k] = old[k] + displacement }
+            return
+        }
+        let span = rowAbscissae[firstLeft] - rowAbscissae[lastSet]
+        for k in setRows..<firstLeft {
+            let t = (rowAbscissae[k] - rowAbscissae[lastSet]) / span
+            let carried = old[k] + displacement * (1 - t)
+            let straight = row[lastSet] + (old[firstLeft] - row[lastSet]) * t
+            row[k] = carried + (straight - carried) * (1 - inputShapeInfluence)
+        }
     }
 
     /// The alignment with a flow other than Next: both surfaces raised along the edge into the
@@ -305,15 +324,10 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
                 aligned[j][2] = aligned[j][1] + q1 * ((V[q + 2] - V[2]) / Double(q))
             }
             let displacement = aligned[j][lastSet] - old[lastSet]
-            let span = rowAbscissae[firstLeft] - rowAbscissae[lastSet]
-            for k in setRows..<firstLeft {
-                let t = (rowAbscissae[k] - rowAbscissae[lastSet]) / span
-                let carried = old[k] + displacement * (1 - t)
-                let straight = aligned[j][lastSet] + (old[firstLeft] - aligned[j][lastSet]) * t
-                aligned[j][k] = carried + (straight - carried) * (1 - inputShapeInfluence)
-            }
+            blend(&aligned[j], old: old, displacement: displacement, lastSet: lastSet, firstLeft: firstLeft,
+                  rowAbscissae: rowAbscissae, inputShapeInfluence: inputShapeInfluence)
             let weight = partialWeight(at: columnAbscissae[j], start: partialStart, end: partialEnd)
-            for k in 0..<firstLeft {
+            for k in 0..<min(firstLeft, old.count) {
                 aligned[j][k] = old[k] + (aligned[j][k] - old[k]) * weight
             }
         }

@@ -59,12 +59,12 @@ struct SurfaceAlignTests {
         let target = try edge(of: flat, atX: s + gap, in: builder)
         let reference = try edge(of: arch, atX: s, in: builder)
         let aligned = try builder.alignSurface(
-            target: flat, targetEdge: target, reference: arch, referenceEdge: reference, continuity: continuity, blendRows: 1
+            target: flat, targetEdge: target, reference: arch, referenceEdge: reference, continuity: continuity, blendRows: 0
         )
         let evaluated = try evaluate(builder)
         let result = try surface(of: aligned, in: evaluated)
         let source = try surface(of: arch, in: evaluated)
-        // The far edge stays where it was.
+        // Without a blend the far edge stays where it was.
         let farEnd = try result.differentialGeometry(u: 1, v: 0, tolerance: .standard).position
         #expect((farEnd - Point3D(x: 2 * s, y: 0, z: 0)).length < 1e-9)
         for v in [0.0, 0.3, 0.7, 1.0] {
@@ -78,6 +78,24 @@ struct SurfaceAlignTests {
                 #expect(abs(here.normalCurvatureU - there.normalCurvatureU) < 1e-6)
             }
         }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aBlendAsLongAsTheSheetMovesItsFarEdgeToo() throws {
+        // The flat sheet has two rows: a G0 alignment sets the first, and one blended row is all
+        // the rest, so the whole sheet follows the near edge onto the arch (Plasticity's "fully
+        // adjusts"), its net keeping its two rows.
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (arch, flat, target, reference) = try archAndFlat(&builder)
+        let aligned = try builder.alignSurface(
+            target: flat, targetEdge: target, reference: arch, referenceEdge: reference, continuity: .positional, blendRows: 1
+        )
+        let evaluated = try evaluate(builder)
+        _ = arch
+        guard case let .bSpline(result) = try surface(of: aligned, in: evaluated) else { Issue.record("A B-spline sheet."); return }
+        #expect(result.controlPoints.allSatisfy { $0.count == 2 } || result.controlPoints.count == 2)
+        let farEnd = try Surface3D.bSpline(result).differentialGeometry(u: 1, v: 0, tolerance: .standard).position
+        #expect((farEnd - Point3D(x: 2 * s - 0.005, y: 0, z: 0)).length < 1e-9, "\(farEnd)")
     }
 
     /// The arch and the flat sheet beyond a gap, with the flat sheet's near edge and the arch's far one.
@@ -121,14 +139,23 @@ struct SurfaceAlignTests {
     @Test(.timeLimit(.minutes(2)))
     func blendedRowsWithoutInputShapeInfluenceRunStraight() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
-        let (arch, flat, target, reference) = try archAndFlat(&builder)
+        let (arch, _, _, reference) = try archAndFlat(&builder)
+        // A flat sheet of six rows across, so two blended rows leave the far ones alone.
+        let xs = (0...5).map { s + 0.005 + (s - 0.005) * Double($0) / 5 }
+        let flat = try builder.bSplineSurface(BSplineSurface3D(
+            uDegree: 1, vDegree: 1, uKnots: [0, 0, 0.2, 0.4, 0.6, 0.8, 1, 1], vKnots: [0, 0, 1, 1],
+            controlPoints: [0.0, s].map { y in xs.map { Point3D(x: $0, y: y, z: 0) } }
+        ))
+        let target = try edge(of: flat, atX: s + 0.005, in: builder)
         let aligned = try builder.alignSurface(
             target: flat, targetEdge: target, reference: arch, referenceEdge: reference, continuity: .tangentPlane,
             blendRows: 2, inputShapeInfluence: 0
         )
         let result = try surface(of: aligned, in: try evaluate(builder))
         guard case let .bSpline(surface) = result else { Issue.record("An aligned sheet is a B-spline surface."); return }
-        // Rows 2 and 3 lie on the segment from the last row set (1) to the first row left (4).
+        // Rows 2 and 3 lie on the segment from the last row set (1) to the first row left (4),
+        // and the net keeps its six rows.
+        #expect(surface.controlPoints.allSatisfy { $0.count == 6 })
         for row in surface.controlPoints {
             let chord = row[4] - row[1]
             for k in [2, 3] { #expect((row[k] - row[1]).cross(chord).length < 1e-12) }

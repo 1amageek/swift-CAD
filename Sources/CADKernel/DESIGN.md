@@ -852,13 +852,14 @@ reference B-spline face's parameter-boundary edge, placed in the target's frame.
 `BSplineSurfaceEdgeAligner` turns the target so the edge is its lower U boundary and the
 reference so its edge is its upper one, runs the reference along the edge the target's way,
 maps both edge parameters to [0, 1], raises the lower degree and merges knots, so both share one
-exact basis along the edge; refines the target along U until it has the rows the continuity
-sets, the rows blended and a far row; then sets its first row to the reference's boundary (G0),
+exact basis along the edge; refines the target along U only until it has the rows the continuity
+sets and one more (Blend adds no rows: Plasticity's net keeps its size); then sets its first row to the reference's boundary (G0),
 its second so the cross-edge derivative is the reference's times the tension times the target's
 own speed ratio (G1), its third so the second derivative is that factor squared times the
 reference's (G2), and fades the last row's displacement over the blended rows by their Greville
 abscissae toward the first row left alone, each blended row keeping the input shape's influence
-and running straight between those rows otherwise. Partial start and end fade the whole change in
+and running straight between those rows otherwise; a blend as long as the rows left moves them all,
+far edge included, with the last row set ("the surface fully adjusts"). Partial start and end fade the whole change in
 and out along the edge (smoothstep in each column's Greville abscissa), and a layout refits the
 target to its degrees and spans on its own parameters first (`MappedBSplineSurfaceFitter`); the
 reference's knots along the edge are merged in after, so the continuity stays exact. The sheet is
@@ -873,9 +874,10 @@ the reference's tangent plane, the second derivative `b²·R_uu + 2ab·R_uv + a�
 reparameterised to second order, so G1 and G2 stay exact; those products need the edge's basis
 raised by 2 per order with its interior knots repeated once more per order, so these flows raise the
 layout's degree along the edge. `SurfaceAlignTests` prove a flat sheet following an arch across
-a gap at G0, G1 and G2 with its far edge kept, a partial alignment on a refitted layout leaving
-the edge's ends and meeting in the middle, and blended rows without input shape influence
-running straight; `SurfaceAlignFlowTests` every flow curvature continuous over a sheared arch and
+a gap at G0, G1 and G2 with its far edge kept when nothing is blended, a two-row sheet whose one
+blended row carries its far edge along, a partial alignment on a refitted layout leaving
+the edge's ends and meeting in the middle, and blended rows of a six-row sheet without input shape influence
+running straight, the net keeping its rows; `SurfaceAlignFlowTests` every flow curvature continuous over a sheared arch and
 Normal square to the edge, its `SurfaceAlignAnalyzer` analysis within limits. `SurfaceAlignAnalyzer`
 measures an aligned sheet against its reference along the reference edge, placed in the sheet's
 frame, at 32 interior points: the largest distance (G0), normal angle (G1) and normal-curvature
