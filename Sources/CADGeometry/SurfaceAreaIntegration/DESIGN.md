@@ -23,10 +23,28 @@ prepared support + exact pcurve -> outward UV fan jets
         -> pullback value/gradient/Hessian interval fields
 ```
 
+`SurfaceAreaParameterChartEncloser` owns invocation-local preparation of numeric
+trim charts and exact directed offset/affine rigid chart images. It depends on
+the existing numeric interval jet contract, rather than changing the shared
+boundary-certification implementation. Topology passes the retained original
+trim and its prepared chart authority to integrand evaluation.
+
 ## Contracts and Invariants
 - Existing structural affine support authority permits exact radial elimination.
   Boundary density and moments retain exact numeric pcurve derivatives.
 - Every published interval contains the entire requested parameter box.
+- Mapped trim admission validates the exact destination support and the source
+  relation only after all nested input dimensions and nesting depth have been
+  bounded. Directed offset images retain source UV exactly. Rigid images require
+  the geometry-owned affine parameter transform and retain the original source
+  fraction map, including reversed traversal. Fraction endpoints outside [0,1]
+  are invalid input; modeling-tolerance clamping does not authorize integration.
+  Outward affine UV/fraction arithmetic and the third-order chain rule enclose
+  values and derivatives over the complete requested interval. No sampled
+  reconstruction or materialized approximation changes the original fan map.
+  Implicit source charts and non-affine spherical images remain explicit
+  unsupported failures. Preparing a chart does not allocate another query error
+  allowance or reset adaptive cell/depth/control admission limits.
 - C0 spline integration uses prepared native Bezier span domains as its
   partition authority. A smooth proof is valid only when the complete requested
   pullback box belongs to one span, including that span's one-sided boundary
@@ -88,6 +106,25 @@ prepared support + exact pcurve -> outward UV fan jets
 Prepared state is immutable and invocation-owned. Unsupported derivatives,
 singular frames and nonfinite interval arithmetic produce typed KernelError.
 Topology owns geometry-size admission and subdivision bounds.
+Chart preparation additionally preflights nested source/destination geometry
+before recursive validation or transform materialization. Prepared charts are
+immutable and retain source ownership for the invocation; no shared cache or
+platform-dependent state is introduced.
+
+Remaining full-Q3 limitation: ruled rails lifted from B-spline supports use the
+existing [`DefaultCurveDifferentialEncloser` surface-lift branch](../DefaultCurveDifferentialEncloser.swift#L343).
+Its [`nondegenerateRange`](../SurfaceLiftDifferentialBounder.swift#L1184) and
+[`numericallyStableInterval`](../PreparedBSplineSurfaceDifferentialEncloser.swift#L87)
+expand narrow source UV requests by modeling-tolerance-dependent widths. The
+resulting position interval floor can prevent first-moment certification under
+the default query allowance even as integration cells shrink; the query then
+returns a subdivision resource failure. Mapped-chart admission does not change
+these enclosers or certify that rail domain. Completing this gap requires
+whole-interval rail jets whose uncertainty converges with the requested source
+interval, while retaining derivative validity and the whole-query error and
+resource contract. The caller/depth fixture uses analytic-plane lift rails with
+the same literal area and centroid oracle; it proves support/depth forwarding,
+not B-spline-lift convergence.
 
 ## Verification and Change Impact
 [`SurfaceAreaIntegrationTests`](../../../Tests/CADTopologyTests/SurfaceAreaIntegrationTests.swift)
@@ -107,3 +144,7 @@ cross-fold triangular trims, holes and reversal, non-dyadic knot coordinates,
 the smooth/value-only proof distinction, and whole-query resource/cancellation
 failures. Successful C0 support integration does not authorize higher-order
 offset derivatives or any other incomplete procedural/trim path.
+Mapped-chart verification compares public rigid/offset area and all centroid
+coordinates with independent geometric integrals, checks source-fraction
+restriction/reversal and interval derivative containment, and rejects foreign
+targets, unsupported charts, malformed dimensions and nesting/work exhaustion.

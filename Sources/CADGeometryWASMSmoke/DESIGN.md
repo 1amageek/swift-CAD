@@ -80,7 +80,9 @@ its nonrepresentable-boundary proof remains in the Native owner tests. C0 area e
 uses real retained surface-lift edges with complete sheet ownership and public
 pcurve validation before measuring a non-dyadic folded rectangle and crossing
 hole against independently composed model-space areas and XYZ first moments.
-All pieces and loops share one work limit, including the explicit three-cell
+The same complete C0 face also executes with exact rigid-image trim charts,
+using the literal independent image (-y + 0.125, x + 0.25, z + 0.5) for centroid
+validation. All pieces and loops share one work limit, including the explicit three-cell
 refusal. These checks do not complete full G4 or Q3. Conversion evidence constructs an exact cubic
 line and tensor plane through the public protocol, verifies continuous position,
 tangent and curvature bounds and source charts, refuses the known negative-cycle

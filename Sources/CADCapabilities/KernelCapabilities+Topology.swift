@@ -424,6 +424,7 @@ extension KernelCapabilities {
         "regularBSplineOffsetRuledRollingBallSupportsWithCertifiedDerivativeCharts",
         "piecewiseC0PositiveWeightBSplineNativeSpanAndValueOnlyFanEnclosures",
         "numericExactTrimsIncludingHolesAndReversedLoops",
+        "exactOffsetAndAffineRigidImageNumericTrimsWithOriginalFractionsAndReversal",
         "explicitFiniteCellDepthBoundaryAndControlLimits",
       ],
       exactOutputs: [
@@ -435,6 +436,7 @@ extension KernelCapabilities {
         "distanceSquaredPlusRelativeAreaErrorAndDistanceCentroidError",
         "exactTranslationReductionWithOriginalChartDomain",
         "oneSidedNativeSpanProofWithWholeQueryErrorAndWorkBudgets",
+        "ownedTargetMatchedThirdOrderNumericChartEnclosures",
         "typedRefusalOfUncertifiableChartsAndResourceExhaustion",
       ],
       failureCodes: [.invalidInput, .missingReference, .topologyFailure, .unsupportedCapability, .classificationFailure, .singularSystem, .singularGeometry, .resourceLimitExceeded, .cancelled],

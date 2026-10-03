@@ -26,39 +26,56 @@ struct C0SurfaceAreaSmoke {
         let wholeCentroid = Point3D(
             x: (firstArea * middleX / 2 + secondArea * (middleX + 0.02) / 2) / wholeArea,
             y: 0.015, z: secondArea * 0.01 / wholeArea)
-        let (wholeID, wholeModel) = try fixture(surface: surface, hole: nil, tolerance: tolerance)
-        try verifyMeasurement(try wholeModel.faceAreaMeasurement(of: wholeID, tolerance: tolerance),
-            area: wholeArea, centroid: wholeCentroid, tolerance: tolerance)
+        let transform = try RigidTransform3D(
+            basisX: Vector3D(x: 0, y: 1, z: 0), basisY: Vector3D(x: -1, y: 0, z: 0),
+            basisZ: .unitZ, translation: Vector3D(x: 0.125, y: 0.25, z: 0.5), tolerance: tolerance)
+        for mapped in [false, true] {
+            let support = mapped ? try transform.applying(to: surface, tolerance: tolerance) : surface
+            let mapping: (source: Surface3D, transform: RigidTransform3D)? = mapped ? (surface, transform) : nil
+            let (wholeID, wholeModel) = try fixture(surface: support, hole: nil, mapping: mapping, tolerance: tolerance)
+            try verifyMeasurement(try wholeModel.faceAreaMeasurement(of: wholeID, tolerance: tolerance),
+                area: wholeArea, centroid: mapped ? image(of: wholeCentroid) : wholeCentroid, tolerance: tolerance)
 
-        let hole = rectangle(knot / 2, (1 + knot) / 2, 0.25, 0.75)
-        let (holeID, holeModel) = try fixture(surface: surface, hole: hole, tolerance: tolerance)
-        let removedFirst = firstArea / 4, removedSecond = secondArea / 4
-        let remainingArea = 0.75 * wholeArea
-        let remainingCentroid = Point3D(
-            x: (firstArea * middleX / 2 + secondArea * (middleX + 0.02) / 2
-                - removedFirst * 0.75 * middleX
-                - removedSecond * (0.75 * middleX + 0.25 * 0.02)) / remainingArea,
-            y: 0.015, z: (secondArea * 0.01 - removedSecond * 0.005) / remainingArea)
-        try verifyMeasurement(try holeModel.faceAreaMeasurement(of: holeID, tolerance: tolerance),
-            area: remainingArea, centroid: remainingCentroid, tolerance: tolerance)
+            let hole = rectangle(knot / 2, (1 + knot) / 2, 0.25, 0.75)
+            let (holeID, holeModel) = try fixture(surface: support, hole: hole, mapping: mapping, tolerance: tolerance)
+            let removedFirst = firstArea / 4, removedSecond = secondArea / 4
+            let remainingArea = 0.75 * wholeArea
+            let remainingCentroid = Point3D(
+                x: (firstArea * middleX / 2 + secondArea * (middleX + 0.02) / 2
+                    - removedFirst * 0.75 * middleX
+                    - removedSecond * (0.75 * middleX + 0.25 * 0.02)) / remainingArea,
+                y: 0.015, z: (secondArea * 0.01 - removedSecond * 0.005) / remainingArea)
+            try verifyMeasurement(try holeModel.faceAreaMeasurement(of: holeID, tolerance: tolerance),
+                area: remainingArea, centroid: mapped ? image(of: remainingCentroid) : remainingCentroid, tolerance: tolerance)
 
-        do {
-            _ = try holeModel.faceAreaMeasurement(of: holeID, tolerance: tolerance,
-                integrationOptions: FaceAreaIntegrationOptions(maximumCellCount: 3))
-            throw failure("C0 native spans and loops exceeded their shared work budget.", tolerance)
-        } catch let error as KernelError {
-            try require(error.code == .resourceLimitExceeded,
-                "C0 work exhaustion lost its typed resource failure.", tolerance)
+            do {
+                _ = try holeModel.faceAreaMeasurement(of: holeID, tolerance: tolerance,
+                    integrationOptions: FaceAreaIntegrationOptions(maximumCellCount: 3))
+                throw failure("C0 native spans and loops exceeded their shared work budget.", tolerance)
+            } catch let error as KernelError {
+                try require(error.code == .resourceLimitExceeded,
+                    "C0 work exhaustion lost its typed resource failure.", tolerance)
+            }
         }
     }
 
     private static func fixture(surface: Surface3D, hole: [SurfaceParameterCurve]?,
+                                mapping: (source: Surface3D, transform: RigidTransform3D)? = nil,
                                 tolerance: ModelingTolerance) throws -> (FaceID, BRepModel) {
         let surfaceID = SurfaceID()
         var model = BRepModel(geometry: GeometryStore(surfaces: [surfaceID: surface]))
         var boundaries = [rectangle(0, 1, 0, 1)]
         if let hole {
             boundaries.append(try hole.reversed().map { try $0.reversed(tolerance: tolerance) })
+        }
+        if let mapping {
+            boundaries = try boundaries.map { curves in
+                try curves.map { curve in
+                    .rigidImage(try RigidImageSurfaceParameterCurve(
+                        source: SurfaceLiftCurve3D(surface: mapping.source, parameterCurve: curve),
+                        targetSurface: surface, transform: mapping.transform, tolerance: tolerance))
+                }
+            }
         }
         var loopIDs: [LoopID] = []
         for (index, pcurves) in boundaries.enumerated() {
@@ -93,6 +110,11 @@ struct C0SurfaceAreaSmoke {
         model.bodies[body.id] = body
         try model.validatePcurves(tolerance: tolerance)
         return (face.id, model)
+    }
+
+    // Independent literal rigid image; the production transform is not the oracle.
+    private static func image(of point: Point3D) -> Point3D {
+        Point3D(x: 0.125 - point.y, y: 0.25 + point.x, z: 0.5 + point.z)
     }
 
     private static func rectangle(_ u0: Double, _ u1: Double,

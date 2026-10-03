@@ -18,7 +18,7 @@ BINDINGS = {
     "OverlapChartBoundaryResolver": (["curveSurfaceIntersectionResult"], ["parameterization", "representation"]),
     "ExtractFacePlugBuilder": (["extract"], ["supportSurface", "connection", "topology"]),
     "StandardMeshExchange": (["GLBMeshExchange", "GLTFMeshExchange", "PLYMeshExchange", "VRMLMeshExchange"], ["representation", "geometricFidelity"]),
-    "CertifiedSurfaceFaceAreaIntegrator": (["faceAreaMeasurement"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
+    "SurfaceAreaParameterChartEncloser": (["faceAreaMeasurement"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
     "PreparedSurfaceAreaIntegrand": (["faceAreaMeasurement"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
     "BSplineSurface3D+DegreeElevation": (["rationalBSplineSurface"], ["parameterization", "representation"]),
     "CADDocumentTranslation": (["importedBRep", "CADCommand"], ["transformation", "representation", "topology"]),

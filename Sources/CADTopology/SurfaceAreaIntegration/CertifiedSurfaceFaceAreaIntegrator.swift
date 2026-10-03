@@ -18,7 +18,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
             throw failure(.resourceLimitExceeded, tolerance, "Face area loop admission limit exceeded.")
         }
         try admit(surface, options: options, tolerance: tolerance)
-        var loops: [(role: LoopRole, curves: [SurfaceParameterCurve])] = []
+        var loops: [(role: LoopRole, curves: [SurfaceParameterCurve], charts: [SurfaceAreaParameterChartEncloser])] = []
         var count = 0
         for id in face.loops {
             guard let loop = model.loops[id], !loop.coedges.isEmpty else {
@@ -30,7 +30,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
             var curves: [SurfaceParameterCurve] = []
             for coedge in loop.coedges {
                 guard let curve = coedge.surfaceParameterCurve else { throw TopologyError.invalidTrim(coedge.edgeID) }
-                try admit(curve, options: options, tolerance: tolerance)
+                try admit(curve, on: surface, options: options, tolerance: tolerance)
                 let parts = try segments(curve, tolerance: tolerance)
                 count += parts.count
                 guard count <= options.maximumBoundaryCurveCount else {
@@ -50,7 +50,11 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                         "Certified free-surface integration requires connected trims to parameter rounding precision.")
                 }
             }
-            loops.append((loop.role, lifted.map(\.translatedCurve)))
+            let retainedCurves = lifted.map(\.translatedCurve)
+            let charts = try retainedCurves.map { try SurfaceAreaParameterChartEncloser(curve:$0,on:surface,
+                maximumControlPointCount:options.maximumControlPointCount,
+                maximumBoundaryCurveCount:options.maximumBoundaryCurveCount,tolerance:tolerance) }
+            loops.append((loop.role, retainedCurves, charts))
         }
         guard let firstCurve = loops.first?.curves.first else {
             throw failure(.topologyFailure, tolerance, "Face area has no trimming boundary.")
@@ -82,13 +86,13 @@ struct CertifiedSurfaceFaceAreaIntegrator {
         var total = Array(repeating: OutwardScalarInterval.exact(0), count: 4)
         for loop in loops {
             var accumulated = Array(repeating: OutwardScalarInterval.exact(0), count: 4)
-            if prepared.translationDirection != nil, let box = try rectangularDomain(loop.curves) {
-                accumulated = try integrate(curve: loop.curves[0], rectangle: box,
+            if prepared.translationDirection != nil, let box = try rectangularDomain(loop.curves, charts:loop.charts) {
+                accumulated = try integrate(curve: loop.curves[0], parameterChart:loop.charts[0], rectangle: box,
                     anchor: anchor, reference: reference, prepared: prepared, goals: goals,
                     options: options, work: &work, tolerance: tolerance)
             } else {
-                for curve in loop.curves {
-                    let contribution = try integrate(curve: curve, anchor: anchor, reference: reference,
+                for (curve,chart) in zip(loop.curves,loop.charts) {
+                    let contribution = try integrate(curve: curve, parameterChart:chart, anchor: anchor, reference: reference,
                         prepared: prepared, goals: goals, options: options, work: &work, tolerance: tolerance)
                     for i in 0..<4 { accumulated[i] = accumulated[i] + contribution[i] }
                 }
@@ -131,13 +135,14 @@ struct CertifiedSurfaceFaceAreaIntegrator {
             centroid: Point3D(x: centers[0], y: centers[1], z: centers[2]))
     }
 
-    private func integrate(curve: SurfaceParameterCurve, rectangle: SurfaceParameterBox? = nil,
+    private func integrate(curve: SurfaceParameterCurve, parameterChart: SurfaceAreaParameterChartEncloser,
+                           rectangle: SurfaceParameterBox? = nil,
                            anchor: SurfaceParameter, reference: Point3D,
                            prepared: PreparedSurfaceAreaIntegrand, goals: [Double],
                            options: FaceAreaIntegrationOptions, work: inout Int,
                            tolerance: ModelingTolerance) throws -> [OutwardScalarInterval] {
         if prepared.hasNativeDensityJumps {
-            return try integrateNativeSpans(curve:curve,rectangle:rectangle,anchor:anchor,reference:reference,
+            return try integrateNativeSpans(curve:curve,parameterChart:parameterChart,rectangle:rectangle,anchor:anchor,reference:reference,
                 prepared:prepared,goals:goals,options:options,work:&work,tolerance:tolerance)
         }
         var stack = [Cell(t: try ScalarInterval(lower: 0, upper: 1),
@@ -163,15 +168,17 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                         reference: reference, tolerance: tolerance)
                 } else if prepared.radialIntegrationIsExact {
                     bounds = try prepared.boundaryBounds(curve: curve, anchor: anchor, reference: reference,
-                        boundaryFraction: cell.t, tolerance: tolerance)
+                        boundaryFraction: cell.t, tolerance: tolerance,parameterChart:parameterChart)
                     midpoint = try prepared.boundaryBounds(curve: curve, anchor: anchor, reference: reference,
-                        boundaryFraction: ScalarInterval(lower: cell.t.midpoint, upper: cell.t.midpoint), tolerance: tolerance)
+                        boundaryFraction: ScalarInterval(lower: cell.t.midpoint, upper: cell.t.midpoint), tolerance: tolerance,
+                        parameterChart:parameterChart)
                 } else {
                     bounds = try prepared.bounds(curve: curve, anchor: anchor, reference: reference,
-                        boundaryFraction: cell.t, radialFraction: cell.r, tolerance: tolerance)
+                        boundaryFraction: cell.t, radialFraction: cell.r, tolerance: tolerance,parameterChart:parameterChart)
                     midpoint = try prepared.bounds(curve: curve, anchor: anchor, reference: reference,
                         boundaryFraction: ScalarInterval(lower: cell.t.midpoint, upper: cell.t.midpoint),
-                        radialFraction: ScalarInterval(lower: cell.r.midpoint, upper: cell.r.midpoint), tolerance: tolerance)
+                        radialFraction: ScalarInterval(lower: cell.r.midpoint, upper: cell.r.midpoint), tolerance: tolerance,
+                        parameterChart:parameterChart)
                 }
                 let size = OutwardScalarInterval.exact(cell.t.upper) - .exact(cell.t.lower)
                 let height = OutwardScalarInterval.exact(cell.r.upper) - .exact(cell.r.lower)
@@ -240,13 +247,14 @@ struct CertifiedSurfaceFaceAreaIntegrator {
         return total
     }
 
-    private func integrateNativeSpans(curve: SurfaceParameterCurve, rectangle: SurfaceParameterBox?,
+    private func integrateNativeSpans(curve: SurfaceParameterCurve, parameterChart: SurfaceAreaParameterChartEncloser,
+                                      rectangle: SurfaceParameterBox?,
                                       anchor: SurfaceParameter, reference: Point3D,
                                       prepared: PreparedSurfaceAreaIntegrand, goals: [Double],
                                       options: FaceAreaIntegrationOptions, work: inout Int,
                                       tolerance: ModelingTolerance) throws -> [OutwardScalarInterval] {
         typealias Adaptive = SurfaceAreaAdaptiveIntegral
-        if rectangle == nil, prepared.fanIsExactlyZero(curve:curve,anchor:anchor) {
+        if rectangle == nil, prepared.fanIsExactlyZero(curve:curve,anchor:anchor,parameterChart:parameterChart) {
             return Array(repeating:.exact(0),count:4)
         }
         let unit = try ScalarInterval(lower:0,upper:1)
@@ -256,7 +264,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                 maximumCount:options.maximumCellCount-work,tolerance:tolerance)
         } else {
             domains = try prepared.nativeFanDomains(curve:curve,anchor:anchor,
-                maximumCount:options.maximumCellCount-work,tolerance:tolerance)
+                maximumCount:options.maximumCellCount-work,tolerance:tolerance,parameterChart:parameterChart)
         }
         let cells: [Adaptive.Cell]
         if let domains {
@@ -281,7 +289,8 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                         fraction:cell.t,reference:reference,tolerance:tolerance,domain:cell.domain)
                 } else {
                     bounds = try prepared.bounds(curve:curve,anchor:anchor,reference:reference,
-                        boundaryFraction:cell.t,radialFraction:cell.r,tolerance:tolerance,domain:cell.domain)
+                        boundaryFraction:cell.t,radialFraction:cell.r,tolerance:tolerance,domain:cell.domain,
+                        parameterChart:parameterChart)
                 }
                 let size = OutwardScalarInterval.exact(cell.t.upper) - .exact(cell.t.lower)
                 let height = OutwardScalarInterval.exact(cell.r.upper) - .exact(cell.r.lower)
@@ -303,7 +312,8 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                         fraction:middleT,reference:reference,tolerance:tolerance,domain:cell.domain)
                 } else {
                     midpoint = try prepared.bounds(curve:curve,anchor:anchor,reference:reference,
-                        boundaryFraction:middleT,radialFraction:middleR,tolerance:tolerance,domain:cell.domain)
+                        boundaryFraction:middleT,radialFraction:middleR,tolerance:tolerance,domain:cell.domain,
+                        parameterChart:parameterChart)
                 }
                 var values: [OutwardScalarInterval] = []
                 var tPressure = 0.0, rPressure = 0.0
@@ -339,11 +349,12 @@ struct CertifiedSurfaceFaceAreaIntegrator {
     }
 
     /// Exact iso-parametric rectangle authority, independent of tolerance and winding.
-    private func rectangularDomain(_ curves: [SurfaceParameterCurve]) throws -> SurfaceParameterBox? {
+    private func rectangularDomain(_ curves: [SurfaceParameterCurve],
+                                   charts: [SurfaceAreaParameterChartEncloser]) throws -> SurfaceParameterBox? {
         guard curves.count == 4 else { return nil }
         var starts: [SurfaceParameter] = [], ends: [SurfaceParameter] = []
-        for curve in curves {
-            switch curve {
+        for (curve,chart) in zip(curves,charts) {
+            switch chart.exactIsoBoundary ?? curve {
             case .constantU(let u, let first, let last):
                 guard first != last else { return nil }
                 starts.append(SurfaceParameter(u: u, v: first)); ends.append(SurfaceParameter(u: u, v: last))
@@ -431,33 +442,11 @@ struct CertifiedSurfaceFaceAreaIntegrator {
         }
     }
 
-    private func admit(_ curve: SurfaceParameterCurve, options: FaceAreaIntegrationOptions,
-                       tolerance: ModelingTolerance, depth: Int = 0) throws {
-        guard depth <= 16 else { throw failure(.resourceLimitExceeded, tolerance, "Area trim nesting limit exceeded.") }
-        switch curve {
-        case .polyline(let points):
-            guard points.count <= options.maximumBoundaryCurveCount else {
-                throw failure(.resourceLimitExceeded, tolerance, "Area polyline admission limit exceeded.")
-            }
-        case .bSpline(let spline):
-            try admitSplineDimensions(controlCount: spline.controlPoints.count, degree: spline.degree,
-                knotCount: spline.knots.count, weightCount: spline.weights.count,
-                options: options, tolerance: tolerance)
-            let internalKnots = Array(Set(spline.knots)).sorted().dropFirst().dropLast()
-            guard internalKnots.allSatisfy({ knot in
-                spline.degree - spline.knots.filter { $0 == knot }.count >= 2
-            }) else {
-                throw failure(.unsupportedCapability, tolerance, "Area fan trim derivatives require C2 across interior knots.")
-            }
-        case .periodicTranslation(let base, _, _):
-            try admit(base, options: options, tolerance: tolerance, depth: depth + 1)
-        case .affine, .constantU, .constantV, .harmonic: break
-        default:
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Non-numeric certified and mapped charts need
-            // integral-specific derivative admission on the production face-area path.
-            // Complete only when exact jets and successful/error integral fixtures are verified.
-            throw failure(.unsupportedCapability, tolerance, "Area integration has no certified derivative admission for this trim chart.")
-        }
+    private func admit(_ curve: SurfaceParameterCurve, on surface: Surface3D,
+                       options: FaceAreaIntegrationOptions, tolerance: ModelingTolerance) throws {
+        try SurfaceAreaParameterChartEncloser.validateAdmission(curve:curve,on:surface,
+            maximumControlPointCount:options.maximumControlPointCount,
+            maximumBoundaryCurveCount:options.maximumBoundaryCurveCount,tolerance:tolerance)
     }
 
     private func admit(_ curve: Curve3D, options: FaceAreaIntegrationOptions,
@@ -470,7 +459,9 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                 options: options, tolerance: tolerance)
         case .surfaceLift(let lift):
             try admit(lift.surface, options: options, tolerance: tolerance, depth: depth + 1)
-            try admit(lift.parameterCurve, options: options, tolerance: tolerance, depth: depth + 1)
+            try SurfaceAreaParameterChartEncloser.validateAdmission(curve:lift.parameterCurve,on:lift.surface,
+                maximumControlPointCount:options.maximumControlPointCount,
+                maximumBoundaryCurveCount:options.maximumBoundaryCurveCount,sourceDepth:depth+1,tolerance:tolerance)
         default: break
         }
     }

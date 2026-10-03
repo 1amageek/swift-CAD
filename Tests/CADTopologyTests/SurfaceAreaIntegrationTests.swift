@@ -42,18 +42,21 @@ struct SurfaceAreaIntegrationTests {
                 Point3D(x: 0.02, y: y, z: 0.004)] }))
     }
 
-    @Test(.timeLimit(.minutes(1)))
-    func parabolaExtrusionHasAnalyticAreaAndMoments() throws {
-        let (id, model) = try fixture(graph())
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func parabolaExtrusionHasAnalyticAreaAndMoments(_ mapped: Bool) throws {
+        let transform = try areaFixtureTransform()
+        let source = graph()
+        let support = mapped ? try transform.applying(to:source,tolerance:tolerance) : source
+        let curves = mapped ? try rigidTrims(rectangle(),source:source,target:support,transform:transform) : rectangle()
+        let (id, model) = try fixture(support,outer:curves)
         let result = try model.faceAreaMeasurement(of: id, tolerance: tolerance)
         let a = 0.02, k = 10.0, t = 2*k*a
         let length = (t * sqrt(1+t*t) + asinh(t)) / (4*k)
         let momentX = (pow(1+t*t,1.5)-1) / (12*k*k)
         let momentZ = (t*sqrt(1+t*t)*(2*t*t+1)-asinh(t)) / (64*k*k)
-        #expect(abs(result.area - length*0.03) <= 1e-9)
-        #expect(abs(result.centroid.x - momentX/length) <= tolerance.distance)
-        #expect(abs(result.centroid.y - 0.015) <= tolerance.distance)
-        #expect(abs(result.centroid.z - momentZ/length) <= tolerance.distance)
+        #expect(abs(result.area - length*0.03) <= tolerance.distance*tolerance.distance+tolerance.relative*length*0.03)
+        let center = Point3D(x:momentX/length,y:0.015,z:momentZ/length)
+        #expect((result.centroid - (mapped ? areaFixtureImage(of:center) : center)).length <= tolerance.distance)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -248,11 +251,17 @@ struct SurfaceAreaIntegrationTests {
         #expect((result.centroid-Point3D(x:0.02,y:0.01,z:0)).length < 1e-6)
     }
 
-    @Test(.timeLimit(.minutes(1)))
-    func curvedOffsetHasKnownAreaAndIndependentCentroidIntegral() throws {
+    @Test(.timeLimit(.minutes(1)), arguments:[0,1,2])
+    func curvedOffsetHasKnownAreaAndIndependentCentroidIntegral(_ mapping: Int) throws {
         let distance = 0.001, a = 0.02, b = 0.03, k = 10.0
-        let support = Surface3D.procedural(.offset(OffsetSurface3D(source: graph(), distance: distance)))
-        let (id, model) = try fixture(support)
+        let offset = OffsetSurface3D(source: graph(), distance: distance)
+        let originalSupport = Surface3D.procedural(.offset(offset))
+        let transform = try areaFixtureTransform()
+        let support = mapping == 2 ? try transform.applying(to:originalSupport,tolerance:tolerance) : originalSupport
+        let sourceTrims = mapping > 0 ? try rectangle().map { .offsetSurfaceImage(try offset.parameterCurveImage(
+            transporting:$0,tolerance:tolerance)) } : rectangle()
+        let trims = mapping == 2 ? try rigidTrims(sourceTrims,source:originalSupport,target:support,transform:transform) : sourceTrims
+        let (id, model) = try fixture(support,outer:trims)
         let offsetTolerance = ModelingTolerance(distance: 1e-6, angle: 1e-9, relative: 1e-4)
         let result = try model.faceAreaMeasurement(of: id, tolerance: offsetTolerance)
         let t = 2*k*a
@@ -276,9 +285,8 @@ struct SurfaceAreaIntegrationTests {
         }
         #expect(abs(result.area-expectedArea) <= offsetTolerance.distance*offsetTolerance.distance
             + offsetTolerance.relative*expectedArea)
-        #expect(abs(result.centroid.x-momentX/area) <= offsetTolerance.distance)
-        #expect(abs(result.centroid.z-momentZ/area) <= offsetTolerance.distance)
-        #expect(abs(result.centroid.y-0.015) <= offsetTolerance.distance)
+        let center = Point3D(x:momentX/area,y:0.015,z:momentZ/area)
+        #expect((result.centroid-(mapping == 2 ? areaFixtureImage(of:center) : center)).length <= offsetTolerance.distance)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -658,6 +666,254 @@ struct SurfaceAreaIntegrationTests {
         task.cancel()
         do { _ = try await task.value; Issue.record("C0 cancellation must remain observable.") }
         catch let error as KernelError { #expect(error.code == .cancelled) }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func mappedRigidRectangleAndHoleHaveIndependentAreaAndAllCentroidComponents(_ reversed: Bool) throws {
+        let source = flatAreaSupport(), transform = try areaFixtureTransform()
+        let target = try transform.applying(to:source,tolerance:tolerance)
+        let outer = try rigidTrims(rectangle(),source:source,target:target,transform:transform)
+        let hole = try rigidTrims(rectangle(0.25,0.5,0.25,0.75),source:source,target:target,transform:transform)
+        let (id,model) = try fixture(target,outer:outer,holes:[hole],reversed:reversed)
+        let result = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        let expectedArea = 0.0007
+        let original = Point3D(x:(0.0008*0.02-0.0001*0.015)/expectedArea,y:0.01,z:0)
+        #expect(abs(result.area-expectedArea) <= tolerance.distance*tolerance.distance+tolerance.relative*expectedArea)
+        #expect((result.centroid-areaFixtureImage(of:original)).length <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func mappedRigidC0HoleRetainsOriginalNativePartitionsAndSharedWorkCounter(_ reversed: Bool) throws {
+        let knot = 0.37, x = 0.02*knot, firstArea = 0.03*x
+        let secondArea = 0.03*hypot(0.02-x,0.02)
+        let source = foldedSupport(knot:knot), transform = try areaFixtureTransform()
+        let target = try transform.applying(to:source,tolerance:tolerance)
+        let outer = try rigidTrims(rectangle(),source:source,target:target,transform:transform)
+        let hole = try rigidTrims(rectangle(knot/2,(1+knot)/2,0.25,0.75),source:source,target:target,transform:transform)
+        let (id,model) = try fixture(target,outer:outer,holes:[hole],reversed:reversed)
+        let result = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        let area = 0.75*(firstArea+secondArea)
+        let center = Point3D(x:(firstArea*x/2+secondArea*(x+0.02)/2-firstArea/4*0.75*x
+            - secondArea/4*(0.75*x+0.25*0.02))/area,y:0.015,
+            z:(secondArea*0.01-secondArea/4*0.005)/area)
+        #expect(abs(result.area-area) <= tolerance.distance*tolerance.distance+tolerance.relative*area)
+        #expect((result.centroid-areaFixtureImage(of:center)).length <= tolerance.distance)
+        do {
+            _ = try model.faceAreaMeasurement(of:id,tolerance:tolerance,
+                integrationOptions:FaceAreaIntegrationOptions(maximumCellCount:3))
+            Issue.record("Mapped native spans and loops must share the original query work counter.")
+        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func mappedRigidFractionJetsContainIndependentHarmonicAndRationalDerivatives() throws {
+        let source = flatAreaSupport(), transform = try areaFixtureTransform()
+        let target = try transform.applying(to:source,tolerance:tolerance)
+        let charts: [SurfaceParameterCurve] = [.harmonic(center:Point2D(x:0.5,y:0.5),
+            cosine:Point2D(x:0.125,y:0),sine:Point2D(x:0,y:0.125),startParameter:-.pi/2,endParameter:.pi/2),
+            .bSpline(BSplineCurve2D(degree:2,knots:[2,2,2,5,5,5],
+                controlPoints:[Point2D(x:0.75,y:0.5),Point2D(x:0.75,y:0.75),Point2D(x:0.5,y:0.75)],
+                weights:[1,sqrt(0.5),1]))]
+        for (kind,base) in charts.enumerated() {
+            let curve = SurfaceParameterCurve.rigidImage(try RigidImageSurfaceParameterCurve(
+                source:SurfaceLiftCurve3D(surface:source,parameterCurve:base),targetSurface:target,
+                transform:transform,startFraction:0.875,endFraction:0.125,tolerance:tolerance))
+            let prepared = try SurfaceAreaParameterChartEncloser(curve:curve,on:target,tolerance:tolerance)
+            for index in 0..<8 {
+                let lower = Double(index)/8, upper = Double(index+1)/8
+                let jet = try prepared.intervalJet(over:ScalarInterval(lower:lower,upper:upper),tolerance:tolerance)
+                for fraction in [lower,(lower+upper)/2,upper] {
+                    let q = 0.875-0.75*fraction, scale = -0.75
+                    let u: [Double], v: [Double]
+                    if kind == 0 {
+                        let theta = -.pi/2 + .pi*q, rate = .pi*scale
+                        u = [0.5+0.125*cos(theta),-0.125*sin(theta)*rate,
+                             -0.125*cos(theta)*rate*rate,0.125*sin(theta)*rate*rate*rate]
+                        v = [0.5+0.125*sin(theta),0.125*cos(theta)*rate,
+                             -0.125*sin(theta)*rate*rate,-0.125*cos(theta)*rate*rate*rate]
+                    } else {
+                        let w = sqrt(0.5), denominator = 1+2*(w-1)*q+2*(1-w)*q*q
+                        let d1 = 2*(w-1)+4*(1-w)*q, d2 = 4*(1-w)
+                        func quotient(_ n: Double,_ n1: Double,_ n2: Double) -> [Double] {
+                            let value = n/denominator, first = (n1-d1*value)/denominator
+                            let second = (n2-d2*value-2*d1*first)/denominator
+                            let third = (-3*d2*first-3*d1*second)/denominator
+                            return [value,first*scale,second*scale*scale,third*scale*scale*scale]
+                        }
+                        u = quotient(0.75+1.5*(w-1)*q+(1.25-1.5*w)*q*q,
+                            1.5*(w-1)+2*(1.25-1.5*w)*q,2*(1.25-1.5*w))
+                        v = quotient(0.5+(1.5*w-1)*q+(1.25-1.5*w)*q*q,
+                            1.5*w-1+2*(1.25-1.5*w)*q,2*(1.25-1.5*w))
+                    }
+                    for (field,expected) in [(jet.u,u),(jet.v,v)] {
+                        #expect(field.value.contains(expected[0]))
+                        #expect(field.derivativeU.contains(expected[1]))
+                        #expect(field.secondDerivativeUU.contains(expected[2]))
+                        #expect(field.thirdDerivativeUUU.contains(expected[3]))
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func mappedRigidPartialFractionsRetainTheOriginalRectangleAndReversal(_ reversed: Bool) throws {
+        let source = flatAreaSupport(), transform = try areaFixtureTransform()
+        let target = try transform.applying(to:source,tolerance:tolerance)
+        let originals: [SurfaceParameterCurve] = [.constantV(v:0.25,uStart:0,uEnd:1),
+            .constantU(u:0.75,vStart:0,vEnd:1),.constantV(v:0.75,uStart:1,uEnd:0),
+            .constantU(u:0.25,vStart:1,vEnd:0)]
+        let curves = try originals.map { SurfaceParameterCurve.rigidImage(try RigidImageSurfaceParameterCurve(
+            source:SurfaceLiftCurve3D(surface:source,parameterCurve:$0),targetSurface:target,transform:transform,
+            startFraction:0.25,endFraction:0.75,tolerance:tolerance)) }
+        let (id,model) = try fixture(target,outer:curves,reversed:reversed)
+        let result = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        let area = 0.0002
+        #expect(abs(result.area-area) <= tolerance.distance*tolerance.distance+tolerance.relative*area)
+        #expect((result.centroid-areaFixtureImage(of:Point3D(x:0.02,y:0.01,z:0))).length <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func mappedNonIdentityAffineUVUsesTheOriginalFractionChain() throws {
+        let source = Surface3D.plane(Plane3D(origin:.origin,normal:.unitZ))
+        let transform = try areaFixtureTransform()
+        let target = try transform.applying(to:source,tolerance:tolerance)
+        let curve = SurfaceParameterCurve.rigidImage(try RigidImageSurfaceParameterCurve(
+            source:SurfaceLiftCurve3D(surface:source,parameterCurve:.affine(origin:Point2D(x:0.2,y:0.3),
+                direction:Point2D(x:0.1,y:0.2),startParameter:0,endParameter:1)),
+            targetSurface:target,transform:transform,startFraction:0.875,endFraction:0.125,tolerance:tolerance))
+        let prepared = try SurfaceAreaParameterChartEncloser(curve:curve,on:target,tolerance:tolerance)
+        let jet = try prepared.intervalJet(over:ScalarInterval(lower:0.25,upper:0.75),tolerance:tolerance)
+        // With identical +Z plane bases, an exact 90-degree rotation maps (u,v) to (-v,u).
+        for fraction in [0.25,0.5,0.75] {
+            let q = 0.875-0.75*fraction
+            #expect(jet.u.value.contains(-(0.3+0.2*q)))
+            #expect(jet.v.value.contains(0.2+0.1*q))
+            #expect(jet.u.derivativeU.contains(0.15))
+            #expect(jet.v.derivativeU.contains(-0.075))
+            #expect(jet.u.secondDerivativeUU.contains(0) && jet.v.secondDerivativeUU.contains(0))
+            #expect(jet.u.thirdDerivativeUUU.contains(0) && jet.v.thirdDerivativeUUU.contains(0))
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func mappedChartCancellationRemainsAQueryFailure() async throws {
+        let source = flatAreaSupport(), transform = try areaFixtureTransform()
+        let target = try transform.applying(to:source,tolerance:tolerance)
+        let curves = try rigidTrims(rectangle(),source:source,target:target,transform:transform)
+        let (id,model) = try fixture(target,outer:curves)
+        let task = Task {
+            while !Task.isCancelled { await Task.yield() }
+            return try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        }
+        task.cancel()
+        do { _ = try await task.value; Issue.record("Mapped chart preparation cannot hide query cancellation.") }
+        catch let error as KernelError { #expect(error.code == .cancelled) }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func mappedChartForeignTargetsOutsideFractionsAndNonAffineMapsFailExplicitly() throws {
+        let source = flatAreaSupport(), transform = try areaFixtureTransform()
+        let target = try transform.applying(to:source,tolerance:tolerance)
+        let image = try RigidImageSurfaceParameterCurve(source:SurfaceLiftCurve3D(surface:source,
+            parameterCurve:rectangle()[0]),targetSurface:target,transform:transform,tolerance:tolerance)
+        do {
+            _ = try SurfaceAreaParameterChartEncloser(curve:.rigidImage(image),on:source,tolerance:tolerance)
+            Issue.record("A mapped trim cannot authorize a different face support.")
+        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        let outside = try RigidImageSurfaceParameterCurve(source:image.source,targetSurface:target,
+            transform:transform,startFraction:-tolerance.relative/2,endFraction:1,tolerance:tolerance)
+        do {
+            _ = try SurfaceAreaParameterChartEncloser(curve:.rigidImage(outside),on:target,tolerance:tolerance)
+            Issue.record("A tolerated source fraction outside the original chart cannot be clamped into an integral.")
+        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        let sphere = Surface3D.analytic(.sphere(center:.origin,radius:0.02))
+        let rotation = try RigidTransform3D.rotated(around:.origin,direction:.unitX,angle:.pi/2,tolerance:tolerance)
+        let sphericalTarget = try rotation.applying(to:sphere,tolerance:tolerance)
+        let sphericalImage = try RigidImageSurfaceParameterCurve(source:SurfaceLiftCurve3D(surface:sphere,
+            parameterCurve:.constantV(v:0,uStart:0.1,uEnd:0.3)),targetSurface:sphericalTarget,
+            transform:rotation,tolerance:tolerance)
+        do {
+            _ = try SurfaceAreaParameterChartEncloser(curve:.rigidImage(sphericalImage),on:sphericalTarget,tolerance:tolerance)
+            Issue.record("Non-affine spherical charts still require their own whole-interval proof.")
+        } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func ruledSurfaceLiftAdmissionRetainsItsExactSupportAndEnclosingDepth() throws {
+        let source = Surface3D.plane(Plane3D(origin:.origin,normal:.unitZ))
+        let startChart = SurfaceParameterCurve.constantV(v:0,uStart:0,uEnd:0.04)
+        let endRail = Curve3D.surfaceLift(SurfaceLiftCurve3D(surface:source,
+            parameterCurve:.constantV(v:0.02,uStart:0,uEnd:0.04)))
+        func support(_ chart: SurfaceParameterCurve) -> Surface3D {
+            .procedural(.ruled(RuledSurface3D(startBoundary:.surfaceLift(SurfaceLiftCurve3D(
+                surface:source,parameterCurve:chart)),endBoundary:endRail)))
+        }
+        let (id,model) = try fixture(support(startChart))
+        let result = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        #expect(abs(result.area-0.0008) <= tolerance.distance*tolerance.distance+tolerance.relative*0.0008)
+        #expect((result.centroid-Point3D(x:0.02,y:0.01,z:0)).length <= tolerance.distance)
+
+        var nested = startChart
+        for _ in 0..<15 { nested = .periodicTranslation(base:nested,uShift:0,vShift:0) }
+        // The chart is within the standalone limit; two enclosing ruled/lift
+        // levels put the same native source beyond the one admission depth limit.
+        try SurfaceAreaParameterChartEncloser.validateAdmission(curve:nested,on:source,
+            maximumControlPointCount:65_536,maximumBoundaryCurveCount:4_096,tolerance:tolerance)
+        let (nestedID,nestedModel) = try fixture(support(nested))
+        do {
+            _ = try nestedModel.faceAreaMeasurement(of:nestedID,tolerance:tolerance)
+            Issue.record("Surface-lift trim admission cannot restart its enclosing source depth at zero.")
+        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func mappedNestedSourceDimensionsAndDepthFailBeforeRecursiveValidation() throws {
+        let source = flatAreaSupport(), transform = try areaFixtureTransform()
+        let target = try transform.applying(to:source,tolerance:tolerance)
+        let good = try RigidImageSurfaceParameterCurve(source:SurfaceLiftCurve3D(surface:source,
+            parameterCurve:rectangle()[0]),targetSurface:target,transform:transform,tolerance:tolerance)
+        var encoded = try #require(try JSONSerialization.jsonObject(with:JSONEncoder().encode(good)) as? [String:Any])
+        var lift = try #require(encoded["source"] as? [String:Any])
+        let bad = SurfaceParameterCurve.bSpline(BSplineCurve2D(degree:2,knots:Array(repeating:0,count:30),
+            controlPoints:[Point2D(x:0,y:0),Point2D(x:0.5,y:0),Point2D(x:1,y:0)]))
+        lift["parameterCurve"] = try JSONSerialization.jsonObject(with:JSONEncoder().encode(bad))
+        encoded["source"] = lift
+        let malformed = try JSONDecoder().decode(RigidImageSurfaceParameterCurve.self,
+            from:JSONSerialization.data(withJSONObject:encoded))
+        do {
+            _ = try SurfaceAreaParameterChartEncloser(curve:.rigidImage(malformed),on:target,
+                maximumControlPointCount:8,tolerance:tolerance)
+            Issue.record("Oversized nested knot arrays must fail before recursive image validation.")
+        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        var nested = SurfaceParameterCurve.rigidImage(good)
+        for _ in 0..<17 { nested = .periodicTranslation(base:nested,uShift:0,vShift:0) }
+        do {
+            _ = try SurfaceAreaParameterChartEncloser(curve:nested,on:target,tolerance:tolerance)
+            Issue.record("Mapped chart nesting cannot grant another preparation depth budget.")
+        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+    }
+
+    private func flatAreaSupport() -> Surface3D {
+        .bSpline(BSplineSurface3D(uDegree:1,vDegree:1,uKnots:[0,0,1,1],vKnots:[0,0,1,1],
+            controlPoints:[[.origin,Point3D(x:0.04,y:0,z:0)],
+                           [Point3D(x:0,y:0.02,z:0),Point3D(x:0.04,y:0.02,z:0)]]))
+    }
+
+    private func areaFixtureTransform() throws -> RigidTransform3D {
+        try RigidTransform3D(basisX:Vector3D(x:0,y:1,z:0),basisY:Vector3D(x:-1,y:0,z:0),basisZ:.unitZ,
+            translation:Vector3D(x:0.125,y:0.25,z:0.5),tolerance:tolerance)
+    }
+
+    private func areaFixtureImage(of point: Point3D) -> Point3D {
+        Point3D(x:0.125-point.y,y:0.25+point.x,z:0.5+point.z)
+    }
+
+    private func rigidTrims(_ curves: [SurfaceParameterCurve],source: Surface3D,target: Surface3D,
+                            transform: RigidTransform3D) throws -> [SurfaceParameterCurve] {
+        try curves.map { .rigidImage(try RigidImageSurfaceParameterCurve(
+            source:SurfaceLiftCurve3D(surface:source,parameterCurve:$0),targetSurface:target,
+            transform:transform,tolerance:tolerance)) }
     }
 
     private func foldedSupport(knot: Double) -> Surface3D {

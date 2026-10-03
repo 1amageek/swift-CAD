@@ -60,6 +60,14 @@ face loops -> continuous UV chains -> signed fan squares
   uncertainty to the same aggregate error target; they do not receive a new
   absolute tolerance per piece. Final area and centroid interval acceptance
   remains authoritative. Work and depth accounting also remain query-wide.
+- Numeric mapped trims retain their original stored curve and source fraction
+  chart. Geometry prepares exact directed offset or affine rigid chart authority
+  against the face's exact support, after bounded nested input admission.
+  Topology supplies this authority to fan/boundary enclosure evaluation; the
+  original signed fan measure, loop winding and whole-query resource/error
+  targets are unchanged. Implicit charts and non-affine rigid images remain
+  typed unsupported failures. Invalid source fractions or foreign targets cannot
+  become a clamped or approximately equivalent accepted trim.
 
 ## State, Ownership, and Lifecycle
 Each invocation owns immutable prepared geometry. Smooth domains retain their
@@ -68,6 +76,9 @@ refinable leaf uncertainties; at most `2*processedCells-1` tree records and
 `processedCells` heap entries exist. Native initial partition depth counts
 toward the original query depth limit. No shared mutable state or cache is
 introduced.
+Each retained boundary curve additionally owns one immutable prepared numeric
+chart for its adaptive integration call. Chart preparation uses the original
+query admission limits and never creates an independent adaptive budget.
 
 ## Failure, Concurrency, and Constraints
 Admission limits boundary curves, input and expanded Bezier control points, processed cells and subdivision

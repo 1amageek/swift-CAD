@@ -93,17 +93,10 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
     package func bounds(
         curve: SurfaceParameterCurve, anchor: SurfaceParameter, reference: Point3D,
         boundaryFraction: ScalarInterval, radialFraction: ScalarInterval,
-        tolerance: ModelingTolerance, domain: SurfaceAreaNativeSpanDomain? = nil
+        tolerance: ModelingTolerance, domain: SurfaceAreaNativeSpanDomain? = nil,
+        parameterChart: SurfaceAreaParameterChartEncloser? = nil
     ) throws -> [SurfaceAreaIntegrandBounds] {
-        guard let chart = try SurfaceParameterIntervalJet.enclose(
-            curve, over: boundaryFraction, tolerance: tolerance
-        ) else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Certified intersection and rigid-image trims
-            // lack integral-specific fan derivative jets on this production face-area path.
-            // Complete only when those exact chart derivatives and integral fixtures certify.
-            throw Self.failure(.unsupportedCapability, tolerance,
-                "Face area fan integration has no certified derivatives for this trim chart.")
-        }
+        let chart = try chartJet(curve:curve,prepared:parameterChart,over:boundaryFraction,tolerance:tolerance)
         let r = SurfaceIntervalJet.parameterV(radialFraction)
         let du = chart.u - .constant(anchor.u)
         let dv = chart.v - .constant(anchor.v)
@@ -147,15 +140,24 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
     }
 
     package func nativeFanDomains(curve: SurfaceParameterCurve, anchor: SurfaceParameter,
-                                  maximumCount: Int, tolerance: ModelingTolerance) throws -> [SurfaceAreaNativeSpanDomain]? {
+                                  maximumCount: Int, tolerance: ModelingTolerance,
+                                  parameterChart: SurfaceAreaParameterChartEncloser? = nil) throws -> [SurfaceAreaNativeSpanDomain]? {
+        if let parameterChart, parameterChart.curve != curve || parameterChart.support != surface {
+            throw Self.failure(.invalidInput,tolerance,"Native fan chart authority belongs to another retained trim or support.")
+        }
         if case .spline(let partition) = storage {
-            return try partition.fanDomains(curve:curve,anchor:anchor,maximumCount:maximumCount,tolerance:tolerance)
+            let boundary = parameterChart?.exactIsoBoundary ?? curve
+            guard let domains = try partition.fanDomains(curve:boundary,anchor:anchor,maximumCount:maximumCount,tolerance:tolerance) else { return nil }
+            return domains.map { SurfaceAreaNativeSpanDomain(rectangle:$0.rectangle,radialRange:$0.radialRange,
+                index:$0.index,source:$0.source,curve:curve,anchor:anchor) }
         }
         return nil
     }
 
-    package func fanIsExactlyZero(curve: SurfaceParameterCurve, anchor: SurfaceParameter) -> Bool {
-        switch curve {
+    package func fanIsExactlyZero(curve: SurfaceParameterCurve, anchor: SurfaceParameter,
+                                 parameterChart: SurfaceAreaParameterChartEncloser? = nil) -> Bool {
+        if let parameterChart, parameterChart.curve != curve || parameterChart.support != surface { return false }
+        switch parameterChart?.exactIsoBoundary ?? curve {
         case .constantU(let u,_,_): return u == anchor.u
         case .constantV(let v,_,_): return v == anchor.v
         case .affine(let origin,let direction,let start,let end):
@@ -170,12 +172,12 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
 
     package func boundaryBounds(curve: SurfaceParameterCurve, anchor: SurfaceParameter,
                                 reference: Point3D, boundaryFraction: ScalarInterval,
-                                tolerance: ModelingTolerance) throws -> [SurfaceAreaIntegrandBounds] {
-        guard radialIntegrationIsExact,
-              let chart = try SurfaceParameterIntervalJet.enclose(curve, over: boundaryFraction,
-                                                                 tolerance: tolerance) else {
-            throw Self.failure(.unsupportedCapability, tolerance, "Exact radial area requires an affine support and numeric chart.")
+                                tolerance: ModelingTolerance,
+                                parameterChart: SurfaceAreaParameterChartEncloser? = nil) throws -> [SurfaceAreaIntegrandBounds] {
+        guard radialIntegrationIsExact else {
+            throw Self.failure(.unsupportedCapability, tolerance, "Exact radial area requires an affine support.")
         }
+        let chart = try chartJet(curve:curve,prepared:parameterChart,over:boundaryFraction,tolerance:tolerance)
         // Prove the exact boundary fan remains within the original support domain.
         let fullR = SurfaceIntervalJet.parameterV(try ScalarInterval(lower: 0, upper: 1))
         let du = chart.u - .constant(anchor.u), dv = chart.v - .constant(anchor.v)
@@ -258,6 +260,19 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
                                       v: try clipped(v.value, to: surface.vDomain, tolerance: tolerance))
         let measure = constant(width * bandWidth)
         return try fields(over:box,u:u,v:v,measure:measure,reference:reference,domain:domain,tolerance:tolerance)
+    }
+
+    private func chartJet(curve: SurfaceParameterCurve, prepared: SurfaceAreaParameterChartEncloser?,
+                          over interval: ScalarInterval, tolerance: ModelingTolerance)
+        throws -> (u: SurfaceIntervalJet,v: SurfaceIntervalJet) {
+        if let prepared {
+            guard prepared.curve == curve, prepared.support == surface else {
+                throw Self.failure(.invalidInput,tolerance,"Area chart authority belongs to another retained trim.")
+            }
+            return try prepared.intervalJet(over:interval,tolerance:tolerance)
+        }
+        return try SurfaceAreaParameterChartEncloser(curve:curve,on:surface,tolerance:tolerance)
+            .intervalJet(over:interval,tolerance:tolerance)
     }
 
     private func fields(over box: SurfaceParameterBox, u: SurfaceIntervalJet, v: SurfaceIntervalJet,

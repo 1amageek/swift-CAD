@@ -1,0 +1,255 @@
+import CADCore
+
+/// Invocation-owned authority for numeric trims in their exact destination chart.
+package struct SurfaceAreaParameterChartEncloser: Sendable {
+    private indirect enum Storage: Sendable {
+        case numeric(SurfaceParameterCurve)
+        case rigid(Storage, SurfaceParameterAffineTransform, Double, Double)
+        case translated(Storage, Double, Double)
+    }
+
+    package let curve: SurfaceParameterCurve
+    package let support: Surface3D
+    private let storage: Storage
+    /// Structural identity only; partial fractions are evaluated by the original chain rule.
+    package let exactIsoBoundary: SurfaceParameterCurve?
+
+    package init(curve: SurfaceParameterCurve, on surface: Surface3D,
+                 maximumControlPointCount: Int = 65_536, maximumBoundaryCurveCount: Int = 4_096,
+                 tolerance: ModelingTolerance) throws {
+        try Self.validateAdmission(curve: curve, on: surface,
+            maximumControlPointCount: maximumControlPointCount,
+            maximumBoundaryCurveCount: maximumBoundaryCurveCount, tolerance: tolerance)
+        self.curve = curve
+        support = surface
+        let prepared = try Self.prepare(curve, tolerance: tolerance)
+        storage = prepared.storage
+        exactIsoBoundary = prepared.iso
+    }
+
+    /// All nested dimensions are checked before recursive validation or transform allocation.
+    package static func validateAdmission(curve: SurfaceParameterCurve, on surface: Surface3D,
+                                          maximumControlPointCount: Int, maximumBoundaryCurveCount: Int,
+                                          sourceDepth: Int = 0,
+                                          tolerance: ModelingTolerance) throws {
+        guard maximumControlPointCount > 0, maximumControlPointCount <= 1_048_576,
+              maximumBoundaryCurveCount > 0, maximumBoundaryCurveCount <= 65_536, sourceDepth >= 0 else {
+            throw failure(.invalidInput, tolerance, "Area chart admission limits are invalid.")
+        }
+        try preflight(surface, controls: maximumControlPointCount,
+            boundaries: maximumBoundaryCurveCount, depth: sourceDepth, tolerance: tolerance)
+        try preflight(curve, controls: maximumControlPointCount,
+            boundaries: maximumBoundaryCurveCount, depth: sourceDepth, tolerance: tolerance)
+        try curve.validate(on: surface, tolerance: tolerance)
+    }
+
+    func intervalJet(over fraction: ScalarInterval, tolerance: ModelingTolerance)
+        throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet) {
+        guard fraction.lower >= 0, fraction.upper <= 1 else {
+            throw Self.failure(.invalidInput, tolerance, "Area chart enclosure requires its original normalized interval.")
+        }
+        return try Self.enclose(storage, over: fraction, tolerance: tolerance)
+    }
+
+    private static func prepare(_ curve: SurfaceParameterCurve, tolerance: ModelingTolerance)
+        throws -> (storage: Storage, iso: SurfaceParameterCurve?) {
+        switch curve {
+        case .affine, .harmonic, .bSpline:
+            return (.numeric(curve), nil)
+        case .constantU, .constantV:
+            return (.numeric(curve), curve)
+        case .offsetSurfaceImage(let image):
+            return try prepare(image.source, tolerance: tolerance)
+        case .periodicTranslation(let base, let u, let v):
+            let child = try prepare(base, tolerance: tolerance)
+            return (.translated(child.storage, u, v), nil)
+        case .rigidImage(let image):
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Non-affine spherical rigid-image charts lack
+            // whole-interval jets on the production face-area path. Complete only after
+            // the original spherical chart and integral/error fixtures are certified.
+            guard let mapping = try image.affineParameterTransform(tolerance: tolerance) else {
+                throw failure(.unsupportedCapability, tolerance, "Area chart requires an affine rigid parameter map.")
+            }
+            let child = try prepare(image.source.parameterCurve, tolerance: tolerance)
+            let iso: SurfaceParameterCurve?
+            if mapping == .identity, image.startFraction == 0, image.endFraction == 1 {
+                iso = child.iso
+            } else if mapping == .identity, image.startFraction == 1, image.endFraction == 0,
+                      let boundary = child.iso {
+                switch boundary {
+                case .constantU(let u,let start,let end): iso = .constantU(u:u,vStart:end,vEnd:start)
+                case .constantV(let v,let start,let end): iso = .constantV(v:v,uStart:end,uEnd:start)
+                default: iso = nil
+                }
+            } else { iso = nil }
+            return (.rigid(child.storage, mapping, image.startFraction, image.endFraction), iso)
+        default:
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Implicit, projected and unsplit piecewise source charts lack
+            // integral-specific jets on production face-area/centroid queries. Complete only
+            // after their full original chart derivatives and integral/error fixtures certify.
+            throw failure(.unsupportedCapability, tolerance, "Area chart has no certified numeric source derivatives.")
+        }
+    }
+
+    private static func enclose(_ storage: Storage, over fraction: ScalarInterval,
+                                tolerance: ModelingTolerance) throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet) {
+        switch storage {
+        case .numeric(let curve):
+            guard let jet = try SurfaceParameterIntervalJet.enclose(curve, over: fraction, tolerance: tolerance) else {
+                throw failure(.unsupportedCapability, tolerance, "Admitted area chart lost its numeric interval derivatives.")
+            }
+            return jet
+        case .translated(let child, let u, let v):
+            let jet = try enclose(child, over: fraction, tolerance: tolerance)
+            return (jet.u + .constant(u), jet.v + .constant(v))
+        case .rigid(let child, let map, let start, let end):
+            let parameter = SurfaceIntervalJet.constant(start)
+                + (.constant(end) - .constant(start)) * .parameterU(fraction)
+            // Admission proves the exact affine fraction lies in [0,1]. Intersecting
+            // outward rounding with that proven range does not clamp an invalid source.
+            let range = try ScalarInterval(lower: max(0, parameter.value.lower), upper: min(1, parameter.value.upper))
+            let source = try enclose(child, over: range, tolerance: tolerance)
+            let composed = SurfaceParameterThirdOrderChainRule.intervalJet(
+                surface: SurfaceIntervalVectorJet(x: source.u, y: source.v, z: .constant(0)),
+                u: parameter, v: .constant(0))
+            return (composed.x * .constant(map.uu) + composed.y * .constant(map.uv) + .constant(map.uOffset),
+                    composed.x * .constant(map.vu) + composed.y * .constant(map.vv) + .constant(map.vOffset))
+        }
+    }
+
+    private static func checkDepth(_ depth: Int, _ tolerance: ModelingTolerance) throws {
+        guard depth <= 16 else { throw failure(.resourceLimitExceeded, tolerance, "Area chart source nesting limit exceeded.") }
+        if Task.isCancelled { throw failure(.cancelled, tolerance, "Area chart preparation was cancelled.") }
+    }
+
+    private static func splineDimensions(controls: Int, degree: Int, knots: Int, weights: Int,
+                                         limit: Int, tolerance: ModelingTolerance) throws {
+        guard controls <= limit, weights <= limit, knots <= 2 * limit + 1 else {
+            throw failure(.resourceLimitExceeded, tolerance, "Area chart spline dimension limit exceeded.")
+        }
+        guard degree >= 1, degree < controls, knots == controls + degree + 1, weights == controls else {
+            throw failure(.invalidInput, tolerance, "Area chart spline dimensions are inconsistent.")
+        }
+    }
+
+    private static func preflight(_ curve: SurfaceParameterCurve, controls: Int, boundaries: Int,
+                                   depth: Int, tolerance: ModelingTolerance) throws {
+        try checkDepth(depth, tolerance)
+        switch curve {
+        case .affine, .constantU, .constantV, .harmonic: break
+        case .polyline(let points):
+            guard points.count <= boundaries else { throw failure(.resourceLimitExceeded, tolerance, "Area chart polyline limit exceeded.") }
+        case .bSpline(let spline):
+            try splineDimensions(controls: spline.controlPoints.count, degree: spline.degree,
+                knots: spline.knots.count, weights: spline.weights.count, limit: controls, tolerance: tolerance)
+            let lower = spline.knots[spline.degree], upper = spline.knots[spline.controlPoints.count]
+            guard spline.knots.allSatisfy(\.isFinite), lower < upper,
+                  spline.knots.indices.dropFirst().allSatisfy({ spline.knots[$0 - 1] <= spline.knots[$0] }) else {
+                throw failure(.invalidInput,tolerance,"Area chart spline knots require a finite ordered native domain.")
+            }
+            var index = 0
+            while index < spline.knots.count {
+                let knot = spline.knots[index]
+                var end = index + 1
+                while end < spline.knots.count && spline.knots[end] == knot { end += 1 }
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Non-C2 numeric trim knots need piecewise
+                // original-chart derivative authority on production face-area queries. Complete
+                // only after trim-span partitioning preserves every fan and certified moment.
+                guard knot <= lower || knot >= upper || spline.degree - (end - index) >= 2 else {
+                    throw failure(.unsupportedCapability, tolerance, "Area fan trim derivatives require C2 across interior knots.")
+                }
+                index = end
+            }
+        case .periodicTranslation(let base, _, _):
+            try preflight(base, controls: controls, boundaries: boundaries, depth: depth + 1, tolerance: tolerance)
+        case .offsetSurfaceImage(let image):
+            try preflight(.procedural(.offset(image.offset)), controls: controls, boundaries: boundaries,
+                depth: depth + 1, tolerance: tolerance)
+            try preflight(image.source, controls: controls, boundaries: boundaries, depth: depth + 1, tolerance: tolerance)
+        case .rigidImage(let image):
+            guard image.startFraction.isFinite, image.endFraction.isFinite,
+                  image.startFraction >= 0, image.startFraction <= 1,
+                  image.endFraction >= 0, image.endFraction <= 1, image.startFraction != image.endFraction else {
+                throw failure(.invalidInput, tolerance, "Area rigid chart fractions must stay inside the original source interval.")
+            }
+            try preflight(image.source.surface, controls: controls, boundaries: boundaries, depth: depth + 1, tolerance: tolerance)
+            try preflight(image.targetSurface, controls: controls, boundaries: boundaries, depth: depth + 1, tolerance: tolerance)
+            try preflight(image.source.parameterCurve, controls: controls, boundaries: boundaries, depth: depth + 1, tolerance: tolerance)
+        default:
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Non-numeric source charts have no bounded
+            // derivative admission for production face-area queries. Complete only after
+            // whole-chart integral authority and success/failure fixtures are implemented.
+            throw failure(.unsupportedCapability, tolerance, "Area chart source is not an admitted numeric chart.")
+        }
+    }
+
+    private static func preflight(_ surface: Surface3D, controls: Int, boundaries: Int,
+                                   depth: Int, tolerance: ModelingTolerance) throws {
+        try checkDepth(depth, tolerance)
+        switch surface {
+        case .bSpline(let spline):
+            let uCount = spline.controlPoints.first?.count ?? 0, vCount = spline.controlPoints.count
+            guard vCount <= controls, spline.controlPoints.allSatisfy({ $0.count <= controls }),
+                  spline.weights.count <= controls, spline.weights.allSatisfy({ $0.count <= controls }) else {
+                throw failure(.resourceLimitExceeded, tolerance, "Area chart support dimensions exceed admission.")
+            }
+            try splineDimensions(controls: uCount, degree: spline.uDegree, knots: spline.uKnots.count,
+                weights: uCount, limit: controls, tolerance: tolerance)
+            try splineDimensions(controls: vCount, degree: spline.vDegree, knots: spline.vKnots.count,
+                weights: spline.weights.count, limit: controls, tolerance: tolerance)
+            guard spline.controlPoints.allSatisfy({ $0.count == uCount }), spline.weights.allSatisfy({ $0.count == uCount }) else {
+                throw failure(.invalidInput, tolerance, "Area chart support has inconsistent row dimensions.")
+            }
+            guard uCount <= controls / vCount else { throw failure(.resourceLimitExceeded, tolerance, "Area chart support control limit exceeded.") }
+            var expanded = 1
+            for factor in [uCount - spline.uDegree, vCount - spline.vDegree, spline.uDegree + 1, spline.vDegree + 1] {
+                guard factor <= controls / expanded else { throw failure(.resourceLimitExceeded, tolerance, "Area chart Bezier preparation limit exceeded.") }
+                expanded *= factor
+            }
+        case .procedural(.offset(let offset)):
+            try preflight(offset.source, controls: controls, boundaries: boundaries, depth: depth + 1, tolerance: tolerance)
+        case .procedural(.ruled(let ruled)):
+            try preflight(ruled.startBoundary, controls: controls, boundaries: boundaries, depth: depth + 1, tolerance: tolerance)
+            try preflight(ruled.endBoundary, controls: controls, boundaries: boundaries, depth: depth + 1, tolerance: tolerance)
+        case .procedural(.rollingBall(let blend)):
+            for rail in [blend.centerSpine, blend.firstContact, blend.secondContact] {
+                try preflight(rail, controls: controls, boundaries: boundaries, depth: depth + 1, tolerance: tolerance)
+            }
+        default: break
+        }
+    }
+
+    private static func preflight(_ curve: Curve3D, controls: Int, boundaries: Int,
+                                   depth: Int, tolerance: ModelingTolerance) throws {
+        try checkDepth(depth, tolerance)
+        switch curve {
+        case .line, .circle: break
+        case .analytic(let analytic):
+            if case .planeTorus(let intersection) = analytic {
+                try preflight(intersection.planeSurface, controls:controls,boundaries:boundaries,
+                    depth:depth+1,tolerance:tolerance)
+                try preflight(intersection.torusSurface, controls:controls,boundaries:boundaries,
+                    depth:depth+1,tolerance:tolerance)
+            }
+        case .bSpline(let spline):
+            try splineDimensions(controls: spline.controlPoints.count, degree: spline.degree,
+                knots: spline.knots.count, weights: spline.weights.count, limit: controls, tolerance: tolerance)
+        case .surfaceLift(let lift):
+            try preflight(lift.surface, controls: controls, boundaries: boundaries, depth: depth + 1, tolerance: tolerance)
+            try preflight(lift.parameterCurve, controls: controls, boundaries: boundaries, depth: depth + 1, tolerance: tolerance)
+        case .rigidImage(let image):
+            try preflight(image.source, controls: controls, boundaries: boundaries, depth: depth + 1, tolerance: tolerance)
+        case .affineImage(let image):
+            try preflight(image.source, controls: controls, boundaries: boundaries, depth: depth + 1, tolerance: tolerance)
+        default:
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Certified implicit source rails lack bounded
+            // mapped-chart admission on production face-area queries. Complete only when
+            // their input graph and full original derivative chart are certified for integration.
+            throw failure(.unsupportedCapability, tolerance, "Area mapped source has no bounded curve admission.")
+        }
+    }
+
+    private static func failure(_ code: KernelErrorCode, _ tolerance: ModelingTolerance, _ message: String) -> KernelError {
+        KernelError(phase: .geometry, code: code, tolerance: tolerance, message: message)
+    }
+}

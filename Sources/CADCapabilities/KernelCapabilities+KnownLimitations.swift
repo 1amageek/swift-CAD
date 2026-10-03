@@ -102,11 +102,39 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 75
         ),
         KernelDomainLimitation(
-            id: "condition-37ee0d326bb44263",
+            id: "condition-e24fa3aaf30bc61d",
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
-            condition: "Certified intersection and rigid-image trims lack integral-specific fan derivative jets on this production face-area path. Complete only when those exact chart derivatives and integral fixtures certify.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 101
+            condition: "Non-affine spherical rigid-image charts lack whole-interval jets on the production face-area path. Complete only after the original spherical chart and integral/error fixtures are certified.",
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaParameterChartEncloser.swift", sourceLine: 67
+        ),
+        KernelDomainLimitation(
+            id: "condition-13328d0fb6fbf31b",
+            operations: ["faceAreaMeasurement"],
+            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
+            condition: "Implicit, projected and unsplit piecewise source charts lack integral-specific jets on production face-area/centroid queries. Complete only after their full original chart derivatives and integral/error fixtures certify.",
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaParameterChartEncloser.swift", sourceLine: 87
+        ),
+        KernelDomainLimitation(
+            id: "condition-ee1d607a304e4ec7",
+            operations: ["faceAreaMeasurement"],
+            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
+            condition: "Non-C2 numeric trim knots need piecewise original-chart derivative authority on production face-area queries. Complete only after trim-span partitioning preserves every fan and certified moment.",
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaParameterChartEncloser.swift", sourceLine: 155
+        ),
+        KernelDomainLimitation(
+            id: "condition-63b06dcfa536b4dd",
+            operations: ["faceAreaMeasurement"],
+            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
+            condition: "Non-numeric source charts have no bounded derivative admission for production face-area queries. Complete only after whole-chart integral authority and success/failure fixtures are implemented.",
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaParameterChartEncloser.swift", sourceLine: 179
+        ),
+        KernelDomainLimitation(
+            id: "condition-bdff7d7395e93015",
+            operations: ["faceAreaMeasurement"],
+            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
+            condition: "Certified implicit source rails lack bounded mapped-chart admission on production face-area queries. Complete only when their input graph and full original derivative chart are certified for integration.",
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaParameterChartEncloser.swift", sourceLine: 245
         ),
         KernelDomainLimitation(
             id: "condition-ac542d7b1e032f8a",
@@ -555,13 +583,6 @@ extension KernelCapabilities {
             dimensions: [.supportSurface, .boundaryCurve, .representation],
             condition: "an edge that is not a line, a circle or a B-spline (an ellipse, an intersection or a lifted curve) is refused. Production path: FaceSectionProfileResolver for every face section. Complete only when such edges are carried exactly or within a stated deviation, verified by extruding a face bounded by an elliptical edge.",
             sourcePath: "Sources/CADModeling/SectionResolution/FaceSectionProfileResolver.swift", sourceLine: 95
-        ),
-        KernelDomainLimitation(
-            id: "condition-8539d20e08fba7e4",
-            operations: ["faceAreaMeasurement"],
-            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
-            condition: "Non-numeric certified and mapped charts need integral-specific derivative admission on the production face-area path. Complete only when exact jets and successful/error integral fixtures are verified.",
-            sourcePath: "Sources/CADTopology/SurfaceAreaIntegration/CertifiedSurfaceFaceAreaIntegrator.swift", sourceLine: 456
         ),
     ]
 }
