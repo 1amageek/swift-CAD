@@ -5,8 +5,8 @@ import CADGeometry
 /// body placed by `referencePlacement` in the target's frame (where it is, when nil), with
 /// positional, tangent-plane or curvature continuity, the speed across the edge scaled by
 /// `tension` and the change faded over `blendRows` further control rows, which keep
-/// `inputShapeInfluence` of their own shape. The alignment fades in over the first `partialStart`
-/// and out over the last `partialEnd` of the edge, and the sheet is first refitted to `layout`
+/// `inputShapeInfluence` of their own shape. The whole edge is attached to the stretch of the
+/// reference edge from `partialStart` to `partialEnd` (0 and 1: all of it), and the sheet is first refitted to `layout`
 /// when one is given.
 public struct SurfaceAlignFeature: Codable, Hashable, Sendable {
     public var target: PatternTargetReference
@@ -31,7 +31,7 @@ public struct SurfaceAlignFeature: Codable, Hashable, Sendable {
         reference: PatternTargetReference, referenceEdge: StableSubshapeReference,
         referencePlacement: RigidTransform3D? = nil, continuity: SurfaceContinuityLevel = .tangentPlane,
         tension: Double = 1, blendRows: Int = 0, inputShapeInfluence: Double = 1,
-        partialStart: Double = 0, partialEnd: Double = 0, layout: SurfaceControlLayout? = nil,
+        partialStart: Double = 0, partialEnd: Double = 1, layout: SurfaceControlLayout? = nil,
         boundaryFlow: SquareFitOptions.BoundaryFlow = .next
     ) {
         self.target = target
@@ -66,8 +66,8 @@ public struct SurfaceAlignFeature: Codable, Hashable, Sendable {
         guard (0...1).contains(inputShapeInfluence) else {
             throw FeatureEvaluationError.invalidGraph("Align Surface's input shape influence runs from 0 to 1.")
         }
-        guard (0...1).contains(partialStart), (0...1).contains(partialEnd), partialStart + partialEnd <= 1 else {
-            throw FeatureEvaluationError.invalidGraph("Align Surface's partial start and end are fractions of the edge that do not overlap.")
+        guard (0...1).contains(partialStart), (0...1).contains(partialEnd), partialEnd > partialStart else {
+            throw FeatureEvaluationError.invalidGraph("Align Surface's partial start and end are fractions of the reference edge, the start before the end.")
         }
         try layout?.validate()
     }

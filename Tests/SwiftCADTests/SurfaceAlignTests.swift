@@ -113,27 +113,32 @@ struct SurfaceAlignTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
-    func aPartialAlignmentLeavesTheEdgesEndsAndMeetsInTheMiddle() throws {
+    func aPartialAlignmentAttachesTheWholeEdgeToAStretchOfTheReference() throws {
+        // Partial 0.3 to 0.7: the flat sheet's whole edge funnels onto the middle of the arch's
+        // edge (y from 6 to 14 mm), tangent to the arch there.
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let (arch, flat, target, reference) = try archAndFlat(&builder)
         let aligned = try builder.alignSurface(
             target: flat, targetEdge: target, reference: arch, referenceEdge: reference, continuity: .tangentPlane,
-            partialStart: 0.3, partialEnd: 0.3, layout: SurfaceControlLayout(uDegree: 3, vDegree: 3, uSpans: 4, vSpans: 8)
+            partialStart: 0.3, partialEnd: 0.7, layout: SurfaceControlLayout(uDegree: 3, vDegree: 3, uSpans: 4, vSpans: 8)
         )
         let evaluated = try evaluate(builder)
         let result = try surface(of: aligned, in: evaluated)
         guard case let .bSpline(refitted) = result else { Issue.record("An aligned sheet is a B-spline surface."); return }
         #expect(refitted.uDegree == 3 && refitted.vDegree == 3)
         let source = try surface(of: arch, in: evaluated)
-        // Both ends stay where the flat sheet's edge was; the middle meets the arch tangentially.
-        for v in [0.0, 1.0] {
-            let end = try result.differentialGeometry(u: 0, v: v, tolerance: .standard).position
-            #expect((end - Point3D(x: s + 0.005, y: v * s, z: 0)).length < 1e-9)
+        for (v, along) in [(0.0, 0.3), (0.5, 0.5), (1.0, 0.7)] {
+            let here = try result.differentialGeometry(u: 0, v: v, tolerance: .standard)
+            let there = try source.differentialGeometry(u: 1, v: along, tolerance: .standard)
+            #expect((here.position - there.position).length < 1e-9, "\(v)")
+            #expect(here.normal.cross(there.normal).length < 1e-9)
         }
-        let here = try result.differentialGeometry(u: 0, v: 0.5, tolerance: .standard)
-        let there = try source.differentialGeometry(u: 1, v: 0.5, tolerance: .standard)
-        #expect((here.position - there.position).length < 1e-9)
-        #expect(here.normal.cross(there.normal).length < 1e-9)
+        #expect(throws: (any Error).self) {
+            var refused = builder
+            _ = try refused.alignSurface(target: flat, targetEdge: target, reference: arch, referenceEdge: reference,
+                                         partialStart: 0.6, partialEnd: 0.4)
+            _ = try evaluate(refused)
+        }
     }
 
     @Test(.timeLimit(.minutes(2)))
