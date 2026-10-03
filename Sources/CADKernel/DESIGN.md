@@ -964,22 +964,27 @@ trimming curve names, judged against the modeling distance and placed at the edg
 Rebuild Face's `given` method gives one face a B-spline surface on its own parameters — Plasticity's
 Raise Degree and control-point moves on a face of a solid. `FaceBSplineSurfaceConverter` makes the
 face's surface exact first (a B-spline as it is; a plane as the degree (1, 1) patch through its
-corners over a rectangle holding every trimming curve; a cylinder or cone face as the exact
-rational surface over that rectangle — degree 2 about the axis, each v-circle cut into arcs of at
-most a quarter turn whose middle control point is M + (M − Q) / cos θ weighted cos θ, degree 1 along
-it — checked to lie on the old surface; a face closing round its axis, a sphere and a torus refused,
+corners over a rectangle holding every trimming curve (within the surface's own domain); a
+cylinder, cone, sphere or torus face as the exact rational surface of revolution over that
+rectangle — its profile at the first angle (a line, or arcs of at most a quarter turn whose middle
+control point is M + (M − Q) / cos θ weighted cos θ) turned about the axis in such arcs, weights
+multiplied — checked to lie on the old surface, a face closing round its axis putting the new
+surface's ends on its seam; a face reaching a pole (a ball's octant) and any other surface refused,
 `FIXME(INCOMPLETE_IMPLEMENTATION)`). The face faces out as it did (the given surface's normal at the face's interior point's
 parameters, the surface sharing them); where every edge still lies on
 the new surface along its trimming curve (within a quarter of the distance tolerance) it keeps its
 edges; where they lie on it only geometrically (a surface on parameters of its own) it keeps them
-too, each taking the isoline of the new surface it runs along or a trimming curve built on it;
+too, each taking the isoline of the new surface it runs along (a seam's two coedges the two ends,
+the one that lay lower taking the lower; an edge closing round the seam running end to end) or a
+trimming curve built on it;
 otherwise `FaceSurfaceReplacementRebuilder` re-solves the edges and vertices around it where
 it meets the faces beside it, which keep their surfaces, and the trimming curves are rebuilt.
 `FaceGivenSurfaceTests` own a box's top raised to degree 2 in place (volume kept) and a side's
 top-middle control point moved 5 mm out, bulging the box by d·w·h/9 with its five planes kept,
 and its middle control point moved out bulging it the same between the edges it keeps, a box raised
 face by face through the Rebuild Faces before each, and a rounded edge's quarter cylinder given its
-exact rational surface (every point the radius from the axis) and raised, its volume kept.
+exact rational surface (every point the radius from the axis) and raised, its volume kept; a drum's
+side across its seam and a ring's face raised the same, and a ball's octant refused.
 
 ## Unwrap Face
 

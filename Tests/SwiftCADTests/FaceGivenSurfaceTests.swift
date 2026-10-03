@@ -199,4 +199,35 @@ struct FaceGivenSurfaceTests {
         let after = try volume(given, in: evaluated)
         #expect(abs(after - before) < before * 1e-6, "\(after) vs \(before)")
     }
+
+    /// A drum's side closing round its seam and a ring's face given their exact rational surfaces
+    /// and raised: each keeps its edges and the body its volume. A ball's octant, reaching a pole,
+    /// is refused.
+    @Test(.timeLimit(.minutes(4)), arguments: ["cylinder", "torus", "sphere"])
+    func aRevolvedPrimitivesFaceIsGivenItsExactRationalSurface(_ kind: String) throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let body: FeatureID
+        switch kind {
+        case "cylinder": body = try builder.cylinder(radius: length(0.01), height: length(0.02))
+        case "sphere": body = try builder.sphere(radius: length(0.01))
+        default: body = try builder.torus(majorRadius: length(0.02), minorRadius: length(0.005))
+        }
+        let start = try evaluate(builder)
+        let faces = try start.subshapes.entries.filter { key, value in
+            guard key.featureID == body, case let .face(id) = value, let face = start.brep.faces[id] else { return false }
+            if case .plane? = start.brep.geometry.surfaces[face.surfaceID] { return false }
+            return true
+        }.keys.sorted().map { try builder.stableSubshape($0) }
+        let face = try #require(faces.first)
+        if kind == "sphere" {
+            #expect(throws: KernelError.self) { try FaceBSplineSurfaceConverter().surface(of: face, in: start) }
+            return
+        }
+        let before = try volume(body, in: start)
+        let given = try builder.rebuildFaces(target: body, faces: [face], method: .given(try raised(try FaceBSplineSurfaceConverter().surface(of: face, in: start))))
+        let evaluated = try evaluate(builder)
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        let after = try volume(given, in: evaluated)
+        #expect(abs(after - before) < before * 1e-6, "\(kind): \(after) vs \(before)")
+    }
 }

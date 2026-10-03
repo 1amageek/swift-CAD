@@ -37,24 +37,37 @@ public struct FaceBSplineSurfaceConverter {
         case let .bSpline(spline):
             return spline
         case .plane:
-            let (u, v) = try extent(of: face, in: model, tolerance: tolerance)
+            let (u, v) = try extent(of: face, on: surface, in: model, tolerance: tolerance)
             let corners = try [v.low, v.high].map { vv in try [u.low, u.high].map { uu in try surface.point(u: uu, v: vv, tolerance: tolerance) } }
             return BSplineSurface3D(uDegree: 1, vDegree: 1, uKnots: [u.low, u.low, u.high, u.high], vKnots: [v.low, v.low, v.high, v.high],
                                     controlPoints: corners)
-        case .cylinder, .analytic(.cylinder), .analytic(.cone):
-            return try revolved(surface, extent: try extent(of: face, in: model, tolerance: tolerance), tolerance: tolerance)
+        case let .cylinder(cylinder):
+            return try revolved(surface, origin: cylinder.origin, axis: cylinder.axis, profileIsArc: false,
+                                extent: try extent(of: face, on: surface, in: model, tolerance: tolerance), tolerance: tolerance)
+        case let .analytic(.cylinder(origin, axis, _)):
+            return try revolved(surface, origin: origin, axis: axis, profileIsArc: false,
+                                extent: try extent(of: face, on: surface, in: model, tolerance: tolerance), tolerance: tolerance)
+        case let .analytic(.cone(apex, axis, _)):
+            return try revolved(surface, origin: apex, axis: axis, profileIsArc: false,
+                                extent: try extent(of: face, on: surface, in: model, tolerance: tolerance), tolerance: tolerance)
+        case let .analytic(.sphere(center, _)):
+            return try revolved(surface, origin: center, axis: .unitZ, profileIsArc: true,
+                                extent: try extent(of: face, on: surface, in: model, tolerance: tolerance), tolerance: tolerance)
+        case let .analytic(.torus(center, axis, _, _)):
+            return try revolved(surface, origin: center, axis: axis, profileIsArc: true,
+                                extent: try extent(of: face, on: surface, in: model, tolerance: tolerance), tolerance: tolerance)
         default:
-            // FIXME(INCOMPLETE_IMPLEMENTATION): planes, cylinders, cones and B-splines are given
-            // control points; a sphere or torus face (rational in both directions) is refused here.
-            // Production path: Rupa's Raise Degree on such a face. Complete when a sphere's and a
-            // torus's faces are converted exactly, verified by a rounded corner raised in place.
+            // FIXME(INCOMPLETE_IMPLEMENTATION): planes, surfaces of revolution and B-splines are
+            // given control points; a procedural or ruled surface face is refused here. Production
+            // path: Rupa's Raise Degree on such a face. Complete when every face kind is converted
+            // exactly, verified by a swept face raised in place.
             throw KernelError(phase: .evaluation, code: .unsupportedCapability, tolerance: tolerance,
-                              message: "Only a planar, cylindrical, conical or B-spline face is given control points.")
+                              message: "Only a planar, revolved or B-spline face is given control points.")
         }
     }
 
     /// The rectangle of the face's own parameters holding every trimming curve.
-    private func extent(of face: Face, in model: BRepModel, tolerance: ModelingTolerance) throws
+    private func extent(of face: Face, on surface: Surface3D, in model: BRepModel, tolerance: ModelingTolerance) throws
         -> (u: (low: Double, high: Double), v: (low: Double, high: Double)) {
         var u = (low: Double.infinity, high: -Double.infinity), v = u
         var widens = false
@@ -90,62 +103,118 @@ public struct FaceBSplineSurfaceConverter {
             u = (u.low - du, u.high + du)
             v = (v.low - dv, v.high + dv)
         }
+        // Never past the surface's own domain (a sphere's poles).
+        if case let .closed(low, high) = surface.uDomain { u = (max(u.low, low), min(u.high, high)) }
+        if case let .closed(low, high) = surface.vDomain { v = (max(v.low, low), min(v.high, high)) }
         return (u, v)
     }
 
-    /// A surface whose u is the angle about an axis and along whose v it runs straight (a cylinder
-    /// or a cone), over `extent`, as the exact rational B-spline of degree 2 in u — each v-circle cut
-    /// into arcs of at most a quarter turn, an arc's middle control point at M + (M − Q) / cos θ
-    /// (M its middle, Q its chord's, θ its half angle) weighted cos θ — and degree 1 in v. The face
-    /// must not close round the axis (a seam's two sides would meet on one boundary), and the new
-    /// surface is checked to lie on the old one.
-    private func revolved(_ surface: Surface3D, extent: (u: (low: Double, high: Double), v: (low: Double, high: Double)),
+    /// A surface of revolution (u the angle about `axis` through `origin`; its profile along v a
+    /// straight line for a cylinder or cone, a circular arc for a sphere or torus) over `extent`, as
+    /// the exact rational B-spline: the profile at the extent's first angle as control points —
+    /// its two ends, or arcs of at most a quarter turn whose middle control point is
+    /// M + (M − Q) / cos θ weighted cos θ (M an arc's middle, Q its chord's, θ its half angle) —
+    /// each turned about the axis the same way in u, its weights the products. A face closing round
+    /// the axis puts the surface's two ends on its seam. The new surface is checked to lie on the old
+    /// one.
+    private func revolved(_ surface: Surface3D, origin: Point3D, axis: Vector3D, profileIsArc: Bool,
+                          extent: (u: (low: Double, high: Double), v: (low: Double, high: Double)),
                           tolerance: ModelingTolerance) throws -> BSplineSurface3D {
-        let span = extent.u.high - extent.u.low
-        // FIXME(INCOMPLETE_IMPLEMENTATION): a face closing round its axis (a drum's side, whose seam
-        // edge both coedges use) is refused here; its periodic surface needs a seam on the new
-        // surface's boundary. Production path: Rupa's Raise Degree on such a face. Complete when a
-        // cylinder's whole side is raised, verified by a drum raised whole keeping its volume.
-        guard span < 2 * Double.pi - 1e-9 else {
-            throw KernelError(phase: .evaluation, code: .unsupportedCapability, tolerance: tolerance,
-                              message: "A face closing round its axis is not given control points.")
+        func arcs(_ span: Double) -> (count: Int, half: Double) {
+            let count = max(1, Int((span / (Double.pi / 2) - 1e-9).rounded(.up)))
+            return (count, span / Double(count) / 2)
         }
-        let segments = max(1, Int((span / (Double.pi / 2) - 1e-9).rounded(.up)))
-        let theta = span / Double(segments) / 2
+        func knots(_ count: Int) -> [Double] {
+            var result = [0.0, 0.0, 0.0]
+            for k in 1..<count { result += [Double(k), Double(k)] }
+            return result + [Double(count), Double(count), Double(count)]
+        }
+        let uSpan = extent.u.high - extent.u.low
+        guard uSpan <= 2 * Double.pi + 1e-9 else {
+            throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: tolerance, message: "A face turns more than once round its axis.")
+        }
+        // The profile at the first angle: its control points and weights along v.
+        let u0 = extent.u.low
+        var profile: [(point: Point3D, weight: Double)] = []
+        let vKnots: [Double]
+        let vDegree: Int
+        // FIXME(INCOMPLETE_IMPLEMENTATION): a face reaching a pole of its surface (a sphere's
+        // octant) would leave the new surface a side collapsed to that point, which the face's loop
+        // does not run along; it is refused here. Production path: Rupa's Raise Degree on such a
+        // face. Complete when a collapsed side is carried, verified by a ball's octant raised.
+        for v in [extent.v.low, extent.v.high] {
+            let a = try surface.point(u: u0, v: v, tolerance: tolerance)
+            let b = try surface.point(u: u0 + min(1, uSpan), v: v, tolerance: tolerance)
+            guard (a - b).length > tolerance.distance else {
+                throw KernelError(phase: .evaluation, code: .unsupportedCapability, tolerance: tolerance,
+                                  message: "A face reaching a pole of its surface is not given control points.")
+            }
+        }
+        if profileIsArc {
+            let (count, half) = arcs(extent.v.high - extent.v.low)
+            for k in 0..<count {
+                let a = extent.v.low + 2 * half * Double(k)
+                let p0 = try surface.point(u: u0, v: a, tolerance: tolerance)
+                let p2 = try surface.point(u: u0, v: a + 2 * half, tolerance: tolerance)
+                let middle = try surface.point(u: u0, v: a + half, tolerance: tolerance)
+                let chord = .origin + ((p0 - .origin) + (p2 - .origin)) * 0.5
+                if k == 0 { profile.append((p0, 1)) }
+                profile.append((middle + (middle - chord) / cos(half), cos(half)))
+                profile.append((p2, 1))
+            }
+            vKnots = knots(count)
+            vDegree = 2
+        } else {
+            profile = [(try surface.point(u: u0, v: extent.v.low, tolerance: tolerance), 1),
+                       (try surface.point(u: u0, v: extent.v.high, tolerance: tolerance), 1)]
+            vKnots = [extent.v.low, extent.v.low, extent.v.high, extent.v.high]
+            vDegree = 1
+        }
+        // Which way u turns about the axis.
+        var k = try axis.normalized(tolerance: tolerance.distance)
+        func turned(_ vector: Vector3D, by angle: Double, about k: Vector3D) -> Vector3D {
+            vector * cos(angle) + k.cross(vector) * sin(angle) + k * (k.dot(vector) * (1 - cos(angle)))
+        }
+        let vMiddle = (extent.v.low + extent.v.high) / 2
+        let probe = try surface.point(u: u0, v: vMiddle, tolerance: tolerance)
+        let probeHub = origin + k * (probe - origin).dot(k)
+        let step = min(0.25, uSpan)
+        let expected = try surface.point(u: u0 + step, v: vMiddle, tolerance: tolerance)
+        if (probeHub + turned(probe - probeHub, by: step, about: k) - expected).length > (probeHub + turned(probe - probeHub, by: step, about: k * -1) - expected).length {
+            k = k * -1
+        }
+        let (count, half) = arcs(uSpan)
         var rows: [[Point3D]] = []
         var weights: [[Double]] = []
-        for v in [extent.v.low, extent.v.high] {
-            var row: [Point3D] = []
-            var rowWeights: [Double] = []
-            for k in 0..<segments {
-                let a = extent.u.low + 2 * theta * Double(k)
-                let p0 = try surface.point(u: a, v: v, tolerance: tolerance)
-                let p2 = try surface.point(u: a + 2 * theta, v: v, tolerance: tolerance)
-                let middle = try surface.point(u: a + theta, v: v, tolerance: tolerance)
-                let chord = .origin + ((p0 - .origin) + (p2 - .origin)) * 0.5
-                if k == 0 { row.append(p0); rowWeights.append(1) }
-                row.append(middle + (middle - chord) / cos(theta))
-                rowWeights.append(cos(theta))
-                row.append(p2)
-                rowWeights.append(1)
+        for (point, weight) in profile {
+            let hub = origin + k * (point - origin).dot(k)
+            let radial = point - hub
+            var row: [Point3D] = [point]
+            var rowWeights: [Double] = [weight]
+            for segment in 0..<count {
+                let a = 2 * half * Double(segment)
+                row.append(hub + turned(radial, by: a + half, about: k) / cos(half))
+                rowWeights.append(weight * cos(half))
+                row.append(hub + turned(radial, by: a + 2 * half, about: k))
+                rowWeights.append(weight)
             }
             rows.append(row)
             weights.append(rowWeights)
         }
-        var uKnots = [0.0, 0.0, 0.0]
-        for k in 1..<segments { uKnots += [Double(k), Double(k)] }
-        uKnots += [Double(segments), Double(segments), Double(segments)]
-        let result = BSplineSurface3D(uDegree: 2, vDegree: 1, uKnots: uKnots, vKnots: [extent.v.low, extent.v.low, extent.v.high, extent.v.high],
+        let result = BSplineSurface3D(uDegree: 2, vDegree: vDegree, uKnots: knots(count), vKnots: vKnots,
                                       controlPoints: rows, weights: weights)
         try result.validate(tolerance: tolerance)
         // The new surface on the old one: a grid of its points each within the distance tolerance.
         let new = Surface3D.bSpline(result)
-        for i in 0...(4 * segments) {
-            for j in 0...4 {
-                let point = try new.point(u: Double(i) / 4, v: extent.v.low + (extent.v.high - extent.v.low) * Double(j) / 4, tolerance: tolerance)
+        guard case let .closed(t0, t1) = new.vDomain else {
+            throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: tolerance, message: "A revolved surface has no v domain.")
+        }
+        for i in 0...(4 * count) {
+            for j in 0...8 {
+                let point = try new.point(u: Double(i) / 4, v: t0 + (t1 - t0) * Double(j) / 8, tolerance: tolerance)
                 if case .outsideTolerance = try surface.parameterProjectionResult(of: point, tolerance: tolerance) {
                     throw KernelError(phase: .evaluation, code: .unsupportedCapability, tolerance: tolerance,
-                                      message: "The face's surface does not turn about an axis along a straight line; it is not given control points.")
+                                      message: "The face's surface is not the revolved one it was read as; it is not given control points.")
                 }
             }
         }

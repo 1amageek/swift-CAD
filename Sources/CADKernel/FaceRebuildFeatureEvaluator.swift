@@ -370,10 +370,26 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             if reparameterized {
                 // Each edge along an isoline of the new surface (a round's sides and ends) takes that
                 // isoline; any other edge its trimming curve built on it.
+                // A seam's two coedges (a face closing round an axis) lie on the new surface's two
+                // ends; the one that lay at the lower old parameter takes the lower end.
+                var uses: [EdgeID: [SurfaceParameter]] = [:]
+                for loopID in face.loops {
+                    for coedge in result.loops[loopID]?.coedges ?? [] {
+                        guard let old = coedge.surfaceParameterCurve else { continue }
+                        uses[coedge.edgeID, default: []].append(try old.parameter(atNormalizedFraction: 0.5, tolerance: tolerance))
+                    }
+                }
                 for loopID in face.loops {
                     guard var loop = result.loops[loopID] else { continue }
                     for index in loop.coedges.indices {
-                        loop.coedges[index].surfaceParameterCurve = try isoline(of: loop.coedges[index], on: new, model: result, tolerance: tolerance)
+                        let coedge = loop.coedges[index]
+                        var seamLowerSide: (u: Bool, v: Bool)?
+                        if let pair = uses[coedge.edgeID], pair.count == 2, let mine = try coedge.surfaceParameterCurve?.parameter(atNormalizedFraction: 0.5, tolerance: tolerance) {
+                            let other = pair.first { $0 != mine } ?? pair[0]
+                            seamLowerSide = (mine.u <= other.u, mine.v <= other.v)
+                        }
+                        loop.coedges[index].surfaceParameterCurve = try isoline(of: coedge, on: new, seamLowerSide: seamLowerSide,
+                                                                                model: result, tolerance: tolerance)
                     }
                     result.loops[loopID] = loop
                 }
@@ -397,7 +413,8 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
     /// The isoline of `surface` a coedge runs along, from its start to its end: constant u or
     /// constant v at nine points of its edge projected onto the surface; nil when it runs along
     /// none.
-    private func isoline(of coedge: Coedge, on surface: Surface3D, model: BRepModel, tolerance: ModelingTolerance) throws -> SurfaceParameterCurve? {
+    private func isoline(of coedge: Coedge, on surface: Surface3D, seamLowerSide: (u: Bool, v: Bool)?, model: BRepModel,
+                         tolerance: ModelingTolerance) throws -> SurfaceParameterCurve? {
         guard let edge = model.edges[coedge.edgeID], let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else {
             throw TopologyError.missingReference("An edge of the face given a surface is missing.")
         }
@@ -408,13 +425,38 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             guard case let .projected(projection) = try surface.parameterProjectionResult(of: point, tolerance: tolerance) else { return nil }
             parameters.append(projection)
         }
-        guard let first = parameters.first, let last = parameters.last else { return nil }
+        guard parameters.count == 9, case let .closed(u0, u1) = surface.uDomain, case let .closed(v0, v1) = surface.vDomain else { return nil }
         let slack = 1e-9
-        if parameters.allSatisfy({ abs($0.u - first.u) <= slack }) {
-            return .constantU(u: first.u, vStart: first.v, vEnd: last.v)
+        func atEnd(_ value: Double, _ low: Double, _ high: Double) -> Bool { abs(value - low) <= slack || abs(value - high) <= slack }
+        // One parameter held along the edge (its ends may sit on a seam, landing on either end of the
+        // domain), the other running from its first to its last value the way the edge runs — from
+        // end to end of the domain where the edge closes round the seam.
+        func run(_ values: [Double], _ low: Double, _ high: Double) -> (start: Double, end: Double) {
+            let increasing = values[5] > values[3]
+            var start = values[0], end = values[8]
+            if atEnd(start, low, high) { start = increasing ? low : high }
+            if atEnd(end, low, high) { end = increasing ? high : low }
+            return (start, end)
         }
-        if parameters.allSatisfy({ abs($0.v - first.v) <= slack }) {
-            return .constantV(v: first.v, uStart: first.u, uEnd: last.u)
+        func held(_ values: [Double], _ low: Double, _ high: Double, lower: Bool?) -> Double? {
+            let inner = values.filter { atEnd($0, low, high) == false }
+            if let value = inner.first {
+                return inner.allSatisfy({ abs($0 - value) <= slack }) && values.allSatisfy({ abs($0 - value) <= slack || atEnd($0, low, high) && atEnd(value, low, high) }) ? value : nil
+            }
+            // Every sample on an end of the domain: the seam, whose side the coedge's old one gives.
+            guard let lower else {
+                return values.allSatisfy({ abs($0 - values[0]) <= slack }) ? values[0] : nil
+            }
+            return lower ? low : high
+        }
+        let us = parameters.map(\.u), vs = parameters.map(\.v)
+        if let u = held(us, u0, u1, lower: seamLowerSide?.u) {
+            let (start, end) = run(vs, v0, v1)
+            return .constantU(u: u, vStart: start, vEnd: end)
+        }
+        if let v = held(vs, v0, v1, lower: seamLowerSide?.v) {
+            let (start, end) = run(us, u0, u1)
+            return .constantV(v: v, uStart: start, uEnd: end)
         }
         return nil
     }
