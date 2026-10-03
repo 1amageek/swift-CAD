@@ -48,10 +48,11 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
           let uUpper = min(u.upper, patch.uUpper)
           let vLower = max(v.lower, patch.vLower)
           let vUpper = min(v.upper, patch.vUpper)
-          if surface.isUPeriodic || surface.isVPeriodic {
-            guard uUpper >= uLower, vUpper >= vLower else { continue }
-          } else {
-            guard uUpper > uLower, vUpper > vLower else { continue }
+          guard uUpper >= uLower, vUpper >= vLower else { continue }
+          if uLower == uUpper, vLower == vUpper {
+            let pointJet = try encloser.pointEnclosure(of:patch,u:uLower,v:vLower,tolerance:tolerance)
+            result = result.map { $0.union(pointJet) } ?? pointJet
+            continue
           }
           let stableU = try numericallyStableInterval(
             ScalarInterval(lower: uLower, upper: uUpper),
@@ -84,16 +85,44 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     return result
   }
 
+  /// Internal chart composition permits a constant UV coordinate without
+  /// weakening the public positive-width surface-box contract.
+  func intervalJet(overClosedBox parameters: SurfaceParameterBox,
+                   tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+    try tolerance.validate()
+    for (interval,domain) in [(parameters.u,surface.uDomain),(parameters.v,surface.vDomain)] {
+      guard interval.lower.isFinite, interval.upper.isFinite, interval.lower <= interval.upper else {
+        throw closedBoxFailure(tolerance:tolerance)
+      }
+      if case let .closed(lower,upper) = domain {
+        guard interval.lower >= lower, interval.upper <= upper else {
+          throw closedBoxFailure(tolerance:tolerance)
+        }
+      }
+    }
+    return try intervalJetAssumingPrepared(over:parameters,tolerance:tolerance)
+  }
+
+  /// A native knot point retains every owning span's one-sided derivative jet.
+  func pointJet(u: Double, v: Double,
+                tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+    try intervalJet(overClosedBox:SurfaceParameterBox(
+      u:ScalarInterval(lower:u,upper:u),v:ScalarInterval(lower:v,upper:v)),tolerance:tolerance)
+  }
+
+  private func closedBoxFailure(tolerance: ModelingTolerance) -> KernelError {
+    KernelError(phase:.geometry,code:.invalidInput,tolerance:tolerance,
+      message:"A prepared B-spline closed box requires finite ordered UV bounds inside its support domain.")
+  }
+
   private func numericallyStableInterval(
     _ interval: ScalarInterval,
     within bounds: (lower: Double, upper: Double),
     tolerance: ModelingTolerance
   ) throws -> ScalarInterval {
     let scale = max(1.0, abs(bounds.lower), abs(bounds.upper))
-    let requestedWidth = max(
-      tolerance.relative * scale * 4.0,
-      Double.ulpOfOne * scale * 4_096.0
-    )
+    // Conditioning belongs to finite arithmetic, not the modeling tolerance.
+    let requestedWidth = Double.ulpOfOne * scale * 4_096.0
     let minimumWidth = min(requestedWidth, bounds.upper - bounds.lower)
     guard interval.width < minimumWidth else { return interval }
 

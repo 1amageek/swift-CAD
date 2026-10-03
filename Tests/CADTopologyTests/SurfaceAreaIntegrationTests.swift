@@ -840,6 +840,20 @@ struct SurfaceAreaIntegrationTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func bsplineSurfaceLiftRuledRectangleRetainsItsDefaultAreaAndMoments() throws {
+        let source = flatAreaSupport()
+        let support = Surface3D.procedural(.ruled(RuledSurface3D(
+            startBoundary:.surfaceLift(SurfaceLiftCurve3D(surface:source,
+                parameterCurve:.constantV(v:0,uStart:0,uEnd:1))),
+            endBoundary:.surfaceLift(SurfaceLiftCurve3D(surface:source,
+                parameterCurve:.constantV(v:1,uStart:0,uEnd:1))))))
+        let (id,model) = try fixture(support)
+        let result = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        #expect(abs(result.area-0.0008) <= tolerance.distance*tolerance.distance+tolerance.relative*0.0008)
+        #expect((result.centroid-Point3D(x:0.02,y:0.01,z:0)).length <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func ruledSurfaceLiftAdmissionRetainsItsExactSupportAndEnclosingDepth() throws {
         let source = Surface3D.plane(Plane3D(origin:.origin,normal:.unitZ))
         let startChart = SurfaceParameterCurve.constantV(v:0,uStart:0,uEnd:0.04)

@@ -1181,6 +1181,22 @@ struct SurfaceLiftDifferentialBounder {
         )
     }
 
+    /// Removes only outward arithmetic overhang from a validated native chart.
+    /// Modeling tolerance does not authorize a new source-domain intersection.
+    func closedRange(_ interval: ScalarInterval, domain: ParameterDomain,
+                     tolerance: ModelingTolerance) throws -> ScalarInterval {
+        guard case let .closed(domainLower,domainUpper) = domain else { return interval }
+        let margin = Double.ulpOfOne * max(1,abs(domainLower),abs(domainUpper)) * 64
+        let lower = max(interval.lower,domainLower)
+        let upper = min(interval.upper,domainUpper)
+        guard interval.lower >= domainLower-margin, interval.upper <= domainUpper+margin,
+              lower <= upper else {
+            throw KernelError(phase:.geometry,code:.invalidInput,tolerance:tolerance,
+                message:"A B-spline surface-lift UV enclosure leaves its validated native chart domain.")
+        }
+        return try ScalarInterval(lower:lower,upper:upper)
+    }
+
     func nondegenerateRange(
         _ interval: ScalarInterval,
         domain: ParameterDomain,

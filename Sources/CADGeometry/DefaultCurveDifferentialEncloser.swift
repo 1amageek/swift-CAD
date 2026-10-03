@@ -341,6 +341,16 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
         of: lift.surface, u: uv.u, v: uv.v, tolerance: tolerance
       ) { return analytic }
       let bounder = SurfaceLiftDifferentialBounder()
+      if case .bSpline(let surface) = lift.surface {
+        let box = try SurfaceParameterBox(
+          u:bounder.closedRange(ScalarInterval(lower:uv.u.value.lower,upper:uv.u.value.upper),
+            domain:surface.uDomain,tolerance:tolerance),
+          v:bounder.closedRange(ScalarInterval(lower:uv.v.value.lower,upper:uv.v.value.upper),
+            domain:surface.vDomain,tolerance:tolerance))
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance)
+        return try SurfaceParameterThirdOrderChainRule.intervalJet(
+          surface:prepared.intervalJet(overClosedBox:box,tolerance:tolerance),u:uv.u,v:uv.v)
+      }
       let box = try SurfaceParameterBox(
         u: bounder.nondegenerateRange(ScalarInterval(lower: uv.u.value.lower, upper: uv.u.value.upper),
             domain: lift.surface.uDomain, tolerance: tolerance),

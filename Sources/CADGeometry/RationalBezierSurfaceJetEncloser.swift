@@ -135,6 +135,63 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
                 sourceVLower: patch.vLower, sourceVUpper: patch.vUpper,
                 targetU: u, targetV: v, tolerance: tolerance)
         }
+        return try resolvedJet(of: patch, localize: localize, tolerance: tolerance)
+    }
+
+    /// Evaluates the original differentiated nets without dividing by a
+    /// shortened localization span. Exact endpoints retain their native jets.
+    func pointEnclosure(of patch: PreparedPatch, u: Double, v: Double,
+                        tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+        guard u.isFinite, v.isFinite,
+              u >= patch.uLower, u <= patch.uUpper,
+              v >= patch.vLower, v <= patch.vUpper else {
+            throw invalidPatchError(tolerance: tolerance)
+        }
+        func parameter(_ value: Double, lower: Double, upper: Double) throws -> OutwardScalarInterval {
+            if value == lower { return .exact(0) }
+            if value == upper { return .exact(1) }
+            guard let result = (OutwardScalarInterval.exact(value) - .exact(lower))
+                .divided(by: .exact(upper) - .exact(lower)), result.isFinite else {
+                throw invalidPatchError(tolerance: tolerance)
+            }
+            // Stored endpoint containment proves the exact ratio is in [0,1].
+            return OutwardScalarInterval(lower:max(0,result.lower),upper:min(1,result.upper))
+        }
+        let localU = try parameter(u,lower:patch.uLower,upper:patch.uUpper)
+        let localV = try parameter(v,lower:patch.vLower,upper:patch.vUpper)
+        func evaluate(_ values: [[IntervalHomogeneousSurfaceControl]]) -> [[IntervalHomogeneousSurfaceControl]] {
+            func axis(_ values: [IntervalHomogeneousSurfaceControl],
+                      parameter: OutwardScalarInterval) -> IntervalHomogeneousSurfaceControl {
+                if parameter.lower == 0, parameter.upper == 0 { return values[0] }
+                if parameter.lower == 1, parameter.upper == 1 { return values[values.count-1] }
+                var level = values
+                while level.count > 1 {
+                    level = (0..<(level.count-1)).map {
+                        level[$0].interpolated(to:level[$0+1],parameter:parameter)
+                    }
+                }
+                return level[0]
+            }
+            let rows = values.map { axis($0,parameter:localU) }
+            return [[axis(rows,parameter:localV)]]
+        }
+        func localize(_ controls: HomogeneousJetControls) -> HomogeneousJetControls {
+            HomogeneousJetControls(value:evaluate(controls.value),
+                derivativeU:evaluate(controls.derivativeU),derivativeV:evaluate(controls.derivativeV),
+                secondDerivativeUU:evaluate(controls.secondDerivativeUU),
+                secondDerivativeUV:evaluate(controls.secondDerivativeUV),
+                secondDerivativeVV:evaluate(controls.secondDerivativeVV),
+                thirdDerivativeUUU:evaluate(controls.thirdDerivativeUUU),
+                thirdDerivativeUUV:evaluate(controls.thirdDerivativeUUV),
+                thirdDerivativeUVV:evaluate(controls.thirdDerivativeUVV),
+                thirdDerivativeVVV:evaluate(controls.thirdDerivativeVVV))
+        }
+        return try resolvedJet(of:patch,localize:localize,tolerance:tolerance)
+    }
+
+    private func resolvedJet(of patch: PreparedPatch,
+        localize: (HomogeneousJetControls) throws -> HomogeneousJetControls,
+        tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
         let localized = try localize(patch.controls)
         let x = scalarJet(localized, component: \IntervalHomogeneousSurfaceControl.x)
         let y = scalarJet(localized, component: \IntervalHomogeneousSurfaceControl.y)
@@ -143,7 +200,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
             localized,
             component: \IntervalHomogeneousSurfaceControl.weight
         )
-        guard let reciprocalWeight = weight.reciprocal() else {
+        guard weight.value.lower > 0, let reciprocalWeight = weight.reciprocal() else {
             throw KernelError(
                 phase: .geometry,
                 code: .singularSystem,
@@ -160,11 +217,21 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
             } else { value = rational * reciprocalWeight }
             return value + .constant(origin)
         }
-        return try SurfaceIntervalVectorJet(
+        let result = try SurfaceIntervalVectorJet(
             x: coordinate(patch.polynomialX, rational: x, origin: patch.origin.x),
             y: coordinate(patch.polynomialY, rational: y, origin: patch.origin.y),
             z: coordinate(patch.polynomialZ, rational: z, origin: patch.origin.z)
         )
+        for coordinate in [result.x,result.y,result.z] {
+            guard [coordinate.value,coordinate.derivativeU,coordinate.derivativeV,
+                coordinate.secondDerivativeUU,coordinate.secondDerivativeUV,coordinate.secondDerivativeVV,
+                coordinate.thirdDerivativeUUU,coordinate.thirdDerivativeUUV,
+                coordinate.thirdDerivativeUVV,coordinate.thirdDerivativeVVV].allSatisfy(\.isFinite) else {
+                throw KernelError(phase:.geometry,code:.singularSystem,tolerance:tolerance,
+                    message:"A rational surface jet could not certify finite value and derivative intervals.")
+            }
+        }
+        return result
     }
 
     private func derivativeJetControls(

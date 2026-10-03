@@ -552,6 +552,15 @@ For implicit pcurves, the existing operation-owned prepared curve retains the
 immutable implicit jet encloser through offset-image and periodic-translation
 wrappers. Each interval still evaluates its own bounds; preparation is tied to
 that exact curve and does not outlive the requesting operation.
+For an actual B-spline lift support, the internal prepared closed-box entry
+retains the original UV jet ranges, including constant coordinates. It validates
+the exact support domain and composes the original third-order chart jets;
+other procedural lifts retain their existing nondegenerate-box path.
+`SurfaceLiftDifferentialBounder.closedRange` retains the existing validated
+source-chart domain intersection only for outward arithmetic endpoint overhang
+within 64 machine epsilons at the support-domain scale. A disjoint range or
+larger overhang fails as invalid input. It adds no modeling-tolerance domain
+permission or enlargement. The prepared point entry itself validates strictly.
 
 Curve-surface root-certification sessions retain a `ValidatedCurve3D` for
 midpoint and boundary-witness evaluation. Full curve admission occurs once at
@@ -585,6 +594,20 @@ control nets through third order for each Bezier span. Preparation occurs once
 per surface operation; requested boxes only restrict those same nets. The direct
 path prepares transiently and follows identical interval arithmetic. No result
 cache, shared mutation, tolerance change, or cross-request lifetime is introduced.
+Public surface boxes continue to require positive U/V widths. The internal
+`intervalJet(overClosedBox:tolerance:)` additionally admits zero-width axes;
+`pointJet(u:v:tolerance:)` evaluates a requested point. Both retain every owning
+native span and the existing conservative periodic representative coverage.
+At a native knot, all containing spans contribute their one-sided jets; the
+consumer owns derivative-identity admission. Interval localization conditions
+only with its existing machine-resolution pad, not modeling-tolerance widths.
+Point localization evaluates each already differentiated homogeneous net by
+outward tensor de Casteljau using original finite positive span widths and exact
+0/1 endpoint coordinates. It never divides by a newly shortened remaining span.
+Weight reciprocals require a positive complete enclosure; nonfinite arithmetic,
+invalid domains and unresolved numerical conditioning fail explicitly. A
+periodic point with a nonzero representative uncertainty retains a closed-box
+range proof rather than pretending its rounded representative is exact.
 Prepared/direct interval equality, disjoint successive boxes and invalid span
 rejection verify this reuse contract. Curve Bernstein derivative evaluation
 intersects interval de Casteljau bounds with the coefficient convex hull only
@@ -593,6 +616,12 @@ lie in [0,1]. This removes artificial dependency width for constant derivatives;
 an empty intersection is an explicit numerical failure. G6's exact line
 certificate and the existing rational curve jet containment tests own regression
 evidence for this shared bound.
+[`PreparedBSplineSurfacePointJetTests`](../../Tests/CADGeometryTests/PreparedBSplineSurfacePointJetTests.swift)
+owns independent polynomial and rational quotient value/third-order derivative
+oracles on original knot coordinates, endpoint and knot-point coverage,
+narrow-box convergence, periodic point/seam coverage and strict invalid-domain
+failures. Topology's B-spline-lift ruled rectangle test owns the unchanged public
+area/centroid/default-budget regression.
 Periodic tensors use the base-cache, seam mapping and smoothness contracts owned
 by [Periodic B-spline](PeriodicBSpline/DESIGN.md#prepared-tensor-bounds-and-projection).
 Their chosen origins affect query representatives rather than cached ownership.

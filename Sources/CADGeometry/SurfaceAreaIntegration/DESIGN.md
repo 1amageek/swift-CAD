@@ -111,20 +111,14 @@ before recursive validation or transform materialization. Prepared charts are
 immutable and retain source ownership for the invocation; no shared cache or
 platform-dependent state is introduced.
 
-Remaining full-Q3 limitation: ruled rails lifted from B-spline supports use the
-existing [`DefaultCurveDifferentialEncloser` surface-lift branch](../DefaultCurveDifferentialEncloser.swift#L343).
-Its [`nondegenerateRange`](../SurfaceLiftDifferentialBounder.swift#L1184) and
-[`numericallyStableInterval`](../PreparedBSplineSurfaceDifferentialEncloser.swift#L87)
-expand narrow source UV requests by modeling-tolerance-dependent widths. The
-resulting position interval floor can prevent first-moment certification under
-the default query allowance even as integration cells shrink; the query then
-returns a subdivision resource failure. Mapped-chart admission does not change
-these enclosers or certify that rail domain. Completing this gap requires
-whole-interval rail jets whose uncertainty converges with the requested source
-interval, while retaining derivative validity and the whole-query error and
-resource contract. The caller/depth fixture uses analytic-plane lift rails with
-the same literal area and centroid oracle; it proves support/depth forwarding,
-not B-spline-lift convergence.
+B-spline lift rails consume the shared prepared closed-box and point contract
+owned by [CADGeometry](../DESIGN.md). Their original UV jets and native-span
+authority remain intact; interval localization has machine conditioning only.
+The previously observed modeling-tolerance position floor must be closed by the
+literal B-spline-lift ruled rectangle regression under its original default
+query allowance. The separate analytic-plane caller/depth fixture continues to
+own exact support/depth forwarding. Neither proof completes the remaining
+procedural/implicit domains of full Q3.
 
 ## Verification and Change Impact
 [`SurfaceAreaIntegrationTests`](../../../Tests/CADTopologyTests/SurfaceAreaIntegrationTests.swift)
