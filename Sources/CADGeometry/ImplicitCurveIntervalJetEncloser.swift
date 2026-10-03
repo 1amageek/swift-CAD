@@ -337,6 +337,13 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
   private func nativeFreeInterval(_ cell: CertifiedImplicitIntersectionGraphCell,
     over interval: ScalarInterval, tolerance: ModelingTolerance) throws -> ScalarInterval {
     let source = cell.parameterBox.interval(for: cell.freeParameter)
+    if interval.lower == interval.upper, interval.lower == 0 || interval.lower == 1 {
+      // The original endpoint is exact free-coordinate authority; dependent roots
+      // still require the retained certificate and caller-owned localization.
+      let atUpper = (interval.lower == 1) == (cell.direction == .forward)
+      let endpoint = atUpper ? source.upper : source.lower
+      return try ScalarInterval(lower: endpoint, upper: endpoint)
+    }
     let width = OutwardScalarInterval.exact(source.upper) - .exact(source.lower)
     let fraction = OutwardScalarInterval(lower: interval.lower, upper: interval.upper)
     let directed = cell.direction == .forward ? fraction : .exact(1) - fraction

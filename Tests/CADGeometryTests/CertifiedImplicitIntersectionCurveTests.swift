@@ -103,6 +103,23 @@ struct CertifiedImplicitIntersectionCurveTests {
   }
 
   @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+  func originalClosedEndpointsRetainExactNativeFreeCoordinates(_ backwards: Bool) throws {
+    let curve = try dyadicPlaneParabolaCurve(direction: backwards ? .reversed : .forward)
+    let prepared = try ImplicitCurveIntervalJetEncloser(intersection: curve, tolerance: tolerance)
+    var remaining = SurfaceSurfaceIntersectionOptions().maximumSubdivisionCells
+    for fraction in [0.0, 1.0] {
+      let t = backwards ? 0.75 - 0.5 * fraction : 0.25 + 0.5 * fraction
+      let jet = try continuedParameterJet(prepared, of: curve,
+        over: ScalarInterval(lower: fraction, upper: fraction), remainingWork: &remaining)
+      #expect(jet.coordinates[1].value.lower == t && jet.coordinates[1].value.upper == t)
+      for (coordinate, value) in zip(jet.coordinates, [t * t, t, t, 0.5]) {
+        #expect(coordinate.value.contains(value))
+        #expect(coordinate.value.width <= Double.ulpOfOne * 64)
+      }
+    }
+  }
+
+  @Test(.timeLimit(.minutes(1)), arguments: [false, true])
   func dyadicPartialEndpointJetsMeetConnectionRoundingAndNativeDerivatives(_ backwards: Bool) throws {
     let curve = try dyadicPlaneParabolaCurve(direction: backwards ? .reversed : .forward)
     let prepared = try ImplicitCurveIntervalJetEncloser(intersection: curve, tolerance: tolerance)

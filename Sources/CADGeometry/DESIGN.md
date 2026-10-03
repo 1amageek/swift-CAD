@@ -528,6 +528,13 @@ nonzero product operand is normal, has splitter exponent headroom, and keeps
 its lowest possible 104-bit product term normal. Unsafe products retain the
 established outward ratio; finite rounded equality alone is not proof. The
 subnormal point fixture verifies value and derivative containment on that route.
+A closed normalized fraction0/1 retains the exact stored original native
+free-coordinate endpoint, including the original direction. Interior fractions
+still use the outward affine range. Endpoint identity supplies only the free
+coordinate; dependent roots and jets still require the same original certified
+localization and caller work. It is not an approximate root seed or tolerance
+clamp. Independent whole-endpoint cases require exact native free identity,
+dependent containment and the unchanged 64-ulp connection precision.
 
 The localizer exposes a bounded prepare step and one contraction step per
 advance. Its state and result distinguish contraction, enclosed parameter jets
