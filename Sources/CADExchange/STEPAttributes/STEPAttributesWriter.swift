@@ -37,14 +37,6 @@ public struct STEPAttributesWriter: STEPAttributesWriting {
 }
 
 private extension STEPAttributesWriter {
-    static func validateGeometryTarget(_ target: ProductAttributeTarget, property: ProductAttributeValue.Property? = nil) throws {
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEPExchange and OfficialFormatExchange cannot transport definition-qualified geometry names, colors or layer scopes yet.
-        // Standard ingress/egress must retain all instances of that definition before these properties can be projected onto common geometry items.
-        guard !((target.kind == .body || target.kind == .face) && target.definitionID != nil
-                && property != .material && property != .density) else {
-            throw ProductAttributeError.unsupportedSemantics("Definition-qualified geometry requires scope-preserving STEP transport.")
-        }
-    }
     struct Builder {
         let evaluated: EvaluatedDocument
         let resolved: ResolvedProductAttributes
@@ -64,13 +56,20 @@ private extension STEPAttributesWriter {
         mutating func validateGeometryScope() throws {
             for assignment in evaluated.document.productAttributes.assignments {
                 try check()
-                try STEPAttributesWriter.validateGeometryTarget(assignment.target, property: assignment.value.property)
+                if assignment.target.definitionID != nil, assignment.target.kind == .body || assignment.target.kind == .face,
+                   case let .name(value) = assignment.value {
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP qualified shape-element names cannot encode empty labels or authored name histories yet.
+                    // Completion requires equivalent standard presence and predecessor ownership before these source values can succeed.
+                    guard !value.isEmpty, assignment.overrides == nil else {
+                        throw ProductAttributeError.unsupportedSemantics("Qualified shape-element names require a nonempty standalone label.")
+                    }
+                }
             }
             for layer in evaluated.document.productAttributes.layers {
                 try check()
                 for member in layer.members {
                     try check()
-                    try STEPAttributesWriter.validateGeometryTarget(member)
+                    try member.validate()
                 }
             }
         }
@@ -86,6 +85,7 @@ private extension STEPAttributesWriter {
             for assignment in evaluated.document.productAttributes.assignments {
                 try check()
                 guard !overridden.contains(assignment.id), case let .name(name) = assignment.value else { continue }
+                if assignment.target.definitionID != nil, assignment.target.kind == .body || assignment.target.kind == .face { continue }
                 guard assignment.target.path == nil, let topology = resolved.localGeometry[assignment.target] else {
                     // FIXME(INCOMPLETE_IMPLEMENTATION): Context-specific geometry names are not yet emitted by the public STEP writer.
                     // STEPExchange and OfficialFormatExchange must refuse until a standard contextual name target preserves the complete path.
@@ -177,6 +177,32 @@ private extension STEPAttributesWriter {
                 return items
             }
         }
+        mutating func geometryCarrier(_ target: ProductAttributeTarget) throws -> Int {
+            try check()
+            guard target.kind == .body || target.kind == .face, let definition = target.definitionID,
+                  target.path == nil, let product = transfer.products[definition], let carrier = product.carrier,
+                  let topology = resolved.localGeometry[target] else {
+                throw ProductAttributeError.missingTarget("Qualified geometry identity carrier.")
+            }
+            switch topology {
+            case let .body(id): guard product.bodies[id] != nil else { throw ProductAttributeError.missingTarget("Qualified carrier body membership.") }
+            case let .face(id): guard product.faces[id] != nil else { throw ProductAttributeError.missingTarget("Qualified carrier face membership.") }
+            default: throw ProductAttributeError.invalidSource("Qualified carrier geometry kind.")
+            }
+            return carrier
+        }
+        mutating func layerStyle(_ target: ProductAttributeTarget) throws -> [Int] {
+            if let existing = targetStyles[target], !existing.isEmpty { return existing }
+            let items = try styleItems(target), carrier = try geometryCarrier(target)
+            let psa = try add("PRESENTATION_STYLE_BY_CONTEXT((NULL_STYLE(.NULL.)),#\(carrier))")
+            var result: [Int] = []
+            for item in items {
+                try check(); try budget.charge(targets: 1)
+                result.append(try add("STYLED_ITEM('',(#\(psa)),#\(item))"))
+            }
+            try budget.charge(targets: 1); targetStyles[target] = result
+            return result
+        }
         mutating func appendStyle(_ assignment: ProductAttributeAssignment, depth: Int) throws -> [Int] {
             if let ids = styled[assignment.id] { return ids }
             guard depth < budget.limits.maximumDepth else { throw ProductAttributeError.resourceLimitExceeded("STEP style depth.") }
@@ -218,7 +244,11 @@ private extension STEPAttributesWriter {
                 side = try add("SURFACE_SIDE_STYLE('',(#\(area)))")
             }
             let usage = try add("SURFACE_STYLE_USAGE(.BOTH.,#\(side))")
-            let psa = try add("PRESENTATION_STYLE_ASSIGNMENT((#\(usage)))")
+            let carrier = (assignment.target.definitionID != nil && (assignment.target.kind == .body || assignment.target.kind == .face))
+                ? try geometryCarrier(assignment.target) : nil
+            let psa: Int
+            if let carrier { psa = try add("PRESENTATION_STYLE_BY_CONTEXT((#\(usage)),#\(carrier))") }
+            else { psa = try add("PRESENTATION_STYLE_ASSIGNMENT((#\(usage)))") }
             let items = try styleItems(assignment.target)
             var predecessors: [Int] = []
             if let predecessor = assignment.overrides {
@@ -242,6 +272,8 @@ private extension STEPAttributesWriter {
                         contexts.append("#\(relationship)")
                     }
                     id = try add("CONTEXT_DEPENDENT_OVER_RIDING_STYLED_ITEM('',(#\(psa)),#\(item),#\(predecessors[0]),(\(contexts.joined(separator: ","))))")
+                } else if let carrier, !predecessors.isEmpty {
+                    id = try add("CONTEXT_DEPENDENT_OVER_RIDING_STYLED_ITEM('',(#\(psa)),#\(item),#\(predecessors[predecessors.count == 1 ? 0 : index]),(#\(carrier)))")
                 } else if !predecessors.isEmpty {
                     id = try add("OVER_RIDING_STYLED_ITEM('',(#\(psa)),#\(item),#\(predecessors[predecessors.count == 1 ? 0 : index]))")
                 } else { id = try add("STYLED_ITEM('',(#\(psa)),#\(item))") }
@@ -283,7 +315,13 @@ private extension STEPAttributesWriter {
             for (item, product) in zip(items, products) {
                 // A direct singleton view gives each explicit PD target its own standard usage key without copying topology.
                 let view = try add("SHAPE_REPRESENTATION('',(#\(item)),#\(product.context))")
-                let aspect = try add("SHAPE_ASPECT('','',#\(product.definitionShape),.T.)")
+                try check(evaluated.document.productAttributes.assignments.count)
+                var label = ""
+                for assignment in evaluated.document.productAttributes.assignments {
+                    try duration.check(format: .step)
+                    if assignment.target == target, case let .name(value) = assignment.value { label = value }
+                }
+                let aspect = try add("SHAPE_ASPECT(\(try string(label)),'',#\(product.definitionShape),.T.)")
                 _ = try add("GEOMETRIC_ITEM_SPECIFIC_USAGE('','',#\(aspect),#\(view),#\(item))")
                 try budget.charge(targets: 1)
                 result.append(aspect)
@@ -330,7 +368,8 @@ private extension STEPAttributesWriter {
             var referenced = Set<PhysicalMaterialID>()
             for assignment in source.assignments {
                 switch assignment.value {
-                case .name: break
+                case .name:
+                    if assignment.target.definitionID != nil, assignment.target.kind == .body || assignment.target.kind == .face { _ = try physicalTargets(assignment.target) }
                 case .color: _ = try appendStyle(assignment, depth: 0)
                 case .opacity:
                     try budget.charge(work: source.assignments.count)
@@ -358,22 +397,41 @@ private extension STEPAttributesWriter {
                     }
                 }
             }
-            var allStyles = Array(Set(styled.values.flatMap { $0 }))
+            for layer in source.layers {
+                try check()
+                for member in layer.members {
+                    try check()
+                    if member.definitionID != nil, member.kind == .body || member.kind == .face { _ = try layerStyle(member) }
+                }
+            }
+            try check(styled.count + targetStyles.count)
+            var styleSet = Set<Int>()
+            for ids in styled.values { for id in ids { try check(); try budget.charge(targets: 1); styleSet.insert(id) } }
+            for ids in targetStyles.values { for id in ids { try check(); try budget.charge(targets: 1); styleSet.insert(id) } }
+            try budget.charge(targets: styleSet.count)
+            var allStyles = Array(styleSet)
             if !allStyles.isEmpty {
                 // Preserve default-visible parts that have no explicit style without fabricating colors.
                 let null = try add("PRESENTATION_STYLE_ASSIGNMENT((NULL_STYLE(.NULL.)))")
                 for (definitionID, product) in transfer.products {
+                    try check()
                     let part = ProductAttributeTarget(kind: .part, definitionID: definitionID)
                     if targetStyles[part] != nil { continue }
                     for items in product.bodies.values {
+                        try check()
                         for item in items {
+                            try check(source.assignments.count + 1)
                             let covered = source.assignments.contains { assignment in
                                 guard assignment.value.property == .color, assignment.target.path == nil,
+                                      assignment.target.definitionID == nil,
                                       let topology = resolved.localGeometry[assignment.target] else { return false }
                                 if case let .body(id) = topology { return product.bodies[id]?.contains(item) == true }
                                 return false
                             }
-                            if !covered { allStyles.append(try add("STYLED_ITEM('',(#\(null)),#\(item))")) }
+                            if !covered {
+                                try budget.charge(targets: 1)
+                                allStyles.append(try add("STYLED_ITEM('',(#\(null)),#\(item))"))
+                            }
                         }
                     }
                 }
@@ -388,6 +446,9 @@ private extension STEPAttributesWriter {
                             throw ProductAttributeError.unsupportedSemantics("Instance layer membership requires an admitted contextual styled item.")
                         }
                         members.formUnion(styles)
+                    } else if member.definitionID != nil, member.kind == .body || member.kind == .face {
+                        let scoped = try layerStyle(member); try check(scoped.count); try budget.charge(targets: scoped.count)
+                        members.formUnion(scoped)
                     } else { members.formUnion(try styleItems(member)) }
                 }
                 guard !members.isEmpty else { throw ProductAttributeError.unsupportedSemantics("Empty layer cannot be represented by a standard assigned-item set.") }

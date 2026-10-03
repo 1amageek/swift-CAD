@@ -56,18 +56,31 @@ flowchart LR
 
 ## Contracts and Invariants
 
-- Definition-qualified body/face material and density attachments use the
-  standard shape-aspect PD association plus GEOMETRIC_ITEM_SPECIFIC_USAGE's
-  representation and identified item. Import checks actual representation PD
-  membership and retains that selector when geometry is shared; export selects
-  that PD and common local item. Names, colors and layer membership on a
-  definition-qualified geometry target remain unsupported until their standard
-  transport retains all instances of that definition without a global item
-  overwrite. Both geometry-name projection and record generation preflight
-  these narrow unsupported scopes before publication. Global item names/styles/
-  layers remain common geometry attachments; complete occurrence style paths
-  select actual membership rather than the first PD in the transfer.
-  Distinct whole-part appearance uses separate proved structural PD carriers.
+- Definition-qualified Body/Face names are Shape_element labels: the standard
+  ShapeAspect.name owns the label, of_shape selects the real PD, and one GISU
+  identifies the existing exact Body/Face in its proved singleton view. The
+  common representation_item.name remains the independent global label. The
+  name projection excludes qualified labels; named aspects and physical
+  properties on the same target reuse one aspect/view/GISU. Standalone nonempty
+  labels are admitted. Empty labels, name histories, independent descriptions
+  and unknown chained/subtype meanings fail explicitly; a global and qualified
+  competing name is not assigned an inferred priority.
+- Definition-qualified color/opacity uses the already-proved identity whole-part
+  MAPPED_ITEM as its actual standard style context. PRESENTATION_STYLE_BY_CONTEXT
+  carries standalone scoped values. A CDORSI with that single carrier context
+  carries an explicit predecessor; relationship-list occurrence contexts retain
+  their existing separate path contract. The common styled Body/Face must belong
+  to the carrier's real definition. An unknown, foreign, competing or nonidentity
+  context fails; a representation or GISU view is not substituted for a carrier.
+  Source selectors retain every occurrence of that definition without geometry
+  copy, part-wide color expansion or invented property rank/provenance.
+- Qualified layer members assign the actual scoped STYLED_ITEM. A layer-only
+  target uses PRESENTATION_STYLE_BY_CONTEXT with standard NULL_STYLE(.NULL.)
+  and the proved carrier; this adds no native color, opacity or predecessor.
+  Global appearance and provenance remain unchanged. Layers are sets, not
+  override relationships. Unsupported visibility/context interpretations fail.
+  Reader/writer checks, context/member scans, source-name lookup and derived
+  records use the same caller work/record/text/duration budget before growth.
 - A PD-qualified physical target is exported with one unassociated singleton
   SHAPE_REPRESENTATION view containing its already-emitted body or face item.
   The view shares the geometry context and units; it creates no topology,
@@ -301,3 +314,14 @@ own independently authored CIWR body/face global properties, Native and two STEP
 generations, new shared-PD applicability, legal-selector refusal, target-view
 units/association/uniqueness admission and public atomic/resource/cancellation
 failures. Existing shared representation tests retain their qualified GISU scope.
+
+[DefinitionQualifiedSTEPAttributeTests](../../../Tests/CADExchangeTests/DefinitionQualifiedSTEPAttributeTests.swift)
+own independent shared geometry, real PD carrier contexts, named shape-element
+GISUs and scoped layer literals; Native/two STEP generations/new definition
+applicability, actual explicit provenance, resource/cancellation and atomic
+refusal evidence. The standard name authority is ISO/TS 10303-1032
+[Shape_element ARM](https://www.steptools.com/stds/smrl/data/modules/shape_property_assignment/sys/4_info_reqs.htm)
+and its [MIM mapping](https://www.steptools.com/stds/smrl/data/modules/shape_property_assignment/sys/5_mapping.htm).
+Style contexts use [PSBC](https://www.steptools.com/stds/stp_aim/html/t_presentation_style_by_context.html)
+and [CDORSI](https://www.steptools.com/stds/stp_aim/html/t_context_dependent_over_riding_styled_item.html);
+layers consume [layered_item](https://www.steptools.com/stds/stp_aim/html/t_layered_item.html).

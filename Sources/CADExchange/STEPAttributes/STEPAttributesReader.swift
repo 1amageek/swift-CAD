@@ -228,7 +228,15 @@ private extension STEPAttributesReader {
                     throw ProductAttributeError.invalidSource("Duplicate GISU representation/item or representation/definition usage.")
                 }
                 guard physicalGeometry[aspect] == nil else { throw ProductAttributeError.ambiguousProperty("Shape aspect geometry target.") }
-                physicalGeometry[aspect] = ProductAttributeTarget(kind: mapped.kind, geometry: reference, definitionID: definition)
+                let target = ProductAttributeTarget(kind: mapped.kind, geometry: reference, definitionID: definition)
+                physicalGeometry[aspect] = target
+                let label = try string(a[0]), description = a[1] == "$" ? nil : try string(a[1])
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP shape-element import cannot retain independent descriptions or chained name history yet.
+                // A persistent description/predecessor owner and equivalent standard egress are required before those meanings can be admitted.
+                guard description == nil || description?.isEmpty == true else {
+                    throw ProductAttributeError.unsupportedSemantics("Independent shape-element descriptions require a retained source owner.")
+                }
+                if !label.isEmpty { try budget.charge(targets: 1); assignments.append(ProductAttributeAssignment(target: target, value: .name(label))) }
             }
         }
         mutating func contextPath(_ token: String) throws -> AssemblyOccurrencePath {
@@ -252,9 +260,25 @@ private extension STEPAttributesReader {
             guard candidates.count == 1, let result = candidates.first else { throw ProductAttributeError.ambiguousProperty("Contextual occurrence path.") }
             return result
         }
+        mutating func carrierTarget(_ carrier: Int, item: Int) throws -> ProductAttributeTarget {
+            try check()
+            guard let definition = transfer.partCarriers[carrier], let target = geometry[item], let reference = target.geometry else {
+                throw ProductAttributeError.missingTarget("Qualified style carrier geometry correspondence.")
+            }
+            try check(evaluated.document.assembly?.definitions.count ?? 0)
+            guard let source = evaluated.document.assembly?.definitions.first(where: { $0.id == definition }) else {
+                throw ProductAttributeError.missingTarget("Qualified style carrier product.")
+            }
+            try check(source.features.count)
+            guard source.features.contains(reference.subshapeID.featureID) else {
+                throw ProductAttributeError.missingTarget("Qualified style carrier feature membership.")
+            }
+            return ProductAttributeTarget(kind: target.kind, geometry: reference, definitionID: definition)
+        }
         mutating func styleValues(_ assignmentID: Int) throws -> [ProductAttributeValue.Property: ProductAttributeValue] {
-            let a = try args(assignmentID, 1)
-            guard names[assignmentID] == "PRESENTATION_STYLE_ASSIGNMENT", a[0].first == "(", a[0].last == ")" else {
+            let contextual = names[assignmentID] == "PRESENTATION_STYLE_BY_CONTEXT"
+            let a = try args(assignmentID, contextual ? 2 : 1)
+            guard contextual || names[assignmentID] == "PRESENTATION_STYLE_ASSIGNMENT", a[0].first == "(", a[0].last == ")" else {
                 throw ProductAttributeError.unsupportedSemantics("Unsupported style assignment.")
             }
             let tokens = try syntax.split(String(a[0].dropFirst().dropLast()))
@@ -336,30 +360,48 @@ private extension STEPAttributesReader {
             guard a.count == (contextual ? 5 : kind == "OVER_RIDING_STYLED_ITEM" ? 4 : 3) else {
                 throw ProductAttributeError.invalidSource("Malformed styled item.")
             }
-            var target: ProductAttributeTarget
             let item = try syntax.reference(a[2])
+            let psas = try syntax.list(a[1]); try check(psas.count)
+            guard psas.count == 1, let psa = psas.first else { throw ProductAttributeError.unsupportedSemantics("Multiple context-sensitive style assignments.") }
+            var contextCarrier: Int?
+            if names[psa] == "PRESENTATION_STYLE_BY_CONTEXT" {
+                let carrier = try syntax.reference(args(psa, 2)[1])
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP scoped style import admits only a proved identity PD carrier context.
+                // Other standard context meanings require an equivalent persistent selector and egress before they can succeed.
+                guard transfer.partCarriers[carrier] != nil else {
+                    throw ProductAttributeError.unsupportedSemantics("Style context requires a proved identity PD carrier.")
+                }
+                contextCarrier = carrier
+            }
+            var target: ProductAttributeTarget
             if !contextual, geometry[item] == nil, transfer.partCarriers[item] == nil {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP import has no direct styled mapped-usage correspondence yet.
                 // A real assembly MAPPED_ITEM must retain complete instance scope before it can be admitted; PD/representation pseudo-targets are invalid.
                 throw ProductAttributeError.unsupportedSemantics("Styled item requires an actual body, face, or structural whole-part carrier target.")
             }
-            if contextual, let definitions = transfer.representations[item] {
-                target = ProductAttributeTarget(kind: .occurrence, path: try contextPath(a[4]))
-                guard evaluated.assembly?.occurrences.contains(where: { $0.path == target.path && definitions.contains($0.definitionID) }) == true else {
-                    throw ProductAttributeError.missingTarget("Contextual style component representation.")
+            if contextual {
+                let contexts = try syntax.list(a[4]); try check(contexts.count)
+                if contexts.count == 1, let carrier = contexts.first, transfer.partCarriers[carrier] != nil {
+                    guard contextCarrier == nil || contextCarrier == carrier else { throw ProductAttributeError.ambiguousProperty("Competing qualified style contexts.") }
+                    target = try carrierTarget(carrier, item: item)
+                } else {
+                    guard contextCarrier == nil else { throw ProductAttributeError.ambiguousProperty("Competing qualified style contexts.") }
+                    if let definitions = transfer.representations[item] {
+                        target = ProductAttributeTarget(kind: .occurrence, path: try contextPath(a[4]))
+                        guard evaluated.assembly?.occurrences.contains(where: { $0.path == target.path && definitions.contains($0.definitionID) }) == true else {
+                            throw ProductAttributeError.missingTarget("Contextual style component representation.")
+                        }
+                    } else {
+                        let mapped = try self.target(item)
+                        guard let geometry = mapped.geometry else { throw ProductAttributeError.unsupportedSemantics("Unsupported contextual style target.") }
+                        target = ProductAttributeTarget(kind: mapped.kind, geometry: geometry, path: try contextPath(a[4]))
+                    }
                 }
-            } else {
-                target = try self.target(item)
-                if contextual {
-                    guard let geometry = target.geometry else { throw ProductAttributeError.unsupportedSemantics("Unsupported contextual style target.") }
-                    target = ProductAttributeTarget(kind: target.kind, geometry: geometry, path: try contextPath(a[4]))
-                }
-            }
+            } else if let carrier = contextCarrier { target = try carrierTarget(carrier, item: item) }
+            else { target = try self.target(item) }
             let predecessor = a.count >= 4 ? try syntax.reference(a[3]) : nil
             var inherited: [ProductAttributeValue.Property: ProductAttributeID] = [:]
             if let predecessor { try readStyle(predecessor, depth: depth + 1); inherited = styleProperties[predecessor] ?? [:] }
-            let psas = try syntax.list(a[1])
-            guard psas.count == 1, let psa = psas.first else { throw ProductAttributeError.unsupportedSemantics("Multiple context-sensitive style assignments.") }
             let values = try styleValues(psa)
             if predecessor != nil, values.isEmpty { throw ProductAttributeError.unsupportedSemantics("Null overriding style visibility semantics.") }
             for property in values.keys.sorted(by: { $0.rawValue < $1.rawValue }) {

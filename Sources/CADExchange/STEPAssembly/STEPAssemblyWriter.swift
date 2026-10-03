@@ -68,7 +68,7 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
             for layer in attributeSource.layers {
                 try budget.check(format: .step)
                 try sharingBudget.charge(work: layer.members.count + 1)
-                if layer.members.contains(where: { $0.kind == .part && $0.definitionID == definition.id }) { carrier = true }
+                if layer.members.contains(where: { $0.definitionID == definition.id }) { carrier = true }
             }
             if carrier, !carrierKeys.contains(key) { try sharingBudget.charge(targets: 1); carrierKeys.insert(key) }
         }

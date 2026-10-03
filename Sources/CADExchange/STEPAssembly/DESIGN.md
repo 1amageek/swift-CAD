@@ -54,6 +54,15 @@ flowchart LR
 
 ## Contracts and Invariants
 
+- A definition-qualified geometry style or layer consumes the same proved
+  identity whole-part carrier as part appearance. The carrier is one standard
+  MAPPED_ITEM uniquely associated with that PD, and its inner exact geometry
+  stays shared by canonical FeatureID group. A layer target's actual definition
+  selector triggers this transport even when no color exists. Attribute context
+  membership and labels remain owned by [STEP Attributes](../STEPAttributes/DESIGN.md);
+  this component generates/retains the real PD carrier correspondence without
+  a new feature, placement path or duplicated topology owner.
+
 - Product definitions are related to local shape representations through
   PRODUCT_DEFINITION_SHAPE and SHAPE_DEFINITION_REPRESENTATION. Assembly edges
   retain NEXT_ASSEMBLY_USAGE_OCCURRENCE identity and parent/child definition

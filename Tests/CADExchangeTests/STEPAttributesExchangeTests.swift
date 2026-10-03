@@ -10,7 +10,7 @@ import CADTopology
 @Suite("STEP product attribute public interchange")
 struct STEPAttributesExchangeTests {
     @Test(.timeLimit(.minutes(1)))
-    func definitionQualifiedGeometryRefusesSTEPProjectionAndPreservesURLDestination() throws {
+    func definitionQualifiedGeometryPreservesSourceScopeAndCallerCeilings() throws {
         let featureID = FeatureID()
         let feature = FeatureNode(id: featureID, operation: .primitive(PrimitiveFeature(definition: .box(BoxPrimitive(
             width: .constant(.length(1, unit: .meter)), depth: .constant(.length(2, unit: .meter)),
@@ -34,7 +34,6 @@ struct STEPAttributesExchangeTests {
         let variants = [ProductAttributes(assignments: [ProductAttributeAssignment(target: body, value: .name("selected body"))]),
             ProductAttributes(assignments: [ProductAttributeAssignment(target: face, value: .color(ColorRGBA(r: 1, g: 0, b: 0, a: 1)))]),
             ProductAttributes(layers: [ProductLayer(name: "selected faces", members: [face])])]
-        let failure = ProductAttributeError.unsupportedSemantics("Definition-qualified geometry requires scope-preserving STEP transport.")
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { do { try FileManager.default.removeItem(at: directory) } catch { Issue.record("Unable to remove STEP scope fixture directory: \(error)") } }
@@ -74,18 +73,21 @@ struct STEPAttributesExchangeTests {
                     _ = try writer.records(for: evaluated, resolved: resolved, transfer: STEPAttributeWriteTransfer(), startingAt: 1, limits: memberCeiling)
                 }
             }
-            #expect(throws: failure) { _ = try writer.geometryNames(for: evaluated, resolved: resolved, limits: .standard) }
-            #expect(throws: failure) {
-                _ = try writer.records(for: evaluated, resolved: resolved, transfer: STEPAttributeWriteTransfer(), startingAt: 1, limits: .standard)
+            _ = try writer.geometryNames(for: evaluated, resolved: resolved, limits: .standard)
+            let sink = DataByteSink(), facade = OfficialFormatExchange(tolerance: .standard)
+            try facade.write(evaluated, as: .step, to: sink)
+            let imported = try #require(STEPExchange(tolerance: .standard).import(sink.bytes).document)
+            #expect(imported.designGraph.nodes.count == 1)
+            if let assignment = attributes.assignments.first {
+                #expect(imported.productAttributes.assignments.contains { $0.target.kind == assignment.target.kind
+                    && $0.target.definitionID == selected.id && $0.target.path == nil && $0.value == assignment.value })
+            } else {
+                let layer = try #require(imported.productAttributes.layers.first { $0.name == "selected faces" })
+                #expect(layer.members.count == 1 && layer.members.first?.definitionID == selected.id)
             }
-            let sink = DataByteSink()
-            #expect(throws: failure) { try STEPExchange(tolerance: .standard).write(evaluated, to: sink) }
-            #expect(sink.bytes.isEmpty)
-            let facade = OfficialFormatExchange(tolerance: .standard)
-            #expect(throws: failure) { try facade.write(evaluated, as: .step, to: sink) }
-            #expect(sink.bytes.isEmpty)
-            #expect(throws: failure) { try facade.export(evaluated, as: .step, to: url) }
-            #expect(try Data(contentsOf: url) == original)
+            try facade.export(evaluated, as: .step, to: url)
+            #expect(try Data(contentsOf: url) == sink.bytes)
+
         }
         // The ordinary public route must also forward the caller ceiling to name projection.
         var ordinary = CADDocument(units: .meters, designGraph: source.designGraph)

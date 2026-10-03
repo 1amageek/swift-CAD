@@ -38,6 +38,12 @@ An attributed ordinary writer consumes the existing document name and the
 canonical geometry PRODUCT identifier; actual business product identifiers are
 owned by DocumentAssembly and are serialized through its writer contract.
 
+Definition-qualified geometry labels, styles and layer membership compose the
+exact shared geometry producer and proved PD carrier correspondence with the
+[STEP Attributes scoped transport contract](STEPAttributes/DESIGN.md).
+The facade admits standard PSBC records and preserves the child-owned selector;
+standalone labels and caller-visible failure domains follow that contract.
+
 Native section-reference admission follows the [CADIR section contract](../CADIR/SectionReference/DESIGN.md):
 curve intervals and explicit traversal direction survive save/load, profile inputs
 reject curve-only controls, and missing direction fields are not silently migrated.
