@@ -90,6 +90,36 @@ package struct ExactEdgeContinuitySupport: Sendable {
         return try interpolating(targets, over: span, at: grevilles, tolerance: tolerance)
     }
 
+    /// The rows leaving a curved face across `span` from the corner derivative `start` (at its
+    /// start) to `end`, one per control point: the (rational) spline over `span`'s basis taking,
+    /// at each Greville abscissa, the unit leaving direction (turned back when `entering`) and the
+    /// side's unit tangent there, weighed by the corners' parts along each varying evenly between
+    /// them — the leaving part times the tension — so it stays in the face's tangent planes, which
+    /// turn along the side, where a corner's derivative carried unchanged would leave them.
+    package func carriedRows(along span: BSplineCurve3D, start: Vector3D, end: Vector3D, entering: Bool,
+                             tolerance: ModelingTolerance) throws -> [Vector3D] {
+        let degree = span.degree
+        let grevilles = span.controlPoints.indices.map { span.knots[($0 + 1)...($0 + degree)].reduce(0, +) / Double(degree) }
+        let frames = try grevilles.map { t -> (leaving: Vector3D, tangent: Vector3D) in
+            let geometry = try span.differentialGeometry(at: t, tolerance: tolerance)
+            let leaving = try (normal(at: geometry.position, tolerance: tolerance).cross(geometry.firstDerivative) * (sign * (entering ? -1 : 1)))
+                .normalized(tolerance: tolerance.distance)
+            return (leaving, try geometry.firstDerivative.normalized(tolerance: tolerance.distance))
+        }
+        let last = frames.count - 1
+        let (a0, b0) = (start.dot(frames[0].leaving), start.dot(frames[0].tangent))
+        let (a1, b1) = (end.dot(frames[last].leaving), end.dot(frames[last].tangent))
+        let targets = grevilles.indices.map { i -> Vector3D in
+            let g = (grevilles[i] - grevilles[0]) / (grevilles[last] - grevilles[0])
+            let leaving = (a0 + (a1 - a0) * g) * (i == 0 || i == last ? 1 : tension)
+            return frames[i].leaving * leaving + frames[i].tangent * (b0 + (b1 - b0) * g)
+        }
+        var rows = try interpolating(targets, over: span, at: grevilles, tolerance: tolerance)
+        rows[0] = start
+        rows[last] = end
+        return rows
+    }
+
     /// The second-derivative rows across `span` for curvature continuity: zero beside a plane (its
     /// curvature is nil), beside a curved face the rows interpolating n·II(D, D) at the Greville
     /// abscissae — the face's normal curvature along the cross-boundary derivative `D` that the

@@ -71,6 +71,20 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 return EvaluationResult(brep: model, subshapes: sewn.subshapes, removedSubshapeIDs: selections[0].1.replacedSubshapeIDs,
                                         lineage: sewn.lineage)
             }
+            // A cap's whole loop whose walls rise at some edges and fall at others (a boss's foot
+            // running into a step's edges) takes bands turning between filling and cutting.
+            let turning = TurningCapLoopBlendBuilder(tolerance: context.tolerance)
+            if try turning.admits(selections.map(\.1.edgeID), model: context.brep) {
+                let request = try turning.request(
+                    featureID: feature.id, bodyID: bodyID, selected: selections.map { ($0.1.edgeID, $0.0.subshapeID) },
+                    section: capSection, context: context)
+                let sewn = try sewer.sew(request, tolerance: context.tolerance)
+                let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: context.brep)
+                try model.validate(level: .volumetric, tolerance: context.tolerance)
+                let scope = try BodyTopologyScope(bodyID: bodyID, model: context.brep)
+                return EvaluationResult(brep: model, subshapes: sewn.subshapes, removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes),
+                                        lineage: sewn.lineage)
+            }
         }
         // Several straight edges beside cylinders running along them or between planes, apart from
         // each other and ending square, round in turn.

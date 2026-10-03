@@ -893,10 +893,12 @@ package struct CapLoopBlendBuilder {
             }
             let side = try wallSide(wallFaceID, cap: normal, at: run.start, model: model)
             guard side != 0, rise == 0 || rise == side else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): a loop whose walls run down from the cap at
-                // some edges and up at others turns between a convex and a concave band, which is
-                // not built, so it is refused. Production path: CapLoopBlendBuilder from Fillet and
-                // Chamfer. Complete only when such loops blend, verified by a plate's step.
+                // FIXME(INCOMPLETE_IMPLEMENTATION): a tangent chain whose walls run down from the
+                // cap at some edges and up at others turns between a convex and a concave band
+                // along one section, which is not built, so it is refused (a whole loop turning at
+                // sharp corners is TurningCapLoopBlendBuilder's). Production path:
+                // CapLoopBlendBuilder from Fillet and Chamfer. Complete only when such chains
+                // blend, verified by a plate's step running smoothly into its edge.
                 return .refused("A blended loop's walls all run down from its cap or all rise from it.")
             }
             rise = side

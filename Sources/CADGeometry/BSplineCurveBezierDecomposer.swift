@@ -115,6 +115,9 @@ struct BSplineCurveBezierDecomposer {
         var weights: [Double] = []
         points.reserveCapacity(controls.count)
         weights.reserveCapacity(controls.count)
+        // A polynomial curve (one weight throughout) keeps that weight exactly on every span; its
+        // weight's derivatives, zero, would otherwise leave rounding in the extracted weights.
+        let uniform = curve.weights.allSatisfy { $0 == curve.weights[0] } ? curve.weights[0] : nil
         for control in controls {
             guard control.isFinite,
                   control.weight > Double.ulpOfOne else {
@@ -126,12 +129,13 @@ struct BSplineCurveBezierDecomposer {
                     message: "B-spline Bezier extraction produced a non-positive homogeneous weight."
                 )
             }
+            let weight = uniform ?? control.weight
             points.append(Point3D(
-                x: control.x / control.weight,
-                y: control.y / control.weight,
-                z: control.z / control.weight
+                x: control.x / weight,
+                y: control.y / weight,
+                z: control.z / weight
             ))
-            weights.append(control.weight)
+            weights.append(weight)
         }
         return RationalBezierCurvePatch3D(
             controlPoints: points,

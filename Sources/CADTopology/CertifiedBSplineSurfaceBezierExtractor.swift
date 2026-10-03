@@ -155,12 +155,20 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                     ),
                     count: surface.vDegree + 1
                 )
+                // Only the degree + 1 controls of each direction's span are supported there; the
+                // other basis functions vanish on it exactly.
+                let uActive = activeControls(lower: uLower, degree: surface.uDegree, knots: surface.uKnots,
+                                             count: surface.uControlPointCount)
+                let vActive = activeControls(lower: vLower, degree: surface.vDegree, knots: surface.vKnots,
+                                             count: surface.vControlPointCount)
                 for vOrder in 0...surface.vDegree {
                     for uOrder in 0...surface.uDegree {
                         derivatives[vOrder][uOrder] = try homogeneousDerivative(
                             surface: surface,
                             uBasis: uBasis[uOrder],
                             vBasis: vBasis[vOrder],
+                            uActive: uActive,
+                            vActive: vActive,
                             operationCount: &operationCount,
                             tolerance: tolerance
                         )
@@ -321,16 +329,27 @@ struct CertifiedBSplineSurfaceBezierExtractor {
         return result
     }
 
+    /// The controls whose basis functions are supported on the knot span starting at `lower`:
+    /// the span's last knot index `k` (the largest with `knots[k] <= lower`, below the next knot)
+    /// and the `degree` before it.
+    private func activeControls(lower: Double, degree: Int, knots: [Double], count: Int) -> ClosedRange<Int> {
+        var span = degree
+        while span + 1 < count, knots[span + 1] <= lower { span += 1 }
+        return (span - degree)...span
+    }
+
     private func homogeneousDerivative(
         surface: BSplineSurface3D,
         uBasis: [Scalar],
         vBasis: [Scalar],
+        uActive: ClosedRange<Int>,
+        vActive: ClosedRange<Int>,
         operationCount: inout Int,
         tolerance: ModelingTolerance
     ) throws -> Point {
         var result = zeroPoint
-        for vIndex in 0..<surface.vControlPointCount {
-            for uIndex in 0..<surface.uControlPointCount {
+        for vIndex in vActive {
+            for uIndex in uActive {
                 let basis = uBasis[uIndex] * vBasis[vIndex]
                 guard !isExactlyZero(basis) else { continue }
                 try consume(

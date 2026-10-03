@@ -277,6 +277,11 @@ package struct ExactHermiteCoonsSurfaceBuilder {
                         "The sides beside a continuous side must leave it within the face's tangent plane.", featureID)
                 }
             }
+            if support.isExact == false {
+                // Beside a curved face the rows carry each corner derivative's parts along the
+                // side and leaving it on the face's own frames, which turn along the side.
+                return try support.carriedRows(along: side, start: start, end: end, entering: entering, tolerance: tolerance)
+            }
             let magnitude = support.tension * 0.5 * (start.length + end.length)
             var result = directions.map { $0 * magnitude }
             result[0] = start
@@ -346,10 +351,21 @@ package struct ExactHermiteCoonsSurfaceBuilder {
                         // ∂ʲ/∂uʲ of the k-th row across v = cv, and ∂ᵏ/∂vᵏ of the j-th column.
                         let fromRow = endDerivatives(rows[k][cv], alongU[cv], atEnd: cu == 1)[j - 1]
                         let fromColumn = endDerivatives(columns[j][cu], alongV[cu], atEnd: cv == 1)[k - 1]
-                        let mean = (fromRow + fromColumn) * 0.5
-                        // The twist always keeps the tangent plane; higher jets only beside a plane,
-                        // whose rows lie in it (a curved face's rows bend out of it as the face does).
-                        jet[cu][cv][j][k] = (j == 1 && k == 1) || exactPlane ? mean - normal * mean.dot(normal) : mean
+                        // A corner beside one continuous side takes that side's own jets, so its
+                        // rows (or columns) stay on the face up to the corner; between two, the mean.
+                        let agreed: Vector3D
+                        switch (pair.0 != nil, pair.1 != nil) {
+                        case (true, false): agreed = fromRow
+                        case (false, true): agreed = fromColumn
+                        default: agreed = (fromRow + fromColumn) * 0.5
+                        }
+                        // Beside a plane the jets keep its tangent plane, as its rows do; beside only
+                        // curved faces they keep the normal part their rows take as the faces turn
+                        // (projecting it away would bend the rows off the faces near the corner);
+                        // between unsupported sides the twist keeps the tangent plane.
+                        let curvedOnly = pair.0 != nil || pair.1 != nil
+                        jet[cu][cv][j][k] = exactPlane || (curvedOnly == false && j == 1 && k == 1)
+                            ? agreed - normal * agreed.dot(normal) : agreed
                     }
                 }
             }

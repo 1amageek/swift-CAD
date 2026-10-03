@@ -155,7 +155,7 @@ extension BSplineSurface3D {
                 message: "B-spline inverse projection could not certify all remaining control-hull candidates."
             )
         }
-        let uniqueCandidates = deduplicated(
+        let uniqueCandidates = try deduplicated(
             candidates,
             sourcePatches: patches,
             tolerance: tolerance
@@ -305,7 +305,7 @@ extension BSplineSurface3D {
         _ candidates: [ProjectionCandidate],
         sourcePatches: [RationalBezierPointProjectionPatch],
         tolerance: ModelingTolerance
-    ) -> [ProjectionCandidate] {
+    ) throws -> [ProjectionCandidate] {
         guard let uLower = sourcePatches.map(\.uLower).min(),
               let uUpper = sourcePatches.map(\.uUpper).max(),
               let vLower = sourcePatches.map(\.vLower).min(),
@@ -322,20 +322,29 @@ extension BSplineSurface3D {
         )
         let ordered = candidates.sorted(by: projectionOrder)
         var result: [ProjectionCandidate] = []
+        // The surface's speeds at each kept candidate: candidates whose parameters differ by less
+        // than moves the surface a thousandth of the distance tolerance are one solution, the
+        // less converged of them stopped short (as Newton steps clamped at a boundary do).
+        var speeds: [(u: Double, v: Double)] = []
         for candidate in ordered {
-            if let index = result.firstIndex(where: { existing in
-                abs(existing.projection.u - candidate.projection.u) <= max(
+            if let index = result.indices.first(where: { index in
+                let existing = result[index]
+                let (du, dv) = (abs(existing.projection.u - candidate.projection.u), abs(existing.projection.v - candidate.projection.v))
+                let parametric = du <= max(
                     baseUResolution,
                     Double.ulpOfOne * max(1.0, abs(candidate.projection.u)) * 128.0
-                ) && abs(existing.projection.v - candidate.projection.v) <= max(
+                ) && dv <= max(
                     baseVResolution,
                     Double.ulpOfOne * max(1.0, abs(candidate.projection.v)) * 128.0
                 )
+                return parametric || du * speeds[index].u + dv * speeds[index].v <= tolerance.distance * 1e-3
             }) {
                 if candidate.projection.residual < result[index].projection.residual {
                     result[index] = candidate
                 }
             } else {
+                let geometry = try differentialGeometry(u: candidate.projection.u, v: candidate.projection.v, tolerance: tolerance)
+                speeds.append((geometry.tangentU.length, geometry.tangentV.length))
                 result.append(candidate)
             }
         }

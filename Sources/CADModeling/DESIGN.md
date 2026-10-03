@@ -10,7 +10,8 @@ package design](../../DESIGN.md). Children include
 and [SpatialPath](SpatialPath/DESIGN.md), with
 [RollingBall](RollingBall/DESIGN.md) owning blend sewing boundaries and
 [SurfaceFill](SurfaceFill/DESIGN.md) owning source-boundary surface filling,
-and [BridgeSurface](BridgeSurface/DESIGN.md) owning exact source-edge bridging.
+[BridgeSurface](BridgeSurface/DESIGN.md) owning exact source-edge bridging, and
+[TurningCapLoop](TurningCapLoop/DESIGN.md) owning blends of cap loops whose walls turn.
 
 ## Responsibilities and Boundaries
 
@@ -32,6 +33,7 @@ stable signature serialization, evaluation caching, or Rupa project authority.
 | [InvoluteGear](InvoluteGear/DESIGN.md) | child | closed gear section | Composes flanks and analytic circular roots into Profile. | Resolved geometry only; no source or manufacturing certification. |
 | [RollingBall](RollingBall/DESIGN.md) | child | contact-preserving blend and cap patches | Uses admitted rails as sewing boundaries. | Does not select treatment regions or close solids. |
 | [SurfaceFill](SurfaceFill/DESIGN.md) | child | exact G0 surface fill from an open B-rep boundary loop | Reuses exact curve conversion, composite curves and Coons construction. | Does not claim G1/G2 optimization or guide-curve constraints. |
+| [TurningCapLoop](TurningCapLoop/DESIGN.md) | child | sewing request for a whole cap loop whose walls rise and fall | Bands per edge, mitres, and corner patches where the walls turn. | Round, chamfer and profile sections; G1 at the corner patches within their allowance. |
 | [BridgeSurface](BridgeSurface/DESIGN.md) | child | exact G0 ruled sheet between two source boundary edges | Resolves current stable edge references and reuses the exact ruled-surface builder. | Sources must share a coordinate frame; this is not full XNURBS fitting. |
 | [CADTopology OpenBoundaryLoop](../CADTopology/OpenBoundaryLoop/DESIGN.md) | depends on | ordered exact boundary edge cycle | Supplies the shared loop containing the selected seed. | It does not choose corners or surface quality. |
 
@@ -318,8 +320,13 @@ too, so the sheet is exactly G1 or G2 with the plane. Continuity along neighbour
 second-derivative rows when any side is curvature continuous) less the tensor of the corners'
 jets, every side's rows (a continuous side's from its support, otherwise linear) ending on the
 corner jets. Each corner's mixed derivatives are agreed once for the rows and columns through it:
-the mean of their natural ones, the twist kept in the corner's tangent plane and, beside a planar
-face, the higher ones too, imposed through each row's end control points. Planar faces meeting at
+the continuous side's own where only one of the two sides is continuous (so its rows stay on its
+face up to the corner), otherwise the mean of their natural ones; beside a planar face all of them
+kept in its plane, beside only curved faces with the normal part their rows take as the faces turn,
+and between unsupported sides the twist kept in the corner's tangent plane; imposed through each
+row's end control points. Beside a curved face the first rows carry each corner derivative's parts
+along the side and leaving it on the face's own frames (`ExactEdgeContinuitySupport.carriedRows`),
+which turn along the side. Planar faces meeting at
 a corner must be one plane; curved faces are certified within their allowances. With rational
 sides (arcs) either sum is rational over the product of the sides' weight functions,
 `w_b·w_t (u) · w_l·w_r (v)`: `ExactRationalBooleanSum` multiplies each term's factors piece by
@@ -466,8 +473,10 @@ tangent joints, or Fillet's Conic, Chordal and G2 section at the cap's right ang
 as their straight blends) carried along a line as a ruled B-spline and turned about an arc's axis as a
 rational one, its pcurves the band's own lines (a band as large as a convex arc, closing on its axis,
 refused under `FIXME(INCOMPLETE_IMPLEMENTATION)`); the cap's loop moves the distance into the cap and each wall's edge the distance along
-the wall (a concave loop's band filling the corner). Loops whose walls change side and loops of one
-closed circular edge are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A loop with sharp corners blends the tangent chain holding the selected edge, open at them (a D's top arc, a U's line–arc–line run), when its walls run down from the cap and each end's neighbour wall is a plane square to the chain there: the band ends on its section in that plane, whose corner vertex splits into the cap and wall contacts with the section between them. With Tangent Edges off (`FilletFeature.tangentEdges`, `ChamferFeature.tangentEdges` false) a chain is only the selected edges joined tangentially; where it stops at a tangent joint the band closes on its section there with a flat face facing back along the chain, the cap stepping from its contact back to the corner and the next wall's seam split at the wall contact; concave open chains, ends on oblique faces and chains blended on both sides of a corner are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). In a network every edge is convex, and each face's inward direction from
+the wall (a concave loop's band filling the corner). A whole loop of lines and arcs whose walls rise
+at some edges and fall at others, turning at sharp corners (a boss's foot running into a step's
+edges), is blended by [TurningCapLoop](TurningCapLoop/DESIGN.md); loops turning at tangent joints and
+loops of one closed circular edge are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A loop with sharp corners blends the tangent chain holding the selected edge, open at them (a D's top arc, a U's line–arc–line run), when its walls run down from the cap and each end's neighbour wall is a plane square to the chain there: the band ends on its section in that plane, whose corner vertex splits into the cap and wall contacts with the section between them. With Tangent Edges off (`FilletFeature.tangentEdges`, `ChamferFeature.tangentEdges` false) a chain is only the selected edges joined tangentially; where it stops at a tangent joint the band closes on its section there with a flat face facing back along the chain, the cap stepping from its contact back to the corner and the next wall's seam split at the wall contact; concave open chains, ends on oblique faces and chains blended on both sides of a corner are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). In a network every edge is convex, and each face's inward direction from
 a blended side is read from its outer loop's winding, so concave faces take part. A chamfer's
 section (`chamferSection`) follows Fillet Shell's modes for faces meeting at the interior angle α:
 Offset (the default) meets each face where the other, offset inward by the distance, does —
