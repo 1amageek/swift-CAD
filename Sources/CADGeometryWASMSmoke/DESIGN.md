@@ -2,13 +2,15 @@
 
 ## Purpose and Scope
 
-Child of [the package](../../DESIGN.md), without children. Owns G1/G2 executable
-geometry, knot-reduction and source-signature checks on matching normal WASM and native targets.
+Child of [the package](../../DESIGN.md), without children. Owns G1/G2/G3 cyclic geometry, knot-reduction and source-signature checks,
+plus G4 overlap and G6 common-conversion checks on matching normal WASM and
+native targets.
 
 ## Responsibilities and Boundaries
 
 Exercises actual cyclic geometry, refinement, restriction, projection and source
-transport. It does not establish whole-kernel, Embedded, exchange or application
+transport, richer intersection results and continuous conversion admission through
+public protocols. It does not establish whole-kernel, Embedded, exchange or application
 coverage; those remain in the final integration item. Each new geometry requirement
 must add its own behavioral evidence before this executable can cover it.
 
@@ -19,6 +21,8 @@ must add its own behavioral evidence before this executable can cover it.
 | [Package](../../DESIGN.md) | parent | Verification ownership | Platform-specific geometric runtime evidence | Full integration remains required |
 | [Periodic B-spline](../CADGeometry/PeriodicBSpline/DESIGN.md) | depends on | Periodic evaluation, exact editing and budgets | Exercises rational cycles across their seam | No sampled curve fitting |
 | [KnotRemoval](../CADGeometry/KnotRemoval/DESIGN.md) | depends on | Full-domain deviation bounds | Exercises cyclic curves, pcurves and both tensor axes | Resource refusal must remain explicit |
+| [CurveSurfaceOverlap](../CADGeometry/CurveSurfaceOverlap/DESIGN.md) | depends on | Public intersectionResult and owned correspondence | Exercises authored overlap and whole-span refusal | Angular support similarity is insufficient |
+| [GeometryConversion](../CADGeometry/GeometryConversion/DESIGN.md) | depends on | Public GeometryConverting and source protocols | Constructs and certifies same-chart geometry | Full intervals, native target resources and source errors must retain their contracts |
 | [CADIR](../CADIR/DESIGN.md) | depends on | SubshapeGeometrySignature transport | Retains the exact periodic value in a finite edge span | A signature is not a evaluated body |
 
 ## Architecture
@@ -26,6 +30,11 @@ must add its own behavioral evidence before this executable can cover it.
 ```text
 Native/WASI host -> periodic rational value -> evaluation/refinement/restriction
                 -> prepared projection/bounds -> geometry signature transport
+                -> richer overlap protocol -> authored range/correspondence
+                                           -> tilted-support refusal
+                -> common conversion protocol -> full-domain same-chart success
+                                              -> negative-cycle candidate refusal
+                                              -> typed resource/source failures
                 -> malformed input and resource-budget refusal
 ```
 
@@ -48,6 +57,15 @@ Bezier span with two regular roots that must not yield a unique answer when
 its subdivision budget is exhausted. Knot reduction executes the public protocol
 for rational pcurves, periodic curves and both periodic tensor axes, checks
 source/origin and bound retention, and checks typed work-budget refusal. Periodic geometry or transport
-changes invalidate this runtime evidence. The matching
+changes invalidate this runtime evidence. Overlap evidence executes an authored
+free-surface lift with an explicitly clipped finite range and forward-verified
+correspondence, and refuses a nearby tilted plane whose angular agreement masks
+a large between-station distance. Conversion evidence constructs an exact cubic
+line and tensor plane through the public protocol, verifies continuous position,
+tangent and curvature bounds and source charts, refuses the known negative-cycle
+false candidate, and preserves degree-dependent scalar and public source-error
+refusals. These are portable execution checks; native component suites own the
+broader contract matrix, and existing sampled consumer migration remains a
+separate G6 completion condition. The matching
 Embedded SDK currently lacks Foundation used by existing CADCore/CADGeometry;
 normal WASM runtime success does not establish Embedded support.

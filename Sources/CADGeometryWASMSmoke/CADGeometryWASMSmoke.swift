@@ -86,7 +86,9 @@ struct CADGeometryWASMSmoke {
         }
         try verifyKnotReduction(curve: refined, tolerance: tolerance)
         try verifyPeriodicTensor(tolerance: tolerance)
-        print("CADGeometryWASMSmoke passed: periodic curves and tensor surfaces, evaluation/jets, origins, exact refinement/restriction, certified knot reduction, projection, bounds, edge/face transport and typed refusals")
+        try verifyContinuousOverlap(tolerance: tolerance)
+        try verifyCommonConversion(tolerance: tolerance)
+        print("CADGeometryWASMSmoke passed: periodic curves and tensor surfaces, evaluation/jets, origins, exact refinement/restriction, certified knot reduction, projection, bounds, edge/face transport, continuous authored overlap and common conversion with typed refusals")
     }
 
     private static func verifyKnotReduction(curve: BSplineCurve3D, tolerance: ModelingTolerance) throws {
@@ -226,6 +228,122 @@ struct CADGeometryWASMSmoke {
             throw failure("A collapsed tensor cycle returned an arbitrary unique root.")
         } catch let error as KernelError {
             try require(error.code == .singularSystem, "Collapsed tensor refusal lost its typed failure.")
+        }
+    }
+
+    private static func verifyContinuousOverlap(tolerance: ModelingTolerance) throws {
+        let resolver: any CurveSurfaceIntersectionResolving = DefaultCurveSurfaceIntersector()
+        let surface = Surface3D.bSpline(BSplineSurface3D(uDegree: 2, vDegree: 2,
+            uKnots: [0, 0, 0, 1, 1, 1], vKnots: [0, 0, 0, 1, 1, 1],
+            controlPoints: (0..<3).map { v in (0..<3).map { u in
+                Point3D(x: Double(u) / 2, y: Double(v) / 2, z: u == 1 && v == 1 ? 0.5 : 0)
+            } }))
+        let lift = Curve3D.surfaceLift(SurfaceLiftCurve3D(surface: surface,
+            parameterCurve: .affine(origin: .init(x: 0.1, y: 0.5), direction: .init(x: 0.8, y: 0),
+                startParameter: 0, endParameter: 1)))
+        let result = try resolver.intersectionResult(curve: lift, surface: surface,
+            options: .init(curveRange: ScalarInterval(lower: 0, upper: 1),
+                surfaceURange: ScalarInterval(lower: 0.3, upper: 0.7)), tolerance: tolerance)
+        guard result.overlaps.count == 1, result.points.isEmpty, let overlap = result.overlaps.first else {
+            throw failure("Authored overlap did not retain one complete clipped interval.")
+        }
+        try require(abs(overlap.curveRange.lower - 0.25) < 1e-8 && abs(overlap.curveRange.upper - 0.75) < 1e-8
+            && overlap.maximumSpatialDeviation <= tolerance.distance, "Authored overlap lost its finite proof range.")
+        for t in [overlap.curveRange.lower, 0.5, overlap.curveRange.upper] {
+            let value = try overlap.correspondence(at: t)
+            let actual = try surface.point(u: value.surfaceParameter.u, v: value.surfaceParameter.v, tolerance: tolerance)
+            try require(value.residual <= tolerance.distance && (actual - value.point).length <= tolerance.distance
+                && (try lift.point(at: t, tolerance: tolerance) - value.point).length <= tolerance.distance,
+                "Authored overlap correspondence lost forward membership.")
+        }
+        let hosting = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
+        let tangent = try hosting.differentialGeometry(u: 0, v: 0, tolerance: tolerance).tangentU
+        let alpha = tolerance.angle / 2
+        let length = 100 * tolerance.distance / alpha
+        let normal = try (Vector3D.unitZ + tangent * alpha).normalized(tolerance: tolerance.distance)
+        let tilted = Surface3D.plane(Plane3D(origin: .origin, normal: normal))
+        let harmonic = Curve3D.surfaceLift(SurfaceLiftCurve3D(surface: hosting,
+            parameterCurve: .harmonic(center: .init(x: 0, y: 0), cosine: .init(x: 0, y: 1),
+                sine: .init(x: length, y: 0), startParameter: 0, endParameter: 2 * .pi)))
+        let distance = abs(try (harmonic.point(at: 0.25, tolerance: tolerance) - .origin).dot(normal))
+        try require(distance > 99 * tolerance.distance, "Tilted-plane fixture did not violate spatial membership.")
+        do {
+            _ = try resolver.intersectionResult(curve: harmonic, surface: tilted, options: .init(), tolerance: tolerance)
+            throw failure("Angular support agreement authorized an invalid complete overlap.")
+        } catch let error as KernelError {
+            try require(error.code == .intersectionFailure, "Tilted-plane refusal lost its typed classification.")
+        }
+    }
+
+    private static func verifyCommonConversion(tolerance: ModelingTolerance) throws {
+        let converter: any GeometryConverting = CertifiedGeometryConverter()
+        let line = Curve3D.analytic(.line(origin: .origin, direction: .unitX))
+        let range = try ScalarInterval(lower: 0, upper: 1)
+        let limits = GeometryConversionRequirements(maximumPositionError: 1e-8, maximumTangentAngle: 1e-5,
+            maximumCurvatureError: 1e-5)
+        let result = try converter.approximateCurve(source: NativeCurveConversionSource(line, tolerance: tolerance),
+            over: range, requirements: limits, tolerance: tolerance)
+        try require(result.parameters == range && result.curve.degree == 3 && result.curve.controlPointCount == 4
+            && result.guarantee.certifiedBoxCount > 0 && result.guarantee.positionErrorUpperBound <= limits.maximumPositionError
+            && result.guarantee.tangentAngleUpperBound <= limits.maximumTangentAngle
+            && result.guarantee.curvatureErrorUpperBound <= limits.maximumCurvatureError,
+            "Same-chart conversion did not establish its continuous geometric conditions.")
+        let observed = try (result.curve.point(at: 0.37, tolerance: tolerance) - line.point(at: 0.37, tolerance: tolerance)).length
+        try require(observed <= result.guarantee.positionErrorUpperBound, "Converted curve escaped its advertised position bound.")
+        let plane = Surface3D.analytic(.plane(origin: .origin, normal: .unitZ))
+        let box = SurfaceParameterBox(u: range, v: range)
+        let tensor = try converter.approximateSurface(source: NativeSurfaceConversionSource(plane, tolerance: tolerance),
+            over: box, requirements: limits, tolerance: tolerance)
+        try require(tensor.parameters == box && tensor.surface.uDegree == 3 && tensor.surface.vDegree == 3
+            && tensor.guarantee.certifiedBoxCount > 0 && tensor.guarantee.positionErrorUpperBound <= limits.maximumPositionError
+            && tensor.guarantee.tangentAngleUpperBound <= limits.maximumTangentAngle
+            && tensor.guarantee.curvatureErrorUpperBound <= limits.maximumCurvatureError,
+            "Same-chart tensor conversion did not establish its continuous geometric conditions.")
+        let tensorError = try (tensor.surface.point(u: 0.37, v: 0.61, tolerance: tolerance)
+            - plane.point(u: 0.37, v: 0.61, tolerance: tolerance)).length
+        try require(tensorError <= tensor.guarantee.positionErrorUpperBound, "Converted tensor escaped its advertised position bound.")
+        let periodic = try BSplineCurve3D.periodic(degree: 1, cycleKnots: [0, 1, 2, 3, 4],
+            controlPoints: [.origin, .init(x: 1, y: 0, z: 0), .init(x: 1, y: 1, z: 0), .init(x: 0, y: 1, z: 0)],
+            tolerance: tolerance)
+        let fake = BSplineCurve3D(degree: 1, knots: [-0.25, -0.25, 0.25, 0.25],
+            controlPoints: [.init(x: -0.25, y: 0, z: 0), .init(x: 0.25, y: 0, z: 0)])
+        let discrepancy = try (periodic.point(at: -0.25, tolerance: tolerance) - fake.point(at: -0.25, tolerance: tolerance)).length
+        try require(discrepancy > 0.35, "Negative-cycle false candidate no longer exercises the spatial defect.")
+        do {
+            _ = try converter.certifyCurve(source: NativeCurveConversionSource(.bSpline(periodic), tolerance: tolerance),
+                candidate: fake, over: ScalarInterval(lower: -0.25, upper: 0.25), requirements: limits, tolerance: tolerance)
+            throw failure("A clipped negative cycle authorized a false continuous certificate.")
+        } catch GeometryConversionError.toleranceRejected { }
+        let highDegree = BSplineCurve3D(degree: 16,
+            knots: Array(repeating: 0.0, count: 17) + Array(repeating: 1.0, count: 17),
+            controlPoints: (0...16).map { Point3D(x: Double($0) / 16, y: 0, z: 0) })
+        var bounded = limits
+        bounded.maximumDegree = 16
+        bounded.maximumControlPointCount = 17
+        bounded.maximumCertificationBoxes = 1
+        bounded.maximumScalarCount = 784
+        do {
+            _ = try converter.certifyCurve(source: NativeCurveConversionSource(line, tolerance: tolerance),
+                candidate: highDegree, over: range, requirements: bounded, tolerance: tolerance)
+            throw failure("High-degree enclosure ignored its cumulative scalar budget.")
+        } catch GeometryConversionError.resourceLimitExceeded { }
+        var sourceLimits = limits
+        sourceLimits.maximumCandidateCount = 2
+        sourceLimits.maximumControlPointCount = 4
+        do {
+            _ = try converter.approximateCurve(source: RefusingConversionSource(), over: range,
+                requirements: sourceLimits, tolerance: tolerance)
+            throw failure("A source failure published converted geometry.")
+        } catch GeometryConversionError.toleranceRejected { }
+    }
+
+    private struct RefusingConversionSource: GeometryCurveConversionSource {
+        func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws { }
+        func pointAndDerivative(at parameter: Double, tolerance: ModelingTolerance) throws -> (point: Point3D, derivative: Vector3D) {
+            (.init(x: parameter, y: 0, z: 0), .unitX)
+        }
+        func enclosure(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws -> CurveDifferentialEnclosure {
+            throw GeometryConversionError.toleranceRejected
         }
     }
 
