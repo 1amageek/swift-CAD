@@ -1,7 +1,7 @@
 import CADCore
 
 /// Complete crossing isolation on transverse monotone graph cells, including
-/// C0/C1 collars whose Lipschitz graph has certified one-sided derivative bounds.
+/// Rectangular C0/C1 collars with certified one-sided derivative bounds.
 struct OverlapRegularGraphBoundaryResolver {
     func parameters(graph: OverlapRegularGraphCorrespondence, uValues: [Double], vValues: [Double],
                     budget: inout OverlapProofBudget) throws -> [Double] {

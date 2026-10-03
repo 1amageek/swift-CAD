@@ -2,9 +2,14 @@ import CADCore
 
 /// Differential authority for an original, closed native target chart box.
 enum OverlapRegularGraphAtlas: Sendable, Equatable {
-    enum Axis: Sendable, Equatable { case u, v }
+    struct AxisKnots: Sendable, Equatable {
+        let first: Double
+        let last: Double
+        let count: Int
+    }
+
     case smooth
-    case collar(axis: Axis, knot: Double)
+    case collar(u: AxisKnots?, v: AxisKnots?)
 
     var isSmooth: Bool {
         if case .smooth = self { return true }
@@ -13,10 +18,11 @@ enum OverlapRegularGraphAtlas: Sendable, Equatable {
 
     static func authority(over box: SurfaceParameterBox, surface: BSplineSurface3D,
                           tolerance: ModelingTolerance, budget: inout OverlapProofBudget) throws -> Self {
-        var result = Self.smooth
-        for (axis, knots, degree, interval) in [(Axis.u, surface.uKnots, surface.uDegree, box.u),
-                                              (Axis.v, surface.vKnots, surface.vDegree, box.v)] {
+        var u: AxisKnots?, v: AxisKnots?
+        for (isU, knots, degree, interval) in [(true, surface.uKnots, surface.uDegree, box.u),
+                                             (false, surface.vKnots, surface.vDegree, box.v)] {
             try budget.work(knots.count)
+            var summary: AxisKnots?
             var index = degree + 1
             while index < knots.count - degree - 1 {
                 let value = knots[index]
@@ -24,21 +30,21 @@ enum OverlapRegularGraphAtlas: Sendable, Equatable {
                 while end < knots.count, knots[end] == value { end += 1 }
                 if value >= interval.lower, value <= interval.upper {
                     let continuity = degree - (end - index)
-                    // FIXME(INCOMPLETE_IMPLEMENTATION): multiple low-continuity knots
-                    // and tensor corners have no complete atlas
-                    // authority in intersectionResult. They must fail until all owning
-                    // branches, derivative capabilities and joins are certified.
                     if continuity < 2 {
-                        guard (continuity == 0 || continuity == 1), result.isSmooth else {
+                        guard continuity == 0 || continuity == 1 else {
                             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                                message: "The regular graph atlas admits only one original C0 or C1 target knot per closed chart box.")
+                                message: "An original knot does not provide C0 or C1 collar continuity.")
                         }
-                        result = .collar(axis: axis, knot: value)
+                        // Complete knots remain owned by the original surface.
+                        // Only fixed-size transverse-axis metadata is retained.
+                        summary = AxisKnots(first: summary?.first ?? value, last: value,
+                            count: (summary?.count ?? 0) + 1)
                     }
                 }
                 index = end
             }
+            if isU { u = summary } else { v = summary }
         }
-        return result
+        return u == nil && v == nil ? .smooth : .collar(u: u, v: v)
     }
 }

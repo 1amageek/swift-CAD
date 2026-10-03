@@ -115,3 +115,10 @@ broader contract matrix, and existing sampled consumer migration remains a
 separate G6 completion condition. The matching
 Embedded SDK currently lacks Foundation used by existing CADCore/CADGeometry;
 normal WASM runtime success does not establish Embedded support.
+
+The finite rectangular original-knot fixture executes two literal C0 slope
+changes on U, V and both tensor axes through public intersection queries. Its
+independent piecewise inverse, source clip endpoints `1/9` and `17/23`, retained
+input ownership, forward residual and work refusal are checked on the selected
+Native or matching normal-WASM runtime. It does not establish Embedded support
+or complete general G4 atlas admission.

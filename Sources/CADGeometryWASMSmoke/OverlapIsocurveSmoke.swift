@@ -152,6 +152,58 @@ struct OverlapIsocurveSmoke {
         try verifyOriginalKnotGraph(isC1: true, tolerance: tolerance)
     }
 
+    static func verifyFiniteKnotGraph(tolerance: ModelingTolerance) throws {
+        let resolver: any CurveSurfaceIntersectionResolving = DefaultCurveSurfaceIntersector()
+        let originalSource = Curve3D.bSpline(BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+            controlPoints: [.origin, Point3D(x: 0.25, y: 0.25, z: 0), Point3D(x: 0.5, y: 0.5, z: 0.25)],
+            weights: [1, 2, 4]))
+        let values = [0.0, 0.125, 0.375, 1.375], knots = [0.0, 0, 0.25, 0.5, 1, 1]
+        for mode in 0..<3 {
+            let rows = [values.map { Point3D(x: $0, y: 0, z: 0) },
+                values.map { Point3D(x: $0, y: 1, z: $0) }]
+            let points = mode == 2 ? values.map { y in values.map { x in Point3D(x: x, y: y, z: x * y) } }
+                : mode == 1 ? values.indices.map { [rows[0][$0], rows[1][$0]] } : rows
+            var surface = BSplineSurface3D(uDegree: 1, vDegree: 1,
+                uKnots: mode == 1 ? [0, 0, 1, 1] : knots,
+                vKnots: mode == 0 ? [0, 0, 1, 1] : knots, controlPoints: points)
+            let originalTarget = Surface3D.bSpline(surface)
+            var source = originalSource
+            var options = CurveSurfaceIntersectionOptions(curveRange: try ScalarInterval(lower: 0.1, upper: 0.8),
+                maximumSubdivisionDepth: 20, maximumSubdivisionCells: 4_194_304, maximumCandidateCount: 16_384)
+            let complete = try soleOverlap(resolver.intersectionResult(curve: source, surface: originalTarget,
+                options: options, tolerance: tolerance), tolerance: tolerance)
+            try require(complete.curveRange == options.curveRange, "Finite knot atlas lost original source coverage.", tolerance)
+            try verifyBound(complete, tolerance: tolerance)
+            surface.controlPoints[0][0] = Point3D(x: 8, y: 9, z: 10)
+            source = .line(Line3D(origin: .origin, direction: .unitZ))
+            for t in [0.1, 1.0 / 7.0, 0.3, 3.0 / 5.0, 0.8] {
+                let h = t / (1 + t)
+                let inverse = h <= 0.125 ? 2 * h : h <= 0.375 ? h + 0.125 : (h + 0.625) / 2
+                let value = try complete.correspondence(at: t)
+                try require(abs(value.surfaceParameter.u - (mode == 1 ? h : inverse)) < 1e-7
+                    && abs(value.surfaceParameter.v - (mode == 0 ? h : inverse)) < 1e-7,
+                    "Finite knot atlas differs from its independent piecewise inverse.", tolerance)
+                try verifyForward(value, source: originalSource, target: originalTarget, tolerance: tolerance)
+            }
+            let clip = try ScalarInterval(lower: 0.2, upper: 0.525)
+            if mode != 1 { options.surfaceURange = clip }
+            if mode != 0 { options.surfaceVRange = clip }
+            let clipped = try soleOverlap(resolver.intersectionResult(curve: originalSource, surface: originalTarget,
+                options: options, tolerance: tolerance), tolerance: tolerance)
+            try require(abs(clipped.curveRange.lower - 1.0 / 9.0) < 1e-8
+                && abs(clipped.curveRange.upper - 17.0 / 23.0) < 1e-8,
+                "Finite knot atlas lost its independent clipped source endpoints.", tolerance)
+            try verifyBound(clipped, tolerance: tolerance)
+            try verifyForward(clipped.start, source: originalSource, target: originalTarget, tolerance: tolerance)
+            try verifyForward(clipped.end, source: originalSource, target: originalTarget, tolerance: tolerance)
+            options.maximumSubdivisionCells = 2
+            try expectFailure(.resourceLimitExceeded, tolerance: tolerance) {
+                _ = try resolver.intersectionResult(curve: originalSource, surface: originalTarget,
+                    options: options, tolerance: tolerance)
+            }
+        }
+    }
+
     private static func verifyOriginalKnotGraph(isC1: Bool, tolerance: ModelingTolerance) throws {
         let source = Curve3D.bSpline(BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
             controlPoints: [.origin, Point3D(x: 0.25, y: 0.25, z: 0), Point3D(x: 0.5, y: 0.5, z: 0.25)],

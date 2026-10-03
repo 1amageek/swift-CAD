@@ -214,6 +214,37 @@ the existing iteration limit bounds refinement. The boundary corridor and
 single-boundary admission predicate remain unchanged, so a bounded but still
 insufficient enclosure continues to fail rather than expand the requested range.
 
+Whole-range collar localization uses the same retained-root implication after
+its first strict chart proof. Its immutable authority retains the complete
+original source interval, selected pair, and initial certified root image.
+Only an undecided position residual (upper absolute bound above distance and
+lower absolute bound at or below distance) triggers refinement. Every subsequent
+box intersects the outward Krawczyk image with the current owned root box,
+preserving the root for every source parameter. Original all-owning target
+Jacobian, positive minor, contraction and finite positive-width checks remain
+mandatory at every step. The original collar authority and first-only UV
+derivative bounds remain unchanged; only the certified root box and remaining
+position residual are updated. Localization cannot promote a collar to a smooth
+Taylor chart. The original source position enclosure retains its full interval.
+The initial strict proof consumes the first iteration; at most
+`maximumIterations - 1` charged refinements follow. A certified distance bound,
+proved distance exclusion, or two stationary axes stops refinement. Otherwise
+the existing source subdivision and explicit limit failure remain responsible.
+No new root, decomposition, source subdivision, depth allowance or retained
+cell is created by this bounded invocation-local refinement.
+
+An already evaluated original remaining-source position interval supplies a
+necessary precision condition before whole-range localization. For independent
+intervals `A` and `B`, `width(A - B) >= width(A)`, whereas an absolute residual
+bound at distance requires width at most twice that distance. If the outward
+lower bound of the original source-position width exceeds the outward upper
+bound of twice distance, no target-position interval refinement can establish
+this position-only certificate. The initial unresolved strict proof is returned
+for existing source subdivision; this condition never proves non-membership.
+The retained scalar width bound requires no additional lower evaluation,
+decomposition, array or budget. Narrow intervals satisfying this necessary
+condition still use the unchanged retained-root refinement and caller limits.
+
 Membership is decided for each original Bezier source classification span
 intersected with the requested source interval. Graph subdivision only tightens
 one complete span certificate. The maximum over its gapless cell cover must
@@ -228,7 +259,7 @@ derivative alone does not override a certified whole-span distance bound.
 Failure to prove either complete admission or this refusal remains typed failure.
 
 Source cells split at every original source knot before Taylor certification.
-A target root tube containing one original C0 or C1 U or V knot uses the bounded
+A target root tube containing original C0 or C1 U or V knots uses the bounded
 collar authority below. Other unproved low-continuity atlas transitions remain
 incomplete and fail explicitly. Within a smooth chart, positive definite symmetric parts of an interval-preconditioned selected
 Jacobian prove global injectivity on the convex hull of all retained UV boxes.
@@ -253,10 +284,11 @@ contain a fresh two-sided quotient enclosure. The common candidate must still
 pass strict Krawczyk inclusion and minor rank for the unchanged Cartesian pair;
 overlap of boxes or candidate enlargement alone is insufficient for a join.
 
-### One Original C0 or C1 Target Knot Atlas
+### Finite Rectangular Original C0 or C1 Knot Atlas
 
 `OverlapRegularGraphAtlas` classifies the closed target proof box as smooth or
-as a collar containing exactly one original C0 or C1 knot on one axis. Knot endpoints
+as a rectangular collar containing finitely many original C0/C1 knots on either
+or both axes, including tensor-knot corners. Knot endpoints
 are included because prepared point/closed-box jets retain every owning patch.
 The validated original B-spline limits interior multiplicity to degree and
 therefore provides C0 continuity. The prepared owner unions every owning native
@@ -271,11 +303,15 @@ existing positive-definite symmetric-part proof of global injectivity.
 | Proof / Cell authority | Derivatives retained | Membership bound |
 |---|---|---|
 | Smooth | Implicit UV and remaining-coordinate derivatives through order three | Original centered Taylor enclosure |
-| Single C0 or C1 knot collar | One-sided first UV derivative bounds, valid almost everywhere on the Lipschitz graph | Original source position minus target position over the certified K image |
+| Finite rectangular C0/C1 knot collar | One-sided first UV derivative bounds, valid almost everywhere on the Lipschitz graph | Original source position minus target position over the certified K image |
 
 A collar never assumes second/third derivative continuity and never exposes a
-Taylor derivative certificate. Its knot-axis first derivative must exclude
-zero, establishing a transverse, monotone passage through the native knot.
+Taylor derivative certificate. Each axis whose closed box contains a C0/C1 knot
+must have a first UV derivative interval excluding zero, establishing a
+transverse, monotone passage through every native knot on that axis. Checking
+only one axis at a tensor corner cannot authorize the other axis. A knot may
+lie in the tube without lying on the graph; this conservative admission still
+requires the affected axis to be transverse.
 Uniform contraction and bounded source derivatives establish Lipschitz graph
 continuity; the one-sided derivative bounds then support complete chart-boundary
 isolation. The collar joins neighboring cells through the unchanged common-root
@@ -283,15 +319,59 @@ uniqueness proof for the same Cartesian pair. No rounded source parameter is
 treated as the exact native-knot crossing, and no artificial source gap is left.
 
 Continuity is classified from the original degree minus native knot
-multiplicity. A single C1 knot uses the same conservative first-order collar
+multiplicity. C1 knots use the same conservative first-order collar
 authority as C0: continuity of the first derivative does not imply continuity
 of the second derivative required by the smooth Taylor path. All-owning native
 Jacobian enclosures, strict fresh Krawczyk inclusion, retained point-root image
 localization, positive minor, global injectivity and common-root joins are
-unchanged. Admission changes only the atlas multiplicity gate from C0 to
-C0/C1. It creates no new geometry, decomposition, derivative or budget owner.
+unchanged. The validated surface is continuous across the entire finite tensor
+partition. Positive denominators and finite one-sided derivative bounds on its
+compact patches give a piecewise Lipschitz map. The prepared owner's closed
+intersection rule retains every owning patch at edges and corners. Their
+entrywise Jacobian hull contains the generalized Jacobians and every
+segment-average Jacobian across any number of these boundaries. Uniform strict
+Krawczyk contraction therefore proves the same original graph, and the
+positive symmetric part proves global injectivity, without choosing one side
+of a corner or enumerating knot crossings as approximate source cuts.
 
-Candidate tubes containing the low-continuity knot additionally consume the entire
+A rational source quotient jet can give a broad first-derivative enclosure
+containing zero even when its graph is monotone. If the original strict root
+proof succeeds but an affected axis lacks transverse admission, the root owner
+may tighten only source first derivatives by unioning jets over a complete
+subinterval cover of the same original source range. Covers have two, four,
+eight and further power-of-two parts up to the caller's `maximumIterations`;
+their local bisection depth uses the existing subdivision-depth limit. Every
+endpoint is finite and ordered, adjacent pieces share exactly the same cut,
+and the last piece ends at the original upper endpoint. An unrepresentable
+complete cover is abandoned without using its partial union.
+
+The same immutable prepared curve supplies every interval jet. The complete
+union is intersected with the original first-derivative bounds, and the
+implicit first derivatives are recomputed against the unchanged original
+target Jacobian and minor. Original source position and higher derivatives,
+the strict Krawczyk root image, and the remaining position residual are kept.
+No point values, derivative samples, numerical inverse or projection establish
+transversality. The final per-axis zero-exclusion guard is unchanged. Constant
+or unresolved axes still refuse after bounded refinement. Empty derivative
+intersections fail explicitly; they cannot authorize a replacement bound.
+
+Endpoint checks and every lower interval evaluation charge the existing work
+budget before execution and check cancellation. Only one fixed-size jet union
+and the current interval are retained, with no decomposition or cover arrays.
+Cover limits do not increase caller budgets or create independently admitted
+source fragments; classification and membership still belong to the complete
+original source span.
+
+Atlas metadata has one optional fixed-size summary per axis: first native knot,
+last native knot and count of distinct C0/C1 knots in the closed box. Exact native
+multiplicities and knot values are scanned without tolerance merging. The
+immutable original surface retains the complete knot vectors; summaries do not
+replace geometry or own decomposition arrays. An empty summary means that axis
+needs no low-continuity collar admission. Any nonempty summary must pass its own
+transverse derivative guard. Metadata equality remains part of correspondence
+authority together with the original geometry and complete cell boxes.
+
+Candidate tubes containing low-continuity knots additionally consume the entire
 one-sided Jacobian hull for their preconditioner hint. A pointwise Jacobian from
 the steeper side can under-size the tube relative to the union contraction.
 Candidate enlargement is still only a hint; strict inclusion, common minor
@@ -300,13 +380,19 @@ mandatory. Source subdivision tightens the position-only collar bound under
 the existing caller budget. Smooth cells and collar cells form one gapless
 cover whose maximum deviation decides complete original-span admission.
 
-Two low-continuity knots, tensor corners, a minor
-whose union contains zero, and continuous/non-transverse knot coincidence remain
-explicit refusals. This family does not complete general knot atlases or G4.
+A minor whose all-owning union contains zero, failed uniform contraction or
+global uniqueness, and continuous/non-transverse knot coincidence on either
+affected axis remain explicit refusals. This family does not complete general
+knot atlases or G4: it requires one defining Cartesian pair and the existing
+whole-span membership, monotone boundary isolation and finite arithmetic proofs.
 All atlas state belongs to immutable original graph owners; no decomposition,
 shared cache, target branch or platform-specific storage is added. Atlas scans,
 the additional collar candidate jet and retained cells consume the existing
-invocation work/storage limits before their associated work or growth.
+invocation work/storage limits before their associated work or growth. Scanning
+still charges both complete original knot vectors before reading them; the two
+summaries add fixed-size cell metadata rather than per-knot allocation. Prepared
+target representation and all-owning jet evaluations retain their existing
+preparation/evaluation work charges and caller depth/degree/iteration limits.
 
 `CurveSurfaceOverlap` owns the original curve, original surface and graph cells.
 Its correspondence evaluation locates a certified cell, refines its original
@@ -490,9 +576,12 @@ Requested knot-axis `[0.4,0.55]` retains source `[4/21,141/259]`.
 | Known clipped interval crossing the knot | Incomplete crossing isolation or joining across a chart gap |
 | Nonlinear coordinate refinement after the other axis reaches its numerical floor, with swapped axes | Returning a broad root because a rounded image fails fresh strict inclusion in the already precise coordinate |
 | Uncertified point box, exhausted localization work and cancellation | Manufacturing root authority or bypassing caller limits during image localization |
+| Measured tensor-corner full interval, literal inverse endpoint containment, iteration-one unresolved bound, exact localization work and cancellation | Losing any parameter's root, changing collar derivative authority, or creating an uncharged whole-range refinement allowance |
+| Broad source-position interval with exact one-certificate work, unchanged unresolved proof and literal inverse containment | Spending refinement work where independent position intervals cannot certify distance, or treating the precision gate as non-membership |
 | Explicit smooth/collar derivative capability | Consuming nonexistent global higher derivatives on a C0 knot |
 | Middle Z control increased by `1/8` | Endpoint or seam coincidence masquerading as whole-span membership |
-| Opposite one-sided minor, tensor corner, continuous knot and budget refusal | Hidden branch/rank change, unsupported atlas success or reset caller limits |
+| Opposite one-sided minor, continuous knot and budget refusal | Hidden branch/rank change, unsupported atlas success or reset caller limits |
+| Original C0 tensor-corner graph with independent piecewise inverse | Dropping an owning patch or checking only one corner axis |
 
 The independent single-C1-knot evidence uses `S(u,v)=(f(u),v,f(u)*v)` with
 `f(u)=u*u` for `u<=0.5` and `f(u)=u*u+(u-0.5)^2` otherwise. Degree `(2,1)`,
@@ -512,5 +601,31 @@ zero-width request `[0.5,0.5]` retains only the isolated point `t=1/3`.
 | Independent clipped endpoints and zero-width knot crossing | Incorrect source inversion, chart admission or boundary isolation |
 | Native second-derivative jump with first-order-only collar certificate | Treating C1 as a globally smooth Taylor chart |
 | Middle source Z increased by `1/8`, with positive independent deviation | Tolerance subdivision admitting fragments of a non-admitted original span |
-| Constant knot coordinate, multiple low-continuity knots and C1 tensor corner | Unsupported atlas or continuous-boundary success |
+| Constant knot coordinate | Unsupported continuous-boundary success |
+| Multiple native C1 knots representing identity XY and C1 tensor corner with piecewise inverse | Rejecting a finite certifiable atlas or omitting corner ownership |
 | Caller work/depth/degree/storage limits and cancellation | Reset budgets or hidden fallback during C1 admission |
+
+The independent finite rectangular fixture uses the literal piecewise-linear
+map `f(u)=u/2` for `u<=1/4`, `f(u)=u-1/8` for `1/4<=u<=1/2`, and
+`f(u)=2*u-5/8` otherwise. Native degree one, knots
+`[0,0,1/4,1/2,1,1]`, unit weights and controls `[0,1/8,3/8,11/8]`
+represent both original C0 slope changes exactly. The one-axis target is
+`S=(f(u),v,f(u)*v)`; its tensor-corner counterpart is
+`S=(f(u),f(v),f(u)*f(v))`. Both consume the same independently authored rational
+source `C=(h,h,h*h)`, `h=t/(1+t)`, on `[0.1,0.8]`.
+The literal inverse is `2*h`, `h+1/8` or `(h+5/8)/2` in the three regions.
+Crossings occur at `t=1/7` and `t=3/5`, simultaneously on both tensor axes.
+Requested knot-axis `[0.2,0.525]` retains source `[1/9,17/23]`. Zero-width native
+knot requests retain only the corresponding isolated crossing. At a tensor
+corner the prepared point/closed-box Jacobian must contain every native
+one-sided slope combination; no one-sided station replaces that authority.
+
+| Finite collar evidence | Failure identified |
+|---|---|
+| Whole original source, two crossings, independent numerical inverse and owned forward correspondence | Single-knot-only admission, missing span coverage or projection replacement |
+| Known clipped interval and both zero-width native knot requests | Incomplete boundary roots, incorrect source endpoints or tolerance widening |
+| Closed multi-knot summary and all-owning corner Jacobian with first-order-only strict proof | Dropped native span, higher derivative assumption or corner side selection |
+| Broad source interval with zero-containing quotient derivative but an independent positive exact derivative | Premature transverse refusal without a complete original-source derivative enclosure |
+| Positive middle-Z deviation | Tiny overlap fragments from a failed original-span certificate |
+| Constant U and constant V at native knots | Checking only one affected axis |
+| Folded corner Jacobian, work/depth/degree/storage limits and cancellation | Unproved rank/injectivity or unbounded atlas work |

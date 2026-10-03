@@ -200,13 +200,6 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapChartBoundaryResolver.swift", sourceLine: 78
         ),
         KernelDomainLimitation(
-            id: "condition-a97d56be07ad3c22",
-            operations: ["curveSurfaceIntersectionResult"],
-            dimensions: [.parameterization, .representation],
-            condition: "multiple low-continuity knots and tensor corners have no complete atlas authority in intersectionResult. They must fail until all owning branches, derivative capabilities and joins are certified.",
-            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphAtlas.swift", sourceLine: 27
-        ),
-        KernelDomainLimitation(
             id: "condition-fa1830de8517c6fa",
             operations: ["curveSurfaceIntersectionResult"],
             dimensions: [.parameterization, .representation],
@@ -218,7 +211,7 @@ extension KernelCapabilities {
             operations: ["curveSurfaceIntersectionResult"],
             dimensions: [.parameterization, .representation],
             condition: "continuous or non-transverse native knot coincidence lacks complete atlas classification. The public graph route must refuse until all boundary intervals and root identities can be certified without a higher-derivative continuity assumption.",
-            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphRootCertifier.swift", sourceLine: 232
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphRootCertifier.swift", sourceLine: 263
         ),
         KernelDomainLimitation(
             id: "condition-ab422fcb30c9fecd",

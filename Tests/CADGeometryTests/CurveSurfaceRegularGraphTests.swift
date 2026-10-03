@@ -7,6 +7,384 @@ struct CurveSurfaceRegularGraphTests {
     private let intersector: any CurveSurfaceIntersectionResolving = DefaultCurveSurfaceIntersector()
 
     @Test(.timeLimit(.minutes(1)))
+    func broadSourcePositionCannotConsumeFutileRangeLocalizationWork() throws {
+        let source = sourceCurve(), target = finiteKnotSurface(tensor: true), options = try graphOptions()
+        let root = OverlapRegularGraphRootCertifier(
+            curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
+            surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
+            tolerance: .standard)
+        let range = try ScalarInterval(lower: 0.32, upper: 0.35)
+        let axis = try ScalarInterval(lower: 0.3, upper: 0.6)
+        let box = SurfaceParameterBox(u: axis, v: axis), pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
+        var initialOnly = options
+        initialOnly.maximumIterations = 1
+        var initialBudget = OverlapProofBudget(options: initialOnly, tolerance: .standard)
+        let initial = try #require(root.proof(range: range, box: box, pair: pair, budget: &initialBudget))
+        #expect(!initial.authority.isSmooth && initial.residual.count == 1)
+        let maximumWidth = OutwardScalarInterval.exact(ModelingTolerance.standard.distance) * .exact(2)
+        #expect(initial.sourcePositionWidthLowerBound > maximumWidth.upper)
+        #expect(initial.residual[0].absoluteUpperBound > ModelingTolerance.standard.distance)
+        #expect(initial.residual[0].absoluteLowerBound <= ModelingTolerance.standard.distance)
+        var exactInitialWork = options
+        // Only the strict certificate fits, despite the original full iteration allowance.
+        exactInitialWork.maximumSubdivisionCells = root.jetWork * 4 + target.uKnots.count + target.vKnots.count
+        var budget = OverlapProofBudget(options: exactInitialWork, tolerance: .standard)
+        let unchanged = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
+        #expect(unchanged.box == initial.box && unchanged.authority == initial.authority)
+        #expect(unchanged.sourcePositionWidthLowerBound == initial.sourcePositionWidthLowerBound)
+        #expect(unchanged.residual[0].lower == initial.residual[0].lower
+            && unchanged.residual[0].upper == initial.residual[0].upper)
+        let lower = finiteKnotInverse(range.lower / (1 + range.lower))
+        let upper = finiteKnotInverse(range.upper / (1 + range.upper))
+        for axis in [unchanged.box.u, unchanged.box.v] {
+            #expect(axis.lower <= lower && axis.upper >= upper)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func tensorCornerRangeLocalizationRetainsEveryOriginalIntervalRoot() throws {
+        let source = sourceCurve(), target = finiteKnotSurface(tensor: true), options = try graphOptions()
+        let root = OverlapRegularGraphRootCertifier(
+            curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
+            surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
+            tolerance: .standard)
+        let range = try ScalarInterval(lower: 0.5999994277954102, upper: 0.6000000953674316)
+        let axis = try ScalarInterval(lower: 0.4999990202481862, upper: 0.5000007934872713)
+        let box = SurfaceParameterBox(u: axis, v: axis), pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
+        var firstOnly = options
+        firstOnly.maximumIterations = 1
+        var firstBudget = OverlapProofBudget(options: firstOnly, tolerance: .standard)
+        let first = try #require(root.proof(range: range, box: box, pair: pair, budget: &firstBudget))
+        #expect(first.residual[0].absoluteUpperBound > ModelingTolerance.standard.distance)
+        #expect(first.residual[0].absoluteLowerBound <= ModelingTolerance.standard.distance)
+        var budget = OverlapProofBudget(options: options, tolerance: .standard)
+        let refined = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
+        let lower = finiteKnotInverse(range.lower / (1 + range.lower))
+        let upper = finiteKnotInverse(range.upper / (1 + range.upper))
+        // h and the literal piecewise-linear inverse are increasing on this full interval.
+        for (axis, initial) in [(refined.box.u, first.box.u), (refined.box.v, first.box.v)] {
+            #expect(axis.lower <= lower && axis.upper >= upper)
+            #expect(axis.lower >= initial.lower && axis.upper <= initial.upper)
+            #expect(axis.width < initial.width)
+        }
+        #expect(refined.authority == first.authority && !refined.authority.isSmooth)
+        #expect(refined.u.count == 1 && refined.v.count == 1 && refined.residual.count == 1)
+        #expect(refined.u[0].lower == first.u[0].lower && refined.u[0].upper == first.u[0].upper)
+        #expect(refined.v[0].lower == first.v[0].lower && refined.v[0].upper == first.v[0].upper)
+        #expect(refined.residual[0].absoluteUpperBound <= ModelingTolerance.standard.distance)
+        let original = try root.curve.thirdOrderIntervalJet(over: range, tolerance: .standard)
+        let image = try root.surface.intervalJet(over: refined.box, tolerance: .standard)
+        let residual = original.z.value - image.z.value
+        #expect(refined.residual[0].lower == residual.lower && refined.residual[0].upper == residual.upper)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func tensorCornerRangeLocalizationRequiresStrictRootAndChargesEveryRefinement() throws {
+        let source = sourceCurve(), target = finiteKnotSurface(tensor: true), options = try graphOptions()
+        let root = OverlapRegularGraphRootCertifier(
+            curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
+            surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
+            tolerance: .standard)
+        let range = try ScalarInterval(lower: 0.5999994277954102, upper: 0.6000000953674316)
+        let axis = try ScalarInterval(lower: 0.4999990202481862, upper: 0.5000007934872713)
+        let box = SurfaceParameterBox(u: axis, v: axis), pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
+        let wrongAxis = try ScalarInterval(lower: 0.1, upper: 0.2)
+        var unrestricted = OverlapProofBudget(options: options, tolerance: .standard)
+        #expect(try root.proof(range: range, box: SurfaceParameterBox(u: wrongAxis, v: wrongAxis),
+            pair: pair, budget: &unrestricted) == nil)
+        var limited = options
+        // The initial strict K proof and its position residual fit exactly.
+        limited.maximumSubdivisionCells = root.jetWork * 4 + target.uKnots.count + target.vKnots.count
+        var initialOnly = limited
+        initialOnly.maximumIterations = 1
+        var initialBudget = OverlapProofBudget(options: initialOnly, tolerance: .standard)
+        let initial = try #require(root.proof(range: range, box: box, pair: pair, budget: &initialBudget))
+        #expect(initial.residual[0].absoluteUpperBound > ModelingTolerance.standard.distance)
+        var exhausted = OverlapProofBudget(options: limited, tolerance: .standard)
+        try expectFailure(.resourceLimitExceeded) {
+            _ = try root.proof(range: range, box: box, pair: pair, budget: &exhausted)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func cancelledTensorCornerRangeLocalizationCannotReturnAProof() async throws {
+        let source = sourceCurve(), target = finiteKnotSurface(tensor: true), options = try graphOptions()
+        let root = OverlapRegularGraphRootCertifier(
+            curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
+            surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
+            tolerance: .standard)
+        let range = try ScalarInterval(lower: 0.5999994277954102, upper: 0.6000000953674316)
+        let axis = try ScalarInterval(lower: 0.4999990202481862, upper: 0.5000007934872713)
+        let (stream, continuation) = AsyncStream<Void>.makeStream()
+        let task = Task {
+            for await _ in stream { break }
+            var budget = OverlapProofBudget(options: options, tolerance: .standard)
+            _ = try root.proof(range: range, box: SurfaceParameterBox(u: axis, v: axis),
+                pair: .init(first: 0, second: 1), budget: &budget)
+        }
+        task.cancel()
+        continuation.yield()
+        continuation.finish()
+        await #expect(throws: CancellationError.self) { _ = try await task.value }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func broadSourceQuotientUsesACompleteDerivativeCoverBeforeTransverseAdmission() throws {
+        let source = sourceCurve(), target = finiteKnotSurface(), options = try graphOptions()
+        var budget = OverlapProofBudget(options: options, tolerance: .standard)
+        try budget.preparation(curve: source, surface: target)
+        let root = OverlapRegularGraphRootCertifier(
+            curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
+            surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
+            tolerance: .standard)
+        let range = try ScalarInterval(lower: 0.275, upper: 0.45000000000000007)
+        let box = SurfaceParameterBox(u: try ScalarInterval(lower: 0, upper: 1),
+            v: try ScalarInterval(lower: 0, upper: 0.9427002317387102))
+        let original = try root.curve.thirdOrderIntervalJet(over: range, tolerance: .standard)
+        #expect(original.x.derivativeU.lower < 0 && original.x.derivativeU.upper > 0)
+        #expect(original.y.derivativeU.lower < 0 && original.y.derivativeU.upper > 0)
+        let proof = try #require(root.proof(range: range, box: box, pair: .init(first: 0, second: 1), budget: &budget))
+        #expect(proof.authority == .collar(u: .init(first: 0.25, last: 0.5, count: 2), v: nil))
+        #expect(proof.u.count == 1 && proof.v.count == 1 && proof.residual.count == 1)
+        #expect(proof.box.u.lower > box.u.lower && proof.box.u.upper < box.u.upper)
+        #expect(proof.box.v.lower > box.v.lower && proof.box.v.upper < box.v.upper)
+        // h lies inside the middle native segment, so both true UV derivatives
+        // are h'=1/(1+t)^2 throughout the complete original source interval.
+        let exactLower = 1 / ((1 + range.upper) * (1 + range.upper))
+        let exactUpper = 1 / ((1 + range.lower) * (1 + range.lower))
+        #expect(proof.u[0].lower > 0 && proof.u[0].lower <= exactLower && proof.u[0].upper >= exactUpper)
+        #expect(proof.v[0].lower > 0 && proof.v[0].lower <= exactLower && proof.v[0].upper >= exactUpper)
+        let image = try root.surface.intervalJet(over: proof.box, tolerance: .standard)
+        let originalResidual = original.z.value - image.z.value
+        #expect(proof.residual[0].lower == originalResidual.lower && proof.residual[0].upper == originalResidual.upper)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func completeSourceDerivativeCoverHonorsWorkDepthAndIterationLimits() throws {
+        let source = sourceCurve(), target = finiteKnotSurface(), options = try graphOptions()
+        let root = OverlapRegularGraphRootCertifier(
+            curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
+            surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
+            tolerance: .standard)
+        let range = try ScalarInterval(lower: 0.275, upper: 0.45000000000000007)
+        let box = SurfaceParameterBox(u: try ScalarInterval(lower: 0, upper: 1),
+            v: try ScalarInterval(lower: 0, upper: 0.9427002317387102))
+        var workLimited = options
+        // The strict original chart and cover preflight fit; the next lower jet must be charged.
+        workLimited.maximumSubdivisionCells = root.jetWork * 3 + target.uKnots.count + target.vKnots.count + 2
+        var work = OverlapProofBudget(options: workLimited, tolerance: .standard)
+        try expectFailure(.resourceLimitExceeded) {
+            _ = try root.proof(range: range, box: box, pair: .init(first: 0, second: 1), budget: &work)
+        }
+        var depthLimited = options
+        depthLimited.maximumSubdivisionDepth = 0
+        var depth = OverlapProofBudget(options: depthLimited, tolerance: .standard)
+        try expectFailure(.resourceLimitExceeded) {
+            _ = try root.proof(range: range, box: box, pair: .init(first: 0, second: 1), budget: &depth)
+        }
+        var iterationLimited = options
+        iterationLimited.maximumIterations = 1
+        var iterations = OverlapProofBudget(options: iterationLimited, tolerance: .standard)
+        // Without a complete finer cover the original transverse guard still refuses.
+        try expectFailure(.unsupportedCapability) {
+            _ = try root.proof(range: range, box: box, pair: .init(first: 0, second: 1), budget: &iterations)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func finiteOriginalKnotAtlasOwnsTwoCrossingsAndTensorCorners() throws {
+        for mode in 0..<3 {
+            var source = Curve3D.bSpline(sourceCurve())
+            var target = Surface3D.bSpline(finiteKnotSurface(swapped: mode == 1, tensor: mode == 2))
+            let originalSource = source, originalTarget = target, options = try graphOptions()
+            let result = try intersector.intersectionResult(curve: source, surface: target,
+                options: options, tolerance: .standard)
+            #expect(result.overlaps.count == 1 && result.points.isEmpty)
+            let overlap = try #require(result.overlaps.first)
+            #expect(overlap.curveRange == options.curveRange)
+            #expect(overlap.maximumSpatialDeviation <= ModelingTolerance.standard.distance)
+            source = .line(Line3D(origin: Point3D(x: 3, y: 4, z: 5), direction: .unitZ))
+            target = .plane(Plane3D(origin: .origin, normal: .unitX))
+            for t in [0.1, 1.0 / 7.0, 0.3, 3.0 / 5.0, 0.8] {
+                let h = t / (1 + t), inverse = finiteKnotInverse(h)
+                let value = try overlap.correspondence(at: t)
+                #expect(abs(value.surfaceParameter.u - (mode == 1 ? h : inverse)) < 1e-7)
+                #expect(abs(value.surfaceParameter.v - (mode == 0 ? h : inverse)) < 1e-7)
+                let point = try originalSource.point(at: t, tolerance: .standard)
+                #expect((point - Point3D(x: h, y: h, z: h * h)).length < 1e-12)
+                let surfacePoint = try originalTarget.point(u: value.surfaceParameter.u,
+                    v: value.surfaceParameter.v, tolerance: .standard)
+                #expect((point - surfacePoint).length <= ModelingTolerance.standard.distance)
+            }
+            try expectFailure(.invalidInput) { _ = try overlap.correspondence(at: 0.9) }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func finiteOriginalKnotAtlasClipHasIndependentSourceEndpoints() throws {
+        for mode in 0..<3 {
+            var options = try graphOptions()
+            let clip = try ScalarInterval(lower: 0.2, upper: 0.525)
+            if mode != 1 { options.surfaceURange = clip }
+            if mode != 0 { options.surfaceVRange = clip }
+            let result = try intersector.intersectionResult(curve: .bSpline(sourceCurve()),
+                surface: .bSpline(finiteKnotSurface(swapped: mode == 1, tensor: mode == 2)),
+                options: options, tolerance: .standard)
+            #expect(result.overlaps.count == 1 && result.points.isEmpty)
+            let overlap = try #require(result.overlaps.first)
+            #expect(abs(overlap.curveRange.lower - 1.0 / 9.0) < 1e-8)
+            #expect(abs(overlap.curveRange.upper - 17.0 / 23.0) < 1e-8)
+            let start = mode == 1 ? overlap.start.surfaceParameter.v : overlap.start.surfaceParameter.u
+            let end = mode == 1 ? overlap.end.surfaceParameter.v : overlap.end.surfaceParameter.u
+            #expect(abs(start - 0.2) < 2e-9 && abs(end - 0.525) < 2e-9)
+            for t in [1.0 / 7.0, 3.0 / 5.0] {
+                #expect(try overlap.correspondence(at: t).residual <= ModelingTolerance.standard.distance)
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func finiteOriginalTensorKnotZeroWidthRequestsKeepIsolatedCrossings() throws {
+        for (knot, expectedSource) in [(0.25, 1.0 / 7.0), (0.5, 3.0 / 5.0)] {
+            var options = try graphOptions()
+            options.surfaceURange = try ScalarInterval(lower: knot, upper: knot)
+            options.surfaceVRange = options.surfaceURange
+            let result = try intersector.intersectionResult(curve: .bSpline(sourceCurve()),
+                surface: .bSpline(finiteKnotSurface(tensor: true)), options: options, tolerance: .standard)
+            #expect(result.overlaps.isEmpty && result.points.count == 1)
+            let point = try #require(result.points.first)
+            #expect(abs(point.curveParameter - expectedSource) < 1e-8)
+            #expect(abs(point.surfaceU - knot) < 2e-9 && abs(point.surfaceV - knot) < 2e-9)
+            #expect(point.residual <= ModelingTolerance.standard.distance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func finiteCollarSummariesRetainAllOriginalCornerJacobians() throws {
+        let source = sourceCurve(), target = finiteKnotSurface(tensor: true), options = try graphOptions()
+        var budget = OverlapProofBudget(options: options, tolerance: .standard)
+        try budget.preparation(curve: source, surface: target)
+        let root = OverlapRegularGraphRootCertifier(
+            curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
+            surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
+            tolerance: .standard)
+        let multipleBox = SurfaceParameterBox(u: try ScalarInterval(lower: 0.15, upper: 0.65),
+            v: try ScalarInterval(lower: 0.15, upper: 0.65))
+        let summary = OverlapRegularGraphAtlas.AxisKnots(first: 0.25, last: 0.5, count: 2)
+        #expect(try OverlapRegularGraphAtlas.authority(over: multipleBox, surface: target,
+            tolerance: .standard, budget: &budget) == .collar(u: summary, v: summary))
+        let station = 0.45
+        // This fresh strict root proof spans both native knots on both axes.
+        let multiple = try #require(root.proof(range: ScalarInterval(lower: station.nextDown, upper: station.nextUp),
+            box: multipleBox, pair: .init(first: 0, second: 1), budget: &budget))
+        #expect(multiple.authority == .collar(u: summary, v: summary))
+        #expect(multiple.box.u.lower > multipleBox.u.lower && multiple.box.u.upper < multipleBox.u.upper)
+        #expect(multiple.box.v.lower > multipleBox.v.lower && multiple.box.v.upper < multipleBox.v.upper)
+        #expect(multiple.u.count == 1 && multiple.v.count == 1 && multiple.residual.count == 1)
+        for (knot, t, lowerSlope, upperSlope) in [(0.25, 1.0 / 7.0, 0.5, 1.0), (0.5, 3.0 / 5.0, 1.0, 2.0)] {
+            let point = try root.surface.pointJet(u: knot, v: knot, tolerance: .standard)
+            #expect(point.x.derivativeU.lower <= lowerSlope && point.x.derivativeU.upper >= upperSlope)
+            #expect(point.y.derivativeV.lower <= lowerSlope && point.y.derivativeV.upper >= upperSlope)
+            #expect(point.x.derivativeV.lower <= 0 && point.x.derivativeV.upper >= 0)
+            #expect(point.y.derivativeU.lower <= 0 && point.y.derivativeU.upper >= 0)
+            let minor = point.x.derivativeU * point.y.derivativeV - point.x.derivativeV * point.y.derivativeU
+            #expect(minor.lower > 0 && minor.lower <= lowerSlope * lowerSlope && minor.upper >= upperSlope * upperSlope)
+            let range = try ScalarInterval(lower: t - 1e-8, upper: t + 1e-8)
+            let pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
+            let box = try #require(root.trialBox(range: range, pair: pair,
+                seed: SurfaceParameter(u: knot, v: knot), budget: &budget))
+            let proof = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
+            let one = OverlapRegularGraphAtlas.AxisKnots(first: knot, last: knot, count: 1)
+            #expect(proof.authority == .collar(u: one, v: one))
+            #expect(proof.u.count == 1 && proof.v.count == 1 && proof.residual.count == 1)
+            #expect(proof.u[0].lower > 0 && proof.v[0].lower > 0)
+            #expect(proof.residual[0].absoluteUpperBound <= ModelingTolerance.standard.distance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func finiteTensorKnotPerturbationCannotAdmitOriginalSpanFragments() throws {
+        var source = sourceCurve()
+        source.controlPoints[1] = source.controlPoints[1] + Vector3D(x: 0, y: 0, z: 0.125)
+        let result = try intersector.intersectionResult(curve: .bSpline(source),
+            surface: .bSpline(finiteKnotSurface(tensor: true)), options: graphOptions(), tolerance: .standard)
+        // Injective XY fixes both piecewise inverses. The positive Z deviation
+        // 0.5*t*(1-t)/(1+t)^2 rules out every exact event on this original span.
+        #expect(result.overlaps.isEmpty && result.points.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func finiteTensorKnotRequiresEveryAffectedAxisToBeTransverse() throws {
+        for constantU in [true, false] {
+            let hControls = [0.0, 0.25, 0.5]
+            let source = BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+                controlPoints: hControls.map {
+                    Point3D(x: constantU ? 0.125 : $0, y: constantU ? $0 : 0.125, z: 0.125 * $0)
+                }, weights: [1, 2, 4])
+            let target = finiteKnotSurface(tensor: true), options = try graphOptions()
+            var budget = OverlapProofBudget(options: options, tolerance: .standard)
+            try budget.preparation(curve: source, surface: target)
+            let root = OverlapRegularGraphRootCertifier(
+                curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
+                surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
+                tolerance: .standard)
+            let t = 1.0 / 7.0
+            let range = try ScalarInterval(lower: t - 1e-8, upper: t + 1e-8)
+            let pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
+            let box = try #require(root.trialBox(range: range, pair: pair,
+                seed: SurfaceParameter(u: 0.25, v: 0.25), budget: &budget))
+            try expectFailure(.unsupportedCapability) {
+                _ = try root.proof(range: range, box: box, pair: pair, budget: &budget)
+            }
+            try expectFailure(.unsupportedCapability) {
+                _ = try intersector.intersectionResult(curve: .bSpline(source), surface: .bSpline(target),
+                    options: options, tolerance: .standard)
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func finiteTensorFoldAndCallerLimitsRemainExplicit() async throws {
+        let values = [0.0, 0.125, 0.375, 1.375], folded = [0.0, 0.125, 0.375, -0.625]
+        let knots = [0.0, 0, 0.25, 0.5, 1, 1]
+        let fold = BSplineSurface3D(uDegree: 1, vDegree: 1, uKnots: knots, vKnots: knots,
+            controlPoints: values.map { y in folded.map { x in Point3D(x: x, y: y, z: x * y) } })
+        let source = sourceCurve(), options = try graphOptions()
+        var budget = OverlapProofBudget(options: options, tolerance: .standard)
+        try budget.preparation(curve: source, surface: fold)
+        let root = OverlapRegularGraphRootCertifier(
+            curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
+            surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: fold, tolerance: .standard),
+            tolerance: .standard)
+        let t = 3.0 / 5.0
+        let box = SurfaceParameterBox(u: try ScalarInterval(lower: 0.5 - 1e-6, upper: 0.5 + 1e-6),
+            v: try ScalarInterval(lower: 0.5 - 1e-6, upper: 0.5 + 1e-6))
+        #expect(try root.proof(range: ScalarInterval(lower: t.nextDown, upper: t.nextUp),
+            box: box, pair: .init(first: 0, second: 1), budget: &budget) == nil)
+        let target = finiteKnotSurface(tensor: true)
+        for field in 0..<4 {
+            var limited = options
+            switch field {
+            case 0: limited.maximumSubdivisionCells = 2
+            case 1: limited.maximumPolynomialDegree = 1
+            case 2: limited.maximumSubdivisionDepth = 0
+            default: limited.maximumCandidateCount = 1
+            }
+            try expectFailure(.resourceLimitExceeded) { _ = try certify(source, target, options: limited) }
+        }
+        let (stream, continuation) = AsyncStream<Void>.makeStream()
+        let task = Task {
+            for await _ in stream { break }
+            _ = try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(source),
+                surface: .bSpline(target), options: options, tolerance: .standard)
+        }
+        task.cancel()
+        continuation.yield()
+        continuation.finish()
+        await #expect(throws: CancellationError.self) { _ = try await task.value }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func originalC1KnotAtlasRetainsWholeOwnedGraphOnEitherAxis() throws {
         for swapped in [false, true] {
             var source = Curve3D.bSpline(sourceCurve())
@@ -85,7 +463,8 @@ struct CurveSurfaceRegularGraphTests {
             #expect(first.lower <= 1 && first.upper >= 1)
             let box = try #require(root.trialBox(range: range, pair: pair, seed: seed, budget: &budget))
             let proof = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
-            #expect(proof.authority == .collar(axis: swapped ? .v : .u, knot: 0.5))
+            let nativeKnot = OverlapRegularGraphAtlas.AxisKnots(first: 0.5, last: 0.5, count: 1)
+            #expect(proof.authority == .collar(u: swapped ? nil : nativeKnot, v: swapped ? nativeKnot : nil))
             #expect(proof.u.count == 1 && proof.v.count == 1 && proof.residual.count == 1)
             let derivative = swapped ? proof.v[0] : proof.u[0]
             #expect(derivative.lower > 0 && derivative.lower <= 9.0 / 16.0 && derivative.upper >= 9.0 / 16.0)
@@ -104,7 +483,7 @@ struct CurveSurfaceRegularGraphTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func continuousC1KnotMultipleLowKnotsAndC1CornerRemainUnsupported() throws {
+    func continuousC1KnotRefusesWhileMultipleAndCornerGraphsRetainAuthority() throws {
         let constant = BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
             controlPoints: [Point3D(x: 0.25, y: 0, z: 0), Point3D(x: 0.25, y: 0.25, z: 0.0625),
                             Point3D(x: 0.25, y: 0.5, z: 0.125)], weights: [1, 2, 4])
@@ -117,16 +496,36 @@ struct CurveSurfaceRegularGraphTests {
             uKnots: [0, 0, 0, 0.25, 0.375, 1, 1, 1], vKnots: [0, 0, 1, 1],
             controlPoints: [greville.map { Point3D(x: $0, y: 0, z: 0) },
                             greville.map { Point3D(x: $0, y: 1, z: $0) }])
-        try expectFailure(.unsupportedCapability) {
-            _ = try intersector.intersectionResult(curve: .bSpline(sourceCurve()), surface: .bSpline(multiple),
-                options: graphOptions(), tolerance: .standard)
+        let options = try graphOptions()
+        let multipleResult = try intersector.intersectionResult(curve: .bSpline(sourceCurve()), surface: .bSpline(multiple),
+            options: options, tolerance: .standard)
+        #expect(multipleResult.points.isEmpty && multipleResult.overlaps.count == 1)
+        let multipleOverlap = try #require(multipleResult.overlaps.first)
+        #expect(multipleOverlap.curveRange == options.curveRange)
+        #expect(multipleOverlap.maximumSpatialDeviation <= ModelingTolerance.standard.distance)
+        for t in [0.1, 1.0 / 3.0, 0.6, 0.8] {
+            let h = t / (1 + t), value = try multipleOverlap.correspondence(at: t)
+            // Greville controls reproduce S=(u,v,u*v) across both original C1 knots.
+            #expect(abs(value.surfaceParameter.u - h) < 1e-7 && abs(value.surfaceParameter.v - h) < 1e-7)
+            let point = try multiple.point(u: value.surfaceParameter.u, v: value.surfaceParameter.v, tolerance: .standard)
+            #expect((point - Point3D(x: h, y: h, z: h * h)).length <= ModelingTolerance.standard.distance)
         }
         let x = [0.0, 0, 0.5, 1.25], knots = [0.0, 0, 0, 0.5, 1, 1, 1]
         let corner = BSplineSurface3D(uDegree: 2, vDegree: 2, uKnots: knots, vKnots: knots,
             controlPoints: x.map { y in x.map { value in Point3D(x: value, y: y, z: value * y) } })
-        try expectFailure(.unsupportedCapability) {
-            _ = try intersector.intersectionResult(curve: .bSpline(sourceCurve()), surface: .bSpline(corner),
-                options: graphOptions(), tolerance: .standard)
+        let cornerResult = try intersector.intersectionResult(curve: .bSpline(sourceCurve()), surface: .bSpline(corner),
+            options: options, tolerance: .standard)
+        #expect(cornerResult.points.isEmpty && cornerResult.overlaps.count == 1)
+        let cornerOverlap = try #require(cornerResult.overlaps.first)
+        #expect(cornerOverlap.curveRange == options.curveRange)
+        #expect(cornerOverlap.maximumSpatialDeviation <= ModelingTolerance.standard.distance)
+        for t in [0.1, 1.0 / 3.0, 0.4, 0.8] {
+            let h = t / (1 + t)
+            let inverse = h <= 0.25 ? h.squareRoot() : (1 + (8 * h - 1).squareRoot()) / 4
+            let value = try cornerOverlap.correspondence(at: t)
+            #expect(abs(value.surfaceParameter.u - inverse) < 1e-7 && abs(value.surfaceParameter.v - inverse) < 1e-7)
+            let point = try corner.point(u: value.surfaceParameter.u, v: value.surfaceParameter.v, tolerance: .standard)
+            #expect((point - Point3D(x: h, y: h, z: h * h)).length <= ModelingTolerance.standard.distance)
         }
     }
 
@@ -325,7 +724,7 @@ struct CurveSurfaceRegularGraphTests {
         let box = try #require(root.trialBox(range: range, pair: pair,
             seed: SurfaceParameter(u: 0.5, v: 0.25), budget: &budget))
         let proof = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
-        #expect(proof.authority == .collar(axis: .u, knot: 0.5))
+        #expect(proof.authority == .collar(u: .init(first: 0.5, last: 0.5, count: 1), v: nil))
         #expect(proof.u.count == 1 && proof.v.count == 1 && proof.residual.count == 1)
         // At the crossing, h'=9/16; f' is one on the left and two on the right.
         #expect(proof.u[0].lower <= 9.0 / 32.0 && proof.u[0].upper >= 9.0 / 16.0)
@@ -345,7 +744,7 @@ struct CurveSurfaceRegularGraphTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func continuousNativeKnotAndTensorCornerRemainUnsupported() throws {
+    func continuousNativeKnotRefusesWhileTensorCornerRetainsOwnedGraph() throws {
         let constantKnot = BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
             controlPoints: [Point3D(x: 0.25, y: 0, z: 0), Point3D(x: 0.25, y: 0.25, z: 0.0625),
                             Point3D(x: 0.25, y: 0.5, z: 0.125)], weights: [1, 2, 4])
@@ -357,9 +756,20 @@ struct CurveSurfaceRegularGraphTests {
         let knots = [0.0, 0, 0, 0.5, 0.5, 1, 1, 1]
         let corner = BSplineSurface3D(uDegree: 2, vDegree: 2, uKnots: knots, vKnots: knots,
             controlPoints: x.map { y in x.map { value in Point3D(x: value, y: y, z: value * y) } })
-        try expectFailure(.unsupportedCapability) {
-            _ = try intersector.intersectionResult(curve: .bSpline(sourceCurve()), surface: .bSpline(corner),
-                options: graphOptions(), tolerance: .standard)
+        let options = try graphOptions()
+        let result = try intersector.intersectionResult(curve: .bSpline(sourceCurve()), surface: .bSpline(corner),
+            options: options, tolerance: .standard)
+        #expect(result.points.isEmpty && result.overlaps.count == 1)
+        let overlap = try #require(result.overlaps.first)
+        #expect(overlap.curveRange == options.curveRange)
+        #expect(overlap.maximumSpatialDeviation <= ModelingTolerance.standard.distance)
+        for t in [0.1, 1.0 / 3.0, 0.4, 0.8] {
+            let h = t / (1 + t)
+            let inverse = h <= 0.25 ? h.squareRoot() : (0.75 + h).squareRoot() - 0.5
+            let value = try overlap.correspondence(at: t)
+            #expect(abs(value.surfaceParameter.u - inverse) < 1e-7 && abs(value.surfaceParameter.v - inverse) < 1e-7)
+            let point = try corner.point(u: value.surfaceParameter.u, v: value.surfaceParameter.v, tolerance: .standard)
+            #expect((point - Point3D(x: h, y: h, z: h * h)).length <= ModelingTolerance.standard.distance)
         }
     }
 
@@ -628,6 +1038,28 @@ struct CurveSurfaceRegularGraphTests {
         }
         return BSplineSurface3D(uDegree: 2, vDegree: 1, uKnots: uKnots, vKnots: vKnots,
             controlPoints: rows)
+    }
+
+    private func finiteKnotSurface(swapped: Bool = false, tensor: Bool = false) -> BSplineSurface3D {
+        let x = [0.0, 0.125, 0.375, 1.375], knots = [0.0, 0, 0.25, 0.5, 1, 1]
+        if tensor {
+            return BSplineSurface3D(uDegree: 1, vDegree: 1, uKnots: knots, vKnots: knots,
+                controlPoints: x.map { y in x.map { value in Point3D(x: value, y: y, z: value * y) } })
+        }
+        let rows = [x.map { Point3D(x: $0, y: 0, z: 0) }, x.map { Point3D(x: $0, y: 1, z: $0) }]
+        let linearKnots = [0.0, 0, 1, 1]
+        if swapped {
+            return BSplineSurface3D(uDegree: 1, vDegree: 1, uKnots: linearKnots, vKnots: knots,
+                controlPoints: x.indices.map { [rows[0][$0], rows[1][$0]] })
+        }
+        return BSplineSurface3D(uDegree: 1, vDegree: 1, uKnots: knots, vKnots: linearKnots,
+            controlPoints: rows)
+    }
+
+    private func finiteKnotInverse(_ h: Double) -> Double {
+        if h <= 0.125 { return 2 * h }
+        if h <= 0.375 { return h + 0.125 }
+        return (h + 0.625) / 2
     }
 
     private func graphOptions() throws -> CurveSurfaceIntersectionOptions {
