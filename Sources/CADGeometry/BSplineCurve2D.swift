@@ -103,6 +103,51 @@ public struct BSplineCurve2D: Codable, Sendable, Hashable {
         )
     }
 
+    /// The stretch from `startParameter` to `endParameter` of a closed curve read as periodic:
+    /// a span running past its domain's end carries on from its start, the two pieces joined at
+    /// the seam (C0, the second's weights scaled to meet the first's), the parameters kept as asked.
+    /// A span inside the domain is `trimmed(from:to:)`.
+    public func trimmedAcrossSeam(
+        from startParameter: Double,
+        to endParameter: Double,
+        tolerance: ModelingTolerance
+    ) throws -> BSplineCurve2D {
+        guard case let .closed(lower, upper) = domain, upper > lower, endParameter > startParameter else {
+            return try trimmed(from: startParameter, to: endParameter, tolerance: tolerance)
+        }
+        let period = upper - lower
+        let turns = ((startParameter - lower) / period).rounded(.down)
+        let (start, end) = (startParameter - turns * period, endParameter - turns * period)
+        let slack = max(tolerance.angle, tolerance.distance)
+        guard end > upper + slack else {
+            return try trimmed(from: max(start, lower), to: min(end, upper), tolerance: tolerance).shifted(by: turns * period)
+        }
+        guard end - start <= period + slack,
+              let a = Optional(try point(at: lower, tolerance: tolerance)), let b = Optional(try point(at: upper, tolerance: tolerance)),
+              ((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y)).squareRoot() <= tolerance.distance else {
+            throw GeometryError.invalidDistance(endParameter - startParameter)
+        }
+        let first = try trimmed(from: start, to: upper, tolerance: tolerance)
+        let second = try trimmed(from: lower, to: end - period, tolerance: tolerance).shifted(by: period)
+        guard first.degree == second.degree, let lastWeight = first.weights.last, let firstWeight = second.weights.first, firstWeight != 0 else {
+            throw GeometryError.invalidDistance(endParameter - startParameter)
+        }
+        let scale = lastWeight / firstWeight
+        let joined = BSplineCurve2D(
+            degree: first.degree,
+            knots: Array(first.knots.dropLast()) + Array(second.knots.dropFirst(second.degree + 1)),
+            controlPoints: first.controlPoints + second.controlPoints.dropFirst(),
+            weights: first.weights + second.weights.dropFirst().map { $0 * scale }
+        )
+        return joined.shifted(by: turns * period)
+    }
+
+    /// The curve with its parameters moved by `offset`.
+    func shifted(by offset: Double) -> BSplineCurve2D {
+        guard offset != 0 else { return self }
+        return BSplineCurve2D(degree: degree, knots: knots.map { $0 + offset }, controlPoints: controlPoints, weights: weights)
+    }
+
     public func settingKnotValue(
         at index: Int,
         to value: Double,

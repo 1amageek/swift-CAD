@@ -1048,8 +1048,11 @@ by the gap and joined, coplanar faces merging), Moving then pushes the face it s
 with the wall on by the rest, in place; None re-solves in place and, when the faces
 around cannot follow, keeps the face going by itself — extruded its whole distance
 and joined outward, cut inward. Match Face of one planar face onto a parallel plane
-facing the same way is that push, Grow and all. Other matches still refuse a face running
-into another wall (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Draft Face re-solves in place first;
+facing the same way is that push, Grow and all. One planar face running into another wall on
+its way out to a curved reference (the re-solve's topology failure) is pushed by Push Face's Grow
+out to where it reaches the reference — Fixed stopping at the wall — and the face it then ends on
+(the wall it carried under Moving, its own bar's end under None) takes the reference's surface in
+place; several faces, curved faces and inward runs still refuse (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Draft Face re-solves in place first;
 when one planar drafted face runs into another wall (the re-solve's topology failure) and moves
 out of the body, `FaceDraftGrowWedgeBuilder` builds the material between its old and drafted
 planes as a prism along the pivot line (`PolygonPrismRequestBuilder`), united with the body:
@@ -1086,7 +1089,9 @@ frustum, one cone), a U-shaped wall crossed four times, a drilled wall turning t
 drafted 70° past the block's end under Moving (200 + 50 t mm² of section) and Fixed (300 − 50 / t
 mm²) and None (250 + 12.5 t mm²), and a wall turned about its straight edge on a cylinder top with the
 arc-edged end wall's refusal, and a box's top matched onto a sphere of another body, hollowed into its
-near side or, under Side, run through to its far side (z = 80 ∓ √(4900 − (x − 40)² − y²) integrated).
+near side or, under Side, run through to its far side (z = 80 ∓ √(4900 − (x − 40)² − y²) integrated),
+and an L block's step matched onto a sphere past its outer wall by each Grow (the block carried out,
+filled to the wall, the step's bar alone).
 
 `FaceRemovalHealer` heals a solid over faces taken out of it (Delete Face with
 `heals`, and Remove Fillets From Shell), and Remove Fillets heals a sheet the same way, open (its

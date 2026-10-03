@@ -171,5 +171,60 @@ struct MatchFaceTests {
         let volume = try volume(of: matched, in: builder)
         #expect(abs(volume - integral * 1e-9) < 1e-9, "\(volume) vs \(integral * 1e-9)")
     }
+
+    /// Plasticity's video: an L block's step matched onto a sphere of another object beyond its
+    /// outer wall. Moving carries the wall out to the sphere (the whole block runs into it), Fixed
+    /// stops at the wall (the step filled), None sends the step's bar alone to the sphere. The
+    /// sphere (radius 30 mm, centred at x = 60, y = 10, z = 10 mm) is met at x = 60 − √(900 − (y − 10)² − (z − 10)²).
+    @Test(.timeLimit(.minutes(2)), arguments: [FaceEditGrow.moving, .fixed, .none])
+    func aStepMatchedOntoASpherePastItsWallGrowsByItsMode(grow: FaceEditGrow) throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let corners = [(0.0, 0.0), (20.0, 0.0), (20.0, 10.0), (10.0, 10.0), (10.0, 20.0), (0.0, 20.0)]
+        let profile = try builder.sketch(on: .xy) { sketch in
+            for k in corners.indices {
+                let (a, b) = (corners[k], corners[(k + 1) % corners.count])
+                _ = sketch.line(from: SketchPoint(x: millimeters(a.0), y: millimeters(a.1)), to: SketchPoint(x: millimeters(b.0), y: millimeters(b.1)))
+            }
+        }
+        let body = try builder.extrude(profile, distance: millimeters(20))
+        let ball = try builder.sphere(
+            placement: PrimitivePlacement(origin: Point3D(x: 0.060, y: 0.010, z: 0.010), axis: .unitZ, referenceDirection: .unitX),
+            radius: millimeters(30)
+        )
+        let evaluated = try CADPipeline(tolerance: .standard).evaluate(builder.build())
+        let step = try #require(evaluated.subshapes.entries.first { key, value in
+            guard key.featureID == body, case let .face(id) = value, let face = evaluated.brep.faces[id],
+                  case let .plane(plane) = evaluated.brep.geometry.surfaces[face.surfaceID] else { return false }
+            return abs(abs(plane.normal.x) - 1) < 1e-9 && abs(plane.origin.x - 0.010) < 1e-9
+        }?.key)
+        let sphereKey = try #require(evaluated.subshapes.entries.first { key, value in
+            guard key.featureID == ball, case let .face(id) = value, let face = evaluated.brep.faces[id] else { return false }
+            if case .analytic(.sphere) = evaluated.brep.geometry.surfaces[face.surfaceID] { return true }
+            return false
+        }?.key)
+        let matched = try builder.matchFace(target: body, faces: [try builder.stableSubshape(step)], source: ball,
+                                            referenceFace: try builder.stableSubshape(sphereKey), grow: grow)
+        // ∫∫ (60 − √(900 − (y − 10)² − (z − 10)²) − x₀) over y in [y₀, 20] and z in [0, 20], in mm³.
+        func bar(from x0: Double, y0: Double) -> Double {
+            let n = 200
+            var sum = 0.0
+            for i in 0...n {
+                for j in 0...n {
+                    let y = y0 + (20 - y0) * Double(i) / Double(n), z = 20 * Double(j) / Double(n)
+                    let weight = (i == 0 || i == n ? 1.0 : (i % 2 == 1 ? 4.0 : 2.0)) * (j == 0 || j == n ? 1.0 : (j % 2 == 1 ? 4.0 : 2.0))
+                    sum += weight * (60 - (900 - (y - 10) * (y - 10) - (z - 10) * (z - 10)).squareRoot() - x0)
+                }
+            }
+            return sum * ((20 - y0) / Double(n)) * (20.0 / Double(n)) / 9
+        }
+        let expected: Double = switch grow {
+        case .moving: 8000 + bar(from: 20, y0: 0)
+        case .fixed: 8000
+        case .none: 6000 + bar(from: 10, y0: 10)
+        }
+        // The sphere's faces bounded by intersection curves integrate within the modeling tolerance.
+        let volume = try self.volume(of: matched, in: builder)
+        #expect(abs(volume - expected * 1e-9) < 1e-9, "\(volume) vs \(expected * 1e-9)")
+    }
 }
 

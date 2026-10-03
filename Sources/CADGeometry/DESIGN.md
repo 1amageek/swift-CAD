@@ -348,6 +348,10 @@ unaccounted parameter scaling is introduced.
 Affine UV lifts on analytic cylinders compose the angular and axial interval
 jets directly, preserving their common normalized curve parameter through third
 order rather than independently reconstructing derivative magnitudes.
+A closed B-spline pcurve (a circle's, from a surface intersection) is trimmed as its periodic
+curve runs: a span past its domain's end carries on from its start, the two pieces joined C0 at
+the seam with the parameters kept (`BSplineCurve2D.trimmedAcrossSeam`), so an edge on a closed
+intersection whose arc crosses the seam keeps its exact pcurve.
 `OffsetSurfaceParameterCurveImage` transports UV correspondence in either
 direction across one known offset relation. Forward transport targets the
 existing exact chart-preserving offset representation. Pullback validates the

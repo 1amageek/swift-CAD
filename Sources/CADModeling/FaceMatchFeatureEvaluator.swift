@@ -59,6 +59,8 @@ public struct FaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         }
         let feet = SurfaceFootResolver()
         var replacements: [FaceID: FaceSurfaceReplacementRebuilder.Replacement] = [:]
+        // Where each face lies and lands: its centre, its outward side and the reference's point it reaches.
+        var reaches: [FaceID: (center: Point3D, outward: Vector3D, landed: Point3D)] = [:]
         for faceID in faceIDs {
             guard let face = model.faces[faceID], let previous = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference("Match Face face is missing.")
@@ -90,6 +92,7 @@ public struct FaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
                 orientation = near.normal.dot(outward) > 0 ? .forward : .reversed
             }
             replacements[faceID] = FaceSurfaceReplacementRebuilder.Replacement(surface: surface, orientation: orientation, landing: landing)
+            reaches[faceID] = (center, try outward.normalized(tolerance: tolerance.distance), near.point + landing)
         }
         // One planar face onto a parallel plane, facing the same way: a push by the planes' distance.
         if let pusher, faceIDs.count == 1, let face = model.faces[faceIDs[0]], let previous = model.geometry.surfaces[face.surfaceID],
@@ -101,12 +104,25 @@ public struct FaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             )), outputs: feature.outputs)
             return try pusher.evaluate(feature: push, context: context)
         }
-        // FIXME(INCOMPLETE_IMPLEMENTATION): a match other than one planar face onto a parallel
-        // plane re-solves the faces around in place under every Grow mode, so one that runs into
-        // another wall is refused as a topology failure. Production path: FaceMatchFeatureEvaluator
-        // for every faceMatch feature. Moving and Fixed are complete only when such a matched face
-        // meeting a wall moves that wall or stops at it, verified by a curved face matched past a wall.
-        try FaceSurfaceReplacementRebuilder().replace(replacements, bodyID: bodyID, featureID: feature.id, model: &model, tolerance: tolerance)
+        do {
+            try FaceSurfaceReplacementRebuilder().replace(replacements, bodyID: bodyID, featureID: feature.id, model: &model, tolerance: tolerance)
+        } catch let error as KernelError where error.code == .topologyFailure {
+            // One planar face running into another wall on its way out to a curved reference:
+            // Push Face's Grow carries it out to where it reaches the reference (Fixed stopping
+            // at the wall), then the face it ends on — the wall it carried (Moving) or its own
+            // bar's end (None) — takes the reference's surface in place.
+            // FIXME(INCOMPLETE_IMPLEMENTATION): several matched faces, a curved matched face, or
+            // one running into a wall inward still refuse here. Production path:
+            // FaceMatchFeatureEvaluator. Complete only when those grow too, verified by a pair of
+            // faces matched past a wall.
+            guard let pusher, faceIDs.count == 1, let reach = reaches[faceIDs[0]], let replacement = replacements[faceIDs[0]],
+                  let face = context.brep.faces[faceIDs[0]], let previous = context.brep.geometry.surfaces[face.surfaceID],
+                  try DefaultPlanarSurfaceResolver().exactPlane(for: previous, tolerance: tolerance) != nil else { throw error }
+            let distance = (reach.landed - reach.center).dot(reach.outward)
+            guard distance > tolerance.distance else { throw error }
+            return try grown(match, feature: feature, by: distance, outward: reach.outward, center: reach.center,
+                             onto: replacement, pusher: pusher, context: context)
+        }
         try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: tolerance)
         let isSolid = model.bodies[bodyID]?.kind == .solid
         try model.validate(level: isSolid ? .volumetric : .exact, tolerance: tolerance)
@@ -117,6 +133,47 @@ public struct FaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             removedSubshapeIDs: bodyScope.subshapeIDs(in: context.subshapes),
             lineage: identity.lineage
         )
+    }
+
+    /// Match Face's Grow past a wall: Push Face carries the face out by `distance` under the
+    /// match's Grow; unless Fixed stops it at the wall, the face it ends on, on the plane that far
+    /// out facing the same way, takes the reference's surface and the faces around re-solve.
+    private func grown(_ match: FaceMatchFeature, feature: FeatureNode, by distance: Double, outward: Vector3D, center: Point3D,
+                       onto replacement: FaceSurfaceReplacementRebuilder.Replacement, pusher: any FeatureEvaluating,
+                       context: EvaluationContext) throws -> EvaluationResult {
+        let tolerance = context.tolerance
+        let push = FeatureNode(id: feature.id, name: feature.name, operation: .faceOffset(FaceOffsetFeature(
+            target: FaceOffsetTargetReference(featureID: match.target.featureID), faces: match.faces,
+            distance: .constant(.length(distance, unit: .meter)), grow: match.grow
+        )), outputs: feature.outputs)
+        let pushed = try pusher.evaluate(feature: push, context: context)
+        guard match.grow != .fixed else { return pushed }
+        var model = pushed.brep
+        guard let bodyID = pushed.subshapes.compactMap({ key, value -> BodyID? in
+            guard key.featureID == feature.id, case let .body(id) = value else { return nil }
+            return id
+        }).first else {
+            throw TopologyError.missingReference("Match Face's grown body is missing.")
+        }
+        let planes = DefaultPlanarSurfaceResolver()
+        var ends: [FaceID: FaceSurfaceReplacementRebuilder.Replacement] = [:]
+        for case let .face(faceID) in try BodyTopologyScope(bodyID: bodyID, model: model).references {
+            guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID],
+                  let plane = try planes.exactPlane(for: surface, tolerance: tolerance) else { continue }
+            let normal = try plane.normal.normalized(tolerance: tolerance.distance) * (face.orientation == .forward ? 1 : -1)
+            guard normal.dot(outward) >= 1 - tolerance.angle,
+                  abs((plane.origin - center).dot(outward) - distance) <= tolerance.distance else { continue }
+            ends[faceID] = FaceSurfaceReplacementRebuilder.Replacement(surface: replacement.surface, orientation: replacement.orientation)
+        }
+        guard ends.isEmpty == false else {
+            throw failure(.topologyFailure, feature.id, tolerance, "Match Face's grown face did not reach the reference.")
+        }
+        try FaceSurfaceReplacementRebuilder().replace(ends, bodyID: bodyID, featureID: feature.id, model: &model, tolerance: tolerance)
+        try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: tolerance)
+        try model.validate(level: model.bodies[bodyID]?.kind == .solid ? .volumetric : .exact, tolerance: tolerance)
+        let identity = try identityBuilder.identity(featureID: feature.id, bodyID: bodyID, model: model, context: context)
+        return EvaluationResult(brep: model, subshapes: identity.subshapes, removedSubshapeIDs: pushed.removedSubshapeIDs,
+                                lineage: identity.lineage)
     }
 
     /// The diagonal of the box around the reference face's boundary points, which bounds how far
