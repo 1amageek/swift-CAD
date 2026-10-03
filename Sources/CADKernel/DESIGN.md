@@ -964,7 +964,8 @@ trimming curve names, judged against the modeling distance and placed at the edg
 Rebuild Face's `given` method gives one face a B-spline surface on its own parameters — Plasticity's
 Raise Degree and control-point moves on a face of a solid. `FaceBSplineSurfaceConverter` makes the
 face's surface exact first (a B-spline as it is; a plane as the degree (1, 1) patch through its
-corners over a rectangle holding every trimming curve (within the surface's own domain); a
+corners over a rectangle holding every trimming curve (within the surface's own domain, and along a
+periodic parameter the shortest stretch holding them, a face across the seam running on past it); a
 cylinder, cone, sphere or torus face as the exact rational surface of revolution over that
 rectangle — its profile at the first angle (a line, or arcs of at most a quarter turn whose middle
 control point is M + (M − Q) / cos θ weighted cos θ) turned about the axis in such arcs, weights
@@ -987,7 +988,7 @@ and its middle control point moved out bulging it the same between the edges it 
 face by face through the Rebuild Faces before each, and a rounded edge's quarter cylinder given its
 exact rational surface (every point the radius from the axis) and raised, its volume kept; a drum's
 side across its seam, a ball's octant reaching its pole (every point the radius from the centre)
-and a ring's face raised the same.
+and a ring's face raised the same; every octant of a ball, those across its seam included, valid.
 
 ## Unwrap Face
 

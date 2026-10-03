@@ -66,15 +66,12 @@ public struct FaceBSplineSurfaceConverter {
         }
     }
 
-    /// The rectangle of the face's own parameters holding every trimming curve.
+    /// The rectangle of the face's own parameters holding every trimming curve; along a periodic
+    /// parameter, the shortest stretch holding them (a face across the seam runs on past it).
     private func extent(of face: Face, on surface: Surface3D, in model: BRepModel, tolerance: ModelingTolerance) throws
         -> (u: (low: Double, high: Double), v: (low: Double, high: Double)) {
-        var u = (low: Double.infinity, high: -Double.infinity), v = u
+        var samples: [SurfaceParameter] = []
         var widens = false
-        func include(_ point: SurfaceParameter) {
-            u = (min(u.low, point.u), max(u.high, point.u))
-            v = (min(v.low, point.v), max(v.high, point.v))
-        }
         for loopID in face.loops {
             for coedge in model.loops[loopID]?.coedges ?? [] {
                 guard let pcurve = coedge.surfaceParameterCurve else {
@@ -83,18 +80,36 @@ public struct FaceBSplineSurfaceConverter {
                 }
                 switch pcurve {
                 case .affine, .constantU, .constantV:
-                    include(try pcurve.parameter(atNormalizedFraction: 0, tolerance: tolerance))
-                    include(try pcurve.parameter(atNormalizedFraction: 1, tolerance: tolerance))
+                    for fraction in [0, 0.5, 1] { samples.append(try pcurve.parameter(atNormalizedFraction: fraction, tolerance: tolerance)) }
                 case let .polyline(points):
-                    points.forEach(include)
+                    samples += points
                 case let .bSpline(curve):
-                    curve.controlPoints.forEach { include(SurfaceParameter(u: $0.x, v: $0.y)) }
+                    samples += curve.controlPoints.map { SurfaceParameter(u: $0.x, v: $0.y) }
                 default:
                     widens = true
-                    for k in 0...64 { include(try pcurve.parameter(atNormalizedFraction: Double(k) / 64, tolerance: tolerance)) }
+                    for k in 0...64 { samples.append(try pcurve.parameter(atNormalizedFraction: Double(k) / 64, tolerance: tolerance)) }
                 }
             }
         }
+        func range(_ values: [Double], _ domain: ParameterDomain) -> (low: Double, high: Double) {
+            guard case let .periodic(period) = domain, values.count > 1 else {
+                return (values.min() ?? 0, values.max() ?? 0)
+            }
+            let turned = values.map { value -> Double in
+                let reduced = value.truncatingRemainder(dividingBy: period)
+                return reduced < 0 ? reduced + period : reduced
+            }.sorted()
+            // The widest gap between neighbouring values (the wrap included) is where the face is not.
+            var gap = (size: turned[0] + period - turned[turned.count - 1], after: 0)
+            for index in 1..<turned.count where turned[index] - turned[index - 1] > gap.size {
+                gap = (turned[index] - turned[index - 1], index)
+            }
+            guard gap.size > 1e-9 else { return (turned[0], turned[0] + period) }
+            let low = turned[gap.after]
+            let high = gap.after == 0 ? turned[turned.count - 1] : turned[gap.after - 1] + period
+            return (low, high)
+        }
+        var u = range(samples.map(\.u), surface.uDomain), v = range(samples.map(\.v), surface.vDomain)
         guard u.low < u.high, v.low < v.high else {
             throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: tolerance, message: "A face to convert has no extent.")
         }
@@ -103,9 +118,11 @@ public struct FaceBSplineSurfaceConverter {
             u = (u.low - du, u.high + du)
             v = (v.low - dv, v.high + dv)
         }
-        // Never past the surface's own domain (a sphere's poles).
+        // Never past the surface's own domain (a sphere's poles), nor once round a periodic one.
         if case let .closed(low, high) = surface.uDomain { u = (max(u.low, low), min(u.high, high)) }
         if case let .closed(low, high) = surface.vDomain { v = (max(v.low, low), min(v.high, high)) }
+        if case let .periodic(period) = surface.uDomain, u.high - u.low > period { u.high = u.low + period }
+        if case let .periodic(period) = surface.vDomain, v.high - v.low > period { v.high = v.low + period }
         return (u, v)
     }
 

@@ -236,4 +236,25 @@ struct FaceGivenSurfaceTests {
         let after = try volume(given, in: evaluated)
         #expect(abs(after - before) < before * (kind == "sphere" ? 1e-4 : 1e-6), "\(kind): \(after) vs \(before)")
     }
+
+    /// Every octant of a ball given its exact rational surface on its own, those across the
+    /// sphere's seam over the shortest stretch of angle holding them: each ball stays valid.
+    @Test(.timeLimit(.minutes(4)))
+    func everyOctantOfABallIsGivenItsSurfaceAcrossTheSeamToo() throws {
+        var base = DocumentBuilder(units: .meters, tolerance: .standard)
+        let body = try base.sphere(radius: length(0.01))
+        let start = try evaluate(base)
+        let keys = start.subshapes.entries.filter { key, value in
+            guard key.featureID == body, case .face = value else { return false }
+            return true
+        }.keys.sorted()
+        #expect(keys.count == 8)
+        for key in keys {
+            var builder = base
+            let face = try builder.stableSubshape(key)
+            let rational = try FaceBSplineSurfaceConverter().surface(of: face, in: start)
+            _ = try builder.rebuildFaces(target: body, faces: [face], method: .given(rational))
+            try evaluate(builder).brep.validate(level: .volumetric, tolerance: .standard)
+        }
+    }
 }
