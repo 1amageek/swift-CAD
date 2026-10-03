@@ -20,6 +20,7 @@ struct KernelCapabilityContractTests {
       "GEO-INTERSECTION-001",
       "GEO-INTERSECTION-002",
       "GEO-PREDICATE-001",
+      "GEO-OVERLAP-001",
       "TOPO-LINEAGE-001",
       "TOPO-BREP-001",
       "TOPO-SHAPE-001",

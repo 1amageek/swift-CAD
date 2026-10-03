@@ -39,6 +39,27 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/BSplineSurfaceEmbeddingValidator.swift", sourceLine: 649
         ),
         KernelDomainLimitation(
+            id: "condition-26fdd0b545c8b555",
+            operations: ["curveSurfaceIntersectionResult"],
+            dimensions: [.supportSurface, .representation, .geometricFidelity],
+            condition: "A non-analytic target without retained hosting provenance has no whole-span rational membership proof here. intersectionResult may succeed only after that proof is implemented.",
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceOverlapResolver.swift", sourceLine: 49
+        ),
+        KernelDomainLimitation(
+            id: "condition-c71ac7666846959a",
+            operations: ["curveSurfaceIntersectionResult"],
+            dimensions: [.supportSurface, .representation, .geometricFidelity],
+            condition: "Unretained non-affine free-surface coincidence has no whole-span proof in intersectionResult. Completion requires certified membership and complete overlap-domain isolation before this branch can succeed.",
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceOverlapResolver.swift", sourceLine: 151
+        ),
+        KernelDomainLimitation(
+            id: "condition-1f52aa9d0d7b0d32",
+            operations: ["curveSurfaceIntersectionResult"],
+            dimensions: [.parameterization, .representation],
+            condition: "Complex authored pcurves and free-surface coincidence without a retained coordinate curve lack complete chart clipping. Production intersectionResult must certify every boundary crossing before it may classify connected cells and return continuous overlap intervals.",
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapChartBoundaryResolver.swift", sourceLine: 69
+        ),
+        KernelDomainLimitation(
             id: "condition-94dc729b5c31259b",
             operations: ["fillet"],
             dimensions: [.supportSurface, .connection, .degeneracy, .representation],

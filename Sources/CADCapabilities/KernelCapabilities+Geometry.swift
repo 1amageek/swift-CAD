@@ -600,5 +600,32 @@ extension KernelCapabilities {
         "StrictlyConvexPlanarLoopTests",
       ]
     ),
+    KernelCapability(
+      id: "GEO-OVERLAP-001",
+      operation: "curveSurfaceIntersectionResult",
+      status: .partial,
+      topology: .notApplicable,
+      acceptedInputs: [
+        "finiteCurveAndSurfaceChartRanges", "analyticImplicitSupports",
+        "retainedAuthoredSurfaceLiftWithCertifiedChartClipping",
+        "fullSpanPlanarMembershipBound", "finitePeriodicRepresentatives",
+      ],
+      exactOutputs: [
+        "completeIsolatedPointsAndCertifiedContinuousIntervalsWithinAdmittedDomains",
+        "ownedForwardVerifiedCurveToSurfaceCorrespondence",
+        "wholeSpanSpatialDeviationBound", "singularChartEndpointMetadata",
+        "typedRefusalForUnprovedMembershipOrIncompleteClipping",
+      ],
+      failureCodes: [.invalidInput, .unsupportedCapability, .intersectionFailure,
+        .nonDiscreteIntersection, .ambiguousSelection, .resourceLimitExceeded, .cancelled],
+      tolerance: .standard,
+      publicAPIs: [
+        "CADGeometry.CurveSurfaceIntersectionResolving",
+        "CADGeometry.DefaultCurveSurfaceIntersector.intersectionResult",
+        "CADGeometry.CurveSurfaceIntersectionResult", "CADGeometry.CurveSurfaceOverlap",
+        "CADGeometry.CurveSurfaceOverlap.correspondence",
+      ],
+      testFixtures: ["CurveSurfaceOverlapTests"]
+    ),
   ]
 }
