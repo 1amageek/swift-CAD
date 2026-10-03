@@ -25,6 +25,7 @@ struct KernelCapabilityContractTests {
       "TOPO-LINEAGE-001",
       "TOPO-BREP-001",
       "TOPO-SHAPE-001",
+      "TOPO-NONMANIFOLD-001",
       "TOPO-SEWING-001",
       "TOPO-REPAIR-001",
       "TOPO-FACEAREA-001",

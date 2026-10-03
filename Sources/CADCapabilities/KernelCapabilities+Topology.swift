@@ -3,6 +3,18 @@ import CADCore
 extension KernelCapabilities {
   static let topologyCapabilities: [KernelCapability] = [
     KernelCapability(
+      id: "TOPO-NONMANIFOLD-001",
+      operation: "nonManifoldTopology",
+      status: .supported,
+      topology: .subshapeGraph,
+      acceptedInputs: ["atomicRawShapeSnapshot", "malformedStoredReferences", "nonManifoldEdgeAndVertexIncidence", "explicitPositiveRecordWorkAndDiagnosticLimits"],
+      exactOutputs: ["immutableCompleteRawRetention", "boundedStructuralDiagnostics", "typedAdmissionRejectionWithReport", "existingExactShapeAndBRepValidationAfterCleanDiagnosis"],
+      failureCodes: [.invalidInput, .missingReference, .topologyFailure, .resourceLimitExceeded, .cancelled],
+      tolerance: .standard,
+      publicAPIs: ["CADTopology.NonManifoldTopologyHandling", "CADTopology.DefaultNonManifoldTopologyHandler", "CADTopology.RetainedTopologyShape", "CADTopology.TopologyRetentionLimits", "CADTopology.NonManifoldTopologyReport", "CADTopology.TopologyRetentionIssue", "CADTopology.TopologyEntityReference", "CADTopology.TopologyRetentionError"],
+      testFixtures: ["NonManifoldTopologyTests"]
+    ),
+    KernelCapability(
       id: "TOPO-SHAPE-001",
       operation: "genericShape",
       status: .supported,
