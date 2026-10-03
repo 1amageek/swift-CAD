@@ -4,7 +4,8 @@
 
 `CADTopology` owns validated B-rep topology and topology-level queries. It is a
 child of the [Swift-CAD package design](../../DESIGN.md) and owns
-[OpenBoundaryLoop](OpenBoundaryLoop/DESIGN.md).
+[OpenBoundaryLoop](OpenBoundaryLoop/DESIGN.md) and
+[SurfaceAreaIntegration](SurfaceAreaIntegration/DESIGN.md).
 
 ## Responsibilities and Boundaries
 
@@ -58,14 +59,9 @@ flowchart LR
   or geometric endpoint proximity.
 - `BRepModel.faceAreaMeasurement` (`TOPO-FACEAREA-001`) measures a face's area
   and area centroid from its coedge pcurves alone, never from a tessellation.
-  A plane and a cylinder have a constant area element, so area and first
-  moments are parameter-domain integrals of 1 and of the support's coordinate
-  functions, each taken as the closed-form boundary integral −∮ G du with
-  ∂G/∂v the integrand. Every G is periodic in u, so a cylindrical band bounded
-  by two full circles measures correctly. Moments are divided by the signed
-  area, so loop traversal sense cancels. Other supports, and pcurves with no
-  closed form on the support (rational B-splines anywhere; harmonic,
-  B-spline and certified pcurves on a cylinder), throw `unsupportedCapability`.
+  Analytic supports retain their specialized exact integration paths. Free-surface
+  area and centered first moments use the certified error and resource contract
+  owned by [SurfaceAreaIntegration](SurfaceAreaIntegration/DESIGN.md).
 - Volume integrates each face loop as one chain on the periodic chart the
   `SurfaceParameterLoopUnwrapper` lifts it to. A great-circle pcurve on a
   sphere keeps the branch of longitude its chart lift starts on — a meridian

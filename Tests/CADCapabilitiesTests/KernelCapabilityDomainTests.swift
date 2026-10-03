@@ -30,7 +30,9 @@ struct KernelCapabilityDomainTests {
         let catalog = KernelCapabilities.current
         let area = try catalog.domain(operation: "faceAreaMeasurement")
         #expect(area.limitations(affecting: .supportSurface).contains {
-            $0.condition.contains("B-spline, offset, ruled and rolling-ball")
+            $0.sourcePath.hasSuffix("PreparedSurfaceAreaIntegrand.swift")
+                && $0.condition.contains("C0 interior support knots")
+                && $0.condition.contains("exact span/domain partitioning")
         })
         let offset = try catalog.domain(operation: "edgeOffset")
         #expect(offset.limitations(affecting: .boundaryCurve).contains {

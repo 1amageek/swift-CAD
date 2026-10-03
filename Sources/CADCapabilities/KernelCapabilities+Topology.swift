@@ -421,22 +421,30 @@ extension KernelCapabilities {
         "conicalOrRingToroidalFaceWithAffineCoordinateOrPolylinePcurves",
         "sphericalFaceWithGreatCircleMeridianOrLatitudePcurvesNotWindingTheAxis",
         "periodicallyTranslatedSupportedPcurves",
+        "regularBSplineOffsetRuledRollingBallSupportsWithCertifiedDerivativeCharts",
+        "numericExactTrimsIncludingHolesAndReversedLoops",
+        "explicitFiniteCellDepthBoundaryAndControlLimits",
       ],
       exactOutputs: [
         "closedFormGreenIntegralFaceArea",
         "closedFormGreenIntegralFaceAreaCentroid",
         "gaussLegendreGreenIntegralBelowRoundingOnConesAndTori",
         "gaussBonnetAndVectorAreaClosedFormOnSpheres",
-        "typedRefusalOfOtherSupportsAndPcurves",
+        "outwardCertifiedAreaAndCenteredMomentsWithoutMesh",
+        "distanceSquaredPlusRelativeAreaErrorAndDistanceCentroidError",
+        "exactTranslationReductionWithOriginalChartDomain",
+        "typedRefusalOfUncertifiableChartsAndResourceExhaustion",
       ],
-      failureCodes: [.missingReference, .topologyFailure, .unsupportedCapability],
+      failureCodes: [.invalidInput, .missingReference, .topologyFailure, .unsupportedCapability, .classificationFailure, .singularSystem, .singularGeometry, .resourceLimitExceeded, .cancelled],
       tolerance: .standard,
       publicAPIs: [
         "CADTopology.BRepModel.faceAreaMeasurement",
         "CADTopology.FaceAreaMeasurement",
+        "CADTopology.FaceAreaIntegrationOptions",
       ],
       testFixtures: [
         "FaceAreaMeasurementTests",
+        "SurfaceAreaIntegrationTests",
       ]
     ),
   ]

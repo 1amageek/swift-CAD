@@ -81,6 +81,41 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/RollingBall/RollingBallSectionEvaluator.swift", sourceLine: 69
         ),
         KernelDomainLimitation(
+            id: "condition-e3e7fe0cdbd7862e",
+            operations: ["faceAreaMeasurement"],
+            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
+            condition: "C0 interior support knots have an unintegrated density discontinuity on the production face-area/centroid path. Complete only after exact span/domain partitioning and successful discontinuous-density fixtures.",
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 46
+        ),
+        KernelDomainLimitation(
+            id: "condition-0c6b71106c467b84",
+            operations: ["faceAreaMeasurement"],
+            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
+            condition: "Sources below third order, including uncertified nested offsets, lack derivatives for production face-area/centroid integration. Complete only after higher source interval jets and offset integral fixtures certify.",
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 60
+        ),
+        KernelDomainLimitation(
+            id: "condition-0dde2d1ce395fdb8",
+            operations: ["faceAreaMeasurement"],
+            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
+            condition: "Ruled supports with non-C1 boundary curves lack density derivative admission on production face-area/centroid queries. Complete only after piecewise boundary partitioning and successful/failure integral fixtures.",
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 76
+        ),
+        KernelDomainLimitation(
+            id: "condition-40aae3cf94aae8f0",
+            operations: ["faceAreaMeasurement"],
+            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
+            condition: "Non-C1 rolling-ball spine/rails cannot certify density derivatives on production face-area/centroid queries. Complete only after piecewise blend integration and exact integral/error fixtures admit these sources.",
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 91
+        ),
+        KernelDomainLimitation(
+            id: "condition-37ee0d326bb44263",
+            operations: ["faceAreaMeasurement"],
+            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
+            condition: "Certified intersection and rigid-image trims lack integral-specific fan derivative jets on this production face-area path. Complete only when those exact chart derivatives and integral fixtures certify.",
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 117
+        ),
+        KernelDomainLimitation(
             id: "condition-ac542d7b1e032f8a",
             operations: ["importedBRep", "CADCommand"],
             dimensions: [.transformation, .representation, .topology],
@@ -515,11 +550,11 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADModeling/SectionResolution/FaceSectionProfileResolver.swift", sourceLine: 95
         ),
         KernelDomainLimitation(
-            id: "condition-d5add7869d0a2a3d",
+            id: "condition-8539d20e08fba7e4",
             operations: ["faceAreaMeasurement"],
-            dimensions: [.supportSurface, .geometricFidelity],
-            condition: "B-spline, offset, ruled and rolling-ball faces are not measured: their area element |S_u × S_v| has no closed form and needs a certified enclosure. Production path: every face-area and face-center query on such a face, which is refused here with unsupportedCapability. Not complete until those supports are measured with certified bounds and tests that check them against known areas.",
-            sourcePath: "Sources/CADTopology/BRepFaceAreaMeasurementEvaluator.swift", sourceLine: 69
+            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
+            condition: "Non-numeric certified and mapped charts need integral-specific derivative admission on the production face-area path. Complete only when exact jets and successful/error integral fixtures are verified.",
+            sourcePath: "Sources/CADTopology/SurfaceAreaIntegration/CertifiedSurfaceFaceAreaIntegrator.swift", sourceLine: 351
         ),
     ]
 }

@@ -1,0 +1,84 @@
+# Surface Area Integrands
+
+## Purpose and Scope
+Child of [CADGeometry](../DESIGN.md), consumed by topology's
+[Surface Area Integration](../../CADTopology/SurfaceAreaIntegration/DESIGN.md).
+Owns integral-specific interval enclosures without publishing internal jets.
+
+## Responsibilities and Boundaries
+Exact supports and pcurves determine density and first moments. The component
+composes certified geometry with the exact signed fan parameter map. Topology
+owns tolerance allocation, adaptive work and measurement acceptance.
+
+## Related Designs
+| Design | Relationship | Contract Used | Summary | Cautions |
+|---|---|---|---|---|
+| [CADGeometry](../DESIGN.md) | parent | prepared interval differential jets | Exact geometry | Derivative order matters. |
+| [Surface Area Integration](../../CADTopology/SurfaceAreaIntegration/DESIGN.md) | used by | integrand bounds | Certified measurement | No sampled error estimates. |
+
+## Architecture
+```text
+prepared support + exact pcurve -> outward UV fan jets
+    -> |S_u cross S_v| and reference-centered position moments
+        -> pullback value/gradient/Hessian interval fields
+```
+
+## Contracts and Invariants
+- Existing structural affine support authority permits exact radial elimination.
+  Boundary density and moments retain exact numeric pcurve derivatives.
+- Every published interval contains the entire requested parameter box.
+- Periodic spline axes use the geometry-owned conservative base-chart interval
+  normalization before prepared-patch intersection. Each axis returns at most
+  two intervals, or one complete cycle; every Cartesian piece contributes to
+  the union. Negative and shifted representatives never discard coverage, and
+  no control net is copied for a requested cycle. Native derivatives are
+  unchanged by a periodic translation; the original parameter map still owns
+  pullback scaling and integration measure.
+- Genuine offsets normally certify density gradients only. For a single
+  constant-weight polynomial Bezier support of total degree at most three,
+  every fourth surface derivative is exactly zero. The actual offset interval
+  path differentiates source jets into tangent jets whose third derivatives
+  are zero; this structural proof makes those tangent third derivatives valid.
+  Normalization then certifies the normal through order three, hence the offset
+  through order three and the area-density Hessian through order two. Other
+  supports retain gradient-only bounds; nested offsets lacking source order
+  three remain explicit unsupported failures.
+- Translation certificates use exact expansion equality of control differences,
+  matching weights and parameter charts. For rectangular trims, density is
+  independent of the translation parameter and position is affine in it;
+  integration equals band width times density/moments at the exact band midpoint.
+  Original chart domains and error tolerances remain authoritative.
+- Rolling-ball supports with three normalized linear rails and exactly equal
+  control displacements prepare constant contact radials once. Their center is
+  affine in U; normalized radials, circular weight and the original native-V
+  rational arc are retained with outward bounds. Every U derivative of the
+  radial term and every mixed derivative is exactly zero by that structural
+  authority, rather than by subtraction of separately enclosed moving rails.
+  Constant radial lengths and the regular minor arc are certified before use;
+  positive Bernstein denominator bounds cover the complete requested V interval.
+  Other rolling-ball supports retain the existing prepared enclosure path.
+- Density Hessians require valid third surface derivatives and sufficient knot
+  continuity. Insufficient regularity uses gradient bounds or typed refusal.
+- Ruled and rolling-ball source curves independently determine available
+  derivative order; surface lifts over genuine offsets provide no Hessian.
+- Unsupported pcurve derivatives are explicit failure; zero substitution is
+  forbidden. UV endpoint rounding is clipped only to the exact support domain.
+
+## Failure, Concurrency, and Constraints
+Prepared state is immutable and invocation-owned. Unsupported derivatives,
+singular frames and nonfinite interval arithmetic produce typed KernelError.
+Topology owns geometry-size admission and subdivision bounds.
+
+## Verification and Change Impact
+[`SurfaceAreaIntegrationTests`](../../../Tests/CADTopologyTests/SurfaceAreaIntegrationTests.swift)
+validates composed behavior, including independently differentiated polynomial
+offset density bounds through the actual offset-normal enclosure path,
+piecewise C1 support, and admission of both endpoints of an eliminated band.
+Periodic-strip fixtures independently evaluate uniform cubic polynomials and
+their density derivatives on negative, shifted and seam-crossing intervals,
+then compare public face area and moments with a physical-coordinate integral.
+Rolling-ball fixtures retain the quarter-cylinder area and centroid contract,
+exercise a translated diagonal spine with independent native rational-section
+derivatives, and reject the translation certificate for unequal rail motion.
+Changes to procedural
+jets, pcurve jets or knot smoothness require rechecking derivative-order routing.

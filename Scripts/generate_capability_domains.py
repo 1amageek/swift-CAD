@@ -12,12 +12,13 @@ import sys
 # not infer geometric support from identifier spelling or comment wording.
 BINDINGS = {
     "BooleanFeatureEvaluator": (["boolean"], ["connection", "topology", "geometricFidelity"]),
+    "FaceBSplineSurfaceConverter": (["faceRebuild"], ["supportSurface", "parameterization", "representation"]),
     "CurveSurfaceOverlapResolver": (["curveSurfaceIntersectionResult"], ["supportSurface", "representation", "geometricFidelity"]),
     "OverlapChartBoundaryResolver": (["curveSurfaceIntersectionResult"], ["parameterization", "representation"]),
-    "FaceBSplineSurfaceConverter": (["faceRebuild"], ["supportSurface", "parameterization", "representation"]),
-    "StandardMeshExchange": (["GLBMeshExchange", "GLTFMeshExchange", "PLYMeshExchange", "VRMLMeshExchange"], ["representation", "geometricFidelity"]),
-    "BRepFaceAreaMeasurementEvaluator": (["faceAreaMeasurement"], ["supportSurface", "geometricFidelity"]),
     "ExtractFacePlugBuilder": (["extract"], ["supportSurface", "connection", "topology"]),
+    "StandardMeshExchange": (["GLBMeshExchange", "GLTFMeshExchange", "PLYMeshExchange", "VRMLMeshExchange"], ["representation", "geometricFidelity"]),
+    "CertifiedSurfaceFaceAreaIntegrator": (["faceAreaMeasurement"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
+    "PreparedSurfaceAreaIntegrand": (["faceAreaMeasurement"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
     "BSplineSurface3D+DegreeElevation": (["rationalBSplineSurface"], ["parameterization", "representation"]),
     "CADDocumentTranslation": (["importedBRep", "CADCommand"], ["transformation", "representation", "topology"]),
     "BSplineSurfaceEmbeddingValidator": (["loft"], ["supportSurface", "connection", "parameterization"]),
