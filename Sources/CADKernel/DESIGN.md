@@ -731,8 +731,10 @@ boss's block (the caps turned), and caps on both sides, or none, are refused
 (`BRepSewingEdgeSubdivider`) before sewing, so the two sides meet edge for edge;
 the chosen faces trace to their source faces and the caps are generated. Faces
 whose neighbours must grow past one another (a notch) are refused by the healing
-(`FIXME(INCOMPLETE_IMPLEMENTATION)`). `ExtractFaceClosure` answers whether faces
-close for callers that must declare the output before appending.
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`). `ExtractFaceClosure` answers, for callers
+that must declare the output before appending, whether faces close and whether
+they make a solid at all (they close, or the plug builds; a plug refused with
+`invalidInput` or `topologyFailure` means a sheet).
 `ExtractFeatureTests` own slice pieces, the refused count, face sheets, closed
 faces and cavities, a pocket's plug and a boss's block by volume, persistence and
 the selection contract.

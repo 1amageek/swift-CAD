@@ -143,7 +143,7 @@ struct ExtractFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
             guard let shell = source.shells[entry.shellID] else { throw TopologyError.missingReference("An extracted face's shell is missing.") }
             return entry.faceIndices.map { shell.faceIDs[$0] }
         })
-        return try ExtractFacePlugBuilder(tolerance: context.tolerance).plug(faces: faceIDs, of: sourceBodyID, feature: feature, context: context)
+        return try ExtractFacePlugBuilder(tolerance: context.tolerance).plug(faces: faceIDs, of: sourceBodyID, featureID: feature.id, context: context)
     }
 
     private enum Component {

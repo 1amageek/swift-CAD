@@ -52,27 +52,3 @@ struct ExtractFaceSet {
         }
     }
 }
-
-/// Whether chosen faces of a solid close, so their extraction is a solid
-/// (`ExtractSelection.solidFaces`) rather than a sheet: they must be every face of each shell
-/// they lie on.
-public struct ExtractFaceClosure {
-    public init() {}
-
-    public func closes(
-        faces: [StableSubshapeReference],
-        source featureID: FeatureID,
-        in document: EvaluatedDocument
-    ) throws -> Bool {
-        let tolerance = document.configuration.tolerance
-        guard case let .body(bodyID) = document.subshapes[SubshapeID(featureID: featureID, role: GeneratedSubshapeRole.body.rawValue, ordinal: 0)],
-              let body = document.brep.bodies[bodyID] else {
-            throw KernelError(phase: .evaluation, code: .missingReference, featureID: featureID, tolerance: tolerance,
-                message: "The faces' source has no evaluated body.")
-        }
-        return try ExtractFaceSet(
-            references: faces, body: body, model: document.brep, subshapes: document.subshapes,
-            lineage: document.lineage, resolver: StableSubshapeResolver(), tolerance: tolerance
-        ).closes(body: body, model: document.brep)
-    }
-}

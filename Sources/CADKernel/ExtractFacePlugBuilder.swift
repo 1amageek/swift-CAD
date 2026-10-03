@@ -27,7 +27,7 @@ struct ExtractFacePlugBuilder {
         self.solver = BRepSurfaceMeetingSolver(tolerance: tolerance)
     }
 
-    func plug(faces chosen: Set<FaceID>, of bodyID: BodyID, feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+    func plug(faces chosen: Set<FaceID>, of bodyID: BodyID, featureID: FeatureID, context: EvaluationContext) throws -> EvaluationResult {
         let source = context.brep
         guard let body = source.bodies[bodyID] else { throw TopologyError.missingReference("The extracted body is missing.") }
         let bodyFaces = body.shellIDs.flatMap { source.shells[$0]?.faceIDs ?? [] }
@@ -43,15 +43,15 @@ struct ExtractFacePlugBuilder {
             faces.contains(where: chosen.contains) && faces.contains { chosen.contains($0) == false }
         }.keys.sorted()
         guard opening.isEmpty == false else {
-            throw failure(.invalidInput, feature.id, "The faces have no edge in common with the rest of the body.")
+            throw failure(.invalidInput, featureID, "The faces have no edge in common with the rest of the body.")
         }
 
         // The body healed over the chosen faces, sewn on its own.
         var healed = source
-        let healStage = featureEvaluationStageID(featureID: feature.id, domain: .extractPlugHeal, ordinal: 0)
+        let healStage = featureEvaluationStageID(featureID: featureID, domain: .extractPlugHeal, ordinal: 0)
         try FaceRemovalPlanner().heal(removing: chosen, bodyID: bodyID, featureID: healStage, model: &healed, tolerance: tolerance)
         try ExactFacePcurveBuilder().populateMissingPcurves(in: &healed, tolerance: tolerance)
-        let copyStage = featureEvaluationStageID(featureID: feature.id, domain: .extractPlugCopy, ordinal: 0)
+        let copyStage = featureEvaluationStageID(featureID: featureID, domain: .extractPlugCopy, ordinal: 0)
         let extraction = try DefaultBRepFacePatchExtractor().extract(
             bodyID: bodyID, featureID: copyStage, from: healed, sourceSubshapes: context.subshapes.entries, tolerance: tolerance
         )
@@ -81,7 +81,7 @@ struct ExtractFacePlugBuilder {
                 break
             }
             guard let host else {
-                throw failure(.topologyFailure, feature.id, "The healed body does not reach across the opening.")
+                throw failure(.topologyFailure, featureID, "The healed body does not reach across the opening.")
             }
             let pcurve = try ExactFacePcurveBuilder().surfaceParameterCurve(
                 for: curve, startParameter: low, endParameter: high, on: host.surface, tolerance: tolerance
@@ -99,11 +99,11 @@ struct ExtractFacePlugBuilder {
             stageContext.validatedBRep = nil
             stageContext.subshapes.entries = filled.subshapes
             stageContext.lineage = filled.lineage
-            let imprintStage = featureEvaluationStageID(featureID: feature.id, domain: .extractPlugCopy, ordinal: 1)
+            let imprintStage = featureEvaluationStageID(featureID: featureID, domain: .extractPlugCopy, ordinal: 1)
             var stages = FeatureEvaluationStages(stageContext)
             let imprinted = try BRepFaceImprinter().imprint(curves, on: filled.bodyID, featureID: imprintStage, context: stageContext)
             stages.apply(imprinted)
-            cappedBodyID = try stages.publishedBody(of: imprinted, featureID: feature.id, what: "Imprinting the opening on the healed body")
+            cappedBodyID = try stages.publishedBody(of: imprinted, featureID: featureID, what: "Imprinting the opening on the healed body")
             capped = stages.context.brep
         }
         guard let cappedBody = capped.bodies[cappedBodyID] else { throw TopologyError.missingReference("The imprinted body is missing.") }
@@ -121,7 +121,7 @@ struct ExtractFacePlugBuilder {
             sides.insert(side)
         }
         guard caps.isEmpty == false, sides.count == 1, let side = sides.first else {
-            throw failure(.invalidInput, feature.id, caps.isEmpty
+            throw failure(.invalidInput, featureID, caps.isEmpty
                 ? "The faces around the chosen ones close nothing with them."
                 : "The faces bound both a void and material of the body.")
         }
@@ -148,7 +148,7 @@ struct ExtractFacePlugBuilder {
             patches.append(try oriented(patch, flipped: pocket == false))
         }
         let shells = try BRepSewingPatchShellPartitioner().shells(patches: try split(patches), stablePrefix: "plug:shell", tolerance: tolerance)
-        let sewn = try DefaultBRepSewer().sew(BRepSewingRequest(featureID: feature.id, bodyKind: .solid, shells: shells), tolerance: tolerance)
+        let sewn = try DefaultBRepSewer().sew(BRepSewingRequest(featureID: featureID, bodyKind: .solid, shells: shells), tolerance: tolerance)
         var result = source
         try BRepModelCombiner().merge(sewn.brep, into: &result)
         // The chosen faces trace to their published faces; the caps, built from the staged body

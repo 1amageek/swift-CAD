@@ -123,6 +123,7 @@ struct ExtractFeatureTests {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let box = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
         let some = try Array(faces(of: box, in: try evaluate(builder), builder: builder).prefix(5))
+        #expect(try ExtractFaceClosure().makesSolid(faces: some, source: box, in: try evaluate(builder)) == false)
         _ = try builder.extract(box, selection: .solidFaces(some))
         #expect(throws: KernelError.self) { try evaluate(builder) }
     }
@@ -156,6 +157,8 @@ struct ExtractFeatureTests {
             return inPocket(faceID)
         }.keys.sorted().map { try builder.stableSubshape($0) }
         #expect(pocket.count >= 2)
+        #expect(try ExtractFaceClosure().closes(faces: pocket, source: pocketed, in: before) == false)
+        #expect(try ExtractFaceClosure().makesSolid(faces: pocket, source: pocketed, in: before))
         let plug = try builder.extract(pocketed, selection: .solidFaces(pocket))
         let evaluated = try evaluate(builder)
         #expect(evaluated.brep.bodies[try bodyID(of: plug, in: evaluated)]?.kind == .solid)
