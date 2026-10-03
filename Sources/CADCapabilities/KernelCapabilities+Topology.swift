@@ -425,6 +425,7 @@ extension KernelCapabilities {
         "piecewiseC0PositiveWeightBSplineNativeSpanAndValueOnlyFanEnclosures",
         "numericExactTrimsIncludingHolesAndReversedLoops",
         "exactOffsetAndAffineRigidImageNumericTrimsWithOriginalFractionsAndReversal",
+        "exactOpenSingleCellAffineImplicitTrimsWithOriginalNativeUVAndFractions",
         "explicitFiniteCellDepthBoundaryAndControlLimits",
       ],
       exactOutputs: [

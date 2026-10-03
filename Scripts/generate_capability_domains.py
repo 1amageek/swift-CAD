@@ -22,6 +22,7 @@ BINDINGS = {
     "STEPAttributesWriter": (["STEP"], ["representation", "connection"]),
     "ExactSTEPWriter": (["STEP"], ["representation", "connection"]),
     "StandardMeshExchange": (["GLBMeshExchange", "GLTFMeshExchange", "PLYMeshExchange", "VRMLMeshExchange"], ["representation", "geometricFidelity"]),
+    "SurfaceAreaAffineImplicitChartEncloser": (["faceAreaMeasurement"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
     "SurfaceAreaParameterChartEncloser": (["faceAreaMeasurement"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
     "PreparedSurfaceAreaIntegrand": (["faceAreaMeasurement"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
     "BSplineSurface3D+DegreeElevation": (["rationalBSplineSurface"], ["parameterization", "representation"]),

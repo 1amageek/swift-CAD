@@ -4,6 +4,7 @@ import CADCore
 package struct SurfaceAreaParameterChartEncloser: Sendable {
     private indirect enum Storage: Sendable {
         case numeric(SurfaceParameterCurve)
+        case affineImplicit(SurfaceAreaAffineImplicitChartEncloser)
         case rigid(Storage, SurfaceParameterAffineTransform, Double, Double)
         case translated(Storage, Double, Double)
     }
@@ -40,7 +41,26 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
             boundaries: maximumBoundaryCurveCount, depth: sourceDepth, tolerance: tolerance)
         try preflight(curve, controls: maximumControlPointCount,
             boundaries: maximumBoundaryCurveCount, depth: sourceDepth, tolerance: tolerance)
+        try validateImplicitIdentity(curve,on:surface,tolerance:tolerance)
         try curve.validate(on: surface, tolerance: tolerance)
+    }
+
+    private static func validateImplicitIdentity(_ curve: SurfaceParameterCurve, on surface: Surface3D,
+                                                tolerance: ModelingTolerance) throws {
+        switch curve {
+        case .certifiedImplicit(let implicit):
+            let expected = implicit.role == .first ? implicit.intersection.firstSurface : implicit.intersection.secondSurface
+            guard surface == expected else {
+                throw failure(.invalidInput,tolerance,"Area implicit chart must retain its exact selected source support.")
+            }
+        case .rigidImage(let image):
+            try validateImplicitIdentity(image.source.parameterCurve,on:image.source.surface,tolerance:tolerance)
+        case .offsetSurfaceImage(let image):
+            try validateImplicitIdentity(image.source,on:image.offset.source,tolerance:tolerance)
+        case .periodicTranslation(let base,_,_):
+            try validateImplicitIdentity(base,on:surface,tolerance:tolerance)
+        default: break
+        }
     }
 
     func intervalJet(over fraction: ScalarInterval, tolerance: ModelingTolerance)
@@ -58,6 +78,8 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
             return (.numeric(curve), nil)
         case .constantU, .constantV:
             return (.numeric(curve), curve)
+        case .certifiedImplicit(let implicit):
+            return (.affineImplicit(try SurfaceAreaAffineImplicitChartEncloser(curve:implicit,tolerance:tolerance)),nil)
         case .offsetSurfaceImage(let image):
             return try prepare(image.source, tolerance: tolerance)
         case .periodicTranslation(let base, let u, let v):
@@ -84,7 +106,7 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
             } else { iso = nil }
             return (.rigid(child.storage, mapping, image.startFraction, image.endFraction), iso)
         default:
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Implicit, projected and unsplit piecewise source charts lack
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Projected and unsplit piecewise source charts lack
             // integral-specific jets on production face-area/centroid queries. Complete only
             // after their full original chart derivatives and integral/error fixtures certify.
             throw failure(.unsupportedCapability, tolerance, "Area chart has no certified numeric source derivatives.")
@@ -94,6 +116,8 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
     private static func enclose(_ storage: Storage, over fraction: ScalarInterval,
                                 tolerance: ModelingTolerance) throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet) {
         switch storage {
+        case .affineImplicit(let prepared):
+            return try prepared.intervalJet(over:fraction,tolerance:tolerance)
         case .numeric(let curve):
             guard let jet = try SurfaceParameterIntervalJet.enclose(curve, over: fraction, tolerance: tolerance) else {
                 throw failure(.unsupportedCapability, tolerance, "Admitted area chart lost its numeric interval derivatives.")
@@ -175,8 +199,22 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
             try preflight(image.source.surface, controls: controls, boundaries: boundaries, depth: depth + 1, tolerance: tolerance)
             try preflight(image.targetSurface, controls: controls, boundaries: boundaries, depth: depth + 1, tolerance: tolerance)
             try preflight(image.source.parameterCurve, controls: controls, boundaries: boundaries, depth: depth + 1, tolerance: tolerance)
+        case .certifiedImplicit(let implicit):
+            guard implicit.startFraction.isFinite, implicit.endFraction.isFinite,
+                  implicit.startFraction >= 0, implicit.startFraction <= 1,
+                  implicit.endFraction >= 0, implicit.endFraction <= 1,
+                  implicit.startFraction != implicit.endFraction else {
+                throw failure(.invalidInput,tolerance,"Area affine implicit fractions must retain their original [0,1] chart.")
+            }
+            guard implicit.intersection.cells.count <= boundaries else {
+                throw failure(.resourceLimitExceeded,tolerance,"Area implicit graph cell admission limit exceeded.")
+            }
+            try preflight(implicit.intersection.firstSurface,controls:controls,boundaries:boundaries,
+                depth:depth+1,tolerance:tolerance)
+            try preflight(implicit.intersection.secondSurface,controls:controls,boundaries:boundaries,
+                depth:depth+1,tolerance:tolerance)
         default:
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Non-numeric source charts have no bounded
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Remaining non-numeric source charts have no bounded
             // derivative admission for production face-area queries. Complete only after
             // whole-chart integral authority and success/failure fixtures are implemented.
             throw failure(.unsupportedCapability, tolerance, "Area chart source is not an admitted numeric chart.")

@@ -65,8 +65,11 @@ face loops -> continuous UV chains -> signed fan squares
   against the face's exact support, after bounded nested input admission.
   Topology supplies this authority to fan/boundary enclosure evaluation; the
   original signed fan measure, loop winding and whole-query resource/error
-  targets are unchanged. Implicit charts and non-affine rigid images remain
-  typed unsupported failures. Invalid source fractions or foreign targets cannot
+  targets are unchanged. Geometry also admits the exact open single-cell affine
+  implicit family under its original native-UV certificate and fraction authority;
+  topology uses that prepared chart under the same signed fan and whole-query
+  limits. Remaining implicit charts and non-affine rigid images retain typed
+  unsupported failures. Invalid source fractions or foreign targets cannot
   become a clamped or approximately equivalent accepted trim.
 
 ## State, Ownership, and Lifecycle
@@ -76,7 +79,7 @@ refinable leaf uncertainties; at most `2*processedCells-1` tree records and
 `processedCells` heap entries exist. Native initial partition depth counts
 toward the original query depth limit. No shared mutable state or cache is
 introduced.
-Each retained boundary curve additionally owns one immutable prepared numeric
+Each retained boundary curve additionally owns one immutable prepared source
 chart for its adaptive integration call. Chart preparation uses the original
 query admission limits and never creates an independent adaptive budget.
 

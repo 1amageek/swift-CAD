@@ -908,6 +908,142 @@ struct SurfaceAreaIntegrationTests {
         } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
     }
 
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func affineImplicitPartialTrimHasIndependentTiltedAreaAndCentroid(_ reversed: Bool) throws {
+        let (source,intersection) = try affineImplicitAreaFixture()
+        let implicit = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:.first,
+            startFraction:0.75,endFraction:0.25,tolerance:tolerance)
+        let trims = [SurfaceParameterCurve.constantV(v:7.5,uStart:2.75,uEnd:4.25),
+            .constantU(u:4.25,vStart:7.5,vEnd:8.5),
+            .constantV(v:8.5,uStart:4.25,uEnd:2.75),.certifiedImplicit(implicit)]
+        let (id,model) = try fixture(.bSpline(source),outer:trims,reversed:reversed)
+        let result = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        let expectedArea = 0.000152587890625
+        #expect(abs(result.area-expectedArea) <= tolerance.distance*tolerance.distance+tolerance.relative*expectedArea)
+        #expect((result.centroid-Point3D(x:0.140625,y:0.2578125,z:0.51171875)).length <= tolerance.distance)
+        do {
+            _ = try model.faceAreaMeasurement(of:id,tolerance:tolerance,
+                integrationOptions:FaceAreaIntegrationOptions(maximumCellCount:1))
+            Issue.record("Implicit chart preparation must not grant another adaptive work budget.")
+        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func affineImplicitJetsRetainNativeFractionsRolesAndCellDirection(_ backwards: Bool) throws {
+        let (source,intersection) = try affineImplicitAreaFixture(direction:backwards ? .reversed : .forward)
+        for role in [SurfaceIntersectionSurfaceRole.first,.second] {
+            let curve = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:role,
+                startFraction:0.75,endFraction:0.25,tolerance:tolerance)
+            let support = role == .first ? Surface3D.bSpline(source) : intersection.secondSurface
+            let prepared = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(curve),on:support,tolerance:tolerance)
+            let fraction = try ScalarInterval(lower:0.2,upper:0.6)
+            let actual = try prepared.intervalJet(over:fraction,tolerance:tolerance)
+            for t in [0.2,0.4,0.6] {
+                let mapped = 0.75-0.5*t
+                let s = backwards ? 1-mapped : mapped
+                let expectedU = role == .first ? 2.75 : (1+s)/3
+                let expectedV = role == .first ? 7+2*s : 5.0/12
+                #expect(actual.u.value.contains(expectedU) && actual.v.value.contains(expectedV))
+            }
+            let slope = backwards ? 0.5 : -0.5
+            #expect(actual.u.derivativeU.contains(role == .first ? 0 : slope/3))
+            #expect(actual.v.derivativeU.contains(role == .first ? 2*slope : 0))
+            for field in [actual.u,actual.v] {
+                #expect(field.secondDerivativeUU.lower == 0 && field.secondDerivativeUU.upper == 0)
+                #expect(field.thirdDerivativeUUU.lower == 0 && field.thirdDerivativeUUU.upper == 0)
+            }
+            // Original point evaluation uses cell native free UV, not arc length.
+            let original = try curve.parameter(atNormalizedFraction:0.4,tolerance:tolerance)
+            #expect(actual.u.value.contains(original.u) && actual.v.value.contains(original.v))
+            let point = try prepared.intervalJet(over:ScalarInterval(lower:0.4,upper:0.4),tolerance:tolerance)
+            #expect(point.u.value.contains(original.u) && point.v.value.contains(original.v))
+            #expect(point.u.value.upper-point.u.value.lower < 1e-10)
+            #expect(point.v.value.upper-point.v.value.lower < 1e-10)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func affineImplicitAdmissionRejectsForeignFractionsAndNonAffineFamily() throws {
+        let (source,intersection) = try affineImplicitAreaFixture()
+        let good = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:.first,
+            startFraction:0.25,endFraction:0.75,tolerance:tolerance)
+        var foreign = source
+        foreign.controlPoints = foreign.controlPoints.map { row in row.map { Point3D(x:$0.x,y:$0.y,z:$0.z+0.125) } }
+        do {
+            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(good),on:.bSpline(foreign),tolerance:tolerance)
+            Issue.record("Implicit trim authority cannot be transferred to a foreign face support.")
+        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        let invalid = CertifiedImplicitSurfaceParameterCurve(validatedIntersection:intersection,role:.first,
+            startFraction:0,endFraction:1+tolerance.relative/2)
+        do {
+            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(invalid),on:.bSpline(source),tolerance:tolerance)
+            Issue.record("Area admission must not clamp stored implicit source fractions.")
+        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        var nested = SurfaceParameterCurve.certifiedImplicit(good)
+        for _ in 0..<17 { nested = .periodicTranslation(base:nested,uShift:0,vShift:0) }
+        do {
+            _ = try SurfaceAreaParameterChartEncloser(curve:nested,on:.bSpline(source),tolerance:tolerance)
+            Issue.record("Implicit source preparation must retain the shared nesting limit.")
+        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        do {
+            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(good),on:.bSpline(source),
+                maximumControlPointCount:3,tolerance:tolerance)
+            Issue.record("Both implicit supports must be bounded before source validation.")
+        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        let rational = BSplineSurface3D(uDegree:1,vDegree:1,uKnots:[0,0,1,1],vKnots:[0,0,1,1],
+            controlPoints:[0.4765625,0.546875].map { z in [Point3D(x:0.1328125,y:0.25,z:z),
+                Point3D(x:0.1328125,y:0.265625,z:z)] },weights:[[1,0.5],[1,0.5]])
+        let graph = try #require(try ExactAffineBilinearIntersectionGraph.certified(first:source,second:rational,tolerance:tolerance))
+        let nonAffine = try graph.certifiedImplicitCurve(first:source,second:rational,tolerance:tolerance)
+        let nonAffineTrim = try CertifiedImplicitSurfaceParameterCurve(intersection:nonAffine,role:.first,tolerance:tolerance)
+        do {
+            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(nonAffineTrim),on:.bSpline(source),tolerance:tolerance)
+            Issue.record("A non-affine implicit source cannot inherit the constant-system proof.")
+        } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func affineImplicitCancellationRemainsAQueryFailure() async throws {
+        let (source,intersection) = try affineImplicitAreaFixture()
+        let implicit = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:.first,
+            startFraction:0.75,endFraction:0.25,tolerance:tolerance)
+        let trims = [SurfaceParameterCurve.constantV(v:7.5,uStart:2.75,uEnd:4.25),
+            .constantU(u:4.25,vStart:7.5,vEnd:8.5),
+            .constantV(v:8.5,uStart:4.25,uEnd:2.75),.certifiedImplicit(implicit)]
+        let (id,model) = try fixture(.bSpline(source),outer:trims)
+        let task = Task {
+            while !Task.isCancelled { await Task.yield() }
+            return try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        }
+        task.cancel()
+        do { _ = try await task.value; Issue.record("Implicit chart preparation cannot hide cancellation.") }
+        catch let error as KernelError { #expect(error.code == .cancelled) }
+    }
+
+    private func affineImplicitAreaFixture(direction: CertifiedImplicitIntersectionDirection = .forward)
+        throws -> (BSplineSurface3D,CertifiedImplicitIntersectionCurve) {
+        // Literal dyadic affine equations on native U=[2,5], V=[7,9].
+        let first = BSplineSurface3D(uDegree:1,vDegree:1,uKnots:[2,2,5,5],vKnots:[7,7,9,9],
+            controlPoints:[0.25,0.265625].map { y in [Point3D(x:0.125,y:y,z:0.5),
+                Point3D(x:0.15625,y:y,z:0.5234375)] })
+        let second = BSplineSurface3D(uDegree:1,vDegree:1,uKnots:[0,0,1,1],vKnots:[0,0,1,1],
+            controlPoints:[0.4765625,0.546875].map { z in [Point3D(x:0.1328125,y:0.234375,z:z),
+                Point3D(x:0.1328125,y:0.28125,z:z)] })
+        let cell = try CertifiedImplicitIntersectionGraphCell(parameterBox:SurfaceIntersectionParameterBox(
+            firstU:ScalarInterval(lower:2.5,upper:3),firstV:ScalarInterval(lower:7,upper:9),
+            secondU:ScalarInterval(lower:0,upper:1),secondV:ScalarInterval(lower:0,upper:1)),
+            freeParameter:.firstV,direction:direction,
+            lowerAnchor:SurfaceIntersectionParameterPair(first:SurfaceParameter(u:2.75,v:7),
+                second:SurfaceParameter(u:1.0/3,v:5.0/12)),
+            midpointAnchor:SurfaceIntersectionParameterPair(first:SurfaceParameter(u:2.75,v:8),
+                second:SurfaceParameter(u:0.5,v:5.0/12)),
+            upperAnchor:SurfaceIntersectionParameterPair(first:SurfaceParameter(u:2.75,v:9),
+                second:SurfaceParameter(u:2.0/3,v:5.0/12)),
+            firstSurface:first,secondSurface:second,tolerance:tolerance)
+        return (first,try CertifiedImplicitIntersectionCurve(firstSurface:.bSpline(first),secondSurface:.bSpline(second),
+            cells:[cell],isClosed:false,tolerance:tolerance))
+    }
+
     private func flatAreaSupport() -> Surface3D {
         .bSpline(BSplineSurface3D(uDegree:1,vDegree:1,uKnots:[0,0,1,1],vKnots:[0,0,1,1],
             controlPoints:[[.origin,Point3D(x:0.04,y:0,z:0)],

@@ -28,6 +28,10 @@ trim charts and exact directed offset/affine rigid chart images. It depends on
 the existing numeric interval jet contract, rather than changing the shared
 boundary-certification implementation. Topology passes the retained original
 trim and its prepared chart authority to integrand evaluation.
+`SurfaceAreaAffineImplicitChartEncloser` admits one open native implicit graph
+cell whose two original B-spline supports have exact affine patch authority.
+It solves the constant native-UV correspondence system with outward intervals;
+the retained graph certificate and its original free coordinate own traversal.
 
 ## Contracts and Invariants
 - Existing structural affine support authority permits exact radial elimination.
@@ -42,9 +46,23 @@ trim and its prepared chart authority to integrand evaluation.
   Outward affine UV/fraction arithmetic and the third-order chain rule enclose
   values and derivatives over the complete requested interval. No sampled
   reconstruction or materialized approximation changes the original fan map.
-  Implicit source charts and non-affine spherical images remain explicit
-  unsupported failures. Preparing a chart does not allocate another query error
+  Implicit charts outside the exact single-cell affine family and non-affine
+  spherical images remain explicit unsupported failures. Preparing a chart does not allocate another query error
   allowance or reset adaptive cell/depth/control admission limits.
+- The affine implicit family requires exact selected-support identity, original
+  fractions strictly in [0,1], an open single-cell certificate, and exact affine
+  parallelogram/equal-weight source authority from original controls. Preflight
+  bounds both supports and the graph cell count before validation or preparation.
+  Native knot spans scale the original source columns. The cell's free UV
+  coordinate follows its stored interval and direction, then the trim's stored
+  source fraction map; traversal is not arc length. A constant dependent
+  determinant must exclude zero over its complete outward enclosure before
+  Cramer division. Original affine equations prove the solved coordinates are
+  affine in that free coordinate, so their higher derivatives are exactly zero.
+  No sampled endpoint fit, graph approximation, shortened chart, implicit
+  recursive refinement, or additional error/work allowance is introduced.
+  Multicell joins, closed implicit curves, non-affine supports and unresolved
+  constant minors remain typed failures; they cannot inherit this family proof.
 - C0 spline integration uses prepared native Bezier span domains as its
   partition authority. A smooth proof is valid only when the complete requested
   pullback box belongs to one span, including that span's one-sided boundary
@@ -142,3 +160,7 @@ Mapped-chart verification compares public rigid/offset area and all centroid
 coordinates with independent geometric integrals, checks source-fraction
 restriction/reversal and interval derivative containment, and rejects foreign
 targets, unsupported charts, malformed dimensions and nesting/work exhaustion.
+Affine implicit verification retains partial/reversed original native fractions,
+both surface roles, independently calculated tilted-plane area and all centroid
+coordinates, complete interval derivative containment, exact support refusal,
+non-affine family refusal and existing query resource/cancellation behavior.
