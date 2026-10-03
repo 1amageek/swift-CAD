@@ -31,6 +31,8 @@ public struct PolySplineFeature: Codable, Sendable, Hashable {
     }
 }
 
+/// PolySplines' options, defaulting as Plasticity's dialog opens: Rounded corners off, Merge
+/// patches on, Interpolate boundary exactly off.
 public struct PolySplineOptions: Codable, Sendable, Hashable {
     public var roundedCorners: Bool
     public var mergePatches: Bool
@@ -39,7 +41,7 @@ public struct PolySplineOptions: Codable, Sendable, Hashable {
     public init(
         roundedCorners: Bool = false,
         mergePatches: Bool = true,
-        interpolateBoundaryExactly: Bool = true
+        interpolateBoundaryExactly: Bool = false
     ) {
         self.roundedCorners = roundedCorners
         self.mergePatches = mergePatches
