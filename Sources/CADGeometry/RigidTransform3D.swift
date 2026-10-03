@@ -367,7 +367,9 @@ public struct RigidTransform3D: Codable, Hashable, Sendable {
             controlPoints: surface.controlPoints.map { row in
                 row.map(applying(to:))
             },
-            weights: surface.weights
+            weights: surface.weights,
+            isUPeriodic: surface.isUPeriodic, isVPeriodic: surface.isVPeriodic,
+            uPeriodicOrigin: surface.uPeriodicOrigin, vPeriodicOrigin: surface.vPeriodicOrigin
         )
         try transformed.validate(tolerance: tolerance)
         return transformed

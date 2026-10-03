@@ -672,16 +672,8 @@ private extension BSplineSurface3D {
         throughOrder order: Int,
         tolerance: ModelingTolerance
     ) throws -> SurfaceTaylorVectorJet {
-        let clampedU = BSplineBasis.clampedParameter(
-            u,
-            knots: uKnots,
-            degree: uDegree
-        )
-        let clampedV = BSplineBasis.clampedParameter(
-            v,
-            knots: vKnots,
-            degree: vDegree
-        )
+        let clampedU = try basisParameter(u, direction: .u, tolerance: tolerance)
+        let clampedV = try basisParameter(v, direction: .v, tolerance: tolerance)
         let uBasis = (0...order).map { derivativeOrder in
             BSplineBasis.derivativeValues(
                 parameter: clampedU,

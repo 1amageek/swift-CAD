@@ -9,6 +9,9 @@
       - [x] PARG.G1.2.2 Periodic homogeneous knot refinement, seam/interior multiplicities and explicit storage/work budgets verified by 46 native geometry tests and 42 capability tests. `depends:PARG.G1.2.1` `parallel:none`
     - [x] PARG.G1.3 Strict source/schema behavior verified with 11 curve/schema tests, 3 signature tests, 42 capability tests, native executable checks and matching normal-WASM artifact execution; Embedded and full integration remain in PARI. `depends:PARG.G1.2` `parallel:none`
   - [ ] PARG.G2 Implement G2 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARG.G1` `parallel:none`
+    - [x] PARG.G2.1 Independent cyclic axes, seam/mixed derivatives, origins, isocurves, strict values and transform preservation verified by 55 native geometry tests and 42 capability tests; exact editing and portable integration remain open. `depends:PARG.G1` `parallel:none`
+    - [ ] PARG.G2.2 Exact seam-crossing tensor restrictions/refinement with total storage and homogeneous insertion-work budgets. `depends:PARG.G2.1` `parallel:none`
+    - [ ] PARG.G2.3 Prepared bounds/projection, CADIR transport and matching normal-WASM behavior; Embedded/full downstream closure remains in PARI/G5. `depends:PARG.G2.2` `parallel:none`
   - [ ] PARG.G3 Implement G3 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARG.G2` `parallel:none`
   - [ ] PARG.G4 Implement G4 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARG.G3` `parallel:none`
   - [ ] PARG.G5 Implement G5 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARG.G4` `parallel:none`

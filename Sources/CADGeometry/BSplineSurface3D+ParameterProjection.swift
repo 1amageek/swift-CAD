@@ -10,6 +10,12 @@ extension BSplineSurface3D {
         try options.validate(tolerance: tolerance)
         try validate(tolerance: tolerance)
         try point.validate()
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Periodic inverse projection is not integrated.
+        // BSplineSurface3D/Surface3D inverse queries reach here. G2.3 must search a
+        // complete representative domain and merge only seam-equivalent roots before success.
+        guard !isUPeriodic && !isVPeriodic else {
+            throw periodicOperationFailure("Periodic surface inverse projection is not integrated.", tolerance)
+        }
         guard case let .closed(uLower, uUpper) = uDomain,
               case let .closed(vLower, vUpper) = vDomain else {
             throw KernelError(

@@ -15,6 +15,12 @@ extension BSplineSurface3D {
         tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
         try validate(tolerance: tolerance)
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Cyclic degree elevation is not integrated.
+        // Public BSplineSurface3D.elevatingDegree reaches here. G5/G6 must preserve the
+        // cyclic function and continuity with an exact basis transformation before success.
+        guard direction == .u ? !isUPeriodic : !isVPeriodic else {
+            throw periodicOperationFailure("Periodic surface degree elevation is not integrated.", tolerance)
+        }
         let degree = direction == .u ? uDegree : vDegree
         let knots = direction == .u ? uKnots : vKnots
         let raised = try DegreeElevationBasis(knots: knots, degree: degree)
@@ -58,7 +64,9 @@ extension BSplineSurface3D {
             uKnots: direction == .u ? raised.raisedKnots : uKnots,
             vKnots: direction == .v ? raised.raisedKnots : vKnots,
             controlPoints: points,
-            weights: raisedWeights
+            weights: raisedWeights,
+            isUPeriodic: isUPeriodic, isVPeriodic: isVPeriodic,
+            uPeriodicOrigin: uPeriodicOrigin, vPeriodicOrigin: vPeriodicOrigin
         )
         try result.validate(tolerance: tolerance)
         return result

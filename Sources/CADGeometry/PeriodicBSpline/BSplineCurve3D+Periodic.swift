@@ -124,19 +124,34 @@ extension BSplineCurve3D {
             guard controlPoints[index] == controlPoints[index % count],
                   weights[index] == weights[index % count] else { throw Self.invalidCycle(tolerance) }
         }
+        try Self.validatePeriodicAxis(degree: degree, knots: knots,
+            controlPointCount: controlPointCount, origin: periodicOrigin, tolerance: tolerance)
+    }
+
+    /// Checks the shared cyclic knot/origin contract without materializing a control line.
+    static func validatePeriodicAxis(
+        degree: Int, knots: [Double], controlPointCount: Int, origin: Double?,
+        tolerance: ModelingTolerance
+    ) throws {
+        let count = controlPointCount - degree
+        guard count > 0, degree >= 1, degree < knots.count,
+              degree >= knots.reduce(0, { $0 + ($1 == knots[degree] ? 1 : 0) }) else {
+            throw invalidCycle(tolerance)
+        }
         let period = knots[controlPointCount] - knots[degree]
         for index in 0..<(knots.count - count) {
             let expected = knots[index] + period
             let actual = knots[index + count]
             let resolution = max(abs(expected), abs(actual), period, 1) * Double.ulpOfOne * 16
             guard expected.isFinite, abs(actual - expected) <= resolution else {
-                throw Self.invalidCycle(tolerance)
+                throw invalidCycle(tolerance)
             }
         }
-        try fundamentalDomain.validate(tolerance: tolerance)
+        let lower = origin ?? knots[degree]
+        try ParameterDomain.closed(lower, lower + period).validate(tolerance: tolerance)
     }
 
-    private static func representative(
+    static func representative(
         _ parameter: Double, origin: Double, period: Double, tolerance: ModelingTolerance
     ) throws -> Double {
         guard parameter.isFinite, origin.isFinite, period.isFinite, period > 0 else {

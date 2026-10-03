@@ -1,9 +1,9 @@
-# Periodic B-spline Curves
+# Periodic B-splines
 
 ## Purpose and Scope
 
 Child of [CADGeometry](../DESIGN.md), without children. Owns the cyclic curve
-representation, parameter normalization and fundamental-origin contract for G1.
+representation, parameter normalization and fundamental-origin contracts for G1/G2.
 Periodic editing and downstream representation closure remain part of this task.
 
 ## Responsibilities and Boundaries
@@ -102,3 +102,48 @@ bounds, exact signature transport and typed refusals on the matching normal WASM
 SDK. This evidence does not establish Embedded or whole-kernel compatibility;
 those remain in the final integration item. Higher consumers that assume
 a closed domain require review under G5; metadata cannot prove their support.
+
+## Tensor Surface Contract
+
+BSplineSurface3D owns rows indexed by V and columns indexed by U. Each axis has
+an independent periodic Boolean and optional origin. Periodic axes use the same
+translated knot and repeated homogeneous control contract as BSplineCurve3D;
+nonperiodic axes retain full knot vectors. The periodic factory takes independent
+controls along periodic axes and expands the complete tensor net. Its uKnots and
+vKnots arguments are cycle knots for periodic axes, full knots otherwise. At least
+one factory axis must be periodic; the ordinary initializer handles open surfaces.
+
+```text
+Independent tensor net + U/V knot vectors + periodic flags
+    -> checked expansion budget -> translated knots/repeated controls
+    -> per-axis structural validation -> owned BSplineSurface3D
+Finite (u,v) -> independent base-knot representatives -> rational tensor jet
+Origin change -> representative metadata only; S(u,v) unchanged
+Fixed coordinate -> normalized basis -> homogeneous isocurve with varying-axis cycle
+```
+
+- Surface period comes from its base knot interval, never rounded origin endpoints.
+- Tail columns and rows, including weights, equal the original cycle exactly.
+- Seam continuity is independently C^(p-m) for each periodic direction; mixed
+  partial derivatives obey both independent continuity orders.
+- Strict Codable requires both axis Booleans, preserves both origins and rejects
+  missing or wrongly typed fields. Validation rejects origins on open axes.
+- Point, normal, second/third-order and Taylor jets normalize before basis evaluation. No
+  per-point temporary control net or control-line allocation is permitted. The shared
+  BSplineCurve3D.validatePeriodicAxis predicate proves translated knots and origins;
+  both curve and tensor owners check their own repeated homogeneous controls.
+- Isocurves inherit the varying axis cycle/origin and normalize the fixed axis.
+- Rigid transforms preserve the cycle and origins; nonperiodic-axis edits preserve
+  the other axis. Editing a periodic axis is explicit typed unsupported until the
+  exact tensor refinement/restriction sprint is verified; it never silently opens.
+- The factory admits the total expanded net against maximumControlPointCount in
+  PeriodicBSplineExpansionOptions before allocation. Overflow and budget excess
+  return resourceLimitExceeded; malformed inputs return invalidInput/GeometryError.
+- Net values own immutable/copy-on-write arrays; no shared mutable state, callbacks
+  or platform-dependent isolation are introduced.
+
+PeriodicBSplineSurfaceTests in CADGeometryTests owns tensor basis differential,
+seam, origin, isocurve, mixed-axis edit/transform, schema and invalid-cycle fixtures.
+PARG.G2.1 proves values/evaluation; G2.2 proves exact editing; G2.3 proves prepared
+algorithms/transport/normal WASM. PARI owns Embedded and whole-system integration;
+G5 owns every downstream consumer. No partial sprint establishes complete G2.

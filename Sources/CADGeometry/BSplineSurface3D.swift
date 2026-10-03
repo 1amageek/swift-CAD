@@ -60,6 +60,10 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
     public var vKnots: [Double]
     public var controlPoints: [[Point3D]]
     public var weights: [[Double]]
+    public var isUPeriodic: Bool
+    public var isVPeriodic: Bool
+    public var uPeriodicOrigin: Double?
+    public var vPeriodicOrigin: Double?
 
     public init(
         uDegree: Int,
@@ -67,7 +71,11 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         uKnots: [Double],
         vKnots: [Double],
         controlPoints: [[Point3D]],
-        weights: [[Double]]? = nil
+        weights: [[Double]]? = nil,
+        isUPeriodic: Bool = false,
+        isVPeriodic: Bool = false,
+        uPeriodicOrigin: Double? = nil,
+        vPeriodicOrigin: Double? = nil
     ) {
         self.uDegree = uDegree
         self.vDegree = vDegree
@@ -75,12 +83,17 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         self.vKnots = vKnots
         self.controlPoints = controlPoints
         self.weights = weights ?? Self.unitWeights(matching: controlPoints)
+        self.isUPeriodic = isUPeriodic
+        self.isVPeriodic = isVPeriodic
+        self.uPeriodicOrigin = uPeriodicOrigin
+        self.vPeriodicOrigin = vPeriodicOrigin
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
-            [.uDegree, .vDegree, .uKnots, .vKnots, .controlPoints, .weights],
+            [.uDegree, .vDegree, .uKnots, .vKnots, .controlPoints, .weights,
+             .isUPeriodic, .isVPeriodic, .uPeriodicOrigin, .vPeriodicOrigin],
             in: decoder
         )
         let controlPoints = try container.decode([[Point3D]].self, forKey: .controlPoints)
@@ -90,7 +103,11 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
             uKnots: try container.decode([Double].self, forKey: .uKnots),
             vKnots: try container.decode([Double].self, forKey: .vKnots),
             controlPoints: controlPoints,
-            weights: try container.decode([[Double]].self, forKey: .weights)
+            weights: try container.decode([[Double]].self, forKey: .weights),
+            isUPeriodic: try container.decode(Bool.self, forKey: .isUPeriodic),
+            isVPeriodic: try container.decode(Bool.self, forKey: .isVPeriodic),
+            uPeriodicOrigin: try container.decodeIfPresent(Double.self, forKey: .uPeriodicOrigin),
+            vPeriodicOrigin: try container.decodeIfPresent(Double.self, forKey: .vPeriodicOrigin)
         )
     }
 
@@ -102,6 +119,10 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         try container.encode(vKnots, forKey: .vKnots)
         try container.encode(controlPoints, forKey: .controlPoints)
         try container.encode(weights, forKey: .weights)
+        try container.encode(isUPeriodic, forKey: .isUPeriodic)
+        try container.encode(isVPeriodic, forKey: .isVPeriodic)
+        try container.encodeIfPresent(uPeriodicOrigin, forKey: .uPeriodicOrigin)
+        try container.encodeIfPresent(vPeriodicOrigin, forKey: .vPeriodicOrigin)
     }
 
     public var uOrder: Int {
@@ -130,17 +151,11 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
     }
 
     public var uDomain: ParameterDomain {
-        guard uKnots.count > uDegree + 1 else {
-            return .closed(0.0, 0.0)
-        }
-        return .closed(uKnots[uDegree], uKnots[uKnots.count - uDegree - 1])
+        axisDomain(direction: .u, fundamental: false)
     }
 
     public var vDomain: ParameterDomain {
-        guard vKnots.count > vDegree + 1 else {
-            return .closed(0.0, 0.0)
-        }
-        return .closed(vKnots[vDegree], vKnots[vKnots.count - vDegree - 1])
+        axisDomain(direction: .v, fundamental: false)
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
@@ -151,6 +166,7 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         try validateKnots(vKnots, degree: vDegree, controlPointCount: vControlPointCount)
         try uDomain.validate(tolerance: tolerance)
         try vDomain.validate(tolerance: tolerance)
+        try validatePeriodicity(tolerance: tolerance)
     }
 
     public func insertingKnot(
@@ -159,6 +175,12 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
         try validate(tolerance: tolerance)
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Cyclic-axis surface knot insertion is not integrated.
+        // Public BSplineSurface3D.insertingKnot reaches here. G2.2 must preserve the tensor
+        // locus, cyclic tails, origins and total expansion/work budgets before success.
+        guard direction == .u ? !isUPeriodic : !isVPeriodic else {
+            throw periodicOperationFailure("Periodic surface knot refinement is not integrated.", tolerance)
+        }
         let insertionValue: Double
         switch direction {
         case .u:
@@ -187,7 +209,9 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
                 uKnots: insertion.knots,
                 vKnots: vKnots,
                 controlPoints: controlNet.controlPoints,
-                weights: controlNet.weights
+                weights: controlNet.weights,
+                isUPeriodic: isUPeriodic, isVPeriodic: isVPeriodic,
+                uPeriodicOrigin: uPeriodicOrigin, vPeriodicOrigin: vPeriodicOrigin
             )
         case .v:
             let insertion = try knotInsertion(
@@ -220,7 +244,9 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
                 uKnots: uKnots,
                 vKnots: insertion.knots,
                 controlPoints: controlNet.controlPoints,
-                weights: controlNet.weights
+                weights: controlNet.weights,
+                isUPeriodic: isUPeriodic, isVPeriodic: isVPeriodic,
+                uPeriodicOrigin: uPeriodicOrigin, vPeriodicOrigin: vPeriodicOrigin
             )
         }
         try insertedSurface.validate(tolerance: tolerance)
@@ -235,6 +261,12 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
         try validate(tolerance: tolerance)
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Seam-crossing surface restrictions are not integrated.
+        // Public BSplineSurface3D.trimmed reaches here. G2.2 must extract exact homogeneous
+        // tensor restrictions with total expansion/work budgets before returning success.
+        guard !isUPeriodic && !isVPeriodic else {
+            throw periodicOperationFailure("Periodic surface restrictions are not integrated.", tolerance)
+        }
         let startU = canonicalKnotValue(
             startUParameter,
             in: uKnots,
@@ -277,8 +309,8 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
               try vDomain.contains(v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
         }
-        let clampedU = BSplineBasis.clampedParameter(u, knots: uKnots, degree: uDegree)
-        let clampedV = BSplineBasis.clampedParameter(v, knots: vKnots, degree: vDegree)
+        let clampedU = try basisParameter(u, direction: .u, tolerance: tolerance)
+        let clampedV = try basisParameter(v, direction: .v, tolerance: tolerance)
         let uBasis = BSplineBasis.values(parameter: clampedU, degree: uDegree, knots: uKnots, count: uControlPointCount)
         let vBasis = BSplineBasis.values(parameter: clampedV, degree: vDegree, knots: vKnots, count: vControlPointCount)
         return try rationalPoint(uBasis: uBasis, vBasis: vBasis)
@@ -474,6 +506,10 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         case vKnots
         case controlPoints
         case weights
+        case isUPeriodic
+        case isVPeriodic
+        case uPeriodicOrigin
+        case vPeriodicOrigin
     }
 
     private struct WeightedVector {
@@ -515,9 +551,9 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
     private func validateControlPoints() throws {
         guard uDegree >= 1,
               vDegree >= 1,
-              controlPoints.count >= vDegree + 1,
+              vDegree < controlPoints.count,
               let firstRow = controlPoints.first,
-              firstRow.count >= uDegree + 1 else {
+              uDegree < firstRow.count else {
             throw GeometryError.invalidDistance(0.0)
         }
         for row in controlPoints {
@@ -550,7 +586,8 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
     }
 
     private func validateKnots(_ knots: [Double], degree: Int, controlPointCount: Int) throws {
-        guard knots.count == controlPointCount + degree + 1 else {
+        let (count, overflow) = controlPointCount.addingReportingOverflow(degree)
+        guard !overflow, count < Int.max, knots.count == count + 1 else {
             throw GeometryError.invalidDistance(Double(knots.count))
         }
         for knot in knots {
@@ -781,6 +818,8 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> RationalDerivatives {
+        let u = try basisParameter(u, direction: .u, tolerance: tolerance)
+        let v = try basisParameter(v, direction: .v, tolerance: tolerance)
         // Only the (p + 1)(q + 1) basis products of the knot spans holding (u, v) are nonzero:
         // the local bases to second order, and one pass over those control points gathering the
         // weighted position and its five derivatives together.

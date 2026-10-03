@@ -177,16 +177,8 @@ public extension BSplineSurface3D {
             throw GeometryError.invalidDistance(0.0)
         }
 
-        let clampedU = BSplineBasis.clampedParameter(
-            u,
-            knots: uKnots,
-            degree: uDegree
-        )
-        let clampedV = BSplineBasis.clampedParameter(
-            v,
-            knots: vKnots,
-            degree: vDegree
-        )
+        let clampedU = try basisParameter(u, direction: .u, tolerance: tolerance)
+        let clampedV = try basisParameter(v, direction: .v, tolerance: tolerance)
         let uBasis = (0...3).map { order in
             BSplineBasis.derivativeValues(
                 parameter: clampedU,

@@ -99,10 +99,11 @@ extension KernelCapabilities {
     KernelCapability(
       id: "GEO-SURFACE-002",
       operation: "rationalBSplineSurface",
-      status: .supported,
+      status: .partial,
       topology: .notApplicable,
       acceptedInputs: [
-        "boundedNonPeriodicControlNet", "positiveWeights",
+        "boundedNonPeriodicControlNet", "positiveWeights", "independentPeriodicAxes",
+        "translatedCyclicKnotsAndRepeatedControls", "finitePeriodicOrigins",
         "nondecreasingClampedOrNonClampedKnotsU",
         "nondecreasingClampedOrNonClampedKnotsV", "degreeU", "degreeV",
       ],
@@ -119,11 +120,13 @@ extension KernelCapabilities {
         "nonClampedNaturalDomainSupport",
         "scaleInvariantMetricConditioning",
         "exactRationalIsoparametricCurves",
-        "finiteDifferentialRangeValidation",
+        "finiteDifferentialRangeValidation", "periodicTensorPointAndSecondOrderJets",
+        "independentFundamentalOrigins", "periodicRationalIsoparametricCurves",
+        "strictAxisPeriodicitySchema",
       ],
       failureCodes: [
         .invalidInput, .intersectionFailure, .ambiguousSelection,
-        .singularSystem, .resourceLimitExceeded, .topologyFailure,
+        .singularSystem, .resourceLimitExceeded, .topologyFailure, .unsupportedCapability,
       ],
       tolerance: .standard,
       publicAPIs: [
@@ -135,6 +138,7 @@ extension KernelCapabilities {
         "GeometryKernelTests",
         "BSplineSurfaceParameterProjectionTests",
         "BSplineSurfaceTrimmingTests",
+        "PeriodicBSplineSurfaceTests",
       ]
     ),
     KernelCapability(
