@@ -4,8 +4,8 @@ import Foundation
 /// Integral-specific fields; derivative coordinates are boundary fraction and radial fraction.
 package struct SurfaceAreaIntegrandBounds: Sendable {
     package let value: OutwardScalarInterval
-    package let derivativeU: OutwardScalarInterval
-    package let derivativeV: OutwardScalarInterval
+    package let derivativeU: OutwardScalarInterval?
+    package let derivativeV: OutwardScalarInterval?
     package let secondUU: OutwardScalarInterval?
     package let secondUV: OutwardScalarInterval?
     package let secondVV: OutwardScalarInterval?
@@ -14,7 +14,7 @@ package struct SurfaceAreaIntegrandBounds: Sendable {
 /// Immutable exact geometry preparation for signed boundary-fan integration.
 package struct PreparedSurfaceAreaIntegrand: Sendable {
     private indirect enum Storage: Sendable {
-        case spline(BSplineSurface3D, [RationalBezierSurfaceJetEncloser.PreparedPatch])
+        case spline(SurfaceAreaNativeSpanPartition)
         case offset(OffsetSurface3D, PreparedSurfaceAreaIntegrand)
         case direct(PreparedSurfaceDifferentialEncloser)
         case translatedRollingBall(SurfaceAreaTranslatedRollingBallJet)
@@ -31,25 +31,9 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         translationDirection = SurfaceAreaTranslationCertificate.direction(of: surface)
         switch surface {
         case .bSpline(let spline):
-            let encloser = RationalBezierSurfaceJetEncloser()
-            storage = .spline(spline, try BSplineSurfaceBezierDecomposer().surfacePatches(
-                surface: spline, tolerance: tolerance
-            ).map { try encloser.prepare($0, tolerance: tolerance) })
-            func continuity(_ knots: [Double], _ degree: Int) -> Int {
-                let unique = Array(Set(knots)).sorted()
-                return unique.dropFirst().dropLast().map { knot in
-                    degree - knots.filter { $0 == knot }.count
-                }.min() ?? 3
-            }
-            derivativeOrder = min(3, continuity(spline.uKnots, spline.uDegree) + 1,
-                                  continuity(spline.vKnots, spline.vDegree) + 1)
-            // FIXME(INCOMPLETE_IMPLEMENTATION): C0 interior support knots have an unintegrated
-            // density discontinuity on the production face-area/centroid path. Complete only
-            // after exact span/domain partitioning and successful discontinuous-density fixtures.
-            guard derivativeOrder >= 2 else {
-                throw Self.failure(.unsupportedCapability, tolerance,
-                    "Area density integration requires C1 support across interior B-spline knots.")
-            }
+            let partition = try SurfaceAreaNativeSpanPartition(surface:spline,tolerance:tolerance)
+            storage = .spline(partition)
+            derivativeOrder = partition.derivativeOrder
         case .procedural(.offset(let offset)):
             if let exact = try offset.exactChartPreservingSurface(tolerance: tolerance) {
                 let prepared = try PreparedSurfaceAreaIntegrand(surface: exact, tolerance: tolerance, maximumControlPointCount: maximumControlPointCount)
@@ -109,7 +93,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
     package func bounds(
         curve: SurfaceParameterCurve, anchor: SurfaceParameter, reference: Point3D,
         boundaryFraction: ScalarInterval, radialFraction: ScalarInterval,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, domain: SurfaceAreaNativeSpanDomain? = nil
     ) throws -> [SurfaceAreaIntegrandBounds] {
         guard let chart = try SurfaceParameterIntervalJet.enclose(
             curve, over: boundaryFraction, tolerance: tolerance
@@ -128,28 +112,61 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         let parameters = SurfaceParameterBox(
             u: try clipped(u.value, to: surface.uDomain, tolerance: tolerance),
             v: try clipped(v.value, to: surface.vDomain, tolerance: tolerance))
-        let jet = try surfaceJet(over: parameters, tolerance: tolerance)
-        let cross = jet.differentiatedUThroughSecondOrder().cross(jet.differentiatedVThroughSecondOrder())
-        guard let density = cross.dot(cross).squareRoot() else {
-            throw Self.failure(.singularSystem, tolerance,
-                "Surface area integrand cannot certify a nonzero area element on this box.")
+        if let domain {
+            guard domain.curve == curve, domain.anchor == anchor,
+                  let radial = domain.radialRange,
+                  radialFraction.lower >= radial.lower, radialFraction.upper <= radial.upper else {
+                throw Self.failure(.invalidInput,tolerance,"Native span authority does not cover the original fan cell.")
+            }
         }
         let jacobian = r * (du * chart.v.differentiatedUThroughSecondOrder()
                            - dv * chart.u.differentiatedUThroughSecondOrder())
-        let coordinates = [jet.x - .constant(reference.x), jet.y - .constant(reference.y),
-                           jet.z - .constant(reference.z)]
-        return ([density] + coordinates.map { $0 * density }).map { field in
-            let composed = compose(field, u: u, v: v) * jacobian
-            return SurfaceAreaIntegrandBounds(
-                value: composed.value, derivativeU: composed.derivativeU, derivativeV: composed.derivativeV,
-                secondUU: derivativeOrder >= 3 ? composed.secondDerivativeUU : nil,
-                secondUV: derivativeOrder >= 3 ? composed.secondDerivativeUV : nil,
-                secondVV: derivativeOrder >= 3 ? composed.secondDerivativeVV : nil)
-        }
+        return try fields(over:parameters,u:u,v:v,measure:jacobian,reference:reference,domain:domain,tolerance:tolerance)
     }
 
     /// Structural affine authority permits exact radial integration for every numeric trim.
     package var radialIntegrationIsExact: Bool { surface.hasExactAffineParameterization }
+
+    package var hasNativeDensityJumps: Bool {
+        if case .spline(let partition) = storage { return partition.derivativeOrder == 1 }
+        return false
+    }
+
+    package func nativeRectangleDomains(over box: SurfaceParameterBox, maximumCount: Int,
+                                        tolerance: ModelingTolerance) throws -> [SurfaceAreaNativeSpanDomain]? {
+        for (interval,domain) in [(box.u,surface.uDomain),(box.v,surface.vDomain)] {
+            if case .closed(let lower,let upper) = domain,
+               interval.lower < lower || interval.upper > upper {
+                throw Self.failure(.classificationFailure,tolerance,"Native area partition cannot discard an out-of-support part of the original rectangle.")
+            }
+        }
+        if case .spline(let partition) = storage {
+            return try partition.rectangleDomains(over:box,maximumCount:maximumCount,tolerance:tolerance)
+        }
+        return nil
+    }
+
+    package func nativeFanDomains(curve: SurfaceParameterCurve, anchor: SurfaceParameter,
+                                  maximumCount: Int, tolerance: ModelingTolerance) throws -> [SurfaceAreaNativeSpanDomain]? {
+        if case .spline(let partition) = storage {
+            return try partition.fanDomains(curve:curve,anchor:anchor,maximumCount:maximumCount,tolerance:tolerance)
+        }
+        return nil
+    }
+
+    package func fanIsExactlyZero(curve: SurfaceParameterCurve, anchor: SurfaceParameter) -> Bool {
+        switch curve {
+        case .constantU(let u,_,_): return u == anchor.u
+        case .constantV(let v,_,_): return v == anchor.v
+        case .affine(let origin,let direction,let start,let end):
+            if start == end { return true }
+            let determinant = FloatingPointExpansion.subtract(
+                FloatingPointExpansion.product(FloatingPointExpansion.difference(origin.x,anchor.u),[direction.y]),
+                FloatingPointExpansion.product(FloatingPointExpansion.difference(origin.y,anchor.v),[direction.x]))
+            return FloatingPointExpansion.sign(determinant) == .zero
+        default: return false
+        }
+    }
 
     package func boundaryBounds(curve: SurfaceParameterCurve, anchor: SurfaceParameter,
                                 reference: Point3D, boundaryFraction: ScalarInterval,
@@ -205,10 +222,15 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
     /// Density is independent of that coordinate and position is affine in it.
     package func rectangularTranslationBounds(
         rectangle: SurfaceParameterBox, fraction: ScalarInterval, reference: Point3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, domain: SurfaceAreaNativeSpanDomain? = nil
     ) throws -> [SurfaceAreaIntegrandBounds] {
         guard let direction = translationDirection else {
             throw Self.failure(.unsupportedCapability, tolerance, "A surface translation certificate is required.")
+        }
+        if let domain {
+            guard domain.curve == nil, domain.radialRange == nil, domain.rectangle == rectangle else {
+                throw Self.failure(.invalidInput,tolerance,"Native span authority does not cover the translation rectangle.")
+            }
         }
         // Exact elimination must preserve admission of the entire original band,
         // including endpoints that are absent from the midpoint evaluation box.
@@ -234,21 +256,61 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         let v = direction == .v ? middle : native
         let box = SurfaceParameterBox(u: try clipped(u.value, to: surface.uDomain, tolerance: tolerance),
                                       v: try clipped(v.value, to: surface.vDomain, tolerance: tolerance))
-        let jet = try surfaceJet(over: box, tolerance: tolerance)
-        let cross = jet.differentiatedUThroughSecondOrder().cross(jet.differentiatedVThroughSecondOrder())
-        guard let density = cross.dot(cross).squareRoot() else {
-            throw Self.failure(.singularSystem, tolerance, "Translation area density is unresolved on this interval.")
-        }
         let measure = constant(width * bandWidth)
-        let fields = [density, (jet.x - .constant(reference.x)) * density,
-                      (jet.y - .constant(reference.y)) * density,
-                      (jet.z - .constant(reference.z)) * density]
-        return fields.map { field in
-            let f = compose(field, u: u, v: v) * measure
-            return SurfaceAreaIntegrandBounds(value: f.value, derivativeU: f.derivativeU, derivativeV: .exact(0),
-                secondUU: derivativeOrder >= 3 ? f.secondDerivativeUU : nil,
-                secondUV: derivativeOrder >= 3 ? .exact(0) : nil,
-                secondVV: derivativeOrder >= 3 ? .exact(0) : nil)
+        return try fields(over:box,u:u,v:v,measure:measure,reference:reference,domain:domain,tolerance:tolerance)
+    }
+
+    private func fields(over box: SurfaceParameterBox, u: SurfaceIntervalJet, v: SurfaceIntervalJet,
+                        measure: SurfaceIntervalJet, reference: Point3D, domain: SurfaceAreaNativeSpanDomain?,
+                        tolerance: ModelingTolerance) throws -> [SurfaceAreaIntegrandBounds] {
+        var result: [SurfaceAreaIntegrandBounds]?
+        try forEachSurfaceJet(over:box,domain:domain,tolerance:tolerance) { jet,order in
+            let cross = jet.differentiatedUThroughSecondOrder().cross(jet.differentiatedVThroughSecondOrder())
+            let values: [SurfaceAreaIntegrandBounds]
+            if order == 0 {
+                let vector = IntervalVector3DBounds(x:cross.x.value,y:cross.y.value,z:cross.z.value)
+                let density = OutwardScalarInterval(lower:vector.lengthLowerBound,upper:vector.lengthUpperBound)
+                let origins = [reference.x,reference.y,reference.z]
+                let coordinates = [jet.x.value,jet.y.value,jet.z.value]
+                let fields = [density]+coordinates.enumerated().map { ($0.element - .exact(origins[$0.offset]))*density }
+                values = fields.map { SurfaceAreaIntegrandBounds(value:$0*measure.value,
+                    derivativeU:nil,derivativeV:nil,secondUU:nil,secondUV:nil,secondVV:nil) }
+            } else {
+                guard let density = cross.dot(cross).squareRoot() else {
+                    throw Self.failure(.singularSystem,tolerance,"Area density is unresolved inside a smooth native span.")
+                }
+                let fields = [density,(jet.x - .constant(reference.x))*density,
+                    (jet.y - .constant(reference.y))*density,(jet.z - .constant(reference.z))*density]
+                values = fields.map { field in
+                    let f = compose(field,u:u,v:v)*measure
+                    return SurfaceAreaIntegrandBounds(value:f.value,derivativeU:f.derivativeU,derivativeV:f.derivativeV,
+                        secondUU:order >= 3 ? f.secondDerivativeUU : nil,
+                        secondUV:order >= 3 ? f.secondDerivativeUV : nil,secondVV:order >= 3 ? f.secondDerivativeVV : nil)
+                }
+            }
+            if let prior = result {
+                func merge(_ a: OutwardScalarInterval?, _ b: OutwardScalarInterval?) -> OutwardScalarInterval? {
+                    guard let a,let b else { return nil }; return a.union(b)
+                }
+                result = zip(prior,values).map { a,b in
+                    SurfaceAreaIntegrandBounds(value:a.value.union(b.value),derivativeU:merge(a.derivativeU,b.derivativeU),
+                        derivativeV:merge(a.derivativeV,b.derivativeV),secondUU:merge(a.secondUU,b.secondUU),
+                        secondUV:merge(a.secondUV,b.secondUV),secondVV:merge(a.secondVV,b.secondVV))
+                }
+            } else { result = values }
+        }
+        guard let result else { throw Self.failure(.classificationFailure,tolerance,"Area integrand has no native support coverage.") }
+        return result
+    }
+
+    private func forEachSurfaceJet(over box: SurfaceParameterBox, domain: SurfaceAreaNativeSpanDomain?,
+                                   tolerance: ModelingTolerance,
+                                   _ consume: (SurfaceIntervalVectorJet,Int) throws -> Void) throws {
+        if case .spline(let partition) = storage {
+            try partition.forEachJet(over:box,domain:domain,tolerance:tolerance,consume)
+        } else {
+            guard domain == nil else { throw Self.failure(.invalidInput,tolerance,"Native spline authority cannot select a procedural support.") }
+            try consume(surfaceJet(over:box,tolerance:tolerance),derivativeOrder)
         }
     }
 
@@ -260,28 +322,9 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         case .offset(let offset, let source):
             return try offset.intervalJet(fromValidatedSourceJet: source.surfaceJet(over: box, tolerance: tolerance),
                                           tolerance: tolerance)
-        case .spline(let spline, let patches):
+        case .spline(let partition):
             var result: SurfaceIntervalVectorJet?
-            let us = try spline.enclosureIntervals(box.u, direction: .u, tolerance: tolerance)
-            let vs = try spline.enclosureIntervals(box.v, direction: .v, tolerance: tolerance)
-            // Conservative base-chart normalization covers every requested cycle,
-            // including negative representatives and both sides of a seam.
-            for u in us {
-                for v in vs {
-                    for patch in patches {
-                        guard !Task.isCancelled else {
-                            throw Self.failure(.cancelled, tolerance, "Surface area enclosure was cancelled.")
-                        }
-                        let lowU = max(u.lower, patch.uLower), highU = min(u.upper, patch.uUpper)
-                        let lowV = max(v.lower, patch.vLower), highV = min(v.upper, patch.vUpper)
-                        guard lowU <= highU, lowV <= highV else { continue }
-                        let jet = try RationalBezierSurfaceJetEncloser().enclosure(of: patch,
-                            u: ScalarInterval(lower: lowU, upper: highU),
-                            v: ScalarInterval(lower: lowV, upper: highV), tolerance: tolerance)
-                        result = result.map { $0.union(jet) } ?? jet
-                    }
-                }
-            }
+            try partition.forEachJet(over:box,domain:nil,tolerance:tolerance) { jet,_ in result = result.map { $0.union(jet) } ?? jet }
             guard let result else {
                 throw Self.failure(.classificationFailure, tolerance, "Area parameter box misses all exact spline spans.")
             }

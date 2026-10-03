@@ -49,10 +49,25 @@ face loops -> continuous UV chains -> signed fan squares
   bounds when certified second derivatives are unavailable. Midpoint sample
   values themselves are interval bounds. No difference of sampled quadrature
   rules is used as an error proof.
+- C0 support partitioning preserves the original signed fan and exact trim
+  chart. A single native span permits one-sided smooth Taylor bounds; a cell
+  crossing a knot uses only certified integrand value ranges times its full
+  fan measure. No derivative of a discontinuous density enters Taylor bounds.
+  Translation rectangles partition at exact native knot coordinates; span
+  identity owns endpoint derivatives while shared boundaries have zero measure.
+- Error targets are allocated once per query and shared across all curves,
+  spans, pieces and loops. Range-only cells contribute their complete interval
+  uncertainty to the same aggregate error target; they do not receive a new
+  absolute tolerance per piece. Final area and centroid interval acceptance
+  remains authoritative. Work and depth accounting also remain query-wide.
 
 ## State, Ownership, and Lifecycle
-Each invocation owns immutable prepared geometry and a depth-first cell stack.
-No shared mutable state or cache is introduced.
+Each invocation owns immutable prepared geometry. Smooth domains retain their
+depth-first cell stack. C0 domains own a balanced outward-sum tree and a heap of
+refinable leaf uncertainties; at most `2*processedCells-1` tree records and
+`processedCells` heap entries exist. Native initial partition depth counts
+toward the original query depth limit. No shared mutable state or cache is
+introduced.
 
 ## Failure, Concurrency, and Constraints
 Admission limits boundary curves, input and expanded Bezier control points, processed cells and subdivision

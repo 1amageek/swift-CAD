@@ -303,7 +303,8 @@ struct SurfaceAreaIntegrationTests {
                 let first = a*b*(c2*u/sqrt(r)+2*d*c2*u/(r*r))
                 let hessian = a*b*(c2/pow(r,1.5)+2*d*c2/(r*r)-8*d*c2*c2*u*u/(r*r*r))
                 #expect(bounds.value.lower <= density && density <= bounds.value.upper)
-                #expect(bounds.derivativeU.lower <= first && first <= bounds.derivativeU.upper)
+                let derivative = try #require(bounds.derivativeU)
+                #expect(derivative.lower <= first && first <= derivative.upper)
                 #expect(second.lower <= hessian && hessian <= second.upper)
             }
         }
@@ -376,7 +377,8 @@ struct SurfaceAreaIntegrationTests {
                         let bound = fields[i]
                         let h = try #require(bound.secondUU)
                         #expect(bound.value.lower <= values[i] && values[i] <= bound.value.upper)
-                        #expect(bound.derivativeU.lower <= derivatives[i] && derivatives[i] <= bound.derivativeU.upper)
+                        let derivative = try #require(bound.derivativeU)
+                        #expect(derivative.lower <= derivatives[i] && derivatives[i] <= derivative.upper)
                         #expect(h.lower <= hessians[i] && hessians[i] <= h.upper)
                     }
                 }
@@ -516,14 +518,152 @@ struct SurfaceAreaIntegrationTests {
         catch let error as KernelError { #expect(error.code == .cancelled) }
     }
 
+    @Test(.timeLimit(.minutes(1)), arguments:[0.5,0.37])
+    func c0FoldedRectangleHasAnalyticAreaAndAllCentroidComponents(_ knot: Double) throws {
+        let (id,model) = try fixture(foldedSupport(knot:knot))
+        let result = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        let middleX = 0.02*knot
+        let firstLength = middleX, secondLength = hypot(0.02-middleX,0.02)
+        let area = 0.03*(firstLength+secondLength)
+        let centroid = Point3D(x:(firstLength*middleX/2+secondLength*(middleX+0.02)/2)/(firstLength+secondLength),
+            y:0.015,z:secondLength*0.01/(firstLength+secondLength))
+        #expect(abs(result.area-area) <= tolerance.distance*tolerance.distance+tolerance.relative*area)
+        #expect((result.centroid-centroid).length <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[0.5,0.37])
+    func c0FoldCrossingTriangleUsesEveryOriginalFanPiece(_ knot: Double) throws {
+        let curves: [SurfaceParameterCurve] = [.constantV(v:0,uStart:0,uEnd:1),
+            .constantU(u:1,vStart:0,vEnd:1),
+            .affine(origin:Point2D(x:1,y:1),direction:Point2D(x:-1,y:-1),startParameter:0,endParameter:1)]
+        let (id,model) = try fixture(foldedSupport(knot:knot),outer:curves)
+        let result = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        let x = 0.02*knot, firstDensity = 0.03*x/knot
+        let secondDensity = 0.03*hypot(0.02-x,0.02)/(1-knot)
+        let firstArea = firstDensity*knot*knot/2
+        let secondArea = secondDensity*(1-knot*knot)/2
+        let firstU = 2*knot/3
+        let secondU = 2*(1-knot*knot*knot)/(3*(1-knot*knot))
+        let firstPoint = Point3D(x:x*firstU/knot,y:0.03*firstU/2,z:0)
+        let secondPoint = Point3D(x:x+(0.02-x)*(secondU-knot)/(1-knot),
+            y:0.03*secondU/2,z:0.02*(secondU-knot)/(1-knot))
+        let area = firstArea+secondArea
+        let centroid = Point3D(x:(firstArea*firstPoint.x+secondArea*secondPoint.x)/area,
+            y:(firstArea*firstPoint.y+secondArea*secondPoint.y)/area,
+            z:secondArea*secondPoint.z/area)
+        #expect(abs(result.area-area) <= tolerance.distance*tolerance.distance+tolerance.relative*area)
+        #expect((result.centroid-centroid).length <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func c0CrossingHoleAndReversalRetainAllWeightedMoments(_ reversed: Bool) throws {
+        let knot = 0.37, x = 0.02*knot
+        let firstLength = x, secondLength = hypot(0.02-x,0.02)
+        let hole = rectangle(knot/2,(1+knot)/2,0.25,0.75)
+        let (id,model) = try fixture(foldedSupport(knot:knot),holes:[hole],reversed:reversed)
+        let result = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        let firstArea = 0.03*firstLength, secondArea = 0.03*secondLength
+        let removedFirst = firstArea/4, removedSecond = secondArea/4
+        let area = 0.75*(firstArea+secondArea)
+        let centroid = Point3D(x:(firstArea*x/2+secondArea*(x+0.02)/2
+            - removedFirst*0.75*x-removedSecond*(0.75*x+0.25*0.02))/area,
+            y:0.015,z:(secondArea*0.01-removedSecond*0.005)/area)
+        #expect(abs(result.area-area) <= tolerance.distance*tolerance.distance+tolerance.relative*area)
+        #expect((result.centroid-centroid).length <= tolerance.distance)
+    }
+
     @Test(.timeLimit(.minutes(1)))
-    func discontinuousDensityAcrossPiecewiseKnotsIsRefused() throws {
-        let surface = Surface3D.bSpline(BSplineSurface3D(uDegree:1,vDegree:1,
-            uKnots:[0,0,0.5,1,1],vKnots:[0,0,1,1],controlPoints:[0.0,0.03].map { y in
-                [Point3D(x:0,y:y,z:0),Point3D(x:0.01,y:y,z:0),Point3D(x:0.02,y:y,z:0.02)] }))
-        let (id,model) = try fixture(surface)
-        do { _ = try model.faceAreaMeasurement(of:id,tolerance:tolerance); Issue.record("An uncertified knot must fail.") }
-        catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+    func c0OneSidedNativeAuthorityAndCrossSpanValueProofRemainDistinct() throws {
+        let prepared = try PreparedSurfaceAreaIntegrand(surface:foldedSupport(knot:0.5),tolerance:tolerance)
+        let unit = try ScalarInterval(lower:0,upper:1)
+        let box = SurfaceParameterBox(u:unit,v:unit)
+        let domains = try #require(try prepared.nativeRectangleDomains(over:box,maximumCount:16,tolerance:tolerance))
+        #expect(domains.count == 2)
+        for domain in domains {
+            let fields = try prepared.rectangularTranslationBounds(rectangle:domain.rectangle,
+                fraction:unit,reference:.origin,tolerance:tolerance,domain:domain)
+            #expect(fields.allSatisfy { $0.derivativeU != nil && $0.derivativeV != nil && $0.secondUU != nil })
+        }
+        let crossing = try prepared.rectangularTranslationBounds(rectangle:box,
+            fraction:ScalarInterval(lower:0.25,upper:0.75),reference:.origin,tolerance:tolerance)
+        #expect(crossing.allSatisfy { $0.derivativeU == nil && $0.derivativeV == nil && $0.secondUU == nil && $0.secondUV == nil && $0.secondVV == nil })
+        let densities = [0.0006,0.03*hypot(0.02,0.04)]
+        for (u,density) in [(0.25,densities[0]),(0.75,densities[1])] {
+            let z = u < 0.5 ? 0 : 0.04*u-0.02
+            let values = [density,0.02*u*density,0.015*density,z*density]
+            for i in crossing.indices { #expect(crossing[i].value.contains(values[i])) }
+        }
+        let fan = try prepared.bounds(curve:.constantU(u:1,vStart:0,vEnd:1),
+            anchor:SurfaceParameter(u:0,v:0),reference:.origin,boundaryFraction:unit,
+            radialFraction:ScalarInterval(lower:0.25,upper:0.75),tolerance:tolerance)
+        #expect(fan.allSatisfy { $0.derivativeU == nil && $0.secondUU == nil })
+        for (r,density) in [(0.25,densities[0]),(0.75,densities[1])] {
+            let values = [density*r,0.02*r*density*r,0.03*r*0.5*density*r,
+                (r < 0.5 ? 0 : 0.04*r-0.02)*density*r]
+            for i in fan.indices { #expect(fan[i].value.contains(values[i])) }
+        }
+        let other = try PreparedSurfaceAreaIntegrand(surface:foldedSupport(knot:0.37),tolerance:tolerance)
+        do {
+            _ = try other.rectangularTranslationBounds(rectangle:domains[0].rectangle,
+                fraction:unit,reference:.origin,tolerance:tolerance,domain:domains[0])
+            Issue.record("Foreign prepared-span identity must not select a one-sided derivative.")
+        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        do {
+            _ = try prepared.nativeRectangleDomains(over:SurfaceParameterBox(
+                u:ScalarInterval(lower:-0.1,upper:1),v:unit),maximumCount:16,tolerance:tolerance)
+            Issue.record("Span intersection must not discard part of the original domain.")
+        } catch let error as KernelError { #expect(error.code == .classificationFailure) }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nativePiecesShareOneAggregateErrorAndResourceBudget() throws {
+        let unit = try ScalarInterval(lower:0,upper:1)
+        let cell = SurfaceAreaAdaptiveIntegral.Cell(t:unit,r:unit,depth:1,rectangle:nil,domain:nil)
+        var work = 0
+        do {
+            _ = try SurfaceAreaAdaptiveIntegral().integrate(cells:[cell,cell],goals:[1,1,1,1],
+                options:FaceAreaIntegrationOptions(maximumCellCount:6),work:&work,tolerance:tolerance) { cell in
+                    let measure = cell.t.width*cell.r.width
+                    return .init(contribution:Array(repeating:OutwardScalarInterval(lower:-0.75*measure,upper:0.75*measure),count:4),splitT:true)
+                }
+            Issue.record("Two pieces each below the target cannot spend that target twice.")
+        } catch let error as KernelError {
+            #expect(error.code == .resourceLimitExceeded)
+            #expect(work == 7 && error.residual == 7)
+        }
+        let knot = 0.37
+        let (id,model) = try fixture(foldedSupport(knot:knot),holes:[rectangle(knot/2,(1+knot)/2,0.25,0.75)])
+        do {
+            _ = try model.faceAreaMeasurement(of:id,tolerance:tolerance,
+                integrationOptions:FaceAreaIntegrationOptions(maximumCellCount:3))
+            Issue.record("Native pieces in another loop must share the original work counter.")
+        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func c0UnprovedCrossSpanCutsFailWithinTheBudgetAndCancellationRemainsTyped() async throws {
+        let curves: [SurfaceParameterCurve] = [.constantV(v:0,uStart:0,uEnd:1),
+            .affine(origin:Point2D(x:1,y:0),direction:Point2D(x:-1,y:1),startParameter:0,endParameter:1),
+            .constantU(u:0,vStart:1,vEnd:0)]
+        let (id,model) = try fixture(foldedSupport(knot:0.37),outer:curves)
+        do {
+            _ = try model.faceAreaMeasurement(of:id,tolerance:tolerance,
+                integrationOptions:FaceAreaIntegrationOptions(maximumCellCount:8))
+            Issue.record("Unproved fan cuts cannot manufacture a smooth cross-knot success.")
+        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        let task = Task {
+            while !Task.isCancelled { await Task.yield() }
+            return try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        }
+        task.cancel()
+        do { _ = try await task.value; Issue.record("C0 cancellation must remain observable.") }
+        catch let error as KernelError { #expect(error.code == .cancelled) }
+    }
+
+    private func foldedSupport(knot: Double) -> Surface3D {
+        .bSpline(BSplineSurface3D(uDegree:1,vDegree:1,uKnots:[0,0,knot,1,1],vKnots:[0,0,1,1],
+            controlPoints:[0.0,0.03].map { y in [.init(x:0,y:y,z:0),
+                .init(x:0.02*knot,y:y,z:0),.init(x:0.02,y:y,z:0.02)] }))
     }
 
     private func periodicStrip(uPeriodic: Bool) throws -> BSplineSurface3D {

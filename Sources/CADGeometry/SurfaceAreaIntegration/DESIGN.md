@@ -27,6 +27,26 @@ prepared support + exact pcurve -> outward UV fan jets
 - Existing structural affine support authority permits exact radial elimination.
   Boundary density and moments retain exact numeric pcurve derivatives.
 - Every published interval contains the entire requested parameter box.
+- C0 spline integration uses prepared native Bezier span domains as its
+  partition authority. A smooth proof is valid only when the complete requested
+  pullback box belongs to one span, including that span's one-sided boundary
+  derivatives. A box crossing a C0 knot has an explicit value-only proof;
+  gradients and Hessians are absent, rather than fabricated or reused across
+  the density jump. Each intersecting span computes density and centered
+  moments before their value ranges are unioned. Intersecting the support box
+  restricts enclosure geometry only; it never changes the original fan measure.
+- Native span descriptors retain the stored knot coordinates and an opaque
+  prepared-span identity. Consumers may partition a translation rectangle at
+  those coordinates and request the corresponding one-sided enclosure without
+  selecting jets from a neighboring span at a shared boundary. Periodic chart
+  normalization retains coverage of every representative piece.
+- A constant-coordinate fan boundary may partition its radial parameter at
+  native knots when exact expansion arithmetic proves each cut identity and
+  the other native coordinate remains inside the selected span. These opaque
+  domains retain the original fan map and full radial measure. Unproved cuts
+  use value-only cross-span integration. An affine fan with exactly zero
+  determinant is structurally zero; sampled area estimates do not authorize
+  omitting a boundary contribution.
 - Periodic spline axes use the geometry-owned conservative base-chart interval
   normalization before prepared-patch intersection. Each axis returns at most
   two intervals, or one complete cycle; every Cartesian piece contributes to
@@ -82,3 +102,8 @@ exercise a translated diagonal spine with independent native rational-section
 derivatives, and reject the translation certificate for unequal rail motion.
 Changes to procedural
 jets, pcurve jets or knot smoothness require rechecking derivative-order routing.
+C0 verification owns folded rectangles and their three centered moments,
+cross-fold triangular trims, holes and reversal, non-dyadic knot coordinates,
+the smooth/value-only proof distinction, and whole-query resource/cancellation
+failures. Successful C0 support integration does not authorize higher-order
+offset derivatives or any other incomplete procedural/trim path.

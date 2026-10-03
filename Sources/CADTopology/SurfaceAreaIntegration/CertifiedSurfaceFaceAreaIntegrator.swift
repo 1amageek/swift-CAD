@@ -136,6 +136,10 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                            prepared: PreparedSurfaceAreaIntegrand, goals: [Double],
                            options: FaceAreaIntegrationOptions, work: inout Int,
                            tolerance: ModelingTolerance) throws -> [OutwardScalarInterval] {
+        if prepared.hasNativeDensityJumps {
+            return try integrateNativeSpans(curve:curve,rectangle:rectangle,anchor:anchor,reference:reference,
+                prepared:prepared,goals:goals,options:options,work:&work,tolerance:tolerance)
+        }
         var stack = [Cell(t: try ScalarInterval(lower: 0, upper: 1),
                           r: try ScalarInterval(lower: 0, upper: 1), depth: 0)]
         var total = Array(repeating: OutwardScalarInterval.exact(0), count: 4)
@@ -178,8 +182,11 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                 for i in 0..<4 {
                     let f = bounds[i]
                     var local = midpoint[i].value
-                    let tVariation = (f.derivativeU.upper - f.derivativeU.lower).nextUp
-                    let rVariation = (f.derivativeV.upper - f.derivativeV.lower).nextUp
+                    guard let derivativeT = f.derivativeU,let derivativeR = f.derivativeV else {
+                        throw failure(.classificationFailure,tolerance,"A value-only native proof cannot enter smooth Taylor integration.")
+                    }
+                    let tVariation = (derivativeT.upper - derivativeT.lower).nextUp
+                    let rVariation = (derivativeR.upper - derivativeR.lower).nextUp
                     var error = ((OutwardScalarInterval.exact(tVariation) * size
                         + OutwardScalarInterval.exact(rVariation) * height) * .exact(0.125)).upper
                     if let uu = f.secondUU, let uv = f.secondUV, let vv = f.secondVV {
@@ -231,6 +238,104 @@ struct CertifiedSurfaceFaceAreaIntegrator {
             stack.append(Cell(t: splitT ? lower : cell.t, r: splitT ? cell.r : lower, depth: cell.depth + 1))
         }
         return total
+    }
+
+    private func integrateNativeSpans(curve: SurfaceParameterCurve, rectangle: SurfaceParameterBox?,
+                                      anchor: SurfaceParameter, reference: Point3D,
+                                      prepared: PreparedSurfaceAreaIntegrand, goals: [Double],
+                                      options: FaceAreaIntegrationOptions, work: inout Int,
+                                      tolerance: ModelingTolerance) throws -> [OutwardScalarInterval] {
+        typealias Adaptive = SurfaceAreaAdaptiveIntegral
+        if rectangle == nil, prepared.fanIsExactlyZero(curve:curve,anchor:anchor) {
+            return Array(repeating:.exact(0),count:4)
+        }
+        let unit = try ScalarInterval(lower:0,upper:1)
+        let domains: [SurfaceAreaNativeSpanDomain]?
+        if let rectangle {
+            domains = try prepared.nativeRectangleDomains(over:rectangle,
+                maximumCount:options.maximumCellCount-work,tolerance:tolerance)
+        } else {
+            domains = try prepared.nativeFanDomains(curve:curve,anchor:anchor,
+                maximumCount:options.maximumCellCount-work,tolerance:tolerance)
+        }
+        let cells: [Adaptive.Cell]
+        if let domains {
+            var level = 0, capacity = 1
+            while capacity < domains.count { capacity *= 2; level += 1 }
+            guard level <= options.maximumSubdivisionDepth else {
+                throw failure(.resourceLimitExceeded,tolerance,"Native area partition exceeds the original query depth budget.")
+            }
+            cells = domains.map { domain in
+                Adaptive.Cell(t:unit,r:domain.radialRange ?? unit,depth:level,
+                    rectangle:rectangle == nil ? nil : domain.rectangle,domain:domain)
+            }
+        } else {
+            cells = [Adaptive.Cell(t:unit,r:unit,depth:0,rectangle:rectangle,domain:nil)]
+        }
+        return try Adaptive().integrate(cells:cells,goals:goals,options:options,work:&work,tolerance:tolerance) { cell in
+            var splitT = cell.rectangle != nil || cell.t.width >= cell.r.width
+            do {
+                let bounds: [SurfaceAreaIntegrandBounds]
+                if let rectangle = cell.rectangle {
+                    bounds = try prepared.rectangularTranslationBounds(rectangle:rectangle,
+                        fraction:cell.t,reference:reference,tolerance:tolerance,domain:cell.domain)
+                } else {
+                    bounds = try prepared.bounds(curve:curve,anchor:anchor,reference:reference,
+                        boundaryFraction:cell.t,radialFraction:cell.r,tolerance:tolerance,domain:cell.domain)
+                }
+                let size = OutwardScalarInterval.exact(cell.t.upper) - .exact(cell.t.lower)
+                let height = OutwardScalarInterval.exact(cell.r.upper) - .exact(cell.r.lower)
+                let measure = size*height
+                if bounds.contains(where:{ $0.derivativeU == nil || $0.derivativeV == nil }) {
+                    // Crossing a density jump: the complete fan measure remains.
+                    // Aggregate uncertainty, rather than goal*cellMeasure, owns acceptance.
+                    let values = bounds.map { $0.value*measure }
+                    guard values.allSatisfy(\.isFinite) else {
+                        throw failure(.classificationFailure,tolerance,"Native range-only area integral exceeded finite arithmetic.")
+                    }
+                    return Adaptive.Evaluation(contribution:values,splitT:splitT)
+                }
+                let middleT = try ScalarInterval(lower:cell.t.midpoint,upper:cell.t.midpoint)
+                let middleR = try ScalarInterval(lower:cell.r.midpoint,upper:cell.r.midpoint)
+                let midpoint: [SurfaceAreaIntegrandBounds]
+                if let rectangle = cell.rectangle {
+                    midpoint = try prepared.rectangularTranslationBounds(rectangle:rectangle,
+                        fraction:middleT,reference:reference,tolerance:tolerance,domain:cell.domain)
+                } else {
+                    midpoint = try prepared.bounds(curve:curve,anchor:anchor,reference:reference,
+                        boundaryFraction:middleT,radialFraction:middleR,tolerance:tolerance,domain:cell.domain)
+                }
+                var values: [OutwardScalarInterval] = []
+                var tPressure = 0.0, rPressure = 0.0
+                for i in bounds.indices {
+                    let f = bounds[i]
+                    guard let dt = f.derivativeU,let dr = f.derivativeV else {
+                        throw failure(.classificationFailure,tolerance,"A native smooth proof lost its derivative authority.")
+                    }
+                    let tv = dt.width, rv = dr.width
+                    var local = midpoint[i].value
+                    var error = ((OutwardScalarInterval.exact(tv)*size + .exact(rv)*height) * .exact(0.125)).upper
+                    if let uu = f.secondUU,let uv = f.secondUV,let vv = f.secondVV {
+                        local = local + uu*size*size*OutwardScalarInterval(1.0/24)
+                            + vv*height*height*OutwardScalarInterval(1.0/24)
+                        error = (OutwardScalarInterval.exact(uv.width)*size*height * .exact(0.0625)).upper
+                        tPressure += uu.width*cell.t.width*cell.t.width/goals[i]
+                        rPressure += vv.width*cell.r.width*cell.r.width/goals[i]
+                    } else {
+                        tPressure += tv*cell.t.width/goals[i]; rPressure += rv*cell.r.width/goals[i]
+                    }
+                    let value = (local+OutwardScalarInterval(lower:-error,upper:error))*measure
+                    guard value.isFinite else { throw failure(.classificationFailure,tolerance,"Native smooth area integral exceeded finite arithmetic.") }
+                    values.append(value)
+                }
+                splitT = cell.rectangle != nil || tPressure >= rPressure
+                return Adaptive.Evaluation(contribution:values,splitT:splitT)
+            } catch is SurfaceAreaEnclosureRefinementRequired {
+                return Adaptive.Evaluation(contribution:nil,splitT:true)
+            } catch let error as KernelError where error.code == .singularSystem || error.code == .singularGeometry {
+                return Adaptive.Evaluation(contribution:nil,splitT:splitT)
+            }
+        }
     }
 
     /// Exact iso-parametric rectangle authority, independent of tolerance and winding.
