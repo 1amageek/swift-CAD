@@ -195,4 +195,17 @@ struct PeriodicBSplineCurveTests {
         #expect(throws: GeometryError.self) { try overflowingDegree.validate(tolerance: tolerance) }
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func currentSchemaRequiresExplicitPeriodicity() throws {
+        let cyclic = try curve(rational: true)
+        let encoded = try JSONEncoder().encode(cyclic)
+        var object = try #require(try JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        object.removeValue(forKey: "isPeriodic")
+        let missing = try JSONSerialization.data(withJSONObject: object)
+        #expect(throws: DecodingError.self) { _ = try JSONDecoder().decode(BSplineCurve3D.self, from: missing) }
+        object["isPeriodic"] = "true"
+        let wrongType = try JSONSerialization.data(withJSONObject: object)
+        #expect(throws: DecodingError.self) { _ = try JSONDecoder().decode(BSplineCurve3D.self, from: wrongType) }
+    }
+
 }

@@ -30,7 +30,7 @@ extension KernelCapabilities {
     KernelCapability(
       id: "GEO-CURVE-002",
       operation: "rationalBSplineCurve",
-      status: .partial,
+      status: .supported,
       topology: .notApplicable,
       acceptedInputs: [
         "boundedNonPeriodicControlPoints", "positiveWeights",
@@ -55,12 +55,13 @@ extension KernelCapabilities {
       ],
       failureCodes: [
         .invalidInput, .intersectionFailure, .ambiguousSelection,
-        .singularSystem, .singularGeometry, .resourceLimitExceeded, .unsupportedCapability,
+        .singularSystem, .singularGeometry, .resourceLimitExceeded,
       ],
       tolerance: .standard,
       publicAPIs: [
         "CADGeometry.BSplineCurve3D",
         "CADGeometry.PeriodicBSplineExpansionOptions",
+        "CADIR.CurveSpanGeometrySignature",
         "CADGeometry.ValidatedCurve3D",
         "CADGeometry.CurveParameterProjection",
         "CADGeometry.CurveParameterProjectionOptions",
@@ -73,6 +74,7 @@ extension KernelCapabilities {
         "PeriodicBSplineCurveTests",
         "PeriodicBSplineRestrictionTests",
         "PeriodicBSplineRefinementTests",
+        "SubshapeGeometrySignatureTests.exactPeriodicSpanRetainsItsCycleAndFundamentalOriginThroughTransport",
         "SurfaceParameterCurveDifferentialTests",
         "SurfaceParameterCurveSubcurveTests",
         "ValidatedCurve3DTests",

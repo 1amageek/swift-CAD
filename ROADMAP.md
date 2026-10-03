@@ -116,19 +116,19 @@ final same-revision gate completion.
 | Measure | Current | Required |
 |---|---:|---:|
 | Catalog capabilities | 95 registered | Inventory-derived and complete |
-| General `supported` capabilities | 43 of 95 | All inventory-derived capabilities |
-| `partial` capabilities | 52 | 0 |
+| General `supported` capabilities | 44 of 95 | All inventory-derived capabilities |
+| `partial` capabilities | 51 | 0 |
 | Required-but-unregistered contracts | 0 in the mechanically enumerated mutation, query, persistence, and exchange routes | 0 |
 | Development-only input envelopes | 115 | 0 completion exemptions |
-| Capability-to-fixture bindings | 614 | Complete adversarial and oracle coverage |
+| Capability-to-fixture bindings | 615 | Complete adversarial and oracle coverage |
 | Final gate evidence manifests | 0 | 8 on one source revision |
 | Completion gates | 0/8 | 8/8 |
 
-The 52 `partial` entries expose executable, tested envelopes but still declare
+The 51 `partial` entries expose executable, tested envelopes but still declare
 `unsupportedCapability` for at least one structurally valid public input. They
 cannot be promoted until those envelope rejections are implemented or shown to
 be mathematical singularity, ambiguity, non-discreteness, or an explicit
-resource-limit failure under the completion rule. The 43 `supported` entries
+resource-limit failure under the completion rule. The 44 `supported` entries
 also remain subject to the required G0-G7 same-revision evidence.
 
 The current provisional catalog breaks down as follows. A `partial` entry earns
@@ -136,7 +136,7 @@ no completion credit even when it contains substantial working envelopes.
 
 | Domain | Registered | `supported` | `partial` | Final status |
 |---|---:|---:|---:|---|
-| Geometry | 7 | 6 | 1 | OPEN |
+| Geometry | 7 | 7 | 0 | OPEN |
 | Topology | 5 | 4 | 1 | OPEN |
 | Modeling and constraints | 71 | 24 | 47 | OPEN |
 | Shared command/query and native API | 2 | 2 | 0 | OPEN |

@@ -32,8 +32,12 @@ direction and require `profileDirection == automatic`. Native persistence must
 retain this distinction; a missing direction field is not silently defaulted.
 
 This module owns the value contract for `StableSubshapeReference` and its
-`SubshapeGeometrySignature`, including Codable validation. It also owns the
-product-neutral value contracts for tessellation fidelity and generic
+`SubshapeGeometrySignature`, including Codable validation. Finite curve-span
+transport retains the periodicity and fundamental origin owned by CADGeometry
+without approximating the geometry. SubshapeGeometrySignatureTests exercises seam-crossing
+periodic values and malformed cycle rejection. Full closed edges and downstream
+modeling/exchange representation closure remain owned by the topology and G5 tasks.
+It also owns the product-neutral value contracts for tessellation fidelity and generic
 resource admission: `TessellationOptions` and `TessellationLimits`. The
 `ImportedBRepFeature` value retains one exact, validated `BRepModel` as a
 source feature; `CADKernel` owns its evaluation and generated topology

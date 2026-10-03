@@ -19,7 +19,7 @@ origin selects an interval of representatives without changing C(u).
 |---|---|---|---|---|
 | [CADGeometry](../DESIGN.md) | parent | Exact rational curve representation | Uses the existing basis and derivative evaluation | No sampled spline fitting |
 | [CADIR](../../CADIR/DESIGN.md) | used by | Curve3D Codable and Hashable | Retains periodicity and origin in source/signatures | Parameter-origin metadata is geometric identity |
-| [CADCapabilities](../../CADCapabilities/DESIGN.md) | coordinates with | Source-backed limitations | Reports unfinished periodic edits | Correct refusal does not complete G1 |
+| [CADCapabilities](../../CADCapabilities/DESIGN.md) | coordinates with | Source-backed limitations | Publishes periodic inputs and resource failures | Correct refusal does not complete G1 |
 
 ## Architecture
 
@@ -43,6 +43,7 @@ Curve3D/ValidatedCurve3D -> point and parameter derivatives -> caller
 - Reversal reflects parameters about the chosen fundamental interval and preserves periodicity.
 - Rigid and affine transformations retain the cycle and origin.
 - Codable and Hashable retain the distinction between a periodic and an open restriction.
+- The current serialized schema requires an explicit Boolean isPeriodic; a missing or mistyped field is rejected.
 
 ## State, Ownership, and Lifecycle
 
@@ -94,6 +95,10 @@ ValidatedCurve3D. PeriodicBSplineRestrictionTests owns seam-crossing and multi-p
 projection and interval bounds, malformed ranges and exhausted expansion budgets.
 PeriodicBSplineRefinementTests owns rational/polynomial locus and derivative
 preservation, seam and interior multiplicities, p>N cycles, translated insertion
-parameters and resource failures. G1 remains open until
-portable runtime evidence close the remaining gaps. Higher consumers that assume
+parameters and resource failures. SubshapeGeometrySignatureTests verifies the
+actual CADIR transport boundary. CADGeometryWASMSmoke executes normalization,
+rational and p>N polynomial refinement, seam-crossing restriction, projection,
+bounds, exact signature transport and typed refusals on the matching normal WASM
+SDK. This evidence does not establish Embedded or whole-kernel compatibility;
+those remain in the final integration item. Higher consumers that assume
 a closed domain require review under G5; metadata cannot prove their support.

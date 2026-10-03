@@ -63,7 +63,7 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
             knots: try container.decode([Double].self, forKey: .knots),
             controlPoints: controlPoints,
             weights: try container.decode([Double].self, forKey: .weights),
-            isPeriodic: try container.decodeIfPresent(Bool.self, forKey: .isPeriodic) ?? false,
+            isPeriodic: try container.decode(Bool.self, forKey: .isPeriodic),
             periodicOrigin: try container.decodeIfPresent(Double.self, forKey: .periodicOrigin)
         )
     }

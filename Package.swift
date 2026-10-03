@@ -55,6 +55,10 @@ let package = Package(
       targets: ["CADWASMSmoke"]
     ),
     .executable(
+      name: "CADGeometryWASMSmoke",
+      targets: ["CADGeometryWASMSmoke"]
+    ),
+    .executable(
       name: "CADContractWASMSmoke",
       targets: ["CADContractWASMSmoke"]
     ),
@@ -128,6 +132,10 @@ let package = Package(
         "CADCore", "CADCapabilities", "CADTopology", "CADIR", "CADModeling", "CADKernel",
         "CADExchange",
       ]
+    ),
+    .executableTarget(
+      name: "CADGeometryWASMSmoke",
+      dependencies: ["CADCore", "CADGeometry", "CADIR"]
     ),
     .executableTarget(
       name: "CADContractWASMSmoke",
