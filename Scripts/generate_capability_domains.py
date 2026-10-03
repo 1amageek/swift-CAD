@@ -11,6 +11,7 @@ import sys
 # Bindings identify the public consumers of a source-owned condition. They do
 # not infer geometric support from identifier spelling or comment wording.
 BINDINGS = {
+    "StandardMeshExchange": (["GLBMeshExchange", "GLTFMeshExchange", "PLYMeshExchange", "VRMLMeshExchange"], ["representation", "geometricFidelity"]),
     "BRepFaceAreaMeasurementEvaluator": (["faceAreaMeasurement"], ["supportSurface", "geometricFidelity"]),
     "ExtractFacePlugBuilder": (["extract"], ["supportSurface", "connection", "topology"]),
     "BSplineSurface3D+DegreeElevation": (["rationalBSplineSurface"], ["parameterization", "representation"]),

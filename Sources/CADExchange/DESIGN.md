@@ -18,7 +18,8 @@ unsupported-input failures. A STEP import publishes an immutable
 on the exchange result while each feature retains its exact body submodel.
 STL and OBJ imports publish Mesh values and their declared or explicit units.
 Unitless mesh input requires a caller-provided unit; embedded format markers
-remain authoritative when present and are not silently relabeled. This module
+remain authoritative when present and are not silently relabeled. GLB/glTF and VRML use standard meter units; PLY accepts a declared marker or
+an explicit caller fallback. This module
 does not create a Rupa scene object, choose a presentation representation, or
 mutate a project.
 
@@ -37,6 +38,10 @@ source geometry validation.
 | [Swift-CAD package](../../DESIGN.md) | child of | exact source and typed failure contract | Defines the source-to-evaluation boundary. | Exchange output is not a project publication. |
 | [CADIR](../CADIR/DESIGN.md) | depends on | `ImportedBRepFeature`, `CADDocument` Codable | Retains exact STEP source values. | Do not replace exact B-rep with Mesh. |
 | [CADKernel](../CADKernel/DESIGN.md) | used by | exact B-rep validation/evaluation | Evaluates a retained imported feature. | The exchange reader never manufactures topology identities. |
+
+Standard glTF/GLB, PLY and VRML mesh contracts are owned by
+[Standard Mesh Exchange](StandardMeshExchange/DESIGN.md). Its public protocol
+performs static scene baking and typed refusal of unrepresentable semantics.
 
 ## Architecture
 
@@ -74,6 +79,8 @@ and its round-trip verification are implemented.
 Native Sweep package shape validation accepts the optional approximation
 allowance and normalized angle law defined by [CADIR](../CADIR/DESIGN.md).
 Unknown nested knot or expression keys remain rejected.
+Native periodic source verification is owned by
+[PeriodicSourcePackageTests](../../Tests/CADExchangeTests/PeriodicSourcePackageTests.swift).
 
 1. `supportsImport` and `supportsExport` are the authoritative format gates;
    an unsupported format returns `ImportError.unsupportedFormat` or the typed

@@ -11,6 +11,20 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADExchange/ExactExchangeSurfaceRepresentationResolver.swift", sourceLine: 14
         ),
         KernelDomainLimitation(
+            id: "condition-fa96a1b431d16e36",
+            operations: ["GLBMeshExchange", "GLTFMeshExchange", "PLYMeshExchange", "VRMLMeshExchange"],
+            dimensions: [.representation, .geometricFidelity],
+            condition: "Standard mesh readers currently admit a static triangle-scene subset through OfficialFormatExchange's memory and URL routes. Materials, animation, skinning, custom semantic fields, and other declared unsupported domains must preserve their semantics before full format parity is claimed; these domains currently return an explicit typed refusal.",
+            sourcePath: "Sources/CADExchange/StandardMeshExchange/StandardMeshExchange.swift", sourceLine: 15
+        ),
+        KernelDomainLimitation(
+            id: "condition-1fcd1930cda616f1",
+            operations: ["GLBMeshExchange", "GLTFMeshExchange", "PLYMeshExchange", "VRMLMeshExchange"],
+            dimensions: [.representation, .geometricFidelity],
+            condition: "Standard mesh export currently projects native provenance to geometry and refuses unrepresented material/transparency domains. OfficialFormatExchange calls this path; complete semantic attribute exchange and independent interoperability evidence are required before full parity.",
+            sourcePath: "Sources/CADExchange/StandardMeshExchange/StandardMeshExchange.swift", sourceLine: 43
+        ),
+        KernelDomainLimitation(
             id: "condition-1662abcfb1d593b3",
             operations: ["rationalBSplineSurface"],
             dimensions: [.parameterization, .representation],

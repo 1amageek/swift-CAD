@@ -115,16 +115,16 @@ final same-revision gate completion.
 
 | Measure | Current | Required |
 |---|---:|---:|
-| Catalog capabilities | 95 registered | Inventory-derived and complete |
-| General `supported` capabilities | 43 of 95 | All inventory-derived capabilities |
-| `partial` capabilities | 52 | 0 |
+| Catalog capabilities | 98 registered | Inventory-derived and complete |
+| General `supported` capabilities | 42 of 98 | All inventory-derived capabilities |
+| `partial` capabilities | 56 | 0 |
 | Required-but-unregistered contracts | 0 in the mechanically enumerated mutation, query, persistence, and exchange routes | 0 |
 | Development-only input envelopes | 115 | 0 completion exemptions |
-| Capability-to-fixture bindings | 621 | Complete adversarial and oracle coverage |
+| Capability-to-fixture bindings | 628 | Complete adversarial and oracle coverage |
 | Final gate evidence manifests | 0 | 8 on one source revision |
 | Completion gates | 0/8 | 8/8 |
 
-The 52 `partial` entries expose executable, tested envelopes but still declare
+The 56 `partial` entries expose executable, tested envelopes but still declare
 `unsupportedCapability` for at least one structurally valid public input. They
 cannot be promoted until those envelope rejections are implemented or shown to
 be mathematical singularity, ambiguity, non-discreteness, or an explicit
@@ -140,7 +140,7 @@ no completion credit even when it contains substantial working envelopes.
 | Topology | 5 | 4 | 1 | OPEN |
 | Modeling and constraints | 71 | 24 | 47 | OPEN |
 | Shared command/query and native API | 2 | 2 | 0 | OPEN |
-| Exact and USD exchange | 10 | 7 | 3 | OPEN |
+| Exact and USD exchange | 13 | 6 | 7 | OPEN |
 
 `PUBLIC_CONTRACT_INVENTORY.json` now enumerates every current
 `FeatureOperationKind`, `CADCommand`, `KernelQuery`, `NativePackageStore`
