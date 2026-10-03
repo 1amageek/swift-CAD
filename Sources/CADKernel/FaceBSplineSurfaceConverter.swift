@@ -138,18 +138,6 @@ public struct FaceBSplineSurfaceConverter {
         var profile: [(point: Point3D, weight: Double)] = []
         let vKnots: [Double]
         let vDegree: Int
-        // FIXME(INCOMPLETE_IMPLEMENTATION): a face reaching a pole of its surface (a sphere's
-        // octant) would leave the new surface a side collapsed to that point, which the face's loop
-        // does not run along; it is refused here. Production path: Rupa's Raise Degree on such a
-        // face. Complete when a collapsed side is carried, verified by a ball's octant raised.
-        for v in [extent.v.low, extent.v.high] {
-            let a = try surface.point(u: u0, v: v, tolerance: tolerance)
-            let b = try surface.point(u: u0 + min(1, uSpan), v: v, tolerance: tolerance)
-            guard (a - b).length > tolerance.distance else {
-                throw KernelError(phase: .evaluation, code: .unsupportedCapability, tolerance: tolerance,
-                                  message: "A face reaching a pole of its surface is not given control points.")
-            }
-        }
         if profileIsArc {
             let (count, half) = arcs(extent.v.high - extent.v.low)
             for k in 0..<count {

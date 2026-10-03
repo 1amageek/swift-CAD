@@ -200,9 +200,10 @@ struct FaceGivenSurfaceTests {
         #expect(abs(after - before) < before * 1e-6, "\(after) vs \(before)")
     }
 
-    /// A drum's side closing round its seam and a ring's face given their exact rational surfaces
-    /// and raised: each keeps its edges and the body its volume. A ball's octant, reaching a pole,
-    /// is refused.
+    /// A drum's side closing round its seam, a ball's octant reaching a pole and a ring's face given
+    /// their exact rational surfaces and raised: each keeps its edges and the body its volume (the
+    /// octant's to the volume quadrature's accuracy at the pole its patch collapses to there, the
+    /// surface itself exact: every point the radius from the centre).
     @Test(.timeLimit(.minutes(4)), arguments: ["cylinder", "torus", "sphere"])
     func aRevolvedPrimitivesFaceIsGivenItsExactRationalSurface(_ kind: String) throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
@@ -219,15 +220,20 @@ struct FaceGivenSurfaceTests {
             return true
         }.keys.sorted().map { try builder.stableSubshape($0) }
         let face = try #require(faces.first)
-        if kind == "sphere" {
-            #expect(throws: KernelError.self) { try FaceBSplineSurfaceConverter().surface(of: face, in: start) }
-            return
-        }
         let before = try volume(body, in: start)
-        let given = try builder.rebuildFaces(target: body, faces: [face], method: .given(try raised(try FaceBSplineSurfaceConverter().surface(of: face, in: start))))
+        let rational = try FaceBSplineSurfaceConverter().surface(of: face, in: start)
+        if kind == "sphere" {
+            for i in 0...40 {
+                for j in 0...40 {
+                    let point = try rational.point(u: Double(i) / 20, v: Double(j) / 20, tolerance: .standard)
+                    #expect(abs((point - .origin).length - 0.01) < 1e-12)
+                }
+            }
+        }
+        let given = try builder.rebuildFaces(target: body, faces: [face], method: .given(try raised(rational)))
         let evaluated = try evaluate(builder)
         try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
         let after = try volume(given, in: evaluated)
-        #expect(abs(after - before) < before * 1e-6, "\(kind): \(after) vs \(before)")
+        #expect(abs(after - before) < before * (kind == "sphere" ? 1e-4 : 1e-6), "\(kind): \(after) vs \(before)")
     }
 }

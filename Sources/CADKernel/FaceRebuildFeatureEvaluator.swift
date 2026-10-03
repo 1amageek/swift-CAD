@@ -344,6 +344,7 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         var reparameterized = false
         if holdsEdges == false {
             let solver = BRepSurfaceMeetingSolver(tolerance: tolerance)
+            let poles = try collapsedSides(of: new, tolerance: tolerance)
             var gap = 0.0
             for loopID in face.loops {
                 for coedge in result.loops[loopID]?.coedges ?? [] {
@@ -353,6 +354,8 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                     for index in 0...16 {
                         let point = try curve.point(at: trim.startParameter + (trim.endParameter - trim.startParameter) * Double(index) / 16,
                                                     tolerance: tolerance)
+                        // A pole of the new surface lies on it; its foot has no normal to find it by.
+                        if poles.contains(where: { ($0.point - point).length <= tolerance.distance }) { continue }
                         gap = max(gap, (try solver.foot(of: point, on: new).point - point).length)
                     }
                 }
@@ -413,24 +416,68 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
     /// The isoline of `surface` a coedge runs along, from its start to its end: constant u or
     /// constant v at nine points of its edge projected onto the surface; nil when it runs along
     /// none.
+    /// The sides of a surface collapsed to one point (a pole), with the parameter each holds.
+    private func collapsedSides(of surface: Surface3D, tolerance: ModelingTolerance) throws -> [(point: Point3D, u: Double?, v: Double?)] {
+        guard case let .closed(u0, u1) = surface.uDomain, case let .closed(v0, v1) = surface.vDomain else { return [] }
+        var collapsed: [(point: Point3D, u: Double?, v: Double?)] = []
+        for (u, v) in [(Double?.none, Optional(v0)), (nil, v1), (u0, nil), (u1, nil)] {
+            let ends = try [0.0, 0.5, 1.0].map { fraction in
+                try surface.point(u: u ?? u0 + (u1 - u0) * fraction, v: v ?? v0 + (v1 - v0) * fraction, tolerance: tolerance)
+            }
+            if ends.allSatisfy({ ($0 - ends[0]).length <= tolerance.distance }) { collapsed.append((ends[0], u, v)) }
+        }
+        return collapsed
+    }
+
     private func isoline(of coedge: Coedge, on surface: Surface3D, seamLowerSide: (u: Bool, v: Bool)?, model: BRepModel,
                          tolerance: ModelingTolerance) throws -> SurfaceParameterCurve? {
         guard let edge = model.edges[coedge.edgeID], let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else {
             throw TopologyError.missingReference("An edge of the face given a surface is missing.")
         }
         let (start, end) = coedge.orientation == .forward ? (trim.startParameter, trim.endParameter) : (trim.endParameter, trim.startParameter)
-        var parameters: [SurfaceParameterProjection] = []
+        guard case let .closed(u0, u1) = surface.uDomain, case let .closed(v0, v1) = surface.vDomain else { return nil }
+        // A sample on a side collapsed to one point (a pole) takes the side's parameter, the other
+        // coordinate from the samples beside it, rather than a projection its undefined normal
+        // would refuse.
+        let collapsed = try collapsedSides(of: surface, tolerance: tolerance)
+        var samples: [(u: Double?, v: Double?)] = []
+        var points: [Point3D] = []
+        var known: [Bool] = []
         for index in 0...8 {
             let point = try curve.point(at: start + (end - start) * Double(index) / 8, tolerance: tolerance)
-            guard case let .projected(projection) = try surface.parameterProjectionResult(of: point, tolerance: tolerance) else { return nil }
-            parameters.append(projection)
+            points.append(point)
+            if let pole = collapsed.first(where: { ($0.point - point).length <= tolerance.distance }) {
+                samples.append((pole.u, pole.v))
+                known.append(true)
+                continue
+            }
+            do {
+                guard case let .projected(projection) = try surface.parameterProjectionResult(of: point, tolerance: tolerance) else { return nil }
+                samples.append((projection.u, projection.v))
+                known.append(true)
+            } catch let ambiguity as KernelError where ambiguity.code == .ambiguousSelection {
+                // Beside a pole the surface's parameters crowd together; the sample is read from
+                // the samples beside it and not checked.
+                samples.append((nil, nil))
+                known.append(false)
+            }
         }
-        guard parameters.count == 9, case let .closed(u0, u1) = surface.uDomain, case let .closed(v0, v1) = surface.vDomain else { return nil }
-        let slack = 1e-9
-        func atEnd(_ value: Double, _ low: Double, _ high: Double) -> Bool { abs(value - low) <= slack || abs(value - high) <= slack }
-        // One parameter held along the edge (its ends may sit on a seam, landing on either end of the
-        // domain), the other running from its first to its last value the way the edge runs — from
-        // end to end of the domain where the edge closes round the seam.
+        // A pole's or crowded sample's free coordinates: its nearest known neighbour's.
+        for _ in 0..<8 {
+            for index in samples.indices {
+                let neighbours = [index - 1, index + 1].filter(samples.indices.contains).map { samples[$0] }
+                if samples[index].u == nil { samples[index].u = neighbours.compactMap(\.u).first }
+                if samples[index].v == nil { samples[index].v = neighbours.compactMap(\.v).first }
+            }
+        }
+        let us = samples.compactMap(\.u), vs = samples.compactMap(\.v)
+        guard us.count == 9, vs.count == 9 else { return nil }
+        func atEnd(_ value: Double, _ low: Double, _ high: Double) -> Bool {
+            let slack = 1e-7 * max(1, high - low)
+            return abs(value - low) <= slack || abs(value - high) <= slack
+        }
+        // The other parameter from its first to its last value the way the edge runs — from end to
+        // end of the domain where the edge closes round a seam.
         func run(_ values: [Double], _ low: Double, _ high: Double) -> (start: Double, end: Double) {
             let increasing = values[5] > values[3]
             var start = values[0], end = values[8]
@@ -438,23 +485,24 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             if atEnd(end, low, high) { end = increasing ? high : low }
             return (start, end)
         }
-        func held(_ values: [Double], _ low: Double, _ high: Double, lower: Bool?) -> Double? {
-            let inner = values.filter { atEnd($0, low, high) == false }
-            if let value = inner.first {
-                return inner.allSatisfy({ abs($0 - value) <= slack }) && values.allSatisfy({ abs($0 - value) <= slack || atEnd($0, low, high) && atEnd(value, low, high) }) ? value : nil
-            }
-            // Every sample on an end of the domain: the seam, whose side the coedge's old one gives.
-            guard let lower else {
-                return values.allSatisfy({ abs($0 - values[0]) <= slack }) ? values[0] : nil
-            }
-            return lower ? low : high
+        // A parameter held along the edge: the middle of its values (an end of the domain when it
+        // is one, the coedge's side of a seam deciding which), kept when the surface along it runs
+        // through every point of the edge.
+        func held(_ values: [Double], _ low: Double, _ high: Double, lower: Bool?) -> Double {
+            let middle = values.sorted()[values.count / 2]
+            guard atEnd(middle, low, high) || values.allSatisfy({ atEnd($0, low, high) }) else { return middle }
+            if let lower { return lower ? low : high }
+            return abs(middle - low) <= abs(middle - high) ? low : high
         }
-        let us = parameters.map(\.u), vs = parameters.map(\.v)
-        if let u = held(us, u0, u1, lower: seamLowerSide?.u) {
+        let checked = points.indices.filter { known[$0] }
+        guard checked.count >= 3 else { return nil }
+        let u = held(checked.map { us[$0] }, u0, u1, lower: seamLowerSide?.u)
+        if try checked.allSatisfy({ (try surface.point(u: u, v: min(max(vs[$0], v0), v1), tolerance: tolerance) - points[$0]).length <= tolerance.distance }) {
             let (start, end) = run(vs, v0, v1)
             return .constantU(u: u, vStart: start, vEnd: end)
         }
-        if let v = held(vs, v0, v1, lower: seamLowerSide?.v) {
+        let v = held(checked.map { vs[$0] }, v0, v1, lower: seamLowerSide?.v)
+        if try checked.allSatisfy({ (try surface.point(u: min(max(us[$0], u0), u1), v: v, tolerance: tolerance) - points[$0]).length <= tolerance.distance }) {
             let (start, end) = run(us, u0, u1)
             return .constantV(v: v, uStart: start, uEnd: end)
         }

@@ -969,13 +969,15 @@ cylinder, cone, sphere or torus face as the exact rational surface of revolution
 rectangle — its profile at the first angle (a line, or arcs of at most a quarter turn whose middle
 control point is M + (M − Q) / cos θ weighted cos θ) turned about the axis in such arcs, weights
 multiplied — checked to lie on the old surface, a face closing round its axis putting the new
-surface's ends on its seam; a face reaching a pole (a ball's octant) and any other surface refused,
-`FIXME(INCOMPLETE_IMPLEMENTATION)`). The face faces out as it did (the given surface's normal at the face's interior point's
+surface's ends on its seam and a face reaching a pole leaving the new surface a side collapsed to
+it; any other surface refused, `FIXME(INCOMPLETE_IMPLEMENTATION)`). The face faces out as it did (the given surface's normal at the face's interior point's
 parameters, the surface sharing them); where every edge still lies on
 the new surface along its trimming curve (within a quarter of the distance tolerance) it keeps its
 edges; where they lie on it only geometrically (a surface on parameters of its own) it keeps them
 too, each taking the isoline of the new surface it runs along (a seam's two coedges the two ends,
-the one that lay lower taking the lower; an edge closing round the seam running end to end) or a
+the one that lay lower taking the lower; an edge closing round the seam running end to end; a point
+at a pole taking the collapsed side's parameter, and one whose projection crowds beside it read
+from its neighbours, the isoline checked through the others) or a
 trimming curve built on it;
 otherwise `FaceSurfaceReplacementRebuilder` re-solves the edges and vertices around it where
 it meets the faces beside it, which keep their surfaces, and the trimming curves are rebuilt.
@@ -984,7 +986,8 @@ top-middle control point moved 5 mm out, bulging the box by d·w·h/9 with its f
 and its middle control point moved out bulging it the same between the edges it keeps, a box raised
 face by face through the Rebuild Faces before each, and a rounded edge's quarter cylinder given its
 exact rational surface (every point the radius from the axis) and raised, its volume kept; a drum's
-side across its seam and a ring's face raised the same, and a ball's octant refused.
+side across its seam, a ball's octant reaching its pole (every point the radius from the centre)
+and a ring's face raised the same.
 
 ## Unwrap Face
 
