@@ -150,6 +150,37 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
         func parameter(_ value: Double, lower: Double, upper: Double) throws -> OutwardScalarInterval {
             if value == lower { return .exact(0) }
             if value == upper { return .exact(1) }
+            let candidate = (value - lower) / (upper - lower)
+            if candidate.isFinite, candidate >= 0, candidate <= 1 {
+                let offset = FloatingPointExpansion.difference(value, lower)
+                let span = FloatingPointExpansion.difference(upper, lower)
+                if offset.allSatisfy(\.isFinite), span.allSatisfy(\.isFinite),
+                   span.allSatisfy({ component in
+                       if candidate == 0 || component == 0 { return true }
+                       // Dekker's splitter is 2^27+1 < 2^28. Normal operands
+                       // with this upper headroom keep its intermediates finite.
+                       // Two 53-bit operands have lowest product bit E1+E2-104;
+                       // keeping that bit normal prevents lost underflow errors.
+                       let maximumExponent = Double.greatestFiniteMagnitude.exponent - 28
+                       return candidate.isNormal && component.isNormal
+                           && candidate.exponent <= maximumExponent
+                           && component.exponent <= maximumExponent
+                           && candidate.exponent + component.exponent
+                               - 2 * Double.significandBitCount >= Double.leastNormalMagnitude.exponent
+                   }) {
+                    let product = candidate == 0 ? [0.0] : FloatingPointExpansion.product(
+                        [candidate], span.filter { $0 != 0 })
+                    let residual = FloatingPointExpansion.subtract(offset, product)
+                    // The candidate alone is not evidence. Exact equality of
+                    // original stored operands proves this singleton refinement;
+                    // the witness span is never a rounded difference.
+                    if product.allSatisfy(\.isFinite), residual.allSatisfy(\.isFinite),
+                       FloatingPointExpansion.sign(residual) == .zero {
+                        return .exact(candidate)
+                    }
+                }
+            }
+            // Without an exact witness, retain the established outward ratio.
             guard let result = (OutwardScalarInterval.exact(value) - .exact(lower))
                 .divided(by: .exact(upper) - .exact(lower)), result.isFinite else {
                 throw invalidPatchError(tolerance: tolerance)
@@ -159,9 +190,9 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
         }
         let localU = try parameter(u,lower:patch.uLower,upper:patch.uUpper)
         let localV = try parameter(v,lower:patch.vLower,upper:patch.vUpper)
-        func evaluate(_ values: [[IntervalHomogeneousSurfaceControl]]) -> [[IntervalHomogeneousSurfaceControl]] {
+        func evaluate(_ values: [[IntervalHomogeneousSurfaceControl]]) throws -> [[IntervalHomogeneousSurfaceControl]] {
             func axis(_ values: [IntervalHomogeneousSurfaceControl],
-                      parameter: OutwardScalarInterval) -> IntervalHomogeneousSurfaceControl {
+                      parameter: OutwardScalarInterval) throws -> IntervalHomogeneousSurfaceControl {
                 if parameter.lower == 0, parameter.upper == 0 { return values[0] }
                 if parameter.lower == 1, parameter.upper == 1 { return values[values.count-1] }
                 var level = values
@@ -170,13 +201,26 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
                         level[$0].interpolated(to:level[$0+1],parameter:parameter)
                     }
                 }
-                return level[0]
+                // Original normalized parameters lie in [0,1], so both the
+                // outward evaluation and each coefficient convex hull contain
+                // the scalar value, including already differentiated nets.
+                func intersect(_ component: KeyPath<IntervalHomogeneousSurfaceControl, OutwardScalarInterval>)
+                    throws -> OutwardScalarInterval {
+                    let hull = OutwardScalarInterval.enclosing(values.map { $0[keyPath: component] })
+                    guard let result = level[0][keyPath: component].intersection(with: hull) else {
+                        throw KernelError(phase: .geometry, code: .intersectionFailure, tolerance: tolerance,
+                            message: "Surface point Bernstein evaluation and its certified coefficient hull are disjoint.")
+                    }
+                    return result
+                }
+                return try IntervalHomogeneousSurfaceControl(x: intersect(\.x), y: intersect(\.y),
+                    z: intersect(\.z), weight: intersect(\.weight))
             }
-            let rows = values.map { axis($0,parameter:localU) }
-            return [[axis(rows,parameter:localV)]]
+            let rows = try values.map { try axis($0,parameter:localU) }
+            return [[try axis(rows,parameter:localV)]]
         }
-        func localize(_ controls: HomogeneousJetControls) -> HomogeneousJetControls {
-            HomogeneousJetControls(value:evaluate(controls.value),
+        func localize(_ controls: HomogeneousJetControls) throws -> HomogeneousJetControls {
+            try HomogeneousJetControls(value:evaluate(controls.value),
                 derivativeU:evaluate(controls.derivativeU),derivativeV:evaluate(controls.derivativeV),
                 secondDerivativeUU:evaluate(controls.secondDerivativeUU),
                 secondDerivativeUV:evaluate(controls.secondDerivativeUV),

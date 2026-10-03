@@ -60,6 +60,29 @@ struct CertifiedImplicitIntersectionCurveTests {
   }
 
   @Test(.timeLimit(.minutes(1)))
+  func subnormalNativeSurfacePointRetainsOutwardValueAndDerivativeContainment() throws {
+    let patch = RationalBezierSurfacePatch3D(
+      controlPoints: [[Point3D(x: 0, y: 0, z: 0), Point3D(x: 1, y: 0, z: 0)],
+        [Point3D(x: 0, y: 1, z: 0), Point3D(x: 1, y: 1, z: 0)]],
+      weights: [[1, 1], [1, 1]], uLower: 0, uUpper: 1, vLower: 0, vUpper: 1)
+    let encloser = RationalBezierSurfaceJetEncloser()
+    let prepared = try encloser.prepare(patch, tolerance: tolerance)
+    for u in [Double.leastNonzeroMagnitude, Double.leastNormalMagnitude / 8] {
+      let jet = try encloser.pointEnclosure(of: prepared, u: u, v: 0.5, tolerance: tolerance)
+      let expected: [[Double]] = [[u, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0.5, 0, 1, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+      for (coordinate, values) in zip([jet.x, jet.y, jet.z], expected) {
+        for (field, value) in zip([coordinate.value, coordinate.derivativeU, coordinate.derivativeV,
+          coordinate.secondDerivativeUU, coordinate.secondDerivativeUV, coordinate.secondDerivativeVV,
+          coordinate.thirdDerivativeUUU, coordinate.thirdDerivativeUUV, coordinate.thirdDerivativeUVV,
+          coordinate.thirdDerivativeVVV], values) {
+          #expect(field.isFinite && field.contains(value))
+        }
+      }
+    }
+  }
+
+  @Test(.timeLimit(.minutes(1)))
   func dyadicPlaneParabolaClosedPointJetsContainNativeValuesAndThreeDerivatives() throws {
     let curve = try dyadicPlaneParabolaCurve()
     let prepared = try ImplicitCurveIntervalJetEncloser(intersection:curve,tolerance:tolerance)
@@ -72,6 +95,30 @@ struct CertifiedImplicitIntersectionCurveTests {
       for (coordinate,values) in zip(actual.coordinates,expected) {
         for (field,value) in zip([coordinate.value,coordinate.firstDerivative,
                                   coordinate.secondDerivative,coordinate.thirdDerivative],values) {
+          #expect(field.contains(value))
+          #expect(field.width <= tolerance.relative)
+        }
+      }
+    }
+  }
+
+  @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+  func dyadicPartialEndpointJetsMeetConnectionRoundingAndNativeDerivatives(_ backwards: Bool) throws {
+    let curve = try dyadicPlaneParabolaCurve(direction: backwards ? .reversed : .forward)
+    let prepared = try ImplicitCurveIntervalJetEncloser(intersection: curve, tolerance: tolerance)
+    var remainingWork = SurfaceSurfaceIntersectionOptions().maximumSubdivisionCells
+    for fraction in [0.25, 0.75] {
+      let t = backwards ? 0.75 - 0.5*fraction : 0.25 + 0.5*fraction
+      let sign = backwards ? -1.0 : 1.0
+      let actual = try continuedParameterJet(prepared, of: curve,
+        over: ScalarInterval(lower: fraction, upper: fraction), remainingWork: &remainingWork)
+      let expected: [[Double]] = [[t*t, sign*t, 0.5, 0], [t, sign*0.5, 0, 0],
+        [t, sign*0.5, 0, 0], [0.5, 0, 0, 0]]
+      for (coordinate, values) in zip(actual.coordinates, expected) {
+        let rounding = Double.ulpOfOne * max(1, abs(values[0])) * 64
+        #expect(coordinate.value.width <= rounding)
+        for (field, value) in zip([coordinate.value, coordinate.firstDerivative,
+          coordinate.secondDerivative, coordinate.thirdDerivative], values) {
           #expect(field.contains(value))
           #expect(field.width <= tolerance.relative)
         }

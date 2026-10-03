@@ -266,12 +266,16 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
     guard let inverse = inverseRows(dependentColumns) else { return .subdivisionRequired }
     let bounds = state.parameterBox.intervals
     let centers = bounds.map { OutwardScalarInterval.exact($0.midpoint) }
-    var centerBounds = centers
-    centerBounds[freeIndex] = OutwardScalarInterval(lower:bounds[freeIndex].lower,upper:bounds[freeIndex].upper)
-    let centerJets = try closedSurfaceJets(over:parameterBox(try centerBounds.map(scalarInterval)),
+    let centerJets = try closedSurfaceJets(over:parameterBox(try centers.map(scalarInterval)),
       prepared:preparedSurfaces,tolerance:tolerance)
+    // The exact-center point owner avoids interval-conditioning padding.
+    // The mean-value segment in the retained convex box then encloses the
+    // residual for every original free value while dependent centers stay fixed.
+    let freeDisplacement = OutwardScalarInterval(lower:bounds[freeIndex].lower,
+      upper:bounds[freeIndex].upper) - centers[freeIndex]
     let residual = vector(centerJets.first,at:\SurfaceIntervalJet.value)
       - vector(centerJets.second,at:\SurfaceIntervalJet.value)
+      + columns[freeIndex]*freeDisplacement
     guard residual.isFinite else {
       throw arithmeticFailure(tolerance:tolerance,message:"Implicit localization has a nonfinite outward center residual.")
     }

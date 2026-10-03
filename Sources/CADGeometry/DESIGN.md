@@ -506,6 +506,29 @@ every returned parameter enclosure follows from outward Krawczyk images
 intersected with the known root box. Original surface-span owners provide all
 closed-box derivatives; subdivision cannot replace their basis or authority.
 
+For Q3 endpoint composition, the Krawczyk residual is enclosed at the exact
+four-coordinate center using original closed-point surface jets, then extended
+over the free-coordinate interval by its full-box Jacobian column and outward
+free displacement. The mean-value segment stays inside the known convex box.
+This encloses every residual at fixed dependent centers without a mixed
+point/interval conditioning floor. The same full-box dependent columns,
+preconditioner, original root identity and caller-visible step own contraction;
+no numeric point solver or new root-existence claim is introduced. Independent
+partial endpoint fixtures must contain their exact native answers within the
+existing 64-ulp loop-connection requirement before Q3 consumes these bounds. The
+original Bernstein point owner also intersects each outward scalar evaluation
+with its original normalized coefficient convex hull, including differentiated
+nets. Both contain the exact value, so this removes false constant-weight
+dependency without changing span scaling or introducing sampled authority. An
+empty intersection is a typed contradiction; unequal-weight point fixtures
+retain independently derived quotient jets through order three. Original native
+point normalization may become a singleton only when an exact expansion proves
+the original offset equals the candidate times the original exact span. Every
+nonzero product operand is normal, has splitter exponent headroom, and keeps
+its lowest possible 104-bit product term normal. Unsafe products retain the
+established outward ratio; finite rounded equality alone is not proof. The
+subnormal point fixture verifies value and derivative containment on that route.
+
 The localizer exposes a bounded prepare step and one contraction step per
 advance. Its state and result distinguish contraction, enclosed parameter jets
 through order three, and required caller subdivision. It neither recertifies
