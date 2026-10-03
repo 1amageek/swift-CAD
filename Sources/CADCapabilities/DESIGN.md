@@ -33,6 +33,11 @@ Planned operations are rejected. Partial operations retain typed refusal outside
 their documented domain. Native gears are partial: circular-filleted external
 profiles and straight axial Sweep do not imply hob-generated or internal gears.
 
+PUBLIC_CONTRACT_INVENTORY.json binds every FeatureOperationKind case to its
+unique catalog entry. The inventory checker rejects omissions, stale entries
+and ambiguous catalog mappings. Compiled tests compare those mappings with
+the runtime catalog; neither check claims the evaluator supports every shape.
+
 ## Verification and Change Impact
 
 CADCapabilitiesTests/KernelCapabilityContractTests checks the registered set.

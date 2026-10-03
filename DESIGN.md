@@ -20,6 +20,11 @@ the resulting work before collection growth or mesh allocation. Neither value
 knows a viewport, camera, UI state, Agent request, or product-specific level of
 detail policy.
 
+The complete user-authorized functional parity requirement set is tracked in
+[OCCT_REQUIREMENTS.md](OCCT_REQUIREMENTS.md). Per-owner designs remain the
+authority for implementation contracts; PROGRESS.md alone owns task progress.
+No capability registration constitutes geometric completion.
+
 ## Responsibilities and Boundaries
 
 Swift-CAD owns:

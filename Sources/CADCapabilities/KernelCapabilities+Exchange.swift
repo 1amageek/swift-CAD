@@ -151,9 +151,11 @@ extension KernelCapabilities {
         .resourceLimitExceeded,
       ],
       tolerance: .standard,
-      publicAPIs: ["CADExchange.IGESExchange"],
+      publicAPIs: ["CADExchange.IGESExchange", "CADExchange.OfficialFormatExchange"],
       testFixtures: [
         "ExactIGESExchangeTests",
+        "CADExchangeTests.officialIGESRoundTripPreservesExactTopologyAndUnitsThroughURL",
+        "CADExchangeTests.officialIGESFacadePreservesInvalidInputAndResourceFailures",
         "ExactIGESExchangeTests.roundTripsArbitraryAxisAnalyticArcEdgesInBothDirections",
         "ExactIGESExchangeTests.roundTripsReversedCompleteDomainRationalBSplineEdges",
         "ExactIGESExchangeTests.roundTripsPartialDomainRationalBSplineEdgesInBothDirections",

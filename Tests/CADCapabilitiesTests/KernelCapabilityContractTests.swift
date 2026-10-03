@@ -1,3 +1,4 @@
+import Foundation
 import CADCore
 import CADIR
 import Testing
@@ -143,6 +144,22 @@ struct KernelCapabilityContractTests {
     #expect(capability.id == "MODEL-CONSTRAINEDSURFACE-001")
     #expect(capability.exactOutputs.contains("wholePatchHeightGradientNormalChangeBound"))
     #expect(capability.failureCodes.contains(.conflictingConstraints))
+  }
+
+  @Test(.timeLimit(.minutes(1)))
+  func publicInventoryMatchesCompiledFeatureAdmission() throws {
+    let root = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+    let data = try Data(contentsOf: root.appendingPathComponent("PUBLIC_CONTRACT_INVENTORY.json"))
+    let inventory = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+    let features = try #require(inventory["featureOperations"] as? [String: String])
+    #expect(Set(features.keys) == Set(FeatureOperationKind.allCases.map(\.rawValue)))
+    for operation in FeatureOperationKind.allCases {
+      let capability = try KernelCapabilities.current.requireExecutable(operation: operation.rawValue)
+      #expect(features[operation.rawValue] == capability.id)
+    }
   }
 
   @Test

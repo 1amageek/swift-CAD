@@ -1484,12 +1484,13 @@ struct CADExchangeTests {
         #expect(ExchangeFileFormat.format(forFileExtension: "igs") == .iges)
         #expect(ExchangeFileFormat.format(forFileExtension: "3mf") == .threeMF)
         #expect(Set(ExchangeFileFormat.allCases.filter { $0.supportsExport }) == Set([
-            .swiftCAD, .step, .stl, .threeMF, .obj, .dxf, .svg, .glb, .usd, .usda, .usdc, .usdz, .pdf
+            .swiftCAD, .step, .iges, .stl, .threeMF, .obj, .dxf, .svg, .glb, .usd, .usda, .usdc, .usdz, .pdf
         ]))
 
         var importFormats: Set<ExchangeFileFormat> = [
             .swiftCAD,
             .step,
+            .iges,
             .stl,
             .threeMF,
             .obj,
@@ -1535,6 +1536,16 @@ struct CADExchangeTests {
                     #expect(imported.brep != nil)
                     #expect(imported.meshes.isEmpty)
                 }
+            } else if format == .iges {
+                let brep = try #require(imported.brep)
+                try brep.validate(level: .volumetric, tolerance: .standard)
+                #expect(imported.meshes.isEmpty)
+                #expect(imported.units.length == evaluated.document.units.length)
+                #expect(imported.units.angle == .radian)
+                #expect(brep.faces.count == evaluated.brep.faces.count)
+                #expect(brep.edges.count == evaluated.brep.edges.count)
+                #expect(abs(try brep.volume(tolerance: .standard)
+                    - evaluated.brep.volume(tolerance: .standard)) < 1.0e-12)
             } else {
                 #expect(!imported.meshes.isEmpty)
                 #expect(imported.units.length == .millimeter)
@@ -1551,6 +1562,66 @@ struct CADExchangeTests {
                     #expect(abs(extents.depth - 0.01) < 1.0e-6)
                 }
             }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func officialIGESRoundTripPreservesExactTopologyAndUnitsThroughURL() throws {
+        let evaluated = try makeEvaluatedDocument()
+        let exchange = OfficialFormatExchange(tolerance: .standard)
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("swift-cad-iges-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer {
+            do {
+                try FileManager.default.removeItem(at: directory)
+            } catch {
+                Issue.record("Failed to remove IGES test directory: \(error)")
+            }
+        }
+        let url = directory.appendingPathComponent("solid.igs")
+        try exchange.export(evaluated, to: url)
+        let imported = try exchange.import(from: url)
+        let brep = try #require(imported.brep)
+        try brep.validate(level: .volumetric, tolerance: .standard)
+        #expect(imported.format == .iges)
+        #expect(imported.units.length == evaluated.document.units.length)
+        #expect(imported.units.angle == .radian)
+        #expect(imported.meshes.isEmpty)
+        #expect(brep.faces.count == evaluated.brep.faces.count)
+        #expect(brep.edges.count == evaluated.brep.edges.count)
+        #expect(brep.vertices.count == evaluated.brep.vertices.count)
+        #expect(abs(try brep.volume(tolerance: .standard)
+            - evaluated.brep.volume(tolerance: .standard)) < 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func officialIGESFacadePreservesInvalidInputAndResourceFailures() throws {
+        let malformed = Data("invalid IGES record".utf8)
+        do {
+            _ = try OfficialFormatExchange(tolerance: .standard).import(malformed, as: .iges)
+            Issue.record("Expected malformed IGES records to be refused.")
+        } catch let error as ImportError {
+            guard case .invalidData = error else {
+                Issue.record("Malformed IGES must reach its reader, not format admission: \(error)")
+                return
+            }
+        }
+        let evaluated = try makeEvaluatedDocument()
+        let bytes = try OfficialFormatExchange(tolerance: .standard).export(evaluated, as: .iges)
+        let exchange = OfficialFormatExchange(
+            tolerance: .standard,
+            igesExchange: IGESExchange(
+                tolerance: .standard,
+                resourceLimits: ExchangeResourceLimits(maximumBytes: 1)
+            )
+        )
+        do {
+            _ = try exchange.import(bytes, as: .iges)
+            Issue.record("Expected the public IGES facade to preserve resource refusal.")
+        } catch let error as KernelError {
+            #expect(error.phase == .exchange)
+            #expect(error.code == .resourceLimitExceeded)
         }
     }
 

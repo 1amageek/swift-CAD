@@ -1,0 +1,102 @@
+# Progress
+- [x] PAR0 Preserve the full 87-requirement scope, baseline and completion contract on the isolated implementation branch; preserve unrelated Rupa edits. `depends:none` `parallel:none`
+- [ ] PARC Capability and failure contracts: implement and verify all referenced requirements, update owner designs and commit each completed sprint. `depends:PAR0` `parallel:none`
+  - [x] PARC.C1 C1: all 71 feature kinds map to runtime-admitted capabilities; 102 public routes, ledger bindings and compiled inventory regression verified; KernelCapabilityContractTests passed (37 tests). `depends:PAR0` `parallel:none`
+  - [x] PARC.C2 C2: exact IGES enabled through the common registry, byte and URL facade; length units, canonical angular units, volumetric topology, invalid data and resource refusal verified (6 public exchange tests). `depends:PARC.C1` `parallel:none`
+  - [ ] PARC.C3 Implement C3 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARC.C2` `parallel:none`
+  - [ ] PARC.C4 Implement C4 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARC.C3` `parallel:none`
+- [ ] PARG Geometry and representation closure: implement and verify all referenced requirements, update owner designs and commit each completed sprint. `depends:PARC` `parallel:none`
+  - [ ] PARG.G1 Implement G1 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARC` `parallel:none`
+  - [ ] PARG.G2 Implement G2 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARG.G1` `parallel:none`
+  - [ ] PARG.G3 Implement G3 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARG.G2` `parallel:none`
+  - [ ] PARG.G4 Implement G4 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARG.G3` `parallel:none`
+  - [ ] PARG.G5 Implement G5 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARG.G4` `parallel:none`
+  - [ ] PARG.G6 Implement G6 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARG.G5` `parallel:none`
+- [ ] PART Topology and bounded repair: implement and verify all referenced requirements, update owner designs and commit each completed sprint. `depends:PARG` `parallel:none`
+  - [ ] PART.T1 Implement T1 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARG` `parallel:none`
+  - [ ] PART.T2 Implement T2 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PART.T1` `parallel:none`
+  - [ ] PART.T3 Implement T3 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PART.T2` `parallel:none`
+  - [ ] PART.T4 Implement T4 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PART.T3` `parallel:none`
+  - [ ] PART.T5 Implement T5 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PART.T4` `parallel:none`
+  - [ ] PART.T6 Implement T6 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PART.T5` `parallel:none`
+  - [ ] PART.T7 Implement T7 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PART.T6` `parallel:none`
+  - [ ] PART.T8 Implement T8 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PART.T7` `parallel:none`
+- [ ] PARB Boolean arrangement and history: implement and verify all referenced requirements, update owner designs and commit each completed sprint. `depends:PART` `parallel:none`
+  - [ ] PARB.B1 Implement B1 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PART` `parallel:none`
+  - [ ] PARB.B2 Implement B2 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARB.B1` `parallel:none`
+  - [ ] PARB.B3 Implement B3 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARB.B2` `parallel:none`
+  - [ ] PARB.B4 Implement B4 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARB.B3` `parallel:none`
+  - [ ] PARB.B5 Implement B5 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARB.B4` `parallel:none`
+  - [ ] PARB.B6 Implement B6 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARB.B5` `parallel:none`
+  - [ ] PARB.B7 Implement B7 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARB.B6` `parallel:none`
+- [ ] PARF Fillet and blend networks: implement and verify all referenced requirements, update owner designs and commit each completed sprint. `depends:PARB` `parallel:none`
+  - [ ] PARF.F1 Implement F1 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARB` `parallel:none`
+  - [ ] PARF.F2 Implement F2 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARF.F1` `parallel:none`
+  - [ ] PARF.F3 Implement F3 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARF.F2` `parallel:none`
+  - [ ] PARF.F4 Implement F4 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARF.F3` `parallel:none`
+  - [ ] PARF.F5 Implement F5 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARF.F4` `parallel:none`
+  - [ ] PARF.F6 Implement F6 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARF.F5` `parallel:none`
+  - [ ] PARF.F7 Implement F7 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARF.F6` `parallel:none`
+  - [ ] PARF.F8 Implement F8 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARF.F7` `parallel:none`
+- [ ] PARS Extrusion sweep pipe and loft: implement and verify all referenced requirements, update owner designs and commit each completed sprint. `depends:PARF` `parallel:none`
+  - [ ] PARS.S1 Implement S1 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARF` `parallel:none`
+  - [ ] PARS.S2 Implement S2 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARS.S1` `parallel:none`
+  - [ ] PARS.S3 Implement S3 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARS.S2` `parallel:none`
+  - [ ] PARS.S4 Implement S4 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARS.S3` `parallel:none`
+  - [ ] PARS.S5 Implement S5 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARS.S4` `parallel:none`
+  - [ ] PARS.S6 Implement S6 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARS.S5` `parallel:none`
+  - [ ] PARS.S7 Implement S7 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARS.S6` `parallel:none`
+  - [ ] PARS.S8 Implement S8 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARS.S7` `parallel:none`
+  - [ ] PARS.S9 Implement S9 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARS.S8` `parallel:none`
+  - [ ] PARS.S10 Implement S10 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARS.S9` `parallel:none`
+- [ ] PARE Offsets and surface editing: implement and verify all referenced requirements, update owner designs and commit each completed sprint. `depends:PARS` `parallel:none`
+  - [ ] PARE.E1 Implement E1 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARS` `parallel:none`
+  - [ ] PARE.E2 Implement E2 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARE.E1` `parallel:none`
+  - [ ] PARE.E3 Implement E3 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARE.E2` `parallel:none`
+  - [ ] PARE.E4 Implement E4 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARE.E3` `parallel:none`
+  - [ ] PARE.E5 Implement E5 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARE.E4` `parallel:none`
+  - [ ] PARE.E6 Implement E6 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARE.E5` `parallel:none`
+  - [ ] PARE.E7 Implement E7 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARE.E6` `parallel:none`
+  - [ ] PARE.E8 Implement E8 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARE.E7` `parallel:none`
+  - [ ] PARE.E9 Implement E9 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARE.E8` `parallel:none`
+  - [ ] PARE.E10 Implement E10 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARE.E9` `parallel:none`
+- [ ] PARQ Geometric queries and mass properties: implement and verify all referenced requirements, update owner designs and commit each completed sprint. `depends:PARE` `parallel:none`
+  - [ ] PARQ.Q1 Implement Q1 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARE` `parallel:none`
+  - [ ] PARQ.Q2 Implement Q2 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARQ.Q1` `parallel:none`
+  - [ ] PARQ.Q3 Implement Q3 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARQ.Q2` `parallel:none`
+  - [ ] PARQ.Q4 Implement Q4 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARQ.Q3` `parallel:none`
+  - [ ] PARQ.Q5 Implement Q5 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARQ.Q4` `parallel:none`
+  - [ ] PARQ.Q6 Implement Q6 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARQ.Q5` `parallel:none`
+  - [ ] PARQ.Q7 Implement Q7 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARQ.Q6` `parallel:none`
+- [ ] PARM Adaptive conforming tessellation: implement and verify all referenced requirements, update owner designs and commit each completed sprint. `depends:PARQ` `parallel:none`
+  - [ ] PARM.M1 Implement M1 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARQ` `parallel:none`
+  - [ ] PARM.M2 Implement M2 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARM.M1` `parallel:none`
+  - [ ] PARM.M3 Implement M3 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARM.M2` `parallel:none`
+  - [ ] PARM.M4 Implement M4 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARM.M3` `parallel:none`
+  - [ ] PARM.M5 Implement M5 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARM.M4` `parallel:none`
+  - [ ] PARM.M6 Implement M6 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARM.M5` `parallel:none`
+- [ ] PARX Geometry and product-data exchange: implement and verify all referenced requirements, update owner designs and commit each completed sprint. `depends:PARM` `parallel:none`
+  - [ ] PARX.X1 Implement X1 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARM` `parallel:none`
+  - [ ] PARX.X2 Implement X2 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARX.X1` `parallel:none`
+  - [ ] PARX.X3 Implement X3 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARX.X2` `parallel:none`
+  - [ ] PARX.X4 Implement X4 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARX.X3` `parallel:none`
+  - [ ] PARX.X5 Implement X5 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARX.X4` `parallel:none`
+  - [ ] PARX.X6 Implement X6 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARX.X5` `parallel:none`
+  - [ ] PARX.X7 Implement X7 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARX.X6` `parallel:none`
+  - [ ] PARX.X8 Implement X8 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARX.X7` `parallel:none`
+  - [ ] PARX.X9 Implement X9 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARX.X8` `parallel:none`
+  - [ ] PARX.X10 Implement X10 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARX.X9` `parallel:none`
+- [ ] PARD Exact projection and drawing integration: implement and verify all referenced requirements, update owner designs and commit each completed sprint. `depends:PARX` `parallel:none`
+  - [ ] PARD.D1 Implement D1 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARX` `parallel:none`
+  - [ ] PARD.D2 Implement D2 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARD.D1` `parallel:none`
+  - [ ] PARD.D3 Implement D3 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARD.D2` `parallel:none`
+  - [ ] PARD.D4 Implement D4 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARD.D3` `parallel:none`
+- [ ] PARA Document visualization and application integration: implement and verify all referenced requirements, update owner designs and commit each completed sprint. `depends:PARD` `parallel:none`
+  - [ ] PARA.A1 Implement A1 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARD` `parallel:none`
+  - [ ] PARA.A2 Implement A2 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARA.A1` `parallel:none`
+  - [ ] PARA.A3 Implement A3 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARA.A2` `parallel:none`
+  - [ ] PARA.A4 Implement A4 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARA.A3` `parallel:none`
+  - [ ] PARA.A5 Implement A5 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARA.A4` `parallel:none`
+  - [ ] PARA.A6 Implement A6 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARA.A5` `parallel:none`
+  - [ ] PARA.A7 Implement A7 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARA.A6` `parallel:none`
+- [ ] PARI Audit every requirement and cross-level invariant against committed implementation and runtime evidence; complete native, matching WASM/Embedded, exchange interop and rebuilt application integration; merge into main and verify the merged state. `depends:PARC,PARG,PART,PARB,PARF,PARS,PARE,PARQ,PARM,PARX,PARD,PARA` `parallel:none`

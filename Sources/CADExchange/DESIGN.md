@@ -47,6 +47,18 @@ flowchart LR
 
 ## Contracts and Invariants
 
+ExchangeFileFormat is the authority for public format-direction admission.
+IGES import and export are enabled for the exact B-rep domains documented by
+the IGES capability. OfficialFormatExchange routes enabled IGES operations
+to IGESExchange, preserving length-unit metadata, exact topology and typed reader
+failures. Direction admission does not widen supported entity or surface
+domains. IGES imports use canonical radians; a source document display angle
+unit is not an IGES file property. URL detection uses the same registry.
+
+Official exchange tests must exercise in-memory and URL IGES round trips,
+malformed input, and resource-limit refusal through the public facade.
+
+
 Native rolling-ball surfaces retain normalized dimensionless parameters, but
 the exact STEP/IGES writers currently have no chart-preserving representation
 for a general blend. They must reject export with `unsupportedCapability`,
