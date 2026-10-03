@@ -275,6 +275,25 @@ private extension STEPAttributesReader {
             }
             return ProductAttributeTarget(kind: target.kind, geometry: reference, definitionID: definition)
         }
+        mutating func usageTarget(_ context: Int, item: Int) throws -> ProductAttributeTarget {
+            try check(4)
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP direct-usage style import requires a producer-proved NAUO/CDSR selector.
+            // Mapped-only, unproved or path-guessed contexts need an equivalent standard source owner before they can succeed.
+            guard names[context] == "CONTEXT_DEPENDENT_SHAPE_REPRESENTATION", let usage = transfer.usageContexts[context] else {
+                throw ProductAttributeError.unsupportedSemantics("Direct usage style context must select one proved CDSR.")
+            }
+            let contextArgs = try args(context, 2), relation = try syntax.reference(contextArgs[0]), shape = try syntax.reference(contextArgs[1])
+            let shapeArgs = try args(shape, 3), owner = try syntax.reference(shapeArgs[2])
+            guard names[shape] == "PRODUCT_DEFINITION_SHAPE", names[owner] == "NEXT_ASSEMBLY_USAGE_OCCURRENCE",
+                  transfer.usages[owner] == usage, transfer.relationships[relation] == usage else {
+                throw ProductAttributeError.invalidSource("Direct usage context does not match its validated placement owner.")
+            }
+            let definition = try stepAppearanceLeafDefinition(for: usage, in: evaluated, budget: &budget, duration: duration)
+            guard transfer.partCarriers[item] == definition.id else {
+                throw ProductAttributeError.missingTarget("Direct usage style carrier does not select its child definition.")
+            }
+            return ProductAttributeTarget(kind: .directUsage, usageID: usage)
+        }
         mutating func styleValues(_ assignmentID: Int) throws -> [ProductAttributeValue.Property: ProductAttributeValue] {
             let contextual = names[assignmentID] == "PRESENTATION_STYLE_BY_CONTEXT"
             let a = try args(assignmentID, contextual ? 2 : 1)
@@ -363,15 +382,16 @@ private extension STEPAttributesReader {
             let item = try syntax.reference(a[2])
             let psas = try syntax.list(a[1]); try check(psas.count)
             guard psas.count == 1, let psa = psas.first else { throw ProductAttributeError.unsupportedSemantics("Multiple context-sensitive style assignments.") }
-            var contextCarrier: Int?
+            var contextCarrier: Int?, contextUsage: Int?
             if names[psa] == "PRESENTATION_STYLE_BY_CONTEXT" {
-                let carrier = try syntax.reference(args(psa, 2)[1])
-                // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP scoped style import admits only a proved identity PD carrier context.
+                let context = try syntax.reference(args(psa, 2)[1])
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP scoped style import admits only proved identity PD carrier or validated CDSR usage contexts.
                 // Other standard context meanings require an equivalent persistent selector and egress before they can succeed.
-                guard transfer.partCarriers[carrier] != nil else {
+                guard transfer.partCarriers[context] != nil || transfer.usageContexts[context] != nil else {
                     throw ProductAttributeError.unsupportedSemantics("Style context requires a proved identity PD carrier.")
                 }
-                contextCarrier = carrier
+                if transfer.usageContexts[context] != nil { contextUsage = context }
+                else { contextCarrier = context }
             }
             var target: ProductAttributeTarget
             if !contextual, geometry[item] == nil, transfer.partCarriers[item] == nil {
@@ -381,10 +401,21 @@ private extension STEPAttributesReader {
             }
             if contextual {
                 let contexts = try syntax.list(a[4]); try check(contexts.count)
-                if contexts.count == 1, let carrier = contexts.first, transfer.partCarriers[carrier] != nil {
+                if contexts.count == 1, let context = contexts.first, transfer.usageContexts[context] != nil {
+                    guard contextCarrier == nil, contextUsage == nil || contextUsage == context else {
+                        throw ProductAttributeError.ambiguousProperty("Competing direct usage style contexts.")
+                    }
+                    target = try usageTarget(context, item: item)
+                } else if contexts.contains(where: { names[$0] == "CONTEXT_DEPENDENT_SHAPE_REPRESENTATION" }) {
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP direct-usage appearance admits one validated CDSR context, not mixed or chained usage selectors.
+                    // A persistent equivalent compound scope and standard egress must be established before these contexts can succeed.
+                    throw ProductAttributeError.unsupportedSemantics("Direct usage style context must select one proved CDSR.")
+                } else if contexts.count == 1, let carrier = contexts.first, transfer.partCarriers[carrier] != nil {
+                    guard contextUsage == nil else { throw ProductAttributeError.ambiguousProperty("Competing direct usage style contexts.") }
                     guard contextCarrier == nil || contextCarrier == carrier else { throw ProductAttributeError.ambiguousProperty("Competing qualified style contexts.") }
                     target = try carrierTarget(carrier, item: item)
                 } else {
+                    guard contextUsage == nil else { throw ProductAttributeError.ambiguousProperty("Competing direct usage style contexts.") }
                     guard contextCarrier == nil else { throw ProductAttributeError.ambiguousProperty("Competing qualified style contexts.") }
                     if let definitions = transfer.representations[item] {
                         target = ProductAttributeTarget(kind: .occurrence, path: try contextPath(a[4]))
@@ -397,7 +428,8 @@ private extension STEPAttributesReader {
                         target = ProductAttributeTarget(kind: mapped.kind, geometry: geometry, path: try contextPath(a[4]))
                     }
                 }
-            } else if let carrier = contextCarrier { target = try carrierTarget(carrier, item: item) }
+            } else if let context = contextUsage { target = try usageTarget(context, item: item) }
+            else if let carrier = contextCarrier { target = try carrierTarget(carrier, item: item) }
             else { target = try self.target(item) }
             let predecessor = a.count >= 4 ? try syntax.reference(a[3]) : nil
             var inherited: [ProductAttributeValue.Property: ProductAttributeID] = [:]

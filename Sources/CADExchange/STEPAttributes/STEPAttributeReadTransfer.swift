@@ -10,5 +10,7 @@ public struct STEPAttributeReadTransfer: Sendable {
     public var partCarriers: [Int: AssemblyDefinitionID] = [:]
     public var usages: [Int: AssemblyOccurrenceID] = [:]
     public var relationships: [Int: AssemblyOccurrenceID] = [:]
+    /// Maps a producer-validated CDSR entity to its real NAUO source identity.
+    public var usageContexts: [Int: AssemblyOccurrenceID] = [:]
     public init() {}
 }

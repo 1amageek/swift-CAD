@@ -43,6 +43,10 @@ exact shared geometry producer and proved PD carrier correspondence with the
 [STEP Attributes scoped transport contract](STEPAttributes/DESIGN.md).
 The facade admits standard PSBC records and preserves the child-owned selector;
 standalone labels and caller-visible failure domains follow that contract.
+Direct-usage appearance composes the validated assembly CDSR-to-NAUO transfer
+with the same child-owned attribute transport contract. The facade retains the
+authored selector and explicit provenance across shared parent placements;
+leaf/context admission and standard carrier semantics remain child-owned.
 
 Native section-reference admission follows the [CADIR section contract](../CADIR/SectionReference/DESIGN.md):
 curve intervals and explicit traversal direction survive save/load, profile inputs

@@ -56,6 +56,21 @@ flowchart LR
 
 ## Contracts and Invariants
 
+- Direct-usage appearance uses the actual validated CDSR as its standard context:
+  CDSR selects its PDS and real NAUO, retaining one directUsage selector for every
+  occurrence of that shared usage. It is not expanded into current complete
+  paths. PSBC assigns standalone color/coincident opacity to the proved identity
+  carrier of the NAUO child PD; an explicit predecessor is carried by CDORSI with
+  the same singleton CDSR context. The child must be a nonempty geometry-bearing
+  leaf and the carrier must select that exact PD. Layer-only membership uses a
+  PSBC NULL_STYLE scoped styled carrier without a native property or predecessor.
+  Existing part/qualified geometry carrier contexts and full-path relationship
+  lists remain distinct owners; competing or mixed contexts fail rather than
+  guessing a path or usage from values. Nonleaf, empty, unproved and mapped-only
+  usages remain explicit incomplete failures. Source resolution still owns
+  predecessor applicability and property-specific ambiguity; no scope rank is
+  inferred. Lookup, context scans, style/member records and growth consume the
+  existing cumulative caller budget and duration before publication.
 - Definition-qualified Body/Face names are Shape_element labels: the standard
   ShapeAspect.name owns the label, of_shape selects the real PD, and one GISU
   identifies the existing exact Body/Face in its proved singleton view. The
@@ -325,3 +340,10 @@ and its [MIM mapping](https://www.steptools.com/stds/smrl/data/modules/shape_pro
 Style contexts use [PSBC](https://www.steptools.com/stds/stp_aim/html/t_presentation_style_by_context.html)
 and [CDORSI](https://www.steptools.com/stds/stp_aim/html/t_context_dependent_over_riding_styled_item.html);
 layers consume [layered_item](https://www.steptools.com/stds/stp_aim/html/t_layered_item.html).
+
+[DirectUsageSTEPAttributeTests](../../../Tests/CADExchangeTests/DirectUsageSTEPAttributeTests.swift)
+own independently authored shared nested NAUO/CDSR appearance and layer fixtures,
+Native/two STEP generations/new parent placement, exact source-selector and
+provenance preservation, foreign/mixed/nonleaf context refusal, caller ceilings,
+cancellation and atomic output. The standard owner is [CDSR](https://www.steptools.com/stds/stp_aim/html/t_context_dependent_shape_representation.html)
+admitted by [style_context_select](https://www.steptools.com/stds/stp_aim/html/t_style_context_select.html).

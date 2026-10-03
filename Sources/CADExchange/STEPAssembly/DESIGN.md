@@ -54,6 +54,15 @@ flowchart LR
 
 ## Contracts and Invariants
 
+- The attribute transfer retains CDSR entity identity and its unique validated
+  NAUO counterpart only after the existing exact placement, parent/child PD,
+  representation and frame checks succeed. Writers retain the actual CDSR they
+  emit for each direct source usage. Direct-usage appearance/layer selectors
+  request the child PD's proved identity carrier, sharing existing local exact
+  geometry. The source usage's real child determines this request, not expanded
+  paths or value equality. [STEP Attributes](../STEPAttributes/DESIGN.md) owns
+  leaf/context admission and property interpretation. No new source UUID,
+  topology, schema field or synthetic assembly occurrence is created.
 - A definition-qualified geometry style or layer consumes the same proved
   identity whole-part carrier as part appearance. The carrier is one standard
   MAPPED_ITEM uniquely associated with that PD, and its inner exact geometry

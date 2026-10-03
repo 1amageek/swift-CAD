@@ -350,19 +350,23 @@ private extension STEPAssemblyReader {
             var childProducts = Set<Int>()
             if !usages.isEmpty {
                 var placementRelations: [Int: Int] = [:]
+                var placementContexts: [Int: Int] = [:]
                 for id in names.keys.sorted() where names[id] == "CONTEXT_DEPENDENT_SHAPE_REPRESENTATION" {
+                    try check(2)
                     let a = try args(id, count: 2), shape = try syntax.reference(a[1])
                     guard let usage = definitionShapes[shape], names[usage] == "NEXT_ASSEMBLY_USAGE_OCCURRENCE",
                           placementRelations.updateValue(try syntax.reference(a[0]), forKey: usage) == nil else {
                         throw AssemblyError.invalidSource("STEP occurrence has missing or multiple placement associations.")
                     }
+                    placementContexts[usage] = id
                 }
                 guard placementRelations.count == usages.count else { throw AssemblyError.invalidSource("Missing STEP occurrence placement.") }
                 for usage in usages {
                     try check()
                     let a = try args(usage, count: 6), parent = try syntax.reference(a[3]), child = try syntax.reference(a[4])
                     guard let parentRep = representations[parent], let childRep = representations[child],
-                          let childID = definitionIDs[child], let relation = placementRelations[usage] else {
+                          let childID = definitionIDs[child], let relation = placementRelations[usage],
+                          let context = placementContexts[usage] else {
                         throw AssemblyError.invalidSource("STEP usage references a missing product.")
                     }
                     let rr = try args(relation, count: 4, component: "REPRESENTATION_RELATIONSHIP")
@@ -394,6 +398,7 @@ private extension STEPAssemblyReader {
                     guard parentDefinition.features.isEmpty else { throw AssemblyError.invalidSource("STEP assembly geometry is an ambiguous alternative to its children.") }
                     parentDefinition.children.append(occurrence); definitions[parent] = parentDefinition
                     transfer.usages[usage] = occurrence.id; transfer.relationships[relation] = occurrence.id
+                    try check(); transfer.usageContexts[context] = occurrence.id
                     childProducts.insert(child)
                 }
             } else {

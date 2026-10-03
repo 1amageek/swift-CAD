@@ -147,9 +147,7 @@ private extension STEPAttributesWriter {
                 }
             case .occurrence: return try products(target).map(\.representation)
             case .directUsage:
-                // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP attribute export has no direct-usage style-to-complete-path expansion.
-                // Completion requires standard contextual records retaining every actual shared usage scope without flattening.
-                throw ProductAttributeError.unsupportedSemantics("Direct usage styling needs a complete contextual instance path.")
+                return [try usageStyle(target).item]
             case .body, .face:
                 guard let topology = resolved.localGeometry[target] else { throw ProductAttributeError.missingTarget("Style geometry target.") }
                 let products = try products(target)
@@ -191,10 +189,24 @@ private extension STEPAttributesWriter {
             }
             return carrier
         }
+        mutating func usageStyle(_ target: ProductAttributeTarget) throws -> (item: Int, context: Int) {
+            guard target.kind == .directUsage, let usage = target.usageID else {
+                throw ProductAttributeError.invalidSource("Direct usage style selector.")
+            }
+            let definition = try stepAppearanceLeafDefinition(for: usage, in: evaluated, budget: &budget, duration: duration)
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP direct-usage appearance requires a validated NAUO/CDSR and identity child carrier.
+            // Mapped-only or unproved usages need a standard owner-preserving transfer before they can succeed; path inference is not equivalent.
+            guard transfer.usages[usage] != nil, let context = transfer.usageContexts[usage],
+                  let carrier = transfer.products[definition.id]?.carrier else {
+                throw ProductAttributeError.unsupportedSemantics("Direct usage appearance requires a proved CDSR and child carrier.")
+            }
+            return (carrier, context)
+        }
         mutating func layerStyle(_ target: ProductAttributeTarget) throws -> [Int] {
             if let existing = targetStyles[target], !existing.isEmpty { return existing }
-            let items = try styleItems(target), carrier = try geometryCarrier(target)
-            let psa = try add("PRESENTATION_STYLE_BY_CONTEXT((NULL_STYLE(.NULL.)),#\(carrier))")
+            let items = try styleItems(target)
+            let context = target.kind == .directUsage ? try usageStyle(target).context : try geometryCarrier(target)
+            let psa = try add("PRESENTATION_STYLE_BY_CONTEXT((NULL_STYLE(.NULL.)),#\(context))")
             var result: [Int] = []
             for item in items {
                 try check(); try budget.charge(targets: 1)
@@ -244,10 +256,13 @@ private extension STEPAttributesWriter {
                 side = try add("SURFACE_SIDE_STYLE('',(#\(area)))")
             }
             let usage = try add("SURFACE_STYLE_USAGE(.BOTH.,#\(side))")
-            let carrier = (assignment.target.definitionID != nil && (assignment.target.kind == .body || assignment.target.kind == .face))
-                ? try geometryCarrier(assignment.target) : nil
+            let context: Int?
+            if assignment.target.kind == .directUsage { context = try usageStyle(assignment.target).context }
+            else if assignment.target.definitionID != nil, assignment.target.kind == .body || assignment.target.kind == .face {
+                context = try geometryCarrier(assignment.target)
+            } else { context = nil }
             let psa: Int
-            if let carrier { psa = try add("PRESENTATION_STYLE_BY_CONTEXT((#\(usage)),#\(carrier))") }
+            if let context { psa = try add("PRESENTATION_STYLE_BY_CONTEXT((#\(usage)),#\(context))") }
             else { psa = try add("PRESENTATION_STYLE_ASSIGNMENT((#\(usage)))") }
             let items = try styleItems(assignment.target)
             var predecessors: [Int] = []
@@ -272,8 +287,8 @@ private extension STEPAttributesWriter {
                         contexts.append("#\(relationship)")
                     }
                     id = try add("CONTEXT_DEPENDENT_OVER_RIDING_STYLED_ITEM('',(#\(psa)),#\(item),#\(predecessors[0]),(\(contexts.joined(separator: ","))))")
-                } else if let carrier, !predecessors.isEmpty {
-                    id = try add("CONTEXT_DEPENDENT_OVER_RIDING_STYLED_ITEM('',(#\(psa)),#\(item),#\(predecessors[predecessors.count == 1 ? 0 : index]),(#\(carrier)))")
+                } else if let context, !predecessors.isEmpty {
+                    id = try add("CONTEXT_DEPENDENT_OVER_RIDING_STYLED_ITEM('',(#\(psa)),#\(item),#\(predecessors[predecessors.count == 1 ? 0 : index]),(#\(context)))")
                 } else if !predecessors.isEmpty {
                     id = try add("OVER_RIDING_STYLED_ITEM('',(#\(psa)),#\(item),#\(predecessors[predecessors.count == 1 ? 0 : index]))")
                 } else { id = try add("STYLED_ITEM('',(#\(psa)),#\(item))") }
@@ -401,7 +416,9 @@ private extension STEPAttributesWriter {
                 try check()
                 for member in layer.members {
                     try check()
-                    if member.definitionID != nil, member.kind == .body || member.kind == .face { _ = try layerStyle(member) }
+                    if member.kind == .directUsage || (member.definitionID != nil && (member.kind == .body || member.kind == .face)) {
+                        _ = try layerStyle(member)
+                    }
                 }
             }
             try check(styled.count + targetStyles.count)
@@ -446,7 +463,7 @@ private extension STEPAttributesWriter {
                             throw ProductAttributeError.unsupportedSemantics("Instance layer membership requires an admitted contextual styled item.")
                         }
                         members.formUnion(styles)
-                    } else if member.definitionID != nil, member.kind == .body || member.kind == .face {
+                    } else if member.kind == .directUsage || (member.definitionID != nil && (member.kind == .body || member.kind == .face)) {
                         let scoped = try layerStyle(member); try check(scoped.count); try budget.charge(targets: scoped.count)
                         members.formUnion(scoped)
                     } else { members.formUnion(try styleItems(member)) }
@@ -457,4 +474,38 @@ private extension STEPAttributesWriter {
             return records
         }
     }
+}
+
+// Shared semantic admission for reader/writer contexts; this consumes the immutable source, not expanded occurrence paths.
+func stepAppearanceLeafDefinition(for usage: AssemblyOccurrenceID, in evaluated: EvaluatedDocument,
+                                 budget: inout ProductAttributeBudget, duration: ExchangeProcessingBudget) throws -> AssemblyDefinition {
+    guard let source = evaluated.document.assembly else { throw ProductAttributeError.missingTarget("Direct usage appearance source.") }
+    var child: AssemblyDefinitionID?
+    for occurrence in source.roots {
+        try duration.check(format: .step); try budget.charge(work: 1)
+        if occurrence.id == usage {
+            guard child == nil else { throw ProductAttributeError.ambiguousProperty("Direct usage source owner.") }
+            child = occurrence.definitionID
+        }
+    }
+    for definition in source.definitions {
+        try duration.check(format: .step); try budget.charge(work: 1)
+        for occurrence in definition.children {
+            try duration.check(format: .step); try budget.charge(work: 1)
+            if occurrence.id == usage {
+                guard child == nil else { throw ProductAttributeError.ambiguousProperty("Direct usage source owner.") }
+                child = occurrence.definitionID
+            }
+        }
+    }
+    try duration.check(format: .step); try budget.charge(work: source.definitions.count)
+    guard let child, let definition = source.definitions.first(where: { $0.id == child }) else {
+        throw ProductAttributeError.missingTarget("Direct usage appearance child.")
+    }
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP direct-usage appearance currently retains only nonempty geometry-bearing leaf children.
+    // Nonleaf or empty usage appearance needs standard descendant/default semantics matching native resolution before it can succeed.
+    guard !definition.features.isEmpty, definition.children.isEmpty else {
+        throw ProductAttributeError.unsupportedSemantics("Direct usage appearance requires a nonempty leaf child.")
+    }
+    return definition
 }

@@ -38,6 +38,34 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
         try sharingBudget.charge(work: resolved?.consumedWork ?? 0)
         var geometryKeys: [AssemblyDefinitionID: [FeatureID]] = [:]
         var carrierKeys = Set<[FeatureID]>()
+        var appearanceUsages = Set<AssemblyOccurrenceID>(), usageCarrierDefinitions = Set<AssemblyDefinitionID>()
+        for assignment in attributeSource.assignments {
+            try budget.check(format: .step); try sharingBudget.charge(work: 1)
+            if assignment.target.kind == .directUsage, let usage = assignment.target.usageID,
+               assignment.value.property == .color || assignment.value.property == .opacity {
+                try sharingBudget.charge(targets: 1); appearanceUsages.insert(usage)
+            }
+        }
+        for layer in attributeSource.layers {
+            try budget.check(format: .step); try sharingBudget.charge(work: 1)
+            for member in layer.members {
+                try budget.check(format: .step); try sharingBudget.charge(work: 1)
+                if member.kind == .directUsage, let usage = member.usageID {
+                    try sharingBudget.charge(targets: 1); appearanceUsages.insert(usage)
+                }
+            }
+        }
+        for occurrence in source.roots {
+            try budget.check(format: .step); try sharingBudget.charge(work: 1)
+            if appearanceUsages.contains(occurrence.id) { try sharingBudget.charge(targets: 1); usageCarrierDefinitions.insert(occurrence.definitionID) }
+        }
+        for definition in source.definitions {
+            try budget.check(format: .step); try sharingBudget.charge(work: 1)
+            for occurrence in definition.children {
+                try budget.check(format: .step); try sharingBudget.charge(work: 1)
+                if appearanceUsages.contains(occurrence.id) { try sharingBudget.charge(targets: 1); usageCarrierDefinitions.insert(occurrence.definitionID) }
+            }
+        }
         var admittedGroups = Set<[FeatureID]>(), admittedFeatures = Set<FeatureID>()
         for definition in source.definitions where !definition.features.isEmpty {
             try budget.check(format: .step)
@@ -62,7 +90,7 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
                 try sharingBudget.charge(work: key.count, targets: 1); admittedGroups.insert(key)
             }
             try sharingBudget.charge(work: attributeSource.assignments.count)
-            var carrier = attributeSource.assignments.contains {
+            var carrier = usageCarrierDefinitions.contains(definition.id) || attributeSource.assignments.contains {
                 $0.target.definitionID == definition.id && ($0.value.property == .color || $0.value.property == .opacity)
             }
             for layer in attributeSource.layers {
@@ -147,8 +175,10 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
             let shape = try table.add("PRODUCT_DEFINITION_SHAPE('','',#\(usage))")
             let transform = try table.add("ITEM_DEFINED_TRANSFORMATION('','',#\(child.origin),#\(axis))")
             let relationship = try table.add("(REPRESENTATION_RELATIONSHIP('','',#\(child.representation),#\(parent.representation)) REPRESENTATION_RELATIONSHIP_WITH_TRANSFORMATION(#\(transform)) SHAPE_REPRESENTATION_RELATIONSHIP())")
-            _ = try table.add("CONTEXT_DEPENDENT_SHAPE_REPRESENTATION(#\(relationship),#\(shape))")
+            let context = try table.add("CONTEXT_DEPENDENT_SHAPE_REPRESENTATION(#\(relationship),#\(shape))")
+            try budget.check(format: .step); try sharingBudget.charge(work: 1, targets: 1)
             transfer.usages[occurrence.id] = usage; transfer.relationships[occurrence.id] = relationship
+            transfer.usageContexts[occurrence.id] = context
         }
         for definition in source.definitions {
             guard let parent = written[definition.id] else { throw AssemblyError.missingDefinition(definition.id) }
