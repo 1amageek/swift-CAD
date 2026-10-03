@@ -107,7 +107,23 @@ struct SurfaceParameterCurveAreaIntegratorTests {
             tolerance: tolerance
         )
 
-        let expected = -2.0 / 3.0
+        // The plane's parameters run along its own basis (x and y for the plane z = 0), so the
+        // arc x = t² / 2, y = t encloses ∫ x dy = 1/3 with its chord.
+        let expected = 1.0 / 3.0
+        // The same integral from the pcurve's own parameters, by Simpson's rule.
+        var simpson = 0.0
+        let steps = 2_000
+        for index in 0...steps {
+            let fraction = Double(index) / Double(steps)
+            let delta = 1.0e-6
+            let uv = try decoded.parameter(atNormalizedFraction: fraction, tolerance: tolerance)
+            let before = try decoded.parameter(atNormalizedFraction: max(0, fraction - delta), tolerance: tolerance)
+            let after = try decoded.parameter(atNormalizedFraction: min(1, fraction + delta), tolerance: tolerance)
+            let dv = (after.v - before.v) / (min(1, fraction + delta) - max(0, fraction - delta))
+            let weight = index == 0 || index == steps ? 1.0 : (index % 2 == 1 ? 4.0 : 2.0)
+            simpson += weight * uv.u * dv / Double(3 * steps)
+        }
+        #expect(abs(simpson - expected) < 1.0e-6)
         #expect(forward.lower <= expected)
         #expect(forward.upper >= expected)
         #expect(forward.width <= 1.0e-9)

@@ -64,7 +64,12 @@ flowchart LR
   sphere keeps the branch of longitude its chart lift starts on — a meridian
   along the seam reads as either end of the period — and a great circle split
   at the seam carries that branch on across it, so the integrated longitudes
-  meet the unwrapper's translations.
+  meet the unwrapper's translations. A projected analytic pcurve (a conic on
+  a plane or a cone) reads a `Plane3D`'s parameters along the plane's own
+  basis (`Plane3D.parameterBasis`, the one `Surface3D` places points by), so a
+  hyperbolic edge on a floor or a side wall integrates on the chart its
+  neighbouring pcurves share; `DraftFaceTests` own it by a cone-drafted wall's
+  volume.
 
 ## Verification and Change Impact
 
