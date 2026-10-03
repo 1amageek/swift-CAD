@@ -264,7 +264,15 @@ running past both walls). Trim walls cut both sheets or the named one at its con
 `BodyHalfSpaceCutting` stages, keeping the side away from L, and join them with the bridge
 (`SheetBodyJoining`) into the feature's one sheet, the trimmed sources consumed; a trimmed wall
 longer than the bridge meets it along part of its cut edge, which the joiner splits at the bridge's
-ends (`BRepSewingTJunctionSplitter`). Between sheets that are not two planes meeting (curved sheets,
+ends (`BRepSewingTJunctionSplitter`). Two curved sheets of one untrimmed spline face each are
+bridged the width from where their continuations meet (`CurvedSheetBridgeWalls`, video 1 of the
+page): each spline continued past its boundaries (a Bézier sheet as the same polynomial over the
+wider box, so no knot is left inside), along every isoline running into a sheet from its edge
+nearest the other the meeting found by Newton on A(a, c) = B(s, t) and the contact the width of arc
+along the isoline into the sheet; each wall becomes its continued surface from its far edge to the
+contact curve (cut back, or carried past its edge), the bridge the G2 or ruled Loft between the
+contact edges, and Trim walls joins the walls it names with the bridge in place of their sheets,
+the others staying as they were. Between other sheets that are not two planes meeting (curved sheets,
 sheets bending out of one plane, parallel planes), or when the feature names a boundary edge of each,
 the bridge spans between those edges — or the pair of boundary edges nearest each other by their
 middles — as a Loft of the two edges' curves (the second run the way the first does) with curvature
