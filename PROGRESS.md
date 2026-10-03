@@ -5,6 +5,8 @@
   - [ ] PARG.G1 Implement G1 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARC` `parallel:none`
     - [x] PARG.G1.1 Cyclic representation, normalization, seam derivatives, origin changes and value preservation verified with 22 native geometry tests and 42 capability tests; exact editing and portable integration remain open. `depends:PARC` `parallel:none`
     - [ ] PARG.G1.2 Complete exact periodic refinement/restriction and prepared bounds/projection without reducing the public input domain. `depends:PARG.G1.1` `parallel:none`
+      - [x] PARG.G1.2.1 Exact finite restrictions across seams, prepared bounds/projection and expansion workspace budgets verified by 41 native geometry tests and 42 capability tests; periodic refinement and portable integration remain open. `depends:PARG.G1.1` `parallel:none`
+      - [ ] PARG.G1.2.2 Periodic knot refinement retaining the homogeneous cycle and seam continuity. `depends:PARG.G1.2.1` `parallel:none`
     - [ ] PARG.G1.3 Verify public source and portable runtime integration, close G1 and commit completion evidence. `depends:PARG.G1.2` `parallel:none`
   - [ ] PARG.G2 Implement G2 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARG.G1` `parallel:none`
   - [ ] PARG.G3 Implement G3 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARG.G2` `parallel:none`

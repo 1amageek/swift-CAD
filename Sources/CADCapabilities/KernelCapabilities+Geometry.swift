@@ -41,6 +41,7 @@ extension KernelCapabilities {
       exactOutputs: [
         "position", "firstDerivative", "secondDerivative", "curvature",
         "periodicParameterNormalization", "periodicOriginChange", "periodicSeamContinuityOrder",
+        "exactFinitePeriodicRestriction", "periodicIntervalProjection", "periodicSmoothIntervalBounds",
         "inverseParameterProjection", "verifiedResidual",
         "exactKnotInsertion", "exactParameterTrim",
         "normalizedPcurveDifferential",
@@ -53,11 +54,12 @@ extension KernelCapabilities {
       ],
       failureCodes: [
         .invalidInput, .intersectionFailure, .ambiguousSelection,
-        .singularSystem, .resourceLimitExceeded, .unsupportedCapability,
+        .singularSystem, .singularGeometry, .resourceLimitExceeded, .unsupportedCapability,
       ],
       tolerance: .standard,
       publicAPIs: [
         "CADGeometry.BSplineCurve3D",
+        "CADGeometry.PeriodicBSplineExpansionOptions",
         "CADGeometry.ValidatedCurve3D",
         "CADGeometry.CurveParameterProjection",
         "CADGeometry.CurveParameterProjectionOptions",
@@ -68,6 +70,7 @@ extension KernelCapabilities {
         "CurveParameterProjectionTests",
         "BSplineCurveTrimmingTests",
         "PeriodicBSplineCurveTests",
+        "PeriodicBSplineRestrictionTests",
         "SurfaceParameterCurveDifferentialTests",
         "SurfaceParameterCurveSubcurveTests",
         "ValidatedCurve3DTests",

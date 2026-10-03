@@ -196,11 +196,10 @@ struct PeriodicBSplineCurveTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func pendingPeriodicEditsRefuseInsteadOfReturningAnOpenApproximation() throws {
+    func pendingPeriodicRefinementRefusesInsteadOfReturningAnOpenApproximation() throws {
         let cyclic = try curve()
         for operation in [
             { try cyclic.insertingKnot(4, tolerance: tolerance) },
-            { try cyclic.trimmed(from: 7, to: 9, tolerance: tolerance) },
         ] {
             do {
                 _ = try operation()

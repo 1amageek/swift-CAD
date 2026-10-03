@@ -70,6 +70,7 @@ package extension ValidatedCurve3D {
                 message: "Curve tessellation certification requires a positive parameter interval."
             )
         }
+        try curve.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance)
         if let inheritedBound {
             guard inheritedBound.isFinite, inheritedBound >= 0.0 else {
                 throw KernelError(
@@ -131,6 +132,19 @@ package extension ValidatedCurve3D {
 }
 
 fileprivate extension Curve3D {
+    func validatePeriodicDerivativeCertificate(over interval: ScalarInterval, tolerance: ModelingTolerance) throws {
+        switch self {
+        case let .bSpline(spline):
+            try spline.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance)
+        case let .rigidImage(image):
+            try image.source.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance)
+        case let .affineImage(image):
+            try image.source.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance)
+        default:
+            break
+        }
+    }
+
     func stationaryEndpointTangentDeviationUpperBound(
         _ interval: ScalarInterval
     ) -> Double? {

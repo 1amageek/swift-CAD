@@ -126,7 +126,12 @@ extension BSplineCurve3D {
         try options.validate(tolerance: tolerance)
         try validate(tolerance: tolerance)
         let searchCurve: BSplineCurve3D
-        if let range = options.parameterRange,
+        if isPeriodic, case let .closed(lower, upper) = fundamentalDomain {
+            searchCurve = try trimmed(from: options.parameterRange?.lower ?? lower,
+                to: options.parameterRange?.upper ?? upper,
+                expansionOptions: .init(maximumControlPointCount: options.maximumSubdivisionCells),
+                tolerance: tolerance)
+        } else if let range = options.parameterRange,
            parameterRange(range, matches: domain, tolerance: tolerance) == false {
             searchCurve = try trimmed(
                 from: range.lower,

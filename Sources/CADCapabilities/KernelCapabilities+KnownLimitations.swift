@@ -18,13 +18,6 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/BSplineCurve3D.swift", sourceLine: 125
         ),
         KernelDomainLimitation(
-            id: "condition-2e195b61fdc21da6",
-            operations: ["rationalBSplineCurve"],
-            dimensions: [.boundaryCurve, .parameterization, .representation],
-            condition: "Periodic restrictions need translated knot spans across every requested seam. The public BSplineCurve3D trim entry rejects them until an exact bounded restriction and its derivative correspondence are verified; no sampled replacement is returned.",
-            sourcePath: "Sources/CADGeometry/BSplineCurve3D.swift", sourceLine: 203
-        ),
-        KernelDomainLimitation(
             id: "condition-b0c044d14fdc54a1",
             operations: ["loft"],
             dimensions: [.supportSurface, .connection, .parameterization],

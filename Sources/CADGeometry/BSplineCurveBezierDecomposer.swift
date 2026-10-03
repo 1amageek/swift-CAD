@@ -31,6 +31,14 @@ struct BSplineCurveBezierDecomposer {
         tolerance: ModelingTolerance
     ) throws -> [RationalBezierCurvePatch3D] {
         try curve.validate(tolerance: tolerance)
+        if curve.isPeriodic {
+            guard case let .closed(lower, upper) = curve.fundamentalDomain else {
+                throw GeometryError.invalidDistance(0)
+            }
+            let restriction = try curve.trimmed(from: interval?.lower ?? lower,
+                to: interval?.upper ?? upper, tolerance: tolerance)
+            return try resolvedCurvePatches(curve: restriction, intersecting: interval, tolerance: tolerance)
+        }
         let breaks = try parameterBreaks(
             knots: curve.knots,
             domain: curve.domain,

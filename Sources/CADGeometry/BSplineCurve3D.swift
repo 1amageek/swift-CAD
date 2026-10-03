@@ -197,16 +197,13 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
     public func trimmed(
         from startParameter: Double,
         to endParameter: Double,
+        expansionOptions: PeriodicBSplineExpansionOptions = .init(),
         tolerance: ModelingTolerance
     ) throws -> BSplineCurve3D {
         try validate(tolerance: tolerance)
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Periodic restrictions need translated
-        // knot spans across every requested seam. The public BSplineCurve3D trim
-        // entry rejects them until an exact bounded restriction and its derivative
-        // correspondence are verified; no sampled replacement is returned.
-        guard !isPeriodic else {
-            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                message: "Exact periodic B-spline restriction is not yet implemented.")
+        if isPeriodic {
+            return try periodicRestriction(from: startParameter, to: endParameter,
+                options: expansionOptions, tolerance: tolerance)
         }
         let start = canonicalKnotValue(startParameter, tolerance: tolerance)
         let end = canonicalKnotValue(endParameter, tolerance: tolerance)

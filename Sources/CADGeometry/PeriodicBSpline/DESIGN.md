@@ -52,16 +52,36 @@ immutable copies. There is no shared mutable state or target-dependent isolation
 ## Failure, Concurrency, and Constraints
 
 Malformed cycles fail with invalidInput; finite arithmetic exhaustion is explicit.
-Until exact periodic refinement and bounded restriction are implemented, those
-editing entries must reject periodic inputs as unsupportedCapability. Their
-markers are tracked by the public domain catalog and cannot be removed without
-success and failure evidence. This temporary boundary is not final completion.
+Periodic refinement remains unsupported until translated knot insertions preserve
+the homogeneous cycle. Exact finite restrictions extend cyclic knots and controls
+over a containing finite window, insert the two requested boundary knots in
+homogeneous coordinates, and extract a clamped open restriction. No spline fitting
+or geometric tolerance snapping is used in the restriction algorithm.
+
+PeriodicBSplineExpansionOptions owns a caller-adjustable positive control-count
+budget. The default is 65,536 controls, selecting about 2 MiB for the combined
+point and weight buffers before extraction, in addition to knot and algorithm storage. Allocation is checked against this budget and integer
+overflow before expansion, including two degree-fold boundary insertions in the workspace.
+Larger intervals or degrees may use a larger explicit
+budget; exhaustion fails with resourceLimitExceeded. Unrepresentable translated
+knots or boundaries fail rather than returning a collapsed restriction.
+
+Bezier bounds consume an exact restriction of the requested interval. A C0 corner
+inside that interval has no finite smooth second-derivative certificate; it fails
+with singularGeometry and requires splitting at the knot before certification.
+Span-wise zero derivatives must never certify an interval crossing a corner,
+including when a caller supplies an inherited derivative bound. Projection
+uses the chosen fundamental interval by default, or the caller's finite interval;
+the existing subdivision-cell budget also bounds expansion. Multiple parameter solutions
+inside a multi-period interval remain ambiguous, except equivalent interval ends.
 
 ## Verification and Change Impact
 
 PeriodicBSplineCurveTests checks rational/nonrational cyclic basis agreement,
 seam derivatives, normalization with nonzero origins, origin changes, reversal,
 transform/transport preservation and malformed-cycle refusal through Curve3D and
-ValidatedCurve3D. G1 remains open until editing, prepared bounds/projection and
+ValidatedCurve3D. PeriodicBSplineRestrictionTests owns seam-crossing and multi-period restrictions,
+projection and interval bounds, malformed ranges and exhausted expansion budgets.
+G1 remains open until periodic refinement and
 portable runtime evidence close the remaining gaps. Higher consumers that assume
 a closed domain require review under G5; metadata cannot prove their support.
