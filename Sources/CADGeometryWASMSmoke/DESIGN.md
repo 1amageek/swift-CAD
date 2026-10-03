@@ -3,7 +3,7 @@
 ## Purpose and Scope
 
 Child of [the package](../../DESIGN.md), without children. Owns G1/G2 executable
-geometry and source-signature checks on matching normal WASM and native targets.
+geometry, knot-reduction and source-signature checks on matching normal WASM and native targets.
 
 ## Responsibilities and Boundaries
 
@@ -18,6 +18,7 @@ must add its own behavioral evidence before this executable can cover it.
 |---|---|---|---|---|
 | [Package](../../DESIGN.md) | parent | Verification ownership | Platform-specific geometric runtime evidence | Full integration remains required |
 | [Periodic B-spline](../CADGeometry/PeriodicBSpline/DESIGN.md) | depends on | Periodic evaluation, exact editing and budgets | Exercises rational cycles across their seam | No sampled curve fitting |
+| [KnotRemoval](../CADGeometry/KnotRemoval/DESIGN.md) | depends on | Full-domain deviation bounds | Exercises cyclic curves, pcurves and both tensor axes | Resource refusal must remain explicit |
 | [CADIR](../CADIR/DESIGN.md) | depends on | SubshapeGeometrySignature transport | Retains the exact periodic value in a finite edge span | A signature is not a evaluated body |
 
 ## Architecture

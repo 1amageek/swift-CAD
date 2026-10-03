@@ -43,6 +43,7 @@ extension KernelCapabilities {
         "periodicParameterNormalization", "periodicOriginChange", "periodicSeamContinuityOrder",
         "exactFinitePeriodicRestriction", "periodicIntervalProjection", "periodicSmoothIntervalBounds",
         "exactPeriodicKnotInsertion", "boundedPeriodicInsertionWork",
+        "certifiedKnotReductionDeviationBound", "immutableMultiplicityReduction",
         "inverseParameterProjection", "verifiedResidual",
         "exactKnotInsertion", "exactParameterTrim",
         "normalizedPcurveDifferential",
@@ -60,6 +61,11 @@ extension KernelCapabilities {
       tolerance: .standard,
       publicAPIs: [
         "CADGeometry.BSplineCurve3D",
+        "CADGeometry.BSplineKnotRemoving",
+        "CADGeometry.CertifiedBSplineKnotRemover",
+        "CADGeometry.BSplineKnotRemovalOptions",
+        "CADGeometry.BSplineKnotRemovalResult",
+        "CADGeometry.BSplineKnotRemovalError",
         "CADGeometry.PeriodicBSplineExpansionOptions",
         "CADIR.CurveSpanGeometrySignature",
         "CADGeometry.ValidatedCurve3D",
@@ -74,6 +80,7 @@ extension KernelCapabilities {
         "PeriodicBSplineCurveTests",
         "PeriodicBSplineRestrictionTests",
         "PeriodicBSplineRefinementTests",
+        "KnotRemovalTests",
         "SubshapeGeometrySignatureTests.exactPeriodicSpanRetainsItsCycleAndFundamentalOriginThroughTransport",
         "SurfaceParameterCurveDifferentialTests",
         "SurfaceParameterCurveSubcurveTests",
@@ -126,6 +133,7 @@ extension KernelCapabilities {
         "exactSeamCrossingTensorRestriction", "totalTensorStorageAndInsertionWorkBudgets",
         "originAwarePeriodicProjection", "seamEquivalentRootNormalization",
         "preparedPeriodicTensorIntervalJets",
+        "certifiedTensorKnotReductionDeviationBound", "immutableAxisMultiplicityReduction",
       ],
       failureCodes: [
         .invalidInput, .intersectionFailure, .ambiguousSelection,
@@ -136,6 +144,11 @@ extension KernelCapabilities {
       tolerance: .standard,
       publicAPIs: [
         "CADGeometry.BSplineSurface3D",
+        "CADGeometry.BSplineKnotRemoving",
+        "CADGeometry.CertifiedBSplineKnotRemover",
+        "CADGeometry.BSplineKnotRemovalOptions",
+        "CADGeometry.BSplineKnotRemovalResult",
+        "CADGeometry.BSplineKnotRemovalError",
         "CADGeometry.SurfaceParameterProjection",
         "CADGeometry.SurfaceParameterProjectionOptions",
       ],
@@ -146,6 +159,7 @@ extension KernelCapabilities {
         "PeriodicBSplineSurfaceTests",
         "PeriodicBSplineSurfaceEditingTests",
         "PeriodicBSplineSurfaceQueryTests",
+        "KnotRemovalTests",
       ]
     ),
     KernelCapability(

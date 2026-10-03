@@ -54,6 +54,7 @@ measurement policy.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [KnotRemoval](KnotRemoval/DESIGN.md) | child | Bounded immutable knot reduction with full-domain deviation evidence | Owns G3 curve and tensor-axis reduction | Sampling is not a reduction certificate |
 | [Periodic B-spline](PeriodicBSpline/DESIGN.md) | child | Cyclic curve/surface representation and parameter evaluation | Owns G1/G2 periodic axes and fundamental origins | Downstream closure and editing require separate behavioral evidence |
 | [Swift-CAD package](../../DESIGN.md) | parent | package exact-geometry contract | Places geometry below modeling and above core values. | Keep the shared predicate contract authoritative. |
 | [CADModeling](../CADModeling/DESIGN.md) | used by | generated primitive pcurve values | Supplies valid sphere seam/pole curves. | Construction cannot rely on a sphere-only validation bypass. |

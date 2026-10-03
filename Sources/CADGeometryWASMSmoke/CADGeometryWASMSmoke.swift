@@ -84,8 +84,35 @@ struct CADGeometryWASMSmoke {
         } catch let error as KernelError {
             try require(error.code == .invalidInput, "Invalid-input refusal lost its typed failure.")
         }
+        try verifyKnotReduction(curve: refined, tolerance: tolerance)
         try verifyPeriodicTensor(tolerance: tolerance)
-        print("CADGeometryWASMSmoke passed: periodic curves and tensor surfaces, evaluation/jets, origins, exact refinement/restriction, projection, bounds, edge/face transport and typed refusals")
+        print("CADGeometryWASMSmoke passed: periodic curves and tensor surfaces, evaluation/jets, origins, exact refinement/restriction, certified knot reduction, projection, bounds, edge/face transport and typed refusals")
+    }
+
+    private static func verifyKnotReduction(curve: BSplineCurve3D, tolerance: ModelingTolerance) throws {
+        let remover: any BSplineKnotRemoving = CertifiedBSplineKnotRemover()
+        let options = BSplineKnotRemovalOptions()
+        let periodic = try remover.reducingMultiplicity(of: curve, at: 4.25, to: 0,
+            maximumDeviation: 1e-7, options: options, tolerance: tolerance)
+        try require(periodic.geometry.isPeriodic && periodic.geometry.periodicOrigin == curve.periodicOrigin
+            && periodic.certifiedMaximumDeviation <= 1e-7, "Cyclic knot removal lost its contract.")
+        for parameter in [3, 4.25, 7.75, 8.25, 13.25] {
+            try require(try (periodic.geometry.point(at: parameter, tolerance: tolerance)
+                - curve.point(at: parameter, tolerance: tolerance)).length <= periodic.certifiedMaximumDeviation + 1e-12,
+                "Cyclic knot removal escaped its full-domain bound.")
+        }
+        let base = BSplineCurve2D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+            controlPoints: [.init(x: 0, y: 0), .init(x: 1, y: 2), .init(x: 3, y: 0)], weights: [1, 2, 0.75])
+        let input = try base.insertingKnot(0.4, tolerance: tolerance)
+        let reduced = try remover.reducingMultiplicity(of: input, at: 0.4, to: 0,
+            maximumDeviation: 1e-7, options: options, tolerance: tolerance)
+        try require(reduced.geometry.knots == base.knots && reduced.certifiedMaximumDeviation <= 1e-7,
+            "Rational pcurve knot removal did not retain its source basis.")
+        do {
+            _ = try remover.reducingMultiplicity(of: curve, at: 4.25, to: 0,
+                maximumDeviation: 1e-7, options: .init(maximumWork: 1), tolerance: tolerance)
+            throw failure("Knot reduction ignored its work budget.")
+        } catch BSplineKnotRemovalError.resourceLimitExceeded { }
     }
 
     private static func verifyPeriodicTensor(tolerance: ModelingTolerance) throws {
@@ -102,6 +129,19 @@ struct CADGeometryWASMSmoke {
             .changingPeriodicOrigin(direction: .v, to: -0.25, tolerance: tolerance)
         let refined = try surface.insertingKnot(direction: .u, value: 0, tolerance: tolerance)
             .insertingKnot(direction: .v, value: 1.25, tolerance: tolerance)
+        let remover: any BSplineKnotRemoving = CertifiedBSplineKnotRemover()
+        let uReduced = try remover.reducingMultiplicity(of: refined, direction: .u, at: 0, to: 1,
+            maximumDeviation: 1e-7, options: .init(), tolerance: tolerance)
+        let vReduced = try remover.reducingMultiplicity(of: uReduced.geometry, direction: .v, at: 1.25, to: 0,
+            maximumDeviation: 1e-7, options: .init(), tolerance: tolerance)
+        try require(vReduced.geometry.isUPeriodic && vReduced.geometry.isVPeriodic
+            && vReduced.geometry.uPeriodicOrigin == surface.uPeriodicOrigin
+            && vReduced.geometry.vPeriodicOrigin == surface.vPeriodicOrigin, "Tensor knot reduction lost independent origins.")
+        for (u, v) in [(3.75, -0.25), (4.0, 0.0), (4.25, 0.25), (4.5, 0.5)] {
+            try require(try (vReduced.geometry.point(u: u, v: v, tolerance: tolerance)
+                - surface.point(u: u, v: v, tolerance: tolerance)).length < 2e-7,
+                "U/V tensor knot reduction changed the original surface beyond its admitted deviation.")
+        }
         let restriction = try refined.trimmed(uFrom: 3.75, uTo: 4.5, vFrom: -0.25, vTo: 0.5, tolerance: tolerance)
         try require(refined.isUPeriodic && refined.isVPeriodic && refined.uPeriodicOrigin == 3.25,
             "Tensor refinement lost its independent cycles or origins.")
