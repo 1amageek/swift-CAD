@@ -8,5 +8,6 @@ public indirect enum ShapeReference: Equatable, Sendable {
     case face(FaceID)
     case shell(ShellID)
     case solid(BodyID)
+    case solidComplex(SolidComplexTopology)
     case compound([ShapeReference])
 }

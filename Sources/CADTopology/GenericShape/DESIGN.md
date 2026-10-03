@@ -25,7 +25,9 @@ uses its own selected closure. Face and shell validation temporarily adapts that
 closure to the existing sheet-body validation path; synthesized adapter owners
 are never returned or persisted. Solid validation uses the original body's
 material-component and cavity contract. Compound means aggregate selection;
-CompSolid and shared-material ownership are T2 responsibilities.
+Face-connected solid collections retain explicit interface metadata owned by
+[SolidComplex](../SolidComplex/DESIGN.md). Common operations preserve that root
+and its cell-local identities instead of silently flattening it into a compound.
 
 ## Related Designs
 
@@ -35,11 +37,15 @@ CompSolid and shared-material ownership are T2 responsibilities.
 | [CADGeometry](../../CADGeometry/DESIGN.md) | depends on | Curve/surface validation, parameter-preserving rigid images | Supplies exact geometric representations. | Chart transport must preserve pcurve lifts. |
 | [CADModeling](../../CADModeling/DESIGN.md) | used by | Common Shape input and selected topology closure | Subsequent dimension-specific operations use the same input abstraction. | T1 does not establish Boolean domain coverage. |
 
+[SolidComplex](../SolidComplex/DESIGN.md) owns the face-connected root contract;
+this component consumes its public validation contract and retains all interface
+IDs through extraction and rigid images.
+
 ## Architecture
 
 ```mermaid
 flowchart LR
-    Root["ShapeReference: vertex / edge / wire / face / shell / solid / compound"] --> Provider["ShapeRepresenting"]
+    Root["ShapeReference: vertex / edge / wire / face / shell / solid / compound / solidComplex"] --> Provider["ShapeRepresenting"]
     Provider -->|"One atomic shapeSnapshot acquisition"| Shape["Immutable Shape: root + model"]
     Shape --> Operation["ShapeOperating"]
     Operation --> Closure["Selected descendant closure"]

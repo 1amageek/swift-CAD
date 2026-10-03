@@ -7,12 +7,12 @@ extension KernelCapabilities {
       operation: "genericShape",
       status: .supported,
       topology: .subshapeGraph,
-      acceptedInputs: ["standaloneVertexEdgeWireFaceShellSolid", "heterogeneousCompound", "finiteValidatedSelectedClosure"],
-      exactOutputs: ["immutableSelectedSnapshot", "rootSpecificValidation", "dimensionOrderedDistinctTraversal", "exactRigidImageAndFaceChartTransport"],
-      failureCodes: [.invalidInput, .missingReference, .topologyFailure, .cancelled],
+      acceptedInputs: ["standaloneVertexEdgeWireFaceShellSolid", "heterogeneousCompound", "explicitFaceConnectedSolidComplex", "finiteValidatedSelectedClosure"],
+      exactOutputs: ["immutableSelectedSnapshot", "rootSpecificValidation", "dimensionOrderedDistinctTraversal", "exactRigidImageAndFaceChartTransport", "canonicalOppositeInterfaceProof", "retainedCellMaterialCavitiesAndOwnership"],
+      failureCodes: [.invalidInput, .missingReference, .topologyFailure, .resourceLimitExceeded, .cancelled],
       tolerance: .standard,
-      publicAPIs: ["CADTopology.ShapeRepresenting", "CADTopology.ShapeOperating", "CADTopology.Shape", "CADTopology.ShapeReference", "CADTopology.ShapeWire", "CADTopology.DefaultShapeOperator"],
-      testFixtures: ["GenericShapeTests"]
+      publicAPIs: ["CADTopology.ShapeRepresenting", "CADTopology.ShapeOperating", "CADTopology.Shape", "CADTopology.ShapeReference", "CADTopology.ShapeWire", "CADTopology.DefaultShapeOperator", "CADTopology.SolidComplexValidating", "CADTopology.DefaultSolidComplexValidator", "CADTopology.SolidComplexTopology", "CADTopology.SolidInterface"],
+      testFixtures: ["GenericShapeTests", "SolidComplexTests"]
     ),
     KernelCapability(
       id: "TOPO-LINEAGE-001",

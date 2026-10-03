@@ -24,6 +24,8 @@ struct ShapeClosureResolver {
                 switch reference {
                 case .compound(let roots):
                     pending.append(contentsOf: roots.reversed().map(Pending.root))
+                case .solidComplex(let complex):
+                    pending.append(contentsOf: complex.bodyIDs.reversed().map { .root(.solid($0)) })
                 case .wire(let wire):
                     pending.append(contentsOf: wire.edges.reversed().map { .root(.edge($0.edgeID)) })
                 case .solid(let id):
@@ -85,6 +87,9 @@ struct ShapeClosureResolver {
             switch reference {
             case .compound(let roots):
                 pending.append(contentsOf: roots.reversed())
+            case .solidComplex(let complex):
+                try DefaultSolidComplexValidator().validate(
+                    complex, in: model, tolerance: tolerance, options: .init())
             case .vertex(let id):
                 if validatedVertices.insert(id).inserted {
                     guard let vertex = model.vertices[id] else {
