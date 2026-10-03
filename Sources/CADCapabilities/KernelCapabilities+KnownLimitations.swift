@@ -88,11 +88,18 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADKernel/ExtractFacePlugBuilder.swift", sourceLine: 16
         ),
         KernelDomainLimitation(
+            id: "condition-5e356dbed8144a62",
+            operations: ["faceRebuild"],
+            dimensions: [.supportSurface, .parameterization, .representation],
+            condition: "planes, surfaces of revolution and B-splines are given control points; a procedural or ruled surface face is refused here. Production path: Rupa's Raise Degree on such a face. Complete when every face kind is converted exactly, verified by a swept face raised in place.",
+            sourcePath: "Sources/CADKernel/FaceBSplineSurfaceConverter.swift", sourceLine: 60
+        ),
+        KernelDomainLimitation(
             id: "condition-08b047f9acc6bd14",
             operations: ["faceRebuild"],
             dimensions: [.supportSurface, .connection],
             condition: "faces rebuilt coarser than their edges allow that meet each other or share a corner need their edges re-solved together, which is not built, so they are refused. Production path: FaceRebuildFeatureEvaluator. Complete only when such faces are rebuilt together, verified by two adjacent curved faces rebuilt coarsely.",
-            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 164
+            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 167
         ),
         KernelDomainLimitation(
             id: "condition-2b5a8e9ebadb8cfb",

@@ -915,6 +915,7 @@ extension KernelCapabilities {
         "explicitDegreeAndSpanLayoutOrPositiveTolerance",
         "extendFractionsZeroToOneEachWay",
         "shrinkToTheFacesParameterExtent",
+        "oneGivenBSplineSurfaceWithoutExtensionOrShrink",
       ],
       outputs: [
         "validatedExactBRep",
@@ -923,9 +924,12 @@ extension KernelCapabilities {
         "surfacesContinuedPastTheirDomainNaturally",
         "facesWithinAQuarterOfTheDistanceToleranceOfTheirEdgesReplacedInPlace",
         "coarselyRefittedSheetsOfOneFaceSewnAnewOnFittedEdges",
+        "givenSurfaceWithBoundaryReplacementAndValidatedBody",
+        "exactAnalyticRevolutionControlNetOnItsConvertedChart",
+        "sampledSquareBoundaryDeviationDiagnostics",
         "strictCurrentSchemaNativePersistence",
       ],
-      fixtures: ["FaceRebuildTests"],
+      fixtures: ["FaceRebuildTests", "FaceGivenSurfaceTests", "SquareRefitTests"],
       status: .partial,
       failureCodes: [
         .invalidInput,
@@ -933,6 +937,10 @@ extension KernelCapabilities {
         .unsupportedCapability,
         .topologyFailure,
         .resourceLimitExceeded,
+      ],
+      additionalPublicAPIs: [
+        "CADKernel.FaceBSplineSurfaceConverter.surface",
+        "CADKernel.FaceRefitAnalyzer.analyze",
       ]
     ),
     feature(

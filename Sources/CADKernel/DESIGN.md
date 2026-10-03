@@ -957,7 +957,38 @@ its coedges become constant-parameter curves along the new sheet's boundary, eac
 stretch of its side, and its orientation keeps its outward normal. No extension or shrinking
 applies. `SquareRefitTests` own a box's top refit flat to its Degree, a pentagonal prism's top
 split at its four sharpest corners (both keeping their volume) and a sheet's face refit tangent to
-a curved ramp beside it.
+a curved ramp beside it. `FaceRefitAnalyzer` is Refit Face's Analysis: for each edge of each refit
+face the largest distance from its curve (33 samples) to the new surface's boundary stretch its
+trimming curve names, judged against the modeling distance and placed at the edge's middle
+(`SquareSideAnalysis`); the box-top test owns its four edges lying on the new boundary.
+Rebuild Face's `given` method gives one face a B-spline surface on its own parameters — Plasticity's
+Raise Degree and control-point moves on a face of a solid. `FaceBSplineSurfaceConverter` makes the
+face's surface exact first (a B-spline as it is; a plane as the degree (1, 1) patch through its
+corners over a rectangle holding every trimming curve (within the surface's own domain, and along a
+periodic parameter the shortest stretch holding them, a face across the seam running on past it); a
+cylinder, cone, sphere or torus face as the exact rational surface of revolution over that
+rectangle — its profile at the first angle (a line, or arcs of at most a quarter turn whose middle
+control point is M + (M − Q) / cos θ weighted cos θ) turned about the axis in such arcs, weights
+multiplied — checked to lie on the old surface, a face closing round its axis putting the new
+surface's ends on its seam and a face reaching a pole leaving the new surface a side collapsed to
+it; any other surface refused, `FIXME(INCOMPLETE_IMPLEMENTATION)`). The face faces out as it did (the given surface's normal at the face's interior point's
+parameters, the surface sharing them); where every edge still lies on
+the new surface along its trimming curve (within a quarter of the distance tolerance) it keeps its
+edges; where they lie on it only geometrically (a surface on parameters of its own) it keeps them
+too, each taking the isoline of the new surface it runs along (a seam's two coedges the two ends,
+the one that lay lower taking the lower; an edge closing round the seam running end to end; a point
+at a pole taking the collapsed side's parameter, and one whose projection crowds beside it read
+from its neighbours, the isoline checked through the others) or a
+trimming curve built on it;
+otherwise `FaceSurfaceReplacementRebuilder` re-solves the edges and vertices around it where
+it meets the faces beside it, which keep their surfaces, and the trimming curves are rebuilt.
+`FaceGivenSurfaceTests` own a box's top raised to degree 2 in place (volume kept) and a side's
+top-middle control point moved 5 mm out, bulging the box by d·w·h/9 with its five planes kept,
+and its middle control point moved out bulging it the same between the edges it keeps, a box raised
+face by face through the Rebuild Faces before each, and a rounded edge's quarter cylinder given its
+exact rational surface (every point the radius from the axis) and raised, its volume kept; a drum's
+side across its seam, a ball's octant reaching its pole (every point the radius from the centre)
+and a ring's face raised the same; every octant of a ball, those across its seam included, valid.
 
 ## Unwrap Face
 

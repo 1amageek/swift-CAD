@@ -569,3 +569,15 @@ the source spans times degree; no dense control-point transformation matrix is b
 RupaCore consumes this contract for source edits and owns reference migration and
 transaction rollback. Kernel and Rupa regression tests compare reevaluated curves,
 including explicit knots, changed parameters, endpoints and serialized expressions.
+
+## Given Face Surface Persistence
+
+`FaceRebuildMethod.given` owns the supplied B-spline value. Its source and Codable
+admission validate the complete control/weight/knot/periodic representation with
+`CADIRPersistenceValidation.tolerance`, following the existing B-spline feature
+persistence contract. A malformed surface cannot be encoded or published in a
+Native package. Kernel evaluation independently validates the surface with the
+actual document tolerance and proves the resulting body through its existing
+[Rebuild Face contract](../CADKernel/DESIGN.md).
+`FaceGivenSurfaceTests` verifies strict publication refusal and valid Native
+round-trip followed by exact evaluation and volume preservation.

@@ -520,7 +520,8 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
         try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
         try validateArrayField("faces", in: feature, path: "\(featurePath).faces", using: validateStableSubshapeReferenceObject)
         try validateObjectField("method", in: feature, path: "\(featurePath).method") { method, methodPath in
-            try rejectUnsupportedNativeKeys(in: method, supportedKeys: ["kind", "layout", "tolerance", "square"], objectName: methodPath)
+            try rejectUnsupportedNativeKeys(in: method, supportedKeys: ["kind", "layout", "tolerance", "square", "surface"], objectName: methodPath)
+            try validateObjectField("surface", in: method, path: "\(methodPath).surface", using: validateBSplineSurfaceObject)
             try validateObjectField("tolerance", in: method, path: "\(methodPath).tolerance", using: validateExpressionObject)
             try validateObjectField("square", in: method, path: "\(methodPath).square") { refit, refitPath in
                 try rejectUnsupportedNativeKeys(in: refit, supportedKeys: ["options", "order", "angularAllowance", "curvatureAllowance"],
