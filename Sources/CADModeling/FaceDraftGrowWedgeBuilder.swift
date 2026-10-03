@@ -15,6 +15,8 @@ import CADTopology
 /// |--------|----------------------------------------------------|----------------------|
 /// | Moving | the body's far extent along the face (its bottom)  | the body's extent    |
 /// | Fixed  | the body's extents along the face and across it    | the face's extent    |
+/// | None   | Fixed's, and past the body's outer wall a slab over the plane of the face's
+///            neighbour across its far edge                         | the face's extent    |
 ///
 /// The wedge also takes a thin column of the body's own material behind the old face, so no face
 /// of the wedge lies on the old face's plane: the exact Boolean cannot yet unite a tool face that
@@ -58,7 +60,7 @@ package struct FaceDraftGrowWedgeBuilder {
     /// The wedge to unite with the body for `face` under `grow`, or nil when Grow's wedge does not
     /// cover it: a face not starting at the pivot line on one side of it, or one moving into the
     /// body.
-    package func wedge(for face: Face, grow: FaceEditGrow, bodyID: BodyID, model: BRepModel, featureID: FeatureID) throws -> Wedge? {
+    package func wedges(for face: Face, grow: FaceEditGrow, bodyID: BodyID, model: BRepModel, featureID: FeatureID) throws -> [Wedge]? {
         let axis = try face.axis.normalized(tolerance: tolerance.distance)
         let pull = try (face.pull - axis * face.pull.dot(axis)).normalized(tolerance: tolerance.distance)
         let across = axis.cross(pull)
@@ -87,16 +89,15 @@ package struct FaceDraftGrowWedgeBuilder {
             return values.min()!...values.max()!
         }
 
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Grow None (the drafted face meeting only its own
-        // neighbours and poking out past a wall) and a drafted face moving into the body (a wedge
-        // taken off) are refused here, so the caller rethrows the re-solve's topology failure.
+        // FIXME(INCOMPLETE_IMPLEMENTATION): a drafted face moving into the body (a wedge taken
+        // off) is refused here, so the caller rethrows the re-solve's topology failure.
         // Production path: FaceDraftFeatureEvaluator's grow fallback. Complete when the exact
-        // Boolean unites a tool face lying on a body face that runs on into the body's inside,
-        // verified by a notch wall drafted 70° under None and by a wall drafted -70° under Moving.
-        // The same Boolean limit fails Moving's union with a classification error when the body
-        // runs on past the drafted face along the pivot line (the pivot line then lies inside a
-        // body face); complete when a notch over half a block's length ramps the whole block.
-        guard grow != .none, adds else { return nil }
+        // Boolean takes a tool face lying on a body face that runs on into the body's inside off
+        // the body, verified by a wall drafted -70° under Moving. The same Boolean limit fails
+        // Moving's union with a classification error when the body runs on past the drafted face
+        // along the pivot line (the pivot line then lies inside a body face); complete when a
+        // notch over half a block's length ramps the whole block.
+        guard adds else { return nil }
         let bodyPoints = try straightEdgedBodyPoints(bodyID: bodyID, model: model, featureID: featureID)
         guard bodyPoints.isEmpty == false else { return nil }
         // The face runs away from the pull or along it; the wedge reaches the body's far side
@@ -113,8 +114,9 @@ package struct FaceDraftGrowWedgeBuilder {
         let (_, depthSign) = inSection(depth)
         polygon = clip(polygon, normal: (0, depthSign), limit: deepest)
         let span: ClosedRange<Double>
-        if grow == .fixed {
-            let acrossValues = bodyPoints.map { section($0).0 }
+        let acrossValues = bodyPoints.map { section($0).0 }
+        if grow != .moving {
+            // Fixed, and None inside the body: the wedge stops at the body's outer walls.
             polygon = clip(polygon, normal: (1, 0), limit: acrossValues.max()!)
             polygon = clip(polygon, normal: (-1, 0), limit: -acrossValues.min()!)
             span = alongFace(facePoints)
@@ -135,11 +137,38 @@ package struct FaceDraftGrowWedgeBuilder {
         let (outAcross, outPull) = inSection(outward * -thickness)
         polygon.insert(contentsOf: [(outAcross, outPull), (polygon[1].0 + outAcross, polygon[1].1 + outPull)], at: 1)
         let base = face.pivot + axis * span.lowerBound
-        return Wedge(
+        var result = [Wedge(
             polygon: withoutStraightCorners(polygon).map { base + across * $0.0 + pull * $0.1 },
             axis: axis,
             length: span.upperBound - span.lowerBound
-        )
+        )]
+        if grow == .none {
+            // None: past the body's outer wall the drafted face goes on alone, over the plane of
+            // its neighbour across its far edge, as a slab poking out of the wall.
+            let neighbour = try farNeighbourNormal(of: face.faceID, into: into, farthest: farthest, pivot: face.pivot,
+                                                   axis: axis, bodyID: bodyID, model: model, featureID: featureID)
+            let corner = face.pivot + into * farthest
+            let runs = neighbour.cross(axis)
+            let rate = runs.dot(face.draftedNormal)
+            guard abs(rate) > tolerance.angle else {
+                throw failure(.unsupportedCapability, featureID, "A drafted face running parallel to its neighbour never meets it.")
+            }
+            let meeting = corner + runs * (-(corner - face.pivot).dot(face.draftedNormal) / rate)
+            var slab = [(0.0, 0.0), section(corner), section(meeting)]
+            let reached = section(meeting).0
+            if reached < acrossValues.min()! - tolerance.distance {
+                slab = clip(slab, normal: (1, 0), limit: acrossValues.min()!)
+            } else if reached > acrossValues.max()! + tolerance.distance {
+                slab = clip(slab, normal: (-1, 0), limit: -acrossValues.max()!)
+            } else {
+                slab = []
+            }
+            if slab.count >= 3 {
+                result.append(Wedge(polygon: withoutStraightCorners(slab).map { base + across * $0.0 + pull * $0.1 },
+                                    axis: axis, length: span.upperBound - span.lowerBound))
+            }
+        }
+        return result
     }
 
     /// A thickness for the column behind the old face — from the pivot `reach` along the face, over
@@ -203,6 +232,47 @@ package struct FaceDraftGrowWedgeBuilder {
             let turn = (point.0 - previous.0) * (next.1 - point.1) - (point.1 - previous.1) * (next.0 - point.0)
             return abs(turn) <= tolerance.distance * tolerance.distance ? nil : point
         }
+    }
+
+    /// The unit normal of the face's neighbour across its far edges (those at its far reach from
+    /// the pivot line), which must be one plane square to the pivot line.
+    private func farNeighbourNormal(
+        of faceID: FaceID, into: Vector3D, farthest: Double, pivot: Point3D, axis: Vector3D,
+        bodyID: BodyID, model: BRepModel, featureID: FeatureID
+    ) throws -> Vector3D {
+        guard let face = model.faces[faceID] else { throw TopologyError.missingReference("A drafted face is missing.") }
+        var farEdges: Set<EdgeID> = []
+        for loopID in face.loops {
+            guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("A drafted face's loop is missing.") }
+            for coedge in loop.coedges {
+                guard let edge = model.edges[coedge.edgeID], let start = model.vertices[edge.startVertexID]?.point,
+                      let end = model.vertices[edge.endVertexID]?.point else {
+                    throw TopologyError.missingReference("A drafted face's edge is missing.")
+                }
+                if abs((start - pivot).dot(into) - farthest) <= tolerance.distance, abs((end - pivot).dot(into) - farthest) <= tolerance.distance {
+                    farEdges.insert(coedge.edgeID)
+                }
+            }
+        }
+        var normals: [Vector3D] = []
+        for case let .face(neighbourID) in try BodyTopologyScope(bodyID: bodyID, model: model).references where neighbourID != faceID {
+            guard let neighbour = model.faces[neighbourID] else { throw TopologyError.missingReference("A body face is missing.") }
+            let touches = try neighbour.loops.contains { loopID in
+                guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("A body loop is missing.") }
+                return loop.coedges.contains { farEdges.contains($0.edgeID) }
+            }
+            guard touches else { continue }
+            guard let surface = model.geometry.surfaces[neighbour.surfaceID],
+                  let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) else {
+                throw failure(.unsupportedCapability, featureID, "Grow None meets a drafted face's far neighbour only when it is planar.")
+            }
+            normals.append(try plane.normal.normalized(tolerance: tolerance.distance))
+        }
+        guard let first = normals.first, normals.allSatisfy({ $0.cross(first).length <= tolerance.angle }),
+              abs(first.dot(axis)) <= tolerance.angle else {
+            throw failure(.unsupportedCapability, featureID, "Grow None needs one planar neighbour along the drafted face's far edge.")
+        }
+        return first
     }
 
     /// The body's vertices, which bound it exactly when every edge is straight.

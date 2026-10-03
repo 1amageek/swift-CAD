@@ -236,10 +236,13 @@ struct DraftFaceTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func aWallDraftedIntoTheBlocksEndIsStillRefusedUnderNone() throws {
-        // None would leave the drafted face poking out past the block's end over its own floor;
-        // the exact Boolean cannot yet unite that slab, so the draft is refused, not approximated.
-        #expect(throws: KernelError.self) { _ = try notchWallDrafted70(grow: .none) }
+    func aWallDraftedIntoTheBlocksEndPokesOutAloneUnderNone() throws {
+        // None: the drafted face fills the notch over its own floor (z = 5) and pokes out past
+        // the block's end as a slab over that floor's plane. Section 250 + 12.5 t mm².
+        let model = try notchWallDrafted70(grow: .none)
+        let t = tan(70 * Double.pi / 180)
+        let volume = try model.volume(tolerance: .standard)
+        #expect(abs(volume - (250 + 12.5 * t) * 10 * 1e-9) < 1e-12, "\(volume)")
     }
 
     /// A 40 × 20 mm block (centred) whose top is a cylinder along x (radius 30 mm, axis at y = 0,

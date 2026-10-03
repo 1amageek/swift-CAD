@@ -77,6 +77,9 @@ struct CoincidentBooleanFaceOwnershipResolver {
                 model: model,
                 tolerance: tolerance
             ) else {
+                // Coplanar faces that only touch along a boundary share no area to own.
+                guard try CoincidentFaceOverlapTester(facePointContainment: DefaultFacePointContainmentTester())
+                    .overlapsInArea(targetFaceID, toolFaceID, in: model, tolerance: tolerance) else { continue }
                 partiallyCoincidentPairs.append(PartiallyCoincidentPair(
                     split: split,
                     sameOutwardDirection: try outwardNormalsHaveSameDirection(
@@ -110,19 +113,24 @@ struct CoincidentBooleanFaceOwnershipResolver {
             result[targetFaceID] = operands.rule.oriented(actions.target, isToolFace: false)
             result[toolFaceID] = operands.rule.oriented(actions.tool, isToolFace: true)
         }
-        let partitionedFaceIDs = Set(uvSplitGraph.splits.flatMap { split -> [FaceID] in
-            let isPartitioning = split.components.contains { component in
-                switch component.geometry {
-                case .transverseSegment, .trimmedCurve, .closedCurve:
-                    return true
-                case .tangent, .coincident:
-                    return false
+        // A face is partitioned by a split that runs through it; a straight crossing lying along
+        // the face's own boundary (another face meeting it at its edge) leaves it whole.
+        var partitionedFaceIDs: Set<FaceID> = []
+        for split in uvSplitGraph.splits {
+            for (faceID, isTool) in [(split.facePair.targetFaceID, false), (split.facePair.toolFaceID, true)] {
+                let partitions = try split.components.contains { component in
+                    switch component.geometry {
+                    case .trimmedCurve, .closedCurve:
+                        return true
+                    case let .transverseSegment(start, end):
+                        return try segmentRunsAlongBoundary(of: faceID, from: start, to: end, isTool: isTool, model: model, tolerance: tolerance) == false
+                    case .tangent, .coincident:
+                        return false
+                    }
                 }
+                if partitions { partitionedFaceIDs.insert(faceID) }
             }
-            return isPartitioning
-                ? [split.facePair.targetFaceID, split.facePair.toolFaceID]
-                : []
-        })
+        }
         let partiallyCoincidentFaceIDs = Set(partiallyCoincidentPairs.flatMap {
             [$0.split.facePair.targetFaceID, $0.split.facePair.toolFaceID]
         })
@@ -139,6 +147,42 @@ struct CoincidentBooleanFaceOwnershipResolver {
             forcedActions: result,
             partiallyCoincidentPairs: partiallyCoincidentPairs
         )
+    }
+
+    /// Whether the crossing from `start` to `end` lies along one boundary edge of the face: its
+    /// ends and its middle on the face's surface all on that edge.
+    private func segmentRunsAlongBoundary(
+        of faceID: FaceID,
+        from start: BooleanUVPoint,
+        to end: BooleanUVPoint,
+        isTool: Bool,
+        model: BRepModel,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
+            throw missingReference(tolerance: tolerance)
+        }
+        let (u, v) = isTool
+            ? ((start.toolU + end.toolU) / 2, (start.toolV + end.toolV) / 2)
+            : ((start.targetU + end.targetU) / 2, (start.targetV + end.targetV) / 2)
+        let middle = try surface.differentialGeometry(u: u, v: v, tolerance: tolerance).position
+        let points = [start.point, end.point, middle]
+        for loopID in face.loops {
+            guard let loop = model.loops[loopID] else { throw missingReference(tolerance: tolerance) }
+            for coedge in loop.coedges {
+                guard let edge = model.edges[coedge.edgeID], let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else {
+                    throw missingReference(tolerance: tolerance)
+                }
+                let range = try ScalarInterval(lower: min(trim.startParameter, trim.endParameter), upper: max(trim.startParameter, trim.endParameter))
+                let onEdge = try points.allSatisfy { point in
+                    try curve.closestParameterProjection(
+                        of: point, options: CurveParameterProjectionOptions(parameterRange: range), tolerance: tolerance
+                    ).residual <= tolerance.distance
+                }
+                if onEdge { return true }
+            }
+        }
+        return false
     }
 
     private func actions(

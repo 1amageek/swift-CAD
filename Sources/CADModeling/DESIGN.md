@@ -1027,10 +1027,13 @@ out of the body, `FaceDraftGrowWedgeBuilder` builds the material between its old
 planes as a prism along the pivot line (`PolygonPrismRequestBuilder`), united with the body:
 Moving bounds the wedge by the body's far side along the face over the body's length (a ramp to
 the bottom, the walls beside it carried along), Fixed by the body's extents along and across
-the face over the face's length (it stops at the outer wall). The wedge takes a thin column of
+the face over the face's length (it stops at the outer wall), and None as Fixed and then, past the
+body's outer wall, a slab over the plane of the drafted face's neighbour across its far edge (it pokes
+out alone). The Boolean takes coplanar faces touching only along a boundary as sharing no area, and a
+straight crossing along a face's own edge as leaving it whole. The wedge takes a thin column of
 the body's material behind the old face, certified to cross no body face, because the exact
 Boolean cannot yet unite a tool face covering a body face that runs on into the body; the same
-limit refuses None, a face drafted into the body, a Moving wedge longer than the drafted face,
+limit refuses a face drafted into the body, a Moving wedge longer than the drafted face,
 and bodies with curved edges or faces (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Draft Face turns each drafted face as one surface about its crossing with the neutral
 plane (the reference face's plane, moved by the offset): the page's pivot. Running against the
 pull (into the body from the reference face) the face leans out by the angle, so beyond the plane
@@ -1048,7 +1051,7 @@ wall by each mode (25 × 20, 20 × 20 and the 15 × 10 bar past the wall), and a
 four walls and a cylinder drafted about a mid-height neutral plane (one plane through it, one
 frustum, one cone), a U-shaped wall crossed four times, a drilled wall turning through its hole, and a notch wall
 drafted 70° past the block's end under Moving (200 + 50 t mm² of section) and Fixed (300 − 50 / t
-mm²) with None's refusal, and a wall turned about its straight edge on a cylinder top with the
+mm²) and None (250 + 12.5 t mm²), and a wall turned about its straight edge on a cylinder top with the
 arc-edged end wall's refusal.
 
 `FaceRemovalHealer` heals a solid over faces taken out of it (Delete Face with

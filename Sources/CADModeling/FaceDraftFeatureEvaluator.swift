@@ -159,7 +159,7 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             return nil
         }
         let normal = try plane.normal.normalized(tolerance: tolerance.distance)
-        guard let wedge = try FaceDraftGrowWedgeBuilder(tolerance: tolerance).wedge(
+        guard let wedges = try FaceDraftGrowWedgeBuilder(tolerance: tolerance).wedges(
             for: .init(
                 faceID: faceID,
                 outward: face.orientation == .forward ? normal : normal * -1,
@@ -170,44 +170,55 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
                 pull: pull
             ),
             grow: grow, bodyID: bodyID, model: context.brep, featureID: featureID
-        ) else {
+        ), wedges.isEmpty == false else {
             return nil
         }
-        let toolFeatureID = featureEvaluationStageID(featureID: featureID, domain: .draftGrowWedge, ordinal: 0)
-        let request = try PolygonPrismRequestBuilder(tolerance: tolerance).request(
-            featureID: toolFeatureID, polygon: wedge.polygon, axis: wedge.axis, length: wedge.length, stablePrefix: "draftGrow"
-        )
-        let tool = try sewer.sew(request, tolerance: tolerance)
-        let toolBodyIDs = Set(tool.subshapes.values.compactMap { reference -> BodyID? in
-            guard case let .body(id) = reference else { return nil }
-            return id
-        })
-        guard toolBodyIDs.count == 1, let toolBodyID = toolBodyIDs.first else {
-            throw kernelError(.topologyFailure, featureID: featureID, tolerance: tolerance, "A draft's grown wedge is not one body.")
+        // Each wedge united in turn, the last under the feature.
+        var stages = FeatureEvaluationStages(context)
+        var target = bodyID
+        for (index, wedge) in wedges.enumerated() {
+            let staged = stages.context
+            let last = index == wedges.count - 1
+            let stageID = last ? featureID : featureEvaluationStageID(featureID: featureID, domain: .draftGrowWedge, ordinal: UInt64(index + 1))
+            let toolFeatureID = featureEvaluationStageID(featureID: featureID, domain: .draftGrowWedge, ordinal: UInt64(index) << 32)
+            let request = try PolygonPrismRequestBuilder(tolerance: tolerance).request(
+                featureID: toolFeatureID, polygon: wedge.polygon, axis: wedge.axis, length: wedge.length, stablePrefix: "draftGrow\(index)"
+            )
+            let tool = try sewer.sew(request, tolerance: tolerance)
+            let toolBodyIDs = Set(tool.subshapes.values.compactMap { reference -> BodyID? in
+                guard case let .body(id) = reference else { return nil }
+                return id
+            })
+            guard toolBodyIDs.count == 1, let toolBodyID = toolBodyIDs.first else {
+                throw kernelError(.topologyFailure, featureID: featureID, tolerance: tolerance, "A draft's grown wedge is not one body.")
+            }
+            var subshapes = staged.subshapes.entries
+            subshapes.merge(tool.subshapes) { current, _ in current }
+            var lineage = staged.lineage
+            lineage.merge(tool.lineage) { current, _ in current }
+            var step = try applicator.apply(
+                operation: .union,
+                targetBodyIDs: [target],
+                toolBodyID: toolBodyID,
+                keepTools: false,
+                featureID: stageID,
+                model: try BRepModelCombiner().combined([staged.brep, tool.brep]),
+                subshapes: subshapes,
+                toolSubshapes: tool.subshapes,
+                inputLineage: lineage,
+                tolerance: tolerance
+            )
+            // The wedge was never published, so its identities are neither removed nor parents.
+            let toolSubshapeIDs = Set(tool.subshapes.keys)
+            step.removedSubshapeIDs.subtract(toolSubshapeIDs)
+            step.lineage = step.lineage.mapValues { entry in
+                TopologyLineage(output: entry.output, parents: entry.parents.filter { !toolSubshapeIDs.contains($0) }, relation: entry.relation)
+            }.withRelationsDerivedFromParents()
+            if last { return wedges.count == 1 ? step : try stages.publish(step, featureID: featureID) }
+            stages.apply(step)
+            target = try stages.publishedBody(of: step, featureID: featureID, what: "Growing a drafted face")
         }
-        var subshapes = context.subshapes.entries
-        subshapes.merge(tool.subshapes) { current, _ in current }
-        var lineage = context.lineage
-        lineage.merge(tool.lineage) { current, _ in current }
-        var result = try applicator.apply(
-            operation: .union,
-            targetBodyIDs: [bodyID],
-            toolBodyID: toolBodyID,
-            keepTools: false,
-            featureID: featureID,
-            model: try BRepModelCombiner().combined([context.brep, tool.brep]),
-            subshapes: subshapes,
-            toolSubshapes: tool.subshapes,
-            inputLineage: lineage,
-            tolerance: tolerance
-        )
-        // The wedge was never published, so its identities are neither removed nor parents.
-        let toolSubshapeIDs = Set(tool.subshapes.keys)
-        result.removedSubshapeIDs.subtract(toolSubshapeIDs)
-        result.lineage = result.lineage.mapValues { entry in
-            TopologyLineage(output: entry.output, parents: entry.parents.filter { !toolSubshapeIDs.contains($0) }, relation: entry.relation)
-        }.withRelationsDerivedFromParents()
-        return result
+        return nil
     }
 
     /// The surface a drafted face turns onto: it turns as one surface about its crossing with the
