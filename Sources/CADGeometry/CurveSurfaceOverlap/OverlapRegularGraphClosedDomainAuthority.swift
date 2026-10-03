@@ -32,9 +32,14 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
               !surface.isUPeriodic, !surface.isVPeriodic,
               source.controlPointCount == source.degree + 1,
               source.knots.count == 2 * (source.degree + 1) else { return nil }
+        let tensorCount = surface.uControlPointCount.multipliedReportingOverflow(by: surface.vControlPointCount)
+        guard !tensorCount.overflow else {
+            throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: budget.tolerance,
+                message: "Closed-domain tensor comparison count overflowed.")
+        }
         let scan = source.controlPointCount * 3 + source.knots.count
             + surface.uKnots.count + surface.vKnots.count
-            + surface.uControlPointCount * surface.vControlPointCount * 3
+            + tensorCount.partialValue * 3
         try budget.work(scan)
         guard clamped(source.knots, degree: source.degree, count: source.controlPointCount),
               clamped(surface.uKnots, degree: surface.uDegree, count: surface.uControlPointCount),
@@ -42,8 +47,30 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
               box.u.lower == surface.uKnots[surface.uDegree], box.u.upper == surface.uKnots[surface.uControlPointCount],
               box.v.lower == surface.vKnots[surface.vDegree], box.v.upper == surface.vKnots[surface.vControlPointCount],
               range.lower >= source.knots[0], range.upper <= source.knots[source.knots.count - 1] else { return nil }
+        var unitWeights = true
         for row in surface.weights {
-            for weight in row where weight != 1 { return nil }
+            for weight in row {
+                guard weight.isFinite, weight > 0 else { return nil }
+                if weight != 1 { unitWeights = false }
+            }
+        }
+        if !unitWeights {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Original rational multispan target
+            // endpoint admission has no complete homogeneous factor authority here.
+            // The public graph route may admit it only after original-span independence,
+            // closed existence, membership and correspondence are proved together.
+            guard surface.uControlPointCount == surface.uDegree + 1,
+                  surface.vControlPointCount == surface.vDegree + 1,
+                  surface.uKnots.count == 2 * (surface.uDegree + 1),
+                  surface.vKnots.count == 2 * (surface.vDegree + 1) else { return nil }
+            // Charge every bounded exact comparison before inspecting the tensor.
+            try budget.work(tensorCount.partialValue)
+            for row in 0..<surface.vControlPointCount {
+                for column in 0..<surface.uControlPointCount {
+                    guard equalPositiveDyadicProducts(surface.weights[row][column], surface.weights[0][0],
+                        surface.weights[0][column], surface.weights[row][0]) else { return nil }
+                }
+            }
         }
         guard let first = axis(coordinate: pair.first, surface: surface, box: box),
               let second = axis(coordinate: pair.second, surface: surface, box: box),
@@ -74,6 +101,38 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
         guard let a = first.endpoint(for: OverlapRegularGraphCell.coordinate(point, first.coordinate)),
               let b = second.endpoint(for: OverlapRegularGraphCell.coordinate(point, second.coordinate)) else { return nil }
         return SurfaceParameter(u: first.variesU ? a : b, v: first.variesU ? b : a)
+    }
+
+    /// Compares exact real products of original positive binary64 coefficients.
+    /// Each odd product has at most 106 bits; floating overflow or rounding is irrelevant.
+    static func equalPositiveDyadicProducts(_ first: Double, _ second: Double,
+                                           _ third: Double, _ fourth: Double) -> Bool {
+        guard let a = DyadicFactor(first), let b = DyadicFactor(second),
+              let c = DyadicFactor(third), let d = DyadicFactor(fourth),
+              a.exponent + b.exponent == c.exponent + d.exponent else { return false }
+        let left = a.significand.multipliedFullWidth(by: b.significand)
+        let right = c.significand.multipliedFullWidth(by: d.significand)
+        return left.high == right.high && left.low == right.low
+    }
+
+    private struct DyadicFactor {
+        let significand: UInt64
+        let exponent: Int
+
+        init?(_ value: Double) {
+            guard value.isFinite, value > 0 else { return nil }
+            let bits = value.bitPattern
+            let encodedExponent = (bits >> 52) & 0x7ff
+            var significand = bits & ((UInt64(1) << 52) - 1)
+            var exponent = -1074
+            if encodedExponent != 0 {
+                significand |= UInt64(1) << 52
+                exponent = Int(encodedExponent) - 1075
+            }
+            let trailing = significand.trailingZeroBitCount
+            self.significand = significand >> trailing
+            self.exponent = exponent + trailing
+        }
     }
 
     private static func clamped(_ knots: [Double], degree: Int, count: Int) -> Bool {

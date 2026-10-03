@@ -242,6 +242,13 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphBoundaryResolver.swift", sourceLine: 16
         ),
         KernelDomainLimitation(
+            id: "condition-86aef256f48edd13",
+            operations: ["curveSurfaceIntersectionResult"],
+            dimensions: [.parameterization, .representation],
+            condition: "Original rational multispan target endpoint admission has no complete homogeneous factor authority here. The public graph route may admit it only after original-span independence, closed existence, membership and correspondence are proved together.",
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphClosedDomainAuthority.swift", sourceLine: 58
+        ),
+        KernelDomainLimitation(
             id: "condition-f0c737e771082924",
             operations: ["curveSurfaceIntersectionResult"],
             dimensions: [.parameterization, .representation],

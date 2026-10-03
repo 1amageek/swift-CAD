@@ -27,11 +27,35 @@ choose Boolean material classification or replace the existing point-only API.
 
 The bounded regular graph endpoint route admits a nonperiodic, single clamped
 rational Bezier source with strictly positive weights and an original clamped
-unit-weight tensor B-spline target. The selected two Cartesian coordinates must
+unit-weight tensor B-spline target, or a single clamped positive-weight rational
+target span with an exactly rank-one original weight tensor. The selected two Cartesian coordinates must
 be exactly separable: one is a function only of original U and the other only
 of original V. Original control-net row/column equality, with every target
-weight exactly one, establishes this independence; tolerance-based rationality,
+weight exactly one or the factor identity below, establishes this independence; tolerance-based rationality,
 projection and sampled coordinate equality do not establish it.
+
+For the bounded rational target branch, every original weight is positive and
+finite and every original tensor coefficient satisfies
+`W[j][i]*W[0][0] == W[0][i]*W[j][0]` as an exact real identity. With
+`A(U)=sum(W[0][i]*B[i](U))` and `B(V)=sum(W[j][0]*B[j](V))`, this gives
+`W(U,V)=A(U)*B(V)/W[0][0]`. Exact Cartesian row/column equality then gives
+`HX(U,V)=AX(U)*B(V)/W[0][0]` and
+`HY(U,V)=A(U)*BY(V)/W[0][0]`, so the positive common factors cancel and
+`X=AX/A`, `Y=BY/B`. Swapping the selected coordinates or UV axes preserves
+the same authority. These are identities on the original control coefficients;
+no rounded homogeneous product net or computed weight ratio is substituted.
+Clamping and positive endpoint weights preserve the original Cartesian endpoint
+values. The existing all-owning quotient jets must still prove monotonicity on
+the entire closed domain; factorization alone does not certify rank or membership.
+
+The two weight products are compared by decomposing each positive finite binary64
+coefficient into an odd UInt64 significand and a binary exponent. A full-width
+53-by-53-bit integer multiplication compares the two exact, at most 106-bit,
+products and their exponent sums. This fixed-storage operation includes normal
+and subnormal inputs and does not perform a floating product, so overflow,
+underflow and rounded-product equality cannot authorize a false factor identity.
+Zero, negative and nonfinite factors are refused. This exact arithmetic belongs
+only to original tensor admission and does not replace interval jet arithmetic.
 
 | Assumption | Guarantee |
 |---|---|
@@ -92,10 +116,16 @@ use unchanged range admission and original source/target forward evaluation.
 
 All structural scans, target derivative jets and image iterations are charged
 before evaluation using the existing invocation-local work/cancellation budget.
+The existing structural scan cost is unchanged for exactly unit target weights.
+For other positive target weights, the single-span branch charges one additional
+work unit per original tensor coefficient before any exact factor comparison.
+Each comparison has four bounded binary64 decompositions and two full-width
+products; the tensor size is checked for integer overflow before charging.
 The certificate stores fixed metadata and immutable original geometry references,
 with no control-net copies, new decomposition, cover array or private allowance.
 The original degree, storage and subdivision limits remain unchanged.
-Nonseparable maps, nonunit target weights, multiple source spans, periodic axes,
+Nonseparable maps, nonfactorable weight tensors, multiple rational target spans,
+multiple source spans, periodic axes,
 constant-axis incidence, unresolved monotonicity/rank and general endpoint
 coincidence remain outside this bounded authority and fail explicitly. No failed
 certificate authorizes an empty intersection result or a sampled correspondence.
@@ -115,6 +145,25 @@ Whole, reversed, clipped, zero-width endpoint, owned-mutation, exact-limit and
 cancellation cases verify this authority. Middle-Z deviation must receive no
 overlap; isolated endpoint events are reported only when the discrete owner
 certifies them. Unsupported chart/weight/source/rank fixtures verify refusal.
+
+The independent rational target fixture has literal degree-one tensor controls
+`[[(0,0,0),(1,0,0)],[(0,1,0),(1,1,1)]]` and weights
+`[[1,17/16],[9/8,153/128]]`, giving
+`S=(17*U/(16+U),9*V/(8+V),X*Y)`.
+The degree-two source controls `[(0,0,0),(.5,.5,0),(1,1,1)]` with weights
+`[1,2,4]` give `C=(h,h,h*h), h=2*t/(1+t)`.
+Its literal inverse is `U=16*h/(17-h), V=8*h/(9-h)`;
+U clipping to `[.5,.75]` gives source `[17/49,51/83]`, and clipping both
+axes gives `[9/25,51/83]`. Reversal gives `[32/83,32/49]` and
+`[32/83,16/25]` respectively. Whole-domain, exact corners, swapped axes,
+owned mutation, first-image root limits and charged factor scans verify the
+production consumer. Positive common uniform weights are now an admitted
+factorable case and preserve the independent polynomial known answer.
+`[[1,1+2^-52],[1-2^-52,1]]` has unequal exact products differing by
+`2^-104` despite rounded product equality and must be refused. Exact product
+tests also distinguish equal and unequal overflowing or underflowing products.
+Nonfactorable, coupled, periodic, multispan and unresolved monotonicity fixtures
+retain explicit refusal; middle-Z deviation receives no overlap.
 
 ## Related Designs
 

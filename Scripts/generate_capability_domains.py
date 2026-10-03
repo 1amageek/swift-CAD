@@ -15,6 +15,7 @@ BINDINGS = {
     "DefaultBooleanDimensionResolver": (["boolean"], ["representation", "topology", "connection"]),
     "FaceBSplineSurfaceConverter": (["faceRebuild"], ["supportSurface", "parameterization", "representation"]),
     "CurveSurfaceOverlapResolver": (["curveSurfaceIntersectionResult"], ["supportSurface", "representation", "geometricFidelity"]),
+    "OverlapRegularGraphClosedDomainAuthority": (["curveSurfaceIntersectionResult"], ["parameterization", "representation"]),
     "OverlapRegularGraphRootCertifier": (["curveSurfaceIntersectionResult"], ["parameterization", "representation"]),
     "OverlapRegularGraphBoundaryResolver": (["curveSurfaceIntersectionResult"], ["parameterization", "representation"]),
     "OverlapChartBoundaryResolver": (["curveSurfaceIntersectionResult"], ["parameterization", "representation"]),

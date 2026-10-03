@@ -616,6 +616,7 @@ extension KernelCapabilities {
         "oneOriginalC1TargetKnotWithFirstOrderCollarDespiteSecondDerivativeJump",
         "finiteRectangularOriginalC0C1TargetKnotAtlasWithEveryAffectedAxisTransverse",
         "closedOriginalDomainsWithExactSeparableUnitWeightTargetAxesAndPositiveRationalSourceHull",
+        "closedOriginalSingleSpanPositiveRankOneRationalTensorTargetWithIndependentCartesianAxes",
       ],
       exactOutputs: [
         "completeIsolatedPointsAndCertifiedContinuousIntervalsWithinAdmittedDomains",
@@ -625,6 +626,7 @@ extension KernelCapabilities {
         "wholeRangeKnownRootLocalizationRetainingPositionOnlyCollarAuthority",
         "completeOriginalSourceDerivativeCoverWithSharedCallerWork",
         "closedIVTOriginalRootAuthorityWithOwnedInteriorStationReproductionAndExactIntrinsicCorners",
+        "exactOriginalBinary64WeightProductAuthorityWithoutFloatingProductEquality",
         "typedRefusalForUnprovedMembershipOrIncompleteClipping",
       ],
       failureCodes: [.invalidInput, .unsupportedCapability, .intersectionFailure, .singularSystem,
