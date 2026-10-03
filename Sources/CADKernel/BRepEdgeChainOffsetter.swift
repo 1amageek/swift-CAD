@@ -230,13 +230,9 @@ struct BRepEdgeChainOffsetter {
                 return (p0, p1)
             }
             guard let firstLine = try straight(first), let secondLine = try straight(second) else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): curved offsets would run on along their own
-                // curves to where they meet, which is not built, so Natural is refused for them.
-                // Production path: BRepEdgeChainOffsetter for Offset Face Loop and Offset Edge with
-                // Natural. Complete only when a curved offset is continued along itself, verified
-                // by a rounded face's loop offset with Natural.
-                throw KernelError(phase: .evaluation, code: .unsupportedCapability, tolerance: tolerance,
-                                  message: "Natural gap fill continues straight offsets; use Linear or Round for curved ones.")
+                // A curved offset runs on along its own curve: the circle of its curvature at its end.
+                return try curvedNatural(first, second, surface: surface, distance: distance, projector: projector, tolerance: tolerance)
+                    ?? (first, second, [try lifted(try interpolator.curve(through: [a, b], tolerance: tolerance), 0)])
             }
             guard let meeting = try meeting() else {
                 return (first, second, [try lifted(try interpolator.curve(through: [a, b], tolerance: tolerance), 0)])
@@ -264,6 +260,88 @@ struct BRepEdgeChainOffsetter {
             points.append(b)
             return (first, second, [try lifted(try interpolator.curve(through: points, tolerance: tolerance), 0)])
         }
+    }
+
+    /// Natural's join of offsets that are not both straight: each carried on past the gap along its
+    /// own curve — the circle through its last points (exactly its own circle for an arc's offset),
+    /// a line where those are collinear — over the face, and both cut where the carried-on parts
+    /// first meet, so the edges stay continuous and no edge is added. Nil when they do not meet
+    /// within half a turn or sixteen gaps' reach.
+    private func curvedNatural(
+        _ first: BRepSewingEdge, _ second: BRepSewingEdge, surface: Surface3D, distance: Double,
+        projector: BRepFaceClosestPointProjector, tolerance: ModelingTolerance
+    ) throws -> (BRepSewingEdge, BRepSewingEdge, [BRepSewingEdge])? {
+        let gap = (second.startPoint - first.endPoint).length
+        let reach = 16 * max(gap, abs(distance))
+        let steps = 256
+        func point(_ edge: BRepSewingEdge, _ fraction: Double) throws -> Point3D {
+            let parameter = try edge.surfaceParameterCurve.parameter(atNormalizedFraction: fraction, tolerance: tolerance)
+            return try surface.point(u: parameter.u, v: parameter.v, tolerance: tolerance)
+        }
+        /// The edge carried on past its end (`atEnd`) or back before its start, in the model, from
+        /// the end point outward.
+        func carried(_ edge: BRepSewingEdge, atEnd: Bool) throws -> [Point3D] {
+            let (f0, f1, f2) = atEnd ? (1.0, 0.99, 0.98) : (0.0, 0.01, 0.02)
+            let (p0, p1, p2) = (try point(edge, f0), try point(edge, f1), try point(edge, f2))
+            let (u, w) = (p1 - p0, p2 - p0)
+            let normal = u.cross(w)
+            let along = try (p0 - p1).normalized(tolerance: 1e-300)
+            guard normal.length > 1e-12 * u.length * w.length else {
+                return (0...steps).map { p0 + along * (reach * Double($0) / Double(steps)) }
+            }
+            // The circle through the three points: its centre where the chords' bisectors meet.
+            let (uu, ww, uw) = (u.dot(u), w.dot(w), u.dot(w))
+            let determinant = 2 * (uu * ww - uw * uw)
+            let center = p0 + u * ((ww * (uu - uw)) / determinant) + w * ((uu * (ww - uw)) / determinant)
+            let radius = (p0 - center).length
+            let axis0 = try normal.normalized(tolerance: 1e-300)
+            // The turn that carries the end on the way it was going.
+            let axis = (axis0.cross(p0 - center)).dot(along) > 0 ? axis0 : axis0 * -1
+            let sweep = min(Double.pi, reach / radius)
+            return (0...steps).map { index in
+                let angle = sweep * Double(index) / Double(steps)
+                let offset = p0 - center
+                return center + offset * cos(angle) + axis.cross(offset) * sin(angle)
+            }
+        }
+        let ahead = try carried(first, atEnd: true).map { try projector.closest(to: $0).parameter }
+        let behind = try carried(second, atEnd: false).map { try projector.closest(to: $0).parameter }
+        // The first crossing of the two carried-on polylines, nearest along both.
+        var best: (i: Int, j: Int, s: Double, t: Double)?
+        for i in 0..<(ahead.count - 1) {
+            for j in 0..<(behind.count - 1) {
+                let (p, r) = (ahead[i], (u: ahead[i + 1].u - ahead[i].u, v: ahead[i + 1].v - ahead[i].v))
+                let (q, w) = (behind[j], (u: behind[j + 1].u - behind[j].u, v: behind[j + 1].v - behind[j].v))
+                let cross = r.u * w.v - r.v * w.u
+                guard abs(cross) > 1e-300 else { continue }
+                let (du, dv) = (q.u - p.u, q.v - p.v)
+                let s = (du * w.v - dv * w.u) / cross
+                let t = (du * r.v - dv * r.u) / cross
+                guard (0...1).contains(s), (0...1).contains(t) else { continue }
+                if best.map({ Double(i) + s + Double(j) + t < Double($0.i) + $0.s + Double($0.j) + $0.t }) ?? true {
+                    best = (i, j, s, t)
+                }
+            }
+        }
+        guard let best else { return nil }
+        let meeting = SurfaceParameter(u: ahead[best.i].u + (ahead[best.i + 1].u - ahead[best.i].u) * best.s,
+                                       v: ahead[best.i].v + (ahead[best.i + 1].v - ahead[best.i].v) * best.s)
+        func samples(_ edge: BRepSewingEdge) throws -> [SurfaceParameter] {
+            try (0...32).map { try edge.surfaceParameterCurve.parameter(atNormalizedFraction: Double($0) / 32, tolerance: tolerance) }
+        }
+        func distinct(_ points: [SurfaceParameter]) -> [SurfaceParameter] {
+            var result: [SurfaceParameter] = []
+            for point in points where result.last.map({ hypot($0.u - point.u, $0.v - point.v) > 1e-12 }) ?? true { result.append(point) }
+            return result
+        }
+        let interpolator = ParameterPointInterpolator()
+        let headPoints = distinct(try samples(first) + Array(ahead[1..<(best.i + 1)]) + [meeting])
+        let tailPoints = distinct([meeting] + Array(behind[1..<(best.j + 1)]).reversed() + (try samples(second)))
+        let head = try BRepFaceCurveClipper.edge(try interpolator.curve(through: headPoints, tolerance: tolerance), on: surface,
+                                                 stableID: first.stableID, parentSubshapeIDs: first.parentSubshapeIDs, tolerance: tolerance)
+        let tail = try BRepFaceCurveClipper.edge(try interpolator.curve(through: tailPoints, tolerance: tolerance), on: surface,
+                                                 stableID: second.stableID, parentSubshapeIDs: second.parentSubshapeIDs, tolerance: tolerance)
+        return (head, tail, [])
     }
 
     private func clamped(_ range: ClosedRange<Double>, to domain: ParameterDomain) -> ClosedRange<Double> {

@@ -159,6 +159,52 @@ struct EdgeOffsetFeatureTests {
         return try builder.extrude(profile, distance: length(0.01))
     }
 
+    /// An L-shaped slab whose lower arm's top is an arc about (0.03, 0), meeting the upper arm's
+    /// side at the reflex corner (0.02, 0.02).
+    private func arcSlab(_ builder: inout DocumentBuilder) throws -> FeatureID {
+        let profile = try builder.sketch(on: .xy) { sketch in
+            let points = [(0.02, 0.02), (0.02, 0.04), (0.0, 0.04), (0.0, 0.0), (0.04, 0.0), (0.04, 0.02)]
+            for index in 0..<(points.count - 1) {
+                let a = points[index], b = points[index + 1]
+                _ = sketch.line(from: SketchPoint(x: length(a.0), y: length(a.1)), to: SketchPoint(x: length(b.0), y: length(b.1)))
+            }
+            let radius = (0.01 * 0.01 + 0.02 * 0.02).squareRoot()
+            _ = sketch.arc(center: SketchPoint(x: length(0.03), y: length(0)), radius: length(radius),
+                           startAngle: .constant(.angle(atan2(0.02, 0.01), unit: .radian)),
+                           endAngle: .constant(.angle(atan2(0.02, -0.01), unit: .radian)))
+        }
+        return try builder.extrude(profile, distance: length(0.01))
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func naturalCarriesACurvedOffsetOnAlongItsCircle() throws {
+        var counts: [OffsetGapFill: Int] = [:]
+        var corners: [Point3D] = []
+        for gapFill in [OffsetGapFill.round, .natural] {
+            var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+            let slab = try arcSlab(&builder)
+            let before = try evaluate(builder)
+            let extent = try bounds(of: slab, in: before)
+            let up = extent.maximum.z > 0
+            let top = try face(of: slab, facing: up ? .unitZ : .unitZ * -1, in: before, builder: builder)
+            let offset = try builder.faceLoopOffset(target: slab, faces: [top], distance: length(0.004), gapFill: gapFill)
+            let evaluated = try evaluate(builder)
+            let solid = try body(of: offset, in: evaluated)
+            #expect(faces(of: solid, in: evaluated).count == 9)
+            counts[gapFill] = evaluated.brep.edges.count
+            if gapFill == .natural {
+                corners = evaluated.brep.vertices.values.map(\.point).filter { abs($0.z - (up ? extent.maximum.z : extent.minimum.z)) < 1e-9 }
+            }
+        }
+        // Natural adds no edge at the reflex corner: the arc's offset runs on along its own circle
+        // (radius r − 0.004 about (0.03, 0)) and the side's offset (x = 0.016) down to their meeting.
+        #expect(counts[.natural] == (counts[.round] ?? 0) - 1)
+        let radius = (0.01 * 0.01 + 0.02 * 0.02).squareRoot() - 0.004
+        let meeting = (x: 0.016, y: (radius * radius - 0.014 * 0.014).squareRoot())
+        #expect(corners.contains { hypot($0.x - meeting.x, $0.y - meeting.y) < 1e-5 },
+                "No corner at the meeting \(meeting) among \(corners.map { ($0.x, $0.y) })")
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func gapFillJoinsOffsetsThatPartAtAReflexCorner() throws {
         var counts: [OffsetGapFill: Int] = [:]
