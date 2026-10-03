@@ -86,6 +86,13 @@ public struct FaceUVNChart: Sendable {
         return frame.point + (try frame.outwardNormal.normalized(tolerance: 1.0e-15)) * coordinate.n
     }
 
+    /// How much of `s` (or `t`) one turn of a periodic surface spans; nil when the surface does
+    /// not close along it.
+    public func periodSpan(alongS: Bool) -> Double? {
+        guard case .periodic(let period) = (alongS ? surface.uDomain : surface.vDomain), period > 0 else { return nil }
+        return period / (alongS ? box.u.width : box.v.width)
+    }
+
     /// A periodic parameter moved by whole periods to the turn that starts at the box's lower
     /// end, so a face across the seam reads one continuous range.
     static func unwrapped(_ value: Double, domain: ParameterDomain, interval: ScalarInterval) -> Double {

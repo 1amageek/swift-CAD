@@ -1018,7 +1018,9 @@ out; a sign that changes, or a determinant too small to read, is refused as
 folding or flattening (`singularGeometry`). The faces are sewn under the
 feature's identity with the source's body topology and lineage to the source
 subshapes; the source is removed with its subshapes unless `keepsTarget`. A body
-carried beyond a bounded target surface fails (`invalidInput`); a fit past its
+carried beyond a bounded target surface fails (`invalidInput`), and so does one whose
+vertices' images reach a whole turn around a periodic target face, which would meet itself
+across the seam (checked before any fit; Plasticity asks for the body or face to be split); a fit past its
 span budget fails (`resourceLimitExceeded`). `WrapFeatureTests` own the
 identity, offsets with Keep, placed faces, a cube bent onto a cylinder as an annular sector,
 the mirrored reversal, refused options and persistence.

@@ -52,6 +52,13 @@ struct WrapFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
             sourceSubshapes: context.subshapes.entries,
             tolerance: tolerance
         )
+        let samples = extraction.request.shells.flatMap(\.patches).flatMap(\.loops).flatMap(\.edges).map(\.startPoint)
+        // A body reaching once around a closed target would meet itself across the seam: Plasticity
+        // asks for the body or the surface to be split first.
+        if try map.closesAroundTarget(at: samples) {
+            throw error(.invalidInput, feature.id, context,
+                        "Wrapped once around the closed target face, the body would meet itself; split the body or the face first.")
+        }
         // The extractor names shell i of the body "shell:i" and its face j "shell:i:face:j", in
         // the body's own order, which is how a patch finds its face's parameter box.
         let deviation = tolerance.distance / 4
@@ -108,7 +115,7 @@ struct WrapFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
             }
             shells.append(BRepSewingShell(stableID: shell.stableID, patches: patches, orientation: shell.orientation))
         }
-        if try map.reversesOrientation(at: extraction.request.shells.flatMap(\.patches).flatMap(\.loops).flatMap(\.edges).map(\.startPoint), featureID: feature.id) {
+        if try map.reversesOrientation(at: samples, featureID: feature.id) {
             let adapter = BRepSewingPatchOrientationAdapter()
             shells = try shells.map { shell in
                 BRepSewingShell(
@@ -188,6 +195,23 @@ private struct WrapMap {
         let mapped = options.mapped(s: coordinate.s, t: coordinate.t, n: coordinate.n, offsetN: offsetN)
         let placed = try target.point(at: UVNCoordinate(s: mapped.s, t: mapped.t, n: mapped.n))
         return toTargetFrame?.applying(to: placed) ?? placed
+    }
+
+    /// Whether the samples' images reach a whole turn or more around a periodic target face.
+    func closesAroundTarget(at samples: [Point3D]) throws -> Bool {
+        let mapped = try samples.map { point -> (s: Double, t: Double) in
+            let coordinate = try reference.coordinate(of: fromReferenceFrame?.applying(to: point) ?? point)
+            let image = options.mapped(s: coordinate.s, t: coordinate.t, n: coordinate.n, offsetN: offsetN)
+            return (image.s, image.t)
+        }
+        guard let first = mapped.first else { return false }
+        for alongS in [true, false] {
+            guard let turn = target.periodSpan(alongS: alongS) else { continue }
+            let values = mapped.map { alongS ? $0.s : $0.t }
+            let reach = (values.max() ?? (alongS ? first.s : first.t)) - (values.min() ?? (alongS ? first.s : first.t))
+            if reach >= turn * (1 - 1.0e-9) { return true }
+        }
+        return false
     }
 
     /// Whether the map turns space inside out at the samples, read from the sign of its

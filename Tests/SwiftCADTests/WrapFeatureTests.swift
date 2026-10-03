@@ -189,6 +189,29 @@ struct WrapFeatureTests {
     }
 
     @Test(.timeLimit(.minutes(4)))
+    func aBodyWrappedOnceAroundAClosedFaceIsRefused() throws {
+        // The cube spans a fifth of the sheet's s; five times as wide it reaches all the way round
+        // the cylinder's side, whose two ends would meet across the seam.
+        var fixture = try cubeOnSheet()
+        let cylinder = try fixture.builder.cylinder(radius: length(0.1), height: length(0.2))
+        let plain = try evaluate(fixture.builder)
+        let sheetFace = try face(of: fixture.sheet, in: plain, builder: fixture.builder)
+        let side = try face(of: cylinder, in: plain, builder: fixture.builder) { surface in
+            if case .cylinder = surface { return true }
+            return false
+        }
+        let chart = try FaceUVNChart(face: SurfaceReference(subshape: side), in: plain, tolerance: .standard)
+        let turn = try #require(chart.periodSpan(alongS: true))
+        _ = try fixture.builder.wrap(fixture.cube, from: sheetFace, onto: side, options: WrapOptions(scaleU: 5 * turn))
+        do {
+            _ = try evaluate(fixture.builder)
+            Issue.record("A full-turn wrap must be refused.")
+        } catch {
+            #expect(String(describing: error).contains("meet itself"), "\(error)")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(4)))
     func aZeroNormalScaleIsRefusedBeforeEvaluation() throws {
         var fixture = try cubeOnSheet()
         let plain = try evaluate(fixture.builder)
