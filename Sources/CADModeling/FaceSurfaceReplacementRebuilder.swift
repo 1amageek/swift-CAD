@@ -132,6 +132,14 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
             let second = try surface(of: faces[1])
             let middle = try oldMiddle(of: edgeID, model: model, tolerance: tolerance) + landing(of: faces)
             middles[edgeID] = middle
+            // An edge both its faces' surfaces still hold (a face turned about it) is still their
+            // meeting where it lay: it keeps its curve, which no intersection need find again — one
+            // running out to a surface's own boundary need not be certified there.
+            if landing(of: faces).length == 0, try lies(edgeID, on: [first, second], model: model, solver: solver, tolerance: tolerance),
+               let kept = model.edges[edgeID].flatMap({ model.geometry.curves[$0.curveID] }) {
+                curves[edgeID] = kept
+                continue
+            }
             if first == second {
                 guard try isStraight(edgeID, model: model) else {
                     throw failure(.unsupportedCapability, featureID, tolerance, "A curved edge between faces that now share one surface cannot be re-solved.")
@@ -338,6 +346,21 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
         model.geometry.curves = model.geometry.curves.filter { referencedCurves.contains($0.key) }
         let referencedSurfaces = Set(model.faces.values.map(\.surfaceID))
         model.geometry.surfaces = model.geometry.surfaces.filter { referencedSurfaces.contains($0.key) }
+    }
+
+    /// Whether the edge's curve lies on every one of `surfaces`, within a quarter of the distance
+    /// tolerance at nine points along its trim.
+    private func lies(_ edgeID: EdgeID, on surfaces: [Surface3D], model: BRepModel, solver: BRepSurfaceMeetingSolver,
+                      tolerance: ModelingTolerance) throws -> Bool {
+        guard let edge = model.edges[edgeID], let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else { return false }
+        for index in 0...8 {
+            let point = try curve.point(at: trim.startParameter + (trim.endParameter - trim.startParameter) * Double(index) / 8,
+                                        tolerance: tolerance)
+            for surface in surfaces where (try solver.foot(of: point, on: surface).point - point).length > tolerance.distance / 4 {
+                return false
+            }
+        }
+        return true
     }
 
     /// The outward normal of a face on `surface` at the foot of `point`.

@@ -3,6 +3,7 @@ import CADGeometry
 import CADIR
 import Foundation
 import Testing
+import CADModeling
 @testable import CADKernel
 
 /// A face's UVN chart reads a point as normalized face parameters and a height along the outward

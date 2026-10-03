@@ -1075,10 +1075,16 @@ plane (the reference face's plane, moved by the offset): the page's pivot. Runni
 pull (into the body from the reference face) the face leans out by the angle, so beyond the plane
 along the pull it leans in — a face crossing the plane is not split, it simply passes through its
 pivot line (a plane) or circle (a cone from a cylinder along the pull). A curved reference face has no
-plane to move (Offset is refused): each planar face turns about the straight edge it shares with
-it, pulled along the reference's outward normal there, which must hold along the edge (a face
-meeting it along a curve would become a ruled surface and is refused,
-`FIXME(INCOMPLETE_IMPLEMENTATION)`). A hole's wall then meets
+plane to move (Offset is refused): each planar face turns about the edge it shares with it,
+pulled along the reference's outward normal there — a plane about a straight edge along which
+that normal holds; otherwise, at each point of the edge, the ruled line leaning out by the angle
+from the normal there (`CurvedHingeDraftSurfaceBuilder`): exactly the cone through a circular edge
+whose normals run through its centre (a cylinder's or sphere's arc), any other edge's ruled surface
+fitted as a B-spline (cubic along the edge, carried on past its ends — a line or circle along
+itself — linear across it, a little above the edge and one and a half of the face's extents
+below), whose neighbours' re-solve the certified intersector does not yet carry through
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`). An edge both its faces' new surfaces still hold keeps its
+curve in the re-solve (`FaceSurfaceReplacementRebuilder`). A hole's wall then meets
 the turned face along an ellipse, whose pcurve on the cylinder is projected exactly.
 `PushFaceTests`, `DraftFaceTests` and `MatchFaceTests` prove boxes, rounded boxes,
 cylinders, holes, adjacent angles, pyramid and cone frustums and placed references
@@ -1087,8 +1093,9 @@ wall by each mode (25 × 20, 20 × 20 and the 15 × 10 bar past the wall), and a
 four walls and a cylinder drafted about a mid-height neutral plane (one plane through it, one
 frustum, one cone), a U-shaped wall crossed four times, a drilled wall turning through its hole, and a notch wall
 drafted 70° past the block's end under Moving (200 + 50 t mm² of section) and Fixed (300 − 50 / t
-mm²) and None (250 + 12.5 t mm²), and a wall turned about its straight edge on a cylinder top with the
-arc-edged end wall's refusal, and a box's top matched onto a sphere of another body, hollowed into its
+mm²) and None (250 + 12.5 t mm²), and a wall turned about its straight edge on a cylinder top, the
+arc-edged end wall turned into its cone (tan θ ∬ (R − r) added, integrated), and
+a box's top matched onto a sphere of another body, hollowed into its
 near side or, under Side, run through to its far side (z = 80 ∓ √(4900 − (x − 40)² − y²) integrated),
 and an L block's step matched onto a sphere past its outer wall by each Grow (the block carried out,
 filled to the wall, the step's bar alone).

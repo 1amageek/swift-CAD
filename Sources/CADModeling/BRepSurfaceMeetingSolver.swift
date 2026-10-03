@@ -125,8 +125,23 @@ package struct BRepSurfaceMeetingSolver: Sendable {
             let parameter = (point - line.origin).dot(line.direction) / line.direction.dot(line.direction)
             return (parameter, try curve.point(at: parameter, tolerance: tolerance))
         }
-        let projection = try curve.closestParameterProjection(of: point, options: CurveParameterProjectionOptions(), tolerance: tolerance)
-        return (projection.parameter, projection.point)
+        guard case .unbounded = curve.parameterDomain else {
+            let projection = try curve.closestParameterProjection(of: point, options: CurveParameterProjectionOptions(), tolerance: tolerance)
+            return (projection.parameter, projection.point)
+        }
+        // An unbounded curve (a cone's or cylinder's section by a plane at a slant: a hyperbola or
+        // a parabola) is searched over windows of its parameter widening eightfold until the
+        // nearest point lies inside one rather than at its bound.
+        var width = 1.0
+        while true {
+            let range = try ScalarInterval(lower: -width, upper: width)
+            let projection = try curve.closestParameterProjection(of: point, options: CurveParameterProjectionOptions(parameterRange: range),
+                                                                  tolerance: tolerance)
+            if abs(abs(projection.parameter) - width) > 1e-9 * width || width >= 1e6 {
+                return (projection.parameter, projection.point)
+            }
+            width *= 8
+        }
     }
 
     /// The parameters of `curve` from `start` to `end` running the way `sense` points at the

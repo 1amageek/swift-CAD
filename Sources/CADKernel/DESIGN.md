@@ -193,7 +193,7 @@ overhang by half a curve's span. (A polyline pcurve's enclosure bounds each
 coordinate's speed by its own largest share of a segment, so a side running along
 one parameter no longer spreads across the other.) `FaceParameterExtentResolverTests`
 own the extent.
-`SpatialCurveFitter` turns a curve known only by its points into a Bezier
+`SpatialCurveFitter` (in CADModeling, which Draft Face's ruled surfaces fit with too) turns a curve known only by its points into a Bezier
 `SpatialPathFeature`: per span a cubic Hermite with one-sided second-order
 difference tangents, halved until the span is within the deviation at seven check
 parameters, never crossing a breakpoint (a source corner stays a corner knot), and

@@ -320,7 +320,7 @@ struct DraftFaceTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func aWallMeetingACurvedReferenceAlongAnArcIsRefused() throws {
+    func aWallMeetingACurvedReferenceAlongAnArcTurnsIntoTheConeOfItsRulings() throws {
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
         let block = try cylinderToppedBlock(&builder)
         let top = try #require(try faces(in: builder, of: block) { surface in
@@ -328,11 +328,49 @@ struct DraftFaceTests {
             if case .analytic(.cylinder) = surface { return true }
             return false
         }.first)
-        // The end wall (x = 20) meets the cylinder along an arc: it would turn into a ruled
-        // surface, which is not built, so the draft is refused rather than approximated.
+        // The end wall (x = 20) meets the cylinder along an arc: at each point of it the wall leans
+        // out along x by tan 30° per mm of depth along the cylinder's normal there, so it turns
+        // into a ruled surface whose rulings run in toward the cylinder's axis, meeting there.
         let end = try faces(in: builder, of: block) { plane($0).map { $0.normal.x > 0.5 } ?? false }
         _ = try builder.faceDraft(target: block, faces: end, neutralFace: top, angle: degrees(30))
-        #expect(throws: KernelError.self) { _ = try CADPipeline(tolerance: .standard).evaluate(builder.build()) }
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        try model.validate(level: .volumetric, tolerance: .standard)
+        // Its ruled lines meet on the cylinder's axis: the wall is the cone through the arc from there.
+        #expect(model.geometry.surfaces.values.contains { if case .analytic(.cone) = $0 { return true }; return false })
+        // A point of the wall's section r mm from the axis (y = 0, z = -15) lies 30 − r below the
+        // arc along the normal, so the wall moves out (30 − r) tan 30° there: the added volume is
+        // tan 30° ∬ (30 − r) over the section under the arc above z = 0, by Gauss–Legendre.
+        let nodes = [-0.9739065285171717, -0.8650633666889845, -0.6794095682990244, -0.4333953941292472, -0.1488743389816312,
+                     0.1488743389816312, 0.4333953941292472, 0.6794095682990244, 0.8650633666889845, 0.9739065285171717]
+        let weights = [0.0666713443086881, 0.1494513491505806, 0.2190863625159820, 0.2692667193099963, 0.2955242247147529,
+                       0.2955242247147529, 0.2692667193099963, 0.2190863625159820, 0.1494513491505806, 0.0666713443086881]
+        var added = 0.0
+        let pieces = 16
+        for i in 0..<pieces {
+            let (y0, y1) = (-10 + 20 * Double(i) / Double(pieces), -10 + 20 * Double(i + 1) / Double(pieces))
+            for (yNode, yWeight) in zip(nodes, weights) {
+                let y = (y0 + y1) / 2 + (y1 - y0) / 2 * yNode
+                let top = -15 + (900 - y * y).squareRoot()
+                var column = 0.0
+                for j in 0..<pieces {
+                    let (z0, z1) = (top * Double(j) / Double(pieces), top * Double(j + 1) / Double(pieces))
+                    for (zNode, zWeight) in zip(nodes, weights) {
+                        let z = (z0 + z1) / 2 + (z1 - z0) / 2 * zNode
+                        column += zWeight * (z1 - z0) / 2 * (30 - (y * y + (z + 15) * (z + 15)).squareRoot())
+                    }
+                }
+                added += yWeight * (y1 - y0) / 2 * column
+            }
+        }
+        let arcArea = 10 * 800.0.squareRoot() + 900 * asin(1.0 / 3)
+        let expected = (40 * (arcArea - 300) + tan(30 * Double.pi / 180) * added) * 1e-9
+        // The model also holds the roller, π 30² 40 mm³.
+        let volume = try model.volume(tolerance: .standard) - Double.pi * 900 * 40 * 1e-9
+        // The wall's hyperbolic edges on the floor and the sides are integrated numerically, within
+        // the certified volume's budget rather than exactly.
+        #expect(abs(volume - expected) < 1e-10, "\(volume) vs \(expected)")
     }
+
 }
+
 
