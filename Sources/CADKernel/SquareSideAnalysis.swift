@@ -14,10 +14,14 @@ public struct SquareSideAnalysis: Sendable, Hashable {
     public let angleLimit: Double?
     public let curvature: Double?
     public let curvatureLimit: Double?
+    /// The middle of the side's curve, where its Analysis is shown; nil when the analysis measures
+    /// no curve of its own.
+    public let point: Point3D?
 
     public init(side: Int, position: Double, positionLimit: Double, angle: Double? = nil, angleLimit: Double? = nil,
-                curvature: Double? = nil, curvatureLimit: Double? = nil) {
+                curvature: Double? = nil, curvatureLimit: Double? = nil, point: Point3D? = nil) {
         self.side = side
+        self.point = point
         self.position = position
         self.positionLimit = positionLimit
         self.angle = angle
