@@ -81,6 +81,34 @@ face loops -> continuous UV chains -> signed fan squares
   Every contribution, including a join-crossing range, consumes the original
   curve's error target and query-wide cell/depth/cancellation accounting. No
   piece receives a new allowance or silently closes a tolerance-sized gap.
+- The initial nonlinear implicit family retains the geometry-owned single
+  polynomial-span, open one-cell chart contract. Query work begins before
+  chart preparation and effort estimation. A synchronous non-escaping callback
+  charges every lower preparation, contraction and endpoint-phase advance to
+  the same processed-work counter used by integration cells. A lower request
+  for refinement subdivides the original T interval at depth+1 under the same
+  work and depth ceilings; it never refines internally or resets the counter.
+- Original trim charts are prepared before any continuous-chart unwrapping.
+  If a query contains this nonlinear family, its admitted original B-spline
+  pair is nonperiodic and original charts supply closed endpoints under the
+  same query work callback. All loops use this proof route, bypassing the
+  shared sampled `continuousChartLift` and legacy implicit endpoint solvers.
+  Each endpoint must be finite and no wider than 64 ulps at its chart scale;
+  the complete outward difference between consecutive endpoints must lie
+  inside that same rounding limit. Overlap or midpoint agreement alone does
+  not certify connectivity. A certified finite first endpoint midpoint is
+  cached as the fan anchor, avoiding `startParameter`. Queries without this
+  family retain the existing unwrap and endpoint route.
+- Queries containing this family estimate effort from the complete loops'
+  prepared signed UV flux bounds. Coarse intervals are sufficient for effort;
+  they do not authorize numerical midpoint acceptance. Estimator refinement
+  uses the same T stack depth/work limits, and the older independently budgeted
+  UV area integrator is not called on these queries. Smooth fan evaluation
+  passes the non-escaping callback directly while owning the inout counter;
+  no evaluation closure captures a counter already lent to an adaptive owner.
+  This initial family has no native joins or C0 source spans, so the aggregate
+  native-span evaluator retains its existing unrelated behavior. Whole-query
+  area/moment goals and the final area/centroid interval tests remain unchanged.
 
 ## State, Ownership, and Lifecycle
 Each invocation owns immutable prepared geometry. Smooth domains retain their
@@ -104,3 +132,14 @@ arithmetic throw typed KernelError. An uncertified value is never returned.
 curved fixtures, hole/reversal, boundary and typed resource/cancellation tests.
 `FaceAreaMeasurementTests` proves public query routing and analytic regressions.
 Changes require rechecking geometry derivative validity and capability claims.
+Nonlinear implicit fixtures retain literal area `13/196608`, centroid
+`(363/66560,15/1664,0)` and rigid-image centroid
+`(193/1664,17003/66560,1/2)`, with an actual nonzero implicit signed fan.
+Original fractions, both source roles, reversal, query work/depth/cancel and
+truthful unsupported-family/foreign-support behavior own separate assertions.
+The partial implicit endpoint anchor fixture has literal area `49/1572864`
+and centroid `(4323/1003520,51/6272,0)`; its rigid image has centroid
+`(733/6272,255203/1003520,1/2)`. Its loop starts with the partial implicit
+edge and therefore exercises closed endpoint localization before anchor use,
+with a nonzero signed fan. Endpoint work 2 under a one-cell query limit and
+sub-modeling-tolerance gap rejection prove budget and connection ownership.

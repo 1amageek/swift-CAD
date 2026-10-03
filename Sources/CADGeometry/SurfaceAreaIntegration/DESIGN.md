@@ -32,6 +32,11 @@ trim and its prepared chart authority to integrand evaluation.
 chain whose two original B-spline supports have exact affine patch authority.
 It solves the constant native-UV correspondence system with outward intervals;
 the retained graph certificate and its original free coordinate own traversal.
+`SurfaceAreaImplicitParameterChartEncloser` composes the parent's prepared
+closed parameter localizer for one open smooth polynomial-span graph cell.
+It retains both original supports, the selected role, the trim fraction map
+and the invocation's preparation tolerance. Topology supplies a synchronous,
+non-escaping work callback; geometry retains no callback or independent budget.
 
 ## Contracts and Invariants
 - Existing structural affine support authority permits exact radial elimination.
@@ -46,7 +51,7 @@ the retained graph certificate and its original free coordinate own traversal.
   Outward affine UV/fraction arithmetic and the third-order chain rule enclose
   values and derivatives over the complete requested interval. No sampled
   reconstruction or materialized approximation changes the original fan map.
-  Implicit charts outside the exact connected affine family and non-affine
+  Implicit charts outside the exact connected affine or single smooth polynomial-cell families and non-affine
   spherical images remain explicit unsupported failures. Preparing a chart does not allocate another query error
   allowance or reset adaptive cell/depth/control admission limits.
 - The affine implicit family requires exact selected-support identity, original
@@ -78,6 +83,45 @@ the retained graph certificate and its original free coordinate own traversal.
   bounded by the admitted graph cell count and does not allocate error/work
   budgets. Closed curves, mixed free coordinates/directions, inexact endpoint
   joins, non-affine supports and unresolved constant minors remain typed failures.
+- The nonlinear implicit family uses only the original lower root certificate
+  and the [prepared closed localizer](../DESIGN.md). It admits one open cell
+  between two single-span, nonperiodic, equal-weight polynomial B-spline
+  supports. The selected face support is exactly the retained role's source,
+  or an already admitted exact rigid/offset chart image. Original trim
+  fractions and wrapper fractions remain in [0,1]; their outward affine maps
+  are intersected only with that validated source domain. Lower derivatives
+  already own native width, direction and intersection fraction powers.
+  Composition multiplies by the trim fraction slope through powers one,
+  two and three exactly once, then applies existing wrapper chain rules.
+  A closed point query uses the same outward proof as a positive interval.
+  Numeric anchors, midpoint solutions, sampled chords and analytic fixture
+formulas never provide root or derivative authority.
+- Nonlinear chart preparation and every lower prepare/advance invoke the
+  caller's work callback before doing that work. Endpoint-localization phase
+  transitions are advances and consume the same callback; geometry never loops
+  without charging the caller. Calling this family without a work owner throws
+  an explicit typed invalid-input failure. A lower subdivision-required result
+  becomes typed `implicitLocalization` refinement, requesting subdivision of
+  the original boundary fraction T rather than a hidden local retry. Rational,
+  multicell, closed and procedural implicit supports remain incomplete typed
+  refusals; the parent's lower contract is not generalized to those families.
+- Closed endpoint bounds retain the exact original trim endpoint fraction,
+  including each rigid wrapper's stored endpoint. They use the same prepared
+  root owner and caller work callback as interval integration. No implicit
+  `parameterPair`, continuous-chart sampling or numeric root solve precedes
+  this proof. Finite endpoint intervals are authority; their midpoints become
+  topology anchor hints only after the entire connection interval is certified
+  within the existing 64-ulp chart rounding contract.
+- An exact rigid parameter map `.identity` with the complete stored fraction
+  `0..1` returns its child's original proof verbatim. Identity composition
+  preserves values, proof kind and every derivative order; materializing
+  affine fraction or chain-rule arithmetic would add gratuitous interval
+  rounding. Partial/reversed fractions and other maps retain their chain rule.
+- A prepared chart can enclose its signed UV flux `u*v'` over the complete
+  original interval using the same chart proof and work callback. This coarse
+  bound allocates query effort only; it grants no area or centroid acceptance
+  and no additional error allowance. Existing chart families retain their
+  previous behavior when they do not request nonlinear localization work.
 - C0 spline integration uses prepared native Bezier span domains as its
   partition authority. A smooth proof is valid only when the complete requested
   pullback box belongs to one span, including that span's one-sided boundary
@@ -194,3 +238,21 @@ straight line, so this family has no proper closed regular intersection fixture.
 The integral's closed/non-affine guard remains incomplete and is not claimed
 verified for a valid curved closed certificate. Graph-count, query-work/depth
 and cancellation fixtures retain the original whole-query limits.
+Nonlinear composition verification uses an independently constructed dyadic
+plane/parabola graph with native equations `S1=(u/32,v/64,0)` and
+`S2=(s^2/32,s/64,(2r-1)/64)`. The region `1/4 <= v <= 3/4`,
+`0 <= u <= v^2` has literal area `13/196608` and centroid
+`(363/66560,15/1664,0)`. The implicit boundary has a nonzero signed fan.
+Partial/reversed fractions, both selected roles, rigid images, closed point
+jets, foreign supports, required caller work, rational/multicell refusals and
+whole-query work/depth/cancellation are separate behavioral evidence.
+The public partial-trim region `3/8 <= v <= 5/8`, `0 <= u <= v^2`
+retains source fractions `1/4..3/4`, literal area `49/1572864` and centroid
+`(4323/1003520,51/6272,0)`. Its boundary begins at the implicit edge, so
+the fan anchor requires a certified partial endpoint; its signed fan is
+`(t-5/8)^2/4`. Original/reversed graph directions and rigid images retain
+the same area and literal mapped centroid `(733/6272,255203/1003520,1/2)`.
+Separate closed endpoint tests retain both source roles and reversed rigid
+fractions under the 64-ulp connection width. A one-cell query limit refuses
+at work 2 when endpoint preparation follows chart preparation; a real
+sub-modeling-tolerance chart gap remains a topology failure.

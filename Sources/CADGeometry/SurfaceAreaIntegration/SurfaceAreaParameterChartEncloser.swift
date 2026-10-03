@@ -26,6 +26,7 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
     private indirect enum Storage: Sendable {
         case numeric(SurfaceParameterCurve)
         case affineImplicit(SurfaceAreaAffineImplicitChartEncloser)
+        case nonlinearImplicit(SurfaceAreaImplicitParameterChartEncloser)
         case rigid(Storage, SurfaceParameterAffineTransform, Double, Double)
         case translated(Storage, Double, Double)
     }
@@ -39,23 +40,40 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
     /// Routes native chart joins to the query's existing aggregate uncertainty owner.
     package var hasNativeJoins: Bool { Self.hasNativeJoins(storage) }
 
+    package var requiresCallerWork: Bool { Self.requiresCallerWork(storage) }
+
+    private static func requiresCallerWork(_ storage: Storage) -> Bool {
+        switch storage {
+        case .nonlinearImplicit: return true
+        case .rigid(let child,_,_,_), .translated(let child,_,_): return requiresCallerWork(child)
+        case .numeric, .affineImplicit: return false
+        }
+    }
+
+    /// Legacy numeric callers require no localization work; nonlinear callers must bind an owner.
+    package static func requireCallerWork() throws {
+        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: nil,
+            message: "Nonlinear implicit area charts require a caller-owned work budget.")
+    }
+
     private static func hasNativeJoins(_ storage: Storage) -> Bool {
         switch storage {
         case .affineImplicit(let prepared): return prepared.hasNativeJoins
         case .rigid(let child,_,_,_), .translated(let child,_,_): return hasNativeJoins(child)
-        case .numeric: return false
+        case .numeric, .nonlinearImplicit: return false
         }
     }
 
     package init(curve: SurfaceParameterCurve, on surface: Surface3D,
                  maximumControlPointCount: Int = 65_536, maximumBoundaryCurveCount: Int = 4_096,
-                 tolerance: ModelingTolerance) throws {
+                 tolerance: ModelingTolerance,
+                 consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork) throws {
         try Self.validateAdmission(curve: curve, on: surface,
             maximumControlPointCount: maximumControlPointCount,
             maximumBoundaryCurveCount: maximumBoundaryCurveCount, tolerance: tolerance)
         self.curve = curve
         support = surface
-        let prepared = try Self.prepare(curve, tolerance: tolerance)
+        let prepared = try Self.prepare(curve, tolerance: tolerance, consumeWork: consumeWork)
         storage = prepared.storage
         exactIsoBoundary = prepared.iso
     }
@@ -95,23 +113,56 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
         }
     }
 
-    func intervalJet(over fraction: ScalarInterval, tolerance: ModelingTolerance)
+    func intervalJet(over fraction: ScalarInterval, tolerance: ModelingTolerance,
+                     consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork)
         throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet) {
-        switch try intervalProof(over:fraction,tolerance:tolerance) {
+        switch try intervalProof(over:fraction,tolerance:tolerance,consumeWork:consumeWork) {
         case .smooth(let u,let v): return (u,v)
         case .valueOnly:
             throw Self.failure(.unsupportedCapability,tolerance,"A native chart join has no smooth interval jet authority.")
         }
     }
 
-    func intervalProof(over fraction: ScalarInterval, tolerance: ModelingTolerance) throws -> IntervalProof {
+    func intervalProof(over fraction: ScalarInterval, tolerance: ModelingTolerance,
+                       consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork) throws -> IntervalProof {
         guard fraction.lower >= 0, fraction.upper <= 1 else {
             throw Self.failure(.invalidInput, tolerance, "Area chart enclosure requires its original normalized interval.")
         }
-        return try Self.enclose(storage, over: fraction, tolerance: tolerance)
+        return try Self.enclose(storage, over: fraction, tolerance: tolerance, consumeWork: consumeWork)
     }
 
-    private static func prepare(_ curve: SurfaceParameterCurve, tolerance: ModelingTolerance)
+    /// Coarse signed flux allocates effort only; final moment intervals own acceptance.
+    package func signedFluxBounds(over fraction: ScalarInterval, tolerance: ModelingTolerance,
+                                  consumeWork: () throws -> Void) throws -> OutwardScalarInterval {
+        let proof = try intervalProof(over: fraction, tolerance: tolerance, consumeWork: consumeWork).values
+        let flux = proof.u * proof.tangentV
+        guard flux.isFinite else {
+            throw Self.failure(.classificationFailure, tolerance, "Area effort flux exceeded finite chart arithmetic.")
+        }
+        return flux
+    }
+
+    /// Closed original endpoints are root proofs, not numerical parameter solves.
+    package func endpointBounds(atEnd: Bool, tolerance: ModelingTolerance,
+                                consumeWork: () throws -> Void) throws -> (u: ScalarInterval, v: ScalarInterval) {
+        let fraction = atEnd ? 1.0 : 0.0
+        let values: (u: OutwardScalarInterval, v: OutwardScalarInterval,
+                     tangentU: OutwardScalarInterval, tangentV: OutwardScalarInterval)
+        do {
+            values = try intervalProof(over:ScalarInterval(lower:fraction,upper:fraction),
+                tolerance:tolerance,consumeWork:consumeWork).values
+        } catch is SurfaceAreaEnclosureRefinementRequired {
+            throw Self.failure(.classificationFailure,tolerance,"An original closed trim endpoint has no resolved root enclosure.")
+        }
+        guard values.u.isFinite,values.v.isFinite else {
+            throw Self.failure(.classificationFailure,tolerance,"An original closed trim endpoint has nonfinite chart bounds.")
+        }
+        return try (ScalarInterval(lower:values.u.lower,upper:values.u.upper),
+                    ScalarInterval(lower:values.v.lower,upper:values.v.upper))
+    }
+
+    private static func prepare(_ curve: SurfaceParameterCurve, tolerance: ModelingTolerance,
+                                consumeWork: () throws -> Void)
         throws -> (storage: Storage, iso: SurfaceParameterCurve?) {
         switch curve {
         case .affine, .harmonic, .bSpline:
@@ -119,11 +170,17 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
         case .constantU, .constantV:
             return (.numeric(curve), curve)
         case .certifiedImplicit(let implicit):
-            return (.affineImplicit(try SurfaceAreaAffineImplicitChartEncloser(curve:implicit,tolerance:tolerance)),nil)
+            if case .bSpline(let first) = implicit.intersection.firstSurface,
+               case .bSpline(let second) = implicit.intersection.secondSurface,
+               ExactAffineBSplineSurfacePatch(first) != nil, ExactAffineBSplineSurfacePatch(second) != nil {
+                return (.affineImplicit(try SurfaceAreaAffineImplicitChartEncloser(curve:implicit,tolerance:tolerance)),nil)
+            }
+            return (.nonlinearImplicit(try SurfaceAreaImplicitParameterChartEncloser(curve:implicit,
+                tolerance:tolerance,consumeWork:consumeWork)),nil)
         case .offsetSurfaceImage(let image):
-            return try prepare(image.source, tolerance: tolerance)
+            return try prepare(image.source, tolerance: tolerance, consumeWork: consumeWork)
         case .periodicTranslation(let base, let u, let v):
-            let child = try prepare(base, tolerance: tolerance)
+            let child = try prepare(base, tolerance: tolerance, consumeWork: consumeWork)
             return (.translated(child.storage, u, v), nil)
         case .rigidImage(let image):
             // FIXME(INCOMPLETE_IMPLEMENTATION): Non-affine spherical rigid-image charts lack
@@ -132,7 +189,7 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
             guard let mapping = try image.affineParameterTransform(tolerance: tolerance) else {
                 throw failure(.unsupportedCapability, tolerance, "Area chart requires an affine rigid parameter map.")
             }
-            let child = try prepare(image.source.parameterCurve, tolerance: tolerance)
+            let child = try prepare(image.source.parameterCurve, tolerance: tolerance, consumeWork: consumeWork)
             let iso: SurfaceParameterCurve?
             if mapping == .identity, image.startFraction == 0, image.endFraction == 1 {
                 iso = child.iso
@@ -154,28 +211,41 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
     }
 
     private static func enclose(_ storage: Storage, over fraction: ScalarInterval,
-                                tolerance: ModelingTolerance) throws -> IntervalProof {
+                                tolerance: ModelingTolerance, consumeWork: () throws -> Void) throws -> IntervalProof {
         switch storage {
         case .affineImplicit(let prepared):
             return try prepared.intervalProof(over:fraction,tolerance:tolerance)
+        case .nonlinearImplicit(let prepared):
+            return try prepared.intervalProof(over:fraction,tolerance:tolerance,consumeWork:consumeWork)
         case .numeric(let curve):
             guard let jet = try SurfaceParameterIntervalJet.enclose(curve, over: fraction, tolerance: tolerance) else {
                 throw failure(.unsupportedCapability, tolerance, "Admitted area chart lost its numeric interval derivatives.")
             }
             return .smooth(u:jet.u,v:jet.v)
         case .translated(let child, let u, let v):
-            switch try enclose(child, over:fraction,tolerance:tolerance) {
+            switch try enclose(child, over:fraction,tolerance:tolerance,consumeWork:consumeWork) {
             case .smooth(let x,let y): return .smooth(u:x + .constant(u),v:y + .constant(v))
             case .valueOnly(let x,let y,let dx,let dy):
                 return .valueOnly(u:x + .exact(u),v:y + .exact(v),tangentU:dx,tangentV:dy)
             }
         case .rigid(let child, let map, let start, let end):
+            if map == .identity, start == 0, end == 1 {
+                // Exact identity composition preserves every original interval
+                // and derivative order without another arithmetic enclosure.
+                return try enclose(child,over:fraction,tolerance:tolerance,consumeWork:consumeWork)
+            }
             let parameter = SurfaceIntervalJet.constant(start)
                 + (.constant(end) - .constant(start)) * .parameterU(fraction)
             // Admission proves the exact affine fraction lies in [0,1]. Intersecting
             // outward rounding with that proven range does not clamp an invalid source.
-            let range = try ScalarInterval(lower: max(0, parameter.value.lower), upper: min(1, parameter.value.upper))
-            let source = try enclose(child, over: range, tolerance: tolerance)
+            let range: ScalarInterval
+            if fraction.lower == fraction.upper, fraction.lower == 0 || fraction.lower == 1 {
+                let endpoint = fraction.lower == 0 ? start : end
+                range = try ScalarInterval(lower:endpoint,upper:endpoint)
+            } else {
+                range = try ScalarInterval(lower: max(0, parameter.value.lower), upper: min(1, parameter.value.upper))
+            }
+            let source = try enclose(child, over: range, tolerance: tolerance, consumeWork: consumeWork)
             if case .valueOnly(let u,let v,let du,let dv) = source {
                 let slope = OutwardScalarInterval.exact(end) - .exact(start)
                 return .valueOnly(u:u * .exact(map.uu) + v * .exact(map.uv) + .exact(map.uOffset),

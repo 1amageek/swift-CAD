@@ -28,6 +28,7 @@ BINDINGS = {
     "StandardMeshExchange": (["GLBMeshExchange", "GLTFMeshExchange", "PLYMeshExchange", "VRMLMeshExchange"], ["representation", "geometricFidelity"]),
     "ImplicitCurveIntervalJetEncloser": (["curveSurfaceIntersectionResult", "faceAreaMeasurement"], ["boundaryCurve", "parameterization", "geometricFidelity"]),
     "SurfaceAreaAffineImplicitChartEncloser": (["faceAreaMeasurement"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
+    "SurfaceAreaImplicitParameterChartEncloser": (["faceAreaMeasurement"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
     "SurfaceAreaParameterChartEncloser": (["faceAreaMeasurement"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
     "PreparedSurfaceAreaIntegrand": (["faceAreaMeasurement"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
     "BSplineSurface3D+DegreeElevation": (["rationalBSplineSurface"], ["parameterization", "representation"]),

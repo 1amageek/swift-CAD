@@ -1195,6 +1195,322 @@ struct SurfaceAreaIntegrationTests {
         catch let error as KernelError { #expect(error.code == .cancelled) }
     }
 
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func nonlinearImplicitPartialEndpointAnchorHasIndependentAreaAndCentroid(_ backwards: Bool) throws {
+        let (source,intersection) = try nonlinearImplicitAreaFixture(direction:backwards ? .reversed : .forward)
+        let original = try nonlinearImplicitPartialRegion(intersection)
+        for mapped in [false,true] {
+            let support: Surface3D
+            let curves: [SurfaceParameterCurve]
+            if mapped {
+                let transform = try areaFixtureTransform()
+                support = try transform.applying(to:source,tolerance:tolerance)
+                curves = try rigidTrims(original,source:source,target:support,transform:transform)
+            } else { support = source; curves = original }
+            let (id,model) = try fixture(support,outer:curves)
+            let result = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+            let area = 49.0/1_572_864
+            let centroid = mapped ? Point3D(x:733.0/6_272,y:255_203.0/1_003_520,z:0.5)
+                : Point3D(x:4_323.0/1_003_520,y:51.0/6_272,z:0)
+            #expect(abs(result.area-area) <= tolerance.distance*tolerance.distance+tolerance.relative*area)
+            #expect((result.centroid-centroid).length <= tolerance.distance)
+            do {
+                _ = try model.faceAreaMeasurement(of:id,tolerance:tolerance,
+                    integrationOptions:FaceAreaIntegrationOptions(maximumCellCount:1))
+                Issue.record("The partial endpoint proof must consume the query work after chart preparation.")
+            } catch let error as KernelError {
+                #expect(error.code == .resourceLimitExceeded && error.residual == 2)
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func nonlinearImplicitClosedEndpointsRetainBothRolesAndRigidDirection(_ backwards: Bool) throws {
+        let (first,intersection) = try nonlinearImplicitAreaFixture(direction:backwards ? .reversed : .forward)
+        var remaining = FaceAreaIntegrationOptions().maximumCellCount
+        func consume() throws {
+            guard remaining > 0 else {
+                throw KernelError(phase:.topology,code:.resourceLimitExceeded,tolerance:tolerance,
+                    message:"Closed endpoint proofs exhausted their shared work.")
+            }
+            remaining -= 1
+        }
+        for role in [SurfaceIntersectionSurfaceRole.first,.second] {
+            let source = role == .first ? first : intersection.secondSurface
+            let trim = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:role,
+                startFraction:0.75,endFraction:0.25,tolerance:tolerance)
+            for mapped in [false,true] {
+                let support: Surface3D
+                let curve: SurfaceParameterCurve
+                if mapped {
+                    let transform = try areaFixtureTransform()
+                    support = try transform.applying(to:source,tolerance:tolerance)
+                    curve = .rigidImage(try RigidImageSurfaceParameterCurve(
+                        source:SurfaceLiftCurve3D(surface:source,parameterCurve:.certifiedImplicit(trim)),
+                        targetSurface:support,transform:transform,startFraction:1,endFraction:0,tolerance:tolerance))
+                } else { support = source; curve = .certifiedImplicit(trim) }
+                let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:support,
+                    tolerance:tolerance,consumeWork:consume)
+                for atEnd in [false,true] {
+                    let fraction = (atEnd != mapped) ? 0.25 : 0.75
+                    let t = backwards ? 0.75-0.5*fraction : 0.25+0.5*fraction
+                    let bounds = try chart.endpointBounds(atEnd:atEnd,tolerance:tolerance,consumeWork:consume)
+                    #expect(bounds.u.contains(role == .first ? t*t : t))
+                    #expect(bounds.v.contains(role == .first ? t : 0.5))
+                    #expect(bounds.u.width <= Double.ulpOfOne*64 && bounds.v.width <= Double.ulpOfOne*64)
+                }
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nonlinearImplicitWholeRigidIdentityChartRetainsClosedEndpointProofs() throws {
+        var remaining = FaceAreaIntegrationOptions().maximumCellCount
+        func consume() throws {
+            guard remaining > 0 else {
+                throw KernelError(phase:.topology,code:.resourceLimitExceeded,tolerance:tolerance,
+                    message:"Whole rigid endpoint proofs exhausted their shared work.")
+            }
+            remaining -= 1
+        }
+        for direction in [CertifiedImplicitIntersectionDirection.forward,.reversed] {
+            let (first,intersection) = try nonlinearImplicitAreaFixture(direction:direction)
+            for role in [SurfaceIntersectionSurfaceRole.first,.second] {
+                let source = role == .first ? first : intersection.secondSurface
+                let trim = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:role,tolerance:tolerance)
+                let transform = try areaFixtureTransform()
+                let target = try transform.applying(to:source,tolerance:tolerance)
+                let image = try RigidImageSurfaceParameterCurve(
+                    source:SurfaceLiftCurve3D(surface:source,parameterCurve:.certifiedImplicit(trim)),
+                    targetSurface:target,transform:transform,tolerance:tolerance)
+                #expect(try image.affineParameterTransform(tolerance:tolerance) == .identity)
+                let original = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(trim),on:source,
+                    tolerance:tolerance,consumeWork:consume)
+                let mapped = try SurfaceAreaParameterChartEncloser(curve:.rigidImage(image),on:target,
+                    tolerance:tolerance,consumeWork:consume)
+                for atEnd in [false,true] {
+                    let fraction = atEnd ? 1.0 : 0.0
+                    let t = direction == .forward ? 0.25+0.5*fraction : 0.75-0.5*fraction
+                    let bounds = try mapped.endpointBounds(atEnd:atEnd,tolerance:tolerance,consumeWork:consume)
+                    #expect(bounds.u.contains(role == .first ? t*t : t))
+                    #expect(bounds.v.contains(role == .first ? t : 0.5))
+                    #expect(bounds.u.width <= Double.ulpOfOne*64 && bounds.v.width <= Double.ulpOfOne*64)
+                    let range = try ScalarInterval(lower:fraction,upper:fraction)
+                    let a = try original.intervalJet(over:range,tolerance:tolerance,consumeWork:consume)
+                    let b = try mapped.intervalJet(over:range,tolerance:tolerance,consumeWork:consume)
+                    for (left,right) in [(a.u,b.u),(a.v,b.v)] {
+                        for (x,y) in zip([left.value,left.derivativeU,left.secondDerivativeUU,left.thirdDerivativeUUU],
+                                         [right.value,right.derivativeU,right.secondDerivativeUU,right.thirdDerivativeUUU]) {
+                            #expect(x.lower == y.lower && x.upper == y.upper)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nonlinearImplicitConnectionRejectsARealSubToleranceGap() throws {
+        let (source,intersection) = try nonlinearImplicitAreaFixture()
+        var curves = try nonlinearImplicitPartialRegion(intersection)
+        curves[1] = .constantV(v:3.0/8,uStart:9.0/64+1e-12,uEnd:0)
+        let (id,model) = try fixture(source,outer:curves)
+        do {
+            _ = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+            Issue.record("Overlapping or nearby hints cannot close an original chart gap.")
+        } catch let error as KernelError { #expect(error.code == .topologyFailure) }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func nonlinearImplicitRegionHasIndependentAreaAndAllCentroidComponents(_ reversed: Bool) throws {
+        let (source,intersection) = try nonlinearImplicitAreaFixture()
+        let curves = try nonlinearImplicitRegion(intersection)
+        let (id,model) = try fixture(source,outer:curves,reversed:reversed)
+        let result = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        let expectedArea = 13.0/196_608
+        #expect(abs(result.area-expectedArea) <= tolerance.distance*tolerance.distance+tolerance.relative*expectedArea)
+        #expect((result.centroid-Point3D(x:363.0/66_560,y:15.0/1_664,z:0)).length <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nonlinearImplicitRigidImageHasIndependentLiteralCentroid() throws {
+        let (source,intersection) = try nonlinearImplicitAreaFixture()
+        let transform = try areaFixtureTransform()
+        let target = try transform.applying(to:source,tolerance:tolerance)
+        let curves = try rigidTrims(nonlinearImplicitRegion(intersection),source:source,target:target,transform:transform)
+        let (id,model) = try fixture(target,outer:curves)
+        let result = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        let expectedArea = 13.0/196_608
+        #expect(abs(result.area-expectedArea) <= tolerance.distance*tolerance.distance+tolerance.relative*expectedArea)
+        #expect((result.centroid-Point3D(x:193.0/1_664,y:17_003.0/66_560,z:0.5)).length <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func nonlinearImplicitJetsRetainPartialReverseRolesAndRigidFractions(_ backwards: Bool) throws {
+        let (first,intersection) = try nonlinearImplicitAreaFixture(direction:backwards ? .reversed : .forward)
+        var remaining = FaceAreaIntegrationOptions().maximumCellCount
+        func consume() throws {
+            guard remaining > 0 else {
+                throw KernelError(phase:.topology,code:.resourceLimitExceeded,tolerance:tolerance,message:"The original chart test exhausted its shared query work.")
+            }
+            remaining -= 1
+        }
+        for role in [SurfaceIntersectionSurfaceRole.first,.second] {
+            let support = role == .first ? first : intersection.secondSurface
+            let trim = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:role,
+                startFraction:0.75,endFraction:0.25,tolerance:tolerance)
+            for mapped in [false,true] {
+                let curve: SurfaceParameterCurve
+                let target: Surface3D
+                if mapped {
+                    let transform = try areaFixtureTransform()
+                    target = try transform.applying(to:support,tolerance:tolerance)
+                    curve = .rigidImage(try RigidImageSurfaceParameterCurve(
+                        source:SurfaceLiftCurve3D(surface:support,parameterCurve:.certifiedImplicit(trim)),
+                        targetSurface:target,transform:transform,startFraction:0.8,endFraction:0.2,tolerance:tolerance))
+                } else { target = support; curve = .certifiedImplicit(trim) }
+                let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:target,tolerance:tolerance,consumeWork:consume)
+                #expect(chart.requiresCallerWork && !chart.hasNativeJoins)
+                for interval in [try ScalarInterval(lower:0.2,upper:0.6),try ScalarInterval(lower:0.4,upper:0.4)] {
+                    let jet = try chart.intervalJet(over:interval,tolerance:tolerance,consumeWork:consume)
+                    for fraction in [interval.lower,interval.midpoint,interval.upper] {
+                        let original = mapped ? 0.35+0.3*fraction : 0.75-0.5*fraction
+                        let t = backwards ? 0.75-0.5*original : 0.25+0.5*original
+                        let slope = (mapped ? 0.15 : -0.25) * (backwards ? -1.0 : 1.0)
+                        let u = role == .first ? t*t : t
+                        let v = role == .first ? t : 0.5
+                        #expect(jet.u.value.contains(u) && jet.v.value.contains(v))
+                        #expect(jet.u.derivativeU.contains(role == .first ? 2*t*slope : slope))
+                        #expect(jet.v.derivativeU.contains(role == .first ? slope : 0))
+                        #expect(jet.u.secondDerivativeUU.contains(role == .first ? 2*slope*slope : 0))
+                        #expect(jet.v.secondDerivativeUU.contains(0))
+                        #expect(jet.u.thirdDerivativeUUU.contains(0) && jet.v.thirdDerivativeUUU.contains(0))
+                    }
+                    if interval.width == 0 {
+                        #expect(jet.u.value.width <= tolerance.relative && jet.v.value.width <= tolerance.relative)
+                        #expect(jet.u.derivativeU.width <= tolerance.relative && jet.v.derivativeU.width <= tolerance.relative)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nonlinearImplicitChartRequiresWorkAndRejectsForeignAndMulticellAuthority() throws {
+        let (source,intersection) = try nonlinearImplicitAreaFixture()
+        let trim = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:.first,tolerance:tolerance)
+        do {
+            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(trim),on:source,tolerance:tolerance)
+            Issue.record("A nonlinear chart cannot silently create its own work allowance.")
+        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        let foreign = try areaFixtureTransform().applying(to:source,tolerance:tolerance)
+        do {
+            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(trim),on:foreign,tolerance:tolerance)
+            Issue.record("A nonlinear original chart cannot adopt a foreign support.")
+        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        let (_,chain) = try nonlinearImplicitAreaFixture(split:true)
+        let joined = try CertifiedImplicitSurfaceParameterCurve(intersection:chain,role:.first,tolerance:tolerance)
+        do {
+            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(joined),on:source,tolerance:tolerance)
+            Issue.record("A valid nonlinear multi-cell certificate cannot inherit single-cell localization.")
+        } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+        var remaining = FaceAreaIntegrationOptions().maximumCellCount
+        func consume() throws {
+            guard remaining > 0 else {
+                throw KernelError(phase:.topology,code:.resourceLimitExceeded,tolerance:tolerance,message:"The chart test exhausted its original query work.")
+            }
+            remaining -= 1
+        }
+        let chart = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(trim),on:source,tolerance:tolerance,consumeWork:consume)
+        _ = try chart.signedFluxBounds(over:ScalarInterval(lower:0,upper:1),tolerance:tolerance,consumeWork:consume)
+        #expect(remaining < FaceAreaIntegrationOptions().maximumCellCount-1)
+        do {
+            _ = try chart.intervalJet(over:ScalarInterval(lower:0.5,upper:0.5),tolerance:tolerance)
+            Issue.record("A prepared chart still requires caller work for each interval.")
+        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        remaining = 0
+        let integrand = try PreparedSurfaceAreaIntegrand(surface:source,tolerance:tolerance)
+        do {
+            _ = try integrand.boundaryBounds(curve:.certifiedImplicit(trim),anchor:SurfaceParameter(u:0,v:0.75),
+                reference:.origin,boundaryFraction:ScalarInterval(lower:0,upper:1),tolerance:tolerance,
+                parameterChart:chart,consumeWork:consume)
+            Issue.record("Integral evaluation cannot reset the work used for chart preparation and effort.")
+        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nonlinearImplicitQuerySharesWorkAndSubdivisionLimits() throws {
+        let (source,intersection) = try nonlinearImplicitAreaFixture()
+        let (id,model) = try fixture(source,outer:nonlinearImplicitRegion(intersection))
+        for options in [FaceAreaIntegrationOptions(maximumCellCount:1),FaceAreaIntegrationOptions(maximumCellCount:4),
+                        FaceAreaIntegrationOptions(maximumSubdivisionDepth:1)] {
+            do {
+                _ = try model.faceAreaMeasurement(of:id,tolerance:tolerance,integrationOptions:options)
+                Issue.record("Implicit preparation, effort and quadrature must use the original query work/depth limits.")
+            } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nonlinearImplicitCancellationRemainsAQueryFailure() async throws {
+        let (source,intersection) = try nonlinearImplicitAreaFixture()
+        let (id,model) = try fixture(source,outer:nonlinearImplicitRegion(intersection))
+        let task = Task {
+            while !Task.isCancelled { await Task.yield() }
+            return try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        }
+        task.cancel()
+        do { _ = try await task.value; Issue.record("Nonlinear chart preparation must preserve query cancellation.") }
+        catch let error as KernelError { #expect(error.code == .cancelled) }
+    }
+
+    private func nonlinearImplicitRegion(_ intersection: CertifiedImplicitIntersectionCurve) throws -> [SurfaceParameterCurve] {
+        let backwards = intersection.cells[0].direction == .reversed
+        let trim = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:.first,
+            startFraction:backwards ? 0 : 1,endFraction:backwards ? 1 : 0,tolerance:tolerance)
+        // Anchor=(0,3/4), so the implicit fan determinant is t^2/2-3t/4,
+        // strictly negative for the complete original t in [1/4,3/4].
+        return [.constantV(v:0.75,uStart:0,uEnd:0.5625),.certifiedImplicit(trim),
+                .constantV(v:0.25,uStart:0.0625,uEnd:0),.constantU(u:0,vStart:0.25,vEnd:0.75)]
+    }
+
+    private func nonlinearImplicitPartialRegion(_ intersection: CertifiedImplicitIntersectionCurve) throws -> [SurfaceParameterCurve] {
+        let backwards = intersection.cells[0].direction == .reversed
+        let trim = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:.first,
+            startFraction:backwards ? 0.25 : 0.75,endFraction:backwards ? 0.75 : 0.25,tolerance:tolerance)
+        // Anchor=(25/64,5/8) is the certified partial implicit endpoint. The
+        // signed fan determinant is (t-5/8)^2/4, positive off that endpoint.
+        return [.certifiedImplicit(trim),.constantV(v:3.0/8,uStart:9.0/64,uEnd:0),
+                .constantU(u:0,vStart:3.0/8,vEnd:5.0/8),.constantV(v:5.0/8,uStart:0,uEnd:25.0/64)]
+    }
+
+    private func nonlinearImplicitAreaFixture(direction: CertifiedImplicitIntersectionDirection = .forward,
+                                              split: Bool = false) throws -> (Surface3D,CertifiedImplicitIntersectionCurve) {
+        // Original exact dyadic polynomial controls, independent of the localizer.
+        // S1(u,v)=(u/32,v/64,0); S2(s,r)=(s^2/32,s/64,(2r-1)/64).
+        let first = BSplineSurface3D(uDegree:1,vDegree:1,uKnots:[-0.5,-0.5,1.5,1.5],vKnots:[0,0,1,1],
+            controlPoints:[0.0,1.0/64].map { y in [Point3D(x:-1.0/64,y:y,z:0),Point3D(x:3.0/64,y:y,z:0)] })
+        let second = BSplineSurface3D(uDegree:2,vDegree:1,uKnots:[0,0,0,1,1,1],vKnots:[0,0,1,1],
+            controlPoints:[-1.0/64,1.0/64].map { z in
+                [Point3D(x:0,y:0,z:z),Point3D(x:0,y:1.0/128,z:z),Point3D(x:1.0/32,y:1.0/64,z:z)] })
+        func anchor(_ t: Double) throws -> SurfaceIntersectionParameterPair {
+            try SurfaceIntersectionParameterPair(first:SurfaceParameter(u:t*t,v:t),second:SurfaceParameter(u:t,v:0.5))
+        }
+        let ranges: [(Double,Double)] = split ? [(0.25,0.5),(0.5,0.75)] : [(0.25,0.75)]
+        let ordered = direction == .forward ? ranges : Array(ranges.reversed())
+        var cells: [CertifiedImplicitIntersectionGraphCell] = []
+        for (lower,upper) in ordered {
+            cells.append(try CertifiedImplicitIntersectionGraphCell(parameterBox:SurfaceIntersectionParameterBox(
+                firstU:ScalarInterval(lower:-0.25,upper:0.875),firstV:ScalarInterval(lower:lower,upper:upper),
+                secondU:ScalarInterval(lower:0.2,upper:0.8),secondV:ScalarInterval(lower:0,upper:1)),
+                freeParameter:.firstV,direction:direction,lowerAnchor:anchor(lower),
+                midpointAnchor:anchor((lower+upper)/2),upperAnchor:anchor(upper),
+                firstSurface:first,secondSurface:second,tolerance:tolerance))
+        }
+        return (.bSpline(first),try CertifiedImplicitIntersectionCurve(firstSurface:first,secondSurface:second,
+            cells:cells,isClosed:false,tolerance:tolerance))
+    }
+
     private func affineImplicitChainFixture(direction: CertifiedImplicitIntersectionDirection = .forward,
                                              gap: Double = 0, mixedCoordinate: Bool = false)
         throws -> (BSplineSurface3D,CertifiedImplicitIntersectionCurve) {

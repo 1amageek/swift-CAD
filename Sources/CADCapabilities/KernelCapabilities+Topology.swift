@@ -426,6 +426,7 @@ extension KernelCapabilities {
         "numericExactTrimsIncludingHolesAndReversedLoops",
         "exactOffsetAndAffineRigidImageNumericTrimsWithOriginalFractionsAndReversal",
         "exactOpenConnectedAffineImplicitChainsWithOriginalNativeUVAndPieceFractions",
+        "exactOpenSinglePolynomialGraphCellImplicitTrimsWithCallerOwnedClosedEndpointJets",
         "explicitFiniteCellDepthBoundaryAndControlLimits",
       ],
       exactOutputs: [
@@ -439,6 +440,8 @@ extension KernelCapabilities {
         "oneSidedNativeSpanProofWithWholeQueryErrorAndWorkBudgets",
         "valueOnlyImplicitJoinFanEnclosuresWithoutHigherDerivativeAuthority",
         "ownedTargetMatchedThirdOrderNumericChartEnclosures",
+        "originalImplicitRootAndTrimFractionJetsWithWholeQueryEndpointAndIntegrationWork",
+        "outwardEntireEndpointDifferenceConnectionAtUnchanged64ULPPrecision",
         "typedRefusalOfUncertifiableChartsAndResourceExhaustion",
       ],
       failureCodes: [.invalidInput, .missingReference, .topologyFailure, .unsupportedCapability, .classificationFailure, .singularSystem, .singularGeometry, .resourceLimitExceeded, .cancelled],

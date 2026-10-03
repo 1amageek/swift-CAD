@@ -94,9 +94,10 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         curve: SurfaceParameterCurve, anchor: SurfaceParameter, reference: Point3D,
         boundaryFraction: ScalarInterval, radialFraction: ScalarInterval,
         tolerance: ModelingTolerance, domain: SurfaceAreaNativeSpanDomain? = nil,
-        parameterChart: SurfaceAreaParameterChartEncloser? = nil
+        parameterChart: SurfaceAreaParameterChartEncloser? = nil,
+        consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork
     ) throws -> [SurfaceAreaIntegrandBounds] {
-        let proof = try chartProof(curve:curve,prepared:parameterChart,over:boundaryFraction,tolerance:tolerance)
+        let proof = try chartProof(curve:curve,prepared:parameterChart,over:boundaryFraction,tolerance:tolerance,consumeWork:consumeWork)
         if case .valueOnly(let u,let v,let tangentU,let tangentV) = proof {
             let radial = OutwardScalarInterval(lower:radialFraction.lower,upper:radialFraction.upper)
             let du = u - .exact(anchor.u), dv = v - .exact(anchor.v)
@@ -192,11 +193,12 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
     package func boundaryBounds(curve: SurfaceParameterCurve, anchor: SurfaceParameter,
                                 reference: Point3D, boundaryFraction: ScalarInterval,
                                 tolerance: ModelingTolerance,
-                                parameterChart: SurfaceAreaParameterChartEncloser? = nil) throws -> [SurfaceAreaIntegrandBounds] {
+                                parameterChart: SurfaceAreaParameterChartEncloser? = nil,
+                                consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork) throws -> [SurfaceAreaIntegrandBounds] {
         guard radialIntegrationIsExact else {
             throw Self.failure(.unsupportedCapability, tolerance, "Exact radial area requires an affine support.")
         }
-        let proof = try chartProof(curve:curve,prepared:parameterChart,over:boundaryFraction,tolerance:tolerance)
+        let proof = try chartProof(curve:curve,prepared:parameterChart,over:boundaryFraction,tolerance:tolerance,consumeWork:consumeWork)
         if case .valueOnly(let u,let v,let tangentU,let tangentV) = proof {
             let du = u - .exact(anchor.u),dv = v - .exact(anchor.v)
             let radial = OutwardScalarInterval(lower:0,upper:1)
@@ -311,16 +313,17 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
     }
 
     private func chartProof(curve: SurfaceParameterCurve, prepared: SurfaceAreaParameterChartEncloser?,
-                          over interval: ScalarInterval, tolerance: ModelingTolerance)
+                          over interval: ScalarInterval, tolerance: ModelingTolerance,
+                          consumeWork: () throws -> Void)
         throws -> SurfaceAreaParameterChartEncloser.IntervalProof {
         if let prepared {
             guard prepared.curve == curve, prepared.support == surface else {
                 throw Self.failure(.invalidInput,tolerance,"Area chart authority belongs to another retained trim.")
             }
-            return try prepared.intervalProof(over:interval,tolerance:tolerance)
+            return try prepared.intervalProof(over:interval,tolerance:tolerance,consumeWork:consumeWork)
         }
-        return try SurfaceAreaParameterChartEncloser(curve:curve,on:surface,tolerance:tolerance)
-            .intervalProof(over:interval,tolerance:tolerance)
+        return try SurfaceAreaParameterChartEncloser(curve:curve,on:surface,tolerance:tolerance,consumeWork:consumeWork)
+            .intervalProof(over:interval,tolerance:tolerance,consumeWork:consumeWork)
     }
 
     private func rangeFields(over box: SurfaceParameterBox, measure: OutwardScalarInterval,

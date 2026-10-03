@@ -19,6 +19,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
         }
         try admit(surface, options: options, tolerance: tolerance)
         var loops: [(role: LoopRole, curves: [SurfaceParameterCurve], charts: [SurfaceAreaParameterChartEncloser])] = []
+        var work = 0
         var count = 0
         for id in face.loops {
             guard let loop = model.loops[id], !loop.coedges.isEmpty else {
@@ -38,28 +39,73 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                 }
                 curves.append(contentsOf: parts)
             }
-            let lifted = try SurfaceParameterLoopUnwrapper().unwrap(curves, on: surface,
-                tolerance: tolerance, context: "Certified face area")
-            for index in lifted.indices {
-                let start = lifted[index].chartStart
-                let end = lifted[(index + lifted.count - 1) % lifted.count].chartEnd
-                let scale = max(1, abs(start.u), abs(start.v), abs(end.u), abs(end.v))
-                let rounding = Double.ulpOfOne * scale * 64
-                guard abs(start.u - end.u) <= rounding, abs(start.v - end.v) <= rounding else {
-                    throw failure(.topologyFailure, tolerance,
-                        "Certified free-surface integration requires connected trims to parameter rounding precision.")
+            let charts = try curves.map { try SurfaceAreaParameterChartEncloser(curve:$0,on:surface,
+                maximumControlPointCount:options.maximumControlPointCount,
+                maximumBoundaryCurveCount:options.maximumBoundaryCurveCount,tolerance:tolerance,
+                consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) }) }
+            loops.append((loop.role, curves, charts))
+        }
+        let usesImplicitWork = loops.contains { $0.charts.contains { $0.requiresCallerWork } }
+        var certifiedAnchor: SurfaceParameter?
+        if usesImplicitWork {
+            // This admitted family retains nonperiodic original charts. Every
+            // endpoint proof precedes any hint, under the same query work owner.
+            for loop in loops {
+                let endpoints = try loop.charts.map { chart in
+                    try (start:chart.endpointBounds(atEnd:false,tolerance:tolerance,
+                        consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) }),
+                         end:chart.endpointBounds(atEnd:true,tolerance:tolerance,
+                        consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) }))
+                }
+                for index in endpoints.indices {
+                    let start = endpoints[index].start
+                    let end = endpoints[(index + endpoints.count - 1) % endpoints.count].end
+                    let values = [start.u,start.v,end.u,end.v]
+                    let scale = values.reduce(1.0) { max($0,abs($1.lower),abs($1.upper)) }
+                    let rounding = Double.ulpOfOne * scale * 64
+                    let du = OutwardScalarInterval(lower:start.u.lower,upper:start.u.upper)
+                        - OutwardScalarInterval(lower:end.u.lower,upper:end.u.upper)
+                    let dv = OutwardScalarInterval(lower:start.v.lower,upper:start.v.upper)
+                        - OutwardScalarInterval(lower:end.v.lower,upper:end.v.upper)
+                    guard values.allSatisfy({ $0.lower.isFinite && $0.upper.isFinite && $0.width <= rounding }),
+                          du.absoluteUpperBound <= rounding,dv.absoluteUpperBound <= rounding else {
+                        throw failure(.topologyFailure,tolerance,
+                            "Certified original trim endpoint differences exceed parameter rounding precision.")
+                    }
+                }
+                if certifiedAnchor == nil,let first = endpoints.first {
+                    certifiedAnchor = SurfaceParameter(u:first.start.u.midpoint,v:first.start.v.midpoint)
                 }
             }
-            let retainedCurves = lifted.map(\.translatedCurve)
-            let charts = try retainedCurves.map { try SurfaceAreaParameterChartEncloser(curve:$0,on:surface,
-                maximumControlPointCount:options.maximumControlPointCount,
-                maximumBoundaryCurveCount:options.maximumBoundaryCurveCount,tolerance:tolerance) }
-            loops.append((loop.role, retainedCurves, charts))
+        } else {
+            // Legacy families retain their existing periodic lifting authority.
+            for index in loops.indices {
+                let lifted = try SurfaceParameterLoopUnwrapper().unwrap(loops[index].curves,on:surface,
+                    tolerance:tolerance,context:"Certified face area")
+                for curveIndex in lifted.indices {
+                    let start = lifted[curveIndex].chartStart
+                    let end = lifted[(curveIndex + lifted.count - 1) % lifted.count].chartEnd
+                    let scale = max(1,abs(start.u),abs(start.v),abs(end.u),abs(end.v))
+                    let rounding = Double.ulpOfOne * scale * 64
+                    guard abs(start.u-end.u) <= rounding,abs(start.v-end.v) <= rounding else {
+                        throw failure(.topologyFailure,tolerance,
+                            "Certified free-surface integration requires connected trims to parameter rounding precision.")
+                    }
+                }
+                let curves = lifted.map(\.translatedCurve)
+                let charts = try curves.map { try SurfaceAreaParameterChartEncloser(curve:$0,on:surface,
+                    maximumControlPointCount:options.maximumControlPointCount,
+                    maximumBoundaryCurveCount:options.maximumBoundaryCurveCount,tolerance:tolerance,
+                    consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) }) }
+                loops[index] = (loops[index].role,curves,charts)
+            }
         }
         guard let firstCurve = loops.first?.curves.first else {
             throw failure(.topologyFailure, tolerance, "Face area has no trimming boundary.")
         }
-        let anchor = try firstCurve.startParameter(tolerance: tolerance)
+        let anchor: SurfaceParameter
+        if let certifiedAnchor { anchor = certifiedAnchor }
+        else { anchor = try firstCurve.startParameter(tolerance:tolerance) }
         let reference = try surface.point(u: anchor.u, v: anchor.v, tolerance: tolerance)
         let prepared = try PreparedSurfaceAreaIntegrand(surface: surface, tolerance: tolerance,
                                                         maximumControlPointCount: options.maximumControlPointCount)
@@ -67,12 +113,21 @@ struct CertifiedSurfaceFaceAreaIntegrator {
         var estimatedArea = 0.0
         for loop in loops {
             var signed = SurfaceParameterAreaBounds.zero
-            for curve in loop.curves {
-                signed = signed.adding(try SurfaceParameterCurveAreaIntegrator().bounds(
-                    for: curve, uShift: 0, requestedWidth: tolerance.relative, tolerance: tolerance))
+            if usesImplicitWork {
+                for chart in loop.charts {
+                    let flux = try effortFlux(chart:chart,options:options,work:&work,tolerance:tolerance)
+                    signed = signed.adding(SurfaceParameterAreaBounds(lower:flux.lower,upper:flux.upper))
+                }
+            } else {
+                for curve in loop.curves {
+                    signed = signed.adding(try SurfaceParameterCurveAreaIntegrator().bounds(
+                        for: curve, uShift: 0, requestedWidth: tolerance.relative, tolerance: tolerance))
+                }
             }
             let chartArea = abs((signed.lower + signed.upper) * 0.5)
-            let p = try loop.curves[0].parameter(atNormalizedFraction: 0.5, tolerance: tolerance)
+            let p: SurfaceParameter
+            if usesImplicitWork { p = anchor }
+            else { p = try loop.curves[0].parameter(atNormalizedFraction: 0.5, tolerance: tolerance) }
             let geometry = try surface.parameterDerivatives(u: p.u, v: p.v, tolerance: tolerance)
             estimatedArea += chartArea * geometry.tangentU.cross(geometry.tangentV).length
         }
@@ -82,7 +137,6 @@ struct CertifiedSurfaceFaceAreaIntegrator {
         let areaGoal = (tolerance.distance * tolerance.distance + tolerance.relative * estimatedArea) * 0.125
         let momentGoal = tolerance.distance * estimatedArea / sqrt(3) * 0.0625
         let goals = [areaGoal, momentGoal, momentGoal, momentGoal].map { $0 / Double(count) }
-        var work = 0
         var total = Array(repeating: OutwardScalarInterval.exact(0), count: 4)
         for loop in loops {
             var accumulated = Array(repeating: OutwardScalarInterval.exact(0), count: 4)
@@ -135,6 +189,45 @@ struct CertifiedSurfaceFaceAreaIntegrator {
             centroid: Point3D(x: centers[0], y: centers[1], z: centers[2]))
     }
 
+    /// Coarse signed UV effort bounds use the same chart/root proof and query work.
+    private func effortFlux(chart: SurfaceAreaParameterChartEncloser,
+                            options: FaceAreaIntegrationOptions, work: inout Int,
+                            tolerance: ModelingTolerance) throws -> OutwardScalarInterval {
+        let unit = try ScalarInterval(lower:0,upper:1)
+        var stack = [Cell(t:unit,r:unit,depth:0)]
+        var total = OutwardScalarInterval.exact(0)
+        while let cell = stack.popLast() {
+            try consumeWork(&work,options:options,tolerance:tolerance)
+            do {
+                let flux = try chart.signedFluxBounds(over:cell.t,tolerance:tolerance,
+                    consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
+                total = total + flux * (OutwardScalarInterval.exact(cell.t.upper) - .exact(cell.t.lower))
+            } catch is SurfaceAreaEnclosureRefinementRequired {
+                guard cell.depth < options.maximumSubdivisionDepth else {
+                    throw failure(.resourceLimitExceeded,tolerance,"Face area effort proof reached its shared subdivision depth limit.")
+                }
+                let middle = cell.t.midpoint
+                guard middle > cell.t.lower,middle < cell.t.upper else {
+                    throw failure(.classificationFailure,tolerance,"Face area effort proof reached floating-point resolution.")
+                }
+                stack.append(Cell(t:try ScalarInterval(lower:middle,upper:cell.t.upper),r:unit,depth:cell.depth+1))
+                stack.append(Cell(t:try ScalarInterval(lower:cell.t.lower,upper:middle),r:unit,depth:cell.depth+1))
+            }
+        }
+        guard total.isFinite else { throw failure(.classificationFailure,tolerance,"Face area effort proof exceeded finite arithmetic.") }
+        return total
+    }
+
+    private func consumeWork(_ work: inout Int, options: FaceAreaIntegrationOptions,
+                             tolerance: ModelingTolerance) throws {
+        try checkCancellation(tolerance)
+        work += 1
+        guard work <= options.maximumCellCount else {
+            throw KernelError(phase:.topology,code:.resourceLimitExceeded,residual:Double(work),tolerance:tolerance,
+                message:"Certified face area exceeded its shared cell and localization work budget.")
+        }
+    }
+
     private func integrate(curve: SurfaceParameterCurve, parameterChart: SurfaceAreaParameterChartEncloser,
                            rectangle: SurfaceParameterBox? = nil,
                            anchor: SurfaceParameter, reference: Point3D,
@@ -168,17 +261,21 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                         reference: reference, tolerance: tolerance)
                 } else if prepared.radialIntegrationIsExact {
                     bounds = try prepared.boundaryBounds(curve: curve, anchor: anchor, reference: reference,
-                        boundaryFraction: cell.t, tolerance: tolerance,parameterChart:parameterChart)
+                        boundaryFraction: cell.t, tolerance: tolerance,parameterChart:parameterChart,
+                        consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
                     midpoint = try prepared.boundaryBounds(curve: curve, anchor: anchor, reference: reference,
                         boundaryFraction: ScalarInterval(lower: cell.t.midpoint, upper: cell.t.midpoint), tolerance: tolerance,
-                        parameterChart:parameterChart)
+                        parameterChart:parameterChart,
+                        consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
                 } else {
                     bounds = try prepared.bounds(curve: curve, anchor: anchor, reference: reference,
-                        boundaryFraction: cell.t, radialFraction: cell.r, tolerance: tolerance,parameterChart:parameterChart)
+                        boundaryFraction: cell.t, radialFraction: cell.r, tolerance: tolerance,parameterChart:parameterChart,
+                        consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
                     midpoint = try prepared.bounds(curve: curve, anchor: anchor, reference: reference,
                         boundaryFraction: ScalarInterval(lower: cell.t.midpoint, upper: cell.t.midpoint),
                         radialFraction: ScalarInterval(lower: cell.r.midpoint, upper: cell.r.midpoint), tolerance: tolerance,
-                        parameterChart:parameterChart)
+                        parameterChart:parameterChart,
+                        consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
                 }
                 let size = OutwardScalarInterval.exact(cell.t.upper) - .exact(cell.t.lower)
                 let height = OutwardScalarInterval.exact(cell.r.upper) - .exact(cell.r.lower)
