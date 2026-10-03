@@ -38,8 +38,8 @@ package struct FaceRemovalHealer: Sendable {
         guard plan.isEmpty == false else {
             throw failure(.invalidInput, featureID, tolerance, "Healing removes at least one face.")
         }
-        guard let body = model.bodies[bodyID], body.kind == .solid else {
-            throw failure(.invalidInput, featureID, tolerance, "Healing over removed faces requires a solid.")
+        guard let body = model.bodies[bodyID] else {
+            throw failure(.missingReference, featureID, tolerance, "The healed body is missing.")
         }
         let scope = try BodyTopologyScope(bodyID: bodyID, model: model)
         let bodyFaces = scope.references.compactMap { reference -> FaceID? in

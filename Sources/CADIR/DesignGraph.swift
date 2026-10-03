@@ -1720,8 +1720,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         guard node.inputs == [FeatureInput(featureID: feature.target.featureID, role: .target)] else {
             throw FeatureEvaluationError.invalidGraph("Remove Fillets features must consume exactly their target.")
         }
-        guard nodes[feature.target.featureID]?.outputs.contains(where: { $0.role == .body }) == true, outputRoles == [.body] else {
-            throw FeatureEvaluationError.invalidGraph("Remove Fillets takes a solid and publishes one.")
+        guard let targetPort = nodes[feature.target.featureID]?.bodyOrSheetOutput, outputRoles == [targetPort] else {
+            throw FeatureEvaluationError.invalidGraph("Remove Fillets takes a solid or a sheet and publishes the same kind of body.")
         }
     }
 

@@ -98,6 +98,28 @@ struct FaceRemovalHealingTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func removingFilletsSharpensASheet() throws {
+        // The rounded box opened top and bottom: a sheet tube whose four rounds Remove Fillets
+        // takes out, its walls run on to sharp corners, open as before.
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let boxID = try roundedBox(&builder)
+        let caps = try subshapes(in: builder, of: boxID) { value, model in
+            guard case let .face(id) = value, let face = model.faces[id], case let .plane(plane)? = model.geometry.surfaces[face.surfaceID] else { return false }
+            return abs(abs(plane.normal.z) - 1) < 1e-9
+        }
+        #expect(caps.count == 2)
+        let tube = try builder.faceDelete(target: boxID, faces: caps)
+        _ = try builder.removeFillets(target: tube, maximumRadius: millimeters(6), convexity: .convex)
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        try model.validate(level: .exact, tolerance: .standard)
+        #expect(model.bodies.values.allSatisfy { $0.kind == .sheet })
+        #expect(model.faces.count == 4)
+        for (x, y) in [(0.02, 0.01), (-0.02, 0.01), (-0.02, -0.01), (0.02, -0.01)] {
+            #expect(model.vertices.values.contains { abs($0.point.x - x) < 1e-9 && abs($0.point.y - y) < 1e-9 }, "\(x) \(y)")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func deletingOneRoundCornerSharpensIt() throws {
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
         let boxID = try roundedBox(&builder)

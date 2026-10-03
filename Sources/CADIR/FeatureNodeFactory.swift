@@ -704,10 +704,10 @@ public enum FeatureNodeFactory {
                 throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
             }
             try feature.validate()
-            try validateSource(feature.target.featureID, role: .body, in: document)
+            let targetPort = try bodyOrSheetPort(of: feature.target.featureID, in: document)
             return FeatureNode(
                 id: id, name: name, operation: operation,
-                inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)], outputs: [FeatureOutput(role: .body)]
+                inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)], outputs: [FeatureOutput(role: targetPort)]
             )
         case .faceMatch:
             guard case let .faceMatch(feature) = operation else {

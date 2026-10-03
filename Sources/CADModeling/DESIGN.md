@@ -1073,7 +1073,9 @@ mm²) and None (250 + 12.5 t mm²), and a wall turned about its straight edge on
 arc-edged end wall's refusal.
 
 `FaceRemovalHealer` heals a solid over faces taken out of it (Delete Face with
-`heals`, and Remove Fillets From Shell): the faces around keep their surfaces and
+`heals`, and Remove Fillets From Shell), and Remove Fillets heals a sheet the same way, open (its
+rounds' open ends close up with the faces beside them; the result is published as a sheet and
+validated exactly): the faces around keep their surfaces and
 each removed face collapses onto them, as `FaceRemovalPlanner` chooses:
 
 | Collapse | Removed face | Topology | Geometry re-solved |
@@ -1097,7 +1099,7 @@ volume least is kept. Faces touching one another go together: as a hole when the
 through one; otherwise every combination of their collapses (at most 256) is healed at
 once and the one that validates and changes the volume least kept (chamfers meeting at a
 mitre each collapse onto their edge together); otherwise one at a time, each the first left
-that heals alone. `FaceRemovalHealingTests` prove a filled hole, a sharpened rounded box, the
+that heals alone. `FaceRemovalHealingTests` prove a filled hole, a sharpened rounded box and the same box opened into a sheet tube, the
 video's L slab whose small rounds wrap a kept 8 mm round (all rounds to 3 mm removed exactly),
 one sharpened corner, a restored chamfered edge, two chamfers meeting at a corner deleted
 together, radius and convexity filters and the refusal of a top no neighbours close over.
