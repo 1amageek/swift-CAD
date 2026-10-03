@@ -119,16 +119,12 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
 
     public func insertingKnot(
         _ value: Double,
+        expansionOptions: PeriodicBSplineExpansionOptions = .init(),
         tolerance: ModelingTolerance
     ) throws -> BSplineCurve3D {
         try validate(tolerance: tolerance)
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Periodic refinement must insert translated
-        // knot copies and retain one homogeneous cycle. The public BSplineCurve3D
-        // insertion entry rejects it until exact periodic refinement passes shape
-        // and seam-derivative tests; nonperiodic insertion remains executable.
-        guard !isPeriodic else {
-            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                message: "Exact periodic B-spline knot refinement is not yet implemented.")
+        if isPeriodic {
+            return try periodicRefinement(at: value, options: expansionOptions, tolerance: tolerance)
         }
         guard value.isFinite else {
             throw GeometryError.invalidCoordinate(value)
@@ -147,6 +143,13 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
             throw GeometryError.invalidDistance(insertionValue)
         }
 
+        return try insertingInteriorKnot(insertionValue, multiplicity: multiplicity, tolerance: tolerance)
+    }
+
+    /// Exact Boehm refinement after the caller has resolved the input domain and multiplicity.
+    func insertingInteriorKnot(
+        _ insertionValue: Double, multiplicity: Int, tolerance: ModelingTolerance
+    ) throws -> BSplineCurve3D {
         let span = knotSpan(containing: insertionValue)
         let lastControlPointIndex = controlPointCount - 1
         var updatedWeightedPoints = Array(
@@ -172,7 +175,7 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
         if blendedStart <= blendedEnd {
             for index in blendedStart...blendedEnd {
                 let denominator = knots[index + degree] - knots[index]
-                guard denominator > Double.ulpOfOne else {
+                guard denominator.isFinite, denominator > 0 else {
                     throw GeometryError.invalidDistance(denominator)
                 }
                 let alpha = (insertionValue - knots[index]) / denominator

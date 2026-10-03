@@ -52,8 +52,13 @@ immutable copies. There is no shared mutable state or target-dependent isolation
 ## Failure, Concurrency, and Constraints
 
 Malformed cycles fail with invalidInput; finite arithmetic exhaustion is explicit.
-Periodic refinement remains unsupported until translated knot insertions preserve
-the homogeneous cycle. Exact finite restrictions extend cyclic knots and controls
+Periodic refinement extends a finite window with ceil(p/N)+2 padding cycles on
+both sides. It inserts one exact homogeneous knot copy per interior cycle using
+Boehm refinement, then extracts the central cycle. The translated output knot
+sequence and repeated controls must agree within arithmetic resolution; controls
+are never fitted or averaged. Existing knots use exact equality for multiplicity.
+The period and chosen origin are retained. Inserting at the seam is valid until
+its multiplicity reaches p; exceeding that multiplicity fails as invalidInput. Exact finite restrictions extend cyclic knots and controls
 over a containing finite window, insert the two requested boundary knots in
 homogeneous coordinates, and extract a clamped open restriction. No spline fitting
 or geometric tolerance snapping is used in the restriction algorithm.
@@ -63,7 +68,12 @@ budget. The default is 65,536 controls, selecting about 2 MiB for the combined
 point and weight buffers before extraction, in addition to knot and algorithm storage. Allocation is checked against this budget and integer
 overflow before expansion, including two degree-fold boundary insertions in the workspace.
 Larger intervals or degrees may use a larger explicit
-budget; exhaustion fails with resourceLimitExceeded. Unrepresentable translated
+budget; exhaustion fails with resourceLimitExceeded.
+The same options own maximumKnotInsertionWork: one unit per control processed by
+one insertion. The default 1,048,576 selects sixteen passes over the default control
+buffer. Both budgets accept any positive representable Int. Total insertion work
+and all generated counts are checked before allocation; callers may explicitly
+raise either budget without changing geometric semantics. Unrepresentable translated
 knots or boundaries fail rather than returning a collapsed restriction.
 
 Bezier bounds consume an exact restriction of the requested interval. A C0 corner
@@ -82,6 +92,8 @@ seam derivatives, normalization with nonzero origins, origin changes, reversal,
 transform/transport preservation and malformed-cycle refusal through Curve3D and
 ValidatedCurve3D. PeriodicBSplineRestrictionTests owns seam-crossing and multi-period restrictions,
 projection and interval bounds, malformed ranges and exhausted expansion budgets.
-G1 remains open until periodic refinement and
+PeriodicBSplineRefinementTests owns rational/polynomial locus and derivative
+preservation, seam and interior multiplicities, p>N cycles, translated insertion
+parameters and resource failures. G1 remains open until
 portable runtime evidence close the remaining gaps. Higher consumers that assume
 a closed domain require review under G5; metadata cannot prove their support.

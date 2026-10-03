@@ -26,26 +26,31 @@ extension BSplineCurve3D {
               let cycleCount = Int(exactly: cycles) else {
             throw expansionFailure(tolerance)
         }
+        let expanded = try periodicWindow(firstCycle: firstCycle, cycleCount: cycleCount,
+            reservedControlPoints: 2 * degree, options: options, tolerance: tolerance)
+        guard expanded.knots[degree] < lower, expanded.knots[expanded.controlPointCount] > upper else {
+            throw expansionFailure(tolerance)
+        }
+        return try BSplineCurveSegmentExtractor().segment(
+            of: expanded, from: lower, to: upper, tolerance: tolerance)
+    }
+
+    func periodicWindow(
+        firstCycle: Double, cycleCount: Int, reservedControlPoints: Int,
+        options: PeriodicBSplineExpansionOptions, tolerance: ModelingTolerance
+    ) throws -> BSplineCurve3D {
+        let count = controlPointCount - degree
         let (independentCount, countOverflow) = cycleCount.multipliedReportingOverflow(by: count)
         let (expandedCount, degreeOverflow) = independentCount.addingReportingOverflow(degree)
-        let (lastKnotIndex, knotOverflow) = expandedCount.addingReportingOverflow(degree)
-        guard !countOverflow, !degreeOverflow, !knotOverflow, lastKnotIndex < Int.max,
-              expandedCount <= options.maximumControlPointCount else {
+        let (workspaceCount, workspaceOverflow) = expandedCount.addingReportingOverflow(reservedControlPoints)
+        guard cycleCount > 0, reservedControlPoints >= 0, !countOverflow, !degreeOverflow,
+              !workspaceOverflow, workspaceCount <= options.maximumControlPointCount else {
             throw expansionFailure(tolerance)
         }
-        let cycleKnots = Array(knots[degree..<(degree + count)])
-        var expandedKnots: [Double] = []
-        expandedKnots.reserveCapacity(lastKnotIndex + 1)
-        for index in -degree...expandedCount {
-            let quotient = index >= 0 ? index / count : (index + 1) / count - 1
-            let remainder = index - quotient * count
-            let translated = cycleKnots[remainder] + (firstCycle + Double(quotient)) * period
-            guard translated.isFinite else { throw expansionFailure(tolerance) }
-            expandedKnots.append(translated)
-        }
-        guard expandedKnots[degree] < lower, expandedKnots[expandedCount] > upper else {
-            throw expansionFailure(tolerance)
-        }
+        let expandedKnots = try Self.translatedPeriodicKnots(degree: degree,
+            cycleKnots: Array(knots[degree..<(degree + count)]),
+            period: knots[controlPointCount] - knots[degree],
+            independentControlCount: independentCount, firstCycle: firstCycle, tolerance: tolerance)
         var points: [Point3D] = []
         var expandedWeights: [Double] = []
         points.reserveCapacity(expandedCount)
@@ -57,13 +62,12 @@ extension BSplineCurve3D {
         let expanded = BSplineCurve3D(degree: degree, knots: expandedKnots,
             controlPoints: points, weights: expandedWeights)
         try expanded.validate(tolerance: tolerance)
-        return try BSplineCurveSegmentExtractor().segment(
-            of: expanded, from: lower, to: upper, tolerance: tolerance)
+        return expanded
     }
 
-    private func expansionFailure(_ tolerance: ModelingTolerance) -> KernelError {
+    func expansionFailure(_ tolerance: ModelingTolerance) -> KernelError {
         KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
-            message: "The periodic restriction exceeds its control budget or finite knot resolution.")
+            message: "The periodic edit exceeds its storage, insertion-work or finite knot resolution budget.")
     }
 
     /// A finite second-derivative bound requires a C1 certificate at every interior knot.

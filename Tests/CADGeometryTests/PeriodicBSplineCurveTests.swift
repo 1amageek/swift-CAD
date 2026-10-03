@@ -195,18 +195,4 @@ struct PeriodicBSplineCurveTests {
         #expect(throws: GeometryError.self) { try overflowingDegree.validate(tolerance: tolerance) }
     }
 
-    @Test(.timeLimit(.minutes(1)))
-    func pendingPeriodicRefinementRefusesInsteadOfReturningAnOpenApproximation() throws {
-        let cyclic = try curve()
-        for operation in [
-            { try cyclic.insertingKnot(4, tolerance: tolerance) },
-        ] {
-            do {
-                _ = try operation()
-                Issue.record("An incomplete periodic edit returned success.")
-            } catch let error as KernelError {
-                #expect(error.code == .unsupportedCapability)
-            }
-        }
-    }
 }

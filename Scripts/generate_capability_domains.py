@@ -11,7 +11,6 @@ import sys
 # Bindings identify the public consumers of a source-owned condition. They do
 # not infer geometric support from identifier spelling or comment wording.
 BINDINGS = {
-    "BSplineCurve3D": (["rationalBSplineCurve"], ["boundaryCurve", "parameterization", "representation"]),
     "CADDocumentTranslation": (["importedBRep", "CADCommand"], ["transformation", "representation", "topology"]),
     "BSplineSurfaceEmbeddingValidator": (["loft"], ["supportSurface", "connection", "parameterization"]),
     "SheetExtendFeatureEvaluator": (["sheetExtend"], ["supportSurface", "boundaryCurve", "connection"]),

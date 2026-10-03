@@ -21,13 +21,9 @@ extension BSplineCurve3D {
         guard cycleWeights.count == count else { throw invalidCycle(tolerance) }
         let period = upper - lower
         guard period.isFinite else { throw invalidCycle(tolerance) }
-        var extendedKnots: [Double] = []
-        extendedKnots.reserveCapacity(knotCount + 1)
-        for index in -degree...(count + degree) {
-            let quotient = index >= 0 ? index / count : (index + 1) / count - 1
-            let remainder = index - quotient * count
-            extendedKnots.append(cycleKnots[remainder] + Double(quotient) * period)
-        }
+        let extendedKnots = try Self.translatedPeriodicKnots(degree: degree,
+            cycleKnots: Array(cycleKnots.dropLast()), period: period,
+            independentControlCount: count, firstCycle: 0, tolerance: tolerance)
         var points = controlPoints
         var extendedWeights = cycleWeights
         points.reserveCapacity(extendedCount)
@@ -42,6 +38,32 @@ extension BSplineCurve3D {
         )
         try curve.validate(tolerance: tolerance)
         return curve
+    }
+
+    static func translatedPeriodicKnots(
+        degree: Int, cycleKnots: [Double], period: Double,
+        independentControlCount: Int, firstCycle: Double, tolerance: ModelingTolerance
+    ) throws -> [Double] {
+        let (last, overflow) = independentControlCount.addingReportingOverflow(degree)
+        let (total, totalOverflow) = last.addingReportingOverflow(degree + 1)
+        guard !overflow, !totalOverflow else {
+            throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                message: "Periodic knot expansion exceeded representable storage.")
+        }
+        let count = cycleKnots.count
+        var result: [Double] = []
+        result.reserveCapacity(total)
+        for index in -degree...last {
+            let quotient = index >= 0 ? index / count : (index + 1) / count - 1
+            let remainder = index - quotient * count
+            let translated = cycleKnots[remainder] + (firstCycle + Double(quotient)) * period
+            guard translated.isFinite else {
+                throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                    message: "Periodic knot translation exceeded finite arithmetic.")
+            }
+            result.append(translated)
+        }
+        return result
     }
 
     /// One finite interval representing every parameter of the curve.
