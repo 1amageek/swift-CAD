@@ -201,11 +201,7 @@ struct PeriodicBSplineSurfaceTests {
             #expect((try refined.point(u: u, v: v, tolerance: tolerance) - expected).length < 2e-12)
             #expect((try raised.point(u: u, v: v, tolerance: tolerance) - expected).length < 2e-12)
         }
-        #expect(throws: KernelError.self) { try cyclic.insertingKnot(direction: .u, value: 4, tolerance: tolerance) }
         #expect(throws: KernelError.self) { try cyclic.elevatingDegree(direction: .u, tolerance: tolerance) }
-        #expect(throws: KernelError.self) {
-            try cyclic.trimmed(uFrom: 7.5, uTo: 8.5, vFrom: 0, vTo: 1, tolerance: tolerance)
-        }
     }
 
     @Test(.timeLimit(.minutes(1)))

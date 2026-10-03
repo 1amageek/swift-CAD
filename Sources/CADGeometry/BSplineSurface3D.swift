@@ -172,14 +172,13 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
     public func insertingKnot(
         direction: SurfaceParameterDirection,
         value: Double,
+        expansionOptions: PeriodicBSplineExpansionOptions = .init(),
         tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
         try validate(tolerance: tolerance)
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Cyclic-axis surface knot insertion is not integrated.
-        // Public BSplineSurface3D.insertingKnot reaches here. G2.2 must preserve the tensor
-        // locus, cyclic tails, origins and total expansion/work budgets before success.
-        guard direction == .u ? !isUPeriodic : !isVPeriodic else {
-            throw periodicOperationFailure("Periodic surface knot refinement is not integrated.", tolerance)
+        if isUPeriodic || isVPeriodic {
+            return try refiningTensorAxis(direction: direction, value: value,
+                options: expansionOptions, tolerance: tolerance)
         }
         let insertionValue: Double
         switch direction {
@@ -258,14 +257,14 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         uTo endUParameter: Double,
         vFrom startVParameter: Double,
         vTo endVParameter: Double,
+        expansionOptions: PeriodicBSplineExpansionOptions = .init(),
         tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
         try validate(tolerance: tolerance)
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Seam-crossing surface restrictions are not integrated.
-        // Public BSplineSurface3D.trimmed reaches here. G2.2 must extract exact homogeneous
-        // tensor restrictions with total expansion/work budgets before returning success.
-        guard !isUPeriodic && !isVPeriodic else {
-            throw periodicOperationFailure("Periodic surface restrictions are not integrated.", tolerance)
+        if isUPeriodic || isVPeriodic {
+            return try restrictingTensor(uFrom: startUParameter, uTo: endUParameter,
+                vFrom: startVParameter, vTo: endVParameter,
+                options: expansionOptions, tolerance: tolerance)
         }
         let startU = canonicalKnotValue(
             startUParameter,

@@ -122,11 +122,13 @@ extension KernelCapabilities {
         "exactRationalIsoparametricCurves",
         "finiteDifferentialRangeValidation", "periodicTensorPointAndSecondOrderJets",
         "independentFundamentalOrigins", "periodicRationalIsoparametricCurves",
-        "strictAxisPeriodicitySchema",
+        "strictAxisPeriodicitySchema", "exactPeriodicTensorRefinement",
+        "exactSeamCrossingTensorRestriction", "totalTensorStorageAndInsertionWorkBudgets",
       ],
       failureCodes: [
         .invalidInput, .intersectionFailure, .ambiguousSelection,
         .singularSystem, .resourceLimitExceeded, .topologyFailure, .unsupportedCapability,
+        .classificationFailure,
       ],
       tolerance: .standard,
       publicAPIs: [
@@ -139,6 +141,7 @@ extension KernelCapabilities {
         "BSplineSurfaceParameterProjectionTests",
         "BSplineSurfaceTrimmingTests",
         "PeriodicBSplineSurfaceTests",
+        "PeriodicBSplineSurfaceEditingTests",
       ]
     ),
     KernelCapability(

@@ -1,6 +1,7 @@
 import CADCore
 
-/// Bounds storage and homogeneous knot-insertion work for a cyclic curve.
+/// Bounds control storage and homogeneous knot-insertion work for cyclic edits.
+/// Tensor edits charge generated nets and conservative transient control-line storage.
 public struct PeriodicBSplineExpansionOptions: Hashable, Sendable {
     public var maximumControlPointCount: Int
     public var maximumKnotInsertionWork: Int

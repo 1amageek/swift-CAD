@@ -18,24 +18,13 @@ extension BSplineCurve3D {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                 message: "Periodic knot insertion cannot exceed the degree-fold multiplicity.")
         }
-        let (padding, paddingAdditionOverflow) = ((degree - 1) / count).addingReportingOverflow(3)
-        guard !paddingAdditionOverflow else { throw expansionFailure(tolerance) }
-        let (twicePadding, paddingOverflow) = padding.multipliedReportingOverflow(by: 2)
-        let (cycleCount, cycleOverflow) = twicePadding.addingReportingOverflow(1)
-        guard !paddingOverflow, !cycleOverflow else { throw expansionFailure(tolerance) }
         let isSeam = parameter == lower
-        let insertionCount = cycleCount - (isSeam ? 1 : 0)
-        let (initialIndependentCount, countOverflow) = cycleCount.multipliedReportingOverflow(by: count)
-        let (initialControlCount, controlOverflow) = initialIndependentCount.addingReportingOverflow(degree)
-        let (rectangularWork, workOverflow) = insertionCount.multipliedReportingOverflow(by: initialControlCount)
-        let (triangularProduct, triangleOverflow) = insertionCount.multipliedReportingOverflow(by: insertionCount - 1)
-        let (totalWork, totalOverflow) = rectangularWork.addingReportingOverflow(triangularProduct / 2)
-        guard !countOverflow, !controlOverflow, !workOverflow, !triangleOverflow,
-              !totalOverflow, totalWork <= options.maximumKnotInsertionWork else {
-            throw expansionFailure(tolerance)
-        }
-        var window = try periodicWindow(firstCycle: -Double(padding), cycleCount: cycleCount,
-            reservedControlPoints: insertionCount, options: options, tolerance: tolerance)
+        let plan = try PeriodicBSplineEditPlan.refinement(degree: degree,
+            controlPointCount: controlPointCount, periodic: true, isSeam: isSeam, tolerance: tolerance)
+        try plan.admit(options, tolerance: tolerance)
+        let padding = (plan.cycleCount - 1) / 2
+        var window = try periodicWindow(firstCycle: plan.firstCycle, cycleCount: plan.cycleCount,
+            reservedControlPoints: plan.reservedControlPoints, options: options, tolerance: tolerance)
         let firstInsertionCycle = -padding + (isSeam ? 1 : 0)
         for cycle in firstInsertionCycle...padding {
             let translated = parameter + Double(cycle) * period

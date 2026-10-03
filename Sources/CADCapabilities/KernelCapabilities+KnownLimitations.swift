@@ -25,20 +25,6 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/BSplineSurface3D+ParameterProjection.swift", sourceLine: 13
         ),
         KernelDomainLimitation(
-            id: "condition-a61d37202fd6eeb0",
-            operations: ["rationalBSplineSurface"],
-            dimensions: [.parameterization, .representation],
-            condition: "Cyclic-axis surface knot insertion is not integrated. Public BSplineSurface3D.insertingKnot reaches here. G2.2 must preserve the tensor locus, cyclic tails, origins and total expansion/work budgets before success.",
-            sourcePath: "Sources/CADGeometry/BSplineSurface3D.swift", sourceLine: 178
-        ),
-        KernelDomainLimitation(
-            id: "condition-fdc6fb6cca512e7d",
-            operations: ["rationalBSplineSurface"],
-            dimensions: [.parameterization, .representation],
-            condition: "Seam-crossing surface restrictions are not integrated. Public BSplineSurface3D.trimmed reaches here. G2.2 must extract exact homogeneous tensor restrictions with total expansion/work budgets before returning success.",
-            sourcePath: "Sources/CADGeometry/BSplineSurface3D.swift", sourceLine: 264
-        ),
-        KernelDomainLimitation(
             id: "condition-b0c044d14fdc54a1",
             operations: ["loft"],
             dimensions: [.supportSurface, .connection, .parameterization],

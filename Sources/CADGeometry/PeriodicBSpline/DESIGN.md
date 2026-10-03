@@ -133,9 +133,10 @@ Fixed coordinate -> normalized basis -> homogeneous isocurve with varying-axis c
   BSplineCurve3D.validatePeriodicAxis predicate proves translated knots and origins;
   both curve and tensor owners check their own repeated homogeneous controls.
 - Isocurves inherit the varying axis cycle/origin and normalize the fixed axis.
-- Rigid transforms preserve the cycle and origins; nonperiodic-axis edits preserve
-  the other axis. Editing a periodic axis is explicit typed unsupported until the
-  exact tensor refinement/restriction sprint is verified; it never silently opens.
+- Rigid transforms preserve the cycle and origins. Refinement applies one shared
+  cyclic axis plan independently to every homogeneous control line, preserving
+  both cycles and origins. Degree elevation of a cyclic axis remains explicit
+  typed unsupported until G5/G6 is verified.
 - The factory admits the total expanded net against maximumControlPointCount in
   PeriodicBSplineExpansionOptions before allocation. Overflow and budget excess
   return resourceLimitExceeded; malformed inputs return invalidInput/GeometryError.
@@ -147,3 +148,52 @@ seam, origin, isocurve, mixed-axis edit/transform, schema and invalid-cycle fixt
 PARG.G2.1 proves values/evaluation; G2.2 proves exact editing; G2.3 proves prepared
 algorithms/transport/normal WASM. PARI owns Embedded and whole-system integration;
 G5 owns every downstream consumer. No partial sprint establishes complete G2.
+
+### Exact Tensor Editing and Resource Admission
+
+Public insertingKnot and trimmed accept PeriodicBSplineExpansionOptions. Cyclic
+refinement inserts the same translated parameter into every control line along
+the selected axis. Restrictions require finite increasing unwrapped U/V bounds;
+open-axis bounds must lie in the natural interval. Restriction first extracts
+each U row, then each V column, using exact homogeneous boundary insertion.
+The result is open in both directions, clamped at the requested ends, with
+original interior knot multiplicities retained. Origin metadata is cleared only
+on this explicitly requested finite restriction. Original sources remain values.
+
+```text
+Source + request -> shared axis edit plans -> checked tensor resource admission
+    -> U row restriction -> intermediate net -> V column restriction -> open net
+Source + insertion -> shared cyclic axis plan -> checked tensor resource admission
+    -> per-line homogeneous refinement -> periodic net with original origins
+```
+
+The shared PeriodicBSplineEditPlan bounds the containing window and insertion
+count before allocating controls. Restriction reserves at most 2p insertions;
+the work charge is k*n+k*(k-1)/2 for k insertions and n initial controls.
+Refinement uses its exact translated insertion count. The same plan is consumed
+by the curve and tensor algorithms; neither derives resource costs independently.
+
+For a tensor edit maximumControlPointCount admits a conservative upper bound on
+simultaneously owned generated control slots, excluding the borrowed source and
+knot/index/object metadata. One slot means a position/weight pair or a homogeneous
+control. At most eight line-widths cover temporary inputs, old/new insertion
+buffers, extracted controls and the line result. Refinement charges its output
+net plus eight workspace line-widths. Restriction charges the maximum of (U
+intermediate net + eight U workspace widths) and (U intermediate net + V output
+net + eight maximum line widths). Counts are upper bounds, so a feasible operation
+can require a larger budget than its eventual output cardinality. No full
+expanded cyclic tensor is allocated. maximumKnotInsertionWork admits the sum
+of all line plans: U work times source V count plus V work times the conservative
+U output count, or selected-axis work times the perpendicular control count.
+Every sum/product is checked for overflow before processing the first line.
+Malformed bounds fail as invalidInput, exceeded or unrepresentable budgets as
+resourceLimitExceeded, without a partial surface result. Open-only public edits
+retain their existing implementation; tensor admission owns edits involving a
+cycle. Curve restrictions now also consume their declared insertion-work budget.
+
+PeriodicBSplineSurfaceEditingTests owns rational/polynomial seam and multi-period
+restrictions, both refinement directions, repeated seams and p>N cycles, origin
+preservation, mixed open/cyclic axes, independently exhausted tensor storage/work,
+and malformed intervals. PeriodicBSplineRestrictionTests owns the shared curve
+restriction work refusal. These fixtures must verify positions and mixed jets,
+including one-sided boundary semantics at lower-continuity knots.

@@ -6,28 +6,12 @@ extension BSplineCurve3D {
         from lower: Double, to upper: Double,
         options: PeriodicBSplineExpansionOptions, tolerance: ModelingTolerance
     ) throws -> BSplineCurve3D {
-        try options.validate(tolerance: tolerance)
-        guard lower.isFinite, upper.isFinite, upper > lower else {
-            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
-                message: "A periodic restriction requires a finite increasing interval.")
-        }
-        let count = controlPointCount - degree
-        let origin = knots[degree]
-        let period = knots[controlPointCount] - origin
-        // Whole-cycle padding makes both extraction boundaries interior knots.
-        let firstCycle = floor((lower - origin) / period) - 1
-        let lastCycle = ceil((upper - origin) / period) + 1
-        let cycles = lastCycle - firstCycle
-        let (workspacePadding, paddingOverflow) = degree.multipliedReportingOverflow(by: 3)
-        guard !paddingOverflow else { throw expansionFailure(tolerance) }
-        let available = options.maximumControlPointCount - workspacePadding
-        guard firstCycle.isFinite, lastCycle.isFinite, cycles.isFinite,
-              available > 0, cycles > 0, cycles <= Double(available / count),
-              let cycleCount = Int(exactly: cycles) else {
-            throw expansionFailure(tolerance)
-        }
-        let expanded = try periodicWindow(firstCycle: firstCycle, cycleCount: cycleCount,
-            reservedControlPoints: 2 * degree, options: options, tolerance: tolerance)
+        let plan = try PeriodicBSplineEditPlan.restriction(degree: degree, knots: knots,
+            controlPointCount: controlPointCount, periodic: true,
+            lower: lower, upper: upper, tolerance: tolerance)
+        try plan.admit(options, tolerance: tolerance)
+        let expanded = try periodicWindow(firstCycle: plan.firstCycle, cycleCount: plan.cycleCount,
+            reservedControlPoints: plan.reservedControlPoints, options: options, tolerance: tolerance)
         guard expanded.knots[degree] < lower, expanded.knots[expanded.controlPointCount] > upper else {
             throw expansionFailure(tolerance)
         }

@@ -136,6 +136,22 @@ struct PeriodicBSplineRestrictionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func restrictionConsumesItsInsertionWorkBudget() throws {
+        let cyclic = try curve()
+        do {
+            _ = try cyclic.trimmed(from: 7.25, to: 9.25,
+                expansionOptions: .init(maximumKnotInsertionWork: 1), tolerance: tolerance)
+            Issue.record("Boundary insertion ignored its declared work budget.")
+        } catch let error as KernelError {
+            #expect(error.code == .resourceLimitExceeded)
+        }
+        let restriction = try cyclic.trimmed(from: 7.25, to: 9.25,
+            expansionOptions: .init(maximumKnotInsertionWork: 1_000), tolerance: tolerance)
+        #expect((try restriction.point(at: 8.25, tolerance: tolerance)
+            - cyclic.point(at: 8.25, tolerance: tolerance)).length < 1e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func expansionBudgetIncludesBoundaryInsertionWorkspace() throws {
         let cyclic = try curve()
         do {

@@ -120,7 +120,7 @@ final same-revision gate completion.
 | `partial` capabilities | 52 | 0 |
 | Required-but-unregistered contracts | 0 in the mechanically enumerated mutation, query, persistence, and exchange routes | 0 |
 | Development-only input envelopes | 115 | 0 completion exemptions |
-| Capability-to-fixture bindings | 616 | Complete adversarial and oracle coverage |
+| Capability-to-fixture bindings | 617 | Complete adversarial and oracle coverage |
 | Final gate evidence manifests | 0 | 8 on one source revision |
 | Completion gates | 0/8 | 8/8 |
 
