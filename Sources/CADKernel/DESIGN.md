@@ -957,7 +957,10 @@ its coedges become constant-parameter curves along the new sheet's boundary, eac
 stretch of its side, and its orientation keeps its outward normal. No extension or shrinking
 applies. `SquareRefitTests` own a box's top refit flat to its Degree, a pentagonal prism's top
 split at its four sharpest corners (both keeping their volume) and a sheet's face refit tangent to
-a curved ramp beside it.
+a curved ramp beside it. `FaceRefitAnalyzer` is Refit Face's Analysis: for each edge of each refit
+face the largest distance from its curve (33 samples) to the new surface's boundary stretch its
+trimming curve names, judged against the modeling distance and placed at the edge's middle
+(`SquareSideAnalysis`); the box-top test owns its four edges lying on the new boundary.
 
 ## Unwrap Face
 

@@ -64,6 +64,10 @@ struct SquareRefitTests {
         #expect(sheets.count == 1)
         #expect(sheets.allSatisfy { Set([$0.uDegree, $0.vDegree]) == [3, 4] && $0.controlPoints.joined().allSatisfy { abs($0.z - s) < 1e-12 } })
         #expect(abs(try volume(refit, in: evaluated) - s * s * s) < s * s * s * 1e-9)
+        // Its Analysis: each of the top's four edges on the new boundary, shown at its middle.
+        let sides = try FaceRefitAnalyzer().analyze(refit, in: evaluated)
+        #expect(sides.count == 4)
+        #expect(sides.allSatisfy { $0.position < 1e-9 && $0.isWithin && abs(($0.point?.z ?? 0) - s) < 1e-12 })
     }
 
     @Test(.timeLimit(.minutes(2)))
