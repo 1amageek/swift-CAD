@@ -269,6 +269,7 @@ private let supportedNativeDocumentKeys: Set<String> = [
     "parameters",
     "designGraph",
     "selectionDimensions",
+    "documentFoundation",
     "metadata"
 ]
 
@@ -329,6 +330,7 @@ private func validateNativeDocumentObject(_ object: [String: Any]) throws {
         path: "document.selectionDimensions",
         using: validateSelectionDimensionObject
     )
+    try validateObjectField("documentFoundation", in: object, path: "document.documentFoundation", using: validateNativeDocumentFoundationObject)
     try validateObjectField("metadata", in: object, path: "document.metadata", using: validateDocumentMetadataObject)
 }
 

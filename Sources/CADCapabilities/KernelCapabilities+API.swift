@@ -10,6 +10,7 @@ extension KernelCapabilities {
       acceptedInputs: ["UI", "Builder", "Agent"],
       exactOutputs: [
         "CADDocument",
+        "typedDocumentAttributeEditsWithLocalReferenceIntegrity",
         "KernelQueryResult",
         "snapMeasurementAndSelectionResults",
         "curveEdgeAndSurfaceProjectionResults",
@@ -34,6 +35,8 @@ extension KernelCapabilities {
         "CADCore.KernelCapabilityDomain",
         "CADCore.KernelDomainLimitation",
         "CADIR.CADCommand",
+        "CADIR.DocumentFoundation",
+        "CADIR.DocumentReferenceResolving",
         "SwiftCAD.DocumentEditing",
         "SwiftCAD.DocumentEditor",
         "SwiftCAD.CADPipeline",
@@ -51,6 +54,8 @@ extension KernelCapabilities {
         "KernelCapabilityDomainTests",
         "KernelCapabilityDomainPipelineTests",
         "CADCommandPipelineTests",
+        "DocumentFoundationTests",
+        "DocumentFoundationCommandTests",
         "KernelQueryPipelineTests",
         "StrictCurrentKernelQuerySchemaTests",
       ]

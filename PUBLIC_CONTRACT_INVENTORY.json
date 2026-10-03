@@ -79,7 +79,9 @@
     "upsertParameter": "API-PARITY-001",
     "addSelectionDimension": "API-PARITY-001",
     "suppressFeature": "API-PARITY-001",
-    "removeFeature": "API-PARITY-001"
+    "removeFeature": "API-PARITY-001",
+    "setDocumentAttribute": "API-PARITY-001",
+    "removeDocumentAttribute": "API-PARITY-001"
   },
   "queries": {
     "evaluatedDocument": "API-PARITY-001",

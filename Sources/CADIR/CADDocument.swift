@@ -10,6 +10,7 @@ public struct CADDocument: Codable, Equatable, Sendable {
     public var parameters: ParameterTable
     public var designGraph: DesignGraph
     public var selectionDimensions: [SelectionDimension]
+    public var documentFoundation: DocumentFoundation
     public var metadata: DocumentMetadata
 
     private enum CodingKeys: String, CodingKey {
@@ -19,6 +20,7 @@ public struct CADDocument: Codable, Equatable, Sendable {
         case parameters
         case designGraph
         case selectionDimensions
+        case documentFoundation
         case metadata
     }
 
@@ -29,6 +31,7 @@ public struct CADDocument: Codable, Equatable, Sendable {
         parameters: ParameterTable = ParameterTable(),
         designGraph: DesignGraph = DesignGraph(),
         selectionDimensions: [SelectionDimension] = [],
+        documentFoundation: DocumentFoundation = DocumentFoundation(),
         metadata: DocumentMetadata = DocumentMetadata()
     ) {
         self.id = id
@@ -37,6 +40,7 @@ public struct CADDocument: Codable, Equatable, Sendable {
         self.parameters = parameters
         self.designGraph = designGraph
         self.selectionDimensions = selectionDimensions
+        self.documentFoundation = documentFoundation
         self.metadata = metadata
     }
 
@@ -49,6 +53,7 @@ public struct CADDocument: Codable, Equatable, Sendable {
             .parameters,
             .designGraph,
             .selectionDimensions,
+            .documentFoundation,
             .metadata,
         ], in: decoder)
         id = try container.decode(DocumentID.self, forKey: .id)
@@ -57,6 +62,7 @@ public struct CADDocument: Codable, Equatable, Sendable {
         parameters = try container.decode(ParameterTable.self, forKey: .parameters)
         designGraph = try container.decode(DesignGraph.self, forKey: .designGraph)
         selectionDimensions = try container.decode([SelectionDimension].self, forKey: .selectionDimensions)
+        documentFoundation = try container.decode(DocumentFoundation.self, forKey: .documentFoundation)
         metadata = try container.decode(DocumentMetadata.self, forKey: .metadata)
     }
 
@@ -68,6 +74,7 @@ public struct CADDocument: Codable, Equatable, Sendable {
         try container.encode(parameters, forKey: .parameters)
         try container.encode(designGraph, forKey: .designGraph)
         try container.encode(selectionDimensions, forKey: .selectionDimensions)
+        try container.encode(documentFoundation, forKey: .documentFoundation)
         try container.encode(metadata, forKey: .metadata)
     }
 
@@ -78,6 +85,7 @@ public struct CADDocument: Codable, Equatable, Sendable {
         try parameters.validate()
         try designGraph.validate(tolerance: tolerance)
         try designGraph.validateExpressions(using: parameters, tolerance: tolerance)
+        try documentFoundation.validate(in: self)
         var dimensionIDs: Set<SelectionDimensionID> = []
         for dimension in selectionDimensions {
             guard dimensionIDs.insert(dimension.id).inserted else {

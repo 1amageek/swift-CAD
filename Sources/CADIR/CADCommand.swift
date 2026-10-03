@@ -7,6 +7,8 @@ public enum CADCommand: Codable, Hashable, Sendable {
     case addSelectionDimension(SelectionDimension)
     case suppressFeature(featureID: FeatureID, suppressed: Bool)
     case removeFeature(FeatureID)
+    case setDocumentAttribute(DocumentAttribute)
+    case removeDocumentAttribute(DocumentAttributeID)
 
     private enum CodingKeys: String, CodingKey {
         case kind
@@ -16,6 +18,8 @@ public enum CADCommand: Codable, Hashable, Sendable {
         case addSelectionDimension
         case suppressFeature
         case removeFeature
+        case setDocumentAttribute
+        case removeDocumentAttribute
     }
 
     private enum Kind: String, Codable {
@@ -25,6 +29,8 @@ public enum CADCommand: Codable, Hashable, Sendable {
         case upsertParameter
         case suppressFeature
         case removeFeature
+        case setDocumentAttribute
+        case removeDocumentAttribute
     }
 
     private struct SuppressFeaturePayload: Codable, Hashable, Sendable {
@@ -54,6 +60,12 @@ public enum CADCommand: Codable, Hashable, Sendable {
             try container.validateOnlyExpectedKeys([.kind, .suppressFeature], in: decoder)
             let payload = try container.decode(SuppressFeaturePayload.self, forKey: .suppressFeature)
             self = .suppressFeature(featureID: payload.featureID, suppressed: payload.suppressed)
+        case .setDocumentAttribute:
+            try container.validateOnlyExpectedKeys([.kind, .setDocumentAttribute], in: decoder)
+            self = .setDocumentAttribute(try container.decode(DocumentAttribute.self, forKey: .setDocumentAttribute))
+        case .removeDocumentAttribute:
+            try container.validateOnlyExpectedKeys([.kind, .removeDocumentAttribute], in: decoder)
+            self = .removeDocumentAttribute(try container.decode(DocumentAttributeID.self, forKey: .removeDocumentAttribute))
         case .removeFeature:
             try container.validateOnlyExpectedKeys([.kind, .removeFeature], in: decoder)
             self = .removeFeature(try container.decode(FeatureID.self, forKey: .removeFeature))
@@ -81,6 +93,12 @@ public enum CADCommand: Codable, Hashable, Sendable {
                 SuppressFeaturePayload(featureID: featureID, suppressed: suppressed),
                 forKey: .suppressFeature
             )
+        case let .setDocumentAttribute(attribute):
+            try container.encode(Kind.setDocumentAttribute, forKey: .kind)
+            try container.encode(attribute, forKey: .setDocumentAttribute)
+        case let .removeDocumentAttribute(id):
+            try container.encode(Kind.removeDocumentAttribute, forKey: .kind)
+            try container.encode(id, forKey: .removeDocumentAttribute)
         case let .removeFeature(featureID):
             try container.encode(Kind.removeFeature, forKey: .kind)
             try container.encode(featureID, forKey: .removeFeature)

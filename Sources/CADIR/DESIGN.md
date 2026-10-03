@@ -9,6 +9,11 @@ design](../../DESIGN.md); its children are indexed below.
 
 ## Responsibilities and Boundaries
 
+Typed source attributes and persistent document/object references are owned by
+[Document Foundation](DocumentFoundation/DESIGN.md). `CADDocument` validates
+that child contract before publishing or fingerprinting a source snapshot;
+external links resolve only against explicitly supplied document snapshots.
+
 [BoundaryContinuity](BoundaryContinuity/DESIGN.md) owns whole-boundary continuity
 certification using the existing G0/G1/G2 vocabulary.
 
@@ -53,6 +58,7 @@ value contract and the package-versioned constants.
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [Swift-CAD package](../../DESIGN.md) | parent | stable topology contract | Defines complete signature retention. | A signature is not a live topology authority. |
+| [Document Foundation](DocumentFoundation/DESIGN.md) | child | typed attributes and persistent reference validation | Owns source attribute identity and local integrity. | Strict required 0.3.0 envelope; symbolic external links require explicit resolution. |
 | [CADGeometry](../CADGeometry/DESIGN.md) | depends on | analytic curve/surface validation | Validates pcurves and surfaces. | Preserve structural rejection rules. |
 | [CADKernel](../CADKernel/DESIGN.md) | used by | snapshot signature construction | Supplies exact signatures for current subshapes. | No partial or Mesh-derived signatures. |
 

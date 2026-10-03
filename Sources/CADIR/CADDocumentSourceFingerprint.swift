@@ -42,6 +42,7 @@ private struct CADDocumentSourceFingerprintPayload: Encodable {
     var parameters: ParameterTableFingerprint
     var designGraph: DesignGraphFingerprint
     var selectionDimensions: [SelectionDimension]
+    var documentFoundation: DocumentFoundation
 
     init(document: CADDocument) throws {
         schemaVersion = document.schemaVersion
@@ -49,6 +50,7 @@ private struct CADDocumentSourceFingerprintPayload: Encodable {
         parameters = ParameterTableFingerprint(table: document.parameters)
         designGraph = try DesignGraphFingerprint(graph: document.designGraph)
         selectionDimensions = try document.selectionDimensions.sortedByStableEncoding()
+        documentFoundation = document.documentFoundation
     }
 }
 

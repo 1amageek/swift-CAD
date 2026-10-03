@@ -17,6 +17,7 @@ extension KernelCapabilities {
         "strictManifestAndDocumentSchemaValidation",
         "documentFeatureParameterAndSelectionIdentityRoundTrip",
         "atomicURLPersistence",
+        "typedAttributeOwnershipAndPersistentReferenceRoundTrip",
       ],
       failureCodes: [
         .invalidInput,
@@ -35,6 +36,7 @@ extension KernelCapabilities {
         "NativeOperationSchemaTests",
         "NativeStableSelectionPackageTests",
         "PeriodicSourcePackageTests",
+        "DocumentFoundationPackageTests",
       ]
     ),
     KernelCapability(
