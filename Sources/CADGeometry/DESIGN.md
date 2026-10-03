@@ -56,6 +56,7 @@ measurement policy.
 |---|---|---|---|---|
 | [KnotRemoval](KnotRemoval/DESIGN.md) | child | Bounded immutable knot reduction with full-domain deviation evidence | Owns G3 curve and tensor-axis reduction | Sampling is not a reduction certificate |
 | [CurveSurfaceOverlap](CurveSurfaceOverlap/DESIGN.md) | child | Complete isolated points and certified continuous intervals | Owns G4 whole-span membership, clipping and correspondence | Unknown membership or incomplete clipping cannot publish a partial result |
+| [GeometryConversion](GeometryConversion/DESIGN.md) | child | Same-chart approximation and continuous error admission | Owns G6 source protocols, candidates and certificates | Point-only mapped consumers still require migration |
 | [Periodic B-spline](PeriodicBSpline/DESIGN.md) | child | Cyclic curve/surface representation and parameter evaluation | Owns G1/G2 periodic axes and fundamental origins | Downstream closure and editing require separate behavioral evidence |
 | [Swift-CAD package](../../DESIGN.md) | parent | package exact-geometry contract | Places geometry below modeling and above core values. | Keep the shared predicate contract authoritative. |
 | [CADModeling](../CADModeling/DESIGN.md) | used by | generated primitive pcurve values | Supplies valid sphere seam/pole curves. | Construction cannot rely on a sphere-only validation bypass. |
@@ -584,7 +585,13 @@ per surface operation; requested boxes only restrict those same nets. The direct
 path prepares transiently and follows identical interval arithmetic. No result
 cache, shared mutation, tolerance change, or cross-request lifetime is introduced.
 Prepared/direct interval equality, disjoint successive boxes and invalid span
-rejection verify this reuse contract.
+rejection verify this reuse contract. Curve Bernstein derivative evaluation
+intersects interval de Casteljau bounds with the coefficient convex hull only
+after the requested patch interval proves that its exact normalized parameters
+lie in [0,1]. This removes artificial dependency width for constant derivatives;
+an empty intersection is an explicit numerical failure. G6's exact line
+certificate and the existing rational curve jet containment tests own regression
+evidence for this shared bound.
 Periodic tensors use the base-cache, seam mapping and smoothness contracts owned
 by [Periodic B-spline](PeriodicBSpline/DESIGN.md#prepared-tensor-bounds-and-projection).
 Their chosen origins affect query representatives rather than cached ownership.

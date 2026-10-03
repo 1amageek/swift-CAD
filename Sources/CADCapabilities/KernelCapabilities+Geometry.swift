@@ -627,5 +627,36 @@ extension KernelCapabilities {
       ],
       testFixtures: ["CurveSurfaceOverlapTests"]
     ),
+    KernelCapability(
+      id: "GEO-CONVERSION-001",
+      operation: "geometryConversion",
+      status: .partial,
+      topology: .notApplicable,
+      acceptedInputs: [
+        "finiteSameChartCurveIntervalsAndSurfaceRectangles",
+        "curveAndSurfaceSourcesWithWholeDomainDifferentialEnclosures",
+        "nativeAnalyticRationalAndAdmittedProceduralGeometry",
+        "explicitPositionTangentAndCurvatureAllowances",
+        "explicitDegreeControlScalarWorkAndCertificationLimits",
+      ],
+      exactOutputs: [
+        "constructedApproximationOrInterpolationCandidate",
+        "outwardCertifiedContinuousPositionTangentAndCurvatureErrorBounds",
+        "preservedSourceChartAndPeriodicRequestedRange",
+        "sourceFailureAndCancellationPropagation",
+        "candidateRejectionWithoutPartialPublication",
+      ],
+      failureCodes: [.invalidInput, .unsupportedCapability, .intersectionFailure,
+        .singularSystem, .singularGeometry, .resourceLimitExceeded, .cancelled, .unclassifiedFailure],
+      tolerance: .standard,
+      publicAPIs: [
+        "CADGeometry.GeometryConverting", "CADGeometry.CertifiedGeometryConverter",
+        "CADGeometry.GeometryCurveConversionSource", "CADGeometry.GeometrySurfaceConversionSource",
+        "CADGeometry.NativeCurveConversionSource", "CADGeometry.NativeSurfaceConversionSource",
+        "CADGeometry.GeometryConversionRequirements", "CADGeometry.GeometryConversionGuarantee",
+        "CADGeometry.GeometryConversionError",
+      ],
+      testFixtures: ["GeometryConversionTests"]
+    ),
   ]
 }

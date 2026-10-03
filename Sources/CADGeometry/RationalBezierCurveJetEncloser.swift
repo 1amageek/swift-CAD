@@ -48,6 +48,8 @@ struct RationalBezierCurveJetEncloser: Sendable {
             upper: patch.upper,
             tolerance: tolerance
         )
+        // The validated real endpoint ratios lie in [0,1]. Intersect numerical
+        // overhang with that independently established geometric containment.
         let normalizedParameters = OutwardScalarInterval(
             lower: max(0.0, normalizedLower.lower),
             upper: min(1.0, normalizedUpper.upper)
@@ -181,12 +183,12 @@ struct RationalBezierCurveJetEncloser: Sendable {
         let zero = OutwardScalarInterval(0.0)
         let result = SurfaceIntervalJet(
             value: value,
-            derivativeU: evaluated(first, at: parameters),
+            derivativeU: try evaluated(first, at: parameters, tolerance: tolerance),
             derivativeV: zero,
-            secondDerivativeUU: evaluated(second, at: parameters),
+            secondDerivativeUU: try evaluated(second, at: parameters, tolerance: tolerance),
             secondDerivativeUV: zero,
             secondDerivativeVV: zero,
-            thirdDerivativeUUU: evaluated(third, at: parameters),
+            thirdDerivativeUUU: try evaluated(third, at: parameters, tolerance: tolerance),
             thirdDerivativeUUV: zero,
             thirdDerivativeUVV: zero,
             thirdDerivativeVVV: zero
@@ -206,8 +208,15 @@ struct RationalBezierCurveJetEncloser: Sendable {
 
     private func evaluated(
         _ coefficients: [OutwardScalarInterval],
-        at parameter: OutwardScalarInterval
-    ) -> OutwardScalarInterval {
+        at parameter: OutwardScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> OutwardScalarInterval {
+        guard !coefficients.isEmpty, coefficients.allSatisfy(\.isFinite),
+              parameter.isFinite, parameter.lower >= 0, parameter.upper <= 1,
+              parameter.lower <= parameter.upper else { throw invalidPatchError(tolerance: tolerance) }
+        // Patch containment proves exact normalized parameters lie in [0,1].
+        // Both interval de Casteljau and the Bernstein convex hull contain the value.
+        let hull = OutwardScalarInterval.enclosing(coefficients)
         var level = coefficients
         let complement = OutwardScalarInterval(1.0) - parameter
         while level.count > 1 {
@@ -215,10 +224,11 @@ struct RationalBezierCurveJetEncloser: Sendable {
                 level[index] * complement + level[index + 1] * parameter
             }
         }
-        return level.first ?? OutwardScalarInterval(
-            lower: -.infinity,
-            upper: .infinity
-        )
+        guard let value = level.first, let result = value.intersection(with: hull) else {
+            throw KernelError(phase: .geometry, code: .intersectionFailure, tolerance: tolerance,
+                message: "Interval Bernstein evaluation and its certified coefficient hull are disjoint.")
+        }
+        return result
     }
 
     private func differentiated(
