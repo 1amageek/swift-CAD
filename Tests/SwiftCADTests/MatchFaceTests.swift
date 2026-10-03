@@ -129,5 +129,47 @@ struct MatchFaceTests {
         let volume = try volume(of: matched, in: builder)
         #expect(abs(volume - expected) < 1e-12, "\(volume) vs \(expected)")
     }
+
+    /// Plasticity's video: a bar's end matched onto a sphere of another object lands on the
+    /// sphere's near side, hollowed into it; with Side the reference's front faces the way the
+    /// end did only on the far side, so the bar runs through the sphere and ends there. The 40 ×
+    /// 20 mm box's top (z = 10 mm) onto a 70 mm sphere centred at x = 40, z = 80 mm, its poles off
+    /// the box: z = 80 ∓ √(4900 − (x − 40)² − y²).
+    @Test(.timeLimit(.minutes(2)), arguments: [false, true])
+    func aTopMatchedOntoASphereLandsOnTheSideItsFrontFaces(side: Bool) throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let target = try box(&builder, height: 10)
+        let ball = try builder.sphere(
+            placement: PrimitivePlacement(origin: Point3D(x: 0.040, y: 0, z: 0.080), axis: .unitZ, referenceDirection: .unitX),
+            radius: millimeters(70)
+        )
+        let evaluated = try CADPipeline(tolerance: .standard).evaluate(builder.build())
+        let sphereKey = try #require(evaluated.subshapes.entries.first { key, value in
+            guard key.featureID == ball, case let .face(id) = value, let face = evaluated.brep.faces[id] else { return false }
+            switch evaluated.brep.geometry.surfaces[face.surfaceID] {
+            case .analytic(.sphere): return true
+            default: return false
+            }
+        }?.key)
+        let top = try horizontalFace(of: target, in: builder, z: 0.010)
+        let matched = try builder.matchFace(target: target, faces: [top], source: ball,
+                                            referenceFace: try builder.stableSubshape(sphereKey), front: side)
+        // Simpson's rule over the 40 × 20 mm footprint, in mm³.
+        let n = 400
+        var integral = 0.0
+        for i in 0...n {
+            for j in 0...n {
+                let x = -20 + 40 * Double(i) / Double(n), y = -10 + 20 * Double(j) / Double(n)
+                let weight = (i == 0 || i == n ? 1.0 : (i % 2 == 1 ? 4.0 : 2.0)) * (j == 0 || j == n ? 1.0 : (j % 2 == 1 ? 4.0 : 2.0))
+                let cap = (4900 - (x - 40) * (x - 40) - y * y).squareRoot()
+                integral += weight * (side ? 80 + cap : 80 - cap)
+            }
+        }
+        integral *= (40.0 / Double(n)) * (20.0 / Double(n)) / 9
+        // Over the sphere's faces bounded by intersection curves the volume is integrated within
+        // the modeling tolerance: 1 mm³ against the near side's 19 774 mm³ and the far side's 108 226.
+        let volume = try volume(of: matched, in: builder)
+        #expect(abs(volume - integral * 1e-9) < 1e-9, "\(volume) vs \(integral * 1e-9)")
+    }
 }
 

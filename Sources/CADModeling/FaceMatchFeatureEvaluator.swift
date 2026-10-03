@@ -68,19 +68,28 @@ public struct FaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
                 throw failure(.unsupportedCapability, feature.id, tolerance, "A matched face has no vertices to place it by.")
             }
             let center = Point3D.origin + points.reduce(Vector3D.zero) { $0 + ($1 - .origin) } / Double(points.count)
-            let normal = try feet.foot(of: center, on: surface, tolerance: tolerance).normal
+            let near = try feet.foot(of: center, on: surface, tolerance: tolerance)
+            let before = try feet.foot(of: center, on: previous, tolerance: tolerance).normal
+            let outward = face.orientation == .forward ? before : before * -1
             let orientation: Orientation
+            var landing = Vector3D.zero
             if match.front {
-                // The reference face's front: its outward side, which a mirroring placement turns
-                // to the surface's other side.
+                // Side: the reference face's front, its outward side (which a mirroring placement
+                // turns to the surface's other side). The face lands where that front faces the
+                // way the face did: past a closed reference's near side, on its far side.
                 let flips = match.sourcePlacement?.reversesOrientation ?? false
                 orientation = (reference.orientation == .forward) != flips ? .forward : .reversed
+                let front = orientation == .forward ? near.normal : near.normal * -1
+                if front.dot(outward) <= 0 {
+                    let extent = try referenceExtent(reference, model: model) + (center - near.point).length
+                    let reached = try landingPoint(from: center, along: outward, on: surface, orientation: orientation,
+                                                   within: extent, featureID: feature.id, tolerance: tolerance)
+                    landing = reached - near.point
+                }
             } else {
-                let before = try feet.foot(of: center, on: previous, tolerance: tolerance).normal
-                let outward = face.orientation == .forward ? before : before * -1
-                orientation = normal.dot(outward) > 0 ? .forward : .reversed
+                orientation = near.normal.dot(outward) > 0 ? .forward : .reversed
             }
-            replacements[faceID] = FaceSurfaceReplacementRebuilder.Replacement(surface: surface, orientation: orientation)
+            replacements[faceID] = FaceSurfaceReplacementRebuilder.Replacement(surface: surface, orientation: orientation, landing: landing)
         }
         // One planar face onto a parallel plane, facing the same way: a push by the planes' distance.
         if let pusher, faceIDs.count == 1, let face = model.faces[faceIDs[0]], let previous = model.geometry.surfaces[face.surfaceID],
@@ -108,6 +117,56 @@ public struct FaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             removedSubshapeIDs: bodyScope.subshapeIDs(in: context.subshapes),
             lineage: identity.lineage
         )
+    }
+
+    /// The diagonal of the box around the reference face's boundary points, which bounds how far
+    /// along a line the face's surface can still be met.
+    private func referenceExtent(_ reference: Face, model: BRepModel) throws -> Double {
+        let points = try reference.loops.flatMap { try model.orderedPoints(for: $0) }
+        guard let first = points.first else { return 0 }
+        var low = first, high = first
+        for point in points {
+            low = Point3D(x: min(low.x, point.x), y: min(low.y, point.y), z: min(low.z, point.z))
+            high = Point3D(x: max(high.x, point.x), y: max(high.y, point.y), z: max(high.z, point.z))
+        }
+        return (high - low).length
+    }
+
+    /// Where the line through `center` along `direction` meets `surface` with the face's front,
+    /// oriented by `orientation`, facing along `direction`, nearest `center` within `extent` either
+    /// way: the crossings are bracketed by the sign of the point's distance from the surface and
+    /// refined on the line.
+    private func landingPoint(from center: Point3D, along direction: Vector3D, on surface: Surface3D, orientation: Orientation,
+                              within extent: Double, featureID: FeatureID, tolerance: ModelingTolerance) throws -> Point3D {
+        let solver = BRepSurfaceMeetingSolver(tolerance: tolerance)
+        let unit = try direction.normalized(tolerance: tolerance.distance)
+        let line = Curve3D.line(Line3D(origin: center, direction: unit))
+        let reach = max(extent, tolerance.distance) * 2
+        let steps = 256
+        func signedDistance(_ t: Double) throws -> Double {
+            let point = center + unit * t
+            let foot = try solver.foot(of: point, on: surface)
+            return (point - foot.point).dot(foot.normal)
+        }
+        var best: (point: Point3D, distance: Double)?
+        var previous = (t: -reach, value: try signedDistance(-reach))
+        for step in 1...steps {
+            let t = -reach + 2 * reach * Double(step) / Double(steps)
+            let value = try signedDistance(t)
+            defer { previous = (t, value) }
+            guard (previous.value <= 0) != (value <= 0) else { continue }
+            let seed = center + unit * ((previous.t + t) / 2)
+            guard let crossing = try solver.crossingPoint(on: line, with: [surface], near: seed) else { continue }
+            let normal = try solver.foot(of: crossing, on: surface).normal
+            let front = orientation == .forward ? normal : normal * -1
+            guard front.dot(unit) > 0 else { continue }
+            let distance = (crossing - center).length
+            if best.map({ distance < $0.distance }) ?? true { best = (crossing, distance) }
+        }
+        guard let best else {
+            throw failure(.topologyFailure, featureID, tolerance, "Match Face's Side finds no part of the reference facing the way the face does.")
+        }
+        return best.point
     }
 
     /// How far a planar face moves along its outward side onto a parallel plane facing the same

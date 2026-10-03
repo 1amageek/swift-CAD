@@ -1005,7 +1005,11 @@ offset along the neutral face's outward side, and a cylinder along the pull
 direction becomes the cone through its neutral circle, each making the angle with
 the pull direction) and Match Face (`FaceMatchFeatureEvaluator`, onto a reference
 face's surface, of another body where its relative placement puts it, keeping the
-face's outward side or taking the reference's front). The engine re-solves
+face's outward side or, under Side, taking the reference's front — landing where that front
+faces the way the face did, so past a closed reference's near side the face reaches its far
+side: the replacement's `landing` moves every point the face's edges and vertices are sought
+near by the offset from the near foot to the line along the face's outward side meeting the
+reference that way round). The engine re-solves
 everything around the changed faces from the surfaces alone and keeps topology
 and identities:
 
@@ -1019,11 +1023,14 @@ new surfaces ──▶ each changed edge: its two faces' intersection branch nea
                   edge where two of them touch tangentially)
              ──▶ edges trimmed between their re-solved ends, keeping their sense;
                   edges between unchanged faces run on their own curves to moved
-                  vertices; parameter curves cleared for ExactFacePcurveBuilder
+                  vertices; parameter curves rebuilt by ExactFacePcurveBuilder, a
+                  re-solved edge it has no exact form for (a small circle on a
+                  sphere) taking its certified intersection's parameter curve
 ```
 
 `SurfaceFootResolver` gives the nearest point and normal of a whole surface to
-any point, on it or off it, in closed form for analytic surfaces. An edge that
+any point, on it or off it, in closed form for analytic surfaces (a sphere's normal is
+its radial direction, at its poles too). An edge that
 would collapse or reverse, surfaces that no longer meet near an edge or vertex,
 and a face whose outward side would turn over are refused. Push Face's Grow
 (Plasticity's video of an L-cube's notch pushed past its outer wall) takes one
@@ -1070,7 +1077,8 @@ four walls and a cylinder drafted about a mid-height neutral plane (one plane th
 frustum, one cone), a U-shaped wall crossed four times, a drilled wall turning through its hole, and a notch wall
 drafted 70° past the block's end under Moving (200 + 50 t mm² of section) and Fixed (300 − 50 / t
 mm²) and None (250 + 12.5 t mm²), and a wall turned about its straight edge on a cylinder top with the
-arc-edged end wall's refusal.
+arc-edged end wall's refusal, and a box's top matched onto a sphere of another body, hollowed into its
+near side or, under Side, run through to its far side (z = 80 ∓ √(4900 − (x − 40)² − y²) integrated).
 
 `FaceRemovalHealer` heals a solid over faces taken out of it (Delete Face with
 `heals`, and Remove Fillets From Shell), and Remove Fillets heals a sheet the same way, open (its
