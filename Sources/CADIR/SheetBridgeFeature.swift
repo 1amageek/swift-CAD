@@ -2,8 +2,9 @@ import CADCore
 
 /// Bridge Surface: a blend between two sheets set back by `width` from where they meet — on their
 /// extensions when they do not — shaped as a curvature-continuous (G2) quintic or a straight
-/// chamfer across, its handles scaled by `tension`. `reversesSense` takes the other side of the
-/// meeting line for a sheet crossing it. Between sheets that are not two planes meeting (curved
+/// chamfer across, its handles scaled by `tension`. `reversesFirstSense` and `reversesSecondSense`
+/// each take the other side of the meeting line for that sheet when it crosses it, so the two
+/// choose any of the four quadrants of two crossing sheets (Plasticity's two Sense toggles). Between sheets that are not two planes meeting (curved
 /// sheets, sheets bending out of one plane, parallel planes), or when boundary edges are named, the
 /// bridge spans between each sheet's named boundary edge — or the pair of boundary edges nearest
 /// each other — continuous with both sheets there (decided 2026-10-02).
@@ -29,7 +30,8 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
     public var tension: Double
     public var shape: Shape
     public var trimWalls: TrimWalls
-    public var reversesSense: Bool
+    public var reversesFirstSense: Bool
+    public var reversesSecondSense: Bool
     /// The boundary edges of the first and second sheet the bridge spans between; nil for the
     /// meeting line's bridge between two planes, or the nearest boundary edges otherwise.
     public var edges: (first: StableSubshapeReference, second: StableSubshapeReference)?
@@ -39,7 +41,7 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
     public var curvatureAllowance: Double?
 
     public init(first: FeatureID, second: FeatureID, width: CADExpression, tension: Double = 1, shape: Shape = .curvature,
-                trimWalls: TrimWalls = .none, reversesSense: Bool = false,
+                trimWalls: TrimWalls = .none, reversesFirstSense: Bool = false, reversesSecondSense: Bool = false,
                 edges: (first: StableSubshapeReference, second: StableSubshapeReference)? = nil,
                 angularAllowance: Double? = nil, curvatureAllowance: Double? = nil) {
         self.edges = edges
@@ -51,16 +53,18 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
         self.tension = tension
         self.shape = shape
         self.trimWalls = trimWalls
-        self.reversesSense = reversesSense
+        self.reversesFirstSense = reversesFirstSense
+        self.reversesSecondSense = reversesSecondSense
     }
 
     private enum CodingKeys: String, CodingKey {
-        case first, second, width, tension, shape, trimWalls, reversesSense, firstEdge, secondEdge, angularAllowance, curvatureAllowance
+        case first, second, width, tension, shape, trimWalls, reversesFirstSense, reversesSecondSense, firstEdge, secondEdge, angularAllowance, curvatureAllowance
     }
 
     public static func == (lhs: SheetBridgeFeature, rhs: SheetBridgeFeature) -> Bool {
         lhs.first == rhs.first && lhs.second == rhs.second && lhs.width == rhs.width && lhs.tension == rhs.tension
-            && lhs.shape == rhs.shape && lhs.trimWalls == rhs.trimWalls && lhs.reversesSense == rhs.reversesSense
+            && lhs.shape == rhs.shape && lhs.trimWalls == rhs.trimWalls
+            && lhs.reversesFirstSense == rhs.reversesFirstSense && lhs.reversesSecondSense == rhs.reversesSecondSense
             && lhs.edges?.first == rhs.edges?.first && lhs.edges?.second == rhs.edges?.second
             && lhs.angularAllowance == rhs.angularAllowance && lhs.curvatureAllowance == rhs.curvatureAllowance
     }
@@ -72,7 +76,8 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
         hasher.combine(tension)
         hasher.combine(shape)
         hasher.combine(trimWalls)
-        hasher.combine(reversesSense)
+        hasher.combine(reversesFirstSense)
+        hasher.combine(reversesSecondSense)
         hasher.combine(edges?.first)
         hasher.combine(edges?.second)
         hasher.combine(angularAllowance)
@@ -81,14 +86,15 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.first, .second, .width, .tension, .shape, .trimWalls, .reversesSense, .firstEdge, .secondEdge, .angularAllowance, .curvatureAllowance], in: decoder)
+        try container.validateOnlyExpectedKeys([.first, .second, .width, .tension, .shape, .trimWalls, .reversesFirstSense, .reversesSecondSense, .firstEdge, .secondEdge, .angularAllowance, .curvatureAllowance], in: decoder)
         first = try container.decode(FeatureID.self, forKey: .first)
         second = try container.decode(FeatureID.self, forKey: .second)
         width = try container.decode(CADExpression.self, forKey: .width)
         tension = try container.decode(Double.self, forKey: .tension)
         shape = try container.decode(Shape.self, forKey: .shape)
         trimWalls = try container.decode(TrimWalls.self, forKey: .trimWalls)
-        reversesSense = try container.decodeIfPresent(Bool.self, forKey: .reversesSense) ?? false
+        reversesFirstSense = try container.decodeIfPresent(Bool.self, forKey: .reversesFirstSense) ?? false
+        reversesSecondSense = try container.decodeIfPresent(Bool.self, forKey: .reversesSecondSense) ?? false
         angularAllowance = try container.decodeIfPresent(Double.self, forKey: .angularAllowance)
         curvatureAllowance = try container.decodeIfPresent(Double.self, forKey: .curvatureAllowance)
         let firstEdge = try container.decodeIfPresent(StableSubshapeReference.self, forKey: .firstEdge)
@@ -110,7 +116,8 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
         try container.encode(tension, forKey: .tension)
         try container.encode(shape, forKey: .shape)
         try container.encode(trimWalls, forKey: .trimWalls)
-        if reversesSense { try container.encode(true, forKey: .reversesSense) }
+        if reversesFirstSense { try container.encode(true, forKey: .reversesFirstSense) }
+        if reversesSecondSense { try container.encode(true, forKey: .reversesSecondSense) }
         try container.encodeIfPresent(edges?.first, forKey: .firstEdge)
         try container.encodeIfPresent(edges?.second, forKey: .secondEdge)
         try container.encodeIfPresent(angularAllowance, forKey: .angularAllowance)

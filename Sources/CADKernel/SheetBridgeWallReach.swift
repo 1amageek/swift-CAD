@@ -14,7 +14,7 @@ public struct SheetBridgeWallReach {
 
     /// Throws where the bridge itself would refuse the sheets: a sheet that is not one planar face,
     /// or planes that do not meet. Equal reaches take the first sheet.
-    public func trimWalls(_ wall: Wall, first: FeatureID, second: FeatureID, reversesSense: Bool,
+    public func trimWalls(_ wall: Wall, first: FeatureID, second: FeatureID, reversesFirstSense: Bool, reversesSecondSense: Bool,
                           in document: EvaluatedDocument) throws -> SheetBridgeFeature.TrimWalls {
         let context = EvaluationContext(
             parameters: document.parameters,
@@ -25,7 +25,8 @@ public struct SheetBridgeWallReach {
             lineage: document.lineage,
             tolerance: document.configuration.tolerance
         )
-        let layout = try SheetBridgeLayout(first: first, second: second, reversesSense: reversesSense,
+        let layout = try SheetBridgeLayout(first: first, second: second, reversesFirstSense: reversesFirstSense,
+                                           reversesSecondSense: reversesSecondSense,
                                            featureID: FeatureID(), context: context)
         switch wall {
         case .short: return layout.first.reach <= layout.second.reach ? .first : .second

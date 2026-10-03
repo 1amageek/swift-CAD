@@ -249,7 +249,7 @@ a circle's (a quarter ball at the corner) and a diamond's (cones).
 several in one plane (Rupa's
 reading of the official page, which names Width, Tension, Shape, Trim walls and Sense but not where
 the bridge stands): the planes' meeting line L, each sheet's direction away from L in its plane
-(toward the sheet, or by Sense for a sheet crossing L), the contact lines the width along them, and
+(toward the sheet, or for a sheet crossing L by its own Sense — two toggles, so every quadrant of two crossing sheets is reachable), the contact lines the width along them, and
 the bridge swept along L over the stretch both sheets cover — a quintic whose first and last three
 control points lie on the sheets' planes (tangent and curvature continuous with both, handles the
 tension times a third of the width) or a straight chamfer. `SheetBridgeLayout` owns L, the
@@ -270,7 +270,7 @@ Sense do not apply there; Trim walls joins the bridge with the walls it names in
 bridge starts on each wall's own edge, so nothing is cut away). `SheetBridgeTests` own the G2 bridge's normals and vanishing
 curvature at both contacts, the flat chamfer, the round trip, both walls trimmed and joined into
 one three-face sheet, the short wall resolved and trimmed alone, a trimmed wall longer than the
-bridge joined along its share, a floor joined from two pieces trimmed and joined as one, parallel sheets bridged between their nearest edges (G2 level with both, Chamfer flat) and joined with both into one three-face sheet, and an arch bridged from its edge along it.
+bridge joined along its share, a floor joined from two pieces trimmed and joined as one, parallel sheets bridged between their nearest edges (G2 level with both, Chamfer flat) and joined with both into one three-face sheet, an arch bridged from its edge along it, and two crossing sheets bridged in each of their four quadrants by the two Senses.
 
 ### Curve patch
 

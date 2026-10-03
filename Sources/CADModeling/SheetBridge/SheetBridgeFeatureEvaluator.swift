@@ -53,7 +53,8 @@ public struct SheetBridgeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         guard width.kind == .length, width.value.isFinite, width.value > tolerance.distance else {
             throw failure(.invalidInput, "A Bridge Surface's width is a positive length.")
         }
-        let layout = try SheetBridgeLayout(first: bridge.first, second: bridge.second, reversesSense: bridge.reversesSense,
+        let layout = try SheetBridgeLayout(first: bridge.first, second: bridge.second, reversesFirstSense: bridge.reversesFirstSense,
+                                           reversesSecondSense: bridge.reversesSecondSense,
                                            featureID: feature.id, context: context)
         let (a, b, d, lineOrigin) = (layout.first, layout.second, layout.direction, layout.lineOrigin)
         guard a.reach >= width.value - tolerance.distance, b.reach >= width.value - tolerance.distance else {

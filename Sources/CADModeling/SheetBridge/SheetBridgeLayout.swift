@@ -6,7 +6,7 @@ import CADTopology
 
 /// Where two planar sheets of a Bridge Surface meet and how they lie about it: the line L where
 /// their planes meet, each sheet's direction away from L in its plane (toward the sheet, or by
-/// `reversesSense` for a sheet crossing L), how far each reaches from L, and the stretch each covers
+/// its own reversed sense for a sheet crossing L), how far each reaches from L, and the stretch each covers
 /// along L.
 package struct SheetBridgeLayout {
     package struct Sheet {
@@ -52,7 +52,8 @@ package struct SheetBridgeLayout {
         return first
     }
 
-    package init(first: FeatureID, second: FeatureID, reversesSense: Bool, featureID: FeatureID, context: EvaluationContext) throws {
+    package init(first: FeatureID, second: FeatureID, reversesFirstSense: Bool, reversesSecondSense: Bool, featureID: FeatureID,
+                 context: EvaluationContext) throws {
         let tolerance = context.tolerance
         func failure(_ code: KernelErrorCode, _ message: String) -> KernelError {
             KernelError(phase: .evaluation, code: code, featureID: featureID, tolerance: tolerance, message: message)
@@ -84,7 +85,7 @@ package struct SheetBridgeLayout {
         let cosine = a.1.dot(b.1)
         let determinant = 1 - cosine * cosine
         let lineOrigin = Point3D.origin + a.1 * ((c1 - c2 * cosine) / determinant) + b.1 * ((c2 - c1 * cosine) / determinant)
-        func sheet(_ value: (BodyID, Vector3D, Point3D, [Point3D])) throws -> Sheet {
+        func sheet(_ value: (BodyID, Vector3D, Point3D, [Point3D]), reversesSense: Bool) throws -> Sheet {
             let (bodyID, normal, _, points) = value
             let direction = try normal.cross(d).normalized(tolerance: tolerance.distance)
             let distances = points.map { ($0 - lineOrigin).dot(direction) }
@@ -97,8 +98,8 @@ package struct SheetBridgeLayout {
             return Sheet(bodyID: bodyID, normal: normal, away: direction * side, reach: side > 0 ? high : -low,
                          stretch: (along.min() ?? 0, along.max() ?? 0))
         }
-        self.first = try sheet(a)
-        self.second = try sheet(b)
+        self.first = try sheet(a, reversesSense: reversesFirstSense)
+        self.second = try sheet(b, reversesSense: reversesSecondSense)
         self.lineOrigin = lineOrigin
         self.direction = d
     }

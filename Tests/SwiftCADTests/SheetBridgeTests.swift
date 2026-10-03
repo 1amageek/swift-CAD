@@ -219,8 +219,8 @@ struct SheetBridgeTests {
         let (floor, wall) = try sheets(in: &builder, wallTop: 0.03)
         let before = try evaluate(builder)
         let reach = SheetBridgeWallReach()
-        #expect(try reach.trimWalls(.short, first: floor, second: wall, reversesSense: false, in: before) == .second)
-        #expect(try reach.trimWalls(.long, first: floor, second: wall, reversesSense: false, in: before) == .first)
+        #expect(try reach.trimWalls(.short, first: floor, second: wall, reversesFirstSense: false, reversesSecondSense: false, in: before) == .second)
+        #expect(try reach.trimWalls(.long, first: floor, second: wall, reversesFirstSense: false, reversesSecondSense: false, in: before) == .first)
         let bridge = try builder.bridgeSurface(SheetBridgeFeature(first: floor, second: wall, width: length(0.02),
                                                                   shape: .chamfer, trimWalls: .second))
         let evaluated = try evaluate(builder)
@@ -297,5 +297,33 @@ struct SheetBridgeTests {
         // Both floor halves cut back, the strip and the wall: one sheet of four faces.
         #expect(faces.count == 4)
         #expect(evaluated.brep.bodies.count == 1)
+    }
+
+    @Test(.timeLimit(.minutes(3)))
+    func twoSensesReachEveryQuadrantOfCrossingSheets() throws {
+        // A floor on z = 0 and a wall on y = 0, both crossing the x axis where they meet: each
+        // Sense picks its own sheet's side, so the four settings bridge the four quadrants.
+        var quadrants: Set<[Bool]> = []
+        for (first, second) in [(false, false), (true, false), (false, true), (true, true)] {
+            var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+            func square(on plane: SketchPlane, _ corners: [(Double, Double)]) throws -> FeatureID {
+                let lines = try corners.indices.map { index in
+                    try builder.sketch(on: plane) { sketch in
+                        let (start, end) = (corners[index], corners[(index + 1) % corners.count])
+                        _ = sketch.line(from: point(start.0, start.1), to: point(end.0, end.1))
+                    }.featureID
+                }
+                return try builder.patch(curves: lines.map { CurveSectionReference(featureID: $0) })
+            }
+            let floor = try square(on: .xy, [(0, -0.04), (0.04, -0.04), (0.04, 0.04), (0, 0.04)])
+            let wall = try square(on: .zx, [(-0.04, 0), (-0.04, 0.04), (0.04, 0.04), (0.04, 0)])
+            let bridge = try builder.bridgeSurface(SheetBridgeFeature(first: floor, second: wall, width: length(0.01), shape: .chamfer,
+                                                                      reversesFirstSense: first, reversesSecondSense: second))
+            let strip = try surface(of: bridge, in: try evaluate(builder))
+            let middle = try strip.differentialGeometry(u: 0.5, v: 0.5, tolerance: .standard).position
+            #expect(abs(middle.y) > 1e-4 && abs(middle.z) > 1e-4)
+            quadrants.insert([middle.y > 0, middle.z > 0])
+        }
+        #expect(quadrants.count == 4)
     }
 }

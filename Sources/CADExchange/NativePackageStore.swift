@@ -428,7 +428,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
         try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["source", "bodyRole", "edges"], objectName: featurePath)
     }
     try validateObjectField("sheetBridge", in: object, path: "\(path).sheetBridge") { feature, featurePath in
-        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["first", "second", "width", "tension", "shape", "trimWalls", "reversesSense", "firstEdge", "secondEdge", "angularAllowance", "curvatureAllowance"],
+        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["first", "second", "width", "tension", "shape", "trimWalls", "reversesFirstSense", "reversesSecondSense", "firstEdge", "secondEdge", "angularAllowance", "curvatureAllowance"],
                                         objectName: featurePath)
         try validateObjectField("width", in: feature, path: "\(featurePath).width", using: validateExpressionObject)
     }
