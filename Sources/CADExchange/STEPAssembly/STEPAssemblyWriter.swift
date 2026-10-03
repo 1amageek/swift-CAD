@@ -15,7 +15,7 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
         guard let labels = evaluated.document.assembly else { throw AssemblyError.invalidSource("Missing assembly source.") }
         let assemblyLimits = AssemblyResourceLimits(maximumRecords: resourceLimits.maximumEntities,
             maximumOccurrences: resourceLimits.maximumEntities, maximumDepth: resourceLimits.maximumNesting,
-            maximumTopologyEntities: resourceLimits.maximumEntities, maximumWork: resourceLimits.maximumIterations)
+            maximumTopologyEntities: resourceLimits.maximumEntities, maximumWork: resourceLimits.maximumIterations, maximumTextBytes: resourceLimits.maximumBytes)
         _ = try DocumentAssemblyValidator().expandedOccurrences(of: labels, in: evaluated.document.designGraph,
             tolerance: tolerance, limits: assemblyLimits)
         try evaluated.document.validate(tolerance: tolerance)
@@ -33,6 +33,22 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
         let budget = ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration)
         let writer = ExactSTEPWriter(resourceLimits: resourceLimits, tolerance: tolerance)
         var table = ExactSTEPWriter.EntityTable(maximumEntities: resourceLimits.maximumEntities, tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes, maximumStringWork: resourceLimits.maximumIterations)
+        let identityWriter: any STEPSourceIdentityWriting = STEPSourceIdentityWriter()
+        var products: [AssemblyProductID: Int] = [:]
+        for product in source.products.sorted(by: { $0.id < $1.id }) {
+            try budget.check(format: .step)
+            let entity = try writer.appendProduct(product, table: &table)
+            products[product.id] = entity
+            try identityWriter.append(uuid: product.id.description, role: .product, target: entity, table: &table)
+        }
+        var formations: [AssemblyProductFormationID: Int] = [:]
+        for formation in source.formations.sorted(by: { $0.id < $1.id }) {
+            try budget.check(format: .step)
+            guard let product = products[formation.productID] else { throw AssemblyError.invalidSource("Missing exported product.") }
+            let entity = try writer.appendFormation(formation, product: product, table: &table)
+            formations[formation.id] = entity
+            try identityWriter.append(uuid: formation.id.description, role: .formation, target: entity, table: &table)
+        }
         var written: [AssemblyDefinitionID: ExactSTEPWriter.WrittenDefinition] = [:]
         var axes: [AssemblyOccurrenceID: Int] = [:]
         for definition in source.definitions.sorted(by: { $0.id < $1.id }) {
@@ -54,10 +70,12 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
             }
             let carrier = attributeSource.assignments.contains { $0.target.definitionID == definition.id && ($0.value.property == .color || $0.value.property == .opacity) }
                 || attributeSource.layers.contains { $0.members.contains { $0.kind == .part && $0.definitionID == definition.id } }
+            guard let formation = formations[definition.formationID] else { throw AssemblyError.invalidSource("Missing exported formation.") }
             let product = try writer.appendDefinition(brep: model, units: units,
-                identifier: definition.id.description, name: definition.name,
-                productDescription: definition.productDescription, definitionDescription: definition.definitionDescription, additionalItems: items, wholePartCarrier: carrier,
+                identifier: "", name: "", definitionDescription: definition.definitionDescription, additionalItems: items,
+                retainedFormation: formation, definitionIdentifier: definition.identifier, wholePartCarrier: carrier,
                 bodyNames: names?.bodies ?? [:], faceNames: names?.faces ?? [:], table: &table)
+            try identityWriter.append(uuid: definition.id.description, role: .definition, target: product.definition, table: &table)
             written[definition.id] = product
             transfer.products[definition.id] = STEPAttributeProductRepresentation(definition: product.definition,
                 definitionShape: product.definitionShape, representation: product.representation, context: product.context,

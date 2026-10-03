@@ -13,11 +13,45 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
                        limits: AssemblyResourceLimits = .standard) throws -> AssemblyExpansionResult {
         try limits.validate(); try tolerance.validate(); try Task.checkCancellation()
         guard !assembly.roots.isEmpty else { throw AssemblyError.invalidSource("Assembly requires at least one root occurrence.") }
-        var records = assembly.roots.count
-        guard records <= limits.maximumRecords, assembly.definitions.count <= limits.maximumRecords - records,
-              assembly.roots.count <= limits.maximumOccurrences else { throw AssemblyError.resourceLimitExceeded("source records") }
-        records += assembly.definitions.count
+        var records = 0
+        for count in [assembly.roots.count, assembly.products.count, assembly.formations.count, assembly.definitions.count] {
+            guard count <= limits.maximumRecords - records else { throw AssemblyError.resourceLimitExceeded("source records") }
+            records += count
+        }
+        guard assembly.roots.count <= limits.maximumOccurrences else { throw AssemblyError.resourceLimitExceeded("source records") }
         guard records <= limits.maximumWork else { throw AssemblyError.resourceLimitExceeded("source work") }
+        var sourceWork = records, textBytes = 0
+        func text(_ value: String?) throws {
+            guard let value else { return }
+            // Incremental byte traversal stops at the caller ceiling without allocating a copy.
+            for _ in value.utf8 {
+                guard textBytes < limits.maximumTextBytes, sourceWork < limits.maximumWork else {
+                    throw AssemblyError.resourceLimitExceeded("source text/work")
+                }
+                textBytes += 1; sourceWork += 1
+                if textBytes.isMultiple(of: 1024) { try Task.checkCancellation() }
+            }
+        }
+        var products = Set<AssemblyProductID>()
+        for product in assembly.products {
+            try Task.checkCancellation()
+            try text(product.identifier); try text(product.name); try text(product.description)
+            guard products.insert(product.id).inserted else { throw AssemblyError.invalidSource("Duplicate product identity.") }
+        }
+        var formations: [AssemblyProductFormationID: AssemblyProductFormation] = [:]
+        var versions: [AssemblyProductID: Set<AssemblySourceText>] = [:]
+        for formation in assembly.formations {
+            try Task.checkCancellation()
+            try text(formation.versionIdentifier); try text(formation.description)
+            guard products.contains(formation.productID) else { throw AssemblyError.invalidSource("Missing product.") }
+            guard formations.updateValue(formation, forKey: formation.id) == nil else {
+                throw AssemblyError.invalidSource("Duplicate formation identity.")
+            }
+            guard versions[formation.productID, default: []].insert(AssemblySourceText(formation.versionIdentifier)).inserted else {
+                throw AssemblyError.invalidSource("Formation version is not unique within its product.")
+            }
+        }
+        var usedFormations = Set<AssemblyProductFormationID>()
         var definitions: [AssemblyDefinitionID: AssemblyDefinition] = [:]
         var edgeIDs = Set<AssemblyOccurrenceID>()
         for definition in assembly.definitions {
@@ -26,8 +60,13 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
                   definition.features.count <= limits.maximumRecords - records - definition.children.count else {
                 throw AssemblyError.resourceLimitExceeded("source records")
             }
-            records += definition.children.count + definition.features.count
-            guard records <= limits.maximumWork else { throw AssemblyError.resourceLimitExceeded("source work") }
+            let additional = definition.children.count + definition.features.count
+            records += additional
+            guard additional <= limits.maximumWork - sourceWork else { throw AssemblyError.resourceLimitExceeded("source work") }
+            sourceWork += additional
+            try text(definition.identifier); try text(definition.definitionDescription)
+            guard formations[definition.formationID] != nil else { throw AssemblyError.invalidSource("Missing product formation.") }
+            usedFormations.insert(definition.formationID)
             guard definitions.updateValue(definition, forKey: definition.id) == nil,
                   Set(definition.features).count == definition.features.count else {
                 throw AssemblyError.invalidSource("Duplicate definition or local feature reference.")
@@ -37,8 +76,13 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
                       feature.bodyOrSheetOutput != nil else { throw AssemblyError.missingFeature(id) }
             }
         }
+        guard usedFormations.count == formations.count,
+              Set(formations.values.map(\.productID)).count == products.count else {
+            throw AssemblyError.invalidSource("Unreferenced product or formation.")
+        }
         for occurrence in assembly.roots + assembly.definitions.flatMap(\.children) {
             try Task.checkCancellation()
+            try text(occurrence.name)
             guard edgeIDs.insert(occurrence.id).inserted else {
                 throw AssemblyError.invalidSource("Duplicate direct occurrence identity.")
             }
@@ -50,7 +94,7 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
         }
         var result: [ExpandedAssemblyOccurrence] = []
         var reached = Set<AssemblyDefinitionID>()
-        var work = records
+        var work = sourceWork
         var stack = assembly.roots.sorted { $1.id < $0.id }.map {
             (occurrence: $0, path: [AssemblyOccurrenceID](), ancestors: Set<AssemblyDefinitionID>(),
              parent: RigidTransform3D.translated(by: .zero))

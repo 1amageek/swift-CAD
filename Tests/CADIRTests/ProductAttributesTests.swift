@@ -6,13 +6,15 @@ import CADCore
 @Suite("Typed product attribute source contracts")
 struct ProductAttributesTests {
     private func fixture() -> (CADDocument, ProductAttributeTarget) {
-        let leaf = AssemblyDefinition(name: "leaf")
+        let products = [AssemblyProduct(name: "leaf"), AssemblyProduct(name: "middle"), AssemblyProduct(name: "outer")]
+        let formations = products.map { AssemblyProductFormation(productID: $0.id) }
+        let leaf = AssemblyDefinition(formationID: formations[0].id)
         let child = AssemblyOccurrence(definitionID: leaf.id)
-        let middle = AssemblyDefinition(name: "middle", children: [child])
+        let middle = AssemblyDefinition(formationID: formations[1].id, children: [child])
         let parent = AssemblyOccurrence(definitionID: middle.id)
-        let outer = AssemblyDefinition(name: "outer", children: [parent])
+        let outer = AssemblyDefinition(formationID: formations[2].id, children: [parent])
         let root = AssemblyOccurrence(definitionID: outer.id)
-        let document = CADDocument(units: .meters, assembly: DocumentAssembly(definitions: [leaf, middle, outer], roots: [root]))
+        let document = CADDocument(units: .meters, assembly: DocumentAssembly(products: products, formations: formations, definitions: [leaf, middle, outer], roots: [root]))
         return (document, ProductAttributeTarget(kind: .occurrence, path: AssemblyOccurrencePath([root.id, parent.id, child.id])))
     }
     @Test(.timeLimit(.minutes(1)))

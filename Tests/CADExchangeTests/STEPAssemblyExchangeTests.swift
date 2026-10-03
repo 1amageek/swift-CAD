@@ -13,8 +13,8 @@ struct STEPAssemblyExchangeTests {
         let imported = try OfficialFormatExchange(tolerance: .standard).import(Data(Self.independentFixture.utf8), as: .step)
         let document = try #require(imported.document), source = try #require(document.assembly)
         #expect(source.definitions.count == 3 && document.designGraph.order.count == 1)
-        let nested = try #require(source.definitions.first { $0.name == "shared nested assembly" })
-        let root = try #require(source.definitions.first { $0.name == "root assembly" })
+        let nested = try #require(source.definitions.first { definition in source.formations.contains { $0.id == definition.formationID && $0.productID == source.products.first { $0.name == "shared nested assembly" }?.id } })
+        let root = try #require(source.definitions.first { definition in source.formations.contains { $0.id == definition.formationID && $0.productID == source.products.first { $0.name == "root assembly" }?.id } })
         #expect(root.children.count == 2 && root.children.allSatisfy { $0.definitionID == nested.id })
         #expect(nested.children.count == 1)
         let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
@@ -144,9 +144,11 @@ struct STEPAssemblyExchangeTests {
     private func signature(_ assembly: DocumentAssembly?) -> [String] {
         guard let assembly else { return [] }
         var values = assembly.definitions.map { definition in
-            definition.id.description + ":" + definition.name + ":" + String(definition.features.count)
+            definition.id.description + ":" + definition.identifier + ":" + definition.formationID.description + ":" + String(definition.features.count)
                 + ":" + definition.children.map { $0.id.description + ":" + $0.definitionID.description + ":" + String(describing: $0.placement) }.sorted().joined(separator: ";")
         }.sorted()
+        values += assembly.products.map { $0.id.description + ":" + $0.identifier + ":" + $0.name }.sorted()
+        values += assembly.formations.map { $0.id.description + ":" + $0.productID.description + ":" + $0.versionIdentifier }.sorted()
         values += assembly.roots.map { $0.id.description + ":" + $0.definitionID.description + ":" + String(describing: $0.placement) }.sorted()
         return values
     }

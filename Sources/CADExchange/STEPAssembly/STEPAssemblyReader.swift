@@ -114,19 +114,33 @@ private extension STEPAssemblyReader {
             for id in syntax.entities.keys.sorted() { try check(); names[id] = try syntax.name(id) }
             let usages = names.filter { $0.value == "NEXT_ASSEMBLY_USAGE_OCCURRENCE" }.keys.sorted()
             let allMapped = names.filter { $0.value == "MAPPED_ITEM" }.keys.sorted()
-            guard names.values.contains("PRODUCT_DEFINITION") else { return nil }
-            var retainsProductSource = !usages.isEmpty || !allMapped.isEmpty
+            let identityReader: any STEPSourceIdentityReading = STEPSourceIdentityReader()
+            let identities = try identityReader.read(fields: syntax, names: names, processingBudget: budget, limits: limits,
+                remainingWork: limits.maximumIterations - work, remainingTextBytes: limits.maximumBytes - stringBytes)
+            try check(identities.consumedWork); stringBytes += identities.textBytes
+            guard names.values.contains("PRODUCT_DEFINITION") else {
+                guard identities.values.isEmpty else { throw AssemblyError.invalidSource("Native identity assignments require represented product definitions.") }
+                return nil
+            }
+            var retainsProductSource = !usages.isEmpty || !allMapped.isEmpty || !identities.values.isEmpty
+                || names.values.filter({ $0 == "PRODUCT_DEFINITION" }).count > 1
             if !retainsProductSource {
                 for id in names.keys.sorted() where names[id] == "PRODUCT_DEFINITION" {
                     try check()
                     let pd = try args(id, count: 4), formation = try syntax.reference(pd[2])
                     let fa = try syntax.arguments(formation)
                     guard fa.count >= 3 else { throw ImportError.invalidData("Malformed STEP product formation.") }
-                    let pa = try args(syntax.reference(fa[2]), count: 4)
-                    let name = try string(pa[1])
+                    let product = try syntax.reference(fa[2]), pa = try args(product, count: 4)
+                    let identifier = try string(pa[0]), name = try string(pa[1])
                     let description = pa[2] == "$" ? nil : try string(pa[2])
+                    let version = try string(fa[0]), formationDescription = fa[1] == "$" ? nil : try string(fa[1])
+                    let definitionIdentifier = try string(pd[0])
                     let definitionDescription = pd[1] == "$" ? nil : try string(pd[1])
-                    if !name.isEmpty || !(description ?? "").isEmpty || !(definitionDescription ?? "").isEmpty { retainsProductSource = true }
+                    let authoredBareProfile = names[product] == "PRODUCT" && identifier == "SWIFTCAD" && name.isEmpty && description == ""
+                        && names[formation] == "PRODUCT_DEFINITION_FORMATION" && fa.count == 3
+                        && version.isEmpty && formationDescription == ""
+                        && definitionIdentifier == "design" && definitionDescription == ""
+                    if !authoredBareProfile { retainsProductSource = true }
                 }
                 // Physical properties consume real product/shape-aspect association maps even
                 // when their actual persistent target is a body or face inside that product.
@@ -153,8 +167,9 @@ private extension STEPAssemblyReader {
                 throw AssemblyError.invalidSource("STEP assembly has an external or unrepresented product definition.")
             }
             var definitionIDs: [Int: AssemblyDefinitionID] = [:]
-            var productIdentifiers: [Int: String] = [:]
-            var retainedProducts = Set<Int>()
+            var ownerEntities: [Int: (product: Int, formation: Int)] = [:]
+            var products: [Int: AssemblyProduct] = [:]
+            var formations: [Int: AssemblyProductFormation] = [:]
             var definitions: [Int: AssemblyDefinition] = [:]
             var repItems: [Int: [Int]] = [:], repUnits: [Int: LengthUnit] = [:], repContexts: [Int: Int] = [:]
             var features: [FeatureID: FeatureNode] = [:], order: [FeatureID] = []
@@ -163,26 +178,51 @@ private extension STEPAssemblyReader {
                 try check()
                 let pd = try args(productID, count: 4)
                 let formation = try syntax.reference(pd[2])
-                let fa = try syntax.arguments(formation)
-                guard fa.count >= 3 else { throw ImportError.invalidData("Malformed STEP product formation.") }
-                let product = try syntax.reference(fa[2]), pa = try args(product, count: 4)
-                // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP import cannot retain several PRODUCT_DEFINITION views sharing one PRODUCT owner.
-                // Completion requires an explicit persistent product/view source model before shared product metadata can be admitted without duplicated authority.
-                guard retainedProducts.insert(product).inserted else {
-                    throw ProductAttributeError.unsupportedSemantics("Several definitions share one product description owner.")
+                let formationName = try syntax.name(formation)
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP product import admits only base and specified-source formations.
+                // Other formation subtypes require a persistent semantic owner and matching standard writer before admission.
+                guard ["PRODUCT_DEFINITION_FORMATION", "PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE"].contains(formationName) else {
+                    throw AssemblyError.invalidSource("Unsupported STEP product formation subtype.")
                 }
-                let identifier = try string(pa[0]), name = try string(pa[1])
-                let productDescription = pa[2] == "$" ? nil : try string(pa[2])
-                let definitionDescription = pd[1] == "$" ? nil : try string(pd[1])
-                productIdentifiers[productID] = identifier
-                let definitionID = AssemblyDefinitionID(UUID(uuidString: identifier) ?? taggedUUID(namespace: 0x5354455050444546, id: productID))
-                guard !definitionIDs.values.contains(definitionID) else { throw AssemblyError.invalidSource("Duplicate product identity.") }
+                let fa = try args(formation, count: formationName == "PRODUCT_DEFINITION_FORMATION" ? 3 : 4)
+                let product = try syntax.reference(fa[2]), pa = try args(product, count: 4)
+                guard names[product] == "PRODUCT" else { throw ImportError.invalidData("Missing STEP product.") }
+                if products[product] == nil {
+                    products[product] = AssemblyProduct(id: AssemblyProductID(identities.values[product]
+                        ?? taggedUUID(namespace: 0x5354455050524F44, id: product)), identifier: try string(pa[0]),
+                        name: try string(pa[1]), description: pa[2] == "$" ? nil : try string(pa[2]))
+                }
+                guard let retainedProduct = products[product] else { throw AssemblyError.invalidSource("Missing retained product.") }
+                if formations[formation] == nil {
+                    var specified: AssemblyProductSource?
+                    if formationName == "PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE" {
+                        guard fa[3].hasPrefix("."), fa[3].hasSuffix("."),
+                              let source = AssemblyProductSource(rawValue: String(fa[3].dropFirst().dropLast()).lowercased()) else {
+                            throw ImportError.invalidData("Invalid STEP specified-source literal.")
+                        }
+                        specified = source
+                    }
+                    formations[formation] = AssemblyProductFormation(id: AssemblyProductFormationID(identities.values[formation]
+                        ?? taggedUUID(namespace: 0x53544550464F524D, id: formation)), productID: retainedProduct.id,
+                        versionIdentifier: try string(fa[0]), description: fa[1] == "$" ? nil : try string(fa[1]), specifiedSource: specified)
+                }
+                guard let retainedFormation = formations[formation] else { throw AssemblyError.invalidSource("Missing retained formation.") }
+                let name = retainedProduct.name
+                let identifier = try string(pd[0]), definitionDescription = pd[1] == "$" ? nil : try string(pd[1])
+                ownerEntities[productID] = (product, formation)
+                let definitionID = AssemblyDefinitionID(identities.values[productID] ?? taggedUUID(namespace: 0x5354455050444546, id: productID))
+                guard !definitionIDs.values.contains(definitionID) else { throw AssemblyError.invalidSource("Duplicate definition identity.") }
                 definitionIDs[productID] = definitionID
                 transfer.definitions[productID] = definitionID
                 guard let rep = representations[productID] else { throw AssemblyError.invalidSource("Missing product representation.") }
                 let repName = try syntax.name(rep)
                 guard ["SHAPE_REPRESENTATION", "ADVANCED_BREP_SHAPE_REPRESENTATION", "MANIFOLD_SURFACE_SHAPE_REPRESENTATION"].contains(repName) else {
                     throw AssemblyError.invalidSource("Unsupported STEP product shape representation.")
+                }
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP import cannot retain one shape representation as several definition views.
+                // Complete multi-owner exact topology correspondence is required before shared representations can be admitted.
+                guard transfer.representations[rep] == nil else {
+                    throw ProductAttributeError.unsupportedSemantics("Several definitions share one shape representation.")
                 }
                 transfer.representations[rep] = definitionID
                 let ra = try args(rep, count: 3), context = try syntax.reference(ra[2])
@@ -271,7 +311,7 @@ private extension STEPAssemblyReader {
                         }
                     }
                 }
-                definitions[productID] = AssemblyDefinition(id: definitionID, name: name, productDescription: productDescription,
+                definitions[productID] = AssemblyDefinition(id: definitionID, formationID: retainedFormation.id, identifier: identifier,
                     definitionDescription: definitionDescription, features: bodyFeatures)
             }
             let allGeometry = Set(names.filter { ["MANIFOLD_SOLID_BREP", "BREP_WITH_VOIDS", "SHELL_BASED_SURFACE_MODEL"].contains($0.value) }.keys)
@@ -356,10 +396,22 @@ private extension STEPAssemblyReader {
                 let retainedMappings = definitions.values.reduce(0) { $0 + $1.children.count }
                 guard retainedMappings == mapped.count else { throw AssemblyError.invalidSource("Unassociated mapped occurrences.") }
             }
+            guard products.count == names.values.filter({ $0 == "PRODUCT" }).count,
+                  formations.count == names.values.filter({ $0 == "PRODUCT_DEFINITION_FORMATION" || $0 == "PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE" }).count else {
+                throw AssemblyError.invalidSource("Unreferenced STEP product or formation would be discarded.")
+            }
             var roots: [AssemblyOccurrence] = []
             for id in productIDs where !childProducts.contains(id) {
-                guard let definition = definitions[id] else { throw AssemblyError.invalidSource("Missing STEP root.") }
-                if productIdentifiers[id] == "swiftcad.assembly.roots", definition.name == "swiftcad.assembly.roots", definition.features.isEmpty {
+                try check()
+                guard let definition = definitions[id], let owners = ownerEntities[id],
+                      let formation = formations[owners.formation], let product = products[owners.product] else {
+                    throw AssemblyError.invalidSource("Missing STEP root metadata owners.")
+                }
+                if product.identifier == "swiftcad.assembly.roots", product.name == "swiftcad.assembly.roots",
+                   product.description == "", formation.versionIdentifier == "", formation.description == "",
+                   formation.specifiedSource == nil, definition.identifier == "design", definition.definitionDescription == "",
+                   identities.values[id] == nil, identities.values[owners.formation] == nil, identities.values[owners.product] == nil,
+                   definition.features.isEmpty {
                     roots += definition.children; definitions.removeValue(forKey: id)
                 } else {
                     roots.append(AssemblyOccurrence(id: AssemblyOccurrenceID(taggedUUID(namespace: 0x53544550524F4F54, id: id)), definitionID: definition.id))
@@ -370,12 +422,18 @@ private extension STEPAssemblyReader {
                   let representation = representations[productID], let lengthUnit = repUnits[representation] else {
                 throw AssemblyError.invalidSource("STEP assembly has no acyclic represented root.")
             }
-            let assembly = DocumentAssembly(definitions: Array(definitions.values).sorted { $0.id < $1.id }, roots: roots)
+            // Prune only the transport envelope's now-unreferenced metadata owners.
+            let usedFormations = Set(definitions.values.map(\.formationID))
+            formations = formations.filter { usedFormations.contains($0.value.id) }
+            let usedProducts = Set(formations.values.map(\.productID))
+            products = products.filter { usedProducts.contains($0.value.id) }
+            let assembly = DocumentAssembly(products: Array(products.values).sorted { $0.id < $1.id },
+                formations: Array(formations.values).sorted { $0.id < $1.id }, definitions: Array(definitions.values).sorted { $0.id < $1.id }, roots: roots)
             var document = CADDocument(units: UnitSystem(length: lengthUnit, angle: .radian),
                 designGraph: DesignGraph(nodes: features, order: order), assembly: assembly)
             let assemblyLimits = AssemblyResourceLimits(maximumRecords: limits.maximumEntities,
                 maximumOccurrences: limits.maximumEntities, maximumDepth: limits.maximumNesting,
-                maximumTopologyEntities: limits.maximumEntities, maximumWork: limits.maximumIterations)
+                maximumTopologyEntities: limits.maximumEntities, maximumWork: limits.maximumIterations, maximumTextBytes: limits.maximumBytes)
             _ = try DocumentAssemblyValidator().expandedOccurrences(of: assembly, in: document.designGraph,
                 tolerance: tolerance, limits: assemblyLimits)
             try document.validate(tolerance: tolerance)

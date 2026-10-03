@@ -20,7 +20,8 @@ extension KernelCapabilities {
         "typedAttributeOwnershipAndPersistentReferenceRoundTrip",
         "sharedAssemblyDefinitionsAndPersistentOccurrenceFramesRoundTrip",
         "strictRequiredProductAttributesWithIndependentPhysicalDensityAndOverrideProvenance",
-        "distinctRequiredNullableProductAndDefinitionDescriptions",
+        "distinctRequiredNullableProductFormationAndDefinitionDescriptions",
+        "sharedProductFormationAndDefinitionSourceIdentityRoundTrip",
       ],
       failureCodes: [
         .invalidInput,
@@ -42,6 +43,7 @@ extension KernelCapabilities {
         "DocumentFoundationPackageTests",
         "STEPAttributesExchangeTests",
         "STEPStringExchangeTests",
+        "SharedSTEPProductTests",
         "STEPAssemblyExchangeTests",
       ]
     ),
@@ -71,7 +73,8 @@ extension KernelCapabilities {
         "typedBodyFacePartAndContextualOccurrenceColorAndSetLayers",
         "explicitStandardMaterialAndMassDensityPropertiesOnPartBodyFaceAndDirectUsage",
         "boundedStandardSTEPStringsWithISO8859AndUCSDirectives",
-        "onePersistentProductPerDefinitionWithDistinctOptionalDescriptions",
+        "sharedProductFormationAndDefinitionSourceGraph",
+        "distinctBusinessIdentifiersAndExplicitStandardNativeIdentityAssignments",
       ],
       exactOutputs: [
         "AP242AdvancedFaces",
@@ -97,7 +100,9 @@ extension KernelCapabilities {
         "structuralWholePartCarrierWithoutSyntheticModelingFeatures",
         "typedAttributeLossRefusalBeforeProjectionOrPublication",
         "UnicodeScalarPreservationWithoutNormalizationOrRepair",
-        "nilAndEmptyProductDescriptionsRemainDistinct",
+        "nilAndEmptyProductFormationAndDefinitionDescriptionsRemainDistinct",
+        "explicitAssignedUUIDsRemainSeparateFromRawBusinessIdentifiers",
+        "UTF8ExactSourceEqualityAndFormationUniqueness",
       ],
       failureCodes: [
         .invalidInput, .missingReference, .unsupportedCapability, .topologyFailure,
@@ -114,6 +119,7 @@ extension KernelCapabilities {
         "ExactSTEPExchangeTests",
         "ProductAttributesTests", "ProductAttributeResolutionTests", "STEPAttributesExchangeTests",
         "STEPStringExchangeTests",
+        "SharedSTEPProductTests",
         "DocumentAssemblyTests", "AssemblyEvaluationTests", "STEPAssemblyExchangeTests",
         "ExactSTEPExchangeTests.roundTripsExactPlanarTopologyInConversionBasedLengthUnits",
         "ExactSTEPExchangeTests.roundTripsReversedCompleteDomainRationalBSplineEdges",

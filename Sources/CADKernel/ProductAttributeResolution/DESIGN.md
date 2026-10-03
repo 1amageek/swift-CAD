@@ -65,7 +65,8 @@ flowchart LR
   has no caches. Its producer retains an internal immutable ValidatedCADDocument
   receipt only after evaluation and lineage/curve validation succeed. Resolution
   admits a cacheless snapshot only when that retained source equals the current
-  document, receipt/configuration tolerances agree, and the producer's existing
+  document by the source owners' exact text identity (including Unicode scalar
+  sequences), receipt/configuration tolerances agree, and the producer's existing
   exact ValidatedBRepModel equals the current B-rep at the same tolerance.
   Public construction and decoding start without this receipt; it is not a
   serialized field, a caller-supplied certification, or a substitute cache.
@@ -85,7 +86,10 @@ flowchart LR
   their prior provenance. Unordered competing applicable assignments fail;
   sorting UUIDs or choosing face/instance specificity cannot create precedence.
   Layers resolve as membership sets. Part/occurrence names come from their
-  existing source owners and do not overwrite body/face names.
+  existing source owners and do not overwrite body/face names. Part name lookup
+  consumes DocumentAssembly's bounded definition-to-formation-to-product contract.
+  Shared PRODUCT edits change every applicable part baseline while definition-local
+  attribute assignments retain their existing scope; no product-level rank is inferred.
 - The view retains source assignment identity, target scope, and ordered
   predecessor provenance for each effective property. A physical material value
   does not imply any PBR appearance or effective density. Effective density

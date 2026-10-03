@@ -15,14 +15,42 @@ extension KernelCapabilities {
             operations: ["STEP"],
             dimensions: [.representation, .connection],
             condition: "Public STEP part appearance export only admits local exact geometry carriers. Assembly-wide appearance needs a standard structural carrier retaining nested usage scope and every predecessor without dummy geometry.",
-            sourcePath: "Sources/CADExchange/ExactSTEPWriter.swift", sourceLine: 548
+            sourcePath: "Sources/CADExchange/ExactSTEPWriter.swift", sourceLine: 569
         ),
         KernelDomainLimitation(
-            id: "condition-f70887e797e80b5b",
+            id: "condition-ccc900668df3a397",
             operations: ["STEP"],
             dimensions: [.representation, .connection],
-            condition: "Public STEP import cannot retain several PRODUCT_DEFINITION views sharing one PRODUCT owner. Completion requires an explicit persistent product/view source model before shared product metadata can be admitted without duplicated authority.",
-            sourcePath: "Sources/CADExchange/STEPAssembly/STEPAssemblyReader.swift", sourceLine: 169
+            condition: "Public STEP product import admits only base and specified-source formations. Other formation subtypes require a persistent semantic owner and matching standard writer before admission.",
+            sourcePath: "Sources/CADExchange/STEPAssembly/STEPAssemblyReader.swift", sourceLine: 182
+        ),
+        KernelDomainLimitation(
+            id: "condition-c3601bc845b2f72c",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP import cannot retain one shape representation as several definition views. Complete multi-owner exact topology correspondence is required before shared representations can be admitted.",
+            sourcePath: "Sources/CADExchange/STEPAssembly/STEPAssemblyReader.swift", sourceLine: 222
+        ),
+        KernelDomainLimitation(
+            id: "condition-a6351475c54b5e73",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP import retains only the bounded native assembly identity namespace. Other identification assignments require persistent source ownership and lossless standard re-export before admission.",
+            sourcePath: "Sources/CADExchange/STEPAssembly/STEPSourceIdentityReader.swift", sourceLine: 28
+        ),
+        KernelDomainLimitation(
+            id: "condition-c7e895426ce6ed13",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP import cannot preserve unrelated external identification namespaces. Complete source ownership/transport for their assigned IDs, roles and sources is required before they can succeed.",
+            sourcePath: "Sources/CADExchange/STEPAssembly/STEPSourceIdentityReader.swift", sourceLine: 42
+        ),
+        KernelDomainLimitation(
+            id: "condition-537b72aceaa8f741",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP import retains only the native assembly identification roles without role descriptions. Other roles/descriptions require an explicit persistent identification owner and faithful standard re-export.",
+            sourcePath: "Sources/CADExchange/STEPAssembly/STEPSourceIdentityReader.swift", sourceLine: 48
         ),
         KernelDomainLimitation(
             id: "condition-45f4c68b2f10f19c",

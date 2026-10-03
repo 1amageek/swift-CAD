@@ -10,10 +10,12 @@ resolution remain outside this component.
 
 ## Responsibilities and Boundaries
 
-`CADDocument.assembly` is the sole assembly source authority. A definition has a
-persistent definition identity, PRODUCT name, distinct optional PRODUCT and
-PRODUCT_DEFINITION descriptions, local body-producing FeatureID
-references, and child occurrences. An occurrence has a persistent identity, a
+`CADDocument.assembly` is the sole assembly source authority. The product/formation/definition graph owns three distinct persistent values.
+A product owns its standard identifier, name and nullable description. A formation
+owns its version identifier, nullable description and optional specified-source
+subtype, and references one product. A definition owns its standard identifier
+and nullable description, references one formation, and retains local body-producing
+FeatureIDs and child occurrences. An occurrence has a persistent identity, a
 definition reference, and a proper rigid transform into its containing frame.
 Roots are occurrences in the document world frame. Reusing a definition retains
 sharing; it never duplicates its feature source. A complete occurrence path,
@@ -40,7 +42,10 @@ created to impersonate an occurrence. Local modeling remains in feature coordina
 
 ```mermaid
 flowchart LR
-    Document[CADDocument] --> DAG[Assembly definition DAG]
+    Document[CADDocument] --> Product[Shared Product metadata]
+    Product --> Formation[Formation/version owners]
+    Formation --> Definition[Definition views and local feature references]
+    Definition --> DAG[Definition occurrence DAG]
     DAG --> Roots[Root occurrences]
     DAG --> Children[Child occurrences]
     DAG --> References[Local FeatureID references]
@@ -80,12 +85,33 @@ flowchart LR
   expansion result reports consumedWork together with the complete occurrence list;
   downstream assembly evaluation carries that consumption into the same cumulative
   maximumWork ceiling, rather than granting each phase a fresh allowance.
-  Callers may choose positive limits; limits do not relax source invariants.
-- Each definition is the sole retained owner of its product name and its two
-  description fields. `productDescription` and `definitionDescription` are required
-  nullable native keys: absence differs from an explicitly empty string. Native
-  decoding never defaults a missing key. These are descriptive source values,
-  independent of physical material descriptions and presentation attributes.
+  Callers may choose positive record/work limits and nonnegative text ceilings; limits do not relax source invariants.
+- Products and formations are required source arrays. Each has a unique typed
+  identity; formation-to-product and definition-to-formation references must exist.
+  Every retained formation and product is used by a retained reachable definition.
+  Formation `(productID, versionIdentifier)` is unique by exact UTF-8 identity,
+  following standard UR1; canonically equivalent Unicode sequences remain distinct versions.
+  Multiple definitions may share a formation and multiple formations a product.
+- Each standard string has one owner. Product identifier/name/description are
+  independent of definition identifier/description and formation version/description.
+  Empty identifiers are valid standard strings; UUID-shaped business identifiers
+  do not authorize native identity. All descriptions and specifiedSource are
+  required nullable native keys; no missing-key default or migration is admitted.
+  A nil specifiedSource means the base formation entity; made, bought and notKnown
+  mean the actual standard subtype literal, with no lifecycle inference.
+- Metadata lifetime is the immutable document lifetime. Canonical ordering includes
+  products and formations without changing references. Their records, retained UTF-8
+  text bytes and UTF-8 traversal are charged before index allocation and text
+  traversal to maximumRecords, maximumTextBytes and the shared maximumWork ceiling.
+  String admission has no normalization, trimming, repair or guessed default.
+  Product, formation and definition equality compares every owned text field by
+  exact UTF-8 sequence, with nil distinct from empty. UTF-8 views implement equality
+  and version-key hashing without intermediate buffers. This keeps source equality,
+  fingerprints and producer receipt freshness consistent for canonically equivalent
+  but differently authored Unicode. Occurrence and attribute text owners are unchanged.
+- Product names are resolved by the AssemblyProductLookingUp protocol through
+  definition -> formation -> product under a caller work ceiling. Metadata lookup
+  does not rebuild geometry or expand occurrence paths.
 - Assembly values participate in member-wise document equality and stable source
   fingerprints. Graph-stable replacement and append fast paths recheck assembly
   source admission. Deleting or suppressing a referenced feature fails before a
@@ -125,8 +151,9 @@ does not publish partial source or an incomplete occurrence list.
 [DocumentAssemblyTests](../../../Tests/CADIRTests/DocumentAssemblyTests.swift)
 owns source sharing/nesting, frame validation, cycle/dangling/suppression refusal,
 bounded expansion, fingerprint changes, strict decoding, validated fast paths,
-and root-only translation. Description tests verify strict required nullable
-fields, source fingerprint changes for each field, copied validated transitions,
+and root-only translation. Product graph tests verify sharing and formation UR1, strict required nullable
+fields, dangling/unreferenced owners, pre-allocation resource admission, source
+fingerprint changes for every owner, copied validated transitions,
 and preservation through source translation. STEP and native package tests verify persistence
 through their real public paths. Source contract changes require coordinated
 revalidation of Assembly Evaluation, STEP Assembly, and strict NativePackageStore

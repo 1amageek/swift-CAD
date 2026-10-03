@@ -98,13 +98,47 @@ flowchart LR
   octets. Input traversal stops at a caller ceiling without scanning the remainder.
   Consumer operation counters
   charge actual consumed work and retained text. Cancellation propagates.
-- AssemblyDefinition retains PRODUCT.description and PRODUCT_DEFINITION.description
-  separately. STEP `$` maps to nil and `''` to an empty string, with identical
-  export semantics. Nonempty descriptions require the genuine product source
-  route; ordinary unnamed geometry with absent/empty descriptions retains its
-  exact ordinary route. This profile admits one PRODUCT per retained definition;
-  a product shared by competing definitions is refused rather than duplicating
-  product-level source authority. No attribute assignment impersonates description.
+- The persistent source graph retains PRODUCT, PRODUCT_DEFINITION_FORMATION and
+  PRODUCT_DEFINITION as distinct owners. A shared PRODUCT and formation are written
+  once and referenced by distinct definitions; no metadata is cloned per view.
+  PRODUCT.id, formation.id and PRODUCT_DEFINITION.id retain their original strings,
+  including empty and UUID-shaped strings. `$` and `''` remain distinct for each
+  optional description. Formation UR1 is enforced; the specified-source subtype
+  accepts only MADE, BOUGHT and NOT_KNOWN. Unsupported product graph subtypes fail.
+- Public STEP entity admission recognizes EXTERNAL_SOURCE, IDENTIFICATION_ROLE
+  and APPLIED_EXTERNAL_IDENTIFICATION_ASSIGNMENT before invoking this component.
+  Admission of their entity names does not certify their semantics: the source
+  identity reader still validates namespace, role, target, UUID and caller ceilings.
+- Product, formation and definition typed UUIDs use a separate standard
+  APPLIED_EXTERNAL_IDENTIFICATION_ASSIGNMENT with EXTERNAL_SOURCE
+  IDENTIFIER('urn:swiftcad:assembly-source-id') and IDENTIFICATION_ROLE named
+  'product', 'formation' or 'definition'. Each assignment has one matching entity
+  target and a canonical UUID assigned_id. The role/source are an explicit
+  application identification namespace, not a universal standard UUID role.
+  Their business identifiers never supply native UUID authority. Existing X2
+  occurrence identity transport and occurrence source fields are unchanged by
+  this product-owner contract. Absent assignments
+  cause distinct entity-scoped source identities to be generated; export retains
+  them through explicit assignments. Duplicate/competing assignments, malformed
+  UUIDs and role/target mismatches fail. Other namespaces or unsupported assignment
+  variants fail explicitly instead of being silently discarded. Identity parsing
+  charges the same caller work/text/entity ceilings and checks cancellation.
+- Only the exact writer-authored bare profile uses the ordinary geometry route:
+  PRODUCT.id SWIFTCAD, empty product name/description, base formation with empty
+  version/description, and PD.id design with empty description. `$` is not an
+  empty description. Any other product/PD identifier or nullable distinction uses
+  the source product graph, including empty and UUID-shaped business identifiers. Source identity assignments also require
+  this route so UUID authority is not discarded. The authored root envelope's
+  definition is removed only with its reserved identifier/name, empty local
+  geometry, canonical blank descriptions/version and base formation, canonical
+  design identifier, and no native identity assignment on any of its three owners.
+  Matching business labels on a genuine described or identified product do not
+  authorize cleanup. Its formation/product are removed only if no retained
+  definition references them.
+- A shape representation shared by distinct definitions remains unsupported in
+  this bounded profile: the singular exact topology transfer cannot authorize
+  multiple definition ownerships. It fails before maps overwrite or geometry
+  extraction, with a truthful incomplete-implementation marker.
 - A whole-part styling carrier is structural transport for one real product
   definition. Its product-associated outer representation contains exactly one
   MAPPED_ITEM plus its frame. The representation map refers to an unassociated
@@ -143,9 +177,11 @@ flowchart LR
   and do not modify an existing URL output.
 
 The string authority is [ISO 10303-21, section 6.4.3](https://www.steptools.com/stds/step/IS_final_p21e3.html).
-Description optionality follows the standard EXPRESS
+Product/formation/definition ownership and identifier optionality follow the standard EXPRESS
 [PRODUCT](https://www.steptools.com/stds/stp_aim/html/t_product.html) and
-[PRODUCT_DEFINITION](https://www.steptools.com/stds/stp_aim/html/t_product_definition.html).
+[PRODUCT_DEFINITION](https://www.steptools.com/stds/stp_aim/html/t_product_definition.html),
+[FORMATION](https://www.steptools.com/stds/stp_aim/html/t_product_definition_formation.html),
+and [external identification targets](https://www.steptools.com/stds/stp_aim/html/t_external_identification_item.html).
 
 The standard placement authority is
 [ISO 10303-43 representation structures](https://www.steptools.com/stds/smrl/data/resource_docs/representation_structures/sys/4_schema.htm)
@@ -197,6 +233,11 @@ assembly edges rather than styling carriers.
 [STEPStringExchangeTests](../../../Tests/CADExchangeTests/STEPStringExchangeTests.swift)
 owns independent encoded literals, malformed/resource/cancellation boundaries,
 and public STEP/native description and attributed Unicode round trips.
+[SharedSTEPProductTests](../../../Tests/CADExchangeTests/SharedSTEPProductTests.swift)
+owns independent shared PRODUCT/formation with distinct represented definitions,
+raw identifiers versus assigned UUIDs, two STEP generations, native persistence,
+shared-name and local attribute edits, incremental geometry reuse and stale receipt
+refusal, malformed/competing identity and bounded failure.
 Existing ExactSTEPExchangeTests retain ordinary single-product geometry/unit
 regression ownership. Changes require coordinated verification of DocumentAssembly,
 Assembly Evaluation, native strict schema, and public STEP facade routing.

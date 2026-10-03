@@ -24,7 +24,7 @@ does not create a Rupa scene object, choose a presentation representation, or
 mutate a project.
 
 Native assembly-description admission follows [Document Assembly](../CADIR/DocumentAssembly/DESIGN.md):
-PRODUCT and PRODUCT_DEFINITION descriptions are distinct required-nullable source
+PRODUCT, PRODUCT_DEFINITION_FORMATION and PRODUCT_DEFINITION descriptions are distinct required-nullable source
 fields under the current [CADCore envelope](../CADCore/DESIGN.md). Missing fields
 are rejected; nullable absence and an empty string retain different meanings.
 Standard string lexical encoding and operation-local byte/work accounting are
@@ -45,7 +45,7 @@ source geometry validation.
 |---|---|---|---|---|
 | [Swift-CAD package](../../DESIGN.md) | child of | exact source and typed failure contract | Defines the source-to-evaluation boundary. | Exchange output is not a project publication. |
 | [CADIR](../CADIR/DESIGN.md) | depends on | `ImportedBRepFeature`, `CADDocument` Codable | Retains exact STEP source values. | Do not replace exact B-rep with Mesh. |
-| [STEP Assembly](STEPAssembly/DESIGN.md) | child | product definitions, shared occurrences and local placement interchange | Composes exact local geometry with standard assembly relationships. | Export requires validated local/world artifacts; ambiguity is an explicit failure. |
+| [STEP Assembly](STEPAssembly/DESIGN.md) | child | shared product/formation/definition sources, explicit native identity assignments, occurrences and local placement interchange | Composes exact local geometry with standard assembly relationships. | Export requires validated local/world artifacts; ambiguity is an explicit failure. |
 | [STEP Attributes](STEPAttributes/DESIGN.md) | child | exact target transfer maps, explicit styling/property relationships and physical units | Preserves product attribute scope through STEP and admits format loss before source projection. | Product source and evaluated resolution remain separate authorities; omitted or unsupported semantics are explicit failures. |
 | [Document Foundation](../CADIR/DocumentFoundation/DESIGN.md) | depends on | strict typed attributes and persistent references | Native packages retain the complete source foundation. | The required current envelope is owned by CADCore; external links require caller snapshots to resolve. |
 | [CADKernel](../CADKernel/DESIGN.md) | depends on | exact source evaluation and local/world assembly consistency | Validates retained imported parts and composed world occurrences. | STEP Assembly maps exchange ceilings into evaluation before world materialization. |

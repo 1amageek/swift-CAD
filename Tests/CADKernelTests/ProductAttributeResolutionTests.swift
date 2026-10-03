@@ -12,17 +12,21 @@ struct ProductAttributeResolutionTests {
         let feature = FeatureNode(id: id, operation: .primitive(PrimitiveFeature(definition: .box(BoxPrimitive(
             width: .constant(.length(1, unit: .meter)), depth: .constant(.length(2, unit: .meter)),
             height: .constant(.length(3, unit: .meter)))))), outputs: [FeatureOutput(role: .body)])
-        let leaf = AssemblyDefinition(name: "real part", features: [id])
+        var products = [AssemblyProduct(name: "real part"), AssemblyProduct(name: "shared assembly")]
+        var formations = products.map { AssemblyProductFormation(productID: $0.id) }
+        let leaf = AssemblyDefinition(formationID: formations[0].id, features: [id])
         let edge = AssemblyOccurrence(name: "leaf usage", definitionID: leaf.id)
-        let middle = AssemblyDefinition(name: "shared assembly", children: [edge])
+        let middle = AssemblyDefinition(formationID: formations[1].id, children: [edge])
         var definitions = [leaf, middle]
         var rootDefinition = middle.id
         if depth == 3 {
-            let outer = AssemblyDefinition(name: "outer", children: [AssemblyOccurrence(definitionID: middle.id)])
+            let product = AssemblyProduct(name: "outer"), formation = AssemblyProductFormation(productID: product.id)
+            products.append(product); formations.append(formation)
+            let outer = AssemblyDefinition(formationID: formation.id, children: [AssemblyOccurrence(definitionID: middle.id)])
             definitions.append(outer); rootDefinition = outer.id
         }
         return CADDocument(units: .meters, designGraph: DesignGraph(nodes: [id: feature], order: [id]),
-            assembly: DocumentAssembly(definitions: definitions, roots: [AssemblyOccurrence(name: "first", definitionID: rootDefinition),
+            assembly: DocumentAssembly(products: products, formations: formations, definitions: definitions, roots: [AssemblyOccurrence(name: "first", definitionID: rootDefinition),
                 AssemblyOccurrence(name: "second", definitionID: rootDefinition, placement: .translated(by: Vector3D(x: 5,y: 0,z: 0)))]))
     }
     @Test(.timeLimit(.minutes(1)))
@@ -111,7 +115,7 @@ struct ProductAttributeResolutionTests {
         stale.validatedSourceReceipt = exact.validatedSourceReceipt; stale.validatedBRep = exact.validatedBRep
         #expect(throws: ProductAttributeError.self) { _ = try ProductAttributeResolver().resolve(stale) }
         var described = document
-        described.assembly?.definitions[0].productDescription = "Changed product authority"
+        described.assembly?.products[0].description = "Changed product authority"
         var staleDescription = EvaluatedDocument(document: described, parameters: exact.parameters, brep: exact.brep,
             meshes: exact.meshes, caches: exact.caches, subshapes: exact.subshapes, lineage: exact.lineage,
             configuration: exact.configuration, assembly: exact.assembly)
@@ -122,6 +126,78 @@ struct ProductAttributeResolutionTests {
         let materialized = try evaluator.evaluate(document)
         #expect(materialized.caches.brep != nil)
         _ = try ProductAttributeResolver().resolve(materialized)
+    }
+    @Test(.timeLimit(.minutes(1)))
+    func sharedProductAndFormationEditsUpdateBaselinesCachesAndExactProducerReceipt() throws {
+        var document = fixture()
+        let formation = try #require(document.assembly?.formations.first)
+        let product = try #require(document.assembly?.products.first)
+        document.assembly?.definitions[1].formationID = formation.id
+        document.assembly?.formations = [formation]; document.assembly?.products = [product]
+        let evaluator = DocumentEvaluator(tolerance: .standard), resolver = ProductAttributeResolver()
+        let original = try evaluator.evaluate(document), exact = try evaluator.evaluateExact(document)
+        for change in 0..<4 {
+            var changed = document
+            switch change {
+            case 0: changed.assembly?.products[0].name = "shared edited name"
+            case 1: changed.assembly?.products[0].identifier = "new business identifier"
+            case 2: changed.assembly?.formations[0].versionIdentifier = "another version"
+            default: changed.assembly?.formations[0].specifiedSource = .bought
+            }
+            let reused = try evaluator.evaluate(changed, reusing: original)
+            #expect(reused.evaluationMetrics.reusedFeatureCount == 1 && reused.evaluationMetrics.rebuiltFeatureCount == 0)
+            #expect(reused.brep == original.brep && reused.assembly?.local == original.assembly?.local)
+            let reusedFingerprint = try reused.caches.brep?.sourceFingerprint
+            let originalFingerprint = try original.caches.brep?.sourceFingerprint
+            #expect(reusedFingerprint != originalFingerprint)
+            let view = try resolver.resolve(reused)
+            for definition in changed.assembly?.definitions ?? [] {
+                #expect(view.values[ResolvedProductTarget(definitionID: definition.id)]?.sourceName == changed.assembly?.products[0].name)
+            }
+            var stale = EvaluatedDocument(document: changed, parameters: exact.parameters, brep: exact.brep,
+                meshes: exact.meshes, caches: exact.caches, subshapes: exact.subshapes, lineage: exact.lineage,
+                configuration: exact.configuration, assembly: exact.assembly)
+            stale.validatedSourceReceipt = exact.validatedSourceReceipt; stale.validatedBRep = exact.validatedBRep
+            #expect(throws: ProductAttributeError.self) { _ = try resolver.resolve(stale) }
+            _ = try resolver.resolve(evaluator.evaluateExact(changed))
+        }
+    }
+    @Test(.timeLimit(.minutes(1)))
+    func canonicallyEquivalentUnicodeEditsInvalidateExactProducerSourceReceipt() throws {
+        let composed = "é", decomposed = "e\u{301}"
+        var document = fixture()
+        document.assembly?.products[0].identifier = composed
+        document.assembly?.products[0].name = composed
+        document.assembly?.products[0].description = composed
+        document.assembly?.formations[0].versionIdentifier = composed
+        document.assembly?.formations[0].description = composed
+        document.assembly?.definitions[0].identifier = composed
+        document.assembly?.definitions[0].definitionDescription = composed
+        let evaluator = DocumentEvaluator(tolerance: .standard), resolver = ProductAttributeResolver()
+        let exact = try evaluator.evaluateExact(document)
+        _ = try resolver.resolve(exact)
+        for field in 0..<7 {
+            var changed = document
+            switch field {
+            case 0: changed.assembly?.products[0].identifier = decomposed
+            case 1: changed.assembly?.products[0].name = decomposed
+            case 2: changed.assembly?.products[0].description = decomposed
+            case 3: changed.assembly?.formations[0].versionIdentifier = decomposed
+            case 4: changed.assembly?.formations[0].description = decomposed
+            case 5: changed.assembly?.definitions[0].identifier = decomposed
+            default: changed.assembly?.definitions[0].definitionDescription = decomposed
+            }
+            var stale = EvaluatedDocument(document: changed, parameters: exact.parameters, brep: exact.brep,
+                meshes: exact.meshes, caches: exact.caches, subshapes: exact.subshapes, lineage: exact.lineage,
+                configuration: exact.configuration, assembly: exact.assembly)
+            stale.validatedSourceReceipt = exact.validatedSourceReceipt; stale.validatedBRep = exact.validatedBRep
+            #expect(throws: ProductAttributeError.inconsistentArtifact("Missing or stale producer source/exact B-rep association.")) {
+                _ = try resolver.resolve(stale)
+            }
+            let fresh = try evaluator.evaluateExact(changed)
+            #expect(fresh.brep == exact.brep)
+            _ = try resolver.resolve(fresh)
+        }
     }
     @Test(.timeLimit(.minutes(1)))
     func cancellationPropagatesWithoutPartialAttributes() async throws {

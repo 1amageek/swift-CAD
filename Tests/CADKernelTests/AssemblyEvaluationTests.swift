@@ -13,12 +13,14 @@ struct AssemblyEvaluationTests {
         let feature = FeatureNode(id: id, operation: .primitive(PrimitiveFeature(definition: .box(
             BoxPrimitive(width: .constant(.length(1, unit: .meter)), depth: .constant(.length(2, unit: .meter)),
                          height: .constant(.length(3, unit: .meter)))))), outputs: [FeatureOutput(role: .body)])
-        let part = AssemblyDefinition(name: "part", features: [id])
+        let products = [AssemblyProduct(name: "part"), AssemblyProduct(name: "nested")]
+        let formations = products.map { AssemblyProductFormation(productID: $0.id) }
+        let part = AssemblyDefinition(formationID: formations[0].id, features: [id])
         let rotated = try RigidTransform3D(basisX: .unitY, basisY: -.unitX, basisZ: .unitZ,
             translation: Vector3D(x: 5, y: 0, z: 0), tolerance: .standard)
-        let sub = AssemblyDefinition(name: "nested", children: [AssemblyOccurrence(definitionID: part.id, placement: rotated)])
+        let sub = AssemblyDefinition(formationID: formations[1].id, children: [AssemblyOccurrence(definitionID: part.id, placement: rotated)])
         return CADDocument(units: .meters, designGraph: DesignGraph(nodes: [id: feature], order: [id]),
-            assembly: DocumentAssembly(definitions: [part, sub], roots: [AssemblyOccurrence(definitionID: sub.id),
+            assembly: DocumentAssembly(products: products, formations: formations, definitions: [part, sub], roots: [AssemblyOccurrence(definitionID: sub.id),
                 AssemblyOccurrence(definitionID: sub.id, placement: .translated(by: Vector3D(x: 0, y: 10, z: 0)))]))
     }
     @Test(.timeLimit(.minutes(1)))

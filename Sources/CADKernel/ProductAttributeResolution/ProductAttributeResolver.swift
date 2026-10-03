@@ -4,11 +4,13 @@ import CADModeling
 import CADTopology
 
 public struct ProductAttributeResolver: ProductAttributeResolving {
+    private let productLookup: any AssemblyProductLookingUp
     private let references: any StableSubshapeResolving
     private let sourceValidator: any ProductAttributesValidating
     public init(references: any StableSubshapeResolving = StableSubshapeResolver(),
-                sourceValidator: any ProductAttributesValidating = ProductAttributesValidator()) {
-        self.references = references; self.sourceValidator = sourceValidator
+                sourceValidator: any ProductAttributesValidating = ProductAttributesValidator(),
+                productLookup: any AssemblyProductLookingUp = AssemblyProductLookup()) {
+        self.productLookup = productLookup; self.references = references; self.sourceValidator = sourceValidator
     }
     public func sourceReference(for subshapeID: SubshapeID, in evaluated: EvaluatedDocument) throws -> StableSubshapeReference {
         let local = evaluated.assembly?.local
@@ -44,7 +46,7 @@ public struct ProductAttributeResolver: ProductAttributeResolving {
             let result = try AssemblyEvaluator().evaluate(assembly, in: document.designGraph, local: artifact.local,
                 tolerance: tolerance, limits: AssemblyResourceLimits(maximumRecords: limits.maximumRecords,
                     maximumOccurrences: limits.maximumTargets, maximumDepth: limits.maximumDepth,
-                    maximumTopologyEntities: limits.maximumTargets, maximumWork: remaining))
+                    maximumTopologyEntities: limits.maximumTargets, maximumWork: remaining, maximumTextBytes: limits.maximumTextBytes - budget.consumedTextBytes))
             try budget.charge(work: result.consumedWork)
             guard result.model == evaluated.brep, result.subshapes == evaluated.subshapes,
                   result.artifact.occurrences == artifact.occurrences, result.lineage == evaluated.lineage else {
@@ -178,8 +180,12 @@ public struct ProductAttributeResolver: ProductAttributeResolving {
             let target = candidate.0
             var name: String?
             if target.topology == nil, let id = target.definitionID {
-                try budget.charge(work: document.assembly?.definitions.count ?? 0)
-                name = document.assembly?.definitions.first(where: { $0.id == id })?.name
+                if let assembly = document.assembly {
+                    let result = try productLookup.product(for: id, in: assembly,
+                        maximumWork: limits.maximumWork - budget.consumedWork)
+                    try budget.charge(work: result.consumedWork)
+                    name = result.product.name
+                }
                 if let path = target.path {
                     var children = document.assembly?.roots ?? []
                     for component in path.components {

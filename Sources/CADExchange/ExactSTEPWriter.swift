@@ -19,25 +19,46 @@ struct ExactSTEPWriter {
     try publish(table: table, to: sink)
   }
 
+  func appendProduct(_ product: AssemblyProduct, table: inout EntityTable) throws -> Int {
+    let application = try table.add("APPLICATION_CONTEXT('managed model based 3d engineering')")
+    let context = try table.add("PRODUCT_CONTEXT('',#\(application),'mechanical')")
+    let text = try product.description.map { try table.quotedString($0) } ?? "$"
+    return try table.add("PRODUCT(\(try table.quotedString(product.identifier)),\(try table.quotedString(product.name)),\(text),(#\(context)))")
+  }
+
+  func appendFormation(_ formation: AssemblyProductFormation, product: Int, table: inout EntityTable) throws -> Int {
+    let identifier = try table.quotedString(formation.versionIdentifier)
+    let text = try formation.description.map { try table.quotedString($0) } ?? "$"
+    if let specified = formation.specifiedSource {
+      return try table.add("PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE(\(identifier),\(text),#\(product),.\(specified.rawValue.uppercased()).)")
+    }
+    return try table.add("PRODUCT_DEFINITION_FORMATION(\(identifier),\(text),#\(product))")
+  }
+
   func appendDefinition(brep: BRepModel, units: UnitSystem, identifier: String, name: String,
                         productDescription: String? = "", definitionDescription: String? = "",
-                        additionalItems: [Int], wholePartCarrier: Bool = false, bodyNames: [BodyID: String] = [:], faceNames: [FaceID: String] = [:],
+                        additionalItems: [Int], retainedFormation: Int? = nil, definitionIdentifier: String = "design", wholePartCarrier: Bool = false, bodyNames: [BodyID: String] = [:], faceNames: [FaceID: String] = [:],
                         table: inout EntityTable) throws -> WrittenDefinition {
     guard brep.bodies.values.allSatisfy({ $0.material == nil }) else {
       throw ProductAttributeError.unsupportedSemantics("Legacy PBR Body.material references need an explicit physical/presentation conversion before STEP export.")
     }
     let applicationContext = try table.add(
       "APPLICATION_CONTEXT('managed model based 3d engineering')")
-    let productContext = try table.add("PRODUCT_CONTEXT('',#\(applicationContext),'mechanical')")
-    let productIdentifier = try table.quotedString(identifier), productName = try table.quotedString(name)
-    let productText = try productDescription.map { try table.quotedString($0) } ?? "$"
+    let formation: Int
+    if let retainedFormation {
+      formation = retainedFormation
+    } else {
+      let productContext = try table.add("PRODUCT_CONTEXT('',#\(applicationContext),'mechanical')")
+      let productIdentifier = try table.quotedString(identifier), productName = try table.quotedString(name)
+      let productText = try productDescription.map { try table.quotedString($0) } ?? "$"
+      let product = try table.add("PRODUCT(\(productIdentifier),\(productName),\(productText),(#\(productContext)))")
+      formation = try table.add("PRODUCT_DEFINITION_FORMATION('','',#\(product))")
+    }
     let definitionText = try definitionDescription.map { try table.quotedString($0) } ?? "$"
-    let product = try table.add("PRODUCT(\(productIdentifier),\(productName),\(productText),(#\(productContext)))")
-    let formation = try table.add("PRODUCT_DEFINITION_FORMATION('','',#\(product))")
     let definitionContext = try table.add(
       "PRODUCT_DEFINITION_CONTEXT('part definition',#\(applicationContext),'design')")
     let definition = try table.add(
-      "PRODUCT_DEFINITION('design',\(definitionText),#\(formation),#\(definitionContext))")
+      "PRODUCT_DEFINITION(\(try table.quotedString(definitionIdentifier)),\(definitionText),#\(formation),#\(definitionContext))")
     let definitionShape = try table.add("PRODUCT_DEFINITION_SHAPE('','',#\(definition))")
     let lengthUnit = try lengthUnitEntity(units.length, table: &table)
     let angleUnit = try table.add("(NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,.RADIAN.))")

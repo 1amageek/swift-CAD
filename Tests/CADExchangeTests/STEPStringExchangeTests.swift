@@ -93,7 +93,7 @@ struct STEPStringExchangeTests {
         let exchange = STEPExchange(tolerance: .standard)
         let imported = try exchange.import(Data(literal.utf8))
         let document = try #require(imported.document), part = try #require(document.assembly?.definitions.first)
-        #expect(part.name == "部品" && part.productDescription == "§ π 😀")
+        #expect(document.assembly?.products.first?.name == "部品" && document.assembly?.products.first?.description == "§ π 😀")
         #expect(part.definitionDescription == "Don't \\ lose Ä")
         #expect(document.productAttributes.materials.first?.name == "鋼")
         #expect(document.productAttributes.materials.first?.description == "café")
@@ -105,7 +105,7 @@ struct STEPStringExchangeTests {
         try OfficialFormatExchange(tolerance: .standard).write(evaluated, as: .step, to: sink)
         let roundTrip = try #require(exchange.import(sink.bytes).document)
         let retained = try #require(roundTrip.assembly?.definitions.first)
-        #expect(retained.name == part.name && retained.productDescription == part.productDescription)
+        #expect(roundTrip.assembly?.products == document.assembly?.products)
         #expect(retained.definitionDescription == part.definitionDescription)
         #expect(roundTrip.productAttributes.materials.map(\.name) == document.productAttributes.materials.map(\.name))
         #expect(roundTrip.productAttributes.materials.map(\.description) == document.productAttributes.materials.map(\.description))
@@ -116,25 +116,26 @@ struct STEPStringExchangeTests {
         let direct = literal.replacingOccurrences(of: #"'\X2\90E854C1\X0\'"#, with: "'\u{301}部品;#999=e\u{301}'")
             .replacingOccurrences(of: #"'\X2\672C4F53\X0\'"#, with: "'\u{301}本体,(e\u{301})'")
         let directSource = try #require(exchange.import(Data(direct.utf8)).document)
-        #expect(directSource.assembly?.definitions.first?.name == "\u{301}部品;#999=e\u{301}")
+        #expect(directSource.assembly?.products.first?.name == "\u{301}部品;#999=e\u{301}")
         #expect(directSource.productAttributes.assignments.contains { $0.value == .name("\u{301}本体,(e\u{301})") })
         let directSink = DataByteSink()
         try exchange.write(DocumentEvaluator(tolerance: .standard).evaluateExact(directSource), to: directSink)
         let directRestored = try #require(exchange.import(directSink.bytes).document)
-        #expect(directRestored.assembly?.definitions.first?.name.unicodeScalars.elementsEqual("\u{301}部品;#999=e\u{301}".unicodeScalars) == true)
+        #expect(directRestored.assembly?.products.first?.name.unicodeScalars.elementsEqual("\u{301}部品;#999=e\u{301}".unicodeScalars) == true)
         let competing = literal.replacingOccurrences(of: "ENDSEC;\nEND-ISO", with:
             "#500=PRODUCT_DEFINITION('another view','different definition description',#51,#3);\n#501=PRODUCT_DEFINITION_SHAPE('','',#500);\n#502=SHAPE_DEFINITION_REPRESENTATION(#501,#56);\nENDSEC;\nEND-ISO")
-        #expect(throws: ProductAttributeError.unsupportedSemantics("Several definitions share one product description owner.")) {
+        #expect(throws: ProductAttributeError.unsupportedSemantics("Several definitions share one shape representation.")) {
             _ = try exchange.import(Data(competing.utf8))
         }
         let bad = literal.replacingOccurrences(of: #"\X4\0001F600\X0\"#, with: #"\X4\00110000\X0\"#)
         #expect(throws: STEPStringError.self) { _ = try exchange.import(Data(bad.utf8)) }
-        var nilDescription = document; nilDescription.assembly?.definitions[0].productDescription = nil
+        var nilDescription = document; nilDescription.assembly?.products[0].description = nil
         nilDescription.assembly?.definitions[0].definitionDescription = ""
         let optionalSink = DataByteSink()
         try exchange.write(DocumentEvaluator(tolerance: .standard).evaluateExact(nilDescription), to: optionalSink)
-        let optional = try #require(exchange.import(optionalSink.bytes).document?.assembly?.definitions.first)
-        #expect(optional.productDescription == nil && optional.definitionDescription == "")
+        let optionalSource = try #require(exchange.import(optionalSink.bytes).document)
+        let optional = try #require(optionalSource.assembly?.definitions.first)
+        #expect(optionalSource.assembly?.products.first?.description == nil && optional.definitionDescription == "")
     }
     @Test(.timeLimit(.minutes(1)))
     func cancellationAndPublicOutputFailureDoNotPublish() async throws {
@@ -146,7 +147,7 @@ struct STEPStringExchangeTests {
         catch is CancellationError {}
         let document = try #require(STEPExchange(tolerance: .standard).import(Data(STEPAttributesExchangeTests.independentFixture.utf8)).document)
         var oversized = document
-        oversized.assembly?.definitions[0].productDescription = String(repeating: "π", count: 3000)
+        oversized.assembly?.products[0].description = String(repeating: "π", count: 3000)
         let sink = DataByteSink(), evaluated = try DocumentEvaluator(tolerance: .standard).evaluateExact(oversized)
         #expect(throws: STEPStringError.resourceLimitExceeded) { try STEPExchange(tolerance: .standard).write(evaluated, to: sink) }
         #expect(sink.bytes.isEmpty)
