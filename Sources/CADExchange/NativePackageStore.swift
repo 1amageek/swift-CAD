@@ -2377,14 +2377,25 @@ private func validateSurfaceEdgeContinuityObject(_ object: [String: Any], path: 
     }
 }
 
+private func validateLoftFaceContinuityObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["order", "tension", "angularAllowance", "curvatureAllowance"], objectName: path)
+    try validateLoftOptionString("order", in: object, path: "\(path).order", supportedValues: ["tangent", "curvature"])
+    guard let tension = object["tension"], isFinitePositiveJSONNumber(tension) else {
+        throw SchemaError.invalidPackage("Native \(path).tension must be a finite positive number.")
+    }
+}
+
 private func validateLoftSectionReferenceObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["section", "profileDirection", "startSampleIndex", "smoothTangentScale", "smoothTangentMode", "continuity"],
+        supportedKeys: ["section", "profileDirection", "startSampleIndex", "smoothTangentScale", "smoothTangentMode", "continuity", "faceContinuity"],
         objectName: path
     )
     if object["continuity"] != nil {
         try validateObjectField("continuity", in: object, path: "\(path).continuity", using: validateSurfaceEdgeContinuityObject)
+    }
+    if object["faceContinuity"] != nil {
+        try validateObjectField("faceContinuity", in: object, path: "\(path).faceContinuity", using: validateLoftFaceContinuityObject)
     }
     try validateObjectField("section", in: object, path: "\(path).section", using: validateSectionReferenceObject)
     try validateLoftOptionString("profileDirection", in: object, path: "\(path).profileDirection",

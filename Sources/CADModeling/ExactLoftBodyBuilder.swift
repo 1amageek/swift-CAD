@@ -1816,7 +1816,7 @@ package struct ExactLoftBodyBuilder {
         loft: LoftFeature, partitions: [SectionPartition], connectionCount: Int,
         tangents: [[Vector3D]], connectionSpans: [Double], guides: [ExactLoftGuideCurve]
     ) throws -> [Int: [BSplineSurface3D]] {
-        guard loft.sections.contains(where: { $0.continuity != nil }) else { return [:] }
+        guard loft.sections.contains(where: \.hasContinuity) else { return [:] }
         let tolerance = context.tolerance
         guard partitions.count == 1, let partition = partitions.first else {
             throw invalidGeometry("Loft continuity belongs to a single curve boundary.")
@@ -1827,18 +1827,30 @@ package struct ExactLoftBodyBuilder {
             let sum = ring.reduce(Vector3D.zero) { $0 + ($1 - .origin) }
             return .origin + sum * (1 / Double(ring.count))
         }
-        var planes: [Int: ExactEdgeContinuitySupport] = [:]
+        // Each end section's support per span: a curve section's one edge for every span; a face
+        // section's, across the boundary edge each span runs along.
+        var planes: [Int: [ExactEdgeContinuitySupport]] = [:]
         for sectionIndex in Set([0, sectionCount - 1]) {
-            guard let continuity = loft.sections[sectionIndex].continuity else { continue }
+            let section = loft.sections[sectionIndex]
+            guard section.hasContinuity else { continue }
             let other = sectionIndex == 0 ? 1 : sectionCount - 2
-            let span = partition.curves[sectionIndex][0]
-            guard case let .closed(lower, _) = span.domain else { throw invalidGeometry("A Loft section span is unbounded.") }
-            let start = try span.differentialGeometry(at: lower, tolerance: tolerance)
-            planes[sectionIndex] = try ExactEdgeContinuitySupportResolver().support(
-                for: continuity, point: start.position, derivative: start.firstDerivative,
-                toward: centroid(partition.rings[other]) - centroid(partition.rings[sectionIndex]),
-                context: context, featureID: featureID
-            )
+            let toward = centroid(partition.rings[other]) - centroid(partition.rings[sectionIndex])
+            func start(of span: BSplineCurve3D) throws -> BSplineCurve3D.DifferentialGeometry {
+                guard case let .closed(lower, _) = span.domain else { throw invalidGeometry("A Loft section span is unbounded.") }
+                return try span.differentialGeometry(at: lower, tolerance: tolerance)
+            }
+            if let continuity = section.continuity {
+                let first = try start(of: partition.curves[sectionIndex][0])
+                let support = try ExactEdgeContinuitySupportResolver().support(
+                    for: continuity, point: first.position, derivative: first.firstDerivative,
+                    toward: toward, context: context, featureID: featureID
+                )
+                planes[sectionIndex] = Array(repeating: support, count: partition.curves[sectionIndex].count)
+            } else if let continuity = section.faceContinuity, case let .face(face) = section.section {
+                planes[sectionIndex] = try faceSupports(
+                    continuity, face: face, spans: partition.curves[sectionIndex], toward: toward, start: start
+                )
+            }
         }
         let closed = partition.rings[0].count == partition.curves[0].count
         let guided = try guideConnectors(guides, rings: partition.rings)
@@ -1848,16 +1860,17 @@ package struct ExactLoftBodyBuilder {
             let (first, second) = (connection, connection + 1)
             guard planes[first] != nil || planes[second] != nil else { continue }
             let scale = averageRingDistance(from: partition.rings[first], to: partition.rings[second])
-            let degree = [planes[first], planes[second]].contains { $0?.order == .curvature } ? 5 : 3
+            let ends = (planes[first] ?? []) + (planes[second] ?? [])
+            let degree = ends.contains { $0.order == .curvature } ? 5 : 3
             // Beside a curved face the rows only approximate its tangent planes: the sides are
             // refined until the built surface is certified within the allowance.
-            let exact = [planes[first], planes[second]].allSatisfy { $0?.isExact ?? true }
+            let exact = ends.allSatisfy(\.isExact)
             var lastFailure: (any Error)?
             for level in 0...(exact ? 0 : 4) {
                 let firstCurves = try partition.curves[first].map { try refined($0, level: level) }
                 let secondCurves = try partition.curves[second].map { try refined($0, level: level) }
                 func derivatives(of section: Int, curves: [BSplineCurve3D], leaving: Bool) throws -> [[Vector3D]] {
-                    guard let plane = planes[section] else {
+                    guard let supports = planes[section] else {
                         return try firstCurves.indices.map { span in
                             let chord = zip(secondCurves[span].controlPoints, firstCurves[span].controlPoints).map { $0 - $1 }
                             guard followsTangents else { return chord }
@@ -1875,16 +1888,17 @@ package struct ExactLoftBodyBuilder {
                             }
                         }
                     }
-                    let magnitude = plane.tension * scale * (leaving ? 1 : -1)
-                    var rows = try curves.map { span in
-                        try plane.leavingDirections(along: span, tolerance: tolerance).map { $0 * magnitude }
+                    func magnitude(_ span: Int) -> Double { supports[span].tension * scale * (leaving ? 1 : -1) }
+                    var rows = try curves.indices.map { span in
+                        try supports[span].leavingDirections(along: curves[span], tolerance: tolerance).map { $0 * magnitude(span) }
                     }
                     // Neighbouring spans share their vertex's row, so the section must not turn a
                     // corner there.
                     for span in rows.indices where span + 1 < rows.count || closed {
                         let next = (span + 1) % rows.count
+                        let exactBoth = supports[span].isExact && supports[next].isExact
                         guard let end = rows[span].last, let start = rows[next].first,
-                              (end - start).length <= abs(magnitude) * max(tolerance.angle, plane.isExact ? 0 : 1e-6) else {
+                              (end - start).length <= abs(magnitude(span)) * max(tolerance.angle, exactBoth ? 0 : 1e-6) else {
                             throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
                                               message: "A Loft continuity section turns a corner.")
                         }
@@ -1896,8 +1910,8 @@ package struct ExactLoftBodyBuilder {
                 let arriving = try derivatives(of: second, curves: secondCurves, leaving: false)
                 // Curvature ends take the face's normal curvature across the edge.
                 func seconds(of section: Int, curves: [BSplineCurve3D], rows: [[Vector3D]]) throws -> [[Vector3D]]? {
-                    guard let plane = planes[section], plane.order == .curvature else { return nil }
-                    return try curves.indices.map { try plane.curvatureRows(along: curves[$0], rows: rows[$0], tolerance: tolerance) }
+                    guard let supports = planes[section], supports.contains(where: { $0.order == .curvature }) else { return nil }
+                    return try curves.indices.map { try supports[$0].curvatureRows(along: curves[$0], rows: rows[$0], tolerance: tolerance) }
                 }
                 let leavingSeconds = try seconds(of: first, curves: firstCurves, rows: leaving)
                 let arrivingSeconds = try seconds(of: second, curves: secondCurves, rows: arriving)
@@ -1911,8 +1925,8 @@ package struct ExactLoftBodyBuilder {
                 }
                 do {
                     for (span, surface) in surfaces.enumerated() {
-                        try planes[first]?.certify(surface, boundaryV: 0, span: firstCurves[span], tolerance: tolerance, featureID: featureID)
-                        try planes[second]?.certify(surface, boundaryV: 1, span: secondCurves[span], tolerance: tolerance, featureID: featureID)
+                        try planes[first]?[span].certify(surface, boundaryV: 0, span: firstCurves[span], tolerance: tolerance, featureID: featureID)
+                        try planes[second]?[span].certify(surface, boundaryV: 1, span: secondCurves[span], tolerance: tolerance, featureID: featureID)
                     }
                     result[connection] = surfaces
                     lastFailure = nil
@@ -1941,12 +1955,48 @@ package struct ExactLoftBodyBuilder {
                     bottom: partition.curves[first][span], top: partition.curves[second][span],
                     left: try guided[connection][span] ?? column(hermite[span], last: false),
                     right: try guided[connection][next] ?? column(hermite[span], last: true),
-                    bottomPlane: planes[first], topPlane: planes[second], featureID: featureID
+                    bottomPlane: planes[first]?[span], topPlane: planes[second]?[span], featureID: featureID
                 )
             }
             result[connection] = sides
         }
         return result
+    }
+
+    /// A face section's supports, one per span of its ring: across the boundary edge of the face
+    /// each span runs along (found through the span's middle), with the face beside that edge.
+    private func faceSupports(
+        _ continuity: LoftFaceContinuity, face: FaceSectionReference, spans: [BSplineCurve3D], toward: Vector3D,
+        start: (BSplineCurve3D) throws -> BSplineCurve3D.DifferentialGeometry
+    ) throws -> [ExactEdgeContinuitySupport] {
+        let tolerance = context.tolerance
+        let model = context.brep
+        let scope = try BodyTopologyScope(bodyID: try context.bodyID(generatedBy: face.featureID), model: model)
+        guard case let .face(faceID) = try StableSubshapeResolver().topologyReference(
+            for: face.face, model: model, subshapes: context.subshapes, lineage: context.lineage, tolerance: tolerance
+        ), let sectionFace = model.faces[faceID] else {
+            throw KernelError(phase: .evaluation, code: .missingReference, featureID: featureID, tolerance: tolerance,
+                              message: "A Loft face section did not resolve to a face.")
+        }
+        let boundary = sectionFace.loops.flatMap { model.loops[$0]?.coedges.map(\.edgeID) ?? [] }
+        let solver = BRepSurfaceMeetingSolver(tolerance: tolerance)
+        return try spans.map { span in
+            guard case let .closed(lower, upper) = span.domain else { throw invalidGeometry("A Loft section span is unbounded.") }
+            let middle = try span.point(at: (lower + upper) / 2, tolerance: tolerance)
+            guard let edgeID = try boundary.first(where: { edgeID in
+                guard let edge = model.edges[edgeID], let curve = model.geometry.curves[edge.curveID] else { return false }
+                return (try solver.closest(to: middle, on: curve).point - middle).length <= tolerance.distance * 8
+            }) else {
+                throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
+                                  message: "A Loft face section's span runs along none of the face's edges.")
+            }
+            let first = try start(span)
+            return try ExactEdgeContinuitySupportResolver().support(
+                across: edgeID, in: scope, excluding: faceID, order: continuity.order, tension: continuity.tension,
+                angularAllowance: continuity.angularAllowance, curvatureAllowance: continuity.curvatureAllowance,
+                point: first.position, derivative: first.firstDerivative, toward: toward, context: context, featureID: featureID
+            )
+        }
     }
 
     /// `curve` with the midpoint of every knot span inserted `level` times over.

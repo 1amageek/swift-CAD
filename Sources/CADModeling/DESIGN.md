@@ -646,8 +646,13 @@ Neighbouring spans share their vertex's row, a corner there is refused, and the 
 sides' boundary columns. A span beside a guide is instead `ExactHermiteCoonsSurfaceBuilder`'s
 Hermite Boolean sum with its connectors as the other two sides: the guide's piece, which must leave
 the face within its tangent plane (else refused), and across an unguided vertex the neighbouring
-Hermite side's column, so neighbouring spans still share it. Middle sections and closed section
-loops are refused with continuity. `SurfaceEdgeContinuityTests` own the S-shaped G1 and G2 sheets between two boxes'
+Hermite side's column, so neighbouring spans still share it. An end face section takes its own
+continuity (`LoftFaceContinuity`, Plasticity's Start and End Continuity for faces): each span of
+its ring finds the boundary edge it runs along and its support is across that edge with the face
+beside it other than the section's own, so a box top lofts upright beside its walls; spans
+meeting at a corner must leave along one row there, as the walls do. Middle sections and closed
+section loops are refused with continuity. `LoftFaceTests` prove two boxes' faces lofted G0
+(slanted) and G1 and G2 (upright at both ends). `SurfaceEdgeContinuityTests` own the S-shaped G1 and G2 sheets between two boxes'
 edges, the round trip, the smooth three-section G1 loft through a middle line, the guided G1 loft
 through its guide and the refusal of a guide leaving out of the face's plane, the G1 and G2 lofts
 from a cylinder's side certified within their allowances, and the refusals of a curved face
