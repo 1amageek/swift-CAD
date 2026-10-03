@@ -27,7 +27,7 @@ struct BRepImprintCompletion {
         var result = curves
         let clipper = BRepFaceCurveClipper()
         let intersector = ExactTrimEdgeIntersector()
-        for (index, curve) in curves.enumerated() {
+        for curve in curves {
             guard let face = model.faces[curve.faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw KernelError(phase: .topology, code: .missingReference, tolerance: tolerance, message: "An imprinted face is missing.")
             }
@@ -66,7 +66,7 @@ struct BRepImprintCompletion {
                     piece = first
                 }
                 result.append(BRepFaceImprinter.Curve(faceID: curve.faceID, edge: BRepSewingEdge(
-                    stableID: "imprint:completion:\(index):\(fraction)", curve: piece.curve,
+                    stableID: "imprint:completion:\(curve.edge.stableID):\(fraction)", curve: piece.curve,
                     startParameter: piece.startParameter, endParameter: piece.endParameter,
                     startPoint: piece.startPoint, endPoint: piece.endPoint,
                     surfaceParameterCurve: piece.surfaceParameterCurve, parentSubshapeIDs: piece.parentSubshapeIDs

@@ -729,8 +729,9 @@ public enum FeatureNodeFactory {
             case let .imprintBody(feature):
                 try feature.validate()
                 target = feature.target.featureID
-                _ = try bodyOrSheetPort(of: feature.tool.featureID, in: document)
-                inputs = [FeatureInput(featureID: target, role: .target), FeatureInput(featureID: feature.tool.featureID, role: .body)]
+                for tool in feature.tools { _ = try bodyOrSheetPort(of: tool.body.featureID, in: document) }
+                inputs = [FeatureInput(featureID: target, role: .target)]
+                    + feature.tools.map { FeatureInput(featureID: $0.body.featureID, role: .body) }
             case let .untrimFace(feature):
                 try feature.validate()
                 target = feature.target.featureID

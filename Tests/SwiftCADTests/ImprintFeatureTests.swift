@@ -185,6 +185,38 @@ struct ImprintFeatureTests {
         #expect(abs(try evaluated.brep.volume(of: solid.id, tolerance: .standard) - side * side * side) < 1e-12)
     }
 
+    /// Plasticity imprints several tool sheets at once, Complete Edge carrying each tool's line on
+    /// across the other's to the target's boundary: one sheet stops at the top's middle, the other
+    /// crosses it; the first's line runs on over the second's to the back edge.
+    @Test(.timeLimit(.minutes(2)))
+    func severalToolsImprintAtOnceTheirLinesCrossing() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let target = try builder.box(width: length(side), depth: length(side), height: length(side))
+        let b = try bounds(of: target, in: try evaluate(builder))
+        let (midX, top) = ((b.minimum.x + b.maximum.x) / 2, b.maximum.z)
+        let midY = (b.minimum.y + b.maximum.y) / 2
+        let farY = b.minimum.y + 0.75 * (b.maximum.y - b.minimum.y)
+        func sheet(_ a: Point3D, _ c: Point3D) throws -> FeatureID {
+            try builder.bSplineSurface(BSplineSurface3D(
+                uDegree: 1, vDegree: 1, uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+                controlPoints: [[Point3D(x: a.x, y: a.y, z: top - side / 4), Point3D(x: c.x, y: c.y, z: top - side / 4)],
+                                [Point3D(x: a.x, y: a.y, z: top + side / 4), Point3D(x: c.x, y: c.y, z: top + side / 4)]]
+            ))
+        }
+        // Across the front edge to the top's middle, and across the whole top at three quarters.
+        let first = try sheet(Point3D(x: midX, y: b.minimum.y - side, z: 0), Point3D(x: midX, y: midY, z: 0))
+        let second = try sheet(Point3D(x: b.minimum.x - side, y: farY, z: 0), Point3D(x: b.maximum.x + side, y: farY, z: 0))
+        let imprinted = try builder.imprintBody(target, tools: [ImprintBodyTool(body: PatternTargetReference(featureID: first)),
+                                                              ImprintBodyTool(body: PatternTargetReference(featureID: second))],
+                                                completion: .edge)
+        let evaluated = try evaluate(builder)
+        let solid = try body(of: imprinted, in: evaluated)
+        // The top in four; the front and the two sides each in two, carried down to the bottom.
+        #expect(faceCount(solid, in: evaluated) == 12)
+        #expect(abs(try evaluated.brep.volume(of: solid.id, tolerance: .standard) - side * side * side) < 1e-12)
+        #expect(evaluated.brep.bodies.count == 3)
+    }
+
     // MARK: Imprint Curve Body
 
     private func sketchPoint(_ x: Double, _ y: Double) -> SketchPoint {

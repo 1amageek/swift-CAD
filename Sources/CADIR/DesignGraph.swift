@@ -1760,8 +1760,9 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         case let .imprintBody(feature):
             try feature.validate()
             target = feature.target.featureID
-            inputs = [FeatureInput(featureID: target, role: .target), FeatureInput(featureID: feature.tool.featureID, role: .body)]
-            guard nodes[feature.tool.featureID]?.bodyOrSheetOutput != nil else {
+            inputs = [FeatureInput(featureID: target, role: .target)]
+                + feature.tools.map { FeatureInput(featureID: $0.body.featureID, role: .body) }
+            for tool in feature.tools where nodes[tool.body.featureID]?.bodyOrSheetOutput == nil {
                 throw FeatureEvaluationError.invalidGraph("Imprint's tool must declare one body or sheet output.")
             }
         case let .untrimFace(feature):

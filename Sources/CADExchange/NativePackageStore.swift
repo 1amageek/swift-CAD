@@ -560,9 +560,12 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
         try validateObjectField("referenceFace", in: feature, path: "\(featurePath).referenceFace", using: validateStableSubshapeReferenceObject)
     }
     try validateObjectField("imprintBody", in: object, path: "\(path).imprintBody") { feature, featurePath in
-        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "tool", "toolPlacement", "completion"], objectName: featurePath)
+        try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "tools", "completion"], objectName: featurePath)
         try validateObjectField("target", in: feature, path: "\(featurePath).target", using: validatePatternTargetReferenceObject)
-        try validateObjectField("tool", in: feature, path: "\(featurePath).tool", using: validatePatternTargetReferenceObject)
+        try validateArrayField("tools", in: feature, path: "\(featurePath).tools") { tool, toolPath in
+            try rejectUnsupportedNativeKeys(in: tool, supportedKeys: ["body", "placement"], objectName: toolPath)
+            try validateObjectField("body", in: tool, path: "\(toolPath).body", using: validatePatternTargetReferenceObject)
+        }
     }
     try validateObjectField("imprintCurves", in: object, path: "\(path).imprintCurves") { feature, featurePath in
         try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["target", "curves", "projection", "completion"], objectName: featurePath)

@@ -441,7 +441,8 @@ extension FeatureOperation {
             return .faceMatch(feature)
         case .imprintBody(let feature):
             return .imprintBody(ImprintBodyFeature(
-                target: try pattern(feature.target), tool: try pattern(feature.tool), toolPlacement: feature.toolPlacement,
+                target: try pattern(feature.target),
+                tools: try feature.tools.map { ImprintBodyTool(body: try pattern($0.body), placement: $0.placement) },
                 completion: feature.completion
             ))
         case .untrimFace(let feature):
