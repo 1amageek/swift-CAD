@@ -48,19 +48,30 @@ struct OverlapRegularGraphCertifier {
                 var provedOutside = false
                 if let seed, let box = try root.trialBox(range: item.range, pair: pair, seed: seed, budget: &budget),
                    let proof = try root.proof(range: item.range, box: box, pair: pair, budget: &budget) {
-                    let provisional = OverlapRegularGraphCell(range: item.range, box: box, pair: pair,
-                        derivativeU: proof.u[0], derivativeV: proof.v[0], maximumDeviation: .infinity)
-                    let center = try root.pointProof(at: item.range.midpoint, cell: provisional, budget: &budget)
-                    let centerParameter = item.range.midpoint
-                    let leftDistance = OutwardScalarInterval.exact(centerParameter) - .exact(item.range.lower)
-                    let rightDistance = OutwardScalarInterval.exact(item.range.upper) - .exact(centerParameter)
-                    let half = OutwardScalarInterval.exact(max(leftDistance.upper, rightDistance.upper))
-                    guard let remainder = (OutwardScalarInterval.exact(proof.residual[3].absoluteUpperBound) * half * half * half)
-                        .divided(by: .exact(6)) else { throw failure(.resourceLimitExceeded, "A graph Taylor remainder has no finite enclosure.", tolerance) }
-                    let radius = OutwardScalarInterval.exact(center.residual[1].absoluteUpperBound) * half
-                        + .exact(center.residual[2].absoluteUpperBound) * half * half * .exact(0.5)
-                        + remainder
-                    let residual = center.residual[0] + OutwardScalarInterval(lower: -radius.upper, upper: radius.upper)
+                    let residual: OutwardScalarInterval
+                    if proof.authority.isSmooth {
+                        let provisional = OverlapRegularGraphCell(range: item.range, box: box, pair: pair,
+                            derivativeU: proof.u[0], derivativeV: proof.v[0], maximumDeviation: .infinity,
+                            authority: proof.authority)
+                        let center = try root.pointProof(at: item.range.midpoint, cell: provisional, budget: &budget)
+                        guard center.authority.isSmooth else {
+                            throw failure(.intersectionFailure, "A smooth Taylor center lost its differential authority.", tolerance)
+                        }
+                        let centerParameter = item.range.midpoint
+                        let leftDistance = OutwardScalarInterval.exact(centerParameter) - .exact(item.range.lower)
+                        let rightDistance = OutwardScalarInterval.exact(item.range.upper) - .exact(centerParameter)
+                        let half = OutwardScalarInterval.exact(max(leftDistance.upper, rightDistance.upper))
+                        guard let remainder = (OutwardScalarInterval.exact(proof.residual[3].absoluteUpperBound) * half * half * half)
+                            .divided(by: .exact(6)) else { throw failure(.resourceLimitExceeded, "A graph Taylor remainder has no finite enclosure.", tolerance) }
+                        let radius = OutwardScalarInterval.exact(center.residual[1].absoluteUpperBound) * half
+                            + .exact(center.residual[2].absoluteUpperBound) * half * half * .exact(0.5)
+                            + remainder
+                        residual = center.residual[0] + OutwardScalarInterval(lower: -radius.upper, upper: radius.upper)
+                    } else {
+                        // C0 collars have no global higher derivatives. The original
+                        // source and certified K image enclose every position instead.
+                        residual = proof.residual[0]
+                    }
                     guard residual.isFinite else { throw failure(.resourceLimitExceeded, "Regular graph residual exceeded finite arithmetic.", tolerance) }
                     if residual.absoluteUpperBound <= tolerance.distance || residual.absoluteLowerBound > tolerance.distance {
                         // Root existence in the tube is local. Before excluding geometry or
@@ -69,7 +80,8 @@ struct OverlapRegularGraphCertifier {
                         if try globallyUnique(root: root, range: item.range, pair: pair, budget: &budget) {
                             if residual.absoluteUpperBound <= tolerance.distance {
                                 leaf = OverlapRegularGraphCell(range: item.range, box: box, pair: pair,
-                                    derivativeU: proof.u[0], derivativeV: proof.v[0], maximumDeviation: residual.absoluteUpperBound)
+                                    derivativeU: proof.u[0], derivativeV: proof.v[0], maximumDeviation: residual.absoluteUpperBound,
+                                    authority: proof.authority)
                             } else { provedOutside = true }
                         }
                     }
@@ -219,8 +231,9 @@ struct OverlapRegularGraphCertifier {
         let m10 = OutwardScalarInterval.exact(a / determinant) * g.derivativeU - .exact(c / determinant) * f.derivativeU
         let cross = (m01 + m10) * .exact(0.5)
         let minor = m00 * m11 - cross * cross
-        // Positive definite symmetric Jacobian proves injectivity on this convex
-        // hull. Excluded boxes independently cover every other original location.
+        // The validated original surface is C0 and piecewise C1. Every
+        // one-sided Jacobian lies in this hull; its positive symmetric part
+        // proves strict monotonicity and injectivity across native knots. Excluded boxes independently cover every other original location.
         return m00.lower > 0 && m11.lower > 0 && minor.lower > 0 && minor.isFinite
     }
 

@@ -144,6 +144,47 @@ struct OverlapIsocurveSmoke {
         }
     }
 
+    static func verifyOriginalC0Graph(tolerance: ModelingTolerance) throws {
+        let source = Curve3D.bSpline(BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+            controlPoints: [.origin, Point3D(x: 0.25, y: 0.25, z: 0), Point3D(x: 0.5, y: 0.5, z: 0.25)],
+            weights: [1, 2, 4]))
+        let resolver: any CurveSurfaceIntersectionResolving = DefaultCurveSurfaceIntersector()
+        let x = [0.0, 0, 0.25, 0.75, 1.5], knots = [0.0, 0, 0, 0.5, 0.5, 1, 1, 1]
+        for swapped in [false, true] {
+            let net = [x.map { Point3D(x: $0, y: 0, z: 0) }, x.map { Point3D(x: $0, y: 1, z: $0) }]
+            let points = swapped ? x.indices.map { u in net.map { $0[u] } } : net
+            var surface = BSplineSurface3D(uDegree: swapped ? 1 : 2, vDegree: swapped ? 2 : 1,
+                uKnots: swapped ? [0, 0, 1, 1] : knots, vKnots: swapped ? knots : [0, 0, 1, 1],
+                controlPoints: points, weights: points.map { $0.map { _ in 1 } })
+            let original = Surface3D.bSpline(surface)
+            var options = CurveSurfaceIntersectionOptions(curveRange: try ScalarInterval(lower: 0.1, upper: 0.8),
+                maximumSubdivisionDepth: 20, maximumSubdivisionCells: 4_194_304, maximumCandidateCount: 16_384)
+            let complete = try soleOverlap(resolver.intersectionResult(curve: source,
+                surface: original, options: options, tolerance: tolerance), tolerance: tolerance)
+            try require(complete.curveRange == options.curveRange, "C0 graph lost original source span.", tolerance)
+            try verifyBound(complete, tolerance: tolerance)
+            surface.controlPoints[0][0] = Point3D(x: 8, y: 9, z: 10)
+            for t in [0.1, 0.3, 1.0 / 3.0, 0.4, 0.8] {
+                let h = t / (1 + t), u = h <= 0.25 ? h.squareRoot() : (0.75 + h).squareRoot() - 0.5
+                let value = try complete.correspondence(at: t)
+                try require(abs(value.surfaceParameter.u - (swapped ? h : u)) < 1e-7
+                    && abs(value.surfaceParameter.v - (swapped ? u : h)) < 1e-7,
+                    "C0 graph differs from its independent piecewise inverse.", tolerance)
+                try verifyForward(value, source: source, target: original, tolerance: tolerance)
+            }
+            let clip = try ScalarInterval(lower: 0.4, upper: 0.55)
+            if swapped { options.surfaceVRange = clip } else { options.surfaceURange = clip }
+            let clipped = try soleOverlap(resolver.intersectionResult(curve: source,
+                surface: original, options: options, tolerance: tolerance), tolerance: tolerance)
+            try require(abs(clipped.curveRange.lower - 4.0 / 21.0) < 1e-8
+                && abs(clipped.curveRange.upper - 141.0 / 259.0) < 1e-8,
+                "C0 graph lost its independent source clip endpoints.", tolerance)
+            try verifyBound(clipped, tolerance: tolerance)
+            try verifyForward(clipped.start, source: source, target: original, tolerance: tolerance)
+            try verifyForward(clipped.end, source: source, target: original, tolerance: tolerance)
+        }
+    }
+
     private static func rationalPatch() -> BSplineSurface3D {
         BSplineSurface3D(uDegree: 2, vDegree: 2,
             uKnots: [0, 0, 0, 1, 1, 1], vKnots: [0, 0, 0, 1, 1, 1],

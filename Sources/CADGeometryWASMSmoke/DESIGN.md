@@ -79,7 +79,13 @@ u = (h + sqrt(h*h+4*h))/2, v = h. It checks a complete requested span,
 whole-domain deviation, retained owned correspondence after input mutation,
 transverse U clipping with independent endpoints 0.2 and 9/19, and shared-work
 exhaustion. The graph point and whole-box enclosure paths execute the shared
-original-span B-spline jet owner; broader knot/seam proof remains Native-owned.
+original-span B-spline jet owner. A second independent tensor control net uses
+f(u)=u*u for u<=1/2 and f(u)=1/4+2*(u-1/2)+(u-1/2)*(u-1/2) otherwise,
+S=(f(u),v,f(u)*v). Both native-axis orientations execute a complete C0-crossing
+graph and original-chart clipping to [0.4,0.55], with independent source endpoints
+4/21 and 141/259, the piecewise square-root inverse, and retained ownership after
+input mutation. The Native point-localization suite owns numerical-floor,
+zero-width-clip and cancellation evidence; broader knot/seam proof remains open.
 Large shifted charts retain signed affine direction; an ill-conditioned wide
 chart and a low work allowance must retain typed projection/work exhaustion.
 The wide public query does not reach the internal compensated boundary path;

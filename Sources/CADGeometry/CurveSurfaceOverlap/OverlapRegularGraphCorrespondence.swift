@@ -26,6 +26,7 @@ struct OverlapRegularGraphCorrespondence: Sendable {
             && root.tolerance == other.root.tolerance && options == other.options && range == other.range
             && cells.count == other.cells.count && zip(cells, other.cells).allSatisfy {
                 $0.0.range == $0.1.range && $0.0.box == $0.1.box && $0.0.pair == $0.1.pair
+                    && $0.0.authority == $0.1.authority
             }
     }
 

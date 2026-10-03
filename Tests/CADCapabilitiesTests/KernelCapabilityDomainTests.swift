@@ -40,6 +40,13 @@ struct KernelCapabilityDomainTests {
                 && $0.condition.contains("General/closed implicit trim charts")
                 && $0.condition.contains("every original piece")
         })
+        let overlap = try catalog.domain(operation: "curveSurfaceIntersectionResult")
+        #expect(overlap.capability.acceptedInputs.contains("oneOriginalC0TargetKnotWithOneSidedJacobianHullAndPositionOnlyCollarProof"))
+        #expect(overlap.limitations(affecting: .parameterization).contains {
+            $0.sourcePath.hasSuffix("OverlapRegularGraphAtlas.swift")
+                && $0.condition.contains("multiple low-continuity knots")
+                && $0.condition.contains("tensor corners")
+        })
         let offset = try catalog.domain(operation: "edgeOffset")
         #expect(offset.limitations(affecting: .boundaryCurve).contains {
             $0.sourcePath.hasSuffix("BRepEdgeChainOffsetter.swift") && $0.condition.contains("Natural")

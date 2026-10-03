@@ -20,9 +20,18 @@ struct OverlapRegularGraphRootCertifier: Sendable {
 
     struct Proof {
         let box: SurfaceParameterBox
+        let authority: OverlapRegularGraphAtlas
+        // Collars retain only first derivatives and a residual value.
         let u: [Interval]
         let v: [Interval]
         let residual: [Interval]
+    }
+
+    /// Minted only after a strict proof in this point-refinement invocation.
+    private struct PointRootAuthority {
+        let range: ScalarInterval
+        let pair: Pair
+        let initial: Proof
     }
 
     func seed(at t: Double, pair: Pair, initial: SurfaceParameter,
@@ -100,13 +109,74 @@ struct OverlapRegularGraphRootCertifier: Sendable {
         let u = try ScalarInterval(lower: max(ul, (seed.u - uRadius).nextDown), upper: min(uh, (seed.u + uRadius).nextUp))
         let v = try ScalarInterval(lower: max(vl, (seed.v - vRadius).nextDown), upper: min(vh, (seed.v + vRadius).nextUp))
         guard u.width > 0, v.width > 0 else { return nil }
-        return SurfaceParameterBox(u: u, v: v)
+        let candidate = SurfaceParameterBox(u: u, v: v)
+        let authority = try OverlapRegularGraphAtlas.authority(over: candidate, surface: surface.surface,
+            tolerance: tolerance, budget: &budget)
+        if authority.isSmooth { return candidate }
+        return try collarTrialBox(candidate, seed: seed, firstValue: firstValue,
+            secondValue: secondValue, pair: pair, budget: &budget)
+    }
+
+    private func collarTrialBox(_ candidate: SurfaceParameterBox, seed: SurfaceParameter,
+                               firstValue: Interval, secondValue: Interval, pair: Pair,
+                               budget: inout OverlapProofBudget) throws -> SurfaceParameterBox? {
+        try budget.work(jetWork)
+        let target = try surface.intervalJet(over: candidate, tolerance: tolerance)
+        let first = OverlapRegularGraphCell.component(target, pair.first)
+        let second = OverlapRegularGraphCell.component(target, pair.second)
+        let a = first.derivativeU.midpoint, b = first.derivativeV.midpoint
+        let c = second.derivativeU.midpoint, d = second.derivativeV.midpoint
+        let determinant = a * d - b * c
+        guard determinant.isFinite, determinant != 0 else { return nil }
+        let inverse = [[d / determinant, -b / determinant], [-c / determinant, a / determinant]]
+        guard inverse.joined().allSatisfy(\.isFinite) else { return nil }
+        let jacobian = [[first.derivativeU, first.derivativeV], [second.derivativeU, second.derivativeV]]
+        var q = 0.0
+        for row in 0..<2 {
+            var sum = Interval.exact(0)
+            for column in 0..<2 {
+                var entry = Interval.exact(row == column ? 1 : 0)
+                for index in 0..<2 { entry = entry - .exact(inverse[row][index]) * jacobian[index][column] }
+                sum = sum + .exact(entry.absoluteUpperBound)
+            }
+            q = max(q, sum.upper)
+        }
+        guard q.isFinite, q < 1 else { return nil }
+        let uCorrection = Interval.exact(inverse[0][0]) * firstValue + .exact(inverse[0][1]) * secondValue
+        let vCorrection = Interval.exact(inverse[1][0]) * firstValue + .exact(inverse[1][1]) * secondValue
+        guard let padding = (Interval.exact(max(uCorrection.absoluteUpperBound, vCorrection.absoluteUpperBound)) * .exact(2))
+            .divided(by: Interval.exact(1) - .exact(q)), padding.isFinite else {
+            throw failure(.resourceLimitExceeded, "A C0 collar has no finite candidate contraction margin.")
+        }
+        // One union preconditioner contains both one-sided motions. This is a
+        // candidate only; the final box must reproduce strict Krawczyk inclusion.
+        let padded = try box(u: (seed.u - padding.upper).nextDown, (seed.u + padding.upper).nextUp,
+            v: (seed.v - padding.upper).nextDown, (seed.v + padding.upper).nextUp)
+        return SurfaceParameterBox(
+            u: try ScalarInterval(lower: min(candidate.u.lower, padded.u.lower), upper: max(candidate.u.upper, padded.u.upper)),
+            v: try ScalarInterval(lower: min(candidate.v.lower, padded.v.lower), upper: max(candidate.v.upper, padded.v.upper)))
     }
 
     func proof(range: ScalarInterval, box: SurfaceParameterBox, pair: Pair,
                budget: inout OverlapProofBudget) throws -> Proof? {
+        try rootProof(range: range, box: box, pair: pair, existingRoot: nil, budget: &budget)
+    }
+
+    private func rootProof(range: ScalarInterval, box: SurfaceParameterBox, pair: Pair,
+                           existingRoot: PointRootAuthority?,
+                           budget: inout OverlapProofBudget) throws -> Proof? {
+        if let existingRoot {
+            guard range == existingRoot.range, pair == existingRoot.pair,
+                  box.u.lower >= existingRoot.initial.box.u.lower,
+                  box.u.upper <= existingRoot.initial.box.u.upper,
+                  box.v.lower >= existingRoot.initial.box.v.lower,
+                  box.v.upper <= existingRoot.initial.box.v.upper else {
+                throw failure(.intersectionFailure, "Point localization changed its original root authority.")
+            }
+        }
         try budget.work(jetWork * 3)
-        try validateSmoothChart(box)
+        let authority = try OverlapRegularGraphAtlas.authority(over: box, surface: surface.surface,
+            tolerance: tolerance, budget: &budget)
         let source = try curve.thirdOrderIntervalJet(over: range, tolerance: tolerance)
         let target = try surface.intervalJet(over: box, tolerance: tolerance)
         let center = SurfaceParameter(u: box.u.midpoint, v: box.v.midpoint)
@@ -138,25 +208,52 @@ struct OverlapRegularGraphRootCertifier: Sendable {
                 value = value + entry * widths[column]
             }
             let original = row == 0 ? box.u : box.v
-            guard contraction.upper < 1, value.isFinite,
-                  value.lower > original.lower, value.upper < original.upper else { return nil }
+            guard contraction.upper < 1, value.isFinite else { return nil }
+            if existingRoot == nil {
+                guard value.lower > original.lower, value.upper < original.upper else { return nil }
+            } else {
+                // The first strict proof owns an existing unique root. Every such
+                // root in this box belongs to its K image even without new strict
+                // inclusion, so intersection preserves that same root.
+                let lower = max(value.lower, original.lower), upper = min(value.upper, original.upper)
+                guard lower < upper else {
+                    throw failure(.intersectionFailure, "An existing point root lost its finite positive-width localization.")
+                }
+                value = Interval(lower: lower, upper: upper)
+            }
             contracted.append(value)
         }
         let rootBox = SurfaceParameterBox(u: try ScalarInterval(lower: contracted[0].lower, upper: contracted[0].upper),
             v: try ScalarInterval(lower: contracted[1].lower, upper: contracted[1].upper))
-        let derivatives = try graphDerivatives(source: source, target: target, pair: pair, determinant: determinant)
-        var residual = residualJet(source: source, target: target, axis: pair.remaining, u: derivatives.u, v: derivatives.v)
+        let derivatives = try graphDerivatives(source: source, target: target, pair: pair, determinant: determinant,
+            thirdOrder: authority.isSmooth)
+        if case .collar(let axis, _) = authority {
+            let derivative = axis == .u ? derivatives.u[0] : derivatives.v[0]
+            // FIXME(INCOMPLETE_IMPLEMENTATION): continuous or non-transverse native
+            // knot coincidence lacks complete atlas classification. The public graph
+            // route must refuse until all boundary intervals and root identities can
+            // be certified without a higher-derivative continuity assumption.
+            guard derivative.lower > 0 || derivative.upper < 0 else {
+                throw failure(.unsupportedCapability, "A C0 knot collar requires a proved transverse native-knot passage.")
+            }
+        }
         try budget.work(jetWork)
         let imageTarget = try surface.intervalJet(over: rootBox, tolerance: tolerance)
-        // Strict inclusion already proves every original-box root lies in this
-        // image. Localize only the residual value; all derivative bounds retain
-        // the original chart and its certified positive minor.
-        residual[0] = OverlapRegularGraphCell.component(source, pair.remaining).value
+        // Strict inclusion, or the retained point-root authority, puts every
+        // relevant root in this image. Only the residual value uses imageTarget;
+        // derivative bounds retain the evaluated chart and its positive minor.
+        let residualValue = OverlapRegularGraphCell.component(source, pair.remaining).value
             - OverlapRegularGraphCell.component(imageTarget, pair.remaining).value
-        guard residual[0].isFinite else {
+        guard residualValue.isFinite else {
             throw failure(.resourceLimitExceeded, "A certified root image exceeds finite residual arithmetic.")
         }
-        return Proof(box: rootBox, u: derivatives.u, v: derivatives.v, residual: residual)
+        let residual: [Interval]
+        if authority.isSmooth {
+            var jet = residualJet(source: source, target: target, axis: pair.remaining, u: derivatives.u, v: derivatives.v)
+            jet[0] = residualValue
+            residual = jet
+        } else { residual = [residualValue] }
+        return Proof(box: rootBox, authority: authority, u: derivatives.u, v: derivatives.v, residual: residual)
     }
 
     func pointProof(at t: Double, cell: OverlapRegularGraphCell,
@@ -164,19 +261,18 @@ struct OverlapRegularGraphRootCertifier: Sendable {
         let lower = max(cell.range.lower, t.nextDown), upper = min(cell.range.upper, t.nextUp)
         let range = try ScalarInterval(lower: lower, upper: upper)
         guard range.width > 0 else { throw failure(.resourceLimitExceeded, "A graph root has no representable source enclosure.") }
-        var box = cell.box
-        var last: Proof?
-        for _ in 0..<budget.options.maximumIterations {
-            guard let value = try proof(range: range, box: box, pair: cell.pair, budget: &budget) else {
-                if let last { return last }
-                throw failure(.intersectionFailure, "An owned graph could not reproduce its point root certificate.")
-            }
-            last = value
-            let next = try padded(value.box)
-            if next.u.width >= box.u.width && next.v.width >= box.v.width { break }
-            box = next
+        guard let first = try proof(range: range, box: cell.box, pair: cell.pair, budget: &budget) else {
+            throw failure(.intersectionFailure, "An owned graph could not reproduce its point root certificate.")
         }
-        guard let last else { throw failure(.intersectionFailure, "An owned graph has no certified point root.") }
+        let owner = PointRootAuthority(range: range, pair: cell.pair, initial: first)
+        var last = first
+        for _ in 1..<budget.options.maximumIterations {
+            guard let value = try rootProof(range: owner.range, box: last.box, pair: owner.pair,
+                existingRoot: owner, budget: &budget) else { return last }
+            let stationary = value.box.u.width >= last.box.u.width && value.box.v.width >= last.box.v.width
+            last = value
+            if stationary { break }
+        }
         return last
     }
 
@@ -196,7 +292,7 @@ struct OverlapRegularGraphRootCertifier: Sendable {
     }
 
     private func graphDerivatives(source: SurfaceIntervalVectorJet, target: SurfaceIntervalVectorJet,
-                                  pair: Pair, determinant: Interval) throws -> (u: [Interval], v: [Interval]) {
+                                  pair: Pair, determinant: Interval, thirdOrder: Bool) throws -> (u: [Interval], v: [Interval]) {
         let first = OverlapRegularGraphCell.component(target, pair.first)
         let second = OverlapRegularGraphCell.component(target, pair.second)
         func solve(_ a: Interval, _ b: Interval) throws -> (Interval, Interval) {
@@ -209,6 +305,7 @@ struct OverlapRegularGraphRootCertifier: Sendable {
         let a = OverlapRegularGraphCell.component(source, pair.first)
         let b = OverlapRegularGraphCell.component(source, pair.second)
         let p = try solve(a.derivativeU, b.derivativeU)
+        if !thirdOrder { return ([p.0], [p.1]) }
         func secondChain(_ jet: SurfaceIntervalJet) -> Interval {
             jet.secondDerivativeUU * p.0 * p.0 + .exact(2) * jet.secondDerivativeUV * p.0 * p.1 + jet.secondDerivativeVV * p.1 * p.1
         }
@@ -242,23 +339,4 @@ struct OverlapRegularGraphRootCertifier: Sendable {
         KernelError(phase: .geometry, code: code, tolerance: tolerance, message: message)
     }
 
-    private func validateSmoothChart(_ box: SurfaceParameterBox) throws {
-        let spline = surface.surface
-        for (knots, degree, interval) in [(spline.uKnots, spline.uDegree, box.u), (spline.vKnots, spline.vDegree, box.v)] {
-            var index = degree + 1
-            while index < knots.count - degree - 1 {
-                let value = knots[index]
-                var end = index + 1
-                while end < knots.count, knots[end] == value { end += 1 }
-                // FIXME(INCOMPLETE_IMPLEMENTATION): graph Taylor certification across
-                // a nonsmooth target knot has no one-sided atlas proof yet. The public
-                // regular-graph route must refuse it until joins and residual bounds
-                // on both sides of every such knot are independently certified.
-                if value > interval.lower, value < interval.upper, degree - (end - index) < 2 {
-                    throw failure(.unsupportedCapability, "A graph residual chart crosses a target knot without certified second-order continuity.")
-                }
-                index = end
-            }
-        }
-    }
 }

@@ -612,11 +612,13 @@ extension KernelCapabilities {
         "nonperiodicNativeBasisRationalUVIsocurves",
         "retainedRestrictedRigidAndOffsetChartImages",
         "regularNonperiodicRationalGraphWithGlobalRootUniquenessAndTransverseClipping",
+        "oneOriginalC0TargetKnotWithOneSidedJacobianHullAndPositionOnlyCollarProof",
       ],
       exactOutputs: [
         "completeIsolatedPointsAndCertifiedContinuousIntervalsWithinAdmittedDomains",
         "ownedForwardVerifiedCurveToSurfaceCorrespondence",
         "wholeSpanSpatialDeviationBound", "singularChartEndpointMetadata",
+        "retainedStrictPointRootAuthorityWithIndependentAxisLocalization",
         "typedRefusalForUnprovedMembershipOrIncompleteClipping",
       ],
       failureCodes: [.invalidInput, .unsupportedCapability, .intersectionFailure, .singularSystem,
