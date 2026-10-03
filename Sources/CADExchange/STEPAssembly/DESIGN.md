@@ -81,6 +81,9 @@ flowchart LR
 - STEPFieldReading exposes bounded lexical entity fields, references, strings,
   numeric values, and tuple structure to STEP Attributes. STEPAssemblySyntax
   implements this contract; consumers do not duplicate its lexical parser.
+  Its hasComponent requirement scans unquoted root components, returns false
+  for absence, and throws the typed lexical error for malformed quote/depth
+  structure. Consumers precharge the actual entity-text scan before invoking it.
 - STEPStringCoding owns ISO 10303-21 string token encoding and decoding. The
   shared lexical contract exposes bounded decoding with actual consumed work.
   It admits doubled apostrophes/backslashes, direct UTF-8, X, S, X2, X4 and
@@ -127,7 +130,11 @@ flowchart LR
 - Only the exact writer-authored bare profile uses the ordinary geometry route:
   PRODUCT.id SWIFTCAD, empty product name/description, base formation with empty
   version/description, and PD.id design with empty description. `$` is not an
-  empty description. Any other product/PD identifier or nullable distinction uses
+  empty description. CIWR-only global properties do not independently request
+  a product source graph: their exact item correspondence remains on the ordinary
+  route and is subsequently validated by STEP Attributes. Actual PD, usage and
+  shape-aspect physical owners still require product association authority.
+  Any other product/PD identifier or nullable distinction uses
   the source product graph, including empty and UUID-shaped business identifiers. Source identity assignments also require
   this route so UUID authority is not discarded. The authored root envelope's
   definition is removed only with its reserved identifier/name, empty local

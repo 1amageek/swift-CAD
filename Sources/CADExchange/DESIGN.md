@@ -30,6 +30,13 @@ are rejected; nullable absence and an empty string retain different meanings.
 Standard string lexical encoding and operation-local byte/work accounting are
 owned by [STEP Assembly](STEPAssembly/DESIGN.md); readers preserve Unicode
 scalars without normalization or replacement.
+Global physical Body/Face characterization composes the exact ordinary or
+assembly geometry producer with the [STEP Attributes CIWR contract](STEPAttributes/DESIGN.md).
+Geometry transfer includes the original item-owned length unit; semantic readers
+validate the singleton target view against that authority before publication.
+An attributed ordinary writer consumes the existing document name and the
+canonical geometry PRODUCT identifier; actual business product identifiers are
+owned by DocumentAssembly and are serialized through its writer contract.
 
 Native section-reference admission follows the [CADIR section contract](../CADIR/SectionReference/DESIGN.md):
 curve intervals and explicit traversal direction survive save/load, profile inputs

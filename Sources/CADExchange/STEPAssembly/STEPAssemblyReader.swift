@@ -142,9 +142,14 @@ private extension STEPAssemblyReader {
                         && definitionIdentifier == "design" && definitionDescription == ""
                     if !authoredBareProfile { retainsProductSource = true }
                 }
-                // Physical properties consume real product/shape-aspect association maps even
-                // when their actual persistent target is a body or face inside that product.
-                if names.values.contains("PROPERTY_DEFINITION") { retainsProductSource = true }
+                // PD/usage/shape-aspect properties need product association authority.
+                // Global CIWR properties use exact item correspondence on the ordinary route as well.
+                try check(names.count)
+                for id in names.keys where names[id] == "PROPERTY_DEFINITION" {
+                    try check()
+                    let property = try args(id, count: 3), owner = try syntax.reference(property[2])
+                    if names[owner] != "CHARACTERIZED_ITEM_WITHIN_REPRESENTATION" { retainsProductSource = true }
+                }
             }
             guard retainsProductSource else { return nil }
             var carriers = Set<Int>()
@@ -321,10 +326,12 @@ private extension STEPAssemblyReader {
                         order.append(id); bodyFeatures.append(id)
                         for (entity, sourceBody) in exactTransfer.bodies where sourceBody == bodyID {
                             transfer.geometry[entity] = SubshapeID(featureID: id, role: GeneratedSubshapeRole.body.rawValue, ordinal: 0)
+                            transfer.geometryUnits[entity] = lengthUnit
                         }
                         for (ordinal, sourceFace) in local.faces.keys.sorted().enumerated() {
                             for (entity, mappedFace) in exactTransfer.faces where mappedFace == sourceFace {
                                 transfer.geometry[entity] = SubshapeID(featureID: id, role: GeneratedSubshapeRole.face.rawValue, ordinal: ordinal)
+                                transfer.geometryUnits[entity] = lengthUnit
                             }
                         }
                     }

@@ -54,7 +54,7 @@ public struct STEPExchange: Sendable {
             var table = ExactSTEPWriter.EntityTable(maximumEntities: resourceLimits.maximumEntities,
                 tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes, maximumStringWork: resourceLimits.maximumIterations)
             let product = try writer.appendDefinition(brep: evaluated.brep, units: outputUnits,
-                identifier: evaluated.document.id.description, name: evaluated.document.metadata.name ?? "",
+                identifier: "SWIFTCAD", name: evaluated.document.metadata.name ?? "",
                 additionalItems: [], bodyNames: names.bodies, faceNames: names.faces, table: &table)
             var transfer = STEPAttributeWriteTransfer()
             transfer.products[AssemblyDefinitionID()] = STEPAttributeProductRepresentation(definition: product.definition,
@@ -182,10 +182,12 @@ public struct STEPExchange: Sendable {
             order.append(featureID)
             for (entity, sourceID) in exact.bodies where sourceID == bodyID {
                 transfer.geometry[entity] = SubshapeID(featureID: featureID, role: GeneratedSubshapeRole.body.rawValue, ordinal: 0)
+                transfer.geometryUnits[entity] = lengthUnit
             }
             for (index, faceID) in bodyModel.faces.keys.sorted().enumerated() {
                 for (entity, sourceID) in exact.faces where sourceID == faceID {
                     transfer.geometry[entity] = SubshapeID(featureID: featureID, role: GeneratedSubshapeRole.face.rawValue, ordinal: index)
+                    transfer.geometryUnits[entity] = lengthUnit
                 }
             }
         }
@@ -356,6 +358,7 @@ private func isSupportedSTEPEntity(_ entity: String) -> Bool {
         "PRESENTATION_STYLE_ASSIGNMENT(", "DRAUGHTING_MODEL(", "MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION(",
         "PRESENTATION_LAYER_ASSIGNMENT(", "PROPERTY_DEFINITION(", "PROPERTY_DEFINITION_REPRESENTATION(",
         "REPRESENTATION(", "DESCRIPTIVE_REPRESENTATION_ITEM(", "SHAPE_ASPECT(", "GEOMETRIC_ITEM_SPECIFIC_USAGE(",
+        "CHARACTERIZED_ITEM_WITHIN_REPRESENTATION(",
         "DERIVED_UNIT(", "DERIVED_UNIT_ELEMENT(", "MEASURE_WITH_UNIT(", "MEASURE_REPRESENTATION_ITEM(",
         "MASS_MEASURE_WITH_UNIT(", "VOLUME_MEASURE_WITH_UNIT(", "MASS_DENSITY_MEASURE_WITH_UNIT("
     ]

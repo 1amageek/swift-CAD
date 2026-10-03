@@ -2,6 +2,7 @@
 public protocol STEPFieldReading: Sendable {
     func entity(_ id: Int) throws -> String
     func name(_ id: Int) throws -> String
+    func hasComponent(_ id: Int, named: String) throws -> Bool
     func arguments(_ id: Int, component: String?) throws -> [String]
     func split(_ value: String) throws -> [String]
     func reference(_ value: String) throws -> Int

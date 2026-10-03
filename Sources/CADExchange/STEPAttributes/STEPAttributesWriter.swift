@@ -262,12 +262,22 @@ private extension STEPAttributesWriter {
                 guard let id = target.usageID, let usage = transfer.usages[id] else { throw ProductAttributeError.missingTarget("Physical direct usage.") }
                 return [usage]
             }
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP physical geometry export has no standard global source-scope owner in the admitted GISU profile.
-            // A complete standard association must distinguish global geometry properties from explicit PD-qualified properties before global material/density can succeed.
-            guard target.definitionID != nil else {
-                throw ProductAttributeError.unsupportedSemantics("Global physical geometry requires a standard source-scope owner.")
+            let items = try styleItems(target)
+            try check(transfer.products.count + (evaluated.assembly?.occurrences.count ?? 0))
+            let products = try products(target)
+            if target.definitionID == nil {
+                guard items.count == 1, let item = items.first, let context = products.first?.context else {
+                    throw ProductAttributeError.inconsistentArtifact("Global physical geometry requires one common exact item.")
+                }
+                for product in products {
+                    try check()
+                    guard product.context == context else { throw ProductAttributeError.inconsistentArtifact("Common global geometry has conflicting representation contexts.") }
+                }
+                let view = try add("SHAPE_REPRESENTATION('',(#\(item)),#\(context))")
+                let owner = try add("CHARACTERIZED_ITEM_WITHIN_REPRESENTATION('',$,#\(item),#\(view))")
+                try budget.charge(targets: 2); shapeAspects[target] = [owner]
+                return [owner]
             }
-            let items = try styleItems(target), products = try products(target)
             guard items.count == products.count else { throw ProductAttributeError.inconsistentArtifact("Physical geometry/product correspondence.") }
             var result: [Int] = []
             for (item, product) in zip(items, products) {

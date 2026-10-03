@@ -32,6 +32,7 @@ private extension STEPAttributesReader {
         var names: [Int: String] = [:]
         var geometry: [Int: ProductAttributeTarget] = [:]
         var assignments: [ProductAttributeAssignment] = []
+        var globalPhysicalGeometry: [Int: ProductAttributeTarget] = [:]
         var physicalGeometry: [Int: ProductAttributeTarget] = [:]
         var styleProperties: [Int: [ProductAttributeValue.Property: ProductAttributeID]] = [:]
         var styleTargets: [Int: ProductAttributeTarget] = [:]
@@ -69,6 +70,83 @@ private extension STEPAttributesReader {
                 return mapped
             }
             throw ProductAttributeError.unsupportedSemantics("Unresolved STEP attribute target.")
+        }
+        mutating func physicalOwner(_ item: Int) throws -> ProductAttributeTarget {
+            try check()
+            if let target = globalPhysicalGeometry[item] { return target }
+            guard transfer.definitions[item] != nil || transfer.usages[item] != nil || names[item] == "SHAPE_ASPECT" else {
+                throw ProductAttributeError.unsupportedSemantics("Physical property requires a legal characterized-definition owner.")
+            }
+            return try target(item)
+        }
+        mutating func prepareGlobalPhysicalGeometry() throws {
+            // Every CIWR is a real item characterization; its representation must carry no PD or instance context.
+            var associated = Set<Int>()
+            try check(entities.count)
+            for id in entities.keys {
+                switch names[id] {
+                case "SHAPE_DEFINITION_REPRESENTATION":
+                    try check(); let a = try args(id, 2)
+                    try budget.charge(targets: 1); associated.insert(try syntax.reference(a[1]))
+                case "REPRESENTATION_MAP":
+                    try check(); let a = try args(id, 2)
+                    try budget.charge(targets: 1); associated.insert(try syntax.reference(a[1]))
+                case "SHAPE_REPRESENTATION_RELATIONSHIP", "REPRESENTATION_RELATIONSHIP":
+                    try check(); let a = try args(id, 4)
+                    try budget.charge(targets: 2); associated.insert(try syntax.reference(a[2])); associated.insert(try syntax.reference(a[3]))
+                case "":
+                    try check(entities[id]?.utf8.count ?? 1)
+                    if try syntax.hasComponent(id, named: "REPRESENTATION_RELATIONSHIP") {
+                        let a = try args(id, 4, component: "REPRESENTATION_RELATIONSHIP")
+                        try budget.charge(targets: 2); associated.insert(try syntax.reference(a[2])); associated.insert(try syntax.reference(a[3]))
+                    }
+                default: break
+                }
+            }
+            var keys = Set<[Int]>()
+            try check(entities.count)
+            for id in entities.keys where names[id] == "CHARACTERIZED_ITEM_WITHIN_REPRESENTATION" {
+                try check()
+                let a = try args(id, 4), item = try syntax.reference(a[2]), representation = try syntax.reference(a[3])
+                let wrapperName = try string(a[0])
+                let wrapperDescription = a[1] == "$" ? nil : try string(a[1])
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP CIWR physical import cannot retain independent wrapper names/descriptions or contextual characterization chains yet.
+                // A persistent source owner and equivalent standard egress must preserve those meanings before nonempty wrapper metadata or chained scope can be admitted.
+                guard wrapperName.isEmpty, wrapperDescription == nil || wrapperDescription?.isEmpty == true else {
+                    throw ProductAttributeError.unsupportedSemantics("Independent characterization metadata requires a retained source owner.")
+                }
+                guard let target = geometry[item], target.definitionID == nil, target.path == nil,
+                      let ownedUnit = transfer.geometryUnits[item] else {
+                    throw ProductAttributeError.missingTarget("Global physical item geometry correspondence.")
+                }
+                guard !associated.contains(representation), transfer.representations[representation] == nil,
+                      names[representation] == "SHAPE_REPRESENTATION" else {
+                    throw ProductAttributeError.unsupportedSemantics("Global physical characterization requires an unassociated singleton view.")
+                }
+                let view = try args(representation, 3), items = try syntax.list(view[1])
+                try check(items.count)
+                guard items == [item] else { throw ProductAttributeError.invalidSource("Global physical view must contain exactly its identified item.") }
+                let context = try syntax.reference(view[2])
+                guard try syntax.arguments(context, component: "GEOMETRIC_REPRESENTATION_CONTEXT") == ["3"] else {
+                    throw ProductAttributeError.invalidSource("Global physical view requires a 3D geometry context.")
+                }
+                let unitArgs = try syntax.arguments(context, component: "GLOBAL_UNIT_ASSIGNED_CONTEXT")
+                guard unitArgs.count == 1 else { throw ProductAttributeError.invalidSource("Malformed global physical view unit context.") }
+                var length: LengthUnit?
+                for unit in try syntax.list(unitArgs[0]) {
+                    try check(entities[unit]?.utf8.count ?? 1)
+                    if let value = try stepLengthUnit(from: syntax.entity(unit), entities: entities) {
+                        guard length == nil else { throw ProductAttributeError.invalidSource("Ambiguous global physical view length units.") }
+                        length = value
+                    }
+                }
+                guard length == ownedUnit else { throw ProductAttributeError.invalidSource("Global physical view has conflicting owned units.") }
+                try budget.charge(targets: 4)
+                guard keys.insert([item, representation]).inserted else {
+                    throw ProductAttributeError.invalidSource("Duplicate characterized item/representation owner.")
+                }
+                globalPhysicalGeometry[id] = target
+            }
         }
         mutating func preparePhysicalGeometry() throws {
             var associated = Set<Int>()
@@ -294,12 +372,13 @@ private extension STEPAttributesReader {
         }
         mutating func read() throws -> ProductAttributes {
             try budget.charge(work: entities.count)
-            var hasPhysicalGeometry = false
+            var hasPhysicalGeometry = false, hasGlobalPhysicalGeometry = false
             for (id, text) in entities {
                 try budget.charge(textBytes: text.utf8.count)
                 let name = try syntax.name(id)
                 names[id] = name
                 if name == "GEOMETRIC_ITEM_SPECIFIC_USAGE" { hasPhysicalGeometry = true }
+                if name == "CHARACTERIZED_ITEM_WITHIN_REPRESENTATION" { hasGlobalPhysicalGeometry = true }
             }
             for (entityID, subshape) in transfer.geometry {
                 try check()
@@ -318,6 +397,7 @@ private extension STEPAttributesReader {
                 if !value.isEmpty { try budget.charge(targets: 1); assignments.append(ProductAttributeAssignment(target: target, value: .name(value))) }
             }
             if hasPhysicalGeometry { try preparePhysicalGeometry() }
+            if hasGlobalPhysicalGeometry { try prepareGlobalPhysicalGeometry() }
             let styles = entities.keys.filter { ["STYLED_ITEM", "OVER_RIDING_STYLED_ITEM", "CONTEXT_DEPENDENT_OVER_RIDING_STYLED_ITEM"].contains(names[$0] ?? "") }.sorted()
             let containers = entities.keys.filter { ["DRAUGHTING_MODEL", "MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION"].contains(names[$0] ?? "") }
             if !styles.isEmpty {
@@ -374,7 +454,7 @@ private extension STEPAttributesReader {
                 guard propertyName == "material property", label == "material name" || label == "density" else {
                     throw ProductAttributeError.unsupportedSemantics("Unknown physical property semantics.")
                 }
-                let owner = try target(syntax.reference(property[2]))
+                let owner = try physicalOwner(syntax.reference(property[2]))
                 var representations: [Int] = []
                 for association in entities.keys where names[association] == "PROPERTY_DEFINITION_REPRESENTATION" {
                     try check()

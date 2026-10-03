@@ -46,6 +46,7 @@ extension KernelCapabilities {
         "STEPStringExchangeTests",
         "SharedSTEPProductTests",
         "SharedSTEPRepresentationTests",
+        "GlobalSTEPPhysicalAttributeTests",
         "ProductAttributesNativeScopeTests",
         "STEPAssemblyExchangeTests",
       ]
@@ -77,6 +78,7 @@ extension KernelCapabilities {
         "explicitStandardMaterialAndMassDensityOnPartDirectUsageAndDefinitionQualifiedBodyFace",
         "sharedExactGeometryRepresentationsAcrossDistinctProductDefinitions",
         "qualifiedBodyFacePhysicalTargetsWithSingletonViews",
+        "globalBodyFaceMaterialAndDensityWithUnassociatedCIWRSingletonViews",
         "boundedStandardSTEPStringsWithISO8859AndUCSDirectives",
         "sharedProductFormationAndDefinitionSourceGraph",
         "distinctBusinessIdentifiersAndExplicitStandardNativeIdentityAssignments",
@@ -110,6 +112,7 @@ extension KernelCapabilities {
         "UTF8ExactSourceEqualityAndFormationUniqueness",
         "oneLocalGeometryOwnerAcrossActualSharedRepresentationsAndDefinitionViews",
         "explicitPDPhysicalScopeAndSingletonGISUUsageUniqueness",
+        "globalSourcePhysicalScopeAcrossNativeAndTwoSTEPGenerationsAndNewDefinitionMembership",
       ],
       failureCodes: [
         .invalidInput, .missingReference, .unsupportedCapability, .topologyFailure,
@@ -128,6 +131,7 @@ extension KernelCapabilities {
         "STEPStringExchangeTests",
         "SharedSTEPProductTests",
         "SharedSTEPRepresentationTests",
+        "GlobalSTEPPhysicalAttributeTests",
         "DocumentAssemblyTests", "AssemblyEvaluationTests", "STEPAssemblyExchangeTests",
         "ExactSTEPExchangeTests.roundTripsExactPlanarTopologyInConversionBasedLengthUnits",
         "ExactSTEPExchangeTests.roundTripsReversedCompleteDomainRationalBSplineEdges",

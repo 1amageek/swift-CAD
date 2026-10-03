@@ -84,13 +84,47 @@ flowchart LR
   that its outer representation directly contains an inner face.
 - A shape-aspect GISU always retains its explicit PD selector, including when
   only one PD currently references the item. PD count or equal values never
-  convert that scope to a global target. This bounded physical profile cannot
-  transport a global Native body/face material/density assignment without
-  narrowing its source scope, so global physical geometry export is refused
-  regardless of membership count. Its complete standard global owner/transport
-  remains an explicit X3 gap. Direct PD/part and direct-usage physical targets
-  retain their existing meaning. Source and resolver global semantics remain
-  valid independently of this transport limitation.
+  convert that scope to a global target. Direct PD/part and direct-usage physical
+  targets retain their existing meaning.
+- Global body/face physical properties use an actual standard
+  CHARACTERIZED_ITEM_WITHIN_REPRESENTATION (CIWR), a characterized-object subtype
+  admitted by PROPERTY_DEFINITION.definition. Its item is the existing exact
+  body/face item, and its rep is an unassociated singleton SHAPE_REPRESENTATION
+  view with the exact producer-owned geometry units. The view has no SDR,
+  representation-map, mapped-carrier or representation-relationship association;
+  it selects no PD, usage or occurrence path. This structural global profile
+  maps to the existing immutable source-geometry target with all scope selectors
+  absent. The item is not copied and current PD count or property equality cannot
+  infer scope. One target reuses its CIWR/view for material and explicit density;
+  CIWR-only properties do not manufacture a source assembly from a canonical
+  bare geometry PRODUCT or an input without products; the ordinary route still
+  performs the complete CIWR geometry/view/unit admission before publication.
+  Ordinary attributed geometry has no AssemblyProduct business identifier owner
+  and emits the same canonical SWIFTCAD PRODUCT identifier as B-rep-only output;
+  the document UUID is not exported as a business or native product identity.
+  Its existing DocumentMetadata.name value remains the PRODUCT name. A genuine
+  nonempty name therefore retains real product source authority on reimport,
+  while an unnamed canonical CIWR-only product retains the ordinary route.
+  Genuine product metadata and explicit PD/usage/ShapeAspect physical owners
+  retain the existing assembly-source routing. Every later definition reusing
+  that feature receives the same global property
+  through the existing resolver contract.
+- Reader CIWR admission checks actual exact geometry transfer and owned units,
+  direct singleton item membership (the standard WR1), absence of contextual
+  associations, and CIWR UR1 item/rep uniqueness before property publication.
+  Unsupported characterization text or contextual/chain subtypes fail instead
+  of becoming a different native owner. Physical PROPERTY_DEFINITION owners are
+  restricted to legal PD, direct-usage, ShapeAspect and admitted CIWR forms;
+  writing a raw body or face directly into its characterized-definition select
+  is invalid. Explicit GISU and CIWR scopes remain distinct and competing
+  applicable properties require the existing explicit override contract;
+  physical override transport remains a separate incomplete branch.
+  Complex relationship detection consumes STEPFieldReading.hasComponent, the
+  lexical owner's exact unquoted component-presence requirement. It distinguishes
+  absence from malformed lexical entities; semantic consumers precharge the
+  complete entity-text scan rather than searching quoted text or error messages.
+  All scans, lexical component checks, indexes and view/owner records consume
+  the existing caller work/record/text/duration budget before derived growth.
 - Both geometry-name projection and record production require the caller's
   ExchangeResourceLimits. They initialize the existing Writer Builder's cumulative
   product budget and duration, admit the resolved view's consumed work, and charge
@@ -204,6 +238,8 @@ Standard authorities are the
 [CAx Model Styling and Organization 1.10](https://www.mbx-if.org/home/wp-content/uploads/2026/08/rec_prac_styling_org_v1.10.pdf),
 [PROPERTY_DEFINITION](https://www.steptools.com/stds/stp_aim/html/t_property_definition.html),
 [characterized product targets](https://www.steptools.com/stds/stp_aim/html/t_characterized_product_definition.html),
+[characterized-definition select](https://www.steptools.com/stds/stp_aim/html/t_characterized_definition.html),
+and [item characterization](https://www.steptools.com/stds/stp_aim/html/t_characterized_item_within_representation.html),
 and [geometric item usage](https://www.steptools.com/stds/stp_aim/html/t_geometric_item_specific_usage.html)
 with its [item-identified usage constraints](https://www.steptools.com/stds/stp_aim/html/t_item_identified_representation_usage.html).
 The [official OCCT STEP guide](https://github.com/Open-Cascade-SAS/OCCT/blob/master/dox/user_guides/step/step.md)
@@ -259,3 +295,9 @@ own independent two-PD/shared-item and singleton-view fixtures, two-generation
 public transport, scoped property/provenance, usage uniqueness, unit and membership
 refusals, and atomic failure. Changes require coordinated validation of the source/resolution owners, exact
 transfer maps, public facades, strict native schema, and parent indices/catalogs.
+
+[GlobalSTEPPhysicalAttributeTests](../../../Tests/CADExchangeTests/GlobalSTEPPhysicalAttributeTests.swift)
+own independently authored CIWR body/face global properties, Native and two STEP
+generations, new shared-PD applicability, legal-selector refusal, target-view
+units/association/uniqueness admission and public atomic/resource/cancellation
+failures. Existing shared representation tests retain their qualified GISU scope.

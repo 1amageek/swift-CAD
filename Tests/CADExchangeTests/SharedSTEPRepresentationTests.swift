@@ -132,7 +132,7 @@ struct SharedSTEPRepresentationTests {
         }
     }
     @Test(.timeLimit(.minutes(1)))
-    func foreignGISUMembershipSharedCarrierAndGlobalPhysicalScopeRefuseAtomically() throws {
+    func foreignGISUMembershipAndSharedCarrierRefuseWhileGlobalPhysicalScopeSurvives() throws {
         let foreign = Self.fixture.replacingOccurrences(of: "#702,#744,#36", with: "#702,#74,#36")
         #expect(throws: ProductAttributeError.missingTarget("Shape aspect geometry correspondence.")) { _ = try imported(foreign) }
         let carrier = Self.fixture.replacingOccurrences(of: "SHAPE_REPRESENTATION('',(#38,#17),#7)", with: "SHAPE_REPRESENTATION('',(#801,#17),#7)")
@@ -144,17 +144,21 @@ struct SharedSTEPRepresentationTests {
         document.productAttributes.assignments.append(ProductAttributeAssignment(target: ProductAttributeTarget(kind: scoped.target.kind, geometry: scoped.target.geometry), value: scoped.value))
         let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let sink = DataByteSink()
-        #expect(throws: ProductAttributeError.unsupportedSemantics("Global physical geometry requires a standard source-scope owner.")) {
-            try OfficialFormatExchange(tolerance: .standard).write(evaluated, as: .step, to: sink)
-        }
-        #expect(sink.bytes.isEmpty)
+        try OfficialFormatExchange(tolerance: .standard).write(evaluated, as: .step, to: sink)
+        let restoredGlobal = try imported(try #require(String(data: sink.bytes, encoding: .utf8)))
+        let globalDensities = restoredGlobal.productAttributes.assignments.filter { $0.value.property == .density }
+        #expect(globalDensities.count == 1)
+        #expect(globalDensities.allSatisfy {
+            $0.target.definitionID == nil && $0.target.path == nil && $0.target.kind == scoped.target.kind
+        })
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { do { try FileManager.default.removeItem(at: directory) } catch { Issue.record("Unable to remove shared representation fixture directory: \(error)") } }
         let url = directory.appendingPathComponent("shared.step"), original = Data("existing complete destination".utf8)
         try original.write(to: url)
-        #expect(throws: ProductAttributeError.self) { try OfficialFormatExchange(tolerance: .standard).export(evaluated, as: .step, to: url) }
-        #expect(try Data(contentsOf: url) == original)
+        try OfficialFormatExchange(tolerance: .standard).export(evaluated, as: .step, to: url)
+        let exportedGlobal = try #require(String(data: Data(contentsOf: url), encoding: .utf8))
+        #expect(try imported(exportedGlobal).designGraph.nodes.count == 1)
         // A single current PD cannot turn a global source attachment into an explicit PD selector.
         let originalAssembly = try #require(document.assembly)
         let selected = try #require(originalAssembly.definitions.first { $0.id == scoped.target.definitionID })
@@ -165,12 +169,16 @@ struct SharedSTEPRepresentationTests {
         document.productAttributes = ProductAttributes(assignments: [ProductAttributeAssignment(
             target: ProductAttributeTarget(kind: scoped.target.kind, geometry: scoped.target.geometry), value: scoped.value)])
         let single = try DocumentEvaluator(tolerance: .standard).evaluate(document), singleSink = DataByteSink()
-        #expect(throws: ProductAttributeError.unsupportedSemantics("Global physical geometry requires a standard source-scope owner.")) {
-            try OfficialFormatExchange(tolerance: .standard).write(single, as: .step, to: singleSink)
-        }
-        #expect(singleSink.bytes.isEmpty)
-        #expect(throws: ProductAttributeError.self) { try OfficialFormatExchange(tolerance: .standard).export(single, as: .step, to: url) }
-        #expect(try Data(contentsOf: url) == original)
+        try OfficialFormatExchange(tolerance: .standard).write(single, as: .step, to: singleSink)
+        let singleRestored = try imported(try #require(String(data: singleSink.bytes, encoding: .utf8)))
+        let singleDensities = singleRestored.productAttributes.assignments.filter { $0.value.property == .density }
+        #expect(singleDensities.count == 1)
+        #expect(singleDensities.allSatisfy {
+            $0.target.definitionID == nil && $0.target.path == nil
+        })
+        try OfficialFormatExchange(tolerance: .standard).export(single, as: .step, to: url)
+        let exportedSingle = try #require(String(data: Data(contentsOf: url), encoding: .utf8))
+        #expect(try imported(exportedSingle).assembly?.definitions.count == 1)
         #expect(throws: (any Error).self) { _ = try STEPExchange(tolerance: .standard, resourceLimits: ExchangeResourceLimits(maximumIterations: 10)).import(Data(Self.fixture.utf8)) }
     }
     @Test(.timeLimit(.minutes(1)))
