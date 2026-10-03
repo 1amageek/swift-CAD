@@ -59,6 +59,14 @@ extension BSplineCurve3D {
         over interval: ScalarInterval, tolerance: ModelingTolerance
     ) throws {
         guard isPeriodic else { return }
+        try Self.validatePeriodicDerivativeCertificate(degree: degree, knots: knots,
+            controlPointCount: controlPointCount, over: interval, tolerance: tolerance)
+    }
+
+    static func validatePeriodicDerivativeCertificate(
+        degree: Int, knots: [Double], controlPointCount: Int,
+        over interval: ScalarInterval, tolerance: ModelingTolerance
+    ) throws {
         let period = knots[controlPointCount] - knots[degree]
         var index = degree
         while index < controlPointCount {
@@ -71,7 +79,7 @@ extension BSplineCurve3D {
                 let cycle = floor((interval.lower - knot) / period) + 1
                 let interior = knot + cycle * period
                 guard interior.isFinite, interior > interval.lower else {
-                    throw expansionFailure(tolerance)
+                    throw PeriodicBSplineEditPlan.failure(tolerance)
                 }
                 if interior < interval.upper {
                     throw KernelError(phase: .geometry, code: .singularGeometry, tolerance: tolerance,

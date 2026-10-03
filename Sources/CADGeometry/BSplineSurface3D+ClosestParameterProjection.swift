@@ -7,11 +7,13 @@ extension BSplineSurface3D {
         options: SurfaceParameterProjectionOptions = .init(),
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterProjection {
-        try ProceduralSurfaceParameterProjector().closestProjection(
+        let projection = try ProceduralSurfaceParameterProjector().closestProjection(
             of: point,
             on: .bSpline(self),
             options: options,
             tolerance: tolerance
         )
+        return try representativeProjection(projection, target: point,
+            requiringInverseTolerance: false, tolerance: tolerance)
     }
 }

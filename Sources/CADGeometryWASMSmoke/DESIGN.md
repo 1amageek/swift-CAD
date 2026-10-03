@@ -2,7 +2,7 @@
 
 ## Purpose and Scope
 
-Child of [the package](../../DESIGN.md), without children. Owns G1's executable
+Child of [the package](../../DESIGN.md), without children. Owns G1/G2 executable
 geometry and source-signature checks on matching normal WASM and native targets.
 
 ## Responsibilities and Boundaries
@@ -40,6 +40,13 @@ no target changes the storage, isolation or error contract.
 Build with Swift 6.4.0 and the matching normal WASM SDK. Execute the exact emitted
 artifact with Scripts/run_wasi_smoke.mjs, bounded by the repository guard. Native
 SubshapeGeometrySignatureTests owns source transport and corruption rejection.
-Periodic curve or transport changes invalidate this runtime evidence. The matching
+Tensor checks execute independent periodic axes, mixed derivatives, origin-aware
+projection, seam restrictions/refinement, interval derivative containment, face
+signature transport and resource/input refusals, including a folded periodic
+Bezier span with two regular roots that must not yield a unique answer when
+its subdivision budget is exhausted. Knot reduction executes the public protocol
+for rational pcurves, periodic curves and both periodic tensor axes, checks
+source/origin and bound retention, and checks typed work-budget refusal. Periodic geometry or transport
+changes invalidate this runtime evidence. The matching
 Embedded SDK currently lacks Foundation used by existing CADCore/CADGeometry;
 normal WASM runtime success does not establish Embedded support.

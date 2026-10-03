@@ -10,21 +10,8 @@ extension BSplineSurface3D {
         try options.validate(tolerance: tolerance)
         try validate(tolerance: tolerance)
         try point.validate()
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Periodic inverse projection is not integrated.
-        // BSplineSurface3D/Surface3D inverse queries reach here. G2.3 must search a
-        // complete representative domain and merge only seam-equivalent roots before success.
-        guard !isUPeriodic && !isVPeriodic else {
-            throw periodicOperationFailure("Periodic surface inverse projection is not integrated.", tolerance)
-        }
-        guard case let .closed(uLower, uUpper) = uDomain,
-              case let .closed(vLower, vUpper) = vDomain else {
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "B-spline inverse projection requires finite parameter domains."
-            )
-        }
+        let uLower = uKnots[uDegree], uUpper = uKnots[uControlPointCount]
+        let vLower = vKnots[vDegree], vUpper = vKnots[vControlPointCount]
         if let affine = ExactAffineBSplineSurfacePatch(self) {
             return try affine.parameterProjectionResult(
                 of: point,
@@ -49,7 +36,10 @@ extension BSplineSurface3D {
             point: point,
             tolerance: tolerance
         )
-        var stack = patches.reversed().map { ProjectionCell(patch: $0, depth: 0) }
+        var stack = patches.indices.reversed().map {
+            ProjectionCell(patch: patches[$0], depth: 0, sourcePatchIndex: $0)
+        }
+        var preparedOriginalPatches: [Int: RationalBezierSurfaceJetEncloser.PreparedPatch] = [:]
         var remainingCells = options.maximumSubdivisionCells
         var remainingCandidates = options.maximumCandidateCount
         var candidates: [ProjectionCandidate] = []
@@ -89,7 +79,7 @@ extension BSplineSurface3D {
                 )
             if requiresSubdivision {
                 for child in cell.patch.subdivided().reversed() {
-                    stack.append(ProjectionCell(patch: child, depth: cell.depth + 1))
+                    stack.append(ProjectionCell(patch: child, depth: cell.depth + 1, sourcePatchIndex: cell.sourcePatchIndex))
                 }
                 continue
             }
@@ -121,6 +111,32 @@ extension BSplineSurface3D {
                     bestWitness = canonical
                 }
                 if canonical.residual <= tolerance.distance {
+                    if isUPeriodic || isVPeriodic {
+                        // Rank at a witness does not rule out another root in its leaf.
+                        _ = try normal(u: canonical.u, v: canonical.v, tolerance: tolerance)
+                        let encloser = RationalBezierSurfaceJetEncloser()
+                        let prepared: RationalBezierSurfaceJetEncloser.PreparedPatch
+                        if let cached = preparedOriginalPatches[cell.sourcePatchIndex] {
+                            prepared = cached
+                        } else {
+                            prepared = try encloser.prepare(sourcePatches[cell.sourcePatchIndex], tolerance: tolerance)
+                            preparedOriginalPatches[cell.sourcePatchIndex] = prepared
+                        }
+                        let sourceJet = try encloser.enclosure(of: prepared,
+                            u: ScalarInterval(lower: cell.patch.uLower, upper: cell.patch.uUpper),
+                            v: ScalarInterval(lower: cell.patch.vLower, upper: cell.patch.vUpper),
+                            tolerance: tolerance)
+                        let difference = sourceJet + .constant(.origin - point)
+                        let squaredDistance = difference.dot(difference)
+                        let uu = squaredDistance.secondDerivativeUU
+                        let uv = squaredDistance.secondDerivativeUV
+                        let vv = squaredDistance.secondDerivativeVV
+                        let determinant = uu * vv - uv * uv
+                        guard uu.lower > 0, vv.lower > 0, determinant.lower > 0 else {
+                            throw resourceLimit(residual: canonical.residual, tolerance: tolerance,
+                                message: "Periodic inverse projection could not certify a unique root throughout a remaining Bezier leaf.")
+                        }
+                    }
                     let candidate = ProjectionCandidate(projection: canonical)
                     if let index = duplicateCandidateIndex(
                         candidate,
@@ -178,13 +194,15 @@ extension BSplineSurface3D {
                 message: "B-spline inverse projection has multiple distinct parameter solutions."
             )
         }
-        return .projected(try SurfaceParameterProjection(
+        let projection = try SurfaceParameterProjection(
             u: selected.projection.u,
             v: selected.projection.v,
             point: selected.projection.point,
             residual: selected.projection.residual,
             iterations: selected.projection.iterations
-        ))
+        )
+        return .projected(try representativeProjection(projection, target: point,
+            requiringInverseTolerance: true, tolerance: tolerance))
     }
 
     private func initialWitness(
@@ -318,26 +336,11 @@ extension BSplineSurface3D {
               let vUpper = sourcePatches.map(\.vUpper).max() else {
             return []
         }
-        let baseUResolution = max(
-            (uUpper - uLower) * tolerance.relative,
-            Double.ulpOfOne * max(1.0, max(abs(uLower), abs(uUpper))) * 128.0
-        )
-        let baseVResolution = max(
-            (vUpper - vLower) * tolerance.relative,
-            Double.ulpOfOne * max(1.0, max(abs(vLower), abs(vUpper))) * 128.0
-        )
         let ordered = candidates.sorted(by: projectionOrder)
         var result: [ProjectionCandidate] = []
         for candidate in ordered {
-            if let index = result.firstIndex(where: { existing in
-                abs(existing.projection.u - candidate.projection.u) <= max(
-                    baseUResolution,
-                    Double.ulpOfOne * max(1.0, abs(candidate.projection.u)) * 128.0
-                ) && abs(existing.projection.v - candidate.projection.v) <= max(
-                    baseVResolution,
-                    Double.ulpOfOne * max(1.0, abs(candidate.projection.v)) * 128.0
-                )
-            }) {
+            if let index = duplicateCandidateIndex(candidate, in: result,
+                uBounds: (uLower, uUpper), vBounds: (vLower, vUpper), tolerance: tolerance) {
                 if candidate.projection.residual < result[index].projection.residual {
                     result[index] = candidate
                 }
@@ -379,9 +382,19 @@ extension BSplineSurface3D {
                 * max(1.0, abs(vBounds.lower), abs(vBounds.upper)) * 128.0
         )
         return candidates.firstIndex { existing in
-            abs(existing.projection.u - candidate.projection.u) <= uResolution
-                && abs(existing.projection.v - candidate.projection.v) <= vResolution
+            parameterDistance(existing.projection.u, candidate.projection.u, direction: .u) <= uResolution
+                && parameterDistance(existing.projection.v, candidate.projection.v, direction: .v) <= vResolution
         }
+    }
+
+    private func parameterDistance(_ a: Double, _ b: Double, direction: SurfaceParameterDirection) -> Double {
+        let distance = abs(a - b)
+        let periodic = direction == .u ? isUPeriodic : isVPeriodic
+        guard periodic else { return distance }
+        let knots = direction == .u ? uKnots : vKnots
+        let degree = direction == .u ? uDegree : vDegree
+        let count = direction == .u ? uControlPointCount : vControlPointCount
+        return min(distance, abs(knots[count] - knots[degree] - distance))
     }
 
     private func boundingBoxDistanceLowerBound(
@@ -453,6 +466,7 @@ extension BSplineSurface3D {
     private struct ProjectionCell: Sendable {
         let patch: RationalBezierPointProjectionPatch
         let depth: Int
+        let sourcePatchIndex: Int
     }
 
     private struct ProjectionCandidate: Sendable {

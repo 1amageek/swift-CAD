@@ -39,29 +39,39 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
   ) throws -> SurfaceIntervalVectorJet {
     let encloser = RationalBezierSurfaceJetEncloser()
     var result: SurfaceIntervalVectorJet?
-    for patch in patches {
-      let uLower = max(parameters.u.lower, patch.uLower)
-      let uUpper = min(parameters.u.upper, patch.uUpper)
-      let vLower = max(parameters.v.lower, patch.vLower)
-      let vUpper = min(parameters.v.upper, patch.vUpper)
-      guard uUpper > uLower, vUpper > vLower else { continue }
-      let stableU = try numericallyStableInterval(
-        ScalarInterval(lower: uLower, upper: uUpper),
-        within: (lower: patch.uLower, upper: patch.uUpper),
-        tolerance: tolerance
-      )
-      let stableV = try numericallyStableInterval(
-        ScalarInterval(lower: vLower, upper: vUpper),
-        within: (lower: patch.vLower, upper: patch.vUpper),
-        tolerance: tolerance
-      )
-      let patchJet = try encloser.enclosure(
-        of: patch,
-        u: stableU,
-        v: stableV,
-        tolerance: tolerance
-      )
-      result = result.map { $0.union(patchJet) } ?? patchJet
+    let us = try surface.enclosureIntervals(parameters.u, direction: .u, tolerance: tolerance)
+    let vs = try surface.enclosureIntervals(parameters.v, direction: .v, tolerance: tolerance)
+    for u in us {
+      for v in vs {
+        for patch in patches {
+          let uLower = max(u.lower, patch.uLower)
+          let uUpper = min(u.upper, patch.uUpper)
+          let vLower = max(v.lower, patch.vLower)
+          let vUpper = min(v.upper, patch.vUpper)
+          if surface.isUPeriodic || surface.isVPeriodic {
+            guard uUpper >= uLower, vUpper >= vLower else { continue }
+          } else {
+            guard uUpper > uLower, vUpper > vLower else { continue }
+          }
+          let stableU = try numericallyStableInterval(
+            ScalarInterval(lower: uLower, upper: uUpper),
+            within: (lower: patch.uLower, upper: patch.uUpper),
+            tolerance: tolerance
+          )
+          let stableV = try numericallyStableInterval(
+            ScalarInterval(lower: vLower, upper: vUpper),
+            within: (lower: patch.vLower, upper: patch.vUpper),
+            tolerance: tolerance
+          )
+          let patchJet = try encloser.enclosure(
+            of: patch,
+            u: stableU,
+            v: stableV,
+            tolerance: tolerance
+          )
+          result = result.map { $0.union(patchJet) } ?? patchJet
+        }
+      }
     }
     guard let result else {
       throw KernelError(

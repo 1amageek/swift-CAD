@@ -145,3 +145,7 @@ cover the explicit import/export support gates and typed refusal of unsupported
 formats. Changes to the source operation or Mesh import boundary require
 rechecking CADIR Codable validation, CADKernel evaluation, and the Rupa adapter
 that performs atomic project publication.
+
+`PeriodicSourcePackageTests` owns the positive strict native-package round trip
+for independent tensor periodic axes and fundamental origins, including retained
+point and derivative behavior after decoding.

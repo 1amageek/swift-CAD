@@ -11,15 +11,15 @@ import sys
 # Bindings identify the public consumers of a source-owned condition. They do
 # not infer geometric support from identifier spelling or comment wording.
 BINDINGS = {
+    "BRepFaceAreaMeasurementEvaluator": (["faceAreaMeasurement"], ["supportSurface", "geometricFidelity"]),
+    "ExtractFacePlugBuilder": (["extract"], ["supportSurface", "connection", "topology"]),
     "BSplineSurface3D+DegreeElevation": (["rationalBSplineSurface"], ["parameterization", "representation"]),
-    "BSplineSurface3D+ParameterProjection": (["rationalBSplineSurface"], ["parameterization"]),
     "CADDocumentTranslation": (["importedBRep", "CADCommand"], ["transformation", "representation", "topology"]),
     "BSplineSurfaceEmbeddingValidator": (["loft"], ["supportSurface", "connection", "parameterization"]),
     "SheetExtendFeatureEvaluator": (["sheetExtend"], ["supportSurface", "boundaryCurve", "connection"]),
     "MeshTessellator": (["CADCommand"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
     "BRepEdgeChainOffsetter": (["faceLoopOffset", "edgeOffset"], ["boundaryCurve", "connection"]),
     "CoincidentBooleanFaceOwnershipResolver": (["boolean"], ["supportSurface", "connection", "degeneracy", "topology"]),
-    "ImprintCurvesFeatureEvaluator": (["imprintCurves"], ["boundaryCurve", "connection"]),
     "ImprintBodyFeatureEvaluator": (["imprintBody", "imprintCurves"], ["supportSurface", "boundaryCurve", "connection"]),
     "FaceRebuildFeatureEvaluator": (["faceRebuild"], ["supportSurface", "connection"]),
     "RebuiltFaceEdgeResolver": (["faceRebuild"], ["boundaryCurve", "connection", "degeneracy"]),
@@ -40,7 +40,6 @@ BINDINGS = {
     "PipeFeatureEvaluator": (["pipe"], ["connection", "topology"]),
     "ExactDraftedProfileBoundaryBuilder": (["extrude"], ["boundaryCurve", "connection"]),
     "FullRoundLayout": (["fillet"], ["supportSurface", "connection"]),
-    "BRepFaceAreaMeasurementEvaluator": (["faceAreaMeasurement"], ["supportSurface", "geometricFidelity"]),
     "ExactExchangeSurfaceRepresentationResolver": (["STEP", "IGES"], ["supportSurface", "representation", "geometricFidelity"]),
     "RollingBallSectionEvaluator": (["fillet"], ["supportSurface", "connection", "degeneracy", "representation"]),
     "RollingBallBlendSurface3D": (["fillet"], ["supportSurface", "connection", "degeneracy", "representation"]),

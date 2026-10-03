@@ -18,13 +18,6 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/BSplineSurface3D+DegreeElevation.swift", sourceLine: 18
         ),
         KernelDomainLimitation(
-            id: "condition-c00d47a99b894878",
-            operations: ["rationalBSplineSurface"],
-            dimensions: [.parameterization],
-            condition: "Periodic inverse projection is not integrated. BSplineSurface3D/Surface3D inverse queries reach here. G2.3 must search a complete representative domain and merge only seam-equivalent roots before success.",
-            sourcePath: "Sources/CADGeometry/BSplineSurface3D+ParameterProjection.swift", sourceLine: 13
-        ),
-        KernelDomainLimitation(
             id: "condition-b0c044d14fdc54a1",
             operations: ["loft"],
             dimensions: [.supportSurface, .connection, .parameterization],
@@ -74,6 +67,13 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADKernel/CoincidentBooleanFaceOwnershipResolver.swift", sourceLine: 37
         ),
         KernelDomainLimitation(
+            id: "condition-a04ac0874ecfe3bb",
+            operations: ["extract"],
+            dimensions: [.supportSurface, .connection, .topology],
+            condition: "caps both inside and outside the source (faces that are partly pocket, partly boss) are refused, and so are faces the healing cannot grow the faces around over. Production path: ExtractFeatureEvaluator for `.solidFaces` that do not close, and ExtractFaceClosure.makesSolid, which answers a sheet for them. Complete only when such faces make the solid they bound, verified by a face set crossing the source's boundary making its two parts.",
+            sourcePath: "Sources/CADKernel/ExtractFacePlugBuilder.swift", sourceLine: 16
+        ),
+        KernelDomainLimitation(
             id: "condition-08b047f9acc6bd14",
             operations: ["faceRebuild"],
             dimensions: [.supportSurface, .connection],
@@ -85,14 +85,7 @@ extension KernelCapabilities {
             operations: ["imprintBody", "imprintCurves"],
             dimensions: [.supportSurface, .boundaryCurve, .connection],
             condition: "A tool face lying on a target face (a sheet laid on a face) should imprint the tool face's outline where it lies on the target face. Imprint Body Body, and Imprint Curve Body through its projection sheet, reach here from the palette and Shift-I; this is complete only when the outline is carried onto the target face's parameters and tested on planes and curved faces.",
-            sourcePath: "Sources/CADKernel/ImprintBodyFeatureEvaluator.swift", sourceLine: 105
-        ),
-        KernelDomainLimitation(
-            id: "condition-430b4ec6890eb1df",
-            operations: ["imprintCurves"],
-            dimensions: [.boundaryCurve, .connection],
-            condition: "A crossing hidden along part of its length should be imprinted only where it is seen. Imprint Curve Body with Hide occlusion reaches here from Shift-I; it is complete only when such a crossing is split where it passes behind the target and the seen piece kept, with a test.",
-            sourcePath: "Sources/CADKernel/ImprintCurvesFeatureEvaluator.swift", sourceLine: 324
+            sourcePath: "Sources/CADKernel/ImprintBodyFeatureEvaluator.swift", sourceLine: 110
         ),
         KernelDomainLimitation(
             id: "condition-90f2939dcea24992",
@@ -190,42 +183,49 @@ extension KernelCapabilities {
             operations: ["fillet", "chamfer"],
             dimensions: [.supportSurface, .boundaryCurve, .connection, .degeneracy],
             condition: "chains blended on both sides of a sharp corner of their cap meet at a mitre between their bands, which is not built, so they are refused. Production path: CapLoopBlendBuilder from Fillet and Chamfer. Complete only when such corners close, verified by a D's whole rim rounded.",
-            sourcePath: "Sources/CADModeling/CapLoopBlendBuilder.swift", sourceLine: 141
+            sourcePath: "Sources/CADModeling/CapLoopBlendBuilder.swift", sourceLine: 157
+        ),
+        KernelDomainLimitation(
+            id: "condition-fe87cfc1df784db4",
+            operations: ["fillet", "chamfer"],
+            dimensions: [.supportSurface, .boundaryCurve, .connection, .degeneracy],
+            condition: "a Conic, Chordal or G2 band as large as a convex arc of its cap closes on the arc's axis, which is not built, so it is refused. Production path: CapLoopBlendBuilder from Fillet's non-round shapes. Complete only when such bands close, verified by a rounded block's rim filleted Conic by its corner radius.",
+            sourcePath: "Sources/CADModeling/CapLoopBlendBuilder.swift", sourceLine: 205
         ),
         KernelDomainLimitation(
             id: "condition-9a72200e3090fa2c",
             operations: ["fillet", "chamfer"],
             dimensions: [.supportSurface, .boundaryCurve, .connection, .degeneracy],
             condition: "a chamfer as large as a convex arc of its cap closes on a cone's apex, which is not built, so it is refused. Production path: CapLoopBlendBuilder from Chamfer. Complete only when such chamfers close, verified by a rounded block's rim chamfered by its corner radius.",
-            sourcePath: "Sources/CADModeling/CapLoopBlendBuilder.swift", sourceLine: 189
+            sourcePath: "Sources/CADModeling/CapLoopBlendBuilder.swift", sourceLine: 213
         ),
         KernelDomainLimitation(
             id: "condition-cd555dc470470272",
             operations: ["fillet", "chamfer"],
             dimensions: [.supportSurface, .boundaryCurve, .connection, .degeneracy],
             condition: "a loop of one closed circular edge needs its band split along a seam, which is not built, so it is refused. Production path: CapLoopBlendBuilder from Fillet and Chamfer. Complete only when closed rims blend, verified by a revolved disc's rim.",
-            sourcePath: "Sources/CADModeling/CapLoopBlendBuilder.swift", sourceLine: 704
+            sourcePath: "Sources/CADModeling/CapLoopBlendBuilder.swift", sourceLine: 818
         ),
         KernelDomainLimitation(
             id: "condition-be0ba1bfd920d298",
             operations: ["fillet", "chamfer"],
             dimensions: [.supportSurface, .boundaryCurve, .connection, .degeneracy],
             condition: "a loop whose walls run down from the cap at some edges and up at others turns between a convex and a concave band, which is not built, so it is refused. Production path: CapLoopBlendBuilder from Fillet and Chamfer. Complete only when such loops blend, verified by a plate's step.",
-            sourcePath: "Sources/CADModeling/CapLoopBlendBuilder.swift", sourceLine: 782
+            sourcePath: "Sources/CADModeling/CapLoopBlendBuilder.swift", sourceLine: 896
         ),
         KernelDomainLimitation(
             id: "condition-a0b64db4a8a5adb1",
             operations: ["fillet", "chamfer"],
             dimensions: [.supportSurface, .boundaryCurve, .connection, .degeneracy],
             condition: "an open chain whose walls rise from the cap (part of a boss's base) fills its corner up to faces its ends meet, which is not built, so it is refused. Production path: CapLoopBlendBuilder from Fillet and Chamfer. Complete only when such chains blend, verified by a half disc's base on a plate.",
-            sourcePath: "Sources/CADModeling/CapLoopBlendBuilder.swift", sourceLine: 813
+            sourcePath: "Sources/CADModeling/CapLoopBlendBuilder.swift", sourceLine: 927
         ),
         KernelDomainLimitation(
             id: "condition-e81529e43c93b86a",
             operations: ["fillet", "chamfer"],
             dimensions: [.supportSurface, .boundaryCurve, .connection, .degeneracy],
             condition: "an open chain ending on a face oblique to it needs its band trimmed by that face, which is not built, so it is refused. Production path: CapLoopBlendBuilder from Fillet and Chamfer. Complete only when such chains blend, verified by an arc's rim ending on a slanted side.",
-            sourcePath: "Sources/CADModeling/CapLoopBlendBuilder.swift", sourceLine: 841
+            sourcePath: "Sources/CADModeling/CapLoopBlendBuilder.swift", sourceLine: 955
         ),
         KernelDomainLimitation(
             id: "condition-9765cf83ad4725d5",
@@ -246,42 +246,42 @@ extension KernelCapabilities {
             operations: ["fillet", "chamfer", "g2Blend"],
             dimensions: [.supportSurface, .boundaryCurve, .connection, .degeneracy],
             condition: "edges meeting a concave edge that its round does not leave as a cap's tangent chain ending on square planes (convex edges meeting each other there, walls rising from the cap) need the rolling ball's corner, which is not built, so they are refused. Production path: Fillet through concaveEdgesThenChains. Complete only when such corners blend, verified by an L block's every edge rounded.",
-            sourcePath: "Sources/CADModeling/EdgeBlendFeatureEvaluator.swift", sourceLine: 1086
+            sourcePath: "Sources/CADModeling/EdgeBlendFeatureEvaluator.swift", sourceLine: 1087
         ),
         KernelDomainLimitation(
             id: "condition-bbfbce45cb4730e5",
             operations: ["fillet", "chamfer", "g2Blend"],
             dimensions: [.supportSurface, .boundaryCurve, .connection, .degeneracy],
             condition: "a concave edge's blend adds material across its empty wedge, which is built for an edge alone but not joined in this network to blends it meets (rounds reaching cap chains are staged by concaveEdgesThenChains first), so a concave edge meeting other blended edges here is refused: chamfers, and rounds of concave edges meeting each other. Production path: blendNetworkRequest. Complete only when concave and convex blends are joined at their corners, verified by an L block's every edge chamfered.",
-            sourcePath: "Sources/CADModeling/EdgeBlendFeatureEvaluator.swift", sourceLine: 1578
+            sourcePath: "Sources/CADModeling/EdgeBlendFeatureEvaluator.swift", sourceLine: 1604
         ),
         KernelDomainLimitation(
             id: "condition-88bcb035b7ebbc5f",
             operations: ["fillet", "chamfer", "g2Blend"],
             dimensions: [.supportSurface, .boundaryCurve, .connection, .degeneracy],
             condition: "four or more rounded edges meeting at one corner, or a corner with sharp edges among rounded ones, need a general vertex blend, which is not built, so they are refused. Production path: blendNetworkRequest for rounds of edges meeting at corners. Complete only when such corners close, verified by a pyramid's apex edges rounded together.",
-            sourcePath: "Sources/CADModeling/EdgeBlendFeatureEvaluator.swift", sourceLine: 1692
+            sourcePath: "Sources/CADModeling/EdgeBlendFeatureEvaluator.swift", sourceLine: 1718
         ),
         KernelDomainLimitation(
             id: "condition-08f3da1224ba6f4a",
             operations: ["fillet", "chamfer", "g2Blend"],
             dimensions: [.supportSurface, .boundaryCurve, .connection, .degeneracy],
             condition: "curved blends of edges whose faces meet at different angles have sections that do not mirror each other across a corner, so they meet along a non-planar curve, which is not built, and they are refused (chamfers meet on their planes' intersections). Production path: blendNetworkRequest for every blend of edges meeting at corners. Complete only when asymmetric corners are joined along their blends' intersection, verified by a corner between a right-angled and a drafted edge.",
-            sourcePath: "Sources/CADModeling/EdgeBlendFeatureEvaluator.swift", sourceLine: 1766
+            sourcePath: "Sources/CADModeling/EdgeBlendFeatureEvaluator.swift", sourceLine: 1792
         ),
         KernelDomainLimitation(
             id: "condition-99ba551dd51f377c",
             operations: ["fillet", "chamfer", "g2Blend"],
             dimensions: [.supportSurface, .boundaryCurve, .connection, .degeneracy],
             condition: "three curved blends meeting at a corner close only for a round section across three square faces (the rolling ball's octant; chamfers close on their planes); other shapes, angles or corners need a general vertex blend, which is not built, so they are refused. Production path: blendNetworkRequest. Complete only when such corners are closed by a vertex blend, verified by a box corner's three edges G2-blended together.",
-            sourcePath: "Sources/CADModeling/EdgeBlendFeatureEvaluator.swift", sourceLine: 1866
+            sourcePath: "Sources/CADModeling/EdgeBlendFeatureEvaluator.swift", sourceLine: 1892
         ),
         KernelDomainLimitation(
             id: "condition-d9159cc6e7c07bdd",
             operations: ["fillet", "chamfer", "g2Blend"],
             dimensions: [.supportSurface, .boundaryCurve, .connection, .degeneracy],
             condition: "four or more blended edges meeting at one corner need a vertex blend, which is not built, so they are refused. Production path: blendNetworkRequest. Complete only when such corners are closed, verified by a pyramid's apex edges filleted together.",
-            sourcePath: "Sources/CADModeling/EdgeBlendFeatureEvaluator.swift", sourceLine: 1883
+            sourcePath: "Sources/CADModeling/EdgeBlendFeatureEvaluator.swift", sourceLine: 1909
         ),
         KernelDomainLimitation(
             id: "condition-06aa8b6e35fbb51b",
@@ -361,11 +361,11 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADModeling/FaceDraftGrowWedgeBuilder.swift", sourceLine: 375
         ),
         KernelDomainLimitation(
-            id: "condition-55f45c90d595f6ef",
+            id: "condition-e2a24cab4964bafd",
             operations: ["faceMatch"],
             dimensions: [.supportSurface, .connection],
-            condition: "a match other than one planar face onto a parallel plane re-solves the faces around in place under every Grow mode, so one that runs into another wall is refused as a topology failure. Production path: FaceMatchFeatureEvaluator for every faceMatch feature. Moving and Fixed are complete only when such a matched face meeting a wall moves that wall or stops at it, verified by a curved face matched past a wall.",
-            sourcePath: "Sources/CADModeling/FaceMatchFeatureEvaluator.swift", sourceLine: 95
+            condition: "several matched faces, a curved matched face, or one running into a wall inward still refuse here. Production path: FaceMatchFeatureEvaluator. Complete only when those grow too, verified by a pair of faces matched past a wall.",
+            sourcePath: "Sources/CADModeling/FaceMatchFeatureEvaluator.swift", sourceLine: 114
         ),
         KernelDomainLimitation(
             id: "condition-8745880d48f52c6a",

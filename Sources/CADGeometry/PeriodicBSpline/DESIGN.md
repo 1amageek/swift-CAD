@@ -197,3 +197,63 @@ preservation, mixed open/cyclic axes, independently exhausted tensor storage/wor
 and malformed intervals. PeriodicBSplineRestrictionTests owns the shared curve
 restriction work refusal. These fixtures must verify positions and mixed jets,
 including one-sided boundary semantics at lower-continuity knots.
+
+### Prepared Tensor Bounds and Projection
+
+Bezier decomposition of a cyclic tensor first takes an exact finite restriction.
+Default decomposition uses both base knot intervals; interval-specific
+decomposition uses the requested unwrapped box. Prepared differential enclosures
+retain one decomposition of the base knot intervals, independent of origin
+metadata. Each periodic query axis maps to at most two conservative intervals
+in that cache; a span covering a complete cycle uses the full base interval.
+Mapping expands outward for floating parameter resolution, including the
+opposite seam endpoint. Interval endpoints touching a neighboring Bezier span
+include that span's one-sided jets. No control net is rebuilt for each box.
+
+```text
+Cyclic source -> exact base restriction -> immutable prepared Bezier derivative nets
+Unwrapped U/V box -> smoothness certificate -> outward seam split (at most 2 per axis)
+    -> cached span enclosures -> union of position and derivative ranges
+Base knot intervals -> complete Bezier hull search -> local root refinement
+    -> per-axis periodic equivalence -> unique representative or typed ambiguity
+```
+
+The shared cyclic knot smoothness predicate requires C1 at every interior knot
+crossed by a smooth second-derivative certificate. Crossing a C0 knot fails with
+singularGeometry; the caller must split at that knot. A point-only span does not
+claim global smoothness. Original controls, weights, periods and origins remain
+immutable for the lifetime of preparation. Nonperiodic preparation retains its
+existing interval arithmetic and domain behavior.
+
+Inverse projection searches exactly one base knot interval per cyclic axis,
+avoiding coverage loss from rounded endpoints at a very large chosen origin.
+Root deduplication uses circular distance only on cyclic axes, retaining
+distinct interior solutions even when their spatial points coincide. The final
+U/V values are normalized to the chosen half-open fundamental intervals; the
+reported point is re-evaluated there and the residual must still satisfy the
+input tolerance. A selected inverse root must also satisfy the existing B-spline
+regular parameter-frame contract; singularSystem refuses collapsed or locally
+singular axes rather than reporting an arbitrary unique parameter. This does
+not infer global non-discrete topology from local rank alone. Each accepted
+periodic inverse leaf also needs an outward positive-definite Hessian enclosure
+of squared target distance on the entire original Bezier leaf: a Newton witness
+and local chart rank do not establish unique coverage. Original prepared patches
+are cached per query and restricted to subdivision boxes; rounded child controls
+do not supply this certificate. A leaf without that proof remains unresolved and
+returns resourceLimitExceeded when subdivision cannot continue. Closest-point projection retains its complete certified domain
+search and returns the same chosen representatives with a fresh residual. If
+finite normalization cannot retain the inverse tolerance or the previously
+certified closest-point residual (outward by one ULP), it fails explicitly as
+resourceLimitExceeded rather than returning a degraded certificate. Cell,
+candidate and exact-expansion budget exhaustion stays resourceLimitExceeded.
+Periodic degree elevation remains owned by G5/G6 and does not gain support from
+these query contracts.
+
+PeriodicBSplineSurfaceQueryTests owns both-axis seam normalization, origin-aware
+projection, genuine multiple-root ambiguity, typed resource exhaustion, shifted
+and multi-cycle box containment of position and first/second/mixed derivatives,
+cache independence across successive queries and C0 rejection. CADIR signature
+tests own face transport of exact cycles and malformed source rejection.
+CADGeometryWASMSmoke owns matching normal-WASM execution of tensor evaluation,
+editing, queries, transport and typed failures. Embedded and all downstream
+representation closure remain PARI/G5, independently of this evidence.

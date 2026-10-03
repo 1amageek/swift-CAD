@@ -34,6 +34,7 @@ extension KernelCapabilities {
         "CADExchangeTests",
         "NativeOperationSchemaTests",
         "NativeStableSelectionPackageTests",
+        "PeriodicSourcePackageTests",
       ]
     ),
     KernelCapability(

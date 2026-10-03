@@ -35,6 +35,16 @@ struct BSplineSurfaceBezierDecomposer {
         tolerance: ModelingTolerance
     ) throws -> [RationalBezierSurfacePatch3D] {
         try surface.validate(tolerance: tolerance)
+        if surface.isUPeriodic || surface.isVPeriodic {
+            let u = try uInterval ?? ScalarInterval(
+                lower: surface.uKnots[surface.uDegree], upper: surface.uKnots[surface.uControlPointCount])
+            let v = try vInterval ?? ScalarInterval(
+                lower: surface.vKnots[surface.vDegree], upper: surface.vKnots[surface.vControlPointCount])
+            let restriction = try surface.trimmed(uFrom: u.lower, uTo: u.upper,
+                vFrom: v.lower, vTo: v.upper, tolerance: tolerance)
+            return try resolvedSurfacePatches(surface: restriction, uInterval: nil,
+                vInterval: nil, tolerance: tolerance)
+        }
         let uBreaks = try parameterBreaks(
             knots: surface.uKnots,
             domain: surface.uDomain,

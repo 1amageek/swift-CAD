@@ -583,6 +583,9 @@ path prepares transiently and follows identical interval arithmetic. No result
 cache, shared mutation, tolerance change, or cross-request lifetime is introduced.
 Prepared/direct interval equality, disjoint successive boxes and invalid span
 rejection verify this reuse contract.
+Periodic tensors use the base-cache, seam mapping and smoothness contracts owned
+by [Periodic B-spline](PeriodicBSpline/DESIGN.md#prepared-tensor-bounds-and-projection).
+Their chosen origins affect query representatives rather than cached ownership.
 
 Rational interval jets use a stored control point as a local spatial origin.
 Control-point subtraction occurs inside outward interval arithmetic before

@@ -124,11 +124,14 @@ extension KernelCapabilities {
         "independentFundamentalOrigins", "periodicRationalIsoparametricCurves",
         "strictAxisPeriodicitySchema", "exactPeriodicTensorRefinement",
         "exactSeamCrossingTensorRestriction", "totalTensorStorageAndInsertionWorkBudgets",
+        "originAwarePeriodicProjection", "seamEquivalentRootNormalization",
+        "preparedPeriodicTensorIntervalJets",
       ],
       failureCodes: [
         .invalidInput, .intersectionFailure, .ambiguousSelection,
         .singularSystem, .resourceLimitExceeded, .topologyFailure, .unsupportedCapability,
         .classificationFailure,
+        .singularGeometry,
       ],
       tolerance: .standard,
       publicAPIs: [
@@ -142,6 +145,7 @@ extension KernelCapabilities {
         "BSplineSurfaceTrimmingTests",
         "PeriodicBSplineSurfaceTests",
         "PeriodicBSplineSurfaceEditingTests",
+        "PeriodicBSplineSurfaceQueryTests",
       ]
     ),
     KernelCapability(
