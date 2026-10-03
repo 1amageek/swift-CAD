@@ -308,10 +308,17 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         guard case let .closed(u0, u1) = new.uDomain, case let .closed(v0, v1) = new.vDomain else {
             throw failure(.invalidInput, feature.id, tolerance, "A given face surface has an unbounded domain.")
         }
-        // The given surface is on the face's own parameters: its normal where the face's interior
-        // point was, against the side the face faced.
+        // The given surface's normal where the face's interior point was — at its parameters when the
+        // surface shares them, else where that point lies on it (a surface on parameters of its
+        // own) — against the side the face faced.
         let (su, sv) = (min(max(sample.parameter.u, u0), u1), min(max(sample.parameter.v, v0), v1))
-        let orientation: Orientation = try new.normal(u: su, v: sv, tolerance: tolerance).dot(outward) >= 0 ? .forward : .reversed
+        var normalParameter = (u: su, v: sv)
+        if (try new.point(u: su, v: sv, tolerance: tolerance) - sample.point).length > tolerance.distance,
+           case let .projected(projection) = try new.parameterProjectionResult(of: sample.point, tolerance: tolerance) {
+            normalParameter = (projection.u, projection.v)
+        }
+        let orientation: Orientation = try new.normal(u: normalParameter.u, v: normalParameter.v, tolerance: tolerance)
+            .dot(outward) >= 0 ? .forward : .reversed
         var stray = 0.0
         for loopID in face.loops {
             for coedge in result.loops[loopID]?.coedges ?? [] {
@@ -331,13 +338,47 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 }
             }
         }
-        if stray <= tolerance.distance / 4 {
+        // On parameters of its own (a cylinder made rational), the surface may still hold every edge
+        // where it lies: the face keeps them, their trimming curves rebuilt on it.
+        var holdsEdges = stray <= tolerance.distance / 4
+        var reparameterized = false
+        if holdsEdges == false {
+            let solver = BRepSurfaceMeetingSolver(tolerance: tolerance)
+            var gap = 0.0
+            for loopID in face.loops {
+                for coedge in result.loops[loopID]?.coedges ?? [] {
+                    guard let edge = result.edges[coedge.edgeID], let curve = result.geometry.curves[edge.curveID], let trim = edge.trim else {
+                        throw TopologyError.missingReference("An edge of the face given a surface is missing.")
+                    }
+                    for index in 0...16 {
+                        let point = try curve.point(at: trim.startParameter + (trim.endParameter - trim.startParameter) * Double(index) / 16,
+                                                    tolerance: tolerance)
+                        gap = max(gap, (try solver.foot(of: point, on: new).point - point).length)
+                    }
+                }
+            }
+            holdsEdges = gap <= tolerance.distance / 4
+            reparameterized = holdsEdges
+        }
+        if holdsEdges {
             var ids = FeatureTopologyIDAllocator(featureID: feature.id)
             var surfaceID = ids.nextSurfaceID()
             while result.geometry.surfaces[surfaceID] != nil { surfaceID = ids.nextSurfaceID() }
             result.geometry.surfaces[surfaceID] = new
             result.faces[faceID]?.surfaceID = surfaceID
             result.faces[faceID]?.orientation = orientation
+            if reparameterized {
+                // Each edge along an isoline of the new surface (a round's sides and ends) takes that
+                // isoline; any other edge its trimming curve built on it.
+                for loopID in face.loops {
+                    guard var loop = result.loops[loopID] else { continue }
+                    for index in loop.coedges.indices {
+                        loop.coedges[index].surfaceParameterCurve = try isoline(of: loop.coedges[index], on: new, model: result, tolerance: tolerance)
+                    }
+                    result.loops[loopID] = loop
+                }
+                try ExactFacePcurveBuilder().populateMissingPcurves(in: &result, tolerance: tolerance)
+            }
         } else {
             try FaceSurfaceReplacementRebuilder().replace(
                 [faceID: FaceSurfaceReplacementRebuilder.Replacement(surface: new, orientation: orientation)],
@@ -351,6 +392,31 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         let identity = try identityBuilder.identity(featureID: feature.id, bodyID: bodyID, model: result, context: context)
         return EvaluationResult(brep: result, subshapes: identity.subshapes, removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes),
                                 lineage: identity.lineage)
+    }
+
+    /// The isoline of `surface` a coedge runs along, from its start to its end: constant u or
+    /// constant v at nine points of its edge projected onto the surface; nil when it runs along
+    /// none.
+    private func isoline(of coedge: Coedge, on surface: Surface3D, model: BRepModel, tolerance: ModelingTolerance) throws -> SurfaceParameterCurve? {
+        guard let edge = model.edges[coedge.edgeID], let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else {
+            throw TopologyError.missingReference("An edge of the face given a surface is missing.")
+        }
+        let (start, end) = coedge.orientation == .forward ? (trim.startParameter, trim.endParameter) : (trim.endParameter, trim.startParameter)
+        var parameters: [SurfaceParameterProjection] = []
+        for index in 0...8 {
+            let point = try curve.point(at: start + (end - start) * Double(index) / 8, tolerance: tolerance)
+            guard case let .projected(projection) = try surface.parameterProjectionResult(of: point, tolerance: tolerance) else { return nil }
+            parameters.append(projection)
+        }
+        guard let first = parameters.first, let last = parameters.last else { return nil }
+        let slack = 1e-9
+        if parameters.allSatisfy({ abs($0.u - first.u) <= slack }) {
+            return .constantU(u: first.u, vStart: first.v, vEnd: last.v)
+        }
+        if parameters.allSatisfy({ abs($0.v - first.v) <= slack }) {
+            return .constantV(v: first.v, uStart: first.u, uEnd: last.u)
+        }
+        return nil
     }
 
     /// A face of its own sewn anew on `surface`: its trimming curves kept, each edge the surface

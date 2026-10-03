@@ -139,4 +139,64 @@ struct FaceGivenSurfaceTests {
         }
         #expect(splines.count == 6)
     }
+
+    /// A rounded box edge's round (a quarter cylinder) given control points: the exact rational
+    /// surface on parameters of its own, raised; the face keeps its edges, their trimming curves
+    /// rebuilt, and the box its volume.
+    @Test(.timeLimit(.minutes(2)))
+    func aRoundIsGivenItsExactRationalSurfaceAndRaised() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let box = try builder.box(width: length(s), depth: length(s), height: length(s))
+        let start = try evaluate(builder)
+        let corners = start.brep.vertices.values.map(\.point)
+        let (xMax, zMax) = (corners.map(\.x).max() ?? 0, corners.map(\.z).max() ?? 0)
+        let edgeKeys = start.subshapes.entries.compactMap { key, value -> SubshapeID? in
+            guard key.featureID == box, case let .edge(id) = value, let edge = start.brep.edges[id],
+                  let a = start.brep.vertices[edge.startVertexID]?.point, let b = start.brep.vertices[edge.endVertexID]?.point else { return nil }
+            return abs(a.x - xMax) < 1e-12 && abs(b.x - xMax) < 1e-12 && abs(a.z - zMax) < 1e-12 && abs(b.z - zMax) < 1e-12 ? key : nil
+        }.sorted()
+        let edge = try builder.stableSubshape(try #require(edgeKeys.first))
+        let rounded = try builder.fillet(target: box, edges: [edge], radius: length(0.004))
+        let filleted = try evaluate(builder)
+        let roundKeys = filleted.subshapes.entries.compactMap { key, value -> SubshapeID? in
+            guard key.featureID == rounded, case let .face(id) = value, let face = filleted.brep.faces[id] else { return nil }
+            switch filleted.brep.geometry.surfaces[face.surfaceID] {
+            case .cylinder?, .analytic(.cylinder)?: return key
+            default: return nil
+            }
+        }.sorted()
+        let round = try builder.stableSubshape(try #require(roundKeys.first))
+        let before = try volume(rounded, in: filleted)
+        let rational = try FaceBSplineSurfaceConverter().surface(of: round, in: filleted)
+        #expect(rational.uDegree == 2 && rational.vDegree == 1 && rational.weights.joined().contains { abs($0 - 1) > 1e-6 })
+        // Exact: every point of it is the round's radius from the round's axis.
+        let roundFace = try #require(filleted.brep.faces.values.first { face in
+            switch filleted.brep.geometry.surfaces[face.surfaceID] {
+            case .cylinder?, .analytic(.cylinder)?: return true
+            default: return false
+            }
+        })
+        let (origin, axis, radius): (Point3D, Vector3D, Double)
+        switch filleted.brep.geometry.surfaces[roundFace.surfaceID] {
+        case let .cylinder(cylinder)?: (origin, axis, radius) = (cylinder.origin, try cylinder.axis.normalized(tolerance: 1e-12), cylinder.radius)
+        case let .analytic(.cylinder(o, a, r))?: (origin, axis, radius) = (o, try a.normalized(tolerance: 1e-12), r)
+        default: throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: .standard, message: "No round.")
+        }
+        guard case let .closed(t0, t1) = Surface3D.bSpline(rational).uDomain, case let .closed(w0, w1) = Surface3D.bSpline(rational).vDomain else {
+            throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: .standard, message: "No domain.")
+        }
+        for i in 0...20 {
+            for j in 0...4 {
+                let p = try rational.point(u: t0 + (t1 - t0) * Double(i) / 20, v: w0 + (w1 - w0) * Double(j) / 4, tolerance: .standard)
+                let offset = p - origin
+                #expect(abs((offset - axis * offset.dot(axis)).length - radius) < 1e-12)
+            }
+        }
+        let given = try builder.rebuildFaces(target: rounded, faces: [round], method: .given(try raised(rational)))
+        let evaluated = try evaluate(builder)
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        // The volume integrated over the rational round agrees to its quadrature's accuracy.
+        let after = try volume(given, in: evaluated)
+        #expect(abs(after - before) < before * 1e-6, "\(after) vs \(before)")
+    }
 }

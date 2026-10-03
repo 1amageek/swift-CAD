@@ -964,15 +964,22 @@ trimming curve names, judged against the modeling distance and placed at the edg
 Rebuild Face's `given` method gives one face a B-spline surface on its own parameters — Plasticity's
 Raise Degree and control-point moves on a face of a solid. `FaceBSplineSurfaceConverter` makes the
 face's surface exact first (a B-spline as it is; a plane as the degree (1, 1) patch through its
-corners over a rectangle holding every trimming curve; other analytic faces refused,
+corners over a rectangle holding every trimming curve; a cylinder or cone face as the exact
+rational surface over that rectangle — degree 2 about the axis, each v-circle cut into arcs of at
+most a quarter turn whose middle control point is M + (M − Q) / cos θ weighted cos θ, degree 1 along
+it — checked to lie on the old surface; a face closing round its axis, a sphere and a torus refused,
 `FIXME(INCOMPLETE_IMPLEMENTATION)`). The face faces out as it did (the given surface's normal at the face's interior point's
 parameters, the surface sharing them); where every edge still lies on
 the new surface along its trimming curve (within a quarter of the distance tolerance) it keeps its
-edges, otherwise `FaceSurfaceReplacementRebuilder` re-solves the edges and vertices around it where
+edges; where they lie on it only geometrically (a surface on parameters of its own) it keeps them
+too, each taking the isoline of the new surface it runs along or a trimming curve built on it;
+otherwise `FaceSurfaceReplacementRebuilder` re-solves the edges and vertices around it where
 it meets the faces beside it, which keep their surfaces, and the trimming curves are rebuilt.
 `FaceGivenSurfaceTests` own a box's top raised to degree 2 in place (volume kept) and a side's
 top-middle control point moved 5 mm out, bulging the box by d·w·h/9 with its five planes kept,
-and its middle control point moved out bulging it the same between the edges it keeps.
+and its middle control point moved out bulging it the same between the edges it keeps, a box raised
+face by face through the Rebuild Faces before each, and a rounded edge's quarter cylinder given its
+exact rational surface (every point the radius from the axis) and raised, its volume kept.
 
 ## Unwrap Face
 
