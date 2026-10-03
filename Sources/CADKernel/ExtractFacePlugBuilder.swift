@@ -13,11 +13,11 @@ import CADTopology
 /// boundary are the caps closing the opening; the chosen faces and the caps are sewn as one solid,
 /// the chosen faces turned inside out where they bound a void of the source (a pocket) and the caps
 /// where they run through its material (a boss). The source stays as it is.
-// FIXME(INCOMPLETE_IMPLEMENTATION): faces whose neighbours must grow past one another to meet (an
-// L block's notch: its step and ledge, healed by the walls beyond them) are refused by the healing,
-// and caps both inside and outside the source (faces that are partly pocket, partly boss) are
-// refused. Production path: ExtractFeatureEvaluator for `.solidFaces` that do not close. Complete
-// only when such faces make their block, verified by a notch's two walls making the block filling it.
+// FIXME(INCOMPLETE_IMPLEMENTATION): caps both inside and outside the source (faces that are partly
+// pocket, partly boss) are refused, and so are faces the healing cannot grow the faces around over.
+// Production path: ExtractFeatureEvaluator for `.solidFaces` that do not close, and
+// ExtractFaceClosure.makesSolid, which answers a sheet for them. Complete only when such faces make
+// the solid they bound, verified by a face set crossing the source's boundary making its two parts.
 struct ExtractFacePlugBuilder {
     private let solver: BRepSurfaceMeetingSolver
     private let tolerance: ModelingTolerance

@@ -12,7 +12,8 @@ import CADTopology
 /// become one edge on their intersection, and each of its other edges shrinks to a point. A face
 /// collapses to the point where the faces around it meet. Topology identities are kept where
 /// they survive: the merged edge keeps the first strip edge's identity, and merged vertices the
-/// least one's.
+/// least one's. Faces in a row between two faces (a notch's wall and ledge) collapse together as
+/// one strip, the edges they share going with them.
 package struct FaceRemovalHealer: Sendable {
     /// How a removed face collapses.
     package enum Collapse: Hashable, Sendable {
@@ -23,6 +24,11 @@ package struct FaceRemovalHealer: Sendable {
         case toEdge(first: EdgeID, second: EdgeID)
         /// The faces around it meet at one point where it was.
         case toPoint
+        /// The face is one of the faces of a strip between the faces across `first` and `second`
+        /// (a notch's wall and ledge between the top and the front), every face of the strip
+        /// carrying the same two edges: the edges the strip's faces share go, and each of their
+        /// other edges shrinks to a point, as one strip's would.
+        case inStrip(first: EdgeID, second: EdgeID)
     }
 
     package init() {}
@@ -134,6 +140,25 @@ package struct FaceRemovalHealer: Sendable {
                     let edge = try edge(edgeID)
                     union(edge.startVertexID, edge.endVertexID)
                     vanishing.insert(edgeID)
+                }
+                merged[second] = first
+                vanishing.insert(second)
+            case let .inStrip(first, second):
+                let strip = Set(plan.filter { $0.value == collapse }.keys)
+                let stripEdges = try Set(strip.flatMap { try edges(of: $0) })
+                guard first != second, stripEdges.contains(first), stripEdges.contains(second),
+                      let firstSide = facesOfEdge[first]?.first(where: { strip.contains($0) == false }),
+                      let secondSide = facesOfEdge[second]?.first(where: { strip.contains($0) == false }),
+                      removed.contains(firstSide) == false, removed.contains(secondSide) == false, firstSide != secondSide else {
+                    throw failure(.invalidInput, featureID, tolerance,
+                                  "A collapsing strip's two edges must meet two different faces kept around it.")
+                }
+                for edgeID in faceEdges where edgeID != first && edgeID != second {
+                    vanishing.insert(edgeID)
+                    // An edge between two faces of the strip goes with them; any other shrinks.
+                    if (facesOfEdge[edgeID] ?? []).allSatisfy(strip.contains) { continue }
+                    let edge = try edge(edgeID)
+                    union(edge.startVertexID, edge.endVertexID)
                 }
                 merged[second] = first
                 vanishing.insert(second)

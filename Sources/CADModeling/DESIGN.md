@@ -1104,6 +1104,7 @@ each removed face collapses onto them, as `FaceRemovalPlanner` chooses:
 | `dropsHoles` | the faces a hole runs through | each whole inner loop they leave in a kept face goes | none |
 | `toEdge(first:second:)` | a strip (fillet or chamfer) | its edges with the two faces it joins merge into one; its other edges shrink to points | the merged edge on the two faces' intersection, the merged vertices where their faces cross |
 | `toPoint` | a face the faces around meet at one point (a fillet corner, a pyramid's top) | all its vertices merge and its edges go | the merged vertex |
+| `inStrip(first:second:)` | each face of a row of faces between two kept faces (a notch's wall and ledge) | as `toEdge` for the whole row, the edges its faces share going without merging their ends | as `toEdge` |
 
 Edges between kept faces that reach a merged vertex run on their own curves to it.
 `BRepSurfaceMeetingSolver` (also under `FaceSurfaceReplacementRebuilder`) solves the
@@ -1122,11 +1123,12 @@ tried every way it could collapse and the healed solid that validates and change
 volume least is kept. Faces touching one another go together: as a hole when they run
 through one; otherwise every combination of their collapses (at most 256) is healed at
 once and the one that validates and changes the volume least kept (chamfers meeting at a
-mitre each collapse onto their edge together); otherwise one at a time, each the first left
-that heals alone. `FaceRemovalHealingTests` prove a filled hole, a sharpened rounded box and the same box opened into a sheet tube, a G2 round taken off a box, the
+mitre each collapse onto their edge together); otherwise as one strip across every pair of
+their outer edges that do not touch (a notch's wall and ledge between the top and the front);
+otherwise one at a time, each the first left that heals alone. `FaceRemovalHealingTests` prove a filled hole, a sharpened rounded box and the same box opened into a sheet tube, a G2 round taken off a box, the
 video's L slab whose small rounds wrap a kept 8 mm round (all rounds to 3 mm removed exactly),
 one sharpened corner, a restored chamfered edge, two chamfers meeting at a corner deleted
-together, radius and convexity filters and the refusal of a top no neighbours close over.
+together, a notch's wall and ledge deleted together, radius and convexity filters and the refusal of a top no neighbours close over.
 
 `RedundantTopologyRemover` owns Delete Redundant Topology on solids and sheets
 (`RemoveRedundantTopologyFeatureEvaluator`): faces on one plane, on one B-spline

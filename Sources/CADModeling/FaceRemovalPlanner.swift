@@ -152,6 +152,12 @@ package struct FaceRemovalPlanner: Sendable {
                     continue
                 }
             }
+            // Faces in a row between two faces (a notch's wall and ledge) collapse together as one
+            // strip onto the meeting of the faces across two of the row's edges.
+            if let strip = try healedAsStrip(cluster, bodyID: bodyID, featureID: featureID, model: model, tolerance: tolerance) {
+                model = strip
+                continue
+            }
             var remaining = cluster
             while remaining.isEmpty == false {
                 var healed: (index: Int, model: BRepModel)?
@@ -201,6 +207,46 @@ package struct FaceRemovalPlanner: Sendable {
             throw lastFailure ?? failure(.topologyFailure, featureID, tolerance, "The faces around a deleted face do not meet over it.")
         }
         return best.model
+    }
+
+    /// The body healed over touching faces as one strip: every pair of the faces' outer edges that
+    /// do not touch, across two different kept faces, tried as the strip's two edges, the one that
+    /// validates and changes the volume least kept; nil when none heals.
+    private func healedAsStrip(_ cluster: [FaceID], bodyID: BodyID, featureID: FeatureID, model: BRepModel,
+                               tolerance: ModelingTolerance) throws -> BRepModel? {
+        let topology = try Topology(bodyID: bodyID, model: model)
+        let members = Set(cluster)
+        var outer: [(edgeID: EdgeID, side: FaceID)] = []
+        for faceID in cluster {
+            for edgeID in try topology.edges(of: faceID) {
+                guard let side = topology.otherFace(of: edgeID, than: faceID), members.contains(side) == false else { continue }
+                outer.append((edgeID, side))
+            }
+        }
+        let before = try model.volume(of: bodyID, tolerance: tolerance)
+        var best: (model: BRepModel, change: Double)?
+        var tried = 0
+        for (i, first) in outer.enumerated() {
+            for second in outer[(i + 1)...] where first.side != second.side {
+                guard tried < Self.maximumCombinations, let a = model.edges[first.edgeID], let b = model.edges[second.edgeID],
+                      Set([a.startVertexID, a.endVertexID]).isDisjoint(with: [b.startVertexID, b.endVertexID]) else { continue }
+                tried += 1
+                let collapse = FaceRemovalHealer.Collapse.inStrip(first: first.edgeID, second: second.edgeID)
+                var trial = model
+                do {
+                    try FaceRemovalHealer().heal(Dictionary(uniqueKeysWithValues: cluster.map { ($0, collapse) }),
+                                                 bodyID: bodyID, featureID: featureID, model: &trial, tolerance: tolerance)
+                    try ExactFacePcurveBuilder().populateMissingPcurves(in: &trial, tolerance: tolerance)
+                    try trial.validate(level: .volumetric, tolerance: tolerance)
+                    let change = abs(try trial.volume(of: bodyID, tolerance: tolerance) - before)
+                    if best.map({ change < $0.change }) ?? true { best = (trial, change) }
+                } catch {
+                    // A pair that fails to heal is not the strip's; the faces are healed one at a
+                    // time when no pair does.
+                }
+            }
+        }
+        return best?.model
     }
 
     /// Every way a face could collapse: dropping the holes it leaves, onto the meeting of the
