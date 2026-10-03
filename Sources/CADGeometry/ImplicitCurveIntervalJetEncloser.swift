@@ -225,16 +225,16 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
           curve.cells.indices.contains(cellIndex), interval.lower >= 0, interval.upper <= 1 else {
       throw invalidInput(tolerance:tolerance,message:"Implicit localization requires its exact prepared owner and original closed interval.")
     }
-    // FIXME(INCOMPLETE_IMPLEMENTATION): General joins, closed charts, rational,
+    // FIXME(INCOMPLETE_IMPLEMENTATION): General joins, closed charts, periodic,
     // piecewise and procedural supports lack this caller-budget localization
     // contract on implicit/face-area queries. Complete only after their original
     // root and derivative-domain authority is certified without hidden budgets.
     guard !curve.isClosed,curve.cells.count == 1,
           case .bSpline(let first) = curve.firstSurface,
           case .bSpline(let second) = curve.secondSurface,
-          Self.isSinglePolynomialSpan(first),Self.isSinglePolynomialSpan(second) else {
+          Self.isSinglePositiveWeightSpan(first),Self.isSinglePositiveWeightSpan(second) else {
       throw KernelError(phase:.geometry,code:.unsupportedCapability,tolerance:tolerance,
-        message:"Implicit closed localization requires one open polynomial B-spline graph cell.")
+        message:"Implicit closed localization requires one open positive-weight single-span B-spline graph cell.")
     }
     let cell = curve.cells[cellIndex]
     var bounds = cell.parameterBox.intervals
@@ -433,11 +433,10 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
     SurfaceIntersectionParameterBox(firstU:bounds[0],firstV:bounds[1],secondU:bounds[2],secondV:bounds[3])
   }
 
-  private static func isSinglePolynomialSpan(_ surface: BSplineSurface3D) -> Bool {
+  private static func isSinglePositiveWeightSpan(_ surface: BSplineSurface3D) -> Bool {
     let rows = surface.controlPoints.count,columns = surface.controlPoints.first?.count ?? 0
     guard !surface.isUPeriodic,!surface.isVPeriodic,rows == surface.vDegree+1,columns == surface.uDegree+1,
-          let weight = surface.weights.first?.first,weight.isFinite,weight > 0,
-          surface.weights.allSatisfy({ $0.allSatisfy { $0 == weight } }) else { return false }
+          surface.weights.allSatisfy({ $0.allSatisfy { $0.isFinite && $0 > 0 } }) else { return false }
     func clamped(_ knots: [Double],degree: Int) -> Bool {
       guard knots.count == 2*(degree+1),let lower = knots.first,let upper = knots.last,lower < upper else { return false }
       return knots.prefix(degree+1).allSatisfy { $0 == lower }

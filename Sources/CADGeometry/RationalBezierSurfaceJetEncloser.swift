@@ -71,7 +71,8 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
                 guard weight.isFinite, weight > 0.0 else {
                     throw invalidPatchError(tolerance: tolerance)
                 }
-                let intervalWeight = OutwardScalarInterval(weight)
+                // Stored model weights are exact inputs; products round outward below.
+                let intervalWeight = OutwardScalarInterval.exact(weight)
                 row.append(IntervalHomogeneousSurfaceControl(
                     x: (OutwardScalarInterval.exact(point.x) - .exact(origin.x)) * intervalWeight,
                     y: (OutwardScalarInterval.exact(point.y) - .exact(origin.y)) * intervalWeight,

@@ -497,8 +497,10 @@ introduces evaluation noise that prevents a surrounding blend's Newton solve
 from converging. The iteration/line-search limits and typed failure are retained.
 
 For the bounded nonlinear Q3 dependency, a prepared implicit parameter
-localizer admits one open original graph cell between two smooth polynomial
-single-span B-spline surfaces. The original full-graph certificate alone owns
+localizer admits one open original graph cell between two smooth clamped
+nonperiodic single-Bezier-span B-spline surfaces with finite positive weights.
+Equal or unequal weights retain their original rational quotient jet authority;
+admission never substitutes an equal-weight chart. The original full-graph certificate alone owns
 existence and uniqueness. Preparation retains that owner, source surfaces,
 cell index, original direction and normalized fraction mapping. A closed query
 interval may have zero width. Numeric point evaluations provide seeds only;
@@ -661,8 +663,13 @@ into a Cartesian partition is unnecessary; uncovered children still undergo
 the same exclusion, contraction, and coverage proofs.
 
 Prepared B-spline differential enclosers own immutable homogeneous derivative
-control nets through third order for each Bezier span. Preparation occurs once
-per surface operation; requested boxes only restrict those same nets. The direct
+control nets through third order for each Bezier span. Stored finite positive
+weights enter this arithmetic boundary as exact singleton inputs, just like
+stored Cartesian coordinates. Outward rounding begins at subtraction and
+homogeneous multiplication; preparation does not invent independent uncertainty
+in a model weight. A decomposed or trimmed patch remains the stored patch model
+it supplies; this input rule adds no guarantee about upstream conversion error.
+Preparation occurs once per surface operation; requested boxes only restrict those same nets. The direct
 path prepares transiently and follows identical interval arithmetic. No result
 cache, shared mutation, tolerance change, or cross-request lifetime is introduced.
 Public surface boxes continue to require positive U/V widths. The internal

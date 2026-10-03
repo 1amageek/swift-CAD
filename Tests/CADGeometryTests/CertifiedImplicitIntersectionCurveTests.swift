@@ -60,6 +60,135 @@ struct CertifiedImplicitIntersectionCurveTests {
   }
 
   @Test(.timeLimit(.minutes(1)))
+  func rationalSingleCellConstructorRetainsIndependentNonpolynomialRootAuthority() throws {
+    let curve = try rationalPlaneParabolaCurve()
+    guard case .bSpline(let rational) = curve.secondSurface else {
+      Issue.record("The original second support must retain its rational control net.")
+      return
+    }
+    #expect(rational.weights == [[4,2,1],[4,2,1]])
+    for fraction in [0.0,0.25,0.5,0.75,1] {
+      let t = 3.0/8+fraction/4
+      let s = 2*t/(1+t)
+      let pair = try curve.parameterPair(atNormalizedFraction:fraction,tolerance:tolerance)
+      #expect(abs(pair.first.u-t*t) <= tolerance.relative)
+      #expect(abs(pair.first.v-t) <= tolerance.relative)
+      #expect(abs(pair.second.u-s) <= tolerance.relative)
+      #expect(abs(pair.second.v-0.5) <= tolerance.relative)
+      let jet = try curve.secondSurface.taylorJet(u:s,v:0.5,throughOrder:3,tolerance:tolerance)
+      #expect(abs(jet.value.y-s/(2-s)/64) <= tolerance.relative)
+      // Nonzero third native Y derivative proves these unequal weights do
+      // not merely degree-elevate the earlier polynomial parameter chart.
+      let third = jet.derivative(uOrder:3,vOrder:0).y
+      #expect(abs(third-12/(64*pow(2-s,4))) <= tolerance.relative)
+      #expect(third > 0)
+    }
+  }
+
+  @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+  func rationalClosedAndRangeJetsRetainBothOriginalRolesThroughThirdOrder(_ backwards: Bool) throws {
+    let curve = try rationalPlaneParabolaCurve(direction:backwards ? .reversed : .forward)
+    let prepared = try ImplicitCurveIntervalJetEncloser(intersection:curve,tolerance:tolerance)
+    var remainingWork = SurfaceSurfaceIntersectionOptions().maximumSubdivisionCells
+    let points = try [0.0,0.25,0.5,0.75,1].map { try ScalarInterval(lower:$0,upper:$0) }
+    let ranges = [try ScalarInterval(lower:0.25,upper:0.75),
+                  try ScalarInterval(lower:0.5,upper:0.5+Double(sign:.plus,exponent:-20,significand:1))]
+    for interval in points+ranges {
+      let actual = try continuedParameterJet(prepared,of:curve,over:interval,remainingWork:&remainingWork)
+      for fraction in [interval.lower,interval.midpoint,interval.upper] {
+        let t = backwards ? 5.0/8-fraction/4 : 3.0/8+fraction/4
+        let h = backwards ? -0.25 : 0.25
+        let denominator = 1+t
+        let expected: [[Double]] = [[t*t,2*t*h,2*h*h,0],[t,h,0,0],
+          [2*t/denominator,2*h/pow(denominator,2),-4*h*h/pow(denominator,3),12*h*h*h/pow(denominator,4)],
+          [0.5,0,0,0]]
+        for (index,pair) in zip(actual.coordinates,expected).enumerated() {
+          let (coordinate,values) = pair
+          for (field,value) in zip([coordinate.value,coordinate.firstDerivative,
+            coordinate.secondDerivative,coordinate.thirdDerivative],values) {
+            #expect(field.contains(value))
+            if interval.width == 0 { #expect(field.width <= tolerance.relative) }
+          }
+          if interval.width == 0 {
+            #expect(coordinate.value.width <= Double.ulpOfOne*64)
+          }
+        }
+      }
+      let lower = backwards ? 5.0/8-interval.upper/4 : 3.0/8+interval.lower/4
+      let upper = backwards ? 5.0/8-interval.lower/4 : 3.0/8+interval.upper/4
+      #expect(actual[.firstU].value.width <= upper*upper-lower*lower+tolerance.relative)
+      #expect(actual[.secondU].value.width <= 2*upper/(1+upper)-2*lower/(1+lower)+tolerance.relative)
+    }
+  }
+
+  @Test(.timeLimit(.minutes(1)))
+  func rationalContinuationPreservesOneCallerWorkAndForeignOwnerContract() throws {
+    let curve = try rationalPlaneParabolaCurve()
+    let prepared = try ImplicitCurveIntervalJetEncloser(intersection:curve,tolerance:tolerance)
+    let interval = try ScalarInterval(lower:0.25,upper:0.75)
+    var remaining = SurfaceSurfaceIntersectionOptions().maximumSubdivisionCells
+    _ = try continuedParameterJet(prepared,of:curve,over:interval,remainingWork:&remaining)
+    let used = SurfaceSurfaceIntersectionOptions().maximumSubdivisionCells-remaining
+    #expect(used > 1)
+    var exactBudget = used
+    _ = try continuedParameterJet(prepared,of:curve,over:interval,remainingWork:&exactBudget)
+    #expect(exactBudget == 0)
+    do {
+      _ = try continuedParameterJet(prepared,of:curve,over:interval,remainingWork:&exactBudget)
+      Issue.record("Rational continuation cannot reset exhausted caller work.")
+    } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+    let state = try prepared.prepareParameterEnclosure(of:curve,cellIndex:0,
+      overClosedInterval:interval,tolerance:tolerance)
+    let other = try ImplicitCurveIntervalJetEncloser(intersection:dyadicPlaneParabolaCurve(),tolerance:tolerance)
+    do {
+      _ = try other.advanceParameterEnclosure(state,tolerance:tolerance)
+      Issue.record("A rational root state cannot transfer its source authority.")
+    } catch let error as KernelError { #expect(error.code == .invalidInput) }
+  }
+
+  @Test(.timeLimit(.minutes(1)))
+  func rationalContinuationCancellationRemainsExplicit() async throws {
+    let curve = try rationalPlaneParabolaCurve()
+    let prepared = try ImplicitCurveIntervalJetEncloser(intersection:curve,tolerance:tolerance)
+    let task = Task {
+      while !Task.isCancelled { await Task.yield() }
+      return try prepared.prepareParameterEnclosure(of:curve,cellIndex:0,
+        overClosedInterval:ScalarInterval(lower:0,upper:1),tolerance:tolerance)
+    }
+    task.cancel()
+    do { _ = try await task.value; Issue.record("Rational continuation cannot hide cancellation.") }
+    catch let error as KernelError { #expect(error.code == .cancelled) }
+  }
+
+  private func rationalPlaneParabolaCurve(direction: CertifiedImplicitIntersectionDirection = .forward)
+    throws -> CertifiedImplicitIntersectionCurve {
+    let first = BSplineSurface3D(uDegree:1,vDegree:1,
+      uKnots:[-0.5,-0.5,1.5,1.5],vKnots:[0,0,1,1],
+      controlPoints:[0.0,1.0/64].map { y in
+        [Point3D(x:-1.0/64,y:y,z:0),Point3D(x:3.0/64,y:y,z:0)] })
+    // W=(2-s)^2, X=s^2/32, Y=s(2-s)/64 in homogeneous coordinates.
+    // The original chart S2=(s^2/(2-s)^2/32,s/(2-s)/64,(2r-1)/64)
+    // has genuinely rational native derivatives and unequal positive weights.
+    let second = BSplineSurface3D(uDegree:2,vDegree:1,
+      uKnots:[0,0,0,1,1,1],vKnots:[0,0,1,1],
+      controlPoints:[-1.0/64,1.0/64].map { z in
+        [Point3D(x:0,y:0,z:z),Point3D(x:0,y:1.0/128,z:z),Point3D(x:1.0/32,y:1.0/64,z:z)] },
+      weights:[[4,2,1],[4,2,1]])
+    func anchor(_ t: Double) throws -> SurfaceIntersectionParameterPair {
+      try SurfaceIntersectionParameterPair(first:SurfaceParameter(u:t*t,v:t),
+        second:SurfaceParameter(u:2*t/(1+t),v:0.5))
+    }
+    let cell = try CertifiedImplicitIntersectionGraphCell(parameterBox:SurfaceIntersectionParameterBox(
+      firstU:ScalarInterval(lower:-1.0/8,upper:1.0/2),firstV:ScalarInterval(lower:3.0/8,upper:5.0/8),
+      secondU:ScalarInterval(lower:1.0/2,upper:13.0/16),secondV:ScalarInterval(lower:0,upper:1)),
+      freeParameter:.firstV,direction:direction,lowerAnchor:anchor(3.0/8),
+      midpointAnchor:anchor(1.0/2),upperAnchor:anchor(5.0/8),
+      firstSurface:first,secondSurface:second,tolerance:tolerance)
+    return try CertifiedImplicitIntersectionCurve(firstSurface:first,secondSurface:second,
+      cells:[cell],isClosed:false,tolerance:tolerance)
+  }
+
+  @Test(.timeLimit(.minutes(1)))
   func subnormalNativeSurfacePointRetainsOutwardValueAndDerivativeContainment() throws {
     let patch = RationalBezierSurfacePatch3D(
       controlPoints: [[Point3D(x: 0, y: 0, z: 0), Point3D(x: 1, y: 0, z: 0)],
