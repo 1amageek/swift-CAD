@@ -256,11 +256,32 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADKernel/UntrimFaceFeatureEvaluator.swift", sourceLine: 62
         ),
         KernelDomainLimitation(
+            id: "condition-05df9a38a144475d",
+            operations: ["boolean"],
+            dimensions: [.representation, .topology, .connection],
+            condition: "standalone point Boolean construction is absent. Public dimension preflight rejects this valid T1 root; admit it only after exact point results and operation-specific loss behavior are implemented and verified.",
+            sourcePath: "Sources/CADModeling/BooleanDimension/DefaultBooleanDimensionResolver.swift", sourceLine: 57
+        ),
+        KernelDomainLimitation(
+            id: "condition-3d9a340a7f42b4ac",
+            operations: ["boolean"],
+            dimensions: [.representation, .topology, .connection],
+            condition: "standalone edge/wire Boolean construction is absent. Public dimension preflight rejects these valid T1 roots; admit them only after exact curve results and operation-specific loss behavior are implemented and verified.",
+            sourcePath: "Sources/CADModeling/BooleanDimension/DefaultBooleanDimensionResolver.swift", sourceLine: 62
+        ),
+        KernelDomainLimitation(
+            id: "condition-31d09f13fc069ae5",
+            operations: ["boolean"],
+            dimensions: [.representation, .topology, .connection],
+            condition: "the body pipeline does not preserve complex interfaces. Public dimension preflight rejects valid solid complexes; admit them only after interface-preserving Boolean construction and lineage are implemented and verified.",
+            sourcePath: "Sources/CADModeling/BooleanDimension/DefaultBooleanDimensionResolver.swift", sourceLine: 67
+        ),
+        KernelDomainLimitation(
             id: "condition-db852ad417a7ac5f",
             operations: ["boolean"],
             dimensions: [.connection, .topology, .geometricFidelity],
             condition: "a Slice with a sheet operand or operand materials other than Default keeps only the targets' pieces; the tool's pieces are not made, because Plasticity's pieces for those materials are not determined (its page's Target Outside / Tool Empty note names three results where its figure shows four). Production path: BooleanFeatureEvaluator from Boolean Slice. Complete only when the tool's pieces for every material pair are specified and verified by volume per piece.",
-            sourcePath: "Sources/CADModeling/BooleanFeatureEvaluator.swift", sourceLine: 145
+            sourcePath: "Sources/CADModeling/BooleanFeatureEvaluator.swift", sourceLine: 163
         ),
         KernelDomainLimitation(
             id: "condition-f8f41e04d78b1e1f",

@@ -12,6 +12,7 @@ import sys
 # not infer geometric support from identifier spelling or comment wording.
 BINDINGS = {
     "BooleanFeatureEvaluator": (["boolean"], ["connection", "topology", "geometricFidelity"]),
+    "DefaultBooleanDimensionResolver": (["boolean"], ["representation", "topology", "connection"]),
     "FaceBSplineSurfaceConverter": (["faceRebuild"], ["supportSurface", "parameterization", "representation"]),
     "CurveSurfaceOverlapResolver": (["curveSurfaceIntersectionResult"], ["supportSurface", "representation", "geometricFidelity"]),
     "OverlapChartBoundaryResolver": (["curveSurfaceIntersectionResult"], ["parameterization", "representation"]),

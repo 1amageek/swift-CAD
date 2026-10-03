@@ -8,6 +8,7 @@ extension KernelCapabilities {
       topology: .solidBody,
       inputs: [
         "orthogonalPlanarSolid",
+        "validatedSolidOrHomogeneousSheetRootsWithExplicitDimensionalAdmission",
         "singleShellConvexPlanarLineEdgeSolids",
         "coincidentPlanarBoundary",
         "arbitraryAxisCylinderOrConeThroughBlindOrContainedDifferenceAndPositiveAxialOverlapIntersection",
@@ -41,6 +42,8 @@ extension KernelCapabilities {
       ],
       outputs: [
         "intersectionGraph",
+        "sourceOwnedOutputDimensionAndExplicitOperandLossPolicy",
+        "currentFeaturePublishedBodyKindVerification",
         "faceSurfaceIntersections",
         "uvSplitGraph",
         "representationAndParameterizationExactCurveRegistry",
@@ -107,6 +110,7 @@ extension KernelCapabilities {
       ],
       fixtures: [
         "BooleanIntersectionGraphTests",
+        "BooleanDimensionTests",
         "ExactCurveIdentityRegistryTests",
         "ClosedIntersectionSewingLoopBuilderTests",
         "GeneralCylinderBooleanClassificationTests",
@@ -200,6 +204,11 @@ extension KernelCapabilities {
       additionalPublicAPIs: [
         "CADModeling.BooleanFeatureEvaluator",
         "CADModeling.BooleanOperationApplying",
+        "CADModeling.BooleanDimensionResolving",
+        "CADModeling.DefaultBooleanDimensionResolver",
+        "CADModeling.BooleanDimensionContract",
+        "CADModeling.BooleanDimensionLossPolicy",
+        "CADModeling.BooleanTopologicalDimension",
       ]
     )
   ]
