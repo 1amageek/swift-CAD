@@ -263,11 +263,11 @@ the bridge spans between those edges — or the pair of boundary edges nearest e
 middles — as a Loft of the two edges' curves (the second run the way the first does) with curvature
 continuity to both sheets and the tension (G2), or ruled (Chamfer); beside a curved sheet within the
 feature's angle and curvature allowances, as a Loft's continuity is (decided 2026-10-02). Width and
-Sense do not apply there; Trim walls (joining the bridge with its sheets) is refused
-(`FIXME(INCOMPLETE_IMPLEMENTATION)`). `SheetBridgeTests` own the G2 bridge's normals and vanishing
+Sense do not apply there; Trim walls joins the bridge with the walls it names into one sheet (the
+bridge starts on each wall's own edge, so nothing is cut away). `SheetBridgeTests` own the G2 bridge's normals and vanishing
 curvature at both contacts, the flat chamfer, the round trip, both walls trimmed and joined into
 one three-face sheet, the short wall resolved and trimmed alone, a trimmed wall longer than the
-bridge joined along its share, a floor joined from two pieces trimmed and joined as one, parallel sheets bridged between their nearest edges (G2 level with both, Chamfer flat) and an arch bridged from its edge along it.
+bridge joined along its share, a floor joined from two pieces trimmed and joined as one, parallel sheets bridged between their nearest edges (G2 level with both, Chamfer flat) and joined with both into one three-face sheet, and an arch bridged from its edge along it.
 
 ### Curve patch
 

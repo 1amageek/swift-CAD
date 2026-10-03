@@ -113,6 +113,34 @@ struct SheetBridgeTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(2)), arguments: [SheetBridgeFeature.Shape.curvature, .chamfer])
+    func trimWallsJoinsABridgeBetweenBoundaryEdgesWithBothSheets(shape: SheetBridgeFeature.Shape) throws {
+        // The parallel floor and shelf, bridged and joined into one sheet of three faces.
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        func square(on plane: SketchPlane, _ corners: [(Double, Double)]) throws -> FeatureID {
+            let lines = try corners.indices.map { index in
+                try builder.sketch(on: plane) { sketch in
+                    let (start, end) = (corners[index], corners[(index + 1) % corners.count])
+                    _ = sketch.line(from: point(start.0, start.1), to: point(end.0, end.1))
+                }.featureID
+            }
+            return try builder.patch(curves: lines.map { CurveSectionReference(featureID: $0) })
+        }
+        let floor = try square(on: .xy, [(0, 0.01), (0.04, 0.01), (0.04, 0.04), (0, 0.04)])
+        let shelf = try square(on: .plane(Plane3D(origin: Point3D(x: 0, y: 0, z: 0.02), normal: .unitZ)),
+                               [(0, -0.04), (0.04, -0.04), (0.04, -0.01), (0, -0.01)])
+        let bridge = try builder.bridgeSurface(SheetBridgeFeature(first: floor, second: shelf, width: length(0.01),
+                                                                  shape: shape, trimWalls: .both))
+        let evaluated = try evaluate(builder)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        #expect(evaluated.brep.bodies.count == 1)
+        let faces = evaluated.subshapes.entries.compactMap { key, value -> FaceID? in
+            guard key.featureID == bridge, case let .face(id) = value else { return nil }
+            return id
+        }
+        #expect(faces.count == 3)
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func aCurvedSheetBridgesFromItsEdgeTangentToIt() throws {
         // A parabolic arch over x ∈ [0, 20] mm, y ∈ [0, 20] mm, and a floor at z = 0 over x ∈ [30, 50]

@@ -133,18 +133,12 @@ public struct SheetBridgeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
 
     /// The bridge between a boundary edge of each sheet — the named ones, or the pair nearest each
     /// other — lofted between them, continuous with both sheets there: curvature continuous (G2,
-    /// with the tension) or a straight chamfer (G0). The sheets stay as they are.
+    /// with the tension) or a straight chamfer (G0). The sheets stay as they are; Trim walls joins
+    /// the walls it names with the bridge into one sheet (there is nothing past their edges to cut).
     private func edgeBridge(_ bridge: SheetBridgeFeature, feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
         let tolerance = context.tolerance
         func failure(_ code: KernelErrorCode, _ message: String) -> KernelError {
             KernelError(phase: .evaluation, code: code, featureID: feature.id, tolerance: tolerance, message: message)
-        }
-        guard bridge.trimWalls == .none else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): a bridge between boundary edges joined with its
-            // sheets into one sheet is not built, so Trim walls is refused there. Production path:
-            // SheetBridgeFeatureEvaluator.edgeBridge. Complete only when the bridge and both sheets
-            // join, verified by two cylinder sheets bridged and joined.
-            throw failure(.unsupportedCapability, "A Bridge Surface between boundary edges leaves its sheets whole; Trim walls takes two planes meeting.")
         }
         let resolver = StableSubshapeResolver()
         func boundaryEdges(_ featureID: FeatureID) throws -> [EdgeID] {
@@ -224,6 +218,33 @@ public struct SheetBridgeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             LoftSectionReference(section: .curve(CurveSectionReference(featureID: curveB, isReversed: reversed)),
                                  continuity: try continuity(bridge.second, secondEdge)),
         ], options: LoftOptions(resultKind: .sheet))
-        return try LoftFeatureEvaluator(sewer: sewer).evaluate(feature: FeatureNode(id: feature.id, operation: .loft(loft)), context: augmented)
+        let walls: [FeatureID] = switch bridge.trimWalls {
+        case .none: []
+        case .both: [bridge.first, bridge.second]
+        case .first: [bridge.first]
+        case .second: [bridge.second]
+        }
+        guard walls.isEmpty == false else {
+            return try LoftFeatureEvaluator(sewer: sewer).evaluate(feature: FeatureNode(id: feature.id, operation: .loft(loft)), context: augmented)
+        }
+        // Trim walls between boundary edges: the bridge starts on each sheet's own edge, so nothing
+        // of a wall is cut away; the bridge is joined with the walls Trim names into one sheet.
+        guard let joiner else {
+            throw failure(.unsupportedCapability, "This evaluator cannot join a Bridge Surface with its walls.")
+        }
+        var stages = FeatureEvaluationStages(augmented)
+        let bridgeStage = featureEvaluationStageID(featureID: feature.id, domain: .sheetBridgeTrim, ordinal: 2)
+        let lofted = try LoftFeatureEvaluator(sewer: sewer).evaluate(feature: FeatureNode(id: bridgeStage, operation: .loft(loft)),
+                                                                     context: stages.context)
+        stages.apply(lofted)
+        var joined = try walls.map { try context.bodyID(generatedBy: $0) }
+        joined.append(try stages.publishedBody(of: lofted, featureID: feature.id, what: "Bridging boundary edges"))
+        let sewn = try joiner.joinSheets(bodyIDs: joined, closed: false, featureID: feature.id, context: stages.context)
+        let replaced = try joined.reduce(into: Set<SubshapeID>()) { result, bodyID in
+            result.formUnion(try BodyTopologyScope(bodyID: bodyID, model: stages.context.brep).subshapeIDs(in: stages.context.subshapes))
+        }
+        let model = try BRepBodyModelReplacer().replacing(bodyIDs: Set(joined), with: sewn.brep, in: stages.context.brep)
+        return try stages.publish(EvaluationResult(brep: model, subshapes: sewn.subshapes,
+                                                   removedSubshapeIDs: replaced, lineage: sewn.lineage), featureID: feature.id)
     }
 }
