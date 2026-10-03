@@ -425,7 +425,7 @@ half torus of tube radius half the cap's width about the circle midway (`FullRim
 torus patch per stretch between the rims' joints (rims split at the same angles), each meeting the
 next on the half circle across the tube, the cap gone and the walls' rims lowered by the tube radius.
 Other curved faces beside a full round, and rims split at different angles, are refused
-(`FIXME(INCOMPLETE_IMPLEMENTATION)`). Several edges (any shape, chamfers and G2 blends too) are blended in turn as stages, each found
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`). A full fillet of several pairs (its edges two by two, Plasticity's Full over two faces at once) rounds them together: each pair's center face becomes the cylinder about the circle tangent to it and its sides, its corners placed at the contacts set back down the sides (`FaceSurfaceReplacementRebuilder`'s known points, since a tangential crossing fixes no point), the stated radius the first pair's; `aFullFilletRoundsTwoFacesAtOnce` proves a rib's top and bottom. Several edges (any shape, chamfers and G2 blends too) are blended in turn as stages, each found
 by its ends after the ones before, faces not beside it kept with their own edges (an earlier blend's
 arcs included) and end faces cut back only at its corner; one lying within an earlier blend is
 refused. Straight edges that meet, meeting their faces at one angle, are blended together as one

@@ -131,10 +131,10 @@ public struct FilletFeature: Codable, Hashable, Sendable {
                                   message: "Limits bound one constant fillet's edge.")
             }
         }
-        guard shape == .round || (!allEdges && (shape == .full ? edges.count == 2 : edges.isEmpty == false)) else {
+        guard shape == .round || (!allEdges && (shape == .full ? edges.count >= 2 && edges.count % 2 == 0 : edges.isEmpty == false)) else {
             throw KernelError(phase: .validation, code: .invalidInput, tolerance: nil,
                               message: shape == .full
-                                ? "A full fillet rounds across the face between two edges."
+                                ? "A full fillet rounds across a face between each pair of edges, two by two."
                                 : "A conic, chordal or curvature fillet rounds one edge.")
         }
     }

@@ -124,13 +124,26 @@ package struct BRepSurfaceMeetingSolver: Sendable {
     /// The parameters of `curve` from `start` to `end` running the way `sense` points at the
     /// start; a closed edge runs once around. Nil when the points are off the curve, or the span
     /// collapses or runs against the sense.
-    package func trim(_ curve: Curve3D, from start: Point3D, to end: Point3D, isClosed: Bool, sense: Vector3D) throws -> CurveTrim? {
+    /// `near`, a point the edge ran by before, settles the way round a periodic curve when its
+    /// tangent at the start stands square to `sense` (a half circle leaving its end straight up).
+    package func trim(_ curve: Curve3D, from start: Point3D, to end: Point3D, isClosed: Bool, sense: Vector3D, near: Point3D? = nil) throws -> CurveTrim? {
         let startFoot = try closest(to: start, on: curve)
         let endFoot = try closest(to: end, on: curve)
         guard (startFoot.point - start).length <= tolerance.distance, (endFoot.point - end).length <= tolerance.distance else { return nil }
         let first = startFoot.parameter
         let last = endFoot.parameter
-        let forward = try tangent(of: curve, at: first).dot(sense) > 0
+        let startTangent = try tangent(of: curve, at: first)
+        var forward = startTangent.dot(sense) > 0
+        if let near, case let .periodic(period) = curve.parameterDomain, isClosed == false,
+           abs(startTangent.dot(sense)) <= 1e-3 * startTangent.length * sense.length {
+            // Each way round to the end, the one whose middle passes nearer the old edge.
+            var ahead = last
+            while ahead <= first { ahead += period }
+            while ahead - first > period { ahead -= period }
+            let aheadMiddle = try curve.point(at: (first + ahead) / 2, tolerance: tolerance)
+            let behindMiddle = try curve.point(at: (first + ahead - period) / 2, tolerance: tolerance)
+            forward = (aheadMiddle - near).length <= (behindMiddle - near).length
+        }
         var endParameter = last
         if case let .periodic(period) = curve.parameterDomain {
             // A periodic curve reaches the end once, the way the edge runs.

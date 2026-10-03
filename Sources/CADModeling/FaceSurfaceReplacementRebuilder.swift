@@ -34,12 +34,15 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
 
     package init() {}
 
+    /// `knownPoints` places vertices whose new position the caller knows exactly — where the
+    /// replaced surface touches its neighbours tangentially, a crossing their normals cannot fix.
     package func replace(
         _ replacements: [FaceID: Replacement],
         bodyID: BodyID,
         featureID: FeatureID,
         model: inout BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        knownPoints: [VertexID: Point3D] = [:]
     ) throws {
         try tolerance.validate()
         let solver = BRepSurfaceMeetingSolver(tolerance: tolerance)
@@ -148,6 +151,10 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
             guard let faces = facesOfVertex[vertexID], let old = oldPoints[vertexID] else {
                 throw TopologyError.missingReference("A replaced body's vertex is missing.")
             }
+            if let known = knownPoints[vertexID] {
+                newPoints[vertexID] = known
+                continue
+            }
             var distinct: [Surface3D] = []
             for faceID in faces.sorted() {
                 let candidate = try surface(of: faceID)
@@ -208,7 +215,8 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
             } else {
                 guard let solved = curves[edgeID] else { throw TopologyError.missingReference("A re-solved edge curve is missing.") }
                 curve = solved
-                guard let solvedTrim = try solver.trim(solved, from: start, to: end, isClosed: edge.startVertexID == edge.endVertexID, sense: oldDirection) else {
+                guard let solvedTrim = try solver.trim(solved, from: start, to: end, isClosed: edge.startVertexID == edge.endVertexID,
+                                                       sense: oldDirection, near: try oldMiddle(of: edgeID, model: model, tolerance: tolerance)) else {
                     throw failure(.topologyFailure, featureID, tolerance, "A face replacement collapsed or reversed an edge.")
                 }
                 trim = solvedTrim
@@ -248,9 +256,14 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
             guard var face = model.faces[faceID], let previous = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference("A replaced face is missing.")
             }
-            let points = try face.loops.flatMap { try model.orderedPoints(for: $0) }
+            // Placed by its edges' middles, which a curved edge keeps off the axis its corners can
+            // straddle (a half cylinder's four corners average onto its axis).
+            let points = try face.loops.flatMap { loopID -> [Point3D] in
+                guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("A replaced body's loop is missing.") }
+                return try loop.coedges.map { try oldMiddle(of: $0.edgeID, model: model, tolerance: tolerance) }
+            }
             guard points.isEmpty == false else {
-                throw failure(.unsupportedCapability, featureID, tolerance, "A replaced face has no vertices to place it by.")
+                throw failure(.unsupportedCapability, featureID, tolerance, "A replaced face has no edges to place it by.")
             }
             let center = points.reduce(Vector3D.zero) { $0 + ($1 - .origin) } / Double(points.count)
             let before = try outwardNormal(of: previous, orientation: face.orientation, near: .origin + center, tolerance: tolerance)

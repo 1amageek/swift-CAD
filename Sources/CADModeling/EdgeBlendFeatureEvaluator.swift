@@ -2344,23 +2344,86 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
     /// Fillet Shell's Full shape across a prismatic center face (`FullRoundLayout`): the center face
     /// goes, the side faces are cut back to the round's contacts, and the end faces close on its
     /// cross-section.
+    /// Full fillets: each pair of edges in order (the two edges on either side of a face) rounded
+    /// across its face. One pair rounds directly; several round in turn as stages, each pair's
+    /// edges found again by their ends on the previous stage's body, the stated radius the first
+    /// pair's and each further pair taking its own faces' radius.
     private func evaluateFullRound(feature: FeatureNode, fillet: FilletFeature, context: EvaluationContext) throws -> EvaluationResult {
         let tolerance = context.tolerance
         let featureID = feature.id
-        let bodyID = try targetBodyID(fillet.target.featureID, featureID: featureID, context: context)
+        let initialBodyID = try targetBodyID(fillet.target.featureID, featureID: featureID, context: context)
+        let selections = try fillet.edges.map { try scopedEdgeSelection($0, bodyID: initialBodyID, featureID: featureID, context: context) }
+        let stated = try resolvedRadius(fillet.radius, featureID: featureID, context: context)
+        guard selections.count > 2 else {
+            return try fullRound(featureID: featureID, bodyID: initialBodyID, first: selections[0], second: selections[1],
+                                 selected: (fillet.edges[0].subshapeID, fillet.edges[1].subshapeID), stated: stated, context: context)
+        }
+        // Several pairs: each center face becomes the round's cylinder about the circle tangent
+        // to it and its two sides, and the faces around re-solve to meet the cylinders — the
+        // sides down to their contact lines, the end faces round the arcs — all pairs at once, so
+        // an end face shared by two pairs takes both arcs.
+        var model = context.brep
+        var replacements: [FaceID: FaceSurfaceReplacementRebuilder.Replacement] = [:]
+        var contacts: [VertexID: Point3D] = [:]
+        for index in stride(from: 0, to: selections.count, by: 2) {
+            let layout = try FullRoundLayout(model: model, bodyID: initialBodyID, firstEdgeID: selections[index].edgeID,
+                                             secondEdgeID: selections[index + 1].edgeID, featureID: featureID, tolerance: tolerance)
+            if index == 0, abs(stated - layout.radius) > tolerance.distance {
+                throw failure(.invalidInput, featureID: featureID, tolerance: tolerance,
+                              "A full fillet's radius is fixed by its faces, \(layout.radius); it states \(stated).")
+            }
+            let leftOutward = try orientedPlane(layout.leftFaceID, model: model, featureID: featureID, tolerance: tolerance).outward
+            let contact = layout.firstEnds.0 + layout.intoLeft * layout.leftSetback
+            let center = contact + leftOutward * -layout.radius
+            guard replacements[layout.centerFaceID] == nil else {
+                throw failure(.invalidInput, featureID: featureID, tolerance: tolerance, "Two pairs of a full fillet round one face.")
+            }
+            // The round faces out, away from its axis, as the cylinder's own normal runs.
+            replacements[layout.centerFaceID] = .init(
+                surface: .cylinder(Cylinder3D(origin: center, axis: layout.axis, radius: layout.radius)), orientation: .forward)
+            // The round touches each side tangentially, so its corners are placed where it does:
+            // each edge's ends set back down its side.
+            for (edgeIndex, into, setback) in [(index, layout.intoLeft, layout.leftSetback), (index + 1, layout.intoRight, layout.rightSetback)] {
+                guard let edge = model.edges[selections[edgeIndex].edgeID] else {
+                    throw failure(.missingReference, featureID: featureID, tolerance: tolerance, "A full fillet's edge is missing.")
+                }
+                for vertexID in [edge.startVertexID, edge.endVertexID] {
+                    guard let point = model.vertices[vertexID]?.point else {
+                        throw failure(.missingReference, featureID: featureID, tolerance: tolerance, "A full fillet's vertex is missing.")
+                    }
+                    contacts[vertexID] = point + into * setback
+                }
+            }
+        }
+        try FaceSurfaceReplacementRebuilder().replace(replacements, bodyID: initialBodyID, featureID: featureID, model: &model,
+                                                      tolerance: tolerance, knownPoints: contacts)
+        try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: tolerance)
+        try model.validate(level: .volumetric, tolerance: tolerance)
+        let identity = try DefaultCarriedTopologyIdentityBuilder().identity(featureID: featureID, bodyID: initialBodyID, model: model, context: context)
+        let scope = try BodyTopologyScope(bodyID: initialBodyID, model: context.brep)
+        return EvaluationResult(brep: model, subshapes: identity.subshapes, removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes),
+                                lineage: identity.lineage)
+    }
+
+    /// The full round across the face between `first` and `second`; `stated`, when given, must be
+    /// the radius its faces fix.
+    private func fullRound(
+        featureID: FeatureID, bodyID: BodyID,
+        first: (edgeID: EdgeID, sourceEdgeIDs: Set<EdgeID>, replacedSubshapeIDs: Set<SubshapeID>),
+        second: (edgeID: EdgeID, sourceEdgeIDs: Set<EdgeID>, replacedSubshapeIDs: Set<SubshapeID>),
+        selected: (SubshapeID, SubshapeID), stated: Double?, context: EvaluationContext
+    ) throws -> EvaluationResult {
+        let tolerance = context.tolerance
         let model = context.brep
-        let first = try scopedEdgeSelection(fillet.edges[0], bodyID: bodyID, featureID: featureID, context: context)
-        let second = try scopedEdgeSelection(fillet.edges[1], bodyID: bodyID, featureID: featureID, context: context)
         // Across a tube's end, between its coaxial rims: the half torus.
         let rimRound = FullRimRoundBuilder(tolerance: tolerance)
         if let tube = try rimRound.radius(first.edgeID, second.edgeID, model: model) {
-            let stated = try resolvedRadius(fillet.radius, featureID: featureID, context: context)
-            guard abs(stated - tube) <= tolerance.distance else {
+            if let stated, abs(stated - tube) > tolerance.distance {
                 throw failure(.invalidInput, featureID: featureID, tolerance: tolerance,
                               "A full fillet's radius is fixed by its faces, \(tube); it states \(stated).")
             }
             let request = try rimRound.request(featureID: featureID, bodyID: bodyID, edges: (first.edgeID, second.edgeID),
-                                               parents: fillet.edges.map(\.subshapeID), context: context)
+                                               parents: [selected.0, selected.1], context: context)
             let sewn = try sewer.sew(request, tolerance: tolerance)
             let replaced = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: model)
             try replaced.validate(level: .volumetric, tolerance: tolerance)
@@ -2371,8 +2434,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         guard let shell = model.bodies[bodyID].flatMap({ model.shells[$0.shellIDs[0]] }) else {
             throw failure(.missingReference, featureID: featureID, tolerance: tolerance, "A full fillet's body has no shell.")
         }
-        let stated = try resolvedRadius(fillet.radius, featureID: featureID, context: context)
-        guard abs(stated - layout.radius) <= tolerance.distance else {
+        if let stated, abs(stated - layout.radius) > tolerance.distance {
             throw failure(.invalidInput, featureID: featureID, tolerance: tolerance,
                           "A full fillet's radius is fixed by its faces, \(layout.radius); it states \(stated).")
         }
@@ -2407,7 +2469,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     throw failure(.topologyFailure, featureID: featureID, tolerance: tolerance, "A full fillet removes a side face.")
                 }
                 patches.append(try linePatch(stableID: stableID, plane: oriented, vertices: clipped, faceParents: parents,
-                    edgeID: isLeft ? first.edgeID : second.edgeID, selectedSubshapeID: fillet.edges[isLeft ? 0 : 1].subshapeID,
+                    edgeID: isLeft ? first.edgeID : second.edgeID, selectedSubshapeID: isLeft ? selected.0 : selected.1,
                     sourceEdgeIDs: first.sourceEdgeIDs, model: model, context: context))
                 continue
             }
@@ -2423,7 +2485,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             }
             if capped == false {
                 patches.append(try linePatch(stableID: stableID, plane: oriented, vertices: polygon, faceParents: parents,
-                    edgeID: first.edgeID, selectedSubshapeID: fillet.edges[0].subshapeID,
+                    edgeID: first.edgeID, selectedSubshapeID: selected.0,
                     sourceEdgeIDs: first.sourceEdgeIDs, model: model, context: context))
             }
         }
@@ -2433,7 +2495,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         }
         patches.append(try g2SurfacePatch(
             surface: .bSpline(definition), definition: definition, lowerCurve: lowerCurve, upperCurve: upperCurve,
-            lowerCap: lowerCap, upperCap: upperCap, height: height, selectedSubshapeID: fillet.edges[0].subshapeID,
+            lowerCap: lowerCap, upperCap: upperCap, height: height, selectedSubshapeID: selected.0,
             faceParents: [layout.leftFaceID, layout.centerFaceID, layout.rightFaceID].flatMap { subshapeIDs(for: .face($0), context: context) },
             firstOutward: leftOutward, tolerance: tolerance
         ))

@@ -131,6 +131,38 @@ struct FilletShapeTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func aFullFilletRoundsTwoFacesAtOnce() throws {
+        // Plasticity's shape video: the four long edges of a 20 × 40 × 30 mm rib, the top's two
+        // and the bottom's two, round both faces full at once — each pair across its own face.
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let rib = try builder.box(width: length(0.02), depth: length(0.04), height: length(0.03))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "rib"))
+        func longEdges(atZ z: Double) throws -> [StableSubshapeReference] {
+            try before.subshapes.entries.compactMap { key, value -> StableSubshapeReference? in
+                guard key.featureID == rib, case let .edge(id) = value, let edge = before.brep.edges[id],
+                      let start = before.brep.vertices[edge.startVertexID]?.point,
+                      let end = before.brep.vertices[edge.endVertexID]?.point,
+                      abs(start.z - z) < 1e-12, abs(end.z - z) < 1e-12, abs(start.y - end.y) > 0.03 else { return nil }
+                return try builder.stableSubshape(key)
+            }
+        }
+        let top = try longEdges(atZ: 0.03), bottom = try longEdges(atZ: 0)
+        #expect(top.count == 2 && bottom.count == 2)
+        _ = try builder.fillet(target: rib, edges: top + bottom, radius: length(0.01), shape: .full)
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "rib"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        let r = 0.01
+        let expected = 0.02 * 0.04 * 0.03 - 2 * 0.04 * (2 * r * r - Double.pi * r * r / 2)
+        let volume = try evaluated.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+        // An odd count of edges has no pairs.
+        #expect(throws: KernelError.self) {
+            try FilletFeature(target: FilletTargetReference(featureID: rib), edges: Array((top + bottom).prefix(3)),
+                              radius: length(0.01), shape: .full).validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func aFullFilletRoundsADraftedRibsTopTangentToItsSlopingSides() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         // A rib 30 mm wide at its foot and 20 mm at its 30 mm top, 40 mm long along Y (on the plane
