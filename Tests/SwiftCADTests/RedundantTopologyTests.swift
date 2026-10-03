@@ -85,4 +85,27 @@ struct RedundantTopologyTests {
             _ = try evaluate(builder)
         }
     }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aFullRevolvesQuarterFacesAreOneFaceEachWithOneSeam() throws {
+        // A 10 × 20 mm rectangle 10 mm off the Z axis turned a full turn: a tube whose cylinders
+        // and annuli are each four quarters, merged into four faces, each cylinder keeping one seam.
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let profile = try builder.sketch(on: .zx) { sketch in
+            let corners = [(0.0, 0.01), (0.0, 0.02), (0.02, 0.02), (0.02, 0.01)]
+            for (a, b) in zip(corners, corners.dropFirst() + corners.prefix(1)) {
+                _ = sketch.line(from: SketchPoint(x: length(a.0), y: length(a.1)), to: SketchPoint(x: length(b.0), y: length(b.1)))
+            }
+        }
+        let tube = try builder.revolve(profile, axis: RevolveAxis(origin: .origin, direction: .unitZ))
+        let before = try evaluate(builder)
+        #expect(faceCount(try body(of: tube, in: before), in: before) == 16)
+        let whole = try builder.removeRedundantTopology(target: tube)
+        let evaluated = try evaluate(builder)
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        let solid = try body(of: whole, in: evaluated)
+        #expect(faceCount(solid, in: evaluated) == 4)
+        let expected = Double.pi * (0.02 * 0.02 - 0.01 * 0.01) * 0.02
+        #expect(abs(try evaluated.brep.volume(of: solid.id, tolerance: .standard) - expected) < 1e-12)
+    }
 }

@@ -1108,16 +1108,22 @@ one sharpened corner, a restored chamfered edge, two chamfers meeting at a corne
 together, radius and convexity filters and the refusal of a top no neighbours close over.
 
 `RedundantTopologyRemover` owns Delete Redundant Topology on solids and sheets
-(`RemoveRedundantTopologyFeatureEvaluator`): faces on one plane, or on one
-non-periodic B-spline surface, facing out the same way merge across the edges
+(`RemoveRedundantTopologyFeatureEvaluator`): faces on one plane, on one B-spline
+surface, or on one periodic surface without a pole, facing out the same way merge across the edges
 between them, their remaining coedges chained into loops (the one enclosing the
 largest area on the surface outer) with their parameter curves kept; then each
 vertex between just two edges on one line or circle, bounding the same faces, goes
-and the edges run on as one, their isoline or polyline parameter curves joined.
-Faces on periodic surfaces keep their splits, which bound a full turn, and two edges
-closing one curve stay two. The shape does not change; a body with nothing redundant
-is refused. `RedundantTopologyTests` prove a box's split top and its cut edges made
-whole, a split sheet made one face, and the refusal.
+and the edges run on as one, their isoline or polyline parameter curves joined (on a
+periodic curve keeping the kept edge's way round). Faces on one periodic surface without a
+pole (a full revolve's cylinder, cone or torus quarters) merge too: when they reach all the way
+round, one constant-u edge between them stays as the merged face's seam (preferring the chart's
+start), each constant-u parameter curve is moved by whole periods to meet its constant-v
+neighbour so the seam's two sides lie a period apart, and the loops chain by their parameter
+curves where a seam's ends offer two ways on. Two edges closing one curve stay two. The shape
+does not change; a body with nothing redundant is refused. `RedundantTopologyTests` prove a
+box's split top and its cut edges made whole, a split sheet made one face, a full revolve's
+sixteen quarter faces made four (each cylinder with one seam, the solid's volume kept), and the
+refusal.
 
 `LocalVertexDisplacementRebuilder` owns the direct edits that move vertices: a
 straight edge's two ends (`EdgeMoveFeatureEvaluator`), a planar face's boundary
