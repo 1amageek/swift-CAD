@@ -264,6 +264,7 @@ struct DocumentEvaluationEngine {
         evaluatedDocument.validatedBRep = validatedBRep
         try evaluatedDocument.validateLineage()
         try evaluatedDocument.validateCurveOutputs(tolerance: tolerance)
+        evaluatedDocument.validatedSourceReceipt = validatedDocument
         return evaluatedDocument
     }
 

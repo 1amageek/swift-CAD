@@ -2,7 +2,8 @@
 
 ## Purpose and Scope
 
-This component owns PARX.X2 exact STEP assembly interchange: part definitions,
+This component owns exact STEP assembly interchange and the structural transport
+needed by PARX.X3 product attributes: part definitions,
 placed occurrences, shared parts, nesting, and local coordinate systems through
 public STEPExchange and OfficialFormatExchange paths. Parent:
 [CADExchange](../DESIGN.md). No children. It composes the existing exact geometry
@@ -17,7 +18,8 @@ owns exact local geometry. Each local source body is retained by one existing
 ImportedBRepFeature; DocumentAssembly references these real FeatureIDs.
 Assembly Evaluation owns placed world output and correspondence.
 
-The writer serializes one local representation per retained definition and one
+The writer serializes one local geometry representation per retained definition,
+an optional whole-part style carrier representation, and one
 usage relationship per direct source occurrence. It never manufactures a new
 part definition for each expanded leaf path. Source DAG and validated local
 artifacts authorize export; a flattened world B-rep alone cannot claim to retain
@@ -28,7 +30,8 @@ assembly structure. Ordinary B-rep-only STEP export remains a single product.
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [CADExchange](../DESIGN.md) | parent | ByteSource/ByteSink, facade routes, limits, atomic URL output | Owns public format routing | All failures occur before output publication |
-| [Document Assembly](../../CADIR/DocumentAssembly/DESIGN.md) | depends on | source definitions, occurrences, local frames | Retains assembly semantics in CAD source | Required nullable assembly uses envelope 0.4.0 |
+| [Document Assembly](../../CADIR/DocumentAssembly/DESIGN.md) | depends on | source definitions, occurrences, local frames | Retains assembly semantics in CAD source | The current strict envelope is owned by CADCore; source assembly is required nullable |
+| [STEP Attributes](../STEPAttributes/DESIGN.md) | coordinates with | lexical fields, retained definition/topology entity maps, whole-part mapped-item carrier | Preserves source attribute target scope | Attribute policy remains owned by STEP Attributes |
 | [Assembly Evaluation](../../CADKernel/AssemblyEvaluation/DESIGN.md) | depends on | local artifacts and world correspondence | Confirms source-to-geometry consistency | World geometry cannot substitute for local definitions |
 | [CADTopology](../../CADTopology/DESIGN.md) | depends on | ownership-closed exact B-rep extraction/validation | Retains exact local parts | Unsupported geometry remains typed refusal |
 
@@ -74,6 +77,27 @@ flowchart LR
   transformation operators. Representation-map/mapped-item structure must be
   resolved with its standard origin/target semantics when admitted; unsupported
   or ambiguous variants are explicitly refused and never silently flattened.
+- STEPFieldReading exposes bounded lexical entity fields, references, strings,
+  numeric values, and tuple structure to STEP Attributes. STEPAssemblySyntax
+  implements this contract; consumers do not duplicate its lexical parser.
+- A whole-part styling carrier is structural transport for one real product
+  definition. Its product-associated outer representation contains exactly one
+  MAPPED_ITEM plus its frame. The representation map refers to an unassociated
+  inner representation containing the complete retained local geometry and its
+  origin. Equal declared units and explicitly resolved identity origin/target
+  transformation are required. The inner representation has no nested mapped
+  usage, competing geometry association, or cycle. These conditions are checked
+  before classifying ordinary mapped items as assembly occurrences.
+- An admitted carrier retains the existing definition and ImportedBRepFeature;
+  it creates no additional feature, definition, occurrence, or semantic name.
+  The carrier entity maps to the part attribute target, while inner geometry
+  entities retain their body/face maps. A styled MAPPED_ITEM therefore preserves
+  whole-part scope rather than expanding that scope into body assignments.
+  Overriding face styles retain their explicit predecessor relationship.
+- Carrier export is admitted for definitions with real local geometry. Empty
+  subassemblies and mixed local-geometry/child definitions keep their existing
+  admission contracts. Unsupported or ambiguous carrier structures fail before
+  publication; they are not flattened or assigned guessed identity placement.
 - Local geometry and placement translations are normalized using their declared
   representation length units. Multiple contexts declaring the same unit are
   not mistaken for conflicting units. Conflicting or unsupported unit contexts
@@ -135,6 +159,11 @@ usage, nonorigin frames, and rotation/translation. Assertions verify local and
 world coordinates, product sharing, direct placement values, typed correspondence,
 public facade in-memory/URL round trips, strict native persistence, source edits,
 ambiguity/dangling/cycle/resource/cancellation refusal, and atomic failures.
+[STEPAttributesExchangeTests](../../../Tests/CADExchangeTests/STEPAttributesExchangeTests.swift)
+owns independently authored whole-part carrier fixtures, multiple local bodies,
+face style overrides, source scope round trips, and invalid carrier refusal.
+Existing STEPAssemblyExchangeTests verify that genuine mapped occurrences remain
+assembly edges rather than styling carriers.
 Existing ExactSTEPExchangeTests retain ordinary single-product geometry/unit
 regression ownership. Changes require coordinated verification of DocumentAssembly,
 Assembly Evaluation, native strict schema, and public STEP facade routing.

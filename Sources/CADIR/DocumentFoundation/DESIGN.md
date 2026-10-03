@@ -31,7 +31,7 @@ reference structure only; it does not claim those references were resolved.
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [CADIR](../DESIGN.md) | parent | CADDocument validation, Codable, source fingerprint | Owns source values and local feature/parameter identities | A symbolic external reference is not geometric input |
-| [CADExchange](../../CADExchange/DESIGN.md) | used by | NativePackageStore strict source serialization | Persists complete attribute and reference records | Required 0.4.0 envelope; no 0.2.0 migration |
+| [CADExchange](../../CADExchange/DESIGN.md) | used by | NativePackageStore strict source serialization | Persists complete attribute and reference records | Required current envelope owned by CADCore; no 0.2.0 migration |
 | [Swift-CAD](../../../DESIGN.md) | used by | DocumentEditing and CADCommand | Edits validate a complete value copy | Command boundary maps detailed errors to KernelError |
 
 ## Architecture
@@ -51,9 +51,10 @@ flowchart LR
 
 ## Contracts and Invariants
 
-- The development wire envelope is explicitly `SchemaVersion.current == 0.4.0`.
+- The development wire envelope uses
+  [SchemaVersion.current](../../CADCore/SchemaVersion.swift), owned by CADCore.
   `documentFoundation` is a required field, including for an empty foundation.
-  Previous 0.3.0 and 0.2.0 documents and missing fields fail; no empty default is inferred
+  Previous-version documents and missing fields fail; no empty default is inferred
   during decoding. In-memory construction may explicitly use an empty value.
 - `DocumentObjectReference` contains a persistent DocumentID and a typed target:
   document, FeatureID, ParameterID, or DocumentAttributeID. Attribute owners are
@@ -117,7 +118,7 @@ domains, stable IDs, strict Codable discriminators, local-owner/ref integrity,
 and source fingerprint invariants. [DocumentFoundationCommandTests](../../../Tests/SwiftCADTests/DocumentFoundationCommandTests.swift) own the public command path,
 copy preservation on failure, source-object deletion refusal and explicit
 inter-document snapshot resolution. [DocumentFoundationPackageTests](../../../Tests/CADExchangeTests/DocumentFoundationPackageTests.swift) own native in-memory/URL
-save/load of attributes and external links, strict 0.4.0 admission, malformed
+save/load of attributes and external links, strict current-version admission, malformed
 foundation refusal, and existing-file preservation on failed saves.
 The schema baseline fixture in StrictCurrentTopologySchemaTests is updated
 together with SchemaVersion.current. Changes require rechecking CADIR full

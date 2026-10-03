@@ -14,13 +14,17 @@ struct ExactSTEPWriter {
     to sink: any ByteSink
   ) throws {
     var table = EntityTable(maximumEntities: resourceLimits.maximumEntities, tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes)
-    _ = try appendDefinition(brep: brep, units: units, identifier: "SWIFTCAD", name: "SWIFTCAD",
+    _ = try appendDefinition(brep: brep, units: units, identifier: "SWIFTCAD", name: "",
         additionalItems: [], table: &table)
     try publish(table: table, to: sink)
   }
 
   func appendDefinition(brep: BRepModel, units: UnitSystem, identifier: String, name: String,
-                        additionalItems: [Int], table: inout EntityTable) throws -> WrittenDefinition {
+                        additionalItems: [Int], wholePartCarrier: Bool = false, bodyNames: [BodyID: String] = [:], faceNames: [FaceID: String] = [:],
+                        table: inout EntityTable) throws -> WrittenDefinition {
+    guard brep.bodies.values.allSatisfy({ $0.material == nil }) else {
+      throw ProductAttributeError.unsupportedSemantics("Legacy PBR Body.material references need an explicit physical/presentation conversion before STEP export.")
+    }
     let applicationContext = try table.add(
       "APPLICATION_CONTEXT('managed model based 3d engineering')")
     let productContext = try table.add("PRODUCT_CONTEXT('',#\(applicationContext),'mechanical')")
@@ -465,14 +469,16 @@ struct ExactSTEPWriter {
       }
       let orientation = face.orientation == .forward ? ".T." : ".F."
       faceEntities[faceID] = try table.add(
-        "ADVANCED_FACE('',(\(bounds.map { "#\($0)" }.joined(separator: ","))),#\(surface),\(orientation))"
+        "ADVANCED_FACE(\(stepAssemblyString(faceNames[faceID] ?? "")),(\(bounds.map { "#\($0)" }.joined(separator: ","))),#\(surface),\(orientation))"
       )
     }
     var representationItems: [Int] = []
+    var bodyEntities: [BodyID: [Int]] = [:]
     for bodyID in brep.bodies.keys.sorted() {
       guard let body = brep.bodies[bodyID] else {
         throw exchangeError(.missingReference, "STEP body is missing.")
       }
+      let firstItem = representationItems.count
       var shellEntities: [Int] = []
       for shellID in body.shellIDs {
         guard let shell = brep.shells[shellID] else {
@@ -501,7 +507,7 @@ struct ExactSTEPWriter {
           if component.voidShellIDs.isEmpty {
             representationItems.append(
               try table.add(
-                "MANIFOLD_SOLID_BREP('',#\(outerEntity))"
+                "MANIFOLD_SOLID_BREP(\(stepAssemblyString(bodyNames[bodyID] ?? body.name ?? "")),#\(outerEntity))"
               ))
             continue
           }
@@ -515,24 +521,43 @@ struct ExactSTEPWriter {
           }
           representationItems.append(
             try table.add(
-              "BREP_WITH_VOIDS('',#\(outerEntity),(\(orientedVoids.map { "#\($0)" }.joined(separator: ","))))"
+              "BREP_WITH_VOIDS(\(stepAssemblyString(bodyNames[bodyID] ?? body.name ?? "")),#\(outerEntity),(\(orientedVoids.map { "#\($0)" }.joined(separator: ","))))"
             ))
         }
       } else {
         representationItems.append(
           try table.add(
-            "SHELL_BASED_SURFACE_MODEL('',(\(shellEntities.map { "#\($0)" }.joined(separator: ","))))"
+            "SHELL_BASED_SURFACE_MODEL(\(stepAssemblyString(bodyNames[bodyID] ?? body.name ?? "")),(\(shellEntities.map { "#\($0)" }.joined(separator: ","))))"
           ))
       }
+      bodyEntities[bodyID] = Array(representationItems[firstItem...])
     }
     let origin = try assemblyAxis(.translated(by: .zero), units: units.length, table: &table)
     representationItems.append(origin)
     representationItems.append(contentsOf: additionalItems)
-    let representation = try table.add(
+    let geometryRepresentation = try table.add(
       "SHAPE_REPRESENTATION('',(\(representationItems.map { "#\($0)" }.joined(separator: ","))),#\(context))"
     )
+    let representation: Int
+    let carrier: Int?
+    if wholePartCarrier {
+      // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP part appearance export only admits local exact geometry carriers.
+      // Assembly-wide appearance needs a standard structural carrier retaining nested usage scope and every predecessor without dummy geometry.
+      guard additionalItems.isEmpty, !bodyEntities.isEmpty else {
+        throw ProductAttributeError.unsupportedSemantics("Whole-part appearance requires exact local geometry without child usages.")
+      }
+      let map = try table.add("REPRESENTATION_MAP(#\(origin),#\(geometryRepresentation))")
+      let point = try cartesianPoint(.origin, units: units.length, table: &table)
+      let x = try directionEntity(.unitX, table: &table), y = try directionEntity(.unitY, table: &table), z = try directionEntity(.unitZ, table: &table)
+      let transform = try table.add("CARTESIAN_TRANSFORMATION_OPERATOR_3D('',*,*,#\(x),#\(y),#\(point),1.,#\(z))")
+      let item = try table.add("MAPPED_ITEM('',#\(map),#\(transform))")
+      representation = try table.add("SHAPE_REPRESENTATION('',(#\(item),#\(origin)),#\(context))")
+      carrier = item
+    } else { representation = geometryRepresentation; carrier = nil }
     _ = try table.add("SHAPE_DEFINITION_REPRESENTATION(#\(definitionShape),#\(representation))")
-    return WrittenDefinition(definition: definition, representation: representation, origin: origin)
+    return WrittenDefinition(definition: definition, definitionShape: definitionShape, representation: representation,
+        context: context, origin: origin, geometryRepresentation: geometryRepresentation, carrier: carrier,
+        bodies: bodyEntities, faces: faceEntities)
   }
 
   func publish(table: EntityTable, to sink: any ByteSink) throws {
@@ -561,8 +586,14 @@ struct ExactSTEPWriter {
 
   struct WrittenDefinition {
     let definition: Int
+    let definitionShape: Int
     let representation: Int
+    let context: Int
     let origin: Int
+    let geometryRepresentation: Int
+    let carrier: Int?
+    let bodies: [BodyID: [Int]]
+    let faces: [FaceID: Int]
   }
 
   func assemblyAxis(_ frame: RigidTransform3D, units: LengthUnit, table: inout EntityTable) throws -> Int {

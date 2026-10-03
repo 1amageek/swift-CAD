@@ -18,6 +18,12 @@ or publish Rupa project state. Tessellation consumes the generic
 `TessellationOptions` and `TessellationLimits` values from `CADIR`; it does not
 interpret viewport, camera, UI, Agent, or Product LOD policy.
 
+[Product Attribute Resolution](ProductAttributeResolution/DESIGN.md) owns the
+read-only composition of product source attachments with validated local/world
+topology. It consumes explicit property relations and source provenance under
+one caller budget; it introduces no target-specificity precedence or inferred
+physical density.
+
 `SweepEvaluationPlanService.orderedPathSegments` exposes the existing section-
 anchored path ordering for read-only consumers. The supplied evaluated document
 must match the supplied source document; this method performs no evaluation.
@@ -236,6 +242,7 @@ partway fail. `PlanarCurveExtrusionIntersectorTests` own it.
 | [CADIR](../CADIR/DESIGN.md) | depends on | complete stable signature value | Provides validated reference values. | Every topology entry is eligible for a reference. |
 | [CADModeling](../CADModeling/DESIGN.md) | depends on | exact generated B-rep | Supplies source topology and lineage. | Seam/pole topology remains present. |
 | [Assembly Evaluation](AssemblyEvaluation/DESIGN.md) | child | retained local base, placed world topology and occurrence correspondence | Composes local feature evaluation with assembly source placement. | Incremental rollback uses local geometry; final indexes and meshes use world geometry. |
+| [Product Attribute Resolution](ProductAttributeResolution/DESIGN.md) | child | immutable resolved properties, source chains and local/world target maps | Resolves CADIR-owned product attachments. | Retained exact source/cache/assembly correspondence must match; no world-ID persistence fallback. |
 | [RollingBallFillet](RollingBallFillet/DESIGN.md) | child | complete solid sewing request | Composes native source-face arrangements and blend boundaries. | A request is not a validated or publishable result. |
 | [RupaCore](../../../RupaKit/Sources/RupaCore/DESIGN.md) | used by | evaluated body and Mesh measurements; edge queries; sketch curve intersections | Consumes the same snapshot outputs and certified sketch intersections. | Volume authority stays in exact B-rep; Core computes no intersection itself. |
 
@@ -255,6 +262,14 @@ flowchart LR
 ```
 
 ## Contracts and Invariants
+
+Exact evaluation may intentionally defer caches and meshes. A successful native
+evaluator retains its validated immutable source association alongside its exact
+B-rep certificate; product attribute resolution consumes that producer-owned
+association when no cache exists. Caller-constructed/decoded snapshots do not
+acquire this authority merely by storing matching identifiers. Materialized
+cache validation retains its existing contract. Assembly local/world validation
+remains the assembly owner's separate contract.
 
 Face arrangement accepts an explicit source-contact tolerance. Machining
 supplies the modeling tolerance unchanged for crossing detection, source-edge

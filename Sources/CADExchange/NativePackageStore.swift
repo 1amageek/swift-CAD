@@ -271,6 +271,7 @@ private let supportedNativeDocumentKeys: Set<String> = [
     "selectionDimensions",
     "documentFoundation",
     "assembly",
+    "productAttributes",
     "metadata"
 ]
 
@@ -333,6 +334,7 @@ private func validateNativeDocumentObject(_ object: [String: Any]) throws {
     )
     try validateObjectField("assembly", in: object, path: "document.assembly", using: validateNativeAssemblyObject)
     try validateObjectField("documentFoundation", in: object, path: "document.documentFoundation", using: validateNativeDocumentFoundationObject)
+    try validateObjectField("productAttributes", in: object, path: "document.productAttributes", using: validateNativeProductAttributesObject)
     try validateObjectField("metadata", in: object, path: "document.metadata", using: validateDocumentMetadataObject)
 }
 
@@ -2929,4 +2931,9 @@ private func validateNativeAssemblyOccurrence(_ object: [String: Any], path: Str
             try validateObjectField(key, in: frame, path: "\(path).\(key)", using: validateVector3DObject)
         }
     }
+}
+
+private func validateNativeProductAttributesObject(_ object: [String: Any], path: String) throws {
+    // Typed decoding owns the nested strict discriminators and density/target payload admission.
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["materials", "assignments", "layers"], objectName: path)
 }

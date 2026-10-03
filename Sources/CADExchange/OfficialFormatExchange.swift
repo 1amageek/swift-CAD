@@ -53,6 +53,9 @@ public struct OfficialFormatExchange: Sendable {
         to sink: any ByteSink
     ) throws {
         try evaluatedDocument.validate()
+        if !evaluatedDocument.document.productAttributes.isEmpty, format != .swiftCAD, format != .step {
+            throw ProductAttributeError.unsupportedSemantics("This format cannot preserve document product attribute scopes and override provenance.")
+        }
         let units = overrideUnits ?? evaluatedDocument.document.units
         switch format {
         case .swiftCAD:

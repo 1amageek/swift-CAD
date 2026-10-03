@@ -40,8 +40,30 @@ public struct STEPExchange: Sendable {
         if evaluated.document.assembly != nil {
             try STEPAssemblyWriter(tolerance: tolerance, resourceLimits: resourceLimits)
                 .write(evaluated, units: outputUnits, to: sink)
-        } else {
+        } else if evaluated.document.productAttributes.isEmpty {
             try write(brep: evaluated.brep, units: outputUnits, to: sink)
+        } else {
+            try outputUnits.validate(); try resourceLimits.validate()
+            let resolved = try ProductAttributeResolver().resolve(evaluated, limits: ProductAttributeLimits(
+                maximumRecords: resourceLimits.maximumEntities, maximumTargets: resourceLimits.maximumEntities,
+                maximumDepth: resourceLimits.maximumNesting, maximumTextBytes: resourceLimits.maximumBytes,
+                maximumWork: resourceLimits.maximumIterations))
+            let attributes = STEPAttributesWriter()
+            let names = try attributes.geometryNames(for: evaluated, resolved: resolved)
+            let writer = ExactSTEPWriter(resourceLimits: resourceLimits, tolerance: tolerance)
+            var table = ExactSTEPWriter.EntityTable(maximumEntities: resourceLimits.maximumEntities,
+                tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes)
+            let product = try writer.appendDefinition(brep: evaluated.brep, units: outputUnits,
+                identifier: evaluated.document.id.description, name: evaluated.document.metadata.name ?? "",
+                additionalItems: [], bodyNames: names.bodies, faceNames: names.faces, table: &table)
+            var transfer = STEPAttributeWriteTransfer()
+            transfer.products[AssemblyDefinitionID()] = STEPAttributeProductRepresentation(definition: product.definition,
+                definitionShape: product.definitionShape, representation: product.representation, context: product.context,
+                geometryRepresentation: product.geometryRepresentation, carrier: product.carrier, bodies: product.bodies, faces: product.faces)
+            let records = try attributes.records(for: evaluated, resolved: resolved, transfer: transfer,
+                startingAt: table.entities.count + 1, limits: resourceLimits)
+            for record in records { _ = try table.add(record) }
+            try writer.publish(table: table, to: sink)
         }
     }
 
@@ -116,12 +138,14 @@ public struct STEPExchange: Sendable {
             .read(entities: entities, budget: budget) { return assembly }
         let lengthUnit = try stepLengthUnit(in: entities)
         try budget.check(format: .step)
-        let brep = try ExactSTEPReader(
+        let exact = try ExactSTEPReader(
             entities: entities,
             lengthUnit: lengthUnit,
             processingBudget: budget,
             tolerance: tolerance
-        ).read()
+        ).readWithTransfer()
+        let brep = exact.model
+        var transfer = STEPAttributeReadTransfer()
         try budget.check(format: .step)
         guard !brep.bodies.isEmpty else {
             throw ImportError.invalidData("STEP model contains no bodies.")
@@ -156,8 +180,16 @@ public struct STEPExchange: Sendable {
                 outputs: [FeatureOutput(role: body.kind == .solid ? .body : .sheet)]
             )
             order.append(featureID)
+            for (entity, sourceID) in exact.bodies where sourceID == bodyID {
+                transfer.geometry[entity] = SubshapeID(featureID: featureID, role: GeneratedSubshapeRole.body.rawValue, ordinal: 0)
+            }
+            for (index, faceID) in bodyModel.faces.keys.sorted().enumerated() {
+                for (entity, sourceID) in exact.faces where sourceID == faceID {
+                    transfer.geometry[entity] = SubshapeID(featureID: featureID, role: GeneratedSubshapeRole.face.rawValue, ordinal: index)
+                }
+            }
         }
-        let document = CADDocument(
+        var document = CADDocument(
             units: UnitSystem(length: lengthUnit, angle: .radian),
             designGraph: DesignGraph(
                 nodes: nodes,
@@ -165,6 +197,17 @@ public struct STEPExchange: Sendable {
             )
         )
         try document.validate(tolerance: tolerance)
+        let base = try DocumentEvaluator(tolerance: tolerance).evaluateExact(document)
+        document.productAttributes = try STEPAttributesReader().read(entities: entities, transfer: transfer,
+            evaluated: base, limits: resourceLimits)
+        try document.validate(tolerance: tolerance)
+        let evaluated = document.productAttributes.isEmpty ? base : try DocumentEvaluator(tolerance: tolerance).evaluateExact(document)
+        if !document.productAttributes.isEmpty {
+            _ = try ProductAttributeResolver().resolve(evaluated, limits: ProductAttributeLimits(
+                maximumRecords: resourceLimits.maximumEntities, maximumTargets: resourceLimits.maximumEntities,
+                maximumDepth: resourceLimits.maximumNesting, maximumTextBytes: resourceLimits.maximumBytes,
+                maximumWork: resourceLimits.maximumIterations))
+        }
         return ImportedExchangeModel(
             format: .step,
             document: document,
@@ -302,7 +345,16 @@ private func isSupportedSTEPEntity(_ entity: String) -> Bool {
         "TESSELLATED_SHAPE_REPRESENTATION(",
         "SHAPE_DEFINITION_REPRESENTATION(",
         "LENGTH_MEASURE_WITH_UNIT(",
-        "DIMENSIONAL_EXPONENTS("
+        "DIMENSIONAL_EXPONENTS(",
+        "STYLED_ITEM(", "OVER_RIDING_STYLED_ITEM(", "CONTEXT_DEPENDENT_OVER_RIDING_STYLED_ITEM(",
+        "COLOUR_RGB(", "DRAUGHTING_PRE_DEFINED_COLOUR(", "FILL_AREA_STYLE_COLOUR(", "FILL_AREA_STYLE(",
+        "SURFACE_STYLE_FILL_AREA(", "SURFACE_SIDE_STYLE(", "SURFACE_STYLE_USAGE(",
+        "SURFACE_STYLE_RENDERING(", "SURFACE_STYLE_RENDERING_WITH_PROPERTIES(", "SURFACE_STYLE_TRANSPARENT(",
+        "PRESENTATION_STYLE_ASSIGNMENT(", "DRAUGHTING_MODEL(", "MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION(",
+        "PRESENTATION_LAYER_ASSIGNMENT(", "PROPERTY_DEFINITION(", "PROPERTY_DEFINITION_REPRESENTATION(",
+        "REPRESENTATION(", "DESCRIPTIVE_REPRESENTATION_ITEM(", "SHAPE_ASPECT(", "GEOMETRIC_ITEM_SPECIFIC_USAGE(",
+        "DERIVED_UNIT(", "DERIVED_UNIT_ELEMENT(", "MEASURE_WITH_UNIT(", "MEASURE_REPRESENTATION_ITEM(",
+        "MASS_MEASURE_WITH_UNIT(", "VOLUME_MEASURE_WITH_UNIT(", "MASS_DENSITY_MEASURE_WITH_UNIT("
     ]
     if supportedPrefixes.contains(where: { syntax.hasPrefix($0) }) {
         return true
@@ -314,6 +366,12 @@ private func isSupportedSTEPEntity(_ entity: String) -> Bool {
 }
 
 private func isSupportedSTEPComplexEntity(_ syntax: String) -> Bool {
+    if syntax.contains("MEASURE_REPRESENTATION_ITEM()"), syntax.contains("MEASURE_WITH_UNIT("),
+       syntax.contains("REPRESENTATION_ITEM(") { return true }
+    if syntax.contains("NAMED_UNIT("),
+       (syntax.contains("MASS_UNIT()") || syntax.contains("VOLUME_UNIT()") || syntax.contains("MASS_DENSITY_UNIT()")) {
+        return syntax.contains("SI_UNIT(") || syntax.contains("CONVERSION_BASED_UNIT(")
+    }
     if syntax.contains("REPRESENTATION_RELATIONSHIP("),
        syntax.contains("REPRESENTATION_RELATIONSHIP_WITH_TRANSFORMATION("),
        syntax.contains("SHAPE_REPRESENTATION_RELATIONSHIP()") { return true }
@@ -349,11 +407,7 @@ private func isSupportedSTEPComplexEntity(_ syntax: String) -> Bool {
     }
     if syntax.contains("LENGTH_UNIT()"),
        syntax.contains("NAMED_UNIT(") {
-        return syntax.contains("SI_UNIT($,.METRE.)")
-            || syntax.contains("SI_UNIT(.MICRO.,.METRE.)")
-            || syntax.contains("SI_UNIT(.MILLI.,.METRE.)")
-            || syntax.contains("SI_UNIT(.CENTI.,.METRE.)")
-            || syntax.contains("SI_UNIT(.KILO.,.METRE.)")
+        return (syntax.contains("SI_UNIT(") && syntax.contains(",.METRE.)"))
             || syntax.contains("CONVERSION_BASED_UNIT(")
     }
     return false

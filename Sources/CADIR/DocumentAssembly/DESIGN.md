@@ -33,7 +33,7 @@ created to impersonate an occurrence. Local modeling remains in feature coordina
 | [CADGeometry](../../CADGeometry/DESIGN.md) | depends on | RigidTransform3D | Provides exact coordinate transforms | Assembly admits proper rotations, without scaling or reflection |
 | [Assembly Evaluation](../../CADKernel/AssemblyEvaluation/DESIGN.md) | used by | occurrence expansion and local output resolution | Generates world results from this source | Evaluation artifacts are derived, never persisted source |
 | [STEP Assembly](../../CADExchange/STEPAssembly/DESIGN.md) | used by | product definitions and occurrence placements | Maps standard STEP structure to this source | Ambiguous alternative geometry is explicitly refused |
-| [CADExchange](../../CADExchange/DESIGN.md) | used by | NativePackageStore strict envelope | Persists source references and frames | Envelope 0.4.0 requires nullable assembly; older envelopes fail |
+| [CADExchange](../../CADExchange/DESIGN.md) | used by | NativePackageStore strict envelope | Persists source references and frames | The current CADCore envelope requires nullable assembly; older envelopes fail |
 
 ## Architecture
 
@@ -51,7 +51,9 @@ flowchart LR
 
 ## Contracts and Invariants
 
-- The development source envelope is 0.4.0. `assembly` is required in encoded
+- The development source envelope uses
+  [SchemaVersion.current](../../CADCore/SchemaVersion.swift), owned by CADCore.
+  `assembly` is required in encoded
   documents and may explicitly be null. Unknown keys, missing fields, malformed
   identifiers, and older versions fail; no implicit migration is performed.
 - Assembly definitions, direct occurrence records, and roots have unique valid

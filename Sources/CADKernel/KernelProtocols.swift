@@ -137,6 +137,8 @@ public struct EvaluatedDocument: Codable, Sendable {
     public let evaluationMetrics: DocumentEvaluationMetrics
     var incrementalEvaluationState: IncrementalEvaluationState?
     var validatedBRep: ValidatedBRepModel?
+    /// Producer-retained source authority for exact snapshots that intentionally omit caches.
+    var validatedSourceReceipt: ValidatedCADDocument?
 
     public init(
         document: CADDocument,
@@ -164,6 +166,7 @@ public struct EvaluatedDocument: Codable, Sendable {
         self.evaluationMetrics = evaluationMetrics
         incrementalEvaluationState = nil
         validatedBRep = nil
+        validatedSourceReceipt = nil
     }
 
     private enum CodingKeys: String, CodingKey {

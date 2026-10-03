@@ -11,6 +11,104 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADExchange/ExactExchangeSurfaceRepresentationResolver.swift", sourceLine: 14
         ),
         KernelDomainLimitation(
+            id: "condition-d4cae889836eafa8",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP part appearance export only admits local exact geometry carriers. Assembly-wide appearance needs a standard structural carrier retaining nested usage scope and every predecessor without dummy geometry.",
+            sourcePath: "Sources/CADExchange/ExactSTEPWriter.swift", sourceLine: 544
+        ),
+        KernelDomainLimitation(
+            id: "condition-d5451c256ac2e7fb",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP import has no persistent assembly owner for PRODUCT or PRODUCT_DEFINITION descriptions. Completion requires typed source-owned description fields, strict persistence, and independent round-trip evidence before nonempty descriptions can succeed.",
+            sourcePath: "Sources/CADExchange/STEPAssembly/STEPAssemblyReader.swift", sourceLine: 160
+        ),
+        KernelDomainLimitation(
+            id: "condition-599c1463543625d0",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEPExchange and OfficialFormatExchange name, material, and layer imports do not yet decode STEP encoded strings. Completion requires standards-correct extended and shifted-character decoding with lossless value and round-trip evidence before these strings can be admitted.",
+            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesReader.swift", sourceLine: 48
+        ),
+        KernelDomainLimitation(
+            id: "condition-45f4c68b2f10f19c",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP import has no direct styled mapped-usage correspondence yet. A real assembly MAPPED_ITEM must retain complete instance scope before it can be admitted; PD/representation pseudo-targets are invalid.",
+            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesReader.swift", sourceLine: 190
+        ),
+        KernelDomainLimitation(
+            id: "condition-4d60e0794c1d3c13",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Context-specific geometry names are not yet emitted by the public STEP writer. STEPExchange and OfficialFormatExchange must refuse until a standard contextual name target preserves the complete path.",
+            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 16
+        ),
+        KernelDomainLimitation(
+            id: "condition-1c4c8450abd86653",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP attribute export has no direct-usage style-to-complete-path expansion. Completion requires standard contextual records retaining every actual shared usage scope without flattening.",
+            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 93
+        ),
+        KernelDomainLimitation(
+            id: "condition-8cb2d445987b7eb1",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "STEPExchange cannot yet retain one attributed multi-component Body across several solid items. A standard unique Body grouping with exact attribute scope and independent round-trip evidence is required.",
+            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 104
+        ),
+        KernelDomainLimitation(
+            id: "condition-eb8994cfa35fb79c",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP export only admits coincident color/opacity style histories. Complete independent property histories require standard records preserving both override graphs before this branch can succeed.",
+            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 130
+        ),
+        KernelDomainLimitation(
+            id: "condition-9220932d38f40fad",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP export cannot yet express differing color/opacity predecessors. Completion requires a standard equivalent property-specific provenance graph, without synthesizing color precedence.",
+            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 140
+        ),
+        KernelDomainLimitation(
+            id: "condition-af3d0e50e9fc6574",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP physical-property export has no complete nested instance-path representation. Completion requires an admitted standard contextual association and an independent shared/nested-path round trip.",
+            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 194
+        ),
+        KernelDomainLimitation(
+            id: "condition-6888de01048207f3",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP physical-property export has no explicit standard override-order representation. Completion requires a standard ordering relationship preserving independent material and density provenance.",
+            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 213
+        ),
+        KernelDomainLimitation(
+            id: "condition-2d1dce37358298e0",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP export cannot emit an independent opacity-only history. Completion requires a standard style representation that preserves opacity without introducing an authored color.",
+            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 256
+        ),
+        KernelDomainLimitation(
+            id: "condition-5237b4ae2c435b02",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP export cannot retain an unattached physical descriptor. Completion requires a standard retained descriptor owner without inventing a part/property attachment.",
+            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 266
+        ),
+        KernelDomainLimitation(
+            id: "condition-ecbc78d6d88229ee",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP export cannot retain a latent descriptor density independently of effective target density. Completion requires a standard descriptor-owned density association with no synthesized target override.",
+            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 271
+        ),
+        KernelDomainLimitation(
             id: "condition-fa96a1b431d16e36",
             operations: ["GLBMeshExchange", "GLTFMeshExchange", "PLYMeshExchange", "VRMLMeshExchange"],
             dimensions: [.representation, .geometricFidelity],

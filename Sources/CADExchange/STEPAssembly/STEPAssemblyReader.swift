@@ -102,11 +102,28 @@ private extension STEPAssemblyReader {
             var names: [Int: String] = [:]
             for id in syntax.entities.keys.sorted() { try check(); names[id] = try syntax.name(id) }
             let usages = names.filter { $0.value == "NEXT_ASSEMBLY_USAGE_OCCURRENCE" }.keys.sorted()
-            let mapped = names.filter { $0.value == "MAPPED_ITEM" }.keys.sorted()
-            guard !usages.isEmpty || !mapped.isEmpty else { return nil }
-            guard usages.isEmpty || mapped.isEmpty else {
-                throw AssemblyError.invalidSource("STEP combines competing usage and mapped-item assembly representations.")
+            let allMapped = names.filter { $0.value == "MAPPED_ITEM" }.keys.sorted()
+            guard names.values.contains("PRODUCT_DEFINITION") else { return nil }
+            var retainsProductSource = !usages.isEmpty || !allMapped.isEmpty
+            if !retainsProductSource {
+                for id in names.keys.sorted() where names[id] == "PRODUCT_DEFINITION" {
+                    try check()
+                    let pd = try args(id, count: 4), formation = try syntax.reference(pd[2])
+                    let fa = try syntax.arguments(formation)
+                    guard fa.count >= 3 else { throw ImportError.invalidData("Malformed STEP product formation.") }
+                    let pa = try args(syntax.reference(fa[2]), count: 4)
+                    let name = try syntax.string(pa[1])
+                    let description = pa[2] == "$" ? "" : try syntax.string(pa[2])
+                    let definitionDescription = pd[1] == "$" ? "" : try syntax.string(pd[1])
+                    if !name.isEmpty || !description.isEmpty || !definitionDescription.isEmpty { retainsProductSource = true }
+                }
+                // Physical properties consume real product/shape-aspect association maps even
+                // when their actual persistent target is a body or face inside that product.
+                if names.values.contains("PROPERTY_DEFINITION") { retainsProductSource = true }
             }
+            guard retainsProductSource else { return nil }
+            var carriers = Set<Int>()
+            var transfer = STEPAttributeReadTransfer()
             var definitionShapes: [Int: Int] = [:]
             for id in names.keys.sorted() where names[id] == "PRODUCT_DEFINITION_SHAPE" {
                 let a = try args(id, count: 3); definitionShapes[id] = try syntax.reference(a[2])
@@ -138,15 +155,24 @@ private extension STEPAssemblyReader {
                 guard fa.count >= 3 else { throw ImportError.invalidData("Malformed STEP product formation.") }
                 let product = try syntax.reference(fa[2]), pa = try args(product, count: 4)
                 let identifier = try syntax.string(pa[0]), name = try syntax.string(pa[1])
+                let productDescription = pa[2] == "$" ? "" : try syntax.string(pa[2])
+                let definitionDescription = pd[1] == "$" ? "" : try syntax.string(pd[1])
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP import has no persistent assembly owner for PRODUCT or PRODUCT_DEFINITION descriptions.
+                // Completion requires typed source-owned description fields, strict persistence, and independent round-trip evidence before nonempty descriptions can succeed.
+                guard productDescription.isEmpty, definitionDescription.isEmpty else {
+                    throw ProductAttributeError.unsupportedSemantics("Product and definition descriptions require a persistent source owner.")
+                }
                 productIdentifiers[productID] = identifier
                 let definitionID = AssemblyDefinitionID(UUID(uuidString: identifier) ?? taggedUUID(namespace: 0x5354455050444546, id: productID))
                 guard !definitionIDs.values.contains(definitionID) else { throw AssemblyError.invalidSource("Duplicate product identity.") }
                 definitionIDs[productID] = definitionID
+                transfer.definitions[productID] = definitionID
                 guard let rep = representations[productID] else { throw AssemblyError.invalidSource("Missing product representation.") }
                 let repName = try syntax.name(rep)
                 guard ["SHAPE_REPRESENTATION", "ADVANCED_BREP_SHAPE_REPRESENTATION", "MANIFOLD_SURFACE_SHAPE_REPRESENTATION"].contains(repName) else {
                     throw AssemblyError.invalidSource("Unsupported STEP product shape representation.")
                 }
+                transfer.representations[rep] = definitionID
                 let ra = try args(rep, count: 3), context = try syntax.reference(ra[2])
                 let lengthUnit = try unit(context)
                 let items = try syntax.list(ra[1]); repItems[rep] = items; repUnits[rep] = lengthUnit; repContexts[rep] = context
@@ -165,6 +191,43 @@ private extension STEPAssemblyReader {
                         geometryItems += try syntax.list(oa[1])
                     }
                 }
+                for item in geometryItems where names[item] == "MAPPED_ITEM" {
+                    let ma = try args(item, count: 3), mapID = try syntax.reference(ma[1])
+                    guard names[mapID] == "REPRESENTATION_MAP" else { throw AssemblyError.invalidSource("Missing representation map.") }
+                    let mapping = try args(mapID, count: 2), inner = try syntax.reference(mapping[1])
+                    if !representations.values.contains(inner) {
+                        // A structural whole-part carrier retains local geometry without creating an assembly usage.
+                        guard carriers.insert(item).inserted,
+                              geometryItems.filter({ names[$0] == "MAPPED_ITEM" }).count == 1,
+                              geometryItems.allSatisfy({ $0 == item || names[$0] == "AXIS2_PLACEMENT_3D" }) else {
+                            throw AssemblyError.invalidSource("Whole-part carrier has competing outer geometry.")
+                        }
+                        guard ["SHAPE_REPRESENTATION", "ADVANCED_BREP_SHAPE_REPRESENTATION", "MANIFOLD_SURFACE_SHAPE_REPRESENTATION"].contains(names[inner] ?? "") else {
+                            throw AssemblyError.invalidSource("Unsupported whole-part inner representation.")
+                        }
+                        let ia = try args(inner, count: 3), innerContext = try syntax.reference(ia[2])
+                        let innerUnit = try unit(innerContext), innerItems = try syntax.list(ia[1]), origin = try syntax.reference(mapping[0])
+                        guard innerUnit == lengthUnit, innerItems.contains(origin),
+                              innerItems.allSatisfy({ ["AXIS2_PLACEMENT_3D", "MANIFOLD_SOLID_BREP", "BREP_WITH_VOIDS", "SHELL_BASED_SURFACE_MODEL"].contains(names[$0] ?? "") }),
+                              innerItems.contains(where: { ["MANIFOLD_SOLID_BREP", "BREP_WITH_VOIDS", "SHELL_BASED_SURFACE_MODEL"].contains(names[$0] ?? "") }) else {
+                            throw AssemblyError.invalidSource("Whole-part carrier requires unassociated exact local geometry and equal units.")
+                        }
+                        let target = try syntax.reference(ma[2])
+                        guard names[target] == "CARTESIAN_TRANSFORMATION_OPERATOR_3D" else {
+                            throw AssemblyError.invalidSource("Whole-part carrier requires a standard identity mapping operator.")
+                        }
+                        let frame = try compose(cartesian(target, unit: lengthUnit), axis(origin, unit: innerUnit).inverted())
+                        guard frame == RigidTransform3D.translated(by: .zero) else {
+                            throw AssemblyError.invalidSource("Whole-part carrier transform is not identity.")
+                        }
+                        guard transfer.representations[inner] == nil else {
+                            throw AssemblyError.invalidSource("Whole-part inner geometry has competing product associations.")
+                        }
+                        transfer.partCarriers[item] = definitionID
+                        transfer.representations[inner] = definitionID
+                        geometryItems = innerItems
+                    }
+                }
                 var geometry = Set<Int>()
                 for item in geometryItems {
                     if ["MANIFOLD_SOLID_BREP", "BREP_WITH_VOIDS", "SHELL_BASED_SURFACE_MODEL"].contains(names[item] ?? "") { geometry.insert(item) }
@@ -175,8 +238,9 @@ private extension STEPAssemblyReader {
                 accountedGeometry.formUnion(geometry)
                 var bodyFeatures: [FeatureID] = []
                 if !geometry.isEmpty {
-                    let model = try ExactSTEPReader(entities: syntax.entities, lengthUnit: lengthUnit,
-                        processingBudget: budget, tolerance: tolerance, representationItems: geometry).read()
+                    let exactTransfer = try ExactSTEPReader(entities: syntax.entities, lengthUnit: lengthUnit,
+                        processingBudget: budget, tolerance: tolerance, representationItems: geometry).readWithTransfer()
+                    let model = exactTransfer.model
                     for bodyID in model.bodies.keys.sorted() {
                         let local = try BRepBodySubmodelExtractor().extract(bodyIDs: [bodyID], from: model)
                         guard let body = local.bodies[bodyID] else { throw AssemblyError.invalidSource("Missing local STEP body.") }
@@ -185,12 +249,24 @@ private extension STEPAssemblyReader {
                             ImportedBRepFeature(model: local, sourceUnits: UnitSystem(length: lengthUnit, angle: .radian))),
                             outputs: [FeatureOutput(role: body.kind == .solid ? .body : .sheet)])
                         order.append(id); bodyFeatures.append(id)
+                        for (entity, sourceBody) in exactTransfer.bodies where sourceBody == bodyID {
+                            transfer.geometry[entity] = SubshapeID(featureID: id, role: GeneratedSubshapeRole.body.rawValue, ordinal: 0)
+                        }
+                        for (ordinal, sourceFace) in local.faces.keys.sorted().enumerated() {
+                            for (entity, mappedFace) in exactTransfer.faces where mappedFace == sourceFace {
+                                transfer.geometry[entity] = SubshapeID(featureID: id, role: GeneratedSubshapeRole.face.rawValue, ordinal: ordinal)
+                            }
+                        }
                     }
                 }
                 definitions[productID] = AssemblyDefinition(id: definitionID, name: name, features: bodyFeatures)
             }
             let allGeometry = Set(names.filter { ["MANIFOLD_SOLID_BREP", "BREP_WITH_VOIDS", "SHELL_BASED_SURFACE_MODEL"].contains($0.value) }.keys)
             guard accountedGeometry == allGeometry else { throw AssemblyError.invalidSource("Unassociated STEP geometry would be discarded.") }
+            let mapped = allMapped.filter { !carriers.contains($0) }
+            guard usages.isEmpty || mapped.isEmpty else {
+                throw AssemblyError.invalidSource("STEP combines competing usage and mapped-item assembly representations.")
+            }
             var childProducts = Set<Int>()
             if !usages.isEmpty {
                 var placementRelations: [Int: Int] = [:]
@@ -237,13 +313,14 @@ private extension STEPAssemblyReader {
                     guard var parentDefinition = definitions[parent] else { throw AssemblyError.invalidSource("Missing parent definition.") }
                     guard parentDefinition.features.isEmpty else { throw AssemblyError.invalidSource("STEP assembly geometry is an ambiguous alternative to its children.") }
                     parentDefinition.children.append(occurrence); definitions[parent] = parentDefinition
+                    transfer.usages[usage] = occurrence.id; transfer.relationships[relation] = occurrence.id
                     childProducts.insert(child)
                 }
             } else {
                 let repProducts = Dictionary(grouping: productIDs, by: { representations[$0] ?? -1 })
                 for parent in productIDs {
                     guard let parentRep = representations[parent], let parentUnit = repUnits[parentRep] else { throw AssemblyError.invalidSource("Missing mapped parent.") }
-                    for item in repItems[parentRep] ?? [] where names[item] == "MAPPED_ITEM" {
+                    for item in repItems[parentRep] ?? [] where names[item] == "MAPPED_ITEM" && !carriers.contains(item) {
                         try check()
                         let ma = try args(item, count: 3), mapID = try syntax.reference(ma[1]), target = try syntax.reference(ma[2])
                         guard names[mapID] == "REPRESENTATION_MAP" else { throw AssemblyError.invalidSource("Missing STEP representation map.") }
@@ -281,7 +358,7 @@ private extension STEPAssemblyReader {
                 throw AssemblyError.invalidSource("STEP assembly has no acyclic represented root.")
             }
             let assembly = DocumentAssembly(definitions: Array(definitions.values).sorted { $0.id < $1.id }, roots: roots)
-            let document = CADDocument(units: UnitSystem(length: lengthUnit, angle: .radian),
+            var document = CADDocument(units: UnitSystem(length: lengthUnit, angle: .radian),
                 designGraph: DesignGraph(nodes: features, order: order), assembly: assembly)
             let assemblyLimits = AssemblyResourceLimits(maximumRecords: limits.maximumEntities,
                 maximumOccurrences: limits.maximumEntities, maximumDepth: limits.maximumNesting,
@@ -289,7 +366,17 @@ private extension STEPAssemblyReader {
             _ = try DocumentAssemblyValidator().expandedOccurrences(of: assembly, in: document.designGraph,
                 tolerance: tolerance, limits: assemblyLimits)
             try document.validate(tolerance: tolerance)
-            let evaluated = try DocumentEvaluator(tolerance: tolerance, assemblyResourceLimits: assemblyLimits).evaluateExact(document)
+            let evaluator = DocumentEvaluator(tolerance: tolerance, assemblyResourceLimits: assemblyLimits)
+            let base = try evaluator.evaluateExact(document)
+            document.productAttributes = try STEPAttributesReader().read(entities: syntax.entities,
+                transfer: transfer, evaluated: base, limits: limits)
+            try document.validate(tolerance: tolerance)
+            let evaluated = document.productAttributes.isEmpty ? base : try evaluator.evaluateExact(document)
+            if !document.productAttributes.isEmpty {
+                _ = try ProductAttributeResolver().resolve(evaluated, limits: ProductAttributeLimits(maximumRecords: limits.maximumEntities,
+                    maximumTargets: limits.maximumEntities, maximumDepth: limits.maximumNesting,
+                    maximumTextBytes: limits.maximumBytes, maximumWork: limits.maximumIterations))
+            }
             try check()
             return ImportedExchangeModel(format: .step, document: document, brep: evaluated.brep, units: document.units)
         }

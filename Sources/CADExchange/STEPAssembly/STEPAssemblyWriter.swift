@@ -6,8 +6,9 @@ import CADTopology
 public struct STEPAssemblyWriter: STEPAssemblyWriting {
     public let tolerance: ModelingTolerance
     public let resourceLimits: ExchangeResourceLimits
-    public init(tolerance: ModelingTolerance, resourceLimits: ExchangeResourceLimits = .standard) {
-        self.tolerance = tolerance; self.resourceLimits = resourceLimits
+    private let attributes: any STEPAttributesWriting
+    public init(tolerance: ModelingTolerance, resourceLimits: ExchangeResourceLimits = .standard, attributes: any STEPAttributesWriting = STEPAttributesWriter()) {
+        self.tolerance = tolerance; self.resourceLimits = resourceLimits; self.attributes = attributes
     }
     public func write(_ evaluated: EvaluatedDocument, units: UnitSystem, to sink: any ByteSink) throws {
         try units.validate(); try resourceLimits.validate()
@@ -38,6 +39,13 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
         guard let source = evaluated.document.assembly, let artifact = evaluated.assembly else {
             throw AssemblyError.inconsistentArtifact("STEP assembly export requires assembly source and local evaluation.")
         }
+        let attributeSource = evaluated.document.productAttributes
+        let attributeLimits = ProductAttributeLimits(maximumRecords: resourceLimits.maximumEntities,
+            maximumTargets: resourceLimits.maximumEntities, maximumDepth: resourceLimits.maximumNesting,
+            maximumTextBytes: resourceLimits.maximumBytes, maximumWork: resourceLimits.maximumIterations)
+        let resolved = attributeSource.isEmpty ? nil : try ProductAttributeResolver().resolve(evaluated, limits: attributeLimits)
+        let names = try resolved.map { try attributes.geometryNames(for: evaluated, resolved: $0) }
+        var transfer = STEPAttributeWriteTransfer()
         let budget = ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration)
         let writer = ExactSTEPWriter(resourceLimits: resourceLimits, tolerance: tolerance)
         var table = ExactSTEPWriter.EntityTable(maximumEntities: resourceLimits.maximumEntities, tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes)
@@ -60,8 +68,15 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
                 let axis = try writer.assemblyAxis(child.placement, units: units.length, table: &table)
                 axes[child.id] = axis; items.append(axis)
             }
-            written[definition.id] = try writer.appendDefinition(brep: model, units: units,
-                identifier: definition.id.description, name: definition.name, additionalItems: items, table: &table)
+            let carrier = attributeSource.assignments.contains { $0.target.definitionID == definition.id && ($0.value.property == .color || $0.value.property == .opacity) }
+                || attributeSource.layers.contains { $0.members.contains { $0.kind == .part && $0.definitionID == definition.id } }
+            let product = try writer.appendDefinition(brep: model, units: units,
+                identifier: definition.id.description, name: definition.name, additionalItems: items, wholePartCarrier: carrier,
+                bodyNames: names?.bodies ?? [:], faceNames: names?.faces ?? [:], table: &table)
+            written[definition.id] = product
+            transfer.products[definition.id] = STEPAttributeProductRepresentation(definition: product.definition,
+                definitionShape: product.definitionShape, representation: product.representation, context: product.context,
+                geometryRepresentation: product.geometryRepresentation, carrier: product.carrier, bodies: product.bodies, faces: product.faces)
         }
         // A synthetic STEP product is a transport container for placed source roots, not a CAD feature.
         // Its exact marker is retained so our reader removes only this authored envelope container.
@@ -83,6 +98,7 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
             let transform = try table.add("ITEM_DEFINED_TRANSFORMATION('','',#\(child.origin),#\(axis))")
             let relationship = try table.add("(REPRESENTATION_RELATIONSHIP('','',#\(child.representation),#\(parent.representation)) REPRESENTATION_RELATIONSHIP_WITH_TRANSFORMATION(#\(transform)) SHAPE_REPRESENTATION_RELATIONSHIP())")
             _ = try table.add("CONTEXT_DEPENDENT_SHAPE_REPRESENTATION(#\(relationship),#\(shape))")
+            transfer.usages[occurrence.id] = usage; transfer.relationships[occurrence.id] = relationship
         }
         for definition in source.definitions {
             guard let parent = written[definition.id] else { throw AssemblyError.missingDefinition(definition.id) }
@@ -90,6 +106,11 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
         }
         for occurrence in source.roots { try appendUsage(occurrence, parent: envelope) }
         try budget.check(format: .step)
+        if let resolved {
+            let records = try attributes.records(for: evaluated, resolved: resolved, transfer: transfer,
+                startingAt: table.entities.count + 1, limits: resourceLimits)
+            for record in records { _ = try table.add(record) }
+        }
         try writer.publish(table: table, to: sink)
     }
 }

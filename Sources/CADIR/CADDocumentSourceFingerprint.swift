@@ -44,6 +44,7 @@ private struct CADDocumentSourceFingerprintPayload: Encodable {
     var selectionDimensions: [SelectionDimension]
     var assembly: DocumentAssembly?
     var documentFoundation: DocumentFoundation
+    var productAttributes: ProductAttributes
 
     init(document: CADDocument) throws {
         schemaVersion = document.schemaVersion
@@ -53,6 +54,7 @@ private struct CADDocumentSourceFingerprintPayload: Encodable {
         selectionDimensions = try document.selectionDimensions.sortedByStableEncoding()
         assembly = document.assembly?.canonicalized
         documentFoundation = document.documentFoundation
+        productAttributes = document.productAttributes.canonicalized
     }
 }
 

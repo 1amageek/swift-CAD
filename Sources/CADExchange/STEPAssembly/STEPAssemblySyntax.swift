@@ -1,7 +1,7 @@
 import Foundation
 import CADCore
 
-struct STEPAssemblySyntax {
+struct STEPAssemblySyntax: STEPFieldReading {
     let entities: [Int: String]
     func entity(_ id: Int) throws -> String {
         guard let value = entities[id] else { throw ImportError.missingRequiredEntity("STEP assembly #\(id)") }

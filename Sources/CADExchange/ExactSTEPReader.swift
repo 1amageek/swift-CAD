@@ -11,7 +11,9 @@ struct ExactSTEPReader {
     let tolerance: ModelingTolerance
     var representationItems: Set<Int>? = nil
 
-    func read() throws -> BRepModel {
+    func read() throws -> BRepModel { try readWithTransfer().model }
+
+    func readWithTransfer() throws -> ExactSTEPReadTransfer {
         try processingBudget.check(format: .step)
         var builder = Builder(
             entities: entities,
@@ -23,7 +25,7 @@ struct ExactSTEPReader {
         let model = try builder.build()
         try processingBudget.check(format: .step)
         try model.validate(level: .exact, tolerance: tolerance)
-        return model
+        return ExactSTEPReadTransfer(model: model, bodies: builder.bodyEntityTransfer, faces: builder.faceEntityTransfer)
     }
 }
 
@@ -35,6 +37,8 @@ private extension ExactSTEPReader {
         let tolerance: ModelingTolerance
         let representationItems: Set<Int>?
 
+        var bodyEntityTransfer: [Int: BodyID] = [:]
+        var faceEntityTransfer: [Int: FaceID] = [:]
         var geometry = GeometryStore()
         var bodies: [BodyID: Body] = [:]
         var shells: [ShellID: Shell] = [:]
@@ -82,6 +86,7 @@ private extension ExactSTEPReader {
                     let shellEntityID = try reference(arguments[1], label: "closed shell")
                     let shellID = try buildShell(shellEntityID, expectedName: "CLOSED_SHELL")
                     let bodyID: BodyID = taggedID(namespace: 0x535445505F424F44, entityID: entityID)
+                    bodyEntityTransfer[entityID] = bodyID
                     bodies[bodyID] = Body(
                         id: bodyID,
                         solidComponents: [SolidShellComponent(outerShellID: shellID)]
@@ -103,6 +108,7 @@ private extension ExactSTEPReader {
                         shellIDs.append(try buildVoidShell(voidEntityID))
                     }
                     let bodyID: BodyID = taggedID(namespace: 0x535445505F424F44, entityID: entityID)
+                    bodyEntityTransfer[entityID] = bodyID
                     bodies[bodyID] = Body(
                         id: bodyID,
                         solidComponents: [SolidShellComponent(
@@ -126,6 +132,7 @@ private extension ExactSTEPReader {
                         shellIDs.append(try buildShell(shellEntityID, expectedName: "OPEN_SHELL"))
                     }
                     let bodyID: BodyID = taggedID(namespace: 0x535445505F424F44, entityID: entityID)
+                    bodyEntityTransfer[entityID] = bodyID
                     bodies[bodyID] = Body(id: bodyID, sheetShellIDs: shellIDs)
                     representationItemCount += 1
                 default:
@@ -233,6 +240,7 @@ private extension ExactSTEPReader {
                 ))
             }
             let faceID: FaceID = taggedID(namespace: 0x535445505F464143, entityID: entityID)
+            faceEntityTransfer[entityID] = faceID
             faces[faceID] = Face(
                 id: faceID,
                 surfaceID: surfaceID,
