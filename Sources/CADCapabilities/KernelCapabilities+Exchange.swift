@@ -20,6 +20,7 @@ extension KernelCapabilities {
         "typedAttributeOwnershipAndPersistentReferenceRoundTrip",
         "sharedAssemblyDefinitionsAndPersistentOccurrenceFramesRoundTrip",
         "strictRequiredProductAttributesWithIndependentPhysicalDensityAndOverrideProvenance",
+        "distinctRequiredNullableProductAndDefinitionDescriptions",
       ],
       failureCodes: [
         .invalidInput,
@@ -40,6 +41,7 @@ extension KernelCapabilities {
         "PeriodicSourcePackageTests",
         "DocumentFoundationPackageTests",
         "STEPAttributesExchangeTests",
+        "STEPStringExchangeTests",
         "STEPAssemblyExchangeTests",
       ]
     ),
@@ -68,6 +70,8 @@ extension KernelCapabilities {
         "perRepresentationLengthUnits",
         "typedBodyFacePartAndContextualOccurrenceColorAndSetLayers",
         "explicitStandardMaterialAndMassDensityPropertiesOnPartBodyFaceAndDirectUsage",
+        "boundedStandardSTEPStringsWithISO8859AndUCSDirectives",
+        "onePersistentProductPerDefinitionWithDistinctOptionalDescriptions",
       ],
       exactOutputs: [
         "AP242AdvancedFaces",
@@ -92,6 +96,8 @@ extension KernelCapabilities {
         "explicitPropertyOverrideProvenanceWithoutTargetRankOrImplicitDensity",
         "structuralWholePartCarrierWithoutSyntheticModelingFeatures",
         "typedAttributeLossRefusalBeforeProjectionOrPublication",
+        "UnicodeScalarPreservationWithoutNormalizationOrRepair",
+        "nilAndEmptyProductDescriptionsRemainDistinct",
       ],
       failureCodes: [
         .invalidInput, .missingReference, .unsupportedCapability, .topologyFailure,
@@ -100,12 +106,14 @@ extension KernelCapabilities {
       tolerance: .standard,
       publicAPIs: ["CADExchange.STEPAttributesReading", "CADExchange.STEPAttributesWriting",
         "CADIR.ProductAttributes", "CADKernel.ProductAttributeResolving",
-        "CADExchange.STEPExchange", "CADExchange.STEPAssemblyReading",
+        "CADExchange.STEPExchange", "CADExchange.STEPStringCoding",
+        "CADExchange.STEPStringCodec", "CADExchange.STEPAssemblyReading",
         "CADExchange.STEPAssemblyWriting", "CADIR.DocumentAssemblyValidating",
         "CADKernel.AssemblyEvaluating"],
       testFixtures: [
         "ExactSTEPExchangeTests",
         "ProductAttributesTests", "ProductAttributeResolutionTests", "STEPAttributesExchangeTests",
+        "STEPStringExchangeTests",
         "DocumentAssemblyTests", "AssemblyEvaluationTests", "STEPAssemblyExchangeTests",
         "ExactSTEPExchangeTests.roundTripsExactPlanarTopologyInConversionBasedLengthUnits",
         "ExactSTEPExchangeTests.roundTripsReversedCompleteDomainRationalBSplineEdges",

@@ -201,7 +201,12 @@ struct STEPAttributesExchangeTests {
         let writtenSource = try #require(exchange.import(sink.bytes).document)
         #expect(writtenSource.assembly == nil)
         let described = bare.replacingOccurrences(of: "PRODUCT('part','',''", with: "PRODUCT('part','','real product description'")
-        #expect(throws: ProductAttributeError.self) { _ = try exchange.import(Data(described.utf8)) }
+        let describedSource = try #require(exchange.import(Data(described.utf8)).document)
+        #expect(describedSource.assembly?.definitions.first?.productDescription == "real product description")
+        let describedSink = DataByteSink()
+        try exchange.write(DocumentEvaluator(tolerance: .standard).evaluateExact(describedSource), to: describedSink)
+        let restoredDescription = try #require(exchange.import(describedSink.bytes).document)
+        #expect(restoredDescription.assembly?.definitions.first?.productDescription == "real product description")
     }
     @Test(.timeLimit(.minutes(1)))
     func ordinaryAttributedGeometryRetainsCallerWorkLimitAtFinalResolution() throws {
@@ -302,7 +307,7 @@ struct STEPAttributesExchangeTests {
     // Literal standard STEP fixture: two distinct millimetre triangles, unique identity whole-part carrier,
     // blue part style, red explicit face override, set layers, and 7.85 g/cm^3 physical density.
     // Neither the production geometry writer nor the production attribute writer creates this input.
-    private static let independentFixture = #"""
+    static let independentFixture = #"""
 ISO-10303-21;
 HEADER;
 FILE_DESCRIPTION(('Independent part carrier and attributes'),'2;1');

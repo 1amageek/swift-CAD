@@ -43,14 +43,14 @@ private extension STEPAttributesReader {
             guard a.count == count else { throw ProductAttributeError.invalidSource("Malformed STEP attribute argument count.") }
             return a
         }
-        func string(_ value: String) throws -> String {
-            let value = try syntax.string(value)
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEPExchange and OfficialFormatExchange name, material, and layer imports do not yet decode STEP encoded strings.
-            // Completion requires standards-correct extended and shifted-character decoding with lossless value and round-trip evidence before these strings can be admitted.
-            guard !value.contains("\\X"), !value.contains("\\S\\") else {
-                throw ProductAttributeError.unsupportedSemantics("Unsupported encoded STEP attribute string.")
-            }
-            return value
+        mutating func string(_ value: String) throws -> String {
+            try duration.check(format: .step)
+            let decoded = try syntax.decodedString(value, limits: STEPStringLimits(
+                maximumInputBytes: budget.limits.maximumTextBytes,
+                maximumOutputBytes: budget.limits.maximumTextBytes - budget.consumedTextBytes,
+                maximumWork: budget.limits.maximumWork - budget.consumedWork))
+            try budget.charge(work: decoded.consumedWork, textBytes: decoded.outputBytes)
+            return decoded.value
         }
         mutating func target(_ item: Int) throws -> ProductAttributeTarget {
             try check()

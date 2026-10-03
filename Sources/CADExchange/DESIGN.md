@@ -23,6 +23,14 @@ an explicit caller fallback. This module
 does not create a Rupa scene object, choose a presentation representation, or
 mutate a project.
 
+Native assembly-description admission follows [Document Assembly](../CADIR/DocumentAssembly/DESIGN.md):
+PRODUCT and PRODUCT_DEFINITION descriptions are distinct required-nullable source
+fields under the current [CADCore envelope](../CADCore/DESIGN.md). Missing fields
+are rejected; nullable absence and an empty string retain different meanings.
+Standard string lexical encoding and operation-local byte/work accounting are
+owned by [STEP Assembly](STEPAssembly/DESIGN.md); readers preserve Unicode
+scalars without normalization or replacement.
+
 Native section-reference admission follows the [CADIR section contract](../CADIR/SectionReference/DESIGN.md):
 curve intervals and explicit traversal direction survive save/load, profile inputs
 reject curve-only controls, and missing direction fields are not silently migrated.

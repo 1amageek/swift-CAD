@@ -29,10 +29,11 @@ struct KernelCapabilityDomainTests {
     func dimensionsExposeActualSurfaceBoundaryConnectionAndDegeneracyConditions() throws {
         let catalog = KernelCapabilities.current
         let area = try catalog.domain(operation: "faceAreaMeasurement")
+        #expect(area.capability.acceptedInputs.contains("piecewiseC0PositiveWeightBSplineNativeSpanAndValueOnlyFanEnclosures"))
         #expect(area.limitations(affecting: .supportSurface).contains {
-            $0.sourcePath.hasSuffix("PreparedSurfaceAreaIntegrand.swift")
-                && $0.condition.contains("C0 interior support knots")
-                && $0.condition.contains("exact span/domain partitioning")
+            $0.sourcePath.hasSuffix("SurfaceAreaAffineImplicitChartEncloser.swift")
+                && $0.condition.contains("General/closed/multicell implicit trim charts")
+                && $0.condition.contains("every original piece")
         })
         let offset = try catalog.domain(operation: "edgeOffset")
         #expect(offset.limitations(affecting: .boundaryCurve).contains {

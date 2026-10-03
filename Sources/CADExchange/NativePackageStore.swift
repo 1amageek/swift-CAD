@@ -2917,7 +2917,7 @@ private func validateConstrainedSurfaceFeatureObject(_ object: [String: Any], pa
 private func validateNativeAssemblyObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["definitions", "roots"], objectName: path)
     try validateArrayField("definitions", in: object, path: "\(path).definitions") { definition, path in
-        try rejectUnsupportedNativeKeys(in: definition, supportedKeys: ["id", "name", "features", "children"], objectName: path)
+        try rejectUnsupportedNativeKeys(in: definition, supportedKeys: ["id", "name", "productDescription", "definitionDescription", "features", "children"], objectName: path)
         try validateArrayField("children", in: definition, path: "\(path).children", using: validateNativeAssemblyOccurrence)
     }
     try validateArrayField("roots", in: object, path: "\(path).roots", using: validateNativeAssemblyOccurrence)

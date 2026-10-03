@@ -2265,11 +2265,11 @@ private extension ExactSTEPReader {
             var start = text.startIndex
             var cursor = text.startIndex
             while cursor < text.endIndex {
-                let character = text[cursor]
+                let character = text.unicodeScalars[cursor]
                 if character == "'" {
-                    let next = text.index(after: cursor)
-                    if inString, next < text.endIndex, text[next] == "'" {
-                        cursor = text.index(after: next)
+                    let next = text.unicodeScalars.index(after: cursor)
+                    if inString, next < text.endIndex, text.unicodeScalars[next] == "'" {
+                        cursor = text.unicodeScalars.index(after: next)
                         continue
                     }
                     inString.toggle()
@@ -2280,13 +2280,13 @@ private extension ExactSTEPReader {
                         depth -= 1
                     } else if character == ",", depth == 0 {
                         values.append(String(text[start..<cursor]).trimmingCharacters(in: .whitespacesAndNewlines))
-                        start = text.index(after: cursor)
+                        start = text.unicodeScalars.index(after: cursor)
                     }
                     guard depth >= 0 else {
                         throw invalid("STEP tuple syntax is malformed.")
                     }
                 }
-                cursor = text.index(after: cursor)
+                cursor = text.unicodeScalars.index(after: cursor)
             }
             guard !inString, depth == 0 else {
                 throw invalid("STEP tuple syntax is unterminated.")

@@ -113,7 +113,7 @@ struct DocumentFoundationTests {
         object.removeValue(forKey: "documentFoundation")
         #expect(throws: DecodingError.self) { _ = try JSONDecoder().decode(CADDocument.self, from: JSONSerialization.data(withJSONObject: object)) }
         #expect(throws: SchemaError.self) { try SchemaVersion(major: 0, minor: 2, patch: 0).validate() }
-        #expect(SchemaVersion.current == SchemaVersion(major: 0, minor: 5, patch: 0))
+        #expect(SchemaVersion.current == SchemaVersion(major: 0, minor: 6, patch: 0))
     }
 
     @Test(.timeLimit(.minutes(1)))

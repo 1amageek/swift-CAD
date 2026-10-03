@@ -12,23 +12,7 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
     }
     public func write(_ evaluated: EvaluatedDocument, units: UnitSystem, to sink: any ByteSink) throws {
         try units.validate(); try resourceLimits.validate()
-        var labelBytes = 0
         guard let labels = evaluated.document.assembly else { throw AssemblyError.invalidSource("Missing assembly source.") }
-        for definition in labels.definitions {
-            let count = definition.name.utf8.count
-            guard count <= (resourceLimits.maximumBytes - labelBytes) / 2 else { throw AssemblyError.resourceLimitExceeded("STEP labels") }
-            labelBytes += count * 2
-            for occurrence in definition.children {
-                let count = occurrence.name.utf8.count
-                guard count <= (resourceLimits.maximumBytes - labelBytes) / 2 else { throw AssemblyError.resourceLimitExceeded("STEP labels") }
-                labelBytes += count * 2
-            }
-        }
-        for occurrence in labels.roots {
-            let count = occurrence.name.utf8.count
-            guard count <= (resourceLimits.maximumBytes - labelBytes) / 2 else { throw AssemblyError.resourceLimitExceeded("STEP labels") }
-            labelBytes += count * 2
-        }
         let assemblyLimits = AssemblyResourceLimits(maximumRecords: resourceLimits.maximumEntities,
             maximumOccurrences: resourceLimits.maximumEntities, maximumDepth: resourceLimits.maximumNesting,
             maximumTopologyEntities: resourceLimits.maximumEntities, maximumWork: resourceLimits.maximumIterations)
@@ -48,7 +32,7 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
         var transfer = STEPAttributeWriteTransfer()
         let budget = ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration)
         let writer = ExactSTEPWriter(resourceLimits: resourceLimits, tolerance: tolerance)
-        var table = ExactSTEPWriter.EntityTable(maximumEntities: resourceLimits.maximumEntities, tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes)
+        var table = ExactSTEPWriter.EntityTable(maximumEntities: resourceLimits.maximumEntities, tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes, maximumStringWork: resourceLimits.maximumIterations)
         var written: [AssemblyDefinitionID: ExactSTEPWriter.WrittenDefinition] = [:]
         var axes: [AssemblyOccurrenceID: Int] = [:]
         for definition in source.definitions.sorted(by: { $0.id < $1.id }) {
@@ -71,7 +55,8 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
             let carrier = attributeSource.assignments.contains { $0.target.definitionID == definition.id && ($0.value.property == .color || $0.value.property == .opacity) }
                 || attributeSource.layers.contains { $0.members.contains { $0.kind == .part && $0.definitionID == definition.id } }
             let product = try writer.appendDefinition(brep: model, units: units,
-                identifier: definition.id.description, name: definition.name, additionalItems: items, wholePartCarrier: carrier,
+                identifier: definition.id.description, name: definition.name,
+                productDescription: definition.productDescription, definitionDescription: definition.definitionDescription, additionalItems: items, wholePartCarrier: carrier,
                 bodyNames: names?.bodies ?? [:], faceNames: names?.faces ?? [:], table: &table)
             written[definition.id] = product
             transfer.products[definition.id] = STEPAttributeProductRepresentation(definition: product.definition,
@@ -93,7 +78,7 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
             guard let child = written[occurrence.definitionID], let axis = axes[occurrence.id] else {
                 throw AssemblyError.missingDefinition(occurrence.definitionID)
             }
-            let usage = try table.add("NEXT_ASSEMBLY_USAGE_OCCURRENCE(\(stepAssemblyString(occurrence.id.description)),\(stepAssemblyString(occurrence.name)),'',#\(parent.definition),#\(child.definition),$)")
+            let usage = try table.add("NEXT_ASSEMBLY_USAGE_OCCURRENCE(\(try table.quotedString(occurrence.id.description)),\(try table.quotedString(occurrence.name)),'',#\(parent.definition),#\(child.definition),$)")
             let shape = try table.add("PRODUCT_DEFINITION_SHAPE('','',#\(usage))")
             let transform = try table.add("ITEM_DEFINED_TRANSFORMATION('','',#\(child.origin),#\(axis))")
             let relationship = try table.add("(REPRESENTATION_RELATIONSHIP('','',#\(child.representation),#\(parent.representation)) REPRESENTATION_RELATIONSHIP_WITH_TRANSFORMATION(#\(transform)) SHAPE_REPRESENTATION_RELATIONSHIP())")

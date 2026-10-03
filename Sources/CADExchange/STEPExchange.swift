@@ -52,7 +52,7 @@ public struct STEPExchange: Sendable {
             let names = try attributes.geometryNames(for: evaluated, resolved: resolved)
             let writer = ExactSTEPWriter(resourceLimits: resourceLimits, tolerance: tolerance)
             var table = ExactSTEPWriter.EntityTable(maximumEntities: resourceLimits.maximumEntities,
-                tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes)
+                tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes, maximumStringWork: resourceLimits.maximumIterations)
             let product = try writer.appendDefinition(brep: evaluated.brep, units: outputUnits,
                 identifier: evaluated.document.id.description, name: evaluated.document.metadata.name ?? "",
                 additionalItems: [], bodyNames: names.bodies, faceNames: names.faces, table: &table)
@@ -238,11 +238,11 @@ public struct STEPExchange: Sendable {
                     message: "STEP parsing exceeded the configured iteration limit."
                 )
             }
-            let character = text[cursor]
+            let character = text.unicodeScalars[cursor]
             if character == "'" {
-                let next = text.index(after: cursor)
-                if next < text.endIndex, text[next] == "'" {
-                    cursor = text.index(after: next)
+                let next = text.unicodeScalars.index(after: cursor)
+                if next < text.endIndex, text.unicodeScalars[next] == "'" {
+                    cursor = text.unicodeScalars.index(after: next)
                     continue
                 }
                 inString.toggle()
@@ -264,7 +264,7 @@ public struct STEPExchange: Sendable {
                     }
                 }
             }
-            cursor = text.index(after: cursor)
+            cursor = text.unicodeScalars.index(after: cursor)
         }
     guard !inString, depth == 0 else {
         throw ImportError.invalidData("STEP exchange contains an unterminated string or tuple.")
@@ -701,7 +701,7 @@ private func nextSTEPMarker(
            let range = stepMarkerRange(marker, in: text, at: cursor) {
             return range
         }
-        cursor = text.index(after: cursor)
+        cursor = text.unicodeScalars.index(after: cursor)
     }
     return nil
 }
@@ -712,12 +712,12 @@ private func stepMarkerRange(
     at index: String.Index
 ) -> Range<String.Index>? {
     var cursor = index
-    for markerCharacter in marker {
+    for markerCharacter in marker.unicodeScalars {
         guard cursor < text.endIndex,
-              String(text[cursor]).uppercased() == String(markerCharacter) else {
+              String(text.unicodeScalars[cursor]).uppercased() == String(markerCharacter) else {
             return nil
         }
-        cursor = text.index(after: cursor)
+        cursor = text.unicodeScalars.index(after: cursor)
     }
     return index..<cursor
 }
@@ -726,47 +726,47 @@ private func hasSTEPMarkerBoundary(before index: String.Index, in text: String) 
     guard index > text.startIndex else {
         return true
     }
-    let previous = text[text.index(before: index)]
+    let previous = text.unicodeScalars[text.unicodeScalars.index(before: index)]
     return !isSTEPIdentifierCharacter(previous)
 }
 
-private func isSTEPIdentifierCharacter(_ character: Character) -> Bool {
-    character.isLetter || character.isNumber || character == "_"
+private func isSTEPIdentifierCharacter(_ character: Unicode.Scalar) -> Bool {
+    character.properties.isAlphabetic || character.properties.numericType != nil || character == "_"
 }
 
 private func stepEntities(in text: String) throws -> [Int: String] {
     var entities: [Int: String] = [:]
     var searchStart = text.startIndex
     while let hashIndex = nextSTEPHashOutsideString(in: text, from: searchStart) {
-        var numberEnd = text.index(after: hashIndex)
-        while numberEnd < text.endIndex, text[numberEnd].isNumber {
-            numberEnd = text.index(after: numberEnd)
+        var numberEnd = text.unicodeScalars.index(after: hashIndex)
+        while numberEnd < text.endIndex, text.unicodeScalars[numberEnd].properties.numericType != nil {
+            numberEnd = text.unicodeScalars.index(after: numberEnd)
         }
 
-        guard numberEnd > text.index(after: hashIndex),
-              let id = Int(text[text.index(after: hashIndex)..<numberEnd]) else {
+        guard numberEnd > text.unicodeScalars.index(after: hashIndex),
+              let id = Int(text[text.unicodeScalars.index(after: hashIndex)..<numberEnd]) else {
             throw ImportError.invalidData("STEP entity or reference marker is malformed.")
         }
         guard let syntaxIndex = nextNonWhitespaceIndex(in: text, from: numberEnd) else {
             throw ImportError.invalidData("STEP entity or reference marker is unterminated.")
         }
-        guard text[syntaxIndex] == "=" else {
-            guard isSTEPReferenceTerminator(text[syntaxIndex]) else {
+        guard text.unicodeScalars[syntaxIndex] == "=" else {
+            guard isSTEPReferenceTerminator(text.unicodeScalars[syntaxIndex]) else {
                 throw ImportError.invalidData("STEP entity or reference marker is malformed.")
             }
             searchStart = syntaxIndex
             continue
         }
 
-        let entityStart = text.index(after: syntaxIndex)
+        let entityStart = text.unicodeScalars.index(after: syntaxIndex)
         var cursor = entityStart
         var inString = false
         while cursor < text.endIndex {
-            let character = text[cursor]
+            let character = text.unicodeScalars[cursor]
             if character == "'" {
-                let next = text.index(after: cursor)
-                if next < text.endIndex, text[next] == "'" {
-                    cursor = text.index(after: next)
+                let next = text.unicodeScalars.index(after: cursor)
+                if next < text.endIndex, text.unicodeScalars[next] == "'" {
+                    cursor = text.unicodeScalars.index(after: next)
                     continue
                 }
                 inString.toggle()
@@ -776,10 +776,10 @@ private func stepEntities(in text: String) throws -> [Int: String] {
                     throw ImportError.invalidData("STEP entity ID #\(id) is duplicated.")
                 }
                 entities[id] = String(text[entityStart..<cursor])
-                searchStart = text.index(after: cursor)
+                searchStart = text.unicodeScalars.index(after: cursor)
                 break
             }
-            cursor = text.index(after: cursor)
+            cursor = text.unicodeScalars.index(after: cursor)
         }
         if cursor >= text.endIndex {
             throw ImportError.invalidData("STEP entity #\(id) is unterminated.")
@@ -791,15 +791,15 @@ private func stepEntities(in text: String) throws -> [Int: String] {
 private func nextNonWhitespaceIndex(in text: String, from start: String.Index) -> String.Index? {
     var cursor = start
     while cursor < text.endIndex {
-        guard text[cursor].isWhitespace else {
+        guard text.unicodeScalars[cursor].properties.isWhitespace else {
             return cursor
         }
-        cursor = text.index(after: cursor)
+        cursor = text.unicodeScalars.index(after: cursor)
     }
     return nil
 }
 
-private func isSTEPReferenceTerminator(_ character: Character) -> Bool {
+private func isSTEPReferenceTerminator(_ character: Unicode.Scalar) -> Bool {
     character == "," || character == ")" || character == ";"
 }
 
@@ -854,8 +854,8 @@ private func stepFirstReference(in entity: String) -> Int? {
 func firstDoubleParenthesizedContent(in text: String) -> String? {
     var searchStart = text.startIndex
     while let first = nextSTEPCharacterOutsideString("(", in: text, from: searchStart) {
-        let second = text.index(after: first)
-        if second < text.endIndex, text[second] == "(" {
+        let second = text.unicodeScalars.index(after: first)
+        if second < text.endIndex, text.unicodeScalars[second] == "(" {
             var depth = 0
             var cursor = first
             var inString = false
@@ -864,18 +864,18 @@ func firstDoubleParenthesizedContent(in text: String) -> String? {
                     continue
                 }
                 if inString {
-                    cursor = text.index(after: cursor)
+                    cursor = text.unicodeScalars.index(after: cursor)
                     continue
                 }
-                if text[cursor] == "(" {
+                if text.unicodeScalars[cursor] == "(" {
                     depth += 1
-                } else if text[cursor] == ")" {
+                } else if text.unicodeScalars[cursor] == ")" {
                     depth -= 1
                     if depth == 0 {
-                        return String(text[text.index(after: first)..<cursor])
+                        return String(text[text.unicodeScalars.index(after: first)..<cursor])
                     }
                 }
-                cursor = text.index(after: cursor)
+                cursor = text.unicodeScalars.index(after: cursor)
             }
             return nil
         }
@@ -889,7 +889,7 @@ private func nextSTEPHashOutsideString(in text: String, from start: String.Index
 }
 
 private func nextSTEPCharacterOutsideString(
-    _ target: Character,
+    _ target: Unicode.Scalar,
     in text: String,
     from start: String.Index
 ) -> String.Index? {
@@ -899,21 +899,21 @@ private func nextSTEPCharacterOutsideString(
         if updateSTEPStringState(in: text, cursor: &cursor, inString: &inString) {
             continue
         }
-        if !inString, text[cursor] == target {
+        if !inString, text.unicodeScalars[cursor] == target {
             return cursor
         }
-        cursor = text.index(after: cursor)
+        cursor = text.unicodeScalars.index(after: cursor)
     }
     return nil
 }
 
 private func updateSTEPStringState(in text: String, cursor: inout String.Index, inString: inout Bool) -> Bool {
-    guard text[cursor] == "'" else {
+    guard text.unicodeScalars[cursor] == "'" else {
         return false
     }
-    let next = text.index(after: cursor)
-    if next < text.endIndex, text[next] == "'" {
-        cursor = text.index(after: next)
+    let next = text.unicodeScalars.index(after: cursor)
+    if next < text.endIndex, text.unicodeScalars[next] == "'" {
+        cursor = text.unicodeScalars.index(after: next)
         return true
     }
     inString.toggle()
@@ -930,9 +930,9 @@ private func stepSyntaxOutsideStrings(in text: String) -> String {
             continue
         }
         if !inString {
-            output.append(text[cursor])
+            output.unicodeScalars.append(text.unicodeScalars[cursor])
         }
-        cursor = text.index(after: cursor)
+        cursor = text.unicodeScalars.index(after: cursor)
     }
     return output
 }

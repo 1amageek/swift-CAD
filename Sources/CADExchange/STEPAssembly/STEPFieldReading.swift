@@ -7,5 +7,6 @@ public protocol STEPFieldReading: Sendable {
     func reference(_ value: String) throws -> Int
     func list(_ value: String) throws -> [Int]
     func string(_ value: String) throws -> String
+    func decodedString(_ value: String, limits: STEPStringLimits) throws -> STEPStringResult
     func numbers(_ value: String) throws -> [Double]
 }

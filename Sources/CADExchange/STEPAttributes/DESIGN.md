@@ -30,7 +30,7 @@ colors and the existing PBR Material model.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
-| [CADExchange](../DESIGN.md) | parent | STEP routes, strict native persistence, ByteSource/ByteSink and budgets | Owns public routing and atomic URL output | Native source envelope integration is explicitly 0.5.0 |
+| [CADExchange](../DESIGN.md) | parent | STEP routes, strict native persistence, ByteSource/ByteSink and budgets | Owns public routing and atomic URL output | Native source envelope authority is CADCore |
 | [Product Attributes](../../CADIR/ProductAttributes/DESIGN.md) | depends on | Typed source targets, descriptors, property override graph | Retains imported meanings and source identities | Generic attribute keys and PBR defaults are not exchange meaning |
 | [Product Attribute Resolution](../../CADKernel/ProductAttributeResolution/DESIGN.md) | depends on | Effective values and property-specific provenance | Confirms source/local/world attachment before export | Resolved world geometry alone cannot retain source assembly context |
 | [STEP Assembly](../STEPAssembly/DESIGN.md) | depends on | Product/usage/representation/path transfer | Connects definition and instance attribute targets | A shared direct usage is not an entire nested path |
@@ -73,8 +73,8 @@ flowchart LR
   or mapped carriers; body/face names and attributes still use actual geometry
   transfer maps. Genuine product names, product metadata, placements, and
   structural carriers require retained real definition authority. Product and
-  definition descriptions currently have no persistent assembly owner field,
-  so nonempty descriptions fail explicitly rather than being discarded.
+  definition descriptions use the distinct nullable fields owned by Document
+  Assembly, independent of material descriptions.
   The ordinary import result retains the original exact parsed B-rep, including
   deterministic topology identities and canonical curve/p-curve representation;
   independent source evaluation supplies attribute attachment consistency only.
@@ -141,11 +141,14 @@ flowchart LR
   evaluated correspondence, then admits every attributed target before output.
   Existing Body.material/PBR references require explicit supported conversion
   or a typed refusal; neither branch silently overrides the new source authority.
-- Native save/load persists the complete required 0.5.0 ProductAttributes value.
+- Native save/load persists the complete required ProductAttributes value under the current CADCore envelope.
   Other public format routes must perform attribute-loss admission before a
   mesh/B-rep projection removes the source container. This task does not imply
   general GLTF/VRML materials or exact topology support; existing static-mesh
   refusals remain valid and new source metadata cannot disappear silently.
+- Name, material and layer strings consume the bounded STEPFieldReading string
+  contract; standard decoding and encoding remain owned by STEP Assembly.
+  Retained text and actual codec work charge the caller attribute budget.
 - Entity parsing, association indexes, override/context traversal, density
   conversion, evaluated resolution, and output staging share the caller's
   existing exchange byte/entity/nesting/work/duration ceilings plus explicit
@@ -204,7 +207,7 @@ and density in independent mass/length units. They must also prove ambiguous
 properties/contexts, unsupported semantics, dangling targets, nested-path
 non-equivalence, unit/domain/resource/cancellation refusal, and atomic failure.
 Fixtures must not be generated solely by the production writer. Native package
-tests own complete source persistence and strict 0.5.0 admission. Existing exact
+tests own complete source persistence and strict current-envelope admission. Existing exact
 STEP, X2, and static mesh tests retain their geometry/unit/loss invariants.
 Changes require coordinated validation of the source/resolution owners, exact
 transfer maps, public facades, strict native schema, and parent indices/catalogs.

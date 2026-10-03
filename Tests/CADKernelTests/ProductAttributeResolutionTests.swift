@@ -110,6 +110,15 @@ struct ProductAttributeResolutionTests {
         // a stale artifact accidentally carries an otherwise genuine producer receipt.
         stale.validatedSourceReceipt = exact.validatedSourceReceipt; stale.validatedBRep = exact.validatedBRep
         #expect(throws: ProductAttributeError.self) { _ = try ProductAttributeResolver().resolve(stale) }
+        var described = document
+        described.assembly?.definitions[0].productDescription = "Changed product authority"
+        var staleDescription = EvaluatedDocument(document: described, parameters: exact.parameters, brep: exact.brep,
+            meshes: exact.meshes, caches: exact.caches, subshapes: exact.subshapes, lineage: exact.lineage,
+            configuration: exact.configuration, assembly: exact.assembly)
+        staleDescription.validatedSourceReceipt = exact.validatedSourceReceipt
+        staleDescription.validatedBRep = exact.validatedBRep
+        #expect(throws: ProductAttributeError.self) { _ = try ProductAttributeResolver().resolve(staleDescription) }
+        _ = try ProductAttributeResolver().resolve(evaluator.evaluateExact(described))
         let materialized = try evaluator.evaluate(document)
         #expect(materialized.caches.brep != nil)
         _ = try ProductAttributeResolver().resolve(materialized)

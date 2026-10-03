@@ -30,6 +30,17 @@ private extension STEPAssemblyReader {
         let tolerance: ModelingTolerance
         let limits: ExchangeResourceLimits
         var work = 0
+        var stringBytes = 0
+        mutating func string(_ value: String) throws -> String {
+            try budget.check(format: .step)
+            let decoded = try syntax.decodedString(value, limits: STEPStringLimits(
+                maximumInputBytes: limits.maximumBytes,
+                maximumOutputBytes: limits.maximumBytes - stringBytes,
+                maximumWork: limits.maximumIterations - work))
+            try check(decoded.consumedWork)
+            stringBytes += decoded.outputBytes
+            return decoded.value
+        }
         mutating func check(_ count: Int = 1) throws {
             try budget.check(format: .step)
             guard count >= 0, count <= limits.maximumIterations - work else {
@@ -112,10 +123,10 @@ private extension STEPAssemblyReader {
                     let fa = try syntax.arguments(formation)
                     guard fa.count >= 3 else { throw ImportError.invalidData("Malformed STEP product formation.") }
                     let pa = try args(syntax.reference(fa[2]), count: 4)
-                    let name = try syntax.string(pa[1])
-                    let description = pa[2] == "$" ? "" : try syntax.string(pa[2])
-                    let definitionDescription = pd[1] == "$" ? "" : try syntax.string(pd[1])
-                    if !name.isEmpty || !description.isEmpty || !definitionDescription.isEmpty { retainsProductSource = true }
+                    let name = try string(pa[1])
+                    let description = pa[2] == "$" ? nil : try string(pa[2])
+                    let definitionDescription = pd[1] == "$" ? nil : try string(pd[1])
+                    if !name.isEmpty || !(description ?? "").isEmpty || !(definitionDescription ?? "").isEmpty { retainsProductSource = true }
                 }
                 // Physical properties consume real product/shape-aspect association maps even
                 // when their actual persistent target is a body or face inside that product.
@@ -143,6 +154,7 @@ private extension STEPAssemblyReader {
             }
             var definitionIDs: [Int: AssemblyDefinitionID] = [:]
             var productIdentifiers: [Int: String] = [:]
+            var retainedProducts = Set<Int>()
             var definitions: [Int: AssemblyDefinition] = [:]
             var repItems: [Int: [Int]] = [:], repUnits: [Int: LengthUnit] = [:], repContexts: [Int: Int] = [:]
             var features: [FeatureID: FeatureNode] = [:], order: [FeatureID] = []
@@ -154,14 +166,14 @@ private extension STEPAssemblyReader {
                 let fa = try syntax.arguments(formation)
                 guard fa.count >= 3 else { throw ImportError.invalidData("Malformed STEP product formation.") }
                 let product = try syntax.reference(fa[2]), pa = try args(product, count: 4)
-                let identifier = try syntax.string(pa[0]), name = try syntax.string(pa[1])
-                let productDescription = pa[2] == "$" ? "" : try syntax.string(pa[2])
-                let definitionDescription = pd[1] == "$" ? "" : try syntax.string(pd[1])
-                // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP import has no persistent assembly owner for PRODUCT or PRODUCT_DEFINITION descriptions.
-                // Completion requires typed source-owned description fields, strict persistence, and independent round-trip evidence before nonempty descriptions can succeed.
-                guard productDescription.isEmpty, definitionDescription.isEmpty else {
-                    throw ProductAttributeError.unsupportedSemantics("Product and definition descriptions require a persistent source owner.")
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP import cannot retain several PRODUCT_DEFINITION views sharing one PRODUCT owner.
+                // Completion requires an explicit persistent product/view source model before shared product metadata can be admitted without duplicated authority.
+                guard retainedProducts.insert(product).inserted else {
+                    throw ProductAttributeError.unsupportedSemantics("Several definitions share one product description owner.")
                 }
+                let identifier = try string(pa[0]), name = try string(pa[1])
+                let productDescription = pa[2] == "$" ? nil : try string(pa[2])
+                let definitionDescription = pd[1] == "$" ? nil : try string(pd[1])
                 productIdentifiers[productID] = identifier
                 let definitionID = AssemblyDefinitionID(UUID(uuidString: identifier) ?? taggedUUID(namespace: 0x5354455050444546, id: productID))
                 guard !definitionIDs.values.contains(definitionID) else { throw AssemblyError.invalidSource("Duplicate product identity.") }
@@ -259,7 +271,8 @@ private extension STEPAssemblyReader {
                         }
                     }
                 }
-                definitions[productID] = AssemblyDefinition(id: definitionID, name: name, features: bodyFeatures)
+                definitions[productID] = AssemblyDefinition(id: definitionID, name: name, productDescription: productDescription,
+                    definitionDescription: definitionDescription, features: bodyFeatures)
             }
             let allGeometry = Set(names.filter { ["MANIFOLD_SOLID_BREP", "BREP_WITH_VOIDS", "SHELL_BASED_SURFACE_MODEL"].contains($0.value) }.keys)
             guard accountedGeometry == allGeometry else { throw AssemblyError.invalidSource("Unassociated STEP geometry would be discarded.") }
@@ -306,9 +319,9 @@ private extension STEPAssemblyReader {
                         }
                         frame = try cartesian(operatorID, unit: u2)
                     }
-                    let identifier = try syntax.string(a[0])
+                    let identifier = try string(a[0])
                     let occurrence = AssemblyOccurrence(id: AssemblyOccurrenceID(UUID(uuidString: identifier)
-                        ?? taggedUUID(namespace: 0x535445504F434355, id: usage)), name: try syntax.string(a[1]),
+                        ?? taggedUUID(namespace: 0x535445504F434355, id: usage)), name: try string(a[1]),
                         definitionID: childID, placement: r1 == childRep ? frame : frame.inverted())
                     guard var parentDefinition = definitions[parent] else { throw AssemblyError.invalidSource("Missing parent definition.") }
                     guard parentDefinition.features.isEmpty else { throw AssemblyError.invalidSource("STEP assembly geometry is an ambiguous alternative to its children.") }

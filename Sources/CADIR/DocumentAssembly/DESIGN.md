@@ -11,7 +11,8 @@ resolution remain outside this component.
 ## Responsibilities and Boundaries
 
 `CADDocument.assembly` is the sole assembly source authority. A definition has a
-persistent definition identity, descriptive name, local body-producing FeatureID
+persistent definition identity, PRODUCT name, distinct optional PRODUCT and
+PRODUCT_DEFINITION descriptions, local body-producing FeatureID
 references, and child occurrences. An occurrence has a persistent identity, a
 definition reference, and a proper rigid transform into its containing frame.
 Roots are occurrences in the document world frame. Reusing a definition retains
@@ -80,6 +81,11 @@ flowchart LR
   downstream assembly evaluation carries that consumption into the same cumulative
   maximumWork ceiling, rather than granting each phase a fresh allowance.
   Callers may choose positive limits; limits do not relax source invariants.
+- Each definition is the sole retained owner of its product name and its two
+  description fields. `productDescription` and `definitionDescription` are required
+  nullable native keys: absence differs from an explicitly empty string. Native
+  decoding never defaults a missing key. These are descriptive source values,
+  independent of physical material descriptions and presentation attributes.
 - Assembly values participate in member-wise document equality and stable source
   fingerprints. Graph-stable replacement and append fast paths recheck assembly
   source admission. Deleting or suppressing a referenced feature fails before a
@@ -119,7 +125,9 @@ does not publish partial source or an incomplete occurrence list.
 [DocumentAssemblyTests](../../../Tests/CADIRTests/DocumentAssemblyTests.swift)
 owns source sharing/nesting, frame validation, cycle/dangling/suppression refusal,
 bounded expansion, fingerprint changes, strict decoding, validated fast paths,
-and root-only translation. STEP and native package tests verify persistence
+and root-only translation. Description tests verify strict required nullable
+fields, source fingerprint changes for each field, copied validated transitions,
+and preservation through source translation. STEP and native package tests verify persistence
 through their real public paths. Source contract changes require coordinated
 revalidation of Assembly Evaluation, STEP Assembly, and strict NativePackageStore
 admission; parent design indexes are maintained by the integration owner.

@@ -55,6 +55,15 @@ private extension STEPAttributesWriter {
         var building = Set<ProductAttributeID>()
         var targetStyles: [ProductAttributeTarget: [Int]] = [:]
         var shapeAspects: [ProductAttributeTarget: [Int]] = [:]
+        mutating func string(_ value: String) throws -> String {
+            try duration.check(format: .step)
+            let encoded = try STEPStringCodec().encode(value, limits: STEPStringLimits(
+                maximumInputBytes: budget.limits.maximumTextBytes,
+                maximumOutputBytes: budget.limits.maximumTextBytes - budget.consumedTextBytes,
+                maximumWork: budget.limits.maximumWork - budget.consumedWork))
+            try budget.charge(work: encoded.consumedWork, textBytes: encoded.outputBytes)
+            return encoded.value
+        }
         mutating func add(_ text: String) throws -> Int {
             try duration.check(format: .step); try budget.charge(work: 1)
             guard records.count < limits.maximumEntities - startingAt + 1 else { throw ProductAttributeError.resourceLimitExceeded("STEP attribute records.") }
@@ -220,7 +229,7 @@ private extension STEPAttributesWriter {
             case let .material(id):
                 try budget.charge(work: evaluated.document.productAttributes.materials.count)
                 guard let material = evaluated.document.productAttributes.materials.first(where: { $0.id == id }) else { throw ProductAttributeError.missingTarget("Physical material.") }
-                label = "material name"; item = try add("DESCRIPTIVE_REPRESENTATION_ITEM(\(stepAssemblyString(material.name)),\(stepAssemblyString(material.description)))")
+                label = "material name"; item = try add("DESCRIPTIVE_REPRESENTATION_ITEM(\(try string(material.name)),\(try string(material.description)))")
             case .density, .descriptorDensity:
                 let density: PhysicalDensity
                 if case let .density(value) = assignment.value { density = value }
@@ -238,8 +247,8 @@ private extension STEPAttributesWriter {
             let targets = try physicalTargets(assignment.target)
             guard let context = transfer.products.values.first?.context else { throw ProductAttributeError.missingTarget("Property representation context.") }
             for target in targets {
-                let property = try add("PROPERTY_DEFINITION('material property',\(stepAssemblyString(label)),#\(target))")
-                let representation = try add("REPRESENTATION(\(stepAssemblyString(label)),(#\(item)),#\(context))")
+                let property = try add("PROPERTY_DEFINITION('material property',\(try string(label)),#\(target))")
+                let representation = try add("REPRESENTATION(\(try string(label)),(#\(item)),#\(context))")
                 _ = try add("PROPERTY_DEFINITION_REPRESENTATION(#\(property),#\(representation))")
             }
         }
@@ -309,7 +318,7 @@ private extension STEPAttributesWriter {
                     } else { members.formUnion(try styleItems(member)) }
                 }
                 guard !members.isEmpty else { throw ProductAttributeError.unsupportedSemantics("Empty layer cannot be represented by a standard assigned-item set.") }
-                _ = try add("PRESENTATION_LAYER_ASSIGNMENT(\(stepAssemblyString(layer.name)),\(stepAssemblyString(layer.description)),(\(members.sorted().map { "#\($0)" }.joined(separator: ","))))")
+                _ = try add("PRESENTATION_LAYER_ASSIGNMENT(\(try string(layer.name)),\(try string(layer.description)),(\(members.sorted().map { "#\($0)" }.joined(separator: ","))))")
             }
             return records
         }

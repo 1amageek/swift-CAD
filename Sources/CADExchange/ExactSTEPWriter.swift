@@ -13,13 +13,14 @@ struct ExactSTEPWriter {
     units: UnitSystem,
     to sink: any ByteSink
   ) throws {
-    var table = EntityTable(maximumEntities: resourceLimits.maximumEntities, tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes)
+    var table = EntityTable(maximumEntities: resourceLimits.maximumEntities, tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes, maximumStringWork: resourceLimits.maximumIterations)
     _ = try appendDefinition(brep: brep, units: units, identifier: "SWIFTCAD", name: "",
         additionalItems: [], table: &table)
     try publish(table: table, to: sink)
   }
 
   func appendDefinition(brep: BRepModel, units: UnitSystem, identifier: String, name: String,
+                        productDescription: String? = "", definitionDescription: String? = "",
                         additionalItems: [Int], wholePartCarrier: Bool = false, bodyNames: [BodyID: String] = [:], faceNames: [FaceID: String] = [:],
                         table: inout EntityTable) throws -> WrittenDefinition {
     guard brep.bodies.values.allSatisfy({ $0.material == nil }) else {
@@ -28,12 +29,15 @@ struct ExactSTEPWriter {
     let applicationContext = try table.add(
       "APPLICATION_CONTEXT('managed model based 3d engineering')")
     let productContext = try table.add("PRODUCT_CONTEXT('',#\(applicationContext),'mechanical')")
-    let product = try table.add("PRODUCT(\(stepAssemblyString(identifier)),\(stepAssemblyString(name)),'',(#\(productContext)))")
+    let productIdentifier = try table.quotedString(identifier), productName = try table.quotedString(name)
+    let productText = try productDescription.map { try table.quotedString($0) } ?? "$"
+    let definitionText = try definitionDescription.map { try table.quotedString($0) } ?? "$"
+    let product = try table.add("PRODUCT(\(productIdentifier),\(productName),\(productText),(#\(productContext)))")
     let formation = try table.add("PRODUCT_DEFINITION_FORMATION('','',#\(product))")
     let definitionContext = try table.add(
       "PRODUCT_DEFINITION_CONTEXT('part definition',#\(applicationContext),'design')")
     let definition = try table.add(
-      "PRODUCT_DEFINITION('design','',#\(formation),#\(definitionContext))")
+      "PRODUCT_DEFINITION('design',\(definitionText),#\(formation),#\(definitionContext))")
     let definitionShape = try table.add("PRODUCT_DEFINITION_SHAPE('','',#\(definition))")
     let lengthUnit = try lengthUnitEntity(units.length, table: &table)
     let angleUnit = try table.add("(NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,.RADIAN.))")
@@ -469,7 +473,7 @@ struct ExactSTEPWriter {
       }
       let orientation = face.orientation == .forward ? ".T." : ".F."
       faceEntities[faceID] = try table.add(
-        "ADVANCED_FACE(\(stepAssemblyString(faceNames[faceID] ?? "")),(\(bounds.map { "#\($0)" }.joined(separator: ","))),#\(surface),\(orientation))"
+        "ADVANCED_FACE(\(try table.quotedString(faceNames[faceID] ?? "")),(\(bounds.map { "#\($0)" }.joined(separator: ","))),#\(surface),\(orientation))"
       )
     }
     var representationItems: [Int] = []
@@ -507,7 +511,7 @@ struct ExactSTEPWriter {
           if component.voidShellIDs.isEmpty {
             representationItems.append(
               try table.add(
-                "MANIFOLD_SOLID_BREP(\(stepAssemblyString(bodyNames[bodyID] ?? body.name ?? "")),#\(outerEntity))"
+                "MANIFOLD_SOLID_BREP(\(try table.quotedString(bodyNames[bodyID] ?? body.name ?? "")),#\(outerEntity))"
               ))
             continue
           }
@@ -521,13 +525,13 @@ struct ExactSTEPWriter {
           }
           representationItems.append(
             try table.add(
-              "BREP_WITH_VOIDS(\(stepAssemblyString(bodyNames[bodyID] ?? body.name ?? "")),#\(outerEntity),(\(orientedVoids.map { "#\($0)" }.joined(separator: ","))))"
+              "BREP_WITH_VOIDS(\(try table.quotedString(bodyNames[bodyID] ?? body.name ?? "")),#\(outerEntity),(\(orientedVoids.map { "#\($0)" }.joined(separator: ","))))"
             ))
         }
       } else {
         representationItems.append(
           try table.add(
-            "SHELL_BASED_SURFACE_MODEL(\(stepAssemblyString(bodyNames[bodyID] ?? body.name ?? "")),(\(shellEntities.map { "#\($0)" }.joined(separator: ","))))"
+            "SHELL_BASED_SURFACE_MODEL(\(try table.quotedString(bodyNames[bodyID] ?? body.name ?? "")),(\(shellEntities.map { "#\($0)" }.joined(separator: ","))))"
           ))
       }
       bodyEntities[bodyID] = Array(representationItems[firstItem...])
@@ -1364,11 +1368,24 @@ struct ExactSTEPWriter {
     var entities: [String] = []
     var maximumBytes: Int = 64 * 1024 * 1024
     private var byteCount: Int = 0
+    private var stringWork = 0
+    private var stringBytes = 0
+    let maximumStringWork: Int
 
-    init(maximumEntities: Int, tolerance: ModelingTolerance, maximumBytes: Int = 64 * 1024 * 1024) {
+    init(maximumEntities: Int, tolerance: ModelingTolerance, maximumBytes: Int = 64 * 1024 * 1024, maximumStringWork: Int = 10_000_000) {
       self.maximumEntities = maximumEntities
       self.tolerance = tolerance
       self.maximumBytes = maximumBytes
+      self.maximumStringWork = maximumStringWork
+    }
+
+    mutating func quotedString(_ value: String) throws -> String {
+      let result = try STEPStringCodec().encode(value, limits: STEPStringLimits(
+        maximumInputBytes: maximumBytes,
+        maximumOutputBytes: min(maximumBytes - byteCount, maximumBytes - stringBytes),
+        maximumWork: maximumStringWork - stringWork))
+      stringWork += result.consumedWork; stringBytes += result.outputBytes
+      return result.value
     }
 
     mutating func add(_ entity: String) throws -> Int {

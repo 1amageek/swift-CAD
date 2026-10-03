@@ -80,6 +80,31 @@ flowchart LR
 - STEPFieldReading exposes bounded lexical entity fields, references, strings,
   numeric values, and tuple structure to STEP Attributes. STEPAssemblySyntax
   implements this contract; consumers do not duplicate its lexical parser.
+- STEPStringCoding owns ISO 10303-21 string token encoding and decoding. The
+  shared lexical contract exposes bounded decoding with actual consumed work.
+  It admits doubled apostrophes/backslashes, direct UTF-8, X, S, X2, X4 and
+  per-string PA through PI ISO 8859 alphabet selection. UCS blocks contain
+  complete scalar groups, not surrogate pairs; invalid scalars, undefined page
+  entries, malformed directives and incomplete blocks fail explicitly. No Unicode
+  normalization or replacement character repairs input. Quote/depth/envelope
+  lexers recognize ASCII delimiters on Unicode scalar boundaries, including
+  a combining scalar immediately after an apostrophe. Their existing marker,
+  nesting and resource rules remain authoritative. Writers emit portable
+  ASCII tokens with canonical explicit UCS blocks and doubled literal delimiters.
+  The normative encoded-token ceiling is 32769 octets including quotes; caller
+  input/output/work ceilings may be smaller. Input and output bytes and scalar
+  traversal are admitted before allocation/growth. Decode work counts input
+  octets plus emitted scalars; encode work counts input octets plus encoded
+  octets. Input traversal stops at a caller ceiling without scanning the remainder.
+  Consumer operation counters
+  charge actual consumed work and retained text. Cancellation propagates.
+- AssemblyDefinition retains PRODUCT.description and PRODUCT_DEFINITION.description
+  separately. STEP `$` maps to nil and `''` to an empty string, with identical
+  export semantics. Nonempty descriptions require the genuine product source
+  route; ordinary unnamed geometry with absent/empty descriptions retains its
+  exact ordinary route. This profile admits one PRODUCT per retained definition;
+  a product shared by competing definitions is refused rather than duplicating
+  product-level source authority. No attribute assignment impersonates description.
 - A whole-part styling carrier is structural transport for one real product
   definition. Its product-associated outer representation contains exactly one
   MAPPED_ITEM plus its frame. The representation map refers to an unassociated
@@ -116,6 +141,11 @@ flowchart LR
   consistency uses its exchange ceilings, rather than trusting a larger retained
   evaluation allowance. Cancellation propagates; failures publish no partial document/model
   and do not modify an existing URL output.
+
+The string authority is [ISO 10303-21, section 6.4.3](https://www.steptools.com/stds/step/IS_final_p21e3.html).
+Description optionality follows the standard EXPRESS
+[PRODUCT](https://www.steptools.com/stds/stp_aim/html/t_product.html) and
+[PRODUCT_DEFINITION](https://www.steptools.com/stds/stp_aim/html/t_product_definition.html).
 
 The standard placement authority is
 [ISO 10303-43 representation structures](https://www.steptools.com/stds/smrl/data/resource_docs/representation_structures/sys/4_schema.htm)
@@ -164,6 +194,9 @@ owns independently authored whole-part carrier fixtures, multiple local bodies,
 face style overrides, source scope round trips, and invalid carrier refusal.
 Existing STEPAssemblyExchangeTests verify that genuine mapped occurrences remain
 assembly edges rather than styling carriers.
+[STEPStringExchangeTests](../../../Tests/CADExchangeTests/STEPStringExchangeTests.swift)
+owns independent encoded literals, malformed/resource/cancellation boundaries,
+and public STEP/native description and attributed Unicode round trips.
 Existing ExactSTEPExchangeTests retain ordinary single-product geometry/unit
 regression ownership. Changes require coordinated verification of DocumentAssembly,
 Assembly Evaluation, native strict schema, and public STEP facade routing.

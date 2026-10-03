@@ -14,7 +14,7 @@ struct STEPAssemblySyntax: STEPFieldReading {
         return String(e[..<p]).trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
     }
     func arguments(_ id: Int, component: String? = nil) throws -> [String] {
-        let e = try entity(id)
+        let e = try entity(id).unicodeScalars
         let start: String.Index
         if let component {
             // Lexical component matching excludes names contained inside STEP quoted strings.
@@ -27,9 +27,9 @@ struct STEPAssemblySyntax: STEPFieldReading {
                     if quoted, next < e.endIndex, e[next] == "'" { cursor = e.index(after: next); continue }
                     quoted.toggle()
                 }
-                if !quoted, e[cursor...].hasPrefix(component + "(") {
+                if !quoted, e[cursor...].starts(with: (component + "(").unicodeScalars) {
                     let preceding = cursor == e.startIndex ? "(" : e[e.index(before: cursor)]
-                    if preceding == "(" || preceding.isWhitespace { found = e.index(cursor, offsetBy: component.count); break }
+                    if preceding == "(" || preceding.properties.isWhitespace { found = e.index(cursor, offsetBy: component.unicodeScalars.count); break }
                 }
                 cursor = e.index(after: cursor)
             }
@@ -59,26 +59,27 @@ struct STEPAssemblySyntax: STEPFieldReading {
     }
     func split(_ value: String) throws -> [String] {
         if value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return [] }
+        let scalars = value.unicodeScalars
         var result: [String] = [], depth = 0, quoted = false
-        var start = value.startIndex, cursor = start
-        while cursor < value.endIndex {
-            let ch = value[cursor]
+        var start = scalars.startIndex, cursor = start
+        while cursor < scalars.endIndex {
+            let ch = scalars[cursor]
             if ch == "'" {
-                let next = value.index(after: cursor)
-                if quoted, next < value.endIndex, value[next] == "'" { cursor = value.index(after: next); continue }
+                let next = scalars.index(after: cursor)
+                if quoted, next < scalars.endIndex, scalars[next] == "'" { cursor = scalars.index(after: next); continue }
                 quoted.toggle()
             } else if !quoted {
                 if ch == "(" { depth += 1 }; if ch == ")" { depth -= 1 }
                 if ch == ",", depth == 0 {
-                    result.append(String(value[start..<cursor]).trimmingCharacters(in: .whitespacesAndNewlines))
-                    start = value.index(after: cursor)
+                    result.append(String(scalars[start..<cursor]).trimmingCharacters(in: .whitespacesAndNewlines))
+                    start = scalars.index(after: cursor)
                 }
             }
             guard depth >= 0 else { throw ImportError.invalidData("Malformed STEP tuple.") }
-            cursor = value.index(after: cursor)
+            cursor = scalars.index(after: cursor)
         }
         guard depth == 0, !quoted else { throw ImportError.invalidData("Malformed STEP tuple/string.") }
-        result.append(String(value[start...]).trimmingCharacters(in: .whitespacesAndNewlines))
+        result.append(String(scalars[start...]).trimmingCharacters(in: .whitespacesAndNewlines))
         guard result.allSatisfy({ !$0.isEmpty }) else { throw ImportError.invalidData("Empty STEP argument.") }
         return result
     }
@@ -93,8 +94,10 @@ struct STEPAssemblySyntax: STEPFieldReading {
         return try split(String(value.dropFirst().dropLast())).map(reference)
     }
     func string(_ value: String) throws -> String {
-        guard value.first == "'", value.last == "'" else { throw ImportError.invalidData("Expected STEP string.") }
-        return String(value.dropFirst().dropLast()).replacingOccurrences(of: "''", with: "'")
+        try decodedString(value, limits: .standard).value
+    }
+    func decodedString(_ value: String, limits: STEPStringLimits) throws -> STEPStringResult {
+        try STEPStringCodec().decode(value, limits: limits)
     }
     func numbers(_ value: String) throws -> [Double] {
         guard value.first == "(", value.last == ")" else { throw ImportError.invalidData("Expected STEP numeric tuple.") }

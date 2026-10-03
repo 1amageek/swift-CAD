@@ -97,6 +97,39 @@ struct DocumentAssemblyTests {
         try updated.document.validate(tolerance: .standard)
     }
     @Test(.timeLimit(.minutes(1)))
+    func descriptionsAreDistinctRequiredNullableSourceOwners() throws {
+        var document = fixture()
+        document.assembly?.definitions[0].productDescription = "product café"
+        document.assembly?.definitions[0].definitionDescription = "definition π"
+        let original = try document.sourceFingerprint(tolerance: .standard)
+        var edited = document
+        edited.assembly?.definitions[0].productDescription = "another product description"
+        #expect(try edited.sourceFingerprint(tolerance: .standard) != original)
+        edited = document; edited.assembly?.definitions[0].definitionDescription = "another definition description"
+        #expect(try edited.sourceFingerprint(tolerance: .standard) != original)
+        edited = document; edited.assembly?.definitions[1].productDescription = ""
+        #expect(try edited.sourceFingerprint(tolerance: .standard) != original)
+        #expect(try JSONDecoder().decode(CADDocument.self, from: JSONEncoder().encode(document)) == document)
+        let translated = try document.translatingSources(by: .unitX, tolerance: .standard)
+        #expect(translated.assembly?.definitions == document.assembly?.definitions)
+        let validated = try ValidatedCADDocument(document, tolerance: .standard)
+        var feature = try #require(document.designGraph.nodes[document.designGraph.order[0]])
+        feature.name = "local feature edit"
+        let updated = try validated.replacingGraphStableFeature(feature)
+        #expect(updated.document.assembly == document.assembly)
+        #expect(try updated.document.sourceFingerprint(tolerance: .standard) != original)
+        let definition = AssemblyDefinition(name: "required nulls")
+        let object = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(definition)) as? [String: Any])
+        #expect(object["productDescription"] is NSNull && object["definitionDescription"] is NSNull)
+        for key in ["productDescription", "definitionDescription"] {
+            var missing = object; missing.removeValue(forKey: key)
+            #expect(throws: DecodingError.self) {
+                _ = try JSONDecoder().decode(AssemblyDefinition.self, from: JSONSerialization.data(withJSONObject: missing))
+            }
+        }
+        #expect(throws: SchemaError.self) { try SchemaVersion(major: 0, minor: 5, patch: 0).validate() }
+    }
+    @Test(.timeLimit(.minutes(1)))
     func strictNullableFieldOldVersionAndNestedUnknownRefuse() throws {
         let document = fixture()
         let data = try JSONEncoder().encode(document)
