@@ -173,6 +173,7 @@ private extension STEPAssemblyReader {
             var definitions: [Int: AssemblyDefinition] = [:]
             var repItems: [Int: [Int]] = [:], repUnits: [Int: LengthUnit] = [:], repContexts: [Int: Int] = [:]
             var features: [FeatureID: FeatureNode] = [:], order: [FeatureID] = []
+            var geometryOwners: [Int: (unit: LengthUnit, features: [FeatureID])] = [:]
             var accountedGeometry = Set<Int>()
             for productID in productIDs {
                 try check()
@@ -219,17 +220,16 @@ private extension STEPAssemblyReader {
                 guard ["SHAPE_REPRESENTATION", "ADVANCED_BREP_SHAPE_REPRESENTATION", "MANIFOLD_SURFACE_SHAPE_REPRESENTATION"].contains(repName) else {
                     throw AssemblyError.invalidSource("Unsupported STEP product shape representation.")
                 }
-                // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP import cannot retain one shape representation as several definition views.
-                // Complete multi-owner exact topology correspondence is required before shared representations can be admitted.
-                guard transfer.representations[rep] == nil else {
-                    throw ProductAttributeError.unsupportedSemantics("Several definitions share one shape representation.")
-                }
-                transfer.representations[rep] = definitionID
+                try check()
+                transfer.representations[rep, default: []].insert(definitionID)
                 let ra = try args(rep, count: 3), context = try syntax.reference(ra[2])
                 let lengthUnit = try unit(context)
+                try check()
+                transfer.representationUnits[rep] = lengthUnit
                 let items = try syntax.list(ra[1]); repItems[rep] = items; repUnits[rep] = lengthUnit; repContexts[rep] = context
                 // A representation relationship may associate a shape representation with its local exact geometry.
                 var geometryItems = items
+                var geometryOwner = rep
                 for relationship in names.keys.sorted() where names[relationship] == "SHAPE_REPRESENTATION_RELATIONSHIP" {
                     try check()
                     let relation = try args(relationship, count: 4)
@@ -249,6 +249,11 @@ private extension STEPAssemblyReader {
                     let mapping = try args(mapID, count: 2), inner = try syntax.reference(mapping[1])
                     if !representations.values.contains(inner) {
                         // A structural whole-part carrier retains local geometry without creating an assembly usage.
+                        // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP import cannot retain a shared whole-part carrier as a multi-definition attribute set.
+                        // A standard set-scope source/egress contract must retain each style/layer predecessor before this shared carrier can be admitted.
+                        guard transfer.partCarriers[item] == nil else {
+                            throw ProductAttributeError.unsupportedSemantics("A whole-part carrier cannot select several definitions.")
+                        }
                         guard carriers.insert(item).inserted,
                               geometryItems.filter({ names[$0] == "MAPPED_ITEM" }).count == 1,
                               geometryItems.allSatisfy({ $0 == item || names[$0] == "AXIS2_PLACEMENT_3D" }) else {
@@ -272,28 +277,41 @@ private extension STEPAssemblyReader {
                         guard frame == RigidTransform3D.translated(by: .zero) else {
                             throw AssemblyError.invalidSource("Whole-part carrier transform is not identity.")
                         }
-                        guard transfer.representations[inner] == nil else {
-                            throw AssemblyError.invalidSource("Whole-part inner geometry has competing product associations.")
-                        }
                         transfer.partCarriers[item] = definitionID
-                        transfer.representations[inner] = definitionID
+                        try check()
+                        transfer.representations[inner, default: []].insert(definitionID)
+                        transfer.representationUnits[inner] = innerUnit
                         geometryItems = innerItems
+                        geometryOwner = inner
                     }
                 }
                 var geometry = Set<Int>()
                 for item in geometryItems {
+                    try check()
                     if ["MANIFOLD_SOLID_BREP", "BREP_WITH_VOIDS", "SHELL_BASED_SURFACE_MODEL"].contains(names[item] ?? "") { geometry.insert(item) }
                     else if !["AXIS2_PLACEMENT_3D", "MAPPED_ITEM", "CARTESIAN_TRANSFORMATION_OPERATOR_3D"].contains(names[item] ?? "") {
                         throw AssemblyError.invalidSource("STEP product representation contains unretained semantics.")
                     }
                 }
+                if geometryOwners[geometryOwner] == nil {
+                    for item in geometry {
+                        try check()
+                        guard !accountedGeometry.contains(item) else {
+                            throw AssemblyError.invalidSource("Distinct geometry representations have competing exact item ownership.")
+                        }
+                    }
+                }
                 accountedGeometry.formUnion(geometry)
                 var bodyFeatures: [FeatureID] = []
-                if !geometry.isEmpty {
+                if let retained = geometryOwners[geometryOwner] {
+                    guard retained.unit == lengthUnit else { throw AssemblyError.invalidSource("Shared geometry has conflicting owned units.") }
+                    bodyFeatures = retained.features
+                } else if !geometry.isEmpty {
                     let exactTransfer = try ExactSTEPReader(entities: syntax.entities, lengthUnit: lengthUnit,
                         processingBudget: budget, tolerance: tolerance, representationItems: geometry).readWithTransfer()
                     let model = exactTransfer.model
                     for bodyID in model.bodies.keys.sorted() {
+                        try check()
                         let local = try BRepBodySubmodelExtractor().extract(bodyIDs: [bodyID], from: model)
                         guard let body = local.bodies[bodyID] else { throw AssemblyError.invalidSource("Missing local STEP body.") }
                         let id = FeatureID()
@@ -310,6 +328,8 @@ private extension STEPAssemblyReader {
                             }
                         }
                     }
+                    try check(bodyFeatures.count + 1)
+                    geometryOwners[geometryOwner] = (lengthUnit, bodyFeatures)
                 }
                 definitions[productID] = AssemblyDefinition(id: definitionID, formationID: retainedFormation.id, identifier: identifier,
                     definitionDescription: definitionDescription, features: bodyFeatures)

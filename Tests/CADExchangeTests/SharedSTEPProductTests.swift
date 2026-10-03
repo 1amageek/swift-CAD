@@ -143,9 +143,10 @@ struct SharedSTEPProductTests {
         for (literal, failure) in identityFailures { #expect(throws: failure) { _ = try imported(literal) } }
         let variants = [
             Self.fixture.replacingOccurrences(of: "'analysis',$,#51", with: "'analysis',$,#610").replacingOccurrences(of: "ENDSEC;\nEND-ISO", with: "#610=PRODUCT_DEFINITION_FORMATION('v1',$,#50);\nENDSEC;\nEND-ISO"),
-            Self.fixture.replacingOccurrences(of: ".MADE.", with: ".INVENTED."),
-            Self.fixture.replacingOccurrences(of: "SHAPE_DEFINITION_REPRESENTATION(#63,#64)", with: "SHAPE_DEFINITION_REPRESENTATION(#63,#54)")]
+            Self.fixture.replacingOccurrences(of: ".MADE.", with: ".INVENTED.")]
         for literal in variants { #expect(throws: (any Error).self) { _ = try imported(literal) } }
+        let unassociatedGeometry = Self.fixture.replacingOccurrences(of: "SHAPE_DEFINITION_REPRESENTATION(#63,#64)", with: "SHAPE_DEFINITION_REPRESENTATION(#63,#54)")
+        #expect(throws: AssemblyError.invalidSource("Unassociated STEP geometry would be discarded.")) { _ = try imported(unassociatedGeometry) }
         let source = try imported(), evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(source)
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

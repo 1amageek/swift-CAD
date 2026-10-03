@@ -16,6 +16,9 @@ source occurrence paths, composes placements, and creates independently owned
 world topology. Existing generic-shape transformation and ownership-closed
 extraction are consumed through their contracts. Shared definitions retain one
 local geometry authority; each world instance has distinct topology identities.
+Distinct definitions referencing the same FeatureID also reuse that authority.
+World identity continues to include the actual definition and complete occurrence
+path, so sharing local geometry does not merge PD-specific attributes or placements.
 
 An immutable local evaluation base retains the validated local B-rep, local
 subshape index, and local lineage required by existing incremental feature

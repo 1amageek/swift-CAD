@@ -69,6 +69,9 @@ flowchart LR
   an unreachable product is not silently discarded. An empty root list is invalid
   source, independently of resource ceilings.
 - A definition may contain local feature shapes and explicit child occurrences.
+  Distinct definitions may refer to the same existing FeatureID list. That feature
+  is the sole local shape source; definition metadata and attribute selectors
+  remain separate views, not copied geometry or additional feature nodes.
   Their source meaning is additive and unambiguous. STEP files whose assembly
   geometry could instead be an alternative flattened representation are refused
   by the exchange owner rather than assigned this additive meaning implicitly.

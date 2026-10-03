@@ -124,7 +124,7 @@ struct STEPStringExchangeTests {
         #expect(directRestored.assembly?.products.first?.name.unicodeScalars.elementsEqual("\u{301}部品;#999=e\u{301}".unicodeScalars) == true)
         let competing = literal.replacingOccurrences(of: "ENDSEC;\nEND-ISO", with:
             "#500=PRODUCT_DEFINITION('another view','different definition description',#51,#3);\n#501=PRODUCT_DEFINITION_SHAPE('','',#500);\n#502=SHAPE_DEFINITION_REPRESENTATION(#501,#56);\nENDSEC;\nEND-ISO")
-        #expect(throws: ProductAttributeError.unsupportedSemantics("Several definitions share one shape representation.")) {
+        #expect(throws: ProductAttributeError.unsupportedSemantics("A whole-part carrier cannot select several definitions.")) {
             _ = try exchange.import(Data(competing.utf8))
         }
         let bad = literal.replacingOccurrences(of: #"\X4\0001F600\X0\"#, with: #"\X4\00110000\X0\"#)

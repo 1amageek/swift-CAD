@@ -37,10 +37,11 @@ public struct STEPAttributesWriter: STEPAttributesWriting {
 }
 
 private extension STEPAttributesWriter {
-    static func validateGeometryTarget(_ target: ProductAttributeTarget) throws {
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEPExchange and OfficialFormatExchange export cannot retain definition-qualified body/face scopes yet.
-        // Shared representation and PD-qualified standard ingress/egress must preserve the source selector before names, properties or layers can be emitted.
-        guard !((target.kind == .body || target.kind == .face) && target.definitionID != nil) else {
+    static func validateGeometryTarget(_ target: ProductAttributeTarget, property: ProductAttributeValue.Property? = nil) throws {
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEPExchange and OfficialFormatExchange cannot transport definition-qualified geometry names, colors or layer scopes yet.
+        // Standard ingress/egress must retain all instances of that definition before these properties can be projected onto common geometry items.
+        guard !((target.kind == .body || target.kind == .face) && target.definitionID != nil
+                && property != .material && property != .density) else {
             throw ProductAttributeError.unsupportedSemantics("Definition-qualified geometry requires scope-preserving STEP transport.")
         }
     }
@@ -63,7 +64,7 @@ private extension STEPAttributesWriter {
         mutating func validateGeometryScope() throws {
             for assignment in evaluated.document.productAttributes.assignments {
                 try check()
-                try STEPAttributesWriter.validateGeometryTarget(assignment.target)
+                try STEPAttributesWriter.validateGeometryTarget(assignment.target, property: assignment.value.property)
             }
             for layer in evaluated.document.productAttributes.layers {
                 try check()
@@ -153,21 +154,27 @@ private extension STEPAttributesWriter {
                 guard let topology = resolved.localGeometry[target] else { throw ProductAttributeError.missingTarget("Style geometry target.") }
                 let products = try products(target)
                 guard !products.isEmpty else { throw ProductAttributeError.missingTarget("Style product membership.") }
-                return try products.map { product in
+                var items: [Int] = []
+                var seen = Set<Int>()
+                for product in products {
+                    try check()
+                    let item: Int
                     switch topology {
                     case let .body(id):
-                        guard let items = product.bodies[id], items.count == 1, let item = items.first else {
+                        guard let entities = product.bodies[id], entities.count == 1, let entity = entities.first else {
                             // FIXME(INCOMPLETE_IMPLEMENTATION): STEPExchange cannot yet retain one attributed multi-component Body across several solid items.
                             // A standard unique Body grouping with exact attribute scope and independent round-trip evidence is required.
                             throw ProductAttributeError.unsupportedSemantics("Attributed body spans several STEP representation items.")
                         }
-                        return item
+                        item = entity
                     case let .face(id):
-                        guard let item = product.faces[id] else { throw ProductAttributeError.missingTarget("Style face.") }
-                        return item
+                        guard let entity = product.faces[id] else { throw ProductAttributeError.missingTarget("Style face.") }
+                        item = entity
                     default: throw ProductAttributeError.invalidSource("Unsupported style topology kind.")
                     }
+                    if !seen.contains(item) { try budget.charge(targets: 2); seen.insert(item); items.append(item) }
                 }
+                return items
             }
         }
         mutating func appendStyle(_ assignment: ProductAttributeAssignment, depth: Int) throws -> [Int] {
@@ -255,14 +262,23 @@ private extension STEPAttributesWriter {
                 guard let id = target.usageID, let usage = transfer.usages[id] else { throw ProductAttributeError.missingTarget("Physical direct usage.") }
                 return [usage]
             }
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP physical geometry export has no standard global source-scope owner in the admitted GISU profile.
+            // A complete standard association must distinguish global geometry properties from explicit PD-qualified properties before global material/density can succeed.
+            guard target.definitionID != nil else {
+                throw ProductAttributeError.unsupportedSemantics("Global physical geometry requires a standard source-scope owner.")
+            }
             let items = try styleItems(target), products = try products(target)
             guard items.count == products.count else { throw ProductAttributeError.inconsistentArtifact("Physical geometry/product correspondence.") }
             var result: [Int] = []
             for (item, product) in zip(items, products) {
+                // A direct singleton view gives each explicit PD target its own standard usage key without copying topology.
+                let view = try add("SHAPE_REPRESENTATION('',(#\(item)),#\(product.context))")
                 let aspect = try add("SHAPE_ASPECT('','',#\(product.definitionShape),.T.)")
-                _ = try add("GEOMETRIC_ITEM_SPECIFIC_USAGE('','',#\(aspect),#\(product.geometryRepresentation),#\(item))")
+                _ = try add("GEOMETRIC_ITEM_SPECIFIC_USAGE('','',#\(aspect),#\(view),#\(item))")
+                try budget.charge(targets: 1)
                 result.append(aspect)
             }
+            try budget.charge(targets: 1)
             shapeAspects[target] = result; return result
         }
         mutating func physicalProperty(_ assignment: ProductAttributeAssignment) throws {

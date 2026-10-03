@@ -32,6 +32,7 @@ private extension STEPAttributesReader {
         var names: [Int: String] = [:]
         var geometry: [Int: ProductAttributeTarget] = [:]
         var assignments: [ProductAttributeAssignment] = []
+        var physicalGeometry: [Int: ProductAttributeTarget] = [:]
         var styleProperties: [Int: [ProductAttributeValue.Property: ProductAttributeID]] = [:]
         var styleTargets: [Int: ProductAttributeTarget] = [:]
         var buildingStyles = Set<Int>()
@@ -62,22 +63,95 @@ private extension STEPAttributesReader {
                 let a = try args(item, 4), shape = try syntax.reference(a[2])
                 let pds = try args(shape, 3), owner = try syntax.reference(pds[2])
                 guard let definition = transfer.definitions[owner] else { throw ProductAttributeError.missingTarget("Shape aspect product.") }
-                var matches: [ProductAttributeTarget] = []
-                for id in entities.keys where names[id] == "GEOMETRIC_ITEM_SPECIFIC_USAGE" {
-                    try check()
-                    let usage = try args(id, 5)
-                    if try syntax.reference(usage[2]) == item {
-                        let representation = try syntax.reference(usage[3]), geometryID = try syntax.reference(usage[4])
-                        guard transfer.representations[representation] == definition, let mapped = geometry[geometryID] else {
-                            throw ProductAttributeError.missingTarget("Shape aspect geometry correspondence.")
-                        }
-                        try budget.charge(targets: 1); matches.append(mapped)
-                    }
+                guard let mapped = physicalGeometry[item], mapped.definitionID == definition else {
+                    throw ProductAttributeError.ambiguousProperty("Shape aspect geometry target.")
                 }
-                guard matches.count == 1, let mapped = matches.first else { throw ProductAttributeError.ambiguousProperty("Shape aspect geometry target.") }
                 return mapped
             }
             throw ProductAttributeError.unsupportedSemantics("Unresolved STEP attribute target.")
+        }
+        mutating func preparePhysicalGeometry() throws {
+            var associated = Set<Int>()
+            try check(entities.count)
+            for id in entities.keys where names[id] == "SHAPE_DEFINITION_REPRESENTATION" {
+                try check()
+                let representation = try syntax.reference(args(id, 2)[1])
+                try budget.charge(targets: 1); associated.insert(representation)
+            }
+            var itemKeys = Set<[Int]>(), definitionKeys = Set<[Int]>()
+            try check(entities.count)
+            for id in entities.keys where names[id] == "GEOMETRIC_ITEM_SPECIFIC_USAGE" {
+                try check()
+                let usage = try args(id, 5), aspect = try syntax.reference(usage[2])
+                let representation = try syntax.reference(usage[3]), item = try syntax.reference(usage[4])
+                guard names[aspect] == "SHAPE_ASPECT" else {
+                    throw ProductAttributeError.unsupportedSemantics("Unsupported GISU definition target.")
+                }
+                let a = try args(aspect, 4), shape = try syntax.reference(a[2])
+                guard names[shape] == "PRODUCT_DEFINITION_SHAPE" else {
+                    throw ProductAttributeError.invalidSource("Shape aspect requires a product definition shape.")
+                }
+                let owner = try syntax.reference(args(shape, 3)[2])
+                guard let definition = transfer.definitions[owner], let mapped = geometry[item], let reference = mapped.geometry else {
+                    throw ProductAttributeError.missingTarget("Shape aspect geometry correspondence.")
+                }
+                try check(evaluated.document.assembly?.definitions.count ?? 0)
+                guard let source = evaluated.document.assembly?.definitions.first(where: { $0.id == definition }) else {
+                    throw ProductAttributeError.missingTarget("Shape aspect product.")
+                }
+                try check(source.features.count)
+                guard source.features.contains(reference.subshapeID.featureID) else {
+                    throw ProductAttributeError.missingTarget("Shape aspect geometry correspondence.")
+                }
+                if let members = transfer.representations[representation] {
+                    guard members.contains(definition) else { throw ProductAttributeError.missingTarget("Shape aspect geometry correspondence.") }
+                    // The carrier's outer mapped item does not directly contain its inner body or face.
+                    let ra = try args(representation, 3), items = try syntax.list(ra[1])
+                    try check(items.count)
+                    guard !items.contains(where: { names[$0] == "MAPPED_ITEM" }) else {
+                        throw ProductAttributeError.invalidSource("GISU representation does not directly own its identified geometry.")
+                    }
+                } else {
+                    guard !associated.contains(representation), names[representation] == "SHAPE_REPRESENTATION" else {
+                        throw ProductAttributeError.invalidSource("Physical target view must be an unassociated shape representation.")
+                    }
+                    let view = try args(representation, 3), items = try syntax.list(view[1])
+                    try check(items.count)
+                    guard items.count == 1, items.first == item else {
+                        throw ProductAttributeError.invalidSource("Physical target view must contain exactly its identified item.")
+                    }
+                    let context = try syntax.reference(view[2])
+                    let dimension = try syntax.arguments(context, component: "GEOMETRIC_REPRESENTATION_CONTEXT")
+                    guard dimension == ["3"] else { throw ProductAttributeError.invalidSource("Physical target view requires a 3D geometry context.") }
+                    let unitArgs = try syntax.arguments(context, component: "GLOBAL_UNIT_ASSIGNED_CONTEXT")
+                    guard unitArgs.count == 1 else { throw ProductAttributeError.invalidSource("Malformed physical target view unit context.") }
+                    var length: LengthUnit?
+                    for unit in try syntax.list(unitArgs[0]) {
+                        try check(entities[unit]?.utf8.count ?? 1)
+                        if let value = try stepLengthUnit(from: syntax.entity(unit), entities: entities) {
+                            guard length == nil else { throw ProductAttributeError.invalidSource("Ambiguous physical target view length units.") }
+                            length = value
+                        }
+                    }
+                    guard let length else { throw ProductAttributeError.invalidSource("Missing physical target view length unit.") }
+                    var ownedUnit: LengthUnit?
+                    for (rep, members) in transfer.representations {
+                        try check()
+                        if members.contains(definition), let unit = transfer.representationUnits[rep] {
+                            if let existing = ownedUnit, existing != unit { throw ProductAttributeError.inconsistentArtifact("Conflicting PD representation units.") }
+                            ownedUnit = unit
+                        }
+                    }
+                    guard ownedUnit == length else { throw ProductAttributeError.invalidSource("Physical target view has conflicting owned units.") }
+                }
+                try budget.charge(targets: 7)
+                guard itemKeys.insert([representation, item]).inserted,
+                      definitionKeys.insert([representation, aspect]).inserted else {
+                    throw ProductAttributeError.invalidSource("Duplicate GISU representation/item or representation/definition usage.")
+                }
+                guard physicalGeometry[aspect] == nil else { throw ProductAttributeError.ambiguousProperty("Shape aspect geometry target.") }
+                physicalGeometry[aspect] = ProductAttributeTarget(kind: mapped.kind, geometry: reference, definitionID: definition)
+            }
         }
         mutating func contextPath(_ token: String) throws -> AssemblyOccurrencePath {
             let contexts = try syntax.list(token)
@@ -191,9 +265,9 @@ private extension STEPAttributesReader {
                 // A real assembly MAPPED_ITEM must retain complete instance scope before it can be admitted; PD/representation pseudo-targets are invalid.
                 throw ProductAttributeError.unsupportedSemantics("Styled item requires an actual body, face, or structural whole-part carrier target.")
             }
-            if contextual, let definition = transfer.representations[item] {
+            if contextual, let definitions = transfer.representations[item] {
                 target = ProductAttributeTarget(kind: .occurrence, path: try contextPath(a[4]))
-                guard evaluated.assembly?.occurrences.contains(where: { $0.path == target.path && $0.definitionID == definition }) == true else {
+                guard evaluated.assembly?.occurrences.contains(where: { $0.path == target.path && definitions.contains($0.definitionID) }) == true else {
                     throw ProductAttributeError.missingTarget("Contextual style component representation.")
                 }
             } else {
@@ -220,9 +294,12 @@ private extension STEPAttributesReader {
         }
         mutating func read() throws -> ProductAttributes {
             try budget.charge(work: entities.count)
+            var hasPhysicalGeometry = false
             for (id, text) in entities {
                 try budget.charge(textBytes: text.utf8.count)
-                names[id] = try syntax.name(id)
+                let name = try syntax.name(id)
+                names[id] = name
+                if name == "GEOMETRIC_ITEM_SPECIFIC_USAGE" { hasPhysicalGeometry = true }
             }
             for (entityID, subshape) in transfer.geometry {
                 try check()
@@ -240,6 +317,7 @@ private extension STEPAttributesReader {
                 let value = try string(name)
                 if !value.isEmpty { try budget.charge(targets: 1); assignments.append(ProductAttributeAssignment(target: target, value: .name(value))) }
             }
+            if hasPhysicalGeometry { try preparePhysicalGeometry() }
             let styles = entities.keys.filter { ["STYLED_ITEM", "OVER_RIDING_STYLED_ITEM", "CONTEXT_DEPENDENT_OVER_RIDING_STYLED_ITEM"].contains(names[$0] ?? "") }.sorted()
             let containers = entities.keys.filter { ["DRAUGHTING_MODEL", "MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION"].contains(names[$0] ?? "") }
             if !styles.isEmpty {

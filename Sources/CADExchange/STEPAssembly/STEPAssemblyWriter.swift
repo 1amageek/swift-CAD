@@ -34,6 +34,45 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
         let writer = ExactSTEPWriter(resourceLimits: resourceLimits, tolerance: tolerance)
         var table = ExactSTEPWriter.EntityTable(maximumEntities: resourceLimits.maximumEntities, tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes, maximumStringWork: resourceLimits.maximumIterations)
         let identityWriter: any STEPSourceIdentityWriting = STEPSourceIdentityWriter()
+        var sharingBudget = try ProductAttributeBudget(limits: attributeLimits)
+        try sharingBudget.charge(work: resolved?.consumedWork ?? 0)
+        var geometryKeys: [AssemblyDefinitionID: [FeatureID]] = [:]
+        var carrierKeys = Set<[FeatureID]>()
+        var admittedGroups = Set<[FeatureID]>(), admittedFeatures = Set<FeatureID>()
+        for definition in source.definitions where !definition.features.isEmpty {
+            try budget.check(format: .step)
+            let count = definition.features.count
+            let levels = Int.bitWidth - count.leadingZeroBitCount
+            guard count <= (attributeLimits.maximumWork - sharingBudget.consumedWork) / (levels + 1) else {
+                throw ProductAttributeError.resourceLimitExceeded("Canonical shared geometry key work.")
+            }
+            try sharingBudget.charge(work: count * (levels + 1), targets: count + 1)
+            let key = definition.features.sorted(); geometryKeys[definition.id] = key
+            try sharingBudget.charge(work: key.count)
+            if !admittedGroups.contains(key) {
+                for feature in key {
+                    try budget.check(format: .step); try sharingBudget.charge(work: 1)
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEPExchange and OfficialFormatExchange cannot preserve partial overlap between different complete feature groups yet.
+                    // Standard modular geometry transport must retain a sole feature owner across [F1] and [F1,F2] before such groups can be emitted without duplication.
+                    guard !admittedFeatures.contains(feature) else {
+                        throw ProductAttributeError.unsupportedSemantics("Partially overlapping feature groups require modular STEP geometry transport.")
+                    }
+                    try sharingBudget.charge(targets: 1); admittedFeatures.insert(feature)
+                }
+                try sharingBudget.charge(work: key.count, targets: 1); admittedGroups.insert(key)
+            }
+            try sharingBudget.charge(work: attributeSource.assignments.count)
+            var carrier = attributeSource.assignments.contains {
+                $0.target.definitionID == definition.id && ($0.value.property == .color || $0.value.property == .opacity)
+            }
+            for layer in attributeSource.layers {
+                try budget.check(format: .step)
+                try sharingBudget.charge(work: layer.members.count + 1)
+                if layer.members.contains(where: { $0.kind == .part && $0.definitionID == definition.id }) { carrier = true }
+            }
+            if carrier, !carrierKeys.contains(key) { try sharingBudget.charge(targets: 1); carrierKeys.insert(key) }
+        }
+        var sharedGeometry: [[FeatureID]: ExactSTEPWriter.WrittenDefinition] = [:]
         var products: [AssemblyProductID: Int] = [:]
         for product in source.products.sorted(by: { $0.id < $1.id }) {
             try budget.check(format: .step)
@@ -62,19 +101,27 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
                     if case let .body(id) = reference { bodyIDs.insert(id) }
                 }
             }
-            let model = try BRepBodySubmodelExtractor().extract(bodyIDs: bodyIDs, from: artifact.local.model)
             var items: [Int] = []
             for child in definition.children.sorted(by: { $0.id < $1.id }) {
                 let axis = try writer.assemblyAxis(child.placement, units: units.length, table: &table)
                 axes[child.id] = axis; items.append(axis)
             }
-            let carrier = attributeSource.assignments.contains { $0.target.definitionID == definition.id && ($0.value.property == .color || $0.value.property == .opacity) }
-                || attributeSource.layers.contains { $0.members.contains { $0.kind == .part && $0.definitionID == definition.id } }
+            let key = geometryKeys[definition.id] ?? []
+            let carrier = !key.isEmpty && carrierKeys.contains(key)
             guard let formation = formations[definition.formationID] else { throw AssemblyError.invalidSource("Missing exported formation.") }
-            let product = try writer.appendDefinition(brep: model, units: units,
-                identifier: "", name: "", definitionDescription: definition.definitionDescription, additionalItems: items,
-                retainedFormation: formation, definitionIdentifier: definition.identifier, wholePartCarrier: carrier,
-                bodyNames: names?.bodies ?? [:], faceNames: names?.faces ?? [:], table: &table)
+            let product: ExactSTEPWriter.WrittenDefinition
+            if !key.isEmpty, let geometry = sharedGeometry[key] {
+                product = try writer.appendSharedDefinition(geometry: geometry, retainedFormation: formation,
+                    identifier: definition.identifier, description: definition.definitionDescription,
+                    wholePartCarrier: carrier, units: units, table: &table)
+            } else {
+                let model = try BRepBodySubmodelExtractor().extract(bodyIDs: bodyIDs, from: artifact.local.model)
+                product = try writer.appendDefinition(brep: model, units: units,
+                    identifier: "", name: "", definitionDescription: definition.definitionDescription, additionalItems: items,
+                    retainedFormation: formation, definitionIdentifier: definition.identifier, wholePartCarrier: carrier,
+                    bodyNames: names?.bodies ?? [:], faceNames: names?.faces ?? [:], table: &table)
+                if !key.isEmpty { try sharingBudget.charge(work: key.count, targets: 1); sharedGeometry[key] = product }
+            }
             try identityWriter.append(uuid: definition.id.description, role: .definition, target: product.definition, table: &table)
             written[definition.id] = product
             transfer.products[definition.id] = STEPAttributeProductRepresentation(definition: product.definition,

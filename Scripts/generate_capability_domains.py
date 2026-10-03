@@ -21,6 +21,7 @@ BINDINGS = {
     "OverlapChartBoundaryResolver": (["curveSurfaceIntersectionResult"], ["parameterization", "representation"]),
     "ExtractFacePlugBuilder": (["extract"], ["supportSurface", "connection", "topology"]),
     "STEPAssemblyReader": (["STEP"], ["representation", "connection"]),
+    "STEPAssemblyWriter": (["STEP"], ["representation", "connection"]),
     "STEPSourceIdentityReader": (["STEP"], ["representation", "connection"]),
     "STEPAttributesReader": (["STEP"], ["representation", "connection"]),
     "STEPAttributesWriter": (["STEP"], ["representation", "connection"]),

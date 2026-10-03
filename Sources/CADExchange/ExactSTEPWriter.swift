@@ -585,6 +585,37 @@ struct ExactSTEPWriter {
         bodies: bodyEntities, faces: faceEntities)
   }
 
+  func appendSharedDefinition(geometry: WrittenDefinition, retainedFormation: Int,
+                             identifier: String, description: String?, wholePartCarrier: Bool,
+                             units: UnitSystem, table: inout EntityTable) throws -> WrittenDefinition {
+    let application = try table.add("APPLICATION_CONTEXT('managed model based 3d engineering')")
+    let context = try table.add("PRODUCT_DEFINITION_CONTEXT('part definition',#\(application),'design')")
+    let text = try description.map { try table.quotedString($0) } ?? "$"
+    let definition = try table.add("PRODUCT_DEFINITION(\(try table.quotedString(identifier)),\(text),#\(retainedFormation),#\(context))")
+    let shape = try table.add("PRODUCT_DEFINITION_SHAPE('','',#\(definition))")
+    let representation: Int
+    let carrier: Int?
+    if wholePartCarrier {
+      guard geometry.carrier != nil else {
+        throw AssemblyError.invalidSource("Shared carrier geometry must have an unassociated inner representation.")
+      }
+      let map = try table.add("REPRESENTATION_MAP(#\(geometry.origin),#\(geometry.geometryRepresentation))")
+      let point = try cartesianPoint(.origin, units: units.length, table: &table)
+      let x = try directionEntity(.unitX, table: &table), y = try directionEntity(.unitY, table: &table), z = try directionEntity(.unitZ, table: &table)
+      let transform = try table.add("CARTESIAN_TRANSFORMATION_OPERATOR_3D('',*,*,#\(x),#\(y),#\(point),1.,#\(z))")
+      let item = try table.add("MAPPED_ITEM('',#\(map),#\(transform))")
+      representation = try table.add("SHAPE_REPRESENTATION('',(#\(item),#\(geometry.origin)),#\(geometry.context))")
+      carrier = item
+    } else {
+      guard geometry.carrier == nil else { throw AssemblyError.invalidSource("Shared carrier group cannot flatten a definition scope.") }
+      representation = geometry.representation; carrier = nil
+    }
+    _ = try table.add("SHAPE_DEFINITION_REPRESENTATION(#\(shape),#\(representation))")
+    return WrittenDefinition(definition: definition, definitionShape: shape, representation: representation,
+        context: geometry.context, origin: geometry.origin, geometryRepresentation: geometry.geometryRepresentation,
+        carrier: carrier, bodies: geometry.bodies, faces: geometry.faces)
+  }
+
   func publish(table: EntityTable, to sink: any ByteSink) throws {
     let timestamp = "2000-01-01T00:00:00"
     let text = """

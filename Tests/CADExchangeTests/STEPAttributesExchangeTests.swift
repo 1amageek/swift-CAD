@@ -32,7 +32,7 @@ struct STEPAttributesExchangeTests {
         let body = ProductAttributeTarget(kind: .body, geometry: try resolver.sourceReference(for: bodyKey, in: base), definitionID: selected.id)
         let face = ProductAttributeTarget(kind: .face, geometry: try resolver.sourceReference(for: faceKey, in: base), definitionID: selected.id)
         let variants = [ProductAttributes(assignments: [ProductAttributeAssignment(target: body, value: .name("selected body"))]),
-            ProductAttributes(assignments: [ProductAttributeAssignment(target: face, value: .density(PhysicalDensity(kilogramsPerCubicMeter: 1000)))]),
+            ProductAttributes(assignments: [ProductAttributeAssignment(target: face, value: .color(ColorRGBA(r: 1, g: 0, b: 0, a: 1)))]),
             ProductAttributes(layers: [ProductLayer(name: "selected faces", members: [face])])]
         let failure = ProductAttributeError.unsupportedSemantics("Definition-qualified geometry requires scope-preserving STEP transport.")
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -182,7 +182,10 @@ struct STEPAttributesExchangeTests {
                 .replacingOccurrences(of: "'density',#52", with: "'density',#430")
             fixture = fixture.replacingOccurrences(of: "ENDSEC;\nEND-ISO", with: "#430=SHAPE_ASPECT('','',#53,.T.);\n#431=GEOMETRIC_ITEM_SPECIFIC_USAGE('','',#430,#54,#\(entity));\nENDSEC;\nEND-ISO")
             let document = try imported(fixture)
-            #expect(document.productAttributes.assignments.filter { $0.value.property == .material || $0.value.property == .density }.allSatisfy { $0.target.kind == kind })
+            let definition = try #require(document.assembly?.definitions.first)
+            #expect(document.productAttributes.assignments.filter { $0.value.property == .material || $0.value.property == .density }.allSatisfy {
+                $0.target.kind == kind && $0.target.definitionID == definition.id
+            })
             let sink = DataByteSink()
             try STEPExchange(tolerance: .standard).write(DocumentEvaluator(tolerance: .standard).evaluateExact(document), to: sink)
             let restored = try #require(STEPExchange(tolerance: .standard).import(sink.bytes).document)
@@ -394,7 +397,7 @@ struct STEPAttributesExchangeTests {
             case let .density(v): value = "density:\(v.kilogramsPerCubicMeter)"
             case let .descriptorDensity(id): value = "density:\(source.materials.first { $0.id == id }?.density?.kilogramsPerCubicMeter ?? -1)"
             }
-            return assignment.target.kind.rawValue + ":" + value + ":" + String(assignment.overrides != nil)
+            return assignment.target.kind.rawValue + ":" + (assignment.target.definitionID?.description ?? "global") + ":" + value + ":" + String(assignment.overrides != nil)
         }
         result += source.layers.map { $0.name + ":" + $0.description + ":" + $0.members.map { $0.kind.rawValue }.sorted().joined(separator: ",") }
         return result.sorted()

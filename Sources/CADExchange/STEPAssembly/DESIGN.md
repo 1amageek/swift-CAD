@@ -18,7 +18,8 @@ owns exact local geometry. Each local source body is retained by one existing
 ImportedBRepFeature; DocumentAssembly references these real FeatureIDs.
 Assembly Evaluation owns placed world output and correspondence.
 
-The writer serializes one local geometry representation per retained definition,
+The writer serializes one local geometry representation per nonempty canonical
+FeatureID list shared by retained leaf definitions, distinct definition metadata,
 an optional whole-part style carrier representation, and one
 usage relationship per direct source occurrence. It never manufactures a new
 part definition for each expanded leaf path. Source DAG and validated local
@@ -135,10 +136,27 @@ flowchart LR
   Matching business labels on a genuine described or identified product do not
   authorize cleanup. Its formation/product are removed only if no retained
   definition references them.
-- A shape representation shared by distinct definitions remains unsupported in
-  this bounded profile: the singular exact topology transfer cannot authorize
-  multiple definition ownerships. It fails before maps overwrite or geometry
-  extraction, with a truthful incomplete-implementation marker.
+- Distinct product definitions may associate the same exact local shape
+  representation. The reader extracts that actual representation identity and
+  its owned unit once, reuses its complete FeatureID list, and retains every
+  definition association in a one-to-many transfer. It never merges equal-valued
+  representations or duplicates the local B-rep to obtain PD-specific targets.
+  A contextual path selects its actual definition membership; a GISU selects
+  its explicit shape-aspect PD and then checks representation/item membership.
+  A bare mapped assembly item referencing a representation with several possible
+  definitions remains ambiguous; NAUO/CDSR retains an explicit child definition.
+- The writer caches nonempty leaf geometry by canonical FeatureID identity,
+  retaining one topology/entity map and geometric representation. Each PD keeps
+  its own metadata, PDS and native UUID assignment. Empty or child assembly
+  representations remain distinct. Different canonical groups with partially
+  overlapping FeatureIDs are refused before output: the present complete-group
+  representation transport cannot preserve one owner across partial groups.
+  Modular partial-group transport remains incomplete; duplicating geometry is
+  not an admitted substitute. If any definition sharing a feature list
+  requires whole-part appearance, every definition in that group receives its
+  own proved identity carrier over one unassociated shared inner representation.
+  One shared carrier cannot be treated as a single-PD part attachment: such
+  representation-level set scope is refused before publication.
 - A whole-part styling carrier is structural transport for one real product
   definition. Its product-associated outer representation contains exactly one
   MAPPED_ITEM plus its frame. The representation map refers to an unassociated
@@ -241,3 +259,10 @@ refusal, malformed/competing identity and bounded failure.
 Existing ExactSTEPExchangeTests retain ordinary single-product geometry/unit
 regression ownership. Changes require coordinated verification of DocumentAssembly,
 Assembly Evaluation, native strict schema, and public STEP facade routing.
+
+Unassociated singleton physical target views are consumed by the
+[STEP Attributes contract](../STEPAttributes/DESIGN.md); they refer existing exact
+items and do not become local geometry owners or PD shape associations.
+[SharedSTEPRepresentationTests](../../../Tests/CADExchangeTests/SharedSTEPRepresentationTests.swift)
+verify one local owner and multiple real PD/world instances across Native and two
+public STEP generations, with shared geometry and distinct structural carriers.

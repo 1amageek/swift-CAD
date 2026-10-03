@@ -56,16 +56,41 @@ flowchart LR
 
 ## Contracts and Invariants
 
-- Native definition-qualified body/face attachments are valid source values but
-  are not yet admitted by public STEP export. Both geometry-name projection and
-  attribute-record production preflight every assignment and layer member before
-  writing common geometry keys or exporting records. Such a target fails with
-  typed unsupported semantics until shared representation and PD-qualified
-  standard ingress/egress preserve its complete scope. Existing global geometry,
-  occurrence-path and part targets keep their current admission contracts. This
-  boundary refuses atomic memory/URL export rather than turning a definition
-  selector into a global geometry attribute. A successful lower source or resolver
-  proof does not establish this unfinished STEP composition.
+- Definition-qualified body/face material and density attachments use the
+  standard shape-aspect PD association plus GEOMETRIC_ITEM_SPECIFIC_USAGE's
+  representation and identified item. Import checks actual representation PD
+  membership and retains that selector when geometry is shared; export selects
+  that PD and common local item. Names, colors and layer membership on a
+  definition-qualified geometry target remain unsupported until their standard
+  transport retains all instances of that definition without a global item
+  overwrite. Both geometry-name projection and record generation preflight
+  these narrow unsupported scopes before publication. Global item names/styles/
+  layers remain common geometry attachments; complete occurrence style paths
+  select actual membership rather than the first PD in the transfer.
+  Distinct whole-part appearance uses separate proved structural PD carriers.
+- A PD-qualified physical target is exported with one unassociated singleton
+  SHAPE_REPRESENTATION view containing its already-emitted body or face item.
+  The view shares the geometry context and units; it creates no topology,
+  modeling feature or additional PD shape association. Material and density on
+  the same source target reuse one view, shape aspect and GISU. Distinct PD
+  selectors on the same common face have distinct views, satisfying the standard
+  GISU superclass uniqueness rules for (used representation, identified item)
+  and (used representation, definition). Import validates both uniqueness rules
+  before interpreting properties. An unassociated view must contain exactly the
+  identified item, have equal length units, and select an existing feature owned
+  by the shape aspect's PD. Associated geometry representations retain the
+  existing exact membership proof. Malformed, foreign, unit-conflicting or
+  duplicate usages fail before publication; a mapped carrier is not evidence
+  that its outer representation directly contains an inner face.
+- A shape-aspect GISU always retains its explicit PD selector, including when
+  only one PD currently references the item. PD count or equal values never
+  convert that scope to a global target. This bounded physical profile cannot
+  transport a global Native body/face material/density assignment without
+  narrowing its source scope, so global physical geometry export is refused
+  regardless of membership count. Its complete standard global owner/transport
+  remains an explicit X3 gap. Direct PD/part and direct-usage physical targets
+  retain their existing meaning. Source and resolver global semantics remain
+  valid independently of this transport limitation.
 - Both geometry-name projection and record production require the caller's
   ExchangeResourceLimits. They initialize the existing Writer Builder's cumulative
   product budget and duration, admit the resolved view's consumed work, and charge
@@ -179,7 +204,8 @@ Standard authorities are the
 [CAx Model Styling and Organization 1.10](https://www.mbx-if.org/home/wp-content/uploads/2026/08/rec_prac_styling_org_v1.10.pdf),
 [PROPERTY_DEFINITION](https://www.steptools.com/stds/stp_aim/html/t_property_definition.html),
 [characterized product targets](https://www.steptools.com/stds/stp_aim/html/t_characterized_product_definition.html),
-and [geometric item usage](https://www.steptools.com/stds/stp_aim/html/t_geometric_item_specific_usage.html).
+and [geometric item usage](https://www.steptools.com/stds/stp_aim/html/t_geometric_item_specific_usage.html)
+with its [item-identified usage constraints](https://www.steptools.com/stds/stp_aim/html/t_item_identified_representation_usage.html).
 The [official OCCT STEP guide](https://github.com/Open-Cascade-SAS/OCCT/blob/master/dox/user_guides/step/step.md)
 documents the established physical material name/description/density part-property
 mapping. These establish admitted semantics, not an implementation dependency.
@@ -228,5 +254,8 @@ non-equivalence, unit/domain/resource/cancellation refusal, and atomic failure.
 Fixtures must not be generated solely by the production writer. Native package
 tests own complete source persistence and strict current-envelope admission. Existing exact
 STEP, X2, and static mesh tests retain their geometry/unit/loss invariants.
-Changes require coordinated validation of the source/resolution owners, exact
+[SharedSTEPRepresentationTests](../../../Tests/CADExchangeTests/SharedSTEPRepresentationTests.swift)
+own independent two-PD/shared-item and singleton-view fixtures, two-generation
+public transport, scoped property/provenance, usage uniqueness, unit and membership
+refusals, and atomic failure. Changes require coordinated validation of the source/resolution owners, exact
 transfer maps, public facades, strict native schema, and parent indices/catalogs.
