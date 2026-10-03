@@ -377,7 +377,8 @@ extension FeatureOperation {
         case .surfaceFill(let feature):
             return .surfaceFill(SurfaceFillFeature(
                 targetFeatureID: try transform(feature.targetFeatureID),
-                boundarySeed: try subshape(feature.boundarySeed)
+                boundarySeed: try subshape(feature.boundarySeed),
+                insertedSheet: try feature.insertedSheet.map(transform)
             ))
         case .mirror(let feature):
             return .mirror(MirrorFeature(

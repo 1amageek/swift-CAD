@@ -333,11 +333,16 @@ public enum FeatureNodeFactory {
                 }
                 try fill.validate()
                 _ = try bodyOrSheetSourceRole(fill.targetFeatureID, owner: "Surface fill target", in: document)
+                if let inserted = fill.insertedSheet {
+                    guard try bodyOrSheetSourceRole(inserted, owner: "Inserted sheet", in: document) == .sheet else {
+                        throw FeatureEvaluationError.invalidGraph("Insert Sheet trims a sheet to the opening.")
+                    }
+                }
                 return FeatureNode(
                     id: id,
                     name: name,
                     operation: operation,
-                    inputs: [FeatureInput(featureID: fill.targetFeatureID, role: .target)],
+                    inputs: fill.inputs,
                     outputs: [FeatureOutput(role: .sheet)]
                 )
             }

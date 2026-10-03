@@ -1198,9 +1198,10 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a surfaceFill operation.")
         }
         try fill.validate()
-        guard node.inputs == [FeatureInput(featureID: fill.targetFeatureID, role: .target)],
+        guard node.inputs == fill.inputs,
               let source = nodes[fill.targetFeatureID],
               source.outputs.filter({ $0.role == .body || $0.role == .sheet }).count == 1,
+              fill.insertedSheet.map({ nodes[$0]?.outputs.contains { $0.role == .sheet } == true }) ?? true,
               outputRoles == [.sheet] else {
             throw FeatureEvaluationError.invalidGraph("Surface fill requires one body target input and one sheet output.")
         }

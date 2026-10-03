@@ -934,6 +934,19 @@ public struct DocumentBuilder {
         return featureID
     }
 
+    /// Fills the opening of `target` through `boundarySeed` (`SurfaceFillFeature`), with
+    /// `insertedSheet` by that sheet trimmed to the opening.
+    @discardableResult
+    public mutating func surfaceFill(
+        target: FeatureID, boundarySeed: StableSubshapeReference, insertedSheet: FeatureID? = nil, named name: String? = nil
+    ) throws -> FeatureID {
+        let fill = SurfaceFillFeature(targetFeatureID: target, boundarySeed: boundarySeed, insertedSheet: insertedSheet)
+        try fill.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .surfaceFill(fill))
+        return featureID
+    }
+
     @discardableResult
     public mutating func joinBodies(
         _ targets: [FeatureID],

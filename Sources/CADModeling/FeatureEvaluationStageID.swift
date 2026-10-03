@@ -18,6 +18,7 @@ package enum FeatureEvaluationStageDomain: UInt64, Sendable {
     case draftGrowWedge = 0x2B7D_C41E_96A3_F05D
     case loftEndSection = 0x6E19_A7C3_45DB_8F02
     case sliceToolRemainder = 0xE07B_9A24_6C1F_D358
+    case insertSheetImprint = 0x47C3_A9E1_0B6D_F52A
 }
 
 /// Derives a deterministic, non-published identity for one internal evaluation stage.
