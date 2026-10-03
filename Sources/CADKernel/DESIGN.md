@@ -789,8 +789,8 @@ two halves, whose crossings meet end to end. A placed curve is its rigid image, 
 placed line or circle is still swept exactly. Hiding occlusion keeps a crossing
 only when no other crossing lies nearer the curve along the sweep, each point's
 curve parameter and sweep distance found in the model rather than in the
-sheet's parameters, and refuses a crossing hidden along part of its length
-(`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+sheet's parameters; a crossing hidden along part of its length is split where it
+passes behind the target (bisected along the crossing) and only its seen pieces kept.
 Along the normal, each sample of the curve goes to the closest point of the
 target's faces (`BRepFaceClosestPointProjector`, Newton's method within each
 face's parameter extent), runs of samples on one face become a cubic parameter
@@ -799,7 +799,9 @@ passes to a neighbour both runs end at the point of their shared edge the
 projection crosses. The sweep sheet is never published, so its subshapes are
 dropped from the crossings' lineage. Completion is `.none`, `.edge` (stopping at
 the first other curve) or `.boundary` (reaching the face's boundary across other
-curves). `ImprintFeatureTests` own these contracts.
+curves). Under `.none` a curve with an end inside its face, on neither the face's
+boundary nor another kept curve, divides nothing and is left out, as Plasticity draws
+no line for it; the imprint is refused only when no curve is left. `ImprintFeatureTests` own these contracts.
 
 ## Edge Offset
 
@@ -817,8 +819,10 @@ the corner; Linear, straight lines carrying both offsets on until they meet, a
 sharp corner of edges of their own (a straight bridge where they never meet
 ahead); Natural, the straight offsets themselves running on to that point, no
 edge added (curved offsets refused, `FIXME(INCOMPLETE_IMPLEMENTATION)`). An offset that closes
-on itself is halved. `EdgeOffsetFeatureEvaluator` offsets edges over their
-support face, and with symmetry over the face across each edge;
+on itself is halved. `EdgeOffsetFeatureEvaluator` offsets each edge over the one
+of its support faces it bounds (a chain across a top and a slope runs over both, each face's
+run completed to its boundary), refusing an edge bounding none or two, and with symmetry over
+the face across each edge;
 `FaceLoopOffsetFeatureEvaluator` offsets faces' outer loops into the faces, over
 the faces around them, or both (`FaceLoopOffsetSide`), each face's own outline
 or, combined, the outline of the chosen faces together. Open chain ends are

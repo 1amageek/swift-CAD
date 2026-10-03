@@ -186,7 +186,7 @@ extension FeatureOperation {
         case .edgeOffset(var feature):
             feature.target = try pattern(feature.target)
             feature.edges = try feature.edges.map(subshape)
-            feature.supportFace = try subshape(feature.supportFace)
+            feature.supportFaces = try feature.supportFaces.map(subshape)
             return .edgeOffset(feature)
         case .faceKnife(var feature):
             feature.target = FaceKnifeTargetReference(featureID: try transform(feature.target.featureID))

@@ -78,8 +78,8 @@ struct EdgeOffsetImprint {
     }
 }
 
-/// Offset Edge (`EdgeOffsetFeature`): the chosen edges offset over their support face, and with
-/// symmetry also over the face on each edge's other side.
+/// Offset Edge (`EdgeOffsetFeature`): each chosen edge offset over the one support face it
+/// bounds, and with symmetry also over the face on its other side.
 struct EdgeOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let shared: EdgeOffsetImprint
 
@@ -103,18 +103,24 @@ struct EdgeOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating
             guard distance > 0 else {
                 throw FeatureEvaluationError.invalidDistance(distance)
             }
-            let support = try shared.faceID(offset.supportFace, context: context)
+            let supports = try offset.supportFaces.map { try shared.faceID($0, context: context) }
             let edges = try offset.edges.map { try shared.edgeID($0, context: context) }
-            var groups: [(faceID: FaceID, edges: Set<EdgeID>)] = [(support, Set(edges))]
-            if offset.isSymmetric {
-                var across: [FaceID: Set<EdgeID>] = [:]
-                for edge in edges {
-                    for other in shared.faces(using: edge, in: bodyID, model: context.brep) where other != support {
-                        across[other, default: []].insert(edge)
-                    }
+            var over: [FaceID: Set<EdgeID>] = [:]
+            var across: [FaceID: Set<EdgeID>] = [:]
+            for edge in edges {
+                let faces = shared.faces(using: edge, in: bodyID, model: context.brep)
+                let bounded = supports.filter(faces.contains)
+                guard bounded.count == 1, let support = bounded.first else {
+                    throw KernelError(phase: .evaluation, code: .invalidInput, featureID: feature.id, tolerance: context.tolerance,
+                        message: bounded.isEmpty ? "An offset edge does not bound a support face." : "An offset edge bounds two support faces.")
                 }
-                groups += across.keys.sorted().map { ($0, across[$0] ?? []) }
+                over[support, default: []].insert(edge)
+                if offset.isSymmetric {
+                    for other in faces where other != support { across[other, default: []].insert(edge) }
+                }
             }
+            var groups: [(faceID: FaceID, edges: Set<EdgeID>)] = supports.map { ($0, over[$0] ?? []) }
+            groups += across.keys.sorted().map { ($0, across[$0] ?? []) }
             return try shared.imprint(groups, distance: distance, gapFill: offset.gapFill, on: bodyID, featureID: feature.id, context: context)
         }
     }

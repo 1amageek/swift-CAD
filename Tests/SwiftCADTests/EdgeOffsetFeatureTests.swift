@@ -72,7 +72,7 @@ struct EdgeOffsetFeatureTests {
         let top = try face(of: box, facing: .unitZ, in: before, builder: builder)
         let front = try edges(of: box, in: before, builder: builder) { abs($0.z - extent.maximum.z) < 1e-9 && abs($0.y - extent.minimum.y) < 1e-9 }
         #expect(front.count == 1)
-        let offset = try builder.edgeOffset(target: box, edges: front, supportFace: top, distance: length(0.004))
+        let offset = try builder.edgeOffset(target: box, edges: front, supportFaces: [top], distance: length(0.004))
         let evaluated = try evaluate(builder)
         let solid = try body(of: offset, in: evaluated)
         #expect(faces(of: solid, in: evaluated).count == 7)
@@ -89,9 +89,43 @@ struct EdgeOffsetFeatureTests {
         let extent = try bounds(of: box, in: before)
         let top = try face(of: box, facing: .unitZ, in: before, builder: builder)
         let front = try edges(of: box, in: before, builder: builder) { abs($0.z - extent.maximum.z) < 1e-9 && abs($0.y - extent.minimum.y) < 1e-9 }
-        let offset = try builder.edgeOffset(target: box, edges: front, supportFace: top, distance: length(0.004), isSymmetric: true)
+        let offset = try builder.edgeOffset(target: box, edges: front, supportFaces: [top], distance: length(0.004), isSymmetric: true)
         let evaluated = try evaluate(builder)
         #expect(faces(of: try body(of: offset, in: evaluated), in: evaluated).count == 8)
+    }
+
+    /// Plasticity's chain across a top and a slope: the edges between the front wall and the top
+    /// and the slope offset over both faces at once, each over the one it bounds.
+    @Test(.timeLimit(.minutes(2)))
+    func aChainAcrossATopAndASlopeOffsetsOverBoth() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // A prism along y over a section with a flat top (x 0…0.06) sloping down to x = 0.1; on
+        // the ZX plane sketch x is world z and sketch y world x.
+        let corners: [(x: Double, z: Double)] = [(0, 0), (0.1, 0), (0.1, 0.05), (0.06, 0.1), (0, 0.1)]
+        let profile = try builder.sketch(on: .zx) { sketch in
+            for k in corners.indices {
+                let (a, b) = (corners[k], corners[(k + 1) % corners.count])
+                _ = sketch.line(from: SketchPoint(x: length(a.z), y: length(a.x)), to: SketchPoint(x: length(b.z), y: length(b.x)))
+            }
+        }
+        let prism = try builder.extrude(profile, distance: length(0.1))
+        let before = try evaluate(builder)
+        let top = try face(of: prism, facing: .unitZ, in: before, builder: builder)
+        let slope = try face(of: prism, facing: try Vector3D(x: 0.05, y: 0, z: 0.04).normalized(tolerance: 1e-12), in: before, builder: builder)
+        // The front wall's top and sloped edges, at y = 0.
+        let chain = try edges(of: prism, in: before, builder: builder) { abs($0.y) < 1e-9 && $0.z > 0.05 + 1e-9 }
+        #expect(chain.count == 2)
+        var refused = builder
+        let offset = try builder.edgeOffset(target: prism, edges: chain, supportFaces: [top, slope], distance: length(0.01))
+        let evaluated = try evaluate(builder)
+        let solid = try body(of: offset, in: evaluated)
+        // The top and the slope are each split: 7 faces become 9; the solid is unchanged.
+        #expect(faces(of: solid, in: evaluated).count == 9)
+        let area = 0.1 * 0.05 + 0.06 * 0.05 + 0.5 * 0.04 * 0.05
+        #expect(abs(try evaluated.brep.volume(of: solid.id, tolerance: .standard) - area * 0.1) < 1e-12)
+        // Over the top alone, the sloped edge bounds no support face and is refused.
+        _ = try refused.edgeOffset(target: prism, edges: chain, supportFaces: [top], distance: length(0.01))
+        #expect(throws: (any Error).self) { _ = try evaluate(refused) }
     }
 
     // MARK: Offset Face Loop
@@ -172,7 +206,7 @@ struct EdgeOffsetFeatureTests {
             }
         }
         #expect(rim.isEmpty == false)
-        let offset = try builder.edgeOffset(target: drum, edges: rim, supportFace: try builder.stableSubshape(sideKey), distance: length(0.005))
+        let offset = try builder.edgeOffset(target: drum, edges: rim, supportFaces: [try builder.stableSubshape(sideKey)], distance: length(0.005))
         let evaluated = try evaluate(builder)
         let solid = try body(of: offset, in: evaluated)
         #expect(faces(of: solid, in: evaluated).count == faces(of: try body(of: drum, in: before), in: before).count + 1)
@@ -189,7 +223,7 @@ struct EdgeOffsetFeatureTests {
         let extent = try bounds(of: box, in: before)
         let top = try face(of: box, facing: .unitZ, in: before, builder: builder)
         let front = try edges(of: box, in: before, builder: builder) { abs($0.z - extent.maximum.z) < 1e-9 && abs($0.y - extent.minimum.y) < 1e-9 }
-        let edgeOffset = try builder.edgeOffset(target: box, edges: front, supportFace: top, distance: length(0.004), isSymmetric: true, gapFill: .natural)
+        let edgeOffset = try builder.edgeOffset(target: box, edges: front, supportFaces: [top], distance: length(0.004), isSymmetric: true, gapFill: .natural)
         let loopOffset = try builder.faceLoopOffset(target: box, faces: [top], distance: length(0.002), side: .outward, gapFill: .linear, isIndividual: false)
         let document = try builder.build(name: "offset persistence")
         let pipeline = CADPipeline(tolerance: .standard)

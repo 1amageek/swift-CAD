@@ -3248,7 +3248,7 @@ struct CADIRTests {
             EdgeOffsetFeature(
                 target: PatternTargetReference(featureID: targetID),
                 edges: [edge],
-                supportFace: supportFace,
+                supportFaces: [supportFace],
                 distance: .constant(.length(2.0, unit: .millimeter)),
                 isSymmetric: true
             )
@@ -3263,7 +3263,7 @@ struct CADIRTests {
         }
         #expect(offset.target == PatternTargetReference(featureID: targetID))
         #expect(offset.edges == [edge])
-        #expect(offset.supportFace == supportFace)
+        #expect(offset.supportFaces == [supportFace])
         #expect(offset.isSymmetric)
     }
 
@@ -3413,7 +3413,7 @@ struct CADIRTests {
         operationObject["edgeOffset"] = try jsonObject(from: JSONEncoder().encode(EdgeOffsetFeature(
             target: PatternTargetReference(featureID: FeatureID()),
             edges: [try testEdgeReference().subshape],
-            supportFace: testSurfaceReference().subshape,
+            supportFaces: [testSurfaceReference().subshape],
             distance: .constant(.length(1.0, unit: .millimeter))
         )))
         operationObject["faceDelete"] = try jsonObject(from: JSONEncoder().encode(FaceDeleteFeature(
