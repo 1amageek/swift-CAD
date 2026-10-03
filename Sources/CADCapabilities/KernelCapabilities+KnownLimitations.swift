@@ -113,7 +113,7 @@ extension KernelCapabilities {
             operations: ["faceRebuild"],
             dimensions: [.supportSurface, .parameterization, .representation],
             condition: "planes, surfaces of revolution and B-splines are given control points; a procedural or ruled surface face is refused here. Production path: Rupa's Raise Degree on such a face. Complete when every face kind is converted exactly, verified by a swept face raised in place.",
-            sourcePath: "Sources/CADKernel/FaceBSplineSurfaceConverter.swift", sourceLine: 60
+            sourcePath: "Sources/CADKernel/FaceBSplineSurfaceConverter.swift", sourceLine: 75
         ),
         KernelDomainLimitation(
             id: "condition-08b047f9acc6bd14",
@@ -121,6 +121,13 @@ extension KernelCapabilities {
             dimensions: [.supportSurface, .connection],
             condition: "faces rebuilt coarser than their edges allow that meet each other or share a corner need their edges re-solved together, which is not built, so they are refused. Production path: FaceRebuildFeatureEvaluator. Complete only when such faces are rebuilt together, verified by two adjacent curved faces rebuilt coarsely.",
             sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 167
+        ),
+        KernelDomainLimitation(
+            id: "condition-73e03fac2f4f0f40",
+            operations: ["faceRebuild"],
+            dimensions: [.supportSurface, .connection],
+            condition: "a boundary control point moved within the face's own plane leaves its straight edges on a spline whose parameters run unevenly along them: no exact trimming curve exists there, and the certified intersection with the plane beside it does not resolve, so the evaluation fails with that error. Production path: Rupa's control point moves on a face of a solid given control points. Complete when such a face keeps its edges, verified by a box face's corner control point drawn in alone.",
+            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 386
         ),
         KernelDomainLimitation(
             id: "condition-2b5a8e9ebadb8cfb",
@@ -137,11 +144,18 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2016
         ),
         KernelDomainLimitation(
+            id: "condition-63288bf02fc0c723",
+            operations: ["CADCommand"],
+            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
+            condition: "Singular boundary shading normals use a nearby regular parameter in the production trimmed-face tessellation path. This does not certify a unique one-sided normal limit or its angular error; those guarantees and direction-dependent singularity rejection are required before full support.",
+            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2285
+        ),
+        KernelDomainLimitation(
             id: "condition-0a3fef29d1b275ed",
             operations: ["CADCommand"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "a trimmed non-spherical parametric face is triangulated from its sampled boundary alone, as a fan here or by ear clipping below, so its interior is not refined against the chord, turning or edge-length bounds. Production path: every trimmed cylinder, cone, torus, B-spline and procedural face that is not a rectangular grid. Not covered by the tessellation fidelity contract until the interior refines against all three bounds with tests that measure interior deviation.",
-            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2364
+            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2385
         ),
         KernelDomainLimitation(
             id: "condition-94b418304d6d7b26",
@@ -212,6 +226,13 @@ extension KernelCapabilities {
             dimensions: [.supportSurface, .degeneracy, .topology],
             condition: "A surface whose untrimmed side collapses to a point (a sphere's pole, a cone's apex) needs a singular vertex on that side. Untrim reaches here from Alt-T and the palette; it is complete only when such sheets are built with their degenerate side and tested on a sphere and a cone.",
             sourcePath: "Sources/CADKernel/UntrimFaceFeatureEvaluator.swift", sourceLine: 62
+        ),
+        KernelDomainLimitation(
+            id: "condition-db852ad417a7ac5f",
+            operations: ["boolean"],
+            dimensions: [.connection, .topology, .geometricFidelity],
+            condition: "a Slice with a sheet operand or operand materials other than Default keeps only the targets' pieces; the tool's pieces are not made, because Plasticity's pieces for those materials are not determined (its page's Target Outside / Tool Empty note names three results where its figure shows four). Production path: BooleanFeatureEvaluator from Boolean Slice. Complete only when the tool's pieces for every material pair are specified and verified by volume per piece.",
+            sourcePath: "Sources/CADModeling/BooleanFeatureEvaluator.swift", sourceLine: 145
         ),
         KernelDomainLimitation(
             id: "condition-f8f41e04d78b1e1f",

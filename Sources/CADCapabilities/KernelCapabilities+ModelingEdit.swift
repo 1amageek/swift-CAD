@@ -885,6 +885,7 @@ extension KernelCapabilities {
         "inputShapeInfluenceZeroToOne",
         "partialStartAndEndFractions",
         "optionalDegreeAndSpanLayout",
+        "optionalLocalizationToKeepOtherEdges",
       ],
       outputs: [
         "validatedExactBRep",
@@ -897,7 +898,7 @@ extension KernelCapabilities {
         "targetRefittedToTheLayoutFirst",
         "strictCurrentSchemaNativePersistence",
       ],
-      fixtures: ["SurfaceAlignTests"],
+      fixtures: ["SurfaceAlignTests", "SurfaceAlignJointTests"],
       status: .partial,
       failureCodes: [
         .invalidInput,
@@ -940,6 +941,7 @@ extension KernelCapabilities {
       ],
       additionalPublicAPIs: [
         "CADKernel.FaceBSplineSurfaceConverter.surface",
+        "CADKernel.FaceBSplineSurfaceConverter.nominalSurface",
         "CADKernel.FaceRefitAnalyzer.analyze",
       ]
     ),

@@ -142,6 +142,12 @@ public struct BooleanFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         // target, made first, then the operands restored for the targets' slice.
         let materials = BooleanMaterials(target: boolean.targetMaterial, tool: boolean.toolMaterial)
         var remainder: [SubshapeID: TopologyReference] = [:]
+        // FIXME(INCOMPLETE_IMPLEMENTATION): a Slice with a sheet operand or operand materials other
+        // than Default keeps only the targets' pieces; the tool's pieces are not made, because
+        // Plasticity's pieces for those materials are not determined (its page's Target Outside /
+        // Tool Empty note names three results where its figure shows four). Production path:
+        // BooleanFeatureEvaluator from Boolean Slice. Complete only when the tool's pieces for
+        // every material pair are specified and verified by volume per piece.
         if boolean.operation == .slice, materials == .default,
            (targets + tools).allSatisfy({ stages.context.brep.bodies[$0]?.kind == .solid }) {
             let operands = targets + tools

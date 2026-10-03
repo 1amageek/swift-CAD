@@ -90,6 +90,7 @@ public struct SurfaceAlignFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
                 MappedBSplineSurfaceFitter.Layout(uDegree: $0.uDegree, vDegree: $0.vDegree, uSpans: $0.uSpans, vSpans: $0.vSpans)
             },
             flow: flow,
+            localizes: align.keepsOtherEdges,
             tolerance: tolerance
         )
         // The sheet sewn anew on the aligned surface, bounded by its parameter lines.

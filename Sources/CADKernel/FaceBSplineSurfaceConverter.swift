@@ -29,6 +29,21 @@ public struct FaceBSplineSurfaceConverter {
         return try surface(of: faceID, in: document.brep, tolerance: tolerance)
     }
 
+    /// The B-spline surface of the face `reference` names cut exactly to the face's parameter extent
+    /// (Remove Nominal Surface): a face given control points that reaches past them through its
+    /// surface's hidden continuation has that continuation made its own control points.
+    public func nominalSurface(of reference: StableSubshapeReference, in document: EvaluatedDocument) throws -> BSplineSurface3D {
+        let tolerance = document.configuration.tolerance
+        guard case let .face(faceID) = try StableSubshapeResolver().topologyReference(
+            for: reference, model: document.brep, subshapes: document.subshapes, lineage: document.lineage, tolerance: tolerance
+        ), let face = document.brep.faces[faceID], case let .bSpline(spline)? = document.brep.geometry.surfaces[face.surfaceID] else {
+            throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: tolerance,
+                              message: "Remove Nominal Surface takes a spline face; an analytic face has no nominal surface beyond its edges.")
+        }
+        let box = try FaceParameterExtentResolver().bounds(for: faceID, in: document.brep, tolerance: tolerance)
+        return try spline.trimmed(uFrom: box.u.lower, uTo: box.u.upper, vFrom: box.v.lower, vTo: box.v.upper, tolerance: tolerance)
+    }
+
     func surface(of faceID: FaceID, in model: BRepModel, tolerance: ModelingTolerance) throws -> BSplineSurface3D {
         guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
             throw TopologyError.missingReference("The face to convert is missing.")

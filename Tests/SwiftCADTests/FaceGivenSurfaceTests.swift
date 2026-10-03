@@ -280,7 +280,8 @@ struct FaceGivenSurfaceTests {
     }
 
     /// Every octant of a ball given its exact rational surface on its own, those across the
-    /// sphere's seam over the shortest stretch of angle holding them: each ball stays valid.
+    /// sphere's seam over the shortest stretch of angle holding them: each ball stays valid and
+    /// meshes, the collapsed side at the pole included.
     @Test(.timeLimit(.minutes(4)))
     func everyOctantOfABallIsGivenItsSurfaceAcrossTheSeamToo() throws {
         var base = DocumentBuilder(units: .meters, tolerance: .standard)
@@ -298,5 +299,58 @@ struct FaceGivenSurfaceTests {
             _ = try builder.rebuildFaces(target: body, faces: [face], method: .given(rational))
             try evaluate(builder).brep.validate(level: .volumetric, tolerance: .standard)
         }
+    }
+
+    @Test(.timeLimit(.minutes(2)), arguments: [1.0, -1.0])
+    func givenPoleFaceMeshesOnBothSidesOfTheSeam(_ side: Double) throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let body = try builder.sphere(radius: length(0.01))
+        let start = try evaluate(builder)
+        var selected: (SubshapeID, BSplineSurface3D)?
+        for key in start.subshapes.entries.keys.sorted() {
+            guard key.featureID == body, case .face? = start.subshapes.entries[key] else { continue }
+            let reference = try builder.stableSubshape(key)
+            let spline = try FaceBSplineSurfaceConverter().surface(of: reference, in: start)
+            let point = try spline.point(u: (spline.uKnots[spline.uDegree] + spline.uKnots[spline.controlPoints[0].count]) * 0.5, v: (spline.vKnots[spline.vDegree] + spline.vKnots[spline.controlPoints.count]) * 0.5, tolerance: .standard)
+            if point.x > 0 && point.y * side > 0 && point.z > 0 { selected = (key, spline); break }
+        }
+        let (key, rational) = try #require(selected)
+        _ = try builder.rebuildFaces(target: body, faces: [builder.stableSubshape(key)], method: .given(rational))
+        let meshed = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .materialized).evaluate(try builder.build(name: "given"))
+        #expect(!meshed.meshes.isEmpty)
+        for mesh in meshed.meshes.values {
+            #expect(!mesh.indices.isEmpty && mesh.positions.count == mesh.normals.count)
+            #expect(mesh.normals.allSatisfy { $0.length.isFinite && abs($0.length - 1) < 1e-8 })
+        }
+    }
+
+    /// A box's side raised and its control points all drawn halfway to its middle: the face keeps
+    /// its edges through the surface's hidden continuation (the plane itself), the box unchanged;
+    /// Remove Nominal Surface then gives the face that continuation cut to its edges, a net
+    /// reaching them.
+    @Test(.timeLimit(.minutes(2)))
+    func controlPointsDrawnInKeepTheFaceThroughItsNominalSurface() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let box = try builder.box(width: length(s), depth: length(s), height: length(s))
+        let side = try face(of: box, in: builder, normal: .unitX)
+        var surface = try FaceBSplineSurfaceConverter().surface(of: side, in: try evaluate(builder))
+        let points = surface.controlPoints.joined()
+        let middle = Point3D.origin + points.reduce(Vector3D.zero) { $0 + ($1 - .origin) } / Double(points.count)
+        surface.controlPoints = surface.controlPoints.map { row in row.map { middle + ($0 - middle) * 0.5 } }
+        let given = try builder.rebuildFaces(target: box, faces: [side], method: .given(surface))
+        let evaluated = try evaluate(builder)
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        #expect(abs(try volume(given, in: evaluated) - s * s * s) < s * s * s * 1e-9)
+        let splineFaces = evaluated.subshapes.entries.compactMap { key, value -> SubshapeID? in
+            guard key.featureID == given, case let .face(id) = value, let face = evaluated.brep.faces[id],
+                  case .bSpline? = evaluated.brep.geometry.surfaces[face.surfaceID] else { return nil }
+            return key
+        }
+        let reference = try builder.stableSubshape(try #require(splineFaces.first))
+        let nominal = try FaceBSplineSurfaceConverter().nominalSurface(of: reference, in: evaluated)
+        // The nominal surface reaches the face's corners: its corner control points are the box's.
+        let corners = [nominal.controlPoints.first?.first, nominal.controlPoints.first?.last, nominal.controlPoints.last?.first, nominal.controlPoints.last?.last]
+        let boxCorners = evaluated.brep.vertices.values.map(\.point)
+        #expect(corners.allSatisfy { corner in corner.map { c in boxCorners.contains { ($0 - c).length < 1e-9 } } ?? false })
     }
 }

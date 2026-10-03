@@ -50,7 +50,7 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
         to reference: BSplineSurface3D, side referenceSide: Side,
         continuity: Int, tension: Double, blendRows: Int, inputShapeInfluence: Double = 1,
         partialStart: Double = 0, partialEnd: Double = 1, layout: MappedBSplineSurfaceFitter.Layout? = nil,
-        flow: Flow = .next, tolerance: ModelingTolerance
+        flow: Flow = .next, localizes: Bool = false, tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
         guard (0...2).contains(continuity), tension.isFinite, tension > 0, blendRows >= 0, (0...1).contains(inputShapeInfluence),
               (0...1).contains(partialStart), (0...1).contains(partialEnd), partialEnd - partialStart > 1e-9 else {
@@ -100,6 +100,17 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
             }
             while multiplicity(of: value, in: guide.vKnots, tolerance) < needed {
                 guide = try guide.insertingKnot(direction: .v, value: value, tolerance: tolerance)
+            }
+        }
+        // Rows that reach only the stretch beside the edge, so the sheet's other aligned edges keep
+        // their own rows but where they meet this one: knots across the edge at a sixteenth, an
+        // eighth and a quarter of the way.
+        if localizes, let u0 = working.uKnots.first, let u1 = working.uKnots.last {
+            for fraction in [1.0 / 16, 1.0 / 8, 1.0 / 4] {
+                let value = u0 + (u1 - u0) * fraction
+                if multiplicity(of: value, in: working.uKnots, tolerance) == 0 {
+                    working = try working.insertingKnot(direction: .u, value: value, tolerance: tolerance)
+                }
             }
         }
         // Enough rows along U for the rows set and one more; blended rows are the target's own, so

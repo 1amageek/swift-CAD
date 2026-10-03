@@ -11,6 +11,7 @@ import sys
 # Bindings identify the public consumers of a source-owned condition. They do
 # not infer geometric support from identifier spelling or comment wording.
 BINDINGS = {
+    "BooleanFeatureEvaluator": (["boolean"], ["connection", "topology", "geometricFidelity"]),
     "CurveSurfaceOverlapResolver": (["curveSurfaceIntersectionResult"], ["supportSurface", "representation", "geometricFidelity"]),
     "OverlapChartBoundaryResolver": (["curveSurfaceIntersectionResult"], ["parameterization", "representation"]),
     "FaceBSplineSurfaceConverter": (["faceRebuild"], ["supportSurface", "parameterization", "representation"]),

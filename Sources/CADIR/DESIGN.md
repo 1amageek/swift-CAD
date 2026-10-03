@@ -581,3 +581,12 @@ actual document tolerance and proves the resulting body through its existing
 [Rebuild Face contract](../CADKernel/DESIGN.md).
 `FaceGivenSurfaceTests` verifies strict publication refusal and valid Native
 round-trip followed by exact evaluation and volume preservation.
+
+## Sequential Surface Alignment Persistence
+
+`SurfaceAlignFeature.keepsOtherEdges` owns the author's choice to localize a
+later edge alignment. Its Codable value and the strict Native feature-field
+admission preserve that choice. `SurfaceAlignJointTests` round-trips a two-edge
+alignment with the choice enabled, reevaluates the restored source, and verifies
+the resulting edge positions and tangent planes. The kernel's alignment contract
+owns geometric continuity and localization; persistence does not infer either.

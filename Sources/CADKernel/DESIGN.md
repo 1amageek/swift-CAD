@@ -662,7 +662,7 @@ passes (`sliceToolRemainder`), restores the operands as they were (`FeatureEvalu
 of their own, published as `sliceToolPiece.*` subshapes tracing to their stage names. A tool the
 targets hold leaves no piece (the Difference's empty result). A Slice with a sheet operand or
 operand materials keeps only the targets' pieces (`FIXME(INCOMPLETE_IMPLEMENTATION)` in
-`ExactBooleanOperationApplicator`). `PrimitiveSphereBooleanIntegrationTests` own overlapping,
+`BooleanFeatureEvaluator`: Plasticity's pieces for those materials are not determined). `PrimitiveSphereBooleanIntegrationTests` own overlapping,
 separate and contained spheres.
 
 ## Region
@@ -873,7 +873,10 @@ reference B-spline face's parameter-boundary edge, placed in the target's frame.
 reference so its edge is its upper one, runs the reference along the edge the target's way,
 maps both edge parameters to [0, 1], raises the lower degree and merges knots, so both share one
 exact basis along the edge; refines the target along U only until it has the rows the continuity
-sets and one more (Blend adds no rows: Plasticity's net keeps its size); then sets its first row to the reference's boundary (G0),
+sets and one more (Blend adds no rows: Plasticity's net keeps its size) — and, when the feature
+`keepsOtherEdges` (a later edge of a sheet aligned in one dialog, Plasticity's align-3), first at a
+sixteenth, an eighth and a quarter of the way across, so the rows set reach only the stretch beside
+the edge and an edge aligned before keeps its own rows but where the two meet; then sets its first row to the reference's boundary (G0),
 its second so the cross-edge derivative is the reference's times the tension times the target's
 own speed ratio (G1), its third so the second derivative is that factor squared times the
 reference's (G2), and fades the last row's displacement over the blended rows by their Greville
@@ -894,7 +897,10 @@ the target's side edges' directions), `a·R_v + b·R_u` with quadratic `a`, `b` 
 the reference's tangent plane, the second derivative `b²·R_uu + 2ab·R_uv + a²·R_vv` — the reference
 reparameterised to second order, so G1 and G2 stay exact; those products need the edge's basis
 raised by 2 per order with its interior knots repeated once more per order, so these flows raise the
-layout's degree along the edge. `SurfaceAlignTests` prove a flat sheet following an arch across
+layout's degree along the edge. `SurfaceAlignJointTests` prove two edges of a flat sheet aligned
+one after the other to two pieces of one tilted plane both holding all along, the corner included, and
+to two arches bending apart past the corner the first held away from it only when kept.
+`SurfaceAlignTests` prove a flat sheet following an arch across
 a gap at G0, G1 and G2 with its far edge kept when nothing is blended, a two-row sheet whose one
 blended row carries its far edge along, a partial alignment on a refitted layout attaching
 the whole edge to the middle of the reference edge, and blended rows of a six-row sheet without input shape influence
@@ -974,7 +980,11 @@ surface's ends on its seam and a face reaching a pole leaving the new surface a 
 it; any other surface refused, `FIXME(INCOMPLETE_IMPLEMENTATION)`). The face faces out as it did (the given surface's normal at the face's interior point's
 parameters, the surface sharing them); where every edge still lies on
 the new surface along its trimming curve (within a quarter of the distance tolerance) it keeps its
-edges; where they lie on it only geometrically (a surface on parameters of its own) it keeps them
+edges; where they lie on it, or on its natural continuation past every side as far again as it
+spans (`BSplineSurfaceBoundaryExtender.continued`, Plasticity's hidden spans of a nominal surface,
+when its control points are drawn in), only geometrically it keeps them (and where their trimming
+curves cannot be built, it re-solves them with the faces beside it; a boundary control point moved
+within the face's plane alone still fails there, `FIXME(INCOMPLETE_IMPLEMENTATION)`)
 too, each taking the isoline of the new surface it runs along (a seam's two coedges the two ends,
 the one that lay lower taking the lower; an edge closing round the seam running end to end; a point
 at a pole taking the collapsed side's parameter, and one whose projection crowds beside it read
@@ -988,7 +998,13 @@ and its middle control point moved out bulging it the same between the edges it 
 face by face through the Rebuild Faces before each, and a rounded edge's quarter cylinder given its
 exact rational surface (every point the radius from the axis) and raised, its volume kept; a drum's
 side across its seam, a ball's octant reaching its pole (every point the radius from the centre)
-and a ring's face raised the same; every octant of a ball, those across its seam included, valid.
+and a ring's face raised the same; every octant of a ball, those across its seam included, valid
+and meshed (`MeshTessellator` reading a trimmed face's normal where the surface has none, at a pole,
+just inside the face toward the middle of its points). These are approximate shading normals,
+not a certified one-sided normal limit; direction-dependent singularities and an angular
+error guarantee remain incomplete and are source-marked. A side's control points drawn halfway in
+keeping the face on the surface's natural continuation (its hidden spans, the box unchanged), and
+`FaceBSplineSurfaceConverter.nominalSurface` cutting that continuation to the face's edges.
 
 ## Unwrap Face
 

@@ -506,7 +506,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
             in: feature,
             supportedKeys: [
                 "target", "targetEdge", "reference", "referenceEdge", "referencePlacement", "continuity", "tension", "blendRows",
-                "inputShapeInfluence", "partialStart", "partialEnd", "layout", "boundaryFlow",
+                "inputShapeInfluence", "partialStart", "partialEnd", "layout", "boundaryFlow", "keepsOtherEdges",
             ],
             objectName: featurePath
         )
