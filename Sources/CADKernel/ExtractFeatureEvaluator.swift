@@ -92,8 +92,13 @@ struct ExtractFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
                 references: references, body: body, model: context.brep, subshapes: context.subshapes,
                 lineage: context.lineage, resolver: subshapeResolver, tolerance: tolerance
             )
-            guard faceSet.closes(body: body, model: context.brep), case let .solid(solids) = body.topology else {
-                throw error(.invalidInput, feature.id, context, "The faces do not close: a solid needs every face of each shell they lie on.")
+            guard case let .solid(solids) = body.topology else {
+                throw error(.invalidInput, feature.id, context, "A solid is made from faces of a solid.")
+            }
+            guard faceSet.closes(body: body, model: context.brep) else {
+                // Plasticity's Alternative Duplicate: faces that do not close make the solid they
+                // bound with the surfaces around them.
+                return try plug(faces: faceSet, of: sourceBodyID, feature: feature, context: context)
             }
             let chosenShells = Set(faceSet.facesByShell.map(\.shellID))
             let shellsByStableID = Dictionary(uniqueKeysWithValues: extraction.request.shells.map { ($0.stableID, $0) })
@@ -128,6 +133,17 @@ struct ExtractFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
         var model = context.brep
         try BRepModelCombiner().merge(sewn.brep, into: &model)
         return EvaluationResult(brep: model, subshapes: sewn.subshapes, lineage: sewn.lineage)
+    }
+
+    /// The solid chosen faces of a solid bound with the faces around them (`ExtractFacePlugBuilder`).
+    private func plug(faces faceSet: ExtractFaceSet, of sourceBodyID: BodyID, feature: FeatureNode,
+                      context: EvaluationContext) throws -> EvaluationResult {
+        let source = context.brep
+        let faceIDs = Set(try faceSet.facesByShell.flatMap { entry -> [FaceID] in
+            guard let shell = source.shells[entry.shellID] else { throw TopologyError.missingReference("An extracted face's shell is missing.") }
+            return entry.faceIndices.map { shell.faceIDs[$0] }
+        })
+        return try ExtractFacePlugBuilder(tolerance: context.tolerance).plug(faces: faceIDs, of: sourceBodyID, feature: feature, context: context)
     }
 
     private enum Component {

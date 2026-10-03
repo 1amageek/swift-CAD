@@ -117,6 +117,7 @@ struct ExtractFeatureTests {
         #expect(abs(try volume(of: box, in: evaluated) - cube) < 1e-12)
     }
 
+    /// Five faces of a box: the one face left cannot grow over them, so they bound nothing.
     @Test(.timeLimit(.minutes(2)))
     func facesThatDoNotCloseAreRefusedAsASolid() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
@@ -124,6 +125,79 @@ struct ExtractFeatureTests {
         let some = try Array(faces(of: box, in: try evaluate(builder), builder: builder).prefix(5))
         _ = try builder.extract(box, selection: .solidFaces(some))
         #expect(throws: KernelError.self) { try evaluate(builder) }
+    }
+
+    /// Plasticity's Alternative Duplicate: a round pocket's wall and floor do not close, so they
+    /// make the plug filling the pocket, capped by the top it was cut into; the block stays as it
+    /// is. A 20 mm cube with a 6 mm wide, 4 mm deep pocket: a plug of π · 3² · 4 mm³.
+    @Test(.timeLimit(.minutes(2)))
+    func aPocketsFacesMakeThePlugFillingIt() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let cube = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
+        let top = try #require(try evaluate(builder).brep.vertices.values.map(\.point.z).max())
+        let center = try evaluate(builder).brep.vertices.values.reduce(Vector3D.zero) { $0 + ($1.point - .origin) } * 0.125
+        let floor = top - 0.004
+        let drill = try builder.cylinder(
+            placement: PrimitivePlacement(origin: Point3D(x: center.x, y: center.y, z: floor), axis: .unitZ, referenceDirection: .unitX),
+            radius: length(0.003), height: length(0.008)
+        )
+        let pocketed = try builder.boolean(targets: [cube], tool: drill, operation: .difference)
+        let before = try evaluate(builder)
+        func inPocket(_ faceID: FaceID) -> Bool {
+            guard let face = before.brep.faces[faceID] else { return false }
+            if case .cylinder = before.brep.geometry.surfaces[face.surfaceID] { return true }
+            let heights = face.loops.flatMap { before.brep.loops[$0]?.coedges ?? [] }.compactMap { coedge in
+                before.brep.edges[coedge.edgeID].flatMap { before.brep.vertices[$0.startVertexID]?.point.z }
+            }
+            return heights.isEmpty == false && heights.allSatisfy { abs($0 - floor) < 1e-9 }
+        }
+        let pocket = try before.subshapes.entries.filter { key, value in
+            guard key.featureID == pocketed, case let .face(faceID) = value else { return false }
+            return inPocket(faceID)
+        }.keys.sorted().map { try builder.stableSubshape($0) }
+        #expect(pocket.count >= 2)
+        let plug = try builder.extract(pocketed, selection: .solidFaces(pocket))
+        let evaluated = try evaluate(builder)
+        #expect(evaluated.brep.bodies[try bodyID(of: plug, in: evaluated)]?.kind == .solid)
+        let expected = Double.pi * 0.003 * 0.003 * 0.004
+        let plugVolume = try volume(of: plug, in: evaluated)
+        #expect(abs(plugVolume - expected) < 1e-11, "\(plugVolume) vs \(expected)")
+        #expect(abs(try volume(of: pocketed, in: evaluated) - (0.02 * 0.02 * 0.02 - expected)) < 1e-11)
+    }
+
+    /// A boss's wall and top do not close either: they make the block standing on the face they
+    /// rise from, its base the top of the cube under it. A 6 mm wide, 4 mm high round boss.
+    @Test(.timeLimit(.minutes(2)))
+    func aBosssFacesMakeTheBlockItStandsAs() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let cube = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
+        let top = try #require(try evaluate(builder).brep.vertices.values.map(\.point.z).max())
+        let center = try evaluate(builder).brep.vertices.values.reduce(Vector3D.zero) { $0 + ($1.point - .origin) } * 0.125
+        let post = try builder.cylinder(
+            placement: PrimitivePlacement(origin: Point3D(x: center.x, y: center.y, z: top - 0.001), axis: .unitZ, referenceDirection: .unitX),
+            radius: length(0.003), height: length(0.005)
+        )
+        let bossed = try builder.boolean(targets: [cube], tool: post, operation: .union)
+        let before = try evaluate(builder)
+        func onBoss(_ faceID: FaceID) -> Bool {
+            guard let face = before.brep.faces[faceID] else { return false }
+            if case .cylinder = before.brep.geometry.surfaces[face.surfaceID] { return true }
+            let heights = face.loops.flatMap { before.brep.loops[$0]?.coedges ?? [] }.compactMap { coedge in
+                before.brep.edges[coedge.edgeID].flatMap { before.brep.vertices[$0.startVertexID]?.point.z }
+            }
+            return heights.isEmpty == false && heights.allSatisfy { abs($0 - (top + 0.004)) < 1e-9 }
+        }
+        let boss = try before.subshapes.entries.filter { key, value in
+            guard key.featureID == bossed, case let .face(faceID) = value else { return false }
+            return onBoss(faceID)
+        }.keys.sorted().map { try builder.stableSubshape($0) }
+        #expect(boss.count >= 2)
+        let block = try builder.extract(bossed, selection: .solidFaces(boss))
+        let evaluated = try evaluate(builder)
+        let expected = Double.pi * 0.003 * 0.003 * 0.004
+        let blockVolume = try volume(of: block, in: evaluated)
+        #expect(abs(blockVolume - expected) < 1e-11, "\(blockVolume) vs \(expected)")
+        #expect(abs(try volume(of: bossed, in: evaluated) - (0.02 * 0.02 * 0.02 + expected)) < 1e-11)
     }
 
     /// A 20 mm cube with a 10 mm cavity: its cavity's faces alone are a solid of the cavity's

@@ -718,11 +718,24 @@ component count is no longer the one the extraction was made for is refused
 exactly when they are every face of each shell they lie on (`ExtractFaceSet`), so
 the copy takes whole shells, a chosen outer shell keeping the chosen voids inside
 it and a void chosen without its outer shell bounding a solid of the cavity's
-shape (its faces already face out of the cavity); faces that do not close are
-refused (`invalidInput`). `ExtractFaceClosure` answers the same question for
-callers that must declare the output before appending (Alternative Duplicate).
+shape (its faces already face out of the cavity). Faces that do not close make
+the solid they bound with the faces around them (Plasticity's Alternative
+Duplicate, `ExtractFacePlugBuilder`): a staged copy of the body is healed over
+them (`FaceRemovalPlanner`), the opening — their edges shared with faces not
+chosen, pieces of one curve joined end to end — is imprinted on it
+(`BRepFaceImprinter`), and its faces off the source's boundary (classified by
+`DefaultBRepSolidPointClassifier`) cap the chosen faces; caps outside the source
+make a pocket's plug (the chosen faces turned to face the void), caps inside it a
+boss's block (the caps turned), and caps on both sides, or none, are refused
+(`invalidInput`). Every edge is split where another patch's edge ends on it
+(`BRepSewingEdgeSubdivider`) before sewing, so the two sides meet edge for edge;
+the chosen faces trace to their source faces and the caps are generated. Faces
+whose neighbours must grow past one another (a notch) are refused by the healing
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`). `ExtractFaceClosure` answers whether faces
+close for callers that must declare the output before appending.
 `ExtractFeatureTests` own slice pieces, the refused count, face sheets, closed
-faces and cavities, persistence and the selection contract.
+faces and cavities, a pocket's plug and a boss's block by volume, persistence and
+the selection contract.
 
 ## Unjoin Faces
 
