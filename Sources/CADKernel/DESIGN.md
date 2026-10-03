@@ -768,8 +768,9 @@ a fraction of that extent, refused on the border (Rupa places a clicked Isoparam
 `ImprintBodyFeatureEvaluator` imprints
 the exact Boolean intersection of a tool's faces with a target's
 (`BooleanPipeline.completeIntersectionGraph`, `uvSplitGraph`,
-`BooleanFaceArrangementBoundary.edges`) and leaves the tool as it is; a placed
-tool is first moved into the target's frame in an unpublished
+`BooleanFaceArrangementBoundary.edges`) and leaves the tool as it is; several tools imprint
+at once, each tool's crossings completed among themselves so one tool's lines run on across
+another's; a placed tool is first moved into the target's frame in an unpublished
 `imprintToolPlacement` stage, and Imprint Curve Body imprints a placed curve as
 its rigid image, so both imprint where they are shown; a tool face lying on a
 target face is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
