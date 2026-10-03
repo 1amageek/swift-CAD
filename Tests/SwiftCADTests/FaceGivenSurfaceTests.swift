@@ -111,4 +111,32 @@ struct FaceGivenSurfaceTests {
         let measured = try volume(given, in: evaluated)
         #expect(abs(measured - (s * s * s + d * s * s / 9)) < s * s * s * 1e-6, "\(measured)")
     }
+
+    /// A whole box raised face by face (Plasticity's Raise Degree on a solid): each Rebuild Face
+    /// names its face as the box made it, found through the ones before by lineage; the box keeps
+    /// its volume with every face a degree-2 B-spline.
+    @Test(.timeLimit(.minutes(2)))
+    func everyFaceOfABoxIsRaisedThroughTheRebuildsBeforeIt() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let box = try builder.box(width: length(s), depth: length(s), height: length(s))
+        let start = try evaluate(builder)
+        let faces = try start.subshapes.entries.filter { key, value in
+            guard key.featureID == box, case .face = value else { return false }
+            return true
+        }.keys.sorted().map { try builder.stableSubshape($0) }
+        #expect(faces.count == 6)
+        var tip = box
+        for face in faces {
+            let surface = try raised(try FaceBSplineSurfaceConverter().surface(of: face, in: start))
+            tip = try builder.rebuildFaces(target: tip, faces: [face], method: .given(surface))
+        }
+        let evaluated = try evaluate(builder)
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        #expect(abs(try volume(tip, in: evaluated) - s * s * s) < s * s * s * 1e-9)
+        let splines = evaluated.brep.faces.values.filter { face in
+            if case .bSpline? = evaluated.brep.geometry.surfaces[face.surfaceID] { return true }
+            return false
+        }
+        #expect(splines.count == 6)
+    }
 }
