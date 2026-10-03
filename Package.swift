@@ -135,7 +135,13 @@ let package = Package(
     ),
     .executableTarget(
       name: "CADGeometryWASMSmoke",
-      dependencies: ["CADCore", "CADGeometry", "CADIR", "CADTopology"]
+      dependencies: ["CADCore", "CADGeometry", "CADIR", "CADTopology"],
+      linkerSettings: [
+        .unsafeFlags(
+          ["-Xlinker", "-z", "-Xlinker", "stack-size=67108864"],
+          .when(platforms: [.custom("wasi")])
+        )
+      ]
     ),
     .executableTarget(
       name: "CADContractWASMSmoke",

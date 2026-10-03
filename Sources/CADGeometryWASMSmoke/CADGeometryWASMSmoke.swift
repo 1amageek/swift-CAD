@@ -87,9 +87,11 @@ struct CADGeometryWASMSmoke {
         try verifyKnotReduction(curve: refined, tolerance: tolerance)
         try verifyPeriodicTensor(tolerance: tolerance)
         try verifyContinuousOverlap(tolerance: tolerance)
+        try OverlapIsocurveSmoke.verify(tolerance: tolerance)
         try verifyCommonConversion(tolerance: tolerance)
         try NonManifoldTopologySmoke.verify(tolerance: tolerance)
-        print("CADGeometryWASMSmoke passed: periodic curves and tensor surfaces, evaluation/jets, origins, exact refinement/restriction, certified knot reduction, projection, bounds, edge/face transport, continuous authored overlap, common conversion and non-manifold retention/admission with typed refusals")
+        try C0SurfaceAreaSmoke.verify()
+        print("CADGeometryWASMSmoke passed: periodic curves and tensor surfaces, evaluation/jets, origins, exact refinement/restriction, certified knot reduction, projection, bounds, edge/face transport, authored and native rational isocurve overlaps, common conversion, non-manifold retention/admission and C0 surface area/centroid with typed refusals")
     }
 
     private static func verifyKnotReduction(curve: BSplineCurve3D, tolerance: ModelingTolerance) throws {
