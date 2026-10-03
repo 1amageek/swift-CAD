@@ -873,7 +873,10 @@ reference B-spline face's parameter-boundary edge, placed in the target's frame.
 reference so its edge is its upper one, runs the reference along the edge the target's way,
 maps both edge parameters to [0, 1], raises the lower degree and merges knots, so both share one
 exact basis along the edge; refines the target along U only until it has the rows the continuity
-sets and one more (Blend adds no rows: Plasticity's net keeps its size); then sets its first row to the reference's boundary (G0),
+sets and one more (Blend adds no rows: Plasticity's net keeps its size) — and, when the feature
+`keepsOtherEdges` (a later edge of a sheet aligned in one dialog, Plasticity's align-3), first at a
+sixteenth, an eighth and a quarter of the way across, so the rows set reach only the stretch beside
+the edge and an edge aligned before keeps its own rows but where the two meet; then sets its first row to the reference's boundary (G0),
 its second so the cross-edge derivative is the reference's times the tension times the target's
 own speed ratio (G1), its third so the second derivative is that factor squared times the
 reference's (G2), and fades the last row's displacement over the blended rows by their Greville
@@ -894,7 +897,10 @@ the target's side edges' directions), `a·R_v + b·R_u` with quadratic `a`, `b` 
 the reference's tangent plane, the second derivative `b²·R_uu + 2ab·R_uv + a²·R_vv` — the reference
 reparameterised to second order, so G1 and G2 stay exact; those products need the edge's basis
 raised by 2 per order with its interior knots repeated once more per order, so these flows raise the
-layout's degree along the edge. `SurfaceAlignTests` prove a flat sheet following an arch across
+layout's degree along the edge. `SurfaceAlignJointTests` prove two edges of a flat sheet aligned
+one after the other to two pieces of one tilted plane both holding all along, the corner included, and
+to two arches bending apart past the corner the first held away from it only when kept.
+`SurfaceAlignTests` prove a flat sheet following an arch across
 a gap at G0, G1 and G2 with its far edge kept when nothing is blended, a two-row sheet whose one
 blended row carries its far edge along, a partial alignment on a refitted layout attaching
 the whole edge to the middle of the reference edge, and blended rows of a six-row sheet without input shape influence

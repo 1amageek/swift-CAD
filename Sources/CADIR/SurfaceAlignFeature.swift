@@ -25,6 +25,10 @@ public struct SurfaceAlignFeature: Codable, Hashable, Sendable {
     /// inner row (`next`), perpendicular to the edge (`normal`), the target's own (`natural`) or
     /// its side edges' (`adjacent`), each in the reference's tangent plane.
     public var boundaryFlow: SquareFitOptions.BoundaryFlow
+    /// Whether the sheet's other edges, aligned before, stay as they are but where they meet this
+    /// one (Plasticity aligning several edges of one sheet in one dialog): the rows set here are
+    /// first refined to reach only the stretch beside the edge.
+    public var keepsOtherEdges: Bool
 
     public init(
         target: PatternTargetReference, targetEdge: StableSubshapeReference,
@@ -32,7 +36,7 @@ public struct SurfaceAlignFeature: Codable, Hashable, Sendable {
         referencePlacement: RigidTransform3D? = nil, continuity: SurfaceContinuityLevel = .tangentPlane,
         tension: Double = 1, blendRows: Int = 0, inputShapeInfluence: Double = 1,
         partialStart: Double = 0, partialEnd: Double = 1, layout: SurfaceControlLayout? = nil,
-        boundaryFlow: SquareFitOptions.BoundaryFlow = .next
+        boundaryFlow: SquareFitOptions.BoundaryFlow = .next, keepsOtherEdges: Bool = false
     ) {
         self.target = target
         self.targetEdge = targetEdge
@@ -47,6 +51,7 @@ public struct SurfaceAlignFeature: Codable, Hashable, Sendable {
         self.partialEnd = partialEnd
         self.layout = layout
         self.boundaryFlow = boundaryFlow
+        self.keepsOtherEdges = keepsOtherEdges
     }
 
     public func validate() throws {
@@ -74,14 +79,14 @@ public struct SurfaceAlignFeature: Codable, Hashable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case target, targetEdge, reference, referenceEdge, referencePlacement, continuity, tension, blendRows
-        case inputShapeInfluence, partialStart, partialEnd, layout, boundaryFlow
+        case inputShapeInfluence, partialStart, partialEnd, layout, boundaryFlow, keepsOtherEdges
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
             [.target, .targetEdge, .reference, .referenceEdge, .referencePlacement, .continuity, .tension, .blendRows,
-             .inputShapeInfluence, .partialStart, .partialEnd, .layout, .boundaryFlow], in: decoder
+             .inputShapeInfluence, .partialStart, .partialEnd, .layout, .boundaryFlow, .keepsOtherEdges], in: decoder
         )
         target = try container.decode(PatternTargetReference.self, forKey: .target)
         targetEdge = try container.decode(StableSubshapeReference.self, forKey: .targetEdge)
@@ -96,6 +101,7 @@ public struct SurfaceAlignFeature: Codable, Hashable, Sendable {
         partialEnd = try container.decode(Double.self, forKey: .partialEnd)
         layout = try container.decodeIfPresent(SurfaceControlLayout.self, forKey: .layout)
         boundaryFlow = try container.decodeIfPresent(SquareFitOptions.BoundaryFlow.self, forKey: .boundaryFlow) ?? .next
+        keepsOtherEdges = try container.decodeIfPresent(Bool.self, forKey: .keepsOtherEdges) ?? false
         try validate()
     }
 
@@ -115,6 +121,7 @@ public struct SurfaceAlignFeature: Codable, Hashable, Sendable {
         try container.encode(partialEnd, forKey: .partialEnd)
         try container.encodeIfPresent(layout, forKey: .layout)
         try container.encode(boundaryFlow, forKey: .boundaryFlow)
+        if keepsOtherEdges { try container.encode(keepsOtherEdges, forKey: .keepsOtherEdges) }
     }
 
     /// The inputs the feature reads: its sheet, consumed, and the reference's body.
