@@ -967,15 +967,18 @@ span continued by blossoming (natural), the straight strip along the cross-bound
 the plane perpendicular to the row's end tangent, as Extend Curve mirrors a curve's end
 (reflective), or the cubic strip matching the cross-boundary first and second derivatives with its
 second derivative fading to none at the far end (soft, decided 2026-10-02) — as far as the
-distance measured along the surface across the edge's middle. Modifying, the sheet's patches
-(`DefaultBRepFacePatchExtractor`) and the strips are sewn into one sheet in its place;
+distance measured along the surface across the edge's middle. Modifying makes one sheet with no
+line at the old edge, as Plasticity's Modify does: a one-face B-spline sheet covering its whole
+surface becomes that surface run on past each chosen boundary in turn, one face; otherwise the
+sheet's patches (`DefaultBRepFacePatchExtractor`) and the strips are sewn into one sheet in its
+place and faces on one plane merge (`RedundantTopologyRemover`, identities carried);
 otherwise the strips are sewn into a sheet of their own beside it, the sheet kept. With a Limit (`SheetExtensionLimit`, decided 2026-10-02) the distance is where straight extensions (planar faces, or Linear) reach a body: rays across the edge from nine points along it meet the body's faces (`BRepRayFaceCrossings`) — the least first meeting (Minimal), the greatest first meeting (Inside) or the greatest first leaving (Outside); curved extensions run to a body are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Two
 straight edges of a planar face meeting at a convex corner are joined by a corner patch: the
 quadrilateral from the corner along each strip's side to where the far edges' lines meet.
 Chosen edges of curved faces meeting at a corner, faces on other surfaces and edges inside a
 B-spline domain are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). `SheetExtendTests` prove a
-planar sheet grown in place and beside it, a bilinear sheet continued exactly, each shape of a
-parabolic arch, and a rectangle's two edges grown together into one larger sheet.
+planar sheet grown in place (one face) and beside it, a bilinear sheet continued exactly, each shape
+of a parabolic arch (one face), and a rectangle's two edges grown together into one larger face.
 
 ## Reverse Sheet
 
@@ -1019,7 +1022,8 @@ source's rectangular trims, which CADTopology's `TrimmedParametricSurfaceVolumeE
 integrates exactly span by span (each certified Bezier span cut to its share of
 the rectangle; a share a hair wide leaves the face to the general certified path),
 and `ExactRectangularPcurveDomainResolver` reads an axis-aligned polyline side,
-running one way, as a rectangle side. Before this, the certified rational path
+running one way, as a rectangle side, and several pcurves running straight on along one
+parameter line as one side (a merged PolySplines face bounded by the edges of its neighbours). Before this, the certified rational path
 took minutes on such a body and every measurement of it stalled
 (`multiSpanPolynomialTopUnderARectangleIsIntegratedSpanBySpan`).
 

@@ -167,6 +167,25 @@ public struct PolySplineFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         func bezier(_ points: [Point3D]) -> Curve3D {
             .bSpline(BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1], controlPoints: points))
         }
+        if polySpline.options.mergePatches {
+            // Merge Patches: rectangular blocks of patches, each one face with one control grid.
+            let blocks = try PolySplinePatchMerger(tolerance: tolerance).blocks(of: network)
+            let merged = blocks.enumerated().map { index, block -> BRepSewingFacePatch in
+                let id = "polyspline:block:\(index)"
+                let edges = block.sides.enumerated().map { k, side in
+                    BRepSewingEdge(stableID: "\(id):\(k)", curve: bezier(side.curve), startParameter: 0, endParameter: 1,
+                                   startPoint: side.curve[0], endPoint: side.curve[3], surfaceParameterCurve: side.parameterCurve)
+                }
+                return BRepSewingFacePatch(stableID: id, surface: .bSpline(block.surface), orientation: .forward,
+                                           loops: [BRepSewingLoop(stableID: "\(id):outer", role: .outer, edges: edges)])
+            }
+            let sewn = try sewer.sew(BRepSewingRequest(
+                featureID: feature.id, bodyKind: polySpline.sourceMesh.isClosedSurface ? .solid : .sheet,
+                shells: [BRepSewingShell(stableID: "polyspline:shell", patches: merged)]
+            ), tolerance: tolerance)
+            let combined = try BRepModelCombiner().combined([context.brep, sewn.brep])
+            return EvaluationResult(brep: combined, subshapes: sewn.subshapes, lineage: sewn.lineage)
+        }
         let patches = network.patches.enumerated().map { index, patch -> BRepSewingFacePatch in
             let net = patch.net
             let id = "polyspline:patch:\(index)"

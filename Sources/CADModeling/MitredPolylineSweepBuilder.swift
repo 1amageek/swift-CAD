@@ -43,6 +43,16 @@ package struct MitredPolylineSweepBuilder {
         }
     }
 
+    /// The direction of an open section made of straight spans along one line, nil otherwise.
+    private func straightSectionDirection(_ loops: [[ExactBSplineCurveSpan]]) throws -> Vector3D? {
+        let points = loops.flatMap { $0.flatMap(\.curve.controlPoints) }
+        guard let first = points.first, let far = points.max(by: { ($0 - first).length < ($1 - first).length }),
+              (far - first).length > tolerance.distance else { return nil }
+        let direction = try (far - first).normalized(tolerance: tolerance.distance)
+        let straight = points.allSatisfy { let offset = $0 - first; return (offset - direction * offset.dot(direction)).length <= tolerance.distance }
+        return straight ? direction : nil
+    }
+
     package struct Request {
         package let request: BRepSewingRequest
         package let armCount: Int
@@ -96,7 +106,14 @@ package struct MitredPolylineSweepBuilder {
                 corners.append(span.endPoint)
             }
         }
-        let normal = try sectionPlane.normal.normalized(tolerance: tolerance.distance)
+        var normal = try sectionPlane.normal.normalized(tolerance: tolerance.distance)
+        // An open straight section lies in many planes: when its sketch plane runs along the first
+        // arm (a line drawn in the path's plane), it is taken in the plane through it square to
+        // that one, so it sweeps a flat ribbon along the path.
+        if sectionIsClosed == false, abs(normal.dot(directions[0])) <= max(tolerance.relative, sin(tolerance.angle)),
+           let line = try straightSectionDirection(sectionLoops) {
+            normal = try line.cross(normal).normalized(tolerance: tolerance.distance)
+        }
         if pathIsClosed {
             if directions.count > 1, let first = directions.first, let last = directions.last,
                last.cross(first).length <= sin(tolerance.angle), last.dot(first) > 0 {

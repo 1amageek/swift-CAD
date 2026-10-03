@@ -48,6 +48,7 @@ struct SheetExtendTests {
         _ = try joined.extendSheet(target: sheet, edges: [right], distance: millimeters(5))
         let model = try evaluate(joined).brep
         #expect(model.bodies.count == 1)
+        #expect(model.faces.count == 1)
         #expect(abs((model.vertices.values.map(\.point.x).max() ?? 0) - 0.025) < 1e-12)
 
         _ = try builder.extendSheet(target: sheet, edges: [right], distance: millimeters(5), modifies: false)
@@ -147,8 +148,8 @@ struct SheetExtendTests {
         let points = model.vertices.values.map(\.point)
         #expect(abs((points.map(\.x).max() ?? 0) - 0.025) < 1e-12 && abs((points.map(\.y).max() ?? 0) - 0.015) < 1e-12)
         #expect(points.contains { abs($0.x - 0.025) < 1e-12 && abs($0.y - 0.015) < 1e-12 })
-        // The sheet, its two strips and the corner, sewn into one open shell.
-        #expect(model.faces.count == 4)
+        // Modify: the sheet, its two strips and the corner, all in its plane, are one face.
+        #expect(model.faces.count == 1)
     }
 
     @Test(.timeLimit(.minutes(2)))
@@ -184,6 +185,8 @@ struct SheetExtendTests {
         let edge = try #require(try edges(of: sheet, in: builder) { a, b in abs(a.x - s) < 1e-12 && abs(b.x - s) < 1e-12 }.first)
         _ = try builder.extendSheet(target: sheet, edges: [edge], distance: meters(0.005), shape: shape)
         let model = try evaluate(builder).brep
+        // Modify: one face, the arch's surface run on past its edge.
+        #expect(model.faces.count == 1)
         let far = try #require(model.vertices.values.map(\.point).filter { abs($0.y) < 1e-12 }.max { $0.x < $1.x })
         #expect(far.x > s + 1e-6)
         // Past u = 1 the arch goes on as a parabola, a tangent line, or the arch mirrored across

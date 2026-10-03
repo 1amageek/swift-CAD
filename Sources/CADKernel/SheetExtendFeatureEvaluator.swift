@@ -133,6 +133,24 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 faceID: first.face, stableID: "sheet-extend:corner:\(ordinal)", featureID: feature.id, context: context
             ))
         }
+        if extend.modifies, extend.limit == nil, let whole = try wholeSurfaceExtension(
+            bodyID: bodyID, scope: scope, edges: chosen, coedgeOfEdge: coedgeOfEdge, distance: distance, shape: extend.shape,
+            featureID: feature.id, context: context
+        ) {
+            // A one-face B-spline sheet extended along its parameter boundaries is the extended
+            // surface itself: one face, as Plasticity's Modify makes one sheet with no line.
+            let sewn = try sewer.sew(BRepSewingRequest(featureID: feature.id, bodyKind: .sheet,
+                shells: [BRepSewingShell(stableID: "sheet-extend:shell", patches: [whole])]), tolerance: tolerance)
+            let replaced = try BRepBodyModelReplacer().replacing(bodyIDs: [bodyID], with: sewn.brep, in: model)
+            try replaced.validate(level: .exact, tolerance: tolerance)
+            return EvaluationResult(
+                brep: replaced,
+                subshapes: sewn.subshapes,
+                removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes)
+                    .union(context.subshapes.entries.filter { $0.value == .body(bodyID) }.map(\.key)),
+                lineage: sewn.lineage
+            )
+        }
         if extend.modifies {
             // The sheet and its extensions sewn into one sheet in its place.
             let extraction = try DefaultBRepFacePatchExtractor().extract(
@@ -141,7 +159,28 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             let patches = extraction.request.shells.flatMap(\.patches) + strips
             let shells = try BRepSewingPatchShellPartitioner().shells(patches: patches, stablePrefix: "sheet-extend:shell", tolerance: tolerance)
             let sewn = try sewer.sew(BRepSewingRequest(featureID: feature.id, bodyKind: .sheet, shells: shells), tolerance: tolerance)
-            let replaced = try BRepBodyModelReplacer().replacing(bodyIDs: [bodyID], with: sewn.brep, in: model)
+            var replaced = try BRepBodyModelReplacer().replacing(bodyIDs: [bodyID], with: sewn.brep, in: model)
+            // Strips on the sheet's own plane merge with it: one face, no line at the old edge.
+            let sewnBodies = Set(sewn.subshapes.values.compactMap { reference -> BodyID? in
+                if case let .body(id) = reference { return id }
+                return nil
+            })
+            guard sewnBodies.count == 1, let sewnBodyID = sewnBodies.first else {
+                throw failure(.topologyFailure, feature.id, tolerance, "An extended sheet is not one sheet.")
+            }
+            if try RedundantTopologyRemover().remove(bodyID: sewnBodyID, featureID: feature.id, model: &replaced, tolerance: tolerance) {
+                try ExactFacePcurveBuilder().populateMissingPcurves(in: &replaced, tolerance: tolerance)
+                try replaced.validate(level: .exact, tolerance: tolerance)
+                let identity = try DefaultCarriedTopologyIdentityBuilder().identity(featureID: feature.id, bodyID: sewnBodyID,
+                                                                                     model: replaced, context: context)
+                return EvaluationResult(
+                    brep: replaced,
+                    subshapes: identity.subshapes,
+                    removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes)
+                        .union(context.subshapes.entries.filter { $0.value == .body(bodyID) }.map(\.key)),
+                    lineage: identity.lineage
+                )
+            }
             try replaced.validate(level: .exact, tolerance: tolerance)
             return EvaluationResult(
                 brep: replaced,
@@ -250,6 +289,38 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         return try bSplineStrip(
             spline: spline, face: face, pcurve: pcurve, distance: distance, shape: shape,
             stableID: stableID, parents: parents, featureID: featureID, tolerance: tolerance
+        )
+    }
+
+    /// The one face of a single-face B-spline sheet covering its whole surface, extended past each
+    /// chosen edge (each a parameter boundary) in turn; nil when the sheet is not such a sheet.
+    private func wholeSurfaceExtension(
+        bodyID: BodyID, scope: BodyTopologyScope, edges: [EdgeID], coedgeOfEdge: [EdgeID: [(face: FaceID, coedge: Coedge)]],
+        distance: Double, shape: SheetExtensionShape, featureID: FeatureID, context: EvaluationContext
+    ) throws -> BRepSewingFacePatch? {
+        let model = context.brep
+        let tolerance = context.tolerance
+        let faces = scope.references.compactMap { reference -> FaceID? in
+            if case let .face(id) = reference { return id }
+            return nil
+        }
+        guard faces.count == 1, let faceID = faces.first, let face = model.faces[faceID],
+              case let .bSpline(spline)? = model.geometry.surfaces[face.surfaceID],
+              let domain = try ExactRectangularPcurveDomainResolver().resolve(face: face, model: model, tolerance: tolerance),
+              let u0 = spline.uKnots.first, let u1 = spline.uKnots.last, let v0 = spline.vKnots.first, let v1 = spline.vKnots.last,
+              abs(domain.uLower - u0) <= tolerance.distance, abs(domain.uUpper - u1) <= tolerance.distance,
+              abs(domain.vLower - v0) <= tolerance.distance, abs(domain.vUpper - v1) <= tolerance.distance else {
+            return nil
+        }
+        var surface = spline
+        for edgeID in edges {
+            guard let pcurve = coedgeOfEdge[edgeID]?.first?.coedge.surfaceParameterCurve else { return nil }
+            surface = try extendedSurface(surface, along: pcurve, distance: distance, shape: shape,
+                                          featureID: featureID, tolerance: tolerance).surface
+        }
+        return try BSplineParameterRectanglePatchBuilder().patch(
+            surface, stableID: "sheet-extend:whole", orientation: face.orientation,
+            parentSubshapeIDs: context.subshapeIDs(for: .face(faceID)), tolerance: tolerance
         )
     }
 
@@ -565,6 +636,24 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         spline: BSplineSurface3D, face: Face, pcurve: SurfaceParameterCurve, distance: Double, shape: SheetExtensionShape,
         stableID: String, parents: [SubshapeID], featureID: FeatureID, tolerance: ModelingTolerance
     ) throws -> BRepSewingFacePatch {
+        var (extended, isU, across) = try extendedSurface(spline, along: pcurve, distance: distance, shape: shape,
+                                                          featureID: featureID, tolerance: tolerance)
+        // Only as wide as the edge.
+        let (eu0, eu1, ev0, ev1) = (extended.uKnots.first ?? 0, extended.uKnots.last ?? 0, extended.vKnots.first ?? 0, extended.vKnots.last ?? 0)
+        extended = isU
+            ? try extended.trimmed(uFrom: eu0, uTo: eu1, vFrom: across.lowerBound, vTo: across.upperBound, tolerance: tolerance)
+            : try extended.trimmed(uFrom: across.lowerBound, uTo: across.upperBound, vFrom: ev0, vTo: ev1, tolerance: tolerance)
+        return try BSplineParameterRectanglePatchBuilder().patch(
+            extended, stableID: stableID, orientation: face.orientation, parentSubshapeIDs: parents, tolerance: tolerance
+        )
+    }
+
+    /// The B-spline surface run on past the parameter boundary `pcurve` lies on by `distance` in
+    /// `shape`, whether that boundary runs along u, and the stretch of it the edge covers.
+    private func extendedSurface(
+        _ spline: BSplineSurface3D, along pcurve: SurfaceParameterCurve, distance: Double, shape: SheetExtensionShape,
+        featureID: FeatureID, tolerance: ModelingTolerance
+    ) throws -> (surface: BSplineSurface3D, isU: Bool, across: ClosedRange<Double>) {
         guard let u0 = spline.uKnots.first, let u1 = spline.uKnots.last, let v0 = spline.vKnots.first, let v1 = spline.vKnots.last else {
             throw failure(.invalidInput, featureID, tolerance, "An extended face's surface has no domain.")
         }
@@ -648,15 +737,7 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         case .reflective: .reflective
         case .soft: .soft
         }
-        var extended = try extender.extended(of: spline, past: side, by: delta, shape: kernelShape, tolerance: tolerance)
-        // Only as wide as the edge.
-        let (eu0, eu1, ev0, ev1) = (extended.uKnots.first ?? 0, extended.uKnots.last ?? 0, extended.vKnots.first ?? 0, extended.vKnots.last ?? 0)
-        extended = isU
-            ? try extended.trimmed(uFrom: eu0, uTo: eu1, vFrom: across.lowerBound, vTo: across.upperBound, tolerance: tolerance)
-            : try extended.trimmed(uFrom: across.lowerBound, uTo: across.upperBound, vFrom: ev0, vTo: ev1, tolerance: tolerance)
-        return try BSplineParameterRectanglePatchBuilder().patch(
-            extended, stableID: stableID, orientation: face.orientation, parentSubshapeIDs: parents, tolerance: tolerance
-        )
+        return (try extender.extended(of: spline, past: side, by: delta, shape: kernelShape, tolerance: tolerance), isU, across)
     }
 
     private func failure(_ code: KernelErrorCode, _ featureID: FeatureID, _ tolerance: ModelingTolerance, _ message: String) -> KernelError {

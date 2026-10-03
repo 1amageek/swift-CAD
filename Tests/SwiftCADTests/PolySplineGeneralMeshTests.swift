@@ -87,4 +87,65 @@ struct PolySplineGeneralMeshTests {
         let interpolated = try sheet(rounded: true, interpolated: true)
         #expect(corners.allSatisfy { corner in interpolated.vertices.values.contains { ($0.point - corner).length < 1e-12 } })
     }
+
+    /// The cube [−s, s]³ with each side cut into n × n quads, as triangles wound outward.
+    private func subdividedCube(_ s: Double, _ n: Int) -> Mesh {
+        var positions: [Point3D] = []
+        var index: [String: UInt32] = [:]
+        func vertex(_ p: Point3D) -> UInt32 {
+            let key = String(format: "%.9f,%.9f,%.9f", p.x, p.y, p.z)
+            if let existing = index[key] { return existing }
+            positions.append(p)
+            index[key] = UInt32(positions.count - 1)
+            return UInt32(positions.count - 1)
+        }
+        var indices: [UInt32] = []
+        // Each side: a corner, two edge directions (their cross product outward).
+        let sides: [(Point3D, Vector3D, Vector3D)] = [
+            (Point3D(x: -s, y: -s, z: s), Vector3D(x: 2 * s, y: 0, z: 0), Vector3D(x: 0, y: 2 * s, z: 0)),
+            (Point3D(x: -s, y: -s, z: -s), Vector3D(x: 0, y: 2 * s, z: 0), Vector3D(x: 2 * s, y: 0, z: 0)),
+            (Point3D(x: s, y: -s, z: -s), Vector3D(x: 0, y: 2 * s, z: 0), Vector3D(x: 0, y: 0, z: 2 * s)),
+            (Point3D(x: -s, y: -s, z: -s), Vector3D(x: 0, y: 0, z: 2 * s), Vector3D(x: 0, y: 2 * s, z: 0)),
+            (Point3D(x: -s, y: s, z: -s), Vector3D(x: 0, y: 0, z: 2 * s), Vector3D(x: 2 * s, y: 0, z: 0)),
+            (Point3D(x: -s, y: -s, z: -s), Vector3D(x: 2 * s, y: 0, z: 0), Vector3D(x: 0, y: 0, z: 2 * s)),
+        ]
+        for (corner, a, b) in sides {
+            func at(_ i: Int, _ j: Int) -> UInt32 { vertex(corner + a * (Double(i) / Double(n)) + b * (Double(j) / Double(n))) }
+            for i in 0..<n {
+                for j in 0..<n {
+                    let q = [at(i, j), at(i + 1, j), at(i + 1, j + 1), at(i, j + 1)]
+                    indices += [q[0], q[1], q[2], q[0], q[2], q[3]]
+                }
+            }
+        }
+        return Mesh(positions: positions, indices: indices)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func mergePatchesMakesOneFacePerRegularBlock() throws {
+        // A cube cut into 2 × 2 quads a side: unmerged, 24 patches; merged, each side's four
+        // patches (meeting at regular vertices) one face, and the same solid.
+        let s = 0.01
+        func solid(merged: Bool) throws -> BRepModel {
+            var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+            _ = try builder.polySpline(sourceMesh: subdividedCube(s, 2), options: PolySplineOptions(mergePatches: merged))
+            let model = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "poly")).brep
+            try model.validate(level: .volumetric, tolerance: .standard)
+            return model
+        }
+        let unmerged = try solid(merged: false)
+        let merged = try solid(merged: true)
+        #expect(unmerged.faces.count == 24)
+        #expect(merged.faces.count == 6)
+        // Each merged side is the uniform bicubic B-spline over its regular middle: its middle
+        // joint knots are simple.
+        let surfaces = merged.faces.values.compactMap { face -> BSplineSurface3D? in
+            if case let .bSpline(surface)? = merged.geometry.surfaces[face.surfaceID] { return surface }
+            return nil
+        }
+        #expect(surfaces.count == 6)
+        #expect(surfaces.allSatisfy { $0.uKnots.filter { $0 == 1 }.count < 3 || $0.vKnots.filter { $0 == 1 }.count < 3 })
+        let volumes = try (unmerged.volume(tolerance: .standard), merged.volume(tolerance: .standard))
+        #expect(abs(volumes.0 - volumes.1) < 1e-12, "\(volumes)")
+    }
 }

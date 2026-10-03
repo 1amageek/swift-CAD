@@ -221,7 +221,10 @@ closed: the section slides along each arm and turns at a corner by the least rot
 arms' directions; each arm is the exact prism between its two ends, each end the section pushed
 along the arm onto the mitre plane through the corner (normal the sum of the two directions), on
 which neighbouring arms provably meet in the same curve. Open paths are capped at their ends; a
-closed path must bring its frame back unturned (a planar loop). Twist, scale and guides are refused
+closed path must bring its frame back unturned (a planar loop). An open straight section drawn in
+a plane running along the first arm (a line in the path's own plane) is taken in the plane through
+it square to that one, so it sweeps a flat ribbon (`aLineInThePathsPlaneSweepsAFlatRibbon`, mitred
+and round). Twist, scale and guides are refused
 with `FIXME(INCOMPLETE_IMPLEMENTATION)`. `MitredSweepTests` own an L-shaped path and a closed frame
 (exact volumes, the mitre plane's vertices, the frame's sixteen faces).
 
@@ -1164,9 +1167,17 @@ held). Every boundary curve is shared exactly by its two patches, so
 the patches sew into one sheet, or a solid when the mesh is closed; where every corner has valence
 four they are the uniform B-spline exactly, elsewhere they meet in position and nearly in tangent
 (Plasticity states G2 there; `FIXME(INCOMPLETE_IMPLEMENTATION)` covers control-point edits on
-such networks). `PolySplineGeneralMeshTests` own a cube's six patches closing into a solid at the
+such networks). With Merge Patches (the default) `PolySplinePatchMerger` joins the patches into
+rectangular blocks, growing each along its u and v directions over patch edges whose ends are both
+regular (four patches around an inner vertex, two along the boundary), so blocks stop at
+extraordinary vertices: a block is one B-spline face laid out with triple joint knots, the patches'
+exact union, then each joint knot removed as far as the surface stays within a thousandth of the
+modeling distance (Piegl and Tiller's removal), down to a simple knot over a regular region; its
+sides are the patch edges it shares, so neighbouring blocks still sew edge to edge.
+`PolySplineGeneralMeshTests` own a cube's six patches closing into a solid at the
 limit corners (half the cube's half-width for valence three), a tetrahedron's twelve refined
-patches, and a triangle's corners kept, rounded short of, and interpolated again.
+patches, a triangle's corners kept, rounded short of, and interpolated again, and a cube cut 2 × 2
+a side merging its 24 patches into 6 faces of the same volume.
 
 ## Runtime Flows
 

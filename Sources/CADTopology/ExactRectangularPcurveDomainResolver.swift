@@ -8,7 +8,9 @@ package struct ExactRectangularPcurveDomain: Sendable, Hashable {
     package let vUpper: Double
 }
 
-/// Recognizes an exact four-sided axis-aligned outer pcurve loop.
+/// Recognizes an exact axis-aligned rectangular outer pcurve loop: four sides, each one pcurve or
+/// several running straight on along the same parameter line (a merged face whose sides are
+/// made of the edges it shares with several neighbours).
 package struct ExactRectangularPcurveDomainResolver:
     ExactRectangularPcurveDomainResolving,
     Sendable
@@ -24,7 +26,7 @@ package struct ExactRectangularPcurveDomainResolver:
               let loopID = face.loops.first,
               let loop = model.loops[loopID],
               loop.role == .outer,
-              loop.coedges.count == 4 else {
+              loop.coedges.count >= 4 else {
             return nil
         }
         var vertices: [SurfaceParameter] = []
@@ -47,13 +49,29 @@ package struct ExactRectangularPcurveDomainResolver:
                 vertices.append(contentsOf: curveVertices.dropFirst())
             }
         }
-        guard vertices.count == 5,
+        guard vertices.count == loop.coedges.count + 1,
               let first = vertices.first,
               let last = vertices.last,
               first == last else {
             return nil
         }
-        let closedVertices = Array(vertices.dropLast())
+        // Corners only: a vertex between two pieces running straight on along one parameter
+        // line, the same way, is no corner.
+        var closedVertices = Array(vertices.dropLast())
+        var index = 0
+        while closedVertices.count > 4, index < closedVertices.count {
+            let count = closedVertices.count
+            let (a, b, c) = (closedVertices[(index + count - 1) % count], closedVertices[index], closedVertices[(index + 1) % count])
+            let straightAlongV = a.u == b.u && b.u == c.u && (b.v - a.v) * (c.v - b.v) > 0
+            let straightAlongU = a.v == b.v && b.v == c.v && (b.u - a.u) * (c.u - b.u) > 0
+            if straightAlongU || straightAlongV {
+                closedVertices.remove(at: index)
+                index = 0
+            } else {
+                index += 1
+            }
+        }
+        guard closedVertices.count == 4 else { return nil }
         guard let minimumU = closedVertices.map(\.u).min(),
               let maximumU = closedVertices.map(\.u).max(),
               let minimumV = closedVertices.map(\.v).min(),
