@@ -762,7 +762,10 @@ face's boundary or another curve (`ImprintCompletion.edge`).
 `IsoparamFeatureEvaluator` imprints parameter lines at fractions of a face's
 extent, reaching a twentieth past it within the surface's domain and clipped to
 the face; subdividing a B-spline surface first inserts each line's knot up to the
-degree, keeping its shape and parameters. `ImprintBodyFeatureEvaluator` imprints
+degree, keeping its shape and parameters. `IsoparamPlacementQuery` answers where a line
+through a point of a face lies: the point's nearest face parameter along the line's direction as
+a fraction of that extent, refused on the border (Rupa places a clicked Isoparam with it).
+`ImprintBodyFeatureEvaluator` imprints
 the exact Boolean intersection of a tool's faces with a target's
 (`BooleanPipeline.completeIntersectionGraph`, `uvSplitGraph`,
 `BooleanFaceArrangementBoundary.edges`) and leaves the tool as it is; a placed
@@ -969,9 +972,11 @@ the plane perpendicular to the row's end tangent, as Extend Curve mirrors a curv
 second derivative fading to none at the far end (soft, decided 2026-10-02) — as far as the
 distance measured along the surface across the edge's middle. Modifying makes one sheet with no
 line at the old edge, as Plasticity's Modify does: a one-face B-spline sheet covering its whole
-surface becomes that surface run on past each chosen boundary in turn, one face; otherwise the
+surface becomes that surface run on past each chosen boundary in turn (each by its own reach under
+a Limit), one face; otherwise the
 sheet's patches (`DefaultBRepFacePatchExtractor`) and the strips are sewn into one sheet in its
-place and faces on one plane merge (`RedundantTopologyRemover`, identities carried);
+place and, when every face lies on a plane, faces on one plane merge (`RedundantTopologyRemover`,
+identities carried);
 otherwise the strips are sewn into a sheet of their own beside it, the sheet kept. With a Limit (`SheetExtensionLimit`, decided 2026-10-02) the distance is where straight extensions (planar faces, or Linear) reach a body: rays across the edge from nine points along it meet the body's faces (`BRepRayFaceCrossings`) — the least first meeting (Minimal), the greatest first meeting (Inside) or the greatest first leaving (Outside); curved extensions run to a body are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Two
 straight edges of a planar face meeting at a convex corner are joined by a corner patch: the
 quadrilateral from the corner along each strip's side to where the far edges' lines meet.

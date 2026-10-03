@@ -133,9 +133,9 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 faceID: first.face, stableID: "sheet-extend:corner:\(ordinal)", featureID: feature.id, context: context
             ))
         }
-        if extend.modifies, extend.limit == nil, let whole = try wholeSurfaceExtension(
-            bodyID: bodyID, scope: scope, edges: chosen, coedgeOfEdge: coedgeOfEdge, distance: distance, shape: extend.shape,
-            featureID: feature.id, context: context
+        if extend.modifies, let whole = try wholeSurfaceExtension(
+            bodyID: bodyID, scope: scope, edges: chosen, coedgeOfEdge: coedgeOfEdge, reaches: reaches, distance: distance,
+            shape: extend.shape, featureID: feature.id, context: context
         ) {
             // A one-face B-spline sheet extended along its parameter boundaries is the extended
             // surface itself: one face, as Plasticity's Modify makes one sheet with no line.
@@ -168,7 +168,15 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             guard sewnBodies.count == 1, let sewnBodyID = sewnBodies.first else {
                 throw failure(.topologyFailure, feature.id, tolerance, "An extended sheet is not one sheet.")
             }
-            if try RedundantTopologyRemover().remove(bodyID: sewnBodyID, featureID: feature.id, model: &replaced, tolerance: tolerance) {
+            let sewnFaces = try BodyTopologyScope(bodyID: sewnBodyID, model: replaced).references.compactMap { reference -> FaceID? in
+                if case let .face(id) = reference { return id }
+                return nil
+            }
+            let allPlanes = sewnFaces.allSatisfy { id in
+                guard let face = replaced.faces[id], case .plane? = replaced.geometry.surfaces[face.surfaceID] else { return false }
+                return true
+            }
+            if allPlanes, try RedundantTopologyRemover().remove(bodyID: sewnBodyID, featureID: feature.id, model: &replaced, tolerance: tolerance) {
                 try ExactFacePcurveBuilder().populateMissingPcurves(in: &replaced, tolerance: tolerance)
                 try replaced.validate(level: .exact, tolerance: tolerance)
                 let identity = try DefaultCarriedTopologyIdentityBuilder().identity(featureID: feature.id, bodyID: sewnBodyID,
@@ -296,7 +304,7 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
     /// chosen edge (each a parameter boundary) in turn; nil when the sheet is not such a sheet.
     private func wholeSurfaceExtension(
         bodyID: BodyID, scope: BodyTopologyScope, edges: [EdgeID], coedgeOfEdge: [EdgeID: [(face: FaceID, coedge: Coedge)]],
-        distance: Double, shape: SheetExtensionShape, featureID: FeatureID, context: EvaluationContext
+        reaches: [EdgeID: Double], distance: Double, shape: SheetExtensionShape, featureID: FeatureID, context: EvaluationContext
     ) throws -> BRepSewingFacePatch? {
         let model = context.brep
         let tolerance = context.tolerance
@@ -315,7 +323,7 @@ public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         var surface = spline
         for edgeID in edges {
             guard let pcurve = coedgeOfEdge[edgeID]?.first?.coedge.surfaceParameterCurve else { return nil }
-            surface = try extendedSurface(surface, along: pcurve, distance: distance, shape: shape,
+            surface = try extendedSurface(surface, along: pcurve, distance: reaches[edgeID] ?? distance, shape: shape,
                                           featureID: featureID, tolerance: tolerance).surface
         }
         return try BSplineParameterRectanglePatchBuilder().patch(
