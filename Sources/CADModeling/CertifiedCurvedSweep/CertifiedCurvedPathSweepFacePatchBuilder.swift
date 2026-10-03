@@ -26,7 +26,8 @@ package struct CertifiedCurvedPathSweepFacePatchBuilder {
                 : 1.0
         }
         var caps: [BRepSewingFacePatch] = []
-        if resultKind == .solid {
+        // A closed path closes the tube on itself: no caps.
+        if resultKind == .solid, plan.pathIsClosed == false {
             caps.append(try cap(plan, atEnd: false, outerWindingSign: windingSigns[0], patches: patches))
             caps.append(try cap(plan, atEnd: true, outerWindingSign: windingSigns[0], patches: patches))
         }
@@ -44,6 +45,12 @@ package struct CertifiedCurvedPathSweepFacePatchBuilder {
                     )
                 }
             }
+        }
+        if resultKind == .solid, plan.pathIsClosed {
+            // Each loop's tube is a closed shell of its own, an inner one the wall's cavity.
+            return BRepSewingRequest(featureID: featureID, bodyKind: .solid, shells: sides.enumerated().map { loopIndex, patches in
+                BRepSewingShell(stableID: loopIndex == 0 ? "sweep:shell" : "sweep:inner:\(loopIndex - 1):shell", patches: patches)
+            })
         }
         if resultKind == .solid {
             return BRepSewingRequest(featureID: featureID, bodyKind: .solid,

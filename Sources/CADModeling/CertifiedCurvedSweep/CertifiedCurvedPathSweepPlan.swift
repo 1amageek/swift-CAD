@@ -31,6 +31,13 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
     /// The sign of the section normal along the path tangent, the same all along the path.
     package let advanceSign: Double
     package let positionErrorUpperBound: Double
+    /// Whether the path closes on itself: the sweep then has no caps, its last row the first.
+    package let pathIsClosed: Bool
+    /// How far the section comes back turned about the path where a closed path closes, in
+    /// radians: zero once the twist law has taken the frame's turn out.
+    package let closingTurn: Double
+    /// Whether a closed path's last row was made its first.
+    package let seamClosed: Bool
 
     /// Whether a sweep takes this plan: path-normal alignment along a path that is neither
     /// straight nor a circular arc the exact circular sweep already builds as a solid.
@@ -63,6 +70,8 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         sweep: SweepFeature,
         values: SweepOptionValues,
         guide: [BSplineCurve3D]? = nil,
+        pathIsClosed: Bool = false,
+        closesSeam: Bool = false,
         featureID: FeatureID?,
         tolerance: ModelingTolerance
     ) throws {
@@ -71,11 +80,11 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         case .profile(let profile, _):
             try self.init(sectionLoops: try spans.profileLoopSpans(from: profile), sectionIsClosed: true,
                 profilePlane: profile.plane, pathSpans: pathSpans, sweep: sweep, values: values, guide: guide,
-                featureID: featureID, tolerance: tolerance)
+                pathIsClosed: pathIsClosed, closesSeam: closesSeam, featureID: featureID, tolerance: tolerance)
         case .curve(let curve):
             try self.init(sectionLoops: [try spans.sectionSpans(from: curve)], sectionIsClosed: curve.isClosed,
                 profilePlane: try section.plane(), pathSpans: pathSpans, sweep: sweep, values: values, guide: guide,
-                featureID: featureID, tolerance: tolerance)
+                pathIsClosed: pathIsClosed, closesSeam: closesSeam, featureID: featureID, tolerance: tolerance)
         }
     }
 
@@ -87,6 +96,8 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         sweep: SweepFeature,
         values: SweepOptionValues,
         guide guideSpans: [BSplineCurve3D]? = nil,
+        pathIsClosed: Bool = false,
+        closesSeam: Bool = false,
         featureID: FeatureID?,
         tolerance: ModelingTolerance
     ) throws {
@@ -186,6 +197,15 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
                 // along an L-shaped path's volume.
                 throw Self.failure(.sweepRoundCornerUnavailable,
                     "A curved path-normal sweep needs a path without corners.", featureID, tolerance)
+            }
+        }
+        if pathIsClosed {
+            // A closed path closes smoothly, its end leaving the way its start does.
+            let before = try beziers[beziers.count - 1].pointJet(at: .end, order: 1).tangent()
+            let after = try beziers[0].pointJet(at: .start, order: 1).tangent()
+            guard let before, let after, before.cross(after).length <= sin(tolerance.angle), before.dot(after) > 0 else {
+                throw Self.failure(.sweepRoundCornerUnavailable,
+                    "A closed curved path sweeps only where it closes smoothly.", featureID, tolerance)
             }
         }
         let startJet = try beziers[0].pointJet(at: .start, order: 1)
@@ -292,6 +312,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         var pieces: [AcceptedPiece] = []
         var maximumError = 0.0
         var endNormalEnclosure: [Interval] = Self.values(normal)
+        var endLateral = lateral.0
         let third = Interval(lower: (1.0 / 3).nextDown, upper: (1.0 / 3).nextUp)
 
         /// Accepts the piece, or says why it must be halved and how deep halving may go.
@@ -476,6 +497,11 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             // The section's normal turns with the twist like a section point without its scale.
             endNormalEnclosure = moved(normalCoordinates, path: .constant([.exact(0), .exact(0), .exact(0)], order: 1),
                 frame: endFrame, cosine: endLaws.cosine, sine: endLaws.sine, scale: .constant(.exact(1), order: 1)).derivative(0)
+            // Where the section's first lateral axis has come to, turned by the twist.
+            let endFirst = endFrame.rotated(carried[1]).derivative(0), endSecond = endFrame.rotated(carried[2]).derivative(0)
+            let turn = endLaw.angle
+            endLateral = Vector3D(x: endFirst[0].midpoint, y: endFirst[1].midpoint, z: endFirst[2].midpoint) * cos(turn)
+                + Vector3D(x: endSecond[0].midpoint, y: endSecond[1].midpoint, z: endSecond[2].midpoint) * sin(turn)
             return nil
         }
 
@@ -500,7 +526,23 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             first: (twists ? turned : extent(lateral.0)) * scaleRange,
             second: (twists ? turned : extent(lateral.1)) * scaleRange
         )
-        try Self.certifyApart(pieces, reach: baseReach * scaleRange.upper, extent: sectionExtent, featureID: featureID, tolerance: tolerance)
+        try Self.certifyApart(pieces, reach: baseReach * scaleRange.upper, extent: sectionExtent, closed: pathIsClosed,
+                              featureID: featureID, tolerance: tolerance)
+        // The turn the section comes back with where a closed path closes.
+        let turnAxis = startTangent.cross(lateral.0)
+        let closingTurn = pathIsClosed ? atan2(endLateral.dot(turnAxis), endLateral.dot(lateral.0)) : 0
+        var seamClosed = false
+        if pathIsClosed, closesSeam, let last = rows.indices.last {
+            // The last row is the first, the gap between them counted in the error — when the
+            // section has come back close enough; otherwise the seam stays open for the caller to
+            // turn the section by the twist law and plan again.
+            let gap = zip(rows[last][3], rows[0][0]).map { ($0.0 - $0.1).length }.max() ?? 0
+            if gap + maximumError <= allowance {
+                rows[last][3] = rows[0][0]
+                maximumError += gap
+                seamClosed = true
+            }
+        }
 
         // Surfaces: every section span of every loop, row by row.
         var built: [[[BSplineSurface3D]]] = sectionLoops.map { _ in [] }
@@ -533,13 +575,46 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             .normalized(tolerance: tolerance.distance)
         advanceSign = advance > 0 ? 1 : -1
         positionErrorUpperBound = maximumError
+        self.pathIsClosed = pathIsClosed
+        self.closingTurn = closingTurn
+        self.seamClosed = seamClosed
+    }
+
+    /// The plan for a closed path: measured once, then again with a twist law taking out the turn
+    /// the frame comes back with (it depends a little on where the pieces fall, so a few rounds
+    /// settle it), its last row then made the first. Twist, scale and guides take no part.
+    package static func closed(
+        section: ResolvedModelingSection,
+        pathSpans: [ExactBSplineCurveSpan],
+        sweep: SweepFeature,
+        values: SweepOptionValues,
+        featureID: FeatureID?,
+        tolerance: ModelingTolerance
+    ) throws -> Self {
+        guard values.twistAngle == 0, values.twistAngles.allSatisfy({ $0 == 0 }), values.endScale == 1, sweep.guides.isEmpty,
+              values.approximationTolerance != nil else {
+            throw failure(.sweepTwistUnavailable,
+                "A sweep along a closed curved path takes no twist, scale or guides, and needs an allowance.", featureID, tolerance)
+        }
+        var correction = 0.0
+        for _ in 0..<6 {
+            var corrected = values
+            corrected.twistAngles = correction == 0 ? [] : [0, correction]
+            corrected.twistPositions = [0, 1]
+            let plan = try Self(section: section, pathSpans: pathSpans, sweep: sweep, values: corrected,
+                                pathIsClosed: true, closesSeam: true, featureID: featureID, tolerance: tolerance)
+            if plan.seamClosed { return plan }
+            correction -= plan.closingTurn
+        }
+        throw failure(.sweepPathNormalUnavailable,
+            "A closed sweep's frame does not settle on coming back to its start.", featureID, tolerance)
     }
 
     /// Proves that no two path pieces that do not touch carry overlapping sections: they are
     /// farther apart than twice the section's reach, or the plane across the path in the middle
     /// of a piece between them has one wholly behind it and the other wholly ahead.
     private static func certifyApart(
-        _ pieces: [AcceptedPiece], reach: Double, extent: SectionExtent,
+        _ pieces: [AcceptedPiece], reach: Double, extent: SectionExtent, closed: Bool,
         featureID: FeatureID?, tolerance: ModelingTolerance
     ) throws {
         guard pieces.count >= 3 else { return }
@@ -562,12 +637,17 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         }
         for first in pieces.indices {
             for second in stride(from: first + 2, to: pieces.count, by: 1) {
+                // Round a closed path the first and the last touch at its start.
+                if closed, first == 0, second == pieces.count - 1 { continue }
                 let a = pieces[first], b = pieces[second]
                 let gap = (0..<3).map { axis -> Double in
                     max(0, b.box[axis].lower - a.box[axis].upper, a.box[axis].lower - b.box[axis].upper)
                 }
                 if (gap.reduce(0) { $0 + $1 * $1 }).squareRoot() > 2 * reach + tolerance.distance { continue }
-                let separated = [first + 1, second - 1].contains { between in
+                // Round a closed path the pieces between may lie either way.
+                let betweens = closed ? [first + 1, second - 1, (second + 1) % pieces.count, (first + pieces.count - 1) % pieces.count]
+                    : [first + 1, second - 1]
+                let separated = betweens.contains { between in
                     let plane = (pieces[between].middle, pieces[between].middleTangent)
                     let behind = side(a, of: plane), ahead = side(b, of: plane)
                     return (behind.upper < 0 && ahead.lower > 0) || (ahead.upper < 0 && behind.lower > 0)

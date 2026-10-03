@@ -121,6 +121,18 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 return try applyBooleanIfNeeded(sweep, featureID: feature.id, toolResult: tool, context: context)
             }
         }
+        // A smooth closed path, the section moved round it with the path's frame and closing on
+        // itself.
+        if chain.isClosed, chain.segments.allSatisfy({ $0.curve.exactCurve != nil }), sweep.options.alignment == .normal,
+           optionValues.distanceFraction == 1 {
+            let spans = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance).pathSpans(from: chain.segments, allowsClosed: true)
+            let plan = try CertifiedCurvedPathSweepPlan.closed(
+                section: section, pathSpans: spans, sweep: sweep, values: optionValues, featureID: feature.id, tolerance: context.tolerance
+            )
+            let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
+                .buildCertifiedCurvedPath(plan, resultKind: sweep.options.resultKind)
+            return try applyBooleanIfNeeded(sweep, featureID: feature.id, toolResult: tool, context: context)
+        }
         guard chain.isClosed == false else {
             throw SketchError.unsupportedEntity("Sweep path requires an open curve chain.")
         }

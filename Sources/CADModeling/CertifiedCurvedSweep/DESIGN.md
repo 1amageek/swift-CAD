@@ -80,6 +80,14 @@ path spans (rational Bezier) ─► interval homogeneous jets per piece (order 5
   lateral axes, with the section's extent along the start tangent and those axes
   (so a section spread along a planar path's binormal does not count as tilt).
   Otherwise the sweep is refused as possibly self-overlapping.
+- A smooth closed path (`CertifiedCurvedPathSweepPlan.closed`, Plasticity's capless ring) runs
+  the loop once with no caps, one shell per section loop. The path must be G1 where it closes; the
+  frame comes back turned by the loop's holonomy (`closingTurn`, measured about the start tangent
+  between the start lateral axis and the end piece's), so the plan is rebuilt with a twist law
+  `[0, −turn]` and repeated (at most six times) until the end row lies within the allowance of the
+  start row, then the last row is snapped onto the first so the seam shares one edge. Twist, scale
+  and guides are refused on a closed path. The overlap certificate wraps: the last and first pieces
+  touch, and the pieces between a pair are taken around the loop.
 - Refusals of what the sweep asks for report the evaluation phase with the Sweep
   error codes; exhausted budgets report `resourceLimitExceeded`.
 
@@ -98,3 +106,6 @@ allowance over the side), the end cap across the end tangent, and the refusals;
 united with its own body.
 Changing the frame, the error bound or the separation certificate re-runs these
 and the Sweep suites (`CADKernelTests`, `SweepEvaluationPlanServiceTests`).
+`ClosedPathPipeTests` own the closed plan: a pipe along a circle (the torus' Pappus volume within
+the allowance, no caps, volumetric validity) and a closed loop leaving its plane, whose frame turn
+the plan corrects so the ring closes.

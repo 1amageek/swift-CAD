@@ -210,6 +210,30 @@ public struct SweepEvaluationPlanService: Sendable {
                 }
             }
         }
+        // A smooth closed path is admitted by building its closed certified plan.
+        if chain.isClosed, chain.segments.allSatisfy({ $0.curve.exactCurve != nil }), options.alignment == .normal,
+           optionValues.distanceFraction == 1 {
+            do {
+                let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).pathSpans(from: chain.segments, allowsClosed: true)
+                let certified = try CertifiedCurvedPathSweepPlan.closed(section: section, pathSpans: spans, sweep: sweep,
+                    values: optionValues, featureID: nil, tolerance: tolerance)
+                let geometry = SweepEvaluationCapabilities.Geometry(pathShape: .curved, sectionState: .identity,
+                    guideConstraintCount: guides.count, tolerance: tolerance, certifiedCurvedPathAvailable: true)
+                let supported = try SweepEvaluationCapabilities().supportedPlan(options, geometry: geometry, tolerance: tolerance)
+                return SweepEvaluationPlanResult(status: .supported, sectionCount: sections.count,
+                    pathSegmentCount: chain.segments.count, guideCount: guides.count, targetCount: targets.count,
+                    pathShape: geometry.pathShape, sectionState: .identity, evaluationKind: supported.kind,
+                    outputTopologyKind: supported.outputTopologyKind, booleanSupportKind: supported.booleanSupportKind,
+                    unsupportedCode: nil,
+                    message: "Closed curved path-normal positional error <= \(certified.positionErrorUpperBound) meters.",
+                    checks: checks + [SweepEvaluationPreflightCheck(kind: .capabilityDecision, status: .passed, message: supported.message)])
+            } catch let error as KernelError {
+                return unsupportedResult(sectionCount: sections.count, pathSegmentCount: chain.segments.count,
+                    guideCount: guides.count, targetCount: targets.count, pathShape: .curved, sectionState: .identity,
+                    unsupportedCase: SweepEvaluationCapabilities.UnsupportedCase(code: error.code, message: error.message),
+                    checks: checks + [SweepEvaluationPreflightCheck(kind: .capabilityDecision, status: .unsupported, message: error.message)])
+            }
+        }
         guard chain.isClosed == false else {
             throw SketchError.unsupportedEntity("Sweep path requires an open curve chain.")
         }

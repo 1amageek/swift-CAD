@@ -54,17 +54,23 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
         guard let curves = context.curves[pipe.path.featureID], curves.isEmpty == false else {
             throw FeatureEvaluationError.missingInput("A pipe's path curve was not evaluated.")
         }
-        let segments = try EvaluatedCurveChainBuilder(tolerance: tolerance).openSegments(from: curves, operationName: "Pipe path")
+        let chain = try EvaluatedCurveChainBuilder(tolerance: tolerance).connectedSegments(from: curves, operationName: "Pipe path")
+        let segments = chain.segments
         guard segments.allSatisfy({ $0.curve.exactCurve != nil }) else {
             throw failure(.invalidInput, feature.id, tolerance, "A pipe follows an exact path curve.")
         }
-        let spans = try extended(
-            try cut(
-                try ExactBSplineCurveSpanBuilder(tolerance: tolerance).pathSpans(from: segments),
-                from: max(start, 0), to: min(end, 1), featureID: feature.id, tolerance: tolerance
-            ),
-            before: -min(start, 0), after: max(end, 1) - 1, featureID: feature.id, tolerance: tolerance
-        )
+        // A closed path runs on into itself: it has no ends to extend past, and taken whole the
+        // pipe closes into a ring.
+        guard chain.isClosed == false || (start >= 0 && end <= 1) else {
+            throw failure(.invalidInput, feature.id, tolerance, "A pipe along a closed path runs within it, from 0 to 1.")
+        }
+        let wholeSpans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).pathSpans(from: segments, allowsClosed: chain.isClosed)
+        let spans = chain.isClosed && start == 0 && end == 1
+            ? wholeSpans
+            : try extended(
+                try cut(wholeSpans, from: max(start, 0), to: min(end, 1), featureID: feature.id, tolerance: tolerance),
+                before: -min(start, 0), after: max(end, 1) - 1, featureID: feature.id, tolerance: tolerance
+            )
         let geometry = try spans[0].curve.differentialGeometry(at: try lower(of: spans[0].curve), tolerance: tolerance)
         let tangent = try geometry.firstDerivative.normalized(tolerance: tolerance.distance)
         let sections: [Profile]

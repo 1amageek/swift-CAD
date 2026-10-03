@@ -567,8 +567,10 @@ negative hollows it (a polygon's wall measured across its sides) — and evaluat
 section, twisted by the pipe's twist (none for a circle, which turns into itself), along the path in
 a context holding both under the pipe's identity (the path under a `pipePath` stage identity).
 Straight paths and single arcs so stay exact and curved paths take the certified curved sweep
-within the pipe's allowance; Booleans are Sweep's. A closed path (Plasticity's capless ring) is
-refused by the open chain it needs. `PipeTests` own the exact straight, hollow (inward and outward),
+within the pipe's allowance; Booleans are Sweep's. A smooth closed path (one chain closing on
+itself, or one periodic curve such as a circle) makes Plasticity's capless ring: the whole loop is
+swept uncut through the certified curved sweep's closed plan, and Distance 1/2 past the loop are
+refused. `ClosedPathPipeTests` own the torus and a non-planar ring. `PipeTests` own the exact straight, hollow (inward and outward),
 extended, twisted, cut and polygonal volumes, the curved volume within the allowance, the bored box
 and the native round trip.
 

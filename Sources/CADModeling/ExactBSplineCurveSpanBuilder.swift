@@ -77,8 +77,22 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
         var result: [ExactBSplineCurveSpan] = []
         for segment in segments {
             try segment.validate(tolerance: tolerance)
-            guard let curve = segment.curve.exactCurve,
-                  case let .closed(lower, upper) = segment.curve.parameterDomain else {
+            guard let curve = segment.curve.exactCurve else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .unsupportedCapability,
+                    tolerance: tolerance,
+                    message: "Exact sweep requires a bounded exact path curve."
+                )
+            }
+            let bounds: (lower: Double, upper: Double)
+            switch segment.curve.parameterDomain {
+            case let .closed(lower, upper):
+                bounds = (lower, upper)
+            case let .periodic(period) where allowsClosed && segments.count == 1 && segment.curve.isClosed:
+                // A whole closed curve (a circle) taken once round as a closed path.
+                bounds = (0, period)
+            default:
                 throw KernelError(
                     phase: .geometry,
                     code: .unsupportedCapability,
@@ -88,8 +102,8 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
             }
             var spans = try spans(
                 curve: curve,
-                lower: lower,
-                upper: upper
+                lower: bounds.lower,
+                upper: bounds.upper
             )
             if segment.isReversed {
                 spans = try spans.reversed().map { span in

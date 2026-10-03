@@ -136,7 +136,7 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
         let request = try CertifiedCurvedPathSweepFacePatchBuilder(tolerance: context.tolerance)
             .request(plan, resultKind: resultKind, featureID: featureID)
         return try evaluationResult(request: request, profileSpanCounts: plan.profileSpanLoops.map(\.count),
-            pathSpanCount: plan.pieceCount, includesCaps: resultKind == .solid)
+            pathSpanCount: plan.pieceCount, includesCaps: resultKind == .solid && plan.pathIsClosed == false)
     }
 
     private func evaluationResult(

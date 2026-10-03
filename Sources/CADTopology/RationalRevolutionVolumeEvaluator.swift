@@ -72,7 +72,9 @@ struct RationalRevolutionVolumeEvaluator {
         }
         guard revolvedFaces.isEmpty == false else { return nil }
 
-        let axis = try commonAxis(for: revolvedFaces, tolerance: tolerance)
+        // Rows of circles not about one axis are not a revolution (a tube along a curve): another
+        // evaluator takes the shell.
+        guard let axis = try commonAxis(for: revolvedFaces, tolerance: tolerance) else { return nil }
         revolvedFaces = try revolvedFaces.map { face in
             try validated(
                 face,
@@ -260,7 +262,7 @@ struct RationalRevolutionVolumeEvaluator {
     private func commonAxis(
         for faces: [RevolvedFace],
         tolerance: ModelingTolerance
-    ) throws -> (origin: Point3D, direction: Vector3D) {
+    ) throws -> (origin: Point3D, direction: Vector3D)? {
         let centers = faces.flatMap(\.rows).map(\.center)
         guard let origin = centers.first else {
             throw TopologyError.missingReference("Rational revolve contains no profile rows.")
@@ -289,12 +291,7 @@ struct RationalRevolutionVolumeEvaluator {
         guard centers.allSatisfy({ center in
             (center - origin).cross(direction).length <= tolerance.distance * 8.0
         }) else {
-            throw KernelError(
-                phase: .topology,
-                code: .topologyFailure,
-                tolerance: tolerance,
-                message: "Rational revolve surface rows do not share one rotation axis."
-            )
+            return nil
         }
         return (origin, direction)
     }
