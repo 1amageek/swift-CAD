@@ -26,9 +26,10 @@ struct OverlapRegularGraphRootCertifier: Sendable {
         let v: [Interval]
         let residual: [Interval]
         let sourcePositionWidthLowerBound: Double
+        let closedDomain: OverlapRegularGraphClosedDomainAuthority?
     }
 
-    /// Minted only after a strict proof in this localization invocation.
+    /// Minted only after strict K inclusion or exact closed-domain IVT existence.
     private struct KnownRootAuthority {
         let range: ScalarInterval
         let pair: Pair
@@ -161,7 +162,19 @@ struct OverlapRegularGraphRootCertifier: Sendable {
 
     func proof(range: ScalarInterval, box: SurfaceParameterBox, pair: Pair,
                budget: inout OverlapProofBudget) throws -> Proof? {
-        guard let first = try rootProof(range: range, box: box, pair: pair, existingRoot: nil, budget: &budget) else { return nil }
+        guard let first = try freshProof(range: range, box: box, pair: pair, budget: &budget) else { return nil }
+        if first.closedDomain != nil {
+            let owner = KnownRootAuthority(range: range, pair: pair, initial: first, retainsCollar: !first.authority.isSmooth)
+            var last = first
+            for _ in 1..<budget.options.maximumIterations {
+                guard let value = try rootProof(range: range, box: last.box, pair: pair,
+                    existingRoot: owner, budget: &budget) else { break }
+                let stationary = value.box.u.width >= last.box.u.width && value.box.v.width >= last.box.v.width
+                last = value
+                if stationary { break }
+            }
+            return contained(last.box, in: box) ? last : nil
+        }
         guard !first.authority.isSmooth,
               first.residual[0].absoluteUpperBound > tolerance.distance,
               first.residual[0].absoluteLowerBound <= tolerance.distance,
@@ -179,9 +192,67 @@ struct OverlapRegularGraphRootCertifier: Sendable {
         return last
     }
 
+    private func freshProof(range: ScalarInterval, box: SurfaceParameterBox, pair: Pair,
+                            reproducesOwnedCell: Bool = false,
+                            budget: inout OverlapProofBudget) throws -> Proof? {
+        if let strict = try rootProof(range: range, box: box, pair: pair, existingRoot: nil, budget: &budget) { return strict }
+        guard case .bSpline(let source) = curve.curve else { return nil }
+        let touchesSourceEndpoint = range.lower == source.knots[source.degree] || range.upper == source.knots[source.controlPointCount]
+        guard touchesSourceEndpoint || reproducesOwnedCell else { return nil }
+        let domain = try originalBox()
+        guard box.u.lower == domain.u.lower || box.u.upper == domain.u.upper
+            || box.v.lower == domain.v.lower || box.v.upper == domain.v.upper else { return nil }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): General intrinsic endpoint coincidence
+        // has no closed-domain existence authority. The public regular graph route
+        // may admit these roots only after whole-interval existence, uniqueness,
+        // membership and endpoint correspondence are certified on original geometry.
+        guard let closed = try closedAuthority(range: range, pair: pair, budget: &budget) else {
+            if !touchesSourceEndpoint { return nil }
+            throw failure(.unsupportedCapability, "This original-domain endpoint has no certified closed coordinate inverse.")
+        }
+        return try rootProof(range: range, box: domain, pair: pair, existingRoot: nil,
+            closedDomain: closed, budget: &budget)
+    }
+
+    func exactEndpoint(at t: Double, pair: Pair, budget: inout OverlapProofBudget) throws -> SurfaceParameter? {
+        guard case .bSpline(let source) = curve.curve,
+              t == source.knots[source.degree] || t == source.knots[source.controlPointCount] else { return nil }
+        return try closedAuthority(range: ScalarInterval(lower: t, upper: t), pair: pair, budget: &budget)?.exactEndpoint(at: t)
+    }
+
+    private func closedAuthority(range: ScalarInterval, pair: Pair,
+                                 budget: inout OverlapProofBudget) throws -> OverlapRegularGraphClosedDomainAuthority? {
+        let domain = try originalBox()
+        try budget.work(jetWork)
+        let target = try surface.intervalJet(over: domain, tolerance: tolerance)
+        return try OverlapRegularGraphClosedDomainAuthority.certificate(curve: curve.curve, surface: surface.surface,
+            range: range, pair: pair, box: domain, target: target, budget: &budget)
+    }
+
+    private func originalBox() throws -> SurfaceParameterBox {
+        guard case let .closed(ul, uh) = originalSurface.uDomain,
+              case let .closed(vl, vh) = originalSurface.vDomain else {
+            throw failure(.unsupportedCapability, "Closed endpoint authority requires original finite axes.")
+        }
+        return SurfaceParameterBox(u: try ScalarInterval(lower: ul, upper: uh), v: try ScalarInterval(lower: vl, upper: vh))
+    }
+
+    private func contained(_ value: SurfaceParameterBox, in box: SurfaceParameterBox) -> Bool {
+        value.u.lower >= box.u.lower && value.u.upper <= box.u.upper
+            && value.v.lower >= box.v.lower && value.v.upper <= box.v.upper
+    }
+
     private func rootProof(range: ScalarInterval, box: SurfaceParameterBox, pair: Pair,
                            existingRoot: KnownRootAuthority?,
+                           closedDomain: OverlapRegularGraphClosedDomainAuthority? = nil,
                            budget: inout OverlapProofBudget) throws -> Proof? {
+        try budget.work(jetWork * 3)
+        if let closedDomain {
+            guard closedDomain.range == range, closedDomain.pair == pair, closedDomain.box == box,
+                  curve.curve == .bSpline(closedDomain.curve), surface.surface == closedDomain.surface else {
+                throw failure(.intersectionFailure, "Closed-domain localization changed its original existence authority.")
+            }
+        }
         if let existingRoot {
             guard range == existingRoot.range, pair == existingRoot.pair,
                   box.u.lower >= existingRoot.initial.box.u.lower,
@@ -191,7 +262,6 @@ struct OverlapRegularGraphRootCertifier: Sendable {
                 throw failure(.intersectionFailure, "Root localization changed its original interval authority.")
             }
         }
-        try budget.work(jetWork * 3)
         let evaluatedAuthority = try OverlapRegularGraphAtlas.authority(over: box, surface: surface.surface,
             tolerance: tolerance, budget: &budget)
         let authority: OverlapRegularGraphAtlas
@@ -229,10 +299,10 @@ struct OverlapRegularGraphRootCertifier: Sendable {
             }
             let original = row == 0 ? box.u : box.v
             guard contraction.upper < 1, value.isFinite else { return nil }
-            if existingRoot == nil {
+            if existingRoot == nil && closedDomain == nil {
                 guard value.lower > original.lower, value.upper < original.upper else { return nil }
             } else {
-                // The first strict proof owns an existing unique root. Every such
+                // Strict K or closed-domain IVT owns every existing unique root. Every such
                 // root in this box belongs to its K image even without new strict
                 // inclusion, so intersection preserves that same root.
                 let lower = max(value.lower, original.lower), upper = min(value.upper, original.upper)
@@ -286,7 +356,8 @@ struct OverlapRegularGraphRootCertifier: Sendable {
         } else { residual = [residualValue] }
         let sourceWidth = Interval.exact(sourcePosition.upper) - .exact(sourcePosition.lower)
         return Proof(box: rootBox, authority: authority, u: derivatives.u, v: derivatives.v,
-            residual: residual, sourcePositionWidthLowerBound: sourceWidth.lower)
+            residual: residual, sourcePositionWidthLowerBound: sourceWidth.lower,
+            closedDomain: closedDomain ?? existingRoot?.initial.closedDomain)
     }
 
     private func transverse(_ derivatives: (u: [Interval], v: [Interval]),
@@ -362,18 +433,21 @@ struct OverlapRegularGraphRootCertifier: Sendable {
         let lower = max(cell.range.lower, t.nextDown), upper = min(cell.range.upper, t.nextUp)
         let range = try ScalarInterval(lower: lower, upper: upper)
         guard range.width > 0 else { throw failure(.resourceLimitExceeded, "A graph root has no representable source enclosure.") }
-        guard let first = try rootProof(range: range, box: cell.box, pair: cell.pair,
-            existingRoot: nil, budget: &budget) else {
+        guard let first = try freshProof(range: range, box: cell.box, pair: cell.pair,
+            reproducesOwnedCell: true, budget: &budget) else {
             throw failure(.intersectionFailure, "An owned graph could not reproduce its point root certificate.")
         }
         let owner = KnownRootAuthority(range: range, pair: cell.pair, initial: first, retainsCollar: false)
         var last = first
         for _ in 1..<budget.options.maximumIterations {
             guard let value = try rootProof(range: owner.range, box: last.box, pair: owner.pair,
-                existingRoot: owner, budget: &budget) else { return last }
+                existingRoot: owner, budget: &budget) else { break }
             let stationary = value.box.u.width >= last.box.u.width && value.box.v.width >= last.box.v.width
             last = value
             if stationary { break }
+        }
+        guard contained(last.box, in: cell.box) else {
+            throw failure(.intersectionFailure, "Point localization did not retain its original owned cell root box.")
         }
         return last
     }

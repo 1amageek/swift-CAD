@@ -38,6 +38,9 @@ struct OverlapRegularGraphBoundaryResolver {
         let domain = variesU ? root.originalSurface.uDomain : root.originalSurface.vDomain
         let boundaryRange = try ScalarInterval(lower: boundary, upper: boundary)
         func residual(at t: Double, budget: inout OverlapProofBudget) throws -> OutwardScalarInterval {
+            if let endpoint = try root.exactEndpoint(at: t, pair: cell.pair, budget: &budget) {
+                return .exact(variesU ? endpoint.u : endpoint.v) - .exact(boundary)
+            }
             let proof = try root.pointProof(at: t, cell: cell, budget: &budget)
             let box = variesU ? proof.box.u : proof.box.v
             return OutwardScalarInterval(lower: box.lower, upper: box.upper) - .exact(boundary)

@@ -23,6 +23,99 @@ membership, splits them at requested chart boundaries, preserves remaining
 discrete events and returns correspondence values. It does not build topology,
 choose Boolean material classification or replace the existing point-only API.
 
+### Closed Original-Domain Endpoint Authority
+
+The bounded regular graph endpoint route admits a nonperiodic, single clamped
+rational Bezier source with strictly positive weights and an original clamped
+unit-weight tensor B-spline target. The selected two Cartesian coordinates must
+be exactly separable: one is a function only of original U and the other only
+of original V. Original control-net row/column equality, with every target
+weight exactly one, establishes this independence; tolerance-based rationality,
+projection and sampled coordinate equality do not establish it.
+
+| Assumption | Guarantee |
+|---|---|
+| Clamped original axes, exact separability and original endpoint controls | Exact closed endpoint values for the two univariate coordinate maps |
+| All-owning closed-domain Jacobian gives a finite derivative interval strictly of one sign on each axis | Continuous strictly monotone coordinate maps on the entire original domain |
+| Positive original source weights and every original source coordinate control lies inside the corresponding closed endpoint-value interval | Every source parameter has exactly one inverse on each original target axis by the closed-interval IVT |
+| Source coordinate controls are not all equal on either selected axis | This route does not authorize a curve continuously confined to an intrinsic chart face |
+
+`OverlapRegularGraphClosedDomainAuthority` owns this original-geometry existence
+certificate. It retains the original source and target, selected Cartesian pair,
+source interval and full closed target box. It provides an exact parameter only
+when an intrinsic source endpoint's two selected coordinate controls coincide
+exactly with target axis endpoint controls. Any remaining coordinate is still
+subject to the whole-span spatial certificate and public forward residual check.
+
+```mermaid
+flowchart LR
+    Original["Immutable original control nets + full-domain jets"] --> IVT["Exact separability / convex hull / closed IVT"]
+    IVT --> Owned["Existing root for every source parameter"]
+    Strict["Unchanged strict K proof"] --> Owned
+    Owned --> Image["Charged K image intersection"]
+    Image --> Span["Original-span residual / global uniqueness / joins"]
+    Span --> Clip["Complete requested and intrinsic clipping"]
+    IVT --> Endpoint["Exact intrinsic control endpoint"]
+    Endpoint --> Clip
+```
+
+Fresh strict Krawczyk inclusion remains an independent existence authority with
+unchanged strict inequalities. If an endpoint box cannot establish that strict
+proof, the closed IVT certificate can establish an existing root for every
+source parameter instead. Only then may Krawczyk-image intersection with its
+owned full-domain box localize those existing roots. Every image retains the
+same original source interval and selected pair, all-owning Jacobian, positive
+minor, contraction below one, finite positive widths and original geometry.
+The first image counts as the initial iteration, and subsequent localization
+uses at most the caller's remaining `maximumIterations - 1` iterations. This
+does not extend a native patch beyond its original domain.
+The closed alternative is considered only for a source interval touching an
+intrinsic source endpoint and a candidate touching an intrinsic target face.
+After localization, the retained root box must lie inside that original candidate
+before the graph consumer can use it. Other interior candidate failures keep
+their existing strict-proof subdivision behavior.
+Point reproduction inside an already owned or provisional endpoint cell may
+reacquire the same original closed IVT certificate for its interior source
+station interval. The source control-hull and target independence proof apply
+to every original source parameter, not only to the two endpoints. This narrow
+consumer exception does not change fresh interior chart admission. Its final
+localized box must remain inside the owned cell box; otherwise reproduction
+fails explicitly rather than replacing the cell's selected root.
+
+Smooth endpoint charts may refine their original differential bounds as their
+owned root boxes shrink; collars retain their first-only derivative authority.
+The existing whole-original-span residual, global uniqueness, gapless cover,
+common-root joins and complete chart clipping remain mandatory. Exact intrinsic
+corner parameters let correspondence and boundary consumers avoid introducing
+an artificial two-sided source interval outside the native domain. They still
+use unchanged range admission and original source/target forward evaluation.
+
+All structural scans, target derivative jets and image iterations are charged
+before evaluation using the existing invocation-local work/cancellation budget.
+The certificate stores fixed metadata and immutable original geometry references,
+with no control-net copies, new decomposition, cover array or private allowance.
+The original degree, storage and subdivision limits remain unchanged.
+Nonseparable maps, nonunit target weights, multiple source spans, periodic axes,
+constant-axis incidence, unresolved monotonicity/rank and general endpoint
+coincidence remain outside this bounded authority and fail explicitly. No failed
+certificate authorizes an empty intersection result or a sampled correspondence.
+The public native-isocurve trial route precedes regular-graph admission. Its
+endpoint inverse projection may propagate `ambiguousSelection` for a
+rank-deficient chart before the closed-IVT certificate is considered. This
+explicit projection refusal does not establish membership; the independent
+closed-authority coefficient test also rejects that singular target.
+
+Independent evidence is owned by `CurveSurfaceRegularGraphTests`: literal
+`S=(u+u*u,v+v*v,(u+u*u)*(v+v*v))`, rational
+`C=(h,h,h*h), h=4*t/(1+t)`, with original source domain `[0,1]`.
+Both intrinsic corners have known parameters `(0,0)` and `(1,1)`; the inverse
+is `(-1+sqrt(1+4*h))/2`. The clip `[0.5,0.75]` has source interval
+`[3/13,21/43]`, and reversed source controls/weights give `[22/43,10/13]`.
+Whole, reversed, clipped, zero-width endpoint, owned-mutation, exact-limit and
+cancellation cases verify this authority. Middle-Z deviation must receive no
+overlap; isolated endpoint events are reported only when the discrete owner
+certifies them. Unsupported chart/weight/source/rank fixtures verify refusal.
+
 ## Related Designs
 
 | Design | Relationship | Contract Used | Summary | Cautions |

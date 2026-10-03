@@ -221,11 +221,18 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphBoundaryResolver.swift", sourceLine: 16
         ),
         KernelDomainLimitation(
+            id: "condition-f0c737e771082924",
+            operations: ["curveSurfaceIntersectionResult"],
+            dimensions: [.parameterization, .representation],
+            condition: "General intrinsic endpoint coincidence has no closed-domain existence authority. The public regular graph route may admit these roots only after whole-interval existence, uniqueness, membership and endpoint correspondence are certified on original geometry.",
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphRootCertifier.swift", sourceLine: 205
+        ),
+        KernelDomainLimitation(
             id: "condition-946955999c06f36b",
             operations: ["curveSurfaceIntersectionResult"],
             dimensions: [.parameterization, .representation],
             condition: "continuous or non-transverse native knot coincidence lacks complete atlas classification. The public graph route must refuse until all boundary intervals and root identities can be certified without a higher-derivative continuity assumption.",
-            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphRootCertifier.swift", sourceLine: 263
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphRootCertifier.swift", sourceLine: 333
         ),
         KernelDomainLimitation(
             id: "condition-ab422fcb30c9fecd",

@@ -37,6 +37,7 @@ struct OverlapRegularGraphCorrespondence: Sendable {
 
     func parameter(at t: Double, budget: inout OverlapProofBudget) throws -> SurfaceParameter {
         let cell = try selectedCell(at: t, budget: &budget)
+        if let endpoint = try root.exactEndpoint(at: t, pair: cell.pair, budget: &budget) { return endpoint }
         let proof = try root.pointProof(at: t, cell: cell, budget: &budget)
         return SurfaceParameter(u: proof.box.u.midpoint, v: proof.box.v.midpoint)
     }
