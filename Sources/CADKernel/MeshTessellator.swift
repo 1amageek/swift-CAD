@@ -2282,16 +2282,35 @@ public struct MeshTessellator: Tessellating {
         let parameters = parameterPoints.map(surfaceParameter)
         let baseIndex = UInt32(positions.count)
         try budget.charge(vertices: parameters.count, indices: 0)
+        // Where the surface has no normal (a pole its side collapses to), the normal just inside
+        // the face toward the middle of its points stands in, as the shading's limit there.
+        let middle = parameters.isEmpty ? SurfaceParameter(u: 0, v: 0) : SurfaceParameter(
+            u: parameters.map(\.u).reduce(0, +) / Double(parameters.count),
+            v: parameters.map(\.v).reduce(0, +) / Double(parameters.count)
+        )
         for (iteration, parameter) in parameters.enumerated() {
             if iteration & 0xFF == 0 {
                 try Task.checkCancellation()
             }
             positions.append(try surface.point(u: parameter.u, v: parameter.v, tolerance: tolerance))
-            normals.append(try oriented(
-                surface.normal(u: parameter.u, v: parameter.v, tolerance: tolerance),
-                face: face,
-                shellOrientation: shellOrientation
-            ))
+            let normal: Vector3D
+            do {
+                normal = try surface.normal(u: parameter.u, v: parameter.v, tolerance: tolerance)
+            } catch let singular as KernelError where singular.code == .singularSystem {
+                var fraction = 1e-4
+                var found: Vector3D?
+                while found == nil, fraction <= 0.1 {
+                    let near = (u: parameter.u + (middle.u - parameter.u) * fraction, v: parameter.v + (middle.v - parameter.v) * fraction)
+                    do {
+                        found = try surface.normal(u: near.u, v: near.v, tolerance: tolerance)
+                    } catch let again as KernelError where again.code == .singularSystem {
+                        fraction *= 10
+                    }
+                }
+                guard let found else { throw singular }
+                normal = found
+            }
+            normals.append(try oriented(normal, face: face, shellOrientation: shellOrientation))
         }
 
         let boundaryPhysicalPoints = Array(

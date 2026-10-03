@@ -974,7 +974,9 @@ surface's ends on its seam and a face reaching a pole leaving the new surface a 
 it; any other surface refused, `FIXME(INCOMPLETE_IMPLEMENTATION)`). The face faces out as it did (the given surface's normal at the face's interior point's
 parameters, the surface sharing them); where every edge still lies on
 the new surface along its trimming curve (within a quarter of the distance tolerance) it keeps its
-edges; where they lie on it only geometrically (a surface on parameters of its own) it keeps them
+edges; where they lie on it, or on its natural continuation past every side as far again as it
+spans (`BSplineSurfaceBoundaryExtender.continued`, Plasticity's hidden spans of a nominal surface,
+when its control points are drawn in), only geometrically it keeps them
 too, each taking the isoline of the new surface it runs along (a seam's two coedges the two ends,
 the one that lay lower taking the lower; an edge closing round the seam running end to end; a point
 at a pole taking the collapsed side's parameter, and one whose projection crowds beside it read
@@ -988,7 +990,11 @@ and its middle control point moved out bulging it the same between the edges it 
 face by face through the Rebuild Faces before each, and a rounded edge's quarter cylinder given its
 exact rational surface (every point the radius from the axis) and raised, its volume kept; a drum's
 side across its seam, a ball's octant reaching its pole (every point the radius from the centre)
-and a ring's face raised the same; every octant of a ball, those across its seam included, valid.
+and a ring's face raised the same; every octant of a ball, those across its seam included, valid
+and meshed (`MeshTessellator` reading a trimmed face's normal where the surface has none, at a pole,
+just inside the face toward the middle of its points); a side's control points drawn halfway in
+keeping the face on the surface's natural continuation (its hidden spans, the box unchanged), and
+`FaceBSplineSurfaceConverter.nominalSurface` cutting that continuation to the face's edges.
 
 ## Unwrap Face
 

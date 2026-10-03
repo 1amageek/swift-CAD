@@ -52,6 +52,38 @@ package struct BSplineSurfaceBoundaryExtender: Sendable {
         return result
     }
 
+    /// `surface` continued past all four boundaries as one surface: each side's natural extension
+    /// (`delta.u` past each U boundary, `delta.v` past each V boundary) joined to it along the
+    /// boundary, where the two meet as one polynomial (the old end knot left `degree` times). The
+    /// surface over its old domain is unchanged.
+    package func continued(_ surface: BSplineSurface3D, by delta: (u: Double, v: Double), tolerance: ModelingTolerance) throws -> BSplineSurface3D {
+        var working = surface
+        for (transposes, amount) in [(false, delta.u), (true, delta.v)] where amount > 0 {
+            if transposes { working = transposed(working) }
+            working = try joinedUpper(working, try naturalUpper(of: working, by: amount, tolerance: tolerance), tolerance: tolerance)
+            working = reversedU(working)
+            working = try joinedUpper(working, try naturalUpper(of: working, by: amount, tolerance: tolerance), tolerance: tolerance)
+            working = reversedU(working)
+            if transposes { working = transposed(working) }
+        }
+        try working.validate(tolerance: tolerance)
+        return working
+    }
+
+    /// `surface` and a `continuation` starting on its upper U boundary, as one surface.
+    private func joinedUpper(_ surface: BSplineSurface3D, _ continuation: BSplineSurface3D, tolerance: ModelingTolerance) throws -> BSplineSurface3D {
+        let degree = surface.uDegree
+        guard continuation.uDegree == degree, continuation.vKnots == surface.vKnots, continuation.controlPoints.count == surface.controlPoints.count else {
+            throw failure("A surface's continuation did not share its basis across the boundary.", tolerance)
+        }
+        let uKnots = Array(surface.uKnots.dropLast(degree + 1)) + Array(repeating: surface.uKnots.last ?? 0, count: degree)
+            + Array(continuation.uKnots.dropFirst(degree + 1))
+        let points = zip(surface.controlPoints, continuation.controlPoints).map { own, more in own + more.dropFirst() }
+        let weights = zip(surface.weights, continuation.weights).map { own, more in own + more.dropFirst() }
+        return BSplineSurface3D(uDegree: degree, vDegree: surface.vDegree, uKnots: uKnots, vKnots: surface.vKnots,
+                                controlPoints: points, weights: weights)
+    }
+
     /// The source's last U span, a Bézier span in U, continued by blossoming its homogeneous
     /// control points at the extrapolated parameter.
     private func naturalUpper(of surface: BSplineSurface3D, by delta: Double, tolerance: ModelingTolerance) throws -> BSplineSurface3D {

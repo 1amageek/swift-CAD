@@ -342,9 +342,14 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         // where it lies: the face keeps them, their trimming curves rebuilt on it.
         var holdsEdges = stray <= tolerance.distance / 4
         var reparameterized = false
-        if holdsEdges == false {
+        var faceSurface = new
+        // Where the surface no longer reaches the face's edges (its control points drawn in), the
+        // surface continued past every side as its own polynomial, as far again as it spans, may
+        // still hold them: the face keeps its edges on that continuation — Plasticity's hidden
+        // spans of the nominal surface, made visible by Remove Nominal Surface.
+        func holds(_ candidate: Surface3D) throws -> Bool {
             let solver = BRepSurfaceMeetingSolver(tolerance: tolerance)
-            let poles = try collapsedSides(of: new, tolerance: tolerance)
+            let poles = try collapsedSides(of: candidate, tolerance: tolerance)
             var gap = 0.0
             for loopID in face.loops {
                 for coedge in result.loops[loopID]?.coedges ?? [] {
@@ -356,18 +361,30 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                                                     tolerance: tolerance)
                         // A pole of the new surface lies on it; its foot has no normal to find it by.
                         if poles.contains(where: { ($0.point - point).length <= tolerance.distance }) { continue }
-                        gap = max(gap, (try solver.foot(of: point, on: new).point - point).length)
+                        gap = max(gap, (try solver.foot(of: point, on: candidate).point - point).length)
+                        if gap > tolerance.distance / 4 { return false }
                     }
                 }
             }
-            holdsEdges = gap <= tolerance.distance / 4
+            return true
+        }
+        if holdsEdges == false {
+            if try holds(new) {
+                holdsEdges = true
+            } else {
+                let continued = Surface3D.bSpline(try BSplineSurfaceBoundaryExtender().continued(surface, by: (u1 - u0, v1 - v0), tolerance: tolerance))
+                if try holds(continued) {
+                    holdsEdges = true
+                    faceSurface = continued
+                }
+            }
             reparameterized = holdsEdges
         }
         if holdsEdges {
             var ids = FeatureTopologyIDAllocator(featureID: feature.id)
             var surfaceID = ids.nextSurfaceID()
             while result.geometry.surfaces[surfaceID] != nil { surfaceID = ids.nextSurfaceID() }
-            result.geometry.surfaces[surfaceID] = new
+            result.geometry.surfaces[surfaceID] = faceSurface
             result.faces[faceID]?.surfaceID = surfaceID
             result.faces[faceID]?.orientation = orientation
             if reparameterized {
@@ -391,7 +408,7 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                             let other = pair.first { $0 != mine } ?? pair[0]
                             seamLowerSide = (mine.u <= other.u, mine.v <= other.v)
                         }
-                        loop.coedges[index].surfaceParameterCurve = try isoline(of: coedge, on: new, seamLowerSide: seamLowerSide,
+                        loop.coedges[index].surfaceParameterCurve = try isoline(of: coedge, on: faceSurface, seamLowerSide: seamLowerSide,
                                                                                 model: result, tolerance: tolerance)
                     }
                     result.loops[loopID] = loop
