@@ -380,7 +380,19 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             }
             reparameterized = holdsEdges
         }
+        // Kept edges whose trimming curves cannot be built on the new surface (a straight edge on a
+        // spline it is no isoline of) are re-solved where the face meets the faces beside it, which
+        // gives each its parameter curves.
+        // FIXME(INCOMPLETE_IMPLEMENTATION): a boundary control point moved within the face's own
+        // plane leaves its straight edges on a spline whose parameters run unevenly along them: no
+        // exact trimming curve exists there, and the certified intersection with the plane beside it
+        // does not resolve, so the evaluation fails with that error. Production path: Rupa's control
+        // point moves on a face of a solid given control points. Complete when such a face keeps its
+        // edges, verified by a box face's corner control point drawn in alone.
+        var resolvesEdges = holdsEdges == false
+        let unchanged = result
         if holdsEdges {
+          do {
             var ids = FeatureTopologyIDAllocator(featureID: feature.id)
             var surfaceID = ids.nextSurfaceID()
             while result.geometry.surfaces[surfaceID] != nil { surfaceID = ids.nextSurfaceID() }
@@ -415,9 +427,14 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 }
                 try ExactFacePcurveBuilder().populateMissingPcurves(in: &result, tolerance: tolerance)
             }
-        } else {
+          } catch let unsupported as KernelError where unsupported.code == .unsupportedCapability && reparameterized {
+            result = unchanged
+            resolvesEdges = true
+          }
+        }
+        if resolvesEdges {
             try FaceSurfaceReplacementRebuilder().replace(
-                [faceID: FaceSurfaceReplacementRebuilder.Replacement(surface: new, orientation: orientation)],
+                [faceID: FaceSurfaceReplacementRebuilder.Replacement(surface: faceSurface, orientation: orientation)],
                 bodyID: bodyID, featureID: feature.id, model: &result, tolerance: tolerance
             )
             try ExactFacePcurveBuilder().populateMissingPcurves(in: &result, tolerance: tolerance)

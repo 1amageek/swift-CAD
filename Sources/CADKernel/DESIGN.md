@@ -976,7 +976,9 @@ parameters, the surface sharing them); where every edge still lies on
 the new surface along its trimming curve (within a quarter of the distance tolerance) it keeps its
 edges; where they lie on it, or on its natural continuation past every side as far again as it
 spans (`BSplineSurfaceBoundaryExtender.continued`, Plasticity's hidden spans of a nominal surface,
-when its control points are drawn in), only geometrically it keeps them
+when its control points are drawn in), only geometrically it keeps them (and where their trimming
+curves cannot be built, it re-solves them with the faces beside it; a boundary control point moved
+within the face's plane alone still fails there, `FIXME(INCOMPLETE_IMPLEMENTATION)`)
 too, each taking the isoline of the new surface it runs along (a seam's two coedges the two ends,
 the one that lay lower taking the lower; an edge closing round the seam running end to end; a point
 at a pole taking the collapsed side's parameter, and one whose projection crowds beside it read
