@@ -14,11 +14,16 @@ choose display behavior. Open-boundary loop discovery is shared topology
 knowledge so feature evaluation and viewport presentation identify the same
 eligible boundary components.
 
+The [GenericShape](GenericShape/DESIGN.md) component publishes common operations
+for independently selected dimensional roots and heterogeneous compounds. Its
+selected snapshot is distinct from a complete body-owned BRepModel.
+
 ## Related Designs
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [Swift-CAD package](../../DESIGN.md) | parent | exact B-rep topology | Defines topology's place in the package. | Mesh is not topology authority. |
+| [GenericShape](GenericShape/DESIGN.md) | child | ShapeRepresenting and ShapeOperating | Owns common dimensional selection and exact rigid-image operations. | Selected closure validation retains the complete-body BRepModel contract. |
 | [OpenBoundaryLoop](OpenBoundaryLoop/DESIGN.md) | child | ordered boundary cycles and hole eligibility | Provides shared exact topology and rejects a lone face's outer perimeter as a fill target. | Geometry quality remains a modeling contract. |
 | [CADModeling](../CADModeling/DESIGN.md) | used by | loop containing a stable seed edge | Builds a separate surface from an eligible boundary. | Curve conversion and surface quality remain CADModeling responsibilities. |
 | [RupaCore](../../../RupaKit/Sources/RupaCore/DESIGN.md) | used by | loop edge membership | Marks the same open loop for viewport affordances. | Display identity comes from generated topology IDs. |

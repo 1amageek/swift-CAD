@@ -3,6 +3,18 @@ import CADCore
 extension KernelCapabilities {
   static let topologyCapabilities: [KernelCapability] = [
     KernelCapability(
+      id: "TOPO-SHAPE-001",
+      operation: "genericShape",
+      status: .supported,
+      topology: .subshapeGraph,
+      acceptedInputs: ["standaloneVertexEdgeWireFaceShellSolid", "heterogeneousCompound", "finiteValidatedSelectedClosure"],
+      exactOutputs: ["immutableSelectedSnapshot", "rootSpecificValidation", "dimensionOrderedDistinctTraversal", "exactRigidImageAndFaceChartTransport"],
+      failureCodes: [.invalidInput, .missingReference, .topologyFailure, .cancelled],
+      tolerance: .standard,
+      publicAPIs: ["CADTopology.ShapeRepresenting", "CADTopology.ShapeOperating", "CADTopology.Shape", "CADTopology.ShapeReference", "CADTopology.ShapeWire", "CADTopology.DefaultShapeOperator"],
+      testFixtures: ["GenericShapeTests"]
+    ),
+    KernelCapability(
       id: "TOPO-LINEAGE-001",
       operation: "topologyLineage",
       status: .supported,

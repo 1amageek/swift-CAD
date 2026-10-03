@@ -22,6 +22,7 @@ struct KernelCapabilityContractTests {
       "GEO-PREDICATE-001",
       "TOPO-LINEAGE-001",
       "TOPO-BREP-001",
+      "TOPO-SHAPE-001",
       "TOPO-SEWING-001",
       "TOPO-REPAIR-001",
       "TOPO-FACEAREA-001",
