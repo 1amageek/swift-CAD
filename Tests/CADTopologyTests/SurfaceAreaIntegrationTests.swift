@@ -1020,6 +1020,208 @@ struct SurfaceAreaIntegrationTests {
         catch let error as KernelError { #expect(error.code == .cancelled) }
     }
 
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func affineImplicitChainRetainsUnequalNativePiecesAndExactArea(_ reversed: Bool) throws {
+        let (source,intersection) = try affineImplicitChainFixture()
+        let implicit = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:.first,
+            startFraction:0.875,endFraction:0.125,tolerance:tolerance)
+        // Original three-cell fractions map to native V=8.8125 and 7.09375.
+        // The tilted parallelogram's literal area and all moments are independent
+        // of the original chart's unequal speeds and non-dyadic 1/3,2/3 joins.
+        let rectangleCurves = rectangle(2.75,4.25,7.09375,8.8125)
+        // Start at bottom-right so the implicit left edge has a nonzero signed fan.
+        let curves = [rectangleCurves[1],rectangleCurves[2],.certifiedImplicit(implicit),rectangleCurves[0]]
+        let center = Point3D(x:0.140625,y:0.2574462890625,z:0.51171875)
+        let area = 0.00026226043701171875
+        let transform = try areaFixtureTransform()
+        for mapped in [false,true] {
+            let original = Surface3D.bSpline(source)
+            let support = mapped ? try transform.applying(to:original,tolerance:tolerance) : original
+            let trims = mapped ? try rigidTrims(curves,source:original,target:support,transform:transform) : curves
+            let (id,model) = try fixture(support,outer:trims,reversed:reversed)
+            let measured = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+            #expect(abs(measured.area-area) <= tolerance.distance*tolerance.distance+tolerance.relative*area)
+            #expect((measured.centroid-(mapped ? areaFixtureImage(of:center) : center)).length <= tolerance.distance)
+            do {
+                _ = try model.faceAreaMeasurement(of:id,tolerance:tolerance,
+                    integrationOptions:FaceAreaIntegrationOptions(maximumCellCount:1))
+                Issue.record("A native implicit piece cannot receive another query work budget.")
+            } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+            do {
+                _ = try model.faceAreaMeasurement(of:id,tolerance:tolerance,
+                    integrationOptions:FaceAreaIntegrationOptions(maximumSubdivisionDepth:1))
+                Issue.record("A native implicit join cannot reset query subdivision depth.")
+            } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func affineImplicitChainProofDistinguishesOwningPiecesAndJoins(_ backwards: Bool) throws {
+        let (source,intersection) = try affineImplicitChainFixture(direction:backwards ? .reversed : .forward)
+        for role in [SurfaceIntersectionSurfaceRole.first,.second] {
+            let implicit = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:role,
+                startFraction:0.875,endFraction:0.125,tolerance:tolerance)
+            let curve = SurfaceParameterCurve.certifiedImplicit(implicit)
+            let support = role == .first ? Surface3D.bSpline(source) : intersection.secondSurface
+            let prepared = try SurfaceAreaParameterChartEncloser(curve:curve,on:support,tolerance:tolerance)
+            #expect(prepared.hasNativeJoins)
+            for endpoint in [0.0,1.0] {
+                let actual = try prepared.intervalJet(over:ScalarInterval(lower:endpoint,upper:endpoint),tolerance:tolerance)
+                let point = try implicit.parameter(atNormalizedFraction:endpoint,tolerance:tolerance)
+                #expect(actual.u.value.contains(point.u) && actual.v.value.contains(point.v))
+            }
+            let smooth = try prepared.intervalJet(over:ScalarInterval(lower:0.05,upper:0.1),tolerance:tolerance)
+            let nativeSlope = backwards ? 0.5625 : -1.125
+            #expect(smooth.u.derivativeU.contains(role == .first ? 0 : nativeSlope/6))
+            #expect(smooth.v.derivativeU.contains(role == .first ? nativeSlope : 0))
+            #expect(smooth.u.secondDerivativeUU.lower == 0 && smooth.u.secondDerivativeUU.upper == 0)
+            #expect(smooth.v.thirdDerivativeUUU.lower == 0 && smooth.v.thirdDerivativeUUU.upper == 0)
+            let interval = try ScalarInterval(lower:0.2,upper:0.4)
+            let proof = try prepared.intervalProof(over:interval,tolerance:tolerance)
+            guard case .valueOnly(let u,let v,let du,let dv) = proof else {
+                Issue.record("Unequal native speeds at a join cannot authorize a smooth jet."); return
+            }
+            for t in [0.2,0.25,0.3,0.35,0.4] {
+                let q = 0.875-0.75*t,forward = backwards ? 1-q : q
+                let nativeV: Double
+                if forward <= 1.0/3 { nativeV = 7+0.75*forward }
+                else if forward <= 2.0/3 { nativeV = 7.25+3.75*(forward-1.0/3) }
+                else { nativeV = 8.5+1.5*(forward-2.0/3) }
+                #expect(u.contains(role == .first ? 2.75 : (nativeV-5)/6))
+                #expect(v.contains(role == .first ? nativeV : 5.0/12))
+                let original = try implicit.parameter(atNormalizedFraction:t,tolerance:tolerance)
+                #expect(u.contains(original.u) && v.contains(original.v))
+            }
+            let slopes = backwards ? [0.5625,2.8125] : [-1.125,-2.8125]
+            for slope in slopes {
+                #expect(du.contains(role == .first ? 0 : slope/6))
+                #expect(dv.contains(role == .first ? slope : 0))
+            }
+            guard case .valueOnly = try prepared.intervalProof(
+                over:ScalarInterval(lower:5.0/18,upper:5.0/18),tolerance:tolerance) else {
+                Issue.record("A shared native endpoint must retain both owning one-sided charts."); return
+            }
+            do {
+                _ = try prepared.intervalJet(over:interval,tolerance:tolerance)
+                Issue.record("A value-only join must not masquerade as a third-order jet.")
+            } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+            let integrand = try PreparedSurfaceAreaIntegrand(surface:support,tolerance:tolerance)
+            let anchor = role == .first ? SurfaceParameter(u:4.25,v:7.09375) : SurfaceParameter(u:0.2,v:0.2)
+            let fields = try integrand.bounds(curve:curve,anchor:anchor,reference:.origin,
+                boundaryFraction:interval,radialFraction:ScalarInterval(lower:0.25,upper:0.75),
+                tolerance:tolerance,parameterChart:prepared)
+            #expect(fields.count == 4 && fields.allSatisfy {
+                $0.derivativeU == nil && $0.derivativeV == nil && $0.secondUU == nil && $0.secondUV == nil && $0.secondVV == nil
+            })
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func affineImplicitChainJoinAuthorityPropagatesThroughOriginalWrappers() throws {
+        let (source,intersection) = try affineImplicitChainFixture()
+        let implicit = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:.first,
+            startFraction:0.875,endFraction:0.125,tolerance:tolerance)
+        let curve = SurfaceParameterCurve.certifiedImplicit(implicit),support = Surface3D.bSpline(source)
+        let transform = try areaFixtureTransform(),target = try transform.applying(to:support,tolerance:tolerance)
+        let image = SurfaceParameterCurve.rigidImage(try RigidImageSurfaceParameterCurve(
+            source:SurfaceLiftCurve3D(surface:support,parameterCurve:curve),targetSurface:target,
+            transform:transform,startFraction:1,endFraction:0,tolerance:tolerance))
+        let offset = OffsetSurface3D(source:support,distance:0.002)
+        let offsetCurve = SurfaceParameterCurve.offsetSurfaceImage(try offset.parameterCurveImage(transporting:curve,tolerance:tolerance))
+        for (wrapped,face) in [(image,target),(offsetCurve,Surface3D.procedural(.offset(offset))),
+                              (.periodicTranslation(base:curve,uShift:0,vShift:0),support)] {
+            let prepared = try SurfaceAreaParameterChartEncloser(curve:wrapped,on:face,tolerance:tolerance)
+            #expect(prepared.hasNativeJoins)
+            guard case .valueOnly(let u,let v,_,_) = try prepared.intervalProof(
+                over:ScalarInterval(lower:0,upper:1),tolerance:tolerance) else {
+                Issue.record("A wrapper cannot erase original native join authority."); return
+            }
+            let point = try wrapped.parameter(atNormalizedFraction:0.3,tolerance:tolerance)
+            #expect(u.contains(point.u) && v.contains(point.v))
+        }
+        let reversed = try SurfaceAreaParameterChartEncloser(curve:image,on:target,tolerance:tolerance)
+        let smooth = try reversed.intervalJet(over:ScalarInterval(lower:0.9,upper:0.95),tolerance:tolerance)
+        #expect(smooth.v.derivativeU.contains(1.125))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func affineImplicitChainRejectsToleranceGapsMixedCoordinatesAndInvalidAffineClosure() throws {
+        for (gap,mixed) in [(1e-9,false),(0.0,true)] {
+            // The original public certificate validates these real native cells.
+            // Its modeling-tolerance connectivity cannot prove an exact trim join.
+            let (source,intersection) = try affineImplicitChainFixture(gap:gap,mixedCoordinate:mixed)
+            let curve = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:.first,tolerance:tolerance)
+            do {
+                _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(curve),on:.bSpline(source),tolerance:tolerance)
+                Issue.record("Inexact or mixed-coordinate joins cannot inherit affine chain authority.")
+            } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+        }
+        let (source,forward) = try affineImplicitAreaFixture()
+        let (_,reverse) = try affineImplicitAreaFixture(direction:.reversed)
+        // Two regular affine supports intersect on a straight line. Reversing that
+        // line cannot construct a proper closed regular chart: the owning lower
+        // certificate must reject the opposing connection tangents.
+        do {
+            _ = try CertifiedImplicitIntersectionCurve(firstSurface:forward.firstSurface,secondSurface:forward.secondSurface,
+                cells:[forward.cells[0],reverse.cells[0]],isClosed:true,tolerance:tolerance)
+            Issue.record("Opposing affine line tangents cannot form a certified closed intersection.")
+        } catch let error as KernelError {
+            #expect(error.code == .intersectionFailure)
+            #expect(error.message.contains("tangent orientation"))
+        }
+        let (_,chain) = try affineImplicitChainFixture()
+        let trim = try CertifiedImplicitSurfaceParameterCurve(intersection:chain,role:.first,tolerance:tolerance)
+        do {
+            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(trim),on:.bSpline(source),
+                maximumBoundaryCurveCount:2,tolerance:tolerance)
+            Issue.record("Native cell admission must be bounded before source validation.")
+        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func affineImplicitChainCancellationRetainsWholeQueryFailure() async throws {
+        let (source,intersection) = try affineImplicitChainFixture()
+        let implicit = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:.first,
+            startFraction:0.875,endFraction:0.125,tolerance:tolerance)
+        let rectangleCurves = rectangle(2.75,4.25,7.09375,8.8125)
+        let curves = [rectangleCurves[1],rectangleCurves[2],.certifiedImplicit(implicit),rectangleCurves[0]]
+        let (id,model) = try fixture(.bSpline(source),outer:curves)
+        let task = Task {
+            while !Task.isCancelled { await Task.yield() }
+            return try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        }
+        task.cancel()
+        do { _ = try await task.value; Issue.record("Implicit chain preparation cannot hide cancellation.") }
+        catch let error as KernelError { #expect(error.code == .cancelled) }
+    }
+
+    private func affineImplicitChainFixture(direction: CertifiedImplicitIntersectionDirection = .forward,
+                                             gap: Double = 0, mixedCoordinate: Bool = false)
+        throws -> (BSplineSurface3D,CertifiedImplicitIntersectionCurve) {
+        let (source,original) = try affineImplicitAreaFixture()
+        let second = original.secondSurface
+        let ranges = [(7.0,7.25),(7.25+gap,8.5),(8.5,9.0)]
+        var cells: [CertifiedImplicitIntersectionGraphCell] = []
+        for (index,range) in ranges.enumerated() {
+            let mixed = mixedCoordinate && index == 1
+            func anchor(_ v: Double) throws -> SurfaceIntersectionParameterPair {
+                try SurfaceIntersectionParameterPair(first:SurfaceParameter(u:2.75,v:v),
+                    second:SurfaceParameter(u:(v-5)/6,v:5.0/12))
+            }
+            let box = try SurfaceIntersectionParameterBox(firstU:ScalarInterval(lower:2.5,upper:3),
+                firstV:ScalarInterval(lower:mixed ? 7 : range.0,upper:mixed ? 9 : range.1),
+                secondU:ScalarInterval(lower:mixed ? (range.0-5)/6 : 0,upper:mixed ? (range.1-5)/6 : 1),
+                secondV:ScalarInterval(lower:0,upper:1))
+            cells.append(try CertifiedImplicitIntersectionGraphCell(parameterBox:box,
+                freeParameter:mixed ? .secondU : .firstV,direction:direction,
+                lowerAnchor:try anchor(range.0),midpointAnchor:try anchor((range.0+range.1)/2),upperAnchor:try anchor(range.1),
+                firstSurface:.bSpline(source),secondSurface:second,tolerance:tolerance))
+        }
+        if direction == .reversed { cells.reverse() }
+        return (source,try CertifiedImplicitIntersectionCurve(firstSurface:.bSpline(source),secondSurface:second,
+            cells:cells,isClosed:false,tolerance:tolerance))
+    }
+
     private func affineImplicitAreaFixture(direction: CertifiedImplicitIntersectionDirection = .forward)
         throws -> (BSplineSurface3D,CertifiedImplicitIntersectionCurve) {
         // Literal dyadic affine equations on native U=[2,5], V=[7,9].

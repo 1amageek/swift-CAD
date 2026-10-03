@@ -2,6 +2,27 @@ import CADCore
 
 /// Invocation-owned authority for numeric trims in their exact destination chart.
 package struct SurfaceAreaParameterChartEncloser: Sendable {
+    /// A join range owns values and one-sided tangents, never higher derivatives.
+    enum IntervalProof {
+        case smooth(u: SurfaceIntervalJet, v: SurfaceIntervalJet)
+        case valueOnly(u: OutwardScalarInterval, v: OutwardScalarInterval,
+                       tangentU: OutwardScalarInterval, tangentV: OutwardScalarInterval)
+
+        var values: (u: OutwardScalarInterval, v: OutwardScalarInterval,
+                     tangentU: OutwardScalarInterval, tangentV: OutwardScalarInterval) {
+            switch self {
+            case .smooth(let u,let v): return (u.value,v.value,u.derivativeU,v.derivativeU)
+            case .valueOnly(let u,let v,let du,let dv): return (u,v,du,dv)
+            }
+        }
+
+        func unionValues(_ other: IntervalProof) -> IntervalProof {
+            let a = values, b = other.values
+            return .valueOnly(u:a.u.union(b.u),v:a.v.union(b.v),
+                tangentU:a.tangentU.union(b.tangentU),tangentV:a.tangentV.union(b.tangentV))
+        }
+    }
+
     private indirect enum Storage: Sendable {
         case numeric(SurfaceParameterCurve)
         case affineImplicit(SurfaceAreaAffineImplicitChartEncloser)
@@ -14,6 +35,17 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
     private let storage: Storage
     /// Structural identity only; partial fractions are evaluated by the original chain rule.
     package let exactIsoBoundary: SurfaceParameterCurve?
+
+    /// Routes native chart joins to the query's existing aggregate uncertainty owner.
+    package var hasNativeJoins: Bool { Self.hasNativeJoins(storage) }
+
+    private static func hasNativeJoins(_ storage: Storage) -> Bool {
+        switch storage {
+        case .affineImplicit(let prepared): return prepared.hasNativeJoins
+        case .rigid(let child,_,_,_), .translated(let child,_,_): return hasNativeJoins(child)
+        case .numeric: return false
+        }
+    }
 
     package init(curve: SurfaceParameterCurve, on surface: Surface3D,
                  maximumControlPointCount: Int = 65_536, maximumBoundaryCurveCount: Int = 4_096,
@@ -65,6 +97,14 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
 
     func intervalJet(over fraction: ScalarInterval, tolerance: ModelingTolerance)
         throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet) {
+        switch try intervalProof(over:fraction,tolerance:tolerance) {
+        case .smooth(let u,let v): return (u,v)
+        case .valueOnly:
+            throw Self.failure(.unsupportedCapability,tolerance,"A native chart join has no smooth interval jet authority.")
+        }
+    }
+
+    func intervalProof(over fraction: ScalarInterval, tolerance: ModelingTolerance) throws -> IntervalProof {
         guard fraction.lower >= 0, fraction.upper <= 1 else {
             throw Self.failure(.invalidInput, tolerance, "Area chart enclosure requires its original normalized interval.")
         }
@@ -114,18 +154,21 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
     }
 
     private static func enclose(_ storage: Storage, over fraction: ScalarInterval,
-                                tolerance: ModelingTolerance) throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet) {
+                                tolerance: ModelingTolerance) throws -> IntervalProof {
         switch storage {
         case .affineImplicit(let prepared):
-            return try prepared.intervalJet(over:fraction,tolerance:tolerance)
+            return try prepared.intervalProof(over:fraction,tolerance:tolerance)
         case .numeric(let curve):
             guard let jet = try SurfaceParameterIntervalJet.enclose(curve, over: fraction, tolerance: tolerance) else {
                 throw failure(.unsupportedCapability, tolerance, "Admitted area chart lost its numeric interval derivatives.")
             }
-            return jet
+            return .smooth(u:jet.u,v:jet.v)
         case .translated(let child, let u, let v):
-            let jet = try enclose(child, over: fraction, tolerance: tolerance)
-            return (jet.u + .constant(u), jet.v + .constant(v))
+            switch try enclose(child, over:fraction,tolerance:tolerance) {
+            case .smooth(let x,let y): return .smooth(u:x + .constant(u),v:y + .constant(v))
+            case .valueOnly(let x,let y,let dx,let dy):
+                return .valueOnly(u:x + .exact(u),v:y + .exact(v),tangentU:dx,tangentV:dy)
+            }
         case .rigid(let child, let map, let start, let end):
             let parameter = SurfaceIntervalJet.constant(start)
                 + (.constant(end) - .constant(start)) * .parameterU(fraction)
@@ -133,11 +176,21 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
             // outward rounding with that proven range does not clamp an invalid source.
             let range = try ScalarInterval(lower: max(0, parameter.value.lower), upper: min(1, parameter.value.upper))
             let source = try enclose(child, over: range, tolerance: tolerance)
+            if case .valueOnly(let u,let v,let du,let dv) = source {
+                let slope = OutwardScalarInterval.exact(end) - .exact(start)
+                return .valueOnly(u:u * .exact(map.uu) + v * .exact(map.uv) + .exact(map.uOffset),
+                    v:u * .exact(map.vu) + v * .exact(map.vv) + .exact(map.vOffset),
+                    tangentU:(du * .exact(map.uu) + dv * .exact(map.uv))*slope,
+                    tangentV:(du * .exact(map.vu) + dv * .exact(map.vv))*slope)
+            }
+            guard case .smooth(let sourceU,let sourceV) = source else {
+                throw failure(.classificationFailure,tolerance,"An area chart lost its interval proof kind.")
+            }
             let composed = SurfaceParameterThirdOrderChainRule.intervalJet(
-                surface: SurfaceIntervalVectorJet(x: source.u, y: source.v, z: .constant(0)),
+                surface: SurfaceIntervalVectorJet(x: sourceU, y: sourceV, z: .constant(0)),
                 u: parameter, v: .constant(0))
-            return (composed.x * .constant(map.uu) + composed.y * .constant(map.uv) + .constant(map.uOffset),
-                    composed.x * .constant(map.vu) + composed.y * .constant(map.vv) + .constant(map.vOffset))
+            return .smooth(u:composed.x * .constant(map.uu) + composed.y * .constant(map.uv) + .constant(map.uOffset),
+                           v:composed.x * .constant(map.vu) + composed.y * .constant(map.vv) + .constant(map.vOffset))
         }
     }
 

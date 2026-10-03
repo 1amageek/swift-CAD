@@ -96,7 +96,26 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         tolerance: ModelingTolerance, domain: SurfaceAreaNativeSpanDomain? = nil,
         parameterChart: SurfaceAreaParameterChartEncloser? = nil
     ) throws -> [SurfaceAreaIntegrandBounds] {
-        let chart = try chartJet(curve:curve,prepared:parameterChart,over:boundaryFraction,tolerance:tolerance)
+        let proof = try chartProof(curve:curve,prepared:parameterChart,over:boundaryFraction,tolerance:tolerance)
+        if case .valueOnly(let u,let v,let tangentU,let tangentV) = proof {
+            let radial = OutwardScalarInterval(lower:radialFraction.lower,upper:radialFraction.upper)
+            let du = u - .exact(anchor.u), dv = v - .exact(anchor.v)
+            let parameters = SurfaceParameterBox(
+                u:try clipped(.exact(anchor.u)+du*radial,to:surface.uDomain,tolerance:tolerance),
+                v:try clipped(.exact(anchor.v)+dv*radial,to:surface.vDomain,tolerance:tolerance))
+            if let domain {
+                guard domain.curve == curve,domain.anchor == anchor,let range = domain.radialRange,
+                      radialFraction.lower >= range.lower,radialFraction.upper <= range.upper else {
+                    throw Self.failure(.invalidInput,tolerance,"Native span authority does not cover the original fan cell.")
+                }
+            }
+            return try rangeFields(over:parameters,measure:radial*(du*tangentV-dv*tangentU),
+                reference:reference,domain:domain,tolerance:tolerance)
+        }
+        guard case .smooth(let chartU,let chartV) = proof else {
+            throw Self.failure(.classificationFailure,tolerance,"Area fan lost its chart proof kind.")
+        }
+        let chart = (u:chartU,v:chartV)
         let r = SurfaceIntervalJet.parameterV(radialFraction)
         let du = chart.u - .constant(anchor.u)
         let dv = chart.v - .constant(anchor.v)
@@ -177,7 +196,36 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         guard radialIntegrationIsExact else {
             throw Self.failure(.unsupportedCapability, tolerance, "Exact radial area requires an affine support.")
         }
-        let chart = try chartJet(curve:curve,prepared:parameterChart,over:boundaryFraction,tolerance:tolerance)
+        let proof = try chartProof(curve:curve,prepared:parameterChart,over:boundaryFraction,tolerance:tolerance)
+        if case .valueOnly(let u,let v,let tangentU,let tangentV) = proof {
+            let du = u - .exact(anchor.u),dv = v - .exact(anchor.v)
+            let radial = OutwardScalarInterval(lower:0,upper:1)
+            _ = try clipped(.exact(anchor.u)+du*radial,to:surface.uDomain,tolerance:tolerance)
+            _ = try clipped(.exact(anchor.v)+dv*radial,to:surface.vDomain,tolerance:tolerance)
+            let box = SurfaceParameterBox(
+                u:try clipped(.exact(anchor.u),to:surface.uDomain,tolerance:tolerance),
+                v:try clipped(.exact(anchor.v),to:surface.vDomain,tolerance:tolerance))
+            let map = try surfaceJet(over:box,tolerance:tolerance)
+            let cross = map.differentiatedUThroughSecondOrder().cross(map.differentiatedVThroughSecondOrder())
+            guard let density = cross.dot(cross).squareRoot() else {
+                throw Self.failure(.singularSystem,tolerance,"Affine area element is unresolved.")
+            }
+            let determinant = du*tangentV-dv*tangentU
+            let area = density.value*determinant * .exact(0.5)
+            let point = [map.x,map.y,map.z],origins = [reference.x,reference.y,reference.z]
+            var values = [area]
+            for index in 0..<3 {
+                let offset = point[index].value - .exact(origins[index])
+                let displacement = point[index].derivativeU*du + point[index].derivativeV*dv
+                values.append(offset*area+displacement*density.value*determinant*OutwardScalarInterval(1.0/3))
+            }
+            return values.map { SurfaceAreaIntegrandBounds(value:$0,derivativeU:nil,derivativeV:nil,
+                secondUU:nil,secondUV:nil,secondVV:nil) }
+        }
+        guard case .smooth(let chartU,let chartV) = proof else {
+            throw Self.failure(.classificationFailure,tolerance,"Area boundary lost its chart proof kind.")
+        }
+        let chart = (u:chartU,v:chartV)
         // Prove the exact boundary fan remains within the original support domain.
         let fullR = SurfaceIntervalJet.parameterV(try ScalarInterval(lower: 0, upper: 1))
         let du = chart.u - .constant(anchor.u), dv = chart.v - .constant(anchor.v)
@@ -262,17 +310,36 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         return try fields(over:box,u:u,v:v,measure:measure,reference:reference,domain:domain,tolerance:tolerance)
     }
 
-    private func chartJet(curve: SurfaceParameterCurve, prepared: SurfaceAreaParameterChartEncloser?,
+    private func chartProof(curve: SurfaceParameterCurve, prepared: SurfaceAreaParameterChartEncloser?,
                           over interval: ScalarInterval, tolerance: ModelingTolerance)
-        throws -> (u: SurfaceIntervalJet,v: SurfaceIntervalJet) {
+        throws -> SurfaceAreaParameterChartEncloser.IntervalProof {
         if let prepared {
             guard prepared.curve == curve, prepared.support == surface else {
                 throw Self.failure(.invalidInput,tolerance,"Area chart authority belongs to another retained trim.")
             }
-            return try prepared.intervalJet(over:interval,tolerance:tolerance)
+            return try prepared.intervalProof(over:interval,tolerance:tolerance)
         }
         return try SurfaceAreaParameterChartEncloser(curve:curve,on:surface,tolerance:tolerance)
-            .intervalJet(over:interval,tolerance:tolerance)
+            .intervalProof(over:interval,tolerance:tolerance)
+    }
+
+    private func rangeFields(over box: SurfaceParameterBox, measure: OutwardScalarInterval,
+                             reference: Point3D, domain: SurfaceAreaNativeSpanDomain?,
+                             tolerance: ModelingTolerance) throws -> [SurfaceAreaIntegrandBounds] {
+        var result: [OutwardScalarInterval]?
+        try forEachSurfaceJet(over:box,domain:domain,tolerance:tolerance) { jet,_ in
+            let cross = jet.differentiatedUThroughSecondOrder().cross(jet.differentiatedVThroughSecondOrder())
+            let vector = IntervalVector3DBounds(x:cross.x.value,y:cross.y.value,z:cross.z.value)
+            let density = OutwardScalarInterval(lower:vector.lengthLowerBound,upper:vector.lengthUpperBound)
+            let positions = [jet.x.value,jet.y.value,jet.z.value],origins = [reference.x,reference.y,reference.z]
+            let fields = ([density]+positions.enumerated().map { ($0.element - .exact(origins[$0.offset]))*density })
+                .map { $0*measure }
+            if let previous = result { result = zip(previous,fields).map { $0.union($1) } }
+            else { result = fields }
+        }
+        guard let result else { throw Self.failure(.classificationFailure,tolerance,"Area range proof has no native support coverage.") }
+        return result.map { SurfaceAreaIntegrandBounds(value:$0,derivativeU:nil,derivativeV:nil,
+            secondUU:nil,secondUV:nil,secondVV:nil) }
     }
 
     private func fields(over box: SurfaceParameterBox, u: SurfaceIntervalJet, v: SurfaceIntervalJet,

@@ -65,16 +65,26 @@ face loops -> continuous UV chains -> signed fan squares
   against the face's exact support, after bounded nested input admission.
   Topology supplies this authority to fan/boundary enclosure evaluation; the
   original signed fan measure, loop winding and whole-query resource/error
-  targets are unchanged. Geometry also admits the exact open single-cell affine
+  targets are unchanged. Geometry also admits the exact open connected affine
   implicit family under its original native-UV certificate and fraction authority;
   topology uses that prepared chart under the same signed fan and whole-query
   limits. Remaining implicit charts and non-affine rigid images retain typed
   unsupported failures. Invalid source fractions or foreign targets cannot
   become a clamped or approximately equivalent accepted trim.
+- An admitted affine implicit chain retains the original equal `1/N` cell
+  fractions and unequal native cell widths. Its geometry-owned chart proof
+  distinguishes a smooth owning piece from a value-only join enclosure.
+  Charts with native joins use the existing aggregate uncertainty integral;
+  join-crossing cells never enter higher-order Taylor acceptance and subdivide
+  the original boundary fraction T. The existing exact affine radial integral
+  remains available on this path; it removes R without changing the signed fan.
+  Every contribution, including a join-crossing range, consumes the original
+  curve's error target and query-wide cell/depth/cancellation accounting. No
+  piece receives a new allowance or silently closes a tolerance-sized gap.
 
 ## State, Ownership, and Lifecycle
 Each invocation owns immutable prepared geometry. Smooth domains retain their
-depth-first cell stack. C0 domains own a balanced outward-sum tree and a heap of
+depth-first cell stack. C0 support and native-join chart domains own a balanced outward-sum tree and a heap of
 refinable leaf uncertainties; at most `2*processedCells-1` tree records and
 `processedCells` heap entries exist. Native initial partition depth counts
 toward the original query depth limit. No shared mutable state or cache is

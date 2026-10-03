@@ -30,9 +30,14 @@ struct KernelCapabilityDomainTests {
         let catalog = KernelCapabilities.current
         let area = try catalog.domain(operation: "faceAreaMeasurement")
         #expect(area.capability.acceptedInputs.contains("piecewiseC0PositiveWeightBSplineNativeSpanAndValueOnlyFanEnclosures"))
+        #expect(area.capability.acceptedInputs.contains("exactOpenConnectedAffineImplicitChainsWithOriginalNativeUVAndPieceFractions"))
         #expect(area.limitations(affecting: .supportSurface).contains {
             $0.sourcePath.hasSuffix("SurfaceAreaAffineImplicitChartEncloser.swift")
-                && $0.condition.contains("General/closed/multicell implicit trim charts")
+                && $0.condition.contains("Mixed-coordinate/direction")
+        })
+        #expect(area.limitations(affecting: .supportSurface).contains {
+            $0.sourcePath.hasSuffix("SurfaceAreaAffineImplicitChartEncloser.swift")
+                && $0.condition.contains("General/closed implicit trim charts")
                 && $0.condition.contains("every original piece")
         })
         let offset = try catalog.domain(operation: "edgeOffset")

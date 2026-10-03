@@ -425,7 +425,7 @@ extension KernelCapabilities {
         "piecewiseC0PositiveWeightBSplineNativeSpanAndValueOnlyFanEnclosures",
         "numericExactTrimsIncludingHolesAndReversedLoops",
         "exactOffsetAndAffineRigidImageNumericTrimsWithOriginalFractionsAndReversal",
-        "exactOpenSingleCellAffineImplicitTrimsWithOriginalNativeUVAndFractions",
+        "exactOpenConnectedAffineImplicitChainsWithOriginalNativeUVAndPieceFractions",
         "explicitFiniteCellDepthBoundaryAndControlLimits",
       ],
       exactOutputs: [
@@ -437,6 +437,7 @@ extension KernelCapabilities {
         "distanceSquaredPlusRelativeAreaErrorAndDistanceCentroidError",
         "exactTranslationReductionWithOriginalChartDomain",
         "oneSidedNativeSpanProofWithWholeQueryErrorAndWorkBudgets",
+        "valueOnlyImplicitJoinFanEnclosuresWithoutHigherDerivativeAuthority",
         "ownedTargetMatchedThirdOrderNumericChartEnclosures",
         "typedRefusalOfUncertifiableChartsAndResourceExhaustion",
       ],

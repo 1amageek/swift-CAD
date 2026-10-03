@@ -141,7 +141,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                            prepared: PreparedSurfaceAreaIntegrand, goals: [Double],
                            options: FaceAreaIntegrationOptions, work: inout Int,
                            tolerance: ModelingTolerance) throws -> [OutwardScalarInterval] {
-        if prepared.hasNativeDensityJumps {
+        if prepared.hasNativeDensityJumps || parameterChart.hasNativeJoins {
             return try integrateNativeSpans(curve:curve,parameterChart:parameterChart,rectangle:rectangle,anchor:anchor,reference:reference,
                 prepared:prepared,goals:goals,options:options,work:&work,tolerance:tolerance)
         }
@@ -254,6 +254,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                                       options: FaceAreaIntegrationOptions, work: inout Int,
                                       tolerance: ModelingTolerance) throws -> [OutwardScalarInterval] {
         typealias Adaptive = SurfaceAreaAdaptiveIntegral
+        let boundaryOnly = rectangle == nil && prepared.radialIntegrationIsExact
         if rectangle == nil, prepared.fanIsExactlyZero(curve:curve,anchor:anchor,parameterChart:parameterChart) {
             return Array(repeating:.exact(0),count:4)
         }
@@ -281,12 +282,15 @@ struct CertifiedSurfaceFaceAreaIntegrator {
             cells = [Adaptive.Cell(t:unit,r:unit,depth:0,rectangle:rectangle,domain:nil)]
         }
         return try Adaptive().integrate(cells:cells,goals:goals,options:options,work:&work,tolerance:tolerance) { cell in
-            var splitT = cell.rectangle != nil || cell.t.width >= cell.r.width
+            var splitT = cell.rectangle != nil || boundaryOnly || cell.t.width >= cell.r.width
             do {
                 let bounds: [SurfaceAreaIntegrandBounds]
                 if let rectangle = cell.rectangle {
                     bounds = try prepared.rectangularTranslationBounds(rectangle:rectangle,
                         fraction:cell.t,reference:reference,tolerance:tolerance,domain:cell.domain)
+                } else if boundaryOnly {
+                    bounds = try prepared.boundaryBounds(curve:curve,anchor:anchor,reference:reference,
+                        boundaryFraction:cell.t,tolerance:tolerance,parameterChart:parameterChart)
                 } else {
                     bounds = try prepared.bounds(curve:curve,anchor:anchor,reference:reference,
                         boundaryFraction:cell.t,radialFraction:cell.r,tolerance:tolerance,domain:cell.domain,
@@ -302,7 +306,10 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                     guard values.allSatisfy(\.isFinite) else {
                         throw failure(.classificationFailure,tolerance,"Native range-only area integral exceeded finite arithmetic.")
                     }
-                    return Adaptive.Evaluation(contribution:values,splitT:splitT)
+                    // Native chart joins vary only in T. Refining the independent R
+                    // coordinate cannot remove a discontinuity of the original chart.
+                    return Adaptive.Evaluation(contribution:values,
+                        splitT:parameterChart.hasNativeJoins || splitT)
                 }
                 let middleT = try ScalarInterval(lower:cell.t.midpoint,upper:cell.t.midpoint)
                 let middleR = try ScalarInterval(lower:cell.r.midpoint,upper:cell.r.midpoint)
@@ -310,6 +317,9 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                 if let rectangle = cell.rectangle {
                     midpoint = try prepared.rectangularTranslationBounds(rectangle:rectangle,
                         fraction:middleT,reference:reference,tolerance:tolerance,domain:cell.domain)
+                } else if boundaryOnly {
+                    midpoint = try prepared.boundaryBounds(curve:curve,anchor:anchor,reference:reference,
+                        boundaryFraction:middleT,tolerance:tolerance,parameterChart:parameterChart)
                 } else {
                     midpoint = try prepared.bounds(curve:curve,anchor:anchor,reference:reference,
                         boundaryFraction:middleT,radialFraction:middleR,tolerance:tolerance,domain:cell.domain,
@@ -338,7 +348,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                     guard value.isFinite else { throw failure(.classificationFailure,tolerance,"Native smooth area integral exceeded finite arithmetic.") }
                     values.append(value)
                 }
-                splitT = cell.rectangle != nil || tPressure >= rPressure
+                splitT = cell.rectangle != nil || boundaryOnly || tPressure >= rPressure
                 return Adaptive.Evaluation(contribution:values,splitT:splitT)
             } catch is SurfaceAreaEnclosureRefinementRequired {
                 return Adaptive.Evaluation(contribution:nil,splitT:true)

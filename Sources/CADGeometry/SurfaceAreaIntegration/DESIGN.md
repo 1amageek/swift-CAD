@@ -28,8 +28,8 @@ trim charts and exact directed offset/affine rigid chart images. It depends on
 the existing numeric interval jet contract, rather than changing the shared
 boundary-certification implementation. Topology passes the retained original
 trim and its prepared chart authority to integrand evaluation.
-`SurfaceAreaAffineImplicitChartEncloser` admits one open native implicit graph
-cell whose two original B-spline supports have exact affine patch authority.
+`SurfaceAreaAffineImplicitChartEncloser` admits an open native implicit graph
+chain whose two original B-spline supports have exact affine patch authority.
 It solves the constant native-UV correspondence system with outward intervals;
 the retained graph certificate and its original free coordinate own traversal.
 
@@ -46,11 +46,11 @@ the retained graph certificate and its original free coordinate own traversal.
   Outward affine UV/fraction arithmetic and the third-order chain rule enclose
   values and derivatives over the complete requested interval. No sampled
   reconstruction or materialized approximation changes the original fan map.
-  Implicit charts outside the exact single-cell affine family and non-affine
+  Implicit charts outside the exact connected affine family and non-affine
   spherical images remain explicit unsupported failures. Preparing a chart does not allocate another query error
   allowance or reset adaptive cell/depth/control admission limits.
 - The affine implicit family requires exact selected-support identity, original
-  fractions strictly in [0,1], an open single-cell certificate, and exact affine
+  fractions strictly in [0,1], an open certificate, and exact affine
   parallelogram/equal-weight source authority from original controls. Preflight
   bounds both supports and the graph cell count before validation or preparation.
   Native knot spans scale the original source columns. The cell's free UV
@@ -61,8 +61,23 @@ the retained graph certificate and its original free coordinate own traversal.
   affine in that free coordinate, so their higher derivatives are exactly zero.
   No sampled endpoint fit, graph approximation, shortened chart, implicit
   recursive refinement, or additional error/work allowance is introduced.
-  Multicell joins, closed implicit curves, non-affine supports and unresolved
-  constant minors remain typed failures; they cannot inherit this family proof.
+  All cells retain the same free coordinate and direction. Consecutive directed
+  native free endpoints must be exactly equal; tolerance-based certificate
+  connectivity cannot authorize a missing segment. The original intersection
+  gives each cell global fraction width `1/N`, independently of its native UV
+  width. Enclosure first applies the stored trim fraction, then `N*f-i`, then
+  that owning cell's native width/direction. It never substitutes arc length.
+  A complete interval strictly inside one owning piece has smooth one-sided
+  jets. Any interval touching multiple owning pieces has an explicit value-only
+  chart proof containing UV positions and piecewise first tangents; it supplies
+  no gradient/Hessian authority for Taylor integration across the join. Exact
+  affine equations prove higher derivatives zero only inside a smooth piece.
+  Rigid fraction/UV maps, offset identity and periodic translations propagate
+  this proof distinction. Fan enclosure retains the complete original measure;
+  native piece intersection restricts chart enclosure only. Preparation is
+  bounded by the admitted graph cell count and does not allocate error/work
+  budgets. Closed curves, mixed free coordinates/directions, inexact endpoint
+  joins, non-affine supports and unresolved constant minors remain typed failures.
 - C0 spline integration uses prepared native Bezier span domains as its
   partition authority. A smooth proof is valid only when the complete requested
   pullback box belongs to one span, including that span's one-sided boundary
@@ -162,5 +177,20 @@ restriction/reversal and interval derivative containment, and rejects foreign
 targets, unsupported charts, malformed dimensions and nesting/work exhaustion.
 Affine implicit verification retains partial/reversed original native fractions,
 both surface roles, independently calculated tilted-plane area and all centroid
-coordinates, complete interval derivative containment, exact support refusal,
-non-affine family refusal and existing query resource/cancellation behavior.
+coordinates, complete interval derivative containment, exact support/non-affine
+family refusal, and unequal three-cell native widths with non-dyadic `1/3` and `2/3` joins.
+The owning-piece/join fixtures check smooth derivative scaling, all owning
+endpoint ranges and absent Taylor authority across a join, including reversed
+rigid fraction maps, offset identity and translation wrappers. Public area
+fixtures retain literal area/centroid oracles through face reversal and rigid
+images. Their boundary order starts opposite the implicit edge, so that edge's
+signed fan is nonzero and query-depth refusal exercises its native join integral.
+Valid modeling-tolerance gap chains and mixed-coordinate chains are explicitly
+refused. Closed traversal evidence is limited to the lower certificate rejecting
+an attempted forward/reverse affine-line closure for incompatible tangent
+orientation in [CertifiedImplicitIntersectionCurve](../CertifiedImplicitIntersectionCurve.swift).
+Two regular affine supports with an invertible dependent minor intersect on a
+straight line, so this family has no proper closed regular intersection fixture.
+The integral's closed/non-affine guard remains incomplete and is not claimed
+verified for a valid curved closed certificate. Graph-count, query-work/depth
+and cancellation fixtures retain the original whole-query limits.
