@@ -164,6 +164,53 @@ struct FaceRebuildTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func twoCurvedWallsMeetingAtACornerAreRebuiltCoarselyTogether() throws {
+        // Two cubic walls over a 20 mm base meeting at an apex, extruded 10 mm; both rebuilt as
+        // quadratics stray from their edges, and the upright edge they share is re-solved as
+        // their new surfaces' crossing, its ends where those meet the base and the top.
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        func point(_ x: Double, _ y: Double) -> SketchPoint {
+            SketchPoint(x: .constant(.length(x, unit: .meter)), y: .constant(.length(y, unit: .meter)))
+        }
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.line(from: point(0, 0), to: point(0.02, 0))
+            _ = sketch.spline(SketchSpline(controlPoints: [point(0.02, 0), point(0.022, 0.006), point(0.016, 0.012), point(0.01, 0.014)]))
+            _ = sketch.spline(SketchSpline(controlPoints: [point(0.01, 0.014), point(0.002, 0.013), point(0.001, 0.005), point(0, 0)]))
+        }.featureID
+        let height = 0.01
+        let block = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: .constant(.length(height, unit: .meter)))
+        let walls = try faces(of: block, in: builder) { if case .bSpline = $0 { return true }; return false }
+        #expect(walls.count == 2)
+        let rebuilt = try builder.rebuildFaces(target: block, faces: walls.map(\.0),
+                                               method: .explicit(SurfaceControlLayout(uDegree: 2, vDegree: 1, uSpans: 1, vSpans: 1)),
+                                               extendU: 0.25)
+        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "rebuild"))
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        let after = try faces(of: rebuilt, in: builder) { if case .bSpline = $0 { return true }; return false }
+        #expect(after.count == 2)
+        #expect(after.allSatisfy { if case let .bSpline(surface) = $0.1 { return surface.uDegree == 2 }; return false })
+        // The shared upright edge lies on both new walls along its length.
+        let edges = evaluated.brep.edges.values.filter { edge in
+            guard let a = evaluated.brep.vertices[edge.startVertexID]?.point, let b = evaluated.brep.vertices[edge.endVertexID]?.point else { return false }
+            return abs(abs(a.z - b.z) - height) < 1e-9 && a.x > 0.005 && a.x < 0.015 && a.y > 0.008
+        }
+        let shared = try #require(edges.first)
+        #expect(edges.count == 1)
+        let curve = try #require(evaluated.brep.geometry.curves[shared.curveID])
+        let trim = try #require(shared.trim)
+        for index in 0...8 {
+            let point = try curve.point(at: trim.startParameter + (trim.endParameter - trim.startParameter) * Double(index) / 8, tolerance: .standard)
+            for (_, surface) in after {
+                guard case let .projected(projection) = try surface.parameterProjectionResult(of: point, tolerance: .standard) else {
+                    Issue.record("A point of the shared edge does not project onto a rebuilt wall.")
+                    continue
+                }
+                #expect(projection.residual < 1e-6)
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func aCurvedWallRebuiltCoarselyHasItsEdgesResolvedOnItsPlanes() throws {
         // A cubic arch over a 20 mm base, extruded 10 mm; its arched wall rebuilt as a quadratic
         // strays from its edges, which are re-solved where the new wall crosses the base's wall

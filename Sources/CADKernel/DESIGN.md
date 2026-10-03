@@ -944,14 +944,18 @@ neighbour fitted likewise — and the neighbours' edges run along their own line
 the moved corners, a B-spline cut exactly to the new piece (`BSplineCurveSegmentExtractor`, Boehm
 insertion of both ends) and their old exact trimming curves cut to it (iso-lines, segments and
 B-splines) rather than fitted. An edge the new surface still runs through, ends and all, is kept.
-Coarse faces that share neighbours but no corner are resolved one after another on the patches the
-last left. A refit touching a neighbour without crossing it and coarse faces meeting each other or
-sharing a corner are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+All coarse faces of a shell are resolved together: a rebuilt neighbour is measured on its new
+surface, its foot started from the old surface's parameters it was refitted on (a start found once
+per point measured), so an edge two coarse faces share is their new surfaces' crossing, solved once on
+the first's parameters with its trimming curve on the other fitted through the feet, and a corner is
+where its three faces' surfaces meet. A refit touching a neighbour without crossing it is refused
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`).
 `FaceRebuildTests` own the explicit layout reproducing a quadratic arch exactly, the extension
 continuing it past its edge with the face kept, a box's top, a cylinder's quarter wall (tangent
 neighbours) and an open box's wall (open and shared edges) rebuilt in place, a cubic arch's wall
 rebuilt as a quadratic with its edges re-solved on its planes (the volume by Green's theorem over
-the new section), a box's round rebuilt flat into the chamfer through its contacts, and a cylinder's
+the new section), two cubic walls meeting at an apex rebuilt together (their shared edge on both
+new walls), a box's round rebuilt flat into the chamfer through its contacts, and a cylinder's
 half wall rebuilt flat into the chord across its caps and its other half (their volumes), a
 drafted cylinder's rational cone quarter rebuilt flat with its edges up the wall on the quarters
 beside it, and two opposite quarters rebuilt flat together.
