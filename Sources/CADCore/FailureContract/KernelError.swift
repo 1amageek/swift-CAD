@@ -25,6 +25,8 @@ public struct KernelError: Error, Codable, Equatable, Sendable {
         self.message = message
     }
 
+    public var category: KernelFailureCategory { code.category }
+
     public static func unsupportedEvaluation(
         featureID: FeatureID? = nil,
         subshapeID: SubshapeID? = nil,

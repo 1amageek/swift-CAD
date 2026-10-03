@@ -59,6 +59,24 @@ struct CADWASMSmoke {
             )
         }
 
+        let resourceFailure = KernelError.wrapping(
+            TessellationError.resourceExhausted(.triangleCount, requested: 12, limit: 10),
+            phase: .evaluation, tolerance: tolerance
+        )
+        let unsupportedFailure = KernelError.wrapping(
+            ImportError.unsupportedFormat("unsupported"), phase: .exchange, tolerance: tolerance
+        )
+        guard resourceFailure.code == .resourceLimitExceeded,
+              resourceFailure.category == .resourceExhaustion,
+              unsupportedFailure.code == .unsupportedCapability,
+              unsupportedFailure.category == .unsupportedDomain else {
+            throw KernelError(
+                phase: .validation, code: .unclassifiedFailure, tolerance: tolerance,
+                message: "The shared failure contract lost the reported cause."
+            )
+        }
+        print("KernelFailureContract passed")
+
         print("CADWASMSmoke passed")
     }
 }

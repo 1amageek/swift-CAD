@@ -23,9 +23,13 @@ extension KernelCapabilities {
         .ambiguousSelection,
         .resourceLimitExceeded,
         .topologyFailure,
+        .cancelled,
+        .unclassifiedFailure,
       ],
       tolerance: .standard,
       publicAPIs: [
+        "CADCore.KernelError.wrapping",
+        "CADCore.KernelFailureCategory",
         "CADIR.CADCommand",
         "SwiftCAD.DocumentEditing",
         "SwiftCAD.DocumentEditor",
@@ -39,6 +43,8 @@ extension KernelCapabilities {
         "CADKernel.EvaluationReport",
       ],
       testFixtures: [
+        "KernelFailureContractTests",
+        "KernelFailurePipelineTests",
         "CADCommandPipelineTests",
         "KernelQueryPipelineTests",
         "StrictCurrentKernelQuerySchemaTests",

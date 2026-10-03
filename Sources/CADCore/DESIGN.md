@@ -1,9 +1,10 @@
-# CADCore Expressions
+# CADCore
 
 ## Purpose and Scope
 
 This module owns unit-bearing expression source values. Parent: [Swift-CAD](../../DESIGN.md).
-There are no child designs for expressions.
+Expressions have no child designs. Typed kernel failure normalization is owned
+by the [Failure Contract](FailureContract/DESIGN.md) child component.
 
 ## Responsibilities and Boundaries
 
@@ -14,6 +15,7 @@ Evaluation and kind checking belong to CADIR and CADModeling.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [Failure Contract](FailureContract/DESIGN.md) | child | Typed failure normalization | Owns diagnostic context and cause categories | Never converts failures to success |
 | [CADIR](../CADIR/DESIGN.md) | used by | Parameter validation | Validates kinds and values | New cases require exhaustive handling |
 | [CADModeling](../CADModeling/DESIGN.md) | used by | Expression resolution | Evaluates source and variables | Preserve evaluation equivalence |
 
@@ -34,11 +36,8 @@ validation, parameter dependency discovery and strict Codable round trips.
 Existing serialized expressions keep their meaning; older readers reject the new
 kind explicitly rather than treating it as a constant.
 
-`KernelError` reads as its `message` wherever it is shown, interpolated or
-localized (`description`, `errorDescription`), so a refusal reaches a person as a
-sentence rather than as the value's fields; `debugDescription` keeps the phase,
-code and context for logs and failure records. A caller that needs the cause
-reads `code`, not the text (`aKernelErrorReadsAsItsMessage`).
+Kernel failure classification and diagnostic presentation follow the
+[Failure Contract](FailureContract/DESIGN.md#contracts-and-invariants).
 
 ## Verification and Change Impact
 
