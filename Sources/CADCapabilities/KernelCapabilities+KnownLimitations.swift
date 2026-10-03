@@ -200,6 +200,20 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphRootCertifier.swift", sourceLine: 232
         ),
         KernelDomainLimitation(
+            id: "condition-ab422fcb30c9fecd",
+            operations: ["curveSurfaceIntersectionResult", "faceAreaMeasurement"],
+            dimensions: [.boundaryCurve, .parameterization, .geometricFidelity],
+            condition: "General joins, closed charts, rational, piecewise and procedural supports lack this caller-budget localization contract on implicit/face-area queries. Complete only after their original root and derivative-domain authority is certified without hidden budgets.",
+            sourcePath: "Sources/CADGeometry/ImplicitCurveIntervalJetEncloser.swift", sourceLine: 228
+        ),
+        KernelDomainLimitation(
+            id: "condition-fbe71da12f4978b8",
+            operations: ["curveSurfaceIntersectionResult", "faceAreaMeasurement"],
+            dimensions: [.boundaryCurve, .parameterization, .geometricFidelity],
+            condition: "Legacy implicit curve/lift interval calls retain positive-width, modeling-resolution and private recursive refinement limits. General certified area callers must adopt the closed continuation and their shared work/depth contract before treating those domains as complete.",
+            sourcePath: "Sources/CADGeometry/ImplicitCurveIntervalJetEncloser.swift", sourceLine: 537
+        ),
+        KernelDomainLimitation(
             id: "condition-94dc729b5c31259b",
             operations: ["fillet"],
             dimensions: [.supportSurface, .connection, .degeneracy, .representation],

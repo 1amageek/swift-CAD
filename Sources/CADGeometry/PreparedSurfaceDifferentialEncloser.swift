@@ -114,6 +114,17 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
     }
   }
 
+  /// Internal implicit localization retains the original B-spline closed-span owner.
+  /// Public surface boxes and other representations keep their existing contract.
+  func intervalJet(overClosedBox parameters: SurfaceParameterBox,
+                   tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+    guard case .bSpline(let prepared) = storage else {
+      throw KernelError(phase:.geometry,code:.unsupportedCapability,tolerance:tolerance,
+        message:"Prepared closed-box composition requires its original B-spline support.")
+    }
+    return try prepared.intervalJet(overClosedBox:parameters,tolerance:tolerance)
+  }
+
   private static func storage(
     for surface: Surface3D,
     tolerance: ModelingTolerance

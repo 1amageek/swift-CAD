@@ -41,6 +41,248 @@ struct CertifiedImplicitIntersectionCurveTests {
     }
   }
 
+  @Test(.timeLimit(.minutes(1)))
+  func dyadicPlaneParabolaCertificateHasIndependentNativeRootAuthority() throws {
+    let curve = try dyadicPlaneParabolaCurve()
+    for fraction in [0.0, 0.25, 0.5, 0.75, 1.0] {
+      let t = 0.25 + 0.5 * fraction
+      let pair = try curve.parameterPair(atNormalizedFraction: fraction, tolerance: tolerance)
+      #expect(abs(pair.first.u - t*t) <= tolerance.relative)
+      #expect(abs(pair.first.v - t) <= tolerance.relative)
+      #expect(abs(pair.second.u - t) <= tolerance.relative)
+      #expect(abs(pair.second.v - 0.5) <= tolerance.relative)
+      let differential = try curve.differential(atNormalizedFraction: fraction, tolerance: tolerance)
+      #expect((differential.position-Point3D(x:t*t/32,y:t/64,z:0)).length <= tolerance.distance)
+      #expect((differential.firstDerivative-Vector3D(x:t/32,y:1.0/128,z:0)).length <= tolerance.relative)
+      #expect((differential.secondDerivative-Vector3D(x:1.0/64,y:0,z:0)).length <= tolerance.relative)
+      #expect(differential.thirdDerivative.length <= tolerance.relative)
+    }
+  }
+
+  @Test(.timeLimit(.minutes(1)))
+  func dyadicPlaneParabolaClosedPointJetsContainNativeValuesAndThreeDerivatives() throws {
+    let curve = try dyadicPlaneParabolaCurve()
+    let prepared = try ImplicitCurveIntervalJetEncloser(intersection:curve,tolerance:tolerance)
+    var remainingWork = SurfaceSurfaceIntersectionOptions().maximumSubdivisionCells
+    for fraction in [0.0,0.5,1.0] {
+      let t = 0.25+0.5*fraction
+      let actual = try continuedParameterJet(prepared,of:curve,
+        over:ScalarInterval(lower:fraction,upper:fraction),remainingWork:&remainingWork)
+      let expected: [[Double]] = [[t*t,t,0.5,0],[t,0.5,0,0],[t,0.5,0,0],[0.5,0,0,0]]
+      for (coordinate,values) in zip(actual.coordinates,expected) {
+        for (field,value) in zip([coordinate.value,coordinate.firstDerivative,
+                                  coordinate.secondDerivative,coordinate.thirdDerivative],values) {
+          #expect(field.contains(value))
+          #expect(field.width <= tolerance.relative)
+        }
+      }
+    }
+  }
+
+  @Test(.timeLimit(.minutes(1)))
+  func dyadicPlaneParabolaIntervalJetsLocalizeOriginalRootAndDerivativeRanges() throws {
+    let curve = try dyadicPlaneParabolaCurve()
+    let prepared = try ImplicitCurveIntervalJetEncloser(intersection:curve,tolerance:tolerance)
+    var remainingWork = SurfaceSurfaceIntersectionOptions().maximumSubdivisionCells
+    for width in [0.25,Double(sign:.plus,exponent:-20,significand:1)] {
+      let interval = try ScalarInterval(lower:0.375,upper:0.375+width)
+      let lower = 0.25+0.5*interval.lower,upper = 0.25+0.5*interval.upper
+      let actual = try continuedParameterJet(prepared,of:curve,over:interval,remainingWork:&remainingWork)
+      let u = actual[.firstU],v = actual[.firstV]
+      #expect(u.value.contains(lower*lower) && u.value.contains(upper*upper))
+      #expect(u.value.width <= upper*upper-lower*lower+tolerance.relative)
+      #expect(u.firstDerivative.contains(lower) && u.firstDerivative.contains(upper))
+      #expect(u.firstDerivative.width <= upper-lower+tolerance.relative)
+      #expect(u.secondDerivative.contains(0.5) && u.secondDerivative.width <= tolerance.relative)
+      #expect(u.thirdDerivative.contains(0) && u.thirdDerivative.width <= tolerance.relative)
+      #expect(v.value.contains(lower) && v.value.contains(upper))
+      #expect(v.value.width <= upper-lower+tolerance.relative)
+      for fraction in [interval.lower,interval.midpoint,interval.upper] {
+        let t = 0.25+0.5*fraction
+        #expect(u.value.contains(t*t) && u.firstDerivative.contains(t))
+        #expect(actual[.secondU].value.contains(t))
+        #expect(actual[.secondV].value.contains(0.5))
+      }
+    }
+  }
+
+  @Test(.timeLimit(.minutes(1)))
+  func reversedClosedImplicitJetsApplyNativeDirectionAndPowersOnce() throws {
+    let curve = try dyadicPlaneParabolaCurve(direction: .reversed)
+    let prepared = try ImplicitCurveIntervalJetEncloser(intersection: curve, tolerance: tolerance)
+    var remainingWork = SurfaceSurfaceIntersectionOptions().maximumSubdivisionCells
+    for fraction in [0.0, 0.5, 1.0] {
+      let t = 0.75 - 0.5 * fraction
+      let actual = try continuedParameterJet(prepared, of: curve,
+        over: ScalarInterval(lower: fraction, upper: fraction), remainingWork: &remainingWork)
+      let expected: [[Double]] = [[t*t, -t, 0.5, 0], [t, -0.5, 0, 0],
+        [t, -0.5, 0, 0], [0.5, 0, 0, 0]]
+      for (coordinate, values) in zip(actual.coordinates, expected) {
+        for (field, value) in zip([coordinate.value, coordinate.firstDerivative,
+          coordinate.secondDerivative, coordinate.thirdDerivative], values) {
+          #expect(field.contains(value))
+          #expect(field.width <= tolerance.relative)
+        }
+      }
+    }
+  }
+
+  @Test(.timeLimit(.minutes(1)))
+  func reversedMonotoneEndpointPhasesRetainWholeOriginalRangeJets() throws {
+    let curve = try dyadicPlaneParabolaCurve(direction: .reversed)
+    let prepared = try ImplicitCurveIntervalJetEncloser(intersection: curve, tolerance: tolerance)
+    var remainingWork = SurfaceSurfaceIntersectionOptions().maximumSubdivisionCells
+    let actual = try continuedParameterJet(prepared, of: curve,
+      over: ScalarInterval(lower: 0.375, upper: 0.625), remainingWork: &remainingWork)
+    let lower = 0.4375, upper = 0.5625
+    let u = actual[.firstU]
+    #expect(u.value.contains(lower * lower) && u.value.contains(upper * upper))
+    #expect(u.value.width <= upper * upper - lower * lower + tolerance.relative)
+    #expect(u.firstDerivative.contains(-upper) && u.firstDerivative.contains(-lower))
+    #expect(u.firstDerivative.width <= upper - lower + tolerance.relative)
+    #expect(u.secondDerivative.contains(0.5) && u.secondDerivative.width <= tolerance.relative)
+    #expect(u.thirdDerivative.contains(0) && u.thirdDerivative.width <= tolerance.relative)
+    #expect(actual[.firstV].value.contains(lower) && actual[.firstV].value.contains(upper))
+    #expect(actual[.secondU].value.contains(lower) && actual[.secondU].value.contains(upper))
+    #expect(actual[.secondV].value.contains(0.5))
+    #expect(actual[.firstV].firstDerivative.contains(-0.5))
+    #expect(actual[.secondU].firstDerivative.contains(-0.5))
+  }
+
+  @Test(.timeLimit(.minutes(1)))
+  func closedImplicitContinuationKeepsForeignStateAndInputFailuresTyped() throws {
+    let curve = try dyadicPlaneParabolaCurve()
+    let prepared = try ImplicitCurveIntervalJetEncloser(intersection:curve,tolerance:tolerance)
+    let point = try ScalarInterval(lower:0.5,upper:0.5)
+    let state = try prepared.prepareParameterEnclosure(of:curve,cellIndex:0,
+      overClosedInterval:point,tolerance:tolerance)
+    let otherPreparationTolerance = ModelingTolerance(distance:tolerance.distance*2,
+      angle:tolerance.angle,relative:tolerance.relative)
+    let otherPreparation = try ImplicitCurveIntervalJetEncloser(intersection:curve,
+      tolerance:otherPreparationTolerance)
+    do {
+      _ = try otherPreparation.advanceParameterEnclosure(state,tolerance:tolerance)
+      Issue.record("A continuation cannot borrow another preparation tolerance for the same source.")
+    } catch let error as KernelError { #expect(error.code == .invalidInput) }
+    let line = try certifiedLineCurve()
+    let foreign = try ImplicitCurveIntervalJetEncloser(intersection:line,tolerance:tolerance)
+    do {
+      _ = try foreign.advanceParameterEnclosure(state,tolerance:tolerance)
+      Issue.record("A localization state cannot transfer its original root authority.")
+    } catch let error as KernelError { #expect(error.code == .invalidInput) }
+    for (index,interval) in [(1,point),(0,try ScalarInterval(lower:-0.1,upper:0.1))] {
+      do {
+        _ = try prepared.prepareParameterEnclosure(of:curve,cellIndex:index,
+          overClosedInterval:interval,tolerance:tolerance)
+        Issue.record("Closed localization cannot clamp a foreign cell or invalid original fraction.")
+      } catch let error as KernelError { #expect(error.code == .invalidInput) }
+    }
+    do {
+      _ = try prepared.advanceParameterEnclosure(state,
+        tolerance:ModelingTolerance(distance:tolerance.distance*2,angle:tolerance.angle,relative:tolerance.relative))
+      Issue.record("A root-state continuation must retain the original preparation tolerance.")
+    } catch let error as KernelError { #expect(error.code == .invalidInput) }
+    do {
+      _ = try prepared.prepareParameterEnclosure(of: curve, cellIndex: 0,
+        overClosedInterval: point,
+        tolerance: ModelingTolerance(distance: tolerance.distance*2, angle: tolerance.angle, relative: tolerance.relative))
+      Issue.record("A root-state preparation must retain its prepared source tolerance.")
+    } catch let error as KernelError { #expect(error.code == .invalidInput) }
+  }
+
+  @Test(.timeLimit(.minutes(1)))
+  func closedImplicitContinuationConsumesOneCallerBudgetAcrossRequests() throws {
+    let curve = try dyadicPlaneParabolaCurve()
+    let prepared = try ImplicitCurveIntervalJetEncloser(intersection:curve,tolerance:tolerance)
+    let range = try ScalarInterval(lower:0.375,upper:0.625)
+    var remainingWork = SurfaceSurfaceIntersectionOptions().maximumSubdivisionCells
+    _ = try continuedParameterJet(prepared,of:curve,over:range,remainingWork:&remainingWork)
+    let consumed = SurfaceSurfaceIntersectionOptions().maximumSubdivisionCells-remainingWork
+    #expect(consumed > 1)
+    var exactlyOneRequest = consumed
+    _ = try continuedParameterJet(prepared,of:curve,over:range,remainingWork:&exactlyOneRequest)
+    #expect(exactlyOneRequest == 0)
+    do {
+      _ = try continuedParameterJet(prepared,of:curve,over:range,remainingWork:&exactlyOneRequest)
+      Issue.record("Another range and endpoint continuation cannot reset a caller-owned work budget.")
+    } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+    var preparationOnly = 1
+    do {
+      _ = try continuedParameterJet(prepared,of:curve,over:ScalarInterval(lower:0.5,upper:0.5),remainingWork:&preparationOnly)
+      Issue.record("Root contraction must consume work after preparation.")
+    } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+  }
+
+  @Test(.timeLimit(.minutes(1)))
+  func closedImplicitContinuationCancellationIsExplicit() async throws {
+    let curve = try dyadicPlaneParabolaCurve()
+    let prepared = try ImplicitCurveIntervalJetEncloser(intersection:curve,tolerance:tolerance)
+    let state = try prepared.prepareParameterEnclosure(of:curve,cellIndex:0,
+      overClosedInterval:ScalarInterval(lower:0.5,upper:0.5),tolerance:tolerance)
+    let task = Task {
+      while !Task.isCancelled { await Task.yield() }
+      return try prepared.advanceParameterEnclosure(state,tolerance:tolerance)
+    }
+    task.cancel()
+    do { _ = try await task.value; Issue.record("A cancelled continuation cannot publish a root jet.") }
+    catch let error as KernelError { #expect(error.code == .cancelled) }
+  }
+
+  private func continuedParameterJet(_ prepared: ImplicitCurveIntervalJetEncloser,
+    of curve: CertifiedImplicitIntersectionCurve,over interval: ScalarInterval,
+    remainingWork: inout Int) throws -> CertifiedImplicitParameterIntervalJet {
+    func consume(_ remaining: inout Int) throws {
+      guard remaining > 0 else {
+        throw KernelError(phase:.geometry,code:.resourceLimitExceeded,tolerance:tolerance,
+          message:"The test caller exhausted its existing aggregate work budget.")
+      }
+      remaining -= 1
+    }
+    try consume(&remainingWork)
+    var state = try prepared.prepareParameterEnclosure(of:curve,cellIndex:0,
+      overClosedInterval:interval,tolerance:tolerance)
+    while true {
+      try consume(&remainingWork)
+      switch try prepared.advanceParameterEnclosure(state,tolerance:tolerance) {
+      case .enclosed(let jet): return jet
+      case .contracted(let next): state = next
+      case .subdivisionRequired:
+        throw KernelError(phase:.geometry,code:.singularSystem,tolerance:tolerance,
+          message:"The independent regular fixture unexpectedly required caller subdivision.")
+      }
+    }
+  }
+
+  private func dyadicPlaneParabolaCurve(
+    direction: CertifiedImplicitIntersectionDirection = .forward
+  ) throws -> CertifiedImplicitIntersectionCurve {
+    // Exact original controls: S1(u,v)=(u/32,v/64,0),
+    // S2(s,r)=(s^2/32,s/64,(2r-1)/64). No fitted chart or sampled certificate.
+    let first = BSplineSurface3D(uDegree:1,vDegree:1,
+      uKnots:[-0.5,-0.5,1.5,1.5],vKnots:[0,0,1,1],
+      controlPoints:[0.0,1.0/64].map { y in
+        [Point3D(x:-1.0/64,y:y,z:0),Point3D(x:3.0/64,y:y,z:0)]
+      })
+    let second = BSplineSurface3D(uDegree:2,vDegree:1,
+      uKnots:[0,0,0,1,1,1],vKnots:[0,0,1,1],
+      controlPoints:[-1.0/64,1.0/64].map { z in
+        [Point3D(x:0,y:0,z:z),Point3D(x:0,y:1.0/128,z:z),Point3D(x:1.0/32,y:1.0/64,z:z)]
+      })
+    func anchor(_ t: Double) throws -> SurfaceIntersectionParameterPair {
+      try SurfaceIntersectionParameterPair(first:SurfaceParameter(u:t*t,v:t),
+        second:SurfaceParameter(u:t,v:0.5))
+    }
+    let cell = try CertifiedImplicitIntersectionGraphCell(
+      parameterBox:SurfaceIntersectionParameterBox(
+        firstU:ScalarInterval(lower:-0.25,upper:0.875),firstV:ScalarInterval(lower:0.25,upper:0.75),
+        secondU:ScalarInterval(lower:0.2,upper:0.8),secondV:ScalarInterval(lower:0,upper:1)),
+      freeParameter:.firstV,direction:direction,
+      lowerAnchor:anchor(0.25),midpointAnchor:anchor(0.5),upperAnchor:anchor(0.75),
+      firstSurface:first,secondSurface:second,tolerance:tolerance)
+    return try CertifiedImplicitIntersectionCurve(firstSurface:first,secondSurface:second,
+      cells:[cell],isClosed:false,tolerance:tolerance)
+  }
+
   @Test func implicitLiftBoundsRespectRequestedSubinterval() throws {
     let intersection = try certifiedLineCurve()
     for role in [SurfaceIntersectionSurfaceRole.first, .second] {
@@ -151,6 +393,12 @@ struct CertifiedImplicitIntersectionCurveTests {
     let curve = try CertifiedImplicitIntersectionCurve(
       firstSurface: first, secondSurface: second, cells: [lower, upper],
       isClosed: false, tolerance: tolerance)
+    let prepared = try ImplicitCurveIntervalJetEncloser(intersection: curve, tolerance: tolerance)
+    do {
+      _ = try prepared.prepareParameterEnclosure(of: curve, cellIndex: 0,
+        overClosedInterval: ScalarInterval(lower: 0, upper: 0.25), tolerance: tolerance)
+      Issue.record("A valid multi-cell analytic chart cannot enter the single polynomial-cell localizer.")
+    } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
     let decoded = try JSONDecoder().decode(
       CertifiedImplicitIntersectionCurve.self, from: JSONEncoder().encode(curve))
     #expect(decoded == curve)

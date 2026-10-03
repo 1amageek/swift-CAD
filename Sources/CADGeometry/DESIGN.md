@@ -496,6 +496,47 @@ spans must satisfy the requested tolerance. Stopping on spatial residual alone
 introduces evaluation noise that prevents a surrounding blend's Newton solve
 from converging. The iteration/line-search limits and typed failure are retained.
 
+For the bounded nonlinear Q3 dependency, a prepared implicit parameter
+localizer admits one open original graph cell between two smooth polynomial
+single-span B-spline surfaces. The original full-graph certificate alone owns
+existence and uniqueness. Preparation retains that owner, source surfaces,
+cell index, original direction and normalized fraction mapping. A closed query
+interval may have zero width. Numeric point evaluations provide seeds only;
+every returned parameter enclosure follows from outward Krawczyk images
+intersected with the known root box. Original surface-span owners provide all
+closed-box derivatives; subdivision cannot replace their basis or authority.
+
+The localizer exposes a bounded prepare step and one contraction step per
+advance. Its state and result distinguish contraction, enclosed parameter jets
+through order three, and required caller subdivision. It neither recertifies
+existence nor recursively refines, allocates a private work allowance, widens a
+query to modeling tolerance, or treats an unresolved dependent minor as success.
+A nonzero-width range state may advance through bounded range/lower-endpoint/
+upper-endpoint phases while retaining its original closed fraction and range
+root box. Each advance performs at most one Krawczyk contraction or one bounded
+phase transition, visible to the same caller work counter. Endpoint states are
+mapped from the original normalized fractions and native direction into the
+already-known range root box; they retain the original existence/uniqueness
+owner. When a coordinate's certified range first derivative excludes zero,
+its extrema belong to the two endpoints. Only outward endpoint root jets may
+then replace that coordinate's value with their hull intersected with its range
+value. Nonmonotone coordinates retain their range bounds. Range derivative jets
+are retained unchanged, and zero-width queries use the direct point path.
+Numeric endpoint evaluation never authorizes this contraction. Endpoint phases
+have no internal loop, extra work allowance or independent depth budget.
+First derivatives are solved from the localized Jacobian; higher derivatives
+use the same local surface jets. Original cell-count, native-span powers and
+direction enter the chain rule exactly once. Invalid or foreign state,
+nonfinite arithmetic and cancellation remain typed failures. A caller charges
+preparation and every advance to its own aggregate work counter; inability to
+make certified progress requests caller-owned subdivision under its existing
+depth bound. Independent point and interval oracles for a dyadic plane/parabola
+intersection reject fixed parent derivative widths and closed-point refusal.
+This contract does not establish general joins, closed curves, mixed charts,
+knot collars or procedural surfaces. Existing implicit enclosure routes retain
+their documented resolution/refinement limits until their callers adopt this
+localizer; their evidence is not generalized to the new caller-budget contract.
+
 ## Failure, Concurrency, and Constraints
 
 Invalid coordinates, vector lengths, angular spans, wrong surfaces, and
