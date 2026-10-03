@@ -210,4 +210,22 @@ struct FaceRemovalHealingTests {
         let volume = try removed.volume(tolerance: .standard)
         #expect(abs(volume - (1200 - 64 * (1 - Double.pi / 4)) * 10 * 1e-9) < 1e-12, "\(volume)")
     }
+
+    @Test(.timeLimit(.minutes(2)))
+    func theFilletsToRemoveAreNamedBeforeRemoving() throws {
+        // Remove Fillets' red preview: a rounded box's four upright rounds, all convex.
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let boxID = try roundedBox(&builder)
+        let evaluated = try CADPipeline(tolerance: .standard).evaluate(builder.build())
+        let all = try RemovableFillets().faces(target: boxID, maximumRadius: nil, convexity: .any, in: evaluated)
+        #expect(all.count == 4)
+        #expect(all.allSatisfy { key in
+            guard case let .face(id) = evaluated.subshapes.entries[key], let face = evaluated.brep.faces[id] else { return false }
+            if case .cylinder = evaluated.brep.geometry.surfaces[face.surfaceID] { return true }
+            if case .analytic(.cylinder) = evaluated.brep.geometry.surfaces[face.surfaceID] { return true }
+            return false
+        })
+        #expect(try RemovableFillets().faces(target: boxID, maximumRadius: 0.004, convexity: .any, in: evaluated).isEmpty)
+        #expect(try RemovableFillets().faces(target: boxID, maximumRadius: nil, convexity: .concave, in: evaluated).isEmpty)
+    }
 }

@@ -1070,7 +1070,7 @@ tangent to two kept faces along two of its edges (a strip), or lying where fille
 meet with at most one kept face tangent to it (a corner, removed only with every fillet
 around it — a small round wrapping a removed vertical round collapses to the sharp corner its
 kept top face regrows to); its convexity is whether
-its centre of curvature lies in the material. A deleted face that is not a fillet is
+its centre of curvature lies in the material; `RemovableFillets` (CADKernel) names the planned fillets by their subshapes so a dialog can show them before it runs. A deleted face that is not a fillet is
 tried every way it could collapse and the healed solid that validates and changes the
 volume least is kept. Faces touching one another go together: as a hole when they run
 through one; otherwise every combination of their collapses (at most 256) is healed at
