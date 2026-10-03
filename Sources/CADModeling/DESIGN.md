@@ -256,7 +256,11 @@ tension times a third of the width) or a straight chamfer. `SheetBridgeLayout` o
 directions away from it, each sheet's reach from L and its stretch along L, for the evaluator and
 for `SheetBridgeWallReach` (CADKernel), which resolves Bridge Surface's Short and Long into the
 first or second sheet: the one reaching less or more far from L, so the feature records the wall
-it consumes. Trim walls cut both sheets or the named one at its contact line through
+it consumes. Apart from the walls, the feature's extent sets how far the bridge runs along L (decided
+2026-10-03 from Plasticity's Short/Long/None changing the bridge with Trim walls off): the stretch both
+sheets share (Both, the default), the shorter or longer sheet's own stretch (Short, Long), or both
+together run on by the width at each end, the bridge left untrimmed (None; inferred from the bridge
+running past both walls). Trim walls cut both sheets or the named one at its contact line through
 `BodyHalfSpaceCutting` stages, keeping the side away from L, and join them with the bridge
 (`SheetBodyJoining`) into the feature's one sheet, the trimmed sources consumed; a trimmed wall
 longer than the bridge meets it along part of its cut edge, which the joiner splits at the bridge's
@@ -270,7 +274,7 @@ Sense do not apply there; Trim walls joins the bridge with the walls it names in
 bridge starts on each wall's own edge, so nothing is cut away). `SheetBridgeTests` own the G2 bridge's normals and vanishing
 curvature at both contacts, the flat chamfer, the round trip, both walls trimmed and joined into
 one three-face sheet, the short wall resolved and trimmed alone, a trimmed wall longer than the
-bridge joined along its share, a floor joined from two pieces trimmed and joined as one, parallel sheets bridged between their nearest edges (G2 level with both, Chamfer flat) and joined with both into one three-face sheet, an arch bridged from its edge along it, and two crossing sheets bridged in each of their four quadrants by the two Senses.
+bridge joined along its share, a floor joined from two pieces trimmed and joined as one, parallel sheets bridged between their nearest edges (G2 level with both, Chamfer flat) and joined with both into one three-face sheet, an arch bridged from its edge along it, two crossing sheets bridged in each of their four quadrants by the two Senses, and each extent's span along L.
 
 ### Curve patch
 

@@ -61,7 +61,20 @@ public struct SheetBridgeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             throw failure(.invalidInput, "A bridged sheet does not reach the bridge's width from where the sheets meet.")
         }
         let (m1, m2) = (a.away, b.away)
-        let (t0, t1) = (max(a.stretch.low, b.stretch.low), min(a.stretch.high, b.stretch.high))
+        // How far the bridge runs along L: the shared stretch, the shorter or longer sheet's own,
+        // or both together run on by the width at each end (untrimmed).
+        let (t0, t1): (Double, Double)
+        switch bridge.extent {
+        case .both:
+            (t0, t1) = (max(a.stretch.low, b.stretch.low), min(a.stretch.high, b.stretch.high))
+        case .short, .long:
+            let (aLength, bLength) = (a.stretch.high - a.stretch.low, b.stretch.high - b.stretch.low)
+            let shorter = aLength <= bLength ? a : b, longer = aLength <= bLength ? b : a
+            let chosen = bridge.extent == .short ? shorter : longer
+            (t0, t1) = (chosen.stretch.low, chosen.stretch.high)
+        case .none:
+            (t0, t1) = (min(a.stretch.low, b.stretch.low) - width.value, max(a.stretch.high, b.stretch.high) + width.value)
+        }
         guard t1 - t0 > tolerance.distance else {
             throw failure(.invalidInput, "The bridged sheets share no stretch along where they meet.")
         }

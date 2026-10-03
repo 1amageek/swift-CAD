@@ -326,4 +326,22 @@ struct SheetBridgeTests {
         }
         #expect(quadrants.count == 4)
     }
+
+    @Test(.timeLimit(.minutes(3)))
+    func theExtentSetsHowFarTheBridgeRunsAlongWhereTheSheetsMeet() throws {
+        // The floor runs 40 mm along x, the wall 30 mm: Both and Short span the wall's 30 mm, Long
+        // the floor's 40 mm, None both run on by the 20 mm width at each end.
+        for (extent, span) in [(SheetBridgeFeature.Extent.both, 0.0...0.03), (.short, 0.0...0.03), (.long, 0.0...0.04), (.none, -0.02...0.06)] {
+            var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+            let (floor, wall) = try sheets(in: &builder, wallLength: 0.03)
+            let bridge = try builder.bridgeSurface(SheetBridgeFeature(first: floor, second: wall, width: length(0.02), shape: .chamfer,
+                                                                      extent: extent))
+            let evaluated = try evaluate(builder)
+            let xs = evaluated.subshapes.entries.compactMap { key, value -> Double? in
+                guard key.featureID == bridge, case let .vertex(id) = value else { return nil }
+                return evaluated.brep.vertices[id]?.point.x
+            }
+            #expect(abs((xs.min() ?? .nan) - span.lowerBound) < 1e-12 && abs((xs.max() ?? .nan) - span.upperBound) < 1e-12, "\(extent) \(xs)")
+        }
+    }
 }

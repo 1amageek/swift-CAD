@@ -24,12 +24,23 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
         case second
     }
 
+    /// How far the bridge between two planes meeting runs along where they meet: the stretch both
+    /// sheets share (Both), the shorter or the longer sheet's own stretch (Short, Long), or both
+    /// sheets' stretches together run on by the width at each end, the bridge left untrimmed (None).
+    public enum Extent: String, Codable, Hashable, Sendable {
+        case both
+        case short
+        case long
+        case none
+    }
+
     public var first: FeatureID
     public var second: FeatureID
     public var width: CADExpression
     public var tension: Double
     public var shape: Shape
     public var trimWalls: TrimWalls
+    public var extent: Extent
     public var reversesFirstSense: Bool
     public var reversesSecondSense: Bool
     /// The boundary edges of the first and second sheet the bridge spans between; nil for the
@@ -41,7 +52,7 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
     public var curvatureAllowance: Double?
 
     public init(first: FeatureID, second: FeatureID, width: CADExpression, tension: Double = 1, shape: Shape = .curvature,
-                trimWalls: TrimWalls = .none, reversesFirstSense: Bool = false, reversesSecondSense: Bool = false,
+                trimWalls: TrimWalls = .none, extent: Extent = .both, reversesFirstSense: Bool = false, reversesSecondSense: Bool = false,
                 edges: (first: StableSubshapeReference, second: StableSubshapeReference)? = nil,
                 angularAllowance: Double? = nil, curvatureAllowance: Double? = nil) {
         self.edges = edges
@@ -53,17 +64,18 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
         self.tension = tension
         self.shape = shape
         self.trimWalls = trimWalls
+        self.extent = extent
         self.reversesFirstSense = reversesFirstSense
         self.reversesSecondSense = reversesSecondSense
     }
 
     private enum CodingKeys: String, CodingKey {
-        case first, second, width, tension, shape, trimWalls, reversesFirstSense, reversesSecondSense, firstEdge, secondEdge, angularAllowance, curvatureAllowance
+        case first, second, width, tension, shape, trimWalls, extent, reversesFirstSense, reversesSecondSense, firstEdge, secondEdge, angularAllowance, curvatureAllowance
     }
 
     public static func == (lhs: SheetBridgeFeature, rhs: SheetBridgeFeature) -> Bool {
         lhs.first == rhs.first && lhs.second == rhs.second && lhs.width == rhs.width && lhs.tension == rhs.tension
-            && lhs.shape == rhs.shape && lhs.trimWalls == rhs.trimWalls
+            && lhs.shape == rhs.shape && lhs.trimWalls == rhs.trimWalls && lhs.extent == rhs.extent
             && lhs.reversesFirstSense == rhs.reversesFirstSense && lhs.reversesSecondSense == rhs.reversesSecondSense
             && lhs.edges?.first == rhs.edges?.first && lhs.edges?.second == rhs.edges?.second
             && lhs.angularAllowance == rhs.angularAllowance && lhs.curvatureAllowance == rhs.curvatureAllowance
@@ -76,6 +88,7 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
         hasher.combine(tension)
         hasher.combine(shape)
         hasher.combine(trimWalls)
+        hasher.combine(extent)
         hasher.combine(reversesFirstSense)
         hasher.combine(reversesSecondSense)
         hasher.combine(edges?.first)
@@ -86,13 +99,14 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.first, .second, .width, .tension, .shape, .trimWalls, .reversesFirstSense, .reversesSecondSense, .firstEdge, .secondEdge, .angularAllowance, .curvatureAllowance], in: decoder)
+        try container.validateOnlyExpectedKeys([.first, .second, .width, .tension, .shape, .trimWalls, .extent, .reversesFirstSense, .reversesSecondSense, .firstEdge, .secondEdge, .angularAllowance, .curvatureAllowance], in: decoder)
         first = try container.decode(FeatureID.self, forKey: .first)
         second = try container.decode(FeatureID.self, forKey: .second)
         width = try container.decode(CADExpression.self, forKey: .width)
         tension = try container.decode(Double.self, forKey: .tension)
         shape = try container.decode(Shape.self, forKey: .shape)
         trimWalls = try container.decode(TrimWalls.self, forKey: .trimWalls)
+        extent = try container.decodeIfPresent(Extent.self, forKey: .extent) ?? .both
         reversesFirstSense = try container.decodeIfPresent(Bool.self, forKey: .reversesFirstSense) ?? false
         reversesSecondSense = try container.decodeIfPresent(Bool.self, forKey: .reversesSecondSense) ?? false
         angularAllowance = try container.decodeIfPresent(Double.self, forKey: .angularAllowance)
@@ -116,6 +130,7 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
         try container.encode(tension, forKey: .tension)
         try container.encode(shape, forKey: .shape)
         try container.encode(trimWalls, forKey: .trimWalls)
+        if extent != .both { try container.encode(extent, forKey: .extent) }
         if reversesFirstSense { try container.encode(true, forKey: .reversesFirstSense) }
         if reversesSecondSense { try container.encode(true, forKey: .reversesSecondSense) }
         try container.encodeIfPresent(edges?.first, forKey: .firstEdge)
