@@ -662,7 +662,7 @@ passes (`sliceToolRemainder`), restores the operands as they were (`FeatureEvalu
 of their own, published as `sliceToolPiece.*` subshapes tracing to their stage names. A tool the
 targets hold leaves no piece (the Difference's empty result). A Slice with a sheet operand or
 operand materials keeps only the targets' pieces (`FIXME(INCOMPLETE_IMPLEMENTATION)` in
-`ExactBooleanOperationApplicator`). `PrimitiveSphereBooleanIntegrationTests` own overlapping,
+`BooleanFeatureEvaluator`: Plasticity's pieces for those materials are not determined). `PrimitiveSphereBooleanIntegrationTests` own overlapping,
 separate and contained spheres.
 
 ## Region
