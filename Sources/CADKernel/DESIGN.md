@@ -965,12 +965,14 @@ Rebuild Face's `given` method gives one face a B-spline surface on its own param
 Raise Degree and control-point moves on a face of a solid. `FaceBSplineSurfaceConverter` makes the
 face's surface exact first (a B-spline as it is; a plane as the degree (1, 1) patch through its
 corners over a rectangle holding every trimming curve; other analytic faces refused,
-`FIXME(INCOMPLETE_IMPLEMENTATION)`). The face faces out as it did; where every edge still lies on
+`FIXME(INCOMPLETE_IMPLEMENTATION)`). The face faces out as it did (the given surface's normal at the face's interior point's
+parameters, the surface sharing them); where every edge still lies on
 the new surface along its trimming curve (within a quarter of the distance tolerance) it keeps its
 edges, otherwise `FaceSurfaceReplacementRebuilder` re-solves the edges and vertices around it where
 it meets the faces beside it, which keep their surfaces, and the trimming curves are rebuilt.
 `FaceGivenSurfaceTests` own a box's top raised to degree 2 in place (volume kept) and a side's
-top-middle control point moved 5 mm out, bulging the box by d·w·h/9 with its five planes kept.
+top-middle control point moved 5 mm out, bulging the box by d·w·h/9 with its five planes kept,
+and its middle control point moved out bulging it the same between the edges it keeps.
 
 ## Unwrap Face
 

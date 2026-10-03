@@ -94,4 +94,21 @@ struct FaceGivenSurfaceTests {
         }
         #expect(planes.count == 5)
     }
+
+    /// The middle control point pushed out: the face's edges stay on its surface, so it keeps them
+    /// and bulges by d · w · h / 9 between them.
+    @Test(.timeLimit(.minutes(2)))
+    func aMovedMiddleControlPointBulgesTheFaceBetweenItsEdges() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let box = try builder.box(width: length(s), depth: length(s), height: length(s))
+        let side = try face(of: box, in: builder, normal: .unitX)
+        var surface = try raised(try FaceBSplineSurfaceConverter().surface(of: side, in: try evaluate(builder)))
+        let d = 0.005
+        surface.controlPoints[1][1] = surface.controlPoints[1][1] + Vector3D(x: d, y: 0, z: 0)
+        let given = try builder.rebuildFaces(target: box, faces: [side], method: .given(surface))
+        let evaluated = try evaluate(builder)
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        let measured = try volume(given, in: evaluated)
+        #expect(abs(measured - (s * s * s + d * s * s / 9)) < s * s * s * 1e-6, "\(measured)")
+    }
 }

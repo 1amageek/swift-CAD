@@ -305,11 +305,13 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         let new = Surface3D.bSpline(surface)
         let sample = try BRepFaceInteriorPointSampler().sample(on: faceID, in: result, tolerance: tolerance)
         let outward = try old.normal(u: sample.parameter.u, v: sample.parameter.v, tolerance: tolerance) * (face.orientation == .forward ? 1 : -1)
-        let projected = try new.parameterProjection(of: sample.point, tolerance: tolerance)
-        let orientation: Orientation = try new.normal(u: projected.u, v: projected.v, tolerance: tolerance).dot(outward) >= 0 ? .forward : .reversed
         guard case let .closed(u0, u1) = new.uDomain, case let .closed(v0, v1) = new.vDomain else {
             throw failure(.invalidInput, feature.id, tolerance, "A given face surface has an unbounded domain.")
         }
+        // The given surface is on the face's own parameters: its normal where the face's interior
+        // point was, against the side the face faced.
+        let (su, sv) = (min(max(sample.parameter.u, u0), u1), min(max(sample.parameter.v, v0), v1))
+        let orientation: Orientation = try new.normal(u: su, v: sv, tolerance: tolerance).dot(outward) >= 0 ? .forward : .reversed
         var stray = 0.0
         for loopID in face.loops {
             for coedge in result.loops[loopID]?.coedges ?? [] {
