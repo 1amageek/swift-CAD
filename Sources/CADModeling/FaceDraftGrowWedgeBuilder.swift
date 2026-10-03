@@ -6,7 +6,7 @@ import CADTopology
 
 /// Draft Face's Grow for a planar face whose re-solve in place runs into another wall: the
 /// material between the face's old plane and its drafted plane, as a prism along the pivot line,
-/// united with the body as the drafted face moves out of it.
+/// united with the body as the drafted face moves out of it, or taken off it as the face moves in.
 ///
 /// In the section square to the pivot line the prism is the wedge at the pivot between the old
 /// face and the drafted face, bounded by what Grow lets the drafted face reach:
@@ -28,6 +28,8 @@ package struct FaceDraftGrowWedgeBuilder {
         package var polygon: [Point3D]
         package var axis: Vector3D
         package var length: Double
+        /// Whether the prism is taken off the body (a face drafted into it) rather than united.
+        package var removes: Bool = false
     }
 
     package struct Face: Sendable {
@@ -57,9 +59,9 @@ package struct FaceDraftGrowWedgeBuilder {
         self.tolerance = tolerance
     }
 
-    /// The wedge to unite with the body for `face` under `grow`, or nil when Grow's wedge does not
-    /// cover it: a face not starting at the pivot line on one side of it, or one moving into the
-    /// body.
+    /// The wedges to unite with the body (or, for a face moving into it, take off) for `face` under
+    /// `grow`, or nil when Grow's wedge does not cover it: a face not starting at the pivot line on
+    /// one side of it.
     package func wedges(for face: Face, grow: FaceEditGrow, bodyID: BodyID, model: BRepModel, featureID: FeatureID) throws -> [Wedge]? {
         let axis = try face.axis.normalized(tolerance: tolerance.distance)
         let pull = try (face.pull - axis * face.pull.dot(axis)).normalized(tolerance: tolerance.distance)
@@ -89,17 +91,18 @@ package struct FaceDraftGrowWedgeBuilder {
             return values.min()!...values.max()!
         }
 
-        // FIXME(INCOMPLETE_IMPLEMENTATION): a drafted face moving into the body (a wedge taken
-        // off) is refused here, so the caller rethrows the re-solve's topology failure.
-        // Production path: FaceDraftFeatureEvaluator's grow fallback. Complete when the exact
-        // Boolean takes a tool face lying on a body face that runs on into the body's inside off
-        // the body, verified by a wall drafted -70° under Moving. The same Boolean limit fails
-        // Moving's union with a classification error when the body runs on past the drafted face
-        // along the pivot line (the pivot line then lies inside a body face); complete when a
-        // notch over half a block's length ramps the whole block.
-        guard adds else { return nil }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Moving's union fails with a classification error
+        // when the body runs on past the drafted face along the pivot line (the pivot line then
+        // lies inside a body face). Production path: FaceDraftFeatureEvaluator's grow fallback.
+        // Complete when a notch over half a block's length ramps the whole block.
         let bodyPoints = try straightEdgedBodyPoints(bodyID: bodyID, model: model, featureID: featureID)
         guard bodyPoints.isEmpty == false else { return nil }
+        guard adds else {
+            return try removedWedge(
+                face: face, grow: grow, axis: axis, pull: pull, into: into, draftedInto: draftedInto,
+                facePoints: facePoints, bodyPoints: bodyPoints, bodyID: bodyID, model: model, featureID: featureID
+            ).map { [$0] }
+        }
         // The face runs away from the pull or along it; the wedge reaches the body's far side
         // that way.
         let depth = pull.dot(into) < 0 ? pull * -1 : pull
@@ -171,13 +174,93 @@ package struct FaceDraftGrowWedgeBuilder {
         return result
     }
 
-    /// A thickness for the column behind the old face — from the pivot `reach` along the face, over
-    /// `span` along the pivot line — that no face of the body crosses, so the column lies in the
-    /// body's material; nil when no such thickness is found.
-    private func backingThickness(
+    /// The material a face drafted into the body takes off: the wedge between its old and drafted
+    /// planes, run on past the body's far side (and, under Moving, past its ends along the pivot
+    /// line) so its only faces inside the body are the drafted face. Its side along the old face
+    /// leans out of the body from the pivot line through a sliver certified to hold no body
+    /// face, so no face of the wedge lies on the old face's plane. Every Grow takes the same
+    /// section: past the drafted face nothing of the body is left to stop at.
+    private func removedWedge(
+        face: Face, grow: FaceEditGrow, axis: Vector3D, pull: Vector3D, into: Vector3D, draftedInto: Vector3D,
+        facePoints: [Point3D], bodyPoints: [Point3D], bodyID: BodyID, model: BRepModel, featureID: FeatureID
+    ) throws -> Wedge? {
+        let across = axis.cross(pull)
+        func inSection(_ vector: Vector3D) -> (Double, Double) { (vector.dot(across), vector.dot(pull)) }
+        let alongBody = bodyPoints.map { ($0 - face.pivot).dot(axis) }
+        let alongFace = facePoints.map { ($0 - face.pivot).dot(axis) }
+        let bodySpan = alongBody.min()!...alongBody.max()!
+        let depth = pull.dot(into) < 0 ? pull * -1 : pull
+        let rates = [into.dot(depth), draftedInto.dot(depth)]
+        guard let slowest = rates.min(), slowest > tolerance.angle else {
+            throw failure(.unsupportedCapability, featureID, "A face drafted level with the neutral plane cannot grow to the body's far side.")
+        }
+        let deepest = bodyPoints.map { ($0 - face.pivot).dot(depth) }.max()!
+        guard deepest > tolerance.distance else { return nil }
+        // Anything past the body's extent is empty, so the wedge runs on there by a margin.
+        let extents = bodyPoints.map { ($0 - face.pivot).length }
+        let margin = max(extents.max()! / 8, tolerance.distance * 1_000)
+        let bottom = deepest + margin
+        let reach = bottom / into.dot(depth)
+        let outward = try (face.outward - axis * face.outward.dot(axis)).normalized(tolerance: tolerance.distance)
+        var span: ClosedRange<Double>
+        if grow == .moving {
+            span = (bodySpan.lowerBound - margin)...(bodySpan.upperBound + margin)
+        } else {
+            // The face's own length, run on past an end where the face reaches the body's end.
+            var low = alongFace.min()!, high = alongFace.max()!
+            if low <= bodySpan.lowerBound + tolerance.distance { low = bodySpan.lowerBound - margin }
+            if high >= bodySpan.upperBound - tolerance.distance { high = bodySpan.upperBound + margin }
+            span = low...high
+        }
+        guard span.upperBound - span.lowerBound > tolerance.distance,
+              let lean = try outsideClearance(
+                  pivot: face.pivot, outward: outward, into: into, axis: axis, reach: reach, span: span,
+                  bodyID: bodyID, model: model, featureID: featureID
+              ) else { return nil }
+        let length = 2 * bottom / slowest
+        var polygon = [(0.0, 0.0), inSection(into * length + outward * (lean * length / reach)), inSection(draftedInto * length)]
+        let (_, depthSign) = inSection(depth)
+        polygon = clip(polygon, normal: (0, depthSign), limit: bottom)
+        guard polygon.count >= 3 else { return nil }
+        let base = face.pivot + axis * span.lowerBound
+        return Wedge(
+            polygon: withoutStraightCorners(polygon).map { base + across * $0.0 + pull * $0.1 },
+            axis: axis,
+            length: span.upperBound - span.lowerBound,
+            removes: true
+        )
+    }
+
+    /// How far out of the old face, at `reach` from the pivot along it, a sliver leaning out from
+    /// the pivot line over `span` may go while holding no body face; nil when none is found.
+    private func outsideClearance(
         pivot: Point3D, outward: Vector3D, into: Vector3D, axis: Vector3D, reach: Double, span: ClosedRange<Double>,
         bodyID: BodyID, model: BRepModel, featureID: FeatureID
     ) throws -> Double? {
+        let outlines = try planarOuterOutlines(bodyID: bodyID, model: model, featureID: featureID)
+        var thickness = reach / 4
+        for _ in 0..<16 {
+            let bounds: [(Vector3D, Double, Double)] = [
+                (outward, 0, thickness), (into, 0, reach), (axis, span.lowerBound, span.upperBound),
+            ]
+            if outlines.contains(where: { crosses($0, bounds: bounds, pivot: pivot) }) == false { return thickness }
+            thickness /= 2
+        }
+        return nil
+    }
+
+    /// Whether the outline keeps an area strictly inside the box `bounds` (offsets from `pivot`).
+    private func crosses(_ outline: [Point3D], bounds: [(Vector3D, Double, Double)], pivot: Point3D) -> Bool {
+        var points = outline
+        for (direction, low, high) in bounds {
+            points = clip(points, keeping: { ($0 - pivot).dot(direction) - (low + tolerance.distance) })
+            points = clip(points, keeping: { (high - tolerance.distance) - ($0 - pivot).dot(direction) })
+        }
+        return points.count >= 3
+    }
+
+    /// The outer loops of the body's faces, which must all be planar.
+    private func planarOuterOutlines(bodyID: BodyID, model: BRepModel, featureID: FeatureID) throws -> [[Point3D]] {
         let scope = try BodyTopologyScope(bodyID: bodyID, model: model)
         var outlines: [[Point3D]] = []
         for case let .face(faceID) in scope.references {
@@ -192,20 +275,23 @@ package struct FaceDraftGrowWedgeBuilder {
                 if loop.role == .outer { outlines.append(try model.orderedPoints(for: loopID)) }
             }
         }
+        return outlines
+    }
+
+    /// A thickness for the column behind the old face — from the pivot `reach` along the face, over
+    /// `span` along the pivot line — that no face of the body crosses, so the column lies in the
+    /// body's material; nil when no such thickness is found.
+    private func backingThickness(
+        pivot: Point3D, outward: Vector3D, into: Vector3D, axis: Vector3D, reach: Double, span: ClosedRange<Double>,
+        bodyID: BodyID, model: BRepModel, featureID: FeatureID
+    ) throws -> Double? {
+        let outlines = try planarOuterOutlines(bodyID: bodyID, model: model, featureID: featureID)
         var thickness = min(reach, span.upperBound - span.lowerBound) / 4
         for _ in 0..<16 {
             let bounds: [(Vector3D, Double, Double)] = [
                 (outward, -thickness, 0), (into, 0, reach), (axis, span.lowerBound, span.upperBound),
             ]
-            let crosses = outlines.contains { outline in
-                var points = outline
-                for (direction, low, high) in bounds {
-                    points = clip(points, keeping: { ($0 - pivot).dot(direction) - (low + tolerance.distance) })
-                    points = clip(points, keeping: { (high - tolerance.distance) - ($0 - pivot).dot(direction) })
-                }
-                return points.count >= 3
-            }
-            if crosses == false { return thickness }
+            if outlines.contains(where: { crosses($0, bounds: bounds, pivot: pivot) }) == false { return thickness }
             thickness /= 2
         }
         return nil

@@ -141,8 +141,9 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         )
     }
 
-    /// The body united with the material between `faceID`'s plane and its drafted plane, as far
-    /// as `grow` lets the drafted face reach; nil when this evaluator cannot grow it.
+    /// The body united with (or, for a face drafted into it, less) the material between `faceID`'s
+    /// plane and its drafted plane, as far as `grow` lets the drafted face reach; nil when this
+    /// evaluator cannot grow it.
     private func grow(
         faceID: FaceID,
         replacement: FaceSurfaceReplacementRebuilder.Replacement,
@@ -173,7 +174,7 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         ), wedges.isEmpty == false else {
             return nil
         }
-        // Each wedge united in turn, the last under the feature.
+        // Each wedge united or taken off in turn, the last under the feature.
         var stages = FeatureEvaluationStages(context)
         var target = bodyID
         for (index, wedge) in wedges.enumerated() {
@@ -197,7 +198,7 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             var lineage = staged.lineage
             lineage.merge(tool.lineage) { current, _ in current }
             var step = try applicator.apply(
-                operation: .union,
+                operation: wedge.removes ? .difference : .union,
                 targetBodyIDs: [target],
                 toolBodyID: toolBodyID,
                 keepTools: false,

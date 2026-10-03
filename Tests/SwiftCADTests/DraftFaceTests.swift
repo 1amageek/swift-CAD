@@ -245,6 +245,33 @@ struct DraftFaceTests {
         #expect(abs(volume - (250 + 12.5 * t) * 10 * 1e-9) < 1e-12, "\(volume)")
     }
 
+    /// A 4 × 10 × 10 mm plate (centred on x and y), its wall at x = −2 drafted 30° into it about
+    /// the top face: the wall's foot would move 10 tan 30° mm in, past the far wall.
+    private func plateWallDraftedIn(grow: FaceEditGrow) throws -> BRepModel {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let profile = try builder.sketch(on: .xy) { $0.rectangle(width: millimeters(4), height: millimeters(10)) }
+        let plate = try builder.extrude(profile, distance: millimeters(10))
+        let wall = try faces(in: builder, of: plate) { plane($0).map { abs(abs($0.normal.x) - 1) < 1e-9 && abs($0.origin.x + 0.002) < 1e-9 } ?? false }
+        let top = try faces(in: builder, of: plate) { plane($0).map { abs(abs($0.normal.z) - 1) < 1e-9 && abs($0.origin.z - 0.010) < 1e-9 } ?? false }
+        #expect(wall.count == 1)
+        #expect(top.count == 1)
+        _ = try builder.faceDraft(target: plate, faces: wall, neutralFace: try #require(top.first), angle: degrees(-30), grow: grow)
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        try model.validate(level: .volumetric, tolerance: .standard)
+        return model
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [FaceEditGrow.moving, .fixed, .none])
+    func aWallDraftedThroughAPlateCutsItAway(grow: FaceEditGrow) throws {
+        // The drafted face cuts through the far wall at z = 10 − 4 / tan 30°, taking off all the
+        // plate below it: what is left is the triangle above it, 2 · 4² / tan 30° mm² over 10 mm.
+        let model = try plateWallDraftedIn(grow: grow)
+        let t = tan(30 * Double.pi / 180)
+        let volume = try model.volume(tolerance: .standard)
+        #expect(abs(volume - 8 / t * 10 * 1e-9) < 1e-12, "\(volume)")
+        #expect(model.faces.count == 5)
+    }
+
     /// A 40 × 20 mm block (centred) whose top is a cylinder along x (radius 30 mm, axis at y = 0,
     /// z = -15), its top matched onto a roller of another body; and the block's feature.
     private func cylinderToppedBlock(_ builder: inout DocumentBuilder) throws -> FeatureID {

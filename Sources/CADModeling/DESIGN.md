@@ -1035,8 +1035,13 @@ out alone). The Boolean takes coplanar faces touching only along a boundary as s
 straight crossing along a face's own edge as leaving it whole. The wedge takes a thin column of
 the body's material behind the old face, certified to cross no body face, because the exact
 Boolean cannot yet unite a tool face covering a body face that runs on into the body; the same
-limit refuses a face drafted into the body, a Moving wedge longer than the drafted face,
-and bodies with curved edges or faces (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Draft Face turns each drafted face as one surface about its crossing with the neutral
+limit refuses a Moving wedge longer than the drafted face, and bodies with curved edges or faces
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`). A face drafted into the body takes the wedge off instead,
+under every Grow (past the drafted face nothing is left to stop at): run on past the body's far
+side and, under Moving or where the face reaches the body's ends, past those ends, its side along
+the old face leaning out of the body from the pivot line through a sliver certified to hold no
+body face, so its only faces inside the body are the drafted face's. `DraftFaceTests` own a
+plate's wall drafted through its far wall (the triangle left above the cut, under each Grow). Draft Face turns each drafted face as one surface about its crossing with the neutral
 plane (the reference face's plane, moved by the offset): the page's pivot. Running against the
 pull (into the body from the reference face) the face leans out by the angle, so beyond the plane
 along the pull it leans in — a face crossing the plane is not split, it simply passes through its
