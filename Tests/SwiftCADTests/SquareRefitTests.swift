@@ -70,11 +70,9 @@ struct SquareRefitTests {
         #expect(sides.allSatisfy { $0.position < 1e-9 && $0.isWithin && abs(($0.point?.z ?? 0) - s) < 1e-12 })
     }
 
-    @Test(.timeLimit(.minutes(2)))
-    func aPentagonsTopIsSplitAtItsFourSharpestCorners() throws {
-        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
-        // A square with one corner cut at a shallow angle: its sharpest corners are the other three
-        // and the cut's sharper end.
+    /// A square prism with one corner cut at a shallow angle: its top's sharpest corners are the
+    /// other three and the cut's sharper end, so one side runs over two edges meeting at a corner.
+    private func pentagonalPrism(_ builder: inout DocumentBuilder) throws -> FeatureID {
         let corners = [(0.0, 0.0), (s, 0.0), (s, 0.6 * s), (0.8 * s, s), (0.0, s)]
         let profile = try builder.sketch(on: .xy) { sketch in
             for k in corners.indices {
@@ -82,15 +80,50 @@ struct SquareRefitTests {
                 _ = sketch.line(from: SketchPoint(x: length(a.0), y: length(a.1)), to: SketchPoint(x: length(b.0), y: length(b.1)))
             }
         }
-        let prism = try builder.extrude(ProfileReference(featureID: profile.featureID, profileIndex: 0), distance: length(s))
+        return try builder.extrude(ProfileReference(featureID: profile.featureID, profileIndex: 0), distance: length(s))
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func aPentagonsTopIsSplitAtItsFourSharpestCornersAndItsBentSideStrays() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let prism = try pentagonalPrism(&builder)
+        // The net is exactly the one asked for (3 × 3, three spans), which cannot bend where the
+        // side's two edges meet: on the solid that side would leave it open, so it is refused.
         let top = try face(of: prism, in: builder, where: isTop)
-        let before = try volume(prism, in: try evaluate(builder))
-        let refit = try builder.rebuildFaces(target: prism, faces: [top], method: .square(SquareRefit()))
+        var solid = builder
+        _ = try solid.rebuildFaces(target: prism, faces: [top], method: .square(SquareRefit()))
+        #expect(throws: KernelError.self) { _ = try evaluate(solid) }
+        // The prism's top and walls as a sheet: the bent side strays from the walls' edges and runs
+        // along the refit face's own boundary, the other sides keeping theirs.
+        let walls = try evaluate(builder).subshapes.entries.filter { key, value in
+            guard key.featureID == prism, case .face = value else { return false }
+            return true
+        }.map { try builder.stableSubshape($0.key) }
+        let sheet = try builder.extract(prism, selection: .faces(walls.filter { $0.subshapeID != top.subshapeID } + [top]))
+        let sheetTop = try face(of: sheet, in: builder, where: isTop)
+        let refit = try builder.rebuildFaces(target: sheet, faces: [sheetTop], method: .square(SquareRefit()))
         let evaluated = try evaluate(builder)
-        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
         let sheets = try refitted(refit, in: evaluated)
-        #expect(sheets.count == 1 && sheets.allSatisfy { $0.controlPoints.joined().allSatisfy { abs($0.z - s) < 1e-12 } })
-        #expect(abs(try volume(refit, in: evaluated) - before) < before * 1e-9)
+        #expect(sheets.count == 1 && sheets.allSatisfy {
+            $0.uDegree == 3 && $0.vDegree == 3 && $0.uControlPointCount == 6 && $0.vControlPointCount == 6
+                && $0.controlPoints.joined().allSatisfy { abs($0.z - s) < 1e-12 }
+        })
+        // The top's straying edges and the walls' edges they left are open; the rest are shared.
+        var uses: [EdgeID: Int] = [:]
+        for face in evaluated.brep.faces.values {
+            for loopID in face.loops { for coedge in evaluated.brep.loops[loopID]?.coedges ?? [] { uses[coedge.edgeID, default: 0] += 1 } }
+        }
+        let open = uses.filter { $0.value == 1 }.compactMap { evaluated.brep.edges[$0.key] }
+        let atTop = open.filter { edge in
+            [edge.startVertexID, edge.endVertexID].allSatisfy { abs((evaluated.brep.vertices[$0]?.point.z ?? 0) - s) < 1e-9 }
+        }
+        #expect(atTop.count >= 3)
+        // Free follows the sides loosely and strays too, on a sheet.
+        var free = builder
+        _ = try free.rebuildFaces(target: refit, faces: [try face(of: refit, in: free) { if case .bSpline = $0 { return true }; return false }],
+                                  method: .square(SquareRefit(isFree: true)))
+        try evaluate(free).brep.validate(level: .exact, tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(2)))

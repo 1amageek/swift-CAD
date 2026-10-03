@@ -965,13 +965,18 @@ Remove Nominal Surface is Rebuild Face's `nominal` method: each spline face's su
 Square's Refit is Rebuild Face's `square` method (`SquareFaceRefitter`): a face bounded by one loop
 of at least four edges is split into four sides at the four vertices where the loop turns most,
 each side its edges' exact spans joined along the loop, and the face takes Square's fit of that
-frame with every side hard — G0, or tangent or curvature continuous with the one neighbouring face
-across it (a side on the sheet's open boundary stays G0) — so it keeps its edges and vertices;
-its coedges become constant-parameter curves along the new sheet's boundary, each over its edge's
-stretch of its side, and its orientation keeps its outward normal. No extension or shrinking
-applies. `SquareRefitTests` own a box's top refit flat to its Degree, a pentagonal prism's top
-split at its four sharpest corners (both keeping their volume) and a sheet's face refit tangent to
-a curved ramp beside it. `FaceRefitAnalyzer` is Refit Face's Analysis: for each edge of each refit
+frame in exactly the requested net with every side hard — G0, or tangent or curvature continuous
+with the one neighbouring face across it (a side on the sheet's open boundary stays G0) — or every
+side loose (`SquareRefit.isFree`); its coedges become constant-parameter curves along the new
+sheet's boundary, each over its edge's stretch of its side, and its orientation keeps its outward
+normal. An edge whose new trimming curve keeps within the distance tolerance of it is kept, shared
+with its neighbour; a sheet's straying edge is replaced by its own edge fitted along the new
+boundary and the body is sewn anew, the neighbour's edge left open; a solid's straying edge is
+refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`, no tolerant edges). No extension or shrinking applies.
+`SquareRefitTests` own a box's top refit flat to its Degree (keeping its volume), a pentagonal
+prism's top split at its four sharpest corners — refused on the solid, its bent side detached on
+the prism's faces extracted as a sheet, and refit Free — and a sheet's face refit tangent to a
+curved ramp beside it. `FaceRefitAnalyzer` is Refit Face's Analysis: for each edge of each refit
 face the largest distance from its curve (33 samples) to the new surface's boundary stretch its
 trimming curve names, judged against the modeling distance and placed at the edge's middle
 (`SquareSideAnalysis`); the box-top test owns its four edges lying on the new boundary.

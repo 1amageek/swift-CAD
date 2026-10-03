@@ -7,9 +7,10 @@ import CADTopology
 
 /// Square's Refit of one face: its outer loop split into four sides at its four sharpest vertices
 /// (every vertex of a four-edged loop), each side its edges' curves joined exactly, and the face's
-/// new surface Square's fit of that frame with every side hard — G0, or tangent or curvature
-/// continuous with the neighbouring face across it — so the face keeps its edges and vertices and
-/// its coedges run along the new surface's boundary (constant-parameter trimming curves).
+/// new surface Square's fit of that frame in exactly the requested net with every side hard — G0,
+/// or tangent or curvature continuous with the neighbouring face across it — or every side loose
+/// (Free); its coedges run along the new surface's boundary (constant-parameter trimming curves),
+/// and the caller detaches the sides the net cannot hold on the face's edges.
 struct SquareFaceRefitter {
     struct Refit {
         let surface: BSplineSurface3D
@@ -109,10 +110,11 @@ struct SquareFaceRefitter {
         let (exact, rotation) = try SquareSurfaceFeatureEvaluator.exactSheet(frame: frame, continuities: continuities,
                                                                              context: context, featureID: featureID)
         let boundaries = (0..<4).map { boundary -> SquareSurfaceFitter.Boundary in
+            if refit.isFree { return .init(constraint: .loose, flows: true) }
             switch continuities[(boundary + rotation) % 4]?.order {
-            case nil: .init(constraint: .hard(order: 0), flows: true)
-            case .tangent?: .init(constraint: .hard(order: 1), flows: false)
-            case .curvature?: .init(constraint: .hard(order: 2), flows: false)
+            case nil: return .init(constraint: .hard(order: 0), flows: true)
+            case .tangent?: return .init(constraint: .hard(order: 1), flows: false)
+            case .curvature?: return .init(constraint: .hard(order: 2), flows: false)
             }
         }
         let surface = try SquareSurfaceFitter(tolerance: tolerance).fit(exact: exact, boundaries: boundaries, options: refit.options,

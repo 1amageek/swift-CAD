@@ -354,8 +354,12 @@ tolerances (Satisfy tolerances), and as Square's untrimmed sheet with Quad sided
 frames it alone as its exact spans halved to four or more sides, the sheet's domain holding every
 trimming curve's control points.
 
-The construction keeps the kernel's exactness contract: hard constraints are interpolated exactly
-and never relaxed; only what the page calls loose (Free sides, flow, guides) is a weighted term.
+Decided 2026-10-04 by the user: the dialog's Degree × Spans is honoured exactly, as in the videos.
+When the exact sheet does not lie in that net, the net's sheet through the exact sheet's points at
+its Greville abscissae stands in for it, and the sides stray from the frame by what the net cannot
+follow; the Analysis measures each side as it is and marks it beyond its limit. Within the net, hard
+rows are still the (stand-in) sheet's and never relaxed; only what the page calls loose (Free
+sides, flow, guides) is a weighted term.
 
 | Input | Square's frame | Sides without a curve |
 |---|---|---|
@@ -367,11 +371,12 @@ and never relaxed; only what the page calls loose (Free sides, flow, guides) is 
 
 1. **Exact frame sheet.** The frame (with completed sides as G0 curves) spans the exact sheet E of
    the section above, with every G1/G2 side's continuity.
-2. **Fit space.** The requested Degree (p, q) and Spans (m, n) with uniform clamped knots, raised to
-   E's degrees and joined with E's knots, so E lies in the space exactly; Degree and Spans are
-   minimums and the evaluated sheet reports its own. E is refined into the space exactly (degree
-   elevation, knot insertion); a rational E keeps its refined weights fixed and the fit works on
-   homogeneous control points.
+2. **Fit space.** Exactly the requested Degree (p, q) and Spans (m, n) with uniform clamped knots.
+   When E has no higher degree and refines into exactly those knots (degree elevation, knot
+   insertion), it is refined there exactly, a rational E keeping its refined weights fixed and the
+   fit working on homogeneous control points; otherwise E is replaced by the net's polynomial
+   sheet through E's points at the net's Greville abscissae (a tensor interpolation, exact when E
+   lies in the net however its knots are written), whose sides then stray from the frame.
 3. **Hard rows.** Along each G0, G1 or G2 side, control rows 0…k (k the continuity order) are E's
    rows: on a clamped net the side's position and its first k cross derivatives depend only on
    those rows, so position, tangent planes and curvature equal E's exactly (certified as E was).
@@ -395,13 +400,15 @@ and never relaxed; only what the page calls loose (Free sides, flow, guides) is 
    underdetermined frame such as a lone side) is a typed failure, never an arbitrary minimum.
 7. **Analysis.** Per side: the largest distance to its curve (G0), the largest angle to its face
    (G1) and the largest normal-curvature difference (G2), measured on the result, with the
-   tolerance or allowance it is judged against. Hard sides measure within the modeling tolerance;
-   Free sides report their deviation.
+   tolerance or allowance it is judged against. Hard sides measure within the modeling tolerance
+   when the net holds the exact sheet; a coarser net and Free sides report their deviation.
 
 Refit is Square over a face (Rebuild Face's `square` method, owned by
 [CADKernel](../CADKernel/DESIGN.md)): the result replaces the face in its body with hard G0 (or
-higher) sides on the face's own edge curves, so its neighbours keep their edges; there is no Free
-(the face's edges stay shared). A curved face's continuity certificate keeps its fitted chart's
+higher) sides, or Free sides followed loosely, in exactly the requested net; sides within the
+distance tolerance of the face's edges keep them shared, and a sheet's straying sides run along the
+new surface's boundary on edges of their own, the neighbours keeping theirs open (a solid's
+straying side is refused, `FIXME(INCOMPLETE_IMPLEMENTATION)`: the kernel has no tolerant edges). A curved face's continuity certificate keeps its fitted chart's
 control points in the face's closed domain, so an edge along the domain's boundary is not rounded
 off it. XNURBS with Quad sided over four sides is Square. XNURBS over
 N sides (or Quad sided off) fits one sheet over the boundary's mean plane (`XNurbsSurfaceFitter`):
@@ -416,7 +423,7 @@ at 64 points per curve. Satisfy
 tolerances refines the grid (doubling spans up to Max) until the boundary's position deviation and
 cross-angle meet the stated tolerances and fails otherwise; without it the measured values are
 reported. Tension applies only with Quad sided, and there only across G1 and G2 sides (a G0 side has no transition for it to tighten); flow off Quad sided behaves as Normal, since the trimmed sheet's parameters are the boundary's mean-plane coordinates along its orthonormal principal axes, so its isocurves cross square whichever flow is asked. `SquareSurfaceFitterTests` own Degree and Spans
-as the net with hard sides exact and no more bending than the exact sheet, each flow, a Free side's
+as the net with hard sides exact when it holds the exact sheet and no more bending than the exact sheet, each flow, a Free side's
 weight and the refusal of a frame one side cannot determine; `SquareFrameTests` own the ruled,
 translational and straight-closed frames and the options' round trip.
 

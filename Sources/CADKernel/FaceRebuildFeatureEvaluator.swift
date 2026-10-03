@@ -83,10 +83,12 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         if case let .square(refit) = rebuild.method {
             var result = model
             var ids = FeatureTopologyIDAllocator(featureID: feature.id)
+            var refits: [FaceID: SquareFaceRefitter.Refit] = [:]
             for faceID in faceIDs {
                 let refitted = try SquareFaceRefitter(tolerance: tolerance).refit(
                     faceID, refit: refit, source: rebuild.target.featureID, context: context, featureID: feature.id
                 )
+                refits[faceID] = refitted
                 guard var face = result.faces[faceID], let loopID = face.loops.first, var loop = result.loops[loopID] else {
                     throw TopologyError.missingReference("A refitted face is missing.")
                 }
@@ -101,6 +103,16 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             }
             let referencedSurfaces = Set(result.faces.values.map(\.surfaceID))
             result.geometry.surfaces = result.geometry.surfaces.filter { referencedSurfaces.contains($0.key) }
+            // The net is exactly the one asked for, so a side may stray from the face's edge (a
+            // side joined from edges meeting at a corner, a net too coarse for its curve). Sides
+            // within the distance tolerance keep their edges; a sheet's straying sides leave their
+            // neighbours' edges and run along the new surface's boundary instead.
+            if let detached = try detachedSides(model, refits: refits, bodyID: bodyID, feature: feature, context: context) {
+                result = detached.model
+                try result.validate(level: .exact, tolerance: tolerance)
+                return EvaluationResult(brep: result, subshapes: detached.subshapes, removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes),
+                                        lineage: detached.lineage)
+            }
             try result.validate(level: model.bodies[bodyID]?.kind == .solid ? .volumetric : .exact, tolerance: tolerance)
             let identity = try identityBuilder.identity(featureID: feature.id, bodyID: bodyID, model: result, context: context)
             return EvaluationResult(brep: result, subshapes: identity.subshapes, removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes),
@@ -530,6 +542,89 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
 
     /// A face of its own sewn anew on `surface`: its trimming curves kept, each edge the surface
     /// along its trimming curve, fitted within a quarter of the distance tolerance.
+    /// The body with its refitted faces' straying sides detached: nil when every side of every
+    /// refitted face keeps within the distance tolerance of its edges. Each straying edge of a
+    /// refitted face becomes an edge of its own along the new surface (fitted along its trimming
+    /// curve there), the neighbour keeping the old one as an open edge, and the body is sewn anew.
+    private func detachedSides(_ model: BRepModel, refits: [FaceID: SquareFaceRefitter.Refit], bodyID: BodyID, feature: FeatureNode,
+                               context: EvaluationContext)
+        throws -> (model: BRepModel, subshapes: [SubshapeID: TopologyReference], lineage: [SubshapeID: TopologyLineage])? {
+        let tolerance = context.tolerance
+        /// How far an edge strays from the new surface along its new trimming curve.
+        func stray(_ edge: BRepSewingEdge, pcurve: SurfaceParameterCurve, on surface: Surface3D) throws -> Double {
+            var largest = 0.0
+            for index in 0...16 {
+                let fraction = Double(index) / 16
+                let parameter = try pcurve.parameter(atNormalizedFraction: fraction, tolerance: tolerance)
+                let onSurface = try surface.point(u: parameter.u, v: parameter.v, tolerance: tolerance)
+                let onCurve = try edge.curve.point(at: edge.startParameter + (edge.endParameter - edge.startParameter) * fraction,
+                                                   tolerance: tolerance)
+                largest = max(largest, (onSurface - onCurve).length)
+            }
+            return largest
+        }
+        let extraction = try DefaultBRepFacePatchExtractor().extract(
+            bodyID: bodyID, featureID: feature.id, from: model, sourceSubshapes: context.subshapes.entries, tolerance: tolerance
+        )
+        guard let body = model.bodies[bodyID] else { throw TopologyError.missingReference("A refitted body is missing.") }
+        let curveFitter = try SpatialCurveFitter(deviation: tolerance.distance / 4)
+        var straying: (largest: Double, count: Int) = (0, 0)
+        var shells: [BRepSewingShell] = []
+        for (shellIndex, shell) in extraction.request.shells.enumerated() {
+            guard shellIndex < body.shellIDs.count, let sourceShell = model.shells[body.shellIDs[shellIndex]],
+                  sourceShell.faceIDs.count == shell.patches.count else {
+                throw failure(.missingReference, feature.id, tolerance, "Refit lost the order of the body's faces.")
+            }
+            let patches = try zip(sourceShell.faceIDs, shell.patches).map { faceID, patch -> BRepSewingFacePatch in
+                guard let refitted = refits[faceID] else { return patch }
+                guard patch.loops.count == 1, patch.loops[0].edges.count == refitted.pcurves.count else {
+                    throw failure(.topologyFailure, feature.id, tolerance, "A refitted face's loop does not match its trimming curves.")
+                }
+                let surface = Surface3D.bSpline(refitted.surface)
+                let loop = patch.loops[0]
+                let edges = try zip(loop.edges, refitted.pcurves).map { edge, pcurve -> BRepSewingEdge in
+                    let distance = try stray(edge, pcurve: pcurve, on: surface)
+                    guard distance > tolerance.distance else {
+                        return BRepSewingEdge(stableID: edge.stableID, curve: edge.curve, startParameter: edge.startParameter,
+                                              endParameter: edge.endParameter, startPoint: edge.startPoint, endPoint: edge.endPoint,
+                                              surfaceParameterCurve: pcurve, parentSubshapeIDs: edge.parentSubshapeIDs,
+                                              startVertexParentSubshapeIDs: edge.startVertexParentSubshapeIDs,
+                                              endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs)
+                    }
+                    straying = (max(straying.largest, distance), straying.count + 1)
+                    let along = { (fraction: Double) throws -> Point3D in
+                        let parameter = try pcurve.parameter(atNormalizedFraction: fraction, tolerance: tolerance)
+                        return try surface.point(u: parameter.u, v: parameter.v, tolerance: tolerance)
+                    }
+                    let curve = try curveFitter.fitBSpline(breakpoints: [0, 1], tolerance: tolerance, point: along).curve
+                    return BRepSewingEdge(stableID: "\(edge.stableID):refit", curve: .bSpline(curve), startParameter: 0, endParameter: 1,
+                                          startPoint: try along(0), endPoint: try along(1), surfaceParameterCurve: pcurve,
+                                          parentSubshapeIDs: edge.parentSubshapeIDs)
+                }
+                return BRepSewingFacePatch(stableID: patch.stableID, surface: surface, orientation: refitted.orientation,
+                                           loops: [BRepSewingLoop(stableID: loop.stableID, role: loop.role, edges: edges)],
+                                           parentSubshapeIDs: patch.parentSubshapeIDs)
+            }
+            shells.append(BRepSewingShell(stableID: shell.stableID, patches: patches, orientation: shell.orientation))
+        }
+        guard straying.count > 0 else { return nil }
+        guard body.kind != .solid else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): a solid's face refit on a net that cannot hold its
+            // sides on its edges would leave the solid open where they stray (Plasticity keeps it
+            // closed with tolerant edges, which this kernel does not represent), so it is refused.
+            // Production path: Rebuild Face's square method (Refit Face) on a solid. Complete only
+            // when a solid's refit face may stray from its neighbours' edges and stay closed,
+            // verified by a pentagonal prism's top refit on a 3 × 3 net.
+            throw failure(.unsupportedCapability, feature.id, tolerance,
+                          "A solid's refit face strays \(straying.largest) m from its edges; ask for a net that holds its sides.")
+        }
+        let sewn = try DefaultBRepSewer().sew(
+            BRepSewingRequest(featureID: feature.id, bodyTopology: extraction.request.bodyTopology, shells: shells), tolerance: tolerance
+        )
+        let replaced = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: model)
+        return (replaced, sewn.subshapes, sewn.lineage)
+    }
+
     private func resewn(
         _ patch: BRepSewingFacePatch, on surface: BSplineSurface3D, curveFitter: SpatialCurveFitter, featureID: FeatureID, tolerance: ModelingTolerance
     ) throws -> BRepSewingFacePatch {

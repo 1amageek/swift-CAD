@@ -3,8 +3,9 @@ import CADCore
 import CADGeometry
 import CADIR
 
-/// Square's fit: the exact frame sheet refined into the space of the requested Degree and Spans,
-/// its rows along hard sides kept, and every other control point minimizing the flatness-weighted
+/// Square's fit: the exact frame sheet in the net of exactly the requested Degree and Spans (refined
+/// into it when it lies there, interpolated at its Greville abscissae otherwise), its rows along hard
+/// sides kept, and every other control point minimizing the flatness-weighted
 /// thin plate and membrane energy plus the Weight-scaled loose terms — a Free side's positions
 /// and the boundary flow along sides without a face. A rational sheet keeps its refined weights
 /// and is fitted in homogeneous coordinates.
@@ -46,7 +47,7 @@ package struct SquareSurfaceFitter {
         guard boundaries.count == 4 else {
             throw failure(.invalidInput, "A Square's fit takes four boundaries.", featureID)
         }
-        let space = try refined(normalized(exact, featureID: featureID), options: options)
+        let space = try netSpace(normalized(exact, featureID: featureID), options: options, featureID: featureID)
         let nu = space.uControlPointCount, nv = space.vControlPointCount
         let count = nu * nv
         func index(_ i: Int, _ j: Int) -> Int { j * nu + i }
@@ -176,6 +177,52 @@ package struct SquareSurfaceFitter {
         return BSplineSurface3D(uDegree: surface.uDegree, vDegree: surface.vDegree,
                                 uKnots: surface.uKnots.map { ($0 - u0) / (u1 - u0) }, vKnots: surface.vKnots.map { ($0 - v0) / (v1 - v0) },
                                 controlPoints: surface.controlPoints, weights: surface.weights)
+    }
+
+    /// The exact sheet in the net of exactly the requested Degree × Spans (uniform clamped knots):
+    /// refined into it exactly when it lies there (no higher degree, no knots of its own off the
+    /// net's), otherwise the net's sheet through its points at the net's Greville abscissae, whose
+    /// sides then stray from the frame by what the net cannot follow — measured and reported by
+    /// the Analysis, as Plasticity reports a side beyond its tolerance.
+    private func netSpace(_ surface: BSplineSurface3D, options: SquareFitOptions, featureID: FeatureID) throws -> BSplineSurface3D {
+        func uniform(_ degree: Int, _ spans: Int) -> [Double] {
+            Array(repeating: 0.0, count: degree + 1) + (1..<max(spans, 1)).map { Double($0) / Double(spans) }
+                + Array(repeating: 1.0, count: degree + 1)
+        }
+        let uKnots = uniform(options.uDegree, options.uSpans), vKnots = uniform(options.vDegree, options.vSpans)
+        if surface.uDegree <= options.uDegree, surface.vDegree <= options.vDegree {
+            let refinedSheet = try refined(surface, options: options)
+            if refinedSheet.uDegree == options.uDegree, refinedSheet.vDegree == options.vDegree,
+               zip(refinedSheet.uKnots, uKnots).allSatisfy({ abs($0 - $1) <= 1e-12 }), refinedSheet.uKnots.count == uKnots.count,
+               zip(refinedSheet.vKnots, vKnots).allSatisfy({ abs($0 - $1) <= 1e-12 }), refinedSheet.vKnots.count == vKnots.count {
+                return refinedSheet
+            }
+        }
+        // Tensor interpolation at the Greville abscissae: each row of samples along u, then each
+        // column of those along v.
+        func grevilles(_ knots: [Double], _ degree: Int) -> [Double] {
+            (0..<(knots.count - degree - 1)).map { knots[($0 + 1)...($0 + degree)].reduce(0, +) / Double(degree) }
+        }
+        let (gu, gv) = (grevilles(uKnots, options.uDegree), grevilles(vKnots, options.vDegree))
+        func solver(_ knots: [Double], _ degree: Int, _ at: [Double]) throws -> SurfaceFittingQR {
+            let basis = FairSurfaceSystem.Basis(knots: knots, degree: degree, count: at.count)
+            let matrix = at.flatMap { basis.derivatives(at: $0, order: 0)[0] }
+            return try SurfaceFittingQR(coefficients: matrix, rows: at.count, columns: at.count,
+                                        relativeRankTolerance: 1e-12, maximumElements: 1 << 20)
+        }
+        let (uSolver, vSolver) = (try solver(uKnots, options.uDegree, gu), try solver(vKnots, options.vDegree, gv))
+        let samples = try gv.map { v in try gu.map { u in try surface.point(u: u, v: v, tolerance: tolerance) } }
+        func solve(_ qr: SurfaceFittingQR, _ points: [Point3D]) throws -> [Point3D] {
+            let (x, y, z) = (try qr.solveFullRankLeastSquares(points.map(\.x)), try qr.solveFullRankLeastSquares(points.map(\.y)),
+                             try qr.solveFullRankLeastSquares(points.map(\.z)))
+            return points.indices.map { Point3D(x: x[$0], y: y[$0], z: z[$0]) }
+        }
+        let rows = try samples.map { try solve(uSolver, $0) }
+        let columns = try gu.indices.map { i in try solve(vSolver, rows.map { $0[i] }) }
+        let net = gv.indices.map { j in gu.indices.map { i in columns[i][j] } }
+        let sheet = BSplineSurface3D(uDegree: options.uDegree, vDegree: options.vDegree, uKnots: uKnots, vKnots: vKnots, controlPoints: net)
+        try sheet.validate(tolerance: tolerance)
+        return sheet
     }
 
     /// `surface` raised to at least the requested degrees, with the requested spans' uniform knots.

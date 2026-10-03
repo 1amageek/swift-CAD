@@ -49,7 +49,8 @@ struct SquareSurfaceTests {
     /// top front edge to B's bottom back edge between two rails in the planes x = 0 and x = 20 mm
     /// leaving and arriving level.
     private func boxesSquare(
-        order: SurfaceEdgeContinuity.Order?, rail: [(y: Double, z: Double)]
+        order: SurfaceEdgeContinuity.Order?, rail: [(y: Double, z: Double)], degree: Int = 3,
+        options: SquareFitOptions = SquareFitOptions()
     ) throws -> (DocumentBuilder, FeatureID) {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let first = try builder.box(width: length(0.02), depth: length(0.02), height: length(0.02))
@@ -74,7 +75,7 @@ struct SquareSurfaceTests {
         // Rails: sketch x is world y and sketch y is world z on planes across X.
         let rails = try [0.0, 0.02].map { x in
             try builder.sketch(on: .plane(Plane3D(origin: Point3D(x: x, y: 0, z: 0), normal: .unitX))) { sketch in
-                _ = sketch.spline(SketchSpline(controlPoints: rail.map { point($0.y, $0.z) }))
+                _ = sketch.spline(SketchSpline(controlPoints: rail.map { point($0.y, $0.z) }, degree: degree))
             }.featureID
         }
         let square = try builder.square(sides: [
@@ -84,7 +85,7 @@ struct SquareSurfaceTests {
             SquareSide(curve: CurveSectionReference(featureID: secondCurve),
                        continuity: order.map { SurfaceEdgeContinuity(source: second, bodyRole: .body, edge: secondEdge, order: $0) }),
             SquareSide(curve: CurveSectionReference(featureID: rails[0])),
-        ])
+        ], options: options)
         return (builder, square)
     }
 
@@ -105,6 +106,13 @@ struct SquareSurfaceTests {
     }
 
     private let levelCubic: [(y: Double, z: Double)] = [(0, 0.02), (-0.02, 0.02), (-0.03, 0.03), (-0.05, 0.03)]
+    /// One quintic span leaving and arriving level and unbent: its first and last three control
+    /// points in the faces' planes.
+    private let levelQuintic: [(y: Double, z: Double)] = [(0, 0.02), (-0.01, 0.02), (-0.02, 0.02), (-0.03, 0.03), (-0.04, 0.03), (-0.05, 0.03)]
+    /// The net holding the boxes' exact sheet: lines along u, the rails' single span across v.
+    private func boxesNet(_ vDegree: Int) -> SquareFitOptions {
+        SquareFitOptions(uDegree: 3, vDegree: vDegree, uSpans: 1, vSpans: 1)
+    }
     /// Two cubic spans that leave and arrive without bending out of the faces' planes.
     private let levelTwoSpans: [(y: Double, z: Double)] = [
         (0, 0.02), (-0.01, 0.02), (-0.02, 0.02), (-0.025, 0.025), (-0.03, 0.03), (-0.04, 0.03), (-0.05, 0.03),
@@ -112,7 +120,7 @@ struct SquareSurfaceTests {
 
     @Test(.timeLimit(.minutes(2)))
     func aTangentSquareMeetsBothBoxesFacesInTheirPlanes() throws {
-        let (builder, square) = try boxesSquare(order: .tangent, rail: levelCubic)
+        let (builder, square) = try boxesSquare(order: .tangent, rail: levelCubic, options: boxesNet(3))
         let samples = try boundary(try evaluate(builder), square: square)
         #expect(samples.allSatisfy { abs(abs($0.normal.z) - 1) < 1e-9 })
 
@@ -126,20 +134,35 @@ struct SquareSurfaceTests {
 
     @Test(.timeLimit(.minutes(2)))
     func aCurvatureSquareIsFlatAcrossBothEdges() throws {
-        let (builder, square) = try boxesSquare(order: .curvature, rail: levelTwoSpans)
+        let (builder, square) = try boxesSquare(order: .curvature, rail: levelQuintic, degree: 5, options: boxesNet(5))
         let samples = try boundary(try evaluate(builder), square: square)
         #expect(samples.allSatisfy { abs(abs($0.normal.z) - 1) < 1e-9 && abs($0.curvature) < 1e-6 })
     }
 
     @Test(.timeLimit(.minutes(2)))
     func analysisMeasuresEachSideAgainstItsLimit() throws {
-        let (builder, square) = try boxesSquare(order: .curvature, rail: levelTwoSpans)
+        // A net holding the exact sheet keeps every side within its limit.
+        let (builder, square) = try boxesSquare(order: .curvature, rail: levelQuintic, degree: 5, options: boxesNet(5))
         let analysis = try SquareSideAnalyzer().analyze(square, in: try evaluate(builder))
         #expect(analysis.map(\.side) == [0, 1, 2, 3])
         #expect(analysis.allSatisfy { $0.isWithin })
         // The two edges' sides are measured against their faces at curvature order, the rails at G0.
         #expect(analysis.filter { $0.curvature != nil }.map(\.side) == [0, 2])
         #expect(analysis.allSatisfy { $0.position < 1e-9 && ($0.angle ?? 0) < 1e-6 })
+        // The net is exactly the one asked for: a coarser one cannot follow the rails joined from
+        // two spans, and its sides stray beyond their limits, each measured as it is.
+        let (coarseBuilder, coarse) = try boxesSquare(order: .curvature, rail: levelTwoSpans)
+        let evaluated = try evaluate(coarseBuilder)
+        let sheets = evaluated.subshapes.entries.compactMap { key, value -> BSplineSurface3D? in
+            guard key.featureID == coarse, case let .face(id) = value, let face = evaluated.brep.faces[id],
+                  let surface = evaluated.brep.geometry.surfaces[face.surfaceID], case let .bSpline(spline) = surface else { return nil }
+            return spline
+        }
+        let sheet = try #require(sheets.first)
+        #expect(sheet.uDegree == 3 && sheet.vDegree == 3 && sheet.uControlPointCount == 6 && sheet.vControlPointCount == 6)
+        let strayed = try SquareSideAnalyzer().analyze(coarse, in: evaluated)
+        #expect(strayed.contains { $0.isWithin == false })
+        #expect(strayed.filter { $0.curvature == nil }.allSatisfy { $0.position > $0.positionLimit })
     }
 
     /// A Square over the four top edges of `edges`'s frame, tangent along all four to the faces
@@ -237,7 +260,8 @@ struct SquareSurfaceTests {
     /// normals and normal curvatures at points along both continuous sides.
     /// With `arcSide` the notch's x = 0 side is an arc of 53° bulging into the notch (centre
     /// (-a, a/2), radius √5·a/2), so the continuous sides are an arc and a line.
-    private func notchSquare(order: SurfaceEdgeContinuity.Order, arcSide: Bool = false) throws -> (spline: BSplineSurface3D, samples: [(normal: Vector3D, curvatures: [Double])]) {
+    private func notchSquare(order: SurfaceEdgeContinuity.Order, arcSide: Bool = false,
+                             options: SquareFitOptions) throws -> (spline: BSplineSurface3D, samples: [(normal: Vector3D, curvatures: [Double])]) {
         let (a, t, h) = (0.02, 0.01, 0.005)
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let outline: [(Double, Double)] = [(-a, 0), (0, 0), (0, a), (a, a), (a, 2 * a), (-a, 2 * a)]
@@ -270,15 +294,18 @@ struct SquareSurfaceTests {
         // On the plane through the origin across Y, sketch x is -x and sketch y is z; across X at
         // x = a, sketch x is y and sketch y is z.
         let bottom = try builder.sketch(on: .plane(Plane3D(origin: .origin, normal: .unitY))) { sketch in
-            _ = sketch.spline(SketchSpline(controlPoints: [(0, t), (a / 6, t), (a / 3, t), (a / 2, t + h / 2), (2 * a / 3, t + h), (5 * a / 6, t + h), (a, t + h)].map { point(-$0.0, $0.1) }))
+            _ = sketch.spline(SketchSpline(controlPoints: [(0, t), (a / 5, t), (2 * a / 5, t), (3 * a / 5, t + h), (4 * a / 5, t + h), (a, t + h)].map { point(-$0.0, $0.1) },
+                                           degree: 5))
         }.featureID
         let right = try builder.sketch(on: .plane(Plane3D(origin: Point3D(x: a, y: 0, z: 0), normal: .unitX))) { sketch in
-            _ = sketch.spline(SketchSpline(controlPoints: [(0, t + h), (a / 6, t + h), (a / 3, t + h), (a / 2, t + h / 2), (2 * a / 3, t), (5 * a / 6, t), (a, t)].map { point($0.0, $0.1) }))
+            _ = sketch.spline(SketchSpline(controlPoints: [(0, t + h), (a / 5, t + h), (2 * a / 5, t + h), (3 * a / 5, t), (4 * a / 5, t), (a, t)].map { point($0.0, $0.1) },
+                                           degree: 5))
         }.featureID
         let square = try builder.square(sides: zip(curves, edges).map { curve, edge in
             SquareSide(curve: CurveSectionReference(featureID: curve),
                        continuity: SurfaceEdgeContinuity(source: plate, bodyRole: .body, edge: edge, order: order))
-        } + [SquareSide(curve: CurveSectionReference(featureID: right)), SquareSide(curve: CurveSectionReference(featureID: bottom))])
+        } + [SquareSide(curve: CurveSectionReference(featureID: right)), SquareSide(curve: CurveSectionReference(featureID: bottom))],
+            options: options)
         let result = try evaluate(builder)
         let surface = try #require(result.subshapes.entries.compactMap { key, value -> Surface3D? in
             guard key.featureID == square, case let .face(id) = value, let face = result.brep.faces[id] else { return nil }
@@ -300,11 +327,11 @@ struct SquareSurfaceTests {
 
     @Test(.timeLimit(.minutes(2)))
     func aCurvatureSquareIsFlatAcrossTwoNeighbouringEdges() throws {
-        let curvature = try notchSquare(order: .curvature)
+        let curvature = try notchSquare(order: .curvature, options: SquareFitOptions(uDegree: 5, vDegree: 5, uSpans: 1, vSpans: 1))
         #expect(curvature.spline.uDegree == 5 && curvature.spline.vDegree == 5)
         #expect(curvature.samples.allSatisfy { abs(abs($0.normal.z) - 1) < 1e-9 && $0.curvatures.allSatisfy { abs($0) < 1e-6 } })
         // Tangent continuity alone keeps the plane but bends across the edges.
-        let tangent = try notchSquare(order: .tangent)
+        let tangent = try notchSquare(order: .tangent, options: SquareFitOptions(uDegree: 5, vDegree: 5, uSpans: 1, vSpans: 1))
         #expect(tangent.samples.allSatisfy { abs(abs($0.normal.z) - 1) < 1e-9 })
         #expect(tangent.samples.contains { $0.curvatures.contains { abs($0) > 1 } })
     }
@@ -312,7 +339,7 @@ struct SquareSurfaceTests {
     @Test(.timeLimit(.minutes(2)))
     func aSquareAlongAnArcAndALineMeetingAtACornerIsRationalAndContinuous() throws {
         for order in [SurfaceEdgeContinuity.Order.tangent, .curvature] {
-            let result = try notchSquare(order: order, arcSide: true)
+            let result = try notchSquare(order: order, arcSide: true, options: SquareFitOptions(uDegree: 10, vDegree: 5, uSpans: 1, vSpans: 1))
             #expect(result.spline.weights.joined().contains { abs($0 - 1) > 1e-6 })
             #expect(result.samples.allSatisfy { abs(abs($0.normal.z) - 1) < 1e-9 })
             if order == .curvature {
@@ -355,7 +382,7 @@ struct SquareSurfaceTests {
             SquareSide(curve: CurveSectionReference(featureID: alongY)),
             SquareSide(curve: CurveSectionReference(featureID: far)),
             SquareSide(curve: CurveSectionReference(featureID: alongX)),
-        ])
+        ], options: SquareFitOptions(uDegree: 6, vDegree: 3, uSpans: 1, vSpans: 1))
         let result = try evaluate(builder)
         let surface = try #require(result.subshapes.entries.compactMap { key, value -> Surface3D? in
             guard key.featureID == square, case let .face(id) = value, let face = result.brep.faces[id] else { return nil }
