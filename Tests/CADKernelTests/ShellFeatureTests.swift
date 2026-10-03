@@ -20,10 +20,11 @@ struct ShellFeatureTests {
         let sourceVolume = try source.brep.volume(tolerance: .standard)
         let thickness = 0.002
         let shellID = FeatureID()
+        // Walled inside: a negative thickness, as Plasticity's sign has it.
         let operation = FeatureOperation.shell(ShellFeature(
             target: ShellTargetReference(featureID: sourceFeatureID),
             removedFaces: [removedFace],
-            thickness: .constant(.length(thickness, unit: .meter))
+            thickness: .constant(.length(-thickness, unit: .meter))
         ))
         let node = try FeatureNodeFactory.make(operation: operation, id: shellID, in: document, tolerance: .standard)
         document.designGraph.nodes[shellID] = node

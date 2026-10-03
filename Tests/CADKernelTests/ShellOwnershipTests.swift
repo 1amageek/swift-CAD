@@ -216,6 +216,8 @@ struct ShellOwnershipTests {
         ))
     }
 
+    /// A hollow walling the solid inside by `thickness` (a negative shell thickness, as
+    /// Plasticity's sign has it).
     private func feature(
         id: FeatureID,
         sourceFeatureID: FeatureID,
@@ -227,7 +229,7 @@ struct ShellOwnershipTests {
             operation: .shell(ShellFeature(
                 target: ShellTargetReference(featureID: sourceFeatureID),
                 removedFaces: removedFaces,
-                thickness: .constant(.length(thickness, unit: .meter))
+                thickness: .constant(.length(-thickness, unit: .meter))
             )),
             inputs: [FeatureInput(featureID: sourceFeatureID, role: .target)],
             outputs: [FeatureOutput(role: .body)]
