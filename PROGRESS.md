@@ -1,10 +1,6 @@
 # Progress
 - [x] PAR0 Preserve the full 87-requirement scope, baseline and completion contract on the isolated implementation branch; preserve unrelated Rupa edits. `depends:none` `parallel:none`
-- [ ] PARC Capability and failure contracts: implement and verify all referenced requirements, update owner designs and commit each completed sprint. `depends:PAR0` `parallel:none`
-  - [x] PARC.C1 C1: all 71 feature kinds map to runtime-admitted capabilities; 102 public routes, ledger bindings and compiled inventory regression verified; KernelCapabilityContractTests passed (37 tests). `depends:PAR0` `parallel:none`
-  - [x] PARC.C2 C2: exact IGES enabled through the common registry, byte and URL facade; length units, canonical angular units, volumetric topology, invalid data and resource refusal verified (6 public exchange tests). `depends:PARC.C1` `parallel:none`
-  - [x] PARC.C4 C4: typed failure causes preserved at native and normal-WASM boundaries; 8 core, 8 public pipeline/query and 37 capability tests passed; Embedded execution remains required by PARI because its matching SDK cannot compile the existing Foundation-dependent package. `depends:PARC.C2` `parallel:none`
-  - [ ] PARC.C3 Implement C3 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARC.C4` `parallel:none`
+- [x] PARC Capability and failure contracts completed: PARC.C1/C2 in b5466f6, PARC.C4 in 1391009, PARC.C3 source-backed domains verified with 42 native contract tests, 19 public pipeline/regression tests and matching normal-WASM runtime; full Embedded/kernel integration remains in PARI. `depends:PAR0` `parallel:none`
 - [ ] PARG Geometry and representation closure: implement and verify all referenced requirements, update owner designs and commit each completed sprint. `depends:PARC` `parallel:none`
   - [ ] PARG.G1 Implement G1 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARC` `parallel:none`
   - [ ] PARG.G2 Implement G2 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARG.G1` `parallel:none`

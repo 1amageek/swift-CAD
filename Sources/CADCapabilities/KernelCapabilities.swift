@@ -10,6 +10,7 @@ public enum KernelCapabilities {
       + modelingEditCapabilities
       + modelingCurveSurfaceCapabilities
       + apiCapabilities
-      + exchangeCapabilities
+      + exchangeCapabilities,
+    knownLimitations: knownImplementationLimitations
   )
 }

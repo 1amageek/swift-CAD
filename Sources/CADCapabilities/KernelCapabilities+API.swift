@@ -30,6 +30,9 @@ extension KernelCapabilities {
       publicAPIs: [
         "CADCore.KernelError.wrapping",
         "CADCore.KernelFailureCategory",
+        "CADCore.KernelCapabilityCatalog.domain",
+        "CADCore.KernelCapabilityDomain",
+        "CADCore.KernelDomainLimitation",
         "CADIR.CADCommand",
         "SwiftCAD.DocumentEditing",
         "SwiftCAD.DocumentEditor",
@@ -45,6 +48,8 @@ extension KernelCapabilities {
       testFixtures: [
         "KernelFailureContractTests",
         "KernelFailurePipelineTests",
+        "KernelCapabilityDomainTests",
+        "KernelCapabilityDomainPipelineTests",
         "CADCommandPipelineTests",
         "KernelQueryPipelineTests",
         "StrictCurrentKernelQuerySchemaTests",

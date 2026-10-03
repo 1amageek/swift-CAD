@@ -225,24 +225,24 @@ struct KernelCapabilityContractTests {
   }
 
   @Test
-  func extrudeCapabilityIsAvailableAsSupported() throws {
-    let capability = try KernelCapabilities.current.requireSupported(
+  func extrudeCapabilityIsExecutableAsPartial() throws {
+    let capability = try KernelCapabilities.current.requireExecutable(
       operation: "extrude"
     )
 
     #expect(capability.id == "MODEL-EXTRUDE-001")
-    #expect(capability.status == .supported)
+    #expect(capability.status == .partial)
     #expect(capability.exactOutputs.contains("certifiedExactVolume"))
   }
 
   @Test
-  func revolveCapabilityIsAvailableAsSupported() throws {
-    let capability = try KernelCapabilities.current.requireSupported(
+  func revolveCapabilityIsExecutableAsPartial() throws {
+    let capability = try KernelCapabilities.current.requireExecutable(
       operation: "revolve"
     )
 
     #expect(capability.id == "MODEL-REVOLVE-001")
-    #expect(capability.status == .supported)
+    #expect(capability.status == .partial)
     #expect(
       capability.acceptedInputs.contains(
         "planarClosedRationalBSplineProfile"
@@ -947,21 +947,21 @@ struct KernelCapabilityContractTests {
   }
 
   @Test
-  func faceLoopOffsetIsSupportedOnSolidsAndSheets() throws {
-    let capability = try KernelCapabilities.current.requireSupported(operation: "faceLoopOffset")
+  func faceLoopOffsetIsPartialOnSolidsAndSheets() throws {
+    let capability = try KernelCapabilities.current.requireExecutable(operation: "faceLoopOffset")
     #expect(capability.topology == .sheetOrSolidBody)
     #expect(capability.acceptedInputs.contains("positiveDistanceIntoTheFacesOverTheFacesAroundThemOrBoth"))
     #expect(capability.exactOutputs.contains("offsetOverTheSurfaceOnPlanesAndCurvedFaces"))
-    #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
+    #expect(capability.failureCodes.contains(.unsupportedCapability))
   }
 
   @Test
-  func edgeOffsetIsSupportedOnSolidsAndSheets() throws {
-    let capability = try KernelCapabilities.current.requireSupported(operation: "edgeOffset")
+  func edgeOffsetIsPartialOnSolidsAndSheets() throws {
+    let capability = try KernelCapabilities.current.requireExecutable(operation: "edgeOffset")
     #expect(capability.topology == .sheetOrSolidBody)
     #expect(capability.acceptedInputs.contains("symmetricAcrossEachEdgeWithRoundLinearOrNaturalGapFill"))
     #expect(capability.exactOutputs.contains("openChainEndsCarriedToTheFaceBoundary"))
-    #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
+    #expect(capability.failureCodes.contains(.unsupportedCapability))
   }
 
   @Test

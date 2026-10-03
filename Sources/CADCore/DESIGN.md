@@ -5,6 +5,8 @@
 This module owns unit-bearing expression source values. Parent: [Swift-CAD](../../DESIGN.md).
 Expressions have no child designs. Typed kernel failure normalization is owned
 by the [Failure Contract](FailureContract/DESIGN.md) child component.
+Public capability domains are owned by the
+[Capability Contract](CapabilityContract/DESIGN.md) child component.
 
 ## Responsibilities and Boundaries
 
@@ -16,6 +18,7 @@ Evaluation and kind checking belong to CADIR and CADModeling.
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [Failure Contract](FailureContract/DESIGN.md) | child | Typed failure normalization | Owns diagnostic context and cause categories | Never converts failures to success |
+| [Capability Contract](CapabilityContract/DESIGN.md) | child | Domain descriptions | Owns immutable capability records and validation | Declared coverage is not geometric proof |
 | [CADIR](../CADIR/DESIGN.md) | used by | Parameter validation | Validates kinds and values | New cases require exhaustive handling |
 | [CADModeling](../CADModeling/DESIGN.md) | used by | Expression resolution | Evaluates source and variables | Preserve evaluation equivalence |
 

@@ -54,6 +54,10 @@ let package = Package(
       name: "CADWASMSmoke",
       targets: ["CADWASMSmoke"]
     ),
+    .executable(
+      name: "CADContractWASMSmoke",
+      targets: ["CADContractWASMSmoke"]
+    ),
   ],
   dependencies: [
     .package(
@@ -126,8 +130,12 @@ let package = Package(
       ]
     ),
     .executableTarget(
+      name: "CADContractWASMSmoke",
+      dependencies: ["CADCore", "CADCapabilities"]
+    ),
+    .executableTarget(
       name: "CADWASMSmoke",
-      dependencies: ["CADCore", "CADTopology", "CADIR", "CADKernel"],
+      dependencies: ["CADCore", "CADTopology", "CADIR", "CADKernel", "CADCapabilities"],
       linkerSettings: [
         .unsafeFlags(
           ["-Xlinker", "-z", "-Xlinker", "stack-size=67108864"],

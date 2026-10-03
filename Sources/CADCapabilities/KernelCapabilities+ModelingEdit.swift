@@ -21,8 +21,9 @@ extension KernelCapabilities {
         "strictCurrentSchemaNativePersistence",
       ],
       fixtures: ["EdgeOffsetFeatureTests"],
-      status: .supported,
+      status: .partial,
       failureCodes: [
+        .unsupportedCapability,
         .invalidInput,
         .missingReference,
         .topologyFailure,
@@ -47,8 +48,9 @@ extension KernelCapabilities {
         "strictCurrentSchemaNativePersistence",
       ],
       fixtures: ["EdgeOffsetFeatureTests"],
-      status: .supported,
+      status: .partial,
       failureCodes: [
+        .unsupportedCapability,
         .invalidInput,
         .missingReference,
         .topologyFailure,

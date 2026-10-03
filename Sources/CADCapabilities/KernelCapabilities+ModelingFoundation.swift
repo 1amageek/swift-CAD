@@ -147,8 +147,9 @@ extension KernelCapabilities {
         "ExtrudeDraftTests",
         "ExtrudeFaceTests",
       ],
-      status: .supported,
+      status: .partial,
       failureCodes: [
+        .unsupportedCapability,
         .invalidInput,
         .missingReference,
         .topologyFailure,
@@ -190,8 +191,9 @@ extension KernelCapabilities {
         "CurvedRevolveCommandParityTests",
         "RevolveOptionsTests",
       ],
-      status: .supported,
+      status: .partial,
       failureCodes: [
+        .unsupportedCapability,
         .invalidInput,
         .missingReference,
         .classificationFailure,
@@ -465,8 +467,9 @@ extension KernelCapabilities {
         "LoftFeatureTests.loftSmoothSurfaceModePreservesHoleWallsAndVolume",
         "LoftFeatureTests.loftGuideCanConstrainAnInteriorHoleBoundary",
       ],
-      status: .supported,
+      status: .partial,
       failureCodes: [
+        .unsupportedCapability,
         .invalidInput,
         .missingReference,
         .singularGeometry,

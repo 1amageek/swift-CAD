@@ -1,8 +1,13 @@
 public struct KernelCapabilityCatalog: Codable, Equatable, Sendable {
     public let capabilities: [KernelCapability]
+    public let knownLimitations: [KernelDomainLimitation]
 
-    public init(capabilities: [KernelCapability] = []) {
+    public init(
+        capabilities: [KernelCapability] = [],
+        knownLimitations: [KernelDomainLimitation] = []
+    ) {
         self.capabilities = capabilities
+        self.knownLimitations = knownLimitations
     }
 
     public func validate() throws {
@@ -61,6 +66,33 @@ public struct KernelCapabilityCatalog: Codable, Equatable, Sendable {
             try validateUnique(capability.testFixtures, field: "testFixtures", capabilityID: capability.id)
             try capability.tolerance.validate()
         }
+        let operations = Set(capabilities.map(\.operation))
+        var limitationIDs = Set<String>()
+        for limitation in knownLimitations {
+            try limitation.validate(registeredOperations: operations)
+            guard limitationIDs.insert(limitation.id).inserted else {
+                throw KernelError(
+                    phase: .validation, code: .invalidInput, tolerance: nil,
+                    message: "Capability limitation identifiers must be unique."
+                )
+            }
+        }
+    }
+
+    public func domain(operation: String) throws -> KernelCapabilityDomain {
+        try validate()
+        let matching = capabilities(operation: operation)
+        guard matching.count <= 1 else {
+            throw KernelError(
+                phase: .validation, code: .invalidInput, tolerance: nil,
+                message: "An operation domain must resolve to one primary capability."
+            )
+        }
+        let capability = try requireRegistered(operation: operation)
+        return KernelCapabilityDomain(
+            capability: capability,
+            knownLimitations: knownLimitations.filter { $0.operations.contains(operation) }
+        )
     }
 
     public func capability(id: String) -> KernelCapability? {

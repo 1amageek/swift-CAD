@@ -1,4 +1,5 @@
 import CADCore
+import CADCapabilities
 import CADIR
 import CADKernel
 import CADTopology
@@ -76,6 +77,18 @@ struct CADWASMSmoke {
             )
         }
         print("KernelFailureContract passed")
+
+        let domain = try KernelCapabilities.current.domain(operation: "extrude")
+        guard domain.capability.status == .partial,
+              domain.limitations(affecting: .transformation).contains(where: {
+                  $0.sourcePath.hasSuffix("ExactProfileExtrudeBodyBuilder.swift")
+              }) else {
+            throw KernelError(
+                phase: .validation, code: .invalidInput, tolerance: tolerance,
+                message: "The public capability domain lost its source condition."
+            )
+        }
+        print("KernelCapabilityDomain passed")
 
         print("CADWASMSmoke passed")
     }
