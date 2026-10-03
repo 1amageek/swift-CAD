@@ -120,7 +120,7 @@ extension KernelCapabilities {
             operations: ["importedBRep", "CADCommand"],
             dimensions: [.transformation, .representation, .topology],
             condition: "Imported exact-source translation is unsupported on the workspace rebase path. Admit it only after complete topology/geometry translation and mixed-document atomicity are verified; never report a no-op success.",
-            sourcePath: "Sources/CADIR/CADDocumentTranslation.swift", sourceLine: 53
+            sourcePath: "Sources/CADIR/CADDocumentTranslation.swift", sourceLine: 64
         ),
         KernelDomainLimitation(
             id: "condition-348323e96b133d4d",

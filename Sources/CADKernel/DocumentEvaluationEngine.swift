@@ -15,6 +15,7 @@ struct DocumentEvaluationEngine {
     let meshArtifactPurpose: MeshArtifactPurpose
     let tessellationLimits: TessellationLimits
     let artifactPolicy: EvaluationArtifactPolicy
+    let assemblyResourceLimits: AssemblyResourceLimits
     let incrementalEvaluatorIdentity: String?
 
     func evaluate(
@@ -30,6 +31,11 @@ struct DocumentEvaluationEngine {
         }
         try tolerance.validate()
         try tessellationOptions.validate()
+        try assemblyResourceLimits.validate()
+        if let assembly = document.assembly {
+            _ = try DocumentAssemblyValidator().expandedOccurrences(of: assembly, in: document.designGraph,
+                tolerance: tolerance, limits: assemblyResourceLimits)
+        }
 
         let parameters = try parameterResolver.resolve(document.parameters)
         let reusableState = reusableState(for: document, from: previous)
@@ -81,7 +87,7 @@ struct DocumentEvaluationEngine {
         var subshapes = evaluationBase.subshapes
         var lineage = PersistentMap<SubshapeID, TopologyLineage>()
         if incrementalEvaluatorIdentity != nil, let previous {
-            lineage = PersistentMap(previous.lineage)
+            lineage = PersistentMap(previous.assembly?.local.lineage ?? previous.lineage)
             let activeFeatureIDs = Set(document.designGraph.order)
             for lineageID in lineage.keys where activeFeatureIDs.contains(lineageID.featureID) == false {
                 lineage.removeValue(forKey: lineageID)
@@ -160,9 +166,21 @@ struct DocumentEvaluationEngine {
 
         metrics.invalidatedFeatureCount = invalidatedFeatureIDs.count
         metrics.reusedFeatureCount = document.designGraph.order.count - metrics.rebuiltFeatureCount
-        let validatedBRep = try brepBuffer.finalizedValidatedModel(
+        var validatedBRep = try brepBuffer.finalizedValidatedModel(
             tolerance: tolerance
         )
+        var assemblyArtifact: AssemblyEvaluationArtifact?
+        if let assembly = document.assembly {
+            let result = try AssemblyEvaluator().evaluate(assembly, in: document.designGraph,
+                local: AssemblyLocalEvaluationBase(model: validatedBRep.model,
+                    subshapes: SubshapeIndex(subshapes.materializedDictionary()),
+                    lineage: lineage.materializedDictionary()), tolerance: tolerance, limits: assemblyResourceLimits)
+            validatedBRep = try ValidatedBRepModel(result.model, tolerance: tolerance, validationLevel: .exact)
+            subshapes = PersistentMap(result.subshapes.entries)
+            lineage = PersistentMap(result.lineage)
+            changedBodyIDs = Set(result.model.bodies.keys)
+            assemblyArtifact = result.artifact
+        }
         let brep = validatedBRep.model
         let meshResult: MeshEvaluationResult
         switch artifactPolicy {
@@ -175,7 +193,7 @@ struct DocumentEvaluationEngine {
         case .materialized:
             meshResult = try makeMeshes(
                 for: validatedBRep,
-                reusing: reusableState == nil ? nil : previous,
+                reusing: reusableState == nil || document.assembly != nil ? nil : previous,
                 changedBodyIDs: changedBodyIDs,
                 subshapes: subshapes
             )
@@ -226,6 +244,7 @@ struct DocumentEvaluationEngine {
                 meshArtifactPurpose: meshArtifactPurpose,
                 tessellationLimits: tessellationLimits
             ),
+            assembly: assemblyArtifact,
             evaluationMetrics: metrics
         )
         if let incrementalEvaluatorIdentity {
@@ -484,7 +503,8 @@ struct DocumentEvaluationEngine {
               state.documentID == document.id,
               state.schemaVersion == document.schemaVersion,
               state.units == document.units,
-              state.tolerance == tolerance else {
+              state.tolerance == tolerance,
+              (previous?.document.assembly == nil) == (document.assembly == nil) else {
             return nil
         }
         return state
@@ -508,7 +528,9 @@ struct DocumentEvaluationEngine {
             }
         }
         let previousValidatedBRep: ValidatedBRepModel
-        if let certificate = previous.validatedBRep,
+        if let local = previous.assembly?.local {
+            previousValidatedBRep = try ValidatedBRepModel(local.model, tolerance: tolerance, validationLevel: .exact)
+        } else if let certificate = previous.validatedBRep,
            certificate.model == previous.brep,
            certificate.tolerance == tolerance,
            certificate.validationLevel != .modeling {
@@ -521,7 +543,7 @@ struct DocumentEvaluationEngine {
             )
         }
         let brepBuffer = BRepEditBuffer(validatedModel: previousValidatedBRep)
-        var subshapes = PersistentMap(previous.subshapes.entries)
+        var subshapes = PersistentMap(previous.assembly?.local.subshapes.entries ?? previous.subshapes.entries)
         var rollbackMutationCount = 0
         var affectedBodyIDs = Set<BodyID>()
 

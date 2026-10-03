@@ -3,7 +3,7 @@
 ## Purpose and Scope
 
 Child of [the package](../../DESIGN.md), without children. Owns G1/G2/G3 cyclic geometry, knot-reduction and source-signature checks,
-plus G4 overlap and G6 common-conversion checks on matching normal WASM and
+plus G4 overlap, G6 common-conversion and T8 raw-topology admission checks on matching normal WASM and
 native targets.
 
 ## Responsibilities and Boundaries
@@ -23,6 +23,7 @@ must add its own behavioral evidence before this executable can cover it.
 | [KnotRemoval](../CADGeometry/KnotRemoval/DESIGN.md) | depends on | Full-domain deviation bounds | Exercises cyclic curves, pcurves and both tensor axes | Resource refusal must remain explicit |
 | [CurveSurfaceOverlap](../CADGeometry/CurveSurfaceOverlap/DESIGN.md) | depends on | Public intersectionResult and owned correspondence | Exercises authored overlap and whole-span refusal | Angular support similarity is insufficient |
 | [GeometryConversion](../CADGeometry/GeometryConversion/DESIGN.md) | depends on | Public GeometryConverting and source protocols | Constructs and certifies same-chart geometry | Full intervals, native target resources and source errors must retain their contracts |
+| [Non-Manifold Topology](../CADTopology/NonManifoldTopology/DESIGN.md) | depends on | Immutable raw snapshots and explicit structural admission | Exercises preserved non-manifold edge incidence and typed refusal | No raw snapshot is a modeling validity certificate |
 | [CADIR](../CADIR/DESIGN.md) | depends on | SubshapeGeometrySignature transport | Retains the exact periodic value in a finite edge span | A signature is not a evaluated body |
 
 ## Architecture
@@ -64,7 +65,10 @@ a large between-station distance. Conversion evidence constructs an exact cubic
 line and tensor plane through the public protocol, verifies continuous position,
 tangent and curvature bounds and source charts, refuses the known negative-cycle
 false candidate, and preserves degree-dependent scalar and public source-error
-refusals. These are portable execution checks; native component suites own the
+refusals. T8 execution captures one raw three-face shared-edge compound, verifies complete
+retention and excessive incidence, refuses both modeling admission paths with the
+retained report, admits a valid standalone vertex only to Shape operations, and
+checks typed work exhaustion and missing-reference preservation. These are portable execution checks; native component suites own the
 broader contract matrix, and existing sampled consumer migration remains a
 separate G6 completion condition. The matching
 Embedded SDK currently lacks Foundation used by existing CADCore/CADGeometry;

@@ -1,6 +1,7 @@
 import Foundation
 import CADCore
 import CADIR
+import CADKernel
 import CADTopology
 
 public struct STEPExchange: Sendable {
@@ -32,6 +33,16 @@ public struct STEPExchange: Sendable {
             units: units,
             to: sink
         )
+    }
+
+    public func write(_ evaluated: EvaluatedDocument, units: UnitSystem? = nil, to sink: any ByteSink) throws {
+        let outputUnits = units ?? evaluated.document.units
+        if evaluated.document.assembly != nil {
+            try STEPAssemblyWriter(tolerance: tolerance, resourceLimits: resourceLimits)
+                .write(evaluated, units: outputUnits, to: sink)
+        } else {
+            try write(brep: evaluated.brep, units: outputUnits, to: sink)
+        }
     }
 
     public func write(meshes: [BodyID: Mesh], units: UnitSystem = .meters, to sink: any ByteSink) throws {
@@ -101,6 +112,8 @@ public struct STEPExchange: Sendable {
                 message: "Tessellated STEP is a mesh exchange and cannot be imported as exact CAD geometry."
             )
         }
+        if let assembly = try STEPAssemblyReader(tolerance: tolerance, resourceLimits: resourceLimits)
+            .read(entities: entities, budget: budget) { return assembly }
         let lengthUnit = try stepLengthUnit(in: entities)
         try budget.check(format: .step)
         let brep = try ExactSTEPReader(
@@ -273,6 +286,16 @@ private func isSupportedSTEPEntity(_ entity: String) -> Bool {
         "BREP_WITH_VOIDS(",
         "SHELL_BASED_SURFACE_MODEL(",
         "SHAPE_REPRESENTATION(",
+        "ADVANCED_BREP_SHAPE_REPRESENTATION(",
+        "MANIFOLD_SURFACE_SHAPE_REPRESENTATION(",
+        "NEXT_ASSEMBLY_USAGE_OCCURRENCE(",
+        "CONTEXT_DEPENDENT_SHAPE_REPRESENTATION(",
+        "ITEM_DEFINED_TRANSFORMATION(",
+        "SHAPE_REPRESENTATION_RELATIONSHIP(",
+        "REPRESENTATION_MAP(",
+        "MAPPED_ITEM(",
+        "CARTESIAN_TRANSFORMATION_OPERATOR_3D(",
+        "PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE(",
         "UNCERTAINTY_MEASURE_WITH_UNIT(",
         "CARTESIAN_POINT_LIST_3D(",
         "TRIANGULATED_FACE_SET(",
@@ -291,6 +314,9 @@ private func isSupportedSTEPEntity(_ entity: String) -> Bool {
 }
 
 private func isSupportedSTEPComplexEntity(_ syntax: String) -> Bool {
+    if syntax.contains("REPRESENTATION_RELATIONSHIP("),
+       syntax.contains("REPRESENTATION_RELATIONSHIP_WITH_TRANSFORMATION("),
+       syntax.contains("SHAPE_REPRESENTATION_RELATIONSHIP()") { return true }
     if syntax.contains("B_SPLINE_CURVE("),
        syntax.contains("B_SPLINE_CURVE_WITH_KNOTS("),
        syntax.contains("RATIONAL_B_SPLINE_CURVE("),
@@ -334,26 +360,27 @@ private func isSupportedSTEPComplexEntity(_ syntax: String) -> Bool {
 }
 
 private func stepLengthUnit(in entities: [Int: String]) throws -> LengthUnit {
-    let unitIDs = try stepGlobalUnitReferenceIDs(in: entities)
-    guard !unitIDs.isEmpty else {
-        return .meter
-    }
+    let syntax = STEPAssemblySyntax(entities: entities)
     var lengthUnits: [LengthUnit] = []
-    for unitID in unitIDs {
-        guard let entity = entities[unitID] else {
-            throw ImportError.missingRequiredEntity("STEP GLOBAL_UNIT_ASSIGNED_CONTEXT reference #\(unitID)")
+    for id in entities.keys.sorted() {
+        guard let entity = entities[id], normalizedSTEPText(stepSyntaxOutsideStrings(in: entity))
+            .contains("GLOBAL_UNIT_ASSIGNED_CONTEXT((") else { continue }
+        let fields = try syntax.arguments(id, component: "GLOBAL_UNIT_ASSIGNED_CONTEXT")
+        guard fields.count == 1 else { throw ImportError.invalidData("Malformed STEP unit context.") }
+        var localUnits: [LengthUnit] = []
+        for unitID in try syntax.list(fields[0]) {
+            if let unit = try stepLengthUnit(from: syntax.entity(unitID), entities: entities) { localUnits.append(unit) }
         }
-        if let unit = try stepLengthUnit(from: entity, entities: entities) {
-            lengthUnits.append(unit)
+        guard localUnits.count == 1, let unit = localUnits.first else {
+            throw ImportError.invalidData("STEP context must reference exactly one LENGTH_UNIT.")
         }
+        lengthUnits.append(unit)
     }
-    guard !lengthUnits.isEmpty else {
-        throw ImportError.missingRequiredEntity("STEP GLOBAL_UNIT_ASSIGNED_CONTEXT LENGTH_UNIT")
+    if lengthUnits.isEmpty { return .meter }
+    guard Set(lengthUnits).count == 1, let unit = lengthUnits.first else {
+        throw ImportError.invalidData("STEP ordinary exact geometry has conflicting context length units.")
     }
-    guard lengthUnits.count == 1, let lengthUnit = lengthUnits.first else {
-        throw ImportError.invalidData("STEP GLOBAL_UNIT_ASSIGNED_CONTEXT must reference exactly one LENGTH_UNIT.")
-    }
-    return lengthUnit
+    return unit
 }
 
 private func stepGlobalUnitReferenceIDs(in entities: [Int: String]) throws -> [Int] {
@@ -429,7 +456,7 @@ private func stepReferenceIDs(in text: String) -> [Int] {
     return ids
 }
 
-private func stepLengthUnit(from entity: String, entities: [Int: String]) throws -> LengthUnit? {
+func stepLengthUnit(from entity: String, entities: [Int: String]) throws -> LengthUnit? {
     let normalized = normalizedSTEPText(entity)
     let syntax = normalizedSTEPText(stepSyntaxOutsideStrings(in: entity))
     guard syntax.contains("LENGTH_UNIT()") else {

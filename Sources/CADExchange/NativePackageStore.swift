@@ -270,6 +270,7 @@ private let supportedNativeDocumentKeys: Set<String> = [
     "designGraph",
     "selectionDimensions",
     "documentFoundation",
+    "assembly",
     "metadata"
 ]
 
@@ -330,6 +331,7 @@ private func validateNativeDocumentObject(_ object: [String: Any]) throws {
         path: "document.selectionDimensions",
         using: validateSelectionDimensionObject
     )
+    try validateObjectField("assembly", in: object, path: "document.assembly", using: validateNativeAssemblyObject)
     try validateObjectField("documentFoundation", in: object, path: "document.documentFoundation", using: validateNativeDocumentFoundationObject)
     try validateObjectField("metadata", in: object, path: "document.metadata", using: validateDocumentMetadataObject)
 }
@@ -2906,6 +2908,25 @@ private func validateConstrainedSurfaceFeatureObject(_ object: [String: Any], pa
                     try rejectUnsupportedNativeKeys(in: vector, supportedKeys: ["x", "y", "z"], objectName: "\(path).points[\(index)].\(key)")
                 }
             }
+        }
+    }
+}
+
+private func validateNativeAssemblyObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["definitions", "roots"], objectName: path)
+    try validateArrayField("definitions", in: object, path: "\(path).definitions") { definition, path in
+        try rejectUnsupportedNativeKeys(in: definition, supportedKeys: ["id", "name", "features", "children"], objectName: path)
+        try validateArrayField("children", in: definition, path: "\(path).children", using: validateNativeAssemblyOccurrence)
+    }
+    try validateArrayField("roots", in: object, path: "\(path).roots", using: validateNativeAssemblyOccurrence)
+}
+
+private func validateNativeAssemblyOccurrence(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["id", "name", "definitionID", "placement"], objectName: path)
+    try validateObjectField("placement", in: object, path: "\(path).placement") { frame, path in
+        try rejectUnsupportedNativeKeys(in: frame, supportedKeys: ["basisX", "basisY", "basisZ", "translation"], objectName: path)
+        for key in ["basisX", "basisY", "basisZ", "translation"] {
+            try validateObjectField(key, in: frame, path: "\(path).\(key)", using: validateVector3DObject)
         }
     }
 }

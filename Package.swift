@@ -135,7 +135,7 @@ let package = Package(
     ),
     .executableTarget(
       name: "CADGeometryWASMSmoke",
-      dependencies: ["CADCore", "CADGeometry", "CADIR"]
+      dependencies: ["CADCore", "CADGeometry", "CADIR", "CADTopology"]
     ),
     .executableTarget(
       name: "CADContractWASMSmoke",

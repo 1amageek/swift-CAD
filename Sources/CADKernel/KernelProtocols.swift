@@ -132,6 +132,7 @@ public struct EvaluatedDocument: Codable, Sendable {
     public let caches: DocumentCaches
     public let subshapes: SubshapeIndex
     public let lineage: [SubshapeID: TopologyLineage]
+    public let assembly: AssemblyEvaluationArtifact?
     public let configuration: DocumentEvaluationConfiguration
     public let evaluationMetrics: DocumentEvaluationMetrics
     var incrementalEvaluationState: IncrementalEvaluationState?
@@ -147,6 +148,7 @@ public struct EvaluatedDocument: Codable, Sendable {
         subshapes: SubshapeIndex = SubshapeIndex(),
         lineage: [SubshapeID: TopologyLineage] = [:],
         configuration: DocumentEvaluationConfiguration,
+        assembly: AssemblyEvaluationArtifact? = nil,
         evaluationMetrics: DocumentEvaluationMetrics = DocumentEvaluationMetrics()
     ) {
         self.document = document
@@ -158,6 +160,7 @@ public struct EvaluatedDocument: Codable, Sendable {
         self.subshapes = subshapes
         self.lineage = lineage
         self.configuration = configuration
+        self.assembly = assembly
         self.evaluationMetrics = evaluationMetrics
         incrementalEvaluationState = nil
         validatedBRep = nil
@@ -173,6 +176,7 @@ public struct EvaluatedDocument: Codable, Sendable {
         case subshapes
         case lineage
         case configuration
+        case assembly
         case evaluationMetrics
     }
 
@@ -189,6 +193,7 @@ public struct EvaluatedDocument: Codable, Sendable {
                 .subshapes,
                 .lineage,
                 .configuration,
+                .assembly,
                 .evaluationMetrics,
             ],
             in: decoder
@@ -206,6 +211,7 @@ public struct EvaluatedDocument: Codable, Sendable {
                 DocumentEvaluationConfiguration.self,
                 forKey: .configuration
             ),
+            assembly: try container.decodeIfPresent(AssemblyEvaluationArtifact.self, forKey: .assembly),
             evaluationMetrics: try container.decode(
                 DocumentEvaluationMetrics.self,
                 forKey: .evaluationMetrics
@@ -227,6 +233,7 @@ public struct EvaluatedDocument: Codable, Sendable {
         try container.encode(subshapes, forKey: .subshapes)
         try container.encode(lineage, forKey: .lineage)
         try container.encode(configuration, forKey: .configuration)
+        try container.encode(assembly, forKey: .assembly)
         try container.encode(evaluationMetrics, forKey: .evaluationMetrics)
     }
 }

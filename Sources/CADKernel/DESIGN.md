@@ -235,6 +235,7 @@ partway fail. `PlanarCurveExtrusionIntersectorTests` own it.
 | [Swift-CAD package](../../DESIGN.md) | parent | immutable exact evaluation | Defines kernel composition and Mesh separation. | Do not re-evaluate during a read. |
 | [CADIR](../CADIR/DESIGN.md) | depends on | complete stable signature value | Provides validated reference values. | Every topology entry is eligible for a reference. |
 | [CADModeling](../CADModeling/DESIGN.md) | depends on | exact generated B-rep | Supplies source topology and lineage. | Seam/pole topology remains present. |
+| [Assembly Evaluation](AssemblyEvaluation/DESIGN.md) | child | retained local base, placed world topology and occurrence correspondence | Composes local feature evaluation with assembly source placement. | Incremental rollback uses local geometry; final indexes and meshes use world geometry. |
 | [RollingBallFillet](RollingBallFillet/DESIGN.md) | child | complete solid sewing request | Composes native source-face arrangements and blend boundaries. | A request is not a validated or publishable result. |
 | [RupaCore](../../../RupaKit/Sources/RupaCore/DESIGN.md) | used by | evaluated body and Mesh measurements; edge queries; sketch curve intersections | Consumes the same snapshot outputs and certified sketch intersections. | Volume authority stays in exact B-rep; Core computes no intersection itself. |
 

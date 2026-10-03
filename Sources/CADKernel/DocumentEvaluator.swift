@@ -14,6 +14,7 @@ public struct DocumentEvaluator: Sendable, ExactDocumentEvaluating {
     private let tessellationOptions: TessellationOptions
     private let tessellationLimits: TessellationLimits
     private let meshArtifactPurpose: MeshArtifactPurpose
+    private let assemblyResourceLimits: AssemblyResourceLimits
     private let artifactPolicy: EvaluationArtifactPolicy
     private let supportsIncrementalEvaluation: Bool
 
@@ -31,7 +32,8 @@ public struct DocumentEvaluator: Sendable, ExactDocumentEvaluating {
         tessellationOptions: TessellationOptions = .standard,
         tessellationLimits: TessellationLimits = .standard,
         meshArtifactPurpose: MeshArtifactPurpose = .unspecified,
-        artifactPolicy: EvaluationArtifactPolicy = .materialized
+        artifactPolicy: EvaluationArtifactPolicy = .materialized,
+        assemblyResourceLimits: AssemblyResourceLimits = .standard
     ) {
         self.parameterResolver = parameterResolver
         self.profileExtractor = profileExtractor ?? SketchProfileExtractor(
@@ -54,6 +56,7 @@ public struct DocumentEvaluator: Sendable, ExactDocumentEvaluating {
         self.tessellationLimits = tessellationLimits
         self.meshArtifactPurpose = meshArtifactPurpose
         self.artifactPolicy = artifactPolicy
+        self.assemblyResourceLimits = assemblyResourceLimits
         supportsIncrementalEvaluation = parameterResolver is ParameterResolver
             && profileExtractor == nil
             && curveExtractor == nil
@@ -65,11 +68,13 @@ public struct DocumentEvaluator: Sendable, ExactDocumentEvaluating {
         _ document: CADDocument,
         reusing previous: EvaluatedDocument? = nil
     ) throws -> EvaluatedDocument {
+        try admitAssemblyExpansion(in: document)
         let validatedDocument = try ValidatedCADDocument(document, tolerance: tolerance)
         return try evaluate(validatedDocument, reusing: previous)
     }
 
     public func evaluateExact(_ document: CADDocument) throws -> EvaluatedDocument {
+        try admitAssemblyExpansion(in: document)
         let validatedDocument = try ValidatedCADDocument(document, tolerance: tolerance)
         return try makeEngine(artifactPolicy: .deferred).evaluate(
             validatedDocument,
@@ -89,6 +94,7 @@ public struct DocumentEvaluator: Sendable, ExactDocumentEvaluating {
         reusing previous: EvaluatedDocument? = nil
     ) -> EvaluationReport {
         do {
+            try admitAssemblyExpansion(in: document)
             let validatedDocument = try ValidatedCADDocument(document, tolerance: tolerance)
             return evaluateReport(validatedDocument, reusing: previous)
         } catch {
@@ -133,6 +139,7 @@ public struct DocumentEvaluator: Sendable, ExactDocumentEvaluating {
     }
 
     func evaluateWithoutCacheValidation(_ document: CADDocument) throws -> EvaluatedDocument {
+        try admitAssemblyExpansion(in: document)
         let validatedDocument = try ValidatedCADDocument(document, tolerance: tolerance)
         return try engine.evaluate(validatedDocument, reusing: nil) { _, _ in }
     }
@@ -149,6 +156,14 @@ public struct DocumentEvaluator: Sendable, ExactDocumentEvaluating {
             featureStates: states,
             failure: EvaluationFailure(message: String(describing: error))
         )
+    }
+
+    private func admitAssemblyExpansion(in document: CADDocument) throws {
+        try assemblyResourceLimits.validate()
+        if let assembly = document.assembly {
+            _ = try DocumentAssemblyValidator().expandedOccurrences(of: assembly, in: document.designGraph,
+                tolerance: tolerance, limits: assemblyResourceLimits)
+        }
     }
 
     private var engine: DocumentEvaluationEngine {
@@ -169,6 +184,7 @@ public struct DocumentEvaluator: Sendable, ExactDocumentEvaluating {
             meshArtifactPurpose: meshArtifactPurpose,
             tessellationLimits: tessellationLimits,
             artifactPolicy: artifactPolicy,
+            assemblyResourceLimits: assemblyResourceLimits,
             incrementalEvaluatorIdentity: supportsIncrementalEvaluation
                 ? Self.incrementalEvaluatorIdentity
                 : nil

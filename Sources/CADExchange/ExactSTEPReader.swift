@@ -9,6 +9,7 @@ struct ExactSTEPReader {
     let lengthUnit: LengthUnit
     let processingBudget: ExchangeProcessingBudget
     let tolerance: ModelingTolerance
+    var representationItems: Set<Int>? = nil
 
     func read() throws -> BRepModel {
         try processingBudget.check(format: .step)
@@ -16,7 +17,8 @@ struct ExactSTEPReader {
             entities: entities,
             lengthUnit: lengthUnit,
             processingBudget: processingBudget,
-                tolerance: tolerance
+            tolerance: tolerance,
+            representationItems: representationItems
         )
         let model = try builder.build()
         try processingBudget.check(format: .step)
@@ -31,6 +33,7 @@ private extension ExactSTEPReader {
         let lengthUnit: LengthUnit
         let processingBudget: ExchangeProcessingBudget
         let tolerance: ModelingTolerance
+        let representationItems: Set<Int>?
 
         var geometry = GeometryStore()
         var bodies: [BodyID: Body] = [:]
@@ -62,7 +65,7 @@ private extension ExactSTEPReader {
 
         mutating func build() throws -> BRepModel {
             var representationItemCount = 0
-            for entityID in entities.keys.sorted() {
+            for entityID in (representationItems ?? Set(entities.keys)).sorted() {
                 try processingBudget.check(format: .step)
                 guard let entity = entities[entityID] else {
                     continue

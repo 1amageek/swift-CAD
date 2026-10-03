@@ -42,6 +42,7 @@ private struct CADDocumentSourceFingerprintPayload: Encodable {
     var parameters: ParameterTableFingerprint
     var designGraph: DesignGraphFingerprint
     var selectionDimensions: [SelectionDimension]
+    var assembly: DocumentAssembly?
     var documentFoundation: DocumentFoundation
 
     init(document: CADDocument) throws {
@@ -50,6 +51,7 @@ private struct CADDocumentSourceFingerprintPayload: Encodable {
         parameters = ParameterTableFingerprint(table: document.parameters)
         designGraph = try DesignGraphFingerprint(graph: document.designGraph)
         selectionDimensions = try document.selectionDimensions.sortedByStableEncoding()
+        assembly = document.assembly?.canonicalized
         documentFoundation = document.documentFoundation
     }
 }

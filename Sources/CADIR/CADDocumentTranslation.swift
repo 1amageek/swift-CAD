@@ -13,6 +13,17 @@ public extension CADDocument {
         }
 
         var document = self
+        if var assembly = document.assembly {
+            for index in assembly.roots.indices {
+                let frame = assembly.roots[index].placement
+                assembly.roots[index].placement = try RigidTransform3D(basisX: frame.basisX,
+                    basisY: frame.basisY, basisZ: frame.basisZ,
+                    translation: frame.translation + vector, tolerance: tolerance)
+            }
+            document.assembly = assembly
+            try document.validate(tolerance: tolerance)
+            return document
+        }
         for featureID in document.designGraph.order {
             guard var node = document.designGraph.nodes[featureID] else {
                 throw FeatureEvaluationError.invalidGraph("Document translation found a missing ordered feature.")

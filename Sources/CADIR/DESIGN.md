@@ -58,7 +58,8 @@ value contract and the package-versioned constants.
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [Swift-CAD package](../../DESIGN.md) | parent | stable topology contract | Defines complete signature retention. | A signature is not a live topology authority. |
-| [Document Foundation](DocumentFoundation/DESIGN.md) | child | typed attributes and persistent reference validation | Owns source attribute identity and local integrity. | Strict required 0.3.0 envelope; symbolic external links require explicit resolution. |
+| [Document Foundation](DocumentFoundation/DESIGN.md) | child | typed attributes and persistent reference validation | Owns source attribute identity and local integrity. | Strict required 0.4.0 envelope; symbolic external links require explicit resolution. |
+| [Document Assembly](DocumentAssembly/DESIGN.md) | child | shared source definitions, persistent occurrence paths and proper local frames | Owns assembly source DAG and bounded structural admission. | Live local/world topology belongs to Assembly Evaluation; required nullable source uses the current envelope. |
 | [CADGeometry](../CADGeometry/DESIGN.md) | depends on | analytic curve/surface validation | Validates pcurves and surfaces. | Preserve structural rejection rules. |
 | [CADKernel](../CADKernel/DESIGN.md) | used by | snapshot signature construction | Supplies exact signatures for current subshapes. | No partial or Mesh-derived signatures. |
 

@@ -11,6 +11,7 @@ public struct CADDocument: Codable, Equatable, Sendable {
     public var designGraph: DesignGraph
     public var selectionDimensions: [SelectionDimension]
     public var documentFoundation: DocumentFoundation
+    public var assembly: DocumentAssembly?
     public var metadata: DocumentMetadata
 
     private enum CodingKeys: String, CodingKey {
@@ -21,6 +22,7 @@ public struct CADDocument: Codable, Equatable, Sendable {
         case designGraph
         case selectionDimensions
         case documentFoundation
+        case assembly
         case metadata
     }
 
@@ -32,6 +34,7 @@ public struct CADDocument: Codable, Equatable, Sendable {
         designGraph: DesignGraph = DesignGraph(),
         selectionDimensions: [SelectionDimension] = [],
         documentFoundation: DocumentFoundation = DocumentFoundation(),
+        assembly: DocumentAssembly? = nil,
         metadata: DocumentMetadata = DocumentMetadata()
     ) {
         self.id = id
@@ -41,6 +44,7 @@ public struct CADDocument: Codable, Equatable, Sendable {
         self.designGraph = designGraph
         self.selectionDimensions = selectionDimensions
         self.documentFoundation = documentFoundation
+        self.assembly = assembly
         self.metadata = metadata
     }
 
@@ -54,6 +58,7 @@ public struct CADDocument: Codable, Equatable, Sendable {
             .designGraph,
             .selectionDimensions,
             .documentFoundation,
+            .assembly,
             .metadata,
         ], in: decoder)
         id = try container.decode(DocumentID.self, forKey: .id)
@@ -63,6 +68,10 @@ public struct CADDocument: Codable, Equatable, Sendable {
         designGraph = try container.decode(DesignGraph.self, forKey: .designGraph)
         selectionDimensions = try container.decode([SelectionDimension].self, forKey: .selectionDimensions)
         documentFoundation = try container.decode(DocumentFoundation.self, forKey: .documentFoundation)
+        guard container.contains(.assembly) else {
+            throw AssemblyError.invalidSource("Current documents require an explicit nullable assembly field.")
+        }
+        assembly = try container.decodeIfPresent(DocumentAssembly.self, forKey: .assembly)
         metadata = try container.decode(DocumentMetadata.self, forKey: .metadata)
     }
 
@@ -75,6 +84,7 @@ public struct CADDocument: Codable, Equatable, Sendable {
         try container.encode(designGraph, forKey: .designGraph)
         try container.encode(selectionDimensions, forKey: .selectionDimensions)
         try container.encode(documentFoundation, forKey: .documentFoundation)
+        try container.encode(assembly, forKey: .assembly)
         try container.encode(metadata, forKey: .metadata)
     }
 
@@ -86,12 +96,22 @@ public struct CADDocument: Codable, Equatable, Sendable {
         try designGraph.validate(tolerance: tolerance)
         try designGraph.validateExpressions(using: parameters, tolerance: tolerance)
         try documentFoundation.validate(in: self)
+        try validateAssembly(tolerance: tolerance)
         var dimensionIDs: Set<SelectionDimensionID> = []
         for dimension in selectionDimensions {
             guard dimensionIDs.insert(dimension.id).inserted else {
                 throw FeatureEvaluationError.invalidGraph("Selection dimension IDs must be unique.")
             }
             try dimension.validate(parameters: parameters, tolerance: tolerance)
+        }
+    }
+}
+
+public extension CADDocument {
+    func validateAssembly(tolerance: ModelingTolerance) throws {
+        if let assembly {
+            _ = try DocumentAssemblyValidator().expandedOccurrences(of: assembly, in: designGraph,
+                tolerance: tolerance, limits: .standard)
         }
     }
 }

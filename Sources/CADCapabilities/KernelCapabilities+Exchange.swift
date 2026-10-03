@@ -18,6 +18,7 @@ extension KernelCapabilities {
         "documentFeatureParameterAndSelectionIdentityRoundTrip",
         "atomicURLPersistence",
         "typedAttributeOwnershipAndPersistentReferenceRoundTrip",
+        "sharedAssemblyDefinitionsAndPersistentOccurrenceFramesRoundTrip",
       ],
       failureCodes: [
         .invalidInput,
@@ -37,6 +38,7 @@ extension KernelCapabilities {
         "NativeStableSelectionPackageTests",
         "PeriodicSourcePackageTests",
         "DocumentFoundationPackageTests",
+        "STEPAssemblyExchangeTests",
       ]
     ),
     KernelCapability(
@@ -59,6 +61,9 @@ extension KernelCapabilities {
         "generalChartPreservingOffsetSurfacesWithFiniteRationalBSplineBasis",
         "oneOrMoreOrderedSolidComponentsWithOwnedReversedVoidShells",
         "SILengthUnitsAndConversionBasedInchFootUnits",
+        "boundedSharedNestedProductDefinitionsWithProperRigidOccurrences",
+        "independentItemDefinedFramesAndRepresentationMapPlacements",
+        "perRepresentationLengthUnits",
       ],
       exactOutputs: [
         "AP242AdvancedFaces",
@@ -78,15 +83,20 @@ extension KernelCapabilities {
         "PcurveMasterSurfaceLiftReconstruction",
         "StandardOffsetSurfaceRoundTrip",
         "StandardLineOrRationalBSplineAffineImageMaterialization",
+        "sharedDefinitionAndPersistentOccurrenceHierarchyRoundTrip",
+        "ownedLocalWorldTopologyCorrespondence",
       ],
       failureCodes: [
         .invalidInput, .missingReference, .unsupportedCapability, .topologyFailure,
         .resourceLimitExceeded,
       ],
       tolerance: .standard,
-      publicAPIs: ["CADExchange.STEPExchange"],
+      publicAPIs: ["CADExchange.STEPExchange", "CADExchange.STEPAssemblyReading",
+        "CADExchange.STEPAssemblyWriting", "CADIR.DocumentAssemblyValidating",
+        "CADKernel.AssemblyEvaluating"],
       testFixtures: [
         "ExactSTEPExchangeTests",
+        "DocumentAssemblyTests", "AssemblyEvaluationTests", "STEPAssemblyExchangeTests",
         "ExactSTEPExchangeTests.roundTripsExactPlanarTopologyInConversionBasedLengthUnits",
         "ExactSTEPExchangeTests.roundTripsReversedCompleteDomainRationalBSplineEdges",
         "ExactSTEPExchangeTests.roundTripsPartialDomainRationalBSplineEdgesInBothDirections",

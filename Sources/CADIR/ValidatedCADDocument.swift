@@ -73,6 +73,7 @@ public struct ValidatedCADDocument: Sendable {
                 tolerance: tolerance
             )
         }
+        try updatedDocument.validateAssembly(tolerance: tolerance)
         return ValidatedCADDocument(
             validatedDocument: updatedDocument,
             tolerance: tolerance,
@@ -140,6 +141,7 @@ public struct ValidatedCADDocument: Sendable {
             }
         }
 
+        try updatedDocument.validateAssembly(tolerance: tolerance)
         return ValidatedCADDocument(
             validatedDocument: updatedDocument,
             tolerance: tolerance,

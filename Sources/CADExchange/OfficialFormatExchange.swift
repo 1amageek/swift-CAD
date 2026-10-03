@@ -58,7 +58,7 @@ public struct OfficialFormatExchange: Sendable {
         case .swiftCAD:
             try nativeStore.writePackage(for: evaluatedDocument.document, to: sink)
         case .step:
-            try stepExchange.write(brep: evaluatedDocument.brep, units: units, to: sink)
+            try stepExchange.write(evaluatedDocument, units: units, to: sink)
         case .iges:
             try igesExchange.write(brep: evaluatedDocument.brep, units: units, to: sink)
         case .stl:

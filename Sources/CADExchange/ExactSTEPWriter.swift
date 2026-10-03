@@ -13,14 +13,18 @@ struct ExactSTEPWriter {
     units: UnitSystem,
     to sink: any ByteSink
   ) throws {
-    var table = EntityTable(
-      maximumEntities: resourceLimits.maximumEntities,
-      tolerance: tolerance
-    )
+    var table = EntityTable(maximumEntities: resourceLimits.maximumEntities, tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes)
+    _ = try appendDefinition(brep: brep, units: units, identifier: "SWIFTCAD", name: "SWIFTCAD",
+        additionalItems: [], table: &table)
+    try publish(table: table, to: sink)
+  }
+
+  func appendDefinition(brep: BRepModel, units: UnitSystem, identifier: String, name: String,
+                        additionalItems: [Int], table: inout EntityTable) throws -> WrittenDefinition {
     let applicationContext = try table.add(
       "APPLICATION_CONTEXT('managed model based 3d engineering')")
     let productContext = try table.add("PRODUCT_CONTEXT('',#\(applicationContext),'mechanical')")
-    let product = try table.add("PRODUCT('SWIFTCAD','SWIFTCAD','',(#\(productContext)))")
+    let product = try table.add("PRODUCT(\(stepAssemblyString(identifier)),\(stepAssemblyString(name)),'',(#\(productContext)))")
     let formation = try table.add("PRODUCT_DEFINITION_FORMATION('','',#\(product))")
     let definitionContext = try table.add(
       "PRODUCT_DEFINITION_CONTEXT('part definition',#\(applicationContext),'design')")
@@ -521,10 +525,17 @@ struct ExactSTEPWriter {
           ))
       }
     }
+    let origin = try assemblyAxis(.translated(by: .zero), units: units.length, table: &table)
+    representationItems.append(origin)
+    representationItems.append(contentsOf: additionalItems)
     let representation = try table.add(
       "SHAPE_REPRESENTATION('',(\(representationItems.map { "#\($0)" }.joined(separator: ","))),#\(context))"
     )
     _ = try table.add("SHAPE_DEFINITION_REPRESENTATION(#\(definitionShape),#\(representation))")
+    return WrittenDefinition(definition: definition, representation: representation, origin: origin)
+  }
+
+  func publish(table: EntityTable, to sink: any ByteSink) throws {
     let timestamp = "2000-01-01T00:00:00"
     let text = """
       ISO-10303-21;
@@ -538,6 +549,7 @@ struct ExactSTEPWriter {
       ENDSEC;
       END-ISO-10303-21;
       """
+    try Task.checkCancellation()
     let data = Data(text.utf8)
     guard data.count <= resourceLimits.maximumBytes else {
       throw exchangeError(.resourceLimitExceeded, "STEP output exceeds the configured byte limit.")
@@ -545,6 +557,21 @@ struct ExactSTEPWriter {
     try data.withUnsafeBytes { bytes in
       try sink.write(bytes)
     }
+  }
+
+  struct WrittenDefinition {
+    let definition: Int
+    let representation: Int
+    let origin: Int
+  }
+
+  func assemblyAxis(_ frame: RigidTransform3D, units: LengthUnit, table: inout EntityTable) throws -> Int {
+    try frame.validate(tolerance: tolerance)
+    guard !frame.reversesOrientation else { throw AssemblyError.invalidPlacement }
+    let point = try cartesianPoint(Point3D.origin + frame.translation, units: units, table: &table)
+    let z = try directionEntity(frame.basisZ, table: &table)
+    let x = try directionEntity(frame.basisX, table: &table)
+    return try table.add("AXIS2_PLACEMENT_3D('',#\(point),#\(z),#\(x))")
   }
 
   private func pcurveEntity(
@@ -1300,12 +1327,21 @@ struct ExactSTEPWriter {
     let isPcurve: Bool
   }
 
-  private struct EntityTable {
+  struct EntityTable {
     let maximumEntities: Int
     let tolerance: ModelingTolerance
     var entities: [String] = []
+    var maximumBytes: Int = 64 * 1024 * 1024
+    private var byteCount: Int = 0
+
+    init(maximumEntities: Int, tolerance: ModelingTolerance, maximumBytes: Int = 64 * 1024 * 1024) {
+      self.maximumEntities = maximumEntities
+      self.tolerance = tolerance
+      self.maximumBytes = maximumBytes
+    }
 
     mutating func add(_ entity: String) throws -> Int {
+      try Task.checkCancellation()
       guard entities.count < maximumEntities else {
         throw KernelError(
           phase: .exchange,
@@ -1314,6 +1350,14 @@ struct ExactSTEPWriter {
           message: "STEP output exceeds the configured entity limit."
         )
       }
+      let bytes = entity.utf8.count
+      // Reserve the entity marker, decimal identifier, separator, terminator, and line break.
+      let framing = String(entities.count + 1).utf8.count + 5
+      guard framing <= maximumBytes - byteCount, bytes <= maximumBytes - byteCount - framing else {
+        throw KernelError(phase: .exchange, code: .resourceLimitExceeded, tolerance: tolerance,
+            message: "STEP entity table exceeds the configured byte limit.")
+      }
+      byteCount += bytes + framing
       entities.append(entity)
       return entities.count
     }
