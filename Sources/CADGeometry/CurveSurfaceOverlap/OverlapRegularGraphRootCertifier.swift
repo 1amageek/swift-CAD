@@ -146,7 +146,7 @@ struct OverlapRegularGraphRootCertifier: Sendable {
         let vCorrection = Interval.exact(inverse[1][0]) * firstValue + .exact(inverse[1][1]) * secondValue
         guard let padding = (Interval.exact(max(uCorrection.absoluteUpperBound, vCorrection.absoluteUpperBound)) * .exact(2))
             .divided(by: Interval.exact(1) - .exact(q)), padding.isFinite else {
-            throw failure(.resourceLimitExceeded, "A C0 collar has no finite candidate contraction margin.")
+            throw failure(.resourceLimitExceeded, "A knot collar has no finite candidate contraction margin.")
         }
         // One union preconditioner contains both one-sided motions. This is a
         // candidate only; the final box must reproduce strict Krawczyk inclusion.
@@ -234,7 +234,7 @@ struct OverlapRegularGraphRootCertifier: Sendable {
             // route must refuse until all boundary intervals and root identities can
             // be certified without a higher-derivative continuity assumption.
             guard derivative.lower > 0 || derivative.upper < 0 else {
-                throw failure(.unsupportedCapability, "A C0 knot collar requires a proved transverse native-knot passage.")
+                throw failure(.unsupportedCapability, "A knot collar requires a proved transverse native-knot passage.")
             }
         }
         try budget.work(jetWork)

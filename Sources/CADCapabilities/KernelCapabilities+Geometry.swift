@@ -613,6 +613,7 @@ extension KernelCapabilities {
         "retainedRestrictedRigidAndOffsetChartImages",
         "regularNonperiodicRationalGraphWithGlobalRootUniquenessAndTransverseClipping",
         "oneOriginalC0TargetKnotWithOneSidedJacobianHullAndPositionOnlyCollarProof",
+        "oneOriginalC1TargetKnotWithFirstOrderCollarDespiteSecondDerivativeJump",
       ],
       exactOutputs: [
         "completeIsolatedPointsAndCertifiedContinuousIntervalsWithinAdmittedDomains",

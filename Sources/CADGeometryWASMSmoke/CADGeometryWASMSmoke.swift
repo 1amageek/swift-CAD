@@ -90,6 +90,7 @@ struct CADGeometryWASMSmoke {
         try OverlapIsocurveSmoke.verify(tolerance: tolerance)
         try OverlapIsocurveSmoke.verifyRegularGraph(tolerance: tolerance)
         try OverlapIsocurveSmoke.verifyOriginalC0Graph(tolerance: tolerance)
+        try OverlapIsocurveSmoke.verifyOriginalC1Graph(tolerance: tolerance)
         try verifyCommonConversion(tolerance: tolerance)
         try NonManifoldTopologySmoke.verify(tolerance: tolerance)
         try C0SurfaceAreaSmoke.verify()

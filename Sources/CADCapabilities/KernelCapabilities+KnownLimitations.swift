@@ -179,10 +179,10 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapChartBoundaryResolver.swift", sourceLine: 78
         ),
         KernelDomainLimitation(
-            id: "condition-b46c84dcd9648d2f",
+            id: "condition-a97d56be07ad3c22",
             operations: ["curveSurfaceIntersectionResult"],
             dimensions: [.parameterization, .representation],
-            condition: "multiple low-continuity knots, tensor corners and unproved C1 transitions have no complete atlas authority in intersectionResult. They must fail until all owning branches, derivative capabilities and joins are certified.",
+            condition: "multiple low-continuity knots and tensor corners have no complete atlas authority in intersectionResult. They must fail until all owning branches, derivative capabilities and joins are certified.",
             sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphAtlas.swift", sourceLine: 27
         ),
         KernelDomainLimitation(

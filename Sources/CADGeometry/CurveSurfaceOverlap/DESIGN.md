@@ -228,7 +228,7 @@ derivative alone does not override a certified whole-span distance bound.
 Failure to prove either complete admission or this refusal remains typed failure.
 
 Source cells split at every original source knot before Taylor certification.
-A target root tube containing one original C0 U or V knot uses the bounded
+A target root tube containing one original C0 or C1 U or V knot uses the bounded
 collar authority below. Other unproved low-continuity atlas transitions remain
 incomplete and fail explicitly. Within a smooth chart, positive definite symmetric parts of an interval-preconditioned selected
 Jacobian prove global injectivity on the convex hull of all retained UV boxes.
@@ -253,10 +253,10 @@ contain a fresh two-sided quotient enclosure. The common candidate must still
 pass strict Krawczyk inclusion and minor rank for the unchanged Cartesian pair;
 overlap of boxes or candidate enlargement alone is insufficient for a join.
 
-### One Original C0 Target Knot Atlas
+### One Original C0 or C1 Target Knot Atlas
 
 `OverlapRegularGraphAtlas` classifies the closed target proof box as smooth or
-as a collar containing exactly one original C0 knot on one axis. Knot endpoints
+as a collar containing exactly one original C0 or C1 knot on one axis. Knot endpoints
 are included because prepared point/closed-box jets retain every owning patch.
 The validated original B-spline limits interior multiplicity to degree and
 therefore provides C0 continuity. The prepared owner unions every owning native
@@ -271,7 +271,7 @@ existing positive-definite symmetric-part proof of global injectivity.
 | Proof / Cell authority | Derivatives retained | Membership bound |
 |---|---|---|
 | Smooth | Implicit UV and remaining-coordinate derivatives through order three | Original centered Taylor enclosure |
-| Single C0 knot collar | One-sided first UV derivative bounds, valid almost everywhere on the Lipschitz graph | Original source position minus target position over the certified K image |
+| Single C0 or C1 knot collar | One-sided first UV derivative bounds, valid almost everywhere on the Lipschitz graph | Original source position minus target position over the certified K image |
 
 A collar never assumes second/third derivative continuity and never exposes a
 Taylor derivative certificate. Its knot-axis first derivative must exclude
@@ -282,7 +282,16 @@ isolation. The collar joins neighboring cells through the unchanged common-root
 uniqueness proof for the same Cartesian pair. No rounded source parameter is
 treated as the exact native-knot crossing, and no artificial source gap is left.
 
-Candidate tubes containing the C0 knot additionally consume the entire
+Continuity is classified from the original degree minus native knot
+multiplicity. A single C1 knot uses the same conservative first-order collar
+authority as C0: continuity of the first derivative does not imply continuity
+of the second derivative required by the smooth Taylor path. All-owning native
+Jacobian enclosures, strict fresh Krawczyk inclusion, retained point-root image
+localization, positive minor, global injectivity and common-root joins are
+unchanged. Admission changes only the atlas multiplicity gate from C0 to
+C0/C1. It creates no new geometry, decomposition, derivative or budget owner.
+
+Candidate tubes containing the low-continuity knot additionally consume the entire
 one-sided Jacobian hull for their preconditioner hint. A pointwise Jacobian from
 the steeper side can under-size the tube relative to the union contraction.
 Candidate enlargement is still only a hint; strict inclusion, common minor
@@ -291,7 +300,7 @@ mandatory. Source subdivision tightens the position-only collar bound under
 the existing caller budget. Smooth cells and collar cells form one gapless
 cover whose maximum deviation decides complete original-span admission.
 
-Two low-continuity knots, tensor corners, an unproved C1 transition, a minor
+Two low-continuity knots, tensor corners, a minor
 whose union contains zero, and continuous/non-transverse knot coincidence remain
 explicit refusals. This family does not complete general knot atlases or G4.
 All atlas state belongs to immutable original graph owners; no decomposition,
@@ -484,3 +493,24 @@ Requested knot-axis `[0.4,0.55]` retains source `[4/21,141/259]`.
 | Explicit smooth/collar derivative capability | Consuming nonexistent global higher derivatives on a C0 knot |
 | Middle Z control increased by `1/8` | Endpoint or seam coincidence masquerading as whole-span membership |
 | Opposite one-sided minor, tensor corner, continuous knot and budget refusal | Hidden branch/rank change, unsupported atlas success or reset caller limits |
+
+The independent single-C1-knot evidence uses `S(u,v)=(f(u),v,f(u)*v)` with
+`f(u)=u*u` for `u<=0.5` and `f(u)=u*u+(u-0.5)^2` otherwise. Degree `(2,1)`,
+U knots `[0,0,0,0.5,1,1,1]`, V knots `[0,0,1,1]`, unit weights and X controls
+`[0,0,0.5,1.25]` produce lower controls `(x,0,0)` and upper controls `(x,1,x)`.
+The original native knot has multiplicity one. The two owning patches have
+first derivative one at the knot, but second derivatives two and four.
+The independently authored source remains `C=(h,h,h*h)`, `h=t/(1+t)`.
+Its inverse is `u=sqrt(h)` on the left and `u=(1+sqrt(8*h-1))/4` on the right,
+with `v=h`; swapping axes supplies the V-knot case. The crossing is `t=1/3`.
+Requested knot-axis `[0.4,0.55]` retains source `[4/21,61/139]`, while the
+zero-width request `[0.5,0.5]` retains only the isolated point `t=1/3`.
+
+| C1 atlas evidence | Failure identified |
+|---|---|
+| Whole source, both axis orientations, original geometry and owned mutation | Single-C1 native knot rejected, incomplete cover or replacement correspondence |
+| Independent clipped endpoints and zero-width knot crossing | Incorrect source inversion, chart admission or boundary isolation |
+| Native second-derivative jump with first-order-only collar certificate | Treating C1 as a globally smooth Taylor chart |
+| Middle source Z increased by `1/8`, with positive independent deviation | Tolerance subdivision admitting fragments of a non-admitted original span |
+| Constant knot coordinate, multiple low-continuity knots and C1 tensor corner | Unsupported atlas or continuous-boundary success |
+| Caller work/depth/degree/storage limits and cancellation | Reset budgets or hidden fallback during C1 admission |

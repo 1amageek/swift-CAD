@@ -42,6 +42,7 @@ struct KernelCapabilityDomainTests {
         })
         let overlap = try catalog.domain(operation: "curveSurfaceIntersectionResult")
         #expect(overlap.capability.acceptedInputs.contains("oneOriginalC0TargetKnotWithOneSidedJacobianHullAndPositionOnlyCollarProof"))
+        #expect(overlap.capability.acceptedInputs.contains("oneOriginalC1TargetKnotWithFirstOrderCollarDespiteSecondDerivativeJump"))
         #expect(overlap.limitations(affecting: .parameterization).contains {
             $0.sourcePath.hasSuffix("OverlapRegularGraphAtlas.swift")
                 && $0.condition.contains("multiple low-continuity knots")

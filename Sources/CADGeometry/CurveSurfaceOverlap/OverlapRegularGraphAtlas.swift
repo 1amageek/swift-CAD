@@ -24,14 +24,14 @@ enum OverlapRegularGraphAtlas: Sendable, Equatable {
                 while end < knots.count, knots[end] == value { end += 1 }
                 if value >= interval.lower, value <= interval.upper {
                     let continuity = degree - (end - index)
-                    // FIXME(INCOMPLETE_IMPLEMENTATION): multiple low-continuity knots,
-                    // tensor corners and unproved C1 transitions have no complete atlas
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): multiple low-continuity knots
+                    // and tensor corners have no complete atlas
                     // authority in intersectionResult. They must fail until all owning
                     // branches, derivative capabilities and joins are certified.
                     if continuity < 2 {
-                        guard continuity == 0, result.isSmooth else {
+                        guard (continuity == 0 || continuity == 1), result.isSmooth else {
                             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                                message: "The regular graph atlas admits only one original C0 target knot per closed chart box.")
+                                message: "The regular graph atlas admits only one original C0 or C1 target knot per closed chart box.")
                         }
                         result = .collar(axis: axis, knot: value)
                     }

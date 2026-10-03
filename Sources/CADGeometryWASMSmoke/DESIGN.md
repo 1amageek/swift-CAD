@@ -55,6 +55,13 @@ This is an executable resource setting, not an algorithmic fallback or a claim
 about Embedded memory requirements. Any change to the provision must rerun the
 same C0 public measurement and typed-budget fixtures on the matching SDK.
 
+The original-knot known-answer path includes a single C1 quadratic transition
+with a discontinuous second derivative. Its independent piecewise inverse and
+source clipping endpoints are checked on both chart axes using the same public
+owned correspondence and whole-span spatial bound as the C0 path. Input mutation
+must not change retained source authority. This fixture proves only its admitted
+single-knot family on each separately executed target.
+
 ## Verification and Change Impact
 
 Build with Swift 6.4.0 and the matching normal WASM SDK. Execute the exact emitted
