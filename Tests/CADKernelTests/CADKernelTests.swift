@@ -4687,6 +4687,25 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func polySplineGridInterpolatesItsBoundaryAsTheSplineThroughItsVertices() throws {
+        // The grid's natural bicubic spline already passes through every vertex, its boundary
+        // included: Interpolate Boundary Exactly leaves the smooth boundary, not a polyline.
+        func surface(_ interpolated: Bool) throws -> BSplineSurface3D {
+            let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makePolySplinePatchNetworkDocument(
+                centerZ: 0.1, options: PolySplineOptions(mergePatches: false, interpolateBoundaryExactly: interpolated)))
+            return try polySplineSurface(patchID: 0, from: evaluated)
+        }
+        let (exact, approximate) = (try surface(true), try surface(false))
+        for u in [0.0, 0.3, 0.7, 1.0] {
+            for v in [0.0, 0.5, 1.0] {
+                let a = try exact.differentialGeometry(u: u, v: v, tolerance: .standard).position
+                let b = try approximate.differentialGeometry(u: u, v: v, tolerance: .standard).position
+                #expect(a.isApproximatelyEqual(to: b, tolerance: 1e-12))
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func polySplineNonplanarPatchNetworkCreatesC2MultiPatchSheetTopology() throws {
         let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(
             makePolySplinePatchNetworkDocument(

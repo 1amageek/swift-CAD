@@ -309,20 +309,14 @@ package struct ExactPolySplinePatchNetworkReconstructor: Sendable {
             mesh: mesh,
             tolerance: tolerance
         )
-        var controlNets = try naturalBicubicControlNets(
+        // The natural bicubic spline passes through every vertex of the grid, its boundary
+        // included, so Interpolate Boundary Exactly already holds and leaves the nets as they are.
+        let controlNets = try naturalBicubicControlNets(
             points: vertexGrid.points,
             width: width,
             height: height,
             tolerance: tolerance
         )
-        if options.interpolateBoundaryExactly {
-            preservePiecewiseLinearBoundary(
-                controlNets: &controlNets,
-                points: vertexGrid.points,
-                width: width,
-                height: height
-            )
-        }
 
         let candidateByCell = Dictionary(
             uniqueKeysWithValues: normalized.map { ($0.cell, $0) }
@@ -639,74 +633,4 @@ package struct ExactPolySplinePatchNetworkReconstructor: Sendable {
         }
         return result
     }
-
-    private func preservePiecewiseLinearBoundary(
-        controlNets: inout [Cell: [[Point3D]]],
-        points: [[Point3D]],
-        width: Int,
-        height: Int
-    ) {
-        for x in 0..<width {
-            setHorizontalBoundary(
-                in: &controlNets,
-                cell: Cell(x: x, y: 0),
-                row: 0,
-                start: points[0][x],
-                end: points[0][x + 1]
-            )
-            setHorizontalBoundary(
-                in: &controlNets,
-                cell: Cell(x: x, y: height - 1),
-                row: 3,
-                start: points[height][x],
-                end: points[height][x + 1]
-            )
-        }
-        for y in 0..<height {
-            setVerticalBoundary(
-                in: &controlNets,
-                cell: Cell(x: 0, y: y),
-                column: 0,
-                start: points[y][0],
-                end: points[y + 1][0]
-            )
-            setVerticalBoundary(
-                in: &controlNets,
-                cell: Cell(x: width - 1, y: y),
-                column: 3,
-                start: points[y][width],
-                end: points[y + 1][width]
-            )
-        }
-    }
-
-    private func setHorizontalBoundary(
-        in controlNets: inout [Cell: [[Point3D]]],
-        cell: Cell,
-        row: Int,
-        start: Point3D,
-        end: Point3D
-    ) {
-        let chord = end - start
-        controlNets[cell]?[row] = [
-            start,
-            start + chord / 3.0,
-            start + chord * (2.0 / 3.0),
-            end,
-        ]
-    }
-
-    private func setVerticalBoundary(
-        in controlNets: inout [Cell: [[Point3D]]],
-        cell: Cell,
-        column: Int,
-        start: Point3D,
-        end: Point3D
-    ) {
-        let chord = end - start
-        for index in 0..<4 {
-            controlNets[cell]?[index][column] = start + chord * (Double(index) / 3.0)
-        }
-    }
-
 }

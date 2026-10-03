@@ -1139,7 +1139,8 @@ lengthened cylinder and both refusals.
 `PolySplineFeatureEvaluator` turns a triangle mesh into spline patches (Plasticity's PolySplines:
 quad-dominant meshes best, triangles and n-gons handled). A mesh whose paired triangles form a
 rectangular quad grid is the exact bicubic B-spline grid (`ExactPolySplinePatchNetworkReconstructor`,
-merged, rounded and edited as before). Any other valid manifold mesh
+merged, rounded and edited as before), the natural spline through every vertex, its boundary included,
+so Interpolate Boundary Exactly leaves it as it is. Any other valid manifold mesh
 (`PolySplineMeshAnalysisResult.buildsGeneralPatchNetwork`: its only errors say no rectangular grid
 spans it) is built by `PolySplineSubdivisionPatchBuilder`: its paired quads and leftover triangles
 (the triangles as they are when pairing would leave an inner vertex on two faces), refined once by
