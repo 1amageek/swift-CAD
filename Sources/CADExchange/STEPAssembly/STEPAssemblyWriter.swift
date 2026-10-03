@@ -28,7 +28,7 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
             maximumTargets: resourceLimits.maximumEntities, maximumDepth: resourceLimits.maximumNesting,
             maximumTextBytes: resourceLimits.maximumBytes, maximumWork: resourceLimits.maximumIterations)
         let resolved = attributeSource.isEmpty ? nil : try ProductAttributeResolver().resolve(evaluated, limits: attributeLimits)
-        let names = try resolved.map { try attributes.geometryNames(for: evaluated, resolved: $0) }
+        let names = try resolved.map { try attributes.geometryNames(for: evaluated, resolved: $0, limits: resourceLimits) }
         var transfer = STEPAttributeWriteTransfer()
         let budget = ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration)
         let writer = ExactSTEPWriter(resourceLimits: resourceLimits, tolerance: tolerance)

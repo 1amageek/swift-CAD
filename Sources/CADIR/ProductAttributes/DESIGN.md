@@ -4,9 +4,7 @@
 
 This component owns the PARX.X3 persistent source contract for body/face names,
 appearance, layer membership, and physical material assignments on geometry,
-parts, and occurrences. Parent: [CADIR](../DESIGN.md). No children. This is the
-approved design for a new component; production integration and behavioral
-verification are pending. It does not add PMI, mass integration, inter-document
+parts, and occurrences. Parent: [CADIR](../DESIGN.md). No children. It does not add PMI, mass integration, inter-document
 evaluation, or new long-term split/merge reference policies.
 
 ## Responsibilities and Boundaries
@@ -37,7 +35,7 @@ explicit admission decision by the consuming boundary.
 | [Document Assembly](../DocumentAssembly/DESIGN.md) | depends on | Definition identities and complete occurrence paths | Identifies shared parts and particular instances | A final occurrence edge alone is not a nested instance identity |
 | [Product Attribute Resolution](../../CADKernel/ProductAttributeResolution/DESIGN.md) | used by | Source target resolution and effective property provenance | Connects source attachments to evaluated geometry | Derived topology IDs are not persisted targets |
 | [STEP Attributes](../../CADExchange/STEPAttributes/DESIGN.md) | used by | Standard attribute correspondence | Maps admitted source semantics into STEP | Exchange never invents precedence or PBR values |
-| [CADExchange](../../CADExchange/DESIGN.md) | used by | Strict native source admission | Persists this source container | Planned envelope 0.5.0 requires coordinated schema integration |
+| [CADExchange](../../CADExchange/DESIGN.md) | used by | Strict native source admission | Persists this source container | Semantic admission changes require coordinated current-schema validation |
 
 ## Architecture
 
@@ -45,6 +43,8 @@ explicit admission decision by the consuming boundary.
 flowchart LR
     Document[CADDocument] --> Source[ProductAttributes source]
     Source --> Targets[Stable geometry / definition / complete path targets]
+    Targets --> Membership[Optional definition owns referenced FeatureID]
+    Membership --> Instances[All occurrences of selected definition]
     Source --> Appearance[Appearance assignments and explicit overrides]
     Source --> Layers[Layer membership sets]
     Source --> Physical[Physical material descriptors and assignments]
@@ -55,7 +55,7 @@ flowchart LR
 
 ## Contracts and Invariants
 
-- The integration envelope is explicitly 0.5.0. Encoded documents require a
+- The current envelope is owned by [CADCore](../../CADCore/DESIGN.md). Encoded documents require a
   non-null `productAttributes` container, including an explicitly empty value.
   Older envelopes, missing fields, unknown keys/discriminators, and malformed
   payloads fail; no default or migration is inferred during decoding. The
@@ -63,7 +63,15 @@ flowchart LR
 - Body/face targets use existing StableSubshapeReference source identity and
   signature, with the required topology kind. A source-geometry assignment
   applies where that real feature-owned geometry is used, or may be restricted
-  to an explicit complete occurrence path;
+  to one explicit definition or an explicit complete occurrence path. The two
+  selectors are mutually exclusive, and a geometry target has no usage selector.
+  A selected definition must exist and contain the geometry reference's FeatureID;
+  its definition and feature membership scans consume the caller's cumulative
+  work ceiling before traversal. A definition selector applies to every occurrence
+  of that definition, including body-to-face inheritance, while excluding other
+  definitions that reuse the same geometry feature. Absence of both selectors
+  retains the existing global geometry semantics. This rule is identical for
+  properties, names, and layer membership;
   restriction never rewrites its source reference to a world UUID. Part targets
   use AssemblyDefinitionID; instance targets use AssemblyOccurrencePath. Source
   validation checks feature/definition/path existence and geometry-reference
@@ -110,7 +118,7 @@ owned source values -> preflight counts -> validate identities/targets/domains
  -> bounded override/reference traversal -> complete validated document
 
 source edit -> copied document -> complete source validation -> publish copy
-native decode -> strict 0.5.0 envelope -> typed source validation -> owned source
+native decode -> strict current envelope -> typed source validation -> owned source
 ```
 
 ## State, Ownership, and Lifecycle
@@ -134,11 +142,17 @@ place of an invalid source.
 
 ## Verification and Change Impact
 
-Planned [ProductAttributesTests](../../../Tests/CADIRTests/ProductAttributesTests.swift)
+[ProductAttributesTests](../../../Tests/CADIRTests/ProductAttributesTests.swift)
 own typed value/unit domains, target/path structure, property-specific overrides,
 ambiguity/cycle/deletion refusal, cumulative bounds, cancellation, strict coding,
-and equality/fingerprint changes. Native tests must exercise public in-memory
-and URL persistence, rejection of pre-0.5.0/missing/unknown payloads, and atomic
+and equality/fingerprint changes. Definition-qualified tests use one real feature
+referenced by two definitions and retain that common owner through coding. The
+[native scope tests](../../../Tests/CADExchangeTests/ProductAttributesNativeScopeTests.swift)
+exercise public in-memory and URL persistence, prior-version refusal, foreign
+definition membership, mutually exclusive selectors, and atomic failure. Source
+admission does not certify STEP transport of the new selector: its consumer must
+refuse until standard ingress/egress retains the same definition scope.
+Native tests also cover missing/unknown payloads and atomic
 failure. Changes require rechecking CADDocument full/fast validation, schema
 admission, DocumentAssembly, ProductAttributeResolution, and STEPAttributes.
 Parent indices and the baseline update belong to the integration owner.

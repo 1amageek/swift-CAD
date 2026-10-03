@@ -49,7 +49,7 @@ public struct STEPExchange: Sendable {
                 maximumDepth: resourceLimits.maximumNesting, maximumTextBytes: resourceLimits.maximumBytes,
                 maximumWork: resourceLimits.maximumIterations))
             let attributes = STEPAttributesWriter()
-            let names = try attributes.geometryNames(for: evaluated, resolved: resolved)
+            let names = try attributes.geometryNames(for: evaluated, resolved: resolved, limits: resourceLimits)
             let writer = ExactSTEPWriter(resourceLimits: resourceLimits, tolerance: tolerance)
             var table = ExactSTEPWriter.EntityTable(maximumEntities: resourceLimits.maximumEntities,
                 tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes, maximumStringWork: resourceLimits.maximumIterations)

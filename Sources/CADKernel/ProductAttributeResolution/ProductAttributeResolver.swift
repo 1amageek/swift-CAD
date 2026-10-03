@@ -123,6 +123,7 @@ public struct ProductAttributeResolver: ProductAttributeResolving {
             case .occurrence: return target.path == world.path
             case .directUsage: return target.usageID == world.path?.components.last
             case .body, .face:
+                if let definition = target.definitionID, definition != world.definitionID { return false }
                 guard target.geometry?.subshapeID.featureID == featureID, let topology = localGeometry[target], let localTopology else { return false }
                 if topology == localTopology { return true }
                 if property == .name { return false }

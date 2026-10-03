@@ -9,6 +9,96 @@ import CADTopology
 
 @Suite("STEP product attribute public interchange")
 struct STEPAttributesExchangeTests {
+    @Test(.timeLimit(.minutes(1)))
+    func definitionQualifiedGeometryRefusesSTEPProjectionAndPreservesURLDestination() throws {
+        let featureID = FeatureID()
+        let feature = FeatureNode(id: featureID, operation: .primitive(PrimitiveFeature(definition: .box(BoxPrimitive(
+            width: .constant(.length(1, unit: .meter)), depth: .constant(.length(2, unit: .meter)),
+            height: .constant(.length(3, unit: .meter)))))), outputs: [FeatureOutput(role: .body)])
+        let product = AssemblyProduct(name: "qualified source"), formation = AssemblyProductFormation(productID: product.id)
+        let selected = AssemblyDefinition(formationID: formation.id, features: [featureID])
+        let other = AssemblyDefinition(formationID: formation.id, features: [featureID])
+        var source = CADDocument(units: .meters, designGraph: DesignGraph(nodes: [featureID: feature], order: [featureID]),
+            assembly: DocumentAssembly(products: [product], formations: [formation], definitions: [selected, other], roots: [
+                AssemblyOccurrence(definitionID: selected.id), AssemblyOccurrence(definitionID: other.id)]))
+        let evaluator = DocumentEvaluator(tolerance: .standard), resolver = ProductAttributeResolver()
+        let base = try evaluator.evaluateExact(source), local = try #require(base.assembly?.local)
+        let bodyKey = try #require(local.subshapes.entries.keys.sorted().first { key in
+            if let topology = local.subshapes.entries[key], case .body = topology { return true }; return false
+        })
+        let faceKey = try #require(local.subshapes.entries.keys.sorted().first { key in
+            if let topology = local.subshapes.entries[key], case .face = topology { return true }; return false
+        })
+        let body = ProductAttributeTarget(kind: .body, geometry: try resolver.sourceReference(for: bodyKey, in: base), definitionID: selected.id)
+        let face = ProductAttributeTarget(kind: .face, geometry: try resolver.sourceReference(for: faceKey, in: base), definitionID: selected.id)
+        let variants = [ProductAttributes(assignments: [ProductAttributeAssignment(target: body, value: .name("selected body"))]),
+            ProductAttributes(assignments: [ProductAttributeAssignment(target: face, value: .density(PhysicalDensity(kilogramsPerCubicMeter: 1000)))]),
+            ProductAttributes(layers: [ProductLayer(name: "selected faces", members: [face])])]
+        let failure = ProductAttributeError.unsupportedSemantics("Definition-qualified geometry requires scope-preserving STEP transport.")
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { do { try FileManager.default.removeItem(at: directory) } catch { Issue.record("Unable to remove STEP scope fixture directory: \(error)") } }
+        let url = directory.appendingPathComponent("scope.step"), original = Data("existing complete STEP destination".utf8)
+        try original.write(to: url)
+        for attributes in variants {
+            source.productAttributes = attributes
+            let native = DataByteSink(), store = NativePackageStore(tolerance: .standard)
+            try store.writePackage(for: source, to: native)
+            let restored = try store.loadDocument(from: native.bytes)
+            #expect(restored == source && restored.schemaVersion == SchemaVersion(major: 0, minor: 8, patch: 0))
+            let evaluated = try evaluator.evaluate(restored), resolved = try resolver.resolve(evaluated)
+            let writer: any STEPAttributesWriting = STEPAttributesWriter()
+            #expect(resolved.consumedWork > 1)
+            let lowCeiling = ExchangeResourceLimits(maximumIterations: 1)
+            let exhaustedByResolution = ExchangeResourceLimits(maximumIterations: resolved.consumedWork)
+            for ceiling in [lowCeiling, exhaustedByResolution] {
+                #expect(throws: ProductAttributeError.resourceLimitExceeded("Cumulative product attribute budget.")) {
+                    _ = try writer.geometryNames(for: evaluated, resolved: resolved, limits: ceiling)
+                }
+                #expect(throws: ProductAttributeError.resourceLimitExceeded("Cumulative product attribute budget.")) {
+                    _ = try writer.records(for: evaluated, resolved: resolved, transfer: STEPAttributeWriteTransfer(), startingAt: 1, limits: ceiling)
+                }
+            }
+            let boundedSink = DataByteSink()
+            #expect(throws: ProductAttributeError.resourceLimitExceeded("Cumulative product attribute budget.")) {
+                try STEPExchange(tolerance: .standard, resourceLimits: exhaustedByResolution).write(evaluated, to: boundedSink)
+            }
+            #expect(boundedSink.bytes.isEmpty)
+            if attributes.assignments.isEmpty {
+                // Visiting the layer consumes one work unit; its scoped member requires a second.
+                let memberCeiling = ExchangeResourceLimits(maximumIterations: resolved.consumedWork + 1)
+                #expect(throws: ProductAttributeError.resourceLimitExceeded("Cumulative product attribute budget.")) {
+                    _ = try writer.geometryNames(for: evaluated, resolved: resolved, limits: memberCeiling)
+                }
+                #expect(throws: ProductAttributeError.resourceLimitExceeded("Cumulative product attribute budget.")) {
+                    _ = try writer.records(for: evaluated, resolved: resolved, transfer: STEPAttributeWriteTransfer(), startingAt: 1, limits: memberCeiling)
+                }
+            }
+            #expect(throws: failure) { _ = try writer.geometryNames(for: evaluated, resolved: resolved, limits: .standard) }
+            #expect(throws: failure) {
+                _ = try writer.records(for: evaluated, resolved: resolved, transfer: STEPAttributeWriteTransfer(), startingAt: 1, limits: .standard)
+            }
+            let sink = DataByteSink()
+            #expect(throws: failure) { try STEPExchange(tolerance: .standard).write(evaluated, to: sink) }
+            #expect(sink.bytes.isEmpty)
+            let facade = OfficialFormatExchange(tolerance: .standard)
+            #expect(throws: failure) { try facade.write(evaluated, as: .step, to: sink) }
+            #expect(sink.bytes.isEmpty)
+            #expect(throws: failure) { try facade.export(evaluated, as: .step, to: url) }
+            #expect(try Data(contentsOf: url) == original)
+        }
+        // The ordinary public route must also forward the caller ceiling to name projection.
+        var ordinary = CADDocument(units: .meters, designGraph: source.designGraph)
+        ordinary.productAttributes = ProductAttributes(assignments: [ProductAttributeAssignment(
+            target: ProductAttributeTarget(kind: .body, geometry: body.geometry), value: .name("global ordinary name"))])
+        let ordinaryEvaluated = try evaluator.evaluate(ordinary), ordinaryResolved = try resolver.resolve(ordinaryEvaluated)
+        let ordinarySink = DataByteSink()
+        #expect(throws: ProductAttributeError.resourceLimitExceeded("Cumulative product attribute budget.")) {
+            try STEPExchange(tolerance: .standard,
+                resourceLimits: ExchangeResourceLimits(maximumIterations: ordinaryResolved.consumedWork)).write(ordinaryEvaluated, to: ordinarySink)
+        }
+        #expect(ordinarySink.bytes.isEmpty)
+    }
     private func imported(_ text: String = Self.independentFixture) throws -> CADDocument {
         let result = try STEPExchange(tolerance: .standard).import(Data(text.utf8))
         return try #require(result.document)

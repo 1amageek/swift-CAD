@@ -5,6 +5,56 @@ import CADCore
 
 @Suite("Typed product attribute source contracts")
 struct ProductAttributesTests {
+    private func sharedGeometryFixture() -> (CADDocument, StableSubshapeReference, AssemblyDefinitionID) {
+        let featureID = FeatureID()
+        let feature = FeatureNode(id: featureID, operation: .primitive(PrimitiveFeature(definition: .box(BoxPrimitive(
+            width: .constant(.length(1, unit: .meter)), depth: .constant(.length(2, unit: .meter)),
+            height: .constant(.length(3, unit: .meter)))))), outputs: [FeatureOutput(role: .body)])
+        let product = AssemblyProduct(name: "shared geometry")
+        let formation = AssemblyProductFormation(productID: product.id)
+        let selected = AssemblyDefinition(formationID: formation.id, identifier: "selected", features: [featureID])
+        let other = AssemblyDefinition(formationID: formation.id, identifier: "other", features: [featureID])
+        let document = CADDocument(units: .meters, designGraph: DesignGraph(nodes: [featureID: feature], order: [featureID]),
+            assembly: DocumentAssembly(products: [product], formations: [formation], definitions: [selected, other], roots: [
+                AssemblyOccurrence(definitionID: selected.id), AssemblyOccurrence(definitionID: other.id),
+                AssemblyOccurrence(definitionID: selected.id)]))
+        let reference = StableSubshapeReference(subshapeID: SubshapeID(featureID: featureID, role: "face", ordinal: 0),
+            geometrySignature: .untrimmedPlane(origin: .origin))
+        return (document, reference, selected.id)
+    }
+    @Test(.timeLimit(.minutes(1)))
+    func definitionQualifiedGeometryPersistsItsDistinctSourceScope() throws {
+        var (document, reference, selected) = sharedGeometryFixture()
+        let target = ProductAttributeTarget(kind: .face, geometry: reference, definitionID: selected)
+        let assignment = ProductAttributeAssignment(target: target, value: .density(PhysicalDensity(kilogramsPerCubicMeter: 1000)))
+        document.productAttributes = ProductAttributes(assignments: [assignment],
+            layers: [ProductLayer(name: "selected definition", members: [target])])
+        // Admission retains one selected definition without replacing the common geometry owner.
+        try document.validateProductAttributes()
+        let restored = try JSONDecoder().decode(CADDocument.self, from: JSONEncoder().encode(document))
+        #expect(restored == document)
+        #expect(restored.productAttributes.assignments[0].target.definitionID == selected)
+        let scopedFingerprint = try document.sourceFingerprint(tolerance: .standard)
+        document.productAttributes.assignments[0] = ProductAttributeAssignment(id: assignment.id,
+            target: ProductAttributeTarget(kind: .face, geometry: reference), value: assignment.value)
+        #expect(try document.sourceFingerprint(tolerance: .standard) != scopedFingerprint)
+    }
+    @Test(.timeLimit(.minutes(1)))
+    func definitionQualifiedGeometryRequiresMembershipAndOneScopeSelector() throws {
+        var (document, reference, selected) = sharedGeometryFixture()
+        document.assembly?.definitions[0].features = []
+        let target = ProductAttributeTarget(kind: .face, geometry: reference, definitionID: selected)
+        document.productAttributes = ProductAttributes(assignments: [ProductAttributeAssignment(target: target, value: .opacity(0.5))])
+        do {
+            try document.validateProductAttributes()
+            Issue.record("A definition accepted geometry owned only by another definition.")
+        } catch let error as ProductAttributeError {
+            guard case .missingTarget = error else { Issue.record("Foreign geometry membership was misclassified: \(error)"); return }
+        }
+        let path = AssemblyOccurrencePath([try #require(document.assembly?.roots.first?.id)])
+        let conflicting = ProductAttributeTarget(kind: .face, geometry: reference, definitionID: selected, path: path)
+        #expect(throws: ProductAttributeError.invalidSource("Geometry target has invalid payload.")) { try conflicting.validate() }
+    }
     private func fixture() -> (CADDocument, ProductAttributeTarget) {
         let products = [AssemblyProduct(name: "leaf"), AssemblyProduct(name: "middle"), AssemblyProduct(name: "outer")]
         let formations = products.map { AssemblyProductFormation(productID: $0.id) }

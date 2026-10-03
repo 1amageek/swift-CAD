@@ -7,6 +7,140 @@ import CADTopology
 
 @Suite("Product attribute local/world resolution")
 struct ProductAttributeResolutionTests {
+    private func sharedGeometryFixture() -> (CADDocument, AssemblyDefinitionID, AssemblyDefinitionID) {
+        let featureID = FeatureID()
+        let feature = FeatureNode(id: featureID, operation: .primitive(PrimitiveFeature(definition: .box(BoxPrimitive(
+            width: .constant(.length(1, unit: .meter)), depth: .constant(.length(2, unit: .meter)),
+            height: .constant(.length(3, unit: .meter)))))), outputs: [FeatureOutput(role: .body)])
+        let product = AssemblyProduct(name: "shared geometry")
+        let formation = AssemblyProductFormation(productID: product.id)
+        let selected = AssemblyDefinition(formationID: formation.id, identifier: "selected", features: [featureID])
+        let other = AssemblyDefinition(formationID: formation.id, identifier: "other", features: [featureID])
+        let roots = [AssemblyOccurrence(definitionID: selected.id),
+            AssemblyOccurrence(definitionID: other.id, placement: .translated(by: Vector3D(x: 5, y: 0, z: 0))),
+            AssemblyOccurrence(definitionID: selected.id, placement: .translated(by: Vector3D(x: 10, y: 0, z: 0)))]
+        return (CADDocument(units: .meters, designGraph: DesignGraph(nodes: [featureID: feature], order: [featureID]),
+            assembly: DocumentAssembly(products: [product], formations: [formation], definitions: [selected, other], roots: roots)),
+            selected.id, other.id)
+    }
+    @Test(.timeLimit(.minutes(1)))
+    func definitionQualifiedSharedGeometryReachesEverySelectedInstanceOnly() throws {
+        var (document, selected, other) = sharedGeometryFixture()
+        let evaluator = DocumentEvaluator(tolerance: .standard), resolver: any ProductAttributeResolving = ProductAttributeResolver()
+        let base = try evaluator.evaluateExact(document), local = try #require(base.assembly?.local)
+        #expect(document.designGraph.nodes.count == 1 && local.model.bodies.count == 1)
+        let bodyKey = try #require(local.subshapes.entries.keys.sorted().first { key in
+            if let topology = local.subshapes.entries[key], case .body = topology { return true }; return false
+        })
+        let faceKey = try #require(local.subshapes.entries.keys.sorted().first { key in
+            if let topology = local.subshapes.entries[key], case .face = topology { return true }; return false
+        })
+        let body = try resolver.sourceReference(for: bodyKey, in: base)
+        let face = try resolver.sourceReference(for: faceKey, in: base)
+        let selectedBody = ProductAttributeTarget(kind: .body, geometry: body, definitionID: selected)
+        let otherBody = ProductAttributeTarget(kind: .body, geometry: body, definitionID: other)
+        let selectedFace = ProductAttributeTarget(kind: .face, geometry: face, definitionID: selected)
+        let otherFace = ProductAttributeTarget(kind: .face, geometry: face, definitionID: other)
+        let firstDensity = ProductAttributeAssignment(target: selectedBody, value: .density(PhysicalDensity(kilogramsPerCubicMeter: 1000)))
+        let secondDensity = ProductAttributeAssignment(target: otherBody, value: .density(PhysicalDensity(kilogramsPerCubicMeter: 2000)))
+        let selectedName = ProductAttributeAssignment(target: selectedFace, value: .name("selected face"))
+        let otherName = ProductAttributeAssignment(target: otherFace, value: .name("other face"))
+        let globalOpacity = ProductAttributeAssignment(target: ProductAttributeTarget(kind: .body, geometry: body), value: .opacity(0.3))
+        let layer = ProductLayer(name: "selected geometry", members: [selectedBody])
+        document.productAttributes = ProductAttributes(assignments: [firstDensity, secondDensity, selectedName, otherName, globalOpacity], layers: [layer])
+        let evaluated = try evaluator.evaluateExact(document), resolved = try resolver.resolve(evaluated, limits: .standard)
+        let artifact = try #require(evaluated.assembly)
+        #expect(artifact.local == local && artifact.occurrences.count == 3 && evaluated.brep.bodies.count == 3)
+        #expect(artifact.occurrences.filter { $0.definitionID == selected }.count == 2)
+        #expect(artifact.occurrences.filter { $0.definitionID == other }.count == 1)
+        for occurrence in artifact.occurrences {
+            let feature = try #require(occurrence.features.first)
+            let isSelected = occurrence.definitionID == selected
+            let density = isSelected ? firstDensity : secondDensity
+            let name = isSelected ? selectedName : otherName
+            for worldBody in feature.bodies.values {
+                let properties = try #require(resolved.values[ResolvedProductTarget(topology: .body(worldBody),
+                    definitionID: occurrence.definitionID, path: occurrence.path)])
+                #expect(properties.properties[.density]?.value == density.value)
+                #expect(properties.properties[.density]?.assignmentChain == [density.id])
+                #expect(properties.properties[.opacity]?.value == globalOpacity.value)
+                #expect(properties.layers.contains(layer.id) == isSelected)
+            }
+            let topology = try #require(local.subshapes.entries[faceKey])
+            guard case let .face(localFace) = topology else { Issue.record("Fixture face correspondence has wrong kind."); return }
+            let worldFace = try #require(feature.faces[localFace])
+            let properties = try #require(resolved.values[ResolvedProductTarget(topology: .face(worldFace),
+                definitionID: occurrence.definitionID, path: occurrence.path)])
+            #expect(properties.properties[.name]?.value == name.value)
+            #expect(properties.properties[.density]?.value == density.value)
+            #expect(properties.layers.contains(layer.id) == isSelected)
+        }
+    }
+    @Test(.timeLimit(.minutes(1)))
+    func definitionGeometryScopeRejectsForeignMembershipCompetingScopesAndStaleReceipts() throws {
+        var (document, selected, other) = sharedGeometryFixture()
+        let evaluator = DocumentEvaluator(tolerance: .standard), resolver = ProductAttributeResolver()
+        let base = try evaluator.evaluateExact(document), local = try #require(base.assembly?.local)
+        let faceKey = try #require(local.subshapes.entries.keys.sorted().first { key in
+            if let topology = local.subshapes.entries[key], case .face = topology { return true }; return false
+        })
+        let reference = try resolver.sourceReference(for: faceKey, in: base)
+        let scoped = ProductAttributeTarget(kind: .face, geometry: reference, definitionID: selected)
+        let path = try #require(base.assembly?.occurrences.first { $0.definitionID == selected }?.path)
+        let bothScopes = ProductAttributeTarget(kind: .face, geometry: reference, definitionID: selected, path: path)
+        #expect(throws: ProductAttributeError.invalidSource("Geometry target has invalid payload.")) { try bothScopes.validate() }
+        let assignment = ProductAttributeAssignment(target: scoped, value: .opacity(0.4))
+        document.productAttributes = ProductAttributes(assignments: [assignment])
+        var foreign = document
+        foreign.assembly?.definitions[0].features = []
+        do {
+            _ = try evaluator.evaluateExact(foreign)
+            Issue.record("Definition-qualified geometry resolved through another definition's feature membership.")
+        } catch let error as ProductAttributeError {
+            if case .missingTarget = error {} else { Issue.record("Foreign membership was misclassified: \(error)") }
+        }
+        let fresh = try evaluator.evaluateExact(document)
+        _ = try resolver.resolve(fresh)
+        do {
+            _ = try resolver.resolve(fresh, limits: ProductAttributeLimits(maximumWork: 1))
+            Issue.record("Definition-qualified attribute resolution ignored its work ceiling.")
+        } catch let error as ProductAttributeError {
+            if case .resourceLimitExceeded = error {} else { Issue.record("Work failure was misclassified: \(error)") }
+        }
+        var changed = document
+        changed.productAttributes.assignments[0] = ProductAttributeAssignment(id: assignment.id,
+            target: ProductAttributeTarget(kind: .face, geometry: reference, definitionID: other), value: assignment.value)
+        var stale = EvaluatedDocument(document: changed, parameters: fresh.parameters, brep: fresh.brep,
+            meshes: fresh.meshes, caches: fresh.caches, subshapes: fresh.subshapes, lineage: fresh.lineage,
+            configuration: fresh.configuration, assembly: fresh.assembly)
+        stale.validatedSourceReceipt = fresh.validatedSourceReceipt; stale.validatedBRep = fresh.validatedBRep
+        #expect(throws: ProductAttributeError.inconsistentArtifact("Missing or stale producer source/exact B-rep association.")) {
+            _ = try resolver.resolve(stale)
+        }
+        _ = try resolver.resolve(evaluator.evaluateExact(changed))
+        // A narrower scope has no implicit precedence over a common geometry assignment.
+        document.productAttributes.assignments.append(ProductAttributeAssignment(
+            target: ProductAttributeTarget(kind: .face, geometry: reference), value: .opacity(0.8)))
+        #expect(throws: ProductAttributeError.ambiguousProperty("opacity")) {
+            _ = try resolver.resolve(evaluator.evaluateExact(document))
+        }
+        let global = document.productAttributes.assignments[1]
+        document.productAttributes.assignments[0] = ProductAttributeAssignment(id: assignment.id,
+            target: scoped, value: assignment.value, overrides: global.id)
+        let overridden = try resolver.resolve(evaluator.evaluateExact(document))
+        let selectedValues = overridden.values.filter { key, value in
+            key.definitionID == selected && value.properties[.opacity] != nil
+        }
+        let otherValues = overridden.values.filter { key, value in
+            key.definitionID == other && value.properties[.opacity] != nil
+        }
+        #expect(selectedValues.count == 2 && selectedValues.values.allSatisfy {
+            $0.properties[.opacity]?.value == assignment.value && $0.properties[.opacity]?.assignmentChain == [global.id, assignment.id]
+        })
+        #expect(otherValues.count == 1 && otherValues.values.allSatisfy {
+            $0.properties[.opacity]?.value == global.value && $0.properties[.opacity]?.assignmentChain == [global.id]
+        })
+    }
     private func fixture(depth: Int = 2) -> CADDocument {
         let id = FeatureID()
         let feature = FeatureNode(id: id, operation: .primitive(PrimitiveFeature(definition: .box(BoxPrimitive(

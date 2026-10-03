@@ -4,26 +4,20 @@ import CADKernel
 
 public struct STEPAttributesWriter: STEPAttributesWriting {
     public init() {}
-    public func geometryNames(for evaluated: EvaluatedDocument, resolved: ResolvedProductAttributes) throws -> STEPGeometryAttributeNames {
-        var bodies: [BodyID: String] = [:], faces: [FaceID: String] = [:]
-        var overridden = Set<ProductAttributeID>()
-        for assignment in evaluated.document.productAttributes.assignments where assignment.value.property == .name {
-            if let predecessor = assignment.overrides { overridden.insert(predecessor) }
+    public func geometryNames(for evaluated: EvaluatedDocument, resolved: ResolvedProductAttributes,
+                              limits: ExchangeResourceLimits) throws -> STEPGeometryAttributeNames {
+        try limits.validate()
+        guard resolved.documentID == evaluated.document.id else {
+            throw ProductAttributeError.invalidSource("Invalid STEP attribute transfer association.")
         }
-        for assignment in evaluated.document.productAttributes.assignments where !overridden.contains(assignment.id) {
-            guard case let .name(name) = assignment.value else { continue }
-            guard assignment.target.path == nil, let topology = resolved.localGeometry[assignment.target] else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): Context-specific geometry names are not yet emitted by the public STEP writer.
-                // STEPExchange and OfficialFormatExchange must refuse until a standard contextual name target preserves the complete path.
-                throw ProductAttributeError.unsupportedSemantics("Context-specific geometry names require a standard equivalent target.")
-            }
-            switch topology {
-            case let .body(id): bodies[id] = name
-            case let .face(id): faces[id] = name
-            default: throw ProductAttributeError.invalidSource("Unsupported named geometry kind.")
-            }
-        }
-        return STEPGeometryAttributeNames(bodies: bodies, faces: faces)
+        var builder = Builder(evaluated: evaluated, resolved: resolved, transfer: STEPAttributeWriteTransfer(), startingAt: 1,
+            limits: limits, budget: try ProductAttributeBudget(limits: ProductAttributeLimits(maximumRecords: limits.maximumEntities,
+                maximumTargets: limits.maximumEntities, maximumDepth: limits.maximumNesting,
+                maximumTextBytes: limits.maximumBytes, maximumWork: limits.maximumIterations)),
+            duration: ExchangeProcessingBudget(maximumDuration: limits.maximumProcessingDuration))
+        try builder.budget.charge(work: resolved.consumedWork)
+        try builder.validateGeometryScope()
+        return try builder.geometryNames()
     }
     public func records(for evaluated: EvaluatedDocument, resolved: ResolvedProductAttributes,
                         transfer: STEPAttributeWriteTransfer, startingAt: Int, limits: ExchangeResourceLimits) throws -> [String] {
@@ -37,11 +31,19 @@ public struct STEPAttributesWriter: STEPAttributesWriting {
                 maximumTextBytes: limits.maximumBytes, maximumWork: limits.maximumIterations)),
             duration: ExchangeProcessingBudget(maximumDuration: limits.maximumProcessingDuration))
         try builder.budget.charge(work: resolved.consumedWork)
+        try builder.validateGeometryScope()
         return try builder.write()
     }
 }
 
 private extension STEPAttributesWriter {
+    static func validateGeometryTarget(_ target: ProductAttributeTarget) throws {
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEPExchange and OfficialFormatExchange export cannot retain definition-qualified body/face scopes yet.
+        // Shared representation and PD-qualified standard ingress/egress must preserve the source selector before names, properties or layers can be emitted.
+        guard !((target.kind == .body || target.kind == .face) && target.definitionID != nil) else {
+            throw ProductAttributeError.unsupportedSemantics("Definition-qualified geometry requires scope-preserving STEP transport.")
+        }
+    }
     struct Builder {
         let evaluated: EvaluatedDocument
         let resolved: ResolvedProductAttributes
@@ -55,6 +57,51 @@ private extension STEPAttributesWriter {
         var building = Set<ProductAttributeID>()
         var targetStyles: [ProductAttributeTarget: [Int]] = [:]
         var shapeAspects: [ProductAttributeTarget: [Int]] = [:]
+        mutating func check(_ work: Int = 1) throws {
+            try duration.check(format: .step); try budget.charge(work: work)
+        }
+        mutating func validateGeometryScope() throws {
+            for assignment in evaluated.document.productAttributes.assignments {
+                try check()
+                try STEPAttributesWriter.validateGeometryTarget(assignment.target)
+            }
+            for layer in evaluated.document.productAttributes.layers {
+                try check()
+                for member in layer.members {
+                    try check()
+                    try STEPAttributesWriter.validateGeometryTarget(member)
+                }
+            }
+        }
+        mutating func geometryNames() throws -> STEPGeometryAttributeNames {
+            var bodies: [BodyID: String] = [:], faces: [FaceID: String] = [:]
+            var overridden = Set<ProductAttributeID>()
+            for assignment in evaluated.document.productAttributes.assignments {
+                try check()
+                if assignment.value.property == .name, let predecessor = assignment.overrides, !overridden.contains(predecessor) {
+                    try budget.charge(targets: 1); overridden.insert(predecessor)
+                }
+            }
+            for assignment in evaluated.document.productAttributes.assignments {
+                try check()
+                guard !overridden.contains(assignment.id), case let .name(name) = assignment.value else { continue }
+                guard assignment.target.path == nil, let topology = resolved.localGeometry[assignment.target] else {
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): Context-specific geometry names are not yet emitted by the public STEP writer.
+                    // STEPExchange and OfficialFormatExchange must refuse until a standard contextual name target preserves the complete path.
+                    throw ProductAttributeError.unsupportedSemantics("Context-specific geometry names require a standard equivalent target.")
+                }
+                switch topology {
+                case let .body(id):
+                    if bodies[id] == nil { try budget.charge(targets: 1) }
+                    bodies[id] = name
+                case let .face(id):
+                    if faces[id] == nil { try budget.charge(targets: 1) }
+                    faces[id] = name
+                default: throw ProductAttributeError.invalidSource("Unsupported named geometry kind.")
+                }
+            }
+            return STEPGeometryAttributeNames(bodies: bodies, faces: faces)
+        }
         mutating func string(_ value: String) throws -> String {
             try duration.check(format: .step)
             let encoded = try STEPStringCodec().encode(value, limits: STEPStringLimits(

@@ -56,6 +56,25 @@ flowchart LR
 
 ## Contracts and Invariants
 
+- Native definition-qualified body/face attachments are valid source values but
+  are not yet admitted by public STEP export. Both geometry-name projection and
+  attribute-record production preflight every assignment and layer member before
+  writing common geometry keys or exporting records. Such a target fails with
+  typed unsupported semantics until shared representation and PD-qualified
+  standard ingress/egress preserve its complete scope. Existing global geometry,
+  occurrence-path and part targets keep their current admission contracts. This
+  boundary refuses atomic memory/URL export rather than turning a definition
+  selector into a global geometry attribute. A successful lower source or resolver
+  proof does not establish this unfinished STEP composition.
+- Both geometry-name projection and record production require the caller's
+  ExchangeResourceLimits. They initialize the existing Writer Builder's cumulative
+  product budget and duration, admit the resolved view's consumed work, and charge
+  work/check duration before each assignment, layer and layer-member preflight visit.
+  Name-map passes and index/result growth consume that same operation budget.
+  There is no separate private allowance or implicit default ceiling. A ceiling
+  exhausted by resolution fails as a resource error before unsupported-scope
+  inspection; public STEP writers forward their admitted exchange limits.
+
 - Public ordinary and assembly STEP routes use the same attribute admission.
   A real PRODUCT_DEFINITION with retained part names or part properties needs
   a persistent AssemblyDefinition source owner even for a single unplaced

@@ -109,7 +109,15 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
         if let id = target.definitionID {
             guard let assembly = document.assembly else { throw ProductAttributeError.missingTarget("Part definition source.") }
             try budget.charge(work: assembly.definitions.count)
-            guard assembly.definitions.contains(where: { $0.id == id }) else { throw ProductAttributeError.missingTarget("Part definition.") }
+            guard let definition = assembly.definitions.first(where: { $0.id == id }) else {
+                throw ProductAttributeError.missingTarget("Part definition.")
+            }
+            if let geometry = target.geometry {
+                try budget.charge(work: definition.features.count)
+                guard definition.features.contains(geometry.subshapeID.featureID) else {
+                    throw ProductAttributeError.missingTarget("Geometry is not owned by the selected definition.")
+                }
+            }
         }
         if let usage = target.usageID {
             guard let assembly = document.assembly else { throw ProductAttributeError.missingTarget("Direct usage source.") }

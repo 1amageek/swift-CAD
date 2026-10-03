@@ -14,7 +14,9 @@ public struct ProductAttributeTarget: Codable, Hashable, Sendable {
     public func validate() throws {
         switch kind {
         case .body, .face:
-            guard let geometry, definitionID == nil, usageID == nil else { throw ProductAttributeError.invalidSource("Geometry target has invalid payload.") }
+            guard let geometry, usageID == nil, definitionID == nil || path == nil else {
+                throw ProductAttributeError.invalidSource("Geometry target has invalid payload.")
+            }
             try geometry.validate()
             switch (kind, geometry.geometrySignature) {
             case (.body, .body), (.face, .face): break

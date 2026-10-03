@@ -4,8 +4,7 @@
 
 This component owns PARX.X3 read-only resolution of persistent product attribute
 targets into an evaluated local/world snapshot and property-specific provenance.
-Parent: [CADKernel](../DESIGN.md). No children. This approved component design
-precedes production integration and behavioral verification. It does not change
+Parent: [CADKernel](../DESIGN.md). No children. It does not change
 feature evaluation, topology lineage, persistent split/merge policy, geometry,
 mesh shaders, or mass/volume integration.
 
@@ -73,7 +72,14 @@ flowchart LR
   A manually reconstructed or stale cacheless artifact therefore fails explicitly.
 - Definition attachments apply to occurrences of that definition; path-scoped
   attachments apply only to their complete persistent path. Geometry targets
-  retain the real feature reference and optional path restriction. Body/face
+  retain the real feature reference and an optional definition or path restriction.
+  These restrictions are mutually exclusive under the source contract. A definition
+  selector matches the candidate's definition identity before common-feature/body/face
+  membership is considered. Consequently two occurrences of the selected definition
+  receive the same source attachment, while a third occurrence of another definition
+  sharing that FeatureID does not. Global geometry targets retain their existing fan-out.
+  Body-to-face property and layer inheritance uses the same selected-definition filter;
+  names still apply only to their exact geometry target. Body/face
   membership in the resolved feature/definition/occurrence is checked explicitly.
   Shared geometry may resolve to multiple intentional world instances; this is
   distinct from an ambiguous local target.
@@ -137,11 +143,16 @@ failed target. Stateless Sendable implementations introduce no shared mutation.
 
 ## Verification and Change Impact
 
-Planned [ProductAttributeResolutionTests](../../../Tests/CADKernelTests/ProductAttributeResolutionTests.swift)
+[ProductAttributeResolutionTests](../../../Tests/CADKernelTests/ProductAttributeResolutionTests.swift)
 own shared/nested instance applicability, local-to-world face/body mapping,
 source edits and fresh snapshot association, property provenance, unchanged
 unrelated properties, layer sets, names, dangling/ambiguity/cancellation refusal,
 and pre-allocation cumulative limits. Assertions inspect actual resolved world
-targets and values rather than type existence. Changes require rechecking
+targets and values rather than type existence. Definition-scope fixtures retain one
+local body with three world placements across two definitions, check independent
+density/name/layer results, and refuse foreign membership, combined selectors,
+stale receipts, exhausted work and overlap without explicit overrides. STEP remains
+a separate composition proof; source applicability alone does not authorize scope
+flattening at that boundary. Changes require rechecking
 ProductAttributes, stable reference resolution, AssemblyEvaluation correspondence,
 and public STEP export. Parent indices remain integration-owned.

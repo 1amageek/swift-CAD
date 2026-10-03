@@ -22,6 +22,7 @@ extension KernelCapabilities {
         "strictRequiredProductAttributesWithIndependentPhysicalDensityAndOverrideProvenance",
         "distinctRequiredNullableProductFormationAndDefinitionDescriptions",
         "sharedProductFormationAndDefinitionSourceIdentityRoundTrip",
+        "definitionQualifiedSharedGeometryAttributeScopeRoundTrip",
       ],
       failureCodes: [
         .invalidInput,
@@ -44,6 +45,7 @@ extension KernelCapabilities {
         "STEPAttributesExchangeTests",
         "STEPStringExchangeTests",
         "SharedSTEPProductTests",
+        "ProductAttributesNativeScopeTests",
         "STEPAssemblyExchangeTests",
       ]
     ),
