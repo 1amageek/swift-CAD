@@ -74,6 +74,9 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         guard Set(faceIDs).count == faceIDs.count else {
             throw failure(.invalidInput, feature.id, tolerance, "Rebuild Face selections resolve to the same face.")
         }
+        if case let .given(surface) = rebuild.method {
+            return try give(surface, to: faceIDs[0], bodyID: bodyID, scope: scope, feature: feature, context: context)
+        }
         // Square's Refit: each face an untrimmed sheet on its own edges, which it keeps, its
         // coedges along the sheet's boundary.
         if case let .square(refit) = rebuild.method {
@@ -279,10 +282,73 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             throw failure(.invalidInput, featureID, tolerance, "Remove Nominal Surface is cut exactly, not fitted.")
         case .square:
             throw failure(.invalidInput, featureID, tolerance, "Square's Refit spans the face's edges, not its surface.")
+        case .given:
+            throw failure(.invalidInput, featureID, tolerance, "A given face surface is taken as it is, not fitted.")
         case .tolerance:
             guard let deviation else { throw failure(.invalidInput, featureID, tolerance, "Rebuild Face lost its tolerance.") }
             return try MappedBSplineSurfaceFitter(deviation: deviation).fit(u: u, v: v, tolerance: tolerance, point: point).surface
         }
+    }
+
+    /// One face given `surface` on its own parameters, facing out as it did. Where each of its edges
+    /// still lies on it along its trimming curve (within a quarter of the distance tolerance) the
+    /// face keeps them; otherwise the edges and vertices around it are re-solved where it meets the
+    /// faces beside it (`FaceSurfaceReplacementRebuilder`), their trimming curves rebuilt.
+    private func give(_ surface: BSplineSurface3D, to faceID: FaceID, bodyID: BodyID, scope: BodyTopologyScope,
+                      feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+        let tolerance = context.tolerance
+        var result = context.brep
+        guard let face = result.faces[faceID], let old = result.geometry.surfaces[face.surfaceID] else {
+            throw TopologyError.missingReference("The face given a surface is missing.")
+        }
+        try surface.validate(tolerance: tolerance)
+        let new = Surface3D.bSpline(surface)
+        let sample = try BRepFaceInteriorPointSampler().sample(on: faceID, in: result, tolerance: tolerance)
+        let outward = try old.normal(u: sample.parameter.u, v: sample.parameter.v, tolerance: tolerance) * (face.orientation == .forward ? 1 : -1)
+        let projected = try new.parameterProjection(of: sample.point, tolerance: tolerance)
+        let orientation: Orientation = try new.normal(u: projected.u, v: projected.v, tolerance: tolerance).dot(outward) >= 0 ? .forward : .reversed
+        guard case let .closed(u0, u1) = new.uDomain, case let .closed(v0, v1) = new.vDomain else {
+            throw failure(.invalidInput, feature.id, tolerance, "A given face surface has an unbounded domain.")
+        }
+        var stray = 0.0
+        for loopID in face.loops {
+            for coedge in result.loops[loopID]?.coedges ?? [] {
+                guard let pcurve = coedge.surfaceParameterCurve else {
+                    throw failure(.missingReference, feature.id, tolerance, "An edge of the face given a surface has no trimming curve.")
+                }
+                for index in 0...16 {
+                    let parameter = try pcurve.parameter(atNormalizedFraction: Double(index) / 16, tolerance: tolerance)
+                    let slack = tolerance.distance
+                    guard parameter.u >= u0 - slack, parameter.u <= u1 + slack, parameter.v >= v0 - slack, parameter.v <= v1 + slack else {
+                        stray = .infinity
+                        break
+                    }
+                    let u = min(max(parameter.u, u0), u1), v = min(max(parameter.v, v0), v1)
+                    stray = max(stray, (try new.point(u: u, v: v, tolerance: tolerance)
+                        - (try old.point(u: parameter.u, v: parameter.v, tolerance: tolerance))).length)
+                }
+            }
+        }
+        if stray <= tolerance.distance / 4 {
+            var ids = FeatureTopologyIDAllocator(featureID: feature.id)
+            var surfaceID = ids.nextSurfaceID()
+            while result.geometry.surfaces[surfaceID] != nil { surfaceID = ids.nextSurfaceID() }
+            result.geometry.surfaces[surfaceID] = new
+            result.faces[faceID]?.surfaceID = surfaceID
+            result.faces[faceID]?.orientation = orientation
+        } else {
+            try FaceSurfaceReplacementRebuilder().replace(
+                [faceID: FaceSurfaceReplacementRebuilder.Replacement(surface: new, orientation: orientation)],
+                bodyID: bodyID, featureID: feature.id, model: &result, tolerance: tolerance
+            )
+            try ExactFacePcurveBuilder().populateMissingPcurves(in: &result, tolerance: tolerance)
+        }
+        let referencedSurfaces = Set(result.faces.values.map(\.surfaceID))
+        result.geometry.surfaces = result.geometry.surfaces.filter { referencedSurfaces.contains($0.key) }
+        try result.validate(level: result.bodies[bodyID]?.kind == .solid ? .volumetric : .exact, tolerance: tolerance)
+        let identity = try identityBuilder.identity(featureID: feature.id, bodyID: bodyID, model: result, context: context)
+        return EvaluationResult(brep: result, subshapes: identity.subshapes, removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes),
+                                lineage: identity.lineage)
     }
 
     /// A face of its own sewn anew on `surface`: its trimming curves kept, each edge the surface

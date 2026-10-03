@@ -48,6 +48,9 @@ public struct FaceRebuildFeature: Codable, Hashable, Sendable {
         if case .square = method, extendU != 0 || extendV != 0 || shrinks {
             throw FeatureEvaluationError.invalidGraph("Square's Refit spans a face's own edges, with no extension.")
         }
+        if case .given = method, faces.count != 1 || extendU != 0 || extendV != 0 || shrinks {
+            throw FeatureEvaluationError.invalidGraph("A given surface replaces one face as it is, with no extension.")
+        }
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -92,6 +95,11 @@ public enum FaceRebuildMethod: Codable, Hashable, Sendable {
     case tolerance(CADExpression)
     case nominal
     case square(SquareRefit)
+    /// One face takes this surface, on its own parameters: its control points edited in the body
+    /// (Plasticity's Raise Degree and control-point moves on a face of a solid). Where the face's
+    /// edges still lie on it the face keeps them; otherwise the edges around it are re-solved
+    /// where it meets the faces beside it, which keep their surfaces.
+    case given(BSplineSurface3D)
 
     public func validate() throws {
         switch self {
@@ -99,15 +107,20 @@ public enum FaceRebuildMethod: Codable, Hashable, Sendable {
         case let .tolerance(distance): try distance.validateLiteralQuantities()
         case .nominal: break
         case let .square(refit): try refit.validate()
+        case let .given(surface):
+            guard surface.uDegree >= 1, surface.vDegree >= 1, surface.controlPoints.isEmpty == false,
+                  surface.controlPoints.allSatisfy({ $0.count == surface.controlPoints[0].count }) else {
+                throw FeatureEvaluationError.invalidGraph("A given face surface needs a rectangular net of control points.")
+            }
         }
     }
 
     private enum CodingKeys: String, CodingKey {
-        case kind, layout, tolerance, square
+        case kind, layout, tolerance, square, surface
     }
 
     private enum Kind: String, Codable {
-        case explicit, tolerance, nominal, square
+        case explicit, tolerance, nominal, square, given
     }
 
     public init(from decoder: Decoder) throws {
@@ -125,6 +138,9 @@ public enum FaceRebuildMethod: Codable, Hashable, Sendable {
         case .square:
             try container.validateOnlyExpectedKeys([.kind, .square], in: decoder)
             self = .square(try container.decode(SquareRefit.self, forKey: .square))
+        case .given:
+            try container.validateOnlyExpectedKeys([.kind, .surface], in: decoder)
+            self = .given(try container.decode(BSplineSurface3D.self, forKey: .surface))
         }
         try validate()
     }
@@ -144,6 +160,9 @@ public enum FaceRebuildMethod: Codable, Hashable, Sendable {
         case let .square(refit):
             try container.encode(Kind.square, forKey: .kind)
             try container.encode(refit, forKey: .square)
+        case let .given(surface):
+            try container.encode(Kind.given, forKey: .kind)
+            try container.encode(surface, forKey: .surface)
         }
     }
 }
