@@ -257,7 +257,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         case .constrainedSurface: return ConstrainedSurfaceFeatureEvaluator()
         case .bSplineSurface: return bSplineSurfaceEvaluator
         case .patchSurface: return patchSurfaceEvaluator
-        case .surfaceFill: return surfaceFillEvaluator
+        case .surfaceFill: return InsertSheetFillEvaluator(fill: surfaceFillEvaluator)
         case .faceLoopOffset: return faceLoopOffsetEvaluator
         case .edgeOffset: return edgeOffsetEvaluator
         case .faceKnife: return faceKnifeEvaluator

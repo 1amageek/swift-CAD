@@ -152,6 +152,12 @@ package struct FaceRemovalPlanner: Sendable {
                     continue
                 }
             }
+            // Faces in a row between two faces (a notch's wall and ledge) collapse together as one
+            // strip onto the meeting of the faces across two of the row's edges.
+            if let strip = try healedAsStrip(cluster, bodyID: bodyID, featureID: featureID, model: model, tolerance: tolerance) {
+                model = strip
+                continue
+            }
             var remaining = cluster
             while remaining.isEmpty == false {
                 var healed: (index: Int, model: BRepModel)?
@@ -203,6 +209,46 @@ package struct FaceRemovalPlanner: Sendable {
         return best.model
     }
 
+    /// The body healed over touching faces as one strip: every pair of the faces' outer edges that
+    /// do not touch, across two different kept faces, tried as the strip's two edges, the one that
+    /// validates and changes the volume least kept; nil when none heals.
+    private func healedAsStrip(_ cluster: [FaceID], bodyID: BodyID, featureID: FeatureID, model: BRepModel,
+                               tolerance: ModelingTolerance) throws -> BRepModel? {
+        let topology = try Topology(bodyID: bodyID, model: model)
+        let members = Set(cluster)
+        var outer: [(edgeID: EdgeID, side: FaceID)] = []
+        for faceID in cluster {
+            for edgeID in try topology.edges(of: faceID) {
+                guard let side = topology.otherFace(of: edgeID, than: faceID), members.contains(side) == false else { continue }
+                outer.append((edgeID, side))
+            }
+        }
+        let before = try model.volume(of: bodyID, tolerance: tolerance)
+        var best: (model: BRepModel, change: Double)?
+        var tried = 0
+        for (i, first) in outer.enumerated() {
+            for second in outer[(i + 1)...] where first.side != second.side {
+                guard tried < Self.maximumCombinations, let a = model.edges[first.edgeID], let b = model.edges[second.edgeID],
+                      Set([a.startVertexID, a.endVertexID]).isDisjoint(with: [b.startVertexID, b.endVertexID]) else { continue }
+                tried += 1
+                let collapse = FaceRemovalHealer.Collapse.inStrip(first: first.edgeID, second: second.edgeID)
+                var trial = model
+                do {
+                    try FaceRemovalHealer().heal(Dictionary(uniqueKeysWithValues: cluster.map { ($0, collapse) }),
+                                                 bodyID: bodyID, featureID: featureID, model: &trial, tolerance: tolerance)
+                    try ExactFacePcurveBuilder().populateMissingPcurves(in: &trial, tolerance: tolerance)
+                    try trial.validate(level: .volumetric, tolerance: tolerance)
+                    let change = abs(try trial.volume(of: bodyID, tolerance: tolerance) - before)
+                    if best.map({ change < $0.change }) ?? true { best = (trial, change) }
+                } catch {
+                    // A pair that fails to heal is not the strip's; the faces are healed one at a
+                    // time when no pair does.
+                }
+            }
+        }
+        return best?.model
+    }
+
     /// Every way a face could collapse: dropping the holes it leaves, onto the meeting of the
     /// faces across each pair of its edges that do not touch, and to a point.
     private func collapses(of faceID: FaceID, bodyID: BodyID, model: BRepModel) throws -> [FaceRemovalHealer.Collapse] {
@@ -222,8 +268,8 @@ package struct FaceRemovalPlanner: Sendable {
         return result
     }
 
-    /// The radius of a face on a cylinder, torus or sphere, and whether its centre of curvature
-    /// lies in the material; nil for any other face.
+    /// The radius of a face on a cylinder, torus or sphere, or the cross radius of a B-spline
+    /// round, and whether its centre of curvature lies in the material; nil for any other face.
     private func blendRadius(of faceID: FaceID, model: BRepModel, tolerance: ModelingTolerance) throws -> (radius: Double, convex: Bool)? {
         guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
             throw TopologyError.missingReference("A face is missing.")
@@ -250,6 +296,39 @@ package struct FaceRemovalPlanner: Sendable {
                 let radial = offset - unit * offset.dot(unit)
                 return torusCenter + (try radial.normalized(tolerance: tolerance.distance)) * major
             }
+        case .bSpline:
+            // A round that is not circular (conic, chordal, G2, a rolling ball's spline): its cross
+            // radius is read at the middle of its surface from the larger principal curvature, and
+            // its centre on the side the surface bends toward; a face bending less than across its
+            // own size is no round.
+            guard case let .closed(u0, u1) = surface.uDomain, case let .closed(v0, v1) = surface.vDomain else { return nil }
+            let middle = try surface.differentialGeometry(u: (u0 + u1) / 2, v: (v0 + v1) / 2, tolerance: tolerance)
+            let (curvature, direction) = abs(middle.maximumPrincipalCurvature) >= abs(middle.minimumPrincipalCurvature)
+                ? (middle.maximumPrincipalCurvature, middle.maximumPrincipalDirection)
+                : (middle.minimumPrincipalCurvature, middle.minimumPrincipalDirection)
+            guard abs(curvature) > 0, let loopID = face.loops.first else { return nil }
+            let corners = try model.orderedPoints(for: loopID)
+            guard let first = corners.first else { return nil }
+            let size = corners.reduce(0.0) { max($0, ($1 - first).length) }
+            radius = 1 / abs(curvature)
+            guard radius.isFinite, radius <= size else { return nil }
+            // A step along the curving direction, taken in the surface's parameters (the tangent
+            // plane's least-squares (du, dv)), each way.
+            let unit = try direction.normalized(tolerance: tolerance.distance)
+            let step = radius * 1e-2
+            let (su, sv) = (middle.tangentU, middle.tangentV)
+            let (a, b, c) = (su.dot(su), su.dot(sv), sv.dot(sv))
+            let determinant = a * c - b * b
+            guard abs(determinant) > 0 else { return nil }
+            let (ru, rv) = (su.dot(unit * step), sv.dot(unit * step))
+            let du = (c * ru - b * rv) / determinant, dv = (a * rv - b * ru) / determinant
+            let (um, vm) = ((u0 + u1) / 2, (v0 + v1) / 2)
+            let ahead = try surface.point(u: um + du, v: vm + dv, tolerance: tolerance)
+            let behind = try surface.point(u: um - du, v: vm - dv, tolerance: tolerance)
+            let bend = ((ahead - .origin) + (behind - .origin)) * 0.5 - (middle.position - .origin)
+            let normal = try middle.normal.normalized(tolerance: tolerance.distance)
+            let centre = middle.position + normal * (bend.dot(normal) > 0 ? radius : -radius)
+            center = { _ in centre }
         default:
             return nil
         }

@@ -660,7 +660,8 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 tolerance: tolerance
             )
         case let .bSpline(curve):
-            return .bSpline(try curve.trimmed(
+            // A closed spline (a circle's) read on past its seam, as its periodic curve runs.
+            return .bSpline(try curve.trimmedAcrossSeam(
                 from: startParameter,
                 to: endParameter,
                 tolerance: tolerance

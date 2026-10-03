@@ -128,5 +128,9 @@ extension SquareFrameTests {
         #expect(analysis[0...2].allSatisfy { $0.position < 1e-9 })
         #expect(analysis[3].position > 1e-5)
         #expect(analysis[3].isWithin == false)
+        // Each side's Analysis is shown at the middle of its curve: the bottom's at (10, 0) mm.
+        let bottomMiddle = try #require(analysis[0].point)
+        #expect((bottomMiddle - Point3D(x: 0.01, y: 0, z: 0)).length < 1e-9)
+        #expect(analysis.allSatisfy { $0.point != nil })
     }
 }

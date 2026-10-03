@@ -33,9 +33,13 @@ package struct RedundantTopologyRemover: Sendable {
             return id
         }.sorted()
         var facesOfEdge: [EdgeID: [FaceID]] = [:]
+        var usesOfEdge: [EdgeID: [Coedge]] = [:]
         for faceID in faces {
             for loopID in model.faces[faceID]?.loops ?? [] {
-                for coedge in model.loops[loopID]?.coedges ?? [] { facesOfEdge[coedge.edgeID, default: []].append(faceID) }
+                for coedge in model.loops[loopID]?.coedges ?? [] {
+                    facesOfEdge[coedge.edgeID, default: []].append(faceID)
+                    usesOfEdge[coedge.edgeID, default: []].append(coedge)
+                }
             }
         }
         // Edges between two faces on one mergeable surface facing out the same way.
@@ -48,6 +52,9 @@ package struct RedundantTopologyRemover: Sendable {
         var redundant = Set<EdgeID>()
         for (edgeID, pair) in facesOfEdge.sorted(by: { $0.key < $1.key }) where pair.count == 2 && pair[0] != pair[1] {
             guard try sameMergeableSurface(pair[0], pair[1], model: model, tolerance: tolerance) else { continue }
+            // On a periodic surface the edge whose two sides lie a whole period apart closes the
+            // turn: it stays, the merged face's seam.
+            if try closesTurn(edgeID, uses: usesOfEdge[edgeID] ?? [], face: pair[0], model: model, tolerance: tolerance) { continue }
             redundant.insert(edgeID)
             let (a, b) = (find(pair[0]), find(pair[1]))
             if a != b { if a < b { parent[b] = a } else { parent[a] = b } }
@@ -58,15 +65,35 @@ package struct RedundantTopologyRemover: Sendable {
         let solver = BRepSurfaceMeetingSolver(tolerance: tolerance)
         var changed = false
         for (root, members) in groups.sorted(by: { $0.key < $1.key }) where members.count > 1 {
+            // On a periodic surface the members may wrap all the way round: one edge between them
+            // stays as the merged face's seam, and every coedge's parameter curve is carried into
+            // one continuous chart so the seam's two sides lie a period apart.
+            var periodicChart: Double?
+            if let rootFace = model.faces[root], let rootSurface = model.geometry.surfaces[rootFace.surfaceID],
+               let period = SurfaceParameterTopology(surface: rootSurface).uPeriod {
+                periodicChart = period
+                let inner = redundant.filter { (facesOfEdge[$0] ?? []).allSatisfy(members.contains) }.sorted()
+                let span = members.reduce(0.0) { $0 + uExtent(of: $1, model: model) }
+                if span >= period * (1 - 1e-9) {
+                    let across = inner.filter { edge in (usesOfEdge[edge] ?? []).allSatisfy { if case .constantU? = $0.surfaceParameterCurve { return true } else { return false } } }
+                    guard let seam = across.first(where: { edge in (usesOfEdge[edge] ?? []).contains { use in
+                        if case let .constantU(u, _, _)? = use.surfaceParameterCurve { return abs(u.remainder(dividingBy: period)) <= 1e-9 }
+                        return false
+                    } }) ?? across.first else { continue }
+                    redundant.remove(seam)
+                }
+            }
             // The coedges left once the edges between the members go, chained into loops.
             var remaining: [Coedge] = []
             for faceID in members {
                 for loopID in model.faces[faceID]?.loops ?? [] {
                     guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("A loop is missing.") }
-                    remaining += loop.coedges.filter { redundant.contains($0.edgeID) == false }
+                    let kept = loop.coedges.filter { redundant.contains($0.edgeID) == false }
+                    remaining += periodicChart.map { continuousInChart(kept, of: loop.coedges, period: $0) } ?? kept
                 }
             }
-            guard let chained = try chain(remaining, model: model), chained.isEmpty == false else { continue }
+            let chainedLoops = periodicChart == nil ? try chain(remaining, model: model) : try chainByParameter(remaining, model: model)
+            guard let chained = chainedLoops, chained.isEmpty == false else { continue }
             guard var face = model.faces[root], let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference("A merged face is missing.")
             }
@@ -126,12 +153,99 @@ package struct RedundantTopologyRemover: Sendable {
                 && abs((q.origin - p.origin).dot(n)) <= tolerance.distance
         }
         guard first.surfaceID == second.surfaceID || firstSurface == secondSurface, first.orientation == second.orientation else { return false }
-        if case let .bSpline(spline) = firstSurface {
-            if case .periodic = spline.uDomain { return false }
-            if case .periodic = spline.vDomain { return false }
-            return true
-        }
+        // A periodic surface without a pole (a full revolve's cylinder, cone or torus quarters)
+        // merges too, keeping the edge that closes the turn as its seam.
+        if isPeriodic(firstSurface) { return SurfaceParameterTopology(surface: firstSurface).uSingularVValues.isEmpty }
+        if case .bSpline = firstSurface { return true }
         return false
+    }
+
+    private func isPeriodic(_ surface: Surface3D) -> Bool {
+        let topology = SurfaceParameterTopology(surface: surface)
+        return topology.uPeriod != nil || topology.vPeriod != nil
+    }
+
+    /// Whether the edge's two uses on a periodic face lie a whole period apart in its chart.
+    private func closesTurn(_ edgeID: EdgeID, uses: [Coedge], face faceID: FaceID, model: BRepModel,
+                            tolerance: ModelingTolerance) throws -> Bool {
+        guard uses.count == 2, let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID],
+              isPeriodic(surface), let first = uses[0].surfaceParameterCurve, let second = uses[1].surfaceParameterCurve else {
+            return false
+        }
+        return try PeriodicFaceSeamValidator().certifiesOppositeSeamCurves(first, second, on: surface, tolerance: tolerance)
+    }
+
+    /// How far a face runs round a u-periodic surface: the span of its constant-v parameter curves.
+    private func uExtent(of faceID: FaceID, model: BRepModel) -> Double {
+        var values: [Double] = []
+        for loopID in model.faces[faceID]?.loops ?? [] {
+            for coedge in model.loops[loopID]?.coedges ?? [] {
+                if case let .constantV(_, start, end)? = coedge.surfaceParameterCurve { values += [start, end] }
+            }
+        }
+        guard let low = values.min(), let high = values.max() else { return 0 }
+        return high - low
+    }
+
+    /// `kept` (some of `loop`'s coedges) with each constant-u parameter curve moved by whole
+    /// periods to meet the constant-v curve before it in the loop, so a face whose side edge was
+    /// written at the chart's other end reads continuously.
+    private func continuousInChart(_ kept: [Coedge], of loop: [Coedge], period: Double) -> [Coedge] {
+        kept.map { coedge in
+            guard case let .constantU(u, vStart, vEnd)? = coedge.surfaceParameterCurve,
+                  let index = loop.firstIndex(of: coedge) else { return coedge }
+            let neighbours = [loop[(index + loop.count - 1) % loop.count], loop[(index + 1) % loop.count]]
+            for neighbour in neighbours {
+                guard case let .constantV(_, start, end)? = neighbour.surfaceParameterCurve else { continue }
+                for value in [start, end] where abs(value - u) > 1e-9 && abs((value - u).remainder(dividingBy: period)) <= 1e-9 {
+                    var moved = coedge
+                    moved.surfaceParameterCurve = .constantU(u: value, vStart: vStart, vEnd: vEnd)
+                    return moved
+                }
+                return coedge
+            }
+            return coedge
+        }
+    }
+
+    /// The coedges joined into closed loops where a vertex offers several ways on (a seam's ends),
+    /// each next coedge the one whose parameter curve starts where the last one ends.
+    private func chainByParameter(_ coedges: [Coedge], model: BRepModel) throws -> [[Coedge]]? {
+        func ends(_ coedge: Coedge) throws -> (start: VertexID, end: VertexID) {
+            guard let edge = model.edges[coedge.edgeID] else { throw TopologyError.missingReference("An edge is missing.") }
+            return coedge.orientation == .forward ? (edge.startVertexID, edge.endVertexID) : (edge.endVertexID, edge.startVertexID)
+        }
+        func parameter(_ coedge: Coedge, atStart: Bool) -> (Double, Double)? {
+            switch coedge.surfaceParameterCurve {
+            case let .constantU(u, start, end)?: return (u, atStart ? start : end)
+            case let .constantV(v, start, end)?: return (atStart ? start : end, v)
+            default: return nil
+            }
+        }
+        var outgoing: [VertexID: [Int]] = [:]
+        for (index, coedge) in coedges.enumerated() { outgoing[try ends(coedge).start, default: []].append(index) }
+        var used = Set<Int>()
+        var loops: [[Coedge]] = []
+        for start in coedges.indices where used.contains(start) == false {
+            var loop: [Coedge] = []
+            var index = start
+            while used.insert(index).inserted {
+                loop.append(coedges[index])
+                let candidates = (outgoing[try ends(coedges[index]).end] ?? []).filter { used.contains($0) == false || $0 == start }
+                if candidates.count == 1 {
+                    index = candidates[0]
+                    continue
+                }
+                guard let here = parameter(coedges[index], atStart: false), let next = candidates.first(where: { candidate in
+                    guard let there = parameter(coedges[candidate], atStart: true) else { return false }
+                    return abs(there.0 - here.0) <= 1e-9 && abs(there.1 - here.1) <= 1e-9
+                }) else { return nil }
+                index = next
+            }
+            guard index == start else { return nil }
+            loops.append(loop)
+        }
+        return loops
     }
 
     /// The coedges joined end to start into closed loops; nil when a vertex offers more than one
@@ -235,9 +349,16 @@ package struct RedundantTopologyRemover: Sendable {
                 runOn.endVertexID = far
             }
             guard let start = model.vertices[runOn.startVertexID]?.point, let end = model.vertices[runOn.endVertexID]?.point,
-                  let trim = try solver.trim(curve, from: start, to: end, isClosed: false, sense: sense) else {
+                  var trim = try solver.trim(curve, from: start, to: end, isClosed: false, sense: sense) else {
                 kept.insert(merge.vertex)
                 continue
+            }
+            // On a periodic curve the run keeps the kept edge's way round: an end read at the
+            // period's other side moves by a whole period.
+            if case let .periodic(period) = curve.parameterDomain {
+                let increasing = keptTrim.endParameter >= keptTrim.startParameter
+                if increasing, trim.endParameter < trim.startParameter { trim.endParameter += period }
+                if increasing == false, trim.endParameter > trim.startParameter { trim.endParameter -= period }
             }
             runOn.trim = trim
             model.edges[merge.kept] = runOn

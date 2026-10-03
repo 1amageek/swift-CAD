@@ -21,7 +21,10 @@ package struct SurfaceFootResolver: Sendable {
         case let .analytic(.cylinder(origin, axis, radius)):
             onSurface = try cylinderFoot(point, origin: origin, axis: axis, radius: radius, tolerance: tolerance)
         case let .analytic(.sphere(center, radius)):
-            onSurface = center + (try radialDirection(point - center, tolerance: tolerance)) * radius
+            // The outward radial direction is the sphere's normal everywhere, its poles included,
+            // where the parameterization's frame degenerates.
+            let direction = try radialDirection(point - center, tolerance: tolerance)
+            return (center + direction * radius, direction)
         case let .analytic(.cone(apex, axis, halfAngle)):
             // The cone runs both ways from its apex: in the half-plane through the axis and the
             // point, the nearer of its two rulings' nearest points.

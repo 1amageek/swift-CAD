@@ -279,14 +279,18 @@ bridge joined along its share, a floor joined from two pieces trimmed and joined
 ### Curve patch
 
 `CurvePatchFeatureEvaluator` is Patch from closed curves: each curve's exact spans joined end to end
-from the first (turning those that run the other way) into one closed loop, or one closed curve. A
+from the first (turning those that run the other way) into one closed loop, or one closed curve.
+Curves that cross instead of meeting end to end (Plasticity's overhanging curves) are each cut
+between its crossings with the two curves beside it, a crossing being where alternating nearest
+points of the two curves converge, so the patch spans the region between the crossings and the
+overhangs stay out; curves that do not each cross exactly two others are refused as before. A
 planar loop spans its exact trimmed plane, sewn from the spans with their projected parameter
 curves; otherwise a loop of at most four corners (where it turns) spans the exact Coons patch of
 its four sides (`SurfaceFillFeatureEvaluator.fourSides`), and one of more is filled by the injected
 `CurveLoopFilling` — CADKernel's XNURBS G0 trimmed sheet at its defaults (within 0.01 mm and 0.1°),
 smooth across the corners. `CurvePatchTests` own a circle's disc and a triangle of lines (its area),
-an arched four-sided loop, a non-planar pentagon's one smooth sheet near its corners and the round
-trip.
+an arched four-sided loop, a non-planar pentagon's one smooth sheet near its corners, four lines
+crossing in a # patched between their crossings, and the round trip.
 
 ### Square
 
@@ -450,7 +454,10 @@ all running down from the cap (convex) or all rising from it (concave: a boss's 
 floor) — are rounded or chamfered along the whole loop by `CapLoopBlendBuilder` (a selected edge
 takes its loop): the round's tube or the chamfer's line (across the cap, then along the wall) swept along each segment, an analytic
 cylinder or plane along a line and a torus or cone along an arc, meeting on the section at their
-tangent joints; the cap's loop moves the distance into the cap and each wall's edge the distance along
+tangent joints, or Fillet's Conic, Chordal and G2 section at the cap's right angle (the same Bézier
+as their straight blends) carried along a line as a ruled B-spline and turned about an arc's axis as a
+rational one, its pcurves the band's own lines (a band as large as a convex arc, closing on its axis,
+refused under `FIXME(INCOMPLETE_IMPLEMENTATION)`); the cap's loop moves the distance into the cap and each wall's edge the distance along
 the wall (a concave loop's band filling the corner). Loops whose walls change side and loops of one
 closed circular edge are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A loop with sharp corners blends the tangent chain holding the selected edge, open at them (a D's top arc, a U's line–arc–line run), when its walls run down from the cap and each end's neighbour wall is a plane square to the chain there: the band ends on its section in that plane, whose corner vertex splits into the cap and wall contacts with the section between them. With Tangent Edges off (`FilletFeature.tangentEdges`, `ChamferFeature.tangentEdges` false) a chain is only the selected edges joined tangentially; where it stops at a tangent joint the band closes on its section there with a flat face facing back along the chain, the cap stepping from its contact back to the corner and the next wall's seam split at the wall contact; concave open chains, ends on oblique faces and chains blended on both sides of a corner are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). In a network every edge is convex, and each face's inward direction from
 a blended side is read from its outer loop's winding, so concave faces take part. A chamfer's
@@ -642,8 +649,13 @@ Neighbouring spans share their vertex's row, a corner there is refused, and the 
 sides' boundary columns. A span beside a guide is instead `ExactHermiteCoonsSurfaceBuilder`'s
 Hermite Boolean sum with its connectors as the other two sides: the guide's piece, which must leave
 the face within its tangent plane (else refused), and across an unguided vertex the neighbouring
-Hermite side's column, so neighbouring spans still share it. Middle sections and closed section
-loops are refused with continuity. `SurfaceEdgeContinuityTests` own the S-shaped G1 and G2 sheets between two boxes'
+Hermite side's column, so neighbouring spans still share it. An end face section takes its own
+continuity (`LoftFaceContinuity`, Plasticity's Start and End Continuity for faces): each span of
+its ring finds the boundary edge it runs along and its support is across that edge with the face
+beside it other than the section's own, so a box top lofts upright beside its walls; spans
+meeting at a corner must leave along one row there, as the walls do. Middle sections and closed
+section loops are refused with continuity. `LoftFaceTests` prove two boxes' faces lofted G0
+(slanted) and G1 and G2 (upright at both ends). `SurfaceEdgeContinuityTests` own the S-shaped G1 and G2 sheets between two boxes'
 edges, the round trip, the smooth three-section G1 loft through a middle line, the guided G1 loft
 through its guide and the refusal of a guide leaving out of the face's plane, the G1 and G2 lofts
 from a cylinder's side certified within their allowances, and the refusals of a curved face
@@ -1001,7 +1013,11 @@ offset along the neutral face's outward side, and a cylinder along the pull
 direction becomes the cone through its neutral circle, each making the angle with
 the pull direction) and Match Face (`FaceMatchFeatureEvaluator`, onto a reference
 face's surface, of another body where its relative placement puts it, keeping the
-face's outward side or taking the reference's front). The engine re-solves
+face's outward side or, under Side, taking the reference's front — landing where that front
+faces the way the face did, so past a closed reference's near side the face reaches its far
+side: the replacement's `landing` moves every point the face's edges and vertices are sought
+near by the offset from the near foot to the line along the face's outward side meeting the
+reference that way round). The engine re-solves
 everything around the changed faces from the surfaces alone and keeps topology
 and identities:
 
@@ -1015,11 +1031,14 @@ new surfaces ──▶ each changed edge: its two faces' intersection branch nea
                   edge where two of them touch tangentially)
              ──▶ edges trimmed between their re-solved ends, keeping their sense;
                   edges between unchanged faces run on their own curves to moved
-                  vertices; parameter curves cleared for ExactFacePcurveBuilder
+                  vertices; parameter curves rebuilt by ExactFacePcurveBuilder, a
+                  re-solved edge it has no exact form for (a small circle on a
+                  sphere) taking its certified intersection's parameter curve
 ```
 
 `SurfaceFootResolver` gives the nearest point and normal of a whole surface to
-any point, on it or off it, in closed form for analytic surfaces. An edge that
+any point, on it or off it, in closed form for analytic surfaces (a sphere's normal is
+its radial direction, at its poles too). An edge that
 would collapse or reverse, surfaces that no longer meet near an edge or vertex,
 and a face whose outward side would turn over are refused. Push Face's Grow
 (Plasticity's video of an L-cube's notch pushed past its outer wall) takes one
@@ -1029,8 +1048,11 @@ by the gap and joined, coplanar faces merging), Moving then pushes the face it s
 with the wall on by the rest, in place; None re-solves in place and, when the faces
 around cannot follow, keeps the face going by itself — extruded its whole distance
 and joined outward, cut inward. Match Face of one planar face onto a parallel plane
-facing the same way is that push, Grow and all. Other matches still refuse a face running
-into another wall (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Draft Face re-solves in place first;
+facing the same way is that push, Grow and all. One planar face running into another wall on
+its way out to a curved reference (the re-solve's topology failure) is pushed by Push Face's Grow
+out to where it reaches the reference — Fixed stopping at the wall — and the face it then ends on
+(the wall it carried under Moving, its own bar's end under None) takes the reference's surface in
+place; several faces, curved faces and inward runs still refuse (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Draft Face re-solves in place first;
 when one planar drafted face runs into another wall (the re-solve's topology failure) and moves
 out of the body, `FaceDraftGrowWedgeBuilder` builds the material between its old and drafted
 planes as a prism along the pivot line (`PolygonPrismRequestBuilder`), united with the body:
@@ -1066,10 +1088,15 @@ four walls and a cylinder drafted about a mid-height neutral plane (one plane th
 frustum, one cone), a U-shaped wall crossed four times, a drilled wall turning through its hole, and a notch wall
 drafted 70° past the block's end under Moving (200 + 50 t mm² of section) and Fixed (300 − 50 / t
 mm²) and None (250 + 12.5 t mm²), and a wall turned about its straight edge on a cylinder top with the
-arc-edged end wall's refusal.
+arc-edged end wall's refusal, and a box's top matched onto a sphere of another body, hollowed into its
+near side or, under Side, run through to its far side (z = 80 ∓ √(4900 − (x − 40)² − y²) integrated),
+and an L block's step matched onto a sphere past its outer wall by each Grow (the block carried out,
+filled to the wall, the step's bar alone).
 
 `FaceRemovalHealer` heals a solid over faces taken out of it (Delete Face with
-`heals`, and Remove Fillets From Shell): the faces around keep their surfaces and
+`heals`, and Remove Fillets From Shell), and Remove Fillets heals a sheet the same way, open (its
+rounds' open ends close up with the faces beside them; the result is published as a sheet and
+validated exactly): the faces around keep their surfaces and
 each removed face collapses onto them, as `FaceRemovalPlanner` chooses:
 
 | Collapse | Removed face | Topology | Geometry re-solved |
@@ -1077,12 +1104,16 @@ each removed face collapses onto them, as `FaceRemovalPlanner` chooses:
 | `dropsHoles` | the faces a hole runs through | each whole inner loop they leave in a kept face goes | none |
 | `toEdge(first:second:)` | a strip (fillet or chamfer) | its edges with the two faces it joins merge into one; its other edges shrink to points | the merged edge on the two faces' intersection, the merged vertices where their faces cross |
 | `toPoint` | a face the faces around meet at one point (a fillet corner, a pyramid's top) | all its vertices merge and its edges go | the merged vertex |
+| `inStrip(first:second:)` | each face of a row of faces between two kept faces (a notch's wall and ledge) | as `toEdge` for the whole row, the edges its faces share going without merging their ends | as `toEdge` |
 
 Edges between kept faces that reach a merged vertex run on their own curves to it.
 `BRepSurfaceMeetingSolver` (also under `FaceSurfaceReplacementRebuilder`) solves the
 meetings: the intersection branch nearest a seed, crossing points by tangent-plane
 Newton or along a curve where surfaces touch tangentially, and sense-keeping trims.
-A fillet is a face on a cylinder, torus or sphere no wider than the radius asked for,
+A fillet is a face on a cylinder, torus or sphere, or a B-spline round (conic, chordal, G2 or a
+rolling ball's spline: its cross radius read from the larger principal curvature at its middle, its
+centre on the side it bends toward, and no round when it bends less than across its own size), no
+wider than the radius asked for,
 tangent to two kept faces along two of its edges (a strip), or lying where fillets
 meet with at most one kept face tangent to it (a corner, removed only with every fillet
 around it — a small round wrapping a removed vertical round collapses to the sharp corner its
@@ -1092,23 +1123,30 @@ tried every way it could collapse and the healed solid that validates and change
 volume least is kept. Faces touching one another go together: as a hole when they run
 through one; otherwise every combination of their collapses (at most 256) is healed at
 once and the one that validates and changes the volume least kept (chamfers meeting at a
-mitre each collapse onto their edge together); otherwise one at a time, each the first left
-that heals alone. `FaceRemovalHealingTests` prove a filled hole, a sharpened rounded box, the
+mitre each collapse onto their edge together); otherwise as one strip across every pair of
+their outer edges that do not touch (a notch's wall and ledge between the top and the front);
+otherwise one at a time, each the first left that heals alone. `FaceRemovalHealingTests` prove a filled hole, a sharpened rounded box and the same box opened into a sheet tube, a G2 round taken off a box, the
 video's L slab whose small rounds wrap a kept 8 mm round (all rounds to 3 mm removed exactly),
 one sharpened corner, a restored chamfered edge, two chamfers meeting at a corner deleted
-together, radius and convexity filters and the refusal of a top no neighbours close over.
+together, a notch's wall and ledge deleted together, radius and convexity filters and the refusal of a top no neighbours close over.
 
 `RedundantTopologyRemover` owns Delete Redundant Topology on solids and sheets
-(`RemoveRedundantTopologyFeatureEvaluator`): faces on one plane, or on one
-non-periodic B-spline surface, facing out the same way merge across the edges
+(`RemoveRedundantTopologyFeatureEvaluator`): faces on one plane, on one B-spline
+surface, or on one periodic surface without a pole, facing out the same way merge across the edges
 between them, their remaining coedges chained into loops (the one enclosing the
 largest area on the surface outer) with their parameter curves kept; then each
 vertex between just two edges on one line or circle, bounding the same faces, goes
-and the edges run on as one, their isoline or polyline parameter curves joined.
-Faces on periodic surfaces keep their splits, which bound a full turn, and two edges
-closing one curve stay two. The shape does not change; a body with nothing redundant
-is refused. `RedundantTopologyTests` prove a box's split top and its cut edges made
-whole, a split sheet made one face, and the refusal.
+and the edges run on as one, their isoline or polyline parameter curves joined (on a
+periodic curve keeping the kept edge's way round). Faces on one periodic surface without a
+pole (a full revolve's cylinder, cone or torus quarters) merge too: when they reach all the way
+round, one constant-u edge between them stays as the merged face's seam (preferring the chart's
+start), each constant-u parameter curve is moved by whole periods to meet its constant-v
+neighbour so the seam's two sides lie a period apart, and the loops chain by their parameter
+curves where a seam's ends offer two ways on. Two edges closing one curve stay two. The shape
+does not change; a body with nothing redundant is refused. `RedundantTopologyTests` prove a
+box's split top and its cut edges made whole, a split sheet made one face, a full revolve's
+sixteen quarter faces made four (each cylinder with one seam, the solid's volume kept), and the
+refusal.
 
 `LocalVertexDisplacementRebuilder` owns the direct edits that move vertices: a
 straight edge's two ends (`EdgeMoveFeatureEvaluator`), a planar face's boundary

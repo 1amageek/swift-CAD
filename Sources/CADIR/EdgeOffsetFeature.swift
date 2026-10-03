@@ -1,14 +1,15 @@
 import CADCore
 import CADTopology
 
-/// Edges offset across a face (Offset Edge): each chosen edge of the support face is offset by
-/// `distance` over the face, the offsets of neighbouring edges joined as `gapFill` says, and
-/// imprinted on the face; a chain that stops short of the face's boundary carries on to it.
-/// Symmetric offsets also go over the face on the other side of each edge.
+/// Edges offset across faces (Offset Edge): each chosen edge is offset by `distance` over the one
+/// support face it bounds — a chain across a top and a slope runs over both — the offsets of
+/// neighbouring edges joined as `gapFill` says, and imprinted on the faces; a chain that stops
+/// short of a face's boundary carries on to it. Symmetric offsets also go over the face on the
+/// other side of each edge.
 public struct EdgeOffsetFeature: Codable, Hashable, Sendable {
     public var target: PatternTargetReference
     public var edges: [StableSubshapeReference]
-    public var supportFace: StableSubshapeReference
+    public var supportFaces: [StableSubshapeReference]
     public var distance: CADExpression
     public var isSymmetric: Bool
     public var gapFill: OffsetGapFill
@@ -16,14 +17,14 @@ public struct EdgeOffsetFeature: Codable, Hashable, Sendable {
     public init(
         target: PatternTargetReference,
         edges: [StableSubshapeReference],
-        supportFace: StableSubshapeReference,
+        supportFaces: [StableSubshapeReference],
         distance: CADExpression,
         isSymmetric: Bool = false,
         gapFill: OffsetGapFill = .round
     ) {
         self.target = target
         self.edges = edges
-        self.supportFace = supportFace
+        self.supportFaces = supportFaces
         self.distance = distance
         self.isSymmetric = isSymmetric
         self.gapFill = gapFill
@@ -38,20 +39,23 @@ public struct EdgeOffsetFeature: Codable, Hashable, Sendable {
         guard Set(edges).count == edges.count else {
             throw FeatureEvaluationError.invalidGraph("Offset Edge's edges must be distinct.")
         }
-        try supportFace.validate()
+        guard supportFaces.isEmpty == false, Set(supportFaces).count == supportFaces.count else {
+            throw FeatureEvaluationError.invalidGraph("Offset Edge needs distinct support faces.")
+        }
+        for face in supportFaces { try face.validate() }
         try distance.validateLiteralQuantities()
     }
 
     private enum CodingKeys: String, CodingKey {
-        case target, edges, supportFace, distance, isSymmetric, gapFill
+        case target, edges, supportFaces, distance, isSymmetric, gapFill
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.target, .edges, .supportFace, .distance, .isSymmetric, .gapFill], in: decoder)
+        try container.validateOnlyExpectedKeys([.target, .edges, .supportFaces, .distance, .isSymmetric, .gapFill], in: decoder)
         target = try container.decode(PatternTargetReference.self, forKey: .target)
         edges = try container.decode([StableSubshapeReference].self, forKey: .edges)
-        supportFace = try container.decode(StableSubshapeReference.self, forKey: .supportFace)
+        supportFaces = try container.decode([StableSubshapeReference].self, forKey: .supportFaces)
         distance = try container.decode(CADExpression.self, forKey: .distance)
         isSymmetric = try container.decode(Bool.self, forKey: .isSymmetric)
         gapFill = try container.decode(OffsetGapFill.self, forKey: .gapFill)
@@ -63,7 +67,7 @@ public struct EdgeOffsetFeature: Codable, Hashable, Sendable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(target, forKey: .target)
         try container.encode(edges, forKey: .edges)
-        try container.encode(supportFace, forKey: .supportFace)
+        try container.encode(supportFaces, forKey: .supportFaces)
         try container.encode(distance, forKey: .distance)
         try container.encode(isSymmetric, forKey: .isSymmetric)
         try container.encode(gapFill, forKey: .gapFill)

@@ -333,11 +333,16 @@ public enum FeatureNodeFactory {
                 }
                 try fill.validate()
                 _ = try bodyOrSheetSourceRole(fill.targetFeatureID, owner: "Surface fill target", in: document)
+                if let inserted = fill.insertedSheet {
+                    guard try bodyOrSheetSourceRole(inserted, owner: "Inserted sheet", in: document) == .sheet else {
+                        throw FeatureEvaluationError.invalidGraph("Insert Sheet trims a sheet to the opening.")
+                    }
+                }
                 return FeatureNode(
                     id: id,
                     name: name,
                     operation: operation,
-                    inputs: [FeatureInput(featureID: fill.targetFeatureID, role: .target)],
+                    inputs: fill.inputs,
                     outputs: [FeatureOutput(role: .sheet)]
                 )
             }
@@ -704,10 +709,10 @@ public enum FeatureNodeFactory {
                 throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
             }
             try feature.validate()
-            try validateSource(feature.target.featureID, role: .body, in: document)
+            let targetPort = try bodyOrSheetPort(of: feature.target.featureID, in: document)
             return FeatureNode(
                 id: id, name: name, operation: operation,
-                inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)], outputs: [FeatureOutput(role: .body)]
+                inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)], outputs: [FeatureOutput(role: targetPort)]
             )
         case .faceMatch:
             guard case let .faceMatch(feature) = operation else {
@@ -729,8 +734,9 @@ public enum FeatureNodeFactory {
             case let .imprintBody(feature):
                 try feature.validate()
                 target = feature.target.featureID
-                _ = try bodyOrSheetPort(of: feature.tool.featureID, in: document)
-                inputs = [FeatureInput(featureID: target, role: .target), FeatureInput(featureID: feature.tool.featureID, role: .body)]
+                for tool in feature.tools { _ = try bodyOrSheetPort(of: tool.body.featureID, in: document) }
+                inputs = [FeatureInput(featureID: target, role: .target)]
+                    + feature.tools.map { FeatureInput(featureID: $0.body.featureID, role: .body) }
             case let .untrimFace(feature):
                 try feature.validate()
                 target = feature.target.featureID

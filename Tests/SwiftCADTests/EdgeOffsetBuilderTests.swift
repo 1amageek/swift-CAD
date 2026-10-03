@@ -28,7 +28,7 @@ struct EdgeOffsetBuilderTests {
         let offsetID = try builder.edgeOffset(
             target: extrudeID,
             edges: [edge],
-            supportFace: supportFace,
+            supportFaces: [supportFace],
             distance: .constant(.length(2.0, unit: .millimeter))
         )
         let document = try builder.build(name: "Edge offset parity")

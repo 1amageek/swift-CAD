@@ -57,6 +57,13 @@ source body + stable seed edge
   not claim G1/G2 fitting, quality optimization, boundary-flow controls, or
   guide-curve constraints.
 - The source body is retained. Output is one separate `.sheet` feature.
+- With an inserted sheet (`SurfaceFillFeature.insertedSheet`, Plasticity's Insert Sheet, Trim to
+  hole) the fill is not built: CADKernel's `InsertSheetFillEvaluator` imprints the loop's edges,
+  which must lie on that sheet, on a staged copy of it and sews the part they enclose (the faces
+  reached without crossing the loop that touch none of the sheet's own open edges) as the fill,
+  bounded by the loop's own edge curves so Join sews it into the opening exactly; the inserted
+  sheet is retained, an edge off it or an enclosed part other than one refused. Trim to sheet is
+  not offered. `InsertSheetTests` close a box's open top with a larger flat sheet.
 - Stale references, branching/open chains, unsupported exact curve kinds,
   failed corner closure, and invalid B-rep results return explicit errors.
 

@@ -110,4 +110,25 @@ struct CurvePatchTests {
             #expect(evaluated.brep.vertices.values.contains { ($0.point - corner).length < 1e-5 })
         }
     }
+
+    @Test(.timeLimit(.minutes(2)))
+    func curvesThatCrossPatchTheRegionBetweenTheirCrossings() throws {
+        // Four lines crossing in a # with 5 mm overhangs: the patch is the 20 mm square between
+        // the crossings, the overhangs left out.
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let lines = try [
+            (point(-0.005, 0), point(0.025, 0)), (point(0.02, -0.005), point(0.02, 0.025)),
+            (point(0.025, 0.02), point(-0.005, 0.02)), (point(0, 0.025), point(0, -0.005)),
+        ].map { start, end in try builder.sketch(on: .xy) { _ = $0.line(from: start, to: end) }.featureID }
+        let patch = try builder.patch(curves: lines.map { CurveSectionReference(featureID: $0) })
+        let evaluated = try evaluate(builder)
+        let points = evaluated.subshapes.entries.compactMap { key, value -> Point3D? in
+            guard key.featureID == patch, case let .vertex(id) = value else { return nil }
+            return evaluated.brep.vertices[id]?.point
+        }
+        #expect(points.count == 4)
+        for corner in [Point3D(x: 0, y: 0, z: 0), Point3D(x: 0.02, y: 0, z: 0), Point3D(x: 0.02, y: 0.02, z: 0), Point3D(x: 0, y: 0.02, z: 0)] {
+            #expect(points.contains { ($0 - corner).length < 1e-9 }, "\(corner)")
+        }
+    }
 }

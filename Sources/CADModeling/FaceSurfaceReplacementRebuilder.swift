@@ -21,14 +21,19 @@ import CADTopology
 /// there tangentially, an edge that would shrink to nothing or run backwards, and a face whose
 /// outward side would turn over are refused.
 package struct FaceSurfaceReplacementRebuilder: Sendable {
-    /// The surface a face takes and the side of it that faces out.
+    /// The surface a face takes, the side of it that faces out, and where on it the face lands:
+    /// `landing` moves every point the face's edges and vertices are re-solved near, zero for the
+    /// part of the surface nearest where the face lay (Match Face's Side reaches a closed
+    /// reference's far side by it).
     package struct Replacement: Sendable {
         package var surface: Surface3D
         package var orientation: Orientation
+        package var landing: Vector3D
 
-        package init(surface: Surface3D, orientation: Orientation) {
+        package init(surface: Surface3D, orientation: Orientation, landing: Vector3D = .zero) {
             self.surface = surface
             self.orientation = orientation
+            self.landing = landing
         }
     }
 
@@ -83,6 +88,12 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
             changedVertices.insert(edge.startVertexID)
             changedVertices.insert(edge.endVertexID)
         }
+        /// Where the replaced faces among `faces` land, on average, against where they lay.
+        func landing(of faces: some Sequence<FaceID>) -> Vector3D {
+            let landings = faces.compactMap { replacements[$0]?.landing }
+            guard landings.isEmpty == false else { return .zero }
+            return landings.reduce(Vector3D.zero, +) / Double(landings.count)
+        }
         func surface(of faceID: FaceID) throws -> Surface3D {
             if let replacement = replacements[faceID] { return replacement.surface }
             guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
@@ -95,6 +106,10 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
         // the ruling through its new ends when both faces now lie on one surface.
         var curves: [EdgeID: Curve3D] = [:]
         var rulings = Set<EdgeID>()
+        // Where each changed edge's middle is sought: its old middle, moved as its faces land.
+        var middles: [EdgeID: Point3D] = [:]
+        // The intersection each re-solved edge lies on, with the face its first surface bounds.
+        var branches: [EdgeID: (intersection: SurfaceSurfaceIntersectionCurve, firstFace: FaceID)] = [:]
         var oldPoints: [VertexID: Point3D] = [:]
         for vertexID in changedVertices {
             guard let point = model.vertices[vertexID]?.point else { throw TopologyError.missingReference("A replaced body's vertex is missing.") }
@@ -115,7 +130,8 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
             }
             let first = try surface(of: faces[0])
             let second = try surface(of: faces[1])
-            let middle = try oldMiddle(of: edgeID, model: model, tolerance: tolerance)
+            let middle = try oldMiddle(of: edgeID, model: model, tolerance: tolerance) + landing(of: faces)
+            middles[edgeID] = middle
             if first == second {
                 guard try isStraight(edgeID, model: model) else {
                     throw failure(.unsupportedCapability, featureID, tolerance, "A curved edge between faces that now share one surface cannot be re-solved.")
@@ -123,7 +139,7 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
                 rulings.insert(edgeID)
                 continue
             }
-            let branch = try solver.nearestBranch(of: first, and: second, near: middle)
+            let branch = try solver.nearestIntersection(of: first, and: second, near: middle)
             if branch.coincide {
                 guard try isStraight(edgeID, model: model) else {
                     throw failure(.unsupportedCapability, featureID, tolerance, "A curved edge between faces that now share one surface cannot be re-solved.")
@@ -131,10 +147,11 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
                 rulings.insert(edgeID)
                 continue
             }
-            guard let curve = branch.curve else {
+            guard let intersection = branch.branch else {
                 throw failure(.topologyFailure, featureID, tolerance, "The faces on either side of an edge no longer meet.")
             }
-            curves[edgeID] = curve
+            curves[edgeID] = intersection.curve
+            branches[edgeID] = (intersection, faces[0])
         }
 
         // Each changed vertex: where its faces' distinct surfaces meet, nearest where it was. Where
@@ -160,7 +177,8 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
                 let candidate = try surface(of: faceID)
                 if distinct.contains(candidate) == false { distinct.append(candidate) }
             }
-            if let point = try solver.crossingPoint(of: distinct, near: old) {
+            let seed = old + landing(of: faces)
+            if let point = try solver.crossingPoint(of: distinct, near: seed) {
                 newPoints[vertexID] = point
                 continue
             }
@@ -169,7 +187,7 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
                 guard let curve = curves[edgeID], let edgeFaces = facesOfEdge[edgeID] else { continue }
                 let onCurve = try edgeFaces.map { try surface(of: $0) }
                 let others = distinct.filter { onCurve.contains($0) == false }
-                if let point = try solver.crossingPoint(on: curve, with: others, near: old) {
+                if let point = try solver.crossingPoint(on: curve, with: others, near: seed) {
                     alongEdge = point
                     break
                 }
@@ -216,7 +234,7 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
                 guard let solved = curves[edgeID] else { throw TopologyError.missingReference("A re-solved edge curve is missing.") }
                 curve = solved
                 guard let solvedTrim = try solver.trim(solved, from: start, to: end, isClosed: edge.startVertexID == edge.endVertexID,
-                                                       sense: oldDirection, near: try oldMiddle(of: edgeID, model: model, tolerance: tolerance)) else {
+                                                       sense: oldDirection, near: try middles[edgeID] ?? oldMiddle(of: edgeID, model: model, tolerance: tolerance)) else {
                     throw failure(.topologyFailure, featureID, tolerance, "A face replacement collapsed or reversed an edge.")
                 }
                 trim = solvedTrim
@@ -267,7 +285,8 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
             }
             let center = points.reduce(Vector3D.zero) { $0 + ($1 - .origin) } / Double(points.count)
             let before = try outwardNormal(of: previous, orientation: face.orientation, near: .origin + center, tolerance: tolerance)
-            let after = try outwardNormal(of: replacement.surface, orientation: replacement.orientation, near: .origin + center, tolerance: tolerance)
+            let after = try outwardNormal(of: replacement.surface, orientation: replacement.orientation,
+                                          near: .origin + center + replacement.landing, tolerance: tolerance)
             guard before.dot(after) > 0 else {
                 throw failure(.topologyFailure, featureID, tolerance, "A face replacement would turn a face over.")
             }
@@ -278,13 +297,39 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
             model.faces[faceID] = face
         }
 
-        // Every edge that moved rebuilds its parameter curves on both its faces.
+        // Every edge that moved rebuilds its parameter curves on both its faces. A re-solved edge
+        // whose curve has no exact parameter curve of its own on a face (a small circle on a
+        // sphere) takes its intersection's, which the intersection certifies on both surfaces.
         let moved = changed.union(retrimmed)
+        let exact = ExactFacePcurveBuilder()
         for faceID in bodyFaces {
+            guard let surface = model.faces[faceID].flatMap({ model.geometry.surfaces[$0.surfaceID] }) else {
+                throw TopologyError.missingReference("A replaced body's surface is missing.")
+            }
             for loopID in model.faces[faceID]?.loops ?? [] {
                 guard var loop = model.loops[loopID] else { throw TopologyError.missingReference("A replaced body's loop is missing.") }
                 for index in loop.coedges.indices where moved.contains(loop.coedges[index].edgeID) {
+                    let coedge = loop.coedges[index]
                     loop.coedges[index].surfaceParameterCurve = nil
+                    guard let branch = branches[coedge.edgeID], let edge = model.edges[coedge.edgeID],
+                          let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else { continue }
+                    let forward = coedge.orientation == .forward
+                    do {
+                        loop.coedges[index].surfaceParameterCurve = try exact.surfaceParameterCurve(
+                            for: curve, startParameter: forward ? trim.startParameter : trim.endParameter,
+                            endParameter: forward ? trim.endParameter : trim.startParameter, on: surface, tolerance: tolerance
+                        )
+                    } catch let error as KernelError where error.code == .unsupportedCapability {
+                        let onFace = faceID == branch.firstFace
+                            ? branch.intersection.firstSurfaceParameterCurve : branch.intersection.secondSurfaceParameterCurve
+                        let increasing = trim.endParameter > trim.startParameter
+                        var pcurve = try onFace.trimmed(
+                            from: min(trim.startParameter, trim.endParameter), to: max(trim.startParameter, trim.endParameter),
+                            curveDomain: curve.parameterDomain, tolerance: tolerance
+                        )
+                        if increasing != forward { pcurve = try pcurve.reversed(tolerance: tolerance) }
+                        loop.coedges[index].surfaceParameterCurve = pcurve
+                    }
                 }
                 model.loops[loopID] = loop
             }

@@ -43,8 +43,8 @@ public struct RemoveFilletsFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             maximumRadius = quantity.value
         }
         let bodyID = try context.bodyID(generatedBy: removal.target.featureID)
-        guard context.brep.bodies[bodyID]?.kind == .solid else {
-            throw failure(.unsupportedCapability, feature.id, tolerance, "Remove Fillets works on solids.")
+        guard let bodyKind = context.brep.bodies[bodyID]?.kind else {
+            throw failure(.missingReference, feature.id, tolerance, "Remove Fillets' body is missing.")
         }
         let scope = try BodyTopologyScope(bodyID: bodyID, model: context.brep)
         let convexity: FaceRemovalPlanner.Convexity = switch removal.convexity {
@@ -61,7 +61,8 @@ public struct RemoveFilletsFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         var model = context.brep
         try FaceRemovalHealer().heal(plan, bodyID: bodyID, featureID: feature.id, model: &model, tolerance: tolerance)
         try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: tolerance)
-        try model.validate(level: .volumetric, tolerance: tolerance)
+        // A sheet heals open: its rounds' open ends close up with the faces beside them.
+        try model.validate(level: bodyKind == .solid ? .volumetric : .exact, tolerance: tolerance)
         let identity = try identityBuilder.identity(featureID: feature.id, bodyID: bodyID, model: model, context: context)
         return EvaluationResult(
             brep: model,

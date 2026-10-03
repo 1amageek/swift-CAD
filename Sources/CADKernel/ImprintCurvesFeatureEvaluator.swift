@@ -307,26 +307,52 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             }
             return nil
         }
+        /// Whether another crossing lies nearer the curve along the sweep at `at`.
+        func hidden(_ at: (t: Double, distance: Double), by index: Int) -> Bool {
+            traces.indices.contains { other in
+                guard other != index, let nearer = sweepDistance(of: traces[other], at: at.t) else { return false }
+                return nearer * at.distance > 0 && abs(nearer) < abs(at.distance) - tolerance.distance
+            }
+        }
         var result: [(onTarget: BRepFaceImprinter.Curve, onTool: BRepSewingEdge)] = []
         for (index, pair) in pairs.enumerated() {
-            var seen: [Bool] = []
-            for fraction in [0.1, 0.3, 0.5, 0.7, 0.9] {
-                let at = traces[index][Int((fraction * 64).rounded())]
-                let hidden = traces.indices.contains { other in
-                    guard other != index, let nearer = sweepDistance(of: traces[other], at: at.t) else { return false }
-                    return nearer * at.distance > 0 && abs(nearer) < abs(at.distance) - tolerance.distance
-                }
-                seen.append(!hidden)
-            }
+            // Seen or hidden at each inner sample; the ends touch what hides the rest.
+            let seen = (1..<64).map { !hidden(traces[index][$0], by: index) }
             if seen.allSatisfy({ $0 }) {
                 result.append(pair)
-            } else if seen.contains(true) {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): A crossing hidden along part of its length
-                // should be imprinted only where it is seen. Imprint Curve Body with Hide
-                // occlusion reaches here from Shift-I; it is complete only when such a crossing is
-                // split where it passes behind the target and the seen piece kept, with a test.
-                throw KernelError(phase: .topology, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance,
-                    message: "Imprint cannot yet hide a crossing that is only partly hidden.")
+                continue
+            }
+            guard seen.contains(true) else { continue }
+            // Partly hidden: split where it passes behind the target, found by bisection along the
+            // crossing, and keep the pieces seen.
+            let edge = pair.onTarget.edge
+            func point(_ fraction: Double) throws -> Point3D {
+                try edge.curve.point(at: edge.startParameter + (edge.endParameter - edge.startParameter) * fraction, tolerance: tolerance)
+            }
+            func isSeen(_ fraction: Double) throws -> Bool {
+                !hidden(try sweepCoordinates(of: try point(fraction)), by: index)
+            }
+            var splits: [Point3D] = []
+            for k in 1..<(seen.count) where seen[k] != seen[k - 1] {
+                var low = Double(k) / 64, high = Double(k + 1) / 64
+                let lowSeen = seen[k - 1]
+                for _ in 0..<48 {
+                    let middle = (low + high) / 2
+                    if try isSeen(middle) == lowSeen { low = middle } else { high = middle }
+                }
+                splits.append(try point((low + high) / 2))
+            }
+            let pieces = try BRepSewingEdgeSubdivider().subdivide(edge, at: splits, tolerance: tolerance)
+            for (ordinal, piece) in pieces.enumerated() {
+                let middle = try piece.curve.point(at: (piece.startParameter + piece.endParameter) / 2, tolerance: tolerance)
+                guard !hidden(try sweepCoordinates(of: middle), by: index) else { continue }
+                let kept = BRepSewingEdge(
+                    stableID: "\(edge.stableID):seen:\(ordinal)", curve: piece.curve,
+                    startParameter: piece.startParameter, endParameter: piece.endParameter,
+                    startPoint: piece.startPoint, endPoint: piece.endPoint,
+                    surfaceParameterCurve: piece.surfaceParameterCurve, parentSubshapeIDs: piece.parentSubshapeIDs
+                )
+                result.append((BRepFaceImprinter.Curve(faceID: pair.onTarget.faceID, edge: kept), pair.onTool))
             }
         }
         return result

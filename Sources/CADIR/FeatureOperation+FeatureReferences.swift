@@ -186,7 +186,7 @@ extension FeatureOperation {
         case .edgeOffset(var feature):
             feature.target = try pattern(feature.target)
             feature.edges = try feature.edges.map(subshape)
-            feature.supportFace = try subshape(feature.supportFace)
+            feature.supportFaces = try feature.supportFaces.map(subshape)
             return .edgeOffset(feature)
         case .faceKnife(var feature):
             feature.target = FaceKnifeTargetReference(featureID: try transform(feature.target.featureID))
@@ -377,7 +377,8 @@ extension FeatureOperation {
         case .surfaceFill(let feature):
             return .surfaceFill(SurfaceFillFeature(
                 targetFeatureID: try transform(feature.targetFeatureID),
-                boundarySeed: try subshape(feature.boundarySeed)
+                boundarySeed: try subshape(feature.boundarySeed),
+                insertedSheet: try feature.insertedSheet.map(transform)
             ))
         case .mirror(let feature):
             return .mirror(MirrorFeature(
@@ -441,7 +442,8 @@ extension FeatureOperation {
             return .faceMatch(feature)
         case .imprintBody(let feature):
             return .imprintBody(ImprintBodyFeature(
-                target: try pattern(feature.target), tool: try pattern(feature.tool), toolPlacement: feature.toolPlacement,
+                target: try pattern(feature.target),
+                tools: try feature.tools.map { ImprintBodyTool(body: try pattern($0.body), placement: $0.placement) },
                 completion: feature.completion
             ))
         case .untrimFace(let feature):

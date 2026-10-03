@@ -60,13 +60,14 @@ public struct SquareSideAnalyzer {
                 throw refusal("A Square's side has an unbounded domain.", featureID, tolerance)
             }
             let points = try (0...32).map { try Curve3D.bSpline(curve).point(at: t0 + (t1 - t0) * Double($0) / 32, tolerance: tolerance) }
+            let middle = points[16]
             var side = (boundary: 0, position: Double.infinity)
             for boundary in 0..<4 {
                 let position = try points.map { try nearest($0, on: boundary).distance }.max() ?? .infinity
                 if position < side.position { side = (boundary, position) }
             }
             guard let continuity = square.sides[index].continuity else {
-                return SquareSideAnalysis(side: index, position: side.position, positionLimit: tolerance.distance)
+                return SquareSideAnalysis(side: index, position: side.position, positionLimit: tolerance.distance, point: middle)
             }
             let faces = try bordering(continuity, in: document, featureID: featureID, tolerance: tolerance)
             let curvatureOrder = continuity.order == .curvature
@@ -101,7 +102,8 @@ public struct SquareSideAnalyzer {
                 side: index, position: side.position, positionLimit: tolerance.distance,
                 angle: best.angle, angleLimit: continuity.angularAllowance ?? 1e-6,
                 curvature: curvatureOrder ? best.curvature : nil,
-                curvatureLimit: curvatureOrder ? (continuity.curvatureAllowance ?? 1e-3) : nil
+                curvatureLimit: curvatureOrder ? (continuity.curvatureAllowance ?? 1e-3) : nil,
+                point: middle
             )
         }
     }

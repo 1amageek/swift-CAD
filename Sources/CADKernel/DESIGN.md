@@ -718,11 +718,26 @@ component count is no longer the one the extraction was made for is refused
 exactly when they are every face of each shell they lie on (`ExtractFaceSet`), so
 the copy takes whole shells, a chosen outer shell keeping the chosen voids inside
 it and a void chosen without its outer shell bounding a solid of the cavity's
-shape (its faces already face out of the cavity); faces that do not close are
-refused (`invalidInput`). `ExtractFaceClosure` answers the same question for
-callers that must declare the output before appending (Alternative Duplicate).
+shape (its faces already face out of the cavity). Faces that do not close make
+the solid they bound with the faces around them (Plasticity's Alternative
+Duplicate, `ExtractFacePlugBuilder`): a staged copy of the body is healed over
+them (`FaceRemovalPlanner`), the opening — their edges shared with faces not
+chosen, pieces of one curve joined end to end — is imprinted on it
+(`BRepFaceImprinter`), and its faces off the source's boundary (classified by
+`DefaultBRepSolidPointClassifier`) cap the chosen faces; caps outside the source
+make a pocket's plug (the chosen faces turned to face the void), caps inside it a
+boss's block (the caps turned), and caps on both sides, or none, are refused
+(`invalidInput`). Every edge is split where another patch's edge ends on it
+(`BRepSewingEdgeSubdivider`) before sewing, so the two sides meet edge for edge;
+the chosen faces trace to their source faces and the caps are generated. Faces
+the healing cannot grow the faces around over, and caps on both sides, stay
+refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). `ExtractFaceClosure` answers, for callers
+that must declare the output before appending, whether faces close and whether
+they make a solid at all (they close, or the plug builds; a plug refused with
+`invalidInput` or `topologyFailure` means a sheet).
 `ExtractFeatureTests` own slice pieces, the refused count, face sheets, closed
-faces and cavities, persistence and the selection contract.
+faces and cavities, a pocket's plug, a boss's block and a notch's block by volume, persistence and
+the selection contract.
 
 ## Unjoin Faces
 
@@ -768,8 +783,9 @@ a fraction of that extent, refused on the border (Rupa places a clicked Isoparam
 `ImprintBodyFeatureEvaluator` imprints
 the exact Boolean intersection of a tool's faces with a target's
 (`BooleanPipeline.completeIntersectionGraph`, `uvSplitGraph`,
-`BooleanFaceArrangementBoundary.edges`) and leaves the tool as it is; a placed
-tool is first moved into the target's frame in an unpublished
+`BooleanFaceArrangementBoundary.edges`) and leaves the tool as it is; several tools imprint
+at once, each tool's crossings completed among themselves so one tool's lines run on across
+another's; a placed tool is first moved into the target's frame in an unpublished
 `imprintToolPlacement` stage, and Imprint Curve Body imprints a placed curve as
 its rigid image, so both imprint where they are shown; a tool face lying on a
 target face is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
@@ -789,8 +805,8 @@ two halves, whose crossings meet end to end. A placed curve is its rigid image, 
 placed line or circle is still swept exactly. Hiding occlusion keeps a crossing
 only when no other crossing lies nearer the curve along the sweep, each point's
 curve parameter and sweep distance found in the model rather than in the
-sheet's parameters, and refuses a crossing hidden along part of its length
-(`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+sheet's parameters; a crossing hidden along part of its length is split where it
+passes behind the target (bisected along the crossing) and only its seen pieces kept.
 Along the normal, each sample of the curve goes to the closest point of the
 target's faces (`BRepFaceClosestPointProjector`, Newton's method within each
 face's parameter extent), runs of samples on one face become a cubic parameter
@@ -799,7 +815,9 @@ passes to a neighbour both runs end at the point of their shared edge the
 projection crosses. The sweep sheet is never published, so its subshapes are
 dropped from the crossings' lineage. Completion is `.none`, `.edge` (stopping at
 the first other curve) or `.boundary` (reaching the face's boundary across other
-curves). `ImprintFeatureTests` own these contracts.
+curves). Under `.none` a curve with an end inside its face, on neither the face's
+boundary nor another kept curve, divides nothing and is left out, as Plasticity draws
+no line for it; the imprint is refused only when no curve is left. `ImprintFeatureTests` own these contracts.
 
 ## Edge Offset
 
@@ -817,8 +835,10 @@ the corner; Linear, straight lines carrying both offsets on until they meet, a
 sharp corner of edges of their own (a straight bridge where they never meet
 ahead); Natural, the straight offsets themselves running on to that point, no
 edge added (curved offsets refused, `FIXME(INCOMPLETE_IMPLEMENTATION)`). An offset that closes
-on itself is halved. `EdgeOffsetFeatureEvaluator` offsets edges over their
-support face, and with symmetry over the face across each edge;
+on itself is halved. `EdgeOffsetFeatureEvaluator` offsets each edge over the one
+of its support faces it bounds (a chain across a top and a slope runs over both, each face's
+run completed to its boundary), refusing an edge bounding none or two, and with symmetry over
+the face across each edge;
 `FaceLoopOffsetFeatureEvaluator` offsets faces' outer loops into the faces, over
 the faces around them, or both (`FaceLoopOffsetSide`), each face's own outline
 or, combined, the outline of the chosen faces together. Open chain ends are

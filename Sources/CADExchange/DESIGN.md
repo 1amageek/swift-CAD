@@ -25,6 +25,10 @@ mutate a project.
 Native section-reference admission follows the [CADIR section contract](../CADIR/SectionReference/DESIGN.md):
 curve intervals and explicit traversal direction survive save/load, profile inputs
 reject curve-only controls, and missing direction fields are not silently migrated.
+Native B-spline field admission follows the validated CADGeometry Codable source
+contract: curve periodicity/origin and independent surface U/V periodicity/origins
+survive save/load. Unknown fields remain errors; field admission never bypasses
+source geometry validation.
 
 ## Related Designs
 

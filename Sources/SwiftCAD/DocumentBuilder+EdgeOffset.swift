@@ -2,12 +2,12 @@ import CADCore
 import CADIR
 
 public extension DocumentBuilder {
-    /// Offsets `edges` of `supportFace` over it (`EdgeOffsetFeature`).
+    /// Offsets `edges` over the support faces they bound (`EdgeOffsetFeature`).
     @discardableResult
     mutating func edgeOffset(
         target targetFeatureID: FeatureID,
         edges: [StableSubshapeReference],
-        supportFace: StableSubshapeReference,
+        supportFaces: [StableSubshapeReference],
         distance: CADExpression,
         isSymmetric: Bool = false,
         gapFill: OffsetGapFill = .round,
@@ -16,7 +16,7 @@ public extension DocumentBuilder {
         let feature = EdgeOffsetFeature(
             target: PatternTargetReference(featureID: targetFeatureID),
             edges: edges,
-            supportFace: supportFace,
+            supportFaces: supportFaces,
             distance: distance,
             isSymmetric: isSymmetric,
             gapFill: gapFill

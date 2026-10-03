@@ -172,6 +172,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 var end = loft.sections[0]
                 end.section = .curve(CurveSectionReference(featureID: featureEvaluationStageID(featureID: feature.id, domain: .loftEndSection, ordinal: 0)))
                 end.continuity = nil
+                end.faceContinuity = nil
                 end.startSampleIndex = nil
                 lofted.sections.append(end)
                 seamPoints.append(nil)

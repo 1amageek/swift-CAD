@@ -23,21 +23,29 @@ package struct BRepSurfaceMeetingSolver: Sendable {
     /// The branch of `first` ∩ `second` nearest `point`; nil when they do not meet in a curve.
     /// `coincide` reports surfaces lying on each other.
     package func nearestBranch(of first: Surface3D, and second: Surface3D, near point: Point3D) throws -> (curve: Curve3D?, coincide: Bool) {
+        let nearest = try nearestIntersection(of: first, and: second, near: point)
+        return (nearest.branch?.curve, nearest.coincide)
+    }
+
+    /// `nearestBranch` with the certified intersection itself, which carries the branch's
+    /// parameter curves on both surfaces.
+    package func nearestIntersection(of first: Surface3D, and second: Surface3D, near point: Point3D) throws
+        -> (branch: SurfaceSurfaceIntersectionCurve?, coincide: Bool) {
         if first == second { return (nil, true) }
-        var nearest: (curve: Curve3D, distance: Double)?
+        var nearest: (branch: SurfaceSurfaceIntersectionCurve, distance: Double)?
         var coincide = false
         for component in try DefaultSurfaceSurfaceIntersector().intersections(first: first, second: second, tolerance: tolerance) {
             switch component {
             case let .curve(branch):
                 let distance = (try closest(to: point, on: branch.curve).point - point).length
-                if nearest.map({ distance < $0.distance }) ?? true { nearest = (branch.curve, distance) }
+                if nearest.map({ distance < $0.distance }) ?? true { nearest = (branch, distance) }
             case .coincident:
                 coincide = true
             case .point:
                 continue
             }
         }
-        return (nearest?.curve, coincide && nearest == nil)
+        return (nearest?.branch, coincide && nearest == nil)
     }
 
     /// The point nearest `seed` lying on every surface where they cross: three or more surfaces

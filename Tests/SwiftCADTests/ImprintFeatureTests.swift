@@ -185,6 +185,38 @@ struct ImprintFeatureTests {
         #expect(abs(try evaluated.brep.volume(of: solid.id, tolerance: .standard) - side * side * side) < 1e-12)
     }
 
+    /// Plasticity imprints several tool sheets at once, Complete Edge carrying each tool's line on
+    /// across the other's to the target's boundary: one sheet stops at the top's middle, the other
+    /// crosses it; the first's line runs on over the second's to the back edge.
+    @Test(.timeLimit(.minutes(2)))
+    func severalToolsImprintAtOnceTheirLinesCrossing() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let target = try builder.box(width: length(side), depth: length(side), height: length(side))
+        let b = try bounds(of: target, in: try evaluate(builder))
+        let (midX, top) = ((b.minimum.x + b.maximum.x) / 2, b.maximum.z)
+        let midY = (b.minimum.y + b.maximum.y) / 2
+        let farY = b.minimum.y + 0.75 * (b.maximum.y - b.minimum.y)
+        func sheet(_ a: Point3D, _ c: Point3D) throws -> FeatureID {
+            try builder.bSplineSurface(BSplineSurface3D(
+                uDegree: 1, vDegree: 1, uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+                controlPoints: [[Point3D(x: a.x, y: a.y, z: top - side / 4), Point3D(x: c.x, y: c.y, z: top - side / 4)],
+                                [Point3D(x: a.x, y: a.y, z: top + side / 4), Point3D(x: c.x, y: c.y, z: top + side / 4)]]
+            ))
+        }
+        // Across the front edge to the top's middle, and across the whole top at three quarters.
+        let first = try sheet(Point3D(x: midX, y: b.minimum.y - side, z: 0), Point3D(x: midX, y: midY, z: 0))
+        let second = try sheet(Point3D(x: b.minimum.x - side, y: farY, z: 0), Point3D(x: b.maximum.x + side, y: farY, z: 0))
+        let imprinted = try builder.imprintBody(target, tools: [ImprintBodyTool(body: PatternTargetReference(featureID: first)),
+                                                              ImprintBodyTool(body: PatternTargetReference(featureID: second))],
+                                                completion: .edge)
+        let evaluated = try evaluate(builder)
+        let solid = try body(of: imprinted, in: evaluated)
+        // The top in four; the front and the two sides each in two, carried down to the bottom.
+        #expect(faceCount(solid, in: evaluated) == 12)
+        #expect(abs(try evaluated.brep.volume(of: solid.id, tolerance: .standard) - side * side * side) < 1e-12)
+        #expect(evaluated.brep.bodies.count == 3)
+    }
+
     // MARK: Imprint Curve Body
 
     private func sketchPoint(_ x: Double, _ y: Double) -> SketchPoint {
@@ -303,6 +335,44 @@ struct ImprintFeatureTests {
         #expect(faceCount(try body(of: placedTool, in: tooled), in: tooled) == 10)
         // Nothing of the moved sheet is published.
         #expect(tooled.subshapes.entries.keys.allSatisfy { tooled.document.designGraph.nodes[$0.featureID] != nil })
+    }
+
+    /// Hide occlusion keeps what the curve sees first. A C-shaped prism lifted over a line swept up
+    /// through it: the ledge's bottom is seen whole, and the slab's bottom only where the ledge
+    /// does not hide it — a piece ending inside the face, which divides nothing, so with Complete
+    /// target None no line is drawn for it (Plasticity's None draws none); every other crossing
+    /// is hidden.
+    @Test(.timeLimit(.minutes(2)))
+    func aPartlyHiddenCrossingKeepsOnlyItsSeenPiece() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // On the ZX plane sketch x is world z and sketch y world x; the prism runs along +y.
+        let corners: [(x: Double, z: Double)] = [(0, 0.05), (0.01, 0.05), (0.01, 0.055), (0.003, 0.055),
+                                                 (0.003, 0.065), (0.02, 0.065), (0.02, 0.07), (0, 0.07)]
+        let profile = try builder.sketch(on: .zx, named: "C") { sketch in
+            for k in corners.indices {
+                let (a, b) = (corners[k], corners[(k + 1) % corners.count])
+                _ = sketch.line(from: sketchPoint(a.z, a.x), to: sketchPoint(b.z, b.x))
+            }
+        }
+        let prism = try builder.extrude(profile, distance: length(0.02))
+        let extent = try bounds(of: prism, in: try evaluate(builder))
+        let midY = (extent.minimum.y + extent.maximum.y) / 2
+        let sketch = try builder.sketch(on: .xy, named: "Line") { sketch in
+            _ = sketch.line(from: sketchPoint(-0.005, midY), to: sketchPoint(0.025, midY))
+        }
+        var through = builder
+        let crossed = try through.imprintCurves(prism, curves: [ImprintCurveReference(curve: CurveOutputReference(featureID: sketch.featureID))],
+            projection: .vector(direction: .unitZ, bidirectional: false, hidesOcclusion: false))
+        let all = try evaluate(through)
+        // Every wall the line passes under is cut: 10 faces become 18.
+        #expect(faceCount(try body(of: crossed, in: all), in: all) == 18)
+        let seen = try builder.imprintCurves(prism, curves: [ImprintCurveReference(curve: CurveOutputReference(featureID: sketch.featureID))],
+            projection: .vector(direction: .unitZ, bidirectional: false, hidesOcclusion: true))
+        let first = try evaluate(builder)
+        let solid = try body(of: seen, in: first)
+        #expect(faceCount(solid, in: first) == 11)
+        let area = 0.01 * 0.005 + 0.003 * 0.01 + 0.02 * 0.005
+        #expect(abs(try first.brep.volume(of: solid.id, tolerance: .standard) - area * 0.02) < 1e-12)
     }
 
     @Test(.timeLimit(.minutes(2)), arguments: [nil, RigidTransform3D.translated(by: Vector3D(x: 0, y: 0, z: -0.03))])

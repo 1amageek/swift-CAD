@@ -261,10 +261,38 @@ package struct ExactEdgeContinuitySupportResolver: Sendable {
         let resolved = try subshapeResolver.topologyReference(
             for: continuity.edge, model: model, subshapes: context.subshapes, lineage: context.lineage, tolerance: tolerance
         )
-        guard case let .edge(edgeID) = resolved, scope.references.contains(.edge(edgeID)), let edge = model.edges[edgeID],
-              let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else {
+        guard case let .edge(edgeID) = resolved, scope.references.contains(.edge(edgeID)) else {
             throw KernelError(phase: .evaluation, code: .missingReference, featureID: featureID, subshapeID: continuity.edge.subshapeID,
                               tolerance: tolerance, message: "A continuity edge did not resolve to an edge of its body.")
+        }
+        return try support(
+            across: edgeID, in: scope, excluding: nil, order: continuity.order, tension: continuity.tension,
+            angularAllowance: continuity.angularAllowance, curvatureAllowance: continuity.curvatureAllowance,
+            point: point, derivative: derivative, toward: toward, context: context, featureID: featureID
+        )
+    }
+
+    /// The support across the body edge `edgeID` of `scope`, with a face of the body beside it
+    /// other than `excluded` (a Loft's face section, whose own boundary it is).
+    package func support(
+        across edgeID: EdgeID,
+        in scope: BodyTopologyScope,
+        excluding excluded: FaceID?,
+        order: SurfaceEdgeContinuity.Order,
+        tension: Double,
+        angularAllowance: Double?,
+        curvatureAllowance: Double?,
+        point: Point3D,
+        derivative: Vector3D,
+        toward: Vector3D,
+        context: EvaluationContext,
+        featureID: FeatureID
+    ) throws -> ExactEdgeContinuitySupport {
+        let tolerance = context.tolerance
+        let model = context.brep
+        guard let edge = model.edges[edgeID], let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else {
+            throw KernelError(phase: .evaluation, code: .missingReference, featureID: featureID,
+                              tolerance: tolerance, message: "A continuity edge has no geometry.")
         }
         let projection = try curve.parameterProjection(of: point, tolerance: tolerance)
         guard (try curve.point(at: projection.parameter, tolerance: tolerance) - point).length <= tolerance.distance else {
@@ -274,7 +302,7 @@ package struct ExactEdgeContinuitySupportResolver: Sendable {
         let along = try curve.differentialGeometry(at: projection.parameter, tolerance: tolerance).firstDerivative
             * (trim.endParameter >= trim.startParameter ? 1 : -1)
         var best: (outward: Vector3D, outwardNormal: Vector3D, face: Face, score: Double)?
-        for case let .face(faceID) in scope.references {
+        for case let .face(faceID) in scope.references where faceID != excluded {
             guard let face = model.faces[faceID] else { continue }
             for loopID in face.loops {
                 guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("A face's loop is missing.") }
@@ -304,16 +332,16 @@ package struct ExactEdgeContinuitySupportResolver: Sendable {
         if let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) {
             face = .plane(normal: try (plane.normal * outwardSign).normalized(tolerance: tolerance.distance))
         } else {
-            guard let allowance = continuity.angularAllowance else {
+            guard let allowance = angularAllowance else {
                 throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
                                   message: "Continuity with a curved face needs an angular allowance.")
             }
-            guard continuity.order == .tangent || continuity.curvatureAllowance != nil else {
+            guard order == .tangent || curvatureAllowance != nil else {
                 throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
                                   message: "Curvature continuity with a curved face needs a curvature allowance.")
             }
             face = .curved(surface: surface, outwardSign: outwardSign, angularAllowance: allowance,
-                           curvatureAllowance: continuity.order == .curvature ? continuity.curvatureAllowance : nil)
+                           curvatureAllowance: order == .curvature ? curvatureAllowance : nil)
         }
         let across = best.outwardNormal.cross(derivative)
         guard across.length > tolerance.distance else {
@@ -322,7 +350,7 @@ package struct ExactEdgeContinuitySupportResolver: Sendable {
         }
         return ExactEdgeContinuitySupport(
             face: face, sign: across.dot(best.outward) >= 0 ? 1 : -1,
-            order: continuity.order, tension: continuity.tension
+            order: order, tension: tension
         )
     }
 }

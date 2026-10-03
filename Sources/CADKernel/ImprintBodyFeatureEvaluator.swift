@@ -34,38 +34,43 @@ struct ImprintBodyFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         }
         try FeatureEvaluationBoundary.validateExactInput(context, featureID: feature.id, tolerance: context.tolerance)
         let targetBodyID = try context.bodyID(generatedBy: imprint.target.featureID)
-        var toolBodyID = try context.bodyID(generatedBy: imprint.tool.featureID)
-        var crossingContext = context
-        if let placement = imprint.toolPlacement {
-            // The tool crosses the target where it is placed: moved in an unpublished stage.
-            try placement.validate(tolerance: context.tolerance)
-            var stages = FeatureEvaluationStages(context)
-            let stageID = featureEvaluationStageID(featureID: feature.id, domain: .imprintToolPlacement, ordinal: 0)
-            let moved = try DefaultExactBodyPatternRebuilder(
-                sewer: DefaultBRepSewer(), unionApplicator: ExactBooleanOperationApplicator(), separationValidator: ExactBodyJoinValidator()
-            ).relocate(featureID: stageID, sourceBodyID: toolBodyID, transform: placement, stablePrefix: "imprint:placedTool", context: context)
-            stages.apply(moved)
-            toolBodyID = try stages.publishedBody(of: moved, featureID: feature.id, what: "Moving the tool to imprint")
-            crossingContext = stages.context
-        }
         let published = Set(context.subshapes.entries.keys)
-        let curves = try Self.crossings(
-            of: targetBodyID, by: toolBodyID, pipeline: pipeline, featureID: feature.id, context: crossingContext
-        ).map { curve in
-            // A moved tool is never published: what the crossings trace to it is dropped.
-            let edge = curve.edge
-            return BRepFaceImprinter.Curve(faceID: curve.faceID, edge: BRepSewingEdge(
-                stableID: edge.stableID, curve: edge.curve, startParameter: edge.startParameter, endParameter: edge.endParameter,
-                startPoint: edge.startPoint, endPoint: edge.endPoint, surfaceParameterCurve: edge.surfaceParameterCurve,
-                parentSubshapeIDs: edge.parentSubshapeIDs.filter(published.contains)
-            ))
+        var completed: [BRepFaceImprinter.Curve] = []
+        for (ordinal, tool) in imprint.tools.enumerated() {
+            var toolBodyID = try context.bodyID(generatedBy: tool.body.featureID)
+            var crossingContext = context
+            if let placement = tool.placement {
+                // The tool crosses the target where it is placed: moved in an unpublished stage.
+                try placement.validate(tolerance: context.tolerance)
+                var stages = FeatureEvaluationStages(context)
+                let stageID = featureEvaluationStageID(featureID: feature.id, domain: .imprintToolPlacement, ordinal: UInt64(ordinal))
+                let moved = try DefaultExactBodyPatternRebuilder(
+                    sewer: DefaultBRepSewer(), unionApplicator: ExactBooleanOperationApplicator(), separationValidator: ExactBodyJoinValidator()
+                ).relocate(featureID: stageID, sourceBodyID: toolBodyID, transform: placement, stablePrefix: "imprint:placedTool:\(ordinal)", context: context)
+                stages.apply(moved)
+                toolBodyID = try stages.publishedBody(of: moved, featureID: feature.id, what: "Moving the tool to imprint")
+                crossingContext = stages.context
+            }
+            let curves = try Self.crossings(
+                of: targetBodyID, by: toolBodyID, pipeline: pipeline, featureID: feature.id, context: crossingContext
+            ).enumerated().map { index, curve in
+                // A moved tool is never published: what the crossings trace to it is dropped.
+                let edge = curve.edge
+                return BRepFaceImprinter.Curve(faceID: curve.faceID, edge: BRepSewingEdge(
+                    stableID: "imprint:tool:\(ordinal):\(index):\(edge.stableID)", curve: edge.curve,
+                    startParameter: edge.startParameter, endParameter: edge.endParameter,
+                    startPoint: edge.startPoint, endPoint: edge.endPoint, surfaceParameterCurve: edge.surfaceParameterCurve,
+                    parentSubshapeIDs: edge.parentSubshapeIDs.filter(published.contains)
+                ))
+            }
+            guard curves.isEmpty == false else {
+                throw failure(.invalidInput, feature.id, context, "A tool does not cross the target.")
+            }
+            // Each tool's lines complete among themselves, so they run on across another tool's.
+            completed += try BRepImprintCompletion().completed(
+                curves, by: imprint.completion, model: context.brep, sourceSubshapes: context.subshapes.entries, tolerance: context.tolerance
+            )
         }
-        guard curves.isEmpty == false else {
-            throw failure(.invalidInput, feature.id, context, "The tool does not cross the target.")
-        }
-        let completed = try BRepImprintCompletion().completed(
-            curves, by: imprint.completion, model: context.brep, sourceSubshapes: context.subshapes.entries, tolerance: context.tolerance
-        )
         return try BRepFaceImprinter().imprint(completed, on: targetBodyID, featureID: feature.id, context: context)
     }
 

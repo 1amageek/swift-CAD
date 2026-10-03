@@ -19,7 +19,7 @@ struct EdgeOffsetSchemaTests {
         let feature = EdgeOffsetFeature(
             target: PatternTargetReference(featureID: featureID),
             edges: [reference(featureID, "edge", 0), reference(featureID, "edge", 1)],
-            supportFace: reference(featureID, "face", 0),
+            supportFaces: [reference(featureID, "face", 0)],
             distance: .constant(.length(2.0, unit: .millimeter)),
             isSymmetric: true, gapFill: .linear
         )
@@ -28,7 +28,7 @@ struct EdgeOffsetSchemaTests {
         #expect(throws: FeatureEvaluationError.self) {
             try EdgeOffsetFeature(
                 target: PatternTargetReference(featureID: featureID), edges: [],
-                supportFace: reference(featureID, "face", 0), distance: .constant(.length(1, unit: .millimeter))
+                supportFaces: [reference(featureID, "face", 0)], distance: .constant(.length(1, unit: .millimeter))
             ).validate()
         }
     }

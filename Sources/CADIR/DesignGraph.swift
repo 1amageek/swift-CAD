@@ -1198,9 +1198,10 @@ public struct DesignGraph: Codable, Equatable, Sendable {
             throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a surfaceFill operation.")
         }
         try fill.validate()
-        guard node.inputs == [FeatureInput(featureID: fill.targetFeatureID, role: .target)],
+        guard node.inputs == fill.inputs,
               let source = nodes[fill.targetFeatureID],
               source.outputs.filter({ $0.role == .body || $0.role == .sheet }).count == 1,
+              fill.insertedSheet.map({ nodes[$0]?.outputs.contains { $0.role == .sheet } == true }) ?? true,
               outputRoles == [.sheet] else {
             throw FeatureEvaluationError.invalidGraph("Surface fill requires one body target input and one sheet output.")
         }
@@ -1720,8 +1721,8 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         guard node.inputs == [FeatureInput(featureID: feature.target.featureID, role: .target)] else {
             throw FeatureEvaluationError.invalidGraph("Remove Fillets features must consume exactly their target.")
         }
-        guard nodes[feature.target.featureID]?.outputs.contains(where: { $0.role == .body }) == true, outputRoles == [.body] else {
-            throw FeatureEvaluationError.invalidGraph("Remove Fillets takes a solid and publishes one.")
+        guard let targetPort = nodes[feature.target.featureID]?.bodyOrSheetOutput, outputRoles == [targetPort] else {
+            throw FeatureEvaluationError.invalidGraph("Remove Fillets takes a solid or a sheet and publishes the same kind of body.")
         }
     }
 
@@ -1760,8 +1761,9 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         case let .imprintBody(feature):
             try feature.validate()
             target = feature.target.featureID
-            inputs = [FeatureInput(featureID: target, role: .target), FeatureInput(featureID: feature.tool.featureID, role: .body)]
-            guard nodes[feature.tool.featureID]?.bodyOrSheetOutput != nil else {
+            inputs = [FeatureInput(featureID: target, role: .target)]
+                + feature.tools.map { FeatureInput(featureID: $0.body.featureID, role: .body) }
+            for tool in feature.tools where nodes[tool.body.featureID]?.bodyOrSheetOutput == nil {
                 throw FeatureEvaluationError.invalidGraph("Imprint's tool must declare one body or sheet output.")
             }
         case let .untrimFace(feature):

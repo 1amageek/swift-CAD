@@ -662,13 +662,25 @@ public struct DocumentBuilder {
         return featureID
     }
 
+    /// Imprints every one of `tools` onto `target` at once (`ImprintBodyFeature`).
+    @discardableResult
+    public mutating func imprintBody(
+        _ target: FeatureID, tools: [ImprintBodyTool], completion: ImprintCompletion = .none, named name: String? = nil
+    ) throws -> FeatureID {
+        let feature = ImprintBodyFeature(target: PatternTargetReference(featureID: target), tools: tools, completion: completion)
+        try feature.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .imprintBody(feature))
+        return featureID
+    }
+
     @discardableResult
     public mutating func imprintBody(
         _ target: FeatureID, tool: FeatureID, toolPlacement: RigidTransform3D? = nil, completion: ImprintCompletion = .none, named name: String? = nil
     ) throws -> FeatureID {
         let feature = ImprintBodyFeature(
-            target: PatternTargetReference(featureID: target), tool: PatternTargetReference(featureID: tool),
-            toolPlacement: toolPlacement, completion: completion
+            target: PatternTargetReference(featureID: target),
+            tools: [ImprintBodyTool(body: PatternTargetReference(featureID: tool), placement: toolPlacement)], completion: completion
         )
         try feature.validate()
         let featureID = FeatureID()
@@ -919,6 +931,19 @@ public struct DocumentBuilder {
         try mirror.validate(tolerance: tolerance)
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .mirror(mirror))
+        return featureID
+    }
+
+    /// Fills the opening of `target` through `boundarySeed` (`SurfaceFillFeature`), with
+    /// `insertedSheet` by that sheet trimmed to the opening.
+    @discardableResult
+    public mutating func surfaceFill(
+        target: FeatureID, boundarySeed: StableSubshapeReference, insertedSheet: FeatureID? = nil, named name: String? = nil
+    ) throws -> FeatureID {
+        let fill = SurfaceFillFeature(targetFeatureID: target, boundarySeed: boundarySeed, insertedSheet: insertedSheet)
+        try fill.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .surfaceFill(fill))
         return featureID
     }
 

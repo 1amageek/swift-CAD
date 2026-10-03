@@ -74,6 +74,36 @@ struct FaceRemovalHealingTests {
         #expect(abs(try model.volume(tolerance: .standard) - 0.040 * 0.020 * 0.010) < 1e-12)
     }
 
+    /// A notch's wall and ledge deleted together: the top and the front grow back over them as one
+    /// strip, meeting where the box's edge was.
+    @Test(.timeLimit(.minutes(2)))
+    func deletingANotchsWallAndLedgeRestoresTheEdge() throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let boxID = try box(&builder)
+        let corners = try solid(builder).vertices.values.map(\.point)
+        let (x0, y0, top) = (try #require(corners.map(\.x).min()), try #require(corners.map(\.y).min()), try #require(corners.map(\.z).max()))
+        var probe = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        _ = try probe.box(width: millimeters(44), depth: millimeters(6), height: millimeters(5))
+        let probeCorners = try solid(probe).vertices.values.map(\.point)
+        let (px, py, pz) = (try #require(probeCorners.map(\.x).min()), try #require(probeCorners.map(\.y).min()), try #require(probeCorners.map(\.z).min()))
+        let cutter = try builder.box(
+            placement: PrimitivePlacement(origin: Point3D(x: x0 - 0.002 - px, y: y0 - 0.001 - py, z: top - 0.004 - pz), axis: .unitZ, referenceDirection: .unitX),
+            width: millimeters(44), depth: millimeters(6), height: millimeters(5)
+        )
+        let notched = try builder.boolean(targets: [boxID], tool: cutter, operation: .difference)
+        let notch = try subshapes(in: builder, of: notched) { value, model in
+            guard case let .face(id) = value, let face = model.faces[id] else { return false }
+            let points = face.loops.flatMap { model.loops[$0]?.coedges ?? [] }
+                .compactMap { model.edges[$0.edgeID].flatMap { model.vertices[$0.startVertexID]?.point } }
+            return points.allSatisfy { abs($0.y - (y0 + 0.005)) < 1e-9 } || points.allSatisfy { abs($0.z - (top - 0.004)) < 1e-9 }
+        }
+        #expect(notch.count == 2)
+        _ = try builder.faceDelete(target: notched, faces: notch, heals: true)
+        let model = try solid(builder)
+        #expect(model.faces.count == 6)
+        #expect(abs(try model.volume(tolerance: .standard) - 0.040 * 0.020 * 0.010) < 1e-12)
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func removingFilletsSharpensARoundedBox() throws {
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
@@ -94,6 +124,48 @@ struct FaceRemovalHealingTests {
             #expect(throws: (any Error).self) {
                 _ = try CADPipeline(tolerance: .standard).evaluate(builder.build())
             }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func removingFilletsTakesOffACurvatureContinuousRound() throws {
+        // A box's top edge rounded G2 (a B-spline blend, not a cylinder): Remove Fillets still
+        // takes it off, and the box is whole again.
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let boxID = try box(&builder)
+        let edge = try #require(try subshapes(in: builder, of: boxID) { value, model in
+            guard case let .edge(id) = value, let edge = model.edges[id],
+                  let a = model.vertices[edge.startVertexID]?.point, let b = model.vertices[edge.endVertexID]?.point else { return false }
+            return abs(a.z - 0.010) < 1e-9 && abs(b.z - 0.010) < 1e-9 && abs(a.x - 0.020) < 1e-9 && abs(b.x - 0.020) < 1e-9
+        }.first)
+        let rounded = try builder.fillet(target: boxID, edges: [edge], radius: millimeters(3), shape: .curvature)
+        let blended = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        #expect(blended.geometry.surfaces.values.contains { if case .bSpline = $0 { return true } else { return false } })
+        _ = try builder.removeFillets(target: rounded, maximumRadius: millimeters(20), convexity: .convex)
+        let model = try solid(builder)
+        #expect(model.faces.count == 6)
+        #expect(abs(try model.volume(tolerance: .standard) - 0.040 * 0.020 * 0.010) < 1e-12)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func removingFilletsSharpensASheet() throws {
+        // The rounded box opened top and bottom: a sheet tube whose four rounds Remove Fillets
+        // takes out, its walls run on to sharp corners, open as before.
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let boxID = try roundedBox(&builder)
+        let caps = try subshapes(in: builder, of: boxID) { value, model in
+            guard case let .face(id) = value, let face = model.faces[id], case let .plane(plane)? = model.geometry.surfaces[face.surfaceID] else { return false }
+            return abs(abs(plane.normal.z) - 1) < 1e-9
+        }
+        #expect(caps.count == 2)
+        let tube = try builder.faceDelete(target: boxID, faces: caps)
+        _ = try builder.removeFillets(target: tube, maximumRadius: millimeters(6), convexity: .convex)
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        try model.validate(level: .exact, tolerance: .standard)
+        #expect(model.bodies.values.allSatisfy { $0.kind == .sheet })
+        #expect(model.faces.count == 4)
+        for (x, y) in [(0.02, 0.01), (-0.02, 0.01), (-0.02, -0.01), (0.02, -0.01)] {
+            #expect(model.vertices.values.contains { abs($0.point.x - x) < 1e-9 && abs($0.point.y - y) < 1e-9 }, "\(x) \(y)")
         }
     }
 
