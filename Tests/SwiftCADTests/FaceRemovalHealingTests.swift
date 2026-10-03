@@ -98,6 +98,26 @@ struct FaceRemovalHealingTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func removingFilletsTakesOffACurvatureContinuousRound() throws {
+        // A box's top edge rounded G2 (a B-spline blend, not a cylinder): Remove Fillets still
+        // takes it off, and the box is whole again.
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let boxID = try box(&builder)
+        let edge = try #require(try subshapes(in: builder, of: boxID) { value, model in
+            guard case let .edge(id) = value, let edge = model.edges[id],
+                  let a = model.vertices[edge.startVertexID]?.point, let b = model.vertices[edge.endVertexID]?.point else { return false }
+            return abs(a.z - 0.010) < 1e-9 && abs(b.z - 0.010) < 1e-9 && abs(a.x - 0.020) < 1e-9 && abs(b.x - 0.020) < 1e-9
+        }.first)
+        let rounded = try builder.fillet(target: boxID, edges: [edge], radius: millimeters(3), shape: .curvature)
+        let blended = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        #expect(blended.geometry.surfaces.values.contains { if case .bSpline = $0 { return true } else { return false } })
+        _ = try builder.removeFillets(target: rounded, maximumRadius: millimeters(20), convexity: .convex)
+        let model = try solid(builder)
+        #expect(model.faces.count == 6)
+        #expect(abs(try model.volume(tolerance: .standard) - 0.040 * 0.020 * 0.010) < 1e-12)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func removingFilletsSharpensASheet() throws {
         // The rounded box opened top and bottom: a sheet tube whose four rounds Remove Fillets
         // takes out, its walls run on to sharp corners, open as before.

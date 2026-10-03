@@ -1088,7 +1088,10 @@ Edges between kept faces that reach a merged vertex run on their own curves to i
 `BRepSurfaceMeetingSolver` (also under `FaceSurfaceReplacementRebuilder`) solves the
 meetings: the intersection branch nearest a seed, crossing points by tangent-plane
 Newton or along a curve where surfaces touch tangentially, and sense-keeping trims.
-A fillet is a face on a cylinder, torus or sphere no wider than the radius asked for,
+A fillet is a face on a cylinder, torus or sphere, or a B-spline round (conic, chordal, G2 or a
+rolling ball's spline: its cross radius read from the larger principal curvature at its middle, its
+centre on the side it bends toward, and no round when it bends less than across its own size), no
+wider than the radius asked for,
 tangent to two kept faces along two of its edges (a strip), or lying where fillets
 meet with at most one kept face tangent to it (a corner, removed only with every fillet
 around it — a small round wrapping a removed vertical round collapses to the sharp corner its
@@ -1099,7 +1102,7 @@ volume least is kept. Faces touching one another go together: as a hole when the
 through one; otherwise every combination of their collapses (at most 256) is healed at
 once and the one that validates and changes the volume least kept (chamfers meeting at a
 mitre each collapse onto their edge together); otherwise one at a time, each the first left
-that heals alone. `FaceRemovalHealingTests` prove a filled hole, a sharpened rounded box and the same box opened into a sheet tube, the
+that heals alone. `FaceRemovalHealingTests` prove a filled hole, a sharpened rounded box and the same box opened into a sheet tube, a G2 round taken off a box, the
 video's L slab whose small rounds wrap a kept 8 mm round (all rounds to 3 mm removed exactly),
 one sharpened corner, a restored chamfered edge, two chamfers meeting at a corner deleted
 together, radius and convexity filters and the refusal of a top no neighbours close over.
