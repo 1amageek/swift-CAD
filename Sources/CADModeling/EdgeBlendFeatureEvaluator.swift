@@ -53,8 +53,9 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                                             stations: stations, context: context)
         }
         // Tangent loops of lines and arcs on a planar cap (a cylinder's rim, a rounded outline) take
-        // the band swept along the whole loop.
-        if fillet.allEdges == false, fillet.shape == .round, targetKind == .solid {
+        // the band swept along the whole loop, round or with a Conic, Chordal or G2 section.
+        if fillet.allEdges == false, let capSection = capLoopSection(fillet.shape, tension: fillet.tension, distance: radius),
+           targetKind == .solid {
             let bodyID = try targetBodyID(fillet.target.featureID, featureID: feature.id, context: context)
             let selections = try fillet.edges.map { reference in
                 (reference, try scopedEdgeSelection(reference, bodyID: bodyID, featureID: feature.id, context: context))
@@ -63,7 +64,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             if try capLoops.admits(selections.map(\.1.edgeID), model: context.brep) {
                 let request = try capLoops.request(
                     featureID: feature.id, bodyID: bodyID, selected: selections.map { ($0.1.edgeID, $0.0.subshapeID) },
-                    section: .round(radius), context: context)
+                    section: capSection, context: context)
                 let sewn = try sewer.sew(request, tolerance: context.tolerance)
                 let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: context.brep)
                 try model.validate(level: .volumetric, tolerance: context.tolerance)
@@ -1315,6 +1316,31 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         case .round, .full:
             throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: nil,
                               message: "A round or full fillet takes its own route.")
+        }
+    }
+
+    /// The band's section on a cap loop, where the cap meets its walls square: a round of the
+    /// radius, or the Conic, Chordal or G2 section `section(for:)` builds at a right angle; nil for
+    /// Full, which spans two faces.
+    private func capLoopSection(_ shape: FilletShape, tension: Double, distance: Double) -> CapLoopBlendBuilder.Section? {
+        typealias Step = CapLoopBlendBuilder.Section.Step
+        let middle = sin(0.25 * Double.pi) * tension / (1 - tension)
+        let corner = [Step(cap: 1, wall: 0), Step(cap: 0, wall: 0), Step(cap: 0, wall: 1)]
+        switch shape {
+        case .round:
+            return .round(distance)
+        case .conic:
+            return .profile(setback: distance, degree: 2, weights: [1, middle, 1], points: corner)
+        case .chordal:
+            return .profile(setback: distance / (2 * sin(0.25 * Double.pi)), degree: 2, weights: [1, middle, 1], points: corner)
+        case .curvature:
+            let handle = tension / 3
+            return .profile(setback: distance, degree: 5, weights: Array(repeating: 1, count: 6), points: [
+                Step(cap: 1, wall: 0), Step(cap: 1 - handle, wall: 0), Step(cap: 1 - 2 * handle, wall: 0),
+                Step(cap: 0, wall: 1 - 2 * handle), Step(cap: 0, wall: 1 - handle), Step(cap: 0, wall: 1),
+            ])
+        case .full:
+            return nil
         }
     }
 

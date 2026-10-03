@@ -570,6 +570,38 @@ struct FilletShapeTests {
         #expect(abs(chamferVolume - (solid - r * r / 2 * (straight + 2 * Double.pi * (c - r / 3)))) < 5e-12, "\(chamferVolume)")
     }
 
+    /// Plasticity's Conic, Chordal and G2 along a rounded outline's tangent chain: Conic and
+    /// Chordal at tension 0.5 are the round of the distance (Chordal's chord the distance, so a
+    /// round of distance/√2); higher Conic tension keeps more material, and so does G2's quintic.
+    @Test(.timeLimit(.minutes(2)))
+    func aRoundedBlocksTopOutlineTakesConicChordalAndG2() throws {
+        let (w, h, c, height, r) = (0.04, 0.03, 0.005, 0.01, 0.002)
+        let solid = (w * h - (4 - Double.pi) * c * c) * height
+        let straight = 2 * (w - 2 * c) + 2 * (h - 2 * c)
+        func roundVolume(_ radius: Double) -> Double {
+            let section = radius * radius * (1 - Double.pi / 4)
+            let inset = radius * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+            return solid - section * (straight + 2 * Double.pi * (c - inset))
+        }
+        func filleted(_ shape: FilletShape, tension: Double?) throws -> Double {
+            var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+            let (block, edge) = try roundedBlock(&builder)
+            _ = try builder.fillet(target: block, edges: [edge], radius: length(r), shape: shape, tension: tension)
+            let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "r"))
+            try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+            return try evaluated.brep.volume(tolerance: .standard)
+        }
+        let conic = try filleted(.conic, tension: 0.5)
+        #expect(abs(conic - roundVolume(r)) < 1e-11, "\(conic) vs \(roundVolume(r))")
+        let chordal = try filleted(.chordal, tension: 0.5)
+        #expect(abs(chordal - roundVolume(r / 2.0.squareRoot())) < 1e-11, "\(chordal)")
+        let fuller = try filleted(.conic, tension: 0.7)
+        #expect(fuller > conic + 1e-12 && fuller < solid)
+        let g2 = try filleted(.curvature, tension: nil)
+        // G2's quintic hugs the corner more closely than the arc: it keeps more material.
+        #expect(g2 > conic && g2 < solid, "\(g2) vs \(conic)")
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func aBoxsTopOutlineRoundsOverItsFilletedUprightEdges() throws {
         // Plasticity's selection video: a box whose four upright edges one fillet rounded, then

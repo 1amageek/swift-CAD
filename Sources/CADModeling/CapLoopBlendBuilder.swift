@@ -35,12 +35,28 @@ package struct CapLoopBlendBuilder {
     package enum Section: Sendable {
         case round(Double)
         case chamfer(cap: Double, wall: Double)
+        /// A Conic, Chordal or G2 fillet's section across the cap's right-angled corner with its
+        /// wall: a Bézier curve of `degree` with `weights`, its control points `setback`-scaled
+        /// steps (`cap` along the cap, `wall` along the wall) from the corner, from the cap
+        /// contact to the wall contact.
+        case profile(setback: Double, degree: Int, weights: [Double], points: [Step])
+
+        package struct Step: Sendable {
+            package let cap: Double
+            package let wall: Double
+
+            package init(cap: Double, wall: Double) {
+                self.cap = cap
+                self.wall = wall
+            }
+        }
 
         /// How far the band reaches along the cap, and along the wall.
         var distances: (cap: Double, wall: Double) {
             switch self {
             case let .round(radius): (radius, radius)
             case let .chamfer(cap, wall): (cap, wall)
+            case let .profile(setback, _, _, _): (setback, setback)
             }
         }
     }
@@ -185,6 +201,14 @@ package struct CapLoopBlendBuilder {
                         throw refuse("A cap loop's blend is no larger than its convex arcs.")
                     }
                     let collapses = convexArc && abs(arc.circle.radius - dc) <= tolerance.distance
+                    if collapses, case .profile = shape {
+                        // FIXME(INCOMPLETE_IMPLEMENTATION): a Conic, Chordal or G2 band as large as a
+                        // convex arc of its cap closes on the arc's axis, which is not built, so it
+                        // is refused. Production path: CapLoopBlendBuilder from Fillet's non-round
+                        // shapes. Complete only when such bands close, verified by a rounded
+                        // block's rim filleted Conic by its corner radius.
+                        throw refuse("A cap loop's Conic, Chordal or G2 fillet is smaller than its convex arcs.")
+                    }
                     if collapses, case .chamfer = shape {
                         // FIXME(INCOMPLETE_IMPLEMENTATION): a chamfer as large as a convex arc of its
                         // cap closes on a cone's apex, which is not built, so it is refused.
@@ -438,7 +462,49 @@ package struct CapLoopBlendBuilder {
             return try spherePatch(stableID: stableID, center: center, radius: d, edges: edges, parents: faceParents)
         }
         let surface: Surface3D
-        if let arc = segment.arc {
+        if case let .profile(_, degree, weights, _) = shape {
+            let startRow = profileCurve(shape, at: segment.start, inward: inward.start, wallDirection: wallDirection).controlPoints
+            let knots = Array(repeating: 0.0, count: degree + 1) + Array(repeating: 1.0, count: degree + 1)
+            if let arc = segment.arc {
+                // The section turned about the arc's axis: rational quadratic in the turn, a piece
+                // per quarter turn at most.
+                let axis = try arc.circle.normal.normalized(tolerance: tolerance.distance)
+                let sweep = arc.to - arc.from
+                let pieces = max(1, Int((abs(sweep) / (0.5 * Double.pi) - 1e-9).rounded(.up)))
+                let step = sweep / Double(pieces)
+                func turned(_ point: Point3D, by angle: Double) -> Point3D {
+                    let center = arc.circle.center + axis * (point - arc.circle.center).dot(axis)
+                    let offset = point - center
+                    return center + offset * cos(angle) + axis.cross(offset) * sin(angle)
+                }
+                var rows: [[Point3D]] = []
+                var rowWeights: [[Double]] = []
+                var vKnots: [Double] = [0, 0, 0]
+                for piece in 0...pieces {
+                    let angle = step * Double(piece)
+                    rows.append(startRow.map { turned($0, by: angle) })
+                    rowWeights.append(weights)
+                    guard piece < pieces else { break }
+                    rows.append(startRow.map { point in
+                        let center = arc.circle.center + axis * (point - arc.circle.center).dot(axis)
+                        return center + ((turned(point, by: angle) - center) + (turned(point, by: angle + step) - center)) * (1 / (1 + cos(step)))
+                    })
+                    rowWeights.append(weights.map { $0 * cos(0.5 * step) })
+                    if piece > 0 { vKnots += [Double(piece) / Double(pieces), Double(piece) / Double(pieces)] }
+                }
+                vKnots += [1, 1, 1]
+                let spline = BSplineSurface3D(uDegree: degree, vDegree: 2, uKnots: knots, vKnots: vKnots, controlPoints: rows, weights: rowWeights)
+                try spline.validate(tolerance: tolerance)
+                surface = .bSpline(spline)
+            } else {
+                // The section carried along the line.
+                let endRow = profileCurve(shape, at: segment.end, inward: inward.end, wallDirection: wallDirection).controlPoints
+                let spline = BSplineSurface3D(uDegree: degree, vDegree: 1, uKnots: knots, vKnots: [0, 0, 1, 1],
+                                              controlPoints: [startRow, endRow], weights: [weights, weights])
+                try spline.validate(tolerance: tolerance)
+                surface = .bSpline(spline)
+            }
+        } else if let arc = segment.arc {
             let center = arc.circle.center
             let axisNormal = try arc.circle.normal.normalized(tolerance: tolerance.distance)
             let capRadius = (cap.start - center).length
@@ -452,6 +518,8 @@ package struct CapLoopBlendBuilder {
                 let apexHeight = -rise * outward * capRadius * dw / dc
                 let axisDirection = n * (rise * outward)
                 surface = .analytic(.cone(apex: center + n * apexHeight, axis: axisDirection, halfAngle: atan2(dc, dw)))
+            case .profile:
+                throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: tolerance, message: "A profile band is built above.")
             }
         } else {
             let along = try (segment.end - segment.start).normalized(tolerance: tolerance.distance)
@@ -462,6 +530,8 @@ package struct CapLoopBlendBuilder {
                 let across = cap.start - wall.start
                 let planeNormal = try along.cross(across).normalized(tolerance: tolerance.distance)
                 surface = .plane(Plane3D(origin: cap.start, normal: planeNormal))
+            case .profile:
+                throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: tolerance, message: "A profile band is built above.")
             }
         }
         func tangent(at point: Point3D) throws -> Vector3D { try segmentTangent(segment, at: point) }
@@ -473,7 +543,20 @@ package struct CapLoopBlendBuilder {
             try contactEdge("\(stableID):wall", wall, forward: false, parents: parents),
             try sectionEdge("start", at: segment.start, inward: inward.start, tangent: try tangent(at: segment.start), reversed: true),
         ]
-        edges = try chainedPcurves(edges, on: surface)
+        if case .profile = shape {
+            // The band's own lines: the section across in u, the chain along in v.
+            let lines: [SurfaceParameterCurve] = [
+                .constantU(u: 0, vStart: 0, vEnd: 1), .constantV(v: 1, uStart: 0, uEnd: 1),
+                .constantU(u: 1, vStart: 1, vEnd: 0), .constantV(v: 0, uStart: 1, uEnd: 0),
+            ]
+            edges = zip(edges, lines).map { edge, line in
+                BRepSewingEdge(stableID: edge.stableID, curve: edge.curve, startParameter: edge.startParameter, endParameter: edge.endParameter,
+                               startPoint: edge.startPoint, endPoint: edge.endPoint, surfaceParameterCurve: line,
+                               parentSubshapeIDs: edge.parentSubshapeIDs)
+            }
+        } else {
+            edges = try chainedPcurves(edges, on: surface)
+        }
         // Facing away from the material: toward the corner a convex band cuts off, away from the
         // corner a concave one fills; judged at the segment's middle, where the band runs at 45°.
         let corner: Point3D
@@ -486,8 +569,17 @@ package struct CapLoopBlendBuilder {
         switch shape {
         case .round: bandPoint = corner + (try inwardAt(corner) + wallDirection) * (d * (1 - 0.5.squareRoot()))
         case .chamfer: bandPoint = corner + (try inwardAt(corner)) * (dc / 2) + wallDirection * (dw / 2)
+        case .profile:
+            bandPoint = try Curve3D.bSpline(profileCurve(shape, at: corner, inward: try inwardAt(corner), wallDirection: wallDirection))
+                .point(at: 0.5, tolerance: tolerance)
         }
-        let uv = try surface.parameterProjection(of: bandPoint, tolerance: tolerance)
+        let uv: (u: Double, v: Double)
+        if case .profile = shape {
+            uv = (0.5, 0.5)
+        } else {
+            let projected = try surface.parameterProjection(of: bandPoint, tolerance: tolerance)
+            uv = (projected.u, projected.v)
+        }
         let facing = try surface.normal(u: uv.u, v: uv.v, tolerance: tolerance).dot(corner - bandPoint) * -rise >= 0
         let loopEdges = try orientedLoop(edges, on: surface, facing: facing)
         return BRepSewingFacePatch(stableID: stableID, surface: surface, orientation: facing ? .forward : .reversed,
@@ -508,7 +600,25 @@ package struct CapLoopBlendBuilder {
         case .chamfer:
             let delta = q - p
             return (.line(Line3D(origin: p, direction: try delta.normalized(tolerance: tolerance.distance))), 0, delta.length)
+        case .profile:
+            // Parameter 0 at the cap contact, 1 at the wall's.
+            let curve = profileCurve(shape, at: point, inward: m, wallDirection: wallDirection)
+            let fromCap = (p - curve.controlPoints[0]).length <= tolerance.distance
+            return (.bSpline(curve), fromCap ? 0 : 1, fromCap ? 1 : 0)
         }
+    }
+
+    /// A profile section's Bézier curve at a chain point, from the cap contact to the wall contact.
+    private func profileCurve(_ shape: Section, at point: Point3D, inward m: Vector3D, wallDirection: Vector3D) -> BSplineCurve3D {
+        guard case let .profile(setback, degree, weights, steps) = shape else {
+            return BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1], controlPoints: [point, point])
+        }
+        return BSplineCurve3D(
+            degree: degree,
+            knots: Array(repeating: 0.0, count: degree + 1) + Array(repeating: 1.0, count: degree + 1),
+            controlPoints: steps.map { point + m * ($0.cap * setback) + wallDirection * ($0.wall * setback) },
+            weights: weights
+        )
     }
 
     /// A segment's unit tangent at a point, along the chain.
@@ -525,6 +635,10 @@ package struct CapLoopBlendBuilder {
         let pcurve: SurfaceParameterCurve
         if case let .circle(circle) = edge.curve {
             pcurve = try circlePcurve(circle, from: edge.startParameter, to: edge.endParameter, on: surface)
+        } else if case .bSpline = edge.curve {
+            pcurve = try ExactFacePcurveBuilder().surfaceParameterCurve(
+                for: edge.curve, startParameter: edge.startParameter, endParameter: edge.endParameter, on: surface, tolerance: tolerance
+            )
         } else {
             pcurve = try linePcurve(from: edge.startPoint, to: edge.endPoint, on: surface)
         }
