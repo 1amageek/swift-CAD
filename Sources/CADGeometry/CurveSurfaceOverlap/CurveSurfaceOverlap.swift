@@ -11,20 +11,23 @@ public struct CurveSurfaceOverlap: Sendable {
     private let tolerance: ModelingTolerance
     private let uRange: ScalarInterval?
     private let vRange: ScalarInterval?
+    private let isoparametric: OverlapIsoparametricCorrespondence?
 
     init(curve: Curve3D, surface: Surface3D, range: ScalarInterval, deviation: Double,
-         options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance) throws {
+         options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance,
+         isoparametric: OverlapIsoparametricCorrespondence? = nil) throws {
         self.curve = curve
         self.surface = surface
         self.tolerance = tolerance
+        self.isoparametric = isoparametric
         curveRange = range
         maximumSpatialDeviation = deviation
         uRange = options.surfaceURange
         vRange = options.surfaceVRange
         start = try Self.evaluate(curve: curve, surface: surface, parameter: range.lower,
-                                  uRange: uRange, vRange: vRange, tolerance: tolerance)
+                                  uRange: uRange, vRange: vRange, tolerance: tolerance, isoparametric: isoparametric)
         end = try Self.evaluate(curve: curve, surface: surface, parameter: range.upper,
-                                uRange: uRange, vRange: vRange, tolerance: tolerance)
+                                uRange: uRange, vRange: vRange, tolerance: tolerance, isoparametric: isoparametric)
     }
 
     /// Evaluates owned correspondence in the certified range, including its endpoints.
@@ -36,14 +39,17 @@ public struct CurveSurfaceOverlap: Sendable {
                               message: "Overlap correspondence requires a parameter inside its certified source interval.")
         }
         return try Self.evaluate(curve: curve, surface: surface, parameter: curveParameter,
-                                 uRange: uRange, vRange: vRange, tolerance: tolerance)
+                                 uRange: uRange, vRange: vRange, tolerance: tolerance, isoparametric: isoparametric)
     }
 
     static func evaluate(curve: Curve3D, surface: Surface3D, parameter: Double,
-                         uRange: ScalarInterval?, vRange: ScalarInterval?, tolerance: ModelingTolerance) throws -> CurveSurfaceOverlapEndpoint {
+                         uRange: ScalarInterval?, vRange: ScalarInterval?, tolerance: ModelingTolerance,
+                         isoparametric: OverlapIsoparametricCorrespondence? = nil) throws -> CurveSurfaceOverlapEndpoint {
         let point = try curve.point(at: parameter, tolerance: tolerance)
         let raw: SurfaceParameter
-        if case let .surfaceLift(lift) = curve, lift.surface == surface {
+        if let isoparametric {
+            raw = isoparametric.parameter(at: parameter)
+        } else if case let .surfaceLift(lift) = curve, lift.surface == surface {
             raw = try lift.parameterCurve.parameter(atNormalizedFraction: parameter, tolerance: tolerance)
         } else {
             let projection = try surface.parameterProjection(of: point, tolerance: tolerance)

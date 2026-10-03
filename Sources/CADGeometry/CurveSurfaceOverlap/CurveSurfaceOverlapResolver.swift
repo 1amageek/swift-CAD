@@ -5,6 +5,7 @@ struct CurveSurfaceOverlapResolver {
     private struct Candidate {
         let range: ScalarInterval
         let deviation: Double
+        var isoparametric: OverlapIsoparametricCorrespondence? = nil
     }
 
     func resolve(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
@@ -26,7 +27,12 @@ struct CurveSurfaceOverlapResolver {
         var points: [CurveSurfaceIntersection] = []
         var candidates: [Candidate] = []
 
-        if case .bSpline(let spline) = curve {
+        if case .bSpline(let spline) = curve, case .bSpline(let target) = surface,
+           let certificate = try OverlapIsoparametricMembershipCertifier().certificate(
+               curve: spline, surface: target, range: range, options: options, tolerance: tolerance) {
+            candidates.append(Candidate(range: range, deviation: certificate.deviation,
+                isoparametric: certificate.correspondence))
+        } else if case .bSpline(let spline) = curve {
             let spans = try BSplineCurveBezierDecomposer().curvePatches(curve: spline, intersecting: range, tolerance: tolerance)
             guard spans.count <= options.maximumSubdivisionCells else {
                 throw failure(.resourceLimitExceeded, "Overlap source spans exceed the cell budget.", tolerance)
@@ -46,9 +52,10 @@ struct CurveSurfaceOverlapResolver {
                     points.append(contentsOf: try intersector.intersections(curve: .bSpline(piece), surface: support,
                                                                           options: pieceOptions, tolerance: tolerance))
                 } catch let error as KernelError where error.code == .nonDiscreteIntersection {
-                    // FIXME(INCOMPLETE_IMPLEMENTATION): A non-analytic target without retained
-                    // hosting provenance has no whole-span rational membership proof here.
-                    // intersectionResult may succeed only after that proof is implemented.
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): Non-isoparametric free-surface
+                    // coincidence without retained hosting provenance has no proof here.
+                    // intersectionResult may succeed only after its complete correspondence
+                    // and whole-span membership certificate are implemented.
                     if case .unsupported = CanonicalAnalyticSurface(support) {
                         throw failure(.unsupportedCapability, "Rational overlap on this free surface has no membership certificate.", tolerance)
                     }
@@ -109,18 +116,21 @@ struct CurveSurfaceOverlapResolver {
         var uniquePoints: [CurveSurfaceIntersection] = []
         for event in points.sorted(by: { $0.curveParameter < $1.curveParameter }) {
             try Task.checkCancellation()
+            let correspondence = candidates.first { $0.range.contains(event.curveParameter) }?.isoparametric
             guard !merged.contains(where: { $0.range.contains(event.curveParameter) }),
-                  try contains(curve: curve, surface: surface, parameter: event.curveParameter, options: options, tolerance: tolerance) else { continue }
+                  try contains(curve: curve, surface: surface, parameter: event.curveParameter, options: options,
+                               tolerance: tolerance, isoparametric: correspondence) else { continue }
             if let last = uniquePoints.last, last.curveParameter == event.curveParameter { continue }
             let endpoint = try CurveSurfaceOverlap.evaluate(curve: curve, surface: surface, parameter: event.curveParameter,
-                uRange: options.surfaceURange, vRange: options.surfaceVRange, tolerance: tolerance)
+                uRange: options.surfaceURange, vRange: options.surfaceVRange, tolerance: tolerance,
+                isoparametric: correspondence)
             uniquePoints.append(try CurveSurfaceIntersection(point: endpoint.point, curveParameter: endpoint.curveParameter,
                 surfaceU: endpoint.surfaceParameter.u, surfaceV: endpoint.surfaceParameter.v, kind: event.kind,
                 residual: endpoint.residual, iterations: event.iterations))
         }
         let overlaps = try merged.map {
             try CurveSurfaceOverlap(curve: curve, surface: surface, range: $0.range, deviation: $0.deviation,
-                                    options: options, tolerance: tolerance)
+                                    options: options, tolerance: tolerance, isoparametric: $0.isoparametric)
         }
         try checkCount(uniquePoints.count + overlaps.count, options: options, tolerance: tolerance)
         return CurveSurfaceIntersectionResult(points: uniquePoints, overlaps: overlaps)
@@ -164,19 +174,25 @@ struct CurveSurfaceOverlapResolver {
 
     private func clip(_ candidate: Candidate, curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
                       tolerance: ModelingTolerance, intersector: DefaultCurveSurfaceIntersector) throws -> (candidates: [Candidate], points: [CurveSurfaceIntersection]) {
-        let boundaries = try OverlapChartBoundaryResolver().boundaries(curve: curve, surface: surface, options: options, tolerance: tolerance)
+        let boundaries = try OverlapChartBoundaryResolver().boundaries(curve: curve, surface: surface, options: options,
+            tolerance: tolerance, isoparametric: candidate.isoparametric)
         var cuts = [candidate.range.lower, candidate.range.upper]
         for boundary in boundaries {
             try Task.checkCancellation()
-            var boundaryOptions = options
-            boundaryOptions.curveRange = candidate.range
-            boundaryOptions.surfaceURange = nil
-            boundaryOptions.surfaceVRange = nil
-            let source = boundary.parameterPlaneSource ?? curve
-            let result = try resolve(curve: source, surface: boundary.plane, options: boundaryOptions,
-                                     tolerance: tolerance, intersector: intersector)
-            cuts.append(contentsOf: result.points.map(\.curveParameter))
-            for overlap in result.overlaps { cuts.append(overlap.curveRange.lower); cuts.append(overlap.curveRange.upper) }
+            switch boundary {
+            case .certifiedSourceParameter(let parameter):
+                if candidate.range.contains(parameter) { cuts.append(parameter) }
+            case let .plane(plane, parameterPlaneSource):
+                var boundaryOptions = options
+                boundaryOptions.curveRange = candidate.range
+                boundaryOptions.surfaceURange = nil
+                boundaryOptions.surfaceVRange = nil
+                let source = parameterPlaneSource ?? curve
+                let result = try resolve(curve: source, surface: plane, options: boundaryOptions,
+                                         tolerance: tolerance, intersector: intersector)
+                cuts.append(contentsOf: result.points.map(\.curveParameter))
+                for overlap in result.overlaps { cuts.append(overlap.curveRange.lower); cuts.append(overlap.curveRange.upper) }
+            }
             try checkCount(cuts.count, options: options, tolerance: tolerance)
         }
         cuts.sort()
@@ -193,15 +209,19 @@ struct CurveSurfaceOverlapResolver {
             }
             // Each cut came from a complete boundary result. An open connected
             // cell has no boundary crossing, so one membership test classifies it.
-            if try contains(curve: curve, surface: surface, parameter: middle, options: options, tolerance: tolerance) {
-                regions.append(Candidate(range: try ScalarInterval(lower: lower, upper: upper), deviation: candidate.deviation))
+            if try contains(curve: curve, surface: surface, parameter: middle, options: options, tolerance: tolerance,
+                            isoparametric: candidate.isoparametric) {
+                regions.append(Candidate(range: try ScalarInterval(lower: lower, upper: upper), deviation: candidate.deviation,
+                                         isoparametric: candidate.isoparametric))
             }
         }
         var points: [CurveSurfaceIntersection] = []
         for cut in unique where !regions.contains(where: { $0.range.contains(cut) }) {
-            if try contains(curve: curve, surface: surface, parameter: cut, options: options, tolerance: tolerance) {
+            if try contains(curve: curve, surface: surface, parameter: cut, options: options, tolerance: tolerance,
+                            isoparametric: candidate.isoparametric) {
                 let endpoint = try CurveSurfaceOverlap.evaluate(curve: curve, surface: surface, parameter: cut,
-                    uRange: options.surfaceURange, vRange: options.surfaceVRange, tolerance: tolerance)
+                    uRange: options.surfaceURange, vRange: options.surfaceVRange, tolerance: tolerance,
+                    isoparametric: candidate.isoparametric)
                 points.append(try CurveSurfaceIntersection(point: endpoint.point, curveParameter: cut,
                     surfaceU: endpoint.surfaceParameter.u, surfaceV: endpoint.surfaceParameter.v,
                     kind: .tangent, residual: endpoint.residual, iterations: 0))
@@ -211,10 +231,13 @@ struct CurveSurfaceOverlapResolver {
     }
 
     private func contains(curve: Curve3D, surface: Surface3D, parameter: Double,
-                          options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance) throws -> Bool {
+                          options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance,
+                          isoparametric: OverlapIsoparametricCorrespondence? = nil) throws -> Bool {
         let point = try curve.point(at: parameter, tolerance: tolerance)
         let coordinates: SurfaceParameter
-        if case let .surfaceLift(lift) = curve, lift.surface == surface {
+        if let isoparametric {
+            coordinates = isoparametric.parameter(at: parameter)
+        } else if case let .surfaceLift(lift) = curve, lift.surface == surface {
             coordinates = try lift.parameterCurve.parameter(atNormalizedFraction: parameter, tolerance: tolerance)
         } else {
             switch try surface.parameterProjectionResult(of: point, tolerance: tolerance) {
@@ -232,9 +255,11 @@ struct CurveSurfaceOverlapResolver {
     private func merge(_ candidates: [Candidate]) throws -> [Candidate] {
         var result: [Candidate] = []
         for candidate in candidates.sorted(by: { $0.range.lower < $1.range.lower }) {
-            if let previous = result.last, candidate.range.lower <= previous.range.upper {
+            if let previous = result.last, candidate.range.lower <= previous.range.upper,
+               previous.isoparametric == candidate.isoparametric {
                 result[result.count - 1] = Candidate(range: try ScalarInterval(lower: previous.range.lower,
-                    upper: max(previous.range.upper, candidate.range.upper)), deviation: max(previous.deviation, candidate.deviation))
+                    upper: max(previous.range.upper, candidate.range.upper)), deviation: max(previous.deviation, candidate.deviation),
+                    isoparametric: previous.isoparametric)
             } else { result.append(candidate) }
         }
         return result

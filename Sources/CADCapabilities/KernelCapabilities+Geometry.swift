@@ -609,6 +609,8 @@ extension KernelCapabilities {
         "finiteCurveAndSurfaceChartRanges", "analyticImplicitSupports",
         "retainedAuthoredSurfaceLiftWithCertifiedChartClipping",
         "fullSpanPlanarMembershipBound", "finitePeriodicRepresentatives",
+        "nonperiodicNativeBasisRationalUVIsocurves",
+        "retainedRestrictedRigidAndOffsetChartImages",
       ],
       exactOutputs: [
         "completeIsolatedPointsAndCertifiedContinuousIntervalsWithinAdmittedDomains",

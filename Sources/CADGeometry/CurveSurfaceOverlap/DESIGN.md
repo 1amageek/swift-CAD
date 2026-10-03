@@ -85,6 +85,38 @@ flowchart LR
   either completeness or that cell-membership invariant.
 - A finite B-spline target's intrinsic closed domains are part of input
   membership. Requested chart ranges cannot bypass these domains.
+- A non-hosted B-spline curve can receive an isoparametric membership certificate
+  when its degree, knot vector and orientation match one closed target axis.
+  Endpoint projection discovers a possible fixed coordinate only. Outward
+  Cox-de Boor basis arithmetic encloses every homogeneous isocurve control;
+  nonnegative partition-of-unity bounds the homogeneous position and weight
+  differences over the entire native curve domain. A positive target weight
+  lower bound converts those differences to a spatial bound. Admission requires
+  that bound to fit the distance tolerance, and the result owns the explicit
+  affine UV correspondence, including reversed source orientation. Reversal
+  requires error-free bound summation and reflected knot subtraction; a rounded
+  reflection is not treated as an exact native-basis map.
+- Isoparametric admission precedes the discrete solver because a rank-deficient
+  free-surface intersection does not necessarily report nonDiscreteIntersection.
+  Requested chart boundaries are isolated by direct inversion of the retained
+  affine UV chart. Each varying boundary gives exactly one source parameter;
+  the fixed coordinate has no crossing. Reverse inversion retains the exact
+  TwoSum rounding error: the chosen representable source parameter is not
+  claimed to be the exact algebraic root. Its affine chart residual enclosure
+  and forward chart value must both satisfy the unchanged
+  `SurfaceParameterRangeResolver` boundary admission for the known target axis
+  and that single requested boundary. Unresolved or excessive rounding fails
+  explicitly; requested ranges and tolerances are not expanded. A general scaled
+  polynomial solver cannot replace this affine authority because a large
+  coordinate offset can erase its normalized linear coefficient.
+  endpoint and correspondence forward checks still use the original source and
+  original target. No projection station certifies membership.
+- Chart-preserving offset images and rigid images with the exact identity
+  parameter affine map reduce recursively to their retained source pcurve.
+  Rigid-image fraction restriction/reversal remains part of that reduction.
+  Periodic translations retain their coordinate shifts. The reduction is used
+  only to isolate chart boundaries; the owned source remains the authority for
+  reported correspondence.
 - An empty result certifies no admitted overlap and no discrete event. Unknown
   coincidence or unsupported clipping fails explicitly before any result is
   returned, including when other spans were successfully classified.
@@ -115,12 +147,22 @@ complete clipping route fail as `unsupportedCapability`; they do not return
 partial results. Existing degree, candidate, subdivision, iteration and cell
 budgets belong to `CurveSurfaceIntersectionOptions`. Cancellation checks occur
 in span, polynomial and clipping loops and propagate `CancellationError`.
+Isoparametric control products, basis recurrence work and candidate trials are
+charged before array growth against the existing subdivision-cell budget; axis
+degree is bounded by the polynomial-degree budget. Nonpositive denominator
+enclosures fail as singular geometry and nonfinite arithmetic fails explicitly.
+Recursive chart-image reduction consumes the existing subdivision depth and
+cell budgets, and checks cancellation before each image reduction.
+All new proof state is local immutable value storage with identical Native,
+WASM and Embedded declarations.
 
 The initial proof owners cover analytic supports, rational B-spline source
 spans, retained hosting-surface provenance and exact affine planar patches.
 Non-affine free-surface coincidence without retained provenance and chart
 clipping for complex authored pcurves require a further certified proof route.
 They remain explicit unsupported domains and are not represented as complete.
+The isoparametric route closes only native-basis, nonperiodic U/V correspondence;
+arbitrary non-isoparametric free-surface membership remains incomplete.
 
 ## Verification and Change Impact
 
@@ -133,3 +175,7 @@ nearby parallel plane through a whole-domain distance bound, and explicit invali
 cancellation failures. The root task owns native and WASM/Embedded execution
 evidence. Existing discrete intersector tests retain their non-discrete failure
 expectations; no classifier or Boolean consumer silently changes semantics.
+The next bounded proof additionally verifies rational U/V isocurves, reversed
+orientation, clipped affine correspondence, a perturbed interior control that
+cannot receive a whole-domain certificate, budget refusal, and restricted rigid
+and offset chart-image boundaries.

@@ -2,15 +2,22 @@ import CADCore
 
 /// Reduces complete chart-boundary discovery to existing certified plane queries.
 struct OverlapChartBoundaryResolver {
-    struct Boundary {
-        let plane: Surface3D
-        let parameterPlaneSource: Curve3D?
+    enum Boundary {
+        case plane(surface: Surface3D, parameterPlaneSource: Curve3D?)
+        case certifiedSourceParameter(Double)
     }
 
     func boundaries(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
-                    tolerance: ModelingTolerance) throws -> [Boundary] {
+                    tolerance: ModelingTolerance,
+                    isoparametric: OverlapIsoparametricCorrespondence? = nil) throws -> [Boundary] {
         var uValues = endpoints(options.surfaceURange, domain: surface.uDomain)
         var vValues = endpoints(options.surfaceVRange, domain: surface.vDomain)
+        if let isoparametric {
+            if case let .closed(lower, upper) = surface.uDomain { uValues.append(contentsOf: [lower, upper]) }
+            if case let .closed(lower, upper) = surface.vDomain { vValues.append(contentsOf: [lower, upper]) }
+            return try isoparametric.boundarySourceParameters(uValues: uValues, vValues: vValues,
+                surface: surface, tolerance: tolerance).map(Boundary.certifiedSourceParameter)
+        }
         if case .bSpline(let spline) = surface, let affine = ExactAffineBSplineSurfacePatch(spline) {
             guard case let .closed(uLower, uUpper) = spline.uDomain,
                   case let .closed(vLower, vUpper) = spline.vDomain else {
@@ -54,17 +61,11 @@ struct OverlapChartBoundaryResolver {
             if case let .closed(lower, upper) = surface.uDomain { uValues.append(contentsOf: [lower, upper]) }
             if case let .closed(lower, upper) = surface.vDomain { vValues.append(contentsOf: [lower, upper]) }
             if uValues.isEmpty, vValues.isEmpty { return [] }
-            if case .surfaceLift(let lift) = curve, lift.surface == surface, isIndependentCoordinateCurve(lift.parameterCurve) {
+            if case .surfaceLift(let lift) = curve, lift.surface == surface,
+               let reduced = try OverlapChartCurveReducer().reduce(lift.parameterCurve, options: options, tolerance: tolerance) {
                 let plane = Surface3D.analytic(.plane(origin: .origin, normal: .unitZ))
-                let surrogate = Curve3D.surfaceLift(SurfaceLiftCurve3D(surface: plane, parameterCurve: lift.parameterCurve))
-                let geometry = try plane.differentialGeometry(u: 0, v: 0, tolerance: tolerance)
-                return try uValues.map {
-                    try boundary(origin: plane.point(u: $0, v: 0, tolerance: tolerance),
-                                 normal: geometry.tangentU, source: surrogate, tolerance: tolerance)
-                } + vValues.map {
-                    try boundary(origin: plane.point(u: 0, v: $0, tolerance: tolerance),
-                                 normal: geometry.tangentV, source: surrogate, tolerance: tolerance)
-                }
+                return try chartBoundaries(source: .surfaceLift(SurfaceLiftCurve3D(surface: plane, parameterCurve: reduced)),
+                    uValues: uValues, vValues: vValues, tolerance: tolerance)
             }
             // FIXME(INCOMPLETE_IMPLEMENTATION): Complex authored pcurves and free-surface
             // coincidence without a retained coordinate curve lack complete chart clipping.
@@ -87,8 +88,8 @@ struct OverlapChartBoundaryResolver {
     }
 
     private func boundary(origin: Point3D, normal: Vector3D, source: Curve3D?, tolerance: ModelingTolerance) throws -> Boundary {
-        Boundary(plane: .plane(Plane3D(origin: origin, normal: try normal.normalized(tolerance: tolerance.distance))),
-                 parameterPlaneSource: source)
+        .plane(surface: .plane(Plane3D(origin: origin, normal: try normal.normalized(tolerance: tolerance.distance))),
+               parameterPlaneSource: source)
     }
 
     private func endpoints(_ range: ScalarInterval?, domain: ParameterDomain) -> [Double] {
@@ -97,11 +98,16 @@ struct OverlapChartBoundaryResolver {
         return range.lower == range.upper ? [range.lower] : [range.lower, range.upper]
     }
 
-    private func isIndependentCoordinateCurve(_ curve: SurfaceParameterCurve) -> Bool {
-        switch curve {
-        case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline: return true
-        case .periodicTranslation(let base, _, _): return isIndependentCoordinateCurve(base)
-        default: return false
+    private func chartBoundaries(source: Curve3D, uValues: [Double], vValues: [Double],
+                                 tolerance: ModelingTolerance) throws -> [Boundary] {
+        let plane = Surface3D.analytic(.plane(origin: .origin, normal: .unitZ))
+        let geometry = try plane.differentialGeometry(u: 0, v: 0, tolerance: tolerance)
+        return try uValues.map {
+            try boundary(origin: plane.point(u: $0, v: 0, tolerance: tolerance),
+                         normal: geometry.tangentU, source: source, tolerance: tolerance)
+        } + vValues.map {
+            try boundary(origin: plane.point(u: 0, v: $0, tolerance: tolerance),
+                         normal: geometry.tangentV, source: source, tolerance: tolerance)
         }
     }
 
