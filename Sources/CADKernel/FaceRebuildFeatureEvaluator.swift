@@ -18,8 +18,9 @@ import CADTopology
 /// A face whose new surface keeps within a quarter of the distance tolerance of its edges along
 /// their trimming curves takes it in place, its edges, vertices and trimming curves kept. One that
 /// strays further is sewn anew on its new surface: a sheet of its own (every edge open) with each
-/// edge a B-spline fitted along its trimming curve within that quarter, a face sharing edges with
-/// them re-solved where its new surface crosses its neighbouring planes (`RebuiltFaceEdgeResolver`).
+/// edge a B-spline fitted along its trimming curve within that quarter, faces sharing edges with
+/// them re-solved together where their new surfaces cross their neighbours' and each other's
+/// (`RebuiltFaceEdgeResolver`).
 struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let resolver: ParameterResolving
     private let subshapeResolver: any StableSubshapeResolving
@@ -142,38 +143,17 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 for coedge in model.loops[loopID]?.coedges ?? [] { facesOfEdge[coedge.edgeID, default: 0] += 1 }
             }
         }
-        // A coarse face sharing edges has them re-solved onto its new surface where its neighbours
-        // cross it (`RebuiltFaceEdgeResolver`), one face after another on the patches the last
-        // left: such faces do not meet each other or share a corner, so a neighbour they share has
-        // each one's edges moved apart from the other's.
-        var bordered: [FaceID: Set<FaceID>] = [:]
-        var cornersOf: [FaceID: Set<VertexID>] = [:]
+        // Coarse faces sharing edges have them re-solved onto their new surfaces where their
+        // neighbours cross them (`RebuiltFaceEdgeResolver`), all together: an edge two of them
+        // share is their new surfaces' crossing, a corner where its three faces' surfaces meet.
+        var bordered: Set<FaceID> = []
         for faceID in coarse {
             let edges = (model.faces[faceID]?.loops ?? []).flatMap { model.loops[$0]?.coedges.map(\.edgeID) ?? [] }
             guard edges.allSatisfy({ facesOfEdge[$0] == 1 }) == false else { continue }
             guard edges.allSatisfy({ facesOfEdge[$0] == 2 }) else {
                 throw failure(.unsupportedCapability, feature.id, tolerance, "A face rebuilt coarsely has all its edges open or all shared.")
             }
-            let around = Set(model.faces.keys.filter { other in
-                other != faceID && (model.faces[other]?.loops ?? []).contains { loopID in
-                    model.loops[loopID]?.coedges.contains { edges.contains($0.edgeID) } ?? false
-                }
-            })
-            let corners = Set(edges.flatMap { edgeID -> [VertexID] in
-                guard let edge = model.edges[edgeID] else { return [] }
-                return [edge.startVertexID, edge.endVertexID]
-            })
-            guard around.isDisjoint(with: coarse), cornersOf.values.allSatisfy({ $0.isDisjoint(with: corners) }) else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): faces rebuilt coarser than their edges allow
-                // that meet each other or share a corner need their edges re-solved together,
-                // which is not built, so they are refused. Production path:
-                // FaceRebuildFeatureEvaluator. Complete only when such faces are rebuilt together,
-                // verified by two adjacent curved faces rebuilt coarsely.
-                throw failure(.unsupportedCapability, feature.id, tolerance,
-                              "Faces rebuilt coarser than their edges allow are apart, with no corner in common.")
-            }
-            bordered[faceID] = around
-            cornersOf[faceID] = corners
+            bordered.insert(faceID)
         }
         // In place: each face takes its new surface, its edges, vertices and trimming curves kept,
         // since the surface is refitted on the face's own parameters and keeps that close to them.
@@ -212,13 +192,18 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                     throw failure(.missingReference, feature.id, tolerance, "Rebuild Face lost the order of the body's faces.")
                 }
                 var patches = try zip(sourceShell.faceIDs, shell.patches).map { faceID, patch -> BRepSewingFacePatch in
-                    guard sewnAnew.contains(faceID), bordered[faceID] == nil, let fitted = surfaces[faceID] else { return patch }
+                    guard sewnAnew.contains(faceID), bordered.contains(faceID) == false, let fitted = surfaces[faceID] else { return patch }
                     return try resewn(patch, on: fitted, curveFitter: curveFitter, featureID: feature.id, tolerance: tolerance)
                 }
-                for faceID in sourceShell.faceIDs where bordered[faceID] != nil {
-                    guard let fitted = surfaces[faceID] else { throw TopologyError.missingReference("A rebuilt face lost its surface.") }
+                let shellBordered = sourceShell.faceIDs.filter { bordered.contains($0) }
+                if shellBordered.isEmpty == false {
+                    var resolving: [FaceID: BSplineSurface3D] = [:]
+                    for faceID in shellBordered {
+                        guard let fitted = surfaces[faceID] else { throw TopologyError.missingReference("A rebuilt face lost its surface.") }
+                        resolving[faceID] = fitted
+                    }
                     patches = try RebuiltFaceEdgeResolver(tolerance: tolerance).resolve(
-                        faceID: faceID, surface: fitted, patches: Array(zip(sourceShell.faceIDs, patches)).map { ($0.0, $0.1) },
+                        surfaces: resolving, patches: Array(zip(sourceShell.faceIDs, patches)).map { ($0.0, $0.1) },
                         model: result, featureID: feature.id)
                 }
                 shells.append(BRepSewingShell(stableID: shell.stableID, patches: patches, orientation: shell.orientation))

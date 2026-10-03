@@ -123,10 +123,10 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADIR/CADDocumentTranslation.swift", sourceLine: 64
         ),
         KernelDomainLimitation(
-            id: "condition-348323e96b133d4d",
+            id: "condition-b8234908031d18e3",
             operations: ["faceLoopOffset", "edgeOffset"],
             dimensions: [.boundaryCurve, .connection],
-            condition: "curved offsets would run on along their own curves to where they meet, which is not built, so Natural is refused for them. Production path: BRepEdgeChainOffsetter for Offset Face Loop and Offset Edge with Natural. Complete only when a curved offset is continued along itself, verified by a rounded face's loop offset with Natural.",
+            condition: "Curved Natural continuation currently uses a three-station osculating circle and sampled chart crossings, without a whole-domain continuation or first-crossing certificate. Production callers are Face Loop Offset and Edge Offset through this owner. Full Natural support must not be claimed before source-curve continuation, complete intersection isolation and a continuous modeling-tolerance bound are verified.",
             sourcePath: "Sources/CADKernel/BRepEdgeChainOffsetter.swift", sourceLine: 233
         ),
         KernelDomainLimitation(
@@ -151,18 +151,11 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADKernel/FaceBSplineSurfaceConverter.swift", sourceLine: 75
         ),
         KernelDomainLimitation(
-            id: "condition-08b047f9acc6bd14",
-            operations: ["faceRebuild"],
-            dimensions: [.supportSurface, .connection],
-            condition: "faces rebuilt coarser than their edges allow that meet each other or share a corner need their edges re-solved together, which is not built, so they are refused. Production path: FaceRebuildFeatureEvaluator. Complete only when such faces are rebuilt together, verified by two adjacent curved faces rebuilt coarsely.",
-            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 167
-        ),
-        KernelDomainLimitation(
             id: "condition-73e03fac2f4f0f40",
             operations: ["faceRebuild"],
             dimensions: [.supportSurface, .connection],
             condition: "a boundary control point moved within the face's own plane leaves its straight edges on a spline whose parameters run unevenly along them: no exact trimming curve exists there, and the certified intersection with the plane beside it does not resolve, so the evaluation fails with that error. Production path: Rupa's control point moves on a face of a solid given control points. Complete when such a face keeps its edges, verified by a box face's corner control point drawn in alone.",
-            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 386
+            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 371
         ),
         KernelDomainLimitation(
             id: "condition-2b5a8e9ebadb8cfb",
@@ -197,7 +190,7 @@ extension KernelCapabilities {
             operations: ["faceRebuild"],
             dimensions: [.boundaryCurve, .connection, .degeneracy],
             condition: "a new surface that strays from an edge while touching its neighbour there without crossing it (a refit kept tangent to the faces beside a round) has no crossing to re-solve the edge on, so it is refused. Production path: FaceRebuildFeatureEvaluator through RebuiltFaceEdgeResolver. Complete only when such edges are re-solved, verified by a round refitted coarsely but tangent to its neighbours.",
-            sourcePath: "Sources/CADKernel/RebuiltFaceEdgeResolver.swift", sourceLine: 214
+            sourcePath: "Sources/CADKernel/RebuiltFaceEdgeResolver.swift", sourceLine: 289
         ),
         KernelDomainLimitation(
             id: "condition-5a06df41337a9a3a",

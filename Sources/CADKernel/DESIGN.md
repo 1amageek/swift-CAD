@@ -834,8 +834,16 @@ that cross are cut at the crossing; offsets that part are joined by
 `OffsetGapFill`, Plasticity's three: Round, an arc of the offset distance around
 the corner; Linear, straight lines carrying both offsets on until they meet, a
 sharp corner of edges of their own (a straight bridge where they never meet
-ahead); Natural, the straight offsets themselves running on to that point, no
-edge added (curved offsets refused, `FIXME(INCOMPLETE_IMPLEMENTATION)`). An offset that closes
+ahead); Natural, the offsets themselves running on to where they meet, no edge
+added: straight ones along their lines, a curved one along the circle through its
+last points (an arc's offset along its own circle) over the face, both cut at the
+first sampled crossing of the carried-on parts within half a turn or sixteen gaps' reach.
+Curved continuation is presently a sampled osculating-circle construction,
+not a certified continuation of a general source curve or a complete first-crossing
+isolation. It retains an explicit `FIXME(INCOMPLETE_IMPLEMENTATION)` condition;
+no discovered sampled crossing yields typed refusal rather than silently changing
+the curved Natural request into a straight bridge. `EdgeOffsetFeatureTests` own
+the reflex corner of an L and of an arc's offset meeting a side. An offset that closes
 on itself is halved. `EdgeOffsetFeatureEvaluator` offsets each edge over the one
 of its support faces it bounds (a chain across a top and a slope runs over both, each face's
 run completed to its boundary), refusing an edge bounding none or two, and with symmetry over
@@ -941,14 +949,18 @@ neighbour fitted likewise — and the neighbours' edges run along their own line
 the moved corners, a B-spline cut exactly to the new piece (`BSplineCurveSegmentExtractor`, Boehm
 insertion of both ends) and their old exact trimming curves cut to it (iso-lines, segments and
 B-splines) rather than fitted. An edge the new surface still runs through, ends and all, is kept.
-Coarse faces that share neighbours but no corner are resolved one after another on the patches the
-last left. A refit touching a neighbour without crossing it and coarse faces meeting each other or
-sharing a corner are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+All coarse faces of a shell are resolved together: a rebuilt neighbour is measured on its new
+surface, its foot started from the old surface's parameters it was refitted on (a start found once
+per point measured), so an edge two coarse faces share is their new surfaces' crossing, solved once on
+the first's parameters with its trimming curve on the other fitted through the feet, and a corner is
+where its three faces' surfaces meet. A refit touching a neighbour without crossing it is refused
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`).
 `FaceRebuildTests` own the explicit layout reproducing a quadratic arch exactly, the extension
 continuing it past its edge with the face kept, a box's top, a cylinder's quarter wall (tangent
 neighbours) and an open box's wall (open and shared edges) rebuilt in place, a cubic arch's wall
 rebuilt as a quadratic with its edges re-solved on its planes (the volume by Green's theorem over
-the new section), a box's round rebuilt flat into the chamfer through its contacts, and a cylinder's
+the new section), two cubic walls meeting at an apex rebuilt together (their shared edge on both
+new walls), a box's round rebuilt flat into the chamfer through its contacts, and a cylinder's
 half wall rebuilt flat into the chord across its caps and its other half (their volumes), a
 drafted cylinder's rational cone quarter rebuilt flat with its edges up the wall on the quarters
 beside it, and two opposite quarters rebuilt flat together.

@@ -400,7 +400,7 @@ along them (fitted within a quarter of the modeling distance), the boundary's de
 at 64 points per curve. Satisfy
 tolerances refines the grid (doubling spans up to Max) until the boundary's position deviation and
 cross-angle meet the stated tolerances and fails otherwise; without it the measured values are
-reported. Tension applies only with Quad sided; flow off Quad sided behaves as Normal. `SquareSurfaceFitterTests` own Degree and Spans
+reported. Tension applies only with Quad sided, and there only across G1 and G2 sides (a G0 side has no transition for it to tighten); flow off Quad sided behaves as Normal, since the trimmed sheet's parameters are the boundary's mean-plane coordinates along its orthonormal principal axes, so its isocurves cross square whichever flow is asked. `SquareSurfaceFitterTests` own Degree and Spans
 as the net with hard sides exact and no more bending than the exact sheet, each flow, a Free side's
 weight and the refusal of a frame one side cannot determine; `SquareFrameTests` own the ruled,
 translational and straight-closed frames and the options' round trip.
