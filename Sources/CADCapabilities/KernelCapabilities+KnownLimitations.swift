@@ -11,6 +11,20 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADExchange/ExactExchangeSurfaceRepresentationResolver.swift", sourceLine: 14
         ),
         KernelDomainLimitation(
+            id: "condition-b938e912f1ae0656",
+            operations: ["rationalBSplineCurve"],
+            dimensions: [.boundaryCurve, .parameterization, .representation],
+            condition: "Periodic refinement must insert translated knot copies and retain one homogeneous cycle. The public BSplineCurve3D insertion entry rejects it until exact periodic refinement passes shape and seam-derivative tests; nonperiodic insertion remains executable.",
+            sourcePath: "Sources/CADGeometry/BSplineCurve3D.swift", sourceLine: 125
+        ),
+        KernelDomainLimitation(
+            id: "condition-2e195b61fdc21da6",
+            operations: ["rationalBSplineCurve"],
+            dimensions: [.boundaryCurve, .parameterization, .representation],
+            condition: "Periodic restrictions need translated knot spans across every requested seam. The public BSplineCurve3D trim entry rejects them until an exact bounded restriction and its derivative correspondence are verified; no sampled replacement is returned.",
+            sourcePath: "Sources/CADGeometry/BSplineCurve3D.swift", sourceLine: 203
+        ),
+        KernelDomainLimitation(
             id: "condition-b0c044d14fdc54a1",
             operations: ["loft"],
             dimensions: [.supportSurface, .connection, .parameterization],

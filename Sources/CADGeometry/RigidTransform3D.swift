@@ -347,7 +347,9 @@ public struct RigidTransform3D: Codable, Hashable, Sendable {
             degree: curve.degree,
             knots: curve.knots,
             controlPoints: curve.controlPoints.map(applying(to:)),
-            weights: curve.weights
+            weights: curve.weights,
+            isPeriodic: curve.isPeriodic,
+            periodicOrigin: curve.periodicOrigin
         )
         try transformed.validate(tolerance: tolerance)
         return transformed

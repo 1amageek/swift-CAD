@@ -3,6 +3,9 @@
 - [x] PARC Capability and failure contracts completed: PARC.C1/C2 in b5466f6, PARC.C4 in 1391009, PARC.C3 source-backed domains verified with 42 native contract tests, 19 public pipeline/regression tests and matching normal-WASM runtime; full Embedded/kernel integration remains in PARI. `depends:PAR0` `parallel:none`
 - [ ] PARG Geometry and representation closure: implement and verify all referenced requirements, update owner designs and commit each completed sprint. `depends:PARC` `parallel:none`
   - [ ] PARG.G1 Implement G1 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARC` `parallel:none`
+    - [x] PARG.G1.1 Cyclic representation, normalization, seam derivatives, origin changes and value preservation verified with 22 native geometry tests and 42 capability tests; exact editing and portable integration remain open. `depends:PARC` `parallel:none`
+    - [ ] PARG.G1.2 Complete exact periodic refinement/restriction and prepared bounds/projection without reducing the public input domain. `depends:PARG.G1.1` `parallel:none`
+    - [ ] PARG.G1.3 Verify public source and portable runtime integration, close G1 and commit completion evidence. `depends:PARG.G1.2` `parallel:none`
   - [ ] PARG.G2 Implement G2 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARG.G1` `parallel:none`
   - [ ] PARG.G3 Implement G3 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARG.G2` `parallel:none`
   - [ ] PARG.G4 Implement G4 from OCCT_REQUIREMENTS.md through its public production path with success, boundary and failure evidence; retain full scope. `depends:PARG.G3` `parallel:none`

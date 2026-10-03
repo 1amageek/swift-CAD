@@ -54,6 +54,7 @@ measurement policy.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [Periodic B-spline](PeriodicBSpline/DESIGN.md) | child | Cyclic curve representation and parameter evaluation | Owns G1 periodicity and fundamental origin | Downstream closure and editing require separate behavioral evidence |
 | [Swift-CAD package](../../DESIGN.md) | parent | package exact-geometry contract | Places geometry below modeling and above core values. | Keep the shared predicate contract authoritative. |
 | [CADModeling](../CADModeling/DESIGN.md) | used by | generated primitive pcurve values | Supplies valid sphere seam/pole curves. | Construction cannot rely on a sphere-only validation bypass. |
 | [CADIR](../CADIR/DESIGN.md) | used by | signature validation | Validates retained geometry through this module. | Do not loosen Codable/signature rules independently. |

@@ -25,7 +25,7 @@ extension Curve3D {
                 throw GeometryError.invalidDistance(0.0)
             }
             let basis = BSplineBasis.nonzeroDerivativeValues(
-                parameter: parameter,
+                parameter: try curve.basisParameter(parameter, tolerance: tolerance),
                 degree: curve.degree,
                 throughDerivativeOrder: 3,
                 knots: curve.knots,

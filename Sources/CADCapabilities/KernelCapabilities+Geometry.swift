@@ -30,15 +30,17 @@ extension KernelCapabilities {
     KernelCapability(
       id: "GEO-CURVE-002",
       operation: "rationalBSplineCurve",
-      status: .supported,
+      status: .partial,
       topology: .notApplicable,
       acceptedInputs: [
         "boundedNonPeriodicControlPoints", "positiveWeights",
         "nondecreasingClampedOrNonClampedKnots", "degree",
         "finiteOpenOrClosedPiecewiseLinearSurfaceParameterCurves",
+        "periodicHomogeneousControlCycle", "translatedPeriodicKnots", "fundamentalOrigin",
       ],
       exactOutputs: [
         "position", "firstDerivative", "secondDerivative", "curvature",
+        "periodicParameterNormalization", "periodicOriginChange", "periodicSeamContinuityOrder",
         "inverseParameterProjection", "verifiedResidual",
         "exactKnotInsertion", "exactParameterTrim",
         "normalizedPcurveDifferential",
@@ -51,7 +53,7 @@ extension KernelCapabilities {
       ],
       failureCodes: [
         .invalidInput, .intersectionFailure, .ambiguousSelection,
-        .singularSystem, .resourceLimitExceeded,
+        .singularSystem, .resourceLimitExceeded, .unsupportedCapability,
       ],
       tolerance: .standard,
       publicAPIs: [
@@ -65,6 +67,7 @@ extension KernelCapabilities {
         "GeometryKernelTests",
         "CurveParameterProjectionTests",
         "BSplineCurveTrimmingTests",
+        "PeriodicBSplineCurveTests",
         "SurfaceParameterCurveDifferentialTests",
         "SurfaceParameterCurveSubcurveTests",
         "ValidatedCurve3DTests",
