@@ -12,6 +12,7 @@ public struct CurveSurfaceOverlap: Sendable {
     private let uRange: ScalarInterval?
     private let vRange: ScalarInterval?
     private let isoparametric: OverlapIsoparametricCorrespondence?
+    private let graph: OverlapRegularGraphCorrespondence?
 
     init(curve: Curve3D, surface: Surface3D, range: ScalarInterval, deviation: Double,
          options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance,
@@ -20,6 +21,7 @@ public struct CurveSurfaceOverlap: Sendable {
         self.surface = surface
         self.tolerance = tolerance
         self.isoparametric = isoparametric
+        self.graph = nil
         curveRange = range
         maximumSpatialDeviation = deviation
         uRange = options.surfaceURange
@@ -30,6 +32,29 @@ public struct CurveSurfaceOverlap: Sendable {
                                 uRange: uRange, vRange: vRange, tolerance: tolerance, isoparametric: isoparametric)
     }
 
+    init(curve: Curve3D, surface: Surface3D, range: ScalarInterval, deviation: Double,
+         options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance,
+         graph: OverlapRegularGraphCorrespondence, budget: inout OverlapProofBudget) throws {
+        guard graph.root.curve.curve == curve, graph.root.originalSurface == surface,
+              graph.range.contains(range.lower), graph.range.contains(range.upper) else {
+            throw KernelError(phase: .geometry, code: .intersectionFailure, tolerance: tolerance,
+                message: "A regular overlap result differs from its certified original operands or source cover.")
+        }
+        self.curve = curve
+        self.surface = surface
+        self.tolerance = tolerance
+        self.graph = graph
+        isoparametric = nil
+        curveRange = range
+        maximumSpatialDeviation = deviation
+        uRange = options.surfaceURange
+        vRange = options.surfaceVRange
+        start = try Self.evaluate(curve: curve, surface: surface, parameter: range.lower,
+            uRange: uRange, vRange: vRange, tolerance: tolerance, graph: graph, budget: &budget)
+        end = try Self.evaluate(curve: curve, surface: surface, parameter: range.upper,
+            uRange: uRange, vRange: vRange, tolerance: tolerance, graph: graph, budget: &budget)
+    }
+
     /// Evaluates owned correspondence in the certified range, including its endpoints.
     /// Coordinates use the requested periodic representative or the canonical chart.
     public func correspondence(at curveParameter: Double) throws -> CurveSurfaceOverlapEndpoint {
@@ -37,6 +62,11 @@ public struct CurveSurfaceOverlap: Sendable {
         guard curveRange.contains(curveParameter) else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                               message: "Overlap correspondence requires a parameter inside its certified source interval.")
+        }
+        if let graph {
+            var budget = OverlapProofBudget(options: graph.options, tolerance: tolerance)
+            return try Self.evaluate(curve: curve, surface: surface, parameter: curveParameter,
+                uRange: uRange, vRange: vRange, tolerance: tolerance, graph: graph, budget: &budget)
         }
         return try Self.evaluate(curve: curve, surface: surface, parameter: curveParameter,
                                  uRange: uRange, vRange: vRange, tolerance: tolerance, isoparametric: isoparametric)
@@ -55,6 +85,21 @@ public struct CurveSurfaceOverlap: Sendable {
             let projection = try surface.parameterProjection(of: point, tolerance: tolerance)
             raw = SurfaceParameter(u: projection.u, v: projection.v)
         }
+        return try evaluated(point: point, raw: raw, surface: surface, parameter: parameter,
+            uRange: uRange, vRange: vRange, tolerance: tolerance)
+    }
+
+    static func evaluate(curve: Curve3D, surface: Surface3D, parameter: Double,
+                         uRange: ScalarInterval?, vRange: ScalarInterval?, tolerance: ModelingTolerance,
+                         graph: OverlapRegularGraphCorrespondence, budget: inout OverlapProofBudget) throws -> CurveSurfaceOverlapEndpoint {
+        let raw = try graph.parameter(at: parameter, budget: &budget)
+        let point = try curve.point(at: parameter, tolerance: tolerance)
+        return try evaluated(point: point, raw: raw, surface: surface, parameter: parameter,
+            uRange: uRange, vRange: vRange, tolerance: tolerance)
+    }
+
+    private static func evaluated(point: Point3D, raw: SurfaceParameter, surface: Surface3D, parameter: Double,
+                                  uRange: ScalarInterval?, vRange: ScalarInterval?, tolerance: ModelingTolerance) throws -> CurveSurfaceOverlapEndpoint {
         let resolver = SurfaceParameterRangeResolver()
         guard let u = resolver.resolvedParameter(raw.u, domain: surface.uDomain, requestedRange: uRange, tolerance: tolerance),
               let v = resolver.resolvedParameter(raw.v, domain: surface.vDomain, requestedRange: vRange, tolerance: tolerance) else {

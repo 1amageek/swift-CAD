@@ -611,6 +611,7 @@ extension KernelCapabilities {
         "fullSpanPlanarMembershipBound", "finitePeriodicRepresentatives",
         "nonperiodicNativeBasisRationalUVIsocurves",
         "retainedRestrictedRigidAndOffsetChartImages",
+        "regularNonperiodicRationalGraphWithGlobalRootUniquenessAndTransverseClipping",
       ],
       exactOutputs: [
         "completeIsolatedPointsAndCertifiedContinuousIntervalsWithinAdmittedDomains",
@@ -618,7 +619,7 @@ extension KernelCapabilities {
         "wholeSpanSpatialDeviationBound", "singularChartEndpointMetadata",
         "typedRefusalForUnprovedMembershipOrIncompleteClipping",
       ],
-      failureCodes: [.invalidInput, .unsupportedCapability, .intersectionFailure,
+      failureCodes: [.invalidInput, .unsupportedCapability, .intersectionFailure, .singularSystem,
         .nonDiscreteIntersection, .ambiguousSelection, .resourceLimitExceeded, .cancelled],
       tolerance: .standard,
       publicAPIs: [
@@ -627,7 +628,7 @@ extension KernelCapabilities {
         "CADGeometry.CurveSurfaceIntersectionResult", "CADGeometry.CurveSurfaceOverlap",
         "CADGeometry.CurveSurfaceOverlap.correspondence",
       ],
-      testFixtures: ["CurveSurfaceOverlapTests"]
+      testFixtures: ["CurveSurfaceOverlapTests", "CurveSurfaceRegularGraphTests"]
     ),
     KernelCapability(
       id: "GEO-CONVERSION-001",

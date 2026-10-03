@@ -9,9 +9,17 @@ struct OverlapChartBoundaryResolver {
 
     func boundaries(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
                     tolerance: ModelingTolerance,
-                    isoparametric: OverlapIsoparametricCorrespondence? = nil) throws -> [Boundary] {
+                    isoparametric: OverlapIsoparametricCorrespondence? = nil,
+                    regularGraph: OverlapRegularGraphCorrespondence? = nil,
+                    budget: inout OverlapProofBudget) throws -> [Boundary] {
         var uValues = endpoints(options.surfaceURange, domain: surface.uDomain)
         var vValues = endpoints(options.surfaceVRange, domain: surface.vDomain)
+        if let regularGraph {
+            if case let .closed(lower, upper) = surface.uDomain { uValues.append(contentsOf: [lower, upper]) }
+            if case let .closed(lower, upper) = surface.vDomain { vValues.append(contentsOf: [lower, upper]) }
+            return try OverlapRegularGraphBoundaryResolver().parameters(graph: regularGraph,
+                uValues: uValues, vValues: vValues, budget: &budget).map(Boundary.certifiedSourceParameter)
+        }
         if let isoparametric {
             if case let .closed(lower, upper) = surface.uDomain { uValues.append(contentsOf: [lower, upper]) }
             if case let .closed(lower, upper) = surface.vDomain { vValues.append(contentsOf: [lower, upper]) }

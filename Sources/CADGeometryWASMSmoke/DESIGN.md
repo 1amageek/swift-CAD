@@ -73,6 +73,13 @@ correspondence, and refuses a nearby tilted plane whose angular agreement masks
 a large between-station distance. Native rational isocurve evidence
 uses independent literal U/V homogeneous sections, restricted/reversed intervals,
 source/target forward checks and owned correspondence after source mutation.
+Regular graph evidence uses independently authored rational source/target
+control nets with C(t) = (h,h,h*h), h = t/(1+t), and the algebraic chart
+u = (h + sqrt(h*h+4*h))/2, v = h. It checks a complete requested span,
+whole-domain deviation, retained owned correspondence after input mutation,
+transverse U clipping with independent endpoints 0.2 and 9/19, and shared-work
+exhaustion. The graph point and whole-box enclosure paths execute the shared
+original-span B-spline jet owner; broader knot/seam proof remains Native-owned.
 Large shifted charts retain signed affine direction; an ill-conditioned wide
 chart and a low work allowance must retain typed projection/work exhaustion.
 The wide public query does not reach the internal compensated boundary path;

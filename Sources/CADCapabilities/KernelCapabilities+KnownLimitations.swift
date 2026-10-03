@@ -141,21 +141,35 @@ extension KernelCapabilities {
             operations: ["curveSurfaceIntersectionResult"],
             dimensions: [.supportSurface, .representation, .geometricFidelity],
             condition: "Non-isoparametric free-surface coincidence without retained hosting provenance has no proof here. intersectionResult may succeed only after its complete correspondence and whole-span membership certificate are implemented.",
-            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceOverlapResolver.swift", sourceLine: 55
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceOverlapResolver.swift", sourceLine: 71
         ),
         KernelDomainLimitation(
             id: "condition-c71ac7666846959a",
             operations: ["curveSurfaceIntersectionResult"],
             dimensions: [.supportSurface, .representation, .geometricFidelity],
             condition: "Unretained non-affine free-surface coincidence has no whole-span proof in intersectionResult. Completion requires certified membership and complete overlap-domain isolation before this branch can succeed.",
-            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceOverlapResolver.swift", sourceLine: 161
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceOverlapResolver.swift", sourceLine: 189
         ),
         KernelDomainLimitation(
             id: "condition-1f52aa9d0d7b0d32",
             operations: ["curveSurfaceIntersectionResult"],
             dimensions: [.parameterization, .representation],
             condition: "Complex authored pcurves and free-surface coincidence without a retained coordinate curve lack complete chart clipping. Production intersectionResult must certify every boundary crossing before it may classify connected cells and return continuous overlap intervals.",
-            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapChartBoundaryResolver.swift", sourceLine: 70
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapChartBoundaryResolver.swift", sourceLine: 78
+        ),
+        KernelDomainLimitation(
+            id: "condition-fa1830de8517c6fa",
+            operations: ["curveSurfaceIntersectionResult"],
+            dimensions: [.parameterization, .representation],
+            condition: "non-transverse and continuous chart-boundary coincidence lacks complete graph clipping here. intersectionResult's regular graph route must fail until all such roots and boundary intervals have certified isolation and coverage.",
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphBoundaryResolver.swift", sourceLine: 15
+        ),
+        KernelDomainLimitation(
+            id: "condition-7217182f3b093019",
+            operations: ["curveSurfaceIntersectionResult"],
+            dimensions: [.parameterization, .representation],
+            condition: "graph Taylor certification across a nonsmooth target knot has no one-sided atlas proof yet. The public regular-graph route must refuse it until joins and residual bounds on both sides of every such knot are independently certified.",
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphRootCertifier.swift", sourceLine: 253
         ),
         KernelDomainLimitation(
             id: "condition-94dc729b5c31259b",

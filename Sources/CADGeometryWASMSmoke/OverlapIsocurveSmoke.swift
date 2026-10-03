@@ -103,6 +103,47 @@ struct OverlapIsocurveSmoke {
         }
     }
 
+    static func verifyRegularGraph(tolerance: ModelingTolerance) throws {
+        var source = BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+            controlPoints: [.origin, Point3D(x: 0.25, y: 0.25, z: 0), Point3D(x: 0.5, y: 0.5, z: 0.25)],
+            weights: [1, 2, 4])
+        var target = BSplineSurface3D(uDegree: 2, vDegree: 1,
+            uKnots: [0, 0, 0, 1, 1, 1], vKnots: [0, 0, 1, 1],
+            controlPoints: [[.origin, .origin, Point3D(x: 0.5, y: 0, z: 0)],
+                [Point3D(x: 0, y: 1, z: 0), Point3D(x: 0, y: 1, z: 0), Point3D(x: 0.5, y: 1, z: 0.5)]],
+            weights: [[1, 1.5, 2], [1, 1.5, 2]])
+        let originalSource = Curve3D.bSpline(source), originalTarget = Surface3D.bSpline(target)
+        let resolver: any CurveSurfaceIntersectionResolving = DefaultCurveSurfaceIntersector()
+        var options = CurveSurfaceIntersectionOptions(curveRange: try ScalarInterval(lower: 0.1, upper: 0.8),
+            maximumSubdivisionDepth: 20, maximumSubdivisionCells: 4_194_304, maximumCandidateCount: 16_384)
+        let complete = try soleOverlap(resolver.intersectionResult(curve: originalSource,
+            surface: originalTarget, options: options, tolerance: tolerance), tolerance: tolerance)
+        try require(complete.curveRange == options.curveRange, "Regular graph lost complete source authority.", tolerance)
+        try verifyBound(complete, tolerance: tolerance)
+        source.controlPoints[1] = Point3D(x: 10, y: 10, z: 10)
+        target.controlPoints[1][2] = Point3D(x: 20, y: 20, z: 20)
+        for t in [0.1, 0.2, 0.43, 0.8] {
+            let value = try complete.correspondence(at: t)
+            let h = t / (1 + t), u = (h + (h * h + 4 * h).squareRoot()) / 2
+            try require(abs(value.surfaceParameter.u - u) < 1e-7 && abs(value.surfaceParameter.v - h) < 1e-7
+                && (value.point - Point3D(x: h, y: h, z: h * h)).length < 1e-12,
+                "Owned regular graph differs from its independent algebraic correspondence.", tolerance)
+            try verifyForward(value, source: originalSource, target: originalTarget, tolerance: tolerance)
+        }
+        options.surfaceURange = try ScalarInterval(lower: 0.5, upper: 0.75)
+        let clipped = try soleOverlap(resolver.intersectionResult(curve: originalSource,
+            surface: originalTarget, options: options, tolerance: tolerance), tolerance: tolerance)
+        try require(abs(clipped.curveRange.lower - 0.2) < 1e-8
+            && abs(clipped.curveRange.upper - 9.0 / 19.0) < 1e-8,
+            "Regular graph lost its transverse original-chart clip.", tolerance)
+        try verifyBound(clipped, tolerance: tolerance)
+        options.maximumSubdivisionCells = 2
+        try expectFailure(.resourceLimitExceeded, tolerance: tolerance) {
+            _ = try resolver.intersectionResult(curve: originalSource, surface: originalTarget,
+                options: options, tolerance: tolerance)
+        }
+    }
+
     private static func rationalPatch() -> BSplineSurface3D {
         BSplineSurface3D(uDegree: 2, vDegree: 2,
             uKnots: [0, 0, 0, 1, 1, 1], vKnots: [0, 0, 0, 1, 1, 1],
