@@ -321,7 +321,15 @@ private extension STEPAttributesWriter {
                     guard product.context == context else { throw ProductAttributeError.inconsistentArtifact("Common global geometry has conflicting representation contexts.") }
                 }
                 let view = try add("SHAPE_REPRESENTATION('',(#\(item)),#\(context))")
-                let owner = try add("CHARACTERIZED_ITEM_WITHIN_REPRESENTATION('',$,#\(item),#\(view))")
+                var metadata: ProductPhysicalCharacterization?
+                for candidate in evaluated.document.productAttributes.physicalCharacterizations {
+                    try check()
+                    if candidate.target == target { metadata = candidate }
+                }
+                let name = try string(metadata?.name ?? "")
+                let description: String
+                if let value = metadata?.description { description = try string(value) } else { description = "$" }
+                let owner = try add("CHARACTERIZED_ITEM_WITHIN_REPRESENTATION(\(name),\(description),#\(item),#\(view))")
                 try budget.charge(targets: 2); shapeAspects[target] = [owner]
                 return [owner]
             }

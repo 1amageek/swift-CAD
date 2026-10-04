@@ -33,6 +33,7 @@ private extension STEPAttributesReader {
         var geometry: [Int: ProductAttributeTarget] = [:]
         var assignments: [ProductAttributeAssignment] = []
         var globalPhysicalGeometry: [Int: ProductAttributeTarget] = [:]
+        var physicalCharacterizations: [ProductPhysicalCharacterization] = []
         var physicalGeometry: [Int: ProductAttributeTarget] = [:]
         var styleProperties: [Int: [ProductAttributeValue.Property: ProductAttributeID]] = [:]
         var styleTargets: [Int: ProductAttributeTarget] = [:]
@@ -74,6 +75,8 @@ private extension STEPAttributesReader {
         mutating func physicalOwner(_ item: Int) throws -> ProductAttributeTarget {
             try check()
             if let target = globalPhysicalGeometry[item] { return target }
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP physical import cannot retain contextual or chain-based characterized-item owners yet.
+            // Their complete standard source scope and equivalent egress must be preserved before those owners can succeed.
             guard transfer.definitions[item] != nil || transfer.usages[item] != nil || names[item] == "SHAPE_ASPECT" else {
                 throw ProductAttributeError.unsupportedSemantics("Physical property requires a legal characterized-definition owner.")
             }
@@ -110,11 +113,6 @@ private extension STEPAttributesReader {
                 let a = try args(id, 4), item = try syntax.reference(a[2]), representation = try syntax.reference(a[3])
                 let wrapperName = try string(a[0])
                 let wrapperDescription = a[1] == "$" ? nil : try string(a[1])
-                // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP CIWR physical import cannot retain independent wrapper names/descriptions or contextual characterization chains yet.
-                // A persistent source owner and equivalent standard egress must preserve those meanings before nonempty wrapper metadata or chained scope can be admitted.
-                guard wrapperName.isEmpty, wrapperDescription == nil || wrapperDescription?.isEmpty == true else {
-                    throw ProductAttributeError.unsupportedSemantics("Independent characterization metadata requires a retained source owner.")
-                }
                 guard let target = geometry[item], target.definitionID == nil, target.path == nil,
                       let ownedUnit = transfer.geometryUnits[item] else {
                     throw ProductAttributeError.missingTarget("Global physical item geometry correspondence.")
@@ -146,6 +144,15 @@ private extension STEPAttributesReader {
                     throw ProductAttributeError.invalidSource("Duplicate characterized item/representation owner.")
                 }
                 globalPhysicalGeometry[id] = target
+                // The structural default carries no independent metadata; an explicit empty description does.
+                if !wrapperName.utf8.isEmpty || wrapperDescription != nil {
+                    guard physicalCharacterizations.count < budget.limits.maximumRecords else {
+                        throw ProductAttributeError.resourceLimitExceeded("Physical characterization source records.")
+                    }
+                    try budget.charge(targets: 1)
+                    physicalCharacterizations.append(ProductPhysicalCharacterization(target: target,
+                        name: wrapperName, description: wrapperDescription))
+                }
             }
         }
         mutating func preparePhysicalGeometry() throws {
@@ -562,7 +569,8 @@ private extension STEPAttributesReader {
             for (target, density) in densities where materialValues[target] == nil {
                 try budget.charge(targets: 1); assignments.append(ProductAttributeAssignment(target: target, value: .density(density)))
             }
-            let result = ProductAttributes(materials: materials, assignments: assignments, layers: layers)
+            let result = ProductAttributes(materials: materials, assignments: assignments, layers: layers,
+                physicalCharacterizations: physicalCharacterizations)
             var document = evaluated.document; document.productAttributes = result
             try ProductAttributesValidator().validate(result, in: document, budget: &budget)
             return result

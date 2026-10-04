@@ -140,8 +140,10 @@ flowchart LR
 - Reader CIWR admission checks actual exact geometry transfer and owned units,
   direct singleton item membership (the standard WR1), absence of contextual
   associations, and CIWR UR1 item/rep uniqueness before property publication.
-  Unsupported characterization text or contextual/chain subtypes fail instead
-  of becoming a different native owner. Physical PROPERTY_DEFINITION owners are
+  Singleton global CIWR name and explicitly nullable description belong to the
+  ProductAttributes physical-characterization record, separately from the item
+  name and material descriptor. Contextual/chain subtypes remain incomplete
+  typed failures instead of becoming a different native owner. Physical PROPERTY_DEFINITION owners are
   restricted to legal PD, direct-usage, ShapeAspect and admitted CIWR forms;
   writing a raw body or face directly into its characterized-definition select
   is invalid. Explicit GISU and CIWR scopes remain distinct and competing
@@ -275,6 +277,34 @@ documents the established physical material name/description/density part-proper
 mapping. These establish admitted semantics, not an implementation dependency.
 The unavailable referenced MaterialDensity 2.1 document and private later drafts
 are not used to invent additional precedence or unit rules.
+
+### Independent Global CIWR Text
+
+The standard [CIWR EXPRESS definition](https://www.steptools.com/stds/stp_aim/html/t_characterized_item_within_representation.html)
+inherits required name and optional description from
+[characterized_object](https://www.steptools.com/stds/stp_aim/html/t_characterized_object.html).
+The bounded global singleton profile retains these independent fields under
+the [ProductAttributes owner](../../CADIR/ProductAttributes/DESIGN.md).
+The sole empty-name/null-description default maps to absent source metadata
+only after full structural admission. Explicit native default records fail;
+empty-description records remain present. Reader/writer preserve null versus
+empty description and exact decoded text;
+material and density on the same target reuse the same metadata record and
+CIWR/view. Existing WR1 membership, UR1 uniqueness, original item/unit transfer,
+global target authority and associated-view/contextual refusal remain required.
+The writer emits source wrapper text and emits canonical empty/null only when
+no wrapper metadata exists; it never substitutes geometry/PD/material names.
+Source record, target, work/text/duration/cancellation budgets remain cumulative.
+Foreign literal STEP, Native and two public STEP generations must preserve
+one original FeatureID/local face, selected-definition appearance, separate
+geometry name, future-PD physical fanout and wrapper text. Malformed duplicate,
+foreign/unit/associated/contextual/unattached metadata, exhausted resources and
+atomic-output failure must be rejected. STEP resolves the complete stable
+reference against its current exact geometry producer; external LINE and PCURVE
+serialization may reconstruct equivalent normalized directions and degree-one
+B-spline pcurves. Native retains the complete original source signature. The
+independent triangle oracle proves its complete algebraic boundaries rather
+than requiring transport enum or floating-point byte identity.
 
 ## Runtime Flows
 

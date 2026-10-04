@@ -1,16 +1,21 @@
 import CADCore
 
 public struct ProductAttributesValidator: ProductAttributesValidating {
+    private struct CharacterizationKey: Hashable {
+        let kind: ProductAttributeTarget.Kind
+        let subshapeID: SubshapeID
+    }
     public init() {}
     public func validate(_ attributes: ProductAttributes, in document: CADDocument,
                          budget: inout ProductAttributeBudget) throws {
         let limit = budget.limits.maximumRecords
         guard attributes.materials.count <= limit,
               attributes.assignments.count <= limit - attributes.materials.count,
-              attributes.layers.count <= limit - attributes.materials.count - attributes.assignments.count else {
+              attributes.layers.count <= limit - attributes.materials.count - attributes.assignments.count,
+              attributes.physicalCharacterizations.count <= limit - attributes.materials.count - attributes.assignments.count - attributes.layers.count else {
             throw ProductAttributeError.resourceLimitExceeded("Product source records.")
         }
-        try budget.charge(work: attributes.materials.count + attributes.assignments.count + attributes.layers.count)
+        try budget.charge(work: attributes.materials.count + attributes.assignments.count + attributes.layers.count + attributes.physicalCharacterizations.count)
         var materials: [PhysicalMaterialID: PhysicalMaterialDescriptor] = [:]
         for material in attributes.materials {
             try budget.charge(textBytes: material.name.utf8.count)
@@ -57,6 +62,29 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
                     cursor = previous
                 } else { cursor = nil }
             }
+        }
+        var characterized = Set<CharacterizationKey>()
+        for record in attributes.physicalCharacterizations {
+            guard (record.target.kind == .body || record.target.kind == .face), record.target.definitionID == nil,
+                  record.target.path == nil, record.target.usageID == nil, let geometry = record.target.geometry else {
+                throw ProductAttributeError.invalidSource("Physical characterization requires a global geometry target.")
+            }
+            try validateTarget(record.target, in: document, budget: &budget)
+            try budget.charge(textBytes: record.name.utf8.count)
+            try budget.charge(textBytes: record.description?.utf8.count ?? 0)
+            guard !record.name.utf8.isEmpty || record.description != nil else {
+                throw ProductAttributeError.invalidSource("Default physical characterization must be absent.")
+            }
+            guard characterized.insert(CharacterizationKey(kind: record.target.kind, subshapeID: geometry.subshapeID)).inserted else {
+                throw ProductAttributeError.invalidSource("Duplicate physical characterization target.")
+            }
+            var attached = false
+            for assignment in attributes.assignments {
+                try budget.charge(work: 1)
+                if assignment.target == record.target,
+                   assignment.value.property == .material || assignment.value.property == .density { attached = true }
+            }
+            guard attached else { throw ProductAttributeError.missingTarget("Physical characterization attachment.") }
         }
         // Exact same-target conflicts are structural and do not require evaluated topology.
         for assignment in attributes.assignments {

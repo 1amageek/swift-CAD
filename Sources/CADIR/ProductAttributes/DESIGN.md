@@ -111,6 +111,52 @@ flowchart LR
   definition, occurrence, layer, material, or assignment cannot publish dangling
   attachments. Existing fast paths must establish the same admission invariant.
 
+### Global Physical Characterization Metadata
+
+The next bounded source contract adds a required `physicalCharacterizations`
+array to ProductAttributes, empty when absent in meaning. An immutable
+`ProductPhysicalCharacterization` owns one global body/face stable source target,
+a required name and an explicitly present nullable description. It is the
+characterization wrapper's metadata, independent of geometry name, material
+name/description, appearance, PD or usage metadata. At most one record belongs
+to a global kind/StableSubshapeID source owner. Competing signatures for that
+same owner fail; physical attachment still requires the complete target and
+signature to match, so a stale signature is never retargeted. It requires an existing material or explicit density assignment on
+that same target; unattached records and definition/path/usage/part targets fail.
+No additional native UUID or transport-only identity is introduced.
+
+The sole canonical default is an empty name with null description. It carries
+no text beyond the physical target's already-required wrapper and is represented
+by absence of a metadata record. An explicit source default record is invalid;
+validation and Native admission reject it instead of filtering it during
+canonicalization. Empty name with empty description is a meaningful record,
+as are nonempty name with null or text description. Import omits only the
+canonical default after full CIWR structure/unit/target/uniqueness validation;
+export emits empty/null for absent metadata. Whitespace and Unicode text are
+never treated as empty by normalization.
+
+Name/description equality preserves exact UTF-8 scalar bytes, including
+non-normalized strings; null and empty descriptions differ. Canonical ordering
+uses stable target source fields and participates in the existing canonical
+document fingerprint. Full copies, validation and producer receipt freshness
+include these source values through the existing document path. Editing wrapper
+text invalidates a stale receipt while preserving the separate geometry owner.
+Validator record/work/target/text budgets are cumulative and charged before
+index/traversal/growth; cancellation and failed copied edits publish no state.
+
+| Owner | Contract |
+|---|---|
+| ProductAttributes | Required source array, global stable target uniqueness, physical attachment, exact text and lifetime |
+| CADCore | Coordinated strict 0.9.0 envelope; prior 0.8.0 is refused |
+| CADExchange Native | Required array/fields, nullable presence and unknown-key rejection |
+| STEPAttributes | Standard singleton global CIWR text mapped to this owner without renaming geometry/material/PD |
+| Source fingerprint/receipt | Existing complete canonical source encoding and immutable document freshness |
+
+Independent source coding/canonicalization/copy/budget/cancel tests, public
+Native plus two STEP generations and edited-text old/new receipt behavior must
+verify this bounded contract. Contextual characterization chains, metadata-only
+saved views and scoped wrappers remain separate full-X3 gaps.
+
 ## Runtime Flows
 
 ```text

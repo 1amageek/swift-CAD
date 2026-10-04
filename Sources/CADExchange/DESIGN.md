@@ -184,3 +184,11 @@ that performs atomic project publication.
 `PeriodicSourcePackageTests` owns the positive strict native-package round trip
 for independent tensor periodic axes and fundamental origins, including retained
 point and derivative behavior after decoding.
+
+Global physical-characterization metadata uses the
+[ProductAttributes source contract](../CADIR/ProductAttributes/DESIGN.md) under
+the coordinated strict 0.9.0 envelope. Native requires the explicit array and
+all name/target/nullable-description fields, rejects unknown keys, and refuses
+prior 0.8.0. STEP consumes the child's independent CIWR text contract. Full
+source fingerprint/copy/receipt validation and atomic failure remain required;
+the source and transport owners retain distinct authority.
