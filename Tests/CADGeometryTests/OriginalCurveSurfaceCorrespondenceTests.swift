@@ -261,4 +261,78 @@ struct OriginalCurveSurfaceCorrespondenceTests {
         do { _ = try await task.value; Issue.record("Canceled original proof published a receipt.") }
         catch is CancellationError { }
     }
+    private func originalProductTensor() -> Surface3D {
+        // Independently authored native tensor S(u,v)=(u,v,u*v).
+        let first = (0...3).map { Point3D(x: Double($0) / 3, y: 0, z: 0) }
+        let second = (0...3).map { Point3D(x: Double($0) / 3, y: 1, z: Double($0) / 3) }
+        return .bSpline(BSplineSurface3D(uDegree: 3, vDegree: 1,
+            uKnots: [0,0,0,0,1,1,1,1], vKnots: [0,0,1,1], controlPoints: [first,second]))
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func originalTensorCompositionRetainsInteriorPolynomialCorrelation() throws {
+        // v=f(1-f); the independent spatial Bernstein law is (f,f-f²,f²-f³).
+        let curve = Curve3D.bSpline(BSplineCurve3D(degree: 3,
+            knots: [0,0,0,0,1,1,1,1], controlPoints: [
+                .origin, .init(x: 1.0/3, y: 1.0/3, z: 0),
+                .init(x: 2.0/3, y: 1.0/3, z: 1.0/3), .init(x: 1, y: 0, z: 0)]))
+        let chart = SurfaceParameterCurve.bSpline(BSplineCurve2D(degree: 2,
+            knots: [0,0,0,1,1,1], controlPoints: [.init(x:0,y:0),.init(x:0.5,y:0.5),.init(x:1,y:0)]))
+        let receipt = try producer.certify(curve: curve, from: 0, to: 1, surface: originalProductTensor(),
+            parameterCurve: chart, options: options, tolerance: tolerance)
+        #expect(receipt.achievedUpperBound <= tolerance.distance)
+        #expect(receipt.inspectedCells > 0)
+        try receipt.validateBinding(curve: curve, from: 0, to: 1, surface: originalProductTensor(),
+            parameterCurve: chart, options: options, tolerance: tolerance)
+        guard case let .bSpline(source) = curve else { Issue.record("Literal spatial owner changed."); return }
+        var altered = source; altered.controlPoints[1].z += 0.0001
+        #expect(throws: KernelError.self) {
+            do {
+                _ = try producer.certify(curve: .bSpline(altered), from: 0, to: 1,
+                    surface: originalProductTensor(), parameterCurve: chart, options: options, tolerance: tolerance)
+            } catch let error as KernelError { #expect(error.code == .topologyFailure); throw error }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func originalRationalInteriorTensorAndReversedTrimRetainTheirWeights() throws {
+        let curve = Curve3D.bSpline(BSplineCurve3D(degree: 1, knots: [0,0,1,1],
+            controlPoints: [.init(x:0,y:0.25,z:0),.init(x:1,y:0.25,z:0.25)], weights: [1,2]))
+        for reverse in [false,true] {
+            let points = reverse ? [Point2D(x:1,y:0.25),Point2D(x:0,y:0.25)]
+                : [Point2D(x:0,y:0.25),Point2D(x:1,y:0.25)]
+            let chart = SurfaceParameterCurve.bSpline(BSplineCurve2D(degree: 1,
+                knots: [0,0,1,1], controlPoints: points, weights: reverse ? [2,1] : [1,2]))
+            let receipt = try producer.certify(curve: curve, from: reverse ? 1 : 0, to: reverse ? 0 : 1,
+                surface: originalProductTensor(), parameterCurve: chart, options: options, tolerance: tolerance)
+            #expect(receipt.achievedUpperBound <= tolerance.distance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func originalNativeC0CompositionCoversBothClosedJoinSides() throws {
+        // v=u on the first half, v=1-u on the second; z=u*v.
+        let curve = Curve3D.bSpline(BSplineCurve3D(degree: 3,
+            knots: [0,0,0,0,0.5,0.5,0.5,1,1,1,1], controlPoints: [
+                .origin, .init(x:1.0/6,y:1.0/6,z:0), .init(x:1.0/3,y:1.0/3,z:1.0/12),
+                .init(x:0.5,y:0.5,z:0.25), .init(x:2.0/3,y:1.0/3,z:0.25),
+                .init(x:5.0/6,y:1.0/6,z:1.0/6), .init(x:1,y:0,z:0)]))
+        let chart = SurfaceParameterCurve.bSpline(BSplineCurve2D(degree: 2,
+            knots: [0,0,0,0.5,0.5,1,1,1], controlPoints: [
+                .init(x:0,y:0),.init(x:0.25,y:0.25),.init(x:0.5,y:0.5),
+                .init(x:0.75,y:0.25),.init(x:1,y:0)]))
+        let receipt = try producer.certify(curve: curve, from: 0, to: 1, surface: originalProductTensor(),
+            parameterCurve: chart, options: options, tolerance: tolerance)
+        #expect(receipt.achievedUpperBound <= tolerance.distance)
+        #expect(receipt.inspectedCells >= 2)
+        #expect(throws: KernelError.self) {
+            do {
+                _ = try producer.certify(curve: curve, from: 0, to: 1, surface: originalProductTensor(),
+                    parameterCurve: chart,
+                    options: .init(maximumSubdivisionDepth:32,maximumCellCount:128,maximumDeviation:tolerance.distance),
+                    tolerance: tolerance)
+            } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded); throw error }
+        }
+    }
+
 }

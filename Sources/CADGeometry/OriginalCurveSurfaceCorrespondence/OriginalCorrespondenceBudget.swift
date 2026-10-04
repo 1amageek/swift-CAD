@@ -18,6 +18,15 @@ struct OriginalCorrespondenceBudget {
         self.tolerance = tolerance
     }
 
+    func admitTemporaryScalars(_ count: Int) throws {
+        try CurrentTaskCancellationChecker().checkCancellation()
+        let total = sourceScalarCount.addingReportingOverflow(count)
+        guard count >= 0, !total.overflow, total.partialValue <= maximumWork else {
+            throw Self.failure(.resourceLimitExceeded, tolerance,
+                "Original correspondence exhausted its bounded source and temporary numeric storage.")
+        }
+    }
+
     mutating func charge(_ count: Int = 1) throws {
         try CurrentTaskCancellationChecker().checkCancellation()
         let next = consumedCellCount.addingReportingOverflow(count)

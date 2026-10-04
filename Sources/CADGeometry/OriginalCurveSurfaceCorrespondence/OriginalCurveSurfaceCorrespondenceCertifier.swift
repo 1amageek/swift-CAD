@@ -33,6 +33,15 @@ public struct OriginalCurveSurfaceCorrespondenceCertifier: OriginalCurveSurfaceC
                 options: options, tolerance: tolerance, achievedUpperBound: coefficientBound,
                 consumedCellCount: budget.consumedCellCount, sourceScalarCount: budget.sourceScalarCount, inspectedCells: 1)
         }
+        if let proof = try OriginalCorrespondenceComposedResidual().certify(
+            curve: spatial, start: startParameter, end: endParameter, surface: surface,
+            parameterCurve: parameterCurve, requested: requested, budget: &budget) {
+            return OriginalCurveSurfaceCorrespondenceCertificate(curve: curve, startParameter: startParameter,
+                endParameter: endParameter, surface: surface, parameterCurve: parameterCurve,
+                options: options, tolerance: tolerance, achievedUpperBound: proof.upper,
+                consumedCellCount: budget.consumedCellCount, sourceScalarCount: budget.sourceScalarCount,
+                inspectedCells: proof.cells)
+        }
         var stack = [(lower: 0.0, upper: 1.0, depth: 0)]
         var inspectedCells = 0
         var achieved = 0.0

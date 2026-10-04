@@ -330,7 +330,7 @@ extension KernelCapabilities {
             operations: ["CADCommand"],
             dimensions: [.boundaryCurve, .parameterization, .geometricFidelity],
             condition: "General curve/surface families lack an original whole-use proof. The public original-correspondence factory refuses them until original coefficient, chart and budget authority exist.",
-            sourcePath: "Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/OriginalCorrespondenceBudget.swift", sourceLine: 80
+            sourcePath: "Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/OriginalCorrespondenceBudget.swift", sourceLine: 89
         ),
         KernelDomainLimitation(
             id: "condition-792ebe4ce8c9e4c9",

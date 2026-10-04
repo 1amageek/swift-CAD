@@ -151,3 +151,70 @@ relinked and its 2 affected declarations / 3 cases passed in 0.001 seconds.
 The original tighter-distance counterexample now refuses; requested tolerances
 and ceilings were not increased. Kernel composition, the actual Draft full
 producer fixture and portable execution remain pending their owning verification.
+
+### Original tensor/curve coefficient correlation
+
+The actual Draft packet retains cubic-U/linear-V support with degree-fold native
+U spans, degree-six spatial and degree-four parameter curves. The first-jet
+route exhausts 65536 work records on all four actual directed uses at requested
+1e-6; it independently encloses two nearly equal laws and loses their
+coefficient correlation. This does not authorize an increased allowance.
+
+After the existing small exact-law admissions, `OriginalCorrespondenceComposedResidual`
+proves this native tensor family directly. Its spatial, parameter and surface
+Bezier controls are views of stored degree-fold original coefficients. No
+rounded extraction, producer tag or symbolic producer identity supplies authority.
+For parameter homogeneous polynomials `(Xu,Yv,Wp)`, native U interval `[a,b]`
+and V interval `[c,d]`, define `A=(Xu-a*Wp)/(b-a)`, `B=Wp-A`,
+`C=(Yv-c*Wp)/(d-c)`, and `D=Wp-C`. The support homogeneous polynomial is
+`sum(i=0...3,j=0...1) binomial(3,i) A^i B^(3-i) (j==0 ? D : C) H[i,j]`.
+Its common denominator is `Wp^4`; its degree is at most sixteen. Constant
+stored surface weights permit the exact partition-of-unity weight identity.
+The spatial homogeneous numerator/weight are `(Ns,Ws)`. The residual numerator
+is `Ns*Wr-Nr*Ws`, of degree at most twenty-two. Its Bernstein hull divided by
+independently positive `Ws` and `Wr` bounds the whole residual. Both coordinate
+owners subtract the same original spatial control origin before arithmetic.
+
+The directed trim and full parameter native domain retain their exact affine
+fraction maps. Outward preimages of every internal spatial/parameter native
+break contribute both representable enclosing endpoints to an initial closed
+fraction cover. Equal endpoints alone are deduplicated; no epsilon merging or
+snapping occurs. For each cell, all original spatial/parameter/support owning
+spans whose actual parameter subsets can meet the cell are retained. Their
+polynomial extensions are evaluated on the entire cell superset, including
+arithmetic overhang. A bound is therefore also a bound on every valid-owner
+subset. Extension denominator positivity must be proved; otherwise the cell
+refines or refuses. This does not clip any original domain or replace its law.
+All closed cells, including both sides of a C0 join, must pass before publication.
+An inconclusive coefficient hull refines under the same depth/work ceiling;
+there is no failed-proof fallback to successful generic/sampled correspondence.
+
+One invocation retains the already paid source/preparation prefix. Original
+native tuple visits, root endpoint storage, sorting comparisons, initial cells
+and child storage are charged before work/growth in its existing cell ledger.
+Fixed degree twenty-two bounds the arithmetic of each tuple. Numeric temporary
+admission uses the same caller maximumCellCount independently of work: the
+original source scalar count plus root capacity, depth-bounded stack records,
+and a conservative peak of 128 polynomial buffers of at most 23 two-Double
+interval coefficients and four owner words per buffer must fit that ceiling.
+This transient admission does not change the receipt's original sourceScalarCount
+or charge the immutable retained source twice. There is no private allowance.
+Non-degree-fold support uses the existing original first-jet algorithm; selection
+precedes proof and is never a catch/fallback after failure.
+
+Verification extends the same test owner with independent tensor composition,
+rational parameter/curve weights, interior perturbation, reversed/native joins,
+low numeric/work budgets and cancellation. The frozen actual four-use packet
+is a separate private production diagnostic; success of its Geometry proofs
+alone is not publication or Kernel mesh completion. Native verification (Swift 6.4.0/macOS arm64, immutable production base
+`29d2a037` plus the exact five owner deltas): 13 dedicated declarations / 14
+cases passed in 0.034 seconds. The actual original Draft four-use packet also
+passed all four strict correspondence and source-binding checks, at unchanged
+requested 1e-6, work 65536 and depth 32. Its conservative achieved bounds were
+8.80573173661617e-7, 7.137526800469424e-7, 7.141826115869917e-7 and
+9.743946336712563e-7, with consumed work 17113, 3002, 2075 and 388.
+The same actual graph input passed Geometry's graph proof after one outward-safe
+subtraction of the maximum achieved error from its original linear allowance.
+The combined diagnostic (14 declarations / 15 cases) took 26.030 seconds.
+This is Geometry proof evidence; Kernel mesh publication, full public Draft and
+portable verification remain separately owned and unproved here.
