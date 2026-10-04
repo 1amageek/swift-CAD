@@ -1,6 +1,6 @@
 import CADCore
 
-/// Certifies the unique original polynomial law beyond a single Bezier support.
+/// Certifies the original piecewise polynomial law and its outer end-span continuation.
 public protocol GeometryPolynomialSurfaceContinuationPositionCertifying: Sendable {
     func prepareContinuationRequest(source: BSplineSurface3D,
         over parameters: SurfaceParameterBox, maximumPositionError: Double,

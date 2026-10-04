@@ -13,11 +13,12 @@ import CADTopology
 /// extent), widened past each side by the extension fractions; a B-spline is read past its domain
 /// as its end spans continued (`BSplineSurfaceNaturalContinuation`). An explicit layout is
 /// fitted as given; a tolerance takes as few bicubic spans as keep within it
-/// (`MappedBSplineSurfaceFitter`).
+/// (`MappedBSplineSurfaceFitter`). Admitted polynomial continuation through bicubic
+/// source degrees instead retains original native knots in a certified coefficient construction.
 /// Native tolerance publication is certified for non-periodic charts within the original source
-/// support and for the bounded single-clamped-Bezier continuation law. Periodic, rational and
-/// multi-span continued-law cases retain an explicit typed refusal until their whole-domain
-/// original position proof is implemented.
+/// support and for finite exact-clamped common-weight piecewise-polynomial continuation laws.
+/// Periodic, varying-weight and foreign-chart continued-law cases retain an explicit typed refusal
+/// until their whole-domain original position proof is implemented.
 ///
 /// A face whose new surface keeps within a quarter of the distance tolerance of its edges along
 /// their trimming curves takes it in place, its edges, vertices and trimming curves kept. One that
@@ -30,16 +31,19 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
     private let subshapeResolver: any StableSubshapeResolving
     private let identityBuilder: any CarriedTopologyIdentityBuilding
     private let nativeSurfacePositionCertificationLimits: NativeSurfacePositionCertificationLimits
+    private let polynomialContinuationConstructor: any GeometryPolynomialSurfaceContinuationConstructing
 
     init(
         resolver: ParameterResolving = ParameterResolver(),
         subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver(),
-        nativeSurfacePositionCertificationLimits: NativeSurfacePositionCertificationLimits = .standard
+        nativeSurfacePositionCertificationLimits: NativeSurfacePositionCertificationLimits = .standard,
+        polynomialContinuationConstructor: any GeometryPolynomialSurfaceContinuationConstructing = NativeKnotPolynomialSurfaceContinuationConstructor()
     ) {
         self.resolver = resolver
         self.subshapeResolver = subshapeResolver
         identityBuilder = DefaultCarriedTopologyIdentityBuilder()
         self.nativeSurfacePositionCertificationLimits = nativeSurfacePositionCertificationLimits
+        self.polynomialContinuationConstructor = polynomialContinuationConstructor
     }
 
     func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
@@ -168,11 +172,39 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             } else {
                 preparedContinuationRequest = nil
             }
-            let candidate = try refitted(
-                faceID, rebuild: rebuild, deviation: deviation, model: model, featureID: feature.id,
-                tolerance: tolerance, requestedBox: nativeSourceAndRequest?.requestedBox
-            )
-            if let nativeSourceAndRequest {
+            let candidate: BSplineSurface3D
+            if let preparedContinuationRequest,
+               preparedContinuationRequest.source.uDegree <= 3,
+               preparedContinuationRequest.source.vDegree <= 3 {
+                do {
+                    let constructed = try polynomialContinuationConstructor.constructContinuationCandidate(
+                        preparedRequest: preparedContinuationRequest,
+                        uDegree: 3, vDegree: 3,
+                        maximumSpanCount: 128, maximumControlPointCountPerAxis: 131
+                    )
+                    guard constructed.certificate.coveredParameters == preparedContinuationRequest.parameters,
+                          constructed.certificate.positionErrorUpperBound.isFinite,
+                          constructed.certificate.positionErrorUpperBound >= 0,
+                          constructed.certificate.positionErrorUpperBound <= preparedContinuationRequest.maximumPositionError else {
+                        throw failure(.approximationToleranceRejected, feature.id, tolerance,
+                                      "The continuation producer did not certify the complete requested distance bound.")
+                    }
+                    candidate = constructed.surface
+                } catch let error as KernelError {
+                    throw featureScopedKernelError(error, featureID: feature.id, tolerance: tolerance)
+                } catch let error as GeometryConversionError {
+                    throw continuationGeometryError(error, featureID: feature.id, tolerance: tolerance)
+                }
+            } else {
+                candidate = try refitted(
+                    faceID, rebuild: rebuild, deviation: deviation, model: model, featureID: feature.id,
+                    tolerance: tolerance, requestedBox: nativeSourceAndRequest?.requestedBox
+                )
+            }
+            if let nativeSourceAndRequest,
+               preparedContinuationRequest == nil
+                    || nativeSourceAndRequest.source.uDegree > 3
+                    || nativeSourceAndRequest.source.vDegree > 3 {
                 try certifyNativePosition(
                     source: nativeSourceAndRequest.source, candidate: candidate,
                     requestedBox: nativeSourceAndRequest.requestedBox,
@@ -181,7 +213,7 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                     preparedContinuationRequest: preparedContinuationRequest,
                     featureID: feature.id, tolerance: tolerance
                 )
-            } else if case .tolerance = rebuild.method {
+            } else if nativeSourceAndRequest == nil, case .tolerance = rebuild.method {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): analytic and other non-native tolerance
                 // rebuilds still publish through the historical edge checks without a complete
                 // native-source position certificate. The production completion condition is a
@@ -301,7 +333,7 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
     /// The face's new surface: its support refitted on the same parameters over the rectangle the
     /// feature asks for.
     // FIXME(INCOMPLETE_IMPLEMENTATION): The production DefaultFeatureEvaluator faceRebuild
-    // tolerance path still refuses periodic, rational and multi-span continuation requests with a
+    // tolerance path still refuses periodic, varying-weight and foreign-chart continuation requests with a
     // typed unsupported error. Completion requires a whole-domain position proof for each such
     // original source law before those requests may publish.
     private func nativePositionRequestBox(

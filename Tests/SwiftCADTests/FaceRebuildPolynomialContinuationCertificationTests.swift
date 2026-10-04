@@ -65,9 +65,55 @@ struct FaceRebuildPolynomialContinuationCertificationTests {
         try expectUnsupported(surface: varyingWeightSurface())
     }
 
-    @Test(.timeLimit(.minutes(2)))
-    func multiSpanSourceIsTypedUnsupported() throws {
-        try expectUnsupported(surface: multiSpanSurface())
+    @Test(.timeLimit(.minutes(2)), arguments: [1.0, 7.0])
+    func multiSpanSourceCertifiesOriginalEndSpanContinuation(weight: Double) throws {
+        let original = multiSpanSurface()
+        let surface = BSplineSurface3D(
+            uDegree: original.uDegree, vDegree: original.vDegree,
+            uKnots: original.uKnots, vKnots: original.vKnots,
+            controlPoints: original.controlPoints,
+            weights: original.controlPoints.map { row in row.map { _ in weight } }
+        )
+        let fixture = try continuationFixture(surface: surface)
+        let pipeline = CADPipeline(
+            tolerance: .standard,
+            evaluator: DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred)
+        )
+        let evaluated = try pipeline.evaluate(fixture.document)
+        let entry = try #require(evaluated.subshapes.entries.first { key, value in
+            guard key.featureID == fixture.rebuiltID else { return false }
+            if case .face = value { return true }
+            return false
+        })
+        guard case let .face(faceID) = entry.value else {
+            Issue.record("The continued Rebuild did not publish its face.")
+            return
+        }
+        let face = try #require(evaluated.brep.faces[faceID])
+        guard case let .bSpline(candidate)? = evaluated.brep.geometry.surfaces[face.surfaceID],
+              case let .closed(lower, upper) = candidate.uDomain else {
+            Issue.record("The continued Rebuild did not publish a native closed candidate chart.")
+            return
+        }
+        #expect(lower == -0.25)
+        #expect(upper == 1.25)
+        // These literal native quadratic laws are independent of the candidate
+        // authoring and certification implementations, including both outer spans.
+        let scale = 0.02
+        for u in [-0.25, 0.0, 0.5, 1.0, 1.25] {
+            for v in [0.0, 0.37, 1.0] {
+                let x = u <= 0.5
+                    ? scale * (4 * u - 2 * u * u) / 3
+                    : scale * (1 + 2 * u * u) / 3
+                let expected = Point3D(
+                    x: x, y: scale * v, z: scale * (4 * u - 4 * u * u) / 3
+                )
+                let actual = try candidate.point(u: u, v: v, tolerance: .standard)
+                #expect((actual - expected).length <= requestedDistance)
+            }
+        }
+        #expect(fixture.document == fixture.documentSnapshot)
+        #expect(fixture.surface == fixture.surfaceSnapshot)
     }
 
     @Test(.timeLimit(.minutes(2)))
@@ -106,7 +152,7 @@ struct FaceRebuildPolynomialContinuationCertificationTests {
         surface: BSplineSurface3D,
         extensionFraction: Double = 0.25,
         shrinks: Bool = false
-    ) throws -> (document: CADDocument, documentSnapshot: CADDocument, surface: BSplineSurface3D, surfaceSnapshot: BSplineSurface3D) {
+    ) throws -> (document: CADDocument, documentSnapshot: CADDocument, surface: BSplineSurface3D, surfaceSnapshot: BSplineSurface3D, rebuiltID: FeatureID) {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let sourceID = try builder.bSplineSurface(surface)
         let sourceDocument = try builder.build(name: "Polynomial continuation source")
@@ -120,7 +166,7 @@ struct FaceRebuildPolynomialContinuationCertificationTests {
             return false
         })
         let reference = try sourceEvaluation.stableSubshapeReference(for: sourceFaceEntry.key)
-        _ = try builder.rebuildFaces(
+        let rebuiltID = try builder.rebuildFaces(
             target: sourceID,
             faces: [reference],
             method: .tolerance(.constant(.length(requestedDistance, unit: .meter))),
@@ -129,7 +175,7 @@ struct FaceRebuildPolynomialContinuationCertificationTests {
             shrinks: shrinks
         )
         let document = try builder.build(name: "Polynomial continuation Rebuild")
-        return (document, document, surface, surface)
+        return (document, document, surface, surface, rebuiltID)
     }
 
     private func archSurface() -> BSplineSurface3D {

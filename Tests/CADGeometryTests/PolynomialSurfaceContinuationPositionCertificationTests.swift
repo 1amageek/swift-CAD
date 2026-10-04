@@ -7,7 +7,7 @@ struct PolynomialSurfaceContinuationPositionCertificationTests {
     private let certifier: any GeometryPolynomialSurfaceContinuationPositionCertifying = CertifiedPolynomialSurfaceContinuationPositionCertifier()
 
     @Test(arguments: [false, true])
-    func sourceAdmissionRefusesUnsupportedOriginalFamiliesBeforeAnyCandidateExists(multispan: Bool) throws {
+    func sourceAdmissionDistinguishesUnsupportedWeightsFromFiniteOriginalSpans(multispan: Bool) throws {
         var source = arch()
         if multispan {
             source = BSplineSurface3D(uDegree: 1, vDegree: 1,
@@ -17,12 +17,19 @@ struct PolynomialSurfaceContinuationPositionCertificationTests {
         } else { source.weights[0][1] = 2 }
         try source.validate(tolerance: .standard)
         let original = source
-        do {
-            _ = try certifier.prepareContinuationRequest(source: source,
+        if multispan {
+            let request = try certifier.prepareContinuationRequest(source: source,
                 over: rectangle(u: (-0.25, 1.25)), maximumPositionError: 1e-7,
                 limits: .standard, tolerance: .standard)
-            Issue.record("Unsupported original source admission produced a fitting receipt.")
-        } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+            #expect(request.source == original && request.admittedWorkUnits > 0)
+        } else {
+            do {
+                _ = try certifier.prepareContinuationRequest(source: source,
+                    over: rectangle(u: (-0.25, 1.25)), maximumPositionError: 1e-7,
+                    limits: .standard, tolerance: .standard)
+                Issue.record("Varying weights produced a polynomial fitting receipt.")
+            } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+        }
         #expect(source == original)
     }
 
@@ -224,11 +231,7 @@ struct PolynomialSurfaceContinuationPositionCertificationTests {
         rational.weights[0][1] = 2
         var nonclamped = arch()
         nonclamped.uKnots = [-0.1, 0, 0, 1, 1, 1.1]
-        let multispan = BSplineSurface3D(uDegree: 1, vDegree: 1,
-            uKnots: [0, 0, 0.5, 1, 1], vKnots: [0, 0, 1, 1],
-            controlPoints: [[.origin, .init(x: 0.5, y: 0, z: 0), .init(x: 1, y: 0, z: 0)],
-                [.init(x: 0, y: 1, z: 0), .init(x: 0.5, y: 1, z: 0), .init(x: 1, y: 1, z: 0)]])
-        for source in [periodic, rational, nonclamped, multispan] {
+        for source in [periodic, rational, nonclamped] {
             do {
                 _ = try certify(source, candidate, rectangle(u: (-0.25, 1.25)))
                 Issue.record("An unsupported continuation family published evidence.")

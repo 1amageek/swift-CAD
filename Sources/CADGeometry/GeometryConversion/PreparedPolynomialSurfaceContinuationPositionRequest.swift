@@ -11,8 +11,11 @@ public struct PreparedPolynomialSurfaceContinuationPositionRequest: Sendable {
     public let admittedWorkUnits: Int
     public let admittedBoxCount: Int
 
+    let originalLaw: PreparedPolynomialSurfaceContinuationLaw?
+
     init(source: BSplineSurface3D, parameters: SurfaceParameterBox, maximumPositionError: Double,
-        tolerance: ModelingTolerance, budget: PolynomialSurfacePositionDifferenceNet.Budget) {
+        tolerance: ModelingTolerance, originalLaw: PreparedPolynomialSurfaceContinuationLaw?, budget: PolynomialSurfacePositionDifferenceNet.Budget) {
+        self.originalLaw = originalLaw
         self.source = source
         self.parameters = parameters
         self.maximumPositionError = maximumPositionError
