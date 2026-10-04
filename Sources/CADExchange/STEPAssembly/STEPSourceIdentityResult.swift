@@ -1,7 +1,7 @@
-import Foundation
+import CADCore
 
 struct STEPSourceIdentityResult {
-    let values: [Int: UUID]
+    let values: [Int: PortableIdentity128]
     let consumedWork: Int
     let textBytes: Int
 }

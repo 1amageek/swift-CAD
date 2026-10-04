@@ -31,11 +31,14 @@ independent source/resolution fixtures and public STEP generations.
 | [Capability Contract](CapabilityContract/DESIGN.md) | child | Domain descriptions | Owns immutable capability records and validation | Declared coverage is not geometric proof |
 | [CADIR](../CADIR/DESIGN.md) | used by | Parameter validation | Validates kinds and values | New cases require exhaustive handling |
 | [CADModeling](../CADModeling/DESIGN.md) | used by | Expression resolution | Evaluates source and variables | Preserve evaluation equivalence |
+| [Portable Identity](PortableIdentity/DESIGN.md) | child | Foundation-free 128-bit identity and strict UUID text codec | Supplies the storage and textual identity contract used by tagged persistent IDs; `TaggedID` owns explicit Native UUID/Codable adapters | CADExchange owns strict Native/STEP wire and schema admission; Embedded does not claim Codable support |
 
 ## Architecture
 
 ```text
 CADExpression -> CADIR parameter validation -> CADModeling evaluation
+
+PersistentIdentity -> TaggedID<Tag> -> CADIR / CADModeling / CADExchange consumers
 ```
 
 ## Contracts and Invariants
@@ -51,6 +54,18 @@ kind explicitly rather than treating it as a constant.
 
 Kernel failure classification and diagnostic presentation follow the
 [Failure Contract](FailureContract/DESIGN.md#contracts-and-invariants).
+
+### Portable identity boundary
+
+`PortableIdentity128` owns two UInt64 words, their existing big-endian UUID byte
+order, RFC 4122 version/variant generation, and strict canonical
+`8-4-4-4-12` text parsing/formatting. `TaggedID<Tag>` owns the phantom tag,
+comparison, hashing, and deterministic high/low constructors over that value.
+Foundation `UUID` conversion and the Native Codable adapter belong to
+`TaggedID` in CADCore. CADExchange owns strict Native/STEP wire and schema
+admission. The common identity contract does not add a conditional or
+placeholder `Codable` conformance for Embedded Swift; source-envelope
+serialization remains a separate capability and migration boundary.
 
 ## Verification and Change Impact
 

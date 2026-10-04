@@ -66,6 +66,7 @@ source geometry validation.
 | [STEP Attributes](STEPAttributes/DESIGN.md) | child | exact target transfer maps, explicit styling/property relationships and physical units | Preserves admitted product attribute scope through STEP under caller projection/record budgets. | Definition-qualified geometry admission follows the child's property-specific transport contract; Native source admission remains a separate contract. |
 | [Document Foundation](../CADIR/DocumentFoundation/DESIGN.md) | depends on | strict typed attributes and persistent references | Native packages retain the complete source foundation. | The required current envelope is owned by CADCore; external links require caller snapshots to resolve. |
 | [CADKernel](../CADKernel/DESIGN.md) | depends on | exact source evaluation and local/world assembly consistency | Validates retained imported parts and composed world occurrences. | STEP Assembly maps exchange ceilings into evaluation before world materialization. |
+| [Portable Identity](../CADCore/PortableIdentity/DESIGN.md) | depends on | strict Native/STEP wire and schema admission | Consumes the explicit `CADCore/TaggedID` UUID/Codable adapters while owning exchange admission. | Do not make Foundation UUID part of the common Core identity contract. |
 
 Standard glTF/GLB, PLY and VRML mesh contracts are owned by
 [Standard Mesh Exchange](StandardMeshExchange/DESIGN.md). Its public protocol

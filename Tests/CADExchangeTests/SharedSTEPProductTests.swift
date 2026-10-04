@@ -225,7 +225,7 @@ struct SharedSTEPProductTests {
         let deadline = ExchangeProcessingBudget(maximumDuration: .seconds(30))
         let admitted = try reader.read(fields: fields, names: names, processingBudget: deadline, limits: .standard,
             remainingWork: 10000, remainingTextBytes: 10000)
-        #expect(admitted.values[1]?.uuidString == "11111111-1111-4111-8111-111111111111")
+        #expect(admitted.values[1]?.canonicalString == "11111111-1111-4111-8111-111111111111")
         let exact = try reader.read(fields: fields, names: names, processingBudget: deadline, limits: .standard,
             remainingWork: admitted.consumedWork, remainingTextBytes: admitted.textBytes)
         #expect(exact.values == admitted.values)

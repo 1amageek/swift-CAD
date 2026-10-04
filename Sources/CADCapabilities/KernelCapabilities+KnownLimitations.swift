@@ -71,21 +71,21 @@ extension KernelCapabilities {
             operations: ["STEP"],
             dimensions: [.representation, .connection],
             condition: "Public STEP import retains only the bounded native assembly identity namespace. Other identification assignments require persistent source ownership and lossless standard re-export before admission.",
-            sourcePath: "Sources/CADExchange/STEPAssembly/STEPSourceIdentityReader.swift", sourceLine: 28
+            sourcePath: "Sources/CADExchange/STEPAssembly/STEPSourceIdentityReader.swift", sourceLine: 27
         ),
         KernelDomainLimitation(
             id: "condition-c7e895426ce6ed13",
             operations: ["STEP"],
             dimensions: [.representation, .connection],
             condition: "Public STEP import cannot preserve unrelated external identification namespaces. Complete source ownership/transport for their assigned IDs, roles and sources is required before they can succeed.",
-            sourcePath: "Sources/CADExchange/STEPAssembly/STEPSourceIdentityReader.swift", sourceLine: 42
+            sourcePath: "Sources/CADExchange/STEPAssembly/STEPSourceIdentityReader.swift", sourceLine: 41
         ),
         KernelDomainLimitation(
             id: "condition-537b72aceaa8f741",
             operations: ["STEP"],
             dimensions: [.representation, .connection],
             condition: "Public STEP import retains only the native assembly identification roles without role descriptions. Other roles/descriptions require an explicit persistent identification owner and faithful standard re-export.",
-            sourcePath: "Sources/CADExchange/STEPAssembly/STEPSourceIdentityReader.swift", sourceLine: 48
+            sourcePath: "Sources/CADExchange/STEPAssembly/STEPSourceIdentityReader.swift", sourceLine: 47
         ),
         KernelDomainLimitation(
             id: "condition-4dddadefe246fbfb",

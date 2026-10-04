@@ -1570,7 +1570,7 @@ private func validateSectionReferenceObject(_ object: [String: Any], path: Strin
         throw SchemaError.invalidPackage("Native \(path).kind must declare profile, curve or face.")
     }
     guard let featureID = object["featureID"] as? String,
-          UUID(uuidString: featureID) != nil else {
+          isCanonicalNativeIdentity(featureID) else {
         throw SchemaError.invalidPackage("Native \(path).featureID must be a UUID string.")
     }
     switch kind {
@@ -2623,11 +2623,23 @@ private func validateDynamicObjectPairs(
     }
 }
 
+private func isCanonicalNativeIdentity(_ value: String) -> Bool {
+    do {
+        _ = try PortableIdentity128(canonicalString: value)
+        return true
+    } catch {
+        return false
+    }
+}
+
 private func canonicalNativeDynamicDictionaryKey(_ key: String, path: String) throws -> String {
-    guard let uuid = UUID(uuidString: key) else {
+    let identity: PortableIdentity128
+    do {
+        identity = try PortableIdentity128(canonicalString: key)
+    } catch {
         throw SchemaError.invalidPackage("Native \(path) dictionary key \(key) must be a UUID string.")
     }
-    return uuid.uuidString
+    return identity.canonicalString
 }
 
 private func validateArrayField(

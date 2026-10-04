@@ -1,80 +1,59 @@
+#if !hasFeature(Embedded)
 import Foundation
+#endif
 
-public struct TaggedID<Tag>: Hashable, Codable, Sendable, Comparable, CustomStringConvertible {
-    private let high: UInt64
-    private let low: UInt64
+public struct TaggedID<Tag>: Hashable, Sendable, Comparable, CustomStringConvertible {
+    private let identity: PortableIdentity128
 
-    public init(_ rawValue: UUID = UUID()) {
-        let bytes = rawValue.uuid
-        high = Self.word(
-            bytes.0, bytes.1, bytes.2, bytes.3,
-            bytes.4, bytes.5, bytes.6, bytes.7
-        )
-        low = Self.word(
-            bytes.8, bytes.9, bytes.10, bytes.11,
-            bytes.12, bytes.13, bytes.14, bytes.15
-        )
+    public init() {
+        identity = PortableIdentity128()
     }
 
+    public init(_ rawValue: PortableIdentity128) {
+        identity = rawValue
+    }
+
+    #if !hasFeature(Embedded)
+    public init(_ rawValue: UUID) {
+        identity = PortableIdentity128(
+            high: Self.word(
+                rawValue.uuid.0, rawValue.uuid.1, rawValue.uuid.2, rawValue.uuid.3,
+                rawValue.uuid.4, rawValue.uuid.5, rawValue.uuid.6, rawValue.uuid.7
+            ),
+            low: Self.word(
+                rawValue.uuid.8, rawValue.uuid.9, rawValue.uuid.10, rawValue.uuid.11,
+                rawValue.uuid.12, rawValue.uuid.13, rawValue.uuid.14, rawValue.uuid.15
+            )
+        )
+    }
+    #endif
+
     package init(highBits: UInt64, lowBits: UInt64) {
-        high = highBits
-        low = lowBits
+        identity = PortableIdentity128(high: highBits, low: lowBits)
     }
 
     package var bitPattern: (high: UInt64, low: UInt64) {
-        (high, low)
+        (identity.high, identity.low)
     }
 
-    public var rawValue: UUID {
-        UUID(uuid: (
-            Self.byte(high, 56), Self.byte(high, 48),
-            Self.byte(high, 40), Self.byte(high, 32),
-            Self.byte(high, 24), Self.byte(high, 16),
-            Self.byte(high, 8), Self.byte(high, 0),
-            Self.byte(low, 56), Self.byte(low, 48),
-            Self.byte(low, 40), Self.byte(low, 32),
-            Self.byte(low, 24), Self.byte(low, 16),
-            Self.byte(low, 8), Self.byte(low, 0)
-        ))
-    }
+    public var rawValue: PortableIdentity128 { identity }
 
-    public var description: String {
-        rawValue.uuidString
-    }
+    public var description: String { identity.canonicalString }
 
     public static func < (lhs: TaggedID<Tag>, rhs: TaggedID<Tag>) -> Bool {
-        if lhs.high != rhs.high {
-            return lhs.high < rhs.high
-        }
-        return lhs.low < rhs.low
+        lhs.identity < rhs.identity
     }
 
     public static func == (lhs: TaggedID<Tag>, rhs: TaggedID<Tag>) -> Bool {
-        lhs.high == rhs.high && lhs.low == rhs.low
+        lhs.identity == rhs.identity
     }
 
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(high)
-        hasher.combine(low)
+        hasher.combine(identity.high)
+        hasher.combine(identity.low)
     }
 
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let value = try container.decode(String.self)
-        guard let uuid = UUID(uuidString: value) else {
-            throw DecodingError.dataCorruptedError(
-                in: container,
-                debugDescription: "Invalid UUID string for tagged ID."
-            )
-        }
-        self.init(uuid)
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(rawValue.uuidString)
-    }
-
+    #if !hasFeature(Embedded)
     private static func word(
         _ byte0: UInt8,
         _ byte1: UInt8,
@@ -94,8 +73,27 @@ public struct TaggedID<Tag>: Hashable, Codable, Sendable, Comparable, CustomStri
             | (UInt64(byte6) << 8)
             | UInt64(byte7)
     }
+    #endif
+}
 
-    private static func byte(_ value: UInt64, _ shift: UInt64) -> UInt8 {
-        UInt8(truncatingIfNeeded: value >> shift)
+#if !hasFeature(Embedded)
+extension TaggedID: Codable {
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try container.decode(String.self)
+        do {
+            self.init(try PortableIdentity128(canonicalString: value))
+        } catch PortableIdentityError.invalidCanonicalString {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Invalid UUID string for tagged ID."
+            )
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(identity.canonicalString)
     }
 }
+#endif

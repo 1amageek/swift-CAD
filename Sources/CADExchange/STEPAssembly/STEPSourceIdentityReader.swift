@@ -1,4 +1,3 @@
-import Foundation
 import CADCore
 import CADIR
 
@@ -10,7 +9,7 @@ struct STEPSourceIdentityReader: STEPSourceIdentityReading {
         guard names.count <= limits.maximumEntities, names.count <= remainingWork else {
             throw AssemblyError.resourceLimitExceeded("STEP identity records/work")
         }
-        var work = names.count, bytes = 0, values: [Int: UUID] = [:]
+        var work = names.count, bytes = 0, values: [Int: PortableIdentity128] = [:]
         func string(_ token: String) throws -> String {
             try processingBudget.check(format: .step)
             let result = try fields.decodedString(token, limits: STEPStringLimits(maximumInputBytes: limits.maximumBytes,
@@ -59,10 +58,16 @@ struct STEPSourceIdentityReader: STEPSourceIdentityReading {
                 throw AssemblyError.invalidSource("STEP identity role and single target do not match.")
             }
             let identifier = try string(a[0])
-            guard let uuid = UUID(uuidString: identifier), uuid.uuidString.lowercased() == identifier.lowercased() else {
+            let identity: PortableIdentity128
+            do {
+                identity = try PortableIdentity128(canonicalString: identifier)
+            } catch {
                 throw AssemblyError.invalidSource("Malformed STEP native UUID assignment.")
             }
-            guard values.updateValue(uuid, forKey: target) == nil else {
+            guard identity.canonicalString.lowercased() == identifier.lowercased() else {
+                throw AssemblyError.invalidSource("Malformed STEP native UUID assignment.")
+            }
+            guard values.updateValue(identity, forKey: target) == nil else {
                 throw AssemblyError.invalidSource("Competing STEP native UUID assignments.")
             }
         }

@@ -420,8 +420,13 @@ private extension STEPAssemblyReader {
                         frame = try cartesian(operatorID, unit: u2)
                     }
                     let identifier = try string(a[0])
-                    let occurrence = AssemblyOccurrence(id: AssemblyOccurrenceID(UUID(uuidString: identifier)
-                        ?? taggedUUID(namespace: 0x535445504F434355, id: usage)), name: try string(a[1]),
+                    let occurrenceIdentity: PortableIdentity128
+                    do {
+                        occurrenceIdentity = try PortableIdentity128(canonicalString: identifier)
+                    } catch {
+                        occurrenceIdentity = taggedUUID(namespace: 0x535445504F434355, id: usage)
+                    }
+                    let occurrence = AssemblyOccurrence(id: AssemblyOccurrenceID(occurrenceIdentity), name: try string(a[1]),
                         definitionID: childID, placement: r1 == childRep ? frame : frame.inverted())
                     guard var parentDefinition = definitions[parent] else { throw AssemblyError.invalidSource("Missing parent definition.") }
                     guard parentDefinition.features.isEmpty else { throw AssemblyError.invalidSource("STEP assembly geometry is an ambiguous alternative to its children.") }
@@ -512,8 +517,9 @@ private extension STEPAssemblyReader {
             try check()
             return ImportedExchangeModel(format: .step, document: document, brep: evaluated.brep, units: document.units)
         }
-        func taggedUUID(namespace: UInt64, id: Int) -> UUID {
-            AssemblyDefinitionID(highBits: namespace, lowBits: UInt64(id)).rawValue
+        func taggedUUID(namespace: UInt64, id: Int) -> PortableIdentity128 {
+            let identity = AssemblyDefinitionID(highBits: namespace, lowBits: UInt64(id))
+            return identity.rawValue
         }
     }
 }
