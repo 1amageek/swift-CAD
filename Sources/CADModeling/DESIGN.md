@@ -1107,9 +1107,14 @@ from the normal there (`CurvedHingeDraftSurfaceBuilder`): exactly the cone throu
 whose normals run through its centre (a cylinder's or sphere's arc), any other edge's ruled surface
 fitted as a B-spline (cubic along the edge, carried on past its ends — a line or circle along
 itself — linear across it, a little above the edge and one and a half of the face's extents
-below), whose neighbours' re-solve the certified intersector does not yet carry through
-(`FIXME(INCOMPLETE_IMPLEMENTATION)`). An edge both its faces' new surfaces still hold keeps its
-curve in the re-solve (`FaceSurfaceReplacementRebuilder`). A hole's wall then meets
+below). A plane meets that ruled surface along its exact cut (`RuledBSplinePlaneSection`: along
+each ruling the plane's distance changes linearly, so the cut is the rational curve
+`(F₀·Q₁ − F₁·Q₀) / ((F₀ − F₁)·W)` in the surface's own parameter, over the run of spans whose
+rulings stay steep to the plane), whose trace on the ruled face is exact too and shares its
+parameter; any other neighbour's re-solve the certified intersector does not yet carry through
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`). A spline edge on a spline face with no exact pcurve takes a
+cubic through the surface parameters of 64 of its points (`SampledPcurveFitter`). An edge both its
+faces' new surfaces still hold keeps its curve in the re-solve (`FaceSurfaceReplacementRebuilder`). A hole's wall then meets
 the turned face along an ellipse, whose pcurve on the cylinder is projected exactly.
 `PushFaceTests`, `DraftFaceTests` and `MatchFaceTests` prove boxes, rounded boxes,
 cylinders, holes, adjacent angles, pyramid and cone frustums and placed references
@@ -1119,7 +1124,9 @@ four walls and a cylinder drafted about a mid-height neutral plane (one plane th
 frustum, one cone), a U-shaped wall crossed four times, a drilled wall turning through its hole, and a notch wall
 drafted 70° past the block's end under Moving (200 + 50 t mm² of section) and Fixed (300 − 50 / t
 mm²) and None (250 + 12.5 t mm²), and a wall turned about its straight edge on a cylinder top, the
-arc-edged end wall turned into its cone (tan θ ∬ (R − r) added, integrated), and
+arc-edged end wall turned into its cone (tan θ ∬ (R − r) added, integrated), the S-topped
+block's end wall turned into its ruled surface (tan θ ∬ of the distance to the S carried on along
+its end tangents added, integrated), and
 a box's top matched onto a sphere of another body, hollowed into its
 near side or, under Side, run through to its far side (z = 80 ∓ √(4900 − (x − 40)² − y²) integrated),
 and an L block's step matched onto a sphere past its outer wall by each Grow (the block carried out,

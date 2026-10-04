@@ -110,6 +110,9 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
         var middles: [EdgeID: Point3D] = [:]
         // The intersection each re-solved edge lies on, with the face its first surface bounds.
         var branches: [EdgeID: (intersection: SurfaceSurfaceIntersectionCurve, firstFace: FaceID)] = [:]
+        // Exact cuts of ruled faces by planes, with the ruled face each lies on and its exact
+        // trace there (parameterised as the cut is).
+        var ruledFaces: [EdgeID: (face: FaceID, trace: BSplineCurve2D)] = [:]
         var oldPoints: [VertexID: Point3D] = [:]
         for vertexID in changedVertices {
             guard let point = model.vertices[vertexID]?.point else { throw TopologyError.missingReference("A replaced body's vertex is missing.") }
@@ -145,6 +148,14 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
                     throw failure(.unsupportedCapability, featureID, tolerance, "A curved edge between faces that now share one surface cannot be re-solved.")
                 }
                 rulings.insert(edgeID)
+                continue
+            }
+            // A plane cutting a surface ruled across one parameter (a face drafted about a
+            // curved edge) cuts it exactly along each ruling, whatever its spans.
+            if let (ruledIndex, ruled, plane) = ruledAndPlane(first, second),
+               let cut = try RuledBSplinePlaneSection(tolerance: tolerance).section(of: ruled, by: plane, near: middle) {
+                curves[edgeID] = .bSpline(cut.curve)
+                ruledFaces[edgeID] = (faces[ruledIndex], cut.pcurve)
                 continue
             }
             let branch = try solver.nearestIntersection(of: first, and: second, near: middle)
@@ -319,15 +330,37 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
                 for index in loop.coedges.indices where moved.contains(loop.coedges[index].edgeID) {
                     let coedge = loop.coedges[index]
                     loop.coedges[index].surfaceParameterCurve = nil
-                    guard let branch = branches[coedge.edgeID], let edge = model.edges[coedge.edgeID],
-                          let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else { continue }
+                    guard let edge = model.edges[coedge.edgeID], let curve = model.geometry.curves[edge.curveID],
+                          let trim = edge.trim else { continue }
+                    let branch = branches[coedge.edgeID]
+                    // An edge kept on a face that is no longer the one it lay on (a drafted face's
+                    // hinge on its fitted ruled surface), or a plane's cut of a ruled face, has no
+                    // exact pcurve of its own on a spline face; it follows the edge there instead.
+                    guard branch != nil || ruledFaces[coedge.edgeID] != nil || isSpline(surface) else { continue }
                     let forward = coedge.orientation == .forward
+                    if let ruled = ruledFaces[coedge.edgeID], ruled.face == faceID {
+                        // The cut's exact trace on its ruled face, trimmed as the edge is.
+                        let increasing = trim.endParameter > trim.startParameter
+                        var pcurve = try SurfaceParameterCurve.bSpline(ruled.trace).trimmed(
+                            from: min(trim.startParameter, trim.endParameter), to: max(trim.startParameter, trim.endParameter),
+                            curveDomain: curve.parameterDomain, tolerance: tolerance
+                        )
+                        if increasing != forward { pcurve = try pcurve.reversed(tolerance: tolerance) }
+                        loop.coedges[index].surfaceParameterCurve = pcurve
+                        continue
+                    }
                     do {
                         loop.coedges[index].surfaceParameterCurve = try exact.surfaceParameterCurve(
                             for: curve, startParameter: forward ? trim.startParameter : trim.endParameter,
                             endParameter: forward ? trim.endParameter : trim.startParameter, on: surface, tolerance: tolerance
                         )
                     } catch let error as KernelError where error.code == .unsupportedCapability {
+                        guard let branch else {
+                            loop.coedges[index].surfaceParameterCurve = .bSpline(try SampledPcurveFitter(tolerance: tolerance).pcurve(
+                                of: curve, from: forward ? trim.startParameter : trim.endParameter,
+                                to: forward ? trim.endParameter : trim.startParameter, on: surface))
+                            continue
+                        }
                         let onFace = faceID == branch.firstFace
                             ? branch.intersection.firstSurfaceParameterCurve : branch.intersection.secondSurfaceParameterCurve
                         let increasing = trim.endParameter > trim.startParameter
@@ -346,6 +379,21 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
         model.geometry.curves = model.geometry.curves.filter { referencedCurves.contains($0.key) }
         let referencedSurfaces = Set(model.faces.values.map(\.surfaceID))
         model.geometry.surfaces = model.geometry.surfaces.filter { referencedSurfaces.contains($0.key) }
+    }
+
+    private func isSpline(_ surface: Surface3D) -> Bool {
+        if case .bSpline = surface { return true }
+        return false
+    }
+
+    /// Of two surfaces, a B-spline ruled across one parameter and a plane: the ruled one's index
+    /// with both; nil for any other pair.
+    private func ruledAndPlane(_ first: Surface3D, _ second: Surface3D) -> (Int, BSplineSurface3D, Plane3D)? {
+        switch (first, second) {
+        case let (.bSpline(ruled), .plane(plane)): return (0, ruled, plane)
+        case let (.plane(plane), .bSpline(ruled)): return (1, ruled, plane)
+        default: return nil
+        }
     }
 
     /// Whether the edge's curve lies on every one of `surfaces`, within a quarter of the distance

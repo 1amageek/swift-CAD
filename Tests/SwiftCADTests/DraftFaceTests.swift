@@ -371,6 +371,94 @@ struct DraftFaceTests {
         #expect(abs(volume - expected) < 1e-10, "\(volume) vs \(expected)")
     }
 
+    /// A block 30 mm along x whose top is a gentle S across y (20 mm wide, 10 mm high at its
+    /// sides, rising and falling about a millimetre between them, so its normals reach the floor
+    /// before they cross): the profile on the YZ plane, the S a cubic spline above the floor,
+    /// extruded along x.
+    private func sToppedBlock(_ builder: inout DocumentBuilder) throws -> FeatureID {
+        // On the YZ plane sketch x is world y and sketch y is world z.
+        func point(_ y: Double, _ z: Double) -> SketchPoint { SketchPoint(x: millimeters(y), y: millimeters(z)) }
+        let profile = try builder.sketch(on: .yz) { sketch in
+            _ = sketch.spline(SketchSpline(controlPoints: [point(-10, 10), point(-3, 12), point(3, 8), point(10, 10)]))
+            _ = sketch.line(from: point(10, 10), to: point(10, 0))
+            _ = sketch.line(from: point(10, 0), to: point(-10, 0))
+            _ = sketch.line(from: point(-10, 0), to: point(-10, 10))
+        }
+        return try builder.extrude(profile, distance: millimeters(30))
+    }
+
+    // About ten minutes in debug builds, nearly all of it the certified volume of the ruled
+    // face, whose cut by the floor has a rational trace.
+    @Test(.timeLimit(.minutes(15)))
+    func aWallMeetingAnSCurvedReferenceTurnsIntoItsRuledSurface() throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let block = try sToppedBlock(&builder)
+        let top = try #require(try faces(in: builder, of: block) { surface in
+            if case .plane = surface { return false }
+            return true
+        }.first)
+        let end = try faces(in: builder, of: block) { plane($0).map { $0.normal.x > 0.5 } ?? false }
+        #expect(end.count == 1)
+        _ = try builder.faceDraft(target: block, faces: end, neutralFace: top, angle: degrees(30))
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        // Volumetric validation, its certified volume (minutes in debug builds) taken once below.
+        try model.validatePcurves(tolerance: .standard)
+        // Each ruling leaves the S along its inward normal in YZ, leaning out along x by tan 30°
+        // per mm of that depth, and past the S's ends the rulings leave its end tangents along
+        // the end normals: a point of the section moves out tan 30° times its distance from the
+        // S carried on along its end tangents. The added volume is tan 30° ∬ that distance over
+        // the section, by Gauss–Legendre in the S's parameter and the height under it.
+        let controls = [(-10.0, 10.0), (-3.0, 12.0), (3.0, 8.0), (10.0, 10.0)]
+        func bezier(_ s: Double) -> (y: Double, z: Double, dy: Double, dz: Double, ddy: Double, ddz: Double) {
+            let t = min(max(s, 0), 1)
+            let b = [(1 - t) * (1 - t) * (1 - t), 3 * (1 - t) * (1 - t) * t, 3 * (1 - t) * t * t, t * t * t]
+            let d = [-3 * (1 - t) * (1 - t), 3 * (1 - t) * (1 - 3 * t), 3 * t * (2 - 3 * t), 3 * t * t]
+            let dd = [6 * (1 - t), 18 * t - 12, 6 - 18 * t, 6 * t]
+            let (y, z) = (zip(b, controls).map { $0 * $1.0 }.reduce(0, +), zip(b, controls).map { $0 * $1.1 }.reduce(0, +))
+            let (dy, dz) = (zip(d, controls).map { $0 * $1.0 }.reduce(0, +), zip(d, controls).map { $0 * $1.1 }.reduce(0, +))
+            guard s == t else { return (y + dy * (s - t), z + dz * (s - t), dy, dz, 0, 0) }
+            return (y, z, dy, dz, zip(dd, controls).map { $0 * $1.0 }.reduce(0, +), zip(dd, controls).map { $0 * $1.1 }.reduce(0, +))
+        }
+        func depth(_ y: Double, _ z: Double) -> Double {
+            var s = stride(from: -1.0, through: 2.0, by: 0.001).min { a, b in
+                let (p, q) = (bezier(a), bezier(b))
+                return hypot(p.y - y, p.z - z) < hypot(q.y - y, q.z - z)
+            } ?? 0
+            for _ in 0..<40 {
+                let p = bezier(s)
+                let f = (y - p.y) * p.dy + (z - p.z) * p.dz
+                let df = -(p.dy * p.dy + p.dz * p.dz) + (y - p.y) * p.ddy + (z - p.z) * p.ddz
+                s -= f / df
+            }
+            let p = bezier(s)
+            return hypot(p.y - y, p.z - z)
+        }
+        let nodes = [-0.9061798459386640, -0.5384693101056831, 0.0, 0.5384693101056831, 0.9061798459386640]
+        let weights = [0.2369268850561891, 0.4786286704993665, 0.5688888888888889, 0.4786286704993665, 0.2369268850561891]
+        var area = 0.0
+        var added = 0.0
+        let pieces = 12
+        for i in 0..<pieces {
+            let (s0, s1) = (Double(i) / Double(pieces), Double(i + 1) / Double(pieces))
+            for (sNode, sWeight) in zip(nodes, weights) {
+                let p = bezier((s0 + s1) / 2 + (s1 - s0) / 2 * sNode)
+                area += sWeight * (s1 - s0) / 2 * p.dy * p.z
+                var column = 0.0
+                for j in 0..<pieces {
+                    let (z0, z1) = (p.z * Double(j) / Double(pieces), p.z * Double(j + 1) / Double(pieces))
+                    for (zNode, zWeight) in zip(nodes, weights) {
+                        column += zWeight * (z1 - z0) / 2 * depth(p.y, (z0 + z1) / 2 + (z1 - z0) / 2 * zNode)
+                    }
+                }
+                added += sWeight * (s1 - s0) / 2 * p.dy * column
+            }
+        }
+        let expected = (30 * area + tan(30 * Double.pi / 180) * added) * 1e-9
+        let volume = try model.volume(tolerance: .standard)
+        // The ruled surface is fitted within an eighth of the distance tolerance over the section.
+        #expect(abs(volume - expected) < 1e-10, "\(volume) vs \(expected)")
+    }
+
 }
 
 

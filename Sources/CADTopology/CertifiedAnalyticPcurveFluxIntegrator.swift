@@ -2947,21 +2947,33 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
           message: "Certified rational pcurve flux exhausted its two-dimensional cell budget."
         )
       }
-      let piecewise = try piecewiseRationalSurfaceGaussEnclosure(
-        field: field,
-        uBase: uBase,
-        lambdaLower: item.lambdaLower,
-        lambdaUpper: item.lambdaUpper,
-        curveLower: item.curveLower,
-        curveUpper: item.curveUpper,
-        parameterEvaluator: parameterEvaluator,
-        tolerance: tolerance
-      )
+      // A curve cell whose weight's enclosure reaches zero (a rational pcurve read over too wide
+      // a cell) encloses nothing; it is split along the curve like a cell too wide to close.
+      let piecewise: PiecewiseRationalEnclosure?
+      do {
+        piecewise = try piecewiseRationalSurfaceGaussEnclosure(
+          field: field,
+          uBase: uBase,
+          lambdaLower: item.lambdaLower,
+          lambdaUpper: item.lambdaUpper,
+          curveLower: item.curveLower,
+          curveUpper: item.curveUpper,
+          parameterEvaluator: parameterEvaluator,
+          tolerance: tolerance
+        )
+      } catch LocalProofFailure.intervalSingularity {
+        piecewise = nil
+      }
       let enclosure: Interval
       let preferredCurveSplit: Bool
       let seamSplitLocation: SeamSplitLocation?
       let directionalErrors: (lambda: Double, curve: Double)?
       switch piecewise {
+      case nil:
+        enclosure = Interval(lower: -.infinity, upper: .infinity)
+        preferredCurveSplit = true
+        seamSplitLocation = nil
+        directionalErrors = nil
       case .enclosed(let value):
         enclosure = value.bounds
         preferredCurveSplit = value.curveError >= value.lambdaError
@@ -3258,10 +3270,18 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       coordinateControls[index]
         - ScalarBounds.exact(seam) * weightControls[index]
     }
-    let coordinateSlack =
+    // A root is located no closer than the controls' own bounds (carried through the piece's
+    // extraction) place the coordinate, so the slack is the larger of roundoff and that width.
+    let minimumWeight = weightControls.map(\.lower).min() ?? 0.0
+    let inputUncertainty = minimumWeight > 0.0
+      ? differences.map { $0.upper - $0.lower }.max().map { $0 / minimumWeight } ?? 0.0
+      : 0.0
+    let coordinateSlack = max(
       Double.ulpOfOne
-      * max(1.0, abs(seam))
-      * 128.0
+        * max(1.0, abs(seam))
+        * 128.0,
+      2.0 * inputUncertainty
+    )
     if rationalCoordinateResidual(
       differences: differences,
       weights: weightControls
@@ -3290,6 +3310,24 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       let hullUpper = cell.differences.map(\.upper).max() ?? .infinity
       if hullLower > 0.0 || hullUpper < 0.0 {
         continue
+      }
+      // A root at an end of the cell (a pcurve piece starting on the seam itself) leaves its
+      // end control on the seam; when every other control keeps one strict side, no root lies
+      // inside, and the end is a break already or is recorded as one.
+      if let first = cell.differences.first, let last = cell.differences.last, cell.differences.count > 2 {
+        func onSeam(_ value: ScalarBounds, _ weight: ScalarBounds) -> Bool {
+          value.lower >= -coordinateSlack * weight.upper && value.upper <= coordinateSlack * weight.upper
+        }
+        let (startOn, endOn) = (onSeam(first, cell.weights[0]), onSeam(last, cell.weights[cell.weights.count - 1]))
+        let rest = cell.differences.indices.filter { index in
+          !(index == 0 && startOn) && !(index == cell.differences.count - 1 && endOn)
+        }.map { cell.differences[$0] }
+        if (startOn || endOn), rest.isEmpty == false,
+          rest.allSatisfy({ $0.lower > 0.0 }) || rest.allSatisfy({ $0.upper < 0.0 }) {
+          if startOn, cell.lower > 0.0 { breaks.append(cell.lower) }
+          if endOn, cell.upper < 1.0 { breaks.append(cell.upper) }
+          continue
+        }
       }
       let residual = rationalCoordinateResidual(
         differences: cell.differences,

@@ -61,20 +61,23 @@ struct CertifiedBSplineCurveBezierExtractor {
                     message: "Certified B-spline curve extraction found a non-positive active span."
                 )
             }
+            // Only the degree + 1 controls of the span are supported on it: the span is read from
+            // them and their knots alone, whose basis functions equal the curve's there.
+            let local = localCurve(curve, lower: lower)
             var derivatives: [Point] = []
             derivatives.reserveCapacity(curve.degree + 1)
             for derivativeOrder in 0...curve.degree {
                 let basis = try basisDerivativeValues(
                     parameter: lower,
-                    degree: curve.degree,
+                    degree: local.degree,
                     derivativeOrder: derivativeOrder,
-                    knots: curve.knots,
-                    count: curve.controlPointCount,
+                    knots: local.knots,
+                    count: local.controlPointCount,
                     operationCount: &operationCount,
                     tolerance: tolerance
                 )
                 derivatives.append(try homogeneousDerivative(
-                    curve: curve,
+                    curve: local,
                     basis: basis,
                     operationCount: &operationCount,
                     tolerance: tolerance
@@ -201,6 +204,18 @@ struct CertifiedBSplineCurveBezierExtractor {
             result[index] = left + right
         }
         return result
+    }
+
+    /// The span starting at `lower` as its own curve: its degree + 1 controls (from the span's last
+    /// knot index `k`, the largest with `knots[k] <= lower`, back by the degree) with their 2p + 2
+    /// knots.
+    private func localCurve(_ curve: BSplineCurve2D, lower: Double) -> BSplineCurve2D {
+        let degree = curve.degree
+        var span = degree
+        while span + 1 < curve.controlPointCount, curve.knots[span + 1] <= lower { span += 1 }
+        return BSplineCurve2D(degree: degree, knots: Array(curve.knots[(span - degree)...(span + degree + 1)]),
+                              controlPoints: Array(curve.controlPoints[(span - degree)...span]),
+                              weights: Array(curve.weights[(span - degree)...span]))
     }
 
     private func homogeneousDerivative(

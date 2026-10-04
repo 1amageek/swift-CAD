@@ -47,9 +47,8 @@ package struct CurvedHingeDraftSurfaceBuilder {
         }
         /// The hinge at `s` in [0, 1], with the hinge itself over [1/5, 4/5] and its carry-ons past
         /// its ends over the rest; `held` is where the pull is measured (the end, past a straight
-        /// carry-on). The hinge's ends sit off the halvings the fit splits spans at, so no span
-        /// ends there: a ruled line at an end that a neighbouring face holds (an S leaving its
-        /// ends level) is crossed inside a span rather than along a knot.
+        /// carry-on). The hinge's ends are breaks of the fit, where a straight carry-on leaves the
+        /// curve's curvature behind.
         func hingePoint(_ s: Double) throws -> (point: Point3D, held: Point3D) {
             if runsOn || (0.2...0.8).contains(s) {
                 let point = try hinge.point(at: start + (end - start) * (s - 0.2) / 0.6, tolerance: tolerance)
@@ -70,13 +69,12 @@ package struct CurvedHingeDraftSurfaceBuilder {
             return (point, pull * -1 + across * tangent)
         }
         // FIXME(INCOMPLETE_IMPLEMENTATION): a hinge other than a circle about its reference's
-        // normals gets its ruled surface fitted here, but the faces around it are re-solved
-        // against that B-spline by the general certified intersector, which fails on it (an S
-        // leaving its ends level puts an end ruling in the side wall; a slanted S stops on the
-        // spline's principal directions), so such drafts end in that typed failure. Production
-        // path: FaceDraftFeatureEvaluator's curved hinge for a non-circular shared edge. Complete
-        // only when an S-topped block's end wall drafts, verified by its floor running out by
-        // tan θ times its depth below the S.
+        // normals gets its ruled surface fitted here; a planar neighbour meets it along the exact
+        // plane cut (`RuledBSplinePlaneSection`), but any other neighbour is re-solved against
+        // the B-spline by the general certified intersector, which fails on it, so such drafts
+        // end in that typed failure. Production path: FaceDraftFeatureEvaluator's curved hinge
+        // for a non-circular shared edge. Complete only when a drafted wall beside a curved
+        // neighbour (a rounded block's end wall under an S top) drafts, verified by its volume.
         // The two rows of the ruled surface, a little above the hinge (so its edge on the
         // reference is a crossing, and no ruled line runs far enough out to meet a neighbour
         // again) and one and a half reaches below, fitted on the same spans: each fit's breaks are
@@ -89,7 +87,7 @@ package struct CurvedHingeDraftSurfaceBuilder {
             return result
         }
         var rows: [BSplineCurve3D] = []
-        var shared = [0.0, 1.0]
+        var shared = runsOn ? [0.0, 1.0] : [0.0, 0.2, 0.8, 1.0]
         for _ in 0..<6 {
             rows = try depths.map { depth in
                 try fitter.fitBSpline(breakpoints: shared, tolerance: tolerance) { s in

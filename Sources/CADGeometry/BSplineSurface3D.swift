@@ -1027,13 +1027,15 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         let firstCandidate = tangentU * firstRowV - tangentV * firstRowU
         let secondCandidate = tangentU * secondRowV - tangentV * firstRowV
         let candidate = firstCandidate.length >= secondCandidate.length ? firstCandidate : secondCandidate
+        // The candidate is a product of the rows and the tangents, so its rounding scales with
+        // theirs; a fixed floor would reject every direction of a nearly flat surface measured
+        // in metres, whose rows are minute.
         let coefficientScale = max(
-            1.0,
             abs(firstRowU),
             abs(firstRowV),
             abs(secondRowV)
         )
-        let tangentScale = max(1.0, tangentU.length, tangentV.length)
+        let tangentScale = max(tangentU.length, tangentV.length)
         let candidateTolerance = max(
             tolerance.relative * coefficientScale * tangentScale * 64.0,
             Double.ulpOfOne * coefficientScale * tangentScale * 512.0
