@@ -53,6 +53,7 @@ BINDINGS = {
     "FaceMatchFeatureEvaluator": (["faceMatch"], ["supportSurface", "connection"]),
     "ExactProfileExtrudeBodyBuilder": (["extrude"], ["supportSurface", "transformation"]),
     "PolySplineFeatureEvaluator": (["polySpline"], ["supportSurface", "topology", "connection"]),
+    "PolySplineSubdivisionPatchBuilder": (["polySpline"], ["supportSurface", "connection", "geometricFidelity"]),
     "ExactPointGuideSectionTransformResolver": (["sweep"], ["boundaryCurve", "connection", "transformation"]),
     "EdgeBlendFeatureEvaluator": (["fillet", "chamfer", "g2Blend"], ["supportSurface", "boundaryCurve", "connection", "degeneracy"]),
     "ExactLoftBodyBuilder": (["loft"], ["supportSurface", "boundaryCurve", "connection", "degeneracy", "parameterization"]),

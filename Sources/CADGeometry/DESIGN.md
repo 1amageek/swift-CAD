@@ -1117,3 +1117,7 @@ unit-direction checks remain unchanged. Independent metre-scale non-umbilic
 fixtures must establish valid finite principal axes and rescaling invariance;
 near-umbilic fallback and unresolvable/singular candidates must retain explicit
 failure. This lower change does not authorize a sampled fitted Draft law.
+
+### Immutable Interval Vector Composition
+
+`IntervalVector3DBounds` owns immutable three-coordinate outward interval arithmetic and norm bounds. Its package initializer retains the supplied scalar intervals verbatim so modeling admission can compose these bounds without duplicating geometry arithmetic. Construction creates no finite/regularity certificate: consumers remain responsible for finite, tangent and residual acceptance. Stored components and Sendable/value ownership are identical on every target; no state, synchronization or numerical rule changes. PolySpline admission tests execute the shared interval norm owner through the actual modeling producer.

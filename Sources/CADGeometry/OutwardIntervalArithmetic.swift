@@ -176,6 +176,12 @@ package struct IntervalVector3DBounds: Sendable {
     package let y: OutwardScalarInterval
     package let z: OutwardScalarInterval
 
+    package init(x: OutwardScalarInterval, y: OutwardScalarInterval, z: OutwardScalarInterval) {
+        self.x = x
+        self.y = y
+        self.z = z
+    }
+
     package static func - (
         lhs: IntervalVector3DBounds,
         rhs: IntervalVector3DBounds

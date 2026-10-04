@@ -1290,19 +1290,31 @@ Interpolate Boundary Exactly the boundary vertices are first replaced by the con
 B-spline passes through them (`PolySplineBoundaryInterpolator`, (P₋ + 4P + P₊)/6 = V, kept corners
 held). Every boundary curve is shared exactly by its two patches, so
 the patches sew into one sheet, or a solid when the mesh is closed; where every corner has valence
-four they are the uniform B-spline exactly, elsewhere they meet in position and nearly in tangent
-(Plasticity states G2 there; `FIXME(INCOMPLETE_IMPLEMENTATION)` covers control-point edits on
-such networks). With Merge Patches (the default) `PolySplinePatchMerger` joins the patches into
+four they are the uniform B-spline exactly. Around each inner extraordinary vertex (Plasticity's
+G2 at extraordinary points) the mesh is first refined by Catmull–Clark until the vertex's quads and
+the quads touching them have no other irregular or boundary vertex (a cube twice, a tetrahedron
+three times in all), and its quads become the G2 cap of `PolySplineG2CapBuilder`: one Bézier patch
+of degree eight per quad, retaining the bicubic neighbors' position and first/second normal Taylor data within their existing rounding allowance, and its inner continuity equations under the reparametrization s = −v + e(u)v², t = u + b(u)v +
+d(u)v² with b = 2c(1 − u)³ (c = cos 2π/n) and d = e = −6c²/(1 + c)(1 − u)³ — the second-order
+enclosure about the vertex, which valence three requires — solved at
+m + 5 collocation points per edge, the vertex held at its limit position, the least thin-plate energy taken
+over what remains (constrained least squares through a column-pivoted QR's null space), its
+emitted original whole-edge degree10/12 Bernstein residuals and tangent/cross regularity enclosed before admission or the cap refused. Collocation is only candidate construction; the original whole coefficient proof owns numerical continuity within the existing component allowance. A cap's side beside a bicubic patch carries that
+patch's cubic. Boundary extraordinary vertices keep the bicubic patches, meeting in position and
+nearly in tangent (`FIXME(INCOMPLETE_IMPLEMENTATION)`, as are control-point edits on such
+networks). With Merge Patches (the default) `PolySplinePatchMerger` joins the bicubic patches into
 rectangular blocks, growing each along its u and v directions over patch edges whose ends are both
-regular (four patches around an inner vertex, two along the boundary), so blocks stop at
-extraordinary vertices: a block is one B-spline face laid out with triple joint knots, the patches'
+regular (four patches around an inner vertex, two along the boundary) and stopping short of closing
+round a band, so blocks stop at caps, each cap patch a face of its own: a block is one B-spline face laid out with triple joint knots, the patches'
 exact union, then each joint knot removed as far as the surface stays within a thousandth of the
 modeling distance (Piegl and Tiller's removal), down to a simple knot over a regular region; its
 sides are the patch edges it shares, so neighbouring blocks still sew edge to edge.
-`PolySplineGeneralMeshTests` own a cube's six patches closing into a solid at the
-limit corners (half the cube's half-width for valence three), a tetrahedron's twelve refined
-patches, a triangle's corners kept, rounded short of, and interpolated again, and a cube cut 2 × 2
-a side merging its 24 patches into 6 faces of the same volume.
+`PolySplineGeneralMeshTests` own a cube closing into a solid of 96 patches (24 in caps) holding
+its limit corners (half the cube's half-width for valence three), a tetrahedron's 192, an
+icosahedron (valences five and three) and an open fan of six quads (valence six), each checked G2
+along every edge (both faces' normals and curvature tensors agreeing), a triangle's corners kept,
+rounded short of, and interpolated again, and a cube cut 2 × 2 a side whose merged blocks are the
+uniform B-spline (simple joint knots) beside its caps, of the same volume and G2.
 
 ## Runtime Flows
 
@@ -1457,3 +1469,13 @@ Expression consumers follow the [CADCore expression contract](../CADCore/DESIGN.
 unit-preserving hypot, dependency discovery, serialization and explicit failure.
 
 Natural Bezier extension expressions use the shared numeric and unit contract in [CADCore](../CADCore/DESIGN.md). Both expression evaluators retain dependencies and propagate continuation errors.
+
+### Original PolySpline Inner-Cap Continuity Admission
+
+The immutable81acdd6 modeling unit owns PolySplineFeatureEvaluator, PolySplineSubdivisionPatchBuilder, PolySplineG2CapBuilder, PolySplinePatchMerger and PolySplineGeneralMeshTests. Root integrates this module design; a dedicated CADModeling coefficient-proof test owns lower admission evidence. Incoming collocation remains a candidate solver, not continuity authority. The cap owner bounds the emitted original degree8 seam equations in outward Bernstein coefficients: G1 degree10 and G2 degree12, including the original degree3 b/d/e reparameterization. Degree elevation and Bernstein products enclose their combinatorial factors rather than rounding them into exact coefficients. The whole-edge residual bound uses the existing component residual allowance max(extent,tolerance.distance)*1e-9; no new curvature tolerance or sample-only success is introduced. Both original surface tangent/cross metrics must satisfy the existing BSpline differential regularity contract on the whole seam, including its endpoints. Fixed regular-neighbor Taylor boundaries also retain whole coefficient/rounding admission. A nonfinite, excessive or unproved bound fails explicitly before cap publication.
+
+The proof stays local to the immutable cap builder and carries no retained cache or new public API. Checked original sector/matrix/coefficient counts admit storage before allocation using the existing QR maximumElements1<<22 owner, and cancellation is checked before and between expanding producer phases. Fixed whole coefficient hulls admit the positive fixtures without subdivision or a new private budget. BRepSewing continues to prove curve/pcurve/topology correspondence and does not become G2 authority. Boundary extraordinary vertices retain their existing marked partial position/nearly-tangent profile, without claiming global G2.
+
+Independent degree12 sample-pass/whole-residual-fail coefficients, exact residual success, denominator/regularity and resource/cancellation refusal precede the incoming cube/tetrahedron/icosahedron/open-fan production cases. Existing shared-edge position/normal/curvature observations and closed-solid edge direction counts remain integration evidence; source coefficient enclosure is the continuous authority. Root serializes frozen builds and commits; other draft/ISOAREA/STEP paths and main Wrap work remain separately owned.
+
+Native lower admission5tests pass.020s, including original degree2/8 asymmetric planar nets on allfouredges, the independent collocation alias refusal, degenerate metric, checked storage overflow and cancellation. Native immutable incoming cube/tetrahedron/icosahedron/valence6 fan production4tests pass95.027s under unchanged2/4min limits. Initial actual compile and coefficient-derivative defects were corrected before these results. Other targets remain integration work.

@@ -879,6 +879,13 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADModeling/PolySplineFeatureEvaluator.swift", sourceLine: 122
         ),
         KernelDomainLimitation(
+            id: "condition-9c178b75059daa5d",
+            operations: ["polySpline"],
+            dimensions: [.supportSurface, .connection, .geometricFidelity],
+            condition: "only inner extraordinary vertices are capped; a boundary vertex on other than two quads (or one kept corner) keeps the bicubic patches, which meet there in position and only nearly in tangent. Production path: network(positions:faces:) for every PolySplines general mesh. Complete only when such a boundary vertex is G2 too, verified by an open fan whose boundary vertex lies on three quads.",
+            sourcePath: "Sources/CADModeling/PolySplineSubdivisionPatchBuilder.swift", sourceLine: 86
+        ),
+        KernelDomainLimitation(
             id: "condition-fdb22066f98438d3",
             operations: ["fillet"],
             dimensions: [.supportSurface, .boundaryCurve, .connection, .topology],

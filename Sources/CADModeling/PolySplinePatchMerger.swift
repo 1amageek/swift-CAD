@@ -12,7 +12,8 @@ import CADIR
 /// laid side by side with knots of multiplicity three at their joints, the exact union of the
 /// patches; each joint knot is then removed as far as the surface stays within a small fraction
 /// of the modeling distance (Piegl and Tiller's knot removal), which a regular region, the uniform
-/// cubic B-spline exactly, allows down to a simple knot.
+/// cubic B-spline exactly, allows down to a simple knot. A G2 cap's patch (degree eight) is a
+/// block of its own: blocks of bicubic patches stop at it.
 package struct PolySplinePatchMerger {
     /// One merged face: its surface over u ∈ [0, columns], v ∈ [0, rows] and its boundary as the
     /// patch edges it is made of, counterclockwise, each with the parameter run it covers.
@@ -62,8 +63,9 @@ package struct PolySplinePatchMerger {
         func neighbour(_ placed: Placed, alongU: Bool) -> Placed? {
             let c = corners(placed)
             let (a, b) = alongU ? (c[1], c[2]) : (c[3], c[2])
-            guard isRegular(a), isRegular(b), let index = owner[alongU ? DirectedEdge(from: b, to: a) : DirectedEdge(from: a, to: b)],
-                  let k = patches[index].corners.firstIndex(of: a) else { return nil }
+            guard patches[placed.index].isBicubic, isRegular(a), isRegular(b),
+                  let index = owner[alongU ? DirectedEdge(from: b, to: a) : DirectedEdge(from: a, to: b)],
+                  patches[index].isBicubic, let k = patches[index].corners.firstIndex(of: a) else { return nil }
             // +u: the neighbour's corner 0 is our corner 1 (its 3 our 2); +v: its 0 is our 3 (its 1 our 2).
             let placedNeighbour = Placed(index: index, start: k)
             let n = corners(placedNeighbour)
@@ -72,8 +74,9 @@ package struct PolySplinePatchMerger {
         func backward(_ placed: Placed, alongU: Bool) -> Placed? {
             let c = corners(placed)
             let (a, b) = alongU ? (c[0], c[3]) : (c[0], c[1])
-            guard isRegular(a), isRegular(b),
-                  let index = owner[alongU ? DirectedEdge(from: a, to: b) : DirectedEdge(from: b, to: a)] else { return nil }
+            guard patches[placed.index].isBicubic, isRegular(a), isRegular(b),
+                  let index = owner[alongU ? DirectedEdge(from: a, to: b) : DirectedEdge(from: b, to: a)],
+                  patches[index].isBicubic else { return nil }
             // −u: the neighbour's corner 1 is our 0 and its 2 our 3; −v: its 3 is our 0, its 2 our 1.
             guard let k = patches[index].corners.firstIndex(of: a) else { return nil }
             let start = (k + (alongU ? 3 : 1)) % 4
@@ -84,7 +87,14 @@ package struct PolySplinePatchMerger {
 
         var assigned = Set<Int>()
         var blocks: [Block] = []
-        for seed in patches.indices where assigned.contains(seed) == false {
+        // Seeds are taken until every patch is placed: a block grown round a closed band may leave
+        // out the very patch it was seeded from.
+        while let seed = patches.indices.first(where: { assigned.contains($0) == false }) {
+            guard patches[seed].isBicubic else {
+                blocks.append(try single(patches[seed]))
+                assigned.insert(seed)
+                continue
+            }
             // Walk back to the block's corner, then grow the first row along u and further rows along v.
             var origin = Placed(index: seed, start: 0)
             var visited: Set<Int> = [seed]
@@ -98,8 +108,10 @@ package struct PolySplinePatchMerger {
             var taken = Set<Int>()
             var row = [origin]
             taken.insert(origin.index)
+            // A row running round a closed band stops short of closing: its last patch's far side
+            // would be its first patch's near side, one edge bounding the block twice.
             while let next = neighbour(row[row.count - 1], alongU: true), assigned.contains(next.index) == false,
-                  taken.contains(next.index) == false {
+                  taken.contains(next.index) == false, neighbour(next, alongU: true)?.index != row[0].index {
                 row.append(next)
                 taken.insert(next.index)
             }
@@ -116,6 +128,8 @@ package struct PolySplinePatchMerger {
                     }
                     nextRow.append(above)
                 }
+                // Likewise rows stacking round a band stop before the block closes on its first row.
+                if let beyond = neighbour(nextRow[0], alongU: false), beyond.index == rows[0][0].index { break growing }
                 rows.append(nextRow)
                 taken.formUnion(nextRow.map(\.index))
             }
@@ -136,6 +150,20 @@ package struct PolySplinePatchMerger {
             result = (0..<4).map { j in (0..<4).map { i in old[i][3 - j] } }
         }
         return result
+    }
+
+    /// A patch as its own block: its Bézier surface and its four sides.
+    private func single(_ patch: PolySplineSubdivisionPatchBuilder.Patch) throws -> Block {
+        let degree = patch.net.count - 1
+        let knots = Array(repeating: 0.0, count: degree + 1) + Array(repeating: 1.0, count: degree + 1)
+        let surface = BSplineSurface3D(uDegree: degree, vDegree: degree, uKnots: knots, vKnots: knots, controlPoints: patch.net)
+        try surface.validate(tolerance: tolerance)
+        return Block(surface: surface, sides: [
+            .init(curve: patch.sides[0], parameterCurve: .constantV(v: 0, uStart: 0, uEnd: 1)),
+            .init(curve: patch.sides[1], parameterCurve: .constantU(u: 1, vStart: 0, vEnd: 1)),
+            .init(curve: patch.sides[2].reversed(), parameterCurve: .constantV(v: 1, uStart: 1, uEnd: 0)),
+            .init(curve: patch.sides[3].reversed(), parameterCurve: .constantU(u: 0, vStart: 1, vEnd: 0)),
+        ])
     }
 
     /// One block's surface: the patches' nets laid side by side (shared rows once) with triple
