@@ -77,7 +77,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             if try turning.admits(selections.map(\.1.edgeID), model: context.brep) {
                 let request = try turning.request(
                     featureID: feature.id, bodyID: bodyID, selected: selections.map { ($0.1.edgeID, $0.0.subshapeID) },
-                    section: capSection, context: context)
+                    section: capSection, splitsCorners: fillet.yBlend, context: context)
                 let sewn = try sewer.sew(request, tolerance: context.tolerance)
                 let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: context.brep)
                 try model.validate(level: .volumetric, tolerance: context.tolerance)

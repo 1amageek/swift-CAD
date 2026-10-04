@@ -14,7 +14,7 @@ import CADTopology
 struct StepBossFilletTests {
     private func length(_ value: Double) -> CADExpression { .constant(.length(value, unit: .meter)) }
 
-    @Test(.timeLimit(.minutes(5)))
+    @Test(.timeLimit(.minutes(8)))
     func aStepsTopLoopRoundsIntoTheBossRisingFromIt() throws {
         // A cylinder of radius 10 mm and a 20 × 16 mm step 15 mm high, its top at 16 mm, beside it.
         let (rc, h, r) = (0.01, 0.016, 0.002)
@@ -34,6 +34,7 @@ struct StepBossFilletTests {
             return abs(a.z - h) < 1e-12 && abs(b.z - h) < 1e-12 && max(a.x, b.x) > 0.0055
         }.map { try builder.stableSubshape($0.key) }
         #expect(loop.count == 5)
+        var attempt = builder
         _ = try builder.fillet(target: body, edges: loop, radius: length(r))
         let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "s"))
         try rounded.brep.validate(level: .volumetric, tolerance: .standard)
@@ -88,5 +89,22 @@ struct StepBossFilletTests {
         #expect(uprights.allSatisfy { abs(max($0.0.z, $0.1.z) - (h - r)) < 1e-9 })
         let seam = ends.filter { a, b in abs(a.x - rc) < 1e-9 && abs(b.x - rc) < 1e-9 && abs(a.y) < 1e-9 && min(a.z, b.z) > 0.01 }
         #expect(seam.count == 1 && seam.allSatisfy { abs(min($0.0.z, $0.1.z) - (h + r)) < 1e-9 })
+        // Attempt to create Y-Blend: each corner patch three faces meeting in a Y at its middle,
+        // the same surface, two more faces at each corner.
+        _ = try attempt.fillet(target: body, edges: loop, radius: length(r), yBlend: true)
+        let ySplit = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try attempt.build(name: "s"))
+        try ySplit.brep.validate(level: .volumetric, tolerance: .standard)
+        // The patches' sides follow their exact edges within an eighth of the distance tolerance,
+        // so faces split along them may move the volume by that much over each patch's area.
+        let yVolume = try ySplit.brep.volume(tolerance: .standard)
+        #expect(abs(yVolume - volume) < 2 * (2 * r) * (2 * r) * 1e-6 / 8, "\(yVolume) vs \(volume)")
+        #expect(ySplit.brep.faces.count == rounded.brep.faces.count + 4)
+        // Three edges meet at each Y's middle and at the two band sections' middles its arms
+        // reach, off the cap and walls.
+        let middles = ySplit.brep.vertices.values.filter { vertex in
+            ySplit.brep.edges.values.filter { $0.startVertexID == vertex.id || $0.endVertexID == vertex.id }.count == 3
+                && vertex.point.z > h - r + 1e-6 && vertex.point.z < h + r - 1e-6 && vertex.point.x < 0.0105
+        }
+        #expect(middles.count == 6)
     }
 }

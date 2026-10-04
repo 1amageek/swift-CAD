@@ -61,6 +61,12 @@ corners: joint (tangent, same rise) │ mitre (sharp, same rise, lines) │ turn
   along the descent at the angle the walls meet along the edge.
 - The patch's sides are cubic splines through the exact curves' points and tangents within an
   eighth of the distance tolerance; the sewn edges keep the exact curves.
+- With Fillet's Attempt to create Y-Blend (`FilletFeature.yBlend`, `splitsCorners`) each corner
+  patch is three faces of the same surface meeting at its middle: its isocurves u = ½ (from the
+  rising section's middle to the falling wall contact's middle) and v = ½ (from the falling
+  section's middle) are their shared edges, and the bands' end sections and the falling wall's
+  contact beside the patch are split at their middles to meet them. The shape and volume are
+  those without it; only the topology changes, as the page states ("better topology").
 - Every edge use carries a stable identity unique in the request; edges leaving the loop's corners
   are cut to the corner's image (the blend's wall distance along them) and must be longer.
 
@@ -77,5 +83,6 @@ direction; evaluation of the whole feature takes about two minutes in debug buil
 `StepBossFilletTests.aStepsTopLoopRoundsIntoTheBossRisingFromIt` rounds the step's top loop (two
 arcs and three lines) beside a cylinder and checks volumetric validity, the volume against the
 bands' exact sections (the corner patches within their cells), every band at the radius from its
-axis, and the cut upright edges and seam. Changes to `ExactHermiteCoonsSurfaceBuilder` (corner jets,
+axis, and the cut upright edges and seam; with Y-Blend the same volume, four more faces and the
+six trivalent vertices of the two Ys. Changes to `ExactHermiteCoonsSurfaceBuilder` (corner jets,
 curved-support rows) or to `CapLoopBlendBuilder.Section` re-run this test and `SquareSurfaceTests`.

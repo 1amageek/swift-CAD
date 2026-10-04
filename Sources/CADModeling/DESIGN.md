@@ -482,7 +482,8 @@ rational one, its pcurves the band's own lines (a band as large as a convex arc,
 refused under `FIXME(INCOMPLETE_IMPLEMENTATION)`); the cap's loop moves the distance into the cap and each wall's edge the distance along
 the wall (a concave loop's band filling the corner). A whole loop of lines and arcs whose walls rise
 at some edges and fall at others, turning at sharp corners (a boss's foot running into a step's
-edges), is blended by [TurningCapLoop](TurningCapLoop/DESIGN.md); loops turning at tangent joints and
+edges), is blended by [TurningCapLoop](TurningCapLoop/DESIGN.md) (Attempt to create Y-Blend,
+`FilletFeature.yBlend`, splitting its corner patches in a Y); loops turning at tangent joints and
 loops of one closed circular edge are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A loop with sharp corners blends the tangent chain holding the selected edge, open at them (a D's top arc, a U's line–arc–line run), when its walls run down from the cap and each end's neighbour wall is a plane square to the chain there: the band ends on its section in that plane, whose corner vertex splits into the cap and wall contacts with the section between them. With Tangent Edges off (`FilletFeature.tangentEdges`, `ChamferFeature.tangentEdges` false) a chain is only the selected edges joined tangentially; where it stops at a tangent joint the band closes on its section there with a flat face facing back along the chain, the cap stepping from its contact back to the corner and the next wall's seam split at the wall contact; concave open chains, ends on oblique faces and chains blended on both sides of a corner are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). In a network every edge is convex, and each face's inward direction from
 a blended side is read from its outer loop's winding, so concave faces take part. A chamfer's
 section (`chamferSection`) follows Fillet Shell's modes for faces meeting at the interior angle α:

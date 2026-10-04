@@ -63,8 +63,11 @@ package struct TurningCapLoopBlendBuilder {
         return Set(loop.segments.map(\.rise)).count > 1
     }
 
+    /// The request; with `splitsCorners` (Fillet's Attempt to create Y-Blend) each corner patch is
+    /// three faces meeting in a Y at its middle, the bands' end sections and the falling wall's
+    /// contact beside it split at their middles to meet them.
     package func request(featureID: FeatureID, bodyID: BodyID, selected: [(edgeID: EdgeID, subshapeID: SubshapeID)],
-                         section shape: Section, context: EvaluationContext) throws -> BRepSewingRequest {
+                         section shape: Section, splitsCorners: Bool = false, context: EvaluationContext) throws -> BRepSewingRequest {
         let model = context.brep
         func refuse(_ message: String) -> KernelError {
             KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance, message: message)
@@ -315,12 +318,19 @@ package struct TurningCapLoopBlendBuilder {
             let band = bands[index]
             let name = "turning-loop:band:\(index)"
             let edgeParents = parents(segment)
-            var edges = [
-                try edge("\(name):cap", band.cap.curve, band.cap.from, band.cap.to, .constantU(u: 0, vStart: 0, vEnd: 1), edgeParents),
-                try edge("\(name):end", .bSpline(band.end), 0, 1, .constantV(v: 1, uStart: 0, uEnd: 1), edgeParents),
-                try edge("\(name):wall", band.wall.curve, band.wall.to, band.wall.from, .constantU(u: 1, vStart: 1, vEnd: 0), edgeParents),
-                try edge("\(name):start", .bSpline(band.start), 1, 0, .constantV(v: 0, uStart: 1, uEnd: 0), edgeParents),
-            ]
+            // An end section beside a corner patch split in a Y meets it at its middle too.
+            let previous = (index - 1 + count) % count
+            let (splitsEnd, splitsStart) = (splitsCorners && turns[index] != nil, splitsCorners && turns[previous] != nil)
+            var edges = [try edge("\(name):cap", band.cap.curve, band.cap.from, band.cap.to, .constantU(u: 0, vStart: 0, vEnd: 1), edgeParents)]
+            edges += splitsEnd
+                ? [try edge("\(name):end:0", .bSpline(band.end), 0, 0.5, .constantV(v: 1, uStart: 0, uEnd: 0.5), edgeParents),
+                   try edge("\(name):end:1", .bSpline(band.end), 0.5, 1, .constantV(v: 1, uStart: 0.5, uEnd: 1), edgeParents)]
+                : [try edge("\(name):end", .bSpline(band.end), 0, 1, .constantV(v: 1, uStart: 0, uEnd: 1), edgeParents)]
+            edges.append(try edge("\(name):wall", band.wall.curve, band.wall.to, band.wall.from, .constantU(u: 1, vStart: 1, vEnd: 0), edgeParents))
+            edges += splitsStart
+                ? [try edge("\(name):start:1", .bSpline(band.start), 1, 0.5, .constantV(v: 0, uStart: 1, uEnd: 0.5), edgeParents),
+                   try edge("\(name):start:0", .bSpline(band.start), 0.5, 0, .constantV(v: 0, uStart: 0.5, uEnd: 0), edgeParents)]
+                : [try edge("\(name):start", .bSpline(band.start), 1, 0, .constantV(v: 0, uStart: 1, uEnd: 0), edgeParents)]
             // Facing out: toward the corner a falling wall's band cuts away, away from the corner a
             // rising wall's band fills; judged at the band's middle against its edge there.
             let middle = try band.surface.point(u: 0.5, v: 0.5, tolerance: tolerance)
@@ -351,24 +361,65 @@ package struct TurningCapLoopBlendBuilder {
                                                     wallNormal: wallNormal, featureID: featureID)
             let name = "turning-loop:corner:\(index)"
             let edgeParents = parents(rising) + parents(falling)
-            var edges = [
-                try edge("\(name):rising", .bSpline(bottom), 0, 1, .constantV(v: 0, uStart: 0, uEnd: 1), edgeParents),
-                try edge("\(name):descent", .bSpline(turn.descent), 0, 1, .constantU(u: 1, vStart: 0, vEnd: 1), edgeParents),
-                try edge("\(name):wall", .line(turn.top), 0, turn.topLength, .constantV(v: 1, uStart: 1, uEnd: 0), edgeParents),
-                try edge("\(name):falling", .bSpline(left), 1, 0, .constantU(u: 0, vStart: 1, vEnd: 0), edgeParents),
-            ]
             // Facing out of the material at P, where the patch is tangent to the cap.
             let facing = try surface.normal(u: 0.05, v: 0.05, tolerance: tolerance).dot(n) >= 0
-            if facing == false { edges = try edges.reversed().map(reversed) }
-            patches.append(BRepSewingFacePatch(stableID: name, surface: .bSpline(surface), orientation: facing ? .forward : .reversed,
-                                               loops: [BRepSewingLoop(stableID: "\(name):outer", role: .outer, edges: edges)],
-                                               parentSubshapeIDs: [loop.capFaceID, rising.wallFaceID, falling.wallFaceID]
-                                                .flatMap { context.subshapeIDs(for: .face($0)) }))
+            let faceParents = [loop.capFaceID, rising.wallFaceID, falling.wallFaceID].flatMap { context.subshapeIDs(for: .face($0)) }
+            /// A face of the patch from its loop counterclockwise in (u, v).
+            func face(_ stableID: String, _ loopEdges: [BRepSewingEdge]) throws -> BRepSewingFacePatch {
+                BRepSewingFacePatch(stableID: stableID, surface: .bSpline(surface), orientation: facing ? .forward : .reversed,
+                                    loops: [BRepSewingLoop(stableID: "\(stableID):outer", role: .outer,
+                                                           edges: facing ? loopEdges : try loopEdges.reversed().map(reversed))],
+                                    parentSubshapeIDs: faceParents)
+            }
+            guard splitsCorners else {
+                patches.append(try face(name, [
+                    try edge("\(name):rising", .bSpline(bottom), 0, 1, .constantV(v: 0, uStart: 0, uEnd: 1), edgeParents),
+                    try edge("\(name):descent", .bSpline(turn.descent), 0, 1, .constantU(u: 1, vStart: 0, vEnd: 1), edgeParents),
+                    try edge("\(name):wall", .line(turn.top), 0, turn.topLength, .constantV(v: 1, uStart: 1, uEnd: 0), edgeParents),
+                    try edge("\(name):falling", .bSpline(left), 1, 0, .constantU(u: 0, vStart: 1, vEnd: 0), edgeParents),
+                ]))
+                continue
+            }
+            // The Y: the patch's isocurves u = ½ (from the rising section's middle across to the
+            // falling wall's contact's) and v = ½ (from the falling section's middle to the first)
+            // meet at its middle, three faces about it.
+            let across = try isocurve(of: surface, u: 0.5), down = try isocurve(of: surface, v: 0.5)
+            let half = turn.topLength / 2
+            patches.append(try face("\(name):y:0", [
+                try edge("\(name):y:0:rising", .bSpline(bottom), 0, 0.5, .constantV(v: 0, uStart: 0, uEnd: 0.5), edgeParents),
+                try edge("\(name):y:0:across", .bSpline(across), 0, 0.5, .constantU(u: 0.5, vStart: 0, vEnd: 0.5), edgeParents),
+                try edge("\(name):y:0:down", .bSpline(down), 0.5, 0, .constantV(v: 0.5, uStart: 0.5, uEnd: 0), edgeParents),
+                try edge("\(name):y:0:falling", .bSpline(left), 0.5, 0, .constantU(u: 0, vStart: 0.5, vEnd: 0), edgeParents),
+            ]))
+            patches.append(try face("\(name):y:1", [
+                try edge("\(name):y:1:rising", .bSpline(bottom), 0.5, 1, .constantV(v: 0, uStart: 0.5, uEnd: 1), edgeParents),
+                try edge("\(name):y:1:descent", .bSpline(turn.descent), 0, 1, .constantU(u: 1, vStart: 0, vEnd: 1), edgeParents),
+                try edge("\(name):y:1:wall", .line(turn.top), 0, half, .constantV(v: 1, uStart: 1, uEnd: 0.5), edgeParents),
+                try edge("\(name):y:1:across:1", .bSpline(across), 1, 0.5, .constantU(u: 0.5, vStart: 1, vEnd: 0.5), edgeParents),
+                try edge("\(name):y:1:across:0", .bSpline(across), 0.5, 0, .constantU(u: 0.5, vStart: 0.5, vEnd: 0), edgeParents),
+            ]))
+            patches.append(try face("\(name):y:2", [
+                try edge("\(name):y:2:down", .bSpline(down), 0, 0.5, .constantV(v: 0.5, uStart: 0, uEnd: 0.5), edgeParents),
+                try edge("\(name):y:2:across", .bSpline(across), 0.5, 1, .constantU(u: 0.5, vStart: 0.5, vEnd: 1), edgeParents),
+                try edge("\(name):y:2:wall", .line(turn.top), half, turn.topLength, .constantV(v: 1, uStart: 0.5, uEnd: 0), edgeParents),
+                try edge("\(name):y:2:falling", .bSpline(left), 1, 0.5, .constantU(u: 0, vStart: 1, vEnd: 0.5), edgeParents),
+            ]))
         }
 
         /// Segment `index`'s replacement on its wall, run along the segment: the descent from a
         /// turn's `S` up to its wall contact on a rising wall, or the falling wall's contact on
         /// from `S`, then the contact itself, then the same at its end.
+        /// The falling wall's contact from `S` to `T` (or back), split at its middle where the
+        /// corner patch is split in a Y.
+        func top(of turn: (s: Point3D, top: Line3D, topLength: Double, descent: BSplineCurve3D), from t0: Double, to t1: Double,
+                 index: Int, name: String, parents edgeParents: [SubshapeID]) throws -> [BRepSewingEdge] {
+            guard splitsCorners else {
+                return [try edge("\(name):turning:\(index):wall", .line(turn.top), t0, t1, .polyline([]), edgeParents)]
+            }
+            let middle = turn.topLength / 2
+            return [try edge("\(name):turning:\(index):wall:0", .line(turn.top), t0, middle, .polyline([]), edgeParents),
+                    try edge("\(name):turning:\(index):wall:1", .line(turn.top), middle, t1, .polyline([]), edgeParents)]
+        }
         func wallPieces(_ index: Int, face name: String) throws -> [BRepSewingEdge] {
             let segment = segments[index]
             let band = bands[index]
@@ -376,15 +427,15 @@ package struct TurningCapLoopBlendBuilder {
             var pieces: [BRepSewingEdge] = []
             let previous = (index - 1 + count) % count
             if let turn = turns[previous] {
-                pieces.append(segment.rise > 0
-                    ? try edge("\(name):turning:\(previous):descent", .bSpline(turn.descent), 1, 0, .polyline([]), edgeParents)
-                    : try edge("\(name):turning:\(previous):wall", .line(turn.top), 0, turn.topLength, .polyline([]), edgeParents))
+                pieces += segment.rise > 0
+                    ? [try edge("\(name):turning:\(previous):descent", .bSpline(turn.descent), 1, 0, .polyline([]), edgeParents)]
+                    : try top(of: turn, from: 0, to: turn.topLength, index: previous, name: name, parents: edgeParents)
             }
             pieces.append(try edge("\(name):band:\(index):wall", band.wall.curve, band.wall.from, band.wall.to, .polyline([]), edgeParents))
             if let turn = turns[index] {
-                pieces.append(segment.rise > 0
-                    ? try edge("\(name):turning:\(index):descent", .bSpline(turn.descent), 0, 1, .polyline([]), edgeParents)
-                    : try edge("\(name):turning:\(index):wall", .line(turn.top), turn.topLength, 0, .polyline([]), edgeParents))
+                pieces += segment.rise > 0
+                    ? [try edge("\(name):turning:\(index):descent", .bSpline(turn.descent), 0, 1, .polyline([]), edgeParents)]
+                    : try top(of: turn, from: turn.topLength, to: 0, index: index, name: name, parents: edgeParents)
             }
             return pieces
         }
@@ -555,6 +606,34 @@ package struct TurningCapLoopBlendBuilder {
         }
         let delta = segment.end - segment.start
         return segment.start + delta * ((point - segment.start).dot(delta) / delta.dot(delta))
+    }
+
+    /// The isocurve of `surface` at `u` (running along v) or at `v` (along u): the other
+    /// direction's controls blended by this one's basis there, in homogeneous coordinates.
+    private func isocurve(of surface: BSplineSurface3D, u: Double? = nil, v: Double? = nil) throws -> BSplineCurve3D {
+        let alongV = u != nil
+        let (knots, degree, count) = alongV ? (surface.uKnots, surface.uDegree, surface.uControlPointCount)
+            : (surface.vKnots, surface.vDegree, surface.vControlPointCount)
+        let basis = FairSurfaceSystem.Basis(knots: knots, degree: degree, count: count).derivatives(at: u ?? v ?? 0, order: 0)[0]
+        let others = alongV ? surface.vControlPointCount : surface.uControlPointCount
+        var points: [Point3D] = []
+        var weights: [Double] = []
+        for k in 0..<others {
+            var sum = Vector3D.zero
+            var weight = 0.0
+            for i in 0..<count where basis[i] != 0 {
+                let (row, column) = alongV ? (k, i) : (i, k)
+                let w = surface.weights[row][column] * basis[i]
+                sum = sum + (surface.controlPoints[row][column] - .origin) * w
+                weight += w
+            }
+            points.append(.origin + sum * (1 / weight))
+            weights.append(weight)
+        }
+        let curve = BSplineCurve3D(degree: alongV ? surface.vDegree : surface.uDegree, knots: alongV ? surface.vKnots : surface.uKnots,
+                                   controlPoints: points, weights: weights)
+        try curve.validate(tolerance: tolerance)
+        return curve
     }
 
     /// The band of an arc: `row` turned by `sweep` about the axis through `center`, rational
