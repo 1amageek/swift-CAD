@@ -32,6 +32,7 @@ independent source/resolution fixtures and public STEP generations.
 | [CADIR](../CADIR/DESIGN.md) | used by | Parameter validation | Validates kinds and values | New cases require exhaustive handling |
 | [CADModeling](../CADModeling/DESIGN.md) | used by | Expression resolution | Evaluates source and variables | Preserve evaluation equivalence |
 | [Portable Identity](PortableIdentity/DESIGN.md) | child | Foundation-free 128-bit identity and strict UUID text codec | Supplies the storage and textual identity contract used by tagged persistent IDs; `TaggedID` owns explicit Native UUID/Codable adapters | CADExchange owns strict Native/STEP wire and schema admission; Embedded does not claim Codable support |
+| [Current Task Cancellation](CurrentTaskCancellation/DESIGN.md) | child | Foundation-free current-task cancellation check | Preserves typed `CancellationError` across supported targets | Consumer placement and domain mapping remain outside this component |
 
 ## Architecture
 
@@ -39,6 +40,7 @@ independent source/resolution fixtures and public STEP generations.
 CADExpression -> CADIR parameter validation -> CADModeling evaluation
 
 PersistentIdentity -> TaggedID<Tag> -> CADIR / CADModeling / CADExchange consumers
+CurrentTask -> CurrentTaskCancellationChecker -> bounded Core consumers
 ```
 
 ## Contracts and Invariants
