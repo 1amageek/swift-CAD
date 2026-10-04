@@ -567,13 +567,21 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             let residual = separation.contactResidual ?? 0.0
             switch operation {
             case .union:
-                throw KernelError(
-                    phase: .topology,
-                    code: .nonManifoldResult,
-                    residual: residual,
-                    tolerance: tolerance,
-                    message: "Boolean union of boundary-contacting solids would produce a non-manifold result."
-                )
+                // A tool standing on a cap of the target, its own cap's disc inside that face (a
+                // boss drawn on it), joins it; any other contact (along an edge or at a point, or
+                // a disc reaching past the face) would leave the result non-manifold.
+                do {
+                    let revolved = try RevolvedBooleanPlan(operation: operation, target: target, tool: tool, tolerance: tolerance)
+                    return try revolvedOperationPlan(revolved, tolerance: tolerance)
+                } catch let error as KernelError where error.code == .unsupportedCapability {
+                    throw KernelError(
+                        phase: .topology,
+                        code: .nonManifoldResult,
+                        residual: residual,
+                        tolerance: tolerance,
+                        message: "Boolean union of boundary-contacting solids would produce a non-manifold result."
+                    )
+                }
             case .difference:
                 return try carriedOperandPlan(
                     bodyID: targetBodyID,
@@ -635,6 +643,15 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 tolerance: tolerance
             )
         }
+        return try revolvedOperationPlan(revolved, tolerance: tolerance)
+    }
+
+    /// The plan materializing a planar target and revolved tool's Boolean.
+    private func revolvedOperationPlan(
+        _ revolved: RevolvedBooleanPlan,
+        tolerance: ModelingTolerance
+    ) throws -> BRepBooleanOperationPlan {
+        let operation = revolved.operation
         let request = try RevolvedBooleanFacePatchBuilder(
             tolerance: tolerance
         ).request(for: revolved, featureID: FeatureID())

@@ -52,8 +52,12 @@ struct RevolvedBooleanPlan: Sendable {
             && tool.upperCoordinate > lower.2 + tolerance.distance
         let crossesUpperCap = tool.upperCoordinate >= upper.2 - tolerance.distance
             && tool.lowerCoordinate < upper.2 - tolerance.distance
+        // A union may also take a tool standing on a cap from outside, touching it in a disc (a boss
+        // drawn on the face): the result is the one the tool sunk into the cap would give.
+        let standsOnCap = (protrudesUpper && abs(tool.lowerCoordinate - upper.2) <= tolerance.distance)
+            || (protrudesLower && abs(tool.upperCoordinate - lower.2) <= tolerance.distance)
         if operation == .union {
-            guard hasAxialOverlap else {
+            guard hasAxialOverlap || standsOnCap else {
                 throw Self.unsupported(operation: operation, tolerance: tolerance)
             }
         } else if operation == .difference {
