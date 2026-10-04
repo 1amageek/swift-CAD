@@ -543,7 +543,7 @@ rolling ball carries every face away from it and its ends whole, whatever its su
 a face beside it with curved sides elsewhere (an earlier round meeting it away from this edge) by
 moving only the edge's side and the straight sides at its ends (`aSecondRoundBesideAnEarlierRoundElsewhereKeepsIt`).
 Selected edges that no route above takes and that fall apart into groups sharing no vertex (a
-hole's rim and the outline around it) are filleted group by group, each group on the body the ones
+hole's rim and the outline around it) are filleted (or chamfered) group by group, each group on the body the ones
 before it left (the later groups' target that stage's body), the last group's evaluation being the
 feature's own (`aHolesRimAndTheOutlineAroundItRoundTogether`). A limited fillet (`FilletFeature.limits`, Fillet Shell's limit points) runs over its stretch of one
 straight edge: the faces beside it are notched there (the edge sharp up to each limit, then across to

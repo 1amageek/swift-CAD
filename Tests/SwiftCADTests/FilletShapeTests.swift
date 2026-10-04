@@ -541,8 +541,8 @@ struct FilletShapeTests {
 
     /// A holed plate's top hole rim and top outline rounded together: two groups of edges sharing
     /// no vertex, rounded one after the other, the rim's torus band and the outline's mitred rounds.
-    @Test(.timeLimit(.minutes(2)))
-    func aHolesRimAndTheOutlineAroundItRoundTogether() throws {
+    @Test(.timeLimit(.minutes(2)), arguments: [false, true])
+    func aHolesRimAndTheOutlineAroundItRoundTogether(chamfers: Bool) throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let (side, height, hole, r) = (0.03, 0.01, 0.005, 0.001)
         let plate = try builder.box(width: length(side), depth: length(side), height: length(height))
@@ -557,13 +557,18 @@ struct FilletShapeTests {
                   [a, b].allSatisfy({ abs($0.z - height) < 1e-12 }) else { return nil }
             return key
         }.sorted().map { try builder.stableSubshape($0) }
-        _ = try builder.fillet(target: holed, edges: top, radius: length(r))
+        if chamfers {
+            _ = try builder.chamfer(target: holed, edges: top, distance: length(r))
+        } else {
+            _ = try builder.fillet(target: holed, edges: top, radius: length(r))
+        }
         let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "plate"))
         try rounded.brep.validate(level: .volumetric, tolerance: .standard)
         // The corner section about the hole's axis at its centroid out from the wall (Pappus), and
         // along the outline's centroid square, mitred at its corners.
-        let section = r * r * (1 - Double.pi / 4)
-        let inset = r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+        let (section, inset) = chamfers
+            ? (r * r / 2, r / 3)
+            : (r * r * (1 - Double.pi / 4), r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi))
         let expected = side * side * height - Double.pi * hole * hole * height
             - section * 2 * Double.pi * (hole + inset) - section * 4 * (side - 2 * inset)
         let volume = try rounded.brep.volume(tolerance: .standard)

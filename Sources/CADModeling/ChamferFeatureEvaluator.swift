@@ -79,6 +79,12 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
                context: context) {
             return result
         }
+        // Edges falling apart into groups that share no vertex (a hole's rim and the outline round
+        // it) are chamfered group by group, each group on the body the ones before it left.
+        if chamfer.edges.count > 1, context.brep.bodies[bodyID]?.kind == .solid,
+           let result = try groupsInTurn(feature: feature, chamfer: chamfer, context: context) {
+            return result
+        }
         if context.brep.bodies[bodyID]?.kind == .sheet || chamfer.edges.count > 1 || angle != nil {
             return try profile()
         }
@@ -151,6 +157,45 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             removedSubshapeIDs: replacedSubshapeIDs,
             lineage: sewn.lineage
         )
+    }
+
+    /// The chamfer of edges falling into groups that share no vertex, one group at a time, each
+    /// later group's target the body the stage before it generated; nil for one group.
+    private func groupsInTurn(feature: FeatureNode, chamfer: ChamferFeature, context: EvaluationContext) throws -> EvaluationResult? {
+        let ends = try chamfer.edges.map { reference -> Set<VertexID> in
+            let edgeID = try targetEdgeID(reference, context: context, featureID: feature.id)
+            guard let edge = context.brep.edges[edgeID] else {
+                throw missingReference(featureID: feature.id, subshapeID: reference.subshapeID, tolerance: context.tolerance)
+            }
+            return [edge.startVertexID, edge.endVertexID]
+        }
+        var group = Array(ends.indices)
+        func root(_ index: Int) -> Int {
+            var index = index
+            while group[index] != index { index = group[index] }
+            return index
+        }
+        for i in ends.indices {
+            for j in ends.indices where j > i && ends[i].isDisjoint(with: ends[j]) == false {
+                group[root(j)] = root(i)
+            }
+        }
+        let roots = Array(Set(ends.indices.map(root))).sorted()
+        guard roots.count > 1 else { return nil }
+        var stages = FeatureEvaluationStages(context)
+        var target = chamfer.target
+        for (ordinal, groupRoot) in roots.enumerated() {
+            let part = chamfer.with(target: target, edges: chamfer.edges.indices.filter { root($0) == groupRoot }.map { chamfer.edges[$0] })
+            // The last group's evaluation is the feature's own result.
+            let isLast = ordinal == roots.count - 1
+            let stageID = isLast ? feature.id : featureEvaluationStageID(featureID: feature.id, domain: .edgeBlend, ordinal: UInt64(ordinal))
+            target = ChamferTargetReference(featureID: stageID)
+            let step = try evaluateUnvalidated(feature: FeatureNode(id: stageID, name: feature.name, operation: .chamfer(part),
+                                                                    outputs: feature.outputs), context: stages.context)
+            if isLast { return try stages.publish(step, featureID: feature.id) }
+            stages.apply(step)
+        }
+        return nil
     }
 
     /// Whether the edge is concave: the first face beside it, lying to the left of its use of the
