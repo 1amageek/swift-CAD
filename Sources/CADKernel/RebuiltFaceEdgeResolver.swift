@@ -158,7 +158,10 @@ struct RebuiltFaceEdgeResolver {
                 let geometry = try Surface3D.bSpline(fitted).differentialGeometry(u: uv.u, v: uv.v, tolerance: tolerance)
                 return (geometry.position, geometry.tangentU, geometry.tangentV)
             } catch {
-                throw refuse("A rebuilt face's edges move past its new surface; extend it.")
+                // Sought where the new surface cannot be evaluated: it does not reach the face
+                // beside the edge there (short of it, or a coarse refit of a face tangent to its
+                // neighbours hovering off them).
+                throw refuse("A rebuilt face's new surface does not reach the face beside one of its edges; rebuild it finer or extend it.")
             }
         }
         func oldSurface(_ faceID: FaceID) throws -> Surface3D {
