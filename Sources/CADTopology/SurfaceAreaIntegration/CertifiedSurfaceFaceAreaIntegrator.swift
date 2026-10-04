@@ -4,6 +4,7 @@ import Foundation
 
 /// Certified exact-surface integration, independent of tessellation.
 struct CertifiedSurfaceFaceAreaIntegrator {
+    private typealias Endpoint = (u: ScalarInterval, v: ScalarInterval)
     private struct Cell {
         let t: ScalarInterval
         let r: ScalarInterval
@@ -18,7 +19,8 @@ struct CertifiedSurfaceFaceAreaIntegrator {
             throw failure(.resourceLimitExceeded, tolerance, "Face area loop admission limit exceeded.")
         }
         try admit(surface, options: options, tolerance: tolerance)
-        var loops: [(role: LoopRole, curves: [SurfaceParameterCurve], charts: [SurfaceAreaParameterChartEncloser])] = []
+        var loops: [(role: LoopRole, curves: [SurfaceParameterCurve], charts: [SurfaceAreaParameterChartEncloser],
+                     endpoints: [(start: Endpoint, end: Endpoint)]?)] = []
         var work = 0
         var count = 0
         for id in face.loops {
@@ -43,14 +45,15 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                 maximumControlPointCount:options.maximumControlPointCount,
                 maximumBoundaryCurveCount:options.maximumBoundaryCurveCount,tolerance:tolerance,
                 consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) }) }
-            loops.append((loop.role, curves, charts))
+            loops.append((loop.role, curves, charts, nil))
         }
         let usesImplicitWork = loops.contains { $0.charts.contains { $0.requiresCallerWork } }
         var certifiedAnchor: SurfaceParameter?
         if usesImplicitWork {
             // This admitted family retains nonperiodic original charts. Every
             // endpoint proof precedes any hint, under the same query work owner.
-            for loop in loops {
+            for loopIndex in loops.indices {
+                let loop = loops[loopIndex]
                 let endpoints = try loop.charts.map { chart in
                     try (start:chart.endpointBounds(atEnd:false,tolerance:tolerance,
                         consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) }),
@@ -76,6 +79,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                 if certifiedAnchor == nil,let first = endpoints.first {
                     certifiedAnchor = SurfaceParameter(u:first.start.u.midpoint,v:first.start.v.midpoint)
                 }
+                loops[loopIndex].endpoints = endpoints
             }
         } else {
             // Legacy families retain their existing periodic lifting authority.
@@ -97,7 +101,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                     maximumControlPointCount:options.maximumControlPointCount,
                     maximumBoundaryCurveCount:options.maximumBoundaryCurveCount,tolerance:tolerance,
                     consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) }) }
-                loops[index] = (loops[index].role,curves,charts)
+                loops[index] = (loops[index].role,curves,charts,nil)
             }
         }
         guard let firstCurve = loops.first?.curves.first else {
@@ -145,9 +149,22 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                     anchor: anchor, reference: reference, prepared: prepared, goals: goals,
                     options: options, work: &work, tolerance: tolerance)
             } else {
-                for (curve,chart) in zip(loop.curves,loop.charts) {
-                    let contribution = try integrate(curve: curve, parameterChart:chart, anchor: anchor, reference: reference,
+                for index in loop.curves.indices {
+                    let curve = loop.curves[index], chart = loop.charts[index]
+                    let greenBoundary = chart.requiresCallerWork && prepared.radialIntegrationIsExact
+                        && !prepared.hasNativeDensityJumps && !chart.hasNativeJoins
+                    var contribution = try integrate(curve: curve, parameterChart:chart,
+                        greenBoundary:greenBoundary, anchor: anchor, reference: reference,
                         prepared: prepared, goals: goals, options: options, work: &work, tolerance: tolerance)
+                    if greenBoundary {
+                        guard let endpoints = loop.endpoints, endpoints.indices.contains(index) else {
+                            throw failure(.classificationFailure,tolerance,"Green integration lost its certified original endpoints.")
+                        }
+                        try consumeWork(&work,options:options,tolerance:tolerance)
+                        let correction = try prepared.affineBoundaryCorrection(start:endpoints[index].start,
+                            end:endpoints[index].end,anchor:anchor,reference:reference,tolerance:tolerance)
+                        for field in contribution.indices { contribution[field] = contribution[field] + correction[field] }
+                    }
                     for i in 0..<4 { accumulated[i] = accumulated[i] + contribution[i] }
                 }
             }
@@ -230,6 +247,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
 
     private func integrate(curve: SurfaceParameterCurve, parameterChart: SurfaceAreaParameterChartEncloser,
                            rectangle: SurfaceParameterBox? = nil,
+                           greenBoundary: Bool = false,
                            anchor: SurfaceParameter, reference: Point3D,
                            prepared: PreparedSurfaceAreaIntegrand, goals: [Double],
                            options: FaceAreaIntegrationOptions, work: inout Int,
@@ -259,6 +277,12 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                     midpoint = try prepared.rectangularTranslationBounds(rectangle: rectangle,
                         fraction: ScalarInterval(lower: cell.t.midpoint, upper: cell.t.midpoint),
                         reference: reference, tolerance: tolerance)
+                } else if greenBoundary {
+                    let pair = try prepared.centeredAffineBoundaryBounds(parameterChart:parameterChart,
+                        anchor:anchor,reference:reference,boundaryFraction:cell.t,tolerance:tolerance,
+                        consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
+                    bounds = pair.range
+                    midpoint = pair.midpoint
                 } else if prepared.radialIntegrationIsExact {
                     bounds = try prepared.boundaryBounds(curve: curve, anchor: anchor, reference: reference,
                         boundaryFraction: cell.t, tolerance: tolerance,parameterChart:parameterChart,

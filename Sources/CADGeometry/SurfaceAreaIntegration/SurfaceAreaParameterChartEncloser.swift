@@ -131,6 +131,43 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
         return try Self.enclose(storage, over: fraction, tolerance: tolerance, consumeWork: consumeWork)
     }
 
+    /// Reuses the same owner's certified midpoint to restrict its whole smooth range.
+    func centeredIntervalJets(over fraction: ScalarInterval, tolerance: ModelingTolerance,
+        consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork)
+        throws -> (range: (u: SurfaceIntervalJet, v: SurfaceIntervalJet),
+                   midpoint: (u: SurfaceIntervalJet, v: SurfaceIntervalJet)) {
+        let range = try intervalJet(over: fraction, tolerance: tolerance, consumeWork: consumeWork)
+        let center = fraction.midpoint
+        let midpoint = try intervalJet(over: ScalarInterval(lower: center, upper: center),
+            tolerance: tolerance, consumeWork: consumeWork)
+        let delta = OutwardScalarInterval(lower: fraction.lower, upper: fraction.upper) - .exact(center)
+        let square = delta * delta
+        let cube = square * delta
+        func intersect(_ original: OutwardScalarInterval, _ restriction: OutwardScalarInterval)
+            throws -> OutwardScalarInterval {
+            guard restriction.isFinite, let result = original.intersection(with: restriction) else {
+                throw Self.failure(.classificationFailure, tolerance,
+                    "A centered chart derivative contradicts its original smooth range proof.")
+            }
+            return result
+        }
+        func tighten(_ whole: SurfaceIntervalJet, _ point: SurfaceIntervalJet) throws -> SurfaceIntervalJet {
+            let third = whole.thirdDerivativeUUU
+            let second = try intersect(whole.secondDerivativeUU,
+                point.secondDerivativeUU + third * delta)
+            let first = try intersect(whole.derivativeU,
+                point.derivativeU + point.secondDerivativeUU * delta + third * square * .exact(0.5))
+            let value = try intersect(whole.value, point.value + point.derivativeU * delta
+                + point.secondDerivativeUU * square * .exact(0.5) + third * cube * OutwardScalarInterval(1.0 / 6))
+            return SurfaceIntervalJet(value: value, derivativeU: first, derivativeV: whole.derivativeV,
+                secondDerivativeUU: second, secondDerivativeUV: whole.secondDerivativeUV,
+                secondDerivativeVV: whole.secondDerivativeVV,
+                thirdDerivativeUUU: third, thirdDerivativeUUV: whole.thirdDerivativeUUV,
+                thirdDerivativeUVV: whole.thirdDerivativeUVV, thirdDerivativeVVV: whole.thirdDerivativeVVV)
+        }
+        return try ((tighten(range.u, midpoint.u), tighten(range.v, midpoint.v)), midpoint)
+    }
+
     /// Coarse signed flux allocates effort only; final moment intervals own acceptance.
     package func signedFluxBounds(over fraction: ScalarInterval, tolerance: ModelingTolerance,
                                   consumeWork: () throws -> Void) throws -> OutwardScalarInterval {

@@ -7,13 +7,13 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
 
     init(curve: CertifiedImplicitSurfaceParameterCurve, tolerance: ModelingTolerance,
          consumeWork: () throws -> Void) throws {
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Rational, multicell, closed and procedural
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Periodic, multispan, multicell, closed and procedural
         // implicit charts lack this caller-owned localization contract on face-area
         // queries. Complete only after original root/jet coverage and shared-budget
         // area/centroid evidence is established for every owning piece.
         guard Self.supports(curve) else {
             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                message: "Nonlinear area charts require one open polynomial B-spline graph cell.")
+                message: "Nonlinear area charts require one open positive-weight single-span B-spline graph cell.")
         }
         try consumeWork()
         self.curve = curve
@@ -25,12 +25,11 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
         guard !curve.intersection.isClosed, curve.intersection.cells.count == 1,
               case .bSpline(let first) = curve.intersection.firstSurface,
               case .bSpline(let second) = curve.intersection.secondSurface else { return false }
-        func polynomial(_ surface: BSplineSurface3D) -> Bool {
+        func singlePositiveWeightSpan(_ surface: BSplineSurface3D) -> Bool {
             guard !surface.isUPeriodic, !surface.isVPeriodic,
                   surface.controlPoints.count == surface.vDegree + 1,
                   surface.controlPoints.first?.count == surface.uDegree + 1,
-                  let weight = surface.weights.first?.first, weight.isFinite, weight > 0,
-                  surface.weights.allSatisfy({ $0.allSatisfy { $0 == weight } }) else { return false }
+                  surface.weights.allSatisfy({ $0.allSatisfy { $0.isFinite && $0 > 0 } }) else { return false }
             func clamped(_ knots: [Double], _ degree: Int) -> Bool {
                 guard knots.count == 2 * (degree + 1), let lower = knots.first,
                       let upper = knots.last, lower < upper else { return false }
@@ -39,7 +38,7 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
             }
             return clamped(surface.uKnots, surface.uDegree) && clamped(surface.vKnots, surface.vDegree)
         }
-        return polynomial(first) && polynomial(second)
+        return singlePositiveWeightSpan(first) && singlePositiveWeightSpan(second)
     }
 
     func intervalProof(over fraction: ScalarInterval, tolerance: ModelingTolerance,
@@ -53,6 +52,23 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
         if fraction.lower == fraction.upper, fraction.lower == 0 || fraction.lower == 1 {
             let endpoint = fraction.lower == 0 ? curve.startFraction : curve.endFraction
             interval = try ScalarInterval(lower:endpoint,upper:endpoint)
+        } else if fraction.lower == fraction.upper, curve.startFraction == 0, curve.endFraction == 1 {
+            // Exact identity preserves the original closed point, so its lower
+            // continuation does not acquire unnecessary range endpoint phases.
+            interval = fraction
+        } else if fraction.lower == fraction.upper, curve.startFraction == 1, curve.endFraction == 0 {
+            let candidate = 1 - fraction.lower
+            let difference = FloatingPointExpansion.difference(1, fraction.lower)
+            let residual = FloatingPointExpansion.subtract(difference, [candidate])
+            // A rounded complement is only a candidate. Addition/subtraction
+            // expansion equality proves the original reversal is this singleton.
+            if candidate.isFinite, candidate >= 0, candidate <= 1,
+               difference.allSatisfy(\.isFinite), residual.allSatisfy(\.isFinite),
+               FloatingPointExpansion.sign(residual) == .zero {
+                interval = try ScalarInterval(lower: candidate, upper: candidate)
+            } else {
+                interval = try ScalarInterval(lower: max(0, source.lower), upper: min(1, source.upper))
+            }
         } else {
             interval = try ScalarInterval(lower: max(0, source.lower), upper: min(1, source.upper))
         }

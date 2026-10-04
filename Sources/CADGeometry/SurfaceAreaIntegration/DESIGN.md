@@ -33,12 +33,31 @@ chain whose two original B-spline supports have exact affine patch authority.
 It solves the constant native-UV correspondence system with outward intervals;
 the retained graph certificate and its original free coordinate own traversal.
 `SurfaceAreaImplicitParameterChartEncloser` composes the parent's prepared
-closed parameter localizer for one open smooth polynomial-span graph cell.
+closed parameter localizer for one open smooth single-Bezier-span graph cell.
 It retains both original supports, the selected role, the trim fraction map
 and the invocation's preparation tolerance. Topology supplies a synchronous,
 non-escaping work callback; geometry retains no callback or independent budget.
 
 ## Contracts and Invariants
+- A centered smooth chart query obtains its original range and closed midpoint
+  jets through the same prepared owner, support, tolerance and caller work
+  callback. Mean-value/Taylor intersections restrict values and first/second
+  derivatives using the midpoint jet and the original full-range third
+  derivative. The third-order enclosure is retained unchanged. Empty
+  intersections are typed certification failures; no sampled point or fitted
+  derivative replaces original root authority. Both actual proof operations
+  and all lower phases retain their existing work charges.
+- On a structurally affine support, the nonlinear caller path may integrate an
+  equivalent Green form of the original signed fan. With `a=u-anchorU`,
+  `b=v-anchorV`, and constant density `rho`, its area and displacement-moment
+  integrands are `rho*a*b'`, `rho*a*a*b'/2`, and `rho*a*b*b'`. Each curve retains
+  endpoint corrections `-rho*Delta(a*b)/2`, `-rho*Delta(a*a*b)/6`, and
+  `-rho*Delta(a*b*b)/3`. These are exact integration-by-parts identities,
+  including for finite rounding-sized gaps between consecutive curves.
+  World moments use the same affine support columns and reference-centered
+  anchor offset. Entire fan-domain coverage and final interval errors remain
+  authoritative. The midpoint proof also tightens range derivatives before
+  field construction, reducing quotient dependency without new root work.
 - Existing structural affine support authority permits exact radial elimination.
   Boundary density and moments retain exact numeric pcurve derivatives.
 - Every published interval contains the entire requested parameter box.
@@ -51,7 +70,7 @@ non-escaping work callback; geometry retains no callback or independent budget.
   Outward affine UV/fraction arithmetic and the third-order chain rule enclose
   values and derivatives over the complete requested interval. No sampled
   reconstruction or materialized approximation changes the original fan map.
-  Implicit charts outside the exact connected affine or single smooth polynomial-cell families and non-affine
+  Implicit charts outside the exact connected affine or single smooth positive-weight cell families and non-affine
   spherical images remain explicit unsupported failures. Preparing a chart does not allocate another query error
   allowance or reset adaptive cell/depth/control admission limits.
 - The affine implicit family requires exact selected-support identity, original
@@ -85,14 +104,25 @@ non-escaping work callback; geometry retains no callback or independent budget.
   joins, non-affine supports and unresolved constant minors remain typed failures.
 - The nonlinear implicit family uses only the original lower root certificate
   and the [prepared closed localizer](../DESIGN.md). It admits one open cell
-  between two single-span, nonperiodic, equal-weight polynomial B-spline
-  supports. The selected face support is exactly the retained role's source,
+  between two single-span, nonperiodic, clamped B-spline supports with finite
+  positive weights. Original rational quotient jets certify a positive
+  denominator and native derivatives through order three; the lower
+  localized Jacobian must remain finite and exclude a singular dependent
+  determinant. Equal weights are not a correctness assumption of the
+  continuation: original Krawczyk existence/uniqueness and the quotient
+  enclosures own that proof. The selected face support is exactly the retained role's source,
   or an already admitted exact rigid/offset chart image. Original trim
   fractions and wrapper fractions remain in [0,1]; their outward affine maps
   are intersected only with that validated source domain. Lower derivatives
   already own native width, direction and intersection fraction powers.
   Composition multiplies by the trim fraction slope through powers one,
   two and three exactly once, then applies existing wrapper chain rules.
+  Closed singleton fractions retain their exact identity mapping. A reversal
+  mapping retains a singleton only when finite expansion subtraction proves
+  that the represented `1-f` is exact; otherwise the outward enclosure remains.
+  Stored trim endpoints retain their original values. This removes redundant
+  lower endpoint phases without changing the original native root interval,
+  derivative authority, shared work accounting or source-domain admission.
   A closed point query uses the same outward proof as a positive interval.
   Numeric anchors, midpoint solutions, sampled chords and analytic fixture
 formulas never provide root or derivative authority.
@@ -102,8 +132,8 @@ formulas never provide root or derivative authority.
   without charging the caller. Calling this family without a work owner throws
   an explicit typed invalid-input failure. A lower subdivision-required result
   becomes typed `implicitLocalization` refinement, requesting subdivision of
-  the original boundary fraction T rather than a hidden local retry. Rational,
-  multicell, closed and procedural implicit supports remain incomplete typed
+  the original boundary fraction T rather than a hidden local retry. Periodic,
+  multispan, multicell, closed and procedural implicit supports remain incomplete typed
   refusals; the parent's lower contract is not generalized to those families.
 - Closed endpoint bounds retain the exact original trim endpoint fraction,
   including each rigid wrapper's stored endpoint. They use the same prepared
@@ -198,6 +228,17 @@ own exact support/depth forwarding. Neither proof completes the remaining
 procedural/implicit domains of full Q3.
 
 ## Verification and Change Impact
+`rationalImplicitSingletonFractionsRetainLowerPointWorkAndAuthority` compares
+actual singleton chart work and original value/third-jet authority against the
+same lower direct proof in both roles and directions; inexact reversal and
+partial trim retain the original outward interval and independent literal jets.
+Its unchanged expectations reject the old redundant endpoint phases.
+`centeredRationalChartsRetainOriginalThirdOrderAuthority` checks both original
+roles against independent value/first/second/third derivative formulas, actual
+second-order tightening and unchanged third-order interval authority.
+`affineGreenCorrectionsDoNotTelescopeAcrossRoundingSizedJoins` uses actual
+numeric pcurve endpoint proofs with a 48-ulp gap: retaining the two curve
+primitives gives the independent nonzero correction, while telescoping loses it.
 [`SurfaceAreaIntegrationTests`](../../../Tests/CADTopologyTests/SurfaceAreaIntegrationTests.swift)
 validates composed behavior, including independently differentiated polynomial
 offset density bounds through the actual offset-normal enclosure path,
@@ -244,7 +285,7 @@ plane/parabola graph with native equations `S1=(u/32,v/64,0)` and
 `0 <= u <= v^2` has literal area `13/196608` and centroid
 `(363/66560,15/1664,0)`. The implicit boundary has a nonzero signed fan.
 Partial/reversed fractions, both selected roles, rigid images, closed point
-jets, foreign supports, required caller work, rational/multicell refusals and
+jets, foreign supports, required caller work, multicell refusals and
 whole-query work/depth/cancellation are separate behavioral evidence.
 The public partial-trim region `3/8 <= v <= 5/8`, `0 <= u <= v^2`
 retains source fractions `1/4..3/4`, literal area `49/1572864` and centroid
@@ -256,3 +297,14 @@ Separate closed endpoint tests retain both source roles and reversed rigid
 fractions under the 64-ulp connection width. A one-cell query limit refuses
 at work 2 when endpoint preparation follows chart preparation; a real
 sub-modeling-tolerance chart gap remains a topology failure.
+Rational single-cell evidence uses the original unequal weights `[4,2,1]`
+and source `S2=((s/(2-s))^2/32,s/(2-s)/64,(2r-1)/64)` with denominator
+`(2-s)^2`. Its inverse native correspondence `s=2t/(1+t)` has independently
+derived nonzero second/third jets, and the original constructor must certify
+the full graph before continuation. Closed/range jets retain both roles,
+direction, 64-ulp endpoint precision and the same caller work/cancellation.
+The public area oracle selects the affine first support on `3/8..5/8` and
+retains area `49/1572864` and the literal original/rigid centroids above.
+This evidence does not complete area integration when the rational second
+support is itself selected; its general two-dimensional signed fan integral
+remains a separate full-Q3 proof gap.

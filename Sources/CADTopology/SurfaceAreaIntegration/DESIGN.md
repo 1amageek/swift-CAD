@@ -23,6 +23,16 @@ face loops -> continuous UV chains -> signed fan squares
 ```
 
 ## Contracts and Invariants
+- Nonlinear implicit queries on structurally affine supports retain each
+  original curve's already certified start/end intervals after connection
+  validation. They use geometry's paired centered Green fields and add that
+  curve's complete endpoint primitive correction to its integrated intervals.
+  Corrections are never telescoped across rounding-sized joins or omitted.
+  Range and midpoint proofs use the same query work callback as before; their
+  fixed-size mean-value contraction introduces no cache, budget, allowance or
+  hidden refinement. This route retains the original signed fan measure and
+  all final area/centroid acceptance checks. Other families, native joins and
+  C0 support paths retain their existing integration route.
 - The exact fan map is `a + r(c(t)-a)`; its Jacobian is
   `r det(c(t)-a,c'(t))`. Signed integration permits concave loops and holes.
 - Every consecutive pcurve endpoint agrees to parameter rounding precision;
@@ -82,7 +92,7 @@ face loops -> continuous UV chains -> signed fan squares
   curve's error target and query-wide cell/depth/cancellation accounting. No
   piece receives a new allowance or silently closes a tolerance-sized gap.
 - The initial nonlinear implicit family retains the geometry-owned single
-  polynomial-span, open one-cell chart contract. Query work begins before
+  positive-weight single-Bezier-span, open one-cell chart contract. Query work begins before
   chart preparation and effort estimation. A synchronous non-escaping callback
   charges every lower preparation, contraction and endpoint-phase advance to
   the same processed-work counter used by integration cells. A lower request
@@ -111,6 +121,9 @@ face loops -> continuous UV chains -> signed fan squares
   area/moment goals and the final area/centroid interval tests remain unchanged.
 
 ## State, Ownership, and Lifecycle
+Queries containing nonlinear charts retain two certified UV endpoint pairs per
+admitted boundary curve. Their storage is bounded by the original query's
+boundary-curve admission count; no endpoint or interval cache outlives the query.
 Each invocation owns immutable prepared geometry. Smooth domains retain their
 depth-first cell stack. C0 support and native-join chart domains own a balanced outward-sum tree and a heap of
 refinable leaf uncertainties; at most `2*processedCells-1` tree records and
@@ -143,3 +156,9 @@ and centroid `(4323/1003520,51/6272,0)`; its rigid image has centroid
 edge and therefore exercises closed endpoint localization before anchor use,
 with a nonzero signed fan. Endpoint work 2 under a one-cell query limit and
 sub-modeling-tolerance gap rejection prove budget and connection ownership.
+Rational single-cell fixtures retain unequal positive weights `[4,2,1]`,
+the original Krawczyk graph and rational native-coordinate jets through order
+three. The public area/centroid oracle selects the affine first support and
+retains the same literal region and rigid image above. This proof is not
+generalized to area integration on the rational selected support, periodic
+or multispan supports, multiple nonlinear cells, closed or procedural charts.

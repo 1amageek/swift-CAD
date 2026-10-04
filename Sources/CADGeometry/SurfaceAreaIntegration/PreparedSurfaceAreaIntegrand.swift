@@ -270,6 +270,86 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         }
     }
 
+    /// The original affine signed fan, expressed as Green fields plus endpoint primitives.
+    package func centeredAffineBoundaryBounds(parameterChart: SurfaceAreaParameterChartEncloser,
+        anchor: SurfaceParameter, reference: Point3D, boundaryFraction: ScalarInterval,
+        tolerance: ModelingTolerance, consumeWork: () throws -> Void)
+        throws -> (range: [SurfaceAreaIntegrandBounds], midpoint: [SurfaceAreaIntegrandBounds]) {
+        guard parameterChart.support == surface else {
+            throw Self.failure(.invalidInput, tolerance, "Centered boundary fields require their exact prepared chart support.")
+        }
+        let basis = try affineBoundaryBasis(anchor: anchor, reference: reference, tolerance: tolerance)
+        let jets = try parameterChart.centeredIntervalJets(over: boundaryFraction,
+            tolerance: tolerance, consumeWork: consumeWork)
+        func fields(_ chart: (u: SurfaceIntervalJet, v: SurfaceIntervalJet)) throws -> [SurfaceAreaIntegrandBounds] {
+            let a = chart.u - .constant(anchor.u), b = chart.v - .constant(anchor.v)
+            let radial = SurfaceIntervalJet.parameterV(try ScalarInterval(lower: 0, upper: 1))
+            _ = try clipped((.constant(anchor.u) + a * radial).value, to: surface.uDomain, tolerance: tolerance)
+            _ = try clipped((.constant(anchor.v) + b * radial).value, to: surface.vDomain, tolerance: tolerance)
+            let tangent = b.differentiatedUThroughSecondOrder()
+            let area = constantInterval(basis.density) * a * tangent
+            let momentU = constantInterval(basis.density) * a * a * tangent * .constant(0.5)
+            let momentV = constantInterval(basis.density) * a * b * tangent
+            var result = [area]
+            for index in 0..<3 {
+                result.append(constantInterval(basis.offsets[index]) * area
+                    + constantInterval(basis.columnsU[index]) * momentU
+                    + constantInterval(basis.columnsV[index]) * momentV)
+            }
+            return result.map { SurfaceAreaIntegrandBounds(value: $0.value, derivativeU: $0.derivativeU,
+                derivativeV: $0.derivativeV, secondUU: $0.secondDerivativeUU,
+                secondUV: $0.secondDerivativeUV, secondVV: $0.secondDerivativeVV) }
+        }
+        return try (fields(jets.range), fields(jets.midpoint))
+    }
+
+    /// Keeps each original curve's endpoint correction, including rounding-sized joins.
+    package func affineBoundaryCorrection(start: (u: ScalarInterval, v: ScalarInterval),
+        end: (u: ScalarInterval, v: ScalarInterval), anchor: SurfaceParameter,
+        reference: Point3D, tolerance: ModelingTolerance) throws -> [OutwardScalarInterval] {
+        let basis = try affineBoundaryBasis(anchor: anchor, reference: reference, tolerance: tolerance)
+        func primitives(_ point: (u: ScalarInterval, v: ScalarInterval)) throws -> [OutwardScalarInterval] {
+            let a = OutwardScalarInterval(lower: point.u.lower, upper: point.u.upper) - .exact(anchor.u)
+            let b = OutwardScalarInterval(lower: point.v.lower, upper: point.v.upper) - .exact(anchor.v)
+            _ = try clipped(a + .exact(anchor.u), to: surface.uDomain, tolerance: tolerance)
+            _ = try clipped(b + .exact(anchor.v), to: surface.vDomain, tolerance: tolerance)
+            let area = -basis.density * a * b * .exact(0.5)
+            let momentU = -basis.density * a * a * b * OutwardScalarInterval(1.0 / 6)
+            let momentV = -basis.density * a * b * b * OutwardScalarInterval(1.0 / 3)
+            return [area] + (0..<3).map { index in
+                basis.offsets[index] * area + basis.columnsU[index] * momentU
+                    + basis.columnsV[index] * momentV
+            }
+        }
+        let first = try primitives(start), last = try primitives(end)
+        return zip(last, first).map { $0 - $1 }
+    }
+
+    private func affineBoundaryBasis(anchor: SurfaceParameter, reference: Point3D,
+        tolerance: ModelingTolerance) throws -> (density: OutwardScalarInterval,
+        offsets: [OutwardScalarInterval], columnsU: [OutwardScalarInterval], columnsV: [OutwardScalarInterval]) {
+        guard radialIntegrationIsExact else {
+            throw Self.failure(.unsupportedCapability, tolerance, "Green boundary fields require an exact affine support.")
+        }
+        let map = try surfaceJet(over: SurfaceParameterBox(
+            u: clipped(.exact(anchor.u), to: surface.uDomain, tolerance: tolerance),
+            v: clipped(.exact(anchor.v), to: surface.vDomain, tolerance: tolerance)), tolerance: tolerance)
+        let cross = map.differentiatedUThroughSecondOrder().cross(map.differentiatedVThroughSecondOrder())
+        guard let density = cross.dot(cross).squareRoot() else {
+            throw Self.failure(.singularSystem, tolerance, "Affine Green area density is unresolved.")
+        }
+        let points = [map.x, map.y, map.z], origins = [reference.x, reference.y, reference.z]
+        return (density.value, points.indices.map { points[$0].value - .exact(origins[$0]) },
+            points.map(\.derivativeU), points.map(\.derivativeV))
+    }
+
+    private func constantInterval(_ value: OutwardScalarInterval) -> SurfaceIntervalJet {
+        let zero = OutwardScalarInterval.exact(0)
+        return SurfaceIntervalJet(value: value, derivativeU: zero, derivativeV: zero,
+            secondDerivativeUU: zero, secondDerivativeUV: zero, secondDerivativeVV: zero,
+            thirdDerivativeUUU: zero, thirdDerivativeUUV: zero, thirdDerivativeUVV: zero, thirdDerivativeVVV: zero)
+    }
+
     /// Integrates a proved translation coordinate exactly over one rectangular trim.
     /// Density is independent of that coordinate and position is affine in it.
     package func rectangularTranslationBounds(
