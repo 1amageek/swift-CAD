@@ -141,7 +141,7 @@ flowchart LR
   direct singleton item membership (the standard WR1), absence of contextual
   associations, and CIWR UR1 item/rep uniqueness before property publication.
   Singleton global CIWR name and explicitly nullable description belong to the
-  ProductAttributes physical-characterization record, separately from the item
+  ProductAttributes item-characterization record, separately from the item
   name and material descriptor. Contextual/chain subtypes remain incomplete
   typed failures instead of becoming a different native owner. Physical PROPERTY_DEFINITION owners are
   restricted to legal PD, direct-usage, ShapeAspect and admitted CIWR forms;
@@ -412,3 +412,41 @@ metadata/override graphs and the original global/memory/URL oracles. Existing
 source and resolution regressions pass17 IR,10 Kernel and four physical STEP
 cases. Capability42 pass.146s; source projection checks134 actual conditions,
 664 fixture bindings and107 public routes. Empty text is never silently omitted.
+
+
+### Standalone Global CIWR Metadata Egress (PAR.CIWR2)
+
+The CIWR standard requires item/representation membership and pair uniqueness,
+not a material/density property attachment. ItemCharacterization source authority
+is owned only by [ProductAttributes](../../CADIR/ProductAttributes/DESIGN.md).
+The writer precharges standalone metadata traversal under existing cumulative
+work/target/entity/text/duration/cancellation limits, then emits one existing
+singleton unassociated CIWR/view for each complete global source target. Physical
+assignments reuse that exact target cache. Metadata-only egress emits no synthetic
+PROPERTY_DEFINITION, material or density; no wrapper record is silently dropped.
+
+The current reader's full geometry/view/unit/UR1/default admission remains owner
+of ingress, and ordinary/shared-PD transfer preserves global meaning without
+inventing PRODUCT/PD authority. Definition-qualified descriptions, names/styles/
+layers, physical provenance and exact source freshness remain independent.
+Associated/contextual/subtype/multimember/foreign-unit/competing wrappers retain
+typed refusal. Strict Native0.11 owns renamed itemCharacterizations, explicit
+nullable description and prior/unknown key refusal. Source-key replacement has
+no legacy alias or reader fallback.
+
+Independent hand-authored STEP with no physical properties must survive memory
+and atomic URL ingress/egress, full Native and two STEP generations, shared two-PD
+and new third-PD fanout without invented values or changed exact geometry owner.
+Existing material+density shares one CIWR. Foreign/stale geometry/source receipt,
+malformed view/unit/uniqueness, defaultexplicit source, cumulative resource/cancel
+and outputbyte preservation fixtures are required. FullX3/contextual chains remain
+separate gaps; this bounded lifetime contract is not their completion.
+
+Native verification: all351 Exchange cases pass in46.773s, including five independent
+metadata-only literals. Four Kernel metadata cases pass across the original three
+and corrected native U-column/V-row coefficient fixture (.053s); the actual
+public spline source retains original coefficients and larger input exhausts the
+smaller exact consumed-work allowance. Eight strict current-topology cases and
+42 capability cases pass. The broad313-case IR run has one existing unrelated
+ExtrudeResultKindSchema expectation failure; the312 passing cases include the
+affected product source contracts. This does not establish fullX3 or portable parity.

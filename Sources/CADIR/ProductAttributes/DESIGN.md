@@ -111,22 +111,23 @@ flowchart LR
   definition, occurrence, layer, material, or assignment cannot publish dangling
   attachments. Existing fast paths must establish the same admission invariant.
 
-### Global Physical Characterization Metadata
+### Global Item Characterization Metadata (PAR.CIWR2)
 
-The next bounded source contract adds a required `physicalCharacterizations`
+The current source contract requires the `itemCharacterizations`
 array to ProductAttributes, empty when absent in meaning. An immutable
-`ProductPhysicalCharacterization` owns one global body/face stable source target,
+`ProductItemCharacterization` owns one global body/face stable source target,
 a required name and an explicitly present nullable description. It is the
 characterization wrapper's metadata, independent of geometry name, material
 name/description, appearance, PD or usage metadata. At most one record belongs
 to a global kind/StableSubshapeID source owner. Competing signatures for that
-same owner fail; physical attachment still requires the complete target and
-signature to match, so a stale signature is never retargeted. It requires an existing material or explicit density assignment on
-that same target; unattached records and definition/path/usage/part targets fail.
+same owner fail; geometry resolution still requires the complete target and signature to match,
+so a stale signature is never retargeted. Item metadata has an independent
+lifetime and requires no material or density assignment. Definition/path/usage/
+part targets remain outside this global geometry profile.
 No additional native UUID or transport-only identity is introduced.
 
 The sole canonical default is an empty name with null description. It carries
-no text beyond the physical target's already-required wrapper and is represented
+no authored wrapper text and is represented
 by absence of a metadata record. An explicit source default record is invalid;
 validation and Native admission reject it instead of filtering it during
 canonicalization. Empty name with empty description is a meaningful record,
@@ -146,7 +147,7 @@ index/traversal/growth; cancellation and failed copied edits publish no state.
 
 | Owner | Contract |
 |---|---|
-| ProductAttributes | Required source array, global stable target uniqueness, physical attachment, exact text and lifetime |
+| ProductAttributes | Required source array, global stable target uniqueness, independent item metadata, exact text and lifetime |
 | CADCore | Coordinated current envelope owned by [CADCore](../../CADCore/DESIGN.md); prior envelopes are refused |
 | CADExchange Native | Required array/fields, nullable presence and unknown-key rejection |
 | STEPAttributes | Standard singleton global CIWR text mapped to this owner without renaming geometry/material/PD |
@@ -154,8 +155,9 @@ index/traversal/growth; cancellation and failed copied edits publish no state.
 
 Independent source coding/canonicalization/copy/budget/cancel tests, public
 Native plus two STEP generations and edited-text old/new receipt behavior must
-verify this bounded contract. Contextual characterization chains, metadata-only
-saved views and scoped wrappers remain separate full-X3 gaps.
+verify this bounded contract. Contextual characterization chains, saved views and scoped wrappers remain
+separate full-X3 gaps. Material/density provenance and definition-qualified
+shape-element descriptions retain their separate contracts.
 
 ## Runtime Flows
 
@@ -240,3 +242,24 @@ Native tests also cover missing/unknown payloads and atomic
 failure. Changes require rechecking CADDocument full/fast validation, schema
 admission, DocumentAssembly, ProductAttributeResolution, and STEPAttributes.
 Parent indices and the baseline update belong to the integration owner.
+
+
+### Independent Global Item Metadata Publication (PAR.CIWR2)
+
+ProductItemCharacterization and ProductAttributes.itemCharacterizations own the
+existing global item wrapper target/name/explicit nullable description semantics,
+including records with no physical assignment. This is a replacement of the
+misleading physical-only source name, not a second alias or owner. Global
+kind/StableSubshapeID uniqueness, exact UTF8/defaultabsence, full source target,
+canonical source fingerprint, copied-edit atomicity and cumulative budgets stay
+mandatory. Strict current schema0.11 owns the new required itemCharacterizations
+array; old keys and earlier envelopes are refused, without compatibility fallback.
+
+Source validation admits standalone global body/face metadata while still proving
+its source feature/target. Resolution must run the existing actual local geometry,
+index/lineage and complete signature proof for every characterization target,
+even when no assignment/layer references it. Metadata generates no effective
+material, density, name, style or layer and never creates an assembly by itself.
+Complete source equality/fingerprint invalidate genuine stale producer receipts.
+The existing immutable record/array is sufficient; no metadata-only identity,
+new revision counter or effective-value owner is introduced.

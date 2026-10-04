@@ -7,7 +7,7 @@ import CADCore
 struct StrictCurrentTopologySchemaTests {
     @Test(.timeLimit(.minutes(1)))
     func explicitBodyTopologyUsesSchemaVersionZeroPointThree() {
-        #expect(SchemaVersion.current == SchemaVersion(major: 0, minor: 10, patch: 0))
+        #expect(SchemaVersion.current == SchemaVersion(major: 0, minor: 11, patch: 0))
     }
 
     @Test(.timeLimit(.minutes(1)))

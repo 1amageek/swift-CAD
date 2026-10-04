@@ -156,3 +156,28 @@ a separate composition proof; source applicability alone does not authorize scop
 flattening at that boundary. Changes require rechecking
 ProductAttributes, stable reference resolution, AssemblyEvaluation correspondence,
 and public STEP export. Parent indices remain integration-owned.
+
+
+### Independent Item Characterization Target Proof (PAR.CIWR2)
+
+Every global itemCharacterizations target enters the same precharged local
+geometry index/lineage resolver as assignment/layer targets, using full original
+source signature and actual topology presence. A target cache is keyed by its
+complete ProductAttributeTarget, never kind/ID alone. Metadata-only input creates
+no effective value or invented assignment. Existing immutable exact-producer
+receipt validation includes the renamed complete source array; changed wrapper
+text rejects an old genuine receipt and fresh evaluation retains geometry and
+unchanged effective physical values. Foreign/stale actualgeometry targets refuse.
+Native/shared-definition fanout and failure/cancel/budget atomicity remain required.
+
+
+CIWR2 metadata uses an explicit current-geometry signature invariant beyond the
+provenance-first stable resolver's direct-ID policy. After resolving each metadata
+target, build its actual local body/face signature and compare with the stored
+source signature through SubshapeGeometrySignatureBuilder.matches (body/face exact
+structural equality). Precharge the actual bounded signature traversal/comparison
+before construction and verify complete target cache entries once. A same-kind
+foreign origin or changed loop/pcurve signature refuses even with a fresh genuine
+source receipt. The general stable resolver and assignment lineage policy are not
+changed by this bounded metadata owner. Source-signature mismatch is a typed
+inconsistent artifact; no geometry retargeting or tolerance-based replacement.

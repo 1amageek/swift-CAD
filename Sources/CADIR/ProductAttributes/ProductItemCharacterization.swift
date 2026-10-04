@@ -1,7 +1,7 @@
 import CADCore
 
-/// Independent metadata of a global physical item characterization, distinct from the item's name and material.
-public struct ProductPhysicalCharacterization: Codable, Hashable, Sendable {
+/// Independent metadata of a global item characterization, distinct from the item's name and optional physical properties.
+public struct ProductItemCharacterization: Codable, Hashable, Sendable {
     public let target: ProductAttributeTarget
     public let name: String
     public let description: String?

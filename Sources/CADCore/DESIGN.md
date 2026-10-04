@@ -13,10 +13,10 @@ Public capability domains are owned by the
 CADCore owns Codable expression structure, literal validation and dependency discovery.
 Evaluation and kind checking belong to CADIR and CADModeling.
 The source envelope number is owned by [SchemaVersion.current](SchemaVersion.swift);
-the current source baseline is 0.10.0. ProductAttributes requires both the
-physicalCharacterizations and shapeElementDescriptions arrays, preserving the
+the current source baseline is 0.11.0. ProductAttributes requires both the
+itemCharacterizations and shapeElementDescriptions arrays, preserving the
 separate nullable physical description and required shape-element description
-contracts. Prior 0.9.0 is rejected without migration. Definition-qualified
+contracts. Prior envelopes through 0.10.0 are rejected without migration. Definition-qualified
 body/face targets retain their existing selector authority. CADIR owns required
 source payloads and CADExchange owns strict native transport admission.
 A baseline change must verify those contracts together without implicit migration.
@@ -80,3 +80,11 @@ evaluation; CADIR and CADModeling evaluate the same `BezierShapedExtension`. No
 cached coordinate stands in for a failed evaluation.
 `BezierShapedExtensionTests` (CADCoreTests) and
 `BezierShapedExtensionExpressionTests` (CADIRTests) own it.
+
+
+PAR.CIWR2 replaces the physical-only characterization source name with the
+independent item metadata name and required array. The semantic current baseline
+is0.11.0 even though the record payload stays target/name/nullable description.
+Strict Native refuses0.10 and earlier versions and every old array key; an absent
+required itemCharacterizations array is invalid. The source semantics authority
+is [ProductAttributes](../CADIR/ProductAttributes/DESIGN.md).

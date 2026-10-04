@@ -190,28 +190,28 @@ extension KernelCapabilities {
             operations: ["STEP"],
             dimensions: [.representation, .connection],
             condition: "Public STEP export cannot emit an independent opacity-only history. Completion requires a standard style representation that preserves opacity without introducing an authored color.",
-            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 405
+            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 410
         ),
         KernelDomainLimitation(
             id: "condition-5237b4ae2c435b02",
             operations: ["STEP"],
             dimensions: [.representation, .connection],
             condition: "Public STEP export cannot retain an unattached physical descriptor. Completion requires a standard retained descriptor owner without inventing a part/property attachment.",
-            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 415
+            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 420
         ),
         KernelDomainLimitation(
             id: "condition-ecbc78d6d88229ee",
             operations: ["STEP"],
             dimensions: [.representation, .connection],
             condition: "Public STEP export cannot retain a latent descriptor density independently of effective target density. Completion requires a standard descriptor-owned density association with no synthesized target override.",
-            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 420
+            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 425
         ),
         KernelDomainLimitation(
             id: "condition-de797a58c059d19e",
             operations: ["STEP"],
             dimensions: [.representation, .connection],
             condition: "Public STEP direct-usage appearance currently retains only nonempty geometry-bearing leaf children. Nonleaf or empty usage appearance needs standard descendant/default semantics matching native resolution before it can succeed.",
-            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 518
+            sourcePath: "Sources/CADExchange/STEPAttributes/STEPAttributesWriter.swift", sourceLine: 523
         ),
         KernelDomainLimitation(
             id: "condition-fa96a1b431d16e36",
@@ -435,7 +435,7 @@ extension KernelCapabilities {
             operations: ["nativePersistence", "STEP"],
             dimensions: [.representation, .connection],
             condition: "Native and public STEP cannot retain standalone shape-element metadata without an existing name or physical attachment. An independent source lifetime and equivalent standard egress are required before metadata-only shape aspects can succeed.",
-            sourcePath: "Sources/CADIR/ProductAttributes/ProductAttributesValidator.swift", sourceLine: 113
+            sourcePath: "Sources/CADIR/ProductAttributes/ProductAttributesValidator.swift", sourceLine: 106
         ),
         KernelDomainLimitation(
             id: "condition-b8234908031d18e3",

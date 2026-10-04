@@ -33,7 +33,7 @@ private extension STEPAttributesReader {
         var geometry: [Int: ProductAttributeTarget] = [:]
         var assignments: [ProductAttributeAssignment] = []
         var globalPhysicalGeometry: [Int: ProductAttributeTarget] = [:]
-        var physicalCharacterizations: [ProductPhysicalCharacterization] = []
+        var itemCharacterizations: [ProductItemCharacterization] = []
         var shapeElementDescriptions: [ProductShapeElementDescription] = []
         var physicalGeometry: [Int: ProductAttributeTarget] = [:]
         var styleProperties: [Int: [ProductAttributeValue.Property: ProductAttributeID]] = [:]
@@ -147,11 +147,11 @@ private extension STEPAttributesReader {
                 globalPhysicalGeometry[id] = target
                 // The structural default carries no independent metadata; an explicit empty description does.
                 if !wrapperName.utf8.isEmpty || wrapperDescription != nil {
-                    guard physicalCharacterizations.count < budget.limits.maximumRecords else {
+                    guard itemCharacterizations.count < budget.limits.maximumRecords else {
                         throw ProductAttributeError.resourceLimitExceeded("Physical characterization source records.")
                     }
                     try budget.charge(targets: 1)
-                    physicalCharacterizations.append(ProductPhysicalCharacterization(target: target,
+                    itemCharacterizations.append(ProductItemCharacterization(target: target,
                         name: wrapperName, description: wrapperDescription))
                 }
             }
@@ -575,7 +575,7 @@ private extension STEPAttributesReader {
                 try budget.charge(targets: 1); assignments.append(ProductAttributeAssignment(target: target, value: .density(density)))
             }
             let result = ProductAttributes(materials: materials, assignments: assignments, layers: layers,
-                physicalCharacterizations: physicalCharacterizations, shapeElementDescriptions: shapeElementDescriptions)
+                itemCharacterizations: itemCharacterizations, shapeElementDescriptions: shapeElementDescriptions)
             var document = evaluated.document; document.productAttributes = result
             try ProductAttributesValidator().validate(result, in: document, budget: &budget)
             return result

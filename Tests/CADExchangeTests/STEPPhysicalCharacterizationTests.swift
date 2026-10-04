@@ -88,8 +88,8 @@ struct STEPPhysicalCharacterizationTests {
     }
     private func inspect(_ document: CADDocument, name: String, description: String?, count: Int, kind: ProductAttributeTarget.Kind) throws {
         #expect(document.designGraph.nodes.count == 1)
-        let metadata = try #require(document.productAttributes.physicalCharacterizations.first)
-        #expect(document.productAttributes.physicalCharacterizations.count == 1 && metadata.target.kind == kind)
+        let metadata = try #require(document.productAttributes.itemCharacterizations.first)
+        #expect(document.productAttributes.itemCharacterizations.count == 1 && metadata.target.kind == kind)
         #expect(metadata.name.utf8.elementsEqual(name.utf8))
         switch (metadata.description, description) {
         case (nil, nil): break
@@ -125,7 +125,7 @@ struct STEPPhysicalCharacterizationTests {
             var document = try imported(literal(name: #"'inspection \X2\00650301\X0\'"#, description: "'not the geometry or material label'", item: item))
             let originalName = "inspection e\u{301}", originalDescription = "not the geometry or material label"
             try inspect(document, name: originalName, description: originalDescription, count: 2, kind: kind)
-            let target = try #require(document.productAttributes.physicalCharacterizations.first).target
+            let target = try #require(document.productAttributes.itemCharacterizations.first).target
             let selectedUUID = try #require(UUID(uuidString: "33333333-3333-4333-8333-333333333333"))
             let selected = AssemblyDefinitionID(selectedUUID)
             let globalColor = ProductAttributeAssignment(target: target, value: .color(ColorRGBA(r: 0, g: 1, b: 0, a: 1)))
@@ -170,14 +170,14 @@ struct STEPPhysicalCharacterizationTests {
             ("''", "''", "", ""), ("'region'", "$", "region", nil)] {
             var document = try imported(literal(name: name, description: description))
             for _ in 0..<2 {
-                if expectedName.isEmpty && expectedDescription == nil { #expect(document.productAttributes.physicalCharacterizations.isEmpty) }
+                if expectedName.isEmpty && expectedDescription == nil { #expect(document.productAttributes.itemCharacterizations.isEmpty) }
                 else { try inspect(document, name: expectedName, description: expectedDescription, count: 2, kind: .face) }
                 let native = DataByteSink(), store = NativePackageStore(tolerance: .standard)
                 try store.writePackage(for: document, to: native)
                 #expect(try store.loadDocument(from: native.bytes) == document)
                 document = try imported(emitted(document))
             }
-            if expectedName.isEmpty && expectedDescription == nil { #expect(document.productAttributes.physicalCharacterizations.isEmpty) }
+            if expectedName.isEmpty && expectedDescription == nil { #expect(document.productAttributes.itemCharacterizations.isEmpty) }
             else { try inspect(document, name: expectedName, description: expectedDescription, count: 2, kind: .face) }
         }
     }
@@ -197,13 +197,13 @@ struct STEPPhysicalCharacterizationTests {
                         var version = try #require(object["schemaVersion"] as? [String: Any]); version["minor"] = 8; object["schemaVersion"] = version
                     } else if path == "document.json" {
                         var attributes = try #require(object["productAttributes"] as? [String: Any])
-                        if mutation == 1 { attributes.removeValue(forKey: "physicalCharacterizations") }
+                        if mutation == 1 { attributes.removeValue(forKey: "itemCharacterizations") }
                         else {
-                            var records = try #require(attributes["physicalCharacterizations"] as? [[String: Any]])
+                            var records = try #require(attributes["itemCharacterizations"] as? [[String: Any]])
                             if mutation == 2 { records[0].removeValue(forKey: "description") }
                             if mutation == 3 { records[0]["unknown"] = true }
                             if mutation == 4 { records[0]["name"] = ""; records[0]["description"] = NSNull() }
-                            attributes["physicalCharacterizations"] = records
+                            attributes["itemCharacterizations"] = records
                         }
                         object["productAttributes"] = attributes
                     }
@@ -224,7 +224,10 @@ struct STEPPhysicalCharacterizationTests {
             .replacingOccurrences(of: "#755=PROPERTY_DEFINITION_REPRESENTATION(#752,#754);", with: "")
             .replacingOccurrences(of: "#766=PROPERTY_DEFINITION('material property','density',#751);", with: "")
             .replacingOccurrences(of: "#768=PROPERTY_DEFINITION_REPRESENTATION(#766,#767);", with: "")
-        #expect(throws: ProductAttributeError.missingTarget("Physical characterization attachment.")) { _ = try imported(orphan) }
+        let independent = try imported(orphan)
+        #expect(independent.productAttributes.itemCharacterizations.first?.name == "region")
+        #expect(independent.productAttributes.materials.isEmpty)
+        #expect(!independent.productAttributes.assignments.contains { $0.value.property == .material || $0.value.property == .density })
         let foreign = literal(name: "'region'", description: "$" ).replacingOccurrences(of: "'region',$,#36,#750", with: "'region',$,#999,#750")
         #expect(throws: ProductAttributeError.missingTarget("Global physical item geometry correspondence.")) { _ = try imported(foreign) }
         var invalid = source
@@ -243,8 +246,8 @@ struct STEPPhysicalCharacterizationTests {
         #expect(throws: failure) { try OfficialFormatExchange(tolerance: .standard).export(evaluated, as: .step, to: url) }
         #expect(try Data(contentsOf: url) == original)
         var defaultMetadata = source
-        let metadata = try #require(source.productAttributes.physicalCharacterizations.first)
-        defaultMetadata.productAttributes.physicalCharacterizations = [ProductPhysicalCharacterization(target: metadata.target, name: "", description: nil)]
+        let metadata = try #require(source.productAttributes.itemCharacterizations.first)
+        defaultMetadata.productAttributes.itemCharacterizations = [ProductItemCharacterization(target: metadata.target, name: "", description: nil)]
         let nativeSink = DataByteSink(), store = NativePackageStore(tolerance: .standard)
         let defaultFailure = ProductAttributeError.invalidSource("Default physical characterization must be absent.")
         #expect(throws: defaultFailure) { try store.writePackage(for: defaultMetadata, to: nativeSink) }

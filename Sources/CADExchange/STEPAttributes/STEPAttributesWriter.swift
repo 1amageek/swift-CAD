@@ -321,8 +321,8 @@ private extension STEPAttributesWriter {
                     guard product.context == context else { throw ProductAttributeError.inconsistentArtifact("Common global geometry has conflicting representation contexts.") }
                 }
                 let view = try add("SHAPE_REPRESENTATION('',(#\(item)),#\(context))")
-                var metadata: ProductPhysicalCharacterization?
-                for candidate in evaluated.document.productAttributes.physicalCharacterizations {
+                var metadata: ProductItemCharacterization?
+                for candidate in evaluated.document.productAttributes.itemCharacterizations {
                     try check()
                     if candidate.target == target { metadata = candidate }
                 }
@@ -393,6 +393,11 @@ private extension STEPAttributesWriter {
         }
         mutating func write() throws -> [String] {
             let source = evaluated.document.productAttributes
+            try check(source.itemCharacterizations.count)
+            for record in source.itemCharacterizations {
+                try duration.check(format: .step)
+                _ = try physicalTargets(record.target)
+            }
             var referenced = Set<PhysicalMaterialID>()
             for assignment in source.assignments {
                 switch assignment.value {

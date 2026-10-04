@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 import CADTopology
@@ -22,6 +23,18 @@ public struct ProductAttributeResolver: ProductAttributeResolving {
     public func resolve(_ evaluated: EvaluatedDocument, limits: ProductAttributeLimits = .standard) throws -> ResolvedProductAttributes {
         var budget = try ProductAttributeBudget(limits: limits)
         let document = evaluated.document, source = document.productAttributes
+        guard source.itemCharacterizations.count <= limits.maximumRecords,
+              source.itemCharacterizations.count <= limits.maximumTargets else {
+            throw ProductAttributeError.resourceLimitExceeded("Item characterization source records/targets.")
+        }
+        // Source validation and receipt equality inspect this original payload before
+        // any complete-target hash or current-geometry signature may be constructed.
+        try budget.charge(work: source.itemCharacterizations.count)
+        for record in source.itemCharacterizations {
+            if let geometry = record.target.geometry {
+                try admitStoredSignature(geometry.geometrySignature, budget: &budget)
+            }
+        }
         try sourceValidator.validate(source, in: document, budget: &budget)
         let tolerance = evaluated.configuration.tolerance
         let local = evaluated.assembly?.local
@@ -70,6 +83,39 @@ public struct ProductAttributeResolver: ProductAttributeResolving {
             try budget.charge(targets: 1)
             localGeometry[target] = topology
             return topology
+        }
+        for record in source.itemCharacterizations {
+            guard let reference = record.target.geometry else {
+                throw ProductAttributeError.invalidSource("Item characterization requires geometry.")
+            }
+            try budget.charge(work: index.entries.count)
+            try budget.charge(work: lineage.count)
+            if index[reference.subshapeID] == nil {
+                // The provenance resolver may construct signatures for same-feature
+                // candidates. Admit their actual payload before invoking that fallback.
+                for entry in lineage.values { try budget.charge(work: entry.parents.count) }
+                for (id, candidate) in index.entries where id.featureID == reference.subshapeID.featureID {
+                    switch (record.target.kind, candidate) {
+                    case (.body, .body), (.face, .face):
+                        try admitActualSignature(candidate, model: model, budget: &budget)
+                    default: break
+                    }
+                }
+            }
+            let topology = try references.topologyReference(for: reference, model: model,
+                subshapes: index, lineage: lineage, tolerance: tolerance)
+            try admitActualSignature(topology, model: model, budget: &budget)
+            let builder = SubshapeGeometrySignatureBuilder(model: model, tolerance: tolerance)
+            let actual = try builder.signature(for: topology)
+            // Match and cache consume the complete source signature independently of
+            // the stable resolver's intentionally provenance-first direct-ID policy.
+            try admitStoredSignature(reference.geometrySignature, budget: &budget)
+            guard builder.matches(reference.geometrySignature, actual) else {
+                throw ProductAttributeError.inconsistentArtifact("Item characterization does not match current local geometry.")
+            }
+            try admitStoredSignature(reference.geometrySignature, budget: &budget)
+            try budget.charge(targets: 1)
+            localGeometry[record.target] = topology
         }
         for assignment in source.assignments { _ = try geometry(assignment.target, budget: &budget) }
         for layer in source.layers { for member in layer.members { _ = try geometry(member, budget: &budget) } }
@@ -200,5 +246,88 @@ public struct ProductAttributeResolver: ProductAttributeResolving {
             values[target] = ResolvedProductProperties(properties: properties, layers: layers, sourceName: name)
         }
         return ResolvedProductAttributes(documentID: document.id, values: values, localGeometry: localGeometry, consumedWork: budget.consumedWork)
+    }
+
+    private func admitStoredSignature(_ signature: SubshapeGeometrySignature,
+                                      budget: inout ProductAttributeBudget) throws {
+        try budget.charge(work: 1)
+        switch signature {
+        case let .body(body):
+            try budget.charge(work: 1)
+            try budget.charge(work: body.shells.count)
+            for shell in body.shells {
+                try budget.charge(work: 1)
+                try budget.charge(work: shell.faces.count)
+                for face in shell.faces { try admitStoredFace(face, budget: &budget) }
+            }
+        case let .face(face): try admitStoredFace(face, budget: &budget)
+        case let .edge(edge):
+            try budget.charge(work: 8)
+            try GeometryStructuralComparisonWork.charge(curve: edge.curve) { try budget.charge(work: $0) }
+        case .vertex: try budget.charge(work: 3)
+        }
+    }
+
+    private func admitStoredFace(_ face: FaceGeometrySignature,
+                                 budget: inout ProductAttributeBudget) throws {
+        try budget.charge(work: 1)
+        try budget.charge(work: face.loops.count)
+        try GeometryStructuralComparisonWork.charge(surface: face.surface) { try budget.charge(work: $0) }
+        for loop in face.loops {
+            try budget.charge(work: 1)
+            try budget.charge(work: loop.coedges.count)
+            for coedge in loop.coedges {
+                try budget.charge(work: 9)
+                try GeometryStructuralComparisonWork.charge(curve: coedge.edge.curve) { try budget.charge(work: $0) }
+                try GeometryStructuralComparisonWork.charge(parameterCurve: coedge.surfaceParameterCurve) { try budget.charge(work: $0) }
+            }
+        }
+    }
+
+    private func admitActualSignature(_ topology: TopologyReference, model: BRepModel,
+                                      budget: inout ProductAttributeBudget) throws {
+        try budget.charge(work: 1)
+        switch topology {
+        case let .body(id):
+            guard let body = model.bodies[id] else { throw ProductAttributeError.missingTarget("Item characterization local body.") }
+            try budget.charge(work: body.shellIDs.count, targets: body.shellIDs.count)
+            for shellID in body.shellIDs {
+                try budget.charge(work: 2)
+                guard let shell = model.shells[shellID] else { throw ProductAttributeError.missingTarget("Item characterization local shell.") }
+                try budget.charge(work: shell.faceIDs.count, targets: shell.faceIDs.count)
+                for faceID in shell.faceIDs { try admitActualFace(faceID, model: model, budget: &budget) }
+            }
+        case let .face(id): try admitActualFace(id, model: model, budget: &budget)
+        default: throw ProductAttributeError.invalidSource("Item characterization must resolve to body or face geometry.")
+        }
+    }
+
+    private func admitActualFace(_ id: FaceID, model: BRepModel,
+                                 budget: inout ProductAttributeBudget) throws {
+        try budget.charge(work: 3)
+        guard let face = model.faces[id], let surface = model.geometry.surfaces[face.surfaceID] else {
+            throw ProductAttributeError.missingTarget("Item characterization local face/surface.")
+        }
+        try budget.charge(work: face.loops.count, targets: face.loops.count)
+        try GeometryStructuralComparisonWork.charge(surface: surface) { try budget.charge(work: $0) }
+        for loopID in face.loops {
+            try budget.charge(work: 2)
+            guard let loop = model.loops[loopID] else { throw ProductAttributeError.missingTarget("Item characterization local loop.") }
+            try budget.charge(work: loop.coedges.count, targets: loop.coedges.count)
+            for coedge in loop.coedges {
+                // Edge, both endpoint vertices, optional trim, and orientation are
+                // fixed original records; coefficient arrays are owned by Geometry.
+                try budget.charge(work: 12)
+                guard let edge = model.edges[coedge.edgeID], let curve = model.geometry.curves[edge.curveID],
+                      model.vertices[edge.startVertexID] != nil, model.vertices[edge.endVertexID] != nil else {
+                    throw ProductAttributeError.missingTarget("Item characterization local edge/vertices.")
+                }
+                guard let parameterCurve = coedge.surfaceParameterCurve else {
+                    throw ProductAttributeError.inconsistentArtifact("Item characterization local coedge has no p-curve.")
+                }
+                try GeometryStructuralComparisonWork.charge(curve: curve) { try budget.charge(work: $0) }
+                try GeometryStructuralComparisonWork.charge(parameterCurve: parameterCurve) { try budget.charge(work: $0) }
+            }
+        }
     }
 }

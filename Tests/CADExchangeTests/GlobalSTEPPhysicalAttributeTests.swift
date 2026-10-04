@@ -158,7 +158,7 @@ struct GlobalSTEPPhysicalAttributeTests {
         let duplicate = valid.replacingOccurrences(of: "ENDSEC;\nEND-ISO", with: "#790=CHARACTERIZED_ITEM_WITHIN_REPRESENTATION('',$,#38,#750);\nENDSEC;\nEND-ISO")
         #expect(throws: ProductAttributeError.invalidSource("Duplicate characterized item/representation owner.")) { _ = try imported(duplicate) }
         let metadata = valid.replacingOccurrences(of: "CHARACTERIZED_ITEM_WITHIN_REPRESENTATION('',$", with: "CHARACTERIZED_ITEM_WITHIN_REPRESENTATION('independent wrapper',$")
-        #expect(try imported(metadata).productAttributes.physicalCharacterizations.first?.name == "independent wrapper")
+        #expect(try imported(metadata).productAttributes.itemCharacterizations.first?.name == "independent wrapper")
         let raw = valid.replacingOccurrences(of: "'material name',#751", with: "'material name',#38")
         #expect(throws: ProductAttributeError.unsupportedSemantics("Physical property requires a legal characterized-definition owner.")) { _ = try imported(raw) }
         let unit = valid.replacingOccurrences(of: "SHAPE_REPRESENTATION('',(#38),#7)", with: "SHAPE_REPRESENTATION('',(#38),#791)")

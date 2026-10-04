@@ -43,7 +43,7 @@ struct STEPShapeElementDescriptionTests {
         let selected = try #require(document.assembly?.definitions.first { $0.id.description == "33333333-3333-4333-8333-333333333333" })
         #expect(document.designGraph.nodes.count == 1 && selected.features.count == 1)
         #expect(document.productAttributes.shapeElementDescriptions.count == [bodyDescription, faceDescription].compactMap { $0 }.count)
-        #expect(document.productAttributes.physicalCharacterizations.isEmpty)
+        #expect(document.productAttributes.itemCharacterizations.isEmpty)
         let evaluated = try DocumentEvaluator(tolerance: .standard).evaluateExact(document), resolver = ProductAttributeResolver()
         let artifact = try #require(evaluated.assembly), resolved = try resolver.resolve(evaluated)
         #expect(artifact.local.model.bodies.count == 1 && artifact.local.model.faces.count == 1)

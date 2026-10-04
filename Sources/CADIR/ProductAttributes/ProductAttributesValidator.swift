@@ -17,11 +17,11 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
         guard attributes.materials.count <= limit,
               attributes.assignments.count <= limit - attributes.materials.count,
               attributes.layers.count <= limit - attributes.materials.count - attributes.assignments.count,
-              attributes.physicalCharacterizations.count <= limit - attributes.materials.count - attributes.assignments.count - attributes.layers.count,
-              attributes.shapeElementDescriptions.count <= limit - attributes.materials.count - attributes.assignments.count - attributes.layers.count - attributes.physicalCharacterizations.count else {
+              attributes.itemCharacterizations.count <= limit - attributes.materials.count - attributes.assignments.count - attributes.layers.count,
+              attributes.shapeElementDescriptions.count <= limit - attributes.materials.count - attributes.assignments.count - attributes.layers.count - attributes.itemCharacterizations.count else {
             throw ProductAttributeError.resourceLimitExceeded("Product source records.")
         }
-        try budget.charge(work: attributes.materials.count + attributes.assignments.count + attributes.layers.count + attributes.physicalCharacterizations.count + attributes.shapeElementDescriptions.count)
+        try budget.charge(work: attributes.materials.count + attributes.assignments.count + attributes.layers.count + attributes.itemCharacterizations.count + attributes.shapeElementDescriptions.count)
         var materials: [PhysicalMaterialID: PhysicalMaterialDescriptor] = [:]
         for material in attributes.materials {
             try budget.charge(textBytes: material.name.utf8.count)
@@ -70,7 +70,7 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             }
         }
         var characterized = Set<CharacterizationKey>()
-        for record in attributes.physicalCharacterizations {
+        for record in attributes.itemCharacterizations {
             guard (record.target.kind == .body || record.target.kind == .face), record.target.definitionID == nil,
                   record.target.path == nil, record.target.usageID == nil, let geometry = record.target.geometry else {
                 throw ProductAttributeError.invalidSource("Physical characterization requires a global geometry target.")
@@ -84,13 +84,6 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             guard characterized.insert(CharacterizationKey(kind: record.target.kind, subshapeID: geometry.subshapeID)).inserted else {
                 throw ProductAttributeError.invalidSource("Duplicate physical characterization target.")
             }
-            var attached = false
-            for assignment in attributes.assignments {
-                try budget.charge(work: 1)
-                if assignment.target == record.target,
-                   assignment.value.property == .material || assignment.value.property == .density { attached = true }
-            }
-            guard attached else { throw ProductAttributeError.missingTarget("Physical characterization attachment.") }
         }
         var described = Set<ShapeElementKey>()
         for record in attributes.shapeElementDescriptions {

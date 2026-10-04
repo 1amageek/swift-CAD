@@ -18,10 +18,10 @@ struct PhysicalCharacterizationResolutionTests {
         let body = try #require(initial.subshapes.entries.first { if case .body = $0.value { return true }; return false }?.key)
         let target = ProductAttributeTarget(kind: .body, geometry: try resolver.sourceReference(for: body, in: initial))
         document.productAttributes.assignments = [ProductAttributeAssignment(target: target, value: .density(PhysicalDensity(kilogramsPerCubicMeter: 1000)))]
-        document.productAttributes.physicalCharacterizations = [ProductPhysicalCharacterization(target: target, name: "\u{e9}", description: nil)]
+        document.productAttributes.itemCharacterizations = [ProductItemCharacterization(target: target, name: "\u{e9}", description: nil)]
         let old = try evaluator.evaluateExact(document), before = try resolver.resolve(old)
         let fingerprint = try document.sourceFingerprint(tolerance: .standard)
-        document.productAttributes.physicalCharacterizations = [ProductPhysicalCharacterization(target: target, name: "e\u{301}", description: nil)]
+        document.productAttributes.itemCharacterizations = [ProductItemCharacterization(target: target, name: "e\u{301}", description: nil)]
         #expect(try document.sourceFingerprint(tolerance: .standard) != fingerprint)
         let oldReceipt = try #require(old.validatedSourceReceipt)
         let oldExactBRep = try #require(old.validatedBRep)
