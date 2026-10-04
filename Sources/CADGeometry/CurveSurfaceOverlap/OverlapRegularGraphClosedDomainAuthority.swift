@@ -2,6 +2,121 @@ import CADCore
 
 /// Exact separability and closed-interval IVT authority on original geometry.
 struct OverlapRegularGraphClosedDomainAuthority: Sendable {
+    /// Original coefficient identity, independent of source membership or root existence.
+    struct TargetIndependence: Sendable {
+        enum Dependence: Sendable, Equatable {
+            case u, v, constant
+        }
+
+        let prepared: PreparedBSplineSurfaceDifferentialEncloser
+        private let x: Dependence?
+        private let y: Dependence?
+        private let z: Dependence?
+
+        private init(prepared: PreparedBSplineSurfaceDifferentialEncloser,
+                     x: Dependence?, y: Dependence?, z: Dependence?) {
+            self.prepared = prepared
+            self.x = x; self.y = y; self.z = z
+        }
+
+        static func certificate(prepared: PreparedBSplineSurfaceDifferentialEncloser,
+                                budget: inout OverlapProofBudget) throws -> Self? {
+            let surface = prepared.surface
+            guard !surface.isUPeriodic, !surface.isVPeriodic else { return nil }
+            let count = surface.uControlPointCount.multipliedReportingOverflow(by: surface.vControlPointCount)
+            let comparisons = count.partialValue.multipliedReportingOverflow(by: 7)
+            let knots = surface.uKnots.count.addingReportingOverflow(surface.vKnots.count)
+            let scan = comparisons.partialValue.addingReportingOverflow(knots.partialValue)
+            guard !count.overflow, !comparisons.overflow, !knots.overflow, !scan.overflow else {
+                throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: budget.tolerance,
+                    message: "Original coordinate independence scan count overflowed.")
+            }
+            // Two equalities per Cartesian coordinate, one weight check, and both knot vectors.
+            // Fixed coordinate metadata is allocated only after its complete scan is paid.
+            try budget.work(scan.partialValue)
+            guard OverlapRegularGraphClosedDomainAuthority.clamped(surface.uKnots, degree: surface.uDegree, count: surface.uControlPointCount),
+                  OverlapRegularGraphClosedDomainAuthority.clamped(surface.vKnots, degree: surface.vDegree, count: surface.vControlPointCount) else { return nil }
+            var unit = true
+            for row in surface.weights {
+                for weight in row {
+                    guard weight.isFinite, weight > 0 else { return nil }
+                    if weight != 1 { unit = false }
+                }
+            }
+            if !unit {
+                try budget.work(count.partialValue)
+                for row in 0..<surface.vControlPointCount {
+                    for column in 0..<surface.uControlPointCount {
+                        guard OverlapRegularGraphClosedDomainAuthority.equalPositiveDyadicProducts(surface.weights[row][column], surface.weights[0][0],
+                            surface.weights[0][column], surface.weights[row][0]) else { return nil }
+                    }
+                }
+            }
+            func dependence(_ coordinate: Int) -> Dependence? {
+                var onlyU = true, onlyV = true
+                for row in 0..<surface.vControlPointCount {
+                    for column in 0..<surface.uControlPointCount {
+                        let value = OverlapRegularGraphCell.coordinate(surface.controlPoints[row][column], coordinate)
+                        if value != OverlapRegularGraphCell.coordinate(surface.controlPoints[0][column], coordinate) { onlyU = false }
+                        if value != OverlapRegularGraphCell.coordinate(surface.controlPoints[row][0], coordinate) { onlyV = false }
+                    }
+                }
+                if onlyU && onlyV { return .constant }
+                if onlyU { return .u }
+                if onlyV { return .v }
+                return nil
+            }
+            return Self(prepared: prepared, x: dependence(0), y: dependence(1), z: dependence(2))
+        }
+
+        private func dependence(_ coordinate: Int) -> Dependence? {
+            switch coordinate { case 0: x; case 1: y; default: z }
+        }
+
+        func axis(coordinate: Int, box: SurfaceParameterBox) -> Axis? {
+            guard let dependence = dependence(coordinate), dependence != .constant else { return nil }
+            let surface = prepared.surface
+            let onlyU = dependence == .u
+            let lower = OverlapRegularGraphCell.coordinate(surface.controlPoints[0][0], coordinate)
+            let upper = OverlapRegularGraphCell.coordinate(onlyU
+                ? surface.controlPoints[0][surface.uControlPointCount - 1]
+                : surface.controlPoints[surface.vControlPointCount - 1][0], coordinate)
+            guard lower.isFinite, upper.isFinite, lower != upper else { return nil }
+            return Axis(coordinate: coordinate, variesU: onlyU, parameters: onlyU ? box.u : box.v,
+                lowerValue: lower, upperValue: upper)
+        }
+
+        func intersecting(_ jet: SurfaceIntervalVectorJet, tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+            func component(_ value: SurfaceIntervalJet, coordinate: Int) throws -> SurfaceIntervalJet {
+                guard let dependence = dependence(coordinate) else { return value }
+                func derivative(_ original: OutwardScalarInterval, owning: Bool) throws -> OutwardScalarInterval {
+                    if owning { return original }
+                    guard let zero = original.intersection(with: .exact(0)) else {
+                        throw Self.failure("An original quotient jet excludes its exact coordinate-independence identity.", tolerance)
+                    }
+                    return zero
+                }
+                let u = dependence == .u, v = dependence == .v
+                return try SurfaceIntervalJet(value: value.value,
+                    derivativeU: derivative(value.derivativeU, owning: u),
+                    derivativeV: derivative(value.derivativeV, owning: v),
+                    secondDerivativeUU: derivative(value.secondDerivativeUU, owning: u),
+                    secondDerivativeUV: derivative(value.secondDerivativeUV, owning: false),
+                    secondDerivativeVV: derivative(value.secondDerivativeVV, owning: v),
+                    thirdDerivativeUUU: derivative(value.thirdDerivativeUUU, owning: u),
+                    thirdDerivativeUUV: derivative(value.thirdDerivativeUUV, owning: false),
+                    thirdDerivativeUVV: derivative(value.thirdDerivativeUVV, owning: false),
+                    thirdDerivativeVVV: derivative(value.thirdDerivativeVVV, owning: v))
+            }
+            return try SurfaceIntervalVectorJet(x: component(jet.x, coordinate: 0),
+                y: component(jet.y, coordinate: 1), z: component(jet.z, coordinate: 2))
+        }
+
+        private static func failure(_ message: String, _ tolerance: ModelingTolerance) -> KernelError {
+            KernelError(phase: .geometry, code: .intersectionFailure, tolerance: tolerance, message: message)
+        }
+    }
+
     struct Axis: Sendable {
         let coordinate: Int
         let variesU: Bool
@@ -55,18 +170,17 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
             }
         }
         if !unitWeights {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Original rational multispan target
-            // endpoint admission has no complete homogeneous factor authority here.
-            // The public graph route may admit it only after original-span independence,
-            // closed existence, membership and correspondence are proved together.
-            guard surface.uControlPointCount == surface.uDegree + 1,
-                  surface.vControlPointCount == surface.vDegree + 1,
-                  surface.uKnots.count == 2 * (surface.uDegree + 1),
-                  surface.vKnots.count == 2 * (surface.vDegree + 1) else { return nil }
             // Charge every bounded exact comparison before inspecting the tensor.
+            // Global rank-one original weights factor W=A(U)B(V)/W00 in any
+            // tensor B-spline basis. Cartesian row/column independence below
+            // then cancels the other positive factor without span replacement.
             try budget.work(tensorCount.partialValue)
             for row in 0..<surface.vControlPointCount {
                 for column in 0..<surface.uControlPointCount {
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): Non-factorable rational target
+                    // endpoint coincidence has no closed inverse authority here. The public
+                    // regular graph route requires original coordinate independence and
+                    // closed existence, membership and owned correspondence before success.
                     guard equalPositiveDyadicProducts(surface.weights[row][column], surface.weights[0][0],
                         surface.weights[0][column], surface.weights[row][0]) else { return nil }
                 }
@@ -76,6 +190,31 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
               let second = axis(coordinate: pair.second, surface: surface, box: box),
               first.variesU != second.variesU,
               monotone(first, target: target), monotone(second, target: target) else { return nil }
+        return admittedSource(source, surface: surface, range: range, pair: pair, box: box, first: first, second: second)
+    }
+
+    static func certificate(curve: Curve3D, independence: TargetIndependence,
+                            range: ScalarInterval, pair: OverlapRegularGraphCell.Pair,
+                            box: SurfaceParameterBox, target: SurfaceIntervalVectorJet,
+                            budget: inout OverlapProofBudget) throws -> Self? {
+        guard case .bSpline(let source) = curve, !source.isPeriodic,
+              source.controlPointCount == source.degree + 1,
+              source.knots.count == 2 * (source.degree + 1) else { return nil }
+        try budget.work(source.controlPointCount * 3 + source.knots.count)
+        let surface = independence.prepared.surface
+        guard clamped(source.knots, degree: source.degree, count: source.controlPointCount),
+              box.u.lower == surface.uKnots[surface.uDegree], box.u.upper == surface.uKnots[surface.uControlPointCount],
+              box.v.lower == surface.vKnots[surface.vDegree], box.v.upper == surface.vKnots[surface.vControlPointCount],
+              range.lower >= source.knots[0], range.upper <= source.knots[source.knots.count - 1],
+              let first = independence.axis(coordinate: pair.first, box: box),
+              let second = independence.axis(coordinate: pair.second, box: box), first.variesU != second.variesU,
+              monotone(first, target: target), monotone(second, target: target) else { return nil }
+        return admittedSource(source, surface: surface, range: range, pair: pair, box: box, first: first, second: second)
+    }
+
+    private static func admittedSource(_ source: BSplineCurve3D, surface: BSplineSurface3D,
+                                       range: ScalarInterval, pair: OverlapRegularGraphCell.Pair,
+                                       box: SurfaceParameterBox, first: Axis, second: Axis) -> Self? {
         var firstMinimum = Double.infinity, firstMaximum = -Double.infinity
         var secondMinimum = Double.infinity, secondMaximum = -Double.infinity
         for index in 0..<source.controlPointCount {

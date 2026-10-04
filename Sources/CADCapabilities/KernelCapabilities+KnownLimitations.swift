@@ -270,25 +270,25 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphBoundaryResolver.swift", sourceLine: 16
         ),
         KernelDomainLimitation(
-            id: "condition-86aef256f48edd13",
+            id: "condition-5030aea27b0f5750",
             operations: ["curveSurfaceIntersectionResult"],
             dimensions: [.parameterization, .representation],
-            condition: "Original rational multispan target endpoint admission has no complete homogeneous factor authority here. The public graph route may admit it only after original-span independence, closed existence, membership and correspondence are proved together.",
-            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphClosedDomainAuthority.swift", sourceLine: 58
+            condition: "Non-factorable rational target endpoint coincidence has no closed inverse authority here. The public regular graph route requires original coordinate independence and closed existence, membership and owned correspondence before success.",
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphClosedDomainAuthority.swift", sourceLine: 180
         ),
         KernelDomainLimitation(
             id: "condition-f0c737e771082924",
             operations: ["curveSurfaceIntersectionResult"],
             dimensions: [.parameterization, .representation],
             condition: "General intrinsic endpoint coincidence has no closed-domain existence authority. The public regular graph route may admit these roots only after whole-interval existence, uniqueness, membership and endpoint correspondence are certified on original geometry.",
-            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphRootCertifier.swift", sourceLine: 205
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphRootCertifier.swift", sourceLine: 232
         ),
         KernelDomainLimitation(
             id: "condition-946955999c06f36b",
             operations: ["curveSurfaceIntersectionResult"],
             dimensions: [.parameterization, .representation],
             condition: "continuous or non-transverse native knot coincidence lacks complete atlas classification. The public graph route must refuse until all boundary intervals and root identities can be certified without a higher-derivative continuity assumption.",
-            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphRootCertifier.swift", sourceLine: 333
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphRootCertifier.swift", sourceLine: 364
         ),
         KernelDomainLimitation(
             id: "condition-2cad7378732965fa",

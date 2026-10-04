@@ -6,6 +6,385 @@ import Testing
 struct CurveSurfaceRegularGraphTests {
     private let intersector: any CurveSurfaceIntersectionResolving = DefaultCurveSurfaceIntersector()
 
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func rationalMultispanClosedAtlasRetainsWholeOwnedPiecewiseInverse(reversed: Bool) throws {
+        var source = Curve3D.bSpline(rationalEndpointSource(reversed: reversed))
+        var target = Surface3D.bSpline(rationalMultispanEndpointSurface())
+        let originalSource = source, originalTarget = target
+        var options = try graphOptions()
+        options.curveRange = nil
+        let result = try intersector.intersectionResult(curve: source, surface: target, options: options, tolerance: .standard)
+        #expect(result.overlaps.count == 1 && result.points.isEmpty)
+        let overlap = try #require(result.overlaps.first)
+        #expect(overlap.curveRange == (try ScalarInterval(lower: 0, upper: 1)))
+        #expect(overlap.maximumSpatialDeviation <= ModelingTolerance.standard.distance)
+        source = .line(Line3D(origin: Point3D(x: 3, y: 4, z: 5), direction: .unitZ))
+        target = .plane(Plane3D(origin: .origin, normal: .unitX))
+        let crossing = reversed ? 2.0 / 3 : 1.0 / 3
+        for t in [0.0, 0.125, crossing, 0.5, 0.875, 1.0] {
+            let h = reversed ? 2 * (1 - t) / (2 - t) : 2 * t / (1 + t)
+            let inverse = h <= 0.5 ? 8 * h / (9 - 2 * h) : (8 * h + 1) / (11 - 2 * h)
+            let value = try overlap.correspondence(at: t)
+            #expect(abs(value.surfaceParameter.u - inverse) < 1e-7)
+            #expect(abs(value.surfaceParameter.v - inverse) < 1e-7)
+            let point = try originalSource.point(at: t, tolerance: .standard)
+            let image = try originalTarget.point(u: value.surfaceParameter.u, v: value.surfaceParameter.v, tolerance: .standard)
+            #expect((point - Point3D(x: h, y: h, z: h * h)).length < 1e-12)
+            #expect((point - image).length <= ModelingTolerance.standard.distance)
+        }
+        let start = reversed ? 1.0 : 0, end = reversed ? 0.0 : 1
+        #expect(overlap.start.surfaceParameter.u == start && overlap.start.surfaceParameter.v == start)
+        #expect(overlap.end.surfaceParameter.u == end && overlap.end.surfaceParameter.v == end)
+        try expectFailure(.invalidInput) { _ = try overlap.correspondence(at: -0.1) }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func rationalMultispanClosedAtlasClipRetainsIndependentSourceEndpoints(reversed: Bool) throws {
+        var options = try graphOptions()
+        options.curveRange = try ScalarInterval(lower: 0, upper: 1)
+        options.surfaceURange = try ScalarInterval(lower: 0.25, upper: 0.75)
+        options.surfaceVRange = options.surfaceURange
+        let result = try intersector.intersectionResult(curve: .bSpline(rationalEndpointSource(reversed: reversed)),
+            surface: .bSpline(rationalMultispanEndpointSurface()), options: options, tolerance: .standard)
+        #expect(result.overlaps.count == 1 && result.points.isEmpty)
+        let overlap = try #require(result.overlaps.first)
+        let lower = reversed ? 18.0 / 47 : 9.0 / 59
+        let upper = reversed ? 50.0 / 59 : 29.0 / 47
+        #expect(abs(overlap.curveRange.lower - lower) < 1e-8)
+        #expect(abs(overlap.curveRange.upper - upper) < 1e-8)
+        for t in [overlap.curveRange.lower, reversed ? 2.0 / 3 : 1.0 / 3, overlap.curveRange.upper] {
+            let h = reversed ? 2 * (1 - t) / (2 - t) : 2 * t / (1 + t)
+            let inverse = h <= 0.5 ? 8 * h / (9 - 2 * h) : (8 * h + 1) / (11 - 2 * h)
+            let value = try overlap.correspondence(at: t)
+            #expect(abs(value.surfaceParameter.u - inverse) < 1e-7 && abs(value.surfaceParameter.v - inverse) < 1e-7)
+            #expect(value.residual <= ModelingTolerance.standard.distance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [0.0, 0.5, 1.0])
+    func rationalMultispanClosedAtlasKeepsIntrinsicAndKnotZeroWidthIncidence(boundary: Double) throws {
+        var options = try graphOptions()
+        options.curveRange = try ScalarInterval(lower: 0, upper: 1)
+        options.surfaceURange = try ScalarInterval(lower: boundary, upper: boundary)
+        options.surfaceVRange = options.surfaceURange
+        let result = try intersector.intersectionResult(curve: .bSpline(rationalEndpointSource()),
+            surface: .bSpline(rationalMultispanEndpointSurface()), options: options, tolerance: .standard)
+        #expect(result.overlaps.isEmpty && result.points.count == 1)
+        let point = try #require(result.points.first)
+        let expected = boundary == 0.5 ? 1.0 / 3 : boundary
+        #expect(abs(point.curveParameter - expected) < 1e-8)
+        #expect(abs(point.surfaceU - boundary) <= ModelingTolerance.standard.relative)
+        #expect(abs(point.surfaceV - boundary) <= ModelingTolerance.standard.relative)
+        #expect(point.residual <= ModelingTolerance.standard.distance)
+        if boundary != 0.5 {
+            #expect(point.curveParameter == expected && point.surfaceU == boundary && point.surfaceV == boundary)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func closedOriginalInverseLocalizesInteriorSourcesAtActualNativeFaces() throws {
+        let migrated = BSplineSurface3D(uDegree: 1, vDegree: 1,
+            uKnots: [0, 0, 0.5, 1, 1], vKnots: [0, 0, 1, 1],
+            controlPoints: [[Point3D(x: 0, y: 0, z: 0), Point3D(x: 0.5, y: 0, z: 0), Point3D(x: 1, y: 0, z: 0)],
+                            [Point3D(x: 0, y: 1, z: 0), Point3D(x: 0.5, y: 1, z: 0.5), Point3D(x: 1, y: 1, z: 1)]],
+            weights: [[1, 17.0 / 16, 9.0 / 8], [9.0 / 8, 153.0 / 128, 81.0 / 64]])
+        let cases: [(Bool, BSplineSurface3D, ScalarInterval, Double, Double)] = [
+            (false, rationalMultispanEndpointSurface(), try ScalarInterval(lower: 0.9999971389770508, upper: 0.9999980926513672),
+             0.9999960253772032, 0.9999960253772032),
+            (true, rationalMultispanEndpointSurface(), try ScalarInterval(lower: 9.5367431640625e-7, upper: 1.9073486328125e-6),
+             0.9999965561743194, 0.9999965561743194),
+            (false, migrated, try ScalarInterval(lower: 0.9999971389770508, upper: 0.9999980926513672),
+             0.9999962124174885, 0.9999959756936379)
+        ]
+        for (index, fixture) in cases.enumerated() {
+            let (reversed, target, range, lowerU, lowerV) = fixture
+            let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard)
+            let options = try graphOptions()
+            var preparation = OverlapProofBudget(options: options, tolerance: .standard)
+            let independence = try #require(OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
+                prepared: prepared, budget: &preparation))
+            let root = OverlapRegularGraphRootCertifier(
+                curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(rationalEndpointSource(reversed: reversed)), tolerance: .standard),
+                coordinateIndependence: independence, tolerance: .standard)
+            let candidate = SurfaceParameterBox(u: try ScalarInterval(lower: lowerU, upper: 1),
+                v: try ScalarInterval(lower: lowerV, upper: 1))
+            #expect(range.lower > 0 && range.upper < 1)
+            #expect(candidate.u.upper == 1 && candidate.v.upper == 1)
+            var budget = OverlapProofBudget(options: options, tolerance: .standard)
+            let proof = try #require(root.proof(range: range, box: candidate,
+                pair: .init(first: 0, second: 1), budget: &budget))
+            #expect(proof.closedDomain != nil && proof.closedDomain?.range == range)
+            #expect(proof.box.u.lower >= candidate.u.lower && proof.box.u.upper <= candidate.u.upper)
+            #expect(proof.box.v.lower >= candidate.v.lower && proof.box.v.upper <= candidate.v.upper)
+            for t in [range.lower, range.midpoint, range.upper] {
+                let h = reversed ? 2 * (1 - t) / (2 - t) : 2 * t / (1 + t)
+                // All values lie on the last native span. These inverses follow
+                // directly from the original literal homogeneous coefficients.
+                let u = index == 2 ? (16 * h + 1) / (19 - 2 * h) : (8 * h + 1) / (11 - 2 * h)
+                let v = index == 2 ? 8 * h / (9 - h) : u
+                #expect(proof.box.u.lower <= u && proof.box.u.upper >= u)
+                #expect(proof.box.v.lower <= v && proof.box.v.upper >= v)
+                let original = try root.curve.curve.point(at: t, tolerance: .standard)
+                let image = try target.point(u: u, v: v, tolerance: .standard)
+                #expect((original - Point3D(x: h, y: h, z: h * h)).length < 1e-12)
+                #expect((original - image).length < 1e-12)
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func originalRationalKnotResidualUsesCompleteFirstJetsBeyondPositionWidthGate() async throws {
+        let source = rationalEndpointSource(), target = rationalMultispanEndpointSurface()
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard)
+        let options = try graphOptions()
+        var preparation = OverlapProofBudget(options: options, tolerance: .standard)
+        let independence = try #require(OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
+            prepared: prepared, budget: &preparation))
+        let root = OverlapRegularGraphRootCertifier(
+            curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
+            coordinateIndependence: independence, tolerance: .standard)
+        let range = try ScalarInterval(lower: 1.0 / 3 - 1e-6, upper: 1.0 / 3 + 1e-6)
+        let axis = try ScalarInterval(lower: 0.49999, upper: 0.50001)
+        let box = SurfaceParameterBox(u: axis, v: axis), pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
+        var budget = OverlapProofBudget(options: options, tolerance: .standard)
+        let proof = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
+        #expect(!proof.authority.isSmooth && proof.u.count == 1 && proof.v.count == 1 && proof.residual.count == 1)
+        #expect(proof.residual[0].absoluteUpperBound > ModelingTolerance.standard.distance)
+        #expect(proof.sourcePositionWidthLowerBound > (OutwardScalarInterval.exact(ModelingTolerance.standard.distance) * .exact(2)).upper)
+        let first = try #require(proof.firstResidualDerivative)
+        // The literal maps give S(U(t),V(t))=(h,h,h*h), so R=R'=0 on both sides.
+        #expect(first.lower <= 0 && first.upper >= 0)
+        let cell = OverlapRegularGraphCell(range: range, box: box, pair: pair, derivativeU: proof.u[0],
+            derivativeV: proof.v[0], maximumDeviation: .infinity, authority: proof.authority)
+        let residual = try root.collarResidual(cell: cell, proof: proof, budget: &budget)
+        #expect(residual.lower <= 0 && residual.upper >= 0)
+        #expect(residual.absoluteUpperBound <= ModelingTolerance.standard.distance)
+        #expect(residual.lower >= proof.residual[0].lower && residual.upper <= proof.residual[0].upper)
+        let unrelated = OverlapRegularGraphCell(range: range, box: box, pair: .init(first: 0, second: 2),
+            derivativeU: proof.u[0], derivativeV: proof.v[0], maximumDeviation: .infinity, authority: proof.authority)
+        try expectFailure(.intersectionFailure) {
+            _ = try root.collarResidual(cell: unrelated, proof: proof, budget: &budget)
+        }
+        for t in [range.lower, 1.0 / 3, range.upper] {
+            let h = 2 * t / (1 + t)
+            let inverse = h <= 0.5 ? 8 * h / (9 - 2 * h) : (8 * h + 1) / (11 - 2 * h)
+            #expect(proof.box.u.lower <= inverse && proof.box.u.upper >= inverse)
+            #expect(proof.box.v.lower <= inverse && proof.box.v.upper >= inverse)
+        }
+        // A single center certificate is exactly paid; a shorter budget cannot finish it.
+        var exactOptions = options
+        exactOptions.maximumIterations = 1
+        let fee = 1 + root.jetWork * 4 + target.uKnots.count + target.vKnots.count
+        exactOptions.maximumSubdivisionCells = fee
+        var exactCenter = OverlapProofBudget(options: exactOptions, tolerance: .standard)
+        let bounded = try root.collarResidual(cell: cell, proof: proof, budget: &exactCenter)
+        #expect(bounded.lower <= 0 && bounded.upper >= 0)
+        try expectFailure(.resourceLimitExceeded) { try exactCenter.work() }
+        exactOptions.maximumSubdivisionCells = fee - 1
+        var incompleteCenter = OverlapProofBudget(options: exactOptions, tolerance: .standard)
+        try expectFailure(.resourceLimitExceeded) {
+            _ = try root.collarResidual(cell: cell, proof: proof, budget: &incompleteCenter)
+        }
+        let (stream, continuation) = AsyncStream<Void>.makeStream()
+        let task = Task {
+            for await _ in stream { break }
+            var cancelledBudget = OverlapProofBudget(options: options, tolerance: .standard)
+            return try root.collarResidual(cell: cell, proof: proof, budget: &cancelledBudget)
+        }
+        task.cancel()
+        continuation.yield()
+        continuation.finish()
+        await #expect(throws: CancellationError.self) { _ = try await task.value }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func originalRationalKnotResidualPreservesWholeSpanDeviationRejection() throws {
+        var source = rationalEndpointSource()
+        source.controlPoints[1].z += 0.125
+        var options = try graphOptions()
+        options.curveRange = try ScalarInterval(lower: 0.1, upper: 0.8)
+        let result = try intersector.intersectionResult(curve: .bSpline(source),
+            surface: .bSpline(rationalMultispanEndpointSurface()), options: options, tolerance: .standard)
+        // The original positive deviation is 0.5*t*(1-t)/(1+t)^2 on this complete range.
+        #expect(result.overlaps.isEmpty && result.points.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func paidOriginalIndependenceRetainsQuotientFieldsAndReusesExactFees() throws {
+        let target = rationalMultispanEndpointSurface(), source = rationalEndpointSource()
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard)
+        let range = try ScalarInterval(lower: 0, upper: 1), box = SurfaceParameterBox(u: range, v: range)
+        let pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
+        var options = try graphOptions()
+        // Ten knots, seven checks for each of nine controls, and nine exact products.
+        options.maximumSubdivisionCells = 82
+        var exact = OverlapProofBudget(options: options, tolerance: .standard)
+        let independence = try #require(OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
+            prepared: prepared, budget: &exact))
+        try expectFailure(.resourceLimitExceeded) { try exact.work() }
+        options.maximumSubdivisionCells = 81
+        var insufficient = OverlapProofBudget(options: options, tolerance: .standard)
+        try expectFailure(.resourceLimitExceeded) {
+            _ = try OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(prepared: prepared, budget: &insufficient)
+        }
+        let original = try prepared.intervalJet(over: box, tolerance: .standard)
+        let root = OverlapRegularGraphRootCertifier(
+            curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
+            coordinateIndependence: independence, tolerance: .standard)
+        let tightened = try root.targetJet(over: box)
+        func unchanged(_ first: OutwardScalarInterval, _ second: OutwardScalarInterval) {
+            #expect(first.lower == second.lower && first.upper == second.upper)
+        }
+        unchanged(tightened.x.value, original.x.value)
+        unchanged(tightened.y.value, original.y.value)
+        for (retained, old) in zip(
+            [tightened.x.derivativeU, tightened.x.secondDerivativeUU, tightened.x.thirdDerivativeUUU,
+             tightened.y.derivativeV, tightened.y.secondDerivativeVV, tightened.y.thirdDerivativeVVV],
+            [original.x.derivativeU, original.x.secondDerivativeUU, original.x.thirdDerivativeUUU,
+             original.y.derivativeV, original.y.secondDerivativeVV, original.y.thirdDerivativeVVV]) {
+            unchanged(retained, old)
+        }
+        for zero in [tightened.x.derivativeV, tightened.x.secondDerivativeUV, tightened.x.secondDerivativeVV,
+                     tightened.x.thirdDerivativeUUV, tightened.x.thirdDerivativeUVV, tightened.x.thirdDerivativeVVV,
+                     tightened.y.derivativeU, tightened.y.secondDerivativeUU, tightened.y.secondDerivativeUV,
+                     tightened.y.thirdDerivativeUUU, tightened.y.thirdDerivativeUUV, tightened.y.thirdDerivativeUVV] {
+            #expect(zero.lower == 0 && zero.upper == 0)
+        }
+        for (retained, old) in zip(
+            [tightened.z.value, tightened.z.derivativeU, tightened.z.derivativeV, tightened.z.secondDerivativeUU,
+             tightened.z.secondDerivativeUV, tightened.z.secondDerivativeVV, tightened.z.thirdDerivativeUUU,
+             tightened.z.thirdDerivativeUUV, tightened.z.thirdDerivativeUVV, tightened.z.thirdDerivativeVVV],
+            [original.z.value, original.z.derivativeU, original.z.derivativeV, original.z.secondDerivativeUU,
+             original.z.secondDerivativeUV, original.z.secondDerivativeVV, original.z.thirdDerivativeUUU,
+             original.z.thirdDerivativeUUV, original.z.thirdDerivativeUVV, original.z.thirdDerivativeVVV]) {
+            unchanged(retained, old)
+        }
+        // Reuse scans only the original source: nine coordinates/weights and six knots.
+        options.maximumSubdivisionCells = 15
+        var reuse = OverlapProofBudget(options: options, tolerance: .standard)
+        let authority = try #require(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
+            independence: independence, range: range, pair: pair, box: box, target: tightened, budget: &reuse))
+        #expect(authority.exactEndpoint(at: 0)?.u == 0 && authority.exactEndpoint(at: 1)?.v == 1)
+        try expectFailure(.resourceLimitExceeded) { try reuse.work() }
+        options.maximumSubdivisionCells = 14
+        var shortReuse = OverlapProofBudget(options: options, tolerance: .standard)
+        try expectFailure(.resourceLimitExceeded) {
+            _ = try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), independence: independence,
+                range: range, pair: pair, box: box, target: tightened, budget: &shortReuse)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func paidOriginalIndependenceRefusesFalseFactorsAndInconsistentJets() throws {
+        var target = rationalMultispanEndpointSurface()
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard)
+        let range = try ScalarInterval(lower: 0, upper: 1), box = SurfaceParameterBox(u: range, v: range)
+        var budget = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
+        let independence = try #require(OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
+            prepared: prepared, budget: &budget))
+        let original = try prepared.intervalJet(over: box, tolerance: .standard)
+        let inconsistentX = SurfaceIntervalJet(value: original.x.value,
+            derivativeU: original.x.derivativeU, derivativeV: .exact(1),
+            secondDerivativeUU: original.x.secondDerivativeUU, secondDerivativeUV: original.x.secondDerivativeUV,
+            secondDerivativeVV: original.x.secondDerivativeVV, thirdDerivativeUUU: original.x.thirdDerivativeUUU,
+            thirdDerivativeUUV: original.x.thirdDerivativeUUV, thirdDerivativeUVV: original.x.thirdDerivativeUVV,
+            thirdDerivativeVVV: original.x.thirdDerivativeVVV)
+        try expectFailure(.intersectionFailure) {
+            _ = try independence.intersecting(SurfaceIntervalVectorJet(x: inconsistentX, y: original.y, z: original.z), tolerance: .standard)
+        }
+        target.weights[1][1] = (81.0 / 64).nextUp
+        let falseFactor = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard)
+        var falseBudget = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
+        #expect(try OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
+            prepared: falseFactor, budget: &falseBudget) == nil)
+        target = rationalMultispanEndpointSurface()
+        target.controlPoints[1][0].x = 0.125
+        let coupled = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard)
+        var coupledBudget = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
+        let coupledIdentity = try #require(OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
+            prepared: coupled, budget: &coupledBudget))
+        let coupledOriginal = try coupled.intervalJet(over: box, tolerance: .standard)
+        let coupledIntersection = try coupledIdentity.intersecting(coupledOriginal, tolerance: .standard)
+        #expect(coupledIntersection.x.derivativeV.lower == coupledOriginal.x.derivativeV.lower)
+        #expect(coupledIntersection.x.derivativeV.upper == coupledOriginal.x.derivativeV.upper)
+        #expect(coupledIdentity.axis(coordinate: 0, box: box) == nil)
+        // Mutating another value cannot replace the prepared target retained by the authority.
+        #expect(independence.axis(coordinate: 0, box: box)?.variesU == true)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func paidOriginalIndependenceChecksCancellationBeforeItsScan() async throws {
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: rationalMultispanEndpointSurface(), tolerance: .standard)
+        let options = try graphOptions()
+        let (stream, continuation) = AsyncStream<Void>.makeStream()
+        let task = Task {
+            for await _ in stream { break }
+            var budget = OverlapProofBudget(options: options, tolerance: .standard)
+            return try OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(prepared: prepared, budget: &budget)
+        }
+        task.cancel()
+        continuation.yield()
+        continuation.finish()
+        await #expect(throws: CancellationError.self) { _ = try await task.value }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rationalMultispanOriginalFactorComparisonsChargeExactWorkAndRefuseFalseAuthority() throws {
+        let source = rationalEndpointSource(), target = rationalMultispanEndpointSurface()
+        let range = try ScalarInterval(lower: 0, upper: 1), box = SurfaceParameterBox(u: range, v: range)
+        let pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
+        let targetJet = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard)
+            .intervalJet(over: box, tolerance: .standard)
+        var options = try graphOptions()
+        // 9 source coordinates + 6 source knots + 10 target knots + 27 tensor coordinates,
+        // followed by all nine exact original tensor factor comparisons: 61 units.
+        options.maximumSubdivisionCells = 61
+        var exact = OverlapProofBudget(options: options, tolerance: .standard)
+        let authority = try #require(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
+            surface: target, range: range, pair: pair, box: box, target: targetJet, budget: &exact))
+        #expect(authority.first.variesU && !authority.second.variesU)
+        #expect(authority.exactEndpoint(at: 0)?.u == 0 && authority.exactEndpoint(at: 1)?.v == 1)
+        try expectFailure(.resourceLimitExceeded) { try exact.work() }
+        options.maximumSubdivisionCells = 60
+        var insufficient = OverlapProofBudget(options: options, tolerance: .standard)
+        try expectFailure(.resourceLimitExceeded) {
+            _ = try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), surface: target,
+                range: range, pair: pair, box: box, target: targetJet, budget: &insufficient)
+        }
+        var falseFactor = target
+        falseFactor.weights[1][1] = (81.0 / 64).nextUp
+        var coupled = target
+        coupled.controlPoints[1][0].x = 0.125
+        for original in [falseFactor, coupled] {
+            let jet = try PreparedBSplineSurfaceDifferentialEncloser(surface: original, tolerance: .standard)
+                .intervalJet(over: box, tolerance: .standard)
+            var refusal = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
+            #expect(try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), surface: original,
+                range: range, pair: pair, box: box, target: jet, budget: &refusal) == nil)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rationalMultispanClosedAuthorityPreservesCancellationBeforeOriginalTensorScan() async throws {
+        let source = rationalEndpointSource(), target = rationalMultispanEndpointSurface()
+        let range = try ScalarInterval(lower: 0, upper: 1), box = SurfaceParameterBox(u: range, v: range)
+        let pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
+        let targetJet = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard)
+            .intervalJet(over: box, tolerance: .standard)
+        let options = try graphOptions()
+        let (stream, continuation) = AsyncStream<Void>.makeStream()
+        let task = Task {
+            for await _ in stream { break }
+            var budget = OverlapProofBudget(options: options, tolerance: .standard)
+            return try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), surface: target,
+                range: range, pair: pair, box: box, target: targetJet, budget: &budget)
+        }
+        task.cancel()
+        continuation.yield()
+        continuation.finish()
+        await #expect(throws: CancellationError.self) { _ = try await task.value }
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func originalDyadicProductsDistinguishRoundedOverflowAndUnderflowEquality() {
         let compare = OverlapRegularGraphClosedDomainAuthority.equalPositiveDyadicProducts
@@ -142,13 +521,20 @@ struct CurveSurfaceRegularGraphTests {
             controlPoints: [[Point3D(x: 0, y: 0, z: 0), Point3D(x: 0.5, y: 0, z: 0), Point3D(x: 1, y: 0, z: 0)],
                             [Point3D(x: 0, y: 1, z: 0), Point3D(x: 0.5, y: 1, z: 0.5), Point3D(x: 1, y: 1, z: 1)]],
             weights: [[1, 17.0 / 16, 9.0 / 8], [9.0 / 8, 153.0 / 128, 81.0 / 64]])
-        for original in [falseFactor, coupled, multispan] {
+        for original in [falseFactor, coupled] {
             let jet = try PreparedBSplineSurfaceDifferentialEncloser(surface: original, tolerance: .standard)
                 .intervalJet(over: box, tolerance: .standard)
             var refusal = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
             #expect(try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), surface: original,
                 range: range, pair: pair, box: box, target: jet, budget: &refusal) == nil)
         }
+        let multispanJet = try PreparedBSplineSurfaceDifferentialEncloser(surface: multispan, tolerance: .standard)
+            .intervalJet(over: box, tolerance: .standard)
+        var admitted = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
+        let multispanAuthority = try #require(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
+            surface: multispan, range: range, pair: pair, box: box, target: multispanJet, budget: &admitted))
+        #expect(multispanAuthority.surface == multispan)
+        #expect(multispanAuthority.exactEndpoint(at: 0)?.u == 0 && multispanAuthority.exactEndpoint(at: 1)?.v == 1)
         var periodic = target
         periodic.isUPeriodic = true
         var periodicBudget = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
@@ -156,11 +542,21 @@ struct CurveSurfaceRegularGraphTests {
             range: range, pair: pair, box: box, target: targetJet, budget: &periodicBudget) == nil)
         var publicOptions = try graphOptions()
         publicOptions.curveRange = range
-        for original in [falseFactor, multispan] {
-            try expectFailure(.unsupportedCapability) {
-                _ = try intersector.intersectionResult(curve: .bSpline(source), surface: .bSpline(original),
-                    options: publicOptions, tolerance: .standard)
-            }
+        try expectFailure(.unsupportedCapability) {
+            _ = try intersector.intersectionResult(curve: .bSpline(source), surface: .bSpline(falseFactor),
+                options: publicOptions, tolerance: .standard)
+        }
+        let result = try intersector.intersectionResult(curve: .bSpline(source), surface: .bSpline(multispan),
+            options: publicOptions, tolerance: .standard)
+        #expect(result.overlaps.count == 1 && result.points.isEmpty)
+        let overlap = try #require(result.overlaps.first)
+        #expect(overlap.curveRange == range)
+        #expect(overlap.start.surfaceParameter.u == 0 && overlap.end.surfaceParameter.v == 1)
+        for t in [0.0, 0.5, 1.0] {
+            let value = try overlap.correspondence(at: t)
+            let point = try source.point(at: t, tolerance: .standard)
+            let image = try multispan.point(u: value.surfaceParameter.u, v: value.surfaceParameter.v, tolerance: .standard)
+            #expect((point - image).length <= ModelingTolerance.standard.distance)
         }
     }
 
@@ -1520,6 +1916,21 @@ struct CurveSurfaceRegularGraphTests {
                 _ = try certify(sourceCurve(), targetSurface(), options: options)
             }
         }
+    }
+
+    private func rationalMultispanEndpointSurface() -> BSplineSurface3D {
+        // F(U)=9U/(8+2U) below .5, (11U-1)/(8+2U) above .5.
+        // The original tensor is S=(F(U),F(V),F(U)*F(V)); its positive weights
+        // are the exact outer product [1,9/8,5/4] with itself, not inserted knots.
+        let coordinates = [0.0, 0.5, 1.0]
+        let points: [[Point3D]] = coordinates.map { y in
+            coordinates.map { x in Point3D(x: x, y: y, z: x * y) }
+        }
+        let weights: [[Double]] = [[1, 9.0 / 8, 5.0 / 4],
+                                  [9.0 / 8, 81.0 / 64, 45.0 / 32],
+                                  [5.0 / 4, 45.0 / 32, 25.0 / 16]]
+        return BSplineSurface3D(uDegree: 1, vDegree: 1, uKnots: [0, 0, 0.5, 1, 1],
+            vKnots: [0, 0, 0.5, 1, 1], controlPoints: points, weights: weights)
     }
 
     private func rationalEndpointSource(reversed: Bool = false) -> BSplineCurve3D {

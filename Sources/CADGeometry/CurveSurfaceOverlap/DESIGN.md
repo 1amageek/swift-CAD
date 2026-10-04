@@ -27,8 +27,8 @@ choose Boolean material classification or replace the existing point-only API.
 
 The bounded regular graph endpoint route admits a nonperiodic, single clamped
 rational Bezier source with strictly positive weights and an original clamped
-unit-weight tensor B-spline target, or a single clamped positive-weight rational
-target span with an exactly rank-one original weight tensor. The selected two Cartesian coordinates must
+unit-weight tensor B-spline target, or a finite clamped positive-weight rational
+target atlas with an exactly rank-one original weight tensor. The selected two Cartesian coordinates must
 be exactly separable: one is a function only of original U and the other only
 of original V. Original control-net row/column equality, with every target
 weight exactly one or the factor identity below, establishes this independence; tolerance-based rationality,
@@ -93,16 +93,22 @@ minor, contraction below one, finite positive widths and original geometry.
 The first image counts as the initial iteration, and subsequent localization
 uses at most the caller's remaining `maximumIterations - 1` iterations. This
 does not extend a native patch beyond its original domain.
-The closed alternative is considered only for a source interval touching an
-intrinsic source endpoint and a candidate touching an intrinsic target face.
+After an unsuccessful fresh strict proof, the closed alternative is considered
+for a candidate touching an actual original intrinsic target face, including
+interior source intervals. Complete source positive hull and original global
+coordinate independence/whole-axis monotonicity prove existence for every
+original source parameter, so no source-endpoint restriction supplies additional
+existence authority.
 After localization, the retained root box must lie inside that original candidate
-before the graph consumer can use it. Other interior candidate failures keep
-their existing strict-proof subdivision behavior.
-Point reproduction inside an already owned or provisional endpoint cell may
-reacquire the same original closed IVT certificate for its interior source
-station interval. The source control-hull and target independence proof apply
-to every original source parameter, not only to the two endpoints. This narrow
-consumer exception does not change fresh interior chart admission. Its final
+before the graph consumer can use it. Candidates away from original intrinsic target faces keep their existing
+strict-proof subdivision behavior. Missing closed authority on an interior
+source cell remains unresolved; intrinsic source endpoint refusal retains its
+existing typed unsupported contract.
+Point reproduction inside an already owned or provisional cell uses the same
+original target-face and full closed IVT obligations for its source station
+interval. The source control-hull and target independence proof apply
+to every original source parameter, not only to the two endpoints. This same-target obligation also applies to fresh near-face interior admission;
+no sample or candidate padding alone establishes existence. Its final
 localized box must remain inside the owned cell box; otherwise reproduction
 fails explicitly rather than replacing the cell's selected root.
 
@@ -117,15 +123,14 @@ use unchanged range admission and original source/target forward evaluation.
 All structural scans, target derivative jets and image iterations are charged
 before evaluation using the existing invocation-local work/cancellation budget.
 The existing structural scan cost is unchanged for exactly unit target weights.
-For other positive target weights, the single-span branch charges one additional
+For other positive target weights, the factorable branch charges one additional
 work unit per original tensor coefficient before any exact factor comparison.
 Each comparison has four bounded binary64 decompositions and two full-width
 products; the tensor size is checked for integer overflow before charging.
 The certificate stores fixed metadata and immutable original geometry references,
 with no control-net copies, new decomposition, cover array or private allowance.
 The original degree, storage and subdivision limits remain unchanged.
-Nonseparable maps, nonfactorable weight tensors, multiple rational target spans,
-multiple source spans, periodic axes,
+Nonseparable maps, nonfactorable weight tensors, multiple source spans, periodic axes,
 constant-axis incidence, unresolved monotonicity/rank and general endpoint
 coincidence remain outside this bounded authority and fail explicitly. No failed
 certificate authorizes an empty intersection result or a sampled correspondence.
@@ -162,8 +167,72 @@ factorable case and preserve the independent polynomial known answer.
 `[[1,1+2^-52],[1-2^-52,1]]` has unequal exact products differing by
 `2^-104` despite rounded product equality and must be refused. Exact product
 tests also distinguish equal and unequal overflowing or underflowing products.
-Nonfactorable, coupled, periodic, multispan and unresolved monotonicity fixtures
+Nonfactorable, coupled, periodic and unresolved monotonicity fixtures
 retain explicit refusal; middle-Z deviation receives no overlap.
+
+The next bounded extension applies this same global tensor-factor identity to
+finite clamped rational target knot atlases. For any nonnegative original
+B-spline basis, exact rank-one weights factor the denominator into positive
+U/V factors; Cartesian column/row independence therefore remains an axis map.
+All-owning original quotient first jets must prove strict axis monotonicity
+across every owning knot span before closed IVT admission. C0/C1 collars retain
+first-order-only authority, transverse affected axes, strict root localization,
+whole-source residuals, common-root joins and complete original-domain clipping.
+The source remains one positive-weight clamped span. The original factor scan,
+work/depth/degree/storage limits and cancellation owner are unchanged.
+The independently authored degree-one axes use knots `[0,0,1/2,1,1]`,
+controls `[0,1/2,1]` and weights `[1,9/8,5/4]`. Their map is
+`F(u)=9u/(8+2u)` on the first span and `(11u-1)/(8+2u)` on the second.
+The tensor surface is `(F(U),F(V),F(U)*F(V))`; the original rational source
+`(h,h,h*h), h=2t/(1+t)` crosses the tensor knot at `t=1/3`.
+The independent inverse is `8x/(9-2x)` or `(8x+1)/(11-2x)`.
+U clipping to `[1/4,3/4]` retains source `[9/59,29/47]`, and reversal
+retains `[18/47,50/59]`. Public whole/reverse/clip/zero-width endpoint and knot
+proofs, owned-input mutation, exact-factor perturbation, nonseparability,
+positive middle-Z deviation and original resource/cancellation failures must
+verify this extension before its incomplete marker is removed. General
+nonfactorable rational atlases, multispan sources and periodic graphs remain
+full-G4 gaps.
+
+### Paid Original Coordinate Independence
+
+The graph operation prepares one immutable coordinate-independence authority
+from the same original target retained by its prepared differential encloser.
+The component owns preparation, reuse and consumption; this authority lives
+only for that operation and has no global cache or mutable shared state.
+Preparation charges the existing invocation budget before scanning all original
+controls, knots and positive finite weights. Exact dyadic product equality
+establishes a global rank-one weight tensor; exact Cartesian row/column equality
+then establishes each coordinate's dependence on one native axis. No sampled
+coordinates or rounded products establish this identity.
+
+This identity authorizes only zero partial derivatives in the non-owning axis.
+The root consumer intersects those zero identities with the corresponding
+fields of its existing original target interval jet. An empty intersection is
+an explicit proof failure. Original positions, owning-axis quotient bounds,
+original knot supports and derivative capability remain unchanged. The same
+identity may tighten whole-domain monotonicity and selected Jacobian consumers,
+but never supplies existence: source positive control hull, whole-domain strict
+axis monotonicity and closed IVT remain separate mandatory obligations.
+
+| Owner | Assumption | Guarantee |
+|---|---|---|
+| Graph preparation | Charged complete original tensor/Cartesian scan | Immutable exact coordinate dependence tied to the retained target |
+| Root jet consumer | Existing original all-owning jet for the same target and native box | Intersection with exact zero for non-owning derivatives only |
+| Closed-domain certificate | Coordinate independence plus source hull and strict whole-axis monotonicity | Existing unique original-domain inverse for every owned source parameter |
+
+Preparation is performed once per graph operation and reused without repeated
+unpaid comparisons. Direct closed-certificate calls remain self-contained and
+retain their exact established work thresholds (unit 39/38 and rational 61/60
+fixtures). Reuse accounts only for work already paid by the same invocation.
+Unit and single-span routes retain their obligations. Strict K inclusion,
+determinant/contraction, every affected knot's transverse passage, whole-span
+residual, original geometry/coordinates, global uniqueness, clipping,
+iteration/depth/storage limits and cancellation remain required. This authority
+cannot promote a first-order collar to a smooth chart or replace projected
+points with a formula. Public whole/reverse/clip/incidence tests and independent
+false-factor, coupled-coordinate, exact-work and cancellation fixtures own the
+behavioral evidence.
 
 ## Related Designs
 
@@ -445,7 +514,35 @@ existing positive-definite symmetric-part proof of global injectivity.
 | Proof / Cell authority | Derivatives retained | Membership bound |
 |---|---|---|
 | Smooth | Implicit UV and remaining-coordinate derivatives through order three | Original centered Taylor enclosure |
-| Finite rectangular C0/C1 knot collar | One-sided first UV derivative bounds, valid almost everywhere on the Lipschitz graph | Original source position minus target position over the certified K image |
+| Finite rectangular C0/C1 knot collar | One-sided first UV derivative bounds, valid almost everywhere on the Lipschitz graph | Original position enclosure intersected with an owned centered first-order residual bound |
+
+The bounded first-order collar residual also encloses
+`R'=C_remaining' - S_remaining,U*u' - S_remaining,V*v'`
+over the complete original source cell, using its original source first jet,
+all-owning target first jet and already certified first UV bounds. Finite
+original C0/C1 supports, the retained unique root and transverse passage through
+every affected knot make this graph piecewise differentiable and Lipschitz;
+its residual is absolutely continuous. The derivative enclosure is valid almost
+everywhere and its supremum therefore bounds the residual variation across
+knots. No second or third collar derivative is asserted.
+
+A charged point reproduction for the same owned cell/pair certifies the center
+residual. The residual over the complete cell is intersected with
+`R(center) +/- sup(abs(R'))*max(center-lower,upper-center)` using outward
+arithmetic. Empty/nonfinite intersections fail explicitly. A center sample alone
+never authorizes membership. Both the initial whole-position enclosure and the
+retained source/target/UV first-derivative proofs must remain valid. Source-width
+localization pruning still applies only to the independent position certificate;
+it cannot suppress this separate first-order proof. Original strict K/closed
+existence, global uniqueness, whole-span coverage, common-root joins, clipping,
+caller work/depth/storage/iterations and cancellation remain mandatory.
+The canonical rational multispan whole/reverse test must pass unchanged depth
+and tolerance; middle-coordinate deviations and existing atlas/refusal fixtures
+must still fail appropriately. The frozen original-coefficient producer passes all 68 regular-graph and 18
+continuous-overlap declarations, including the independent factorable atlas,
+closed endpoint, first-order collar and unchanged refusal/work fixtures.
+This evidence covers the bounded Native route; general full-G4 and portable
+cumulative integration remain open.
 
 A collar never assumes second/third derivative continuity and never exposes a
 Taylor derivative certificate. Each axis whose closed box contains a C0/C1 knot

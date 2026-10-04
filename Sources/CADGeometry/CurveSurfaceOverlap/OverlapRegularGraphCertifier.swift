@@ -17,7 +17,13 @@ struct OverlapRegularGraphCertifier {
         }
         let preparedCurve = try PreparedCurveDifferentialEncloser(curve: .bSpline(curve), tolerance: tolerance)
         let preparedSurface = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance)
-        let root = OverlapRegularGraphRootCertifier(curve: preparedCurve, surface: preparedSurface, tolerance: tolerance)
+        let root: OverlapRegularGraphRootCertifier
+        if let independence = try OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
+            prepared: preparedSurface, budget: &budget) {
+            root = OverlapRegularGraphRootCertifier(curve: preparedCurve, coordinateIndependence: independence, tolerance: tolerance)
+        } else {
+            root = OverlapRegularGraphRootCertifier(curve: preparedCurve, surface: preparedSurface, tolerance: tolerance)
+        }
         let pair = try selectPair(root: root, range: range, budget: &budget)
         var cuts = [range.lower]
         for knot in curve.knots where knot > range.lower && knot < range.upper && cuts.last != knot {
@@ -68,9 +74,17 @@ struct OverlapRegularGraphCertifier {
                             + remainder
                         residual = center.residual[0] + OutwardScalarInterval(lower: -radius.upper, upper: radius.upper)
                     } else {
-                        // C0 collars have no global higher derivatives. The original
-                        // source and certified K image enclose every position instead.
-                        residual = proof.residual[0]
+                        if proof.residual[0].absoluteUpperBound <= tolerance.distance
+                            || proof.residual[0].absoluteLowerBound > tolerance.distance {
+                            residual = proof.residual[0]
+                        } else {
+                            let provisional = OverlapRegularGraphCell(range: item.range, box: box, pair: pair,
+                                derivativeU: proof.u[0], derivativeV: proof.v[0], maximumDeviation: .infinity,
+                                authority: proof.authority)
+                            // The source-width gate prunes only position localization.
+                            // Complete first jets independently bound the Lipschitz residual.
+                            residual = try root.collarResidual(cell: provisional, proof: proof, budget: &budget)
+                        }
                     }
                     guard residual.isFinite else { throw failure(.resourceLimitExceeded, "Regular graph residual exceeded finite arithmetic.", tolerance) }
                     if residual.absoluteUpperBound <= tolerance.distance || residual.absoluteLowerBound > tolerance.distance {
@@ -187,7 +201,7 @@ struct OverlapRegularGraphCertifier {
             var retained: [SurfaceParameterBox] = []
             for box in boxes {
                 try budget.work(root.jetWork)
-                let target = try root.surface.intervalJet(over: box, tolerance: root.tolerance)
+                let target = try root.targetJet(over: box)
                 let f = OverlapRegularGraphCell.component(target, pair.first).value - OverlapRegularGraphCell.component(source, pair.first).value
                 let g = OverlapRegularGraphCell.component(target, pair.second).value - OverlapRegularGraphCell.component(source, pair.second).value
                 if (f.lower > 0 || f.upper < 0) || (g.lower > 0 || g.upper < 0) { continue }
@@ -220,7 +234,7 @@ struct OverlapRegularGraphCertifier {
     private func stronglyMonotone(root: OverlapRegularGraphRootCertifier, box: SurfaceParameterBox,
                                   pair: OverlapRegularGraphCell.Pair, budget: inout OverlapProofBudget) throws -> Bool {
         try budget.work(root.jetWork)
-        let target = try root.surface.intervalJet(over: box, tolerance: root.tolerance)
+        let target = try root.targetJet(over: box)
         let f = OverlapRegularGraphCell.component(target, pair.first), g = OverlapRegularGraphCell.component(target, pair.second)
         let a = f.derivativeU.midpoint, b = f.derivativeV.midpoint, c = g.derivativeU.midpoint, d = g.derivativeV.midpoint
         let determinant = a * d - b * c
