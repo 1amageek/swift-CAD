@@ -904,21 +904,21 @@ extension KernelCapabilities {
             operations: ["fillet", "chamfer"],
             dimensions: [.supportSurface, .boundaryCurve, .connection],
             condition: "a loop whose walls turn from rising to falling at a tangent joint (a plate's step running smoothly into its edge) turns between a filling and a cutting band along one section, which is not built, so it is refused. Production path: TurningCapLoopBlendBuilder from Fillet. Complete only when such loops blend, verified by a stepped plate's top loop rounded where the step meets its edge tangentially.",
-            sourcePath: "Sources/CADModeling/TurningCapLoop/TurningCapLoopBlendBuilder.swift", sourceLine: 126
+            sourcePath: "Sources/CADModeling/TurningCapLoop/TurningCapLoopBlendBuilder.swift", sourceLine: 129
         ),
         KernelDomainLimitation(
             id: "condition-28d85fd8371a38c0",
             operations: ["fillet", "chamfer"],
             dimensions: [.supportSurface, .boundaryCurve, .connection],
             condition: "bands meeting at a sharp corner beside an arc whose walls run the same way meet on a surface other than a plane, which is not built, so they are refused. Production path: TurningCapLoopBlendBuilder from Fillet. Complete only when such corners close, verified by a D's rim with its boss's foot rounded together.",
-            sourcePath: "Sources/CADModeling/TurningCapLoop/TurningCapLoopBlendBuilder.swift", sourceLine: 137
+            sourcePath: "Sources/CADModeling/TurningCapLoop/TurningCapLoopBlendBuilder.swift", sourceLine: 140
         ),
         KernelDomainLimitation(
             id: "condition-54a69081414bb11b",
             operations: ["fillet", "chamfer"],
             dimensions: [.supportSurface, .boundaryCurve, .connection],
             condition: "a turning corner whose falling wall is a cylinder closes on a patch whose side along that wall is an arc, which is not built, so it is refused. Production path: TurningCapLoopBlendBuilder from Fillet. Complete only when such corners close, verified by a boss's foot rounded with a rounded step's edge.",
-            sourcePath: "Sources/CADModeling/TurningCapLoop/TurningCapLoopBlendBuilder.swift", sourceLine: 147
+            sourcePath: "Sources/CADModeling/TurningCapLoop/TurningCapLoopBlendBuilder.swift", sourceLine: 150
         ),
         KernelDomainLimitation(
             id: "condition-5eb6a1dd4b7e0937",

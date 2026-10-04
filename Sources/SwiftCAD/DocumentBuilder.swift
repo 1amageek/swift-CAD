@@ -1114,6 +1114,7 @@ public struct DocumentBuilder {
         limits: EdgeBlendLimits? = nil,
         variablePoints: [FilletVariablePoint] = [],
         tangentEdges: Bool = true,
+        yBlend: Bool = false,
         named name: String? = nil
     ) throws -> FeatureID {
         let fillet = FilletFeature(
@@ -1125,7 +1126,8 @@ public struct DocumentBuilder {
             endRadius: endRadius,
             limits: limits,
             variablePoints: variablePoints,
-            tangentEdges: tangentEdges
+            tangentEdges: tangentEdges,
+            yBlend: yBlend
         )
         try fillet.validate()
         let featureID = FeatureID()

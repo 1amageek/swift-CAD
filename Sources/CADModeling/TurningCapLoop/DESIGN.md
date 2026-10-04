@@ -73,6 +73,12 @@ corners: joint (tangent, same rise) │ mitre (sharp, same rise, lines) │ turn
   tolerance. Both preliminary span selection and the final common-span splines require this
   certificate; the sewn edges retain their exact original curves. Unsupported degree or span
   families receive typed refusal, and failure to certify within 64 spans is explicit.
+- With Fillet's Attempt to create Y-Blend (`FilletFeature.yBlend`, `splitsCorners`) each corner
+  patch is three faces of the same surface meeting at its middle: its isocurves u = ½ (from the
+  rising section's middle to the falling wall contact's middle) and v = ½ (from the falling
+  section's middle) are their shared edges, and the bands' end sections and the falling wall's
+  contact beside the patch are split at their middles to meet them. The shape and volume are
+  those without it; only the topology changes, as the page states ("better topology").
 - Every edge use carries a stable identity unique in the request; edges leaving the loop's corners
   are cut to the corner's image (the blend's wall distance along them) and must be longer.
 
@@ -95,7 +101,8 @@ validated sewing and independent curvature evidence. A G2 section alone is not t
 `StepBossFilletTests.aStepsTopLoopRoundsIntoTheBossRisingFromIt` rounds the step's top loop (two
 arcs and three lines) beside a cylinder and checks volumetric validity, the volume against the
 bands' exact sections (the corner patches within their cells), every band at the radius from its
-axis, and the cut upright edges and seam. Changes to `ExactHermiteCoonsSurfaceBuilder` (corner jets,
+axis, and the cut upright edges and seam; with Y-Blend the same volume, four more faces and the
+six trivalent vertices of the two Ys. Changes to `ExactHermiteCoonsSurfaceBuilder` (corner jets,
 curved-support rows) or to `CapLoopBlendBuilder.Section` re-run this test and `SquareSurfaceTests`.
 
 `StepBossFilletTests.aStepsTurningTopLoopRefusesUncertifiedCurvatureCorners` selects the same

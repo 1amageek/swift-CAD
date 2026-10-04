@@ -3,8 +3,8 @@ import Testing
 
 @Suite("Fillet builder")
 struct FilletBuilderTests {
-    @Test(.timeLimit(.minutes(1)))
-    func builderAndNativePackageUseSharedFilletCommand() throws {
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func builderAndNativePackageUseSharedFilletCommand(_ yBlend: Bool) throws {
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
         let profile = try builder.sketch(on: .xy) { sketch in
             sketch.rectangle(
@@ -23,7 +23,8 @@ struct FilletBuilderTests {
         let filletID = try builder.fillet(
             target: extrudeID,
             edges: [selected],
-            radius: .constant(.length(2.0, unit: .millimeter))
+            radius: .constant(.length(2.0, unit: .millimeter)),
+            yBlend: yBlend
         )
         let document = try builder.build(name: "Fillet parity")
         let pipeline = CADPipeline(tolerance: .standard)
@@ -34,9 +35,12 @@ struct FilletBuilderTests {
 
         try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
         #expect(evaluated.brep.faces.count == 7)
-        guard case .fillet = loaded.designGraph.nodes[filletID]?.operation else {
+        guard case let .fillet(persisted) = loaded.designGraph.nodes[filletID]?.operation else {
             Issue.record("Native package persistence must preserve the shared fillet operation.")
             return
         }
+        #expect(persisted.yBlend == yBlend)
+        #expect(persisted.with(radius: persisted.radius).yBlend == yBlend)
+        #expect(persisted.with(yBlend: !yBlend).yBlend == !yBlend)
     }
 }
