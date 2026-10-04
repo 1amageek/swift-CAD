@@ -345,6 +345,9 @@ A planar harmonic pcurve corresponds to its circular edge when its start sits wi
 distance tolerance of the edge's and its span within the angle tolerance: its start derivative
 may turn and stretch by as much (`CylinderFlushNotchTests`, where a slot's arcs and their
 trimming curves are found apart by a hair's turn).
+Cylinder–cylinder bounded-branch bounds hold over any positive stretch of the curve's fraction and
+over a stretch that is a single angle (a cell at the phase's end, where the angle turns), the
+endpoint bounds covering it.
 Curve differential enclosures preserve an exact normalized ruled-boundary lift
 by evaluating the original boundary curve. Admission requires an endpoint V
 and the identical U parameter span, so no approximate surface substitution or
