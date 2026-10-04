@@ -2066,16 +2066,35 @@ public struct MeshTessellator: Tessellating {
             }
             return true
         }
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Periodic and non-C1 original B-spline charts lack
-        // whole-domain continuous-normal authority in this rectangular mesh route. Production
-        // untrimmed B-spline preflight reaches this refusal. Complete full M1 only after native
-        // span/seam partition and one-sided normal contracts certify the original whole rectangle.
-        guard surface.isUPeriodic == false, surface.isVPeriodic == false,
-              hasClampedC1Basis(surface.uKnots, degree: surface.uDegree),
-              hasClampedC1Basis(surface.vKnots, degree: surface.vDegree),
+        func hasPeriodicC1Basis(_ knots: [Double], degree: Int,
+                                direction: SurfaceParameterDirection) -> Bool {
+            guard let seamOrder = surface.periodicSeamContinuityOrder(direction: direction),
+                  seamOrder >= 1 else { return false }
+            let lower = knots[degree], upper = knots[knots.count - degree - 1]
+            var index = degree + 1
+            while index < knots.count - degree - 1 {
+                let value = knots[index]
+                var end = index + 1
+                while end < knots.count - degree - 1, knots[end] == value { end += 1 }
+                if value > lower && value < upper && end - index > degree - 1 { return false }
+                index = end
+            }
+            return true
+        }
+        let uC1 = surface.isUPeriodic
+            ? hasPeriodicC1Basis(surface.uKnots, degree: surface.uDegree, direction: .u)
+            : hasClampedC1Basis(surface.uKnots, degree: surface.uDegree)
+        let vC1 = surface.isVPeriodic
+            ? hasPeriodicC1Basis(surface.vKnots, degree: surface.vDegree, direction: .v)
+            : hasClampedC1Basis(surface.vKnots, degree: surface.vDegree)
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Non-C1 and doubly periodic original charts lack
+        // continuous-normal authority in this rectangular mesh route. Production B-spline
+        // preflight reaches this refusal. Complete full M1 only after native span/seam and
+        // one-sided normal contracts certify these remaining original rectangles.
+        guard !(surface.isUPeriodic && surface.isVPeriodic), uC1, vC1,
               surface.weights.allSatisfy({ $0.allSatisfy({ $0 > 0 }) }) else {
             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                              message: "Rectangular B-spline tessellation requires original clamped nonperiodic C1 authority.")
+                              message: "Rectangular B-spline tessellation requires original C1 authority with at most one periodic axis.")
         }
         try Task.checkCancellation()
         let bounds = try DefaultSurfaceDifferentialEncloser().tessellationBounds(
@@ -2738,6 +2757,9 @@ public struct MeshTessellator: Tessellating {
         options: TessellationOptions,
         faceID: FaceID
     ) throws -> (u: (lower: Double, upper: Double), v: (lower: Double, upper: Double))? {
+        if case let .bSpline(spline) = surface, spline.isUPeriodic || spline.isVPeriodic {
+            return try originalPeriodicRectangleBounds(for: loop, on: spline, in: model)
+        }
         guard loop.edges.count == 4 else {
             return nil
         }
@@ -2805,7 +2827,129 @@ public struct MeshTessellator: Tessellating {
         )
     }
 
-    private enum RectangularParameterAxis {
+    /// A pcurve is already expressed in its coedge's use direction, even when the stored
+    /// edge is reversed. Preserve its native unwrapped endpoints rather than choosing a
+    /// spatially equivalent chart by samples or nearest-period adjustment.
+    private func originalPeriodicRectangleBounds(
+        for loop: Loop, on surface: BSplineSurface3D, in model: BRepModel
+    ) throws -> (u: (lower: Double, upper: Double), v: (lower: Double, upper: Double)) {
+        func refusal() -> KernelError {
+            KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                        message: "Periodic B-spline tessellation requires four connected original monotone rectangle sides within one period.")
+        }
+        func originalAxis(_ curve: SurfaceParameterCurve) -> RectangularParameterAxis? {
+            switch curve {
+            case .constantU: return .u
+            case .constantV: return .v
+            case let .periodicTranslation(base, _, _): return originalAxis(base)
+            default: return nil
+            }
+        }
+        struct Side {
+            let axis: RectangularParameterAxis
+            var start: SurfaceParameter
+            var end: SurfaceParameter
+
+            var increasing: Bool {
+                axis == .u ? end.v > start.v : end.u > start.u
+            }
+        }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Arbitrary periodic B-spline trims lack certified
+        // interior fidelity in the production mesh route. This exact rectangle admission
+        // refuses them until full M1/M2 supplies original trim and interior authority.
+        guard surface.isUPeriodic != surface.isVPeriodic, loop.coedges.count >= 4 else {
+            throw refusal()
+        }
+        var sides: [Side] = []
+        var firstParameter: SurfaceParameter?
+        var previousParameter: SurfaceParameter?
+        var firstVertexID: VertexID?
+        var previousVertexID: VertexID?
+        for (index, coedge) in loop.coedges.enumerated() {
+            if index & 0xFF == 0 { try Task.checkCancellation() }
+            guard let curve = coedge.surfaceParameterCurve, let axis = originalAxis(curve),
+                  let edge = model.edges[coedge.edgeID] else { throw refusal() }
+            let start = try curve.parameter(atNormalizedFraction: 0, tolerance: tolerance)
+            let end = try curve.parameter(atNormalizedFraction: 1, tolerance: tolerance)
+            let startID = coedge.orientation == .forward ? edge.startVertexID : edge.endVertexID
+            let endID = coedge.orientation == .forward ? edge.endVertexID : edge.startVertexID
+            guard [start.u, start.v, end.u, end.v].allSatisfy(\.isFinite),
+                  (axis == .u ? start.u == end.u && start.v != end.v
+                    : start.v == end.v && start.u != end.u) else { throw refusal() }
+            if let previousParameter, let previousVertexID {
+                guard previousParameter == start, previousVertexID == startID else { throw refusal() }
+            } else {
+                firstParameter = start
+                firstVertexID = startID
+            }
+            let side = Side(axis: axis, start: start, end: end)
+            if let previous = sides.last, previous.axis == axis {
+                guard previous.increasing == side.increasing else { throw refusal() }
+                sides[sides.count - 1].end = end
+            } else {
+                sides.append(side)
+                // A loop may start inside a side, making at most five runs before
+                // its first and last runs join. Further turns cannot be a rectangle.
+                guard sides.count <= 5 else { throw refusal() }
+            }
+            previousParameter = end
+            previousVertexID = endID
+        }
+        guard previousParameter == firstParameter, previousVertexID == firstVertexID else { throw refusal() }
+        if let first = sides.first, let last = sides.last, first.axis == last.axis {
+            guard first.increasing == last.increasing else { throw refusal() }
+            sides[0].start = last.start
+            sides.removeLast()
+        }
+        guard sides.count == 4, let first = sides.first else { throw refusal() }
+        var minU = first.start.u, maxU = minU, minV = first.start.v, maxV = minV
+        for side in sides {
+            minU = min(minU, side.start.u, side.end.u)
+            maxU = max(maxU, side.start.u, side.end.u)
+            minV = min(minV, side.start.v, side.end.v)
+            maxV = max(maxV, side.start.v, side.end.v)
+        }
+        guard maxU > minU, maxV > minV else { throw refusal() }
+        for index in sides.indices {
+            let side = sides[index]
+            guard side.axis != sides[(index + 1) % 4].axis else { throw refusal() }
+            switch side.axis {
+            case .u:
+                guard side.start.u == minU || side.start.u == maxU,
+                      min(side.start.v, side.end.v) == minV,
+                      max(side.start.v, side.end.v) == maxV else { throw refusal() }
+            case .v:
+                guard side.start.v == minV || side.start.v == maxV,
+                      min(side.start.u, side.end.u) == minU,
+                      max(side.start.u, side.end.u) == maxU else { throw refusal() }
+            }
+        }
+        let periodicLower = surface.isUPeriodic ? minU : minV
+        let periodicUpper = surface.isUPeriodic ? maxU : maxV
+        let periodicWidth = periodicUpper - periodicLower
+        let periodicDomain = surface.isUPeriodic ? surface.uDomain : surface.vDomain
+        guard case let .periodic(period) = periodicDomain,
+              periodicWidth.isFinite, periodicWidth <= period else { throw refusal() }
+        if periodicWidth == period {
+            // Error-free TwoDifference recovers the represented endpoints' exact width.
+            // A smaller rounded width is strictly below the represented period, but equality
+            // may hide a positive residual. Exact full periods retain a zero residual.
+            let virtualLower = periodicUpper - periodicWidth
+            let virtualUpper = periodicWidth + virtualLower
+            let lowerRoundoff = virtualLower - periodicLower
+            let upperRoundoff = periodicUpper - virtualUpper
+            let widthRoundoff = upperRoundoff + lowerRoundoff
+            guard [virtualLower, virtualUpper, lowerRoundoff, upperRoundoff, widthRoundoff]
+                .allSatisfy(\.isFinite) else {
+                throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                                  message: "Periodic rectangle admission could not retain an exact finite width comparison.")
+            }
+            guard widthRoundoff <= 0 else { throw refusal() }
+        }
+        return (u: (minU, maxU), v: (minV, maxV))
+    }
+
+    private enum RectangularParameterAxis: Equatable {
         case u
         case v
     }

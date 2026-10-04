@@ -293,9 +293,9 @@ in cache identity; tessellation reserves prior bodies' usage before the next bod
 Tests must show changed subdivision with identical exact geometry, independent
 body quality, and cumulative resource refusal.
 
-The bounded M1 rectangular B-spline grid owns admission for nonperiodic,
-clamped, positive-weight supports whose original internal knot multiplicities
-prove C1 continuity. The geometry-owned original differential enclosure must
+The bounded M1 rectangular B-spline grid admits positive-weight supports with
+clamped C1 axes or one validated original periodic C1 axis and one clamped C1
+axis; original internal knot multiplicities prove continuity. The geometry-owned original differential enclosure must
 certify finite regular tangent/Hessian and unit-normal derivative bounds over
 the complete retained rectangle. Mesh preflight selects anisotropic grid counts
 from those bounds and retains the exact grid for emission; position tolerance,
@@ -305,9 +305,42 @@ bounds drive curvature-dependent refinement; point samples do not authorize
 fidelity. The existing checked cumulative storage/count reservation, actual
 emission charging, face provenance and upper cooperative cancellation contract
 remain authoritative. No new lower-proof cancellation response-time guarantee
-or private budget is introduced. C0/periodic/unproved regularity remain typed
+or private budget is introduced. C0/doubly-periodic/unproved regularity remain typed
 incomplete refusals for this bounded route; trimmed interiors, adjacent-face
 agreement and full M1 remain separate proof gaps.
+The bounded periodic M1 extension admits exactly one periodic axis with validated
+original-cycle C1 continuity; the other axis remains clamped C1. Periodic
+B-spline rectangle admission uses original constant-U/V coedges with their
+actual use orientation. Exact unwrapped UV endpoints must connect, four
+alternating monotone sides must cover equal opposite ranges, and each side may
+contain multiple original edges. The exact represented-endpoint periodic width is positive and no larger
+than the original period. At rounded width equality, an error-free
+TwoDifference residual rejects hidden excess without a numeric allowance. No sampled agreement or nearest-period unwrap chooses
+the rectangle. Existing analytic-cylinder dispatch retains its contract.
+
+| Stage | Assumption | Guarantee |
+|---|---|---|
+| Rectangle admission | Original oriented constant-coordinate coedges and exact unwrapped endpoint connectivity | Retained full rectangle, including split sides and seam-crossing native coordinates |
+| Periodic admission | Existing validated repeated homogeneous controls, translated original knots and original-cycle C1 including the seam | Continuous original first derivatives; no assertion of second-derivative continuity |
+| Geometry bound | Existing prepared original cycle cover certifies finite regular tangent/Hessian/normal bounds on that rectangle | The unchanged adaptive whole-triangle fidelity contract may consume those bounds |
+| Preflight/emission | Same retained original rectangle and grid, checked cumulative budget | Face provenance and exact original inputs survive success, refusal and cancellation |
+
+The independent degree-two cycle uses knots `[0,1,2,3,4]`, unit weights
+and independent controls `(1,0),(0,1),(-1,0),(0,-1)`, extruded in a clamped
+linear axis from z=0 to z=1. Its first span is
+`C(t)=(1/2-t,1/2+t-t*t)`, with the remaining spans related by 90-degree
+rotation. On the upper span, `y=3/4-x*x` and the unit normal is
+`normalize(2*x,1,0)`. This literal geometry, not a production evaluator, owns
+position, vertex/triangle normal and all-edge-length tests. Four-coedge
+`3.5..4.5` and valid six-coedge `0..4` rectangles verify seam crossing,
+full-period split sides, both axis roles, retained FaceRuns and extraction.
+C0 seams, unconnected raw charts, period excess and unproved regularity must
+fail explicitly. Cumulative count/byte/reservation and cancellation tests retain
+the existing owner and original-input assertions. Double-periodic, C0 and
+arbitrary trimmed charts remain full-M1/M2 gaps. Native owner verification passes all37 declarations across the four original
+tessellation suites, including the periodic public fixtures and exact-width
+refusal. Matching portable and full-M1/M2 closure remain separately required.
+
 Independent tests measure triangle interior and edge deviations against literal
 `S=(u,v,A*u*u)` and `S=(u,v,A*u*v)`, and normal angles against
 `(-2*A*u,0,1)/sqrt(1+4*A*A*u*u)`. Changing only curvature, linear tolerance or
@@ -553,15 +586,15 @@ sampling takes the larger of the turning count and the chord count.
 | Planar faces | boundary simplified within the bound | flat | — |
 | Convex trimmed spherical patches | radial rings | radial rings | enforced |
 | Other trimmed parametric faces | boundary only | boundary only | boundary only |
-| Rectangular B-spline grids | not refined | not refined | step count only |
+| Admitted C1 rectangular B-spline grids | certified combined Hessian bound | certified normal-path bound | enforced, including diagonals |
 
 A facet spanning two curved directions accumulates both: its sagitta adds the
 two directions' `a²/8ρ` terms and its normal turns by at most the sum of the two
 turns, so a sphere or torus grid gives each direction half of each budget and
 the facet meets the whole. Adjacent faces may sample a shared edge differently;
 each stays within the chord bound of the exact edge, so a gap between them is at
-most twice the bound. The last two rows do not refine the interior of the face,
-and their branches carry `FIXME(INCOMPLETE_IMPLEMENTATION)`; they are not
+most twice the bound. Other trimmed parametric faces do not refine their interiors. Unadmitted
+B-spline charts and that trimmed branch retain `FIXME(INCOMPLETE_IMPLEMENTATION)`; these unsupported paths are not
 covered by the fidelity contract until they refine against all three bounds.
 `TessellationFidelityTests` prove the chord bound on large circles and on
 doubly curved grids, and `TessellationStandardFeasibilityTests` prove that

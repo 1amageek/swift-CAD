@@ -51,6 +51,27 @@ struct MeshTessellatorFaceRunTests {
 
     // MARK: - Emission contracts
 
+    @Test(.timeLimit(.minutes(1)), arguments: [CADGeometry.SurfaceParameterDirection.u, .v])
+    func originalPeriodicSeamUsesAndFaceRunsSurviveExtraction(direction: CADGeometry.SurfaceParameterDirection) throws {
+        let model = try periodicExtrudedBSplineSheet(direction: direction, from: 0, to: 4)
+        let loop = try #require(model.loops.values.first)
+        #expect(loop.coedges.count == 6)
+        let uses = Dictionary(grouping: loop.coedges, by: \.edgeID)
+        let repeated = try #require(uses.values.first { $0.count == 2 })
+        #expect(repeated[0].orientation != repeated[1].orientation)
+        let seamEdge = try #require(model.edges[repeated[0].edgeID])
+        #expect(seamEdge.startVertexID != seamEdge.endVertexID)
+        let options = TessellationOptions(linearTolerance: 1e-3, angularTolerance: 0.08, maxEdgeLength: 0.25)
+        let tessellator = MeshTessellator(tolerance: .standard)
+        let meshes = try tessellator.tessellate(model: model, options: options)
+        let bodyID = try #require(meshes.keys.first), mesh = try #require(meshes[bodyID])
+        #expect(mesh.faceRuns.map(\.faceID) == (try Self.traversedFaceIDs(of: bodyID, in: model)))
+        #expect(mesh.faceRuns.reduce(0) { $0 + $1.triangleCount } == mesh.indices.count / 3)
+        let extracted = try BRepBodySubmodelExtractor().extract(bodyIDs: [bodyID], from: model)
+        #expect(try tessellator.tessellate(model: extracted, options: options)[bodyID] == mesh)
+        #expect(extracted.loops[loop.id] == loop)
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func adaptiveSplineRunsRetainOriginalFaceOwnershipAfterExtraction() throws {
         let model = try rectangularBSplineSheet(surface: parabolicTessellationSurface(rise: 0.2))
