@@ -101,6 +101,44 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
             )
         }
 
+        func preparedPolynomialGreenPrimitive(
+            uBase: Double,
+            consumeCoefficientOperations consume: (Int) throws -> Void
+        ) throws -> CertifiedPiecewisePolynomialSurfaceFluxPrimitive? {
+            try Task.checkCancellation()
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Periodic native charts have no prefix owner
+            // on volumetric pcurve queries. Complete only with original cycle/seam coverage.
+            guard !sourceSurface.isUPeriodic, !sourceSurface.isVPeriodic else {
+                throw KernelError(phase: .topology, code: .unsupportedCapability, tolerance: tolerance,
+                    message: "Polynomial Green prefixes require nonperiodic original charts.")
+            }
+            guard case .closed(let lower, let upper) = sourceSurface.uDomain,
+                  uBase.isFinite, uBase >= lower, uBase <= upper,
+                  let weight = sourceSurface.weights.first?.first, weight.isFinite, weight > 0 else {
+                throw KernelError(phase: .topology, code: .invalidInput, tolerance: tolerance,
+                    message: "Polynomial Green preparation requires a contained base and positive original weights.")
+            }
+            for row in sourceSurface.weights {
+                try Task.checkCancellation()
+                try consume(row.count)
+                for value in row where value != weight { return nil }
+            }
+            try consume(patches.count)
+            var inputs: [CertifiedPiecewisePolynomialSurfaceFluxPrimitive.NativePanel] = []
+            inputs.reserveCapacity(patches.count)
+            for source in patches {
+                try Task.checkCancellation()
+                try consume(5)
+                inputs.append(.init(uSpan: .init(lower: source.uLower, upper: source.uUpper),
+                    vSpan: .init(lower: source.vLower, upper: source.vUpper),
+                    fluxCoefficients: try source.patch.polynomialFluxCoefficients(
+                        weight: weight, consume: consume, tolerance: tolerance)))
+            }
+            return try CertifiedPiecewisePolynomialSurfaceFluxPrimitive(
+                source: sourceSurface, reference: reference, tolerance: tolerance, uBase: uBase,
+                uSpans: uSpans, vSpans: vSpans, panels: inputs, field: self, consume: consume)
+        }
+
         func containingVSpan(
             _ range: TrimmedAnalyticSurfaceVolumeEvaluator.Interval
         ) -> ParameterSpan? {
@@ -895,6 +933,55 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                         && $0.weight.upper == first.upper
                 }
             }
+        }
+
+        func polynomialFluxCoefficients(weight: Double, consume: (Int) throws -> Void,
+                                        tolerance: ModelingTolerance) throws -> [[CertifiedUnivariateTaylorJet.Interval]] {
+            // Charge both row metadata traversals and the exact-weight control scan
+            // before inspecting any prepared homogeneous coefficient.
+            let rowWork = controls.count.multipliedReportingOverflow(by: 2)
+            guard !rowWork.overflow else {
+                throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: tolerance,
+                    message: "Polynomial Green control-admission row work overflowed.")
+            }
+            try consume(rowWork.partialValue)
+            var controlWork = 0
+            for row in controls {
+                let next = controlWork.addingReportingOverflow(row.count)
+                guard !next.overflow else {
+                    throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: tolerance,
+                        message: "Polynomial Green control-admission work overflowed.")
+                }
+                controlWork = next.partialValue
+            }
+            try consume(controlWork)
+            guard hasExactConstantWeight, controls.first?.first?.weight.lower == weight,
+                  let fluxNumerator else {
+                throw KernelError(phase: .topology, code: .unsupportedCapability, tolerance: tolerance,
+                    message: "Polynomial Green preparation requires retained original constant-weight determinant coefficients.")
+            }
+            try consume(3)
+            let w = Interval.exact(weight)
+            let denominator = Interval.exact(3) * w * w * w
+            guard denominator.lower > 0, denominator.upper.isFinite else {
+                throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: tolerance,
+                    message: "Polynomial Green weight scaling exceeded finite arithmetic.")
+            }
+            try consume(fluxNumerator.coefficients.count)
+            var result: [[CertifiedUnivariateTaylorJet.Interval]] = []
+            result.reserveCapacity(fluxNumerator.coefficients.count)
+            for row in fluxNumerator.coefficients {
+                try consume(row.count)
+                var values: [CertifiedUnivariateTaylorJet.Interval] = []
+                values.reserveCapacity(row.count)
+                for coefficient in row {
+                    try consume(1)
+                    let quotient = coefficient / denominator
+                    values.append(.init(lower: quotient.lower, upper: quotient.upper))
+                }
+                result.append(values)
+            }
+            return result
         }
 
         init(

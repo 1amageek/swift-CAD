@@ -120,3 +120,150 @@ Prepared original surface flux has the same scalar Bernstein authority. Patch.fl
 Independent lower tests must exercise near-endpoint and interior crossings, contact or on-seam intervals, unequal rational weights and no-crossing controls against literal integral bounds; exact interval width must contain the oracle and satisfy the request. An insufficient width/work allowance must refuse. Actual Draft pcurve/adjacent surface validation and the unchanged original volume oracle remain upper-owned verification.
 
 Native lower verification: all5 dedicated declarations/10cases pass.080s on the original depth-zero whole-band fixture and unchanged width/work/cancellation oracles. Existing22 parametric/rational volume declarations pass5.989s. The scalar and derivative original hull intersections are composed on the same frozen source; actual Draft/public volume integration is separately owned and pending.
+
+### Original Piecewise Polynomial Green Prefix (PAR.CL9PREFIX1)
+
+This module owns a bounded replacement for the repeated U-span fan integration
+observed in the original cubic Draft's final volumetric validation. It prepares
+a Green primitive from the same original certified homogeneous Bezier patches
+already consumed by `PreparedField`; it does not replace the stored surface,
+pcurve, extraction authority, seam partition, or requested volume enclosure.
+The [CADModeling original cubic Draft contract](../CADModeling/DESIGN.md)
+depends on this volume owner only after its whole support/pcurve proofs succeed.
+This section defines pending implementation and verification, not completed
+public Draft capability.
+
+```text
+Shell's shared coefficient budget + original surface/reference/uBase
+    -> certified original patches -> polynomial primitive and V-band U prefixes
+Original directed pcurve -> certified jets and complete seam/band partition
+    -> owning-span primitive jet OR all-incident closed-band range
+    -> one-dimensional boundary integral -> unchanged requested-width admission
+```
+
+| Owner file | Internal contract and responsibility |
+|---|---|
+| New `CertifiedPiecewisePolynomialSurfaceFluxPrimitive.swift` | Owns the immutable `CertifiedPiecewisePolynomialSurfaceFluxPrimitive`, with no private work allowance. The existing single-patch primitive file needs no change. |
+| `CertifiedRationalBezierSurfaceFluxIntegrator.swift` | Adds `PreparedField.preparedPolynomialGreenPrimitive(uBase:consumeCoefficientOperations:) throws -> CertifiedPiecewisePolynomialSurfaceFluxPrimitive?`. The synchronous nonescaping charge callback is `(Int) throws -> Void`. Reuses that field's retained source/reference/tolerance, already prepared original patches and determinant coefficients, without another extraction or determinant reconstruction. |
+| `CertifiedAnalyticPcurveFluxIntegrator.swift` | Adds `piecewisePolynomialBounds(for:primitive:requestedWidth:tolerance:) throws -> Interval`. Consumes original pcurve jets, owning-span primitive jets and all-incident seam ranges; it does not revisit every preceding U span at each Gauss node. |
+| `TrimmedParametricSurfaceVolumeEvaluator.swift` | Keeps its private shell-scoped `CoefficientBudget`, passes it by `inout` into `arbitraryRationalContribution`, and supplies the factory's callback as `try budget.consume(count, tolerance: tolerance)`. Prepares once per admitted surface/reference/uBase and consumes the primitive for its loops; only the factory's nonconstant-weight `nil` selects the existing rational path. Existing analytic/rectangular dispatch and loop orientation/area admission retain their proofs. |
+
+The existing nested `CoefficientBudget` keeps its private owner, unchanged limit,
+consumed count, checked `consume` behavior and typed resource error. The shell
+creates it once from `maximumCoefficientOperations` (default 2,000,000); no face,
+patch, prefix or retry resets it. The synchronous callback borrows this counter
+only during preparation and is never stored in the immutable receipt. Existing
+polynomial consumers retain their existing charges. Already executed extraction
+and determinant preparation is not retroactively charged by this callback.
+For new receipt preparation, the charge counts transferred coefficient and
+metadata slots and original-source/panel scan work separately from executed
+outward divisions, U-integration accumulations and prefix additions;
+it charges both to the shared total before their allocation or execution.
+Checked degree, tensor, capacity, loop and total arithmetic precedes all charges
+and work, including prefix accumulation. Slot counts alone cannot stand for
+executed arithmetic; this does not assert that unchanged consumers charge every
+existing scalar operation. Original homogeneous extraction retains its separate
+cumulative extraction-operation budget, and adaptive jobs retain their existing
+work-item/depth owners. No budget type is exported or moved for this handoff.
+Failed preparation cannot select the rational route.
+
+Admission first validates the original source and tolerance. Every stored
+weight must equal the same finite positive original weight `w` exactly, and the
+certified patch weights must retain that exact constant. Approximate equality,
+an `isRational` classification, sampled agreement and rounded Cartesian patches
+cannot admit this authority. Only an otherwise valid source with nonconstant
+stored weights returns `nil`. Invalid source/domain/uBase, missing or duplicate
+native panels, unproved exact-weight retention, nonfinite arithmetic and budget
+exhaustion throw the existing appropriate typed failure. `uBase` must lie in
+the original closed U domain. Periodic and unsupported charts retain an explicit
+incomplete-implementation marker and typed refusal in the factory; they do not
+return the nonconstant-family `nil`.
+
+For each native patch, let `xi=(u-a)/DeltaU`, `eta=(v-c)/DeltaV` and let
+`Q=N/(3*w^3)` be its original outward determinant polynomial in normalized
+coordinates. Native density is `f=Q/(DeltaU*DeltaV)`. Bernstein U integration
+uses the existing primitive law `B[0]=0` and
+`B[k+1]=B[k]+Q[k]/(degreeU+1)` with outward arithmetic. For each original V
+band, the prefix at U panel `i` is the coefficient-wise sum of the full U
+integrals of all panels preceding `i`. The native Green value is
+`G_i(u,v)=(prefix_i(eta)+B_i(xi,eta))/DeltaV`.
+The anchored primitive is `A(u,v)=G(u,v)-G(uBase,v)`, and its boundary
+integrand is `A(u(t),v(t))*v'(t)`. This native convention preserves every
+stored chart width; it neither multiplies DeltaU twice nor drops DeltaV.
+Prefix construction retains matching original V degrees/charts and the
+original reference point. No coefficient is snapped or fitted.
+
+The receipt retains the original surface, reference, preparation tolerance,
+uBase, complete ordered native U/V spans, exact endpoint ownership/scales and
+outward prefix/local coefficient nets. Only the factory constructs it.
+Its same-owner queries are `range(overClosedUV:) throws -> Interval` and
+`directionalJet(u:v:uSpan:vSpan:) throws -> CertifiedUnivariateTaylorJet`.
+The range query covers every incident original panel intersecting the closed
+box, including both sides of C0 knots; missing coverage and domain violations
+fail. The jet query binds to one retained native panel and never advertises a
+single derivative across a C0 seam. Anchoring subtracts the separately retained
+uBase primitive in the same native V chart.
+
+U-prefix construction makes the mathematical primitive agree at each shared U
+endpoint without claiming equal derivatives there. V seams retain both original
+V-band primitives and their own DeltaV. Every positive uncertain seam band from
+the existing original pcurve partition remains part of the integral. A cell
+proved to lie in one native panel uses the original pcurve jets and the existing
+sixth-derivative one-dimensional Gauss remainder. A closed cell touching or
+crossing a seam uses the union of all incident original primitive ranges,
+multiplied by the full original `v'` range and the entire cell measure; refinement
+may tighten this enclosure but cannot remove measure or assign one seam side.
+No seam-spanning jet, endpoint root identity or coordinate tolerance is invented.
+
+The caller's existing `requestedWidth`, depth and work limits govern the
+boundary integral and final accumulated enclosure. Preparation and prefix
+formation check Task cancellation at entry and each native-panel work boundary;
+receipt publication performs a final Task cancellation check after all charged
+work, including cancellation triggered by the final charge callback. Exact-weight
+admission charges its prepared-control and row-metadata scans before that scan;
+prior extraction charges do not pay for these new repeated operations.
+Boundary partition/adaptive evaluation/publication retain the existing
+cancellation checks and propagate the original cancellation cause. Unsupported
+pcurve families throw explicitly; the already supported `certifiedImplicit`
+family retains its original native implicit flux owner by type dispatch, with
+no prefix-error retry. Mixed loops use prefixes for explicit original pcurves
+and the existing proof for implicit ones under the same requested widths and
+loop orientation/total. Implicit-only faces may skip unused prefix preparation.
+The existing original surface extractor requires positive closed U/V domains.
+A valid periodic BSplineSurface3D exposes a periodic domain and is rejected by
+that extractor before a PreparedField is created. This prefix uses the retained
+bounded closed-domain authority and does not expand that existing support range.
+The factory's periodic refusal is local defensive admission, not evidence of a
+newly rejected successful volume route. No periodic prefix, cycle cover or
+unwrapped-chart capability is introduced. Failures on admitted polynomial inputs
+never select a sampled proof, new allowance or rational retry. General
+nonconstant weight inputs continue through the original rational owner.
+
+Verification uses literal continuous C0 support
+`S(u,v)=(u,v,h(u))`, U knots at `[1,2,4]`, V domain `[0,3]`, with `h=u` on
+`[1,2]` and `h=3*u-4` on `[2,4]`. Its original native density is `0` and
+`-4/3`: the triangle `[(1,0),(4,0),(4,3)]` has flux `-16/3`, its reversed
+boundary `+16/3`, and the full rectangle `-8`. The triangle's sloping side
+also uses literal collinear degree-two rational controls
+`[(4,3),(2.5,1.5),(1,0)]` with weights `[1,2,1]` to retain nonlinear original
+parameter jets. Uniform source weights `7` must preserve those oracles; changing
+one stored weight to `7.nextUp` must select the nonconstant family, without
+acquiring polynomial authority. Tests cover original seam endpoints, complete
+uncertain bands and V-side ownership, invalid/missing coverage, shared cumulative
+budget exhaustion and cancellation. The accumulated interval must contain its
+independent oracle and meet the original requested width.
+The whole-loop handoff fixture uses the same literal triangle with affine
+original pcurves, preserving its flux and enclosure width. Rational nonlinear
+pcurve jets are checked directly by the lower flux owner. The unchanged pcurve
+area owner refused the rational whole-loop fixture at its existing cell limit;
+that observation is local to area orientation convergence and does not authorize
+changing its limits or broadening this prefix responsibility. The original
+178-span public Draft retains its original pcurves and area proof and remains a
+required integration check.
+
+Change impact includes existing polynomial and rational volume owners and the
+unchanged original 178-U-span public Draft adjacency/volume tests. The same
+public trace must show that each ordinary primitive evaluation consumes a
+prepared prefix and current native span instead of repeating the fan's entire
+preceding U-span integration. Runtime and operation counts are measured on that
+actual path; passing lower preparation tests alone does not complete Draft.

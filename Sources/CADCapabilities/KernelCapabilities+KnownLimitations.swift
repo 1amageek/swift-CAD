@@ -976,5 +976,12 @@ extension KernelCapabilities {
             condition: "The public Turning corner route certifies only positive single-clamped sides of degree at most eight. General multi-span or periodic side admission requires an original-span whole-difference certificate before success.",
             sourcePath: "Sources/CADModeling/TurningCapLoop/TurningCapLoopCornerPatchBuilder.swift", sourceLine: 194
         ),
+        KernelDomainLimitation(
+            id: "condition-13df0cd1c1a909f1",
+            operations: ["CADCommand"],
+            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
+            condition: "Periodic native charts have no prefix owner on volumetric pcurve queries. Complete only with original cycle/seam coverage.",
+            sourcePath: "Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift", sourceLine: 109
+        ),
     ]
 }

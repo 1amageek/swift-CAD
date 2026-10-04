@@ -1628,12 +1628,103 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     }
   }
 
+  func piecewisePolynomialBounds(
+    for curve: SurfaceParameterCurve,
+    primitive: CertifiedPiecewisePolynomialSurfaceFluxPrimitive,
+    requestedWidth: Double,
+    tolerance: ModelingTolerance
+  ) throws -> Interval {
+    guard let result = try rationalSurfaceBounds(for: curve, field: primitive.field,
+      uBase: primitive.uBase, requestedWidth: requestedWidth, tolerance: tolerance,
+      polynomialPrimitive: primitive) else {
+      throw KernelError(phase: .topology, code: .unsupportedCapability, tolerance: tolerance,
+        message: "The original pcurve has no supported piecewise polynomial flux composition.")
+    }
+    return result
+  }
+
+  private func polynomialSurfaceExplicitBounds(
+    primitive: CertifiedPiecewisePolynomialSurfaceFluxPrimitive,
+    requestedWidth: Double,
+    curveBreaks: [Double],
+    parameterEvaluator: (Jet) throws -> (u: Jet, v: Jet),
+    tolerance: ModelingTolerance
+  ) throws -> Interval {
+    struct Cell { let lower: Double; let upper: Double; let depth: Int; let width: Double }
+    let breaks = sortedUniqueFractions(curveBreaks + [0, 1])
+    let intervals = (1..<breaks.count).filter { breaks[$0] > breaks[$0 - 1] }
+    guard maximumWorkItems > 0, !intervals.isEmpty else {
+      throw resourceFailure(residual: nil, tolerance: tolerance, message: "Polynomial Green integration requires a positive work allowance and partition.")
+    }
+    let initialWidth = requestedWidth * 0.5 / Double(intervals.count)
+    let roundoffWidth = requestedWidth * 0.5 / Double(maximumWorkItems)
+    var pending = intervals.map { Cell(lower: breaks[$0 - 1], upper: breaks[$0], depth: 0, width: initialWidth) }
+    var work = 0
+    var result = Interval.exact(0)
+    while let cell = pending.popLast() {
+      try Task.checkCancellation()
+      work += 1
+      guard work <= maximumWorkItems else {
+        throw resourceFailure(residual: Double(work), tolerance: tolerance, message: "Polynomial Green integration exhausted its existing cell allowance.")
+      }
+      let curve = try parameterEvaluator(.variable(Interval(lower: cell.lower, upper: cell.upper)))
+      let u = curve.u.coefficients[0], v = curve.v.coefficients[0]
+      let enclosure: Interval
+      if let uSpan = primitive.uSpans.first(where: { u.lower >= $0.lower && u.upper <= $0.upper }),
+         let vSpan = primitive.vSpans.first(where: { v.lower >= $0.lower && v.upper <= $0.upper }) {
+        guard let gauss = try gaussEnclosure(lower: cell.lower, upper: cell.upper, evaluator: { fraction in
+          let parameters = try parameterEvaluator(fraction)
+          let green = try primitive.directionalJet(
+            u: .series(parameters.u.coefficients), v: .series(parameters.v.coefficients),
+            uSpan: uSpan, vSpan: vSpan)
+          return Jet(coefficients: green.coefficients) * parameters.v.derivative()
+        }, tolerance: tolerance) else {
+          throw resourceFailure(residual: nil, tolerance: tolerance, message: "An owning polynomial Green cell lost its original jet proof.")
+        }
+        enclosure = gauss
+      } else {
+        // Retain the existing seam-domain enclosure law; no band measure is discarded.
+        let uLower = primitive.uSpans[0].lower, uUpper = primitive.uSpans[primitive.uSpans.count - 1].upper
+        let vLower = primitive.vSpans[0].lower, vUpper = primitive.vSpans[primitive.vSpans.count - 1].upper
+        let uSlack = Double.ulpOfOne * max(1, abs(uLower), abs(uUpper)) * 4_096
+        let vSlack = Double.ulpOfOne * max(1, abs(vLower), abs(vUpper)) * 4_096
+        guard u.lower >= uLower - uSlack, u.upper <= uUpper + uSlack,
+              v.lower >= vLower - vSlack, v.upper <= vUpper + vSlack else {
+          throw KernelError(phase: .topology, code: .topologyFailure, tolerance: tolerance,
+            message: "Polynomial Green seam band left the original surface domain.")
+        }
+        let green = try primitive.range(overClosedUV: Interval(lower: max(uLower, u.lower), upper: min(uUpper, u.upper)),
+          v: Interval(lower: max(vLower, v.lower), upper: min(vUpper, v.upper)))
+        enclosure = green * curve.v.derivative().coefficients[0] * .floating(cell.upper - cell.lower)
+      }
+      guard enclosure.lower.isFinite, enclosure.upper.isFinite else {
+        throw resourceFailure(residual: enclosure.width, tolerance: tolerance, message: "Polynomial Green integration exceeded finite arithmetic.")
+      }
+      if enclosure.width <= (cell.width + roundoffWidth).nextUp {
+        result = result + enclosure
+        continue
+      }
+      let middle = cell.lower + (cell.upper - cell.lower) * 0.5
+      guard cell.depth < maximumDepth, middle > cell.lower, middle < cell.upper else {
+        throw resourceFailure(residual: enclosure.width, tolerance: tolerance, message: "Polynomial Green integration exhausted its existing proof depth.")
+      }
+      pending.append(Cell(lower: middle, upper: cell.upper, depth: cell.depth + 1, width: cell.width * 0.5))
+      pending.append(Cell(lower: cell.lower, upper: middle, depth: cell.depth + 1, width: cell.width * 0.5))
+    }
+    try Task.checkCancellation()
+    guard result.width <= requestedWidth else {
+      throw resourceFailure(residual: result.width, tolerance: tolerance, message: "Polynomial Green accumulated enclosure exceeds the requested width.")
+    }
+    return result
+  }
+
   func rationalSurfaceBounds(
     for curve: SurfaceParameterCurve,
     field: CertifiedRationalBezierSurfaceFluxIntegrator.PreparedField,
     uBase: Double,
     requestedWidth: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    polynomialPrimitive: CertifiedPiecewisePolynomialSurfaceFluxPrimitive? = nil
   ) throws -> Interval? {
     try tolerance.validate()
     try Task.checkCancellation()
@@ -1653,6 +1744,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     switch curve {
     case .constantU(let u, let vStart, let vEnd):
       return try rationalSurfaceExplicitBounds(
+        polynomialPrimitive: polynomialPrimitive,
         field: field,
         uBase: uBase,
         requestedWidth: requestedWidth,
@@ -1679,6 +1771,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       let vStart = origin.y + direction.y * startParameter
       let vEnd = origin.y + direction.y * endParameter
       return try rationalSurfaceExplicitBounds(
+        polynomialPrimitive: polynomialPrimitive,
         field: field,
         uBase: uBase,
         requestedWidth: requestedWidth,
@@ -1702,6 +1795,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       }
     case .harmonic(let center, let cosine, let sine, let startParameter, let endParameter):
       return try rationalSurfaceExplicitBounds(
+        polynomialPrimitive: polynomialPrimitive,
         field: field,
         uBase: uBase,
         requestedWidth: requestedWidth,
@@ -1748,6 +1842,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         result =
           result
           + (try rationalSurfaceExplicitBounds(
+            polynomialPrimitive: polynomialPrimitive,
             field: field,
             uBase: uBase,
             requestedWidth: segmentWidth,
@@ -1784,6 +1879,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         result =
           result
           + (try rationalSurfaceExplicitBounds(
+            polynomialPrimitive: polynomialPrimitive,
             field: field,
             uBase: uBase,
             requestedWidth: patchWidth,
@@ -1827,7 +1923,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         field: field,
         uBase: uBase,
         requestedWidth: requestedWidth,
-        tolerance: tolerance
+        tolerance: tolerance,
+        polynomialPrimitive: polynomialPrimitive
       )
     case .offsetSurfaceImage(let image):
       return try rationalSurfaceBounds(
@@ -1835,7 +1932,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         field: field,
         uBase: uBase,
         requestedWidth: requestedWidth,
-        tolerance: tolerance
+        tolerance: tolerance,
+        polynomialPrimitive: polynomialPrimitive
       )
     case .periodicTranslation(let base, let uShift, let vShift):
       guard uShift == 0.0, vShift == 0.0 else {
@@ -1852,7 +1950,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         field: field,
         uBase: uBase,
         requestedWidth: requestedWidth,
-        tolerance: tolerance
+        tolerance: tolerance,
+        polynomialPrimitive: polynomialPrimitive
       )
     }
   }
@@ -2872,6 +2971,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
   }
 
   private func rationalSurfaceExplicitBounds(
+    polynomialPrimitive: CertifiedPiecewisePolynomialSurfaceFluxPrimitive? = nil,
     field: CertifiedRationalBezierSurfaceFluxIntegrator.PreparedField,
     uBase: Double,
     requestedWidth: Double,
@@ -2879,6 +2979,11 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     curveBreaks: [Double] = [0.0, 1.0],
     parameterEvaluator: (Jet) throws -> (u: Jet, v: Jet)
   ) throws -> Interval {
+    if let primitive = polynomialPrimitive {
+      return try polynomialSurfaceExplicitBounds(primitive: primitive,
+        requestedWidth: requestedWidth, curveBreaks: curveBreaks,
+        parameterEvaluator: parameterEvaluator, tolerance: tolerance)
+    }
     struct WorkItem {
       let lambdaLower: Double
       let lambdaUpper: Double

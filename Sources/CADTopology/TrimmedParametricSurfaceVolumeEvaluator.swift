@@ -391,6 +391,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
       model: model,
       field: field,
       requestedCurveWidth: requestedCurveWidth,
+      budget: &budget,
       tolerance: tolerance
     )
   }
@@ -837,6 +838,15 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     else {
       return nil
     }
+    guard case .closed(let uBase, _) = surface.uDomain else {
+      throw KernelError(phase: .topology, code: .invalidInput, tolerance: tolerance,
+        message: "Original loop flux requires a bounded U chart.")
+    }
+    var budget = CoefficientBudget(limit: maximumCoefficientOperations)
+    let allImplicit = parameterCurves.allSatisfy { if case .certifiedImplicit = $0 { return true }; return false }
+    let primitive = allImplicit ? nil : try field.preparedPolynomialGreenPrimitive(uBase: uBase) {
+      try budget.consume($0, tolerance: tolerance)
+    }
     guard
       let contribution = try rationalLoopContribution(
         parameterCurves: parameterCurves,
@@ -844,6 +854,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         surface: surface,
         field: field,
         requestedCurveWidth: requestedWidth / Double(parameterCurves.count),
+        polynomialPrimitive: primitive,
         tolerance: tolerance
       )
     else {
@@ -1014,8 +1025,22 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     model: BRepModel,
     field: CertifiedRationalBezierSurfaceFluxIntegrator.PreparedField,
     requestedCurveWidth: Double,
+    budget: inout CoefficientBudget,
     tolerance: ModelingTolerance
   ) throws -> OutwardInterval? {
+    guard case .closed(let uBase, _) = surface.uDomain else {
+      throw KernelError(phase: .topology, code: .invalidInput, tolerance: tolerance,
+        message: "Original polynomial flux requires a bounded U chart.")
+    }
+    let allImplicit = face.loops.allSatisfy { loopID in
+      model.loops[loopID]?.coedges.allSatisfy { coedge in
+        if case .certifiedImplicit? = coedge.surfaceParameterCurve { return true }
+        return false
+      } ?? false
+    }
+    let primitive = allImplicit ? nil : try field.preparedPolynomialGreenPrimitive(uBase: uBase) {
+      try budget.consume($0, tolerance: tolerance)
+    }
     var total = OutwardInterval.exact(0.0)
     for loopID in face.loops {
       guard let loop = model.loops[loopID],
@@ -1040,6 +1065,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           surface: surface,
           field: field,
           requestedCurveWidth: requestedCurveWidth,
+          polynomialPrimitive: primitive,
           tolerance: tolerance
         )
       else {
@@ -1056,6 +1082,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     surface: BSplineSurface3D,
     field: CertifiedRationalBezierSurfaceFluxIntegrator.PreparedField,
     requestedCurveWidth: Double,
+    polynomialPrimitive: CertifiedPiecewisePolynomialSurfaceFluxPrimitive? = nil,
     tolerance: ModelingTolerance
   ) throws -> OutwardInterval? {
     guard case .closed(let uBase, _) = surface.uDomain,
@@ -1075,16 +1102,21 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     var rawFlux = TrimmedAnalyticSurfaceVolumeEvaluator.Interval.exact(0.0)
     var areaBounds = SurfaceParameterAreaBounds.zero
     for curve in parameterCurves {
-      guard
-        let contribution = try curveIntegrator.rationalSurfaceBounds(
+      let contribution: TrimmedAnalyticSurfaceVolumeEvaluator.Interval
+      if let primitive = polynomialPrimitive {
+        // Explicit curves use prefixes; native implicit curves keep their existing owner.
+        contribution = try curveIntegrator.piecewisePolynomialBounds(for: curve, primitive: primitive,
+          requestedWidth: requestedCurveWidth, tolerance: tolerance)
+      } else {
+        guard let certified = try curveIntegrator.rationalSurfaceBounds(
           for: curve,
           field: field,
           uBase: uBase,
           requestedWidth: requestedCurveWidth,
           tolerance: tolerance
         )
-      else {
-        return nil
+        else { return nil }
+        contribution = certified
       }
       rawFlux = rawFlux + contribution
       areaBounds = areaBounds.adding(
