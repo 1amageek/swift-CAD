@@ -121,6 +121,24 @@ cancellation at every body, shell, face, loop, and edge traversal boundary;
 cancelled extraction never returns a partial submodel.
 No project state or UI callback is touched while a reader or writer runs.
 
+The package's [normal-WASI Foundation environment](../../DESIGN.md#normal-wasi-foundation-environment)
+owns the fixed SDK and target-local compiler/linker settings used by this
+module and the SwiftCAD facade. Its bounded proof exercises the existing
+in-memory Native package path and typed malformed-input refusal. It does not
+certify URL persistence, all exchange formats, or Embedded Swift; the exact
+source graph and backend remain receipt-owned.
+
+Native ZIP reads use the default aggregate cap
+`min(UInt32.max, Int.max)`, expressed as `Int(clamping: UInt32.max)`.
+The classic ZIP ceiling is unchanged on Native64; on wasm32 the host-addressable
+ceiling is explicit. Record size conversions, central-directory end checks and
+cumulative byte admission retain their typed failures. A tiny default public
+read, malformed metadata and a record beyond the host-addressable or classic
+ZIP boundary must be refused or decoded without a conversion trap; these
+oracles allocate no large archive. The reader and the borrowed Native package
+path consume the same cap definition.
+
+
 ## Verification and Change Impact
 
 `ExactSTEPExchangeTests` must prove exact source retention, embedded-unit

@@ -172,6 +172,50 @@ validated Mesh map. The caller owns the task that invokes the kernel; Swift-CAD
 has no UI or Agent scheduler and does not retry a failed or cancelled
 tessellation.
 
+### Normal-WASI Foundation Environment
+
+The package owns the compiler and linker environment for the normal
+`swift-6.4.0-RELEASE_wasm` SDK. `CADExchange` and `SwiftCAD` import Foundation
+through their existing public facade graph. Each target defines
+`_WASI_EMULATED_SIGNAL` and `_WASI_EMULATED_MMAN` and links
+`wasi-emulated-signal` and `wasi-emulated-mman` only on WASI. Native target
+settings remain unchanged. A missing SDK module or emulation library is a
+build or link failure; it is not an invitation to substitute parser semantics.
+
+The facade runtime must exercise default in-memory Native package admission,
+including typed malformed-record refusal. ZIP byte limits and host
+addressability are owned by [CADExchange](Sources/CADExchange/DESIGN.md#failure-concurrency-and-constraints).
+
+SwiftPM target settings do not propagate to a dependent Swift module's Clang
+importer. A private verification executable importing Foundation and SwiftCAD
+therefore repeats these target-local settings. Its existing WASI test stack
+contract is 64 MiB; that setting belongs to the test executable, not the
+production library targets.
+
+```mermaid
+flowchart LR
+    H["Private normal-WASI harness"] --> F["SwiftCAD public facade"]
+    F --> E["CADExchange Foundation import and memory package"]
+    F --> K["CADKernel deferred exact box evaluation"]
+    SDK["Fixed Swift 6.4.0 normal SDK + emulation libraries"] --> H
+    SDK --> F
+    SDK --> E
+```
+
+The bounded verification uses this main source graph: public `appendFeature`,
+deferred exact box topology and literal volume, in-memory Native package
+write/read with complete source equality, and malformed-package typed refusal.
+The real Node.js WASI Preview 1 runner must exit successfully and emit the
+harness's dedicated final marker. A runner start or module compilation alone
+is insufficient evidence. The receipt identifies the exact commit, overlays,
+private harness, package graph, SDK, runner, artifact and observed backend.
+
+This environment contract does not certify URL persistence, atomic file
+publication, transaction/history APIs, every exchange format, WasmKit, or
+Embedded Swift. Prior receipts for another source graph remain scoped to their
+original snapshots and are not evidence for this main graph. Changes to these
+settings require the same full-facade compile, link and bounded runtime proof.
+
 ## Verification and Change Impact
 
 The affected module tests must prove every generated sphere body, face, edge,

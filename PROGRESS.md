@@ -1,0 +1,4 @@
+# Progress
+
+- [x] MW1 Support the normal-WASI public facade and host-addressable classic ZIP defaults. Fixed Swift6.4.0 full graph compile/link, Node24.19.0 real WASI public append/exact-box/source-roundtrip/malformed/oversized refusal and three Native ZIP tests pass; one scoped review has no findings. Existing capability ledger and public inventory failures are identical to committed0465a16 and remain outside this checkpoint. URL atomicity, A2, Embedded and geometry-normal changes remain outside this bounded evidence. `depends:none` `parallel:none`
+- [ ] MW.I Integrate the committed checkpoint with current main in isolation, verify the combined exact production graph and preserve all foreign working edits before merging into main. Retain scoped proof and baseline catalog limitations. `depends:MW1` `parallel:none`

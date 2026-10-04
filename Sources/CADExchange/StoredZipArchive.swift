@@ -153,7 +153,7 @@ public struct StoredZipArchive {
     static func withBorrowedEntries<Result>(
         from source: any ByteSource,
         maximumEntryCount: Int = Int(UInt16.max),
-        maximumTotalUncompressedBytes: Int = Int(UInt32.max),
+        maximumTotalUncompressedBytes: Int = Int(clamping: UInt32.max),
         _ body: ([String: Data]) throws -> Result
     ) throws -> Result {
         try source.withUnsafeBytes { bytes in
@@ -176,7 +176,7 @@ public struct StoredZipArchive {
         try readEntries(
             from: bytes,
             maximumEntryCount: Int(UInt16.max),
-            maximumTotalUncompressedBytes: Int(UInt32.max)
+            maximumTotalUncompressedBytes: Int(clamping: UInt32.max)
         )
     }
 

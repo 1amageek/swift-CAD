@@ -117,12 +117,28 @@ let package = Package(
         .product(name: "OpenUSDC", package: "swift-OpenUSD"),
         .product(name: "OpenUSDZ", package: "swift-OpenUSD"),
       ],
+      cSettings: [
+        .define("_WASI_EMULATED_SIGNAL", .when(platforms: [.custom("wasi")])),
+        .define("_WASI_EMULATED_MMAN", .when(platforms: [.custom("wasi")])),
+      ],
+      linkerSettings: [
+        .linkedLibrary("wasi-emulated-signal", .when(platforms: [.custom("wasi")])),
+        .linkedLibrary("wasi-emulated-mman", .when(platforms: [.custom("wasi")])),
+      ]
     ),
     .target(
       name: "SwiftCAD",
       dependencies: [
         "CADCore", "CADCapabilities", "CADTopology", "CADIR", "CADModeling", "CADKernel",
         "CADExchange",
+      ],
+      cSettings: [
+        .define("_WASI_EMULATED_SIGNAL", .when(platforms: [.custom("wasi")])),
+        .define("_WASI_EMULATED_MMAN", .when(platforms: [.custom("wasi")])),
+      ],
+      linkerSettings: [
+        .linkedLibrary("wasi-emulated-signal", .when(platforms: [.custom("wasi")])),
+        .linkedLibrary("wasi-emulated-mman", .when(platforms: [.custom("wasi")])),
       ]
     ),
     .executableTarget(
