@@ -86,3 +86,20 @@ at all eight octants of a box, including those whose meridians lie on the
 seam, against the rounded box's closed-form volume. Changes affect
 CADModeling Surface Fill and RupaCore body display topology; both consumers
 must continue to agree on the exact cycle and whether it is actionable.
+
+
+### Original Local Active Curve Extraction (PAR.CL9L1)
+
+CertifiedBSplineCurveBezierExtractor may reduce each original active span to its
+exact degree+one original control/weight slice and two-degree+two stored knot
+slice. No coefficient reconstruction or rounded Cartesian extraction is used.
+The lower endpoint's correct original owning span, all derivative orders,
+positive weights and existing outward homogeneous derivative/Bernstein operations
+must remain authoritative. Repeated knots and closed endpoints retain their
+original side; invalid/unsupported source and exhausted work refuse explicitly.
+A monotonic original knot cursor avoids restarting a full scan for every span. Each new cursor advance and the checked original local knot/control/weight slice cost is charged to the existing maximumControlOperations before reading or materializing that work. No new private budget is introduced.
+Direct independent original homogeneous value/derivative containment at span
+endpoints/interiors and repeated-knot rational fixtures must verify the change,
+followed by existing profile-moment and rational area/volume integration owners.
+The candidate flux endpoint shortcut is not part of this adoption; it has a
+separate near-endpoint root and seam-enclosure contract needing direct proof.

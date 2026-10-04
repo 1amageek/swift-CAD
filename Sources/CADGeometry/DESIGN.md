@@ -1088,3 +1088,16 @@ foreign preparation tolerance, cancellation and unresolved finite weight refuse.
 Original implicit four-coordinate existence, derivative, endpoint64ulp and actual
 work oracles are required. Public Q3 area/centroid performance remains a separate
 completion gate; this lower contract alone makes no speed/completion claim.
+
+
+### Scale-Aware Original Principal Direction Candidate (PAR.CL9L1)
+
+The original B-spline differential geometry principal-direction candidate is a
+product of shape-operator row coefficients and original tangent vectors. Its
+finite refusal threshold scales with their actual maximum magnitudes, existing
+relative tolerance and binary64 rounding, without an arbitrary unit floor on
+those factors. Existing curvature-gap/umbilic handling, finite candidate and
+unit-direction checks remain unchanged. Independent metre-scale non-umbilic
+fixtures must establish valid finite principal axes and rescaling invariance;
+near-umbilic fallback and unresolvable/singular candidates must retain explicit
+failure. This lower change does not authorize a sampled fitted Draft law.
