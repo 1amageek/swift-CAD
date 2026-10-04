@@ -211,6 +211,11 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         } else {
             curveDerivativeBoundsAreIntervalInvariant = false
         }
+        let curveFirstDerivativeBoundsAreIntervalInvariant =
+            firstDerivativeBoundsAreIntervalInvariant(
+                for: curve,
+                parameterRange: parameterRange
+            )
         let parameterLift = SurfaceLiftCurve3D(
             surface: surface,
             parameterCurve: parameterCurve
@@ -277,6 +282,8 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         // This preserves the proof while making work proportional to cells
         // that the correspondence actually needs to certify.
         var localSecondDerivativeBounds: [CurveParameterInterval: Double?] = [:]
+        var invocationNativeSecondDerivativeBound: Double?
+        var computedInvocationNativeSecondDerivativeBound = false
         func curveBasisInterval(
             containingLower lower: Double,
             upper: Double
@@ -316,18 +323,40 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 containingLower: lower,
                 upper: upper
             )
+            let childParameterRange = try ScalarInterval(
+                lower: key.lower,
+                upper: key.upper
+            )
+            let canReuseNativeBound = secondDerivativeBoundCanReuse(
+                for: curve,
+                parameterRange: childParameterRange
+            )
             if let cached = localSecondDerivativeBounds[key] {
                 return cached
             }
-            let bound = try self.curveSecondDerivativeUpperBound(
-                curve,
-                parameterRange: try ScalarInterval(
-                    lower: key.lower,
-                    upper: key.upper
-                ),
-                tolerance: tolerance,
-                preparedCurve: preparedCurve
-            )
+            let bound: Double?
+            if canReuseNativeBound {
+                if computedInvocationNativeSecondDerivativeBound {
+                    bound = invocationNativeSecondDerivativeBound
+                } else {
+                    let computed = try self.curveSecondDerivativeUpperBound(
+                        curve,
+                        parameterRange: childParameterRange,
+                        tolerance: tolerance,
+                        preparedCurve: preparedCurve
+                    )
+                    invocationNativeSecondDerivativeBound = computed
+                    computedInvocationNativeSecondDerivativeBound = true
+                    bound = computed
+                }
+            } else {
+                bound = try self.curveSecondDerivativeUpperBound(
+                    curve,
+                    parameterRange: childParameterRange,
+                    tolerance: tolerance,
+                    preparedCurve: preparedCurve
+                )
+            }
             let result = bound.map { local in
                 curveSecondDerivative.map { min(local, $0) } ?? local
             }
@@ -341,7 +370,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             _ lower: Double,
             _ upper: Double
         ) throws -> Double? {
-            if curveDerivativeBoundsAreIntervalInvariant {
+            if curveFirstDerivativeBoundsAreIntervalInvariant {
                 if computedIntervalInvariantFirstDerivativeBound {
                     return intervalInvariantFirstDerivativeBound
                 }
@@ -2740,6 +2769,62 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         // validator may use them only after whole requested wrap intervals have proof.
         if curve.isPeriodic, parameterRange.lower <= lower || parameterRange.upper >= upper { return false }
         return true
+    }
+
+    private func firstDerivativeBoundsAreIntervalInvariant(
+        for curve: Curve3D,
+        parameterRange: ScalarInterval
+    ) -> Bool {
+        switch curve {
+        case let .surfaceLift(lift):
+            return SurfaceLiftDifferentialBounder()
+                .derivativeMagnitudeBoundsAreIntervalInvariant(lift: lift)
+        case let .bSpline(curve):
+            return spatialBSplineIntervalHasNativeAuthority(
+                curve,
+                parameterRange: parameterRange
+            )
+        case let .rigidImage(image):
+            return firstDerivativeBoundsAreIntervalInvariant(
+                for: image.source,
+                parameterRange: parameterRange
+            )
+        case let .affineImage(image):
+            return firstDerivativeBoundsAreIntervalInvariant(
+                for: image.source,
+                parameterRange: parameterRange
+            )
+        default:
+            return false
+        }
+    }
+
+    private func secondDerivativeBoundCanReuse(
+        for curve: Curve3D,
+        parameterRange: ScalarInterval
+    ) -> Bool {
+        switch curve {
+        case let .bSpline(curve):
+            return spatialBSplineIntervalHasNativeAuthority(
+                curve,
+                parameterRange: parameterRange
+            ) && !spatialBSplineHasInteriorDerivativeJump(
+                curve,
+                parameterRange: parameterRange
+            )
+        case let .rigidImage(image):
+            return secondDerivativeBoundCanReuse(
+                for: image.source,
+                parameterRange: parameterRange
+            )
+        case let .affineImage(image):
+            return secondDerivativeBoundCanReuse(
+                for: image.source,
+                parameterRange: parameterRange
+            )
+        default:
+            return false
+        }
     }
 
     private func spatialBSplineHasInteriorDerivativeJump(_ curve: BSplineCurve3D,

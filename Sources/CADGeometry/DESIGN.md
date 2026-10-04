@@ -615,6 +615,70 @@ out-of-domain parameters throw typed geometry errors. Representational
 tolerance is bounded to the operation's mathematical scale and cannot accept
 nonfinite or degenerate data.
 
+### Retained Original Implicit Root Restriction (Q3 pending)
+
+The existing opaque `ImplicitCurveIntervalJetEncloser.ParameterEnclosureState`
+retains original intersection, cell, tolerance, closed source interval and a
+four-coordinate root cover. Every existing contraction retains all certified
+original roots; endpoint phases additionally save the whole parent `rangeBox`.
+A new package overload `prepareParameterEnclosure(restricting:
+overClosedInterval:tolerance:)` may initialize a child only after exact
+prepared-intersection/cell/tolerance checks and closed child containment. It
+uses the existing original native free-coordinate mapping and intersects it
+with the parent's whole cover. The other three coordinates retain the parent's
+whole cover. In a range phase this is `parameterBox`; in either endpoint phase
+it is the saved whole `rangeBox`, never the endpoint point box.
+
+The result starts the existing range phase. No root, rank, derivative, endpoint,
+64ulp or success criterion is skipped: every actual prepare and advance is
+charged by the existing caller. Empty intersections, nonfinite/domain/identity
+errors and cancellation retain typed failure. This is root-cover continuation,
+not a predicted root or reuse of an endpoint's subset as a whole parent.
+The area chart must transport this opaque lower state without projecting its
+role's two coordinates back into a four-coordinate box. A child singleton's
+state cannot replace the containing whole-range state for sibling/grandchild
+queries. All retained state has the immutable query's bounded DFS lifetime.
+Independent original four-coordinate/first-third derivative fixtures must
+match direct localization, preserve source/tolerance/domain/reversal refusals,
+and measure actual prepare/advance fees. Work reduction and the original public
+60s success require runtime evidence; this pending contract makes no performance
+claim. Geometry owns the lower state, and the area children own its exact
+source-fraction mapping and invocation transport.
+
+### Invocation-Owned Native First-Derivative Reuse
+
+The current correspondence validator's native B-spline first-derivative helper
+constructs every full native span and returns one maximum independent of the
+child interval after native-domain admission. A validation invocation may retain
+that same result once for its immutable source, original admitted interval and
+caller tolerance. Rigid and affine source wrappers preserve this first-order
+interval invariance; periodic seam/translated-cycle refusal remains unchanged.
+This first-order predicate is separate from the existing second-order predicate:
+second-order child restriction and its cache must keep their existing behavior.
+Only the existing helper may create the retained value, including nil and typed
+failure; no new decomposition, certificate, source rounding, interval
+restriction, acceptance deviation, cell/depth limit or fallback is introduced.
+The retained result has invocation lifetime, introduces no shared mutable state,
+and child lookup does not reconstruct all derivative certificates.
+The observed second-order path likewise rebuilds every native span after each
+child's native-domain and interior-derivative-jump admission. It may retain the
+same numerical full-native maximum per invocation through rigid/affine source
+wrappers, but every child must still pass its own existing domain/jump gate
+before reuse. C0 crossings remain nil; a cached value cannot authorize them.
+The existing second-order global-invariance predicate and local key cache keep
+their semantics. Only the first admitted child may compute the retained numeric
+value with the existing helper; subsequent admitted children reuse exactly that
+value. Other curve families retain their existing interval-dependent path.
+The original first-order change passes17 Geometry cases1.558s but both exchange
+cases still exceed60s; a bounded post-change profile locates repeated second-
+order certificate construction. The final original Geometry17 declarations pass1.068s, original IGES import
+passes0.283s and original STEP offset import passes3.444s under unchanged60s
+limits. No acceptance, precision or domain/refusal condition was widened. The measured
+IGES surface-lift import must pass its original60s test, with the existing C0
+mismatch/positive/budget fixtures and STEP offset import unchanged. Geometry
+owns this bounded computational correction. General exchange deadline hooks and
+new cancellation API contracts remain a separate authority decision.
+
 ## Verification and Change Impact
 
 General curve/surface correspondence for an implicit intersection uses its
@@ -796,3 +860,126 @@ The existing kernel offset-image integration test retains forward behavior;
 ### Plane / isoparametric B-spline intersections
 
 When the weighted signed-distance control coefficients are identical along one surface parameter, `PlaneBSplineIsoparametricIntersector` reduces the complete intersection problem to the existing certified curve/plane root solver. Each root yields the exact surface isocurve and its constant-parameter pcurve, verified by `SurfaceSurfaceIntersectionVerifier`. Other surfaces retain the general analytic/B-spline solver. The mirror sheet-cut regression exercises this dispatch with an interior curved-sheet section.
+
+### Original native-span tessellation authority (PAR.M1R3)
+
+The bounded nonperiodic clamped positive-weight C0 rectangle extension uses
+the independently verified selected-span contract. Geometry owns immutable authority
+for one original nonempty native U/V knot-span pair. The prepared owner mints
+it only from its original validated surface/decomposition and retains original
+span indices, exact native bounds and preparation tolerance. Its closed-box
+and point jets select only that owning polynomial/rational span, including its
+one-sided endpoint limits. A request outside that span, with another support
+or preparation tolerance, fails explicitly. Existing all-owning closed-box and
+point-jet APIs keep their union semantics at knots.
+
+Original selected-span basis derivatives evaluate the actual knot endpoint,
+without epsilon shifts or trimmed/reconstructed support. One-sided normals
+are computed from the same original native homogeneous controls and the
+existing strict regularity law. The ordinary right-selected public normal and
+parameter-derivative APIs retain their semantics. The token cannot be minted
+by Kernel and does not expose mutable prepared patches.
+
+| Contract | Assumption | Guarantee / refusal |
+|---|---|---|
+| Original span factory | Valid nonperiodic clamped positive-weight surface and actual nonempty native knot intervals | Immutable original ownership; no synthetic or neighboring span |
+| One-sided closed jet / normal | Finite ordered request within retained span, same preparation tolerance | Entire requested one-sided value/derivative enclosure or typed failure |
+| Tessellation bounds | Retained original span and existing normal-conditioning law | Finite regular tangent/Hessian/normal-path bounds; unresolved regularity refuses |
+| Aggregate proof work | One rectangle invocation | Existing depth32/cell262144 ceiling shared across all original spans, never reset per span |
+
+Subdivision consumes the selected-span enclosure throughout; it must not call
+an all-owning knot jet during a one-sided proof. Cancellation checkpoints
+surround preparation and occur during bounded span/cell traversal. There is no
+new hard cancellation response-time guarantee. Singular geometry, nonfinite
+arithmetic and exhausted work retain explicit typed failures.
+
+CADKernel consumes these immutable contracts for grid composition; it owns
+mesh counts, storage and topology provenance. Geometry tests own literal
+left/right degree-one and degree-two knot derivatives, U/V transpose and
+four-sided tensor-corner jets, original support/tolerance/domain refusal,
+aggregate work and cancellation. Kernel's public fidelity fixtures own the
+actual mesh behavior. Six original Geometry declarations/11cases pass, including
+one-sided rational/linear/quadratic/corner and aggregate-budget/cancellation
+refusal. Changing basis selection requires existing sparse-basis,
+prepared all-owning jet and surface differential regressions.
+
+### Original homogeneous extraction enclosure (PAR.ORIGJET1)
+
+The literal original Greville tensor `S=(u,v,u*v)` exposes a concrete lower
+failure: at U/V `[0.3103448275862068,0.3103448275862069]`, a prepared jet
+returns `X_V=[1.1122032083287393e-17,8.158357065688177e-17]`, excluding
+its original exact zero. Differential preparation must therefore retain
+outward original homogeneous coefficient authority, rather than interpreting
+a rounded Double Bezier extraction and Cartesian quotient as exact geometry.
+The unchanged literal RED reported56 value/derivative containment violations;
+the corrected producer passes the original Greville, rational quotient,
+incident-knot, source/tolerance/domain and cancellation fixtures. The prepared
+surface owner and all86 G4/continuous-overlap declarations also pass on the
+same original homogeneous implementation.
+
+For nonperiodic original native spans, the differential-only producer encloses
+basis derivatives, original homogeneous accumulation and native Taylor-to-
+Bernstein scales with directed interval arithmetic. Stored controls/knots/
+weights are exact singleton inputs. Native knot differences and derivative
+scale denominators are enclosed before division; no rounded span width is
+reinterpreted as exact. Prepared raw jets consume the homogeneous interval
+net directly, with an original stored origin, without Cartesian quotient
+roundtrip. Exact original single-Bezier inputs retain their current direct
+path. The public Double geometry decomposition keeps its separate construction
+contract and supplies no proof authority to this new path.
+
+Original common positive owning weights may use partition of unity to retain
+an exact constant denominator and zero denominator derivatives. Optimizations
+must be justified by original control/basis identities, never by approximate
+extracted-net equality. Nonuniform positive weights retain the complete
+rational denominator and its finite positive enclosure. Empty/inconsistent
+jet intersections remain failures at their consumers.
+
+The prepared owner alone mints an immutable original native-span token,
+retaining source, preparation tolerance, original U/V span indices and full
+native bounds. Its closed-box/point jet selects only that span; all-owning
+nonperiodic requests union every incident original span, including zero-width
+knot ownership. C0 tessellation consumes these same selected-span tokens;
+ordinary right-selected scalar basis behavior remains unchanged. A separately
+validated internal selected-span scalar derivative entry supports original
+one-sided normals without shifting UV or reconstructing geometry.
+
+| Invariant | Rejection evidence |
+|---|---|
+| Original coefficient/derivative containment | Literal Greville position and derivatives, exact zero/one/mixed fields at the actual failing closed box and point |
+| Native span ownership | Left/right knot jets and token source/tolerance/domain refusal |
+| Existing consumers | All-owning prepared/surface differential/basis, G4 original endpoint/knot/rational graph and existing periodic route regressions |
+| Resource/lifecycle | Existing preparation limits and query proof fees retained; immutable per-invocation storage, finite arithmetic, cancellation and typed failure |
+
+Periodic preparation remains on its existing separate original-cycle route;
+this nonperiodic correction does not establish new periodic extraction
+provenance or full-G4/M1 completion. G4 and C0 owner designs consume this
+contract and must not separately repair rounded output fields or mint
+independent competing original-span authority.
+
+The corrective package contract is
+`PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan`, minted by
+`originalNativeSpans(over:tolerance:)`. Immutable fields retain the original
+surface/tolerance, original native `uSpanIndex`/`vSpanIndex`, and full
+`uBounds`/`vBounds`. A span index is the original knot interval index with
+`degree <= index < controlCount` and `knots[index] < knots[index+1]`.
+All incident spans are retained for a nonempty closed intersection, including
+constant-UV and knot-point requests. Periodic requests cannot mint this new
+token; their existing prepared route retains its separate contract.
+Internal token `validate(on:over:tolerance:)`,
+`intervalJet(overClosedBox:on:tolerance:)` and `pointJet(u:v:on:tolerance:)`
+check exact source/tolerance and closed native containment. Raw storage and
+minting remain private; Kernel receives no jet or patch mutation authority.
+The checked internal scalar `BSplineBasis.nonzeroDerivativeValues` overload
+adds `owningSpan` and caller `tolerance`; its selected side remains fixed at
+actual closed endpoints. The lower-only outward derivative overload shares
+native-index validation and provides original coefficient authority.
+
+The C0 aggregate bounds owner also exposes a Geometry-internal overload with
+an explicitly lowerable cell ceiling for focused contract verification.
+`maximumCellCount` must be in `1...262144`; the package entry always delegates
+with the existing262144 ceiling and existing depth32. The same production
+traversal owns and charges all panels for either entry, never a separate test
+algorithm. Two independent regular linear panels with ceiling1 must exhaust
+work and ceiling2 must succeed, detecting a per-panel reset. This internal
+control cannot increase the resource ceiling or change regularity/fidelity.
