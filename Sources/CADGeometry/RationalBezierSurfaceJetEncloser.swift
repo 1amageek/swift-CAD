@@ -24,6 +24,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
         fileprivate let polynomialX: HomogeneousJetControls?
         fileprivate let polynomialY: HomogeneousJetControls?
         fileprivate let polynomialZ: HomogeneousJetControls?
+        fileprivate let originalCommonWeight: Double?
     }
 
     func enclosure(
@@ -88,14 +89,27 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
             origin: origin,
             controls: derivativeJetControls(
                 controls,
-                uSpan: patch.uUpper - patch.uLower,
-                vSpan: patch.vUpper - patch.vLower,
+                uSpan: .exact(patch.uUpper) - .exact(patch.uLower),
+                vSpan: .exact(patch.vUpper) - .exact(patch.vLower),
                 tolerance: tolerance
             ),
             polynomialX: polynomialCoordinate(\.x, origin: origin.x, patch: patch, tolerance: tolerance),
             polynomialY: polynomialCoordinate(\.y, origin: origin.y, patch: patch, tolerance: tolerance),
-            polynomialZ: polynomialCoordinate(\.z, origin: origin.z, patch: patch, tolerance: tolerance)
+            polynomialZ: polynomialCoordinate(\.z, origin: origin.z, patch: patch, tolerance: tolerance),
+            originalCommonWeight: nil
         )
+    }
+
+    func prepare(original patch: BSplineSurfaceBezierDecomposer.OriginalHomogeneousPatch,
+                 tolerance: ModelingTolerance) throws -> PreparedPatch {
+        try Task.checkCancellation()
+        return try PreparedPatch(uLower: patch.uBounds.lower, uUpper: patch.uBounds.upper,
+            vLower: patch.vBounds.lower, vUpper: patch.vBounds.upper, origin: patch.origin,
+            controls: derivativeJetControls(patch.controls,
+                uSpan: .exact(patch.uBounds.upper) - .exact(patch.uBounds.lower),
+                vSpan: .exact(patch.vBounds.upper) - .exact(patch.vBounds.lower), tolerance: tolerance),
+            polynomialX: nil, polynomialY: nil, polynomialZ: nil,
+            originalCommonWeight: patch.commonWeight)
     }
 
     private func polynomialCoordinate(_ coordinate: KeyPath<Point3D, Double>, origin: Double,
@@ -120,7 +134,8 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
                 y: .exact(0), z: .exact(0), weight: .exact(1))
         } }
         return try derivativeJetControls(controls,
-            uSpan: patch.uUpper - patch.uLower, vSpan: patch.vUpper - patch.vLower,
+            uSpan: .exact(patch.uUpper) - .exact(patch.uLower),
+            vSpan: .exact(patch.vUpper) - .exact(patch.vLower),
             tolerance: tolerance)
     }
 
@@ -241,10 +256,18 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
         let x = scalarJet(localized, component: \IntervalHomogeneousSurfaceControl.x)
         let y = scalarJet(localized, component: \IntervalHomogeneousSurfaceControl.y)
         let z = scalarJet(localized, component: \IntervalHomogeneousSurfaceControl.z)
-        let weight = scalarJet(
+        let enclosedWeight = scalarJet(
             localized,
             component: \IntervalHomogeneousSurfaceControl.weight
         )
+        let weight: SurfaceIntervalJet
+        if let common = patch.originalCommonWeight {
+            // The original tensor's common positive weight and partition of unity
+            // establish this denominator before any extraction or jet evaluation.
+            weight = SurfaceIntervalJet(value: .exact(common), derivativeU: .exact(0), derivativeV: .exact(0),
+                secondDerivativeUU: .exact(0), secondDerivativeUV: .exact(0), secondDerivativeVV: .exact(0),
+                thirdDerivativeUUU: .exact(0), thirdDerivativeUUV: .exact(0), thirdDerivativeUVV: .exact(0), thirdDerivativeVVV: .exact(0))
+        } else { weight = enclosedWeight }
         guard weight.value.lower > 0, let reciprocalWeight = weight.reciprocal() else {
             throw KernelError(
                 phase: .geometry,
@@ -281,12 +304,12 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
 
     private func derivativeJetControls(
         _ controls: [[IntervalHomogeneousSurfaceControl]],
-        uSpan: Double,
-        vSpan: Double,
+        uSpan: OutwardScalarInterval,
+        vSpan: OutwardScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> HomogeneousJetControls {
-        guard uSpan.isFinite, uSpan > 0.0,
-              vSpan.isFinite, vSpan > 0.0 else {
+        guard uSpan.isFinite, uSpan.lower > 0.0,
+              vSpan.isFinite, vSpan.lower > 0.0 else {
             throw invalidPatchError(tolerance: tolerance)
         }
         let derivativeU = try differentiatedU(
@@ -350,14 +373,14 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
 
     private func differentiatedU(
         _ controls: [[IntervalHomogeneousSurfaceControl]],
-        span: Double,
+        span: OutwardScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> [[IntervalHomogeneousSurfaceControl]] {
         guard let count = controls.first?.count, count > 1 else {
             return controls.map { _ in [.zero] }
         }
-        guard let scale = OutwardScalarInterval(Double(count - 1)).divided(
-            by: OutwardScalarInterval(span)
+        guard let scale = OutwardScalarInterval.exact(Double(count - 1)).divided(
+            by: span
         ) else {
             throw invalidPatchError(tolerance: tolerance)
         }
@@ -370,7 +393,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
 
     private func differentiatedV(
         _ controls: [[IntervalHomogeneousSurfaceControl]],
-        span: Double,
+        span: OutwardScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> [[IntervalHomogeneousSurfaceControl]] {
         guard controls.count > 1,
@@ -380,9 +403,9 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
                 count: controls.first?.count ?? 1
             )]
         }
-        guard let scale = OutwardScalarInterval(
+        guard let scale = OutwardScalarInterval.exact(
             Double(controls.count - 1)
-        ).divided(by: OutwardScalarInterval(span)) else {
+        ).divided(by: span) else {
             throw invalidPatchError(tolerance: tolerance)
         }
         return (0..<(controls.count - 1)).map { rowIndex in
