@@ -9,6 +9,15 @@ struct CertifiedSurfaceFaceAreaIntegrator {
         let t: ScalarInterval
         let r: ScalarInterval
         let depth: Int
+        let fanChartProof: PreparedSurfaceAreaIntegrand.CenteredFanChartProof?
+
+        init(t: ScalarInterval, r: ScalarInterval, depth: Int,
+             fanChartProof: PreparedSurfaceAreaIntegrand.CenteredFanChartProof? = nil) {
+            self.t = t
+            self.r = r
+            self.depth = depth
+            self.fanChartProof = fanChartProof
+        }
     }
 
     func measurement(of face: Face, on surface: Surface3D, in model: BRepModel,
@@ -20,7 +29,8 @@ struct CertifiedSurfaceFaceAreaIntegrator {
         }
         try admit(surface, options: options, tolerance: tolerance)
         var loops: [(role: LoopRole, curves: [SurfaceParameterCurve], charts: [SurfaceAreaParameterChartEncloser],
-                     endpoints: [(start: Endpoint, end: Endpoint)]?)] = []
+                     endpoints: [(start: Endpoint, end: Endpoint)]?,
+                     images: [SurfaceAreaParameterChartEncloser.IsoBoundaryImage?]?)] = []
         var work = 0
         var count = 0
         for id in face.loops {
@@ -45,7 +55,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                 maximumControlPointCount:options.maximumControlPointCount,
                 maximumBoundaryCurveCount:options.maximumBoundaryCurveCount,tolerance:tolerance,
                 consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) }) }
-            loops.append((loop.role, curves, charts, nil))
+            loops.append((loop.role, curves, charts, nil, nil))
         }
         let usesImplicitWork = loops.contains { $0.charts.contains { $0.requiresCallerWork } }
         var certifiedAnchor: SurfaceParameter?
@@ -54,8 +64,13 @@ struct CertifiedSurfaceFaceAreaIntegrator {
             // endpoint proof precedes any hint, under the same query work owner.
             for loopIndex in loops.indices {
                 let loop = loops[loopIndex]
+                var images: [SurfaceAreaParameterChartEncloser.IsoBoundaryImage?] = []
                 let endpoints = try loop.charts.map { chart in
-                    try (start:chart.endpointBounds(atEnd:false,tolerance:tolerance,
+                    let image = try chart.certifiedIsoBoundaryImage(tolerance:tolerance,
+                        consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
+                    images.append(image)
+                    if let image { return (start:image.start,end:image.end) }
+                    return try (start:chart.endpointBounds(atEnd:false,tolerance:tolerance,
                         consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) }),
                          end:chart.endpointBounds(atEnd:true,tolerance:tolerance,
                         consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) }))
@@ -80,6 +95,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                     certifiedAnchor = SurfaceParameter(u:first.start.u.midpoint,v:first.start.v.midpoint)
                 }
                 loops[loopIndex].endpoints = endpoints
+                loops[loopIndex].images = images
             }
         } else {
             // Legacy families retain their existing periodic lifting authority.
@@ -101,7 +117,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                     maximumControlPointCount:options.maximumControlPointCount,
                     maximumBoundaryCurveCount:options.maximumBoundaryCurveCount,tolerance:tolerance,
                     consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) }) }
-                loops[index] = (loops[index].role,curves,charts,nil)
+                loops[index] = (loops[index].role,curves,charts,nil,nil)
             }
         }
         guard let firstCurve = loops.first?.curves.first else {
@@ -144,10 +160,40 @@ struct CertifiedSurfaceFaceAreaIntegrator {
         var total = Array(repeating: OutwardScalarInterval.exact(0), count: 4)
         for loop in loops {
             var accumulated = Array(repeating: OutwardScalarInterval.exact(0), count: 4)
-            if prepared.translationDirection != nil, let box = try rectangularDomain(loop.curves, charts:loop.charts) {
+            var rectangle = try rectangularDomain(loop.curves,charts:loop.charts)
+            var rectangleGoals = goals
+            var rectangleWinding = 1.0
+            var rectangleCorrection = Array(repeating:OutwardScalarInterval.exact(0),count:4)
+            var hasIsoCorrection = false
+            if rectangle == nil, prepared.translationDirection != nil,
+               let corrected = try originalIsoRectangle(curves:loop.curves,charts:loop.charts,
+                    images:loop.images,tolerance:tolerance) {
+                let correction = try prepared.isoImageEndpointCorrection(image:corrected.image,
+                    parameterChart:loop.charts[corrected.index],nominalStart:corrected.start,
+                    nominalEnd:corrected.end,anchor:anchor,reference:reference,tolerance:tolerance,
+                    consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
+                let remaining = zip(goals,correction).map { goal,value in
+                    (OutwardScalarInterval.exact(goal)
+                        - .exact(((value.upper - value.lower).nextUp * 0.5).nextUp)).lower
+                }
+                if remaining.allSatisfy({ $0.isFinite && $0 > 0 }) {
+                    rectangle = corrected.box
+                    rectangleGoals = remaining
+                    rectangleWinding = corrected.winding
+                    rectangleCorrection = correction
+                    hasIsoCorrection = true
+                }
+            }
+            if prepared.translationDirection != nil, let box = rectangle {
                 accumulated = try integrate(curve: loop.curves[0], parameterChart:loop.charts[0], rectangle: box,
-                    anchor: anchor, reference: reference, prepared: prepared, goals: goals,
+                    anchor: anchor, reference: reference, prepared: prepared, goals: rectangleGoals,
                     options: options, work: &work, tolerance: tolerance)
+                if hasIsoCorrection {
+                    for field in 0..<4 {
+                        if rectangleWinding < 0 { accumulated[field] = accumulated[field] * .exact(-1) }
+                        accumulated[field] = accumulated[field] + rectangleCorrection[field]
+                    }
+                }
             } else {
                 for index in loop.curves.indices {
                     let curve = loop.curves[index], chart = loop.charts[index]
@@ -268,6 +314,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
             }
             var values: [OutwardScalarInterval]?
             var splitT = cell.t.width >= cell.r.width
+            var fanChartProof = cell.fanChartProof
             do {
                 let bounds: [SurfaceAreaIntegrandBounds]
                 let midpoint: [SurfaceAreaIntegrandBounds]
@@ -291,15 +338,30 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                         boundaryFraction: ScalarInterval(lower: cell.t.midpoint, upper: cell.t.midpoint), tolerance: tolerance,
                         parameterChart:parameterChart,
                         consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
+                } else if parameterChart.requiresCallerWork {
+                    if let parent = fanChartProof {
+                        fanChartProof = try prepared.prepareCenteredFanChartProof(restricting:parent,
+                            curve:curve,parameterChart:parameterChart,boundaryFraction:cell.t,tolerance:tolerance,
+                            consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
+                    } else {
+                        fanChartProof = try prepared.prepareCenteredFanChartProof(curve:curve,
+                            parameterChart:parameterChart,boundaryFraction:cell.t,tolerance:tolerance,
+                            consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
+                    }
+                    guard let proof = fanChartProof else {
+                        throw failure(.classificationFailure,tolerance,"Centered fan lost its prepared chart authority.")
+                    }
+                    let pair = try prepared.centeredFanBounds(using:proof,curve:curve,parameterChart:parameterChart,
+                        anchor:anchor,reference:reference,boundaryFraction:cell.t,radialFraction:cell.r,
+                        tolerance:tolerance)
+                    bounds = pair.range
+                    midpoint = pair.midpoint
                 } else {
-                    bounds = try prepared.bounds(curve: curve, anchor: anchor, reference: reference,
-                        boundaryFraction: cell.t, radialFraction: cell.r, tolerance: tolerance,parameterChart:parameterChart,
-                        consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
-                    midpoint = try prepared.bounds(curve: curve, anchor: anchor, reference: reference,
-                        boundaryFraction: ScalarInterval(lower: cell.t.midpoint, upper: cell.t.midpoint),
-                        radialFraction: ScalarInterval(lower: cell.r.midpoint, upper: cell.r.midpoint), tolerance: tolerance,
-                        parameterChart:parameterChart,
-                        consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
+                    let pair = try prepared.pairedFanBounds(curve:curve,parameterChart:parameterChart,
+                        anchor:anchor,reference:reference,boundaryFraction:cell.t,radialFraction:cell.r,
+                        tolerance:tolerance,consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
+                    bounds = pair.range
+                    midpoint = pair.midpoint
                 }
                 let size = OutwardScalarInterval.exact(cell.t.upper) - .exact(cell.t.lower)
                 let height = OutwardScalarInterval.exact(cell.r.upper) - .exact(cell.r.lower)
@@ -362,8 +424,13 @@ struct CertifiedSurfaceFaceAreaIntegrator {
             }
             let lower = try ScalarInterval(lower: selected.lower, upper: middle)
             let upper = try ScalarInterval(lower: middle, upper: selected.upper)
-            stack.append(Cell(t: splitT ? upper : cell.t, r: splitT ? cell.r : upper, depth: cell.depth + 1))
-            stack.append(Cell(t: splitT ? lower : cell.t, r: splitT ? cell.r : lower, depth: cell.depth + 1))
+            // R children reuse exact T authority. T children retain the parent
+            // only as restriction input and pay for their own closed midpoint.
+            let childProof = fanChartProof
+            stack.append(Cell(t: splitT ? upper : cell.t, r: splitT ? cell.r : upper,
+                depth: cell.depth + 1, fanChartProof:childProof))
+            stack.append(Cell(t: splitT ? lower : cell.t, r: splitT ? cell.r : lower,
+                depth: cell.depth + 1, fanChartProof:childProof))
         }
         return total
     }
@@ -503,6 +570,49 @@ struct CertifiedSurfaceFaceAreaIntegrator {
               starts.allSatisfy({ ($0.u == uLow || $0.u == uHigh) && ($0.v == vLow || $0.v == vHigh) }) else { return nil }
         return SurfaceParameterBox(u: try ScalarInterval(lower: uLow, upper: uHigh),
                                    v: try ScalarInterval(lower: vLow, upper: vHigh))
+    }
+
+    /// The original trim remains retained; only its monotone image participates
+    /// in this rectangle decomposition. Both endpoint fan differences are paid.
+    private func originalIsoRectangle(curves: [SurfaceParameterCurve],
+        charts: [SurfaceAreaParameterChartEncloser],
+        images: [SurfaceAreaParameterChartEncloser.IsoBoundaryImage?]?,
+        tolerance: ModelingTolerance) throws
+        -> (box: SurfaceParameterBox, image: SurfaceAreaParameterChartEncloser.IsoBoundaryImage,
+            index: Int, start: SurfaceParameter, end: SurfaceParameter, winding: Double)? {
+        guard curves.count == 4,charts.count == 4,let images,images.count == 4 else { return nil }
+        let indices = images.indices.filter { images[$0] != nil }
+        guard indices.count == 1,let index = indices.first,let image = images[index] else { return nil }
+        try image.validate(for:charts[index],on:charts[index].support,tolerance:tolerance)
+        func endpoints(_ index: Int) -> (start: SurfaceParameter, end: SurfaceParameter)? {
+            switch charts[index].exactIsoBoundary ?? curves[index] {
+            case .constantU(let u,let first,let last):
+                return (SurfaceParameter(u:u,v:first),SurfaceParameter(u:u,v:last))
+            case .constantV(let v,let first,let last):
+                return (SurfaceParameter(u:first,v:v),SurfaceParameter(u:last,v:v))
+            default: return nil
+            }
+        }
+        guard let previous = endpoints((index+3)%4),let next = endpoints((index+1)%4) else { return nil }
+        let start = previous.end,end = next.start
+        guard (image.axis == .v ? start.v : start.u) == image.fixedParameter,
+              (image.axis == .v ? end.v : end.u) == image.fixedParameter else { return nil }
+        let first = image.axis == .v ? image.start.u : image.start.v
+        let last = image.axis == .v ? image.end.u : image.end.v
+        let nominalFirst = image.axis == .v ? start.u : start.v
+        let nominalLast = image.axis == .v ? end.u : end.v
+        guard (first.upper < last.lower && nominalFirst < nominalLast)
+            || (last.upper < first.lower && nominalLast < nominalFirst) else { return nil }
+        var imageTemplate = curves
+        imageTemplate[index] = image.axis == .v
+            ? .constantV(v:image.fixedParameter,uStart:start.u,uEnd:end.u)
+            : .constantU(u:image.fixedParameter,vStart:start.v,vEnd:end.v)
+        guard let box = try rectangularDomain(imageTemplate,charts:charts) else { return nil }
+        let middle = image.axis == .v ? box.v.midpoint : box.u.midpoint
+        let oriented = (OutwardScalarInterval.exact(nominalLast) - .exact(nominalFirst))
+            * (.exact(middle) - .exact(image.fixedParameter)) * .exact(image.axis == .v ? 1 : -1)
+        guard oriented.isFinite,oriented.lower > 0 || oriented.upper < 0 else { return nil }
+        return (box,image,index,start,end,oriented.lower > 0 ? 1 : -1)
     }
 
     private func segments(_ curve: SurfaceParameterCurve, tolerance: ModelingTolerance) throws -> [SurfaceParameterCurve] {

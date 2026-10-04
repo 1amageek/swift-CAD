@@ -13,6 +13,31 @@ package struct SurfaceAreaIntegrandBounds: Sendable {
 
 /// Immutable exact geometry preparation for signed boundary-fan integration.
 package struct PreparedSurfaceAreaIntegrand: Sendable {
+    /// Geometry-owned chart authority, opaque to the topology cell retaining it.
+    package struct CenteredFanChartProof: Sendable {
+        fileprivate let curve: SurfaceParameterCurve
+        fileprivate let support: Surface3D
+        fileprivate let fraction: ScalarInterval
+        fileprivate let tolerance: ModelingTolerance
+        fileprivate let root: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState
+        fileprivate let range: (u: SurfaceIntervalJet, v: SurfaceIntervalJet)
+        fileprivate let midpoint: (u: SurfaceIntervalJet, v: SurfaceIntervalJet)
+
+        fileprivate init(curve: SurfaceParameterCurve, support: Surface3D,
+            fraction: ScalarInterval, tolerance: ModelingTolerance,
+            root: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState,
+            range: (u: SurfaceIntervalJet, v: SurfaceIntervalJet),
+            midpoint: (u: SurfaceIntervalJet, v: SurfaceIntervalJet)) {
+            self.curve = curve
+            self.support = support
+            self.fraction = fraction
+            self.tolerance = tolerance
+            self.root = root
+            self.range = range
+            self.midpoint = midpoint
+        }
+    }
+
     private indirect enum Storage: Sendable {
         case spline(SurfaceAreaNativeSpanPartition)
         case offset(OffsetSurface3D, PreparedSurfaceAreaIntegrand)
@@ -22,12 +47,14 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
     package let surface: Surface3D
     private let storage: Storage
     private let derivativeOrder: Int
+    private let preparationTolerance: ModelingTolerance
     package let translationDirection: SurfaceAreaTranslationCertificate?
 
     package init(surface: Surface3D, tolerance: ModelingTolerance, maximumControlPointCount: Int = 65_536) throws {
         try Self.admitDimensions(surface, limit: maximumControlPointCount, tolerance: tolerance)
         try surface.validate(tolerance: tolerance)
         self.surface = surface
+        preparationTolerance = tolerance
         translationDirection = SurfaceAreaTranslationCertificate.direction(of: surface)
         switch surface {
         case .bSpline(let spline):
@@ -98,6 +125,172 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork
     ) throws -> [SurfaceAreaIntegrandBounds] {
         let proof = try chartProof(curve:curve,prepared:parameterChart,over:boundaryFraction,tolerance:tolerance,consumeWork:consumeWork)
+        return try fanBounds(proof:proof,curve:curve,anchor:anchor,reference:reference,
+            radialFraction:radialFraction,tolerance:tolerance,domain:domain)
+    }
+
+    /// The existing two chart/source evaluations composed as one original fan pair.
+    package func pairedFanBounds(curve: SurfaceParameterCurve,
+        parameterChart: SurfaceAreaParameterChartEncloser, anchor: SurfaceParameter,
+        reference: Point3D, boundaryFraction: ScalarInterval, radialFraction: ScalarInterval,
+        tolerance: ModelingTolerance, consumeWork: () throws -> Void)
+        throws -> (range: [SurfaceAreaIntegrandBounds], midpoint: [SurfaceAreaIntegrandBounds]) {
+        let range = try chartProof(curve:curve,prepared:parameterChart,over:boundaryFraction,
+            tolerance:tolerance,consumeWork:consumeWork)
+        let midpoint = try chartProof(curve:curve,prepared:parameterChart,
+            over:ScalarInterval(lower:boundaryFraction.midpoint,upper:boundaryFraction.midpoint),
+            tolerance:tolerance,consumeWork:consumeWork)
+        return try pairedFanFields(range:range,midpoint:midpoint,curve:curve,anchor:anchor,
+            reference:reference,radialFraction:radialFraction,tolerance:tolerance)
+    }
+
+    /// A smooth original implicit chart pair composed with the same signed fan.
+    package func centeredFanBounds(curve: SurfaceParameterCurve,
+        parameterChart: SurfaceAreaParameterChartEncloser, anchor: SurfaceParameter,
+        reference: Point3D, boundaryFraction: ScalarInterval, radialFraction: ScalarInterval,
+        tolerance: ModelingTolerance, consumeWork: () throws -> Void)
+        throws -> (range: [SurfaceAreaIntegrandBounds], midpoint: [SurfaceAreaIntegrandBounds]) {
+        let proof = try prepareCenteredFanChartProof(curve:curve,parameterChart:parameterChart,
+            boundaryFraction:boundaryFraction,tolerance:tolerance,consumeWork:consumeWork)
+        return try centeredFanBounds(using:proof,curve:curve,parameterChart:parameterChart,
+            anchor:anchor,reference:reference,boundaryFraction:boundaryFraction,
+            radialFraction:radialFraction,tolerance:tolerance)
+    }
+
+    /// Every actual lower preparation and phase is charged when this proof is minted.
+    package func prepareCenteredFanChartProof(curve: SurfaceParameterCurve,
+        parameterChart: SurfaceAreaParameterChartEncloser, boundaryFraction: ScalarInterval,
+        tolerance: ModelingTolerance, consumeWork: () throws -> Void) throws -> CenteredFanChartProof {
+        guard parameterChart.curve == curve, parameterChart.support == surface,
+              parameterChart.requiresCallerWork, !parameterChart.hasNativeJoins,
+              !radialIntegrationIsExact, !hasNativeDensityJumps else {
+            throw Self.failure(.invalidInput,tolerance,
+                "Centered fan fields require their smooth non-affine original implicit chart and support.")
+        }
+        let jets = try parameterChart.centeredIntervalJetsRetainingRoot(over:boundaryFraction,
+            tolerance:tolerance,consumeWork:consumeWork)
+        guard let root = jets.root else {
+            throw Self.failure(.classificationFailure,tolerance,"Implicit fan preparation lost its original whole root cover.")
+        }
+        return CenteredFanChartProof(curve:curve,support:surface,fraction:boundaryFraction,
+            tolerance:tolerance,root:root,range:jets.range,midpoint:jets.midpoint)
+    }
+
+    /// A parent whole-range proof is authority only within its original closed T domain.
+    /// A changed T midpoint still executes and pays for the original singleton localizer.
+    package func prepareCenteredFanChartProof(restricting parent: CenteredFanChartProof,
+        curve: SurfaceParameterCurve, parameterChart: SurfaceAreaParameterChartEncloser,
+        boundaryFraction: ScalarInterval, tolerance: ModelingTolerance,
+        consumeWork: () throws -> Void) throws -> CenteredFanChartProof {
+        guard parent.curve == curve, parent.support == surface, parent.tolerance == tolerance,
+              parameterChart.curve == curve, parameterChart.support == surface,
+              boundaryFraction.lower >= parent.fraction.lower,
+              boundaryFraction.upper <= parent.fraction.upper else {
+            throw Self.failure(.invalidInput,tolerance,
+                "Child fan chart restriction requires its original containing parent authority.")
+        }
+        if boundaryFraction == parent.fraction { return parent }
+        let jets = try parameterChart.centeredIntervalJets(over:boundaryFraction,
+            restricting:parent.range,root:parent.root,tolerance:tolerance,consumeWork:consumeWork)
+        return CenteredFanChartProof(curve:curve,support:surface,fraction:boundaryFraction,
+            tolerance:tolerance,root:parent.root,range:jets.range,midpoint:jets.midpoint)
+    }
+
+    /// R-only subdivision reuses chart authority without repeating a root operation.
+    package func centeredFanBounds(using proof: CenteredFanChartProof,
+        curve: SurfaceParameterCurve, parameterChart: SurfaceAreaParameterChartEncloser,
+        anchor: SurfaceParameter, reference: Point3D, boundaryFraction: ScalarInterval,
+        radialFraction: ScalarInterval, tolerance: ModelingTolerance)
+        throws -> (range: [SurfaceAreaIntegrandBounds], midpoint: [SurfaceAreaIntegrandBounds]) {
+        guard proof.curve == curve, proof.support == surface, proof.fraction == boundaryFraction,
+              proof.tolerance == tolerance, parameterChart.curve == curve,
+              parameterChart.support == surface else {
+            throw Self.failure(.invalidInput,tolerance,
+                "Retained centered fan chart authority belongs to another curve, support, interval or tolerance.")
+        }
+        return try pairedFanFields(range:.smooth(u:proof.range.u,v:proof.range.v),
+            midpoint:.smooth(u:proof.midpoint.u,v:proof.midpoint.v),curve:curve,anchor:anchor,
+            reference:reference,radialFraction:radialFraction,tolerance:tolerance)
+    }
+
+    private func pairedFanFields(range: SurfaceAreaParameterChartEncloser.IntervalProof,
+        midpoint: SurfaceAreaParameterChartEncloser.IntervalProof, curve: SurfaceParameterCurve,
+        anchor: SurfaceParameter, reference: Point3D, radialFraction: ScalarInterval,
+        tolerance: ModelingTolerance)
+        throws -> (range: [SurfaceAreaIntegrandBounds], midpoint: [SurfaceAreaIntegrandBounds]) {
+        let midpointR = try ScalarInterval(lower:radialFraction.midpoint,upper:radialFraction.midpoint)
+        guard case .smooth(let rangeU,let rangeV) = range,
+              case .smooth(let midpointU,let midpointV) = midpoint else {
+            return try (fanBounds(proof:range,curve:curve,anchor:anchor,reference:reference,
+                radialFraction:radialFraction,tolerance:tolerance,domain:nil),
+                fanBounds(proof:midpoint,curve:curve,anchor:anchor,reference:reference,
+                    radialFraction:midpointR,tolerance:tolerance,domain:nil))
+        }
+        let whole = try fanPullback(u:rangeU,v:rangeV,anchor:anchor,radialFraction:radialFraction,tolerance:tolerance)
+        let point = try fanPullback(u:midpointU,v:midpointV,anchor:anchor,radialFraction:midpointR,tolerance:tolerance)
+        if let patch = originalSingleSpanPatch(over:whole.box,midpoint:point.box) {
+            guard preparationTolerance == tolerance else {
+                throw Self.failure(.invalidInput,tolerance,"A centered source pair requires its original preparation tolerance.")
+            }
+            let owner = RationalBezierSurfaceJetEncloser()
+            guard !Task.isCancelled else { throw Self.failure(.cancelled,tolerance,"Original source range evaluation was cancelled.") }
+            let rangeJet = try owner.enclosure(of:patch,u:whole.box.u,v:whole.box.v,tolerance:tolerance)
+            guard !Task.isCancelled else { throw Self.failure(.cancelled,tolerance,"Original source midpoint evaluation was cancelled.") }
+            let midpointJet = try owner.enclosure(of:patch,u:point.box.u,v:point.box.v,tolerance:tolerance)
+            let tightened = try Self.centeredSourceRange(rangeJet,midpoint:midpointJet,
+                over:whole.box,midpointBox:point.box,tolerance:tolerance)
+            return try (fields(from:tightened,order:3,u:whole.u,v:whole.v,measure:whole.measure,
+                reference:reference,tolerance:tolerance),
+                fields(from:midpointJet,order:3,u:point.u,v:point.v,measure:point.measure,
+                    reference:reference,tolerance:tolerance))
+        }
+        return try (fields(over:whole.box,u:whole.u,v:whole.v,measure:whole.measure,
+            reference:reference,domain:nil,tolerance:tolerance),
+            fields(over:point.box,u:point.u,v:point.v,measure:point.measure,
+                reference:reference,domain:nil,tolerance:tolerance))
+    }
+
+    /// Eligibility proves the decomposer's verbatim stored-coefficient branch,
+    /// rather than treating an arbitrary extracted single patch as original authority.
+    private func originalSingleSpanPatch(over box: SurfaceParameterBox, midpoint: SurfaceParameterBox)
+        -> RationalBezierSurfaceJetEncloser.PreparedPatch? {
+        guard case .bSpline(let stored) = surface, case .spline(let partition) = storage,
+              stored == partition.surface, partition.derivativeOrder == 3,
+              partition.patches.count == 1 else { return nil }
+        let original = partition.surface, patch = partition.patches[0]
+        guard !original.isUPeriodic, !original.isVPeriodic,
+              original.uControlPointCount == original.uDegree+1,
+              original.vControlPointCount == original.vDegree+1,
+              original.uKnots.count == 2*(original.uDegree+1),
+              original.vKnots.count == 2*(original.vDegree+1),
+              original.uKnots.prefix(original.uDegree+1).allSatisfy({ $0 == patch.uLower }),
+              original.uKnots.suffix(original.uDegree+1).allSatisfy({ $0 == patch.uUpper }),
+              original.vKnots.prefix(original.vDegree+1).allSatisfy({ $0 == patch.vLower }),
+              original.vKnots.suffix(original.vDegree+1).allSatisfy({ $0 == patch.vUpper }),
+              box.u.lower >= patch.uLower, box.u.upper <= patch.uUpper,
+              box.v.lower >= patch.vLower, box.v.upper <= patch.vUpper,
+              midpoint.u.lower >= box.u.lower, midpoint.u.upper <= box.u.upper,
+              midpoint.v.lower >= box.v.lower, midpoint.v.upper <= box.v.upper else { return nil }
+        return patch
+    }
+
+    private func fanPullback(u chartU: SurfaceIntervalJet, v chartV: SurfaceIntervalJet,
+        anchor: SurfaceParameter, radialFraction: ScalarInterval, tolerance: ModelingTolerance)
+        throws -> (box: SurfaceParameterBox, u: SurfaceIntervalJet, v: SurfaceIntervalJet, measure: SurfaceIntervalJet) {
+        let r = SurfaceIntervalJet.parameterV(radialFraction)
+        let du = chartU - .constant(anchor.u), dv = chartV - .constant(anchor.v)
+        let u = SurfaceIntervalJet.constant(anchor.u) + du*r
+        let v = SurfaceIntervalJet.constant(anchor.v) + dv*r
+        let box = SurfaceParameterBox(u:try clipped(u.value,to:surface.uDomain,tolerance:tolerance),
+            v:try clipped(v.value,to:surface.vDomain,tolerance:tolerance))
+        let measure = r*(du*chartV.differentiatedUThroughSecondOrder()-dv*chartU.differentiatedUThroughSecondOrder())
+        return (box,u,v,measure)
+    }
+
+    private func fanBounds(proof: SurfaceAreaParameterChartEncloser.IntervalProof,
+        curve: SurfaceParameterCurve, anchor: SurfaceParameter, reference: Point3D,
+        radialFraction: ScalarInterval, tolerance: ModelingTolerance,
+        domain: SurfaceAreaNativeSpanDomain?) throws -> [SurfaceAreaIntegrandBounds] {
         if case .valueOnly(let u,let v,let tangentU,let tangentV) = proof {
             let radial = OutwardScalarInterval(lower:radialFraction.lower,upper:radialFraction.upper)
             let du = u - .exact(anchor.u), dv = v - .exact(anchor.v)
@@ -350,6 +543,81 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
             thirdDerivativeUUU: zero, thirdDerivativeUUV: zero, thirdDerivativeUVV: zero, thirdDerivativeVVV: zero)
     }
 
+    /// Both original endpoint fans remain in the integral. The replacement
+    /// rectangle is only a measure decomposition, never a replacement trim.
+    package func isoImageEndpointCorrection(image: SurfaceAreaParameterChartEncloser.IsoBoundaryImage,
+        parameterChart: SurfaceAreaParameterChartEncloser,
+        nominalStart: SurfaceParameter, nominalEnd: SurfaceParameter,
+        anchor: SurfaceParameter, reference: Point3D, tolerance: ModelingTolerance,
+        consumeWork: () throws -> Void) throws -> [OutwardScalarInterval] {
+        try image.validate(for:parameterChart,on:surface,tolerance:tolerance)
+        guard tolerance == preparationTolerance, translationDirection == image.axis else {
+            throw Self.failure(.invalidInput,tolerance,"Iso-image correction lost its original translation or preparation authority.")
+        }
+        guard [nominalStart.u,nominalStart.v,nominalEnd.u,nominalEnd.v,anchor.u,anchor.v,
+               reference.x,reference.y,reference.z].allSatisfy(\.isFinite),
+              case .closed(let uLow,let uHigh) = surface.uDomain,
+              case .closed(let vLow,let vHigh) = surface.vDomain,
+              [nominalStart,nominalEnd,anchor].allSatisfy({
+                  $0.u >= uLow && $0.u <= uHigh && $0.v >= vLow && $0.v <= vHigh
+              }) else {
+            throw Self.failure(.invalidInput,tolerance,"Iso-image endpoint correction requires finite vertices in its original native domain.")
+        }
+        let fixed = image.fixedParameter
+        let anchorAxis = image.axis == .v ? anchor.v : anchor.u
+        let anchorOther = image.axis == .v ? anchor.u : anchor.v
+        guard (image.axis == .v ? nominalStart.v : nominalStart.u) == fixed,
+              (image.axis == .v ? nominalEnd.v : nominalEnd.u) == fixed else {
+            throw Self.failure(.invalidInput,tolerance,"Iso-image correction requires its proved original constant axis.")
+        }
+        let endpoints = [image.start,image.end]
+        let nominal = [nominalStart,nominalEnd]
+        var total = Array(repeating:OutwardScalarInterval.exact(0),count:4)
+        for index in 0..<2 {
+            try consumeWork()
+            let originalOther = image.axis == .v ? endpoints[index].u : endpoints[index].v
+            let nominalOther = image.axis == .v ? nominal[index].u : nominal[index].v
+            let delta = OutwardScalarInterval(lower:originalOther.lower,upper:originalOther.upper) - .exact(nominalOther)
+            let scale = max(1,abs(originalOther.lower),abs(originalOther.upper),abs(nominalOther),abs(fixed))
+            guard delta.isFinite,delta.absoluteUpperBound <= Double.ulpOfOne * scale * 64 else {
+                throw Self.failure(.invalidInput,tolerance,"Iso-image endpoint correction exceeds the original parameter connection authority.")
+            }
+            let orientation = (image.axis == .v ? 1.0 : -1.0) * (index == 0 ? -1.0 : 1.0)
+            let signedMeasure = (.exact(anchorAxis) - .exact(fixed)) * delta * .exact(orientation * 0.5)
+            let axisRange = OutwardScalarInterval(lower:min(anchorAxis,fixed),upper:max(anchorAxis,fixed))
+            let otherRange = OutwardScalarInterval(lower:min(anchorOther,nominalOther,originalOther.lower),
+                upper:max(anchorOther,nominalOther,originalOther.upper))
+            let box = try SurfaceParameterBox(
+                u:clipped(image.axis == .v ? otherRange : axisRange,to:surface.uDomain,tolerance:tolerance),
+                v:clipped(image.axis == .v ? axisRange : otherRange,to:surface.vDomain,tolerance:tolerance))
+            var ranges: [OutwardScalarInterval]?
+            try forEachSurfaceJet(over:box,domain:nil,tolerance:tolerance) { jet,_ in
+                let cross = jet.differentiatedUThroughSecondOrder().cross(jet.differentiatedVThroughSecondOrder())
+                let normal = IntervalVector3DBounds(x:cross.x.value,y:cross.y.value,z:cross.z.value)
+                let upper = normal.lengthUpperBound
+                guard upper.isFinite else {
+                    throw Self.failure(.classificationFailure,tolerance,"Iso-image endpoint triangle has no finite original density cover.")
+                }
+                let density = OutwardScalarInterval(lower:0,upper:upper)
+                let fields = [density,(jet.x.value - .exact(reference.x))*density,
+                    (jet.y.value - .exact(reference.y))*density,(jet.z.value - .exact(reference.z))*density]
+                guard fields.allSatisfy(\.isFinite) else {
+                    throw Self.failure(.classificationFailure,tolerance,"Iso-image endpoint triangle has nonfinite original moment bounds.")
+                }
+                if let prior = ranges { ranges = zip(prior,fields).map { $0.union($1) } }
+                else { ranges = fields }
+            }
+            guard signedMeasure.isFinite,let ranges else {
+                throw Self.failure(.classificationFailure,tolerance,"Iso-image endpoint triangle lost original support coverage.")
+            }
+            for field in 0..<4 { total[field] = total[field] + signedMeasure * ranges[field] }
+        }
+        guard total.allSatisfy(\.isFinite) else {
+            throw Self.failure(.classificationFailure,tolerance,"Iso-image endpoint correction overflowed finite integral arithmetic.")
+        }
+        return total
+    }
+
     /// Integrates a proved translation coordinate exactly over one rectangular trim.
     /// Density is independent of that coordinate and position is affine in it.
     package func rectangularTranslationBounds(
@@ -430,29 +698,8 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
                         tolerance: ModelingTolerance) throws -> [SurfaceAreaIntegrandBounds] {
         var result: [SurfaceAreaIntegrandBounds]?
         try forEachSurfaceJet(over:box,domain:domain,tolerance:tolerance) { jet,order in
-            let cross = jet.differentiatedUThroughSecondOrder().cross(jet.differentiatedVThroughSecondOrder())
-            let values: [SurfaceAreaIntegrandBounds]
-            if order == 0 {
-                let vector = IntervalVector3DBounds(x:cross.x.value,y:cross.y.value,z:cross.z.value)
-                let density = OutwardScalarInterval(lower:vector.lengthLowerBound,upper:vector.lengthUpperBound)
-                let origins = [reference.x,reference.y,reference.z]
-                let coordinates = [jet.x.value,jet.y.value,jet.z.value]
-                let fields = [density]+coordinates.enumerated().map { ($0.element - .exact(origins[$0.offset]))*density }
-                values = fields.map { SurfaceAreaIntegrandBounds(value:$0*measure.value,
-                    derivativeU:nil,derivativeV:nil,secondUU:nil,secondUV:nil,secondVV:nil) }
-            } else {
-                guard let density = cross.dot(cross).squareRoot() else {
-                    throw Self.failure(.singularSystem,tolerance,"Area density is unresolved inside a smooth native span.")
-                }
-                let fields = [density,(jet.x - .constant(reference.x))*density,
-                    (jet.y - .constant(reference.y))*density,(jet.z - .constant(reference.z))*density]
-                values = fields.map { field in
-                    let f = compose(field,u:u,v:v)*measure
-                    return SurfaceAreaIntegrandBounds(value:f.value,derivativeU:f.derivativeU,derivativeV:f.derivativeV,
-                        secondUU:order >= 3 ? f.secondDerivativeUU : nil,
-                        secondUV:order >= 3 ? f.secondDerivativeUV : nil,secondVV:order >= 3 ? f.secondDerivativeVV : nil)
-                }
-            }
+            let values = try fields(from:jet,order:order,u:u,v:v,measure:measure,
+                reference:reference,tolerance:tolerance)
             if let prior = result {
                 func merge(_ a: OutwardScalarInterval?, _ b: OutwardScalarInterval?) -> OutwardScalarInterval? {
                     guard let a,let b else { return nil }; return a.union(b)
@@ -466,6 +713,82 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         }
         guard let result else { throw Self.failure(.classificationFailure,tolerance,"Area integrand has no native support coverage.") }
         return result
+    }
+
+    /// Composes the same supplied source proof into all four physical fan fields.
+    /// Source/native-span authority is owned by the enclosure caller, not this algebra.
+    func fields(from jet: SurfaceIntervalVectorJet, order: Int, u: SurfaceIntervalJet,
+        v: SurfaceIntervalJet, measure: SurfaceIntervalJet, reference: Point3D,
+        tolerance: ModelingTolerance) throws -> [SurfaceAreaIntegrandBounds] {
+        let cross = jet.differentiatedUThroughSecondOrder().cross(jet.differentiatedVThroughSecondOrder())
+        if order == 0 {
+            let vector = IntervalVector3DBounds(x:cross.x.value,y:cross.y.value,z:cross.z.value)
+            let density = OutwardScalarInterval(lower:vector.lengthLowerBound,upper:vector.lengthUpperBound)
+            let origins = [reference.x,reference.y,reference.z]
+            let coordinates = [jet.x.value,jet.y.value,jet.z.value]
+            let fields = [density]+coordinates.enumerated().map { ($0.element - .exact(origins[$0.offset]))*density }
+            return fields.map { SurfaceAreaIntegrandBounds(value:$0*measure.value,
+                derivativeU:nil,derivativeV:nil,secondUU:nil,secondUV:nil,secondVV:nil) }
+        } else {
+            guard let density = cross.dot(cross).squareRoot() else {
+                throw Self.failure(.singularSystem,tolerance,"Area density is unresolved inside a smooth native span.")
+            }
+            let fields = [density,(jet.x - .constant(reference.x))*density,
+                (jet.y - .constant(reference.y))*density,(jet.z - .constant(reference.z))*density]
+            return fields.map { field in
+                let f = compose(field,u:u,v:v)*measure
+                return SurfaceAreaIntegrandBounds(value:f.value,derivativeU:f.derivativeU,derivativeV:f.derivativeV,
+                secondUU:order >= 3 ? f.secondDerivativeUU : nil,
+                secondUV:order >= 3 ? f.secondDerivativeUV : nil,secondVV:order >= 3 ? f.secondDerivativeVV : nil)
+            }
+        }
+    }
+
+    /// Algebraic restriction of already-certified same-span source jets.
+    /// The pair factory owns original source/span identity. This helper retains
+    /// midpoint-coordinate uncertainty and never predicts a midpoint source value.
+    static func centeredSourceRange(_ range: SurfaceIntervalVectorJet,
+        midpoint: SurfaceIntervalVectorJet, over box: SurfaceParameterBox,
+        midpointBox: SurfaceParameterBox, tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+        guard midpointBox.u.lower >= box.u.lower, midpointBox.u.upper <= box.u.upper,
+              midpointBox.v.lower >= box.v.lower, midpointBox.v.upper <= box.v.upper else {
+            throw failure(.invalidInput,tolerance,"Source midpoint box is outside its containing range proof.")
+        }
+        let du = OutwardScalarInterval(lower:box.u.lower,upper:box.u.upper)
+            - OutwardScalarInterval(lower:midpointBox.u.lower,upper:midpointBox.u.upper)
+        let dv = OutwardScalarInterval(lower:box.v.lower,upper:box.v.upper)
+            - OutwardScalarInterval(lower:midpointBox.v.lower,upper:midpointBox.v.upper)
+        let uu = du*du, uv = du*dv, vv = dv*dv
+        let half = OutwardScalarInterval.exact(0.5)
+        let sixth = OutwardScalarInterval(1.0/6)
+        func intersect(_ original: OutwardScalarInterval, _ candidate: OutwardScalarInterval) throws -> OutwardScalarInterval {
+            guard original.isFinite, candidate.isFinite else {
+                throw failure(.classificationFailure,tolerance,"Centered source restriction exceeded finite arithmetic.")
+            }
+            guard let intersection = original.intersection(with:candidate) else {
+                throw failure(.classificationFailure,tolerance,"Centered source restriction contradicts its original range jet.")
+            }
+            return intersection
+        }
+        func component(_ f: SurfaceIntervalJet, _ p: SurfaceIntervalJet) throws -> SurfaceIntervalJet {
+            let uuu = f.thirdDerivativeUUU, uuv = f.thirdDerivativeUUV
+            let uvv = f.thirdDerivativeUVV, vvv = f.thirdDerivativeVVV
+            let secondUU = try intersect(f.secondDerivativeUU,p.secondDerivativeUU+uuu*du+uuv*dv)
+            let secondUV = try intersect(f.secondDerivativeUV,p.secondDerivativeUV+uuv*du+uvv*dv)
+            let secondVV = try intersect(f.secondDerivativeVV,p.secondDerivativeVV+uvv*du+vvv*dv)
+            let firstU = try intersect(f.derivativeU,p.derivativeU+p.secondDerivativeUU*du+p.secondDerivativeUV*dv
+                + (uuu*uu + .exact(2)*uuv*uv + uvv*vv)*half)
+            let firstV = try intersect(f.derivativeV,p.derivativeV+p.secondDerivativeUV*du+p.secondDerivativeVV*dv
+                + (uuv*uu + .exact(2)*uvv*uv + vvv*vv)*half)
+            let value = try intersect(f.value,p.value+p.derivativeU*du+p.derivativeV*dv
+                + (p.secondDerivativeUU*uu + .exact(2)*p.secondDerivativeUV*uv + p.secondDerivativeVV*vv)*half
+                + (uuu*uu*du + .exact(3)*uuv*uu*dv + .exact(3)*uvv*du*vv + vvv*vv*dv)*sixth)
+            return SurfaceIntervalJet(value:value,derivativeU:firstU,derivativeV:firstV,
+                secondDerivativeUU:secondUU,secondDerivativeUV:secondUV,secondDerivativeVV:secondVV,
+                thirdDerivativeUUU:uuu,thirdDerivativeUUV:uuv,thirdDerivativeUVV:uvv,thirdDerivativeVVV:vvv)
+        }
+        return try SurfaceIntervalVectorJet(x:component(range.x,midpoint.x),
+            y:component(range.y,midpoint.y),z:component(range.z,midpoint.z))
     }
 
     private func forEachSurfaceJet(over box: SurfaceParameterBox, domain: SurfaceAreaNativeSpanDomain?,

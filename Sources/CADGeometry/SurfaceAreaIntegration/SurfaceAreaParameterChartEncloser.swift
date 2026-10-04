@@ -2,6 +2,45 @@ import CADCore
 
 /// Invocation-owned authority for numeric trims in their exact destination chart.
 package struct SurfaceAreaParameterChartEncloser: Sendable {
+    /// An original boundary image, separate from a replacement parameter curve.
+    package struct IsoBoundaryImage: Sendable {
+        package let axis: SurfaceAreaTranslationCertificate
+        package let fixedParameter: Double
+        package let start: (u: ScalarInterval, v: ScalarInterval)
+        package let end: (u: ScalarInterval, v: ScalarInterval)
+        private let curve: SurfaceParameterCurve
+        private let support: Surface3D
+        private let tolerance: ModelingTolerance
+        private let root: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState
+        private let monotoneDerivative: OutwardScalarInterval
+
+        fileprivate init(axis: SurfaceAreaTranslationCertificate, fixedParameter: Double,
+            start: (u: ScalarInterval, v: ScalarInterval), end: (u: ScalarInterval, v: ScalarInterval),
+            chart: SurfaceAreaParameterChartEncloser, tolerance: ModelingTolerance,
+            root: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState,
+            monotoneDerivative: OutwardScalarInterval) {
+            self.axis = axis
+            self.fixedParameter = fixedParameter
+            self.start = start
+            self.end = end
+            curve = chart.curve
+            support = chart.support
+            self.tolerance = tolerance
+            self.root = root
+            self.monotoneDerivative = monotoneDerivative
+        }
+
+        package func validate(for chart: SurfaceAreaParameterChartEncloser,
+            on surface: Surface3D, tolerance: ModelingTolerance) throws {
+            guard curve == chart.curve, support == chart.support, support == surface,
+                  self.tolerance == tolerance,monotoneDerivative.isFinite,
+                  monotoneDerivative.lower > 0 || monotoneDerivative.upper < 0 else {
+                throw SurfaceAreaParameterChartEncloser.failure(.invalidInput,tolerance,
+                    "An original iso-image receipt belongs to another source chart, support or tolerance.")
+            }
+        }
+    }
+
     /// A join range owns values and one-sided tangents, never higher derivatives.
     enum IntervalProof {
         case smooth(u: SurfaceIntervalJet, v: SurfaceIntervalJet)
@@ -136,10 +175,55 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
         consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork)
         throws -> (range: (u: SurfaceIntervalJet, v: SurfaceIntervalJet),
                    midpoint: (u: SurfaceIntervalJet, v: SurfaceIntervalJet)) {
-        let range = try intervalJet(over: fraction, tolerance: tolerance, consumeWork: consumeWork)
+        let result = try centeredIntervalJetsRetainingRoot(over:fraction,tolerance:tolerance,consumeWork:consumeWork)
+        return (result.range,result.midpoint)
+    }
+
+    func centeredIntervalJetsRetainingRoot(over fraction: ScalarInterval, tolerance: ModelingTolerance,
+        consumeWork: () throws -> Void)
+        throws -> (range: (u: SurfaceIntervalJet, v: SurfaceIntervalJet),
+                   midpoint: (u: SurfaceIntervalJet, v: SurfaceIntervalJet),
+                   root: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState?) {
+        let whole = try intervalProofRetainingRoot(over:fraction,tolerance:tolerance,consumeWork:consumeWork)
+        guard case .smooth(let u,let v) = whole.proof else {
+            throw Self.failure(.unsupportedCapability,tolerance,"A native chart join has no smooth retained root pair.")
+        }
+        let range = (u:u,v:v)
         let center = fraction.midpoint
-        let midpoint = try intervalJet(over: ScalarInterval(lower: center, upper: center),
-            tolerance: tolerance, consumeWork: consumeWork)
+        let point = try intervalProofRetainingRoot(over:ScalarInterval(lower:center,upper:center),
+            restricting:whole.root,tolerance:tolerance,consumeWork:consumeWork)
+        guard case .smooth(let pointU,let pointV) = point.proof else {
+            throw Self.failure(.unsupportedCapability,tolerance,"A retained midpoint lost its smooth chart proof.")
+        }
+        let pair = try centeredRestriction(of:range,at:(pointU,pointV),over:fraction,tolerance:tolerance)
+        // The point state is a subset, not authority for a sibling or grandchild.
+        return (pair.range,pair.midpoint,whole.root)
+    }
+
+    /// The integrand's original parent proof owns the whole containing smooth range.
+    /// This child obtains its own closed midpoint truth from the same root owner.
+    func centeredIntervalJets(over fraction: ScalarInterval,
+        restricting range: (u: SurfaceIntervalJet, v: SurfaceIntervalJet),
+        root: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState? = nil,
+        tolerance: ModelingTolerance, consumeWork: () throws -> Void)
+        throws -> (range: (u: SurfaceIntervalJet, v: SurfaceIntervalJet),
+                   midpoint: (u: SurfaceIntervalJet, v: SurfaceIntervalJet)) {
+        let center = fraction.midpoint
+        let point = try intervalProofRetainingRoot(over:ScalarInterval(lower:center,upper:center),
+            restricting:root,tolerance:tolerance,consumeWork:consumeWork)
+        guard case .smooth(let u,let v) = point.proof else {
+            throw Self.failure(.unsupportedCapability,tolerance,"An original restricted midpoint lost smooth authority.")
+        }
+        let midpoint = (u:u,v:v)
+        return try centeredRestriction(of:range,at:midpoint,over:fraction,tolerance:tolerance)
+    }
+
+    private func centeredRestriction(of range: (u: SurfaceIntervalJet, v: SurfaceIntervalJet),
+        at midpoint: (u: SurfaceIntervalJet, v: SurfaceIntervalJet), over fraction: ScalarInterval,
+        tolerance: ModelingTolerance)
+        throws -> (range: (u: SurfaceIntervalJet, v: SurfaceIntervalJet),
+                   midpoint: (u: SurfaceIntervalJet, v: SurfaceIntervalJet)) {
+        let center = fraction.midpoint
         let delta = OutwardScalarInterval(lower: fraction.lower, upper: fraction.upper) - .exact(center)
         let square = delta * delta
         let cube = square * delta
@@ -198,6 +282,53 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
                     ScalarInterval(lower:values.v.lower,upper:values.v.upper))
     }
 
+    /// Preparation and every original root phase remain charged to the query.
+    /// A nonadmitted image keeps its existing fan algorithm.
+    package func certifiedIsoBoundaryImage(tolerance: ModelingTolerance,
+        consumeWork: () throws -> Void) throws -> IsoBoundaryImage? {
+        guard case .bSpline(let spline) = support, !spline.isUPeriodic, !spline.isVPeriodic,
+              let constant = try Self.constantAxisAuthority(storage,tolerance:tolerance,consumeWork:consumeWork) else { return nil }
+        let whole: (proof: IntervalProof, root: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState?)
+        do {
+            whole = try intervalProofRetainingRoot(over:ScalarInterval(lower:0,upper:1),
+                tolerance:tolerance,consumeWork:consumeWork)
+        } catch is SurfaceAreaEnclosureRefinementRequired { return nil }
+        guard case .smooth(let u,let v) = whole.proof, let root = whole.root else { return nil }
+        let fixed = constant.axis == .v ? v : u
+        let other = constant.axis == .v ? u : v
+        guard fixed.value.isFinite,other.value.isFinite,other.derivativeU.isFinite,
+              fixed.value.lower <= constant.parameter, fixed.value.upper >= constant.parameter else {
+            throw Self.failure(.classificationFailure,tolerance,"Original iso-image coefficients contradict their root enclosure.")
+        }
+        guard other.derivativeU.lower > 0 || other.derivativeU.upper < 0 else { return nil }
+        let start = try endpointBounds(atEnd:false,tolerance:tolerance,consumeWork:consumeWork)
+        let end = try endpointBounds(atEnd:true,tolerance:tolerance,consumeWork:consumeWork)
+        for point in [start,end] {
+            let coordinate = constant.axis == .v ? point.v : point.u
+            guard coordinate.contains(constant.parameter) else {
+                throw Self.failure(.classificationFailure,tolerance,"An original iso-image endpoint contradicts its constant-axis proof.")
+            }
+        }
+        let first = constant.axis == .v ? start.u : start.v
+        let last = constant.axis == .v ? end.u : end.v
+        guard (other.derivativeU.lower > 0 && first.upper < last.lower)
+            || (other.derivativeU.upper < 0 && last.upper < first.lower) else { return nil }
+        return IsoBoundaryImage(axis:constant.axis,fixedParameter:constant.parameter,
+            start:start,end:end,chart:self,tolerance:tolerance,root:root,
+            monotoneDerivative:other.derivativeU)
+    }
+
+    private static func constantAxisAuthority(_ storage: Storage, tolerance: ModelingTolerance,
+        consumeWork: () throws -> Void) throws -> (axis: SurfaceAreaTranslationCertificate, parameter: Double)? {
+        switch storage {
+        case .nonlinearImplicit(let prepared):
+            return try prepared.constantAxisAuthority(tolerance:tolerance,consumeWork:consumeWork)
+        case .rigid(let child,let mapping,_,_) where mapping == .identity:
+            return try constantAxisAuthority(child,tolerance:tolerance,consumeWork:consumeWork)
+        case .numeric,.affineImplicit,.translated,.rigid: return nil
+        }
+    }
+
     private static func prepare(_ curve: SurfaceParameterCurve, tolerance: ModelingTolerance,
                                 consumeWork: () throws -> Void)
         throws -> (storage: Storage, iso: SurfaceParameterCurve?) {
@@ -249,27 +380,51 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
 
     private static func enclose(_ storage: Storage, over fraction: ScalarInterval,
                                 tolerance: ModelingTolerance, consumeWork: () throws -> Void) throws -> IntervalProof {
+        try encloseRetainingRoot(storage,over:fraction,restricting:nil,
+            tolerance:tolerance,consumeWork:consumeWork).proof
+    }
+
+    func intervalProofRetainingRoot(over fraction: ScalarInterval,
+        restricting parent: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState? = nil,
+        tolerance: ModelingTolerance, consumeWork: () throws -> Void)
+        throws -> (proof: IntervalProof, root: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState?) {
+        guard fraction.lower >= 0, fraction.upper <= 1 else {
+            throw Self.failure(.invalidInput,tolerance,"Retained root chart requires its original normalized interval.")
+        }
+        return try Self.encloseRetainingRoot(storage,over:fraction,restricting:parent,
+            tolerance:tolerance,consumeWork:consumeWork)
+    }
+
+    private static func encloseRetainingRoot(_ storage: Storage, over fraction: ScalarInterval,
+        restricting parent: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState?,
+        tolerance: ModelingTolerance, consumeWork: () throws -> Void)
+        throws -> (proof: IntervalProof, root: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState?) {
         switch storage {
         case .affineImplicit(let prepared):
-            return try prepared.intervalProof(over:fraction,tolerance:tolerance)
+            return (try prepared.intervalProof(over:fraction,tolerance:tolerance),nil)
         case .nonlinearImplicit(let prepared):
-            return try prepared.intervalProof(over:fraction,tolerance:tolerance,consumeWork:consumeWork)
+            let result = try prepared.intervalProofRetainingRoot(over:fraction,restricting:parent,
+                tolerance:tolerance,consumeWork:consumeWork)
+            return (result.proof,result.root)
         case .numeric(let curve):
             guard let jet = try SurfaceParameterIntervalJet.enclose(curve, over: fraction, tolerance: tolerance) else {
                 throw failure(.unsupportedCapability, tolerance, "Admitted area chart lost its numeric interval derivatives.")
             }
-            return .smooth(u:jet.u,v:jet.v)
+            return (.smooth(u:jet.u,v:jet.v),nil)
         case .translated(let child, let u, let v):
-            switch try enclose(child, over:fraction,tolerance:tolerance,consumeWork:consumeWork) {
-            case .smooth(let x,let y): return .smooth(u:x + .constant(u),v:y + .constant(v))
+            let source = try encloseRetainingRoot(child,over:fraction,restricting:parent,
+                tolerance:tolerance,consumeWork:consumeWork)
+            switch source.proof {
+            case .smooth(let x,let y): return (.smooth(u:x + .constant(u),v:y + .constant(v)),source.root)
             case .valueOnly(let x,let y,let dx,let dy):
-                return .valueOnly(u:x + .exact(u),v:y + .exact(v),tangentU:dx,tangentV:dy)
+                return (.valueOnly(u:x + .exact(u),v:y + .exact(v),tangentU:dx,tangentV:dy),source.root)
             }
         case .rigid(let child, let map, let start, let end):
             if map == .identity, start == 0, end == 1 {
                 // Exact identity composition preserves every original interval
                 // and derivative order without another arithmetic enclosure.
-                return try enclose(child,over:fraction,tolerance:tolerance,consumeWork:consumeWork)
+                return try encloseRetainingRoot(child,over:fraction,restricting:parent,
+                    tolerance:tolerance,consumeWork:consumeWork)
             }
             let parameter = SurfaceIntervalJet.constant(start)
                 + (.constant(end) - .constant(start)) * .parameterU(fraction)
@@ -282,22 +437,23 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
             } else {
                 range = try ScalarInterval(lower: max(0, parameter.value.lower), upper: min(1, parameter.value.upper))
             }
-            let source = try enclose(child, over: range, tolerance: tolerance, consumeWork: consumeWork)
-            if case .valueOnly(let u,let v,let du,let dv) = source {
+            let source = try encloseRetainingRoot(child,over:range,restricting:parent,
+                tolerance:tolerance,consumeWork:consumeWork)
+            if case .valueOnly(let u,let v,let du,let dv) = source.proof {
                 let slope = OutwardScalarInterval.exact(end) - .exact(start)
-                return .valueOnly(u:u * .exact(map.uu) + v * .exact(map.uv) + .exact(map.uOffset),
+                return (.valueOnly(u:u * .exact(map.uu) + v * .exact(map.uv) + .exact(map.uOffset),
                     v:u * .exact(map.vu) + v * .exact(map.vv) + .exact(map.vOffset),
                     tangentU:(du * .exact(map.uu) + dv * .exact(map.uv))*slope,
-                    tangentV:(du * .exact(map.vu) + dv * .exact(map.vv))*slope)
+                    tangentV:(du * .exact(map.vu) + dv * .exact(map.vv))*slope),source.root)
             }
-            guard case .smooth(let sourceU,let sourceV) = source else {
+            guard case .smooth(let sourceU,let sourceV) = source.proof else {
                 throw failure(.classificationFailure,tolerance,"An area chart lost its interval proof kind.")
             }
             let composed = SurfaceParameterThirdOrderChainRule.intervalJet(
                 surface: SurfaceIntervalVectorJet(x: sourceU, y: sourceV, z: .constant(0)),
                 u: parameter, v: .constant(0))
-            return .smooth(u:composed.x * .constant(map.uu) + composed.y * .constant(map.uv) + .constant(map.uOffset),
-                           v:composed.x * .constant(map.vu) + composed.y * .constant(map.vv) + .constant(map.vOffset))
+            return (.smooth(u:composed.x * .constant(map.uu) + composed.y * .constant(map.uv) + .constant(map.uOffset),
+                           v:composed.x * .constant(map.vu) + composed.y * .constant(map.vv) + .constant(map.vOffset)),source.root)
         }
     }
 

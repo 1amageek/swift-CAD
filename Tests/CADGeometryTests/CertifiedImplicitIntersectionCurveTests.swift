@@ -146,6 +146,100 @@ struct CertifiedImplicitIntersectionCurveTests {
     } catch let error as KernelError { #expect(error.code == .invalidInput) }
   }
 
+  @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+  func originalWholeRootCoverRestrictsClosedRationalChildrenWithMeasuredWork(_ backwards: Bool) throws {
+    let curve = try rationalPlaneParabolaCurve(direction:backwards ? .reversed : .forward)
+    let prepared = try ImplicitCurveIntervalJetEncloser(intersection:curve,tolerance:tolerance)
+    var remaining = SurfaceSurfaceIntersectionOptions().maximumSubdivisionCells
+    let parent = try continuedRootParameterJet(prepared,of:curve,
+      over:ScalarInterval(lower:0,upper:1),remainingWork:&remaining)
+    var directWork = 0, restrictedWork = 0
+    for fraction in [0.25,0.5,0.75] {
+      let interval = try ScalarInterval(lower:fraction,upper:fraction)
+      let beforeDirect = remaining
+      let direct = try continuedRootParameterJet(prepared,of:curve,over:interval,remainingWork:&remaining)
+      directWork += beforeDirect-remaining
+      let beforeRestricted = remaining
+      let restricted = try continuedRootParameterJet(prepared,of:curve,over:interval,
+        restricting:parent.state,remainingWork:&remaining)
+      restrictedWork += beforeRestricted-remaining
+      let t = backwards ? 5.0/8-fraction/4 : 3.0/8+fraction/4
+      let h = backwards ? -0.25 : 0.25, d = 1+t
+      let expected: [[Double]] = [[t*t,2*t*h,2*h*h,0],[t,h,0,0],
+        [2*t/d,2*h/pow(d,2),-4*h*h/pow(d,3),12*h*h*h/pow(d,4)],[0.5,0,0,0]]
+      for jet in [direct.jet,restricted.jet] {
+        for (coordinate,values) in zip(jet.coordinates,expected) {
+          for (field,value) in zip([coordinate.value,coordinate.firstDerivative,
+            coordinate.secondDerivative,coordinate.thirdDerivative],values) {
+            #expect(field.contains(value))
+          }
+          #expect(coordinate.value.width <= Double.ulpOfOne*64)
+        }
+      }
+    }
+    // This is an actual lower prepare/advance count, not a timing prediction.
+    #expect(restrictedWork < directWork)
+    #expect(restrictedWork > 3)
+  }
+
+  @Test(.timeLimit(.minutes(1)))
+  func originalRootRestrictionPreservesSourceDomainToleranceAndCallerFailures() throws {
+    let curve = try rationalPlaneParabolaCurve()
+    let prepared = try ImplicitCurveIntervalJetEncloser(intersection:curve,tolerance:tolerance)
+    var remaining = SurfaceSurfaceIntersectionOptions().maximumSubdivisionCells
+    let range = try ScalarInterval(lower:0.25,upper:0.75)
+    let parent = try continuedRootParameterJet(prepared,of:curve,over:range,remainingWork:&remaining)
+    let point = try ScalarInterval(lower:0.5,upper:0.5)
+    let foreign = try ImplicitCurveIntervalJetEncloser(intersection:dyadicPlaneParabolaCurve(),tolerance:tolerance)
+    let different = ModelingTolerance(distance:tolerance.distance*2,angle:tolerance.angle,relative:tolerance.relative)
+    let otherPreparation = try ImplicitCurveIntervalJetEncloser(intersection:curve,tolerance:different)
+    for mismatch in 0..<4 {
+      do {
+        let owner = mismatch == 0 ? foreign : mismatch == 1 ? otherPreparation : prepared
+        _ = try owner.prepareParameterEnclosure(restricting:parent.state,
+          overClosedInterval:mismatch == 2 ? ScalarInterval(lower:0,upper:0.5) : point,
+          tolerance:mismatch == 3 ? different : tolerance)
+        Issue.record("A restricted root state accepted foreign source, preparation, domain or tolerance authority.")
+      } catch let error as KernelError { #expect(error.code == .invalidInput) }
+    }
+    // An uncontracted original range also covers every certified root. This
+    // entry must never reinterpret an endpoint subset as a whole range box.
+    guard remaining > 0 else {
+      throw KernelError(phase:.geometry,code:.resourceLimitExceeded,tolerance:tolerance,
+        message:"Original range preparation exhausted the shared caller work.")
+    }
+    remaining -= 1
+    let initial = try prepared.prepareParameterEnclosure(of:curve,cellIndex:0,
+      overClosedInterval:range,tolerance:tolerance)
+    let fromInitial = try continuedRootParameterJet(prepared,of:curve,over:point,
+      restricting:initial,remainingWork:&remaining)
+    #expect(fromInitial.jet[.firstU].value.contains(0.25))
+    #expect(fromInitial.jet[.secondU].value.contains(2.0/3))
+    var preparationOnly = 1
+    do {
+      _ = try continuedRootParameterJet(prepared,of:curve,over:point,
+        restricting:parent.state,remainingWork:&preparationOnly)
+      Issue.record("Restricted root contraction bypassed the exhausted shared caller work.")
+    } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+  }
+
+  @Test(.timeLimit(.minutes(1)))
+  func originalRootRestrictionCancellationRetainsItsCheckedBoundary() async throws {
+    let curve = try rationalPlaneParabolaCurve()
+    let prepared = try ImplicitCurveIntervalJetEncloser(intersection:curve,tolerance:tolerance)
+    var remaining = SurfaceSurfaceIntersectionOptions().maximumSubdivisionCells
+    let parent = try continuedRootParameterJet(prepared,of:curve,
+      over:ScalarInterval(lower:0,upper:1),remainingWork:&remaining)
+    let task = Task {
+      while !Task.isCancelled { await Task.yield() }
+      return try prepared.prepareParameterEnclosure(restricting:parent.state,
+        overClosedInterval:ScalarInterval(lower:0.5,upper:0.5),tolerance:tolerance)
+    }
+    task.cancel()
+    do { _ = try await task.value; Issue.record("Original restricted preparation hid cancellation.") }
+    catch let error as KernelError { #expect(error.code == .cancelled) }
+  }
+
   @Test(.timeLimit(.minutes(1)))
   func rationalContinuationCancellationRemainsExplicit() async throws {
     let curve = try rationalPlaneParabolaCurve()
@@ -424,6 +518,14 @@ struct CertifiedImplicitIntersectionCurveTests {
   private func continuedParameterJet(_ prepared: ImplicitCurveIntervalJetEncloser,
     of curve: CertifiedImplicitIntersectionCurve,over interval: ScalarInterval,
     remainingWork: inout Int) throws -> CertifiedImplicitParameterIntervalJet {
+    try continuedRootParameterJet(prepared,of:curve,over:interval,remainingWork:&remainingWork).jet
+  }
+
+  private func continuedRootParameterJet(_ prepared: ImplicitCurveIntervalJetEncloser,
+    of curve: CertifiedImplicitIntersectionCurve, over interval: ScalarInterval,
+    restricting parent: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState? = nil,
+    remainingWork: inout Int) throws -> (jet: CertifiedImplicitParameterIntervalJet,
+      state: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState) {
     func consume(_ remaining: inout Int) throws {
       guard remaining > 0 else {
         throw KernelError(phase:.geometry,code:.resourceLimitExceeded,tolerance:tolerance,
@@ -432,12 +534,18 @@ struct CertifiedImplicitIntersectionCurveTests {
       remaining -= 1
     }
     try consume(&remainingWork)
-    var state = try prepared.prepareParameterEnclosure(of:curve,cellIndex:0,
-      overClosedInterval:interval,tolerance:tolerance)
+    var state: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState
+    if let parent {
+      state = try prepared.prepareParameterEnclosure(restricting:parent,
+        overClosedInterval:interval,tolerance:tolerance)
+    } else {
+      state = try prepared.prepareParameterEnclosure(of:curve,cellIndex:0,
+        overClosedInterval:interval,tolerance:tolerance)
+    }
     while true {
       try consume(&remainingWork)
       switch try prepared.advanceParameterEnclosure(state,tolerance:tolerance) {
-      case .enclosed(let jet): return jet
+      case .enclosed(let jet): return (jet,state)
       case .contracted(let next): state = next
       case .subdivisionRequired:
         throw KernelError(phase:.geometry,code:.singularSystem,tolerance:tolerance,

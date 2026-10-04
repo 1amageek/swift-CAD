@@ -243,6 +243,65 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
       parameterBox:parameterBox(bounds),tolerance:tolerance,originalInterval:interval,phase:.range)
   }
 
+  /// One bounded restriction of the original containing four-parameter root cover.
+  package func prepareParameterEnclosure(
+    restricting parent: ParameterEnclosureState, overClosedInterval interval: ScalarInterval,
+    tolerance: ModelingTolerance
+  ) throws -> ParameterEnclosureState {
+    try checkLocalizationCancellation(tolerance)
+    guard let preparedSurfaces, preparedSurfaces.intersection == parent.intersection,
+          preparedSurfaces.tolerance == tolerance, parent.tolerance == tolerance,
+          parent.intersection.cells.indices.contains(parent.cellIndex),
+          interval.lower.isFinite, interval.upper.isFinite, interval.lower <= interval.upper,
+          interval.lower >= parent.originalInterval.lower,
+          interval.upper <= parent.originalInterval.upper else {
+      throw invalidInput(tolerance:tolerance,
+        message:"Implicit child localization requires its exact containing original root owner.")
+    }
+    let wholeBox: SurfaceIntersectionParameterBox
+    switch parent.phase {
+    case .range: wholeBox = parent.parameterBox
+    case .lowerEndpoint(_, let box), .upperEndpoint(_, let box, _): wholeBox = box
+    }
+    let cell = parent.intersection.cells[parent.cellIndex]
+    let freeIndex = cell.freeParameter.rawValue
+    let free = try nativeFreeInterval(cell,over:interval,tolerance:tolerance)
+    var bounds = wholeBox.intervals
+    if case .upperEndpoint(let rangeJet, _, let lowerJet) = parent.phase {
+      // These are actual original endpoint-root jets and a certified whole-range
+      // third bound. Their Taylor enclosure is a root cover, never a point solve.
+      let delta = OutwardScalarInterval(lower:interval.lower,upper:interval.upper)
+        - .exact(parent.originalInterval.lower)
+      let square = delta*delta, cube = square*delta
+      func outward(_ value: ScalarInterval) -> OutwardScalarInterval {
+        OutwardScalarInterval(lower:value.lower,upper:value.upper)
+      }
+      for index in bounds.indices {
+        let point = lowerJet.coordinates[index]
+        let cover = outward(point.value) + outward(point.firstDerivative)*delta
+          + outward(point.secondDerivative)*square * .exact(0.5)
+          + outward(rangeJet.coordinates[index].thirdDerivative)*cube * OutwardScalarInterval(1.0/6)
+        guard cover.isFinite else {
+          throw arithmeticFailure(tolerance:tolerance,
+            message:"Original endpoint Taylor root cover exceeded finite arithmetic.")
+        }
+        guard let intersection = cover.intersection(with:outward(bounds[index])) else {
+          throw certificationFailure(tolerance:tolerance,
+            message:"Original endpoint Taylor root cover contradicts its containing range box.")
+        }
+        bounds[index] = try scalarInterval(intersection)
+      }
+    }
+    guard let restricted = OutwardScalarInterval(lower:free.lower,upper:free.upper).intersection(
+      with:OutwardScalarInterval(lower:bounds[freeIndex].lower,upper:bounds[freeIndex].upper)) else {
+      throw certificationFailure(tolerance:tolerance,
+        message:"Implicit child free interval contradicts its original whole root cover.")
+    }
+    bounds[freeIndex] = try scalarInterval(restricted)
+    return ParameterEnclosureState(intersection:parent.intersection,cellIndex:parent.cellIndex,
+      parameterBox:parameterBox(bounds),tolerance:tolerance,originalInterval:interval,phase:.range)
+  }
+
   /// One outward Krawczyk contraction retaining every already-certified root.
   /// Numeric centers select a preconditioner; they never certify a point root.
   package func advanceParameterEnclosure(

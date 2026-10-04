@@ -1435,6 +1435,690 @@ struct SurfaceAreaIntegrationTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func centeredRationalCurvedFanPairContainsIndependentPhysicalFields(_ backwards: Bool) throws {
+        let (_,intersection) = try rationalImplicitAreaFixture(direction:backwards ? .reversed : .forward)
+        let surface = intersection.secondSurface
+        let curve = try rationalImplicitCurvedBand(intersection,backwards:backwards)[2]
+        let limit = FaceAreaIntegrationOptions().maximumCellCount
+        var work = 0
+        func consume() throws {
+            work += 1
+            guard work <= limit else {
+                throw KernelError(phase:.topology,code:.resourceLimitExceeded,residual:Double(work),
+                    tolerance:tolerance,message:"Independent fan proof exhausted its query work.")
+            }
+        }
+        let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:surface,
+            tolerance:tolerance,consumeWork:consume)
+        let prepared = try PreparedSurfaceAreaIntegrand(surface:surface,tolerance:tolerance)
+        let t = try ScalarInterval(lower:0.5,upper:0.5+1.0/64)
+        let r = try ScalarInterval(lower:0.25,upper:0.75)
+        // Compare charged work with the actual original centered chart owner,
+        // rather than a guessed iteration count or a separate solver allowance.
+        work = 0
+        _ = try chart.centeredIntervalJets(over:t,tolerance:tolerance,consumeWork:consume)
+        let chartWork = work
+        work = 0
+        let pair = try prepared.centeredFanBounds(curve:curve,parameterChart:chart,
+            anchor:SurfaceParameter(u:10.0/13,v:1),reference:.origin,
+            boundaryFraction:t,radialFraction:r,tolerance:tolerance,consumeWork:consume)
+        #expect(work == chartWork && work > 0)
+        for atT in [t.lower,t.midpoint,t.upper] {
+            for atR in [r.lower,r.midpoint,r.upper] {
+                for (bound,value) in zip(pair.range,rationalCurvedFanPhysicalFields(atT,atR)) {
+                    #expect(bound.value.contains(value))
+                    #expect(bound.derivativeU != nil && bound.derivativeV != nil)
+                    #expect(bound.secondUU != nil && bound.secondUV != nil && bound.secondVV != nil)
+                }
+            }
+        }
+        for (bound,value) in zip(pair.midpoint,rationalCurvedFanPhysicalFields(t.midpoint,r.midpoint)) {
+            #expect(bound.value.contains(value))
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func sourceCenteredOriginalFanPairTightensSameInputHessians(_ backwards: Bool) throws {
+        let (_,intersection) = try rationalImplicitAreaFixture(direction:backwards ? .reversed : .forward)
+        let original = intersection.secondSurface
+        let originalCurve = try rationalImplicitCurvedBand(intersection,backwards:backwards)[2]
+        let t = try ScalarInterval(lower:0.5,upper:0.5+1.0/64)
+        let r = try ScalarInterval(lower:0.25,upper:0.75)
+        for mapped in [false,true] {
+            let surface: Surface3D, curve: SurfaceParameterCurve
+            if mapped {
+                let transform = try areaFixtureTransform()
+                surface = try transform.applying(to:original,tolerance:tolerance)
+                curve = try #require(rigidTrims([originalCurve],source:original,target:surface,transform:transform).first)
+            } else { surface = original; curve = originalCurve }
+            var work = 0
+            func consume() throws {
+                work += 1
+                guard work <= FaceAreaIntegrationOptions().maximumCellCount else {
+                    throw KernelError(phase:.topology,code:.resourceLimitExceeded,residual:Double(work),
+                        tolerance:tolerance,message:"Source-centered field evidence exhausted original caller work.")
+                }
+            }
+            let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:surface,
+                tolerance:tolerance,consumeWork:consume)
+            let prepared = try PreparedSurfaceAreaIntegrand(surface:surface,tolerance:tolerance)
+            let chartPair = try chart.centeredIntervalJets(over:t,tolerance:tolerance,consumeWork:consume)
+            let anchor = SurfaceParameter(u:10.0/13,v:1)
+            func pullback(_ chart: (u: SurfaceIntervalJet,v: SurfaceIntervalJet),_ radial: ScalarInterval)
+                throws -> (box: SurfaceParameterBox,u: SurfaceIntervalJet,v: SurfaceIntervalJet,measure: SurfaceIntervalJet) {
+                let radius = SurfaceIntervalJet.parameterV(radial)
+                let du = chart.u - .constant(anchor.u), dv = chart.v - .constant(anchor.v)
+                let u = SurfaceIntervalJet.constant(anchor.u)+du*radius
+                let v = SurfaceIntervalJet.constant(anchor.v)+dv*radius
+                return (SurfaceParameterBox(u:try ScalarInterval(lower:u.value.lower,upper:u.value.upper),
+                    v:try ScalarInterval(lower:v.value.lower,upper:v.value.upper)),u,v,
+                    radius*(du*chart.v.differentiatedUThroughSecondOrder()-dv*chart.u.differentiatedUThroughSecondOrder()))
+            }
+            let whole = try pullback(chartPair.range,r)
+            let point = try pullback(chartPair.midpoint,ScalarInterval(lower:r.midpoint,upper:r.midpoint))
+            guard case .bSpline(let spline) = surface else { Issue.record("The original rational fixture lost its native surface."); continue }
+            // Prepare the original stored controls once. Both field compositions
+            // below consume these exact same two evaluated source proofs.
+            let patch = try RationalBezierSurfaceJetEncloser().prepare(RationalBezierSurfacePatch3D(
+                controlPoints:spline.controlPoints,weights:spline.weights,uLower:0,uUpper:1,vLower:0,vUpper:1),tolerance:tolerance)
+            let owner = RationalBezierSurfaceJetEncloser()
+            let rangeJet = try owner.enclosure(of:patch,u:whole.box.u,v:whole.box.v,tolerance:tolerance)
+            let midpointJet = try owner.enclosure(of:patch,u:point.box.u,v:point.box.v,tolerance:tolerance)
+            let tightened = try PreparedSurfaceAreaIntegrand.centeredSourceRange(rangeJet,midpoint:midpointJet,
+                over:whole.box,midpointBox:point.box,tolerance:tolerance)
+            for (before,after) in zip([rangeJet.x,rangeJet.y,rangeJet.z],[tightened.x,tightened.y,tightened.z]) {
+                #expect(after.thirdDerivativeUUU.lower == before.thirdDerivativeUUU.lower && after.thirdDerivativeUUU.upper == before.thirdDerivativeUUU.upper)
+                #expect(after.thirdDerivativeUUV.lower == before.thirdDerivativeUUV.lower && after.thirdDerivativeUUV.upper == before.thirdDerivativeUUV.upper)
+                #expect(after.thirdDerivativeUVV.lower == before.thirdDerivativeUVV.lower && after.thirdDerivativeUVV.upper == before.thirdDerivativeUVV.upper)
+                #expect(after.thirdDerivativeVVV.lower == before.thirdDerivativeVVV.lower && after.thirdDerivativeVVV.upper == before.thirdDerivativeVVV.upper)
+            }
+            let before = try prepared.fields(from:rangeJet,order:3,u:whole.u,v:whole.v,
+                measure:whole.measure,reference:.origin,tolerance:tolerance)
+            let after = try prepared.fields(from:tightened,order:3,u:whole.u,v:whole.v,
+                measure:whole.measure,reference:.origin,tolerance:tolerance)
+            for index in before.indices {
+                let old = try [#require(before[index].secondUU),#require(before[index].secondUV),#require(before[index].secondVV)]
+                let new = try [#require(after[index].secondUU),#require(after[index].secondUV),#require(after[index].secondVV)]
+                #expect(zip(old,new).allSatisfy { old,new in new.width <= old.width })
+                #expect(new.reduce(0) { $0+$1.width } < old.reduce(0) { $0+$1.width })
+            }
+            for tau in [t.lower,t.midpoint,t.upper] {
+                for radial in [r.lower,r.midpoint,r.upper] {
+                    var literal = rationalCurvedFanLiteralHessians(tau,radial)
+                    if mapped {
+                        for column in 0..<3 {
+                            let area = literal[0][column], x = literal[1][column], y = literal[2][column], z = literal[3][column]
+                            literal[1][column] = 0.125*area-y
+                            literal[2][column] = 0.25*area+x
+                            literal[3][column] = 0.5*area+z
+                        }
+                    }
+                    var literalValues = rationalCurvedFanPhysicalFields(tau,radial)
+                    if mapped { literalValues = [literalValues[0],0.125*literalValues[0]-literalValues[2],
+                        0.25*literalValues[0]+literalValues[1],0.5*literalValues[0]+literalValues[3]] }
+                    for bounds in [before,after] {
+                        for index in bounds.indices {
+                            #expect(bounds[index].value.contains(literalValues[index]))
+                            #expect(try #require(bounds[index].secondUU).contains(literal[index][0]))
+                            #expect(try #require(bounds[index].secondUV).contains(literal[index][1]))
+                            #expect(try #require(bounds[index].secondVV).contains(literal[index][2]))
+                        }
+                    }
+                }
+            }
+            work = 0
+            _ = try chart.centeredIntervalJets(over:t,tolerance:tolerance,consumeWork:consume)
+            let expectedWork = work
+            work = 0
+            let actual = try prepared.centeredFanBounds(curve:curve,parameterChart:chart,anchor:anchor,
+                reference:.origin,boundaryFraction:t,radialFraction:r,tolerance:tolerance,consumeWork:consume)
+            #expect(work == expectedWork)
+            for index in after.indices {
+                #expect(actual.range[index].value.lower == after[index].value.lower && actual.range[index].value.upper == after[index].value.upper)
+                let secondUU = try #require(actual.range[index].secondUU)
+                let expectedSecondUU = try #require(after[index].secondUU)
+                #expect(secondUU.lower == expectedSecondUU.lower && secondUU.upper == expectedSecondUU.upper)
+                let secondUV = try #require(actual.range[index].secondUV)
+                let expectedSecondUV = try #require(after[index].secondUV)
+                #expect(secondUV.lower == expectedSecondUV.lower && secondUV.upper == expectedSecondUV.upper)
+                let secondVV = try #require(actual.range[index].secondVV)
+                let expectedSecondVV = try #require(after[index].secondVV)
+                #expect(secondVV.lower == expectedSecondVV.lower && secondVV.upper == expectedSecondVV.upper)
+            }
+            let originalMidpoint = try prepared.fields(from:midpointJet,order:3,u:point.u,v:point.v,
+                measure:point.measure,reference:.origin,tolerance:tolerance)
+            for index in originalMidpoint.indices {
+                #expect(actual.midpoint[index].value.lower == originalMidpoint[index].value.lower && actual.midpoint[index].value.upper == originalMidpoint[index].value.upper)
+                let secondUU = try #require(actual.midpoint[index].secondUU)
+                let expectedSecondUU = try #require(originalMidpoint[index].secondUU)
+                #expect(secondUU.lower == expectedSecondUU.lower && secondUU.upper == expectedSecondUU.upper)
+                let secondUV = try #require(actual.midpoint[index].secondUV)
+                let expectedSecondUV = try #require(originalMidpoint[index].secondUV)
+                #expect(secondUV.lower == expectedSecondUV.lower && secondUV.upper == expectedSecondUV.upper)
+                let secondVV = try #require(actual.midpoint[index].secondVV)
+                let expectedSecondVV = try #require(originalMidpoint[index].secondVV)
+                #expect(secondVV.lower == expectedSecondVV.lower && secondVV.upper == expectedSecondVV.upper)
+            }
+        }
+    }
+
+    /// Closed-form derivatives of the independent physical fan density.
+    /// Columns are TT, TR and RR; no native spline basis or interval jet arithmetic is used.
+    private func rationalCurvedFanLiteralHessians(_ tau: Double,_ radius: Double) -> [[Double]] {
+        let t = 3.0/8+tau/4, s = 2*t/(1+t), b = s-10.0/13
+        let d = 0.5/pow(1+t,2), e = -0.25/pow(1+t,3), f = 0.1875/pow(1+t,4)
+        let u = 10.0/13+radius*b, g = 2-u, h = u/g
+        let hp = 2/(g*g), hpp = 4/pow(g,3), l = sqrt(1+16*h*h)
+        let lp = 16*h*hp/l
+        let lpp = 16*((hp*hp+h*hpp)/l-16*h*h*hp*hp/pow(l,3))
+        let density = l/(2048*g*g)
+        let densityP = (lp/(g*g)+2*l/pow(g,3))/2048
+        let densityPP = (lpp/(g*g)+4*lp/pow(g,3)+6*l/pow(g,4))/2048
+        let area = radius*d*density
+        let at = radius*e*density+radius*radius*d*d*densityP
+        let ar = d*density+radius*d*densityP*b
+        let att = radius*f*density+3*radius*radius*d*e*densityP+pow(radius,3)*pow(d,3)*densityPP
+        let atr = e*density+radius*e*densityP*b+2*radius*d*d*densityP+radius*radius*d*d*densityPP*b
+        let arr = 2*d*densityP*b+radius*d*densityPP*b*b
+        var result = [[att,atr,arr]]
+        for (position,first,second) in [(h*h/32,h*hp/16,(hp*hp+h*hpp)/16),(h/64,hp/64,hpp/64)] {
+            result.append([att*position+2*at*first*radius*d+area*(second*radius*radius*d*d+first*radius*e),
+                atr*position+at*first*b+ar*first*radius*d+area*(second*radius*d*b+first*d),
+                arr*position+2*ar*first*b+area*second*b*b])
+        }
+        let z = (1-radius)/64
+        result.append([att*z,atr*z-at/64,arr*z-2*ar/64])
+        return result
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sourceCenteredPairRejectsForeignOwnerAndContradictoryBoxes() throws {
+        let (_,intersection) = try rationalImplicitAreaFixture()
+        let source = intersection.secondSurface
+        let curve = try rationalImplicitCurvedBand(intersection,backwards:false)[1]
+        let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:source,tolerance:tolerance)
+        let prepared = try PreparedSurfaceAreaIntegrand(surface:source,tolerance:tolerance)
+        let t = try ScalarInterval(lower:0.25,upper:0.75), r = try ScalarInterval(lower:0.25,upper:0.75)
+        let anchor = SurfaceParameter(u:10.0/13,v:1)
+        let foreign = try PreparedSurfaceAreaIntegrand(surface:intersection.firstSurface,tolerance:tolerance)
+        #expect(throws:KernelError.self) {
+            try foreign.pairedFanBounds(curve:curve,parameterChart:chart,anchor:anchor,reference:.origin,
+                boundaryFraction:t,radialFraction:r,tolerance:tolerance,consumeWork:{})
+        }
+        let otherTolerance = ModelingTolerance(distance:2*tolerance.distance,angle:tolerance.angle,relative:tolerance.relative)
+        #expect(throws:KernelError.self) {
+            try prepared.pairedFanBounds(curve:curve,parameterChart:chart,anchor:anchor,reference:.origin,
+                boundaryFraction:t,radialFraction:r,tolerance:otherTolerance,consumeWork:{})
+        }
+        let box = SurfaceParameterBox(u:t,v:r)
+        guard case .bSpline(let spline) = source else { Issue.record("The source fixture lost its spline."); return }
+        let owner = try PreparedBSplineSurfaceDifferentialEncloser(surface:spline,tolerance:tolerance)
+        let rangeJet = try owner.intervalJet(overClosedBox:box,tolerance:tolerance)
+        let outside = SurfaceParameterBox(u:try ScalarInterval(lower:0,upper:0),v:r)
+        #expect(throws:KernelError.self) {
+            try PreparedSurfaceAreaIntegrand.centeredSourceRange(rangeJet,midpoint:rangeJet,
+                over:box,midpointBox:outside,tolerance:tolerance)
+        }
+        let nonfinite = SurfaceIntervalVectorJet.constant(Point3D(x:Double.infinity,y:0,z:0))
+        #expect(throws:KernelError.self) {
+            try PreparedSurfaceAreaIntegrand.centeredSourceRange(rangeJet,midpoint:nonfinite,
+                over:box,midpointBox:box,tolerance:tolerance)
+        }
+        let contradiction = SurfaceIntervalVectorJet.constant(Point3D(x:100,y:100,z:100))
+        #expect(throws:KernelError.self) {
+            try PreparedSurfaceAreaIntegrand.centeredSourceRange(rangeJet,midpoint:contradiction,
+                over:box,midpointBox:box,tolerance:tolerance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sourceCenteredPairKeepsOriginalKnotSidesOnLegacyRoute() throws {
+        let source = foldedSupport(knot:0.37)
+        let curve = SurfaceParameterCurve.constantV(v:0.03,uStart:0,uEnd:1)
+        let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:source,tolerance:tolerance)
+        let prepared = try PreparedSurfaceAreaIntegrand(surface:source,tolerance:tolerance)
+        let t = try ScalarInterval(lower:0,upper:1), r = try ScalarInterval(lower:0.25,upper:0.75)
+        let anchor = SurfaceParameter(u:0,v:0)
+        let originalRange = try prepared.bounds(curve:curve,anchor:anchor,reference:.origin,
+            boundaryFraction:t,radialFraction:r,tolerance:tolerance,parameterChart:chart)
+        let originalMidpoint = try prepared.bounds(curve:curve,anchor:anchor,reference:.origin,
+            boundaryFraction:ScalarInterval(lower:0.5,upper:0.5),
+            radialFraction:ScalarInterval(lower:0.5,upper:0.5),tolerance:tolerance,parameterChart:chart)
+        let pair = try prepared.pairedFanBounds(curve:curve,parameterChart:chart,anchor:anchor,reference:.origin,
+            boundaryFraction:t,radialFraction:r,tolerance:tolerance,consumeWork:{})
+        for (old,new) in zip(originalRange,pair.range) {
+            #expect(new.value.lower == old.value.lower && new.value.upper == old.value.upper)
+            #expect(new.secondUU == nil && new.secondUV == nil && new.secondVV == nil)
+        }
+        for (old,new) in zip(originalMidpoint,pair.midpoint) {
+            #expect(new.value.lower == old.value.lower && new.value.upper == old.value.upper)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func retainedRationalFanChartProofOwnsOnlyItsOriginalBoundaryInterval(_ backwards: Bool) throws {
+        let (first,intersection) = try rationalImplicitAreaFixture(direction:backwards ? .reversed : .forward)
+        let surface = intersection.secondSurface
+        let curve = try rationalImplicitCurvedBand(intersection,backwards:backwards)[2]
+        let limit = FaceAreaIntegrationOptions().maximumCellCount
+        var work = 0
+        func consume() throws {
+            work += 1
+            guard work <= limit else {
+                throw KernelError(phase:.topology,code:.resourceLimitExceeded,residual:Double(work),
+                    tolerance:tolerance,message:"Retained fan proof exhausted its query work.")
+            }
+        }
+        let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:surface,
+            tolerance:tolerance,consumeWork:consume)
+        let prepared = try PreparedSurfaceAreaIntegrand(surface:surface,tolerance:tolerance)
+        let t = try ScalarInterval(lower:0.5,upper:0.5+1.0/64)
+        let proof = try prepared.prepareCenteredFanChartProof(curve:curve,parameterChart:chart,
+            boundaryFraction:t,tolerance:tolerance,consumeWork:consume)
+        let paidWork = work
+        let anchor = SurfaceParameter(u:10.0/13,v:1)
+        for r in [try ScalarInterval(lower:0.25,upper:0.5),try ScalarInterval(lower:0.5,upper:0.75)] {
+            let pair = try prepared.centeredFanBounds(using:proof,curve:curve,parameterChart:chart,
+                anchor:anchor,reference:.origin,boundaryFraction:t,radialFraction:r,tolerance:tolerance)
+            #expect(work == paidWork && paidWork > 0)
+            for atT in [t.lower,t.midpoint,t.upper] {
+                for atR in [r.lower,r.midpoint,r.upper] {
+                    for (bound,value) in zip(pair.range,rationalCurvedFanPhysicalFields(atT,atR)) {
+                        #expect(bound.value.contains(value))
+                    }
+                }
+            }
+            for (bound,value) in zip(pair.midpoint,rationalCurvedFanPhysicalFields(t.midpoint,r.midpoint)) {
+                #expect(bound.value.contains(value))
+            }
+        }
+        let r = try ScalarInterval(lower:0.25,upper:0.75)
+        let narrowerT = try ScalarInterval(lower:0.5,upper:0.5+1.0/128)
+        let differentTolerance = ModelingTolerance(distance:tolerance.distance*2,
+            angle:tolerance.angle,relative:tolerance.relative)
+        let foreign = try PreparedSurfaceAreaIntegrand(surface:first,tolerance:tolerance)
+        for mismatch in 0..<4 {
+            do {
+                _ = try (mismatch == 0 ? foreign : prepared).centeredFanBounds(using:proof,
+                    curve:mismatch == 1 ? .constantV(v:0.5,uStart:0,uEnd:1) : curve,
+                    parameterChart:chart,anchor:anchor,reference:.origin,
+                    boundaryFraction:mismatch == 2 ? narrowerT : t,radialFraction:r,
+                    tolerance:mismatch == 3 ? differentTolerance : tolerance)
+                Issue.record("Retained chart proof accepted a foreign original authority.")
+            } catch let error as KernelError {
+                #expect(error.code == .invalidInput)
+            }
+        }
+        #expect(work == paidWork)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func rationalFanChildRestrictionRetainsOriginalMidpointWorkAndPhysicalFields(_ backwards: Bool) throws {
+        let (_,intersection) = try rationalImplicitAreaFixture(direction:backwards ? .reversed : .forward)
+        let originalSurface = intersection.secondSurface
+        let originalCurve = try rationalImplicitCurvedBand(intersection,backwards:backwards)[2]
+        for mapped in [false,true] {
+            let surface: Surface3D, curve: SurfaceParameterCurve
+            if mapped {
+                let transform = try areaFixtureTransform()
+                surface = try transform.applying(to:originalSurface,tolerance:tolerance)
+                curve = try rigidTrims([originalCurve],source:originalSurface,target:surface,transform:transform)[0]
+            } else { surface = originalSurface; curve = originalCurve }
+            var work = 0
+            let limit = FaceAreaIntegrationOptions().maximumCellCount
+            func consume() throws {
+                work += 1
+                guard work <= limit else {
+                    throw KernelError(phase:.topology,code:.resourceLimitExceeded,residual:Double(work),
+                        tolerance:tolerance,message:"Original child midpoint exhausted its shared work.")
+                }
+            }
+            let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:surface,
+                tolerance:tolerance,consumeWork:consume)
+            let prepared = try PreparedSurfaceAreaIntegrand(surface:surface,tolerance:tolerance)
+            let parentT = try ScalarInterval(lower:0.25,upper:0.75)
+            let childT = try ScalarInterval(lower:0.5,upper:0.5+1.0/64)
+            let parent = try prepared.prepareCenteredFanChartProof(curve:curve,parameterChart:chart,
+                boundaryFraction:parentT,tolerance:tolerance,consumeWork:consume)
+            let originalRange = try chart.intervalProofRetainingRoot(over:parentT,
+                tolerance:tolerance,consumeWork:consume)
+            work = 0
+            let pointProof = try chart.intervalProofRetainingRoot(
+                over:ScalarInterval(lower:childT.midpoint,upper:childT.midpoint),
+                restricting:originalRange.root,tolerance:tolerance,consumeWork:consume)
+            let pointWork = work
+            guard case .smooth(let pointU,let pointV) = pointProof.proof else {
+                Issue.record("Original restricted singleton lost its smooth chart derivatives.")
+                continue
+            }
+            let point = (u:pointU,v:pointV)
+            let physicalT = 3.0/8+childT.midpoint/4, d = 1+physicalT
+            for (field,value) in zip([point.u.value,point.u.derivativeU,point.u.secondDerivativeUU,
+                                     point.u.thirdDerivativeUUU],
+                                    [2*physicalT/d,0.5/pow(d,2),-0.25/pow(d,3),0.1875/pow(d,4)]) {
+                #expect(field.contains(value))
+            }
+            work = 0
+            let child = try prepared.prepareCenteredFanChartProof(restricting:parent,curve:curve,
+                parameterChart:chart,boundaryFraction:childT,tolerance:tolerance,consumeWork:consume)
+            #expect(work == pointWork && pointWork > 0)
+            let r = try ScalarInterval(lower:0.25,upper:0.75)
+            let pair = try prepared.centeredFanBounds(using:child,curve:curve,parameterChart:chart,
+                anchor:SurfaceParameter(u:10.0/13,v:1),reference:.origin,
+                boundaryFraction:childT,radialFraction:r,tolerance:tolerance)
+            func physical(_ fraction: Double, _ radial: Double) -> [Double] {
+                let fields = rationalCurvedFanPhysicalFields(fraction,radial)
+                return mapped ? [fields[0],0.125*fields[0]-fields[2],
+                    0.25*fields[0]+fields[1],0.5*fields[0]+fields[3]] : fields
+            }
+            for atT in [childT.lower,childT.midpoint,childT.upper] {
+                for atR in [r.lower,r.midpoint,r.upper] {
+                    for (bound,value) in zip(pair.range,physical(atT,atR)) {
+                        #expect(bound.value.contains(value))
+                    }
+                }
+            }
+            for (bound,value) in zip(pair.midpoint,physical(childT.midpoint,r.midpoint)) {
+                #expect(bound.value.contains(value))
+            }
+            #expect(work == pointWork)
+            do {
+                _ = try prepared.prepareCenteredFanChartProof(restricting:parent,curve:curve,
+                    parameterChart:chart,boundaryFraction:ScalarInterval(lower:0,upper:0.5),
+                    tolerance:tolerance,consumeWork:consume)
+                Issue.record("Child chart restriction escaped its original parent T domain.")
+            } catch let error as KernelError { #expect(error.code == .invalidInput) }
+            let foreign = try PreparedSurfaceAreaIntegrand(surface:intersection.firstSurface,tolerance:tolerance)
+            let differentTolerance = ModelingTolerance(distance:tolerance.distance*2,
+                angle:tolerance.angle,relative:tolerance.relative)
+            for mismatch in 0..<3 {
+                do {
+                    _ = try (mismatch == 0 ? foreign : prepared).prepareCenteredFanChartProof(restricting:parent,
+                        curve:mismatch == 1 ? .constantV(v:0.5,uStart:0,uEnd:1) : curve,
+                        parameterChart:chart,boundaryFraction:childT,
+                        tolerance:mismatch == 2 ? differentTolerance : tolerance,consumeWork:consume)
+                    Issue.record("Child chart restriction adopted a foreign parent authority.")
+                } catch let error as KernelError { #expect(error.code == .invalidInput) }
+            }
+            #expect(work == pointWork)
+            do {
+                _ = try prepared.prepareCenteredFanChartProof(restricting:parent,curve:curve,
+                    parameterChart:chart,boundaryFraction:childT,tolerance:tolerance,
+                    consumeWork:{ throw SurfaceAreaEnclosureRefinementRequired.implicitLocalization })
+                Issue.record("Inconclusive original child localization minted a chart proof.")
+            } catch is SurfaceAreaEnclosureRefinementRequired { }
+            do {
+                _ = try chart.centeredIntervalJets(over:childT,
+                    restricting:(u:SurfaceIntervalJet.constant(10),v:SurfaceIntervalJet.constant(10)),
+                    tolerance:tolerance,consumeWork:consume)
+                Issue.record("A contradictory parent range accepted its original child midpoint.")
+            } catch let error as KernelError { #expect(error.code == .classificationFailure) }
+        }
+    }
+
+    private func rationalCurvedFanPhysicalFields(_ fraction: Double, _ radial: Double) -> [Double] {
+        let originalT = 3.0/8+fraction/4
+        let s = 2*originalT/(1+originalT)
+        let ds = 0.5/pow(1+originalT,2)
+        let u = 10.0/13+radial*(s-10.0/13)
+        let h = u/(2-u)
+        // Native density times the literal signed fan Jacobian R*s'/2.
+        let area = radial*ds*sqrt(1+16*h*h)/(2048*pow(2-u,2))
+        return [area,area*h*h/32,area*h/64,area*(1-radial)/64]
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func originalImplicitIsoImageRetainsWholeRootFractionsAndRigidIdentity(_ backwards: Bool) throws {
+        let (_,intersection) = try rationalImplicitAreaFixture(direction:backwards ? .reversed : .forward)
+        let original = try rationalImplicitCurvedBand(intersection,backwards:backwards)[2]
+        for mapped in [false,true] {
+            let support: Surface3D
+            let curve: SurfaceParameterCurve
+            if mapped {
+                let transform = try areaFixtureTransform()
+                support = try transform.applying(to:intersection.secondSurface,tolerance:tolerance)
+                curve = try rigidTrims([original],source:intersection.secondSurface,target:support,transform:transform)[0]
+            } else { support = intersection.secondSurface; curve = original }
+            var work = 0
+            let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:support,
+                tolerance:tolerance,consumeWork:{ work += 1 })
+            let before = work
+            let image = try #require(try chart.certifiedIsoBoundaryImage(tolerance:tolerance,consumeWork:{ work += 1 }))
+            #expect(work > before)
+            #expect(chart.exactIsoBoundary == nil)
+            #expect(image.axis == .v && image.fixedParameter == 0.5)
+            #expect(image.start.u.contains(6.0/11) && image.end.u.contains(10.0/13))
+            #expect(image.start.v.contains(0.5) && image.end.v.contains(0.5))
+            try image.validate(for:chart,on:support,tolerance:tolerance)
+            let wrong = ModelingTolerance(distance:tolerance.distance,angle:tolerance.angle,relative:tolerance.relative*2)
+            do {
+                try image.validate(for:chart,on:support,tolerance:wrong)
+                Issue.record("An iso-image receipt changed its original preparation tolerance.")
+            } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        }
+        // Partial native fractions and reversed traversal remain the original
+        // implicit parameterization, rather than an endpoint-fitted line.
+        let partial = SurfaceParameterCurve.certifiedImplicit(try CertifiedImplicitSurfaceParameterCurve(
+            intersection:intersection,role:.second,startFraction:0.25,endFraction:0.75,tolerance:tolerance))
+        let partialChart = try SurfaceAreaParameterChartEncloser(curve:partial,on:intersection.secondSurface,
+            tolerance:tolerance,consumeWork:{})
+        let partialImage = try #require(try partialChart.certifiedIsoBoundaryImage(tolerance:tolerance,consumeWork:{}))
+        let firstT = backwards ? 9.0/16 : 7.0/16
+        let lastT = backwards ? 7.0/16 : 9.0/16
+        #expect(partialImage.start.u.contains(2*firstT/(1+firstT)))
+        #expect(partialImage.end.u.contains(2*lastT/(1+lastT)))
+        let chart = try SurfaceAreaParameterChartEncloser(curve:original,on:intersection.secondSurface,
+            tolerance:tolerance,consumeWork:{})
+        do {
+            try partialImage.validate(for:chart,on:intersection.secondSurface,tolerance:tolerance)
+            Issue.record("An iso-image receipt adopted different original trim fractions.")
+        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func interiorCoefficientPerturbationCannotAuthorizeAnImplicitIsoImage() throws {
+        let (_,original) = try rationalImplicitAreaFixture()
+        guard case .bSpline(let plane) = original.firstSurface,
+              case .bSpline(let originalExtrusion) = original.secondSurface else {
+            Issue.record("The independent implicit fixture lost its original spline supports.")
+            return
+        }
+        var controls = originalExtrusion.controlPoints
+        // Both layers receive the same interior perturbation: the exact V
+        // translation survives, but its intersection with Z=0 is no longer V=.5.
+        let perturbation = 1.0/134_217_728
+        controls[0][1].z += perturbation
+        controls[1][1].z += perturbation
+        let extrusion = BSplineSurface3D(uDegree:originalExtrusion.uDegree,vDegree:originalExtrusion.vDegree,
+            uKnots:originalExtrusion.uKnots,vKnots:originalExtrusion.vKnots,
+            controlPoints:controls,weights:originalExtrusion.weights)
+        #expect(SurfaceAreaTranslationCertificate.direction(of:.bSpline(extrusion)) == .v)
+        let old = original.cells[0]
+        let cell = try CertifiedImplicitIntersectionGraphCell(parameterBox:old.parameterBox,
+            freeParameter:old.freeParameter,direction:old.direction,lowerAnchor:old.lowerAnchor,
+            midpointAnchor:old.midpointAnchor,upperAnchor:old.upperAnchor,
+            firstSurface:plane,secondSurface:extrusion,tolerance:tolerance)
+        let intersection = try CertifiedImplicitIntersectionCurve(firstSurface:plane,secondSurface:extrusion,
+            cells:[cell],isClosed:false,tolerance:tolerance)
+        let curve = SurfaceParameterCurve.certifiedImplicit(try CertifiedImplicitSurfaceParameterCurve(
+            intersection:intersection,role:.second,tolerance:tolerance))
+        let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:.bSpline(extrusion),
+            tolerance:tolerance,consumeWork:{})
+        #expect(try chart.certifiedIsoBoundaryImage(tolerance:tolerance,consumeWork:{}) == nil)
+        // Independent homogeneous numerator at s=2/3: the middle weighted
+        // basis contributes 1/2 of the perturbation; solving Z=0 changes V.
+        let actualV = 0.5 - 32 * (perturbation * 0.5)
+        #expect(actualV != 0.5)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func isoImageEndpointTrianglesRetainIndependentNonzeroAreaAndAllMoments(_ uAxis: Bool) throws {
+        let intersection = try planarIsoImageIntersection(uAxis:uAxis)
+        let curve = SurfaceParameterCurve.certifiedImplicit(try CertifiedImplicitSurfaceParameterCurve(
+            intersection:intersection,role:.second,tolerance:tolerance))
+        var work = 0
+        let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:intersection.secondSurface,
+            tolerance:tolerance,consumeWork:{ work += 1 })
+        let image = try #require(try chart.certifiedIsoBoundaryImage(tolerance:tolerance,consumeWork:{ work += 1 }))
+        let prepared = try PreparedSurfaceAreaIntegrand(surface:intersection.secondSurface,tolerance:tolerance)
+        let epsilon = Double.ulpOfOne * 8
+        let start = uAxis ? SurfaceParameter(u:0.5,v:0.25+epsilon) : SurfaceParameter(u:0.25+epsilon,v:0.5)
+        let end = uAxis ? SurfaceParameter(u:0.5,v:0.75-2*epsilon) : SurfaceParameter(u:0.75-2*epsilon,v:0.5)
+        let anchor = uAxis ? SurfaceParameter(u:1,v:0.75) : SurfaceParameter(u:0.75,v:1)
+        let before = work
+        let correction = try prepared.isoImageEndpointCorrection(image:image,parameterChart:chart,
+            nominalStart:start,nominalEnd:end,anchor:anchor,reference:Point3D(x:0,y:-2,z:-1),
+            tolerance:tolerance,consumeWork:{ work += 1 })
+        #expect(work == before + 2)
+        // S=(u,0,2v-1), or its original native-axis transpose, J=2.
+        // These are exact planar triangle integrals,
+        // independently of the implicit chart and its interval point arithmetic.
+        let area = 1.5*epsilon
+        let momentX = (0.5*epsilon*(1.25+epsilon)+epsilon*(2.25-2*epsilon))/3
+        let expected = [area,momentX,2*area,4*area/3].map { $0 * (uAxis ? -1 : 1) }
+        for (bound,value) in zip(correction,expected) {
+            #expect(bound.contains(value))
+            #expect(uAxis ? bound.lower < 0 : bound.upper > 0)
+            #expect(bound.upper > bound.lower && value != 0)
+        }
+        do {
+            _ = try prepared.isoImageEndpointCorrection(image:image,parameterChart:chart,
+                nominalStart:uAxis ? SurfaceParameter(u:0.5,v:0.25+1e-12) : SurfaceParameter(u:0.25+1e-12,v:0.5),
+                nominalEnd:end,anchor:anchor,
+                reference:.origin,tolerance:tolerance,consumeWork:{})
+            Issue.record("Endpoint correction accepted a gap beyond original parameter connection precision.")
+        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        do {
+            _ = try prepared.isoImageEndpointCorrection(image:image,parameterChart:chart,
+                nominalStart:start,nominalEnd:uAxis ? SurfaceParameter(u:0.5+1e-12,v:end.v)
+                    : SurfaceParameter(u:end.u,v:0.5+1e-12),anchor:anchor,
+                reference:.origin,tolerance:tolerance,consumeWork:{})
+            Issue.record("Endpoint correction accepted an axis contrary to the original coefficient identity.")
+        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        do {
+            _ = try chart.certifiedIsoBoundaryImage(tolerance:tolerance,consumeWork:{
+                throw KernelError(phase:.topology,code:.resourceLimitExceeded,residual:2,tolerance:tolerance,
+                    message:"Original iso-image preparation shares caller work.")
+            })
+            Issue.record("Original iso-image preparation bypassed caller work refusal.")
+        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded && error.residual == 2) }
+        do {
+            _ = try prepared.isoImageEndpointCorrection(image:image,parameterChart:chart,
+                nominalStart:start,nominalEnd:end,anchor:anchor,reference:.origin,tolerance:tolerance,
+                consumeWork:{ throw KernelError(phase:.topology,code:.cancelled,tolerance:tolerance,
+                    message:"Original endpoint corrections retain caller cancellation.") })
+            Issue.record("Original endpoint correction swallowed caller cancellation.")
+        } catch let error as KernelError { #expect(error.code == .cancelled) }
+    }
+
+    private func planarIsoImageIntersection(uAxis: Bool) throws -> CertifiedImplicitIntersectionCurve {
+        let plane = BSplineSurface3D(uDegree:1,vDegree:1,uKnots:[0,0,1,1],vKnots:[0,0,1,1],
+            controlPoints:[-1.0,1.0].map { y in [Point3D(x:0,y:y,z:0),Point3D(x:1,y:y,z:0)] })
+        let extrusion = BSplineSurface3D(uDegree:uAxis ? 1 : 2,vDegree:uAxis ? 2 : 1,
+            uKnots:uAxis ? [0,0,1,1] : [0,0,0,1,1,1],vKnots:uAxis ? [0,0,0,1,1,1] : [0,0,1,1],
+            controlPoints:uAxis ? [0.0,0.5,1.0].map { x in [-1.0,1.0].map { Point3D(x:x,y:0,z:$0) } }
+                : [-1.0,1.0].map { z in [0.0,0.5,1.0].map { Point3D(x:$0,y:0,z:z) } })
+        func anchor(_ u: Double) throws -> SurfaceIntersectionParameterPair {
+            try SurfaceIntersectionParameterPair(first:SurfaceParameter(u:u,v:0.5),
+                second:uAxis ? SurfaceParameter(u:0.5,v:u) : SurfaceParameter(u:u,v:0.5))
+        }
+        let cell = try CertifiedImplicitIntersectionGraphCell(parameterBox:SurfaceIntersectionParameterBox(
+            firstU:ScalarInterval(lower:0.25,upper:0.75),firstV:ScalarInterval(lower:0.25,upper:0.75),
+            secondU:ScalarInterval(lower:uAxis ? 0.25 : 0,upper:uAxis ? 0.75 : 1),
+            secondV:ScalarInterval(lower:uAxis ? 0 : 0.25,upper:uAxis ? 1 : 0.75)),
+            freeParameter:.firstU,direction:.forward,lowerAnchor:anchor(0.25),midpointAnchor:anchor(0.5),
+            upperAnchor:anchor(0.75),firstSurface:plane,secondSurface:extrusion,tolerance:tolerance)
+        return try CertifiedImplicitIntersectionCurve(firstSurface:plane,secondSurface:extrusion,
+            cells:[cell],isClosed:false,tolerance:tolerance)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func rationalSingleCellOnCurvedSupportHasIndependentAreaAndCentroid(_ backwards: Bool) throws {
+        let (_,intersection) = try rationalImplicitAreaFixture(direction:backwards ? .reversed : .forward)
+        let curves = try rationalImplicitCurvedBand(intersection,backwards:backwards)
+        let (id,model) = try fixture(intersection.secondSurface,outer:curves)
+        let result = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        let expected = rationalImplicitCurvedBandOracle()
+        #expect(abs(result.area-expected.area) <= tolerance.distance*tolerance.distance+tolerance.relative*expected.area)
+        #expect((result.centroid-expected.centroid).length <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rationalImplicitCurvedSupportRigidImageRetainsIndependentCentroid() throws {
+        let (_,intersection) = try rationalImplicitAreaFixture()
+        let source = intersection.secondSurface
+        let transform = try areaFixtureTransform()
+        let target = try transform.applying(to:source,tolerance:tolerance)
+        let curves = try rigidTrims(rationalImplicitCurvedBand(intersection,backwards:false),
+            source:source,target:target,transform:transform)
+        let (id,model) = try fixture(target,outer:curves)
+        let result = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        let expected = rationalImplicitCurvedBandOracle()
+        // Literal rigid image of the independently integrated physical moments.
+        let center = Point3D(x:0.11705791243614231,y:0.25823465931059556,z:0.5078125)
+        #expect(abs(result.area-expected.area) <= tolerance.distance*tolerance.distance+tolerance.relative*expected.area)
+        #expect((result.centroid-center).length <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rationalImplicitCurvedSupportRetainsQueryWorkAndEndpointAuthority() throws {
+        let (first,intersection) = try rationalImplicitAreaFixture()
+        let source = intersection.secondSurface
+        let curves = try rationalImplicitCurvedBand(intersection,backwards:false)
+        let (id,model) = try fixture(source,outer:curves)
+        do {
+            _ = try model.faceAreaMeasurement(of:id,tolerance:tolerance,
+                integrationOptions:FaceAreaIntegrationOptions(maximumCellCount:1))
+            Issue.record("Curved rational endpoint localization bypassed the shared query budget.")
+        } catch let error as KernelError {
+            #expect(error.code == .resourceLimitExceeded && error.residual == 2)
+        }
+        do {
+            _ = try SurfaceAreaParameterChartEncloser(curve:curves[2],on:first,
+                tolerance:tolerance,consumeWork:{})
+            Issue.record("A second-role rational chart adopted the first support.")
+        } catch let error as KernelError {
+            #expect(error.code == .invalidInput)
+        }
+        var disconnected = curves
+        // This actual UV gap is below modeling distance but above the unchanged
+        // 64-ulp connection contract; endpoint overlap cannot authorize it.
+        disconnected[0] = .constantV(v:1,uStart:10.0/13,uEnd:6.0/11+1e-12)
+        let (brokenID,brokenModel) = try fixture(source,outer:disconnected)
+        do {
+            _ = try brokenModel.faceAreaMeasurement(of:brokenID,tolerance:tolerance)
+            Issue.record("Curved rational area accepted a real original trim endpoint gap.")
+        } catch let error as KernelError {
+            #expect(error.code == .topologyFailure)
+        }
+    }
+
+    private func rationalImplicitCurvedBand(_ intersection: CertifiedImplicitIntersectionCurve,
+                                           backwards: Bool) throws -> [SurfaceParameterCurve] {
+        let implicit = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:.second,
+            startFraction:backwards ? 1 : 0,endFraction:backwards ? 0 : 1,tolerance:tolerance)
+        // Top-right anchor=(10/13,1) makes the implicit bottom-edge fan
+        // determinant +s'(fraction)/2, rather than a structurally zero fan.
+        return [.constantV(v:1,uStart:10.0/13,uEnd:6.0/11),
+                .constantU(u:6.0/11,vStart:1,vEnd:0.5),.certifiedImplicit(implicit),
+                .constantU(u:10.0/13,vStart:0.5,vEnd:1)]
+    }
+
+    private func rationalImplicitCurvedBandOracle() -> (area: Double, centroid: Point3D) {
+        // S2=(t^2/32,t/64,(2r-1)/64), t=s/(2-s),
+        // t in [3/8,5/8], r in [1/2,1]. Integrate physical arc length
+        // independently of the native rational basis and the root localizer.
+        func f0(_ t: Double) -> Double { t*sqrt(1+16*t*t)/2+asinh(4*t)/8 }
+        func f1(_ t: Double) -> Double { pow(1+16*t*t,1.5)/48 }
+        func f2(_ t: Double) -> Double {
+            (4*t*sqrt(1+16*t*t)*(32*t*t+1)-asinh(4*t))/512
+        }
+        let lower = 3.0/8, upper = 5.0/8
+        let i0 = f0(upper)-f0(lower), i1 = f1(upper)-f1(lower), i2 = f2(upper)-f2(lower)
+        return (i0/4096,Point3D(x:i2/(32*i0),y:i1/(64*i0),z:1.0/128))
+    }
+
     private func rationalImplicitAreaFixture(direction: CertifiedImplicitIntersectionDirection = .forward)
         throws -> (Surface3D,CertifiedImplicitIntersectionCurve) {
         let first = BSplineSurface3D(uDegree:1,vDegree:1,

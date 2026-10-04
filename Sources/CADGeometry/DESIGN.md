@@ -616,7 +616,7 @@ out-of-domain parameters throw typed geometry errors. Representational
 tolerance is bounded to the operation's mathematical scale and cannot accept
 nonfinite or degenerate data.
 
-### Retained Original Implicit Root Restriction (Q3 pending)
+### Retained Original Implicit Root Restriction
 
 The existing opaque `ImplicitCurveIntervalJetEncloser.ParameterEnclosureState`
 retains original intersection, cell, tolerance, closed source interval and a
@@ -626,9 +626,26 @@ A new package overload `prepareParameterEnclosure(restricting:
 overClosedInterval:tolerance:)` may initialize a child only after exact
 prepared-intersection/cell/tolerance checks and closed child containment. It
 uses the existing original native free-coordinate mapping and intersects it
-with the parent's whole cover. The other three coordinates retain the parent's
-whole cover. In a range phase this is `parameterBox`; in either endpoint phase
-it is the saved whole `rangeBox`, never the endpoint point box.
+with the parent's whole cover. In a range phase this is `parameterBox`; in
+either endpoint phase it is the saved whole `rangeBox`, never the endpoint
+point box. Actual singleton phase traces show that this cover alone retains
+the same dependent coordinate widths and contraction counts (28/28 forward,
+29/29 reversed), so whole-cover reuse does not establish work reduction.
+
+Only an upper-endpoint phase already retains the actual original lower-endpoint
+four-coordinate jet, together with the complete parent range jet. For each
+coordinate, Geometry may intersect the starting cover with the rigorous
+outward Taylor enclosure
+`lower.value + lower.first*delta + lower.second*delta^2/2 + range.third*delta^3/6`,
+where `delta` is the exact original child fraction range minus the original
+parent lower fraction. The original smooth single-cell implicit authority and
+complete range third derivative justify this remainder on the same root branch.
+All four coordinate fields come from the lower owner, never a projected chart
+or sampled/predicted point. The original free-coordinate mapping remains a
+mandatory separate intersection. Range/lower-endpoint phases retain their
+whole-cover path because they have no certified lower-endpoint jet. Empty or
+nonfinite intersections are typed failure. This fixed-size initialization is
+charged by the existing prepare operation and adds no solver or private budget.
 
 The result starts the existing range phase. No root, rank, derivative, endpoint,
 64ulp or success criterion is skipped: every actual prepare and advance is
@@ -641,9 +658,7 @@ state cannot replace the containing whole-range state for sibling/grandchild
 queries. All retained state has the immutable query's bounded DFS lifetime.
 Independent original four-coordinate/first-third derivative fixtures must
 match direct localization, preserve source/tolerance/domain/reversal refusals,
-and measure actual prepare/advance fees. Work reduction and the original public
-60s success require runtime evidence; this pending contract makes no performance
-claim. Geometry owns the lower state, and the area children own its exact
+and measure actual prepare/advance fees. The Native lower suite verifies original coordinate/jet containment and charged work reduction. The bounded iso-image consumer now passes the unchanged public forward/reverse/rigid 60s tests; this evidence does not complete general implicit chart support. Geometry owns the lower state, and the area children own its exact
 source-fraction mapping and invocation transport.
 
 ### Invocation-Owned Native First-Derivative Reuse

@@ -227,6 +227,64 @@ query allowance. The separate analytic-plane caller/depth fixture continues to
 own exact support/depth forwarding. Neither proof completes the remaining
 procedural/implicit domains of full Q3.
 
+### Centered Non-Affine Implicit Fan Pair
+
+For a smooth implicit chart requiring caller work on a non-affine selected
+support, the integrand owner prepares one paired original chart enclosure:
+`centeredIntervalJets` supplies the whole native boundary-fraction range and
+its certified midpoint. The existing original third-derivative bound restricts
+value/first/second fields by intersection; no fourth-order authority is added.
+The same prepared support, trim, normalized fractions and anchor compose both
+members with the existing signed fan map and original radial interval (range)
+and radial midpoint (center). Every lower preparation and continuation uses the
+same query work callback. No unpaid cache or independent allowance is introduced.
+
+A nested immutable geometry-owned `CenteredFanChartProof` retains the exact
+original curve/support, boundary interval T, tolerance and range/midpoint jets;
+its initializer is unavailable outside its owner. The factory performs the
+same charged original chart work once. A fan consumer verifies exact authority
+matches before composing the retained jets with an R interval. It performs
+surface-density operations without claiming a new lower root proof.
+Topology retains this value in its existing DFS cell: R children inherit it;
+T children may use it only as input to the original parent-chart restriction
+contract below, which mints an exact-child-T token. A failed initial factory
+retains no token. Each cell keeps its
+existing work charge and subdivision rules; proof reuse never bypasses a lower
+operation that is actually executed. Lifetime ends with the cell/curve/query,
+with fixed-width jets and original COW geometry references only. The existing
+DFS depth/cell ceilings bound retained tokens; no global cache or new queue or
+allowance is introduced. Same-T R-child literal field containment, no repeated
+lower work, T/curve/support/tolerance mismatch refusal and original public
+60-second cases must verify this contract. The first centered composition
+passed independent fields but still exceeded both public positive-case limits;
+a sampled active stack confirms repeated root work during integration.
+
+Topology consumes this pair only on that smooth non-affine caller-work path.
+Numeric/value-only C0/native-span, affine Green, exact-radial and rectangle
+routes retain their contracts. Fan Hessians and density derivatives remain
+bounded by their existing original geometry owner; no synthetic zero third
+integrand field is promoted to a proof. Empty intersections are typed failures;
+inconclusive localization and singular native boxes retain existing T/R
+subdivision. Whole-query four-field error, work/cell/depth/cancellation,
+signed fan winding and 64-ulp joins remain required. Independent literal
+fan density and XYZ moments plus the unchanged public curved rational band
+area/centroid tests must establish correctness and completion within their
+original limits. The preceding plain fan path exceeded each original 60-second
+positive-case limit; a tighter pair is a proposed fix, not success evidence.
+
+### Pending Original Root-Cover Continuation
+
+The [Geometry retained original implicit root restriction](../DESIGN.md#retained-original-implicit-root-restriction)
+owns the lower four-coordinate state. The area chart transports its opaque whole-range state through
+the exact existing curve-role/wrapper/source-fraction mapping. Child midpoint
+queries restrict that containing state and still execute and charge the
+original prepare/advance phases. The chart's two-coordinate Taylor/MVT fields
+never manufacture a native root box; a child singleton state never becomes a
+whole parent for another interval. The bounded parent box is only a starting
+cover, and actual lower rank/derivative/endpoint certification remains required.
+The current child-field test passes but all3 original public60s cases still
+fail; continuation work reduction and public success remain unverified.
+
 ## Verification and Change Impact
 `rationalImplicitSingletonFractionsRetainLowerPointWorkAndAuthority` compares
 actual singleton chart work and original value/third-jet authority against the
@@ -308,3 +366,72 @@ retains area `49/1572864` and the literal original/rigid centroids above.
 This evidence does not complete area integration when the rational second
 support is itself selected; its general two-dimensional signed fan integral
 remains a separate full-Q3 proof gap.
+
+### Original parent-chart restriction for T children
+
+Same-T/R reuse alone previously failed the unchanged public limits. The retained original parent contract reuses a minted original
+whole-T smooth range only for a closed contained child T. The geometry owner
+validates the original curve/support/tolerance and containment before reuse.
+It obtains the actual child midpoint from the existing exact singleton lower
+operation, charging preparation and every continuation through the same caller
+callback. No parent Taylor prediction substitutes for that midpoint root.
+
+The original parent's third-derivative enclosure remains valid on the child.
+The existing centered Taylor/MVT restriction intersects child-midpoint-based
+value/first/second ranges with the parent's original ranges; third derivatives
+retain their original bounds without fourth-order assumptions. Nonfinite or
+empty intersections fail explicitly. Original closed-domain existence,
+uniqueness and smoothness justify restriction; sampled roots do not. An
+unresolved midpoint returns the existing refinement requirement, never a fake
+certificate. The newly minted child token owns exactly child T. The exact-T
+consumer guard, support identity and original-work contract remain unchanged.
+
+| Evidence owner | Required observation |
+|---|---|
+| Geometry | Literal partial/reversed/rigid chart and four fan-field containment; charged work equals the actual original singleton operation |
+| Geometry failure | Foreign support/curve/tolerance, noncontained T and inconsistent envelopes cannot mint a token |
+| Topology | Existing work/depth/cell and endpoint authority; original analytical area/XYZ centroid completes under unchanged limits |
+
+The source localization implementation and shared Bezier enclosure owner are
+unchanged by this restriction. It introduces no global cache, queue or new
+resource ceiling. Native source-centered field, ownership and failure tests pass. Public completion additionally depends on the bounded original iso-image decomposition below; this restriction alone previously retained the time failures.
+
+### Original Single-Span Source-Centered Fan Pair
+
+The new bounded pair uses the existing range and midpoint original source
+queries exactly once each, with the same immutable support/native prepared
+owner and caller tolerance. It may tighten only a nonperiodic single original
+smooth order-three native span when both complete closed UV boxes lie inside
+that span and midpoint box is contained in range box. The authority must come
+from original stored coefficients, never an arbitrary extracted Double patch.
+Multiple spans, periodic lifts and C0 joins keep their existing original path.
+
+Each Cartesian source component intersects its original value/first/second
+ranges with multivariate Taylor/MVT enclosures formed from the actual midpoint
+source jet, displacement `rangeBox - midpointBox`, and the original complete
+range third jet. The displacement retains midpoint UV uncertainty. Convexity
+of the same closed span justifies every segment. The range third remains
+unchanged, midpoint fields use their actual source jet unchanged, and no field
+third or fourth source derivative assumption is introduced. Empty/nonfinite
+intersections fail explicitly; no lower/root evaluation, private allowance or
+option relaxation is added. The paired source/field composition must be used
+by both numeric fan and retained implicit fan consumers.
+
+Independent literal area/XYZ value and Hessian oracles must be contained by
+both old/new field bounds. A same-input before/after source pair comparison
+must establish actual reduced field-Hessian width and unchanged lower work,
+plus third retention/foreign span/owner failure. Public original forward,
+reverse and rigid area/centroid assertions must pass their unchanged each60s
+limits before Q3 publication. The bounded trace establishes top anchor-iso
+zero fan already accepts at depth0; its elimination is not a timeout remedy.
+
+
+### Original Implicit Iso-Image Area Authority
+
+For the bounded original single open cell, Geometry may prove a whole constant selected native coordinate from exact original support coefficients and the retained intersection existence/uniqueness contract. The admitted case is an original constant Cartesian-coordinate first support and original degree-one tensor extrusion in the corresponding second-support native axis, with equal positive weight rows and original row coordinates constant across the other axis. The constant plane value must be an exact certified affine combination of the two original row values; uncertain binary64 identities cannot authorize it. Original whole selected-chart jets must prove strict monotonicity in the other native coordinate. Original endpoint root enclosures, source support, role, fractions, reversal, preparation tolerance and wrapper identity remain retained in a separate immutable image proof. No replacement curve is put into exactIsoBoundary and no root/point criterion is weakened.
+
+The image proof is usable only for the actual prepared chart, original source and caller work lifetime. It enables the existing translation rectangle integrand, while original endpoint intervals bound every discrepancy from numeric adjacent side endpoints. Signed fan differences at each endpoint are enclosed as triangles of UV area at most abs(anchorAxis-fixedAxis)*abs(originalEndpointOther-sideOther)/2. The original support density and reference-relative XYZ bounds enclose all four correction fields over the entire triangle cover. These original coefficient scans, whole-chart proof, endpoints and correction evaluations consume the caller callback before expansion; no inferred fourth derivative, geometry replacement, arbitrary private allowance or uncharged certificate is introduced. Unadmitted cases retain the existing original fan path; contradicted source/tolerance/domain authority fails explicitly.
+
+Independent tests perturb interior original coefficients without changing endpoint samples, retain genuine rational weights and direction/wrappers, and show that omitted endpoint correction breaks four-field containment. Existing forward/reverse/rigid public area/XYZ centroid cases must pass their unchanged60s limits before this bounded scope is complete. General rational/multicell/closed charts remain separate gaps.
+
+Native evidence for the bounded iso-image route: all five new parameter cases pass, including original fractions/reversal/rigid identity, interior-coefficient refusal and independent nonzero endpoint area/XYZ corrections. The unchanged public forward/reverse/rigid rational band cases and work/endpoint refusal pass in1.395s. The complete current73-test face-area suite passes in27.853s; the lower37-test original implicit suite passes in.327s. These measurements describe this Native snapshot and do not certify general charts or other targets.

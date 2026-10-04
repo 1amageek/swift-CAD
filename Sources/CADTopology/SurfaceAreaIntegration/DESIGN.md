@@ -140,6 +140,19 @@ depth. Cancellation is checked during preparation and between cells.
 Resource exhaustion, singularity, unsupported charts and nonfinite/indeterminate
 arithmetic throw typed KernelError. An uncertified value is never returned.
 
+### Pending Original Root-Cover Continuation
+
+The [Geometry retained original implicit root restriction](../../CADGeometry/DESIGN.md#retained-original-implicit-root-restriction)
+owns the lower four-coordinate state. The area chart transports its opaque whole-range state through
+the exact existing curve-role/wrapper/source-fraction mapping. Child midpoint
+queries restrict that containing state and still execute and charge the
+original prepare/advance phases. The chart's two-coordinate Taylor/MVT fields
+never manufacture a native root box; a child singleton state never becomes a
+whole parent for another interval. The bounded parent box is only a starting
+cover, and actual lower rank/derivative/endpoint certification remains required.
+The current child-field test passes but all3 original public60s cases still
+fail; continuation work reduction and public success remain unverified.
+
 ## Verification and Change Impact
 [`SurfaceAreaIntegrationTests`](../../../Tests/CADTopologyTests/SurfaceAreaIntegrationTests.swift) owns exact planar and
 curved fixtures, hole/reversal, boundary and typed resource/cancellation tests.
@@ -162,3 +175,53 @@ three. The public area/centroid oracle selects the affine first support and
 retains the same literal region and rigid image above. This proof is not
 generalized to area integration on the rational selected support, periodic
 or multispan supports, multiple nonlinear cells, closed or procedural charts.
+
+The next bounded verification selects that original rational second support
+itself. It must exercise the existing non-affine two-dimensional signed fan,
+with implicit native edge `r=1/2`, `t=3/8..5/8` (native
+`s=6/11..10/13`), upper edge `r=1` and two constant-U edges. The loop order is
+upper, left, implicit, right; its anchor `(sHigh,1)` gives the implicit fan
+determinant `s'(fraction)/2`, so the implicit contribution is nonzero.
+Independent antiderivatives of `sqrt(1+16*t*t)`, `t*sqrt(1+16*t*t)` and
+`t*t*sqrt(1+16*t*t)` define area `I0/4096` and centroid
+`(I2/(32*I0),I1/(64*I0),1/128)`. Tests must retain original rational support,
+source fractions, reversal and rigid image, with one aggregate four-field
+error/work/depth/cancellation owner and unchanged 64-ulp joins. One-cell
+exhaustion, foreign support and a real endpoint gap must refuse explicitly.
+The original numeric fan path previously exceeded the three positive60s limits. The bounded iso-image route below now passes these original public oracles without relaxing their limits or error goals.
+
+For the smooth non-affine implicit caller-work path, topology may consume the
+geometry owner's centered fan range/midpoint pair under the existing T/R cell.
+All other fan routes retain their contracts. This change is justified by the
+three original positive curved-support cases exceeding their 60-second limits;
+it must pass those same public oracles and limits before completion. See the
+[geometry owner](../../CADGeometry/SurfaceAreaIntegration/DESIGN.md) for paired
+chart authority and charging; topology continues to own the signed integral
+and whole-query acceptance.
+
+The existing integration DFS cell may retain the geometry owner's immutable
+original chart proof for its exact T interval. R children share that proof;
+T children retain it only as restriction input: the geometry owner validates
+closed containment, proves the actual child midpoint with the same caller
+work callback and mints a new exact-child-T token. A parent token cannot
+directly enter the exact-T consumer. Existing per-cell
+work, T/R depth/error rules and bounded stack remain authoritative. Accepted or
+popped cells and query completion release their tokens; geometry internals and
+jets remain behind the public package proof contract. The same original positive cases now pass through the bounded iso-image route; reuse alone previously did not complete them.
+
+### Source-Centered Fan Pair Consumption
+
+Numeric nonrectangular fan integration and retained original implicit fan
+integration consume Geometry's same-owner range/midpoint pair. Topology keeps
+its original four-field Taylor error goals, actual UV connectivity, original
+fractions, shared work/depth/cancellation and midpoint fields. It does not
+reconstruct native-span authority or infer a missing fourth derivative.
+[Geometry](../../CADGeometry/SurfaceAreaIntegration/DESIGN.md#original-single-span-source-centered-fan-pair)
+owns original source restrictions and all admission/failure conditions.
+
+
+### Corrected Original Implicit Iso-Image Rectangle
+
+Topology consumes [Geometry's original iso-image proof](../../CADGeometry/SurfaceAreaIntegration/DESIGN.md#original-implicit-iso-image-area-authority) to recognize an original boundary image in the existing translation rectangle route. It retains the actual original trim/chart and adjacent side coordinates rather than substituting a constant-axis pcurve. Complete monotone image and original endpoint authority must be present for rectangle admission. The source's existing64ulp connectivity check remains mandatory.
+
+Every endpoint signed triangle correction is included in the area and reference-relative XYZ integral intervals. Correction uncertainty consumes the existing query-wide four-field error allowance before adaptive 1D integration; final area/centroid admission uses unchanged original tolerances. Preparation, root phases, correction evaluation, 1D cells, depth, cancellation and receipt release share the original query counters/lifetime. Nonrectangular or unproved images stay on the existing original fan path. All unchanged Native forward/reverse/rigid public cases now pass in1.395s; the current73-test face-area suite passes in27.853s. This bounded success leaves general Q3 and other targets open.

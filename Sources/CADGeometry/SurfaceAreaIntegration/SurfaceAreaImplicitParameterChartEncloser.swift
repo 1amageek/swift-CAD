@@ -4,6 +4,7 @@ import CADCore
 struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
     private let curve: CertifiedImplicitSurfaceParameterCurve
     private let prepared: ImplicitCurveIntervalJetEncloser
+    private let preparationTolerance: ModelingTolerance
 
     init(curve: CertifiedImplicitSurfaceParameterCurve, tolerance: ModelingTolerance,
          consumeWork: () throws -> Void) throws {
@@ -17,7 +18,58 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
         }
         try consumeWork()
         self.curve = curve
+        preparationTolerance = tolerance
         prepared = try ImplicitCurveIntervalJetEncloser(intersection: curve.intersection, tolerance: tolerance)
+    }
+
+    /// The original plane/extrusion equation holds for every certified root.
+    /// This receipt does not derive a parameter identity from anchors or samples.
+    func constantAxisAuthority(tolerance: ModelingTolerance, consumeWork: () throws -> Void)
+        throws -> (axis: SurfaceAreaTranslationCertificate, parameter: Double)? {
+        guard tolerance == preparationTolerance else {
+            throw KernelError(phase:.geometry,code:.invalidInput,tolerance:tolerance,
+                message:"Implicit iso-image authority requires its original preparation tolerance.")
+        }
+        guard curve.role == .second,
+              case .bSpline(let plane) = curve.intersection.firstSurface,
+              case .bSpline(let extrusion) = curve.intersection.secondSurface else { return nil }
+        try consumeWork()
+        guard
+              let axis = SurfaceAreaTranslationCertificate.direction(of:.bSpline(extrusion)) else { return nil }
+        let count = axis == .v ? extrusion.uControlPointCount : extrusion.vControlPointCount
+        let knots = axis == .v ? extrusion.vKnots : extrusion.uKnots
+        // The original degree-one axis and equal weight layers own the affine
+        // interpolation. The other axis remains genuinely rational when weighted.
+        guard knots.count == 4, count > 0 else { return nil }
+        // This bounded recognizer admits exact midplanes. Other affine plane
+        // combinations retain their original general fan algorithm.
+        let candidate = knots[0] * 0.5 + knots[3] * 0.5
+        func exactMidpoint(_ lower: Double, _ upper: Double, _ middle: Double) -> Bool {
+            let sum = FloatingPointExpansion.sum([lower],[upper])
+            let twice = FloatingPointExpansion.sum([middle],[middle])
+            let residual = FloatingPointExpansion.subtract(sum,twice)
+            return lower.isFinite && upper.isFinite && middle.isFinite
+                && sum.allSatisfy(\.isFinite) && twice.allSatisfy(\.isFinite)
+                && residual.allSatisfy(\.isFinite) && FloatingPointExpansion.sign(residual) == .zero
+        }
+        guard candidate > knots[0], candidate < knots[3], exactMidpoint(knots[0],knots[3],candidate) else { return nil }
+        func coordinate(_ point: Point3D, _ index: Int) -> Double {
+            switch index { case 0: return point.x; case 1: return point.y; default: return point.z }
+        }
+        func control(_ layer: Int, _ other: Int) -> Point3D {
+            extrusion.controlPoints[axis == .v ? layer : other][axis == .v ? other : layer]
+        }
+        for component in 0..<3 {
+            let planeValue = coordinate(plane.controlPoints[0][0],component)
+            guard plane.controlPoints.allSatisfy({ $0.allSatisfy { coordinate($0,component) == planeValue } }) else { continue }
+            let lower = coordinate(control(0,0),component)
+            let upper = coordinate(control(1,0),component)
+            guard lower != upper, (0..<count).allSatisfy({
+                coordinate(control(0,$0),component) == lower && coordinate(control(1,$0),component) == upper
+            }), exactMidpoint(lower,upper,planeValue) else { continue }
+            return (axis,candidate)
+        }
+        return nil
     }
 
     /// Admission only; the retained lower owner supplies every root and derivative proof.
@@ -43,6 +95,14 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
 
     func intervalProof(over fraction: ScalarInterval, tolerance: ModelingTolerance,
                        consumeWork: () throws -> Void) throws -> SurfaceAreaParameterChartEncloser.IntervalProof {
+        try intervalProofRetainingRoot(over:fraction,tolerance:tolerance,consumeWork:consumeWork).proof
+    }
+
+    func intervalProofRetainingRoot(over fraction: ScalarInterval,
+        restricting parent: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState? = nil,
+        tolerance: ModelingTolerance, consumeWork: () throws -> Void)
+        throws -> (proof: SurfaceAreaParameterChartEncloser.IntervalProof,
+                   root: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState) {
         let slope = OutwardScalarInterval.exact(curve.endFraction) - .exact(curve.startFraction)
         let source = OutwardScalarInterval.exact(curve.startFraction)
             + slope * OutwardScalarInterval(lower: fraction.lower, upper: fraction.upper)
@@ -73,8 +133,14 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
             interval = try ScalarInterval(lower: max(0, source.lower), upper: min(1, source.upper))
         }
         try consumeWork()
-        var state = try prepared.prepareParameterEnclosure(of: curve.intersection, cellIndex: 0,
-            overClosedInterval: interval, tolerance: tolerance)
+        var state: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState
+        if let parent {
+            state = try prepared.prepareParameterEnclosure(restricting:parent,
+                overClosedInterval:interval,tolerance:tolerance)
+        } else {
+            state = try prepared.prepareParameterEnclosure(of:curve.intersection,cellIndex:0,
+                overClosedInterval:interval,tolerance:tolerance)
+        }
         while true {
             try consumeWork()
             switch try prepared.advanceParameterEnclosure(state, tolerance: tolerance) {
@@ -94,7 +160,7 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
                         thirdDerivativeUUU: outward(coordinate.thirdDerivative) * slope * slope * slope,
                         thirdDerivativeUUV: zero, thirdDerivativeUVV: zero, thirdDerivativeVVV: zero)
                 }
-                return .smooth(u: compose(jet.coordinates[base]), v: compose(jet.coordinates[base + 1]))
+                return (.smooth(u:compose(jet.coordinates[base]),v:compose(jet.coordinates[base + 1])),state)
             }
         }
     }
