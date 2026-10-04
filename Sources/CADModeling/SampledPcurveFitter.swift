@@ -6,11 +6,12 @@ import CADGeometry
 /// (a spline edge on a spline face): a cubic spline through the surface parameters of the curve's
 /// points at even steps of its own parameter between `start` and `end`, a periodic angle unwrapped
 /// along it. It follows the edge as its parameter does, so the edge's correspondence with the face
-/// is certified against it within the validator's bound.
+/// is certified against it within the validator's bound. The fewest samples (8, 16, 32 or 64)
+/// whose spline's image stays within a thousandth of the distance tolerance of the curve between
+/// the samples are taken: every span multiplies the work of the certified checks and integrals
+/// that read the face, and an image near the tolerance makes them subdivide far.
 package struct SampledPcurveFitter {
-    /// The interpolated samples: enough that the spline's deviation stays far below the
-    /// distance tolerance for the smooth curves it follows.
-    private static let sampleCount = 64
+    private static let sampleCounts = [8, 16, 32, 64]
 
     private let tolerance: ModelingTolerance
 
@@ -19,7 +20,28 @@ package struct SampledPcurveFitter {
     }
 
     package func pcurve(of curve: Curve3D, from start: Double, to end: Double, on surface: Surface3D) throws -> BSplineCurve2D {
-        let degree = 3, count = Self.sampleCount
+        var fitted: BSplineCurve2D?
+        for count in Self.sampleCounts {
+            let candidate = try pcurve(of: curve, from: start, to: end, on: surface, samples: count)
+            fitted = candidate
+            // The image between samples, against the curve there.
+            var worst = 0.0
+            for k in 0..<(2 * count) {
+                let fraction = (Double(k) + 0.5) / Double(2 * count)
+                let uv = try candidate.point(at: fraction, tolerance: tolerance)
+                let image = try surface.point(u: uv.x, v: uv.y, tolerance: tolerance)
+                let target = try curve.point(at: start + (end - start) * fraction, tolerance: tolerance)
+                worst = max(worst, (image - target).length)
+            }
+            if worst <= tolerance.distance * 1e-3 { return candidate }
+        }
+        // Past the densest sampling the validator judges the spline against its own bound.
+        guard let fitted else { throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: tolerance, message: "No pcurve samples.") }
+        return fitted
+    }
+
+    private func pcurve(of curve: Curve3D, from start: Double, to end: Double, on surface: Surface3D, samples count: Int) throws -> BSplineCurve2D {
+        let degree = 3
         let knots = Array(repeating: 0.0, count: degree + 1)
             + (1..<(count - degree)).map { Double($0) / Double(count - degree) }
             + Array(repeating: 1.0, count: degree + 1)

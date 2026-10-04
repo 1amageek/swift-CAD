@@ -1102,9 +1102,18 @@ subshapes; the source is removed with its subshapes unless `keepsTarget`. A body
 carried beyond a bounded target surface fails (`invalidInput`), and so does one whose
 vertices' images reach a whole turn around a periodic target face, which would meet itself
 across the seam (checked before any fit; Plasticity asks for the body or face to be split); a fit past its
-span budget fails (`resourceLimitExceeded`). `WrapFeatureTests` own the
+span budget fails (`resourceLimitExceeded`). With Reblend (`WrapOptions.reblends`) the
+body's closed chains of round fillets are recomputed on the deformed faces by
+CADModeling's `RollingBallReblender` before sewing: the faces those rounds blend are
+fitted past their trims by twice the largest such radius (a narrower round touches them
+nearer the sharp edge), and each round's surface, rails, sections, the vertices where they
+meet and the trims of the edges reaching those vertices are replaced, topology and
+identities kept; rounds of open chains and corners keep the deformed geometry
+(`FIXME(INCOMPLETE_IMPLEMENTATION)`). `WrapFeatureTests` own the
 identity, offsets with Keep, placed faces, a cube bent onto a cylinder as an annular sector,
-the mirrored reversal, refused options and persistence.
+the mirrored reversal, refused options and persistence; `WrapReblendTests` a rounded block's
+rounded top outline bent onto a cylinder, whose rounds bent with it miss the ball touching
+both faces at the radius and reblended touch it within the fits.
 A deformed body's faces are non-rational B-splines of many spans under their
 source's rectangular trims, which CADTopology's `TrimmedParametricSurfaceVolumeEvaluator`
 integrates exactly span by span (each certified Bezier span cut to its share of

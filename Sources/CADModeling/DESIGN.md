@@ -1113,7 +1113,8 @@ each ruling the plane's distance changes linearly, so the cut is the rational cu
 rulings stay steep to the plane), whose trace on the ruled face is exact too and shares its
 parameter; any other neighbour's re-solve the certified intersector does not yet carry through
 (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A spline edge on a spline face with no exact pcurve takes a
-cubic through the surface parameters of 64 of its points (`SampledPcurveFitter`). An edge both its
+cubic through the surface parameters of the fewest of 8, 16, 32 or 64 of its points whose image
+stays within a thousandth of the distance tolerance of it (`SampledPcurveFitter`). An edge both its
 faces' new surfaces still hold keeps its curve in the re-solve (`FaceSurfaceReplacementRebuilder`). A hole's wall then meets
 the turned face along an ellipse, whose pcurve on the cylinder is projected exactly.
 `PushFaceTests`, `DraftFaceTests` and `MatchFaceTests` prove boxes, rounded boxes,
@@ -1272,6 +1273,23 @@ icosahedron (valences five and three) and an open fan of six quads (valence six)
 along every edge (both faces' normals and curvature tensors agreeing), a triangle's corners kept,
 rounded short of, and interpolated again, and a cube cut 2 × 2 a side whose merged blocks are the
 uniform B-spline (simple joint knots) beside its caps, of the same volume and G2.
+
+### Reblend
+
+`RollingBallReblender` recomputes a deformed body's round fillets for Wrap's Reblend
+(CADKernel): a source round is a cylinder or torus face of four edges, two rails tangent to the
+faces it blends and two sections lying across its spine (both ends on one spine point), shared
+with other rounds; rounds whose sections close into loops form chains (a cap's rim), the others
+falling away (open chains, corners: `FIXME(INCOMPLETE_IMPLEMENTATION)`). On the deformed faces
+each section's ball solves by damped Newton for c = A + σA r nA = B + σB r nB, σ the side of each
+face its source centre lies on: at a junction of links the ball touches the edge between the
+faces that change there (both changing is refused), elsewhere its centre lies in the plane square
+to the deformed spine, that plane carried at each end onto the junction's own so the sections run
+into the junctions continuously, and the junction's offset from the link's own end section (the
+edge's fit against the faces' fits, a tenth of a micrometre) spread linearly along the link.
+Sections are exact arcs; the link's surface, rails and sections are fitted to them within a
+quarter of the distance tolerance and its pcurves are its isoparametric lines, every other face
+taking sampled pcurves (`SampledPcurveFitter`) for its changed edges.
 
 ## Runtime Flows
 

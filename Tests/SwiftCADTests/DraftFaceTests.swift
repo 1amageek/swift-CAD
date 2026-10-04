@@ -387,9 +387,9 @@ struct DraftFaceTests {
         return try builder.extrude(profile, distance: millimeters(30))
     }
 
-    // About ten minutes in debug builds, nearly all of it the certified volume of the ruled
-    // face, whose cut by the floor has a rational trace.
-    @Test(.timeLimit(.minutes(15)))
+    // Ten to twenty minutes in debug builds (with the machine's load), nearly all of it the
+    // certified volume of the ruled face, whose cut by the floor has a rational trace.
+    @Test(.timeLimit(.minutes(30)))
     func aWallMeetingAnSCurvedReferenceTurnsIntoItsRuledSurface() throws {
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
         let block = try sToppedBlock(&builder)

@@ -529,7 +529,9 @@ where its body sits there, as a Boolean operand's does. Its inputs are
 the target, then each face owner once (`sourceInputs`); its one output keeps the
 target's kind. The options' scales and offsets must be finite and the scales
 non-zero, and the N offset is a length expression (a parameter dependency);
-invalid options fail to decode or encode. Geometry is owned by
+invalid options fail to decode or encode. `reblends` (Reblend) recomputes the
+body's round fillets on the deformed faces; documents written before it read it as
+off. Geometry is owned by
 [CADKernel](../CADKernel/DESIGN.md#wrap).
 
 A mirror's `output` (combined, reflection or kept) and `cutsAtPlane` round-trip

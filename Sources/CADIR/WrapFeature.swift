@@ -5,6 +5,8 @@ import CADGeometry
 /// `t` are the face's support parameters normalized over its parameter box, `n` the height along
 /// its outward normal. Scale and offset act about the box's centre and in its normalized units, N
 /// scaled and offset as a length; the flips mirror `s`, swap `s` and `t`, and turn the normal.
+/// Reblend recomputes the body's round fillets on the deformed faces at their radii, instead of
+/// leaving them bent with the body.
 public struct WrapOptions: Codable, Hashable, Sendable {
     public var scaleU: Double
     public var scaleV: Double
@@ -15,11 +17,12 @@ public struct WrapOptions: Codable, Hashable, Sendable {
     public var mirrors: Bool
     public var flipsUV: Bool
     public var flipsNormal: Bool
+    public var reblends: Bool
 
     public init(
         scaleU: Double = 1, scaleV: Double = 1, scaleN: Double = 1,
         offsetU: Double = 0, offsetV: Double = 0, offsetN: CADExpression = .constant(.length(0, unit: .meter)),
-        mirrors: Bool = false, flipsUV: Bool = false, flipsNormal: Bool = false
+        mirrors: Bool = false, flipsUV: Bool = false, flipsNormal: Bool = false, reblends: Bool = false
     ) {
         self.scaleU = scaleU
         self.scaleV = scaleV
@@ -30,6 +33,40 @@ public struct WrapOptions: Codable, Hashable, Sendable {
         self.mirrors = mirrors
         self.flipsUV = flipsUV
         self.flipsNormal = flipsNormal
+        self.reblends = reblends
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case scaleU, scaleV, scaleN, offsetU, offsetV, offsetN, mirrors, flipsUV, flipsNormal, reblends
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        scaleU = try container.decode(Double.self, forKey: .scaleU)
+        scaleV = try container.decode(Double.self, forKey: .scaleV)
+        scaleN = try container.decode(Double.self, forKey: .scaleN)
+        offsetU = try container.decode(Double.self, forKey: .offsetU)
+        offsetV = try container.decode(Double.self, forKey: .offsetV)
+        offsetN = try container.decode(CADExpression.self, forKey: .offsetN)
+        mirrors = try container.decode(Bool.self, forKey: .mirrors)
+        flipsUV = try container.decode(Bool.self, forKey: .flipsUV)
+        flipsNormal = try container.decode(Bool.self, forKey: .flipsNormal)
+        // Documents written before Reblend existed deform their fillets with the body.
+        reblends = try container.decodeIfPresent(Bool.self, forKey: .reblends) ?? false
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(scaleU, forKey: .scaleU)
+        try container.encode(scaleV, forKey: .scaleV)
+        try container.encode(scaleN, forKey: .scaleN)
+        try container.encode(offsetU, forKey: .offsetU)
+        try container.encode(offsetV, forKey: .offsetV)
+        try container.encode(offsetN, forKey: .offsetN)
+        try container.encode(mirrors, forKey: .mirrors)
+        try container.encode(flipsUV, forKey: .flipsUV)
+        try container.encode(flipsNormal, forKey: .flipsNormal)
+        try container.encode(reblends, forKey: .reblends)
     }
 
     public func validate() throws {

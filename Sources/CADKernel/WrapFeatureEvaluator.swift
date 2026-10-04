@@ -31,6 +31,33 @@ struct WrapFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
         }
     }
 
+    /// A face's parameter box run on each way by `length` along its support (read at the box's
+    /// middle), within the support's domain.
+    private func widened(_ box: SurfaceParameterBox, by length: Double, on surface: Surface3D) throws -> SurfaceParameterBox {
+        let tolerance = ModelingTolerance.standard
+        let middle = try surface.differentialGeometry(
+            u: 0.5 * (box.u.lower + box.u.upper), v: 0.5 * (box.v.lower + box.v.upper), tolerance: tolerance)
+        func widened(_ interval: ScalarInterval, _ domain: ParameterDomain, speed: Double) throws -> ScalarInterval {
+            guard speed > 0 else { return interval }
+            let margin = length / speed
+            var (lower, upper) = (interval.lower - margin, interval.upper + margin)
+            switch domain {
+            case let .closed(first, last):
+                (lower, upper) = (max(lower, first), min(upper, last))
+            case let .periodic(period):
+                if upper - lower > period {
+                    let center = 0.5 * (interval.lower + interval.upper)
+                    (lower, upper) = (center - 0.5 * period, center + 0.5 * period)
+                }
+            case .unbounded:
+                break
+            }
+            return try ScalarInterval(lower: lower, upper: upper)
+        }
+        return SurfaceParameterBox(u: try widened(box.u, surface.uDomain, speed: middle.tangentU.length),
+                                   v: try widened(box.v, surface.vDomain, speed: middle.tangentV.length))
+    }
+
     private func wrap(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
         guard case let .wrap(wrap) = feature.operation else {
             throw error(.invalidInput, feature.id, context, "Wrap evaluator requires a wrap feature.")
@@ -92,6 +119,10 @@ struct WrapFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
         }
 
         let bounds = FaceParameterExtentResolver()
+        let blended = wrap.options.reblends
+            ? try RollingBallReblender(tolerance: tolerance).blendedFaces(
+                in: context.brep, faces: Set(body.shellIDs.flatMap { context.brep.shells[$0]?.faceIDs ?? [] }))
+            : [:]
         var shells: [BRepSewingShell] = []
         for (shellIndex, shell) in extraction.request.shells.enumerated() {
             guard shellIndex < body.shellIDs.count, let sourceShell = context.brep.shells[body.shellIDs[shellIndex]],
@@ -99,7 +130,10 @@ struct WrapFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
                 throw error(.missingReference, feature.id, context, "Wrap lost the order of the target's faces.")
             }
             let patches = try zip(sourceShell.faceIDs, shell.patches).map { faceID, patch in
-                let box = try bounds.bounds(for: faceID, in: context.brep, tolerance: tolerance)
+                let trimmed = try bounds.bounds(for: faceID, in: context.brep, tolerance: tolerance)
+                // Reblend's rolling ball may touch a face beyond its old trim (a round narrower than
+                // the bent one reaches toward the sharp edge), so its support runs on past it.
+                let box = try blended[faceID].map { try widened(trimmed, by: 2 * $0, on: patch.surface) } ?? trimmed
                 let surface = try surfaceFitter.fit(u: box.u, v: box.v, tolerance: tolerance) { u, v in
                     try map.point(try patch.surface.point(u: u, v: v, tolerance: tolerance))
                 }.surface
@@ -115,7 +149,16 @@ struct WrapFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
             }
             shells.append(BRepSewingShell(stableID: shell.stableID, patches: patches, orientation: shell.orientation))
         }
-        if try map.reversesOrientation(at: samples, featureID: feature.id) {
+        let reverses = try map.reversesOrientation(at: samples, featureID: feature.id)
+        if wrap.options.reblends {
+            // Reblend: the body's closed chains of rounds recomputed on the deformed faces.
+            let faceIDs = body.shellIDs.map { context.brep.shells[$0]?.faceIDs ?? [] }
+            shells = try RollingBallReblender(tolerance: tolerance).reblended(
+                RollingBallReblender.Body(shells: shells, faceIDs: faceIDs), source: context.brep,
+                map: { try map.point($0) }, reverses: reverses
+            ).shells
+        }
+        if reverses {
             let adapter = BRepSewingPatchOrientationAdapter()
             shells = try shells.map { shell in
                 BRepSewingShell(
