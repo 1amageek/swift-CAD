@@ -8,19 +8,26 @@ public struct SquareRefit: Codable, Hashable, Sendable {
     public var options: SquareFitOptions
     /// The continuity with the neighbouring faces: nil for G0.
     public var order: SurfaceEdgeContinuity.Order?
+    /// Free: the sides followed loosely (Weight-scaled), as Square's Free side; a sheet's face
+    /// strays from its edges where its net does not hold them.
+    public var isFree: Bool
     public var angularAllowance: Double?
     public var curvatureAllowance: Double?
 
     public init(options: SquareFitOptions = SquareFitOptions(), order: SurfaceEdgeContinuity.Order? = nil,
-                angularAllowance: Double? = nil, curvatureAllowance: Double? = nil) {
+                angularAllowance: Double? = nil, curvatureAllowance: Double? = nil, isFree: Bool = false) {
         self.options = options
         self.order = order
+        self.isFree = isFree
         self.angularAllowance = angularAllowance
         self.curvatureAllowance = curvatureAllowance
     }
 
     public func validate() throws {
         try options.validate()
+        guard isFree == false || order == nil else {
+            throw FeatureEvaluationError.invalidGraph("A Free refit takes no continuity.")
+        }
         if let angularAllowance {
             guard angularAllowance.isFinite, angularAllowance > 0, angularAllowance < Double.pi / 2 else {
                 throw FeatureEvaluationError.invalidGraph("A refit's angular allowance is a positive angle below a right angle.")
@@ -34,16 +41,17 @@ public struct SquareRefit: Codable, Hashable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case options, order, angularAllowance, curvatureAllowance
+        case options, order, angularAllowance, curvatureAllowance, isFree = "free"
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.options, .order, .angularAllowance, .curvatureAllowance], in: decoder)
+        try container.validateOnlyExpectedKeys([.options, .order, .angularAllowance, .curvatureAllowance, .isFree], in: decoder)
         options = try container.decode(SquareFitOptions.self, forKey: .options)
         order = try container.decodeIfPresent(SurfaceEdgeContinuity.Order.self, forKey: .order)
         angularAllowance = try container.decodeIfPresent(Double.self, forKey: .angularAllowance)
         curvatureAllowance = try container.decodeIfPresent(Double.self, forKey: .curvatureAllowance)
+        isFree = try container.decodeIfPresent(Bool.self, forKey: .isFree) ?? false
         try validate()
     }
 
@@ -54,5 +62,6 @@ public struct SquareRefit: Codable, Hashable, Sendable {
         try container.encodeIfPresent(order, forKey: .order)
         try container.encodeIfPresent(angularAllowance, forKey: .angularAllowance)
         try container.encodeIfPresent(curvatureAllowance, forKey: .curvatureAllowance)
+        if isFree { try container.encode(true, forKey: .isFree) }
     }
 }

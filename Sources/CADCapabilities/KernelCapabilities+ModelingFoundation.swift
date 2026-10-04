@@ -332,7 +332,7 @@ extension KernelCapabilities {
         "degreeSpansFlatnessWeightAndBoundaryFlowOptions",
       ],
       outputs: [
-        "oneBSplineSheetFittedIntoItsDegreeAndSpansWithItsHardSidesExact",
+        "oneBSplineSheetInTheExactRequestedNetWithRefinementOrPolynomialApproximation",
       ],
       fixtures: [
         "SquareSurfaceTests",

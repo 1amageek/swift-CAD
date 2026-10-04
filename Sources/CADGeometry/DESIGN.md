@@ -262,6 +262,24 @@ to reject before subdivision. Point-evaluation errors still propagate. Global
 lift bounds are optional optimizations; each accepted cell requires a finite
 certified local bound under the existing depth/cell limits.
 
+For correspondence against an original B-spline curve, a finite per-Bezier-span
+second-derivative maximum is not a Taylor certificate across an interior native
+knot whose multiplicity reaches the degree. Such a derivative jump makes the
+second-order certificate unavailable on that requested spatial interval.
+Both global and adaptive local Taylor admission must respect this restriction;
+local cache keys use the actual adaptive interval when a global smooth-span
+certificate is unavailable. Continuous positive-weight piecewise B-spline curves
+may instead use the existing first-order Lipschitz path with an outward maximum
+of the original Bezier-span first-derivative magnitudes. This changes neither
+monotone projection semantics nor the single caller-owned cell/depth ceilings.
+A literal degree-one narrow knot bulge exceeding the caller's maximum deviation
+must be rejected; below-limit, reversed, boundary, invalid-continuity and resource
+fixtures verify the admitted path. Refit composition must pass the same proof
+before keeping an original boundary edge. Scalar native B-spline
+bounds do not admit translated periodic cycles or seam endpoints without a
+separate derivative cover; unavailable bounds never authorize correspondence.
+
+
 For bounded-parametric intersections with one planar support, the finite
 partner's conservative spatial hull bounds the plane's search domain. Positive
 rational B-splines use their control hull; signed offsets expand the hull by

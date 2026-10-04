@@ -291,6 +291,13 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphRootCertifier.swift", sourceLine: 333
         ),
         KernelDomainLimitation(
+            id: "condition-2cad7378732965fa",
+            operations: ["CADCommand", "faceRebuild", "curveSurfaceIntersectionResult"],
+            dimensions: [.boundaryCurve, .parameterization, .geometricFidelity],
+            condition: "Correspondence's scalar native derivative bounds do not own periodic seam or translated-cycle coverage. This production validator may use them only after whole requested wrap intervals have proof.",
+            sourcePath: "Sources/CADGeometry/DefaultCurveSurfaceCorrespondenceValidator.swift", sourceLine: 2738
+        ),
+        KernelDomainLimitation(
             id: "condition-e3c722793010fbf6",
             operations: ["curveSurfaceIntersectionResult", "faceAreaMeasurement"],
             dimensions: [.boundaryCurve, .parameterization, .geometricFidelity],
@@ -449,7 +456,14 @@ extension KernelCapabilities {
             operations: ["faceRebuild"],
             dimensions: [.supportSurface, .connection],
             condition: "a boundary control point moved within the face's own plane leaves its straight edges on a spline whose parameters run unevenly along them: no exact trimming curve exists there, and the certified intersection with the plane beside it does not resolve, so the evaluation fails with that error. Production path: Rupa's control point moves on a face of a solid given control points. Complete when such a face keeps its edges, verified by a box face's corner control point drawn in alone.",
-            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 371
+            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 383
+        ),
+        KernelDomainLimitation(
+            id: "condition-d0540804209f9190",
+            operations: ["faceRebuild"],
+            dimensions: [.supportSurface, .connection],
+            condition: "a solid's face refit on a net that cannot hold its sides on its edges would leave the solid open where they stray (Plasticity keeps it closed with tolerant edges, which this kernel does not represent), so it is refused. Production path: Rebuild Face's square method (Refit Face) on a solid. Complete only when a solid's refit face may stray from its neighbours' edges and stay closed, verified by a pentagonal prism's top refit on a 3 × 3 net.",
+            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 615
         ),
         KernelDomainLimitation(
             id: "condition-2b5a8e9ebadb8cfb",
@@ -863,6 +877,13 @@ extension KernelCapabilities {
             dimensions: [.supportSurface, .boundaryCurve, .representation],
             condition: "an edge that is not a line, a circle or a B-spline (an ellipse, an intersection or a lifted curve) is refused. Production path: FaceSectionProfileResolver for every face section. Complete only when such edges are carried exactly or within a stated deviation, verified by extruding a face bounded by an elliptical edge.",
             sourcePath: "Sources/CADModeling/SectionResolution/FaceSectionProfileResolver.swift", sourceLine: 95
+        ),
+        KernelDomainLimitation(
+            id: "condition-64a8628d18c88e12",
+            operations: ["squareSurface", "faceRebuild", "xnurbs"],
+            dimensions: [.supportSurface, .parameterization, .geometricFidelity],
+            condition: "The polynomial stand-in has no continuous original-sheet position, tangent or curvature error certificate. Square's production fit uses this Greville fallback when exact refinement cannot provide the requested net; full G6 requires those original-domain proofs. Tensor interpolation at the Greville abscissae: each row of samples along u, then each column of those along v.",
+            sourcePath: "Sources/CADModeling/SquareSurface/SquareSurfaceFitter.swift", sourceLine: 201
         ),
         KernelDomainLimitation(
             id: "condition-595b34a72e922dbb",

@@ -981,16 +981,31 @@ Remove Nominal Surface is Rebuild Face's `nominal` method: each spline face's su
 Square's Refit is Rebuild Face's `square` method (`SquareFaceRefitter`): a face bounded by one loop
 of at least four edges is split into four sides at the four vertices where the loop turns most,
 each side its edges' exact spans joined along the loop, and the face takes Square's fit of that
-frame with every side hard — G0, or tangent or curvature continuous with the one neighbouring face
-across it (a side on the sheet's open boundary stays G0) — so it keeps its edges and vertices;
-its coedges become constant-parameter curves along the new sheet's boundary, each over its edge's
-stretch of its side, and its orientation keeps its outward normal. No extension or shrinking
-applies. `SquareRefitTests` own a box's top refit flat to its Degree, a pentagonal prism's top
-split at its four sharpest corners (both keeping their volume) and a sheet's face refit tangent to
-a curved ramp beside it. `FaceRefitAnalyzer` is Refit Face's Analysis: for each edge of each refit
+frame in exactly the requested net with every side hard — G0, or tangent or curvature continuous
+with the one neighbouring face across it (a side on the sheet's open boundary stays G0) — or every
+side loose (`SquareRefit.isFree`); its coedges become constant-parameter curves along the new
+sheet's boundary, each over its edge's stretch of its side, and its orientation keeps its outward
+normal. An original edge is kept only after the existing whole curve/surface
+correspondence validator certifies the whole original oriented curve against the new
+pcurve at `tolerance.distance`, using the existing depth32/cell1048576 proof
+limits. Seventeen observed samples may supply diagnostics only. A proved
+`topologyFailure` classifies a straying edge; resource, ambiguity, singularity
+and invalid-input failures propagate without that classification. The generic
+B-rep validator's eight-times-distance allowance cannot authorize this keep
+predicate. An edge satisfying that strict proof is kept, shared
+with its neighbour; a sheet's straying edge is replaced by its own edge fitted along the new
+boundary and the body is sewn anew, preserving the source edge and both endpoint
+vertex parent subshape IDs; the neighbour's edge is left open; a solid's straying edge is
+refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`, no tolerant edges). No extension or shrinking applies.
+`SquareRefitTests` own a box's top refit flat to its Degree (keeping its volume), a pentagonal
+prism's top split at its four sharpest corners — refused on the solid, its bent side detached on
+the prism's faces extracted as a sheet, and refit Free — and a sheet's face refit tangent to a
+curved ramp beside it. `FaceRefitAnalyzer` is Refit Face's Analysis: for each edge of each refit
 face the largest distance from its curve (33 samples) to the new surface's boundary stretch its
 trimming curve names, judged against the modeling distance and placed at the edge's middle
-(`SquareSideAnalysis`); the box-top test owns its four edges lying on the new boundary.
+(`SquareSideAnalysis`); stable selection follows current lineage to the final face,
+so regenerated edges are measured, not an immutable original boundary. The box-top
+test owns its four edges lying on the new boundary.
 Rebuild Face's `given` method gives one face a B-spline surface on its own parameters — Plasticity's
 Raise Degree and control-point moves on a face of a solid. `FaceBSplineSurfaceConverter` makes the
 face's surface exact first (a B-spline as it is; a plane as the degree (1, 1) patch through its

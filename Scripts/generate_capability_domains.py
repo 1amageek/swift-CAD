@@ -41,6 +41,8 @@ BINDINGS = {
     "CoincidentBooleanFaceOwnershipResolver": (["boolean"], ["supportSurface", "connection", "degeneracy", "topology"]),
     "ImprintBodyFeatureEvaluator": (["imprintBody", "imprintCurves"], ["supportSurface", "boundaryCurve", "connection"]),
     "FaceRebuildFeatureEvaluator": (["faceRebuild"], ["supportSurface", "connection"]),
+    "SquareSurfaceFitter": (["squareSurface", "faceRebuild", "xnurbs"], ["supportSurface", "parameterization", "geometricFidelity"]),
+    "DefaultCurveSurfaceCorrespondenceValidator": (["CADCommand", "faceRebuild", "curveSurfaceIntersectionResult"], ["boundaryCurve", "parameterization", "geometricFidelity"]),
     "RebuiltFaceEdgeResolver": (["faceRebuild"], ["boundaryCurve", "connection", "degeneracy"]),
     "UntrimFaceFeatureEvaluator": (["untrimFace"], ["supportSurface", "degeneracy", "topology"]),
     "RegionBooleanEvaluator": (["boolean"], ["supportSurface", "connection", "topology"]),

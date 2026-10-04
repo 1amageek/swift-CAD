@@ -3,6 +3,11 @@ import CADGeometry
 import CADIR
 
 /// One exact oriented boundary edge in a sewing request.
+/// The pcurve uses normalized fraction f. Correspondence validation starts from
+/// the spatial parameter startParameter + (endParameter - startParameter) * f
+/// and may solve an oriented monotone spatial parameter correspondence.
+/// Whole-interval correspondence requires validation; matching endpoints alone
+/// does not establish it. Endpoint parent IDs own the generated vertex lineage.
 public struct BRepSewingEdge: Sendable {
   public let stableID: String
   public let curve: Curve3D

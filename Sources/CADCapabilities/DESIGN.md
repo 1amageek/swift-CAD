@@ -39,6 +39,11 @@ Catalog values are immutable. IDs are unique and bind actual APIs and tests.
 Planned operations are rejected. Partial operations retain typed refusal outside
 their documented domain. Native gears are partial: circular-filleted external
 profiles and straight axial Sweep do not imply hob-generated or internal gears.
+Square's output description names the exact requested net and its two actual
+paths: exact refinement or polynomial approximation. It does not project a
+continuous original-boundary fidelity guarantee from hard control rows; the
+source-owned G6 limitation is projected for Square, Refit and XNURBS consumers.
+
 
 PUBLIC_CONTRACT_INVENTORY.json binds every FeatureOperationKind case to its
 unique catalog entry. The inventory checker rejects omissions, stale entries
