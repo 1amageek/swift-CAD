@@ -30,6 +30,11 @@ distinct roots by a widened numerical tolerance.
 
 ## Purpose and Scope
 
+[OriginalCurveSurfaceCorrespondence](OriginalCurveSurfaceCorrespondence/DESIGN.md)
+owns strict source-bound whole-interval spatial/pcurve/support deviation receipts
+for its explicitly admitted original native families. Its requested physical
+bound is separate from legacy structural correspondence admission.
+
 [OriginalGraphBand](OriginalGraphBand/DESIGN.md) owns bounded mesh-only original
 rational graph certificates and retained join uncertainty; it does not heal
 source pcurves or assert exact UV closure.
