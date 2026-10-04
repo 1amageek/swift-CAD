@@ -262,11 +262,6 @@ recovered-contact policy; this is not an implicit machining allowance. An
 explicit policy must retain angle/relative tolerances and cannot demand a
 distance stricter than the arrangement's input contract.
 
-Two intersection edges on one face whose other supports are one surface (one
-intersection curve split where that surface's faces meet, as a drilled
-cylinder's wall crossing another cylinder's halves) lie on each other's support
-all along, so they cross only where they end (`ExactTrimEdgeIntersector`).
-
 Implicit contact/isoparametric crossing classification first uses the existing
 whole-interval UV jet to exclude separated coordinate ranges, retaining the
 same parameter-overlap resolution. An overlapping range is not admitted as a

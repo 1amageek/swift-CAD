@@ -848,9 +848,7 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
               upperFraction.isFinite,
               lowerFraction >= -tolerance.relative,
               upperFraction <= 1.0 + tolerance.relative,
-              // A bound over any positive stretch holds (an endpoint's enclosure asks for one
-              // narrower than the relative tolerance).
-              upperFraction > lowerFraction else {
+              upperFraction - lowerFraction > tolerance.relative else {
             throw GeometryError.invalidDistance(
                 upperFraction - lowerFraction
             )

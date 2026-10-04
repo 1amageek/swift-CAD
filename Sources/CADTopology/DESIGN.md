@@ -69,12 +69,7 @@ flowchart LR
   basis (`Plane3D.parameterBasis`, the one `Surface3D` places points by), so a
   hyperbolic edge on a floor or a side wall integrates on the chart its
   neighbouring pcurves share; `DraftFaceTests` own it by a cone-drafted wall's
-  volume. A certified pcurve on a cylinder that runs round it (a crossed
-  cylinder's intersection) reads its sheet off the start of the curve halved
-  until its enclosure there spans less than a turn, and starts its cells
-  halved until each does; a cell's enclosure may narrow to a point of the
-  curve's own parameter (an endpoint's v enclosure). `CrossedCylindersTests`
-  own it by a radial hole, a drilled hole and a tee.
+  volume.
 
 ## Verification and Change Impact
 

@@ -472,12 +472,6 @@ struct ExactTrimEdgeIntersector {
     guard attempts.isEmpty == false else { return nil }
 
     let contacts = try endpointContacts(first, second, tolerance: tolerance)
-    // Both run on this face and on one other surface (one intersection curve split where the
-    // other surface's faces meet, as a drilled cylinder's wall crosses another cylinder's halves):
-    // each lies on the other's support all along, so they meet only where they end.
-    if attempts.count == 2, attempts[0].targetSurface == attempts[1].targetSurface {
-      return contacts.sorted(by: pointOrder)
-    }
     let subdivider = BRepSewingEdgeSubdivider()
     var failures: [(context: String, error: KernelError)] = []
     for attempt in attempts {
