@@ -1072,10 +1072,44 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                 evaluatedWeight,
                 tolerance: tolerance
             )
-            let numerator = fluxNumerator.evaluated(
+            let evaluatedNumerator = fluxNumerator.evaluated(
                 u: restrictedU,
                 v: restrictedV
             )
+            // Restricted unit coordinates retain the nonnegative, partition-of-unity
+            // tensor Bernstein basis. The same original determinant coefficient hull
+            // therefore independently encloses this scalar numerator. Its scan reads
+            // each coefficient once, bounded by the scalar evaluation already executed,
+            // and creates no additional net, evaluation or private work allowance.
+            var hullLower = Double.infinity
+            var hullUpper = -Double.infinity
+            var finiteCoefficients = true
+            for row in fluxNumerator.coefficients {
+                for coefficient in row {
+                    finiteCoefficients = finiteCoefficients
+                        && coefficient.lower.isFinite
+                        && coefficient.upper.isFinite
+                        && coefficient.lower <= coefficient.upper
+                    hullLower = min(hullLower, coefficient.lower)
+                    hullUpper = max(hullUpper, coefficient.upper)
+                }
+            }
+            let numeratorLower = max(evaluatedNumerator.lower, hullLower)
+            let numeratorUpper = min(evaluatedNumerator.upper, hullUpper)
+            guard finiteCoefficients,
+                  evaluatedNumerator.lower.isFinite,
+                  evaluatedNumerator.upper.isFinite,
+                  hullLower.isFinite,
+                  hullUpper.isFinite,
+                  numeratorLower <= numeratorUpper else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .resourceLimitExceeded,
+                    tolerance: tolerance,
+                    message: "Certified rational surface flux numerator could not intersect its finite original coefficient hull."
+                )
+            }
+            let numerator = Interval(lower: numeratorLower, upper: numeratorUpper)
             return numerator
                 / (weight * weight * weight)
                 / Interval.exact(3.0)

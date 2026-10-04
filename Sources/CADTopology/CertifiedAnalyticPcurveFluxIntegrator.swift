@@ -1636,6 +1636,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     tolerance: ModelingTolerance
   ) throws -> Interval? {
     try tolerance.validate()
+    try Task.checkCancellation()
     guard uBase.isFinite,
       requestedWidth.isFinite,
       requestedWidth > 0.0
@@ -2939,6 +2940,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     var result = Interval.exact(0.0)
     var workItemCount = 0
     while let item = pending.popLast() {
+      try Task.checkCancellation()
       workItemCount += 1
       guard workItemCount <= maximumWorkItems else {
         throw resourceFailure(
@@ -3047,6 +3049,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
           ))
       }
     }
+    try Task.checkCancellation()
     return result
   }
 
@@ -3278,6 +3281,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       )
     ]
     while let cell = pending.popLast() {
+      try Task.checkCancellation()
       workItemCount += 1
       guard workItemCount <= maximumWorkItems else {
         throw resourceFailure(
@@ -3300,12 +3304,14 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         if cell.upper < 1.0 { breaks.append(cell.upper) }
         continue
       }
-      guard cell.depth < maximumDepth else {
-        throw resourceFailure(
-          residual: residual,
-          tolerance: tolerance,
-          message: "Certified rational pcurve seam isolation exceeded its Bernstein proof depth."
-        )
+      if cell.depth >= maximumDepth {
+        // These boundaries preserve the entire unresolved closed band as a partition
+        // interval. They certify neither a root nor endpoint equality. Original jets
+        // and all owning surface spans must still enclose its complete flux measure
+        // under rationalSurfaceExplicitBounds's unchanged requested-width acceptance.
+        if cell.lower > 0.0 { breaks.append(cell.lower) }
+        if cell.upper < 1.0 { breaks.append(cell.upper) }
+        continue
       }
       let differenceChildren = subdividedBernsteinControls(cell.differences)
       let weightChildren = subdividedBernsteinControls(cell.weights)
@@ -5660,17 +5666,20 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     parameter: Interval,
     tolerance: ModelingTolerance
   ) throws -> (u: Jet, v: Jet) {
-    let x = bezierVariableJet(
+    let x = try bezierVariableJet(
       derivativeControls: patch.xDerivativeControls,
-      parameter: parameter
+      parameter: parameter,
+      tolerance: tolerance
     )
-    let y = bezierVariableJet(
+    let y = try bezierVariableJet(
       derivativeControls: patch.yDerivativeControls,
-      parameter: parameter
+      parameter: parameter,
+      tolerance: tolerance
     )
-    let weight = bezierVariableJet(
+    let weight = try bezierVariableJet(
       derivativeControls: patch.weightDerivativeControls,
-      parameter: parameter
+      parameter: parameter,
+      tolerance: tolerance
     )
     var u = try x.divided(by: weight)
     var v = try y.divided(by: weight)
@@ -5735,8 +5744,9 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
   /// range of the corresponding derivative divided by its factorial.
   private func bezierVariableJet(
     derivativeControls: [[Interval]],
-    parameter: Interval
-  ) -> Jet {
+    parameter: Interval,
+    tolerance: ModelingTolerance
+  ) throws -> Jet {
     var coefficients = Array(
       repeating: Interval.exact(0.0),
       count: Jet.order + 1
@@ -5752,9 +5762,10 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         factorial *= Double(derivativeOrder)
       }
       coefficients[derivativeOrder] =
-        bezierRange(
+        try bezierRange(
           controls: derivativeControls[derivativeOrder],
-          parameter: parameter
+          parameter: parameter,
+          tolerance: tolerance
         ) / .exact(factorial)
     }
     return Jet(coefficients: coefficients)
@@ -5762,8 +5773,9 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
 
   private func bezierRange(
     controls: [Interval],
-    parameter: Interval
-  ) -> Interval {
+    parameter: Interval,
+    tolerance: ModelingTolerance
+  ) throws -> Interval {
     var level = controls
     let complement = Interval.exact(1.0) - parameter
     while level.count > 1 {
@@ -5774,7 +5786,37 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       }
       level.removeLast()
     }
-    return level[0]
+    let evaluated = level[0]
+    guard parameter.lower.isFinite,
+      parameter.upper.isFinite,
+      parameter.lower >= 0.0,
+      parameter.lower <= parameter.upper,
+      parameter.upper <= 1.0
+    else {
+      return evaluated
+    }
+    // Every normalized Bernstein basis is nonnegative and sums to one.
+    // Intersect the outward evaluation with the complete original same-net
+    // coefficient hull, including differentiated nets and their stored scales.
+    // This removes interval dependency without asserting any coefficient equality.
+    let hullLower = controls.reduce(Double.infinity) { min($0, $1.lower) }
+    let hullUpper = controls.reduce(-Double.infinity) { max($0, $1.upper) }
+    let lower = max(evaluated.lower, hullLower)
+    let upper = min(evaluated.upper, hullUpper)
+    guard evaluated.lower.isFinite,
+      evaluated.upper.isFinite,
+      hullLower.isFinite,
+      hullUpper.isFinite,
+      lower <= upper
+    else {
+      throw KernelError(
+        phase: .topology,
+        code: .resourceLimitExceeded,
+        tolerance: tolerance,
+        message: "Certified rational pcurve Bernstein evaluation could not intersect its finite original coefficient hull."
+      )
+    }
+    return Interval(lower: lower, upper: upper)
   }
 
   private func polynomialFluxJet(
