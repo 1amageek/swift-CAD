@@ -1239,7 +1239,25 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       )
     }
     var heap = WorkHeap()
-    for (lower, upper) in [(0.0, 0.5), (0.5, 1.0)] {
+    // The starting cells: halves, each halved again while its enclosure spans a turn (a curve
+    // running round the cylinder), so every cell lifts onto one sheet.
+    var ranges: [(Double, Double)] = []
+    var pending: [(Double, Double, Int)] = [(0.0, 0.5, 0), (0.5, 1.0, 0)]
+    while let (lower, upper, depth) = pending.popLast() {
+      let bounds = try curve.parameterCellBounds(
+        fromNormalizedFraction: lower,
+        toNormalizedFraction: upper,
+        tolerance: tolerance
+      )
+      if bounds.uLift.width >= 2.0 * Double.pi, depth < 20 {
+        let middle = lower + (upper - lower) * 0.5
+        pending.append((middle, upper, depth + 1))
+        pending.append((lower, middle, depth + 1))
+      } else {
+        ranges.append((lower, upper))
+      }
+    }
+    for (lower, upper) in ranges {
       heap.push(
         try cylinderBoundaryWorkItem(
           lower: lower,
@@ -1571,12 +1589,23 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     for curve: CertifiedAnalyticPairSurfaceParameterCurve,
     tolerance: ModelingTolerance
   ) throws -> Double {
-    let initialBounds = try curve.parameterCellBounds(
+    // The sheet is read off the start of the curve: halved until its enclosure there spans
+    // less than a turn (a curve running round the cylinder spans a turn over much of itself).
+    let period = 2.0 * Double.pi
+    var upper = 0.5
+    var initialBounds = try curve.parameterCellBounds(
       fromNormalizedFraction: 0.0,
-      toNormalizedFraction: 0.5,
+      toNormalizedFraction: upper,
       tolerance: tolerance
     )
-    let period = 2.0 * Double.pi
+    while initialBounds.uLift.width >= period, upper > 1.0 / 1_048_576 {
+      upper *= 0.5
+      initialBounds = try curve.parameterCellBounds(
+        fromNormalizedFraction: 0.0,
+        toNormalizedFraction: upper,
+        tolerance: tolerance
+      )
+    }
     guard initialBounds.uLift.width < period else {
       throw KernelError(
         phase: .topology,
