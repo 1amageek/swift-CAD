@@ -34,6 +34,8 @@ package struct XNurbsSurfaceFitter {
         package let surface: BSplineSurface3D
         /// Each boundary curve's trimming curve on the sheet, in the loop's order.
         package let pcurves: [BSplineCurve2D]
+        /// Each guide's trimming curve on the sheet: its exact projection, as the boundary's.
+        package let guidePcurves: [BSplineCurve2D]
         package let positionDeviation: Double
         package let angleDeviation: Double
         package let spans: Int
@@ -102,6 +104,9 @@ package struct XNurbsSurfaceFitter {
             BSplineCurve2D(degree: boundary.curve.degree, knots: boundary.curve.knots,
                            controlPoints: boundary.curve.controlPoints.map(parameter), weights: boundary.curve.weights)
         }
+        let guidePcurves = guides.map { guide in
+            BSplineCurve2D(degree: guide.degree, knots: guide.knots, controlPoints: guide.controlPoints.map(parameter), weights: guide.weights)
+        }
         let guidePoints = try guides.flatMap { try points(of: $0, count: 32) }
         let guideParameters = guidePoints.map(parameter)
         guard guideParameters.allSatisfy({ (0...1).contains($0.x) && (0...1).contains($0.y) }) else {
@@ -116,7 +121,7 @@ package struct XNurbsSurfaceFitter {
             let (position, angleDeviation) = try deviation(of: surface, boundaries: boundaries, pcurves: pcurves)
             let met = limits.map { position <= $0.position && angleDeviation <= $0.angle } ?? true
             if met {
-                return Result(surface: surface, pcurves: pcurves, positionDeviation: position, angleDeviation: angleDeviation, spans: spans)
+                return Result(surface: surface, pcurves: pcurves, guidePcurves: guidePcurves, positionDeviation: position, angleDeviation: angleDeviation, spans: spans)
             }
             guard spans < Self.maximumSpans, let limits else {
                 throw failure(.classificationFailure,

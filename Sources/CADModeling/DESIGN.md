@@ -419,7 +419,12 @@ weighted 10⁸ against the same fairness, G1 and G2 further separable passes hol
 cross-boundary first and second derivatives in the face's tangent plane and at its normal
 curvature; the face is trimmed by the boundary's exact projections and its edges are the sheet
 along them (fitted within a quarter of the modeling distance), the boundary's deviation measured
-at 64 points per curve. Satisfy
+at 64 points per curve. Divided along its guides (Patch's Faces Multiple at G1/G2), each guide's
+exact projection, running between two corners of the boundary, is a trimming curve too: the face
+is cut along it into faces sharing the one sheet (so they meet smoothly), the guide's edge one
+curve used both ways. Beside a G1 or G2 boundary a guide must leave its corner as flat and as
+unbent as the faces force the sheet there (at a convex corner of two straight edges on one
+plane, unbent along every direction), or the fit misses its angle tolerance. Satisfy
 tolerances refines the grid (doubling spans up to Max) until the boundary's position deviation and
 cross-angle meet the stated tolerances and fails otherwise; without it the measured values are
 reported. Tension applies only with Quad sided, and there only across G1 and G2 sides (a G0 side has no transition for it to tighten); flow off Quad sided behaves as Normal, since the trimmed sheet's parameters are the boundary's mean-plane coordinates along its orthonormal principal axes, so its isocurves cross square whichever flow is asked. `SquareSurfaceFitterTests` own Degree and Spans

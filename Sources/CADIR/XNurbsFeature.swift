@@ -4,7 +4,10 @@ import CADCore
 /// through their edge curves), each G0 or tangent or curvature continuous with the face beside its
 /// edge. Quad sided over two to four boundaries is Square's untrimmed sheet; otherwise the
 /// boundary closes into a loop and one sheet over its mean plane is trimmed by it, open profile
-/// guides pulling it, within the position and angle tolerances when it satisfies them.
+/// guides pulling it, within the position and angle tolerances when it satisfies them. Dividing
+/// along its guides (Patch's Faces Multiple), the trimmed sheet is one face per part of the opening
+/// the guides cut off, each guide running between two of the loop's corners; the faces share the
+/// sheet, so they meet smoothly along the guides.
 public struct XNurbsFeature: Codable, Hashable, Sendable {
     /// Quality: the sheet's starting spans each way (Auto 3, High 6, Max 12).
     public enum Quality: String, Codable, Hashable, Sendable, CaseIterable {
@@ -32,10 +35,12 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
     public var positionTolerance: Double
     /// The largest angle between the sheet's and a continuous boundary's face normals, in radians.
     public var angleTolerance: Double
+    /// Whether each guide divides the trimmed sheet into faces meeting along it.
+    public var dividesAlongGuides: Bool
 
     public init(boundaries: [SquareSide], guides: [CurveSectionReference] = [], quadSided: Bool = false, flatness: Double = 0.95,
                 boundaryFlow: SquareFitOptions.BoundaryFlow = .adjacent, quality: Quality = .auto, satisfiesTolerances: Bool = true,
-                positionTolerance: Double = 1e-5, angleTolerance: Double = 0.1 * Double.pi / 180) {
+                positionTolerance: Double = 1e-5, angleTolerance: Double = 0.1 * Double.pi / 180, dividesAlongGuides: Bool = false) {
         self.boundaries = boundaries
         self.guides = guides
         self.quadSided = quadSided
@@ -45,6 +50,7 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
         self.satisfiesTolerances = satisfiesTolerances
         self.positionTolerance = positionTolerance
         self.angleTolerance = angleTolerance
+        self.dividesAlongGuides = dividesAlongGuides
     }
 
     public func validate() throws {
@@ -64,6 +70,9 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
             }
         }
         for guide in guides { try guide.validate() }
+        guard dividesAlongGuides == false || (guides.isEmpty == false && quadSided == false) else {
+            throw FeatureEvaluationError.invalidGraph("An XNURBS divides its trimmed sheet along guides it has.")
+        }
         guard flatness.isFinite, flatness >= 0, flatness <= 1 else {
             throw FeatureEvaluationError.invalidGraph("An XNURBS's flatness lies in [0, 1].")
         }
@@ -82,13 +91,13 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case boundaries, guides, quadSided, flatness, boundaryFlow, quality, satisfiesTolerances, positionTolerance, angleTolerance
+        case boundaries, guides, quadSided, flatness, boundaryFlow, quality, satisfiesTolerances, positionTolerance, angleTolerance, dividesAlongGuides
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.boundaries, .guides, .quadSided, .flatness, .boundaryFlow, .quality, .satisfiesTolerances,
-                                                .positionTolerance, .angleTolerance], in: decoder)
+                                                .positionTolerance, .angleTolerance, .dividesAlongGuides], in: decoder)
         boundaries = try container.decode([SquareSide].self, forKey: .boundaries)
         guides = try container.decode([CurveSectionReference].self, forKey: .guides)
         quadSided = try container.decode(Bool.self, forKey: .quadSided)
@@ -98,6 +107,7 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
         satisfiesTolerances = try container.decode(Bool.self, forKey: .satisfiesTolerances)
         positionTolerance = try container.decode(Double.self, forKey: .positionTolerance)
         angleTolerance = try container.decode(Double.self, forKey: .angleTolerance)
+        dividesAlongGuides = try container.decodeIfPresent(Bool.self, forKey: .dividesAlongGuides) ?? false
         try validate()
     }
 
@@ -113,5 +123,6 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
         try container.encode(satisfiesTolerances, forKey: .satisfiesTolerances)
         try container.encode(positionTolerance, forKey: .positionTolerance)
         try container.encode(angleTolerance, forKey: .angleTolerance)
+        if dividesAlongGuides { try container.encode(dividesAlongGuides, forKey: .dividesAlongGuides) }
     }
 }

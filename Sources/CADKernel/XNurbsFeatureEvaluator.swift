@@ -10,7 +10,9 @@ import CADTopology
 /// boundary curves joined end to end into a closed loop and `XNurbsSurfaceFitter`'s sheet over the
 /// loop's mean plane, trimmed by the loop: one face whose edges are the sheet along each curve's
 /// trimming curve (fitted within a quarter of the modeling distance), its deviation from the
-/// boundary within the feature's tolerances when it satisfies them.
+/// boundary within the feature's tolerances when it satisfies them. Dividing along its guides, the
+/// face is cut along each guide's trimming curve (between two of the loop's corners) into faces
+/// sharing the sheet.
 struct XNurbsFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating, CurveLoopFilling {
     private let sewer: any BRepSewing
     private let surfaceEvaluator = BSplineSurfaceFeatureEvaluator()
@@ -87,20 +89,20 @@ struct XNurbsFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating, Cu
         return try trimmedSheet(loop: loop.map { ($0.curve, boundaries[$0.index].continuity) }, guides: guides,
                                 flatness: xnurbs.flatness, spans: xnurbs.quality.spans,
                                 satisfying: xnurbs.satisfiesTolerances ? (xnurbs.positionTolerance, xnurbs.angleTolerance) : nil,
-                                feature: feature, context: context)
+                                divides: xnurbs.dividesAlongGuides, feature: feature, context: context)
     }
 
     /// Patch's smooth fill of a loop with more than four corners: XNURBS's G0 trimmed sheet at its
     /// defaults (flatness 0.95, Auto quality, within 0.01 mm and 0.1°).
     func fill(loop: [BSplineCurve3D], feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
         try trimmedSheet(loop: loop.map { ($0, nil) }, guides: [], flatness: 0.95, spans: XNurbsFeature.Quality.auto.spans,
-                         satisfying: (1e-5, 0.1 * Double.pi / 180), feature: feature, context: context)
+                         satisfying: (1e-5, 0.1 * Double.pi / 180), divides: false, feature: feature, context: context)
     }
 
     /// One face over the loop's mean plane trimmed by it, each edge the sheet along its curve's
     /// trimming curve.
     private func trimmedSheet(loop: [(curve: BSplineCurve3D, continuity: SurfaceEdgeContinuity?)], guides: [BSplineCurve3D],
-                              flatness: Double, spans: Int, satisfying: (position: Double, angle: Double)?,
+                              flatness: Double, spans: Int, satisfying: (position: Double, angle: Double)?, divides: Bool,
                               feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
         let tolerance = context.tolerance
         let centroid = try loop.map { try ends($0.curve, tolerance).0 }.reduce(Vector3D.zero) { $0 + ($1 - .origin) } * (1 / Double(loop.count))
@@ -122,7 +124,8 @@ struct XNurbsFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating, Cu
         // One face trimmed by the loop, each edge the sheet along its curve's trimming curve.
         let surface = Surface3D.bSpline(fit.surface)
         let curveFitter = try SpatialCurveFitter(deviation: tolerance.distance / 4)
-        let edges = try zip(loop.indices, fit.pcurves).map { position, pcurve -> BRepSewingEdge in
+        /// The sheet along a trimming curve.
+        func edge(_ stableID: String, along pcurve: BSplineCurve2D) throws -> BRepSewingEdge {
             guard case let .closed(lower, upper) = pcurve.domain else {
                 throw failure(.invalidInput, feature.id, tolerance, "An XNURBS trimming curve is unbounded.")
             }
@@ -132,16 +135,54 @@ struct XNurbsFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating, Cu
             }
             let curve = try curveFitter.fitBSpline(breakpoints: [lower, upper], tolerance: tolerance, point: along).curve
             return BRepSewingEdge(
-                stableID: "xnurbs:boundary:\(position)", curve: .bSpline(curve), startParameter: lower, endParameter: upper,
+                stableID: stableID, curve: .bSpline(curve), startParameter: lower, endParameter: upper,
                 startPoint: try along(lower), endPoint: try along(upper), surfaceParameterCurve: .bSpline(pcurve)
+            )
+        }
+        let boundaryEdges = try fit.pcurves.enumerated().map { position, pcurve in
+            try edge("xnurbs:boundary:\(position)", along: pcurve)
+        }
+        var loops: [[BRepSewingEdge]] = [boundaryEdges]
+        if divides {
+            // Each guide divides the part holding both its ends at its corners into the corners'
+            // two runs, one closed by the guide run backward, the other by it run forward.
+            for (index, pcurve) in fit.guidePcurves.enumerated() {
+                // The guide's two uses share its curve; run backward, its trimming curve turns too.
+                let forward = try edge("xnurbs:guide:\(index):forward", along: pcurve)
+                let backward = BRepSewingEdge(
+                    stableID: "xnurbs:guide:\(index):backward", curve: forward.curve,
+                    startParameter: forward.endParameter, endParameter: forward.startParameter,
+                    startPoint: forward.endPoint, endPoint: forward.startPoint,
+                    surfaceParameterCurve: .bSpline(try pcurve.reversed(tolerance: tolerance))
+                )
+                func corner(_ point: Point3D, in loop: [BRepSewingEdge]) -> Int? {
+                    loop.firstIndex { ($0.startPoint - point).length <= tolerance.distance }
+                }
+                guard let part = loops.firstIndex(where: { corner(forward.startPoint, in: $0) != nil && corner(forward.endPoint, in: $0) != nil }),
+                      let i = corner(forward.startPoint, in: loops[part]), let j = corner(forward.endPoint, in: loops[part]), i != j else {
+                    throw failure(.invalidInput, feature.id, tolerance,
+                                  "An XNURBS divided along its guides needs each guide to run between two corners of its boundary.")
+                }
+                let loop = loops.remove(at: part)
+                func run(_ from: Int, _ to: Int) -> [BRepSewingEdge] {
+                    var edges: [BRepSewingEdge] = []
+                    var k = from
+                    while k != to { edges.append(loop[k]); k = (k + 1) % loop.count }
+                    return edges
+                }
+                loops.append(run(i, j) + [backward])
+                loops.append(run(j, i) + [forward])
+            }
+        }
+        let patches = loops.enumerated().map { index, edges in
+            BRepSewingFacePatch(
+                stableID: loops.count == 1 ? "xnurbs:face" : "xnurbs:face:\(index)", surface: surface, orientation: .forward,
+                loops: [BRepSewingLoop(stableID: loops.count == 1 ? "xnurbs:boundary" : "xnurbs:part:\(index)", role: .outer, edges: edges)]
             )
         }
         let sewn = try sewer.sew(BRepSewingRequest(
             featureID: feature.id, bodyKind: .sheet,
-            shells: [BRepSewingShell(stableID: "xnurbs:shell", patches: [BRepSewingFacePatch(
-                stableID: "xnurbs:face", surface: surface, orientation: .forward,
-                loops: [BRepSewingLoop(stableID: "xnurbs:boundary", role: .outer, edges: edges)]
-            )])]
+            shells: [BRepSewingShell(stableID: "xnurbs:shell", patches: patches)]
         ), tolerance: tolerance)
         return EvaluationResult(brep: try BRepModelCombiner().combined([context.brep, sewn.brep]), subshapes: sewn.subshapes, lineage: sewn.lineage)
     }

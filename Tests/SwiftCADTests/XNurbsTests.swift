@@ -138,6 +138,92 @@ struct XNurbsTests {
         #expect(surface.controlPoints.joined().allSatisfy { abs($0.z - 0.005) < 1e-9 })
     }
 
+    /// Patch Faces Multiple at G1: a plate's square hole with a guide from one corner to the
+    /// opposite one, leaving the plate flat and unbent (as a sheet tangent to the plate along both
+    /// edges at a corner must) and rising 1 mm at its middle. One sheet tangent to the plate all
+    /// round passes over the guide, divided along it into two faces.
+    @Test(.timeLimit(.minutes(4)))
+    func aGuideDividesATangentFillOfAPlatesHoleIntoTwoFaces() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let plate = try builder.box(width: length(0.03), depth: length(0.03), height: length(0.005))
+        let hole = try builder.box(placement: PrimitivePlacement(origin: Point3D(x: 0.01, y: 0.01, z: -0.001), axis: .unitZ, referenceDirection: .unitX),
+                                   width: length(0.01), depth: length(0.01), height: length(0.007))
+        let cut = try builder.boolean(targets: [plate], tool: hole, operation: .difference)
+        let before = try evaluate(builder)
+        let top = 0.005
+        let edges = try before.subshapes.entries.compactMap { key, value -> SubshapeID? in
+            guard key.featureID == cut, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  let a = before.brep.vertices[edge.startVertexID]?.point, let b = before.brep.vertices[edge.endVertexID]?.point else { return nil }
+            let inside = [a, b].allSatisfy { abs($0.z - top) < 1e-12 && $0.x > 0.009 && $0.x < 0.021 && $0.y > 0.009 && $0.y < 0.021 }
+            return inside ? key : nil
+        }.sorted().map { try builder.stableSubshape($0) }
+        #expect(edges.count == 4)
+        let curves = try edges.map { try builder.edgeCurves(of: cut, edges: [$0]) }
+        // In the upright plane through the hole's diagonal (sketch x along it, y up): a sextic
+        // Bezier flat and straight at both ends, its middle 1 mm up (20/64 of its middle control
+        // point's height).
+        let diagonal = 0.01 * 2.squareRoot()
+        let rise = 0.001
+        let guide = try builder.sketch(on: .plane(Plane3D(origin: Point3D(x: 0.01, y: 0.01, z: top),
+                                                          normal: Vector3D(x: 1, y: -1, z: 0) * (1 / 2.squareRoot())))) {
+            _ = $0.spline(SketchSpline(controlPoints: (0...6).map { k in
+                point(Double(k) / 6 * diagonal, k == 3 ? rise * 64 / 20 : 0)
+            }, degree: 6))
+        }.featureID
+        let fill = try builder.xnurbs(XNurbsFeature(boundaries: zip(curves, edges).map { curve, edge in
+            SquareSide(curve: CurveSectionReference(featureID: curve),
+                       continuity: SurfaceEdgeContinuity(source: cut, bodyRole: .body, edge: edge, order: .tangent))
+        }, guides: [CurveSectionReference(featureID: guide)], dividesAlongGuides: true))
+        let evaluated = try evaluate(builder)
+        let faces = evaluated.subshapes.entries.compactMap { key, value -> Face? in
+            guard key.featureID == fill, case let .face(id) = value else { return nil }
+            return evaluated.brep.faces[id]
+        }
+        #expect(faces.count == 2)
+        // Both faces lie on the one sheet.
+        let surface = try #require(evaluated.brep.geometry.surfaces[faces[0].surfaceID])
+        #expect(evaluated.brep.geometry.surfaces[faces[1].surfaceID] == surface)
+        // Tangent to the plate along each of the hole's edges, within the angle tolerance.
+        var rimSamples = 0
+        for face in faces {
+            for coedge in face.loops.flatMap({ evaluated.brep.loops[$0]?.coedges ?? [] }) {
+                let edge = try #require(evaluated.brep.edges[coedge.edgeID])
+                let curve = try #require(evaluated.brep.geometry.curves[edge.curveID])
+                let trim = try #require(edge.trim)
+                let points = try (0...8).map { k in
+                    try curve.point(at: trim.startParameter + (trim.endParameter - trim.startParameter) * Double(k) / 8, tolerance: .standard)
+                }
+                guard points.allSatisfy({ abs($0.z - top) < 1e-5 }) else { continue }
+                for point in points {
+                    let uv = try surface.parameterProjection(of: point, tolerance: .standard)
+                    let normal = try surface.normal(u: uv.u, v: uv.v, tolerance: .standard)
+                    #expect(acos(min(1, abs(normal.z))) <= 0.1 * Double.pi / 180 + 1e-9, "\(normal) at \(point)")
+                    rimSamples += 1
+                }
+            }
+        }
+        #expect(rimSamples == 4 * 9)
+        // The faces share the edge along the guide, passing near its middle.
+        let shared = faces.map { face in Set(face.loops.flatMap { evaluated.brep.loops[$0]?.coedges.map(\.edgeID) ?? [] }) }
+        let seam = try #require(shared[0].intersection(shared[1]).first)
+        let seamEdge = try #require(evaluated.brep.edges[seam])
+        let seamCurve = try #require(evaluated.brep.geometry.curves[seamEdge.curveID])
+        let apex = Point3D(x: 0.015, y: 0.015, z: top + rise)
+        let miss = try (0...200).map { k -> Double in
+            let t = seamEdge.trim!.startParameter + (seamEdge.trim!.endParameter - seamEdge.trim!.startParameter) * Double(k) / 200
+            return (try seamCurve.point(at: t, tolerance: .standard) - apex).length
+        }.min() ?? .infinity
+        #expect(miss < 2e-4, "\(miss)")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func dividingAlongGuidesRoundTripsAndNeedsGuides() throws {
+        let sides = [SquareSide(curve: CurveSectionReference(featureID: FeatureID())), SquareSide(curve: CurveSectionReference(featureID: FeatureID()))]
+        let divided = XNurbsFeature(boundaries: sides, guides: [CurveSectionReference(featureID: FeatureID())], dividesAlongGuides: true)
+        #expect(try JSONDecoder().decode(XNurbsFeature.self, from: try JSONEncoder().encode(divided)) == divided)
+        #expect(throws: FeatureEvaluationError.self) { try XNurbsFeature(boundaries: sides, dividesAlongGuides: true).validate() }
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func quadSidedIsSquaresSheetAtItsQualitysSpans() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)

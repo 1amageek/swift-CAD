@@ -450,7 +450,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     }
     try validateObjectField("xnurbs", in: object, path: "\(path).xnurbs") { feature, featurePath in
         try rejectUnsupportedNativeKeys(in: feature, supportedKeys: ["boundaries", "guides", "quadSided", "flatness", "boundaryFlow", "quality",
-                                                                     "satisfiesTolerances", "positionTolerance", "angleTolerance"],
+                                                                     "satisfiesTolerances", "positionTolerance", "angleTolerance", "dividesAlongGuides"],
                                         objectName: featurePath)
         try validateArrayField("boundaries", in: feature, path: "\(featurePath).boundaries") { side, sidePath in
             try rejectUnsupportedNativeKeys(in: side, supportedKeys: ["curve", "continuity", "isFree"], objectName: sidePath)
