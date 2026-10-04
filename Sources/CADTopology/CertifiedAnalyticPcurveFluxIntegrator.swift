@@ -5139,12 +5139,14 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     )
     switch projected.surface {
     case .plane(let plane):
-      return try planarParameterJets(
-        point: point,
-        origin: plane.origin,
-        normal: plane.normal,
-        tolerance: tolerance
+      // A `Plane3D` runs its parameters along its own basis, not the analytic plane's.
+      let basis = try plane.parameterBasis(tolerance: tolerance)
+      let offset = (
+        x: point.x - .constant(plane.origin.x),
+        y: point.y - .constant(plane.origin.y),
+        z: point.z - .constant(plane.origin.z)
       )
+      return (projectedAnalyticDot(offset, basis.u), projectedAnalyticDot(offset, basis.v))
     case .analytic(.plane(let origin, let normal)):
       return try planarParameterJets(
         point: point,

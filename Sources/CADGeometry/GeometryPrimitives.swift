@@ -53,6 +53,17 @@ public struct Plane3D: Codable, Sendable, Hashable {
     }
 }
 
+extension Plane3D {
+    /// The directions the plane's u and v parameters run along, as `Surface3D` places its points:
+    /// the one rule every reader of a plane's parameters (trimming curves, their integrals) shares.
+    package func parameterBasis(tolerance: ModelingTolerance) throws -> (u: Vector3D, v: Vector3D) {
+        let unit = try normal.normalized(tolerance: tolerance.distance)
+        let helper = abs(unit.z) < 0.9 ? Vector3D.unitZ : Vector3D.unitY
+        let u = try helper.cross(unit).normalized(tolerance: tolerance.distance)
+        return (u, unit.cross(u))
+    }
+}
+
 public struct Cylinder3D: Codable, Sendable, Hashable {
     public var origin: Point3D
     public var axis: Vector3D

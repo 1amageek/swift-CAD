@@ -156,6 +156,60 @@ struct PeriodicBSplineSurfaceQueryTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func uniformNonunitPeriodicStripRetainsLiteralOpenAxisDerivatives(_ uPeriodic: Bool) throws {
+        let circle: [(Double, Double)] = [(1, 0), (0, 1), (-1, 0), (0, -1)]
+        let points = uPeriodic ? (0..<2).map { j in
+            circle.map { Point3D(x: $0.0, y: $0.1, z: Double(j)) }
+        } : circle.map { entry in
+            (0..<2).map { Point3D(x: entry.0, y: entry.1, z: Double($0)) }
+        }
+        let source = try BSplineSurface3D.periodic(uDegree: uPeriodic ? 3 : 1, vDegree: uPeriodic ? 1 : 3,
+            uKnots: uPeriodic ? [3, 4, 5, 6, 7] : [0, 0, 1, 1],
+            vKnots: uPeriodic ? [0, 0, 1, 1] : [3, 4, 5, 6, 7], controlPoints: points,
+            weights: points.map { Array(repeating: 2.0, count: $0.count) },
+            isUPeriodic: uPeriodic, isVPeriodic: !uPeriodic, tolerance: tolerance)
+            .changingPeriodicOrigin(direction: uPeriodic ? .u : .v, to: 5.25, tolerance: tolerance)
+        let u = uPeriodic ? 7.0 : 0.5, v = uPeriodic ? 0.5 : 7.0
+        let point = try source.point(u: u, v: v, tolerance: tolerance)
+        let jet = try source.surfaceDerivatives(u: u, v: v, tolerance: tolerance)
+        // Uniform cubic basis values at the knot are 1/6, 2/3, 1/6.
+        // The independent strip coordinate is exactly linear with unit tangent.
+        let expected = Point3D(x: 0, y: 2.0 / 3, z: 0.5)
+        #expect((point - expected).length <= Double.ulpOfOne * 8)
+        #expect((jet.position - expected).length <= Double.ulpOfOne * 8)
+        #expect((jet.position - point).length <= Double.ulpOfOne * 8)
+        let openTangent = uPeriodic ? jet.tangentV : jet.tangentU
+        let openSecond = uPeriodic ? jet.secondDerivativeVV : jet.secondDerivativeUU
+        #expect((openTangent - Vector3D(x: 0, y: 0, z: 1)).length <= Double.ulpOfOne * 8)
+        #expect(openSecond == .zero)
+        let range = try uPeriodic ? box(6.75, 7.25, 0.25, 0.75) : box(0.25, 0.75, 6.75, 7.25)
+        let enclosure = try DefaultSurfaceDifferentialEncloser().enclosure(of: .bSpline(source), over: range, tolerance: tolerance)
+        expectContains(enclosure, jet)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func uniformOwningSpanDoesNotEraseUnequalEndpointWeights() throws {
+        let source = BSplineSurface3D(uDegree: 1, vDegree: 1,
+            uKnots: [0, 0, 1, 1], vKnots: [0, 0, 0.5, 1, 1],
+            controlPoints: (0..<3).map { j in
+                (0..<2).map { Point3D(x: Double($0), y: Double(j), z: 0) }
+            }, weights: [[2, 2], [2, 2], [1, 4]])
+        try source.validate(tolerance: tolerance)
+        let polynomial = try source.surfaceDerivatives(u: 0.5, v: 0.25, tolerance: tolerance)
+        #expect(polynomial.position == Point3D(x: 0.5, y: 0.5, z: 0))
+        #expect(try source.point(u: 0.5, v: 0.25, tolerance: tolerance) == polynomial.position)
+        #expect(polynomial.tangentV == Vector3D(x: 0, y: 2, z: 0))
+        #expect(polynomial.secondDerivativeVV == .zero)
+        // At the knot, the owning right span includes the zero-value basis
+        // controls with unequal weights. Its native Y quotient is
+        // (1 + 0 * h) / (1 - h), where h = v - 0.5.
+        let rational = try source.surfaceDerivatives(u: 0, v: 0.5, tolerance: tolerance)
+        #expect(rational.position == Point3D(x: 0, y: 1, z: 0))
+        #expect(rational.tangentV.y == 1)
+        #expect(rational.secondDerivativeVV.y == 2)
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func aCollapsedPeriodicAxisCannotProduceAnArbitraryUniqueRoot() throws {
         let source = try BSplineSurface3D.periodic(uDegree: 2, vDegree: 1,

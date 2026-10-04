@@ -250,6 +250,14 @@ extension BSplineSurface3D {
         var v = initialV
         var iterations = 0
         var damping = max(tolerance.relative, Double.ulpOfOne.squareRoot())
+        let uResolution = max(
+            (uBounds.upper - uBounds.lower) * tolerance.relative,
+            Double.ulpOfOne * max(1.0, abs(uBounds.lower), abs(uBounds.upper)) * 128.0
+        )
+        let vResolution = max(
+            (vBounds.upper - vBounds.lower) * tolerance.relative,
+            Double.ulpOfOne * max(1.0, abs(vBounds.lower), abs(vBounds.upper)) * 128.0
+        )
         for iteration in 0..<options.maximumIterations {
             iterations = iteration + 1
             let geometry = try surfaceDerivatives(u: u, v: v, tolerance: tolerance)
@@ -265,10 +273,6 @@ extension BSplineSurface3D {
                 tolerance.distance * tolerance.relative * gradientScale,
                 Double.ulpOfOne * gradientScale * 128.0
             )
-            if residualLength <= tolerance.distance,
-               hypot(gradientU, gradientV) <= stationarityTolerance {
-                break
-            }
             let hessianUU = geometry.tangentU.dot(geometry.tangentU)
                 + residual.dot(geometry.secondDerivativeUU)
             let hessianUV = geometry.tangentU.dot(geometry.tangentV)
@@ -279,6 +283,24 @@ extension BSplineSurface3D {
                 1.0,
                 max(abs(hessianUU), max(abs(hessianUV), abs(hessianVV)))
             )
+            // A small spatial gradient alone does not resolve parameters on a small surface.
+            // Use the undamped correction and the same axis resolutions as candidate dedup;
+            // this is numerical stopping, not a root existence or uniqueness certificate.
+            let determinant = hessianUU * hessianVV - hessianUV * hessianUV
+            if residualLength <= tolerance.distance,
+               hypot(gradientU, gradientV) <= stationarityTolerance,
+               hessianUU > 0.0, hessianVV > 0.0,
+               determinant.isFinite, determinant > Double.ulpOfOne * scale * scale {
+                let deltaU = (hessianVV * gradientU - hessianUV * gradientV) / determinant
+                let deltaV = (hessianUU * gradientV - hessianUV * gradientU) / determinant
+                if deltaU.isFinite, deltaV.isFinite {
+                    let nextU = min(max(u - deltaU, uBounds.lower), uBounds.upper)
+                    let nextV = min(max(v - deltaV, vBounds.lower), vBounds.upper)
+                    if abs(nextU - u) <= uResolution, abs(nextV - v) <= vResolution {
+                        break
+                    }
+                }
+            }
             var accepted = false
             var acceptedU = u
             var acceptedV = v
@@ -308,12 +330,10 @@ extension BSplineSurface3D {
                 damping *= 8.0
             }
             guard accepted else { break }
-            let parameterChange = hypot(acceptedU - u, acceptedV - v)
             u = acceptedU
             v = acceptedV
-            if parameterChange <= max(tolerance.relative, Double.ulpOfOne * 64.0) {
-                break
-            }
+            // A heavily damped step may be tiny while the undamped correction is unresolved.
+            // The next existing-budget iteration applies the conditioning-aware stopping test.
         }
         let projectedPoint = try self.point(u: u, v: v, tolerance: tolerance)
         return RefinedProjection(

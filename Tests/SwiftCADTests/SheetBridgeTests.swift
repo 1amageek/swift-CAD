@@ -142,10 +142,10 @@ struct SheetBridgeTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
-    func aCurvedSheetBridgesFromItsEdgeTangentToIt() throws {
-        // A parabolic arch over x ∈ [0, 20] mm, y ∈ [0, 20] mm, and a floor at z = 0 over x ∈ [30, 50]
-        // mm: the bridge leaves the arch's edge at x = 20 mm along the arch, and reaches the floor's
-        // edge at x = 30 mm level with it.
+    func aCurvedSheetBridgesTheWidthFromWhereItsContinuationMeetsTheFloor() throws {
+        // A parabolic arch z = x (1 − x / s) over x ∈ [0, 20] mm, y ∈ [0, 20] mm, and a floor at
+        // z = 0 over x ∈ [30, 50] mm: continued, they meet at the arch's foot x = s. The bridge
+        // starts 10 mm back up the arch from there and 10 mm along the floor, at its edge x = 30.
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let s = 0.02
         let row = { (y: Double) in [Point3D(x: 0, y: y, z: 0), Point3D(x: s / 2, y: y, z: s / 2), Point3D(x: s, y: y, z: 0)] }
@@ -158,12 +158,21 @@ struct SheetBridgeTests {
                                                                   angularAllowance: 0.1 * Double.pi / 180, curvatureAllowance: 1))
         let evaluated = try evaluate(builder)
         let bridged = try surface(of: bridge, in: evaluated)
-        // The arch leaves x = s heading down at 45°: its normal there is (1, 0, 1)/√2.
+        // The arch's contact: 10 mm of the parabola back from x = s.
+        func arc(_ x0: Double, _ x1: Double) -> Double {
+            let steps = 4_000
+            return (0..<steps).reduce(0.0) { total, index in
+                let x = x0 + (x1 - x0) * (Double(index) + 0.5) / Double(steps)
+                return total + (1 + pow(1 - 2 * x / s, 2)).squareRoot() * abs(x1 - x0) / Double(steps)
+            }
+        }
+        var xc = s - 0.007
+        for _ in 0..<40 { xc -= (0.01 - arc(xc, s)) / (1 + pow(1 - 2 * xc / s, 2)).squareRoot() }
         for y in [0.005, 0.015] {
-            let projected = try bridged.parameterProjection(of: Point3D(x: s, y: y, z: 0), tolerance: .standard)
-            #expect(projected.residual < 1e-9)
-            let normal = try bridged.differentialGeometry(u: projected.u, v: projected.v, tolerance: .standard).normal
-            #expect(abs(abs(normal.x + normal.z) - 2.0.squareRoot()) < 1e-6 && abs(normal.y) < 1e-6, "\(normal)")
+            for point in [Point3D(x: xc, y: y, z: xc * (1 - xc / s)), Point3D(x: 0.03, y: y, z: 0)] {
+                let projected = try bridged.parameterProjection(of: point, tolerance: .standard)
+                #expect(projected.residual < 1e-6, "\(point)")
+            }
         }
     }
 
@@ -343,5 +352,59 @@ struct SheetBridgeTests {
             }
             #expect(abs((xs.min() ?? .nan) - span.lowerBound) < 1e-12 && abs((xs.max() ?? .nan) - span.upperBound) < 1e-12, "\(extent) \(xs)")
         }
+    }
+
+    /// A curved floor z = 0.1 (x − 0.04)² over x ∈ [20, 60] mm and a curved wall x = 0.1 (z − 0.04)²
+    /// over z ∈ [20, 60] mm, both 40 mm deep in y, apart: continued, they meet near the corner.
+    private func curvedSheets(in builder: inout DocumentBuilder) throws -> (FeatureID, FeatureID) {
+        let floorRow = { (y: Double) in [Point3D(x: 0.02, y: y, z: 0.00004), Point3D(x: 0.04, y: y, z: -0.00004), Point3D(x: 0.06, y: y, z: 0.00004)] }
+        let floor = try builder.bSplineSurface(BSplineSurface3D(
+            uDegree: 2, vDegree: 1, uKnots: [0, 0, 0, 1, 1, 1], vKnots: [0, 0, 1, 1], controlPoints: [floorRow(0), floorRow(0.04)]))
+        let wallRow = { (y: Double) in [Point3D(x: 0.00004, y: y, z: 0.02), Point3D(x: -0.00004, y: y, z: 0.04), Point3D(x: 0.00004, y: y, z: 0.06)] }
+        let wall = try builder.bSplineSurface(BSplineSurface3D(
+            uDegree: 2, vDegree: 1, uKnots: [0, 0, 0, 1, 1, 1], vKnots: [0, 0, 1, 1], controlPoints: [wallRow(0), wallRow(0.04)]))
+        return (floor, wall)
+    }
+
+    @Test(.timeLimit(.minutes(3)))
+    func curvedSheetsApartAreBridgedTheWidthFromWhereTheirContinuationsMeet() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (floor, wall) = try curvedSheets(in: &builder)
+        let width = 0.01
+        let bridge = try builder.bridgeSurface(SheetBridgeFeature(first: floor, second: wall, width: length(width), trimWalls: .both,
+                                                                  angularAllowance: 0.1 * Double.pi / 180, curvatureAllowance: 1))
+        let evaluated = try evaluate(builder)
+        // Trimmed (Both): walls and bridge are one sheet.
+        let bodies = evaluated.brep.bodies.values.filter { $0.kind == .sheet }
+        #expect(bodies.count == 1)
+        // The continuations meet where x = z = t, t = 0.1 (t − 0.04)²; the floor's contact lies the
+        // width along the parabola from there, carried past its edge at x = 20 mm.
+        var t = 0.0
+        for _ in 0..<50 { t = 0.1 * (t - 0.04) * (t - 0.04) }
+        func arc(_ x0: Double, _ x1: Double) -> Double {
+            let steps = 2_000
+            return (0..<steps).reduce(0.0) { total, index in
+                let x = x0 + (x1 - x0) * (Double(index) + 0.5) / Double(steps)
+                return total + (1 + pow(0.2 * (x - 0.04), 2)).squareRoot() * (x1 - x0) / Double(steps)
+            }
+        }
+        var xc = t + width
+        for _ in 0..<40 { xc += (width - arc(t, xc)) / (1 + pow(0.2 * (xc - 0.04), 2)).squareRoot() }
+        let corners = evaluated.brep.vertices.values.map(\.point).filter { abs($0.y) < 1e-9 }
+        #expect(corners.contains { abs($0.x - xc) < 1e-6 && abs($0.z - 0.1 * pow(xc - 0.04, 2)) < 1e-6 },
+                "No floor contact near x = \(xc) among \(corners)")
+        #expect(corners.contains { abs($0.z - xc) < 1e-6 && abs($0.x - 0.1 * pow(xc - 0.04, 2)) < 1e-6 },
+                "No wall contact near z = \(xc) among \(corners)")
+        _ = bridge
+    }
+
+    @Test(.timeLimit(.minutes(3)))
+    func curvedSheetsBridgedWithoutTrimmingKeepTheirSheets() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (floor, wall) = try curvedSheets(in: &builder)
+        _ = try builder.bridgeSurface(SheetBridgeFeature(first: floor, second: wall, width: length(0.01), trimWalls: .none,
+                                                         angularAllowance: 0.1 * Double.pi / 180, curvatureAllowance: 1))
+        let evaluated = try evaluate(builder)
+        #expect(evaluated.brep.bodies.values.filter { $0.kind == .sheet }.count == 3)
     }
 }

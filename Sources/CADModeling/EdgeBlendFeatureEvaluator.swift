@@ -71,6 +71,29 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 return EvaluationResult(brep: model, subshapes: sewn.subshapes, removedSubshapeIDs: selections[0].1.replacedSubshapeIDs,
                                         lineage: sewn.lineage)
             }
+            // A cap's whole loop whose walls rise at some edges and fall at others (a boss's foot
+            // running into a step's edges) takes bands turning between filling and cutting.
+            let turning = TurningCapLoopBlendBuilder(tolerance: context.tolerance)
+            if try turning.admits(selections.map(\.1.edgeID), model: context.brep) {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): The public Fillet turning-loop route
+                // has only G1 corner authority. Curvature requests may succeed only after
+                // every required corner boundary has whole-boundary G2 certificates against
+                // the original bands and contact faces, with validated sewing and independent
+                // curvature evidence.
+                guard fillet.shape != .curvature else {
+                    throw failure(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance,
+                                  "A turning cap loop has no certified G2 corner patches.")
+                }
+                let request = try turning.request(
+                    featureID: feature.id, bodyID: bodyID, selected: selections.map { ($0.1.edgeID, $0.0.subshapeID) },
+                    section: capSection, context: context)
+                let sewn = try sewer.sew(request, tolerance: context.tolerance)
+                let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: context.brep)
+                try model.validate(level: .volumetric, tolerance: context.tolerance)
+                let scope = try BodyTopologyScope(bodyID: bodyID, model: context.brep)
+                return EvaluationResult(brep: model, subshapes: sewn.subshapes, removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes),
+                                        lineage: sewn.lineage)
+            }
         }
         // Several straight edges beside cylinders running along them or between planes, apart from
         // each other and ending square, round in turn.

@@ -427,11 +427,8 @@ public enum Surface3D: Codable, Sendable, Hashable {
         for plane: Plane3D,
         tolerance: ModelingTolerance
     ) throws -> (Vector3D, Vector3D) {
-        let normal = try plane.normal.normalized(tolerance: tolerance.distance)
-        let helper = abs(normal.z) < 0.9 ? Vector3D.unitZ : Vector3D.unitY
-        let u = try helper.cross(normal).normalized(tolerance: tolerance.distance)
-        let v = normal.cross(u)
-        return (u, v)
+        let basis = try plane.parameterBasis(tolerance: tolerance)
+        return (basis.u, basis.v)
     }
 
     private func cylinderBasis(

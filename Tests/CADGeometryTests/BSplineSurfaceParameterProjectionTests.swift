@@ -7,6 +7,91 @@ struct BSplineSurfaceParameterProjectionTests {
     private let tolerance = ModelingTolerance.standard
 
     @Test(.timeLimit(.minutes(1)))
+    func scaledBoundaryRootConvergesBeforeGradientFloorStopsRefinement() throws {
+        // Literal Bernstein controls of S=(.002*u+.0002*u^2, .006*v, .001*u*v).
+        let surface = BSplineSurface3D(uDegree: 2, vDegree: 1,
+            uKnots: [0, 0, 0, 1, 1, 1], vKnots: [0, 0, 1, 1],
+            controlPoints: [
+                [.origin, Point3D(x: 0.001, y: 0, z: 0), Point3D(x: 0.0022, y: 0, z: 0)],
+                [Point3D(x: 0, y: 0.006, z: 0), Point3D(x: 0.001, y: 0.006, z: 0.0005),
+                 Point3D(x: 0.0022, y: 0.006, z: 0.001)],
+            ])
+        let u = 1.0 / 29
+        let height = 5e-10
+        // The displacement (0,-u*height/6,height) is normal at the boundary (u,0).
+        // Squared distance minus its value there is bounded below by
+        // .002^2*(U-u)^2+.006^2*V^2-2*.001*height*abs(U-u)*V, a positive form.
+        let target = Point3D(x: 0.002 * u + 0.0002 * u * u, y: -u * height / 6, z: height)
+        let projection = try Surface3D.bSpline(surface).parameterProjection(of: target, tolerance: tolerance)
+        #expect(abs(projection.u - u) <= tolerance.relative)
+        #expect(abs(projection.v) <= tolerance.relative)
+        let expectedPoint = Point3D(x: target.x, y: 0, z: 0)
+        #expect((projection.point - expectedPoint).length <= 0.003 * tolerance.relative)
+        #expect(projection.residual <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func distinctRegularRootsSurviveSmallSpatialSpeedDeduplication() throws {
+        // S=(2*u*(u-delta), v, 0). Its two original spans have exact
+        // midpoint roots u=0 and u=delta, with regular speeds 2*delta.
+        let delta = Double(sign: .plus, exponent: -20, significand: 1)
+        let surface = smallFoldedProjectionSurface(singleRoot: false)
+        let target = Point3D(x: 0, y: 0.5, z: 0)
+        for u in [0.0, delta] {
+            let point = try surface.point(u: u, v: 0.5, tolerance: tolerance)
+            #expect(point == target)
+            let geometry = try surface.differentialGeometry(u: u, v: 0.5, tolerance: tolerance)
+            #expect(abs(geometry.tangentU.length - 2 * delta) <= Double.ulpOfOne * delta * 16)
+            #expect(geometry.tangentU.length > tolerance.distance)
+        }
+        #expect(delta > tolerance.relative)
+        // The proposed point-speed rule would merge these different exact roots.
+        #expect(delta * (2 * delta) < tolerance.distance * 1e-3)
+        do {
+            _ = try Surface3D.bSpline(surface).parameterProjectionResult(of: target,
+                options: SurfaceParameterProjectionOptions(maximumIterations: 1,
+                    maximumSubdivisionDepth: 0, maximumSubdivisionCells: 2, maximumCandidateCount: 2),
+                tolerance: tolerance)
+            Issue.record("Distinct original regular parameter roots must remain explicitly ambiguous.")
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry && error.code == .ambiguousSelection)
+            #expect(error.residual.map { $0 <= tolerance.distance } == true)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func oneOriginalRegularRootStillProjectsWithTheSameSmallSpeed() throws {
+        let target = Point3D(x: 0, y: 0.5, z: 0)
+        let result = try Surface3D.bSpline(smallFoldedProjectionSurface(singleRoot: true))
+            .parameterProjectionResult(of: target,
+                options: SurfaceParameterProjectionOptions(maximumIterations: 1,
+                    maximumSubdivisionDepth: 0, maximumSubdivisionCells: 1, maximumCandidateCount: 1),
+                tolerance: tolerance)
+        guard case .projected(let projection) = result else {
+            Issue.record("The single original regular root must remain a verified projection.")
+            return
+        }
+        #expect(projection.u == 0 && projection.v == 0.5)
+        #expect(projection.point == target && projection.residual <= tolerance.distance)
+    }
+
+    private func smallFoldedProjectionSurface(singleRoot: Bool) -> BSplineSurface3D {
+        let delta = Double(sign: .plus, exponent: -20, significand: 1)
+        let lower = -delta / 2, middle = delta / 2, upper = 3 * delta / 2
+        let positive = 1.5 * delta * delta, negative = -0.5 * delta * delta
+        // Literal Bernstein controls of the two polynomial restrictions, with
+        // the shared double knot retaining both original midpoint candidates.
+        let x: [Double] = singleRoot
+            ? [positive, negative, negative]
+            : [positive, negative, negative, negative, positive]
+        let knots: [Double] = singleRoot
+            ? [lower, lower, lower, middle, middle, middle]
+            : [lower, lower, lower, middle, middle, upper, upper, upper]
+        return BSplineSurface3D(uDegree: 2, vDegree: 1, uKnots: knots, vKnots: [0, 0, 1, 1],
+            controlPoints: [x.map { Point3D(x: $0, y: 0, z: 0) }, x.map { Point3D(x: $0, y: 1, z: 0) }])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func boundedRationalSurfaceRecoversParametersWithVerifiedResidual() throws {
         let surface = try makeSurface()
         let expectedU = 0.37

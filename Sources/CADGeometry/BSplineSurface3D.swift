@@ -828,18 +828,34 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
                                                           knots: vKnots, count: vControlPointCount)
         var (s0, su, sv, suu, suv, svv) = (Vector3D.zero, Vector3D.zero, Vector3D.zero, Vector3D.zero, Vector3D.zero, Vector3D.zero)
         var (w0, wu, wv, wuu, wuv, wvv) = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        var uniformWeight: Double?
+        var hasUniformOwningWeights = true
         let (u0, v0) = (uLocal[0].startIndex, vLocal[0].startIndex)
         let (uValues, uFirsts, uSeconds) = (uLocal[0].values, uLocal[1].values, uLocal[2].values)
         let (vValues, vFirsts, vSeconds) = (vLocal[0].values, vLocal[1].values, vLocal[2].values)
         for j in vValues.indices {
             let vIndex = v0 + j
-            guard vIndex >= 0, vIndex < vControlPointCount else { continue }
+            guard vIndex >= 0, vIndex < vControlPointCount else {
+                hasUniformOwningWeights = false
+                continue
+            }
             let (bv, dv, ddv) = (vValues[j], vFirsts[j], vSeconds[j])
             let pointRow = controlPoints[vIndex], weightRow = weights[vIndex]
             for i in uValues.indices {
                 let uIndex = u0 + i
-                guard uIndex >= 0, uIndex < uControlPointCount else { continue }
+                guard uIndex >= 0, uIndex < uControlPointCount else {
+                    hasUniformOwningWeights = false
+                    continue
+                }
                 let w = weightRow[uIndex]
+                // Every control of the owning native span participates in this proof,
+                // including controls whose value basis vanishes at a knot endpoint.
+                if let uniformWeight {
+                    hasUniformOwningWeights = hasUniformOwningWeights && w == uniformWeight
+                } else {
+                    uniformWeight = w
+                    hasUniformOwningWeights = hasUniformOwningWeights && w.isFinite && w > 0
+                }
                 let p = vector(from: pointRow[uIndex]) * w
                 let (bu, du, ddu) = (uValues[i], uFirsts[i], uSeconds[i])
                 // Position, ∂u, ∂v, ∂uu, ∂uv, ∂vv of the homogeneous surface.
@@ -848,6 +864,13 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
                 suu = suu + p * fuu; suv = suv + p * fuv; svv = svv + p * fvv
                 w0 += w * f0; wu += w * fu; wv += w * fv; wuu += w * fuu; wuv += w * fuv; wvv += w * fvv
             }
+        }
+        // Partition of unity makes a common positive stored weight the exact
+        // denominator, with zero derivatives. Summing rounded basis derivatives
+        // would manufacture rational curvature for this polynomial native span.
+        if hasUniformOwningWeights, let uniformWeight {
+            w0 = uniformWeight
+            (wu, wv, wuu, wuv, wvv) = (0, 0, 0, 0, 0)
         }
         let sums = [WeightedVector(point: s0, weight: w0), WeightedVector(point: su, weight: wu), WeightedVector(point: sv, weight: wv),
                     WeightedVector(point: suu, weight: wuu), WeightedVector(point: suv, weight: wuv), WeightedVector(point: svv, weight: wvv)]
@@ -966,15 +989,30 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
     ) -> WeightedVector {
         var point = Vector3D.zero
         var weightSum = 0.0
+        var uniformWeight: Double?
+        var hasUniformWeights = true
         for vIndex in 0..<vControlPointCount {
             for uIndex in 0..<uControlPointCount {
-                let basisWeight = uBasis[uIndex] * vBasis[vIndex] * weights[vIndex][uIndex]
+                let weight = weights[vIndex][uIndex]
+                // Retain the existing full-net point evaluation and establish
+                // global uniformity during its existing weight reads, before
+                // skipping any zero basis products. No additional scan is needed.
+                if let uniformWeight {
+                    hasUniformWeights = hasUniformWeights && weight == uniformWeight
+                } else {
+                    uniformWeight = weight
+                    hasUniformWeights = hasUniformWeights && weight.isFinite && weight > 0
+                }
+                let basisWeight = uBasis[uIndex] * vBasis[vIndex] * weight
                 guard basisWeight != 0.0 else {
                     continue
                 }
                 point = point + vector(from: controlPoints[vIndex][uIndex]) * basisWeight
                 weightSum += basisWeight
             }
+        }
+        if hasUniformWeights, let uniformWeight {
+            weightSum = uniformWeight
         }
         return WeightedVector(point: point, weight: weightSum)
     }

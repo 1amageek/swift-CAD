@@ -199,14 +199,10 @@ overhang by half a curve's span. (A polyline pcurve's enclosure bounds each
 coordinate's speed by its own largest share of a segment, so a side running along
 one parameter no longer spreads across the other.) `FaceParameterExtentResolverTests`
 own the extent.
-`SpatialCurveFitter` turns a curve known only by its points into a Bezier
-`SpatialPathFeature`: per span a cubic Hermite with one-sided second-order
-difference tangents, halved until the span is within the deviation at seven check
-parameters, never crossing a breakpoint (a source corner stays a corner knot), and
-failing past its span budget; `fitBSpline` gives the same spans as a clamped cubic
-B-spline on the source's own parameters (knots of multiplicity three at the span
-ends), so a carried edge keeps its trim. `FaceUVNChartTests` and
-`SpatialCurveFitterTests` own both.
+CADKernel consumes the sampled spatial curve fitting contract owned by
+[CADModeling](../CADModeling/DESIGN.md#spatial-curve-fitting).
+`FaceUVNChartTests` owns the kernel's face-chart behavior; fitter behavior is
+verified in CADModeling's test target.
 
 `SurfaceQueryEvaluator.project(_:along:onto:)` chooses, among the line's meetings
 with the support surface in the requested range, only those inside the face's
@@ -1108,7 +1104,7 @@ target's by its rigid placement (none: where it was evaluated). The body keeps i
 support becomes a bicubic B-spline fitted to the map of its old support over the
 face's own parameter extent (`MappedBSplineSurfaceFitter`, from one span, so an
 affine map is exact), keeping its pcurves; each edge's span becomes a B-spline on
-the same parameters (`SpatialCurveFitter.fitBSpline`), shared by the edge's two
+the same parameters ([`SpatialCurveFitter.fitBSpline`](../CADModeling/DESIGN.md#spatial-curve-fitting)), shared by the edge's two
 coedges. Both fits stay within a quarter of the distance tolerance, so every
 edge meets its faces and vertices within it. Where the map's Jacobian determinant
 is negative at every vertex the faces are reversed to keep the body right side

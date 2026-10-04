@@ -132,6 +132,14 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
             let second = try surface(of: faces[1])
             let middle = try oldMiddle(of: edgeID, model: model, tolerance: tolerance) + landing(of: faces)
             middles[edgeID] = middle
+            // An edge both its faces' surfaces still hold (a face turned about it) is still their
+            // meeting where it lay: it keeps its curve, which no intersection need find again — one
+            // running out to a surface's own boundary need not be certified there.
+            if landing(of: faces).length == 0, try lies(edgeID, on: [first, second], model: model, tolerance: tolerance),
+               let kept = model.edges[edgeID].flatMap({ model.geometry.curves[$0.curveID] }) {
+                curves[edgeID] = kept
+                continue
+            }
             if first == second {
                 guard try isStraight(edgeID, model: model) else {
                     throw failure(.unsupportedCapability, featureID, tolerance, "A curved edge between faces that now share one surface cannot be re-solved.")
@@ -338,6 +346,39 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
         model.geometry.curves = model.geometry.curves.filter { referencedCurves.contains($0.key) }
         let referencedSurfaces = Set(model.faces.values.map(\.surfaceID))
         model.geometry.surfaces = model.geometry.surfaces.filter { referencedSurfaces.contains($0.key) }
+    }
+
+    /// Retains a curve only after the complete original trim has certified pcurves on both
+    /// replacement surfaces. Unsupported incidence uses the original intersection producer;
+    /// numerical and exhausted proofs propagate their explicit failures.
+    private func lies(_ edgeID: EdgeID, on surfaces: [Surface3D], model: BRepModel,
+                      tolerance: ModelingTolerance) throws -> Bool {
+        guard let edge = model.edges[edgeID], let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else { return false }
+        for surface in surfaces {
+            // A typed geometric miss at an original trim anchor disproves incidence. Passing
+            // these necessary conditions grants no authority: the complete trim is still proved below.
+            for parameter in [trim.startParameter, (trim.startParameter + trim.endParameter) / 2, trim.endParameter] {
+                let point = try curve.point(at: parameter, tolerance: tolerance)
+                if case .outsideTolerance = try surface.parameterProjectionResult(of: point, tolerance: tolerance) {
+                    return false
+                }
+            }
+            do {
+                let pcurve = try ExactFacePcurveBuilder().surfaceParameterCurve(
+                    for: curve, startParameter: trim.startParameter, endParameter: trim.endParameter,
+                    on: surface, tolerance: tolerance)
+                try DefaultCurveSurfaceCorrespondenceValidator().validate(
+                    curve: curve, from: trim.startParameter, to: trim.endParameter,
+                    surface: surface, parameterCurve: pcurve,
+                    options: CurveSurfaceCorrespondenceValidationOptions(
+                        maximumSubdivisionDepth: 32, maximumCellCount: 65_536,
+                        maximumDeviation: tolerance.distance / 4),
+                    tolerance: tolerance)
+            } catch let error as KernelError where error.code == .unsupportedCapability {
+                return false
+            }
+        }
+        return true
     }
 
     /// The outward normal of a face on `surface` at the foot of `point`.

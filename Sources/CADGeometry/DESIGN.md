@@ -292,11 +292,32 @@ and trim; below restriction resolution, the shared containing interval keeps
 the enclosure conservative. The original support surface owns spatial bounds,
 including offset pullbacks; a source intersection's box is not reused as the
 destination surface's geometry.
+Uniform stored B-spline surface weights across the complete owning native basis
+support authorize an exact constant homogeneous denominator on that span.
+Native first/second jets classify the complete local support; the existing full-net
+point evaluator classifies global equality during its current weight reads. Both
+retain the original constant denominator, and jets retain its zero derivatives,
+instead of re-estimating them from rounded basis partition sums. Original
+coordinate numerators, periodic mapping and genuinely unequal active rational
+weights retain their existing owners. This matches the interval
+owner's exact constant-weight authority and prevents a linear native axis from
+acquiring artificial second derivatives. Native periodic strip fixtures on both
+axes and nonunit uniform weights compare independent positions, native jets and
+interval containment. Stored weights remain mutable source input, so any uniform
+classification must be recomputed from the current owning basis support or carried
+by a validated immutable preparation; a stale classification cannot be reused.
+
 B-spline inverse projection refines candidate stationary points to the same
 parameter resolution used to distinguish roots. A small world-space residual
-or gradient alone is insufficient for small-scale curves. Self-overlapping
-curves retain explicit ambiguous-selection failure; no distance-based root
-merging replaces parameter uniqueness.
+or gradient alone is insufficient for small-scale surfaces. The stationary
+exit requires a finite positive-definite original distance Hessian and its
+undamped Newton correction, projected into the owned bounds, within each axis's
+existing deduplication resolution. A small damped step alone cannot authorize
+that exit. The original iteration budget and failure behavior remain bounded.
+Self-overlapping surfaces retain explicit ambiguous-selection failure; no
+distance-based root merging replaces parameter uniqueness. Native fixtures
+cover a scaled boundary root and distinct regular roots; periodic leaf and
+seam authority retain their separate certificates.
 
 Interval-local UV bounds may restrict an already validated parameter curve
 without constructing a new offset image. Offset images preserve UV coordinates;
