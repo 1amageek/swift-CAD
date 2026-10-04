@@ -66,7 +66,6 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
                 if appearanceUsages.contains(occurrence.id) { try sharingBudget.charge(targets: 1); usageCarrierDefinitions.insert(occurrence.definitionID) }
             }
         }
-        var admittedGroups = Set<[FeatureID]>(), admittedFeatures = Set<FeatureID>()
         for definition in source.definitions where !definition.features.isEmpty {
             try budget.check(format: .step)
             let count = definition.features.count
@@ -76,19 +75,6 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
             }
             try sharingBudget.charge(work: count * (levels + 1), targets: count + 1)
             let key = definition.features.sorted(); geometryKeys[definition.id] = key
-            try sharingBudget.charge(work: key.count)
-            if !admittedGroups.contains(key) {
-                for feature in key {
-                    try budget.check(format: .step); try sharingBudget.charge(work: 1)
-                    // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEPExchange and OfficialFormatExchange cannot preserve partial overlap between different complete feature groups yet.
-                    // Standard modular geometry transport must retain a sole feature owner across [F1] and [F1,F2] before such groups can be emitted without duplication.
-                    guard !admittedFeatures.contains(feature) else {
-                        throw ProductAttributeError.unsupportedSemantics("Partially overlapping feature groups require modular STEP geometry transport.")
-                    }
-                    try sharingBudget.charge(targets: 1); admittedFeatures.insert(feature)
-                }
-                try sharingBudget.charge(work: key.count, targets: 1); admittedGroups.insert(key)
-            }
             try sharingBudget.charge(work: attributeSource.assignments.count)
             var carrier = usageCarrierDefinitions.contains(definition.id) || attributeSource.assignments.contains {
                 $0.target.definitionID == definition.id && ($0.value.property == .color || $0.value.property == .opacity)
@@ -101,6 +87,8 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
             if carrier, !carrierKeys.contains(key) { try sharingBudget.charge(targets: 1); carrierKeys.insert(key) }
         }
         var sharedGeometry: [[FeatureID]: ExactSTEPWriter.WrittenDefinition] = [:]
+        var featureGeometry: [FeatureID: ExactSTEPWriter.WrittenGeometry] = [:]
+        var geometryContext: ExactSTEPWriter.WrittenGeometryContext?
         var products: [AssemblyProductID: Int] = [:]
         for product in source.products.sorted(by: { $0.id < $1.id }) {
             try budget.check(format: .step)
@@ -123,12 +111,6 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
             guard definition.features.isEmpty || definition.children.isEmpty else {
                 throw AssemblyError.invalidSource("STEP assembly geometry and child representations would be ambiguous.")
             }
-            var bodyIDs = Set<BodyID>()
-            for featureID in definition.features {
-                for (output, reference) in artifact.local.subshapes.entries where output.featureID == featureID {
-                    if case let .body(id) = reference { bodyIDs.insert(id) }
-                }
-            }
             var items: [Int] = []
             for child in definition.children.sorted(by: { $0.id < $1.id }) {
                 let axis = try writer.assemblyAxis(child.placement, units: units.length, table: &table)
@@ -142,13 +124,63 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
                 product = try writer.appendSharedDefinition(geometry: geometry, retainedFormation: formation,
                     identifier: definition.identifier, description: definition.definitionDescription,
                     wholePartCarrier: carrier, units: units, table: &table)
-            } else {
-                let model = try BRepBodySubmodelExtractor().extract(bodyIDs: bodyIDs, from: artifact.local.model)
-                product = try writer.appendDefinition(brep: model, units: units,
+            } else if key.isEmpty {
+                product = try writer.appendDefinition(brep: BRepModel(), units: units,
                     identifier: "", name: "", definitionDescription: definition.definitionDescription, additionalItems: items,
-                    retainedFormation: formation, definitionIdentifier: definition.identifier, wholePartCarrier: carrier,
-                    bodyNames: names?.bodies ?? [:], faceNames: names?.faces ?? [:], table: &table)
-                if !key.isEmpty { try sharingBudget.charge(work: key.count, targets: 1); sharedGeometry[key] = product }
+                    retainedFormation: formation, definitionIdentifier: definition.identifier, table: &table)
+            } else {
+                var geometries: [ExactSTEPWriter.WrittenGeometry] = []
+                try sharingBudget.charge(work: key.count, targets: key.count)
+                for feature in key {
+                    try budget.check(format: .step)
+                    if featureGeometry[feature] == nil {
+                        try sharingBudget.charge(work: artifact.local.subshapes.entries.count)
+                        var bodyIDs = Set<BodyID>()
+                        for (output, reference) in artifact.local.subshapes.entries where output.featureID == feature {
+                            try budget.check(format: .step)
+                            if case let .body(id) = reference {
+                                try sharingBudget.charge(targets: 1)
+                                bodyIDs.insert(id)
+                            }
+                        }
+                        // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP modular geometry export cannot preserve a multi-body feature's sole source owner yet.
+                        // A standard grouped feature identity transport must reconstruct that owner before multi-body outputs can succeed.
+                        guard bodyIDs.count == 1 else {
+                            throw ProductAttributeError.unsupportedSemantics("Modular STEP geometry requires one body per feature.")
+                        }
+                        let local = artifact.local.model
+                        for count in [local.vertices.count, local.edges.count, local.loops.count,
+                                      local.faces.count, local.shells.count, local.bodies.count] {
+                            try sharingBudget.charge(work: count)
+                        }
+                        let model = try BRepBodySubmodelExtractor().extract(bodyIDs: bodyIDs, from: local)
+                        let context: ExactSTEPWriter.WrittenGeometryContext
+                        if let retained = geometryContext { context = retained }
+                        else {
+                            try sharingBudget.charge(work: 1, targets: 1)
+                            context = try writer.appendGeometryContext(units: units, table: &table)
+                            geometryContext = context
+                        }
+                        let geometry = try writer.appendGeometry(brep: model, units: units, geometryContext: context,
+                            bodyNames: names?.bodies ?? [:], faceNames: names?.faces ?? [:], table: &table)
+                        // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP modular export cannot yet reconstruct one Body owning several emitted solid components.
+                        // Preserve component-to-source body grouping through a standard transport before publishing multiple items as one feature.
+                        guard geometry.bodies.count == 1, geometry.items.count == 1 else {
+                            throw ProductAttributeError.unsupportedSemantics("Modular STEP geometry requires one exact item per feature.")
+                        }
+                        try sharingBudget.charge(targets: 1)
+                        featureGeometry[feature] = geometry
+                    }
+                    guard let geometry = featureGeometry[feature] else { throw AssemblyError.invalidSource("Missing emitted feature geometry.") }
+                    let compositionCount = geometry.items.count + geometry.bodies.count + geometry.faces.count
+                    try sharingBudget.charge(work: compositionCount, targets: compositionCount)
+                    geometries.append(geometry)
+                }
+                product = try writer.appendModularDefinition(geometries: geometries, retainedFormation: formation,
+                    identifier: definition.identifier, description: definition.definitionDescription,
+                    wholePartCarrier: carrier, units: units, processing: budget, table: &table)
+                try sharingBudget.charge(work: key.count, targets: 1)
+                sharedGeometry[key] = product
             }
             try identityWriter.append(uuid: definition.id.description, role: .definition, target: product.definition, table: &table)
             written[definition.id] = product

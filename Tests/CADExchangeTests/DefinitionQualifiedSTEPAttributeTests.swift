@@ -105,7 +105,25 @@ struct DefinitionQualifiedSTEPAttributeTests {
         let foreign = Self.fixture.replacingOccurrences(of: "#847=CONTEXT_DEPENDENT_OVER_RIDING_STYLED_ITEM('',(#846),#38", with: "#847=CONTEXT_DEPENDENT_OVER_RIDING_STYLED_ITEM('',(#846),#17")
         #expect(throws: ProductAttributeError.missingTarget("Qualified style carrier geometry correspondence.")) { _ = try imported(foreign) }
         let foreignFeature = Self.fixture.replacingOccurrences(of: "#803=REPRESENTATION_MAP(#17,#810);", with: "#803=REPRESENTATION_MAP(#17,#811);")
-            .replacingOccurrences(of: "ENDSEC;\nEND-ISO", with: "#811=SHAPE_REPRESENTATION('',(#938,#17),#7);\n#936=ADVANCED_FACE('',(#35),#18,.T.);\n#937=OPEN_SHELL('',(#936));\n#938=SHELL_BASED_SURFACE_MODEL('',(#937));\nENDSEC;\nEND-ISO")
+            .replacingOccurrences(of: "ENDSEC;\nEND-ISO", with: """
+            #811=SHAPE_REPRESENTATION('',(#938,#17),#7);
+            #925=VERTEX_POINT('',#10);
+            #926=VERTEX_POINT('',#11);
+            #927=VERTEX_POINT('',#12);
+            #928=EDGE_CURVE('',#925,#926,#119,.T.);
+            #929=EDGE_CURVE('',#926,#927,#120,.T.);
+            #930=EDGE_CURVE('',#927,#925,#121,.T.);
+            #931=ORIENTED_EDGE('',*,*,#928,.T.);
+            #932=ORIENTED_EDGE('',*,*,#929,.T.);
+            #933=ORIENTED_EDGE('',*,*,#930,.T.);
+            #934=EDGE_LOOP('',(#931,#932,#933));
+            #935=FACE_OUTER_BOUND('',#934,.T.);
+            #936=ADVANCED_FACE('',(#935),#18,.T.);
+            #937=OPEN_SHELL('',(#936));
+            #938=SHELL_BASED_SURFACE_MODEL('',(#937));
+            ENDSEC;
+            END-ISO
+            """)
         #expect(throws: ProductAttributeError.missingTarget("Qualified style carrier feature membership.")) { _ = try imported(foreignFeature) }
         let nonidentity = Self.fixture.replacingOccurrences(of: "#10,1.,#13", with: "#80,1.,#13")
         #expect(throws: AssemblyError.invalidSource("Whole-part carrier transform is not identity.")) { _ = try imported(nonidentity) }

@@ -11,32 +11,60 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADExchange/ExactExchangeSurfaceRepresentationResolver.swift", sourceLine: 14
         ),
         KernelDomainLimitation(
+            id: "condition-f1daf9f368a77521",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public exact STEP and assembly exports cannot yet express mixed sheet/solid representation groups. A proved standard mixed-family association and attribute carrier must retain every item owner before this path can succeed.",
+            sourcePath: "Sources/CADExchange/ExactSTEPWriter.swift", sourceLine: 83
+        ),
+        KernelDomainLimitation(
+            id: "condition-304c1749cc7f9517",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP assembly export admits homogeneous modular groups only. Standard mixed-family composition and scope-preserving carriers must be proved before combining sheet and solid feature owners.",
+            sourcePath: "Sources/CADExchange/ExactSTEPWriter.swift", sourceLine: 606
+        ),
+        KernelDomainLimitation(
             id: "condition-d4cae889836eafa8",
             operations: ["STEP"],
             dimensions: [.representation, .connection],
             condition: "Public STEP part appearance export only admits local exact geometry carriers. Assembly-wide appearance needs a standard structural carrier retaining nested usage scope and every predecessor without dummy geometry.",
-            sourcePath: "Sources/CADExchange/ExactSTEPWriter.swift", sourceLine: 569
+            sourcePath: "Sources/CADExchange/ExactSTEPWriter.swift", sourceLine: 643
         ),
         KernelDomainLimitation(
             id: "condition-ccc900668df3a397",
             operations: ["STEP"],
             dimensions: [.representation, .connection],
             condition: "Public STEP product import admits only base and specified-source formations. Other formation subtypes require a persistent semantic owner and matching standard writer before admission.",
-            sourcePath: "Sources/CADExchange/STEPAssembly/STEPAssemblyReader.swift", sourceLine: 188
+            sourcePath: "Sources/CADExchange/STEPAssembly/STEPAssemblyReader.swift", sourceLine: 190
         ),
         KernelDomainLimitation(
             id: "condition-9102ebf5fed03985",
             operations: ["STEP"],
             dimensions: [.representation, .connection],
             condition: "Public STEP import cannot retain a shared whole-part carrier as a multi-definition attribute set. A standard set-scope source/egress contract must retain each style/layer predecessor before this shared carrier can be admitted.",
-            sourcePath: "Sources/CADExchange/STEPAssembly/STEPAssemblyReader.swift", sourceLine: 257
+            sourcePath: "Sources/CADExchange/STEPAssembly/STEPAssemblyReader.swift", sourceLine: 258
         ),
         KernelDomainLimitation(
-            id: "condition-9e0a0c000f2a911c",
+            id: "condition-add12353adf69fdc",
             operations: ["STEP"],
             dimensions: [.representation, .connection],
-            condition: "Public STEPExchange and OfficialFormatExchange cannot preserve partial overlap between different complete feature groups yet. Standard modular geometry transport must retain a sole feature owner across [F1] and [F1,F2] before such groups can be emitted without duplication.",
-            sourcePath: "Sources/CADExchange/STEPAssembly/STEPAssemblyWriter.swift", sourceLine: 83
+            condition: "Public STEP assembly import admits homogeneous exact item groups only. A proved standard mixed-family association must retain local owners and attribute scope before mixed groups can succeed.",
+            sourcePath: "Sources/CADExchange/STEPAssembly/STEPAssemblyReader.swift", sourceLine: 306
+        ),
+        KernelDomainLimitation(
+            id: "condition-cd6d17cbf3ac7a9f",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP modular geometry export cannot preserve a multi-body feature's sole source owner yet. A standard grouped feature identity transport must reconstruct that owner before multi-body outputs can succeed.",
+            sourcePath: "Sources/CADExchange/STEPAssembly/STEPAssemblyWriter.swift", sourceLine: 146
+        ),
+        KernelDomainLimitation(
+            id: "condition-2ce0d8bfe025c973",
+            operations: ["STEP"],
+            dimensions: [.representation, .connection],
+            condition: "Public STEP modular export cannot yet reconstruct one Body owning several emitted solid components. Preserve component-to-source body grouping through a standard transport before publishing multiple items as one feature.",
+            sourcePath: "Sources/CADExchange/STEPAssembly/STEPAssemblyWriter.swift", sourceLine: 166
         ),
         KernelDomainLimitation(
             id: "condition-a6351475c54b5e73",

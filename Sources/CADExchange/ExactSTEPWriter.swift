@@ -60,13 +60,32 @@ struct ExactSTEPWriter {
     let definition = try table.add(
       "PRODUCT_DEFINITION(\(try table.quotedString(definitionIdentifier)),\(definitionText),#\(formation),#\(definitionContext))")
     let definitionShape = try table.add("PRODUCT_DEFINITION_SHAPE('','',#\(definition))")
-    let lengthUnit = try lengthUnitEntity(units.length, table: &table)
-    let angleUnit = try table.add("(NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,.RADIAN.))")
-    let solidAngleUnit = try table.add("(NAMED_UNIT(*) SI_UNIT($,.STERADIAN.) SOLID_ANGLE_UNIT())")
-    let uncertainty = number(units.length.fromInternal(tolerance.distance))
-    let context = try table.add(
-      "(GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT((#\(try table.add("UNCERTAINTY_MEASURE_WITH_UNIT(LENGTH_MEASURE(\(uncertainty)),#\(lengthUnit),'distance_accuracy_value','confusion accuracy')")))) GLOBAL_UNIT_ASSIGNED_CONTEXT((#\(lengthUnit),#\(angleUnit),#\(solidAngleUnit))) REPRESENTATION_CONTEXT('',''))"
-    )
+    let geometryContext = try appendGeometryContext(units: units, table: &table)
+    let geometry = try appendGeometry(brep: brep, units: units, geometryContext: geometryContext,
+        bodyNames: bodyNames, faceNames: faceNames, table: &table)
+    return try appendGeometryRepresentation(geometry, definition: definition, definitionShape: definitionShape,
+        additionalItems: additionalItems, wholePartCarrier: wholePartCarrier, units: units, table: &table)
+  }
+
+  /// Emits topology without manufacturing any product or definition owner.
+  func appendGeometry(brep: BRepModel, units: UnitSystem,
+                      geometryContext: WrittenGeometryContext,
+                      bodyNames: [BodyID: String], faceNames: [FaceID: String],
+                      table: inout EntityTable) throws -> WrittenGeometry {
+    guard brep.bodies.values.allSatisfy({ $0.material == nil }) else {
+      throw ProductAttributeError.unsupportedSemantics("Legacy PBR Body.material references need an explicit physical/presentation conversion before STEP export.")
+    }
+    let representationType: String
+    if brep.bodies.isEmpty { representationType = "SHAPE_REPRESENTATION" }
+    else if brep.bodies.values.allSatisfy({ $0.kind == .solid }) { representationType = "ADVANCED_BREP_SHAPE_REPRESENTATION" }
+    else if brep.bodies.values.allSatisfy({ $0.kind != .solid }) { representationType = "MANIFOLD_SURFACE_SHAPE_REPRESENTATION" }
+    else {
+      // FIXME(INCOMPLETE_IMPLEMENTATION): Public exact STEP and assembly exports cannot yet express mixed sheet/solid representation groups.
+      // A proved standard mixed-family association and attribute carrier must retain every item owner before this path can succeed.
+      throw ProductAttributeError.unsupportedSemantics("Mixed sheet and solid STEP geometry requires a proved representation family.")
+    }
+    guard geometryContext.units == units else { throw AssemblyError.invalidSource("Geometry context has conflicting owned units.") }
+    let context = geometryContext.context
     var vertexEntities: [VertexID: Int] = [:]
     for vertexID in brep.vertices.keys.sorted() {
       guard let vertex = brep.vertices[vertexID] else {
@@ -557,32 +576,87 @@ struct ExactSTEPWriter {
       }
       bodyEntities[bodyID] = Array(representationItems[firstItem...])
     }
+    return WrittenGeometry(items: representationItems, context: context, origin: geometryContext.origin,
+        representationType: representationType, bodies: bodyEntities, faces: faceEntities)
+  }
+
+  func appendGeometryContext(units: UnitSystem, table: inout EntityTable) throws -> WrittenGeometryContext {
+    let lengthUnit = try lengthUnitEntity(units.length, table: &table)
+    let angleUnit = try table.add("(NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,.RADIAN.))")
+    let solidAngleUnit = try table.add("(NAMED_UNIT(*) SI_UNIT($,.STERADIAN.) SOLID_ANGLE_UNIT())")
+    let uncertainty = number(units.length.fromInternal(tolerance.distance))
+    let context = try table.add(
+      "(GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT((#\(try table.add("UNCERTAINTY_MEASURE_WITH_UNIT(LENGTH_MEASURE(\(uncertainty)),#\(lengthUnit),'distance_accuracy_value','confusion accuracy')")))) GLOBAL_UNIT_ASSIGNED_CONTEXT((#\(lengthUnit),#\(angleUnit),#\(solidAngleUnit))) REPRESENTATION_CONTEXT('',''))"
+    )
     let origin = try assemblyAxis(.translated(by: .zero), units: units.length, table: &table)
-    representationItems.append(origin)
+    return WrittenGeometryContext(units: units, context: context, origin: origin)
+  }
+
+  func appendModularDefinition(geometries: [WrittenGeometry], retainedFormation: Int,
+                               identifier: String, description: String?, wholePartCarrier: Bool,
+                               units: UnitSystem, processing: ExchangeProcessingBudget, table: inout EntityTable) throws -> WrittenDefinition {
+    guard let first = geometries.first else { throw AssemblyError.invalidSource("Missing modular STEP geometry.") }
+    var items: [Int] = [], bodies: [BodyID: [Int]] = [:], faces: [FaceID: Int] = [:]
+    for geometry in geometries {
+      try processing.check(format: .step)
+      guard geometry.context == first.context, geometry.origin == first.origin else {
+        throw AssemblyError.invalidSource("Modular geometry requires one owned representation context.")
+      }
+      guard geometry.representationType == first.representationType else {
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP assembly export admits homogeneous modular groups only.
+        // Standard mixed-family composition and scope-preserving carriers must be proved before combining sheet and solid feature owners.
+        throw ProductAttributeError.unsupportedSemantics("Mixed sheet and solid STEP geometry requires a proved representation family.")
+      }
+      items.append(contentsOf: geometry.items)
+      for (body, entities) in geometry.bodies {
+        try processing.check(format: .step)
+        guard bodies.updateValue(entities, forKey: body) == nil else { throw AssemblyError.invalidSource("Competing modular body ownership.") }
+      }
+      for (face, entity) in geometry.faces {
+        try processing.check(format: .step)
+        guard faces.updateValue(entity, forKey: face) == nil else { throw AssemblyError.invalidSource("Competing modular face ownership.") }
+      }
+    }
+    let application = try table.add("APPLICATION_CONTEXT('managed model based 3d engineering')")
+    let context = try table.add("PRODUCT_DEFINITION_CONTEXT('part definition',#\(application),'design')")
+    let text = try description.map { try table.quotedString($0) } ?? "$"
+    let definition = try table.add("PRODUCT_DEFINITION(\(try table.quotedString(identifier)),\(text),#\(retainedFormation),#\(context))")
+    let shape = try table.add("PRODUCT_DEFINITION_SHAPE('','',#\(definition))")
+    let combined = WrittenGeometry(items: items, context: first.context, origin: first.origin,
+        representationType: first.representationType, bodies: bodies, faces: faces)
+    return try appendGeometryRepresentation(combined, definition: definition, definitionShape: shape,
+        additionalItems: [], wholePartCarrier: wholePartCarrier, units: units, table: &table)
+  }
+
+  private func appendGeometryRepresentation(_ geometry: WrittenGeometry, definition: Int, definitionShape: Int,
+                                           additionalItems: [Int], wholePartCarrier: Bool,
+                                           units: UnitSystem, table: inout EntityTable) throws -> WrittenDefinition {
+    var representationItems = geometry.items
+    representationItems.append(geometry.origin)
     representationItems.append(contentsOf: additionalItems)
     let geometryRepresentation = try table.add(
-      "SHAPE_REPRESENTATION('',(\(representationItems.map { "#\($0)" }.joined(separator: ","))),#\(context))"
+      "\(geometry.representationType)('',(\(representationItems.map { "#\($0)" }.joined(separator: ","))),#\(geometry.context))"
     )
     let representation: Int
     let carrier: Int?
     if wholePartCarrier {
       // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP part appearance export only admits local exact geometry carriers.
       // Assembly-wide appearance needs a standard structural carrier retaining nested usage scope and every predecessor without dummy geometry.
-      guard additionalItems.isEmpty, !bodyEntities.isEmpty else {
+      guard additionalItems.isEmpty, !geometry.bodies.isEmpty else {
         throw ProductAttributeError.unsupportedSemantics("Whole-part appearance requires exact local geometry without child usages.")
       }
-      let map = try table.add("REPRESENTATION_MAP(#\(origin),#\(geometryRepresentation))")
+      let map = try table.add("REPRESENTATION_MAP(#\(geometry.origin),#\(geometryRepresentation))")
       let point = try cartesianPoint(.origin, units: units.length, table: &table)
       let x = try directionEntity(.unitX, table: &table), y = try directionEntity(.unitY, table: &table), z = try directionEntity(.unitZ, table: &table)
       let transform = try table.add("CARTESIAN_TRANSFORMATION_OPERATOR_3D('',*,*,#\(x),#\(y),#\(point),1.,#\(z))")
       let item = try table.add("MAPPED_ITEM('',#\(map),#\(transform))")
-      representation = try table.add("SHAPE_REPRESENTATION('',(#\(item),#\(origin)),#\(context))")
+      representation = try table.add("\(geometry.representationType)('',(#\(item),#\(geometry.origin)),#\(geometry.context))")
       carrier = item
     } else { representation = geometryRepresentation; carrier = nil }
     _ = try table.add("SHAPE_DEFINITION_REPRESENTATION(#\(definitionShape),#\(representation))")
     return WrittenDefinition(definition: definition, definitionShape: definitionShape, representation: representation,
-        context: context, origin: origin, geometryRepresentation: geometryRepresentation, carrier: carrier,
-        bodies: bodyEntities, faces: faceEntities)
+        context: geometry.context, origin: geometry.origin, geometryRepresentation: geometryRepresentation, carrier: carrier,
+        representationType: geometry.representationType, bodies: geometry.bodies, faces: geometry.faces)
   }
 
   func appendSharedDefinition(geometry: WrittenDefinition, retainedFormation: Int,
@@ -604,7 +678,7 @@ struct ExactSTEPWriter {
       let x = try directionEntity(.unitX, table: &table), y = try directionEntity(.unitY, table: &table), z = try directionEntity(.unitZ, table: &table)
       let transform = try table.add("CARTESIAN_TRANSFORMATION_OPERATOR_3D('',*,*,#\(x),#\(y),#\(point),1.,#\(z))")
       let item = try table.add("MAPPED_ITEM('',#\(map),#\(transform))")
-      representation = try table.add("SHAPE_REPRESENTATION('',(#\(item),#\(geometry.origin)),#\(geometry.context))")
+      representation = try table.add("\(geometry.representationType)('',(#\(item),#\(geometry.origin)),#\(geometry.context))")
       carrier = item
     } else {
       guard geometry.carrier == nil else { throw AssemblyError.invalidSource("Shared carrier group cannot flatten a definition scope.") }
@@ -613,7 +687,7 @@ struct ExactSTEPWriter {
     _ = try table.add("SHAPE_DEFINITION_REPRESENTATION(#\(shape),#\(representation))")
     return WrittenDefinition(definition: definition, definitionShape: shape, representation: representation,
         context: geometry.context, origin: geometry.origin, geometryRepresentation: geometry.geometryRepresentation,
-        carrier: carrier, bodies: geometry.bodies, faces: geometry.faces)
+        carrier: carrier, representationType: geometry.representationType, bodies: geometry.bodies, faces: geometry.faces)
   }
 
   func publish(table: EntityTable, to sink: any ByteSink) throws {
@@ -640,6 +714,21 @@ struct ExactSTEPWriter {
     }
   }
 
+  struct WrittenGeometryContext {
+    let units: UnitSystem
+    let context: Int
+    let origin: Int
+  }
+
+  struct WrittenGeometry {
+    let items: [Int]
+    let context: Int
+    let origin: Int
+    let representationType: String
+    let bodies: [BodyID: [Int]]
+    let faces: [FaceID: Int]
+  }
+
   struct WrittenDefinition {
     let definition: Int
     let definitionShape: Int
@@ -648,6 +737,7 @@ struct ExactSTEPWriter {
     let origin: Int
     let geometryRepresentation: Int
     let carrier: Int?
+    let representationType: String
     let bodies: [BodyID: [Int]]
     let faces: [FaceID: Int]
   }

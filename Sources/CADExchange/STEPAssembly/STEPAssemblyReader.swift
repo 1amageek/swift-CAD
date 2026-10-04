@@ -178,7 +178,9 @@ private extension STEPAssemblyReader {
             var definitions: [Int: AssemblyDefinition] = [:]
             var repItems: [Int: [Int]] = [:], repUnits: [Int: LengthUnit] = [:], repContexts: [Int: Int] = [:]
             var features: [FeatureID: FeatureNode] = [:], order: [FeatureID] = []
-            var geometryOwners: [Int: (unit: LengthUnit, features: [FeatureID])] = [:]
+            var geometryOwners: [Int: (unit: LengthUnit, feature: FeatureID)] = [:]
+            var ownedFaces = Set<FaceID>(), ownedEdges = Set<EdgeID>(), ownedVertices = Set<VertexID>()
+            var ownedLoops = Set<LoopID>(), ownedShells = Set<ShellID>()
             var accountedGeometry = Set<Int>()
             for productID in productIDs {
                 try check()
@@ -234,7 +236,6 @@ private extension STEPAssemblyReader {
                 let items = try syntax.list(ra[1]); repItems[rep] = items; repUnits[rep] = lengthUnit; repContexts[rep] = context
                 // A representation relationship may associate a shape representation with its local exact geometry.
                 var geometryItems = items
-                var geometryOwner = rep
                 for relationship in names.keys.sorted() where names[relationship] == "SHAPE_REPRESENTATION_RELATIONSHIP" {
                     try check()
                     let relation = try args(relationship, count: 4)
@@ -267,6 +268,9 @@ private extension STEPAssemblyReader {
                         guard ["SHAPE_REPRESENTATION", "ADVANCED_BREP_SHAPE_REPRESENTATION", "MANIFOLD_SURFACE_SHAPE_REPRESENTATION"].contains(names[inner] ?? "") else {
                             throw AssemblyError.invalidSource("Unsupported whole-part inner representation.")
                         }
+                        if repName != "SHAPE_REPRESENTATION", names[inner] != repName {
+                            throw AssemblyError.invalidSource("Whole-part carrier has conflicting representation family.")
+                        }
                         let ia = try args(inner, count: 3), innerContext = try syntax.reference(ia[2])
                         let innerUnit = try unit(innerContext), innerItems = try syntax.list(ia[1]), origin = try syntax.reference(mapping[0])
                         guard innerUnit == lengthUnit, innerItems.contains(origin),
@@ -287,7 +291,6 @@ private extension STEPAssemblyReader {
                         transfer.representations[inner, default: []].insert(definitionID)
                         transfer.representationUnits[inner] = innerUnit
                         geometryItems = innerItems
-                        geometryOwner = inner
                     }
                 }
                 var geometry = Set<Int>()
@@ -298,45 +301,71 @@ private extension STEPAssemblyReader {
                         throw AssemblyError.invalidSource("STEP product representation contains unretained semantics.")
                     }
                 }
-                if geometryOwners[geometryOwner] == nil {
-                    for item in geometry {
-                        try check()
-                        guard !accountedGeometry.contains(item) else {
-                            throw AssemblyError.invalidSource("Distinct geometry representations have competing exact item ownership.")
-                        }
-                    }
+                try check(geometry.count)
+                let solids = geometry.filter { names[$0] == "MANIFOLD_SOLID_BREP" || names[$0] == "BREP_WITH_VOIDS" }
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP assembly import admits homogeneous exact item groups only.
+                // A proved standard mixed-family association must retain local owners and attribute scope before mixed groups can succeed.
+                guard solids.isEmpty || solids.count == geometry.count else {
+                    throw ProductAttributeError.unsupportedSemantics("Mixed sheet and solid STEP geometry requires a proved representation family.")
                 }
+                if repName == "MANIFOLD_SURFACE_SHAPE_REPRESENTATION", !solids.isEmpty {
+                    throw AssemblyError.invalidSource("Sheet representation contains solid geometry.")
+                }
+                if repName == "ADVANCED_BREP_SHAPE_REPRESENTATION", !geometry.isEmpty, solids.isEmpty {
+                    throw AssemblyError.invalidSource("Solid representation contains sheet geometry.")
+                }
+                try check(geometry.count)
                 accountedGeometry.formUnion(geometry)
                 var bodyFeatures: [FeatureID] = []
-                if let retained = geometryOwners[geometryOwner] {
-                    guard retained.unit == lengthUnit else { throw AssemblyError.invalidSource("Shared geometry has conflicting owned units.") }
-                    bodyFeatures = retained.features
-                } else if !geometry.isEmpty {
+                for item in geometry.sorted() {
+                    try check()
+                    if let retained = geometryOwners[item] {
+                        guard retained.unit == lengthUnit else {
+                            throw AssemblyError.invalidSource("Shared geometry has conflicting owned units.")
+                        }
+                        bodyFeatures.append(retained.feature)
+                        continue
+                    }
+                    // Bound the exact reader's source domain before recursive extraction.
+                    try check(syntax.entities.count)
                     let exactTransfer = try ExactSTEPReader(entities: syntax.entities, lengthUnit: lengthUnit,
-                        processingBudget: budget, tolerance: tolerance, representationItems: geometry).readWithTransfer()
-                    let model = exactTransfer.model
-                    for bodyID in model.bodies.keys.sorted() {
+                        processingBudget: budget, tolerance: tolerance, representationItems: [item]).readWithTransfer()
+                    let local = exactTransfer.model
+                    guard local.bodies.count == 1, let bodyID = exactTransfer.bodies[item], let body = local.bodies[bodyID] else {
+                        throw AssemblyError.invalidSource("An exact STEP body item requires one local body owner.")
+                    }
+                    let counts = [local.faces.count, local.edges.count, local.vertices.count, local.loops.count, local.shells.count]
+                    for count in counts { try check(count) }
+                    guard !local.faces.keys.contains(where: { ownedFaces.contains($0) }),
+                          !local.edges.keys.contains(where: { ownedEdges.contains($0) }),
+                          !local.vertices.keys.contains(where: { ownedVertices.contains($0) }),
+                          !local.loops.keys.contains(where: { ownedLoops.contains($0) }),
+                          !local.shells.keys.contains(where: { ownedShells.contains($0) }) else {
+                        throw AssemblyError.invalidSource("Distinct exact items have competing topology ownership.")
+                    }
+                    for count in counts { try check(count) }
+                    ownedFaces.formUnion(local.faces.keys); ownedEdges.formUnion(local.edges.keys)
+                    ownedVertices.formUnion(local.vertices.keys); ownedLoops.formUnion(local.loops.keys); ownedShells.formUnion(local.shells.keys)
+                    try check(2)
+                    let id = FeatureID()
+                    features[id] = FeatureNode(id: id, name: name, operation: .importedBRep(
+                        ImportedBRepFeature(model: local, sourceUnits: UnitSystem(length: lengthUnit, angle: .radian))),
+                        outputs: [FeatureOutput(role: body.kind == .solid ? .body : .sheet)])
+                    order.append(id); bodyFeatures.append(id)
+                    for (entity, sourceBody) in exactTransfer.bodies where sourceBody == bodyID {
                         try check()
-                        let local = try BRepBodySubmodelExtractor().extract(bodyIDs: [bodyID], from: model)
-                        guard let body = local.bodies[bodyID] else { throw AssemblyError.invalidSource("Missing local STEP body.") }
-                        let id = FeatureID()
-                        features[id] = FeatureNode(id: id, name: name, operation: .importedBRep(
-                            ImportedBRepFeature(model: local, sourceUnits: UnitSystem(length: lengthUnit, angle: .radian))),
-                            outputs: [FeatureOutput(role: body.kind == .solid ? .body : .sheet)])
-                        order.append(id); bodyFeatures.append(id)
-                        for (entity, sourceBody) in exactTransfer.bodies where sourceBody == bodyID {
-                            transfer.geometry[entity] = SubshapeID(featureID: id, role: GeneratedSubshapeRole.body.rawValue, ordinal: 0)
+                        transfer.geometry[entity] = SubshapeID(featureID: id, role: GeneratedSubshapeRole.body.rawValue, ordinal: 0)
+                        transfer.geometryUnits[entity] = lengthUnit
+                    }
+                    for (ordinal, sourceFace) in local.faces.keys.sorted().enumerated() {
+                        for (entity, mappedFace) in exactTransfer.faces where mappedFace == sourceFace {
+                            try check()
+                            transfer.geometry[entity] = SubshapeID(featureID: id, role: GeneratedSubshapeRole.face.rawValue, ordinal: ordinal)
                             transfer.geometryUnits[entity] = lengthUnit
                         }
-                        for (ordinal, sourceFace) in local.faces.keys.sorted().enumerated() {
-                            for (entity, mappedFace) in exactTransfer.faces where mappedFace == sourceFace {
-                                transfer.geometry[entity] = SubshapeID(featureID: id, role: GeneratedSubshapeRole.face.rawValue, ordinal: ordinal)
-                                transfer.geometryUnits[entity] = lengthUnit
-                            }
-                        }
                     }
-                    try check(bodyFeatures.count + 1)
-                    geometryOwners[geometryOwner] = (lengthUnit, bodyFeatures)
+                    try check()
+                    geometryOwners[item] = (lengthUnit, id)
                 }
                 definitions[productID] = AssemblyDefinition(id: definitionID, formationID: retainedFormation.id, identifier: identifier,
                     definitionDescription: definitionDescription, features: bodyFeatures)

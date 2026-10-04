@@ -229,7 +229,7 @@ struct SharedSTEPRepresentationTests {
         #expect(retained.count == 2 && retained[0].target == retained[1].target)
     }
     @Test(.timeLimit(.minutes(1)))
-    func partialFeatureGroupOverlapRefusesBeforeSTEPPublication() throws {
+    func mixedFamilyPartialFeatureGroupRefusesBeforeSTEPPublication() throws {
         var document = try imported()
         document.productAttributes = ProductAttributes()
         let extraID = FeatureID(), extra = FeatureNode(id: extraID, operation: .primitive(PrimitiveFeature(definition: .box(BoxPrimitive(
@@ -242,7 +242,7 @@ struct SharedSTEPRepresentationTests {
         let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         #expect(evaluated.assembly?.local.model.bodies.count == 2 && evaluated.brep.bodies.count == 3)
         let sink = DataByteSink()
-        #expect(throws: ProductAttributeError.unsupportedSemantics("Partially overlapping feature groups require modular STEP geometry transport.")) {
+        #expect(throws: ProductAttributeError.unsupportedSemantics("Mixed sheet and solid STEP geometry requires a proved representation family.")) {
             try OfficialFormatExchange(tolerance: .standard).write(evaluated, as: .step, to: sink)
         }
         #expect(sink.bytes.isEmpty)
