@@ -191,10 +191,8 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             let before = try beziers[index - 1].pointJet(at: .end, order: 1).tangent()
             let after = try beziers[index].pointJet(at: .start, order: 1).tangent()
             guard let before, let after, before.cross(after).length <= sin(tolerance.angle), before.dot(after) > 0 else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): a path with a corner is refused. Production
-                // path: CertifiedCurvedPathSweepPlan for every path-normal Sweep. Complete only
-                // when Mitre and Round corners join the pieces either side, verified by a sweep
-                // along an L-shaped path's volume.
+                // A path with corners takes MitredPolylineSweepBuilder, which hands this plan its
+                // smooth curved legs.
                 throw Self.failure(.sweepRoundCornerUnavailable,
                     "A curved path-normal sweep needs a path without corners.", featureID, tolerance)
             }

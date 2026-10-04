@@ -2525,8 +2525,9 @@ struct CADKernelTests {
             _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
             Issue.record("Connected line-arc path-normal Sweep must not return sampled topology.")
         } catch let error as KernelError {
+            // The arc meets the line at a corner, which a curved span cannot be mitred at.
             #expect(error.phase == .evaluation)
-            #expect(error.code == .sweepPathNormalUnavailable)
+            #expect(error.code == .sweepRoundCornerUnavailable)
             #expect(error.featureID == document.designGraph.order.last)
             #expect(error.tolerance == .standard)
         } catch {

@@ -94,12 +94,12 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             operationName: "Sweep path",
             preferredStartPlane: preferredStartPlane
         )
-        // A path of straight arms with corners, open or closed, sweeps with mitred corners.
+        // A path with corners, open or closed, sweeps with mitred or round corners.
         if chain.segments.allSatisfy({ $0.curve.exactCurve != nil }) {
             let spans = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance).pathSpans(
                 from: chain.segments, allowsClosed: chain.isClosed
             )
-            if MitredPolylineSweepBuilder.applies(sweep.options, pathSpans: spans, tolerance: context.tolerance) {
+            if try MitredPolylineSweepBuilder.applies(sweep.options, pathSpans: spans, tolerance: context.tolerance) {
                 let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: context.tolerance)
                 let loops: [[ExactBSplineCurveSpan]]
                 let closedSection: Bool
@@ -113,7 +113,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 }
                 let mitred = try MitredPolylineSweepBuilder(tolerance: context.tolerance).request(
                     sectionLoops: loops, sectionIsClosed: closedSection, profilePlane: try section.plane(),
-                    pathSpans: spans, pathIsClosed: chain.isClosed, options: sweep.options, values: optionValues,
+                    pathSpans: spans, pathIsClosed: chain.isClosed, sweep: sweep, values: optionValues,
                     featureID: feature.id
                 )
                 let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)

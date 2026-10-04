@@ -4,10 +4,14 @@ import CADGeometry
 import CADIR
 import CADTopology
 
-/// A path-normal Sweep along a path of straight arms joined at mitred or round corners.
+/// A path-normal Sweep along a path with corners, its arms joined at mitred or round corners.
 ///
-/// The section moves with the path's least-rotation frame: along an arm it slides, and at a
-/// corner it turns by the least rotation taking the arm's direction to the next one's. Each arm
+/// The path is cut into legs: straight spans running on one way, and curved spans running on
+/// smoothly, whose section the certified curved sweep carries (`CertifiedCurvedPathSweepPlan`,
+/// the section placed where the leg starts). A corner joins two straight legs (arms). The section
+/// moves with the path's least-rotation frame: along an arm it slides, along a curved leg it turns
+/// with the curved sweep's frame, and at a corner it turns by the least rotation taking the arm's
+/// direction to the next one's. Each arm
 /// is the prism its section sweeps between the arm's two ends, each end the section pushed along
 /// the arm onto the mitre plane through the corner (the plane whose normal is the sum of the two
 /// directions), so neighbouring arms meet on that plane in the same curve. An open path is capped
@@ -27,20 +31,57 @@ package struct MitredPolylineSweepBuilder {
         self.tolerance = tolerance
     }
 
-    /// Whether a sweep takes this route: a path-normal sweep along straight spans with at least
-    /// one corner between them.
-    package static func applies(_ options: SweepOptions, pathSpans: [ExactBSplineCurveSpan], tolerance: ModelingTolerance) -> Bool {
-        guard options.alignment == .normal, pathSpans.count >= 2,
-              pathSpans.allSatisfy({ span in
-                  let points = span.curve.controlPoints
-                  guard let first = points.first, let last = points.last, (last - first).length > tolerance.distance else { return false }
-                  let direction = (last - first) * (1 / (last - first).length)
-                  return points.allSatisfy { let offset = $0 - first; return (offset - direction * offset.dot(direction)).length <= tolerance.distance }
-              }) else { return false }
-        return zip(pathSpans, pathSpans.dropFirst()).contains { before, after in
-            let a = before.endPoint - before.startPoint, b = after.endPoint - after.startPoint
-            return a.cross(b).length > sin(tolerance.angle) * a.length * b.length
+    /// Whether a sweep takes this route: a path-normal sweep along a path with at least one
+    /// corner between its spans.
+    package static func applies(_ options: SweepOptions, pathSpans: [ExactBSplineCurveSpan], tolerance: ModelingTolerance) throws -> Bool {
+        guard options.alignment == .normal, pathSpans.count >= 2 else { return false }
+        let builder = MitredPolylineSweepBuilder(tolerance: tolerance)
+        return try zip(pathSpans, pathSpans.dropFirst()).contains { before, after in
+            builder.smooth(try builder.tangent(of: before, atEnd: true), try builder.tangent(of: after, atEnd: false)) == false
         }
+    }
+
+    /// Whether two unit tangents run on the same way.
+    private func smooth(_ a: Vector3D, _ b: Vector3D) -> Bool {
+        a.cross(b).length <= sin(tolerance.angle) && a.dot(b) > 0
+    }
+
+    /// Whether a span is a straight segment.
+    private func isStraight(_ span: ExactBSplineCurveSpan) -> Bool {
+        let points = span.curve.controlPoints
+        let chord = span.endPoint - span.startPoint
+        guard chord.length > tolerance.distance else { return false }
+        let direction = chord * (1 / chord.length)
+        return points.allSatisfy { let offset = $0 - span.startPoint; return (offset - direction * offset.dot(direction)).length <= tolerance.distance }
+    }
+
+    /// A span's unit tangent at its start or end, along its run.
+    private func tangent(of span: ExactBSplineCurveSpan, atEnd: Bool) throws -> Vector3D {
+        if isStraight(span) { return try (span.endPoint - span.startPoint).normalized(tolerance: tolerance.distance) }
+        guard case let .closed(lower, upper) = span.curve.domain else {
+            throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: tolerance, message: "A sweep path span is unbounded.")
+        }
+        let jet = try Curve3D.bSpline(span.curve).differentialGeometry(at: atEnd ? upper : lower, tolerance: tolerance)
+        return try jet.firstDerivative.normalized(tolerance: tolerance.distance)
+    }
+
+    /// The path's legs in order: straight spans running on one way are one straight leg, curved
+    /// spans running on smoothly one curved leg.
+    private func legs(of spans: [ExactBSplineCurveSpan]) throws -> [Leg] {
+        var legs: [Leg] = []
+        for span in spans {
+            let straight = isStraight(span)
+            let (startTangent, endTangent) = (try tangent(of: span, atEnd: false), try tangent(of: span, atEnd: true))
+            if let last = legs.last, last.isStraight == straight, smooth(last.endTangent, startTangent) {
+                legs[legs.count - 1].spans.append(span)
+                legs[legs.count - 1].end = span.endPoint
+                legs[legs.count - 1].endTangent = endTangent
+            } else {
+                legs.append(Leg(spans: [span], isStraight: straight, start: span.startPoint, end: span.endPoint,
+                                startTangent: startTangent, endTangent: endTangent))
+            }
+        }
+        return legs
     }
 
     /// The direction of an open section made of straight spans along one line, nil otherwise.
@@ -69,18 +110,19 @@ package struct MitredPolylineSweepBuilder {
         profilePlane: SketchPlane,
         pathSpans: [ExactBSplineCurveSpan],
         pathIsClosed: Bool,
-        options: SweepOptions,
+        sweep: SweepFeature,
         values: SweepOptionValues,
         featureID: FeatureID
     ) throws -> Request {
         try tolerance.validate()
+        let options = sweep.options
         // FIXME(INCOMPLETE_IMPLEMENTATION): sweeps along a path with corners take no twist, end
         // scale or guides. Production path: MitredPolylineSweepBuilder for every path-normal
         // sweep along a path of straight arms. Complete only when a twist and scale run along the
         // arms and guides steer the section, verified by those sweeps' measured sections.
-        guard values.twistAngle == 0, options.twistLaw == nil, values.endScale == 1 else {
+        guard values.twistAngle == 0, options.twistLaw == nil, values.endScale == 1, sweep.guides.isEmpty else {
             throw failure(.sweepRoundCornerUnavailable,
-                "A sweep along a path with corners takes no twist or scale.", featureID)
+                "A sweep along a path with corners takes no twist, scale or guides.", featureID)
         }
         guard options.resultKind == .sheet || sectionIsClosed else {
             throw failure(.invalidInput, "A solid sweep needs a closed section.", featureID)
@@ -94,62 +136,137 @@ package struct MitredPolylineSweepBuilder {
             try patches.validateSectionContinuity(loop, isClosed: sectionIsClosed)
             try patches.validateProfileSpans(loop, on: sectionPlane)
         }
-        // Arms: consecutive spans running the same way are one arm.
-        var corners = [pathSpans[0].startPoint]
-        var directions: [Vector3D] = []
-        for span in pathSpans {
-            let direction = try (span.endPoint - span.startPoint).normalized(tolerance: tolerance.distance)
-            if let last = directions.last, last.cross(direction).length <= sin(tolerance.angle), last.dot(direction) > 0 {
-                corners[corners.count - 1] = span.endPoint
-            } else {
-                directions.append(direction)
-                corners.append(span.endPoint)
-            }
+        // Legs: straight spans running on one way are one straight leg, curved spans running on
+        // smoothly one curved leg; a corner is where the path's tangent turns between two legs.
+        var legs = try self.legs(of: pathSpans)
+        if pathIsClosed, legs.count > 1, let first = legs.first, let last = legs.last,
+           smooth(last.endTangent, first.startTangent), first.isStraight == last.isStraight {
+            // The closing leg runs on into the first: one leg through the path's start.
+            legs[0] = Leg(spans: last.spans + first.spans, isStraight: first.isStraight, start: last.start, end: first.end,
+                          startTangent: last.startTangent, endTangent: first.endTangent)
+            legs.removeLast()
         }
         var normal = try sectionPlane.normal.normalized(tolerance: tolerance.distance)
         // An open straight section lies in many planes: when its sketch plane runs along the first
         // arm (a line drawn in the path's plane), it is taken in the plane through it square to
         // that one, so it sweeps a flat ribbon along the path.
-        if sectionIsClosed == false, abs(normal.dot(directions[0])) <= max(tolerance.relative, sin(tolerance.angle)),
+        if sectionIsClosed == false, abs(normal.dot(legs[0].startTangent)) <= max(tolerance.relative, sin(tolerance.angle)),
            let line = try straightSectionDirection(sectionLoops) {
             normal = try line.cross(normal).normalized(tolerance: tolerance.distance)
         }
+        func cornerBefore(_ index: Int, in legs: [Leg]) -> Bool {
+            guard index > 0 || pathIsClosed else { return false }
+            let before = legs[(index + legs.count - 1) % legs.count]
+            return smooth(before.endTangent, legs[index].startTangent) == false
+        }
         if pathIsClosed {
-            if directions.count > 1, let first = directions.first, let last = directions.last,
-               last.cross(first).length <= sin(tolerance.angle), last.dot(first) > 0 {
-                // The closing arm runs on into the first: one arm through the path's start.
-                directions.removeFirst()
-                corners = Array(corners[1..<(corners.count - 1)]) + [corners[1]]
-            }
-            // A closed path starts at the corner nearest the section, leaving along the arm that
+            // A closed path starts at the corner nearest the section, leaving along the leg that
             // runs most across the section's plane.
             let sectionPoints = sectionLoops.flatMap { $0.flatMap(\.curve.controlPoints) }
             let centroid = sectionPoints.reduce(Vector3D.zero) { $0 + ($1 - .origin) } * (1 / Double(max(sectionPoints.count, 1)))
-            let ring = Array(corners.dropLast())
-            guard let nearest = ring.indices.min(by: { (ring[$0] - .origin - centroid).length < (ring[$1] - .origin - centroid).length }) else {
+            guard let nearest = legs.indices.filter({ cornerBefore($0, in: legs) })
+                .min(by: { (legs[$0].start - .origin - centroid).length < (legs[$1].start - .origin - centroid).length }) else {
                 throw failure(.invalidInput, "A closed sweep path has no corners.", featureID)
             }
-            var rotatedCorners = Array(ring[nearest...] + ring[..<nearest])
-            var rotatedDirections = Array(directions[nearest...] + directions[..<nearest])
-            if abs(normal.dot(rotatedDirections[rotatedDirections.count - 1])) > abs(normal.dot(rotatedDirections[0])) {
-                rotatedCorners = [rotatedCorners[0]] + rotatedCorners.dropFirst().reversed()
-                rotatedDirections = rotatedDirections.reversed().map { $0 * -1 }
+            legs = Array(legs[nearest...] + legs[..<nearest])
+            if abs(normal.dot(legs[legs.count - 1].endTangent)) > abs(normal.dot(legs[0].startTangent)) {
+                legs = try legs.reversed().map { try $0.reversed(tolerance: tolerance) }
             }
-            corners = rotatedCorners + [rotatedCorners[0]]
-            directions = rotatedDirections
         }
-        let armCount = directions.count
-        let advance = normal.dot(directions[0])
+        let legCount = legs.count
+        let corners = (0..<legCount).map { cornerBefore($0, in: legs) }
+        // Each leg starts where the one before it ends, so rows built at the join coincide.
+        for index in legs.indices.dropFirst() { legs[index].start = legs[index - 1].end }
+        for index in legs.indices where corners[index] {
+            let before = legs[(index + legCount - 1) % legCount]
+            guard before.isStraight, legs[index].isStraight else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): a corner beside a curved span would cut the
+                // curved sweep by the mitre plane, which has no exact trimming curve, so it is
+                // refused. Production path: MitredPolylineSweepBuilder for every path-normal sweep
+                // along a path with corners. Complete only when such corners join, verified by a
+                // sweep along a path whose arc meets a line at a corner.
+                throw failure(.sweepRoundCornerUnavailable,
+                    "A sweep path's corners are between straight spans; a curve meets this one.", featureID)
+            }
+        }
+        let advance = normal.dot(legs[0].startTangent)
         guard abs(advance) > max(tolerance.relative, sin(tolerance.angle)) else {
             throw failure(.sweepProfilePlaneDegenerate, "The section's plane runs along the path.", featureID)
         }
-        // The frame on each arm: the least rotations from the first arm's direction.
-        var rotations = [Rotation.identity]
-        for index in 1..<armCount {
-            rotations.append(try Rotation(from: directions[index - 1], to: directions[index], tolerance: tolerance).composed(with: rotations[index - 1]))
+        let origin = legs[0].start
+        /// A curved leg's sweep: the certified curved plan of the section placed where the leg
+        /// starts by the frame `rotation`, and the frame it carries the section to at the leg's end.
+        func curvedSweep(_ leg: Leg, rotation: Rotation, loops: [[ExactBSplineCurveSpan]])
+            throws -> (plan: CertifiedCurvedPathSweepPlan, carried: Rotation) {
+            let placed = try loops.map { loop in
+                try loop.map { span in
+                    try ExactBSplineCurveSpan(curve: BSplineCurve3D(
+                        degree: span.curve.degree, knots: span.curve.knots,
+                        controlPoints: span.curve.controlPoints.map { leg.start + rotation.applied(to: $0 - origin) },
+                        weights: span.curve.weights
+                    ), tolerance: tolerance)
+                }
+            }
+            guard let anchor = placed.first?.first?.startPoint else {
+                throw failure(.invalidInput, "A sweep's section has no span.", featureID)
+            }
+            let plan = try CertifiedCurvedPathSweepPlan(
+                sectionLoops: placed, sectionIsClosed: sectionIsClosed,
+                profilePlane: .plane(Plane3D(origin: anchor, normal: rotation.applied(to: normal))),
+                pathSpans: leg.spans, sweep: sweep, values: values, featureID: featureID, tolerance: tolerance
+            )
+            // The frame the plan carries the section in: its first loop's rows at the leg's two
+            // ends, each read as the tangent there and the section's farthest point across it.
+            let starts = try plan.surfaces[0][0].flatMap { try $0.uIsoparametricCurve(atV: 0, tolerance: tolerance).controlPoints }
+            let ends = try plan.surfaces[0][plan.pieceCount - 1].flatMap { try $0.uIsoparametricCurve(atV: 1, tolerance: tolerance).controlPoints }
+            func across(_ point: Point3D, from base: Point3D, tangent: Vector3D) -> Vector3D {
+                let offset = point - base
+                return offset - tangent * offset.dot(tangent)
+            }
+            guard starts.count == ends.count,
+                  let far = starts.indices.max(by: { across(starts[$0], from: leg.start, tangent: leg.startTangent).length
+                      < across(starts[$1], from: leg.start, tangent: leg.startTangent).length }),
+                  across(starts[far], from: leg.start, tangent: leg.startTangent).length > tolerance.distance else {
+                throw failure(.invalidInput, "A sweep's section reaches nowhere across a curved stretch of its path.", featureID)
+            }
+            let e0 = try across(starts[far], from: leg.start, tangent: leg.startTangent).normalized(tolerance: tolerance.distance)
+            let e1 = try across(ends[far], from: leg.end, tangent: leg.endTangent).normalized(tolerance: tolerance.distance)
+            let carried = Rotation(frame: (leg.endTangent, e1, leg.endTangent.cross(e1)))
+                .composed(with: Rotation(frame: (leg.startTangent, e0, leg.startTangent.cross(e0))).transposed)
+            // The section moves rigidly: every point of the rows is where the frame carries it.
+            for (start, end) in zip(starts, ends) {
+                let miss = (leg.end + carried.applied(to: start - leg.start) - end).length
+                guard miss <= plan.positionErrorUpperBound + tolerance.distance else {
+                    throw failure(.invalidInput, "A curved stretch of a sweep path does not carry its section rigidly.", featureID)
+                }
+            }
+            return (plan, carried)
         }
+        /// The frame at each leg's start (the least rotations through the corners, the curved
+        /// sweeps' frames along curved legs) and at the path's end, with each curved leg's plan.
+        func frames(_ loops: [[ExactBSplineCurveSpan]]) throws -> (starts: [Rotation], end: Rotation, plans: [Int: CertifiedCurvedPathSweepPlan]) {
+            var starts: [Rotation] = []
+            var plans: [Int: CertifiedCurvedPathSweepPlan] = [:]
+            var current = Rotation.identity
+            for (index, leg) in legs.enumerated() {
+                if index > 0, corners[index] {
+                    current = try Rotation(from: legs[index - 1].endTangent, to: leg.startTangent, tolerance: tolerance).composed(with: current)
+                }
+                starts.append(current)
+                if leg.isStraight == false {
+                    let (plan, carried) = try curvedSweep(leg, rotation: current, loops: loops)
+                    plans[index] = plan
+                    current = carried.composed(with: current)
+                }
+            }
+            return (starts, current, plans)
+        }
+        let firstFrames = try frames(sectionLoops)
+        let rotations = firstFrames.starts
         if pathIsClosed {
-            let closing = try Rotation(from: directions[armCount - 1], to: directions[0], tolerance: tolerance).composed(with: rotations[armCount - 1])
+            let closing = corners[0]
+                ? try Rotation(from: legs[legCount - 1].endTangent, to: legs[0].startTangent, tolerance: tolerance).composed(with: firstFrames.end)
+                : firstFrames.end
             guard closing.isIdentity(tolerance: tolerance) else {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): a closed path whose frame comes back turned
                 // (a non-planar loop) is refused. Production path: MitredPolylineSweepBuilder for
@@ -159,18 +276,17 @@ package struct MitredPolylineSweepBuilder {
                     "A closed sweep path brings its frame back turned; it must lie in a plane.", featureID)
             }
         }
-        let origin = corners[0]
-        // Round corners: corner `j` joins arm `j - 1` (the last arm for the closing corner) to arm
+        // Round corners: corner `j` joins leg `j - 1` (the last leg for the closing corner) to leg
         // `j`; its inner side, carried back to the section's frame, splits the section.
         var roundCorners: [Int: RoundCorner] = [:]
         if options.cornerStyle == .round {
-            for j in (pathIsClosed ? 0 : 1)..<armCount {
-                let before = (j + armCount - 1) % armCount
-                let (incoming, outgoing) = (directions[before], directions[j])
+            for j in 0..<legCount where corners[j] {
+                let before = (j + legCount - 1) % legCount
+                let (incoming, outgoing) = (legs[before].endTangent, legs[j].startTangent)
                 let turn = incoming.cross(outgoing)
                 let inner = try (outgoing - incoming * incoming.dot(outgoing)).normalized(tolerance: tolerance.distance)
                 roundCorners[j] = RoundCorner(
-                    before: before, point: corners[j],
+                    before: before, point: legs[j].start,
                     axis: try turn.normalized(tolerance: tolerance.distance),
                     angle: atan2(turn.length, incoming.dot(outgoing)),
                     inner: rotations[before].transposed.applied(to: inner)
@@ -178,6 +294,8 @@ package struct MitredPolylineSweepBuilder {
             }
         }
         let loops = try splitSections(sectionLoops, origin: origin, across: roundCorners.values.map(\.inner))
+        // The curved legs' plans over the section as split (their frames do not depend on it).
+        let plans = loops.map(\.count) == sectionLoops.map(\.count) ? firstFrames.plans : try frames(loops).plans
         /// Whether a section span lies on the outer side of round corner `j`.
         func isOuter(_ span: ExactBSplineCurveSpan, corner j: Int) throws -> Bool {
             guard let corner = roundCorners[j] else { return false }
@@ -185,29 +303,31 @@ package struct MitredPolylineSweepBuilder {
             let middle = try Curve3D.bSpline(span.curve).point(at: 0.5 * (bounds.lower + bounds.upper), tolerance: tolerance)
             return (middle - origin).dot(corner.inner) < -tolerance.distance
         }
-        /// Where a section point on arm `arm` meets its arm's start (`end` false) or end: the
-        /// section's place at the path's ends, pushed along the arm onto the mitre plane, or for
-        /// the outside of a round corner onto the plane across the arm through the corner.
-        func place(_ point: Point3D, arm: Int, end: Bool, outer: Bool) throws -> Point3D {
-            let offset = rotations[arm].applied(to: point - origin)
-            let cornerIndex = end ? arm + 1 : arm
-            let corner = corners[cornerIndex]
-            if outer { return corner + (offset - directions[arm] * offset.dot(directions[arm])) }
+        /// Where a section point on straight leg `leg` meets the leg's start (`end` false) or end:
+        /// the section carried there by the leg's frame, at a corner pushed along the leg onto the
+        /// mitre plane, or for the outside of a round corner onto the plane across the leg.
+        func place(_ point: Point3D, leg: Int, end: Bool, outer: Bool) throws -> Point3D {
+            let offset = rotations[leg].applied(to: point - origin)
+            let direction = legs[leg].startTangent
+            let anchor = end ? legs[leg].end : legs[leg].start
+            if outer { return anchor + (offset - direction * offset.dot(direction)) }
             let neighbour: Vector3D?
             if end {
-                neighbour = arm + 1 < armCount ? directions[arm + 1] : (pathIsClosed ? directions[0] : nil)
+                let next = (leg + 1) % legCount
+                neighbour = (leg + 1 < legCount || pathIsClosed) && corners[next] ? legs[next].startTangent : nil
             } else {
-                neighbour = arm > 0 ? directions[arm - 1] : (pathIsClosed ? directions[armCount - 1] : nil)
+                neighbour = corners[leg] ? legs[(leg + legCount - 1) % legCount].endTangent : nil
             }
-            guard let neighbour else { return corner + offset }
-            let mitre = directions[arm] + neighbour
-            let along = directions[arm].dot(mitre)
+            guard let neighbour else { return anchor + offset }
+            let mitre = direction + neighbour
+            let along = direction.dot(mitre)
             guard along > max(tolerance.relative, sin(tolerance.angle)) else {
                 throw failure(.sweepRoundCornerUnavailable, "A sweep path turns back on itself at a corner.", featureID)
             }
-            return corner + (offset - directions[arm] * (offset.dot(mitre) / along))
+            return anchor + (offset - direction * (offset.dot(mitre) / along))
         }
-        // Each arm's sides: per section span, the ruled surface between its two ends.
+        // Each straight leg's sides: per section span, the ruled surface between its two ends;
+        // each curved leg's, its plan's rows. Side faces are numbered along the path.
         var sides: [[BRepSewingFacePatch]] = loops.map { _ in [] }
         let windingSigns = try loops.map { loop in
             sectionIsClosed ? try patches.profileWindingSign(loop, normal: normal, featureID: featureID) : 1.0
@@ -215,22 +335,49 @@ package struct MitredPolylineSweepBuilder {
         let orientations: [Orientation] = windingSigns.map { sign in
             sectionIsClosed ? (sign * (advance > 0 ? 1 : -1) > 0 ? .forward : .reversed) : .forward
         }
+        func sideID(_ piece: Int, _ loopIndex: Int, _ spanIndex: Int) -> String {
+            loopIndex == 0 ? "sweep:side:path:\(piece):profile:\(spanIndex)"
+                : "sweep:side:path:\(piece):inner:\(loopIndex - 1):profile:\(spanIndex)"
+        }
         var startRows: [[BSplineCurve3D]] = loops.map { _ in [] }
         var endRows: [[BSplineCurve3D]] = loops.map { _ in [] }
-        // Each arm's end rows, kept for the round corner after it.
-        var armEndRows: [[[BSplineCurve3D]]] = []
-        for arm in 0..<armCount {
-            let endCorner = arm + 1 < armCount ? arm + 1 : (pathIsClosed ? 0 : -1)
-            var armEnds: [[BSplineCurve3D]] = loops.map { _ in [] }
+        // Each leg's end rows, kept for the round corner after it.
+        var legEndRows: [[[BSplineCurve3D]]] = []
+        var piece = 0
+        for leg in 0..<legCount {
+            var legEnds: [[BSplineCurve3D]] = loops.map { _ in [] }
+            if let plan = plans[leg] {
+                for (loopIndex, _) in loops.enumerated() {
+                    for p in 0..<plan.pieceCount {
+                        for (spanIndex, surface) in plan.surfaces[loopIndex][p].enumerated() {
+                            sides[loopIndex].append(try patches.tensorSidePatch(
+                                surface: surface, orientation: orientations[loopIndex], stableID: sideID(piece + p, loopIndex, spanIndex)
+                            ))
+                        }
+                    }
+                    let first = try plan.surfaces[loopIndex][0].map { try $0.uIsoparametricCurve(atV: 0, tolerance: tolerance) }
+                    let last = try plan.surfaces[loopIndex][plan.pieceCount - 1].map { try $0.uIsoparametricCurve(atV: 1, tolerance: tolerance) }
+                    if leg == 0 { startRows[loopIndex] = first }
+                    if leg == legCount - 1 { endRows[loopIndex] = last }
+                    legEnds[loopIndex] = last
+                }
+                piece += plan.pieceCount
+                legEndRows.append(legEnds)
+                continue
+            }
+            let endCorner = (leg + 1) % legCount
             for (loopIndex, loop) in loops.enumerated() {
                 let orientation = orientations[loopIndex]
                 for (spanIndex, span) in loop.enumerated() {
-                    let outerAtStart = try isOuter(span, corner: arm)
-                    let outerAtEnd = try isOuter(span, corner: endCorner)
-                    let starts = try span.curve.controlPoints.map { try place($0, arm: arm, end: false, outer: outerAtStart) }
-                    let ends = try span.curve.controlPoints.map { try place($0, arm: arm, end: true, outer: outerAtEnd) }
-                    // The arm must run forward from its start to its end at every point.
-                    for (start, end) in zip(starts, ends) where (end - start).dot(directions[arm]) <= tolerance.distance {
+                    let outerAtStart = try isOuter(span, corner: leg)
+                    let outerAtEnd = (leg + 1 < legCount || pathIsClosed) ? try isOuter(span, corner: endCorner) : false
+                    // After a curved leg the leg starts on that leg's last row.
+                    let starts = try leg > 0 && plans[leg - 1] != nil
+                        ? legEndRows[leg - 1][loopIndex][spanIndex].controlPoints
+                        : span.curve.controlPoints.map { try place($0, leg: leg, end: false, outer: outerAtStart) }
+                    let ends = try span.curve.controlPoints.map { try place($0, leg: leg, end: true, outer: outerAtEnd) }
+                    // The leg must run forward from its start to its end at every point.
+                    for (start, end) in zip(starts, ends) where (end - start).dot(legs[leg].startTangent) <= tolerance.distance {
                         throw failure(.sweepRoundCornerUnavailable,
                             "The section is wider than an arm of the path allows at its mitres.", featureID)
                     }
@@ -241,20 +388,19 @@ package struct MitredPolylineSweepBuilder {
                     )
                     try surface.validate(tolerance: tolerance)
                     sides[loopIndex].append(try patches.tensorSidePatch(
-                        surface: surface, orientation: orientation,
-                        stableID: loopIndex == 0
-                            ? "sweep:side:path:\(arm):profile:\(spanIndex)"
-                            : "sweep:side:path:\(arm):inner:\(loopIndex - 1):profile:\(spanIndex)"
+                        surface: surface, orientation: orientation, stableID: sideID(piece, loopIndex, spanIndex)
                     ))
-                    if arm == 0 { startRows[loopIndex].append(try surface.uIsoparametricCurve(atV: 0, tolerance: tolerance)) }
-                    if arm == armCount - 1 { endRows[loopIndex].append(try surface.uIsoparametricCurve(atV: 1, tolerance: tolerance)) }
-                    armEnds[loopIndex].append(try surface.uIsoparametricCurve(atV: 1, tolerance: tolerance))
+                    if leg == 0 { startRows[loopIndex].append(try surface.uIsoparametricCurve(atV: 0, tolerance: tolerance)) }
+                    if leg == legCount - 1 { endRows[loopIndex].append(try surface.uIsoparametricCurve(atV: 1, tolerance: tolerance)) }
+                    legEnds[loopIndex].append(try surface.uIsoparametricCurve(atV: 1, tolerance: tolerance))
                 }
             }
-            armEndRows.append(armEnds)
+            piece += 1
+            legEndRows.append(legEnds)
         }
-        // Round corners' outer pieces turn about the corner's axis from one arm's end to the next
-        // arm's start.
+        let pieceCount = piece
+        // Round corners' outer pieces turn about the corner's axis from one leg's end to the next
+        // leg's start.
         var cornerFaceIDs: [String] = []
         for j in roundCorners.keys.sorted() {
             guard let corner = roundCorners[j] else { continue }
@@ -264,7 +410,7 @@ package struct MitredPolylineSweepBuilder {
                         ? "sweep:corner:\(j):profile:\(spanIndex)"
                         : "sweep:corner:\(j):inner:\(loopIndex - 1):profile:\(spanIndex)"
                     sides[loopIndex].append(try revolvedPatch(
-                        armEndRows[corner.before][loopIndex][spanIndex], about: corner,
+                        legEndRows[corner.before][loopIndex][spanIndex], about: corner,
                         orientation: orientations[loopIndex], stableID: stableID, patches: patches
                     ))
                     cornerFaceIDs.append(stableID)
@@ -275,7 +421,7 @@ package struct MitredPolylineSweepBuilder {
         var caps: [BRepSewingFacePatch] = []
         if includesCaps {
             caps.append(try cap(startRows, normal: normal, outerWinding: windingSigns[0], advance: advance, atEnd: false, patches: patches))
-            caps.append(try cap(endRows, normal: rotations[armCount - 1].applied(to: normal), outerWinding: windingSigns[0],
+            caps.append(try cap(endRows, normal: firstFrames.end.applied(to: normal), outerWinding: windingSigns[0],
                                 advance: advance, atEnd: true, patches: patches))
         }
         let request: BRepSewingRequest
@@ -287,7 +433,7 @@ package struct MitredPolylineSweepBuilder {
                 BRepSewingShell(stableID: index == 0 ? "sweep:shell" : "sweep:inner:\(index - 1):shell", patches: patches)
             })
         }
-        return Request(request: request, armCount: armCount, includesCaps: includesCaps,
+        return Request(request: request, armCount: pieceCount, includesCaps: includesCaps,
                        profileSpanCounts: loops.map(\.count), cornerFaceIDs: cornerFaceIDs)
     }
 
@@ -598,6 +744,23 @@ private struct RoundCorner {
     let inner: Vector3D
 }
 
+/// A stretch of a sweep path between corners or where it turns from straight to curved: its
+/// spans, its ends and its unit tangents there.
+private struct Leg {
+    var spans: [ExactBSplineCurveSpan]
+    let isStraight: Bool
+    var start: Point3D
+    var end: Point3D
+    var startTangent: Vector3D
+    var endTangent: Vector3D
+
+    /// The leg run the other way.
+    func reversed(tolerance: ModelingTolerance) throws -> Leg {
+        Leg(spans: try spans.reversed().map { try ExactBSplineCurveSpan(curve: $0.curve.reversed(tolerance: tolerance), tolerance: tolerance) },
+            isStraight: isStraight, start: end, end: start, startTangent: endTangent * -1, endTangent: startTangent * -1)
+    }
+}
+
 /// A rotation as a 3 × 3 matrix, composed from least rotations between unit directions.
 private struct Rotation {
     let rows: [[Double]]
@@ -617,6 +780,12 @@ private struct Rotation {
         }
         let k = 1 / (1 + d)
         let columns = [Vector3D.unitX, .unitY, .unitZ].map { v in v * d + c.cross(v) + c * (c.dot(v) * k) }
+        rows = (0..<3).map { r in columns.map { [$0.x, $0.y, $0.z][r] } }
+    }
+
+    /// The rotation taking the standard axes to the orthonormal frame's (its columns).
+    init(frame: (Vector3D, Vector3D, Vector3D)) {
+        let columns = [frame.0, frame.1, frame.2]
         rows = (0..<3).map { r in columns.map { [$0.x, $0.y, $0.z][r] } }
     }
 

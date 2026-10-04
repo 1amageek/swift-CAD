@@ -226,9 +226,17 @@ which neighbouring arms provably meet in the same curve. Open paths are capped a
 closed path must bring its frame back unturned (a planar loop). An open straight section drawn in
 a plane running along the first arm (a line in the path's own plane) is taken in the plane through
 it square to that one, so it sweeps a flat ribbon (`aLineInThePathsPlaneSweepsAFlatRibbon`, mitred
-and round). Twist, scale and guides are refused
-with `FIXME(INCOMPLETE_IMPLEMENTATION)`. `MitredSweepTests` own an L-shaped path and a closed frame
-(exact volumes, the mitre plane's vertices, the frame's sixteen faces).
+and round). The path is cut into legs, straight spans running on one way and curved spans running
+on smoothly: a curved leg is the certified curved sweep (`CertifiedCurvedPathSweepPlan`) of the
+section placed where the leg starts by the frame so far, and the frame it carries the section to
+(read off the plan's end rows, checked rigid within the plan's error bound) carries on; a straight
+leg after a curved one starts on that leg's last rows, so the two meet in the same curves. Side
+faces are numbered along the path, a curved leg taking one number per plan piece. A corner joins
+two straight legs; one beside a curved span (no exact trimming curve of the curved sweep on the
+mitre plane), twist, scale and guides are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)`.
+`MitredSweepTests` own an L-shaped path and a closed frame (exact volumes, the mitre plane's
+vertices, the frame's sixteen faces), a corner then a smooth arc, mitred (area times length) and
+round, and the refused corner beside an arc.
 
 Round corners keep the mitre inside each turn and round the outside: the section is split where it
 crosses the plane through the path holding the arm and the corner's axis (the line through the

@@ -171,10 +171,10 @@ public struct SweepEvaluationPlanService: Sendable {
             operationName: "Sweep path",
             preferredStartPlane: preferredStartPlane
         )
-        // Straight arms with corners, open or closed, are admitted by building the mitred sweep.
+        // A path with corners, open or closed, is admitted by building the mitred sweep.
         if chain.segments.allSatisfy({ $0.curve.exactCurve != nil }) {
             let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).pathSpans(from: chain.segments, allowsClosed: chain.isClosed)
-            if MitredPolylineSweepBuilder.applies(options, pathSpans: spans, tolerance: tolerance) {
+            if try MitredPolylineSweepBuilder.applies(options, pathSpans: spans, tolerance: tolerance) {
                 let sectionState: SweepEvaluationCapabilities.SectionState = guideCurves.isEmpty ? .identity : .guided
                 do {
                     let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: tolerance)
@@ -190,7 +190,7 @@ public struct SweepEvaluationPlanService: Sendable {
                     }
                     _ = try MitredPolylineSweepBuilder(tolerance: tolerance).request(
                         sectionLoops: loops, sectionIsClosed: closedSection, profilePlane: try section.plane(),
-                        pathSpans: spans, pathIsClosed: chain.isClosed, options: options, values: optionValues,
+                        pathSpans: spans, pathIsClosed: chain.isClosed, sweep: sweep, values: optionValues,
                         featureID: sweep.path.featureID
                     )
                     let geometry = SweepEvaluationCapabilities.Geometry(pathShape: .curved, sectionState: sectionState,

@@ -14,7 +14,9 @@ side face requests. Existing Sweep owns section resolution, path chaining and th
 distance prefix, sewing and semantic topology, and Booleans. Exact routes keep
 precedence: straight paths, and solid sweeps along one circular arc (the exact
 revolve), never take this plan. One guide steers the section (`CurvedSweepGuideLaw`); two or
-more guides and path corners are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)` in the plan.
+more guides are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)` in the plan. A path with corners
+takes `MitredPolylineSweepBuilder`, which hands this plan each smooth curved leg with the section
+placed where the leg starts; the plan itself still refuses a corner.
 
 ## Related Designs
 
