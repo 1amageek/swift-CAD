@@ -407,6 +407,47 @@ struct FilletShapeTests {
         #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
     }
 
+    /// A disc revolved a full turn and merged: each rim is a quarter arc and a three-quarter arc
+    /// between the same two points, the cylinder's seam between them. Rounded or chamfered, both
+    /// arcs keep their own bands and the seam its two sides of the wall's chart.
+    @Test(.timeLimit(.minutes(2)), arguments: [true, false])
+    func aRevolvedDiscsRimSplitInTwoArcsBlendsWhole(chamfers: Bool) throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // The section in the ZX plane (sketch x is world z): 5 mm thick, 20 mm out from the axis.
+        let (radius, height, r) = (0.02, 0.005, 0.001)
+        let profile = try builder.sketch(on: .zx) { sketch in
+            let corners = [(0.0, 0.0), (height, 0.0), (height, radius), (0.0, radius)]
+            for (a, b) in zip(corners, corners.dropFirst() + corners.prefix(1)) {
+                _ = sketch.line(from: SketchPoint(x: length(a.0), y: length(a.1)), to: SketchPoint(x: length(b.0), y: length(b.1)))
+            }
+        }
+        let turned = try builder.revolve(profile, axis: RevolveAxis(origin: .origin, direction: .unitZ))
+        let disc = try builder.removeRedundantTopology(target: turned)
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "disc"))
+        let rimArcs = before.subshapes.entries.filter { key, value in
+            guard key.featureID == disc, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  case .circle? = before.brep.geometry.curves[edge.curveID],
+                  let start = before.brep.vertices[edge.startVertexID]?.point else { return false }
+            return abs(start.z - height) < 1e-12
+        }.keys.sorted()
+        #expect(rimArcs.count == 2)
+        let rim = try builder.stableSubshape(try #require(rimArcs.first))
+        if chamfers {
+            _ = try builder.chamfer(target: disc, edges: [rim], distance: length(r))
+        } else {
+            _ = try builder.fillet(target: disc, edges: [rim], radius: length(r))
+        }
+        let blended = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "disc"))
+        try blended.brep.validate(level: .volumetric, tolerance: .standard)
+        // Pappus: the corner section taken off, about the axis at its centroid's distance.
+        let (section, inset) = chamfers
+            ? (r * r / 2, r / 3)
+            : (r * r * (1 - Double.pi / 4), r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi))
+        let expected = Double.pi * radius * radius * height - section * 2 * Double.pi * (radius - inset)
+        let volume = try blended.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func aHolesRimRoundsIntoATorusBandAndBothItsRimsTogether() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)

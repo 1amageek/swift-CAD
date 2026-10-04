@@ -309,18 +309,25 @@ package struct CapLoopBlendBuilder {
             func moved(_ point: Point3D) -> Point3D? {
                 moves.first { $0.from.isApproximatelyEqual(to: point, tolerance: tolerance.distance) }?.to
             }
-            func matches(_ edge: BRepSewingEdge, _ segment: Segment) -> Bool {
-                (edge.startPoint.isApproximatelyEqual(to: segment.start, tolerance: tolerance.distance)
+            /// Whether an edge is a loop segment: the same ends either way round and the same middle,
+            /// so two arcs of one circle between the same points (a rim split in two) stay apart.
+            func matches(_ edge: BRepSewingEdge, _ segment: Segment) throws -> Bool {
+                guard (edge.startPoint.isApproximatelyEqual(to: segment.start, tolerance: tolerance.distance)
                     && edge.endPoint.isApproximatelyEqual(to: segment.end, tolerance: tolerance.distance))
                     || (edge.startPoint.isApproximatelyEqual(to: segment.end, tolerance: tolerance.distance)
-                        && edge.endPoint.isApproximatelyEqual(to: segment.start, tolerance: tolerance.distance))
+                        && edge.endPoint.isApproximatelyEqual(to: segment.start, tolerance: tolerance.distance)) else { return false }
+                let middle = try edge.curve.point(at: 0.5 * (edge.startParameter + edge.endParameter), tolerance: tolerance)
+                let segmentMiddle = try segment.arc.map { arc in
+                    try Curve3D.circle(arc.circle).point(at: 0.5 * (arc.from + arc.to), tolerance: tolerance)
+                } ?? segment.start + (segment.end - segment.start) * 0.5
+                return middle.isApproximatelyEqual(to: segmentMiddle, tolerance: tolerance.distance)
             }
             /// An edge with its ends moved: a loop segment becomes its moved segment, run the way the
             /// edge runs; a straight edge reaching a moved vertex is shortened.
             func movedEdge(_ edge: BRepSewingEdge, start: Point3D?, end: Point3D?) throws -> BRepSewingEdge {
                 guard start != nil || end != nil else { return edge }
                 let (p, q) = (start ?? edge.startPoint, end ?? edge.endPoint)
-                if let move = segments.first(where: { matches(edge, $0.from) }), let arc = move.to.arc {
+                if let move = try segments.first(where: { try matches(edge, $0.from) }), let arc = move.to.arc {
                     let forward = edge.startPoint.isApproximatelyEqual(to: move.from.start, tolerance: tolerance.distance)
                     let (t0, t1) = forward ? (arc.from, arc.to) : (arc.to, arc.from)
                     return BRepSewingEdge(stableID: edge.stableID, curve: .circle(arc.circle), startParameter: t0, endParameter: t1,
@@ -341,7 +348,8 @@ package struct CapLoopBlendBuilder {
                 return BRepSewingEdge(stableID: edge.stableID,
                                       curve: .line(Line3D(origin: p, direction: try delta.normalized(tolerance: tolerance.distance))),
                                       startParameter: 0, endParameter: delta.length, startPoint: p, endPoint: q,
-                                      surfaceParameterCurve: try linePcurve(from: p, to: q, on: source.surface),
+                                      surfaceParameterCurve: try linePcurve(from: p, to: q, on: source.surface,
+                                                                            near: edge.surfaceParameterCurve),
                                       parentSubshapeIDs: edge.parentSubshapeIDs,
                                       startVertexParentSubshapeIDs: edge.startVertexParentSubshapeIDs,
                                       endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs)
@@ -378,12 +386,12 @@ package struct CapLoopBlendBuilder {
                 let mapped = try loop.edges.flatMap { edge -> [BRepSewingEdge] in
                     if let pieces = try splitSeam(edge) { return pieces }
                     // A segment collapsing to its arc's centre leaves the cap.
-                    if let move = segments.first(where: { matches(edge, $0.from) }),
+                    if let move = try segments.first(where: { try matches(edge, $0.from) }),
                        move.to.start.isApproximatelyEqual(to: move.to.end, tolerance: tolerance.distance) {
                         return []
                     }
                     // An edge beyond a chain stopping at a tangent joint keeps the corner.
-                    let isSegment = segments.contains { matches(edge, $0.from) }
+                    let isSegment = try segments.contains { try matches(edge, $0.from) }
                     func stays(_ point: Point3D) -> Bool {
                         !isSegment && steps.contains { $0.vertex.isApproximatelyEqual(to: point, tolerance: tolerance.distance) }
                     }
@@ -1024,6 +1032,25 @@ package struct CapLoopBlendBuilder {
     private func linePcurve(from p: Point3D, to q: Point3D, on surface: Surface3D) throws -> SurfaceParameterCurve {
         let (a, b) = (try surface.parameterProjection(of: p, tolerance: tolerance), try surface.parameterProjection(of: q, tolerance: tolerance))
         return .polyline([SurfaceParameter(u: a.u, v: a.v), SurfaceParameter(u: b.u, v: b.v)])
+    }
+
+    /// A shortened straight edge's pcurve: as `linePcurve`, on a surface periodic in u carried by
+    /// whole turns to the edge's old pcurve, so a seam's two uses keep their own sides of the chart.
+    private func linePcurve(from p: Point3D, to q: Point3D, on surface: Surface3D, near old: SurfaceParameterCurve) throws -> SurfaceParameterCurve {
+        let plain = try linePcurve(from: p, to: q, on: surface)
+        // Only a straight old pcurve has ends to carry toward; any other is taken as projected.
+        let isStraight: Bool
+        switch old {
+        case .constantU, .constantV, .polyline: isStraight = true
+        default: isStraight = false
+        }
+        guard case let .periodic(period) = surface.uDomain, case let .polyline(points) = plain, isStraight else { return plain }
+        let (oldStart, oldEnd) = try ends(of: old)
+        func carried(_ value: Double, toward reference: Double) -> Double {
+            value + (((reference - value) / period).rounded()) * period
+        }
+        return .polyline([SurfaceParameter(u: carried(points[0].u, toward: oldStart.u), v: points[0].v),
+                          SurfaceParameter(u: carried(points[1].u, toward: oldEnd.u), v: points[1].v)])
     }
 
     private func shortParameters(_ circle: Circle3D, from start: Point3D, to end: Point3D) throws -> (Double, Double) {
