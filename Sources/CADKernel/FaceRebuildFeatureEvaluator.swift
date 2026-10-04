@@ -14,9 +14,10 @@ import CADTopology
 /// as its end spans continued (`BSplineSurfaceNaturalContinuation`). An explicit layout is
 /// fitted as given; a tolerance takes as few bicubic spans as keep within it
 /// (`MappedBSplineSurfaceFitter`).
-/// Native tolerance publication is certified only for non-periodic charts within the original
-/// source support. Periodic and continued-law cases retain an explicit typed refusal until their
-/// whole-domain original position proof is implemented.
+/// Native tolerance publication is certified for non-periodic charts within the original source
+/// support and for the bounded single-clamped-Bezier continuation law. Periodic, rational and
+/// multi-span continued-law cases retain an explicit typed refusal until their whole-domain
+/// original position proof is implemented.
 ///
 /// A face whose new surface keeps within a quarter of the distance tolerance of its edges along
 /// their trimming curves takes it in place, its edges, vertices and trimming curves kept. One that
@@ -129,19 +130,56 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         }
         var surfaces: [FaceID: BSplineSurface3D] = [:]
         for faceID in faceIDs {
-            let candidate = try refitted(faceID, rebuild: rebuild, deviation: deviation, model: model, featureID: feature.id, tolerance: tolerance)
+            let nativeSourceAndRequest: (source: BSplineSurface3D, requestedBox: SurfaceParameterBox)?
             if case .tolerance = rebuild.method,
                let face = model.faces[faceID],
                let sourceSurface = model.geometry.surfaces[face.surfaceID],
                case let .bSpline(source) = sourceSurface {
-        let requestedBox = try nativePositionRequestBox(
-            faceID: faceID, rebuild: rebuild, source: source, model: model, tolerance: tolerance,
-                    featureID: feature.id
+                nativeSourceAndRequest = (
+                    source,
+                    try nativePositionRequestBox(
+                        faceID: faceID, rebuild: rebuild, source: source, model: model,
+                        tolerance: tolerance, featureID: feature.id
+                    )
                 )
+            } else {
+                nativeSourceAndRequest = nil
+            }
+            let preparedContinuationRequest: PreparedPolynomialSurfaceContinuationPositionRequest?
+            if let nativeSourceAndRequest,
+               (rebuild.extendU != 0 || rebuild.extendV != 0),
+               requestsContinuationOutsideSource(
+                    nativeSourceAndRequest.requestedBox, source: nativeSourceAndRequest.source
+               ) {
+                do {
+                    preparedContinuationRequest = try CertifiedPolynomialSurfaceContinuationPositionCertifier()
+                        .prepareContinuationRequest(
+                            source: nativeSourceAndRequest.source,
+                            over: nativeSourceAndRequest.requestedBox,
+                            maximumPositionError: deviation ?? .infinity,
+                            limits: nativeSurfacePositionCertificationLimits,
+                            tolerance: tolerance
+                        )
+                } catch let error as KernelError {
+                    throw featureScopedKernelError(error, featureID: feature.id, tolerance: tolerance)
+                } catch let error as GeometryConversionError {
+                    throw continuationGeometryError(error, featureID: feature.id, tolerance: tolerance)
+                }
+            } else {
+                preparedContinuationRequest = nil
+            }
+            let candidate = try refitted(
+                faceID, rebuild: rebuild, deviation: deviation, model: model, featureID: feature.id,
+                tolerance: tolerance, requestedBox: nativeSourceAndRequest?.requestedBox
+            )
+            if let nativeSourceAndRequest {
                 try certifyNativePosition(
-                    source: source, candidate: candidate, requestedBox: requestedBox,
+                    source: nativeSourceAndRequest.source, candidate: candidate,
+                    requestedBox: nativeSourceAndRequest.requestedBox,
                     preferWholeOriginal: rebuild.extendU == 0 && rebuild.extendV == 0,
-                    maximumPositionError: deviation ?? .infinity, featureID: feature.id, tolerance: tolerance
+                    maximumPositionError: deviation ?? .infinity,
+                    preparedContinuationRequest: preparedContinuationRequest,
+                    featureID: feature.id, tolerance: tolerance
                 )
             } else if case .tolerance = rebuild.method {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): analytic and other non-native tolerance
@@ -263,9 +301,9 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
     /// The face's new surface: its support refitted on the same parameters over the rectangle the
     /// feature asks for.
     // FIXME(INCOMPLETE_IMPLEMENTATION): The production DefaultFeatureEvaluator faceRebuild
-    // tolerance path currently refuses periodic or outside-source continuation requests with a
-    // typed unsupported error. Completion requires a whole-domain position proof for the original
-    // periodic/continued-law source before those requests may publish.
+    // tolerance path still refuses periodic, rational and multi-span continuation requests with a
+    // typed unsupported error. Completion requires a whole-domain position proof for each such
+    // original source law before those requests may publish.
     private func nativePositionRequestBox(
         faceID: FaceID,
         rebuild: FaceRebuildFeature,
@@ -297,14 +335,21 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 upper: box.v.upper + box.v.width * rebuild.extendV
             )
         )
-        if rebuild.extendU != 0 || rebuild.extendV != 0 {
-            guard requested.u.lower >= sourceULower, requested.u.upper <= sourceUUpper,
-                  requested.v.lower >= sourceVLower, requested.v.upper <= sourceVUpper else {
-                throw failure(.unsupportedCapability, featureID, tolerance,
-                              "Native Rebuild position certification refuses a requested box outside its original source chart.")
-            }
-        }
         return requested
+    }
+
+    private func requestsContinuationOutsideSource(
+        _ requestedBox: SurfaceParameterBox,
+        source: BSplineSurface3D
+    ) -> Bool {
+        guard case let .closed(sourceULower, sourceUUpper) = source.uDomain,
+              case let .closed(sourceVLower, sourceVUpper) = source.vDomain else {
+            return false
+        }
+        return requestedBox.u.lower < sourceULower
+            || requestedBox.u.upper > sourceUUpper
+            || requestedBox.v.lower < sourceVLower
+            || requestedBox.v.upper > sourceVUpper
     }
 
     private func certifyNativePosition(
@@ -313,6 +358,7 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         requestedBox: SurfaceParameterBox,
         preferWholeOriginal: Bool,
         maximumPositionError: Double,
+        preparedContinuationRequest: PreparedPolynomialSurfaceContinuationPositionRequest?,
         featureID: FeatureID,
         tolerance: ModelingTolerance
     ) throws {
@@ -327,6 +373,31 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         let coversOriginal = preferWholeOriginal
             && candidateULower <= sourceULower && candidateUUpper >= sourceUUpper
             && candidateVLower <= sourceVLower && candidateVUpper >= sourceVUpper
+        let requestsContinuation = requestedBox.u.lower < sourceULower
+            || requestedBox.u.upper > sourceUUpper
+            || requestedBox.v.lower < sourceVLower
+            || requestedBox.v.upper > sourceVUpper
+        if requestsContinuation && !coversOriginal {
+            guard let preparedContinuationRequest else {
+                throw failure(.unsupportedCapability, featureID, tolerance,
+                              "Native Rebuild continuation requires a prepared original source request.")
+            }
+            guard candidateULower <= requestedBox.u.lower, candidateUUpper >= requestedBox.u.upper,
+                  candidateVLower <= requestedBox.v.lower, candidateVUpper >= requestedBox.v.upper else {
+                throw failure(.unsupportedCapability, featureID, tolerance,
+                              "Native Rebuild candidate does not contain the complete requested continuation box.")
+            }
+            do {
+                _ = try CertifiedPolynomialSurfaceContinuationPositionCertifier().certifyContinuationPosition(
+                    preparedRequest: preparedContinuationRequest, candidate: candidate
+                )
+            } catch let error as KernelError {
+                throw featureScopedKernelError(error, featureID: featureID, tolerance: tolerance)
+            } catch let error as GeometryConversionError {
+                throw continuationGeometryError(error, featureID: featureID, tolerance: tolerance)
+            }
+            return
+        }
         let certificationBox: SurfaceParameterBox
         if coversOriginal {
             certificationBox = try SurfaceParameterBox(
@@ -370,7 +441,8 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
     }
 
     private func refitted(
-        _ faceID: FaceID, rebuild: FaceRebuildFeature, deviation: Double?, model: BRepModel, featureID: FeatureID, tolerance: ModelingTolerance
+        _ faceID: FaceID, rebuild: FaceRebuildFeature, deviation: Double?, model: BRepModel,
+        featureID: FeatureID, tolerance: ModelingTolerance, requestedBox: SurfaceParameterBox? = nil
     ) throws -> BSplineSurface3D {
         guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
             throw TopologyError.missingReference("A face to rebuild is missing.")
@@ -403,8 +475,23 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 }
             }
         }
-        let u = try ScalarInterval(lower: box.u.lower - box.u.width * rebuild.extendU, upper: box.u.upper + box.u.width * rebuild.extendU)
-        let v = try ScalarInterval(lower: box.v.lower - box.v.width * rebuild.extendV, upper: box.v.upper + box.v.width * rebuild.extendV)
+        let fitBox: SurfaceParameterBox
+        if let requestedBox {
+            fitBox = requestedBox
+        } else {
+            fitBox = try SurfaceParameterBox(
+                u: try ScalarInterval(
+                    lower: box.u.lower - box.u.width * rebuild.extendU,
+                    upper: box.u.upper + box.u.width * rebuild.extendU
+                ),
+                v: try ScalarInterval(
+                    lower: box.v.lower - box.v.width * rebuild.extendV,
+                    upper: box.v.upper + box.v.width * rebuild.extendV
+                )
+            )
+        }
+        let u = fitBox.u
+        let v = fitBox.v
         switch rebuild.method {
         case let .explicit(layout):
             return try MappedBSplineSurfaceFitter.fit(
@@ -789,5 +876,54 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
 
     private func failure(_ code: KernelErrorCode, _ featureID: FeatureID, _ tolerance: ModelingTolerance, _ message: String) -> KernelError {
         KernelError(phase: code == .topologyFailure ? .topology : .evaluation, code: code, featureID: featureID, tolerance: tolerance, message: message)
+    }
+
+    private func featureScopedKernelError(
+        _ error: KernelError,
+        featureID: FeatureID,
+        tolerance: ModelingTolerance
+    ) -> KernelError {
+        KernelError(
+            phase: .evaluation,
+            code: error.code,
+            featureID: featureID,
+            subshapeID: error.subshapeID,
+            residual: error.residual,
+            tolerance: error.tolerance ?? tolerance,
+            message: error.message
+        )
+    }
+
+    private func continuationGeometryError(
+        _ error: GeometryConversionError,
+        featureID: FeatureID,
+        tolerance: ModelingTolerance
+    ) -> KernelError {
+        switch error {
+        case let .invalidInput(message):
+            KernelError(
+                phase: .evaluation,
+                code: .invalidInput,
+                featureID: featureID,
+                tolerance: tolerance,
+                message: message
+            )
+        case let .resourceLimitExceeded(message):
+            KernelError(
+                phase: .evaluation,
+                code: .resourceLimitExceeded,
+                featureID: featureID,
+                tolerance: tolerance,
+                message: message
+            )
+        case .toleranceRejected:
+            KernelError(
+                phase: .evaluation,
+                code: .approximationToleranceRejected,
+                featureID: featureID,
+                tolerance: tolerance,
+                message: "Native Rebuild continuation exceeded its requested position tolerance."
+            )
+        }
     }
 }

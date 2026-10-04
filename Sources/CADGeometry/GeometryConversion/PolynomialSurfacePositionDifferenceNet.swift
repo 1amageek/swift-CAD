@@ -14,6 +14,14 @@ struct PolynomialSurfacePositionDifferenceNet {
             self.limits = limits
         }
 
+        /// Continue the complete paid native prefix without a fresh allowance.
+        init(adopting budget: PreparedBSplineSurfaceDifferentialCost.Budget) {
+            limits = budget.limits
+            scalars = budget.scalars
+            work = budget.work
+            boxes = budget.boxes
+        }
+
         init(preparedRequest: PreparedPolynomialSurfaceContinuationPositionRequest) {
             limits = preparedRequest.limits
             scalars = preparedRequest.admittedScalarCount
@@ -80,6 +88,14 @@ struct PolynomialSurfacePositionDifferenceNet {
             }
         }
         values = coefficients
+    }
+
+    /// Internal original-polynomial producer has paid the exact rectangular storage
+    /// and populated every interval coefficient before transferring immutable ownership.
+    init(prechargedUCount: Int, vCount: Int, values: [Coefficient]) {
+        self.uCount = prechargedUCount
+        self.vCount = vCount
+        self.values = values
     }
 
     private init(uCount: Int, vCount: Int, values: [Coefficient]) {
