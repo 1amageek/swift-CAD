@@ -1,12 +1,12 @@
 import CADCore
 
 /// Retains original homogeneous native-span enclosures of one immutable surface.
-/// Periodic geometry retains its separate representative-decomposition route.
+/// Periodic queries retain conservative original-cycle covers; selected tokens
+/// remain restricted to nonperiodic native sides.
 package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
   package let surface: BSplineSurface3D
   private let preparationTolerance: ModelingTolerance
   private let originalSpans: [OriginalNativeSpan]
-  private let periodicPatches: [RationalBezierSurfaceJetEncloser.PreparedPatch]
 
   package struct OriginalNativeSpan: Sendable {
     package let surface: BSplineSurface3D
@@ -71,35 +71,29 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     self.preparationTolerance = tolerance
     let encloser = RationalBezierSurfaceJetEncloser()
     let decomposer = BSplineSurfaceBezierDecomposer()
-    if surface.isUPeriodic || surface.isVPeriodic {
-      originalSpans = []
-      periodicPatches = try decomposer.surfacePatches(surface: surface, tolerance: tolerance)
-        .map { try encloser.prepare($0, tolerance: tolerance) }
+    let singleBezier = !surface.isUPeriodic && !surface.isVPeriodic
+      && surface.uControlPointCount == surface.uDegree + 1
+      && surface.vControlPointCount == surface.vDegree + 1
+      && surface.uKnots.prefix(surface.uDegree + 1).allSatisfy({ $0 == surface.uKnots[surface.uDegree] })
+      && surface.uKnots.suffix(surface.uDegree + 1).allSatisfy({ $0 == surface.uKnots[surface.uControlPointCount] })
+      && surface.vKnots.prefix(surface.vDegree + 1).allSatisfy({ $0 == surface.vKnots[surface.vDegree] })
+      && surface.vKnots.suffix(surface.vDegree + 1).allSatisfy({ $0 == surface.vKnots[surface.vControlPointCount] })
+    if singleBezier {
+      // These are the stored original controls, not a rounded extraction.
+      let patch = RationalBezierSurfacePatch3D(controlPoints: surface.controlPoints, weights: surface.weights,
+        uLower: surface.uKnots[surface.uDegree], uUpper: surface.uKnots[surface.uControlPointCount],
+        vLower: surface.vKnots[surface.vDegree], vUpper: surface.vKnots[surface.vControlPointCount])
+      originalSpans = [OriginalNativeSpan(surface: surface, tolerance: tolerance,
+        uSpanIndex: surface.uDegree, vSpanIndex: surface.vDegree,
+        uBounds: try ScalarInterval(lower: patch.uLower, upper: patch.uUpper),
+        vBounds: try ScalarInterval(lower: patch.vLower, upper: patch.vUpper),
+        patch: try encloser.prepare(patch, tolerance: tolerance))]
     } else {
-      periodicPatches = []
-      let singleBezier = surface.uControlPointCount == surface.uDegree + 1
-        && surface.vControlPointCount == surface.vDegree + 1
-        && surface.uKnots.prefix(surface.uDegree + 1).allSatisfy({ $0 == surface.uKnots[surface.uDegree] })
-        && surface.uKnots.suffix(surface.uDegree + 1).allSatisfy({ $0 == surface.uKnots[surface.uControlPointCount] })
-        && surface.vKnots.prefix(surface.vDegree + 1).allSatisfy({ $0 == surface.vKnots[surface.vDegree] })
-        && surface.vKnots.suffix(surface.vDegree + 1).allSatisfy({ $0 == surface.vKnots[surface.vControlPointCount] })
-      if singleBezier {
-        // These are the stored original controls, not a rounded extraction.
-        let patch = RationalBezierSurfacePatch3D(controlPoints: surface.controlPoints, weights: surface.weights,
-          uLower: surface.uKnots[surface.uDegree], uUpper: surface.uKnots[surface.uControlPointCount],
-          vLower: surface.vKnots[surface.vDegree], vUpper: surface.vKnots[surface.vControlPointCount])
-        originalSpans = [OriginalNativeSpan(surface: surface, tolerance: tolerance,
-          uSpanIndex: surface.uDegree, vSpanIndex: surface.vDegree,
-          uBounds: try ScalarInterval(lower: patch.uLower, upper: patch.uUpper),
-          vBounds: try ScalarInterval(lower: patch.vLower, upper: patch.vUpper),
-          patch: try encloser.prepare(patch, tolerance: tolerance))]
-      } else {
-        originalSpans = try decomposer.originalHomogeneousPatches(surface: surface, tolerance: tolerance).map {
-          OriginalNativeSpan(surface: surface, tolerance: tolerance,
-            uSpanIndex: $0.uSpanIndex, vSpanIndex: $0.vSpanIndex,
-            uBounds: $0.uBounds, vBounds: $0.vBounds,
-            patch: try encloser.prepare(original: $0, tolerance: tolerance))
-        }
+      originalSpans = try decomposer.originalHomogeneousPatches(surface: surface, tolerance: tolerance).map {
+        OriginalNativeSpan(surface: surface, tolerance: tolerance,
+          uSpanIndex: $0.uSpanIndex, vSpanIndex: $0.vSpanIndex,
+          uBounds: $0.uBounds, vBounds: $0.vBounds,
+          patch: try encloser.prepare(original: $0, tolerance: tolerance))
       }
     }
   }
@@ -156,7 +150,6 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     for u in us {
       for v in vs {
         for span in originalSpans { try accumulate(span.patch, u: u, v: v) }
-        for patch in periodicPatches { try accumulate(patch, u: u, v: v) }
       }
     }
     guard let result else {

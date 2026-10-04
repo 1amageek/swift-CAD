@@ -18,10 +18,9 @@ struct BSplineSurfaceBezierDecomposer {
                                     tolerance: ModelingTolerance) throws -> [OriginalHomogeneousPatch] {
         try surface.validate(tolerance: tolerance)
         try Task.checkCancellation()
-        guard !surface.isUPeriodic, !surface.isVPeriodic else {
-            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                message: "Original homogeneous native-span preparation requires nonperiodic axes.")
-        }
+        // Cyclic surfaces already retain their original repeated tails. The stored
+        // count and native basis are identical to canonical evaluation; no trimmed
+        // Cartesian net or newly materialized cycle supplies coefficient authority.
         let us = (surface.uDegree..<surface.uControlPointCount).filter { surface.uKnots[$0] < surface.uKnots[$0 + 1] }
         let vs = (surface.vDegree..<surface.vControlPointCount).filter { surface.vKnots[$0] < surface.vKnots[$0 + 1] }
         let count = us.count.multipliedReportingOverflow(by: vs.count)

@@ -983,3 +983,43 @@ traversal owns and charges all panels for either entry, never a separate test
 algorithm. Two independent regular linear panels with ceiling1 must exhaust
 work and ceiling2 must succeed, detecting a per-panel reset. This internal
 control cannot increase the resource ceiling or change regularity/fidelity.
+
+### Original Periodic Homogeneous Preparation (PAR.ORIGJET2)
+
+The original cyclic surface stores its tail controls and weights explicitly.
+For cycle counts n/m and degree p/q, stored counts are n+p/m+q. Existing
+periodicity validation checks exact repeated tail coefficients; ordinary basis
+evaluation consumes this stored original net. Therefore the same directed
+native-span producer may enumerate `(p..<storedUCount)` and
+`(q..<storedVCount)` and form their nonempty Cartesian span product using
+original knots/controls/weights. It requires no virtual net, modulo owner,
+Cartesian Double trimming, new basis implementation or reconstructed support.
+
+The periodic prepared branch must consume these original outward homogeneous
+patches directly. Conservative independent U/V wrapped interval covers and
+the union of every Cartesian piece retain their existing contract. Original
+common-weight partition-of-unity, exact native differences, derivative scaling,
+finite/count/workspace/cancellation and immutable invocation lifetime remain
+mandatory. Nonperiodic preparation and all-owning knot semantics are unchanged.
+The package selected `OriginalNativeSpan` factory continues to refuse periodic
+surfaces; this sprint grants no one-sided periodic/C0 seam normal authority.
+
+| Owner | Assumption | Guarantee / evidence |
+|---|---|---|
+| Original producer | Valid original cyclic stored knot/control/weight net | Outward value and first/second/third original native derivatives on each span |
+| Prepared periodic consumer | Original homogeneous patches and conservative independent axis covers | Complete union through one/both seams, shifted boxes, closed points and whole cycles |
+| Public consumers | Same original geometry/tolerance and typed failure contract | Existing periodic jet/projection/tessellation/persistence regressions preserve behavior |
+
+Independent cardinal periodic tensor fixtures must verify original analytic
+positions and first-through-third derivatives for single axes, both axes,
+seam endpoints/crossing and non-dyadic local boxes; rational original quotient
+fixtures must detect loss of weight authority. Existing source/domain/count/nonfinite/cancellation failure and valid caller
+ModelingTolerance semantics remain explicit. Whole prepared queries gain no
+periodic-only exact preparation-tolerance restriction; selected native tokens
+keep their separately defined exact tolerance ownership. Actual Native evidence passes all5 declarations/9 cases through the original cardinal polynomial and rational quotient oracles, plus27 existing Geometry, two periodic Mesh and one Native persistence declarations. The polynomial oracle uses its exact partition of unity and zero third derivative rather than rounded denominator recurrence. Portable evidence remains separately owned.
+
+This preparation change does not strengthen current approximate knot-translation
+validation into exact mathematical seam continuity. A future new double-C1
+mesh admission must separately prove exact original translated knot differences
+on both axes and apply each original period-width TwoDifference check. Existing
+single-periodic semantics are not silently changed by this lower scope.
