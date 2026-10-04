@@ -172,6 +172,17 @@ cancellation at every body, shell, face, loop, and edge traversal boundary;
 cancelled extraction never returns a partial submodel.
 No project state or UI callback is touched while a reader or writer runs.
 
+The package's [normal-WASI Foundation environment](../../DESIGN.md#normal-wasi-foundation-environment)
+owns the SDK compiler/link requirements used by StandardMeshExchange's
+Foundation/CoreFoundation boolean-versus-number admission. This module keeps
+the same typed JSON and numeric semantics on Native and normal WASM. Embedded
+Foundation availability and full portable exchange support are not implied by
+that normal-WASI environment contract. Because SwiftPM target settings are
+not transitive through a dependent Swift module's Clang importer, the package
+root applies the same WASI settings to SwiftCAD and any private portable
+runtime harness; the root design remains authoritative for this shared
+contract.
+
 ## Verification and Change Impact
 
 `ExactSTEPExchangeTests` must prove exact source retention, embedded-unit

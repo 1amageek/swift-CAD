@@ -180,6 +180,54 @@ validated Mesh map. The caller owns the task that invokes the kernel; Swift-CAD
 has no UI or Agent scheduler and does not retry a failed or cancelled
 tessellation.
 
+### Normal-WASI Foundation Environment
+
+The fixed Swift 6.4.0 normal-WASM SDK provides Foundation and CoreFoundation.
+CADExchange uses both to distinguish JSON booleans from numeric values in glTF;
+the package owns the corresponding compiler and link environment. On the
+`wasi` platform only, CADExchange defines `_WASI_EMULATED_SIGNAL` and
+`_WASI_EMULATED_MMAN` through SwiftPM `cSettings.define` and links the matching
+SDK `wasi-emulated-signal` and `wasi-emulated-mman` libraries through
+`linkerSettings.linkedLibrary`. These formal settings also apply to Swift's
+Clang importer. Native targets retain their existing flags and libraries.
+No emulation macro weakens geometric, transaction or cancellation semantics.
+An SDK missing these libraries fails build/link admission; no parser fallback
+or unchecked state replaces the unavailable environment. This normal-WASI
+contract does not establish Embedded Foundation or cancellation availability.
+
+SwiftPM target settings are local to the frontend target and do not propagate
+through a dependent Swift module's Clang importer. `SwiftCAD` directly imports
+and re-exports `CADExchange`, so it repeats the same WASI-only definitions and
+libraries. Any portable runtime harness that imports `SwiftCAD` consumes the
+same settings. These repeated declarations are one package contract; they do
+not change Native targets or provide a separate fallback environment.
+
+```text
+Package.swift WASI condition
+    -> CADExchange + SwiftCAD target-local Clang-importer definitions
+    -> matching SDK emulation libraries
+    -> Foundation/CoreFoundation typed JSON boundary
+    -> full SwiftCAD graph and transaction runtime
+```
+
+Verification separates the fixed-SDK boolean/number compile/link/runtime probe,
+the actual full product build/link, and the transaction behavioral runtime.
+The minimal probe alone does not prove the full product or A2. Changes to this
+environment require checking the full CADExchange/SwiftCAD dependency graph
+and its actual executable under the same SDK; Native platform conditions must
+remain unchanged.
+
+The full normal-WASM transaction executable is verified on Node.js 24.19.0
+with real WASI Preview 1 imports and the existing explicit 64 MiB executable
+stack contract. Its atomic commit, history, stale epoch, exact single concurrent
+admission, resource refusal and cancelled-publication checks must reach the
+final completion marker; returning from `_start` alone is insufficient evidence.
+The Swift 6.4.0 toolchain's default WasmKit 0.3.1 runner cannot translate the
+large synthesized CADCommand copy functions on the same debug artifact:
+its constant-slot/register limit fails during stage. The Node result is scoped
+to that explicitly selected backend, not generalized to WasmKit or Embedded.
+There is no automatic engine substitution or source-semantic fallback.
+
 ## Verification and Change Impact
 
 The affected module tests must prove every generated sphere body, face, edge,
