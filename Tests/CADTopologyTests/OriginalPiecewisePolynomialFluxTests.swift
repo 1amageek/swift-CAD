@@ -62,6 +62,104 @@ struct OriginalPiecewisePolynomialFluxTests {
         contains(try integral(rectangle, primitive: receipt), -8)
     }
 
+    /// The original C0 support has density 0 for u<=2 and -4/3 for u>=2.
+    /// Its U-anchored Green value is -4/3*max(0,u-2), including both knot sides.
+    @Test(.timeLimit(.minutes(1)), arguments: ["crossing", "contact", "onSeam", "nearEndpoint", "endpoint"])
+    func closedUBandsRetainLiteralOriginalRationalFlux(kind: String) throws {
+        let curve: BSplineCurve2D
+        let expected: Double
+        switch kind {
+        case "crossing":
+            curve = BSplineCurve2D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+                controlPoints: [Point2D(x: 1, y: 0), Point2D(x: 2.5, y: 1.5), Point2D(x: 4, y: 3)],
+                weights: [1, 2, 1])
+            expected = -8.0 / 3
+        case "contact":
+            // u=2+(t-1/2)^2 and v=3t; integral -4*(t-1/2)^2 dt = -1/3.
+            curve = BSplineCurve2D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+                controlPoints: [Point2D(x: 2.25, y: 0), Point2D(x: 1.75, y: 1.5), Point2D(x: 2.25, y: 3)])
+            expected = -1.0 / 3
+        case "onSeam":
+            curve = BSplineCurve2D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+                controlPoints: [Point2D(x: 2, y: 0), Point2D(x: 2, y: 1.5), Point2D(x: 2, y: 3)],
+                weights: [1, 2, 1])
+            expected = 0
+        case "nearEndpoint":
+            let delta = 1.0 / 1024
+            // Unequal weights reparameterize the same line v=3*(u-(2-delta)).
+            curve = BSplineCurve2D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+                controlPoints: [Point2D(x: 2-delta, y: 0), Point2D(x: 2.5-delta, y: 1.5), Point2D(x: 3-delta, y: 3)],
+                weights: [1, 2, 1])
+            expected = -2 * (1-delta) * (1-delta)
+        case "endpoint":
+            curve = BSplineCurve2D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
+                controlPoints: [Point2D(x: 1, y: 0), Point2D(x: 1.5, y: 1.5), Point2D(x: 2, y: 3)],
+                weights: [1, 2, 1])
+            expected = 0
+        default:
+            Issue.record("The independent original U-band fixture was not selected.")
+            return
+        }
+        let receipt = try primitive(surface())
+        let integrator = CertifiedAnalyticPcurveFluxIntegrator()
+        contains(try integrator.piecewisePolynomialBounds(for: .bSpline(curve), primitive: receipt,
+            requestedWidth: 1e-8, tolerance: .standard), expected)
+        contains(try integrator.piecewisePolynomialBounds(for: .bSpline(try curve.reversed(tolerance: .standard)),
+            primitive: receipt, requestedWidth: 1e-8, tolerance: .standard), -expected)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func originalPcurveNativePatchesRetainTheirEntireMeasure() throws {
+        // Native pcurve knot t=1/4 maps exactly to the C0 support knot (2,1).
+        // The geometric image v=u-1 gives integral -4/3*integral_2^4(u-2)du=-8/3.
+        let curve = BSplineCurve2D(degree: 1, knots: [0, 0, 0.25, 1, 1],
+            controlPoints: [Point2D(x: 1, y: 0), Point2D(x: 2, y: 1), Point2D(x: 4, y: 3)],
+            weights: [1, 2, 1])
+        contains(try CertifiedAnalyticPcurveFluxIntegrator().piecewisePolynomialBounds(for: .bSpline(curve),
+            primitive: primitive(surface()), requestedWidth: 1e-8, tolerance: .standard), -8.0 / 3)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func UBandWorkAndWidthRemainTypedAndNonconstantKeepsRootOwner() throws {
+        let receipt = try primitive(surface())
+        let crossing = triangle(rational: true)[2]
+        for integrator in [CertifiedAnalyticPcurveFluxIntegrator(maximumWorkItems: 1),
+                           CertifiedAnalyticPcurveFluxIntegrator(maximumDepth: 0)] {
+            do {
+                _ = try integrator.piecewisePolynomialBounds(for: crossing, primitive: receipt,
+                    requestedWidth: 1e-30, tolerance: .standard)
+                Issue.record("The complete original U band must prove its unchanged work and width allowance.")
+            } catch let error as KernelError {
+                #expect(error.phase == .topology && error.code == .resourceLimitExceeded)
+            }
+        }
+        var source = surface(weight: 7)
+        source.weights[0][1] = 7.0.nextUp
+        let prepared = try field(source)
+        #expect(try prepared.preparedPolynomialGreenPrimitive(uBase: 1) { _ in } == nil)
+        do {
+            _ = try CertifiedAnalyticPcurveFluxIntegrator(maximumWorkItems: 1).rationalSurfaceBounds(
+                for: crossing, field: prepared, uBase: 1, requestedWidth: 1e-8, tolerance: .standard)
+            Issue.record("A nonconstant original support must retain the existing U root work owner.")
+        } catch let error as KernelError {
+            #expect(error.phase == .topology && error.code == .resourceLimitExceeded)
+            #expect(error.residual == 2)
+            #expect(error.message.contains("Bernstein-cell budget"))
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func cancelledOriginalUBandIntegrationPublishesNoFlux() async throws {
+        let receipt = try primitive(surface())
+        let curve = triangle(rational: true)[2]
+        let task = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try CertifiedAnalyticPcurveFluxIntegrator().piecewisePolynomialBounds(for: curve,
+                primitive: receipt, requestedWidth: 1e-8, tolerance: .standard)
+        }
+        await #expect(throws: CancellationError.self) { _ = try await task.value }
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func nonUnitUniformWeightsAndNativeBasePreserveFlux() throws {
         let source = surface(weight: 7)

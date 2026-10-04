@@ -1887,7 +1887,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
             curveBreaks: try rationalPcurveSurfaceSpanBreaks(
               patch: patch,
               field: field,
-              tolerance: tolerance
+              tolerance: tolerance,
+              includeUSurfaceSeams: polynomialPrimitive == nil
             )
           ) { fraction in
             try rationalPcurveJets(
@@ -3317,7 +3318,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
   private func rationalPcurveSurfaceSpanBreaks(
     patch: HomogeneousPatch,
     field: CertifiedRationalBezierSurfaceFluxIntegrator.PreparedField,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    includeUSurfaceSeams: Bool = true
   ) throws -> [Double] {
     guard patch.degree >= 1,
       patch.controls.allSatisfy(\.isFiniteAndPositiveWeight)
@@ -3331,15 +3333,21 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     }
     var breaks = [0.0, 1.0]
     var workItemCount = 0
-    for seam in interiorSeams(field.uSpans) {
-      try appendRationalBezierSeamBreaks(
-        coordinateControls: patch.controls.map(\.x),
-        weightControls: patch.controls.map(\.weight),
-        seam: seam,
-        to: &breaks,
-        workItemCount: &workItemCount,
-        tolerance: tolerance
-      )
+    // The original polynomial Green prefix is continuous across U knots. Its
+    // adaptive owner retains every unknown closed U band with all incident
+    // primitive ranges and the full original pcurve measure. V partitions and
+    // the generic rational path retain their existing root-isolation authority.
+    if includeUSurfaceSeams {
+      for seam in interiorSeams(field.uSpans) {
+        try appendRationalBezierSeamBreaks(
+          coordinateControls: patch.controls.map(\.x),
+          weightControls: patch.controls.map(\.weight),
+          seam: seam,
+          to: &breaks,
+          workItemCount: &workItemCount,
+          tolerance: tolerance
+        )
+      }
     }
     for seam in interiorSeams(field.vSpans) {
       try appendRationalBezierSeamBreaks(

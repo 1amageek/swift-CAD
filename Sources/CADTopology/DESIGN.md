@@ -127,7 +127,7 @@ This module owns a bounded replacement for the repeated U-span fan integration
 observed in the original cubic Draft's final volumetric validation. It prepares
 a Green primitive from the same original certified homogeneous Bezier patches
 already consumed by `PreparedField`; it does not replace the stored surface,
-pcurve, extraction authority, seam partition, or requested volume enclosure.
+pcurve, extraction authority, complete closed curve cover, or requested volume enclosure.
 The [CADModeling original cubic Draft contract](../CADModeling/DESIGN.md)
 depends on this volume owner only after its whole support/pcurve proofs succeed.
 This section defines pending implementation and verification, not completed
@@ -267,3 +267,47 @@ public trace must show that each ordinary primitive evaluation consumes a
 prepared prefix and current native span instead of repeating the fan's entire
 preceding U-span integration. Runtime and operation counts are measured on that
 actual path; passing lower preparation tests alone does not complete Draft.
+
+
+### Polynomial Prefix U Seam Ownership (PAR.CL9SEAM2)
+
+The admitted original polynomial Green prefix owns U seam coverage for its
+B-spline pcurve dispatch. Every original native pcurve Bezier patch remains a
+separate integration domain with its existing requested-width share. This
+branch keeps the existing V seam root partition but does not first isolate
+roots of every U surface seam. Generic rational, implicit and other explicit
+pcurve routes retain their original U/V partition owner.
+
+```text
+Original B-spline pcurve native patches -> existing closed V seam partition
+    -> whole original pcurve jets
+    -> one owning U/V panel jet OR all-incident closed primitive range
+    -> full cell measure -> existing width/work/depth/cancellation admission
+```
+
+The prefix construction carries each original U-panel integral into the next
+panel in the same native V chart. Its mathematical Green value is therefore
+continuous across every closed U knot, including C0 source knots; both incident
+outward coefficient nets contain that same value. This is coefficient authority,
+not equality inferred from pcurve endpoints, affine coordinate samples or a
+root identity. V-side primitives may differ at a C0 V knot, so their existing
+root partition remains owned by the rational seam producer.
+
+A prefix cell may use derivative/Gauss proof only after its complete original
+U/V value ranges lie in one retained panel. Every other cell uses the primitive
+range over all intersecting original closed panels, the complete original
+rational pcurve V derivative and the entire cell measure. No contact, endpoint,
+on-seam interval or uncertain U band loses measure or receives a root-free
+classification. Adaptive subdivision uses the unchanged 65,536-cell allowance,
+48-depth default, requested-width accounting, finite arithmetic and cancellation
+checks. Exhaustion and an unproved final width remain typed failures. This
+handoff introduces no new budget, replacement curve, coefficient reconstruction
+or failed-proof retry.
+
+The owner is `CertifiedAnalyticPcurveFluxIntegrator.swift`; receipt construction
+and range/jet authority remain in the preceding prefix contract. Independent
+literal crossing, contact, on-seam and endpoint flux tests, original native
+pcurve patch coverage, insufficient work/width and cancellation accompany the
+change. Existing V-C0 prefix and generic rational seam tests remain regression
+evidence. The original 178-U-span Draft pcurves, support proofs, 15-minute public
+limits and volume oracle remain unchanged and are verified by the upper owner.
