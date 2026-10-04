@@ -31,7 +31,7 @@ struct CurveSurfaceOverlapResolver {
 
         if case .bSpline(let spline) = curve, case .bSpline(let target) = surface,
            let certificate = try OverlapIsoparametricMembershipCertifier().certificate(
-               curve: spline, surface: target, range: range, options: options, tolerance: tolerance) {
+               curve: spline, surface: target, range: range, options: options, tolerance: tolerance, budget: &graphBudget) {
             candidates.append(Candidate(range: range, deviation: certificate.deviation,
                 isoparametric: certificate.correspondence))
         } else if case .bSpline(let spline) = curve, case .bSpline(let target) = surface,

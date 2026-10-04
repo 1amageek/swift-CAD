@@ -263,6 +263,13 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapChartBoundaryResolver.swift", sourceLine: 78
         ),
         KernelDomainLimitation(
+            id: "condition-7f13e634209978fb",
+            operations: ["curveSurfaceIntersectionResult"],
+            dimensions: [.parameterization, .representation, .geometricFidelity],
+            condition: "Periodic interior-fixed isocurves and general periodic UV graphs have no complete native correspondence here. The public result must retain whole membership and complete seam cuts before these other cyclic families may be admitted.",
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapIsoparametricMembershipCertifier.swift", sourceLine: 148
+        ),
+        KernelDomainLimitation(
             id: "condition-fa1830de8517c6fa",
             operations: ["curveSurfaceIntersectionResult"],
             dimensions: [.parameterization, .representation],

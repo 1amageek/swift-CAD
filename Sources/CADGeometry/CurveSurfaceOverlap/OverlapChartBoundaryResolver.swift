@@ -24,7 +24,7 @@ struct OverlapChartBoundaryResolver {
             if case let .closed(lower, upper) = surface.uDomain { uValues.append(contentsOf: [lower, upper]) }
             if case let .closed(lower, upper) = surface.vDomain { vValues.append(contentsOf: [lower, upper]) }
             return try isoparametric.boundarySourceParameters(uValues: uValues, vValues: vValues,
-                surface: surface, tolerance: tolerance).map(Boundary.certifiedSourceParameter)
+                surface: surface, tolerance: tolerance, budget: &budget).map(Boundary.certifiedSourceParameter)
         }
         if case .bSpline(let spline) = surface, let affine = ExactAffineBSplineSurfacePatch(spline) {
             guard case let .closed(uLower, uUpper) = spline.uDomain,

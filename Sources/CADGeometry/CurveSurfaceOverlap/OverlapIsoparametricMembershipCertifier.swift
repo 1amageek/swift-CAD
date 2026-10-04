@@ -2,7 +2,7 @@ import CADCore
 
 /// Certifies native-basis isocurves without treating projection as proof.
 struct OverlapIsoparametricMembershipCertifier {
-    struct Certificate {
+    struct Certificate: Sendable {
         let correspondence: OverlapIsoparametricCorrespondence
         let deviation: Double
     }
@@ -72,12 +72,115 @@ struct OverlapIsoparametricMembershipCertifier {
         return nil
     }
 
+    /// Periodic membership and clipping consume the same invocation budget.
+    /// The legacy nonperiodic fee contract remains in the original overload.
+    func certificate(curve: BSplineCurve3D, surface: BSplineSurface3D,
+                     range: ScalarInterval, options: CurveSurfaceIntersectionOptions,
+                     tolerance: ModelingTolerance, budget: inout OverlapProofBudget) throws -> Certificate? {
+        if !curve.isPeriodic {
+            return try certificate(curve: curve, surface: surface, range: range,
+                options: options, tolerance: tolerance)
+        }
+        guard surface.isUPeriodic != surface.isVPeriodic else { return nil }
+        let variesU = surface.isUPeriodic
+        let targetDegree = variesU ? surface.uDegree : surface.vDegree
+        let targetKnots = variesU ? surface.uKnots : surface.vKnots
+        let targetCount = variesU ? surface.uControlPointCount : surface.vControlPointCount
+        guard curve.degree == targetDegree, curve.controlPointCount == targetCount,
+              case let .closed(fixedLower, fixedUpper) = (variesU ? surface.vDomain : surface.uDomain) else { return nil }
+        guard max(curve.degree, max(surface.uDegree, surface.vDegree)) <= options.maximumPolynomialDegree else {
+            throw failure(.resourceLimitExceeded, "Periodic isoparametric membership exceeds the degree budget.", tolerance)
+        }
+        let tensor = surface.uControlPointCount.multipliedReportingOverflow(by: surface.vControlPointCount)
+        let controls = tensor.partialValue.addingReportingOverflow(curve.controlPointCount)
+        let controlWork = controls.partialValue.multipliedReportingOverflow(by: 4)
+        let targetKnotCount = surface.uKnots.count.addingReportingOverflow(surface.vKnots.count)
+        let knots = curve.knots.count.addingReportingOverflow(targetKnotCount.partialValue)
+        let scan = controlWork.partialValue.addingReportingOverflow(knots.partialValue)
+        let fee = scan.partialValue.addingReportingOverflow(8)
+        guard !tensor.overflow, !controls.overflow, !controlWork.overflow, !targetKnotCount.overflow, !knots.overflow,
+              !scan.overflow, !fee.overflow else {
+            throw failure(.resourceLimitExceeded, "Periodic original control scan count overflowed.", tolerance)
+        }
+        try budget.work(fee.partialValue)
+        try curve.validate(tolerance: tolerance)
+        try surface.validate(tolerance: tolerance)
+        guard let period = try exactCycle(degree: curve.degree, knots: curve.knots,
+                  count: curve.controlPointCount, tolerance: tolerance),
+              let targetPeriod = try exactCycle(degree: targetDegree, knots: targetKnots,
+                  count: targetCount, tolerance: tolerance), period == targetPeriod,
+              exactOriginShift(curve.periodicOrigin ?? curve.knots[curve.degree],
+                  (variesU ? surface.uPeriodicOrigin : surface.vPeriodicOrigin) ?? targetKnots[targetDegree],
+                  period: period) else {
+            throw failure(.unsupportedCapability, "Periodic isocurve origins or stored translations have no exact common-cycle authority.", tolerance)
+        }
+        guard case let .closed(lower, upper) = curve.fundamentalDomain else { return nil }
+        for reversed in [false, true] {
+            try budget.work()
+            if reversed {
+                guard exactSum(lower, upper), curve.knots.allSatisfy({ exactSum(lower + upper, -$0) }) else { continue }
+                // Reflected controls and knots are allocated only after their work is paid.
+                try budget.work(curve.controlPointCount + curve.knots.count)
+            }
+            let source = reversed ? try curve.reversed(tolerance: tolerance) : curve
+            guard source.knots == targetKnots else { continue }
+            try budget.storage(2)
+            for fixed in [fixedLower, fixedUpper] {
+                let count = variesU ? surface.vControlPointCount : surface.uControlPointCount
+                let degree = variesU ? surface.vDegree : surface.uDegree
+                let product = source.controlPointCount.multipliedReportingOverflow(by: count)
+                let recurrence = count.multipliedReportingOverflow(by: degree + 1)
+                let work = product.partialValue.addingReportingOverflow(recurrence.partialValue)
+                guard !product.overflow, !recurrence.overflow, !work.overflow else {
+                    throw failure(.resourceLimitExceeded, "Periodic isoparametric control work overflowed.", tolerance)
+                }
+                try budget.work(work.partialValue)
+                let bound = try deviationValues(source: source, surface: surface, variesU: variesU,
+                    fixed: fixed, tolerance: tolerance)
+                if bound <= tolerance.distance {
+                    try budget.storage()
+                    return Certificate(correspondence: .init(variesU: variesU, fixedCoordinate: fixed,
+                        reversedParameterSum: reversed ? lower + upper : nil,
+                        periodic: .init(period: period, sourceRange: range)), deviation: bound)
+                }
+            }
+        }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Periodic interior-fixed isocurves and
+        // general periodic UV graphs have no complete native correspondence here.
+        // The public result must retain whole membership and complete seam cuts
+        // before these other cyclic families may be admitted.
+        throw failure(.unsupportedCapability, "Periodic isocurve endpoints have no whole-control membership certificate; interior fixed coordinates remain unsupported.", tolerance)
+    }
+
+    private func exactCycle(degree: Int, knots: [Double], count: Int,
+                            tolerance: ModelingTolerance) throws -> Double? {
+        let lower = knots[degree], upper = knots[count], period = upper - lower
+        guard period.isFinite, period > 0, exactSum(upper, -lower) else { return nil }
+        let independent = count - degree
+        guard independent > 0 else { return nil }
+        for index in 0..<(knots.count - independent) {
+            try Task.checkCancellation()
+            guard exactSum(knots[index], period), knots[index] + period == knots[index + independent] else { return nil }
+        }
+        return period
+    }
+
+    private func exactOriginShift(_ first: Double, _ second: Double, period: Double) -> Bool {
+        if first == second { return true }
+        let difference = second - first
+        guard exactSum(second, -first), difference.isFinite else { return false }
+        let cycle = difference / period
+        guard cycle.isFinite, abs(cycle) <= 9_007_199_254_740_991, cycle.rounded() == cycle,
+              (cycle * 134_217_729).isFinite, (period * 134_217_729).isFinite else { return false }
+        let product = FloatingPointExpansion.product([cycle], [period])
+        return FloatingPointExpansion.sign(FloatingPointExpansion.subtract(product, [difference])) == .zero
+    }
+
     private func deviation(source: BSplineCurve3D, surface: BSplineSurface3D, variesU: Bool,
                            fixed: Double, remainingWork: inout Int,
                            options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance) throws -> Double {
         let count = variesU ? surface.vControlPointCount : surface.uControlPointCount
         let degree = variesU ? surface.vDegree : surface.uDegree
-        let knots = variesU ? surface.vKnots : surface.uKnots
         guard degree <= options.maximumPolynomialDegree else {
             throw failure(.resourceLimitExceeded, "Isoparametric fixed-axis basis exceeds the degree budget.", tolerance)
         }
@@ -89,6 +192,16 @@ struct OverlapIsoparametricMembershipCertifier {
             throw failure(.resourceLimitExceeded, "Isoparametric certification exceeds the control-work budget.", tolerance)
         }
         remainingWork -= total.partialValue
+        return try deviationValues(source: source, surface: surface, variesU: variesU,
+            fixed: fixed, tolerance: tolerance)
+    }
+
+    private func deviationValues(source: BSplineCurve3D, surface: BSplineSurface3D,
+                                 variesU: Bool, fixed: Double,
+                                 tolerance: ModelingTolerance) throws -> Double {
+        let count = variesU ? surface.vControlPointCount : surface.uControlPointCount
+        let degree = variesU ? surface.vDegree : surface.uDegree
+        let knots = variesU ? surface.vKnots : surface.uKnots
         let basis = try basisValues(parameter: fixed, degree: degree, knots: knots, count: count, tolerance: tolerance)
         let anchor = source.controlPoints[0]
         var maximumNumeratorError = [0.0, 0.0, 0.0]
