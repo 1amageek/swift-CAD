@@ -1052,3 +1052,39 @@ Kernel tessellation tests and six original native-span Geometry tests. Literal
 source positions/normals, both seam identities, full periods, exact-width refusal,
 aggregate reservations and cancellation execute through the original production
 path. Full M1 and portable closure remain separately owned.
+
+
+### Original Prepared Point-Value Evaluation (PAR.POINTVALUE1)
+
+The original implicit localizer uses exact-center source values only for its
+Cartesian residual; its original range jets still own Jacobian, root existence,
+rank, contraction and final first-through-third derivatives. A point-value path
+may therefore return only IntervalVector3DBounds and must not construct a
+synthetic full jet with missing or zero higher derivatives.
+
+RationalBezierSurfaceJetEncloser owns shared exact/outward normalization and
+Bernstein evaluation/hull intersection of original prepared coefficient nets.
+Both point consumers reuse the same value operation order. The value-only path
+evaluates the original value net and each existing polynomial-coordinate value
+net only; it preserves original common-positive-weight authority or the same
+outward reciprocal and Cartesian origin addition. Finite values and positive
+weight are mandatory; unavailable value authority fails explicitly. A point-only
+value contract does not promise finite unrequested higher derivatives.
+
+PreparedBSplineSurfaceDifferentialEncloser validates finite point/domain,
+original preparation tolerance and cancellation, applies the existing periodic
+lift covers, and unions values from every original closed owning native span,
+including knot sides/seams. PreparedSurfaceDifferentialEncloser delegates only
+its existing B-spline storage to that owner; other representations retain typed
+unsupported closed-point composition. No source replacement, resampled support,
+new root criterion, budget or global cache is introduced.
+
+The implicit exact-center residual consumes these values. Its range/full/final
+jets, phase transitions, free-coordinate mean-value segment and every caller
+prepare/advance fee remain unchanged. Independent original polynomial/rational,
+unequal-weight, translated, native-knot and periodic fixtures compare point-value
+bounds bit for bit with successful original full point jets; invalid domain,
+foreign preparation tolerance, cancellation and unresolved finite weight refuse.
+Original implicit four-coordinate existence, derivative, endpoint64ulp and actual
+work oracles are required. Public Q3 area/centroid performance remains a separate
+completion gate; this lower contract alone makes no speed/completion claim.

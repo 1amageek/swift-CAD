@@ -125,6 +125,16 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
     return try prepared.intervalJet(overClosedBox:parameters,tolerance:tolerance)
   }
 
+  /// Original B-spline point values for implicit exact-center residuals.
+  /// Other representations do not acquire closed-point value authority here.
+  func pointValue(u: Double, v: Double, tolerance: ModelingTolerance) throws -> IntervalVector3DBounds {
+    guard case .bSpline = surface, case .bSpline(let prepared) = storage else {
+      throw KernelError(phase:.geometry,code:.unsupportedCapability,tolerance:tolerance,
+        message:"Prepared point-value composition requires its original B-spline support.")
+    }
+    return try prepared.pointValue(u:u,v:v,tolerance:tolerance)
+  }
+
   private static func storage(
     for surface: Surface3D,
     tolerance: ModelingTolerance

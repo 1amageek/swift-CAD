@@ -158,10 +158,57 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
     /// shortened localization span. Exact endpoints retain their native jets.
     func pointEnclosure(of patch: PreparedPatch, u: Double, v: Double,
                         tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+        let parameters = try normalizedPointParameters(of:patch,u:u,v:v,tolerance:tolerance)
+        func evaluate(_ values: [[IntervalHomogeneousSurfaceControl]]) throws -> [[IntervalHomogeneousSurfaceControl]] {
+            try evaluatePointControls(values,localU:parameters.u,localV:parameters.v,tolerance:tolerance)
+        }
+        func localize(_ controls: HomogeneousJetControls) throws -> HomogeneousJetControls {
+            try HomogeneousJetControls(value:evaluate(controls.value),
+                derivativeU:evaluate(controls.derivativeU),derivativeV:evaluate(controls.derivativeV),
+                secondDerivativeUU:evaluate(controls.secondDerivativeUU),
+                secondDerivativeUV:evaluate(controls.secondDerivativeUV),
+                secondDerivativeVV:evaluate(controls.secondDerivativeVV),
+                thirdDerivativeUUU:evaluate(controls.thirdDerivativeUUU),
+                thirdDerivativeUUV:evaluate(controls.thirdDerivativeUUV),
+                thirdDerivativeUVV:evaluate(controls.thirdDerivativeUVV),
+                thirdDerivativeVVV:evaluate(controls.thirdDerivativeVVV))
+        }
+        return try resolvedJet(of:patch,localize:localize,tolerance:tolerance)
+    }
+
+    /// Original value nets only; no synthetic derivative jet is constructed.
+    func pointValueEnclosure(of patch: PreparedPatch, u: Double, v: Double,
+        tolerance: ModelingTolerance) throws -> IntervalVector3DBounds {
+        try Task.checkCancellation()
+        let parameters = try normalizedPointParameters(of:patch,u:u,v:v,tolerance:tolerance)
+        return try resolvedValue(of:patch,tolerance:tolerance) { values in
+            try evaluatePointControls(values,localU:parameters.u,localV:parameters.v,tolerance:tolerance)
+        }
+    }
+
+    /// Positive-width periodic point lift covers retain original localization;
+    /// only their value nets are requested, not unneeded derivative nets.
+    func valueEnclosure(of patch: PreparedPatch, u: ScalarInterval, v: ScalarInterval,
+        tolerance: ModelingTolerance) throws -> IntervalVector3DBounds {
+        try Task.checkCancellation()
+        guard u.lower.isFinite, u.upper.isFinite, v.lower.isFinite, v.upper.isFinite,
+              u.lower <= u.upper, v.lower <= v.upper,
+              u.lower >= patch.uLower, u.upper <= patch.uUpper,
+              v.lower >= patch.vLower, v.upper <= patch.vUpper else {
+            throw invalidPatchError(tolerance:tolerance)
+        }
+        return try resolvedValue(of:patch,tolerance:tolerance) { values in
+            try trimmedControls(values,sourceULower:patch.uLower,sourceUUpper:patch.uUpper,
+                sourceVLower:patch.vLower,sourceVUpper:patch.vUpper,targetU:u,targetV:v,tolerance:tolerance)
+        }
+    }
+
+    private func normalizedPointParameters(of patch: PreparedPatch, u: Double, v: Double,
+        tolerance: ModelingTolerance) throws -> (u: OutwardScalarInterval,v: OutwardScalarInterval) {
         guard u.isFinite, v.isFinite,
               u >= patch.uLower, u <= patch.uUpper,
               v >= patch.vLower, v <= patch.vUpper else {
-            throw invalidPatchError(tolerance: tolerance)
+            throw invalidPatchError(tolerance:tolerance)
         }
         func parameter(_ value: Double, lower: Double, upper: Double) throws -> OutwardScalarInterval {
             if value == lower { return .exact(0) }
@@ -204,49 +251,86 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
             // Stored endpoint containment proves the exact ratio is in [0,1].
             return OutwardScalarInterval(lower:max(0,result.lower),upper:min(1,result.upper))
         }
-        let localU = try parameter(u,lower:patch.uLower,upper:patch.uUpper)
-        let localV = try parameter(v,lower:patch.vLower,upper:patch.vUpper)
-        func evaluate(_ values: [[IntervalHomogeneousSurfaceControl]]) throws -> [[IntervalHomogeneousSurfaceControl]] {
-            func axis(_ values: [IntervalHomogeneousSurfaceControl],
-                      parameter: OutwardScalarInterval) throws -> IntervalHomogeneousSurfaceControl {
-                if parameter.lower == 0, parameter.upper == 0 { return values[0] }
-                if parameter.lower == 1, parameter.upper == 1 { return values[values.count-1] }
-                var level = values
-                while level.count > 1 {
-                    level = (0..<(level.count-1)).map {
-                        level[$0].interpolated(to:level[$0+1],parameter:parameter)
-                    }
+        return try (parameter(u,lower:patch.uLower,upper:patch.uUpper),
+            parameter(v,lower:patch.vLower,upper:patch.vUpper))
+    }
+
+    private func evaluatePointControls(_ values: [[IntervalHomogeneousSurfaceControl]],
+        localU: OutwardScalarInterval, localV: OutwardScalarInterval, tolerance: ModelingTolerance)
+        throws -> [[IntervalHomogeneousSurfaceControl]] {
+        func axis(_ values: [IntervalHomogeneousSurfaceControl],
+                  parameter: OutwardScalarInterval) throws -> IntervalHomogeneousSurfaceControl {
+            if parameter.lower == 0, parameter.upper == 0 { return values[0] }
+            if parameter.lower == 1, parameter.upper == 1 { return values[values.count-1] }
+            var level = values
+            while level.count > 1 {
+                level = (0..<(level.count-1)).map {
+                    level[$0].interpolated(to:level[$0+1],parameter:parameter)
                 }
-                // Original normalized parameters lie in [0,1], so both the
-                // outward evaluation and each coefficient convex hull contain
-                // the scalar value, including already differentiated nets.
-                func intersect(_ component: KeyPath<IntervalHomogeneousSurfaceControl, OutwardScalarInterval>)
-                    throws -> OutwardScalarInterval {
-                    let hull = OutwardScalarInterval.enclosing(values.map { $0[keyPath: component] })
-                    guard let result = level[0][keyPath: component].intersection(with: hull) else {
-                        throw KernelError(phase: .geometry, code: .intersectionFailure, tolerance: tolerance,
-                            message: "Surface point Bernstein evaluation and its certified coefficient hull are disjoint.")
-                    }
-                    return result
-                }
-                return try IntervalHomogeneousSurfaceControl(x: intersect(\.x), y: intersect(\.y),
-                    z: intersect(\.z), weight: intersect(\.weight))
             }
-            let rows = try values.map { try axis($0,parameter:localU) }
-            return [[try axis(rows,parameter:localV)]]
+            // Original normalized parameters lie in [0,1], so both the
+            // outward evaluation and each coefficient convex hull contain
+            // the scalar value, including already differentiated nets.
+            func intersect(_ component: KeyPath<IntervalHomogeneousSurfaceControl, OutwardScalarInterval>)
+                throws -> OutwardScalarInterval {
+                let hull = OutwardScalarInterval.enclosing(values.map { $0[keyPath: component] })
+                guard let result = level[0][keyPath: component].intersection(with: hull) else {
+                    throw KernelError(phase: .geometry, code: .intersectionFailure, tolerance: tolerance,
+                        message: "Surface point Bernstein evaluation and its certified coefficient hull are disjoint.")
+                }
+                return result
+            }
+            return try IntervalHomogeneousSurfaceControl(x: intersect(\.x), y: intersect(\.y),
+                z: intersect(\.z), weight: intersect(\.weight))
         }
-        func localize(_ controls: HomogeneousJetControls) throws -> HomogeneousJetControls {
-            try HomogeneousJetControls(value:evaluate(controls.value),
-                derivativeU:evaluate(controls.derivativeU),derivativeV:evaluate(controls.derivativeV),
-                secondDerivativeUU:evaluate(controls.secondDerivativeUU),
-                secondDerivativeUV:evaluate(controls.secondDerivativeUV),
-                secondDerivativeVV:evaluate(controls.secondDerivativeVV),
-                thirdDerivativeUUU:evaluate(controls.thirdDerivativeUUU),
-                thirdDerivativeUUV:evaluate(controls.thirdDerivativeUUV),
-                thirdDerivativeUVV:evaluate(controls.thirdDerivativeUVV),
-                thirdDerivativeVVV:evaluate(controls.thirdDerivativeVVV))
+        let rows = try values.map { try axis($0,parameter:localU) }
+        return [[try axis(rows,parameter:localV)]]
+    }
+
+    private func resolvedValue(of patch: PreparedPatch, tolerance: ModelingTolerance,
+        localize: ([[IntervalHomogeneousSurfaceControl]]) throws -> [[IntervalHomogeneousSurfaceControl]])
+        throws -> IntervalVector3DBounds {
+        let localized = try localize(patch.controls.value)
+        let weight = patch.originalCommonWeight.map(OutwardScalarInterval.exact)
+            ?? scalarValue(localized,component:\IntervalHomogeneousSurfaceControl.weight)
+        let reciprocal = try positiveValueReciprocal(weight,tolerance:tolerance)
+        func coordinate(_ polynomial: HomogeneousJetControls?,
+            component: KeyPath<IntervalHomogeneousSurfaceControl,OutwardScalarInterval>, origin: Double)
+            throws -> OutwardScalarInterval {
+            let polynomialValue: OutwardScalarInterval?
+            if let polynomial { polynomialValue = scalarValue(try localize(polynomial.value),component:\.x) }
+            else { polynomialValue = nil }
+            return cartesianValue(numerator:scalarValue(localized,component:component),
+                reciprocal:reciprocal,polynomial:polynomialValue,origin:origin)
         }
-        return try resolvedJet(of:patch,localize:localize,tolerance:tolerance)
+        let result = try IntervalVector3DBounds(
+            x:coordinate(patch.polynomialX,component:\.x,origin:patch.origin.x),
+            y:coordinate(patch.polynomialY,component:\.y,origin:patch.origin.y),
+            z:coordinate(patch.polynomialZ,component:\.z,origin:patch.origin.z))
+        guard result.x.isFinite, result.y.isFinite, result.z.isFinite else {
+            throw KernelError(phase:.geometry,code:.singularSystem,tolerance:tolerance,
+                message:"Original surface value evaluation could not certify finite Cartesian bounds.")
+        }
+        return result
+    }
+
+    private func positiveValueReciprocal(_ weight: OutwardScalarInterval,
+        tolerance: ModelingTolerance) throws -> OutwardScalarInterval {
+        guard weight.isFinite, weight.lower > 0 else {
+            throw KernelError(phase:.geometry,code:.singularSystem,residual:weight.lower,tolerance:tolerance,
+                message:"Original surface value evaluation requires a finite positive weight range.")
+        }
+        return OutwardScalarInterval(lower:(1.0/weight.upper).nextDown,upper:(1.0/weight.lower).nextUp)
+    }
+
+    private func cartesianValue(numerator: OutwardScalarInterval, reciprocal: OutwardScalarInterval,
+        polynomial: OutwardScalarInterval?, origin: Double) -> OutwardScalarInterval {
+        (polynomial ?? numerator*reciprocal) + OutwardScalarInterval(origin)
+    }
+
+    private func scalarValue(_ values: [[IntervalHomogeneousSurfaceControl]],
+        component: KeyPath<IntervalHomogeneousSurfaceControl,OutwardScalarInterval>) -> OutwardScalarInterval {
+        .enclosing(values.flatMap { row in row.map { $0[keyPath:component] } })
     }
 
     private func resolvedJet(of patch: PreparedPatch,
@@ -277,13 +361,26 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
                 message: "A rational surface enclosure requires a certified positive weight range."
             )
         }
+        let reciprocalValue = try positiveValueReciprocal(weight.value,tolerance:tolerance)
         func coordinate(_ polynomial: HomogeneousJetControls?, rational: SurfaceIntervalJet,
                         origin: Double) throws -> SurfaceIntervalJet {
             let value: SurfaceIntervalJet
+            let polynomialValue: OutwardScalarInterval?
             if let polynomial {
-                value = scalarJet(try localize(polynomial), component: \.x)
-            } else { value = rational * reciprocalWeight }
-            return value + .constant(origin)
+                value = scalarJet(try localize(polynomial),component:\.x)
+                polynomialValue = value.value
+            } else {
+                value = rational * reciprocalWeight
+                polynomialValue = nil
+            }
+            let shifted = value + .constant(origin)
+            return SurfaceIntervalJet(value:cartesianValue(numerator:rational.value,
+                reciprocal:reciprocalValue,polynomial:polynomialValue,origin:origin),
+                derivativeU:shifted.derivativeU,derivativeV:shifted.derivativeV,
+                secondDerivativeUU:shifted.secondDerivativeUU,secondDerivativeUV:shifted.secondDerivativeUV,
+                secondDerivativeVV:shifted.secondDerivativeVV,thirdDerivativeUUU:shifted.thirdDerivativeUUU,
+                thirdDerivativeUUV:shifted.thirdDerivativeUUV,thirdDerivativeUVV:shifted.thirdDerivativeUVV,
+                thirdDerivativeVVV:shifted.thirdDerivativeVVV)
         }
         let result = try SurfaceIntervalVectorJet(
             x: coordinate(patch.polynomialX, rational: x, origin: patch.origin.x),
@@ -459,12 +556,8 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
         _ controls: HomogeneousJetControls,
         component: KeyPath<IntervalHomogeneousSurfaceControl, OutwardScalarInterval>
     ) -> SurfaceIntervalJet {
-        func enclosure(
-            _ values: [[IntervalHomogeneousSurfaceControl]]
-        ) -> OutwardScalarInterval {
-            .enclosing(values.flatMap { row in
-                row.map { $0[keyPath: component] }
-            })
+        func enclosure(_ values: [[IntervalHomogeneousSurfaceControl]]) -> OutwardScalarInterval {
+            scalarValue(values,component:component)
         }
         return SurfaceIntervalJet(
             value: enclosure(controls.value),

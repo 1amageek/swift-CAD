@@ -62,6 +62,17 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
         u: ScalarInterval(lower: u, upper: u), v: ScalarInterval(lower: v, upper: v)),
         on: source, tolerance: callerTolerance)
     }
+
+    func pointValue(u: Double, v: Double, on source: BSplineSurface3D,
+                    tolerance callerTolerance: ModelingTolerance) throws -> IntervalVector3DBounds {
+      guard u.isFinite, v.isFinite else {
+        throw KernelError(phase:.geometry,code:.invalidInput,tolerance:callerTolerance,
+          message:"An original native-span point value requires finite UV coordinates.")
+      }
+      let box = SurfaceParameterBox(u:try ScalarInterval(lower:u,upper:u),v:try ScalarInterval(lower:v,upper:v))
+      try validate(on:source,over:box,tolerance:callerTolerance)
+      return try PreparedBSplineSurfaceDifferentialEncloser.selectedValue(of:patch,over:box,tolerance:callerTolerance)
+    }
   }
 
   package init(surface: BSplineSurface3D, tolerance: ModelingTolerance) throws {
@@ -193,6 +204,32 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
       u:ScalarInterval(lower:u,upper:u),v:ScalarInterval(lower:v,upper:v)),tolerance:tolerance)
   }
 
+  /// Values retain every original closed owning span and the existing periodic
+  /// point lift covers. Unrequested derivatives are never synthesized.
+  func pointValue(u: Double, v: Double, tolerance: ModelingTolerance) throws -> IntervalVector3DBounds {
+    try Task.checkCancellation()
+    guard u.isFinite, v.isFinite, tolerance == preparationTolerance else {
+      throw closedBoxFailure(tolerance:tolerance)
+    }
+    let box = SurfaceParameterBox(u:try ScalarInterval(lower:u,upper:u),v:try ScalarInterval(lower:v,upper:v))
+    try validateClosedBox(box,tolerance:tolerance)
+    let us = try surface.enclosureIntervals(box.u,direction:.u,tolerance:tolerance)
+    let vs = try surface.enclosureIntervals(box.v,direction:.v,tolerance:tolerance)
+    var result: IntervalVector3DBounds?
+    for u in us { for v in vs { for span in originalSpans {
+      let uLower = max(u.lower,span.patch.uLower), uUpper = min(u.upper,span.patch.uUpper)
+      let vLower = max(v.lower,span.patch.vLower), vUpper = min(v.upper,span.patch.vUpper)
+      guard uLower <= uUpper, vLower <= vUpper else { continue }
+      let value = try Self.selectedValue(of:span.patch,over:SurfaceParameterBox(
+        u:ScalarInterval(lower:uLower,upper:uUpper),v:ScalarInterval(lower:vLower,upper:vUpper)),tolerance:tolerance)
+      if let prior = result {
+        result = IntervalVector3DBounds(x:prior.x.union(value.x),y:prior.y.union(value.y),z:prior.z.union(value.z))
+      } else { result = value }
+    } } }
+    guard let result else { throw closedBoxFailure(tolerance:tolerance) }
+    return result
+  }
+
   private func closedBoxFailure(tolerance: ModelingTolerance) -> KernelError {
     KernelError(phase:.geometry,code:.invalidInput,tolerance:tolerance,
       message:"A prepared B-spline closed box requires finite ordered UV bounds inside its support domain.")
@@ -209,6 +246,21 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     let u = try numericallyStableInterval(box.u, within: (patch.uLower, patch.uUpper), tolerance: tolerance)
     let v = try numericallyStableInterval(box.v, within: (patch.vLower, patch.vUpper), tolerance: tolerance)
     return try encloser.enclosure(of: patch, u: u, v: v, tolerance: tolerance)
+  }
+
+  private static func selectedValue(of patch: RationalBezierSurfaceJetEncloser.PreparedPatch,
+                                    over box: SurfaceParameterBox,
+                                    tolerance: ModelingTolerance) throws -> IntervalVector3DBounds {
+    try Task.checkCancellation()
+    let encloser = RationalBezierSurfaceJetEncloser()
+    if box.u.lower == box.u.upper, box.v.lower == box.v.upper {
+      return try encloser.pointValueEnclosure(of:patch,u:box.u.lower,v:box.v.lower,tolerance:tolerance)
+    }
+    // A periodic point may own a positive-width outward lift cover. Preserve
+    // the full-jet owner's conditioning and localization, evaluating value nets only.
+    let u = try numericallyStableInterval(box.u,within:(patch.uLower,patch.uUpper),tolerance:tolerance)
+    let v = try numericallyStableInterval(box.v,within:(patch.vLower,patch.vUpper),tolerance:tolerance)
+    return try encloser.valueEnclosure(of:patch,u:u,v:v,tolerance:tolerance)
   }
 
   private static func numericallyStableInterval(
