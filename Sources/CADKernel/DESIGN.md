@@ -631,7 +631,12 @@ every phase reads the same `BooleanOperandContext`.
   (outlines counterclockwise, holes clockwise): a face turned over turns its loops with it
   (`BRepSewingPatchOrientationAdapter`), so a revolved tool's wall left facing into a hole
   and the hole's circle in the cap it opens wind as an extruded holed profile's do
-  (`RevolvedBooleanLoopWindingTests`). A revolved tool standing on a cap of a convex
+  (`RevolvedBooleanLoopWindingTests`). The convex planar planner reads each operand face's
+  winding from its own vertices and turns it counterclockwise about the face's outward
+  normal, since a body extruded against its section's normal winds every loop the other way
+  with its caps left `forward` (a drafted pocket sunk from a top face,
+  `aDraftedToolCutsOrJoinsABoxExactly`); it emits each BSP fragment as its own face, so
+  coplanar fragments of one plane stay separate faces. A revolved tool standing on a cap of a convex
   planar target from outside, its own cap's disc inside that face (a boss drawn on the
   face, joined by Union or Extrude Join), is the revolved union of a tool protruding
   from that cap; any other boundary contact is refused as non-manifold (`BossJoinTests`).

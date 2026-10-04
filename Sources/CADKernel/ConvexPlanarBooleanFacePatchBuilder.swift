@@ -60,9 +60,14 @@ struct ConvexPlanarBooleanFacePatchBuilder {
         from operand: ConvexPlanarSolidOperand
     ) throws -> [PlanarBooleanPolygon] {
         try operand.faces.map { face in
-            let vertices = face.orientation == .reversed
-                ? Array(face.vertices.reversed())
-                : face.vertices
+            // Each polygon winds counterclockwise about its outward normal, read off its own
+            // winding: a body extruded against its section's normal winds every loop the other
+            // way, which its faces' orientation flags alone do not tell.
+            var winding = Vector3D.zero
+            for (start, end) in zip(face.vertices, face.vertices.dropFirst() + face.vertices.prefix(1)) {
+                winding = winding + (start - face.vertices[0]).cross(end - face.vertices[0])
+            }
+            let vertices = winding.dot(face.outwardNormal) < 0 ? Array(face.vertices.reversed()) : face.vertices
             return try PlanarBooleanPolygon(
                 vertices: vertices,
                 surface: face.surface,

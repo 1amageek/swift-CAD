@@ -56,6 +56,52 @@ struct ExtrudeDraftTests {
         #expect(evaluated.brep.faces.count == 6)
     }
 
+    /// A drafted square pocket cut into a 30 mm box, or a drafted boss joined to it: the tool is
+    /// extruded down from the top or up from the bottom, its sketch drawn either way round, so
+    /// the tool's loops wind either way about their outward normals.
+    @Test(.timeLimit(.minutes(4)), arguments: [
+        (true, false, SolidOperation.difference), (true, true, .difference),
+        (false, false, .difference), (false, true, .difference), (true, false, .union),
+    ])
+    func aDraftedToolCutsOrJoinsABoxExactly(fromTop: Bool, clockwise: Bool, operation: SolidOperation) throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let box = try builder.box(width: length(0.03), depth: length(0.03), height: length(0.01))
+        // A boss stands on the top, going up; a pocket sinks from the face it is drawn on.
+        let height = fromTop ? 0.01 : 0.0
+        let goesUp = (operation == .union) == fromTop
+        let plane = SketchPlane.plane(Plane3D(origin: Point3D(x: 0, y: 0, z: height), normal: .unitZ))
+        var corners = [(0.01, 0.01), (0.02, 0.01), (0.02, 0.02), (0.01, 0.02)]
+        if clockwise { corners.reverse() }
+        let profile = try builder.sketch(on: plane) { sketch in
+            for (start, end) in zip(corners, corners.dropFirst() + corners.prefix(1)) {
+                _ = sketch.line(from: SketchPoint(x: length(start.0), y: length(start.1)), to: SketchPoint(x: length(end.0), y: length(end.1)))
+            }
+        }.featureID
+        try builder.append(id: FeatureID(), name: nil, operation: .extrude(ExtrudeFeature(
+            profile: ProfileReference(featureID: profile, profileIndex: 0), distance: length(0.005),
+            direction: .vector(Vector3D(x: 0, y: 0, z: goesUp ? 1 : -1)), operation: operation,
+            targets: [BooleanTargetReference(featureID: box)], draftAngle: degrees(5))))
+        let evaluated = try evaluate(builder)
+        let tool = rectangleVolume(width: 0.01, depth: 0.01, tangent: tan(5 * Double.pi / 180), from: 0, to: 0.005)
+        let expected = 9e-6 + (operation == .union ? tool : -tool)
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - expected) < 1e-12)
+        // The boundary lies on the box's six planes, the tool's four drafted walls and its far
+        // cap, each facing out of the result.
+        var planes: [(normal: Vector3D, offset: Double)] = []
+        for face in evaluated.brep.faces.values {
+            guard case let .plane(plane)? = evaluated.brep.geometry.surfaces[face.surfaceID] else {
+                Issue.record("A drafted tool on a box leaves only planar faces.")
+                continue
+            }
+            let normal = face.orientation == .forward ? plane.normal : plane.normal * -1
+            let offset = normal.dot(plane.origin - Point3D.origin)
+            if !planes.contains(where: { $0.normal.dot(normal) > 1 - 1e-9 && abs($0.offset - offset) < 1e-9 }) {
+                planes.append((normal, offset))
+            }
+        }
+        #expect(planes.count == 11)
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func aCircleNarrowsIntoACone() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
