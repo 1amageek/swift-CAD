@@ -312,7 +312,11 @@ fileprivate extension Curve3D {
                 let lower = max(interval.lower, sourcePatch.lower)
                 let upper = min(interval.upper, sourcePatch.upper)
                 guard upper > lower else { continue }
-                let patch = lower == sourcePatch.lower && upper == sourcePatch.upper
+                // A sliver of a span the interval only grazes (its end a rounding past a knot)
+                // cannot be trimmed; the whole span's bound covers it.
+                let scale = max(1.0, abs(sourcePatch.lower), abs(sourcePatch.upper))
+                let sliver = upper - lower <= max(tolerance.relative * scale, Double.ulpOfOne * scale * 256.0)
+                let patch = sliver || (lower == sourcePatch.lower && upper == sourcePatch.upper)
                     ? sourcePatch
                     : try sourcePatch.trimmed(
                         from: lower,

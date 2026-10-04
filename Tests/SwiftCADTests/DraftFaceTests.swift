@@ -459,6 +459,34 @@ struct DraftFaceTests {
         #expect(abs(volume - expected) < 1e-10, "\(volume) vs \(expected)")
     }
 
+
+    /// The video's second S-topped draft: the wall hinged on the S and the side wall hinged on the
+    /// S's straight end drafted together — the first turns into its ruled surface, the second about
+    /// its straight edge into a plane, and they meet along the plane's exact cut of the ruled
+    /// surface.
+    @Test(.timeLimit(.minutes(40)))
+    func anSCurvedReferencesWallAndItsStraightNeighbourDraftTogether() throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let block = try sToppedBlock(&builder)
+        let top = try #require(try faces(in: builder, of: block) { surface in
+            if case .plane = surface { return false }
+            return true
+        }.first)
+        let end = try faces(in: builder, of: block) { plane($0).map { $0.normal.x > 0.5 } ?? false }
+        let side = try faces(in: builder, of: block) { plane($0).map { $0.normal.y > 0.5 } ?? false }
+        #expect(end.count == 1 && side.count == 1)
+        _ = try builder.faceDraft(target: block, faces: end + side, neutralFace: top, angle: degrees(30))
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        try model.validate(level: .volumetric, tolerance: .standard)
+        // The block keeps its six faces, the two drafted ones no longer planes square to x and y.
+        #expect(model.faces.count == 6)
+        let squares = model.faces.values.compactMap { face -> Plane3D? in
+            guard let surface = model.geometry.surfaces[face.surfaceID] else { return nil }
+            return plane(surface)
+        }.filter { abs(abs($0.normal.x) - 1) < 1e-9 || abs(abs($0.normal.y) - 1) < 1e-9 }
+        // The back (x = 0) and the other side (y = −10) stay square.
+        #expect(squares.count == 2)
+    }
 }
 
 
