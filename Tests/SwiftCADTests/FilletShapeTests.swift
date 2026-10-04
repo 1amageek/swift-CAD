@@ -511,6 +511,34 @@ struct FilletShapeTests {
         #expect(abs(try chamfered.brep.volume(tolerance: .standard) - expected) < 1e-15)
     }
 
+    /// A box's top front edge rounded, then its back right upright edge: the second round cuts
+    /// back the right wall though that wall's front top corner is already rounded, keeping that arc.
+    @Test(.timeLimit(.minutes(2)))
+    func aSecondRoundBesideAnEarlierRoundElsewhereKeepsIt() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (side, height, r) = (0.03, 0.01, 0.002)
+        let box = try builder.box(width: length(side), depth: length(side), height: length(height))
+        func edge(of feature: FeatureID, where keep: (Point3D, Point3D) -> Bool) throws -> StableSubshapeReference {
+            let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+            let keys = evaluated.subshapes.entries.filter { key, value in
+                guard key.featureID == feature, case let .edge(id) = value, let edge = evaluated.brep.edges[id],
+                      let a = evaluated.brep.vertices[edge.startVertexID]?.point, let b = evaluated.brep.vertices[edge.endVertexID]?.point else { return false }
+                return keep(a, b)
+            }.keys.sorted()
+            return try builder.stableSubshape(try #require(keys.first))
+        }
+        let front = try edge(of: box) { a, b in [a, b].allSatisfy { abs($0.z - height) < 1e-12 && abs($0.y) < 1e-12 } }
+        let first = try builder.fillet(target: box, edges: [front], radius: length(r))
+        let upright = try edge(of: first) { a, b in [a, b].allSatisfy { abs($0.x - side) < 1e-12 && abs($0.y - side) < 1e-12 } }
+        _ = try builder.fillet(target: first, edges: [upright], radius: length(r))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "box"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        // Apart, each round takes its corner section off along its own edge.
+        let section = r * r * (1 - Double.pi / 4)
+        let expected = side * side * height - section * side - section * height
+        #expect(abs(try rounded.brep.volume(tolerance: .standard) - expected) < 1e-15)
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func aHolesRimRoundsIntoATorusBandAndBothItsRimsTogether() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)

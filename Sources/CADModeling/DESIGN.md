@@ -538,7 +538,10 @@ cap contact to the arc's centre and close on the ball's sphere (`CapLoopBlendBui
 collapsed cap edge; a blend larger than a convex arc, and a chamfer as large, are refused). Others not
 left as such chains are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). One concave edge chamfered
 alone (an L block's inside corner) takes the profile chamfer, which fills its wedge: the square-faced
-chamfer only cuts material away (`anLBlocksCornerEdgeChamfersAlone`). A limited fillet (`FilletFeature.limits`, Fillet Shell's limit points) runs over its stretch of one
+chamfer only cuts material away (`anLBlocksCornerEdgeChamfersAlone`). One square edge rounded by the
+rolling ball carries every face away from it and its ends whole, whatever its surface, and cuts back
+a face beside it with curved sides elsewhere (an earlier round meeting it away from this edge) by
+moving only the edge's side and the straight sides at its ends (`aSecondRoundBesideAnEarlierRoundElsewhereKeepsIt`). A limited fillet (`FilletFeature.limits`, Fillet Shell's limit points) runs over its stretch of one
 straight edge: the faces beside it are notched there (the edge sharp up to each limit, then across to
 the contact line and back), and a limit inside the edge closes the blend on the flat face between its
 section and the edge's corner; a limited chamfer (`ChamferFeature.limits`) does the same with its straight section (`evaluateLimitedChamfer`). Reversed limits (a limit point clicked) blend the rest of the edge: between two limits, the stretch from the edge's start first, then, on the sharp edge it leaves, the stretch to its end (`evaluateLimitedBlend`). A variable fillet (`FilletFeature.endRadius`) runs its section from the radius at the edge's

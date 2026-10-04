@@ -311,10 +311,50 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         var patches: [BRepSewingFacePatch] = []
         var lowerArc: ArcBoundary?
         var upperArc: ArcBoundary?
+        /// Whether a face's loops reach a vertex.
+        func touches(_ faceID: FaceID, _ vertexID: VertexID) throws -> Bool {
+            guard let face = model.faces[faceID] else { throw TopologyError.missingReference("Missing fillet face.") }
+            return try face.loops.contains { loopID in
+                guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("Missing fillet loop.") }
+                return loop.coedges.contains { coedge in
+                    guard let other = model.edges[coedge.edgeID] else { return false }
+                    return [other.startVertexID, other.endVertexID].contains(vertexID)
+                }
+            }
+        }
         for (faceIndex, faceID) in shell.faceIDs.enumerated() {
+            // A face away from the edge and its ends is carried whole, whatever its surface (an
+            // earlier round elsewhere on the body).
+            let nearEdge = try incidentFaceIDs.contains(faceID) || touches(faceID, edge.startVertexID) || touches(faceID, edge.endVertexID)
+            guard nearEdge else {
+                patches.append(try SourceBRepFacePatchBuilder().build(faceID: faceID, stableID: "source-face:\(faceIndex)", from: model,
+                                                                      sourceSubshapes: context.subshapes.entries, tolerance: context.tolerance).patch)
+                continue
+            }
             let oriented = try orientedPlane(faceID, model: model, featureID: featureID, tolerance: context.tolerance)
-            let polygon = try outerPolygon(faceID, model: model, featureID: featureID, tolerance: context.tolerance)
             let faceParents = subshapeIDs(for: .face(faceID), context: context)
+            let straightSided = try model.faces[faceID]?.loops.allSatisfy({ loopID in
+                guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("Missing fillet loop.") }
+                return loop.coedges.allSatisfy { coedge in
+                    guard let other = model.edges[coedge.edgeID], case .line? = model.geometry.curves[other.curveID] else { return false }
+                    return true
+                }
+            }) ?? false
+            let isIncident = faceID == incidentFaceIDs[0] || faceID == incidentFaceIDs[1]
+            // A face beside the edge with curved sides elsewhere (an earlier round meeting it away
+            // from this edge) keeps them: only the edge's side and the two sides at its ends move.
+            if isIncident, straightSided == false {
+                patches.append(try cutBack(faceID: faceID, stableID: "source-face:\(faceIndex)", edge: (startVertex.point, endVertex.point),
+                                           inward: faceID == incidentFaceIDs[0] ? secondInward : firstInward, distance: radius,
+                                           contactParents: [selectedSubshapeID], context: context))
+                continue
+            }
+            // The faces rounded at a corner are polygons of straight sides.
+            guard straightSided else {
+                throw failure(.unsupportedCapability, featureID: featureID, tolerance: context.tolerance,
+                              "A face at a rounded edge's end has curved sides.")
+            }
+            let polygon = try outerPolygon(faceID, model: model, featureID: featureID, tolerance: context.tolerance)
             if faceID == incidentFaceIDs[0] || faceID == incidentFaceIDs[1] {
                 let clippingNormal = faceID == incidentFaceIDs[0] ? secondInward : firstInward
                 let clipped = simplified(
@@ -403,6 +443,56 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
             bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context)
         )
+    }
+
+    /// A face beside a blended edge cut back to its contact line `distance` in along `inward`: the
+    /// edge's side becomes the contact line and the straight sides at its ends stop on it; every
+    /// other edge, curved ones included, is the face's own.
+    private func cutBack(faceID: FaceID, stableID: String, edge: (start: Point3D, end: Point3D), inward: Vector3D, distance: Double,
+                         contactParents: [SubshapeID], context: EvaluationContext) throws -> BRepSewingFacePatch {
+        let tolerance = context.tolerance
+        let source = try SourceBRepFacePatchBuilder().build(faceID: faceID, stableID: stableID, from: context.brep,
+                                                            sourceSubshapes: context.subshapes.entries, tolerance: tolerance).patch
+        func refuse(_ message: String) -> KernelError {
+            failure(.unsupportedCapability, tolerance: tolerance, message)
+        }
+        var loops = source.loops
+        func isBlended(_ candidate: BRepSewingEdge) -> Bool {
+            (candidate.startPoint.isApproximatelyEqual(to: edge.start, tolerance: tolerance.distance)
+                && candidate.endPoint.isApproximatelyEqual(to: edge.end, tolerance: tolerance.distance))
+                || (candidate.startPoint.isApproximatelyEqual(to: edge.end, tolerance: tolerance.distance)
+                    && candidate.endPoint.isApproximatelyEqual(to: edge.start, tolerance: tolerance.distance))
+        }
+        guard let loopIndex = loops.firstIndex(where: { $0.edges.contains(where: isBlended) }),
+              let index = loops[loopIndex].edges.firstIndex(where: isBlended), loops[loopIndex].edges.count >= 3 else {
+            throw refuse("A blended edge is not a side of the face beside it.")
+        }
+        var edges = loops[loopIndex].edges
+        let count = edges.count
+        let (previous, next) = ((index + count - 1) % count, (index + 1) % count)
+        /// Where a straight side ending (or starting) at the blended edge meets the contact line.
+        func stop(on side: BRepSewingEdge, at corner: Point3D) throws -> Point3D {
+            guard case .line = side.curve else { throw refuse("A side beside a blended edge's end is curved.") }
+            let far = side.startPoint.isApproximatelyEqual(to: corner, tolerance: tolerance.distance) ? side.endPoint : side.startPoint
+            let direction = try (far - corner).normalized(tolerance: tolerance.distance)
+            let rate = direction.dot(inward)
+            guard rate > tolerance.angle else { throw refuse("A side beside a blended edge runs along it.") }
+            let reach = distance / rate
+            guard reach < (far - corner).length - tolerance.distance else { throw refuse("A blend's radius removes a side beside its edge.") }
+            return corner + direction * reach
+        }
+        let surface = source.surface
+        let first = try stop(on: edges[previous], at: edges[index].startPoint)
+        let second = try stop(on: edges[next], at: edges[index].endPoint)
+        edges[previous] = try lineEdge(stableID: edges[previous].stableID, start: edges[previous].startPoint, end: first, surface: surface,
+                                       parents: edges[previous].parentSubshapeIDs, tolerance: tolerance)
+        edges[next] = try lineEdge(stableID: edges[next].stableID, start: second, end: edges[next].endPoint, surface: surface,
+                                   parents: edges[next].parentSubshapeIDs, tolerance: tolerance)
+        edges[index] = try lineEdge(stableID: edges[index].stableID, start: first, end: second, surface: surface,
+                                    parents: contactParents, tolerance: tolerance)
+        loops[loopIndex] = BRepSewingLoop(stableID: loops[loopIndex].stableID, role: loops[loopIndex].role, edges: edges)
+        return BRepSewingFacePatch(stableID: stableID, surface: surface, orientation: source.orientation, loops: loops,
+                                   parentSubshapeIDs: source.parentSubshapeIDs)
     }
 
     private func linePatch(
