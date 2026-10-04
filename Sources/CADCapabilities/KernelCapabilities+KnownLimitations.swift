@@ -466,18 +466,32 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADKernel/FaceBSplineSurfaceConverter.swift", sourceLine: 75
         ),
         KernelDomainLimitation(
+            id: "condition-202ab6ce8171c355",
+            operations: ["faceRebuild"],
+            dimensions: [.supportSurface, .connection],
+            condition: "analytic and other non-native tolerance rebuilds still publish through the historical edge checks without a complete native-source position certificate. The production completion condition is a typed whole-domain position proof for each such source family.",
+            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 147
+        ),
+        KernelDomainLimitation(
+            id: "condition-333c13ee425f7c4c",
+            operations: ["faceRebuild"],
+            dimensions: [.supportSurface, .connection],
+            condition: "The production DefaultFeatureEvaluator faceRebuild tolerance path currently refuses periodic or outside-source continuation requests with a typed unsupported error. Completion requires a whole-domain position proof for the original periodic/continued-law source before those requests may publish.",
+            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 265
+        ),
+        KernelDomainLimitation(
             id: "condition-73e03fac2f4f0f40",
             operations: ["faceRebuild"],
             dimensions: [.supportSurface, .connection],
             condition: "a boundary control point moved within the face's own plane leaves its straight edges on a spline whose parameters run unevenly along them: no exact trimming curve exists there, and the certified intersection with the plane beside it does not resolve, so the evaluation fails with that error. Production path: Rupa's control point moves on a face of a solid given control points. Complete when such a face keeps its edges, verified by a box face's corner control point drawn in alone.",
-            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 383
+            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 519
         ),
         KernelDomainLimitation(
             id: "condition-d0540804209f9190",
             operations: ["faceRebuild"],
             dimensions: [.supportSurface, .connection],
             condition: "a solid's face refit on a net that cannot hold its sides on its edges would leave the solid open where they stray (Plasticity keeps it closed with tolerant edges, which this kernel does not represent), so it is refused. Production path: Rebuild Face's square method (Refit Face) on a solid. Complete only when a solid's refit face may stray from its neighbours' edges and stay closed, verified by a pentagonal prism's top refit on a 3 × 3 net.",
-            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 615
+            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 751
         ),
         KernelDomainLimitation(
             id: "condition-2b5a8e9ebadb8cfb",

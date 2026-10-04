@@ -14,6 +14,9 @@ import CADTopology
 /// as its end spans continued (`BSplineSurfaceNaturalContinuation`). An explicit layout is
 /// fitted as given; a tolerance takes as few bicubic spans as keep within it
 /// (`MappedBSplineSurfaceFitter`).
+/// Native tolerance publication is certified only for non-periodic charts within the original
+/// source support. Periodic and continued-law cases retain an explicit typed refusal until their
+/// whole-domain original position proof is implemented.
 ///
 /// A face whose new surface keeps within a quarter of the distance tolerance of its edges along
 /// their trimming curves takes it in place, its edges, vertices and trimming curves kept. One that
@@ -25,11 +28,17 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
     private let resolver: ParameterResolving
     private let subshapeResolver: any StableSubshapeResolving
     private let identityBuilder: any CarriedTopologyIdentityBuilding
+    private let nativeSurfacePositionCertificationLimits: NativeSurfacePositionCertificationLimits
 
-    init(resolver: ParameterResolving = ParameterResolver(), subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver()) {
+    init(
+        resolver: ParameterResolving = ParameterResolver(),
+        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver(),
+        nativeSurfacePositionCertificationLimits: NativeSurfacePositionCertificationLimits = .standard
+    ) {
         self.resolver = resolver
         self.subshapeResolver = subshapeResolver
         identityBuilder = DefaultCarriedTopologyIdentityBuilder()
+        self.nativeSurfacePositionCertificationLimits = nativeSurfacePositionCertificationLimits
     }
 
     func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
@@ -120,7 +129,27 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         }
         var surfaces: [FaceID: BSplineSurface3D] = [:]
         for faceID in faceIDs {
-            surfaces[faceID] = try refitted(faceID, rebuild: rebuild, deviation: deviation, model: model, featureID: feature.id, tolerance: tolerance)
+            let candidate = try refitted(faceID, rebuild: rebuild, deviation: deviation, model: model, featureID: feature.id, tolerance: tolerance)
+            if case .tolerance = rebuild.method,
+               let face = model.faces[faceID],
+               let sourceSurface = model.geometry.surfaces[face.surfaceID],
+               case let .bSpline(source) = sourceSurface {
+        let requestedBox = try nativePositionRequestBox(
+            faceID: faceID, rebuild: rebuild, source: source, model: model, tolerance: tolerance,
+                    featureID: feature.id
+                )
+                try certifyNativePosition(
+                    source: source, candidate: candidate, requestedBox: requestedBox,
+                    preferWholeOriginal: rebuild.extendU == 0 && rebuild.extendV == 0,
+                    maximumPositionError: deviation ?? .infinity, featureID: feature.id, tolerance: tolerance
+                )
+            } else if case .tolerance = rebuild.method {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): analytic and other non-native tolerance
+                // rebuilds still publish through the historical edge checks without a complete
+                // native-source position certificate. The production completion condition is a
+                // typed whole-domain position proof for each such source family.
+            }
+            surfaces[faceID] = candidate
         }
 
         // How far each new surface strays from the face's edges along their trimming curves.
@@ -233,6 +262,113 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
 
     /// The face's new surface: its support refitted on the same parameters over the rectangle the
     /// feature asks for.
+    // FIXME(INCOMPLETE_IMPLEMENTATION): The production DefaultFeatureEvaluator faceRebuild
+    // tolerance path currently refuses periodic or outside-source continuation requests with a
+    // typed unsupported error. Completion requires a whole-domain position proof for the original
+    // periodic/continued-law source before those requests may publish.
+    private func nativePositionRequestBox(
+        faceID: FaceID,
+        rebuild: FaceRebuildFeature,
+        source: BSplineSurface3D,
+        model: BRepModel,
+        tolerance: ModelingTolerance,
+        featureID: FeatureID
+    ) throws -> SurfaceParameterBox {
+        guard source.isUPeriodic == false, source.isVPeriodic == false,
+              case let .closed(sourceULower, sourceUUpper) = source.uDomain,
+              case let .closed(sourceVLower, sourceVUpper) = source.vDomain else {
+            throw failure(.unsupportedCapability, featureID, tolerance,
+                          "Native Rebuild position certification does not support periodic or non-closed source charts.")
+        }
+        var box = try FaceParameterExtentResolver().bounds(for: faceID, in: model, tolerance: tolerance)
+        if rebuild.shrinks == false {
+            box = try SurfaceParameterBox(
+                u: try ScalarInterval(lower: sourceULower, upper: sourceUUpper),
+                v: try ScalarInterval(lower: sourceVLower, upper: sourceVUpper)
+            )
+        }
+        let requested = try SurfaceParameterBox(
+            u: try ScalarInterval(
+                lower: box.u.lower - box.u.width * rebuild.extendU,
+                upper: box.u.upper + box.u.width * rebuild.extendU
+            ),
+            v: try ScalarInterval(
+                lower: box.v.lower - box.v.width * rebuild.extendV,
+                upper: box.v.upper + box.v.width * rebuild.extendV
+            )
+        )
+        if rebuild.extendU != 0 || rebuild.extendV != 0 {
+            guard requested.u.lower >= sourceULower, requested.u.upper <= sourceUUpper,
+                  requested.v.lower >= sourceVLower, requested.v.upper <= sourceVUpper else {
+                throw failure(.unsupportedCapability, featureID, tolerance,
+                              "Native Rebuild position certification refuses a requested box outside its original source chart.")
+            }
+        }
+        return requested
+    }
+
+    private func certifyNativePosition(
+        source: BSplineSurface3D,
+        candidate: BSplineSurface3D,
+        requestedBox: SurfaceParameterBox,
+        preferWholeOriginal: Bool,
+        maximumPositionError: Double,
+        featureID: FeatureID,
+        tolerance: ModelingTolerance
+    ) throws {
+        guard candidate.isUPeriodic == false, candidate.isVPeriodic == false,
+              case let .closed(sourceULower, sourceUUpper) = source.uDomain,
+              case let .closed(sourceVLower, sourceVUpper) = source.vDomain,
+              case let .closed(candidateULower, candidateUUpper) = candidate.uDomain,
+              case let .closed(candidateVLower, candidateVUpper) = candidate.vDomain else {
+            throw failure(.unsupportedCapability, featureID, tolerance,
+                          "Native Rebuild position certification requires closed non-periodic source and candidate charts.")
+        }
+        let coversOriginal = preferWholeOriginal
+            && candidateULower <= sourceULower && candidateUUpper >= sourceUUpper
+            && candidateVLower <= sourceVLower && candidateVUpper >= sourceVUpper
+        let certificationBox: SurfaceParameterBox
+        if coversOriginal {
+            certificationBox = try SurfaceParameterBox(
+                u: try ScalarInterval(lower: sourceULower, upper: sourceUUpper),
+                v: try ScalarInterval(lower: sourceVLower, upper: sourceVUpper)
+            )
+        } else {
+            guard candidateULower <= requestedBox.u.lower, candidateUUpper >= requestedBox.u.upper,
+                  candidateVLower <= requestedBox.v.lower, candidateVUpper >= requestedBox.v.upper,
+                  requestedBox.u.lower > sourceULower, requestedBox.u.upper < sourceUUpper,
+                  requestedBox.v.lower > sourceVLower, requestedBox.v.upper < sourceVUpper,
+                  candidateULower < requestedBox.u.lower, candidateUUpper > requestedBox.u.upper,
+                  candidateVLower < requestedBox.v.lower, candidateVUpper > requestedBox.v.upper else {
+                throw failure(.unsupportedCapability, featureID, tolerance,
+                              "Native Rebuild candidate has no strictly contained, provable source certification box.")
+            }
+            certificationBox = requestedBox
+        }
+        do {
+            _ = try CertifiedNativeSurfacePositionCertifier().certifyPosition(
+                source: source, candidate: candidate, over: certificationBox,
+                maximumPositionError: maximumPositionError,
+                limits: nativeSurfacePositionCertificationLimits, tolerance: tolerance
+            )
+        } catch let error as KernelError {
+            throw error
+        } catch let error as GeometryConversionError {
+            switch error {
+            case let .invalidInput(message):
+                throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID,
+                                  tolerance: tolerance, message: message)
+            case let .resourceLimitExceeded(message):
+                throw KernelError(phase: .evaluation, code: .resourceLimitExceeded, featureID: featureID,
+                                  tolerance: tolerance, message: message)
+            case .toleranceRejected:
+                throw KernelError(phase: .evaluation, code: .approximationToleranceRejected, featureID: featureID,
+                                  tolerance: tolerance,
+                                  message: "Native Rebuild candidate exceeded its requested position tolerance.")
+            }
+        }
+    }
+
     private func refitted(
         _ faceID: FaceID, rebuild: FaceRebuildFeature, deviation: Double?, model: BRepModel, featureID: FeatureID, tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {

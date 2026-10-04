@@ -3,7 +3,8 @@ import CADIR
 import CADModeling
 
 public struct DocumentEvaluator: Sendable, ExactDocumentEvaluating {
-    private static let incrementalEvaluatorIdentity = "swift-cad.document-evaluator-dev"
+    private static let incrementalEvaluatorIdentity =
+        "swift-cad.document-evaluator-native-position-certification-v1"
 
     private let parameterResolver: ParameterResolving
     private let profileExtractor: SketchProfileExtracting

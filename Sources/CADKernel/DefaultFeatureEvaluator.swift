@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 
@@ -53,11 +54,14 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
     private let surfaceTrimEvaluator: SurfaceTrimFeatureEvaluator
     private let surfaceExtendEvaluator: SurfaceExtendFeatureEvaluator
     private let surfaceMatchEvaluator: SurfaceMatchFeatureEvaluator
+    private let nativeSurfacePositionCertificationLimits: NativeSurfacePositionCertificationLimits
 
     public init(
         sewer: any BRepSewing = DefaultBRepSewer(),
-        resolver: ParameterResolving = ParameterResolver()
+        resolver: ParameterResolving = ParameterResolver(),
+        nativeSurfacePositionCertificationLimits: NativeSurfacePositionCertificationLimits = .standard
     ) {
+        self.nativeSurfacePositionCertificationLimits = nativeSurfacePositionCertificationLimits
         self.primitiveEvaluator = PrimitiveFeatureEvaluator(
             sewer: sewer,
             resolver: resolver
@@ -283,7 +287,10 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         case .removeFillets: return RemoveFilletsFeatureEvaluator()
         case .removeRedundantTopology: return RemoveRedundantTopologyFeatureEvaluator()
         case .sheetExtend: return sheetExtendEvaluator
-        case .faceRebuild: return FaceRebuildFeatureEvaluator()
+        case .faceRebuild:
+            return FaceRebuildFeatureEvaluator(
+                nativeSurfacePositionCertificationLimits: nativeSurfacePositionCertificationLimits
+            )
         case .faceUnwrap: return FaceUnwrapFeatureEvaluator()
         case .surfaceAlign: return SurfaceAlignFeatureEvaluator()
         case .untrimFace: return UntrimFaceFeatureEvaluator()

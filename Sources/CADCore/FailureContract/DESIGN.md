@@ -69,3 +69,6 @@ integration contract: its current build stops at an existing Foundation import
 because the matching Embedded SDK does not provide Foundation. No Embedded
 success is inferred from native or normal WASM results. Changes to codes
 require exhaustive category handling and downstream capability review.
+
+
+PAR.G6POS1 adds approximationToleranceRejected to KernelErrorCode's numericalIndeterminacy category for an original-source approximation candidate that fails a requested complete-domain position allowance. It does not assert absence of another candidate; geometry consumers own mapping and feature/tolerance context. CADCore does not import CADGeometry.

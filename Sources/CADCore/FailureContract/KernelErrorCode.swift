@@ -25,6 +25,7 @@ public enum KernelErrorCode: String, Codable, Hashable, Sendable, CaseIterable {
     case intersectionFailure
     case nonDiscreteIntersection
     case classificationFailure
+    case approximationToleranceRejected
     case emptyResult
     case topologyFailure
     case nonManifoldResult
@@ -54,7 +55,8 @@ public enum KernelErrorCode: String, Codable, Hashable, Sendable, CaseIterable {
         case .singularSystem, .singularGeometry, .sweepProfilePlaneDegenerate,
              .sweepScaleCollapse, .sweepGuideTransformCollapse:
             .singularity
-        case .intersectionFailure, .classificationFailure, .sweepMonotonicityCertificateUnavailable:
+        case .intersectionFailure, .classificationFailure, .approximationToleranceRejected,
+             .sweepMonotonicityCertificateUnavailable:
             .numericalIndeterminacy
         case .nonDiscreteIntersection:
             .nonDiscreteResult

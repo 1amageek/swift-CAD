@@ -1121,3 +1121,6 @@ failure. This lower change does not authorize a sampled fitted Draft law.
 ### Immutable Interval Vector Composition
 
 `IntervalVector3DBounds` owns immutable three-coordinate outward interval arithmetic and norm bounds. Its package initializer retains the supplied scalar intervals verbatim so modeling admission can compose these bounds without duplicating geometry arithmetic. Construction creates no finite/regularity certificate: consumers remain responsible for finite, tangent and residual acceptance. Stored components and Sendable/value ownership are identical on every target; no state, synchronization or numerical rule changes. PolySpline admission tests execute the shared interval norm owner through the actual modeling producer.
+
+
+Native position-only Rebuild publication uses [Geometry Conversion](GeometryConversion/DESIGN.md#native-position-only-surface-publication-parg6pos1). Original prepared B-spline differential cost belongs to its native preparation owner; the new position certifier charges both supports and every probe before use. Native lower and public behavior are verified; portable closure remains task integration. This path does not extend common three-field conversion or procedural continuation authority.
