@@ -516,7 +516,8 @@ struct CurveSurfaceRegularGraphTests {
         var exact = OverlapProofBudget(options: options, tolerance: .standard)
         let authority = try #require(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
             surface: target, range: range, pair: pair, box: box, target: targetJet, budget: &exact))
-        #expect(authority.first.variesU && !authority.second.variesU)
+        let (first, second) = try #require(authority.mapping.separableAxes)
+        #expect(first.variesU && !second.variesU)
         #expect(authority.exactEndpoint(at: 0)?.u == 0 && authority.exactEndpoint(at: 1)?.v == 1)
         try expectFailure(.resourceLimitExceeded) { try exact.work() }
         options.maximumSubdivisionCells = 60
@@ -678,7 +679,8 @@ struct CurveSurfaceRegularGraphTests {
         var exact = OverlapProofBudget(options: options, tolerance: .standard)
         let authority = try #require(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
             surface: target, range: range, pair: pair, box: box, target: targetJet, budget: &exact))
-        #expect(authority.first.variesU && !authority.second.variesU)
+        let (first, second) = try #require(authority.mapping.separableAxes)
+        #expect(first.variesU && !second.variesU)
         #expect(authority.exactEndpoint(at: 0)?.u == 0 && authority.exactEndpoint(at: 1)?.v == 1)
         options.maximumSubdivisionCells = 38
         var insufficient = OverlapProofBudget(options: options, tolerance: .standard)
@@ -948,7 +950,8 @@ struct CurveSurfaceRegularGraphTests {
         var budget = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
         let authority = try #require(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
             surface: target, range: range, pair: pair, box: box, target: jet, budget: &budget))
-        #expect(authority.first.variesU && !authority.second.variesU)
+        let (first, second) = try #require(authority.mapping.separableAxes)
+        #expect(first.variesU && !second.variesU)
         #expect(authority.exactEndpoint(at: 0)?.u == 0 && authority.exactEndpoint(at: 1)?.v == 1)
         #expect(authority.exactEndpoint(at: 0.5) == nil)
         var nonunit = target

@@ -1,6 +1,6 @@
 import CADCore
 
-/// Exact separability and closed-interval IVT authority on original geometry.
+/// Original separable or triangular closed-domain existence authority.
 struct OverlapRegularGraphClosedDomainAuthority: Sendable {
     /// Original coefficient identity, independent of source membership or root existence.
     struct TargetIndependence: Sendable {
@@ -136,8 +136,28 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
     let range: ScalarInterval
     let pair: OverlapRegularGraphCell.Pair
     let box: SurfaceParameterBox
-    let first: Axis
-    let second: Axis
+    enum Mapping: Sendable {
+        case separable(Axis, Axis)
+        case triangular(Triangular)
+
+        var separableAxes: (Axis, Axis)? {
+            if case let .separable(first, second) = self { return (first, second) }
+            return nil
+        }
+    }
+
+    struct Triangular: Sendable {
+        let primaryCoordinate: Int
+        let secondaryCoordinate: Int
+        let primaryVariesU: Bool
+        let primaryDiagonal: [Double]
+        let shear: [Double]
+        let secondaryDiagonal: [Double]
+        let start: SurfaceParameter?
+        let end: SurfaceParameter?
+    }
+
+    let mapping: Mapping
 
     static func certificate(curve: Curve3D, surface: BSplineSurface3D,
                             range: ScalarInterval, pair: OverlapRegularGraphCell.Pair,
@@ -184,11 +204,13 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
                 }
             }
         }
-        guard let first = axis(coordinate: pair.first, surface: surface, box: box),
-              let second = axis(coordinate: pair.second, surface: surface, box: box),
-              first.variesU != second.variesU,
-              monotone(first, target: target), monotone(second, target: target) else { return nil }
-        return admittedSource(source, surface: surface, range: range, pair: pair, box: box, first: first, second: second)
+        if let first = axis(coordinate: pair.first, surface: surface, box: box),
+           let second = axis(coordinate: pair.second, surface: surface, box: box),
+           first.variesU != second.variesU,
+           monotone(first, target: target), monotone(second, target: target) {
+            return admittedSource(source, surface: surface, range: range, pair: pair, box: box, first: first, second: second)
+        }
+        return try admittedTriangular(source, surface: surface, range: range, pair: pair, box: box, budget: &budget)
     }
 
     static func certificate(curve: Curve3D, independence: TargetIndependence,
@@ -201,11 +223,13 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
         guard originalSourceAtlas(source),
               box.u.lower == surface.uKnots[surface.uDegree], box.u.upper == surface.uKnots[surface.uControlPointCount],
               box.v.lower == surface.vKnots[surface.vDegree], box.v.upper == surface.vKnots[surface.vControlPointCount],
-              range.lower >= source.knots[0], range.upper <= source.knots[source.knots.count - 1],
-              let first = independence.axis(coordinate: pair.first, box: box),
-              let second = independence.axis(coordinate: pair.second, box: box), first.variesU != second.variesU,
-              monotone(first, target: target), monotone(second, target: target) else { return nil }
-        return admittedSource(source, surface: surface, range: range, pair: pair, box: box, first: first, second: second)
+              range.lower >= source.knots[0], range.upper <= source.knots[source.knots.count - 1] else { return nil }
+        if let first = independence.axis(coordinate: pair.first, box: box),
+           let second = independence.axis(coordinate: pair.second, box: box), first.variesU != second.variesU,
+           monotone(first, target: target), monotone(second, target: target) {
+            return admittedSource(source, surface: surface, range: range, pair: pair, box: box, first: first, second: second)
+        }
+        return try admittedTriangular(source, surface: surface, range: range, pair: pair, box: box, budget: &budget)
     }
 
     /// The caller has paid the complete original knot scan before this check.
@@ -251,7 +275,7 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
             secondMinimum = min(secondMinimum, b); secondMaximum = max(secondMaximum, b)
         }
         guard firstMinimum < firstMaximum, secondMinimum < secondMaximum else { return nil }
-        return Self(curve: source, surface: surface, range: range, pair: pair, box: box, first: first, second: second)
+        return Self(curve: source, surface: surface, range: range, pair: pair, box: box, mapping: .separable(first, second))
     }
 
     func exactEndpoint(at parameter: Double) -> SurfaceParameter? {
@@ -260,9 +284,135 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
         if parameter == curve.knots[0] { point = curve.controlPoints[0] }
         else if parameter == curve.knots[curve.knots.count - 1] { point = curve.controlPoints[curve.controlPointCount - 1] }
         else { return nil }
-        guard let a = first.endpoint(for: OverlapRegularGraphCell.coordinate(point, first.coordinate)),
-              let b = second.endpoint(for: OverlapRegularGraphCell.coordinate(point, second.coordinate)) else { return nil }
-        return SurfaceParameter(u: first.variesU ? a : b, v: first.variesU ? b : a)
+        switch mapping {
+        case let .separable(first, second):
+            guard let a = first.endpoint(for: OverlapRegularGraphCell.coordinate(point, first.coordinate)),
+                  let b = second.endpoint(for: OverlapRegularGraphCell.coordinate(point, second.coordinate)) else { return nil }
+            return SurfaceParameter(u: first.variesU ? a : b, v: first.variesU ? b : a)
+        case let .triangular(chart):
+            // Exact endpoint cofactors were already proved and paid at minting.
+            return parameter == curve.knots[0] ? chart.start : chart.end
+        }
+    }
+
+    private static func admittedTriangular(_ source: BSplineCurve3D, surface: BSplineSurface3D,
+                                          range: ScalarInterval, pair: OverlapRegularGraphCell.Pair,
+                                          box: SurfaceParameterBox, budget: inout OverlapProofBudget) throws -> Self? {
+        guard surface.uDegree == 1, surface.vDegree == 1,
+              surface.uControlPointCount == 2, surface.vControlPointCount == 2,
+              surface.weights.allSatisfy({ $0.allSatisfy { $0 == 1 } }) else { return nil }
+        // These scans belong to the already charged original tensor admission.
+        for primary in [pair.first, pair.second] {
+            let secondary = primary == pair.first ? pair.second : pair.first
+            for variesU in [true, false] {
+                // Seven bounded exact coefficient operations, including the diagonal product.
+                try budget.work(7)
+                func coordinate(_ row: Int, _ column: Int, _ axis: Int) -> Double {
+                    OverlapRegularGraphCell.coordinate(surface.controlPoints[row][column], axis)
+                }
+                let p00 = coordinate(0, 0, primary), p10 = coordinate(0, 1, primary)
+                let p01 = coordinate(1, 0, primary), p11 = coordinate(1, 1, primary)
+                guard variesU ? (p00 == p01 && p10 == p11) : (p00 == p10 && p01 == p11) else { continue }
+                let q00 = coordinate(0, 0, secondary), q10 = coordinate(0, 1, secondary)
+                let q01 = coordinate(1, 0, secondary), q11 = coordinate(1, 1, secondary)
+                let mixed = try Exact.subtract(Exact.difference(q11, q10, budget.tolerance),
+                    Exact.difference(q01, q00, budget.tolerance), budget.tolerance)
+                guard FloatingPointExpansion.sign(mixed) == .zero else { continue }
+                let a = try Exact.difference(variesU ? p10 : p01, p00, budget.tolerance)
+                let b = try Exact.difference(variesU ? q10 : q01, q00, budget.tolerance)
+                let c = try Exact.difference(variesU ? q01 : q10, q00, budget.tolerance)
+                let determinant = try Exact.product(a, c, budget.tolerance)
+                let sign = FloatingPointExpansion.sign(determinant)
+                guard sign == .positive || sign == .negative else { continue }
+                let fee = source.controlPointCount.multipliedReportingOverflow(by: 8)
+                guard !fee.overflow else { throw Exact.failure(budget.tolerance) }
+                // Complete pullback comparisons are paid before coefficient arrays grow.
+                try budget.work(fee.partialValue)
+                var start: SurfaceParameter?, end: SurfaceParameter?
+                for index in 0..<source.controlPointCount {
+                    guard source.weights[index].isFinite, source.weights[index] > 0 else { return nil }
+                    let point = source.controlPoints[index]
+                    let p = try Exact.difference(OverlapRegularGraphCell.coordinate(point, primary), p00, budget.tolerance)
+                    let q = try Exact.difference(OverlapRegularGraphCell.coordinate(point, secondary), q00, budget.tolerance)
+                    let first = try Exact.product(p, c, budget.tolerance)
+                    let second = try Exact.subtract(Exact.product(a, q, budget.tolerance),
+                        Exact.product(b, p, budget.tolerance), budget.tolerance)
+                    let firstUpper = try Exact.subtract(first, determinant, budget.tolerance)
+                    let secondUpper = try Exact.subtract(second, determinant, budget.tolerance)
+                    func inside(_ value: [Double], _ upper: [Double]) -> Bool {
+                        let lowerSign = FloatingPointExpansion.sign(value), upperSign = FloatingPointExpansion.sign(upper)
+                        return sign == .positive ? lowerSign != .negative && upperSign != .positive
+                            : lowerSign != .positive && upperSign != .negative
+                    }
+                    guard inside(first, firstUpper), inside(second, secondUpper) else { return nil }
+                    func endpoint(_ value: [Double], _ upper: [Double], _ axis: ScalarInterval) -> Double? {
+                        if FloatingPointExpansion.sign(value) == .zero { return axis.lower }
+                        if FloatingPointExpansion.sign(upper) == .zero { return axis.upper }
+                        return nil
+                    }
+                    if let firstEnd = endpoint(first, firstUpper, variesU ? box.u : box.v),
+                       let secondEnd = endpoint(second, secondUpper, variesU ? box.v : box.u) {
+                        let uv = SurfaceParameter(u: variesU ? firstEnd : secondEnd, v: variesU ? secondEnd : firstEnd)
+                        if index == 0 { start = uv }
+                        if index == source.controlPointCount - 1 { end = uv }
+                    }
+                }
+                return Self(curve: source, surface: surface, range: range, pair: pair, box: box,
+                    mapping: .triangular(Triangular(primaryCoordinate: primary, secondaryCoordinate: secondary,
+                        primaryVariesU: variesU, primaryDiagonal: a, shear: b, secondaryDiagonal: c, start: start, end: end)))
+            }
+        }
+        return nil
+    }
+
+    /// A fixed-size expansion certificate. Every product's least original bit
+    /// must be representable; finite rounded zero never supplies exact equality.
+    private enum Exact {
+        // Two differences have at most two components each; cofactor products
+        // and their comparisons contain at most 24 components. This fixed 64
+        // capacity also bounds all transient accumulation, without a new allowance.
+        static let maximumComponents = 64
+        static let safeMagnitude = Double.greatestFiniteMagnitude / 128
+
+        static func failure(_ tolerance: ModelingTolerance) -> KernelError {
+            KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                message: "Original triangular-chart arithmetic has no bounded exact finite expansion.")
+        }
+
+        static func checked(_ value: [Double], _ tolerance: ModelingTolerance) throws -> [Double] {
+            guard value.count <= maximumComponents,
+                  value.allSatisfy({ $0.isFinite && abs($0) <= safeMagnitude }) else { throw failure(tolerance) }
+            return value
+        }
+
+        static func difference(_ first: Double, _ second: Double,
+                               _ tolerance: ModelingTolerance) throws -> [Double] {
+            guard first.isFinite, second.isFinite, abs(first) <= safeMagnitude,
+                  abs(second) <= safeMagnitude else { throw failure(tolerance) }
+            return try checked(FloatingPointExpansion.difference(first, second), tolerance)
+        }
+
+        static func subtract(_ first: [Double], _ second: [Double],
+                             _ tolerance: ModelingTolerance) throws -> [Double] {
+            _ = try checked(first, tolerance); _ = try checked(second, tolerance)
+            guard first.count + second.count <= maximumComponents else { throw failure(tolerance) }
+            return try checked(FloatingPointExpansion.subtract(first, second), tolerance)
+        }
+
+        static func product(_ first: [Double], _ second: [Double],
+                            _ tolerance: ModelingTolerance) throws -> [Double] {
+            _ = try checked(first, tolerance); _ = try checked(second, tolerance)
+            guard first.count * second.count * 2 <= maximumComponents else { throw failure(tolerance) }
+            for a in first where a != 0 {
+                for b in second where b != 0 {
+                    guard let left = DyadicFactor(abs(a)), let right = DyadicFactor(abs(b)),
+                          left.exponent + right.exponent >= -1074,
+                          (a * 134_217_729).isFinite, (b * 134_217_729).isFinite,
+                          (a * b).isFinite, abs(a * b) <= safeMagnitude else { throw failure(tolerance) }
+                }
+            }
+            return try checked(FloatingPointExpansion.product(first, second), tolerance)
+        }
     }
 
     /// Compares exact real products of original positive binary64 coefficients.

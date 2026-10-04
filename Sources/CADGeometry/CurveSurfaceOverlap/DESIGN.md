@@ -915,3 +915,46 @@ atlas, work and refusal declarations pass93.096s. No root, residual, corresponde
 source geometry, precision or option budget is weakened. Capability42 pass.149s;
 three staged-source checks retain133 conditions,664 bindings and107 public routes.
 General source multiplicities and periodic charts remain separate full-G4 gaps.
+
+
+### Original Triangular Affine Closed Chart (PAR.G4R4)
+
+A new bounded closed-domain existence family may consume only original unit-weight,
+nonperiodic single bilinear target controls whose selected Cartesian coordinate
+pair is an exact nonsingular triangular affine map of the normalized native axes.
+Its mixed Bernstein coefficient must be exactly zero in original binary64 real
+arithmetic. The univariate first coordinate has a signed nonzero diagonal;
+the second may include a shear of the first axis and a signed nonzero second
+diagonal. Coordinate permutations and axis interchange may share this structural
+contract, but a general coupled/rational/nonfactorable map supplies no authority.
+
+ClosedDomainAuthority owns an immutable separable-or-triangular mapping, not a
+fake coordinate-independence claim. Before minting it, the existing cumulative
+OverlapProofBudget precharges original control scans and all exact arithmetic.
+Bounded exact difference/product/signed-cofactor comparisons prove the complete
+original positive source control hull lies in the target native rectangle under
+the inverse affine map. Positive original source basis/weights and complete
+original source atlas then prove existence for every owned source parameter.
+Underflow/overflow or uncertain exact arithmetic must not become a boundary
+comparison; they retain typed refusal/unsupported closed authority. No source
+extraction, coefficient rounding, outward enlarged face or extrapolated support
+may replace that original existence proof.
+
+Original rank/global uniqueness, strict Jacobian/Krawczyk, third-coordinate whole
+membership, root ownership, correspondence, clipping, native joins and existing
+work/cell/depth/endpoint rules remain separate mandatory guarantees. The new
+mapping never zeros an actual coupled partial or modifies TargetIndependence.
+Root consumes only the existing immutable closed-domain certificate fields;
+original intrinsic endpoint native coordinates may be returned only when exact
+cofactor equality proves their original closed face/corner. Otherwise the
+existing root enclosure owns the result.
+
+Independent literal target S=(U,V+U/4,U*V), curve C=(h,5h/4,h*h),
+h=2t/(1+t), original degree-two controls [(0,0,0),(.5,.625,0),(1,1.25,1)]
+and weights[1,2,4] prove UV=(h,h). Complete/reversed domains, each clipped native
+face/corner and singleton0/.5/1, original support immutability, paid budget and
+cancellation must execute publicly. An independent interior Z perturbation has
+no overlap on a restricted interior domain. One-ULP nonzero mixed coefficients,
+singular diagonals, source pullback hull outside the rectangle and unavailable
+exact comparisons must not mint closed authority; existing valid interior
+proofs remain available. This family is not full general/periodic G4 completion.
