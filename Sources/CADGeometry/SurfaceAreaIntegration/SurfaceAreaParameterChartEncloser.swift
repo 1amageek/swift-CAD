@@ -99,7 +99,8 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
         switch storage {
         case .affineImplicit(let prepared): return prepared.hasNativeJoins
         case .rigid(let child,_,_,_), .translated(let child,_,_): return hasNativeJoins(child)
-        case .numeric, .nonlinearImplicit: return false
+        case .nonlinearImplicit(let prepared): return prepared.hasNativeJoins
+        case .numeric: return false
         }
     }
 

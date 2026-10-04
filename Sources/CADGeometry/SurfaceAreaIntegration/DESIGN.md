@@ -33,7 +33,8 @@ chain whose two original B-spline supports have exact affine patch authority.
 It solves the constant native-UV correspondence system with outward intervals;
 the retained graph certificate and its original free coordinate own traversal.
 `SurfaceAreaImplicitParameterChartEncloser` composes the parent's prepared
-closed parameter localizer for one open smooth single-Bezier-span graph cell.
+closed parameter localizer for an open same-coordinate/direction graph chain
+on smooth single-Bezier-span supports.
 It retains both original supports, the selected role, the trim fraction map
 and the invocation's preparation tolerance. Topology supplies a synchronous,
 non-escaping work callback; geometry retains no callback or independent budget.
@@ -70,7 +71,7 @@ non-escaping work callback; geometry retains no callback or independent budget.
   Outward affine UV/fraction arithmetic and the third-order chain rule enclose
   values and derivatives over the complete requested interval. No sampled
   reconstruction or materialized approximation changes the original fan map.
-  Implicit charts outside the exact connected affine or single smooth positive-weight cell families and non-affine
+  Implicit charts outside the exact connected affine or open same-coordinate/direction smooth positive-weight chain families and non-affine
   spherical images remain explicit unsupported failures. Preparing a chart does not allocate another query error
   allowance or reset adaptive cell/depth/control admission limits.
 - The affine implicit family requires exact selected-support identity, original
@@ -103,7 +104,7 @@ non-escaping work callback; geometry retains no callback or independent budget.
   budgets. Closed curves, mixed free coordinates/directions, inexact endpoint
   joins, non-affine supports and unresolved constant minors remain typed failures.
 - The nonlinear implicit family uses only the original lower root certificate
-  and the [prepared closed localizer](../DESIGN.md). It admits one open cell
+  and the [prepared closed localizer](../DESIGN.md). It admits an open same-coordinate/direction chain
   between two single-span, nonperiodic, clamped B-spline supports with finite
   positive weights. Original rational quotient jets certify a positive
   denominator and native derivatives through order three; the lower
@@ -133,7 +134,7 @@ formulas never provide root or derivative authority.
   an explicit typed invalid-input failure. A lower subdivision-required result
   becomes typed `implicitLocalization` refinement, requesting subdivision of
   the original boundary fraction T rather than a hidden local retry. Periodic,
-  multispan, multicell, closed and procedural implicit supports remain incomplete typed
+  multispan, mixed-coordinate/direction, closed and procedural implicit supports remain incomplete typed
   refusals; the parent's lower contract is not generalized to those families.
 - Closed endpoint bounds retain the exact original trim endpoint fraction,
   including each rigid wrapper's stored endpoint. They use the same prepared
@@ -432,6 +433,43 @@ For the bounded original single open cell, Geometry may prove a whole constant s
 
 The image proof is usable only for the actual prepared chart, original source and caller work lifetime. It enables the existing translation rectangle integrand, while original endpoint intervals bound every discrepancy from numeric adjacent side endpoints. Signed fan differences at each endpoint are enclosed as triangles of UV area at most abs(anchorAxis-fixedAxis)*abs(originalEndpointOther-sideOther)/2. The original support density and reference-relative XYZ bounds enclose all four correction fields over the entire triangle cover. These original coefficient scans, whole-chart proof, endpoints and correction evaluations consume the caller callback before expansion; no inferred fourth derivative, geometry replacement, arbitrary private allowance or uncharged certificate is introduced. Unadmitted cases retain the existing original fan path; contradicted source/tolerance/domain authority fails explicitly.
 
-Independent tests perturb interior original coefficients without changing endpoint samples, retain genuine rational weights and direction/wrappers, and show that omitted endpoint correction breaks four-field containment. Existing forward/reverse/rigid public area/XYZ centroid cases must pass their unchanged60s limits before this bounded scope is complete. General rational/multicell/closed charts remain separate gaps.
+Independent tests perturb interior original coefficients without changing endpoint samples, retain genuine rational weights and direction/wrappers, and show that omitted endpoint correction breaks four-field containment. Existing forward/reverse/rigid public area/XYZ centroid cases must pass their unchanged60s limits before this bounded scope is complete. General rational multispan, mixed-coordinate/direction multicell and closed charts remain separate gaps.
 
 Native evidence for the bounded iso-image route: all five new parameter cases pass, including original fractions/reversal/rigid identity, interior-coefficient refusal and independent nonzero endpoint area/XYZ corrections. The unchanged public forward/reverse/rigid rational band cases and work/endpoint refusal pass in1.395s. The complete current73-test face-area suite passes in27.853s; the lower37-test original implicit suite passes in.327s. These measurements describe this Native snapshot and do not certify general charts or other targets.
+
+### Open Nonlinear Original Graph Chains (PAR.Q3MULT1)
+
+The bounded nonlinear chart family additionally admits an open original graph
+chain on the same two nonperiodic positive-weight single-span supports. Every
+cell retains the same original free coordinate and direction; directed native
+free endpoints must agree exactly. Original lower closed endpoint proofs on
+both supports must establish complete four-coordinate connection differences
+within the existing64-ulp parameter-rounding contract. Certificate-tolerance
+connection or midpoint overlap alone cannot authorize a missing segment.
+
+The original intersection remains the immutable authority; no single-cell
+replacement certificate is constructed. Its equal global pieces have width
+`1/N`. The stored trim fraction map selects original cell indices and local
+fractions `N*f-i`; lower native derivatives already include the global `N`
+powers. The chart applies only the original trim slope powers. A closed
+request intersecting multiple owning pieces publishes a value-only union of
+positions and one-sided first tangents, without higher-derivative authority
+or a retained root state. A smooth piece retains its own original cell root;
+restriction cannot move that state to another cell. The lower endpoint-Taylor
+root-cover restriction uses global fraction displacement `localDelta/N`,
+consistent with those original derivative powers.
+
+Original chart preparation, every cell's closed-root prepare/advance, joins,
+and integration consume the caller's existing query work callback. Counts
+are preflight-bounded before preparation; no per-piece error, depth, work or
+allocation allowance is introduced. Wrappers preserve fraction/direction,
+selected source and smooth/value-only proof kinds. Closed, mixed-coordinate,
+mixed-direction, periodic, multispan and procedural chains remain explicit
+unfinished families. The iso-image shortcut remains limited to its existing
+smooth whole-chart proof, rather than inferring a chain identity from samples.
+
+Independent completion evidence uses the already constructed two-cell
+polynomial fixture and its physical area `13/196608`, centroid
+`(363/66560,15/1664,0)`, partial/reversed/rigid original fractions, closed
+one-sided jet containment, foreign/tolerance/root-cell refusals, exact
+connection refusal and shared low-work/depth/cancellation behavior.

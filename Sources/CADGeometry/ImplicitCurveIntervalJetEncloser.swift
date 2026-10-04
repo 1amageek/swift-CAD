@@ -225,16 +225,18 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
           curve.cells.indices.contains(cellIndex), interval.lower >= 0, interval.upper <= 1 else {
       throw invalidInput(tolerance:tolerance,message:"Implicit localization requires its exact prepared owner and original closed interval.")
     }
-    // FIXME(INCOMPLETE_IMPLEMENTATION): General joins, closed charts, periodic,
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Mixed-coordinate/direction joins, closed charts, periodic,
     // piecewise and procedural supports lack this caller-budget localization
     // contract on implicit/face-area queries. Complete only after their original
     // root and derivative-domain authority is certified without hidden budgets.
-    guard !curve.isClosed,curve.cells.count == 1,
+    guard !curve.isClosed, !curve.cells.isEmpty,
+          curve.cells.allSatisfy({ $0.freeParameter == curve.cells[0].freeParameter
+            && $0.direction == curve.cells[0].direction }),
           case .bSpline(let first) = curve.firstSurface,
           case .bSpline(let second) = curve.secondSurface,
           Self.isSinglePositiveWeightSpan(first),Self.isSinglePositiveWeightSpan(second) else {
       throw KernelError(phase:.geometry,code:.unsupportedCapability,tolerance:tolerance,
-        message:"Implicit closed localization requires one open positive-weight single-span B-spline graph cell.")
+        message:"Implicit closed localization requires an open same-coordinate/direction graph chain on positive-weight single-span B-spline supports.")
     }
     let cell = curve.cells[cellIndex]
     var bounds = cell.parameterBox.intervals
@@ -245,13 +247,15 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
 
   /// One bounded restriction of the original containing four-parameter root cover.
   package func prepareParameterEnclosure(
-    restricting parent: ParameterEnclosureState, overClosedInterval interval: ScalarInterval,
+    restricting parent: ParameterEnclosureState, cellIndex: Int? = nil,
+    overClosedInterval interval: ScalarInterval,
     tolerance: ModelingTolerance
   ) throws -> ParameterEnclosureState {
     try checkLocalizationCancellation(tolerance)
     guard let preparedSurfaces, preparedSurfaces.intersection == parent.intersection,
           preparedSurfaces.tolerance == tolerance, parent.tolerance == tolerance,
           parent.intersection.cells.indices.contains(parent.cellIndex),
+          cellIndex == nil || cellIndex == parent.cellIndex,
           interval.lower.isFinite, interval.upper.isFinite, interval.lower <= interval.upper,
           interval.lower >= parent.originalInterval.lower,
           interval.upper <= parent.originalInterval.upper else {
@@ -270,8 +274,18 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
     if case .upperEndpoint(let rangeJet, _, let lowerJet) = parent.phase {
       // These are actual original endpoint-root jets and a certified whole-range
       // third bound. Their Taylor enclosure is a root cover, never a point solve.
-      let delta = OutwardScalarInterval(lower:interval.lower,upper:interval.upper)
+      let localDelta = OutwardScalarInterval(lower:interval.lower,upper:interval.upper)
         - .exact(parent.originalInterval.lower)
+      let delta: OutwardScalarInterval
+      if parent.intersection.cells.count == 1 { delta = localDelta }
+      else {
+        guard let globalDelta = localDelta.divided(by:.exact(Double(parent.intersection.cells.count))),
+              globalDelta.isFinite else {
+          throw arithmeticFailure(tolerance:tolerance,
+            message:"Original root restriction could not preserve global cell-fraction scaling.")
+        }
+        delta = globalDelta
+      }
       let square = delta*delta, cube = square*delta
       func outward(_ value: ScalarInterval) -> OutwardScalarInterval {
         OutwardScalarInterval(lower:value.lower,upper:value.upper)

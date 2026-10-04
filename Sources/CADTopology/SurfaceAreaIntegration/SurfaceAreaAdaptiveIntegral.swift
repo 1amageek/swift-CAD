@@ -27,7 +27,7 @@ struct SurfaceAreaAdaptiveIntegral {
 
     func integrate(cells: [Cell], goals: [Double], options: FaceAreaIntegrationOptions,
                    work: inout Int, tolerance: ModelingTolerance,
-                   evaluate: (Cell) throws -> Evaluation) throws -> [OutwardScalarInterval] {
+                   evaluate: (Cell, inout Int) throws -> Evaluation) throws -> [OutwardScalarInterval] {
         guard !cells.isEmpty,goals.count == 4,goals.allSatisfy({ $0.isFinite && $0 > 0 }) else {
             throw failure(.classificationFailure,tolerance,"Native integration requires complete coverage and four finite positive uncertainty targets.")
         }
@@ -45,7 +45,7 @@ struct SurfaceAreaAdaptiveIntegral {
                 throw KernelError(phase:.topology,code:.resourceLimitExceeded,residual:Double(work),tolerance:tolerance,
                     message:"Certified face area exceeded its shared cell budget.")
             }
-            let evaluation = try evaluate(cell)
+            let evaluation = try evaluate(cell,&work)
             if let values = evaluation.contribution {
                 guard values.count == 4,values.allSatisfy(\.isFinite) else {
                     throw failure(.classificationFailure,tolerance,"Native integration has incomplete or nonfinite moment coverage.")

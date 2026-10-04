@@ -59,6 +59,37 @@ struct CertifiedImplicitIntersectionCurveTests {
     }
   }
 
+  @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+  func originalTwoCellClosedJetsAndRootRestrictionPreserveGlobalFractionPowers(_ backwards: Bool) throws {
+    let curve = try dyadicPlaneParabolaCurve(direction:backwards ? .reversed : .forward,split:true)
+    let prepared = try ImplicitCurveIntervalJetEncloser(intersection:curve,tolerance:tolerance)
+    var remaining = SurfaceSurfaceIntersectionOptions().maximumSubdivisionCells
+    for index in curve.cells.indices {
+      let parent = try continuedRootParameterJet(prepared,of:curve,over:ScalarInterval(lower:0,upper:1),
+        cellIndex:index,remainingWork:&remaining)
+      for local in [0.0,0.25,0.5,0.75,1] {
+        let point = try ScalarInterval(lower:local,upper:local)
+        let result = try continuedRootParameterJet(prepared,of:curve,over:point,cellIndex:index,
+          restricting:parent.state,remainingWork:&remaining)
+        let global = (Double(index)+local)/2
+        let t = backwards ? 0.75-0.5*global : 0.25+0.5*global
+        let h = backwards ? -0.5 : 0.5
+        let expected: [[Double]] = [[t*t,2*t*h,2*h*h,0],[t,h,0,0],[t,h,0,0],[0.5,0,0,0]]
+        for (coordinate,values) in zip(result.jet.coordinates,expected) {
+          for (field,value) in zip([coordinate.value,coordinate.firstDerivative,
+            coordinate.secondDerivative,coordinate.thirdDerivative],values) { #expect(field.contains(value)) }
+          #expect(coordinate.value.width <= Double.ulpOfOne*64)
+        }
+      }
+      do {
+        _ = try prepared.prepareParameterEnclosure(restricting:parent.state,cellIndex:1-index,
+          overClosedInterval:ScalarInterval(lower:0.5,upper:0.5),tolerance:tolerance)
+        Issue.record("An original root state changed its owning graph cell.")
+      } catch let error as KernelError { #expect(error.code == .invalidInput) }
+    }
+    #expect(remaining < SurfaceSurfaceIntersectionOptions().maximumSubdivisionCells-4)
+  }
+
   @Test(.timeLimit(.minutes(1)))
   func rationalSingleCellConstructorRetainsIndependentNonpolynomialRootAuthority() throws {
     let curve = try rationalPlaneParabolaCurve()
@@ -522,7 +553,7 @@ struct CertifiedImplicitIntersectionCurveTests {
   }
 
   private func continuedRootParameterJet(_ prepared: ImplicitCurveIntervalJetEncloser,
-    of curve: CertifiedImplicitIntersectionCurve, over interval: ScalarInterval,
+    of curve: CertifiedImplicitIntersectionCurve, over interval: ScalarInterval, cellIndex: Int = 0,
     restricting parent: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState? = nil,
     remainingWork: inout Int) throws -> (jet: CertifiedImplicitParameterIntervalJet,
       state: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState) {
@@ -536,10 +567,10 @@ struct CertifiedImplicitIntersectionCurveTests {
     try consume(&remainingWork)
     var state: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState
     if let parent {
-      state = try prepared.prepareParameterEnclosure(restricting:parent,
+      state = try prepared.prepareParameterEnclosure(restricting:parent,cellIndex:cellIndex,
         overClosedInterval:interval,tolerance:tolerance)
     } else {
-      state = try prepared.prepareParameterEnclosure(of:curve,cellIndex:0,
+      state = try prepared.prepareParameterEnclosure(of:curve,cellIndex:cellIndex,
         overClosedInterval:interval,tolerance:tolerance)
     }
     while true {
@@ -555,7 +586,7 @@ struct CertifiedImplicitIntersectionCurveTests {
   }
 
   private func dyadicPlaneParabolaCurve(
-    direction: CertifiedImplicitIntersectionDirection = .forward
+    direction: CertifiedImplicitIntersectionDirection = .forward, split: Bool = false
   ) throws -> CertifiedImplicitIntersectionCurve {
     // Exact original controls: S1(u,v)=(u/32,v/64,0),
     // S2(s,r)=(s^2/32,s/64,(2r-1)/64). No fitted chart or sampled certificate.
@@ -573,15 +604,18 @@ struct CertifiedImplicitIntersectionCurveTests {
       try SurfaceIntersectionParameterPair(first:SurfaceParameter(u:t*t,v:t),
         second:SurfaceParameter(u:t,v:0.5))
     }
-    let cell = try CertifiedImplicitIntersectionGraphCell(
-      parameterBox:SurfaceIntersectionParameterBox(
-        firstU:ScalarInterval(lower:-0.25,upper:0.875),firstV:ScalarInterval(lower:0.25,upper:0.75),
+    let ranges: [(Double,Double)] = split ? [(0.25,0.5),(0.5,0.75)] : [(0.25,0.75)]
+    let ordered = direction == .forward ? ranges : Array(ranges.reversed())
+    let cells = try ordered.map { lower,upper in
+      try CertifiedImplicitIntersectionGraphCell(parameterBox:SurfaceIntersectionParameterBox(
+        firstU:ScalarInterval(lower:-0.25,upper:0.875),firstV:ScalarInterval(lower:lower,upper:upper),
         secondU:ScalarInterval(lower:0.2,upper:0.8),secondV:ScalarInterval(lower:0,upper:1)),
-      freeParameter:.firstV,direction:direction,
-      lowerAnchor:anchor(0.25),midpointAnchor:anchor(0.5),upperAnchor:anchor(0.75),
-      firstSurface:first,secondSurface:second,tolerance:tolerance)
+        freeParameter:.firstV,direction:direction,
+        lowerAnchor:anchor(lower),midpointAnchor:anchor((lower+upper)/2),upperAnchor:anchor(upper),
+        firstSurface:first,secondSurface:second,tolerance:tolerance)
+    }
     return try CertifiedImplicitIntersectionCurve(firstSurface:first,secondSurface:second,
-      cells:[cell],isClosed:false,tolerance:tolerance)
+      cells:cells,isClosed:false,tolerance:tolerance)
   }
 
   @Test func implicitLiftBoundsRespectRequestedSubinterval() throws {

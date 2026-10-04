@@ -630,7 +630,7 @@ struct SurfaceAreaIntegrationTests {
         var work = 0
         do {
             _ = try SurfaceAreaAdaptiveIntegral().integrate(cells:[cell,cell],goals:[1,1,1,1],
-                options:FaceAreaIntegrationOptions(maximumCellCount:6),work:&work,tolerance:tolerance) { cell in
+                options:FaceAreaIntegrationOptions(maximumCellCount:6),work:&work,tolerance:tolerance) { cell, _ in
                     let measure = cell.t.width*cell.r.width
                     return .init(contribution:Array(repeating:OutwardScalarInterval(lower:-0.75*measure,upper:0.75*measure),count:4),splitT:true)
                 }
@@ -2146,6 +2146,127 @@ struct SurfaceAreaIntegrationTests {
     }
 
     @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func nonlinearOriginalTwoCellRegionHasIndependentAreaAndCentroid(_ backwards: Bool) throws {
+        let (source,intersection) = try nonlinearImplicitAreaFixture(
+            direction:backwards ? .reversed : .forward,split:true)
+        #expect(intersection.cells.count == 2)
+        let curves = try nonlinearImplicitRegion(intersection)
+        let (id,model) = try fixture(source,outer:curves)
+        let original = model
+        let result = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        #expect(abs(result.area-13.0/196608) <= tolerance.distance*tolerance.distance
+            + tolerance.relative*(13.0/196608))
+        #expect((result.centroid-Point3D(x:363.0/66560,y:15.0/1664,z:0)).length <= tolerance.distance)
+        #expect(model == original)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func nonlinearOriginalTwoCellPartialAndRigidRegionsKeepIndependentCentroids(_ backwards: Bool) throws {
+        let (source,intersection) = try nonlinearImplicitAreaFixture(
+            direction:backwards ? .reversed : .forward,split:true)
+        let curves = try nonlinearImplicitPartialRegion(intersection)
+        let transform = try areaFixtureTransform()
+        for mapped in [false,true] {
+            let support = mapped ? try transform.applying(to:source,tolerance:tolerance) : source
+            let boundary = mapped ? try rigidTrims(curves,source:source,target:support,transform:transform) : curves
+            let (id,model) = try fixture(support,outer:boundary)
+            let result = try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+            let literal = mapped ? Point3D(x:733.0/6272,y:255203.0/1003520,z:0.5)
+                : Point3D(x:4323.0/1003520,y:51.0/6272,z:0)
+            #expect(abs(result.area-49.0/1572864) <= tolerance.distance*tolerance.distance
+                + tolerance.relative*(49.0/1572864))
+            #expect((result.centroid-literal).length <= tolerance.distance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
+    func nonlinearOriginalTwoCellChartsPreserveOneSidedJetsAndValueOnlyJoins(_ backwards: Bool) throws {
+        let (first,intersection) = try nonlinearImplicitAreaFixture(
+            direction:backwards ? .reversed : .forward,split:true)
+        var work = 0
+        func consume() throws {
+            work += 1
+            guard work <= FaceAreaIntegrationOptions().maximumCellCount else {
+                throw KernelError(phase:.topology,code:.resourceLimitExceeded,tolerance:tolerance,
+                    message:"The original chain test exhausted shared caller work.")
+            }
+        }
+        for role in [SurfaceIntersectionSurfaceRole.first,.second] {
+            let support = role == .first ? first : intersection.secondSurface
+            let trim = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:role,tolerance:tolerance)
+            let chart = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(trim),on:support,
+                tolerance:tolerance,consumeWork:consume)
+            #expect(chart.requiresCallerWork && chart.hasNativeJoins)
+            for range in [try ScalarInterval(lower:0.125,upper:0.375),
+                          try ScalarInterval(lower:0.625,upper:0.875)] {
+                let jets = try chart.intervalJet(over:range,tolerance:tolerance,consumeWork:consume)
+                for fraction in [range.lower,range.midpoint,range.upper] {
+                    let t = backwards ? 0.75-0.5*fraction : 0.25+0.5*fraction
+                    let h = backwards ? -0.5 : 0.5
+                    #expect(jets.u.value.contains(role == .first ? t*t : t))
+                    #expect(jets.v.value.contains(role == .first ? t : 0.5))
+                    #expect(jets.u.derivativeU.contains(role == .first ? 2*t*h : h))
+                    #expect(jets.v.derivativeU.contains(role == .first ? h : 0))
+                    #expect(jets.u.secondDerivativeUU.contains(role == .first ? 2*h*h : 0))
+                    #expect(jets.u.thirdDerivativeUUU.contains(0) && jets.v.thirdDerivativeUUU.contains(0))
+                }
+            }
+            for range in [try ScalarInterval(lower:0.375,upper:0.625),
+                          try ScalarInterval(lower:0.5,upper:0.5)] {
+                let proof = try chart.intervalProof(over:range,tolerance:tolerance,consumeWork:consume)
+                guard case .valueOnly(let u,let v,let du,let dv) = proof else {
+                    Issue.record("Both closed owning cell sides cannot supply a smooth join jet.")
+                    continue
+                }
+                for fraction in [range.lower,range.midpoint,range.upper] {
+                    let t = backwards ? 0.75-0.5*fraction : 0.25+0.5*fraction
+                    let h = backwards ? -0.5 : 0.5
+                    #expect(u.contains(role == .first ? t*t : t) && v.contains(role == .first ? t : 0.5))
+                    #expect(du.contains(role == .first ? 2*t*h : h) && dv.contains(role == .first ? h : 0))
+                }
+            }
+            for endpoint in [false,true] {
+                let bounds = try chart.endpointBounds(atEnd:endpoint,tolerance:tolerance,consumeWork:consume)
+                #expect(bounds.u.width <= Double.ulpOfOne*64 && bounds.v.width <= Double.ulpOfOne*64)
+            }
+        }
+        #expect(work > 4)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nonlinearOriginalTwoCellPreparationRefusesRealGapAndSharedResourceExhaustion() throws {
+        let (source,intersection) = try nonlinearImplicitAreaFixture(split:true)
+        let (id,model) = try fixture(source,outer:nonlinearImplicitRegion(intersection))
+        for options in [FaceAreaIntegrationOptions(maximumCellCount:1),
+                        FaceAreaIntegrationOptions(maximumSubdivisionDepth:1)] {
+            do {
+                _ = try model.faceAreaMeasurement(of:id,tolerance:tolerance,integrationOptions:options)
+                Issue.record("An original nonlinear chain reset the aggregate work or depth ceiling.")
+            } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        }
+        let (brokenSource,broken) = try nonlinearImplicitAreaFixture(split:true,gap:Double(sign:.plus,exponent:-36,significand:1))
+        let trim = try CertifiedImplicitSurfaceParameterCurve(intersection:broken,role:.first,tolerance:tolerance)
+        do {
+            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(trim),on:brokenSource,
+                tolerance:tolerance,consumeWork:{})
+            Issue.record("An original nonlinear chain certified a real native free-coordinate gap.")
+        } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nonlinearOriginalTwoCellCancellationRemainsAnActualQueryFailure() async throws {
+        let (source,intersection) = try nonlinearImplicitAreaFixture(split:true)
+        let (id,model) = try fixture(source,outer:nonlinearImplicitRegion(intersection))
+        let task = Task {
+            while !Task.isCancelled { await Task.yield() }
+            return try model.faceAreaMeasurement(of:id,tolerance:tolerance)
+        }
+        task.cancel()
+        do { _ = try await task.value; Issue.record("An original nonlinear chain hid query cancellation.") }
+        catch let error as KernelError { #expect(error.code == .cancelled) }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments:[false,true])
     func nonlinearImplicitPartialEndpointAnchorHasIndependentAreaAndCentroid(_ backwards: Bool) throws {
         let (source,intersection) = try nonlinearImplicitAreaFixture(direction:backwards ? .reversed : .forward)
         let original = try nonlinearImplicitPartialRegion(intersection)
@@ -2346,7 +2467,7 @@ struct SurfaceAreaIntegrationTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func nonlinearImplicitChartRequiresWorkAndRejectsForeignAndMulticellAuthority() throws {
+    func nonlinearImplicitChartRequiresWorkAndRejectsForeignAuthority() throws {
         let (source,intersection) = try nonlinearImplicitAreaFixture()
         let trim = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:.first,tolerance:tolerance)
         do {
@@ -2362,8 +2483,8 @@ struct SurfaceAreaIntegrationTests {
         let joined = try CertifiedImplicitSurfaceParameterCurve(intersection:chain,role:.first,tolerance:tolerance)
         do {
             _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(joined),on:source,tolerance:tolerance)
-            Issue.record("A valid nonlinear multi-cell certificate cannot inherit single-cell localization.")
-        } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+            Issue.record("A nonlinear multi-cell certificate cannot create a private work allowance.")
+        } catch let error as KernelError { #expect(error.code == .invalidInput) }
         var remaining = FaceAreaIntegrationOptions().maximumCellCount
         func consume() throws {
             guard remaining > 0 else {
@@ -2435,7 +2556,7 @@ struct SurfaceAreaIntegrationTests {
     }
 
     private func nonlinearImplicitAreaFixture(direction: CertifiedImplicitIntersectionDirection = .forward,
-                                              split: Bool = false) throws -> (Surface3D,CertifiedImplicitIntersectionCurve) {
+                                              split: Bool = false, gap: Double = 0) throws -> (Surface3D,CertifiedImplicitIntersectionCurve) {
         // Original exact dyadic polynomial controls, independent of the localizer.
         // S1(u,v)=(u/32,v/64,0); S2(s,r)=(s^2/32,s/64,(2r-1)/64).
         let first = BSplineSurface3D(uDegree:1,vDegree:1,uKnots:[-0.5,-0.5,1.5,1.5],vKnots:[0,0,1,1],
@@ -2446,7 +2567,7 @@ struct SurfaceAreaIntegrationTests {
         func anchor(_ t: Double) throws -> SurfaceIntersectionParameterPair {
             try SurfaceIntersectionParameterPair(first:SurfaceParameter(u:t*t,v:t),second:SurfaceParameter(u:t,v:0.5))
         }
-        let ranges: [(Double,Double)] = split ? [(0.25,0.5),(0.5,0.75)] : [(0.25,0.75)]
+        let ranges: [(Double,Double)] = split ? [(0.25,0.5),(0.5+gap,0.75)] : [(0.25,0.75)]
         let ordered = direction == .forward ? ranges : Array(ranges.reversed())
         var cells: [CertifiedImplicitIntersectionGraphCell] = []
         for (lower,upper) in ordered {

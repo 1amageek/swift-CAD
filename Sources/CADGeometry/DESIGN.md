@@ -637,9 +637,15 @@ four-coordinate jet, together with the complete parent range jet. For each
 coordinate, Geometry may intersect the starting cover with the rigorous
 outward Taylor enclosure
 `lower.value + lower.first*delta + lower.second*delta^2/2 + range.third*delta^3/6`,
-where `delta` is the exact original child fraction range minus the original
-parent lower fraction. The original smooth single-cell implicit authority and
+where `delta` is the outward global intersection-fraction displacement. The
+retained state stores cell-local fractions: for an original `N`-cell intersection,
+the local child-minus-parent displacement is divided by `N` exactly once to
+match the lower jet's already global `N^order` derivative scaling. The `N=1`
+arithmetic path is unchanged. The original smooth owning-cell authority and
 complete range third derivative justify this remainder on the same root branch.
+An explicitly supplied owning cell must equal the retained state's cell; a
+restriction never transfers root authority between cells. The area child owns
+[open nonlinear chain admission and value-only joins](SurfaceAreaIntegration/DESIGN.md#open-nonlinear-original-graph-chains-parq3mult1).
 All four coordinate fields come from the lower owner, never a projected chart
 or sampled/predicted point. The original free-coordinate mapping remains a
 mandatory separate intersection. Range/lower-endpoint phases retain their

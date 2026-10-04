@@ -116,8 +116,8 @@ face loops -> continuous UV chains -> signed fan squares
   UV area integrator is not called on these queries. Smooth fan evaluation
   passes the non-escaping callback directly while owning the inout counter;
   no evaluation closure captures a counter already lent to an adaptive owner.
-  This initial family has no native joins or C0 source spans, so the aggregate
-  native-span evaluator retains its existing unrelated behavior. Whole-query
+  The native aggregate evaluator explicitly lends that same counter into its
+  synchronous evaluation callback for nonlinear chart operations. Whole-query
   area/moment goals and the final area/centroid interval tests remain unchanged.
 
 ## State, Ownership, and Lifecycle
@@ -225,3 +225,24 @@ owns original source restrictions and all admission/failure conditions.
 Topology consumes [Geometry's original iso-image proof](../../CADGeometry/SurfaceAreaIntegration/DESIGN.md#original-implicit-iso-image-area-authority) to recognize an original boundary image in the existing translation rectangle route. It retains the actual original trim/chart and adjacent side coordinates rather than substituting a constant-axis pcurve. Complete monotone image and original endpoint authority must be present for rectangle admission. The source's existing64ulp connectivity check remains mandatory.
 
 Every endpoint signed triangle correction is included in the area and reference-relative XYZ integral intervals. Correction uncertainty consumes the existing query-wide four-field error allowance before adaptive 1D integration; final area/centroid admission uses unchanged original tolerances. Preparation, root phases, correction evaluation, 1D cells, depth, cancellation and receipt release share the original query counters/lifetime. Nonrectangular or unproved images stay on the existing original fan path. All unchanged Native forward/reverse/rigid public cases now pass in1.395s; the current73-test face-area suite passes in27.853s. This bounded success leaves general Q3 and other targets open.
+
+### Open Nonlinear Original Graph Chain Composition (PAR.Q3MULT1)
+
+Topology consumes the [original nonlinear chain chart contract](../../CADGeometry/SurfaceAreaIntegration/DESIGN.md#open-nonlinear-original-graph-chains-parq3mult1).
+The original loop, signed fan and each trim's normalized fraction remain
+authority. Native chart joins use the existing value-only aggregate integral
+route; the complete fan measure is retained and no Taylor gradient/Hessian
+is admitted across a join. Every chart operation, including effort, endpoints
+and native integrand range/midpoint operations, receives the same query work
+callback initialized before chart preparation. All loops and original cells
+share the existing control, boundary, work, depth and final four-field error
+allowances. Source cell ownership does not create an independent integration
+budget.
+
+The independent public two-cell fixture has area `13/196608` and centroid
+`(363/66560,15/1664,0)`, unchanged under chain reversal. Partial original
+fractions and rigid images must retain physical oracles and endpoint
+rounding authority. Exact connection, foreign support, resource/depth and
+cancellation failures supplement the positive behavior; refusals alone do
+not complete this family. Native evidence and portable evidence remain
+separate, and this contract does not complete full general Q3.

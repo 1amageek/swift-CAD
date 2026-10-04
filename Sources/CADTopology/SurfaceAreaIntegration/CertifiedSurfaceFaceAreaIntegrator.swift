@@ -469,7 +469,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
         } else {
             cells = [Adaptive.Cell(t:unit,r:unit,depth:0,rectangle:rectangle,domain:nil)]
         }
-        return try Adaptive().integrate(cells:cells,goals:goals,options:options,work:&work,tolerance:tolerance) { cell in
+        return try Adaptive().integrate(cells:cells,goals:goals,options:options,work:&work,tolerance:tolerance) { cell, queryWork in
             var splitT = cell.rectangle != nil || boundaryOnly || cell.t.width >= cell.r.width
             do {
                 let bounds: [SurfaceAreaIntegrandBounds]
@@ -478,11 +478,13 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                         fraction:cell.t,reference:reference,tolerance:tolerance,domain:cell.domain)
                 } else if boundaryOnly {
                     bounds = try prepared.boundaryBounds(curve:curve,anchor:anchor,reference:reference,
-                        boundaryFraction:cell.t,tolerance:tolerance,parameterChart:parameterChart)
+                        boundaryFraction:cell.t,tolerance:tolerance,parameterChart:parameterChart,
+                        consumeWork:{ try consumeWork(&queryWork,options:options,tolerance:tolerance) })
                 } else {
                     bounds = try prepared.bounds(curve:curve,anchor:anchor,reference:reference,
                         boundaryFraction:cell.t,radialFraction:cell.r,tolerance:tolerance,domain:cell.domain,
-                        parameterChart:parameterChart)
+                        parameterChart:parameterChart,
+                        consumeWork:{ try consumeWork(&queryWork,options:options,tolerance:tolerance) })
                 }
                 let size = OutwardScalarInterval.exact(cell.t.upper) - .exact(cell.t.lower)
                 let height = OutwardScalarInterval.exact(cell.r.upper) - .exact(cell.r.lower)
@@ -507,11 +509,13 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                         fraction:middleT,reference:reference,tolerance:tolerance,domain:cell.domain)
                 } else if boundaryOnly {
                     midpoint = try prepared.boundaryBounds(curve:curve,anchor:anchor,reference:reference,
-                        boundaryFraction:middleT,tolerance:tolerance,parameterChart:parameterChart)
+                        boundaryFraction:middleT,tolerance:tolerance,parameterChart:parameterChart,
+                        consumeWork:{ try consumeWork(&queryWork,options:options,tolerance:tolerance) })
                 } else {
                     midpoint = try prepared.bounds(curve:curve,anchor:anchor,reference:reference,
                         boundaryFraction:middleT,radialFraction:middleR,tolerance:tolerance,domain:cell.domain,
-                        parameterChart:parameterChart)
+                        parameterChart:parameterChart,
+                        consumeWork:{ try consumeWork(&queryWork,options:options,tolerance:tolerance) })
                 }
                 var values: [OutwardScalarInterval] = []
                 var tPressure = 0.0, rPressure = 0.0
