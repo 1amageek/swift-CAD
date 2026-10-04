@@ -240,7 +240,7 @@ public struct MeshTessellator: Tessellating {
                faceID: faceID
            ) {
             if case let .bSpline(spline) = surface,
-               !spline.isUPeriodic, !spline.isVPeriodic, hasOriginalC0Knots(spline) {
+               requiresOriginalNativePanels(spline) {
                 return try estimatedOriginalNativePanelUsage(surface: spline,
                     uBounds: bounds.u, vBounds: bounds.v, options: options)
             }
@@ -2110,10 +2110,9 @@ public struct MeshTessellator: Tessellating {
         let vC1 = surface.isVPeriodic
             ? hasPeriodicC1Basis(surface.vKnots, degree: surface.vDegree, direction: .v)
             : hasClampedC1Basis(surface.vKnots, degree: surface.vDegree)
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Nonclamped and periodic non-C1 charts lack
-        // continuous-normal authority in this rectangular mesh route. Production B-spline
-        // preflight reaches this refusal. Complete full M1 only after native span/seam and
-        // one-sided normal contracts certify these remaining original rectangles.
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Nonclamped open and discontinuous periodic charts
+        // lack native rectangle authority. Public mesh preflight refuses these remaining
+        // supports until complete original endpoint/continuity contracts certify them.
         guard uC1, vC1,
               surface.weights.allSatisfy({ $0.allSatisfy({ $0 > 0 }) }) else {
             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
@@ -2209,6 +2208,12 @@ public struct MeshTessellator: Tessellating {
         }
     }
 
+    private func requiresOriginalNativePanels(_ surface: BSplineSurface3D) -> Bool {
+        hasOriginalC0Knots(surface)
+            || (surface.isUPeriodic && surface.periodicSeamContinuityOrder(direction: .u) == 0)
+            || (surface.isVPeriodic && surface.periodicSeamContinuityOrder(direction: .v) == 0)
+    }
+
     private func hasOriginalC0Knots(_ surface: BSplineSurface3D) -> Bool {
         func hasC0(_ knots: [Double], degree: Int) -> Bool {
             let lower = knots[degree], upper = knots[knots.count - degree - 1]
@@ -2237,11 +2242,11 @@ public struct MeshTessellator: Tessellating {
             return knots.prefix(degree + 1).allSatisfy { $0 == lower }
                 && knots.suffix(degree + 1).allSatisfy { $0 == upper }
         }
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Nonclamped C0 rectangles have not established
-        // retained native-boundary composition in this production mesh route. Complete full
-        // M1 only after original endpoint ownership and compatible grids certify them.
-        guard isClamped(surface.uKnots, degree: surface.uDegree),
-              isClamped(surface.vKnots, degree: surface.vDegree) else {
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Nonclamped open C0 rectangles have not established
+        // retained native-boundary composition in the public mesh route. Complete full M1
+        // only after original open endpoint ownership and compatible grids certify them.
+        guard surface.isUPeriodic || isClamped(surface.uKnots, degree: surface.uDegree),
+              surface.isVPeriodic || isClamped(surface.vKnots, degree: surface.vDegree) else {
             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                               message: "Native panel tessellation requires original clamped C0 rectangle authority.")
         }
@@ -2249,21 +2254,29 @@ public struct MeshTessellator: Tessellating {
             of: surface, over: SurfaceParameterBox(
                 u: ScalarInterval(lower: uBounds.lower, upper: uBounds.upper),
                 v: ScalarInterval(lower: vBounds.lower, upper: vBounds.upper)), tolerance: tolerance)
-        var uCounts: [Int: Int] = [:]
-        var vCounts: [Int: Int] = [:]
+        struct AxisPanel: Hashable {
+            let spanIndex: Int
+            let cycle: Int
+        }
+        var uCounts: [AxisPanel: Int] = [:]
+        var vCounts: [AxisPanel: Int] = [:]
         for (index, panel) in panels.enumerated() {
             if index & 0xFF == 0 { try Task.checkCancellation() }
             let counts = try certifiedBSplineGridStepCounts(bounds: panel.bounds,
                 uBounds: (panel.parameters.u.lower, panel.parameters.u.upper),
                 vBounds: (panel.parameters.v.lower, panel.parameters.v.upper), options: options)
-            uCounts[panel.span.uSpanIndex] = max(uCounts[panel.span.uSpanIndex] ?? 1, counts.u)
-            vCounts[panel.span.vSpanIndex] = max(vCounts[panel.span.vSpanIndex] ?? 1, counts.v)
+            let u = AxisPanel(spanIndex: panel.span.uSpanIndex, cycle: panel.span.uCycle)
+            let v = AxisPanel(spanIndex: panel.span.vSpanIndex, cycle: panel.span.vCycle)
+            uCounts[u] = max(uCounts[u] ?? 1, counts.u)
+            vCounts[v] = max(vCounts[v] ?? 1, counts.v)
         }
         var grids: [ParametricGrid] = []
         var estimate = FaceUsageEstimate(vertices: 0, indices: 0)
         for (index, panel) in panels.enumerated() {
             if index & 0xFF == 0 { try Task.checkCancellation() }
-            guard let uSteps = uCounts[panel.span.uSpanIndex], let vSteps = vCounts[panel.span.vSpanIndex] else {
+            let uKey = AxisPanel(spanIndex: panel.span.uSpanIndex, cycle: panel.span.uCycle)
+            let vKey = AxisPanel(spanIndex: panel.span.vSpanIndex, cycle: panel.span.vCycle)
+            guard let uSteps = uCounts[uKey], let vSteps = vCounts[vKey] else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                                   message: "Native panel tessellation did not retain every compatible axis count.")
             }

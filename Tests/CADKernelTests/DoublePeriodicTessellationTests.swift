@@ -57,6 +57,15 @@ struct DoublePeriodicTessellationTests {
         let model = try fixture(u: (3.5, 4.5), v: (3.5, 4.5), failure: failure)
         let original = model
         if !failure.hasSuffix("Tail") { try model.validate(level: .modeling, tolerance: .standard) }
+        if failure == "uC0" || failure == "vC0" {
+            let mesh = try #require(try MeshTessellator(tolerance: .standard).tessellate(model: model, options: options).values.first)
+            let faceID = try #require(model.faces.keys.first)
+            #expect(mesh.faceRuns == [Mesh.FaceRun(faceID: faceID, triangleCount: mesh.indices.count / 3)])
+            try verifyLiteralMixedC0Mesh(mesh, uDegree: failure == "uC0" ? 1 : 2,
+                                       vDegree: failure == "vC0" ? 1 : 2)
+            #expect(model == original)
+            return
+        }
         expectCode(failure.hasSuffix("Tail") ? .invalidInput : .unsupportedCapability) {
             _ = try MeshTessellator(tolerance: .standard).tessellate(model: model, options: options)
         }
@@ -146,7 +155,14 @@ struct DoublePeriodicTessellationTests {
     }
 
     /// Inverts the literal cardinal parabola along a ray, independently of CADGeometry.
-    private func cardinalParameter(x: Double, y: Double) -> Double {
+    private func cardinalParameter(x: Double, y: Double, degree: Int = 2) -> Double {
+        if degree == 1 {
+            let radius = abs(x) + abs(y)
+            if x >= 0 && y >= 0 { return y / radius }
+            if x < 0 && y >= 0 { return 1 - x / radius }
+            if x <= 0 && y < 0 { return 2 - y / radius }
+            return 3 + x / radius
+        }
         let quadrant: Int, minor: Double, major: Double
         if abs(y) >= abs(x) {
             if y >= 0 { (quadrant, minor, major) = (0, x, y) }
@@ -158,8 +174,8 @@ struct DoublePeriodicTessellationTests {
         return Double(quadrant) + 0.5 - originalMinor
     }
 
-    private func cardinal(_ parameter: Double, degree: Int = 2) -> (x: Double, y: Double, dx: Double, dy: Double) {
-        let cell = Int(floor(parameter)), t = parameter - floor(parameter)
+    private func cardinal(_ parameter: Double, degree: Int = 2, owningCell: Int? = nil) -> (x: Double, y: Double, dx: Double, dy: Double) {
+        let cell = owningCell ?? Int(floor(parameter)), t = parameter - Double(cell)
         let x = degree == 2 ? 0.5 - t : 1 - t
         let y = degree == 2 ? 0.5 + t - t * t : t
         let dx = -1.0, dy = degree == 2 ? 1 - 2 * t : 1
@@ -171,13 +187,65 @@ struct DoublePeriodicTessellationTests {
         }
     }
 
-    private func literal(_ u: Double, _ v: Double, uDegree: Int = 2, vDegree: Int = 2) -> (point: Point3D, normal: Vector3D) {
-        let a = cardinal(u, degree: uDegree), b = cardinal(v, degree: vDegree), r = 3 + b.x
+    private func literal(_ u: Double, _ v: Double, uDegree: Int = 2, vDegree: Int = 2,
+                         owningUCell: Int? = nil, owningVCell: Int? = nil) -> (point: Point3D, normal: Vector3D) {
+        let a = cardinal(u, degree: uDegree, owningCell: owningUCell)
+        let b = cardinal(v, degree: vDegree, owningCell: owningVCell), r = 3 + b.x
         let point = Point3D(x: r * a.x, y: r * a.y, z: b.y)
         let du = Vector3D(x: r * a.dx, y: r * a.dy, z: 0)
         let dv = Vector3D(x: b.dx * a.x, y: b.dx * a.y, z: b.dy)
         let cross = du.cross(dv)
         return (point, cross / cross.length)
+    }
+
+    private func verifyLiteralMixedC0Mesh(_ mesh: Mesh, uDegree: Int, vDegree: Int) throws {
+        #expect(!mesh.indices.isEmpty)
+        func chart(_ point: Point3D) -> (u: Double, v: Double) {
+            let u = cardinalParameter(x: point.x, y: point.y, degree: uDegree)
+            let a = cardinal(u, degree: uDegree)
+            let radius = abs(a.x) >= abs(a.y) ? point.x / a.x : point.y / a.y
+            return (u, cardinalParameter(x: radius - 3, y: point.z, degree: vDegree))
+        }
+        for offset in stride(from: 0, to: mesh.indices.count, by: 3) {
+            let ids = (0..<3).map { Int(mesh.indices[offset + $0]) }
+            let points = ids.map { mesh.positions[$0] }
+            let center = Point3D(x: points.reduce(0) { $0 + $1.x } / 3,
+                                 y: points.reduce(0) { $0 + $1.y } / 3,
+                                 z: points.reduce(0) { $0 + $1.z } / 3)
+            let central = chart(center), uCell = Int(floor(central.u)), vCell = Int(floor(central.v))
+            let parameters = points.map { point in
+                let uv = chart(point)
+                return (u: uv.u < Double(uCell) - 1e-12 ? uv.u + 4 : uv.u,
+                        v: uv.v < Double(vCell) - 1e-12 ? uv.v + 4 : uv.v)
+            }
+            for index in ids.indices {
+                let uv = parameters[index]
+                #expect(uv.u >= Double(uCell) - 1e-12 && uv.u <= Double(uCell + 1) + 1e-12)
+                #expect(uv.v >= Double(vCell) - 1e-12 && uv.v <= Double(vCell + 1) + 1e-12)
+                let expected = literal(uv.u, uv.v, uDegree: uDegree, vDegree: vDegree,
+                                       owningUCell: uCell, owningVCell: vCell)
+                #expect((points[index] - expected.point).length <= 1e-12)
+                #expect((mesh.normals[ids[index]] - expected.normal).length <= 1e-11)
+                let maximum = try #require(options.maxEdgeLength)
+                #expect((points[index] - points[(index + 1) % 3]).length <= maximum)
+            }
+            let us = parameters.map(\.u), vs = parameters.map(\.v)
+            let u0 = try #require(us.min()), u1 = try #require(us.max())
+            let v0 = try #require(vs.min()), v1 = try #require(vs.max())
+            let du = u1 - u0, dv = v1 - v0
+            // The literal degree-(1,2)/(2,1) pieces have |S_uu| <= 8,
+            // |S_uv| <= sqrt(2), |S_vv| <= 2, with the linear-axis pure
+            // derivative identically zero. Barycentric variance/covariance
+            // bounds certify every point of each grid triangle, not samples.
+            let uu = uDegree == 2 ? 8.0 : 0.0, vv = vDegree == 2 ? 2.0 : 0.0
+            #expect((uu * du * du + 2 * sqrt(2) * du * dv + vv * dv * dv) / 8 <= options.linearTolerance)
+            // After cancelling positive radius, the normal depends only on
+            // the quadratic axis and its derivative norm is at most 2*sqrt(2).
+            #expect(2 * sqrt(2) * (uDegree == 2 ? du : dv) <= options.angularTolerance)
+            let expected = literal((u0 + u1) / 2, (v0 + v1) / 2, uDegree: uDegree, vDegree: vDegree,
+                                   owningUCell: uCell, owningVCell: vCell)
+            #expect((points[1] - points[0]).cross(points[2] - points[0]).dot(expected.normal) > 0)
+        }
     }
 
     /// Exact native rectangle sides, split before closed endpoints. Opposite seam uses

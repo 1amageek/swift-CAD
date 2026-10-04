@@ -294,6 +294,33 @@ struct TessellationFidelityTests {
             degree: failure == "c0" ? 1 : 2, disconnectRawChart: failure == "disconnected",
             splitRims: failure == "roundedPeriodExcess")
         let original = model
+        if failure == "c0" {
+            let mesh = try #require(try MeshTessellator(tolerance: .standard).tessellate(model: model).values.first)
+            let faceID = try #require(model.faces.keys.first)
+            #expect(mesh.faceRuns == [Mesh.FaceRun(faceID: faceID, triangleCount: mesh.indices.count / 3)])
+            #expect(!mesh.indices.isEmpty)
+            for offset in stride(from: 0, to: mesh.indices.count, by: 3) {
+                let ids = (0..<3).map { Int(mesh.indices[offset + $0]) }
+                let points = ids.map { mesh.positions[$0] }
+                let sx = points.reduce(0.0) { $0 + $1.x } >= 0 ? 1.0 : -1.0
+                let sy = points.reduce(0.0) { $0 + $1.y } >= 0 ? 1.0 : -1.0
+                let normal = Vector3D(x: sx, y: sy, z: 0) / sqrt(2)
+                // Each literal diamond extrusion panel is one affine plane.
+                // These endpoint identities prove zero whole-triangle position
+                // error and a constant normal, including both closed crease sides.
+                for id in ids {
+                    let point = mesh.positions[id]
+                    let planeResidual = abs(sx * point.x + sy * point.y - 1)
+                    #expect(planeResidual <= 1e-12)
+                    #expect(sx * point.x >= -1e-12 && sy * point.y >= -1e-12)
+                    #expect(point.z >= 0 && point.z <= 1)
+                    #expect((mesh.normals[id] - normal).length <= 1e-12)
+                }
+                #expect((points[1] - points[0]).cross(points[2] - points[0]).dot(normal) > 0)
+            }
+            #expect(model == original)
+            return
+        }
         #expect(throws: KernelError.self) {
             do {
                 _ = try MeshTessellator(tolerance: .standard).tessellate(model: model)

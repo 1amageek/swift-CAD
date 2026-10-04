@@ -209,10 +209,11 @@ struct OriginalPeriodicSurfaceJetTests {
                 Issue.record("A periodic prepared query accepted invalid original support.")
             } catch let error as KernelError { #expect(error.code == .invalidInput) }
         }
-        do {
-            _ = try prepared.originalNativeSpans(over: box((0.375, 0.375), (0.5, 0.5)), tolerance: tolerance)
-            Issue.record("A cyclic surface minted one-sided nonperiodic authority.")
-        } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+        let owners = try prepared.originalNativeSpans(over: box((0.375, 0.375), (0.5, 0.5)), tolerance: tolerance)
+        #expect(owners.count == 1)
+        let owner = try #require(owners.first)
+        verify(try owner.pointJet(u: 0.375, v: 0.5, on: source, tolerance: tolerance),
+               axes: "u", rational: false, u: 0.375, v: 0.5)
         var invalid = source
         invalid.uKnots.removeLast()
         #expect(throws: GeometryError.self) {

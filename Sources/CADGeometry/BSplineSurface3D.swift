@@ -335,10 +335,8 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         owning span: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
         tolerance: ModelingTolerance
     ) throws -> Vector3D {
-        let pointBox = try SurfaceParameterBox(
-            u: ScalarInterval(lower: u, upper: u), v: ScalarInterval(lower: v, upper: v))
-        try span.validate(on: self, over: pointBox, tolerance: tolerance)
-        let derivatives = try surfaceDerivatives(u: u, v: v, tolerance: tolerance,
+        let base = try span.basePoint(u: u, v: v, on: self, tolerance: tolerance)
+        let derivatives = try surfaceDerivatives(u: base.u, v: base.v, tolerance: tolerance,
             owningUSpan: span.uSpanIndex, owningVSpan: span.vSpanIndex)
         return try strictSurfaceNormal(tangentU: derivatives.tangentU,
                                       tangentV: derivatives.tangentV, tolerance: tolerance)
@@ -834,8 +832,10 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         owningUSpan: Int? = nil,
         owningVSpan: Int? = nil
     ) throws -> RationalDerivatives {
-        let u = try basisParameter(u, direction: .u, tolerance: tolerance)
-        let v = try basisParameter(v, direction: .v, tolerance: tolerance)
+        // A validated selected token already resolved its exact original base station.
+        // Canonical normalization here would replace a closed upper/left seam owner.
+        let u = try owningUSpan == nil ? basisParameter(u, direction: .u, tolerance: tolerance) : u
+        let v = try owningVSpan == nil ? basisParameter(v, direction: .v, tolerance: tolerance) : v
         // Only the (p + 1)(q + 1) basis products of the knot spans holding (u, v) are nonzero:
         // the local bases to second order, and one pass over those control points gathering the
         // weighted position and its five derivatives together.

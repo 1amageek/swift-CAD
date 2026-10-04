@@ -101,7 +101,8 @@ extension DefaultSurfaceDifferentialEncloser {
     try Task.checkCancellation()
     let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance)
     try Task.checkCancellation()
-    let spans = try prepared.originalNativeSpans(over: parameters, tolerance: tolerance)
+    let spans = try prepared.originalNativeSpans(over: parameters, tolerance: tolerance,
+                                                  maximumSpanCount: maximumCellCount)
     typealias Span = PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan
     struct Panel {
       let span: Span
@@ -123,7 +124,7 @@ extension DefaultSurfaceDifferentialEncloser {
       let vLower = max(parameters.v.lower, span.vBounds.lower)
       let vUpper = min(parameters.v.upper, span.vBounds.upper)
       guard uUpper > uLower, vUpper > vLower else { continue }
-      guard panels.count < 262_144 else {
+      guard panels.count < maximumCellCount else {
         throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                           message: "Native surface tessellation exhausted its aggregate cell budget.")
       }

@@ -1,8 +1,8 @@
 import CADCore
 
 /// Retains original homogeneous native-span enclosures of one immutable surface.
-/// Periodic queries retain conservative original-cycle covers; selected tokens
-/// remain restricted to nonperiodic native sides.
+/// Whole periodic queries retain conservative original-cycle covers. Selected
+/// tokens separately retain proved base spans and exact unwrapped cycle lifts.
 package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
   package let surface: BSplineSurface3D
   private let preparationTolerance: ModelingTolerance
@@ -15,17 +15,32 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     package let vSpanIndex: Int
     package let uBounds: ScalarInterval
     package let vBounds: ScalarInterval
+    package let uCycle: Int
+    package let vCycle: Int
+    fileprivate let baseUBounds: ScalarInterval
+    fileprivate let baseVBounds: ScalarInterval
+    fileprivate let uTranslation: Double
+    fileprivate let vTranslation: Double
     fileprivate let patch: RationalBezierSurfaceJetEncloser.PreparedPatch
 
     fileprivate init(surface: BSplineSurface3D, tolerance: ModelingTolerance,
                      uSpanIndex: Int, vSpanIndex: Int, uBounds: ScalarInterval,
-                     vBounds: ScalarInterval, patch: RationalBezierSurfaceJetEncloser.PreparedPatch) {
+                     vBounds: ScalarInterval, patch: RationalBezierSurfaceJetEncloser.PreparedPatch,
+                     liftedUBounds: ScalarInterval? = nil, liftedVBounds: ScalarInterval? = nil,
+                     uCycle: Int = 0, vCycle: Int = 0,
+                     uTranslation: Double = 0, vTranslation: Double = 0) {
       self.surface = surface
       self.tolerance = tolerance
       self.uSpanIndex = uSpanIndex
       self.vSpanIndex = vSpanIndex
-      self.uBounds = uBounds
-      self.vBounds = vBounds
+      self.baseUBounds = uBounds
+      self.baseVBounds = vBounds
+      self.uBounds = liftedUBounds ?? uBounds
+      self.vBounds = liftedVBounds ?? vBounds
+      self.uCycle = uCycle
+      self.vCycle = vCycle
+      self.uTranslation = uTranslation
+      self.vTranslation = vTranslation
       self.patch = patch
     }
 
@@ -49,7 +64,7 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
                      tolerance callerTolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
       try validate(on: source, over: box, tolerance: callerTolerance)
       return try PreparedBSplineSurfaceDifferentialEncloser.selectedJet(
-        of: patch, over: box, tolerance: callerTolerance)
+        of: patch, over: try baseBox(box, tolerance: callerTolerance), tolerance: callerTolerance)
     }
 
     func pointJet(u: Double, v: Double, on source: BSplineSurface3D,
@@ -71,8 +86,46 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
       }
       let box = SurfaceParameterBox(u:try ScalarInterval(lower:u,upper:u),v:try ScalarInterval(lower:v,upper:v))
       try validate(on:source,over:box,tolerance:callerTolerance)
-      return try PreparedBSplineSurfaceDifferentialEncloser.selectedValue(of:patch,over:box,tolerance:callerTolerance)
+      return try PreparedBSplineSurfaceDifferentialEncloser.selectedValue(of:patch,over:try baseBox(box,tolerance:callerTolerance),tolerance:callerTolerance)
     }
+
+    /// Exact scalar stations retain their selected side, including a cycle's upper endpoint.
+    func basePoint(u: Double, v: Double, on source: BSplineSurface3D,
+                   tolerance callerTolerance: ModelingTolerance) throws -> (u: Double, v: Double) {
+      let box = SurfaceParameterBox(u: try ScalarInterval(lower: u, upper: u),
+                                    v: try ScalarInterval(lower: v, upper: v))
+      try validate(on: source, over: box, tolerance: callerTolerance)
+      func station(_ value: Double, translation: Double, base: ScalarInterval) throws -> Double {
+        let difference = try PreparedBSplineSurfaceDifferentialEncloser.exactDifference(value, translation,
+                                                                                      tolerance: callerTolerance)
+        guard difference.tail == 0, difference.head >= base.lower, difference.head <= base.upper else {
+          throw PreparedBSplineSurfaceDifferentialEncloser.liftFailure(.resourceLimitExceeded,
+            "An original periodic selected station has no exact represented base parameter.", callerTolerance)
+        }
+        return difference.head
+      }
+      return (try station(u, translation: uTranslation, base: baseUBounds),
+              try station(v, translation: vTranslation, base: baseVBounds))
+    }
+
+    private func baseBox(_ box: SurfaceParameterBox, tolerance: ModelingTolerance) throws -> SurfaceParameterBox {
+      func interval(_ requested: ScalarInterval, translation: Double, base: ScalarInterval) throws -> ScalarInterval {
+        guard translation != 0 else { return requested }
+        let lower = OutwardScalarInterval.exact(requested.lower) - .exact(translation)
+        let upper = OutwardScalarInterval.exact(requested.upper) - .exact(translation)
+        // Exact lifted support admission proves the true translated query lies in this
+        // base span. Intersection removes only interval-arithmetic overhang, not geometry.
+        let a = max(base.lower, lower.lower), b = min(base.upper, upper.upper)
+        guard a.isFinite, b.isFinite, a <= b else {
+          throw PreparedBSplineSurfaceDifferentialEncloser.liftFailure(.resourceLimitExceeded,
+            "An original periodic selected box lost its finite base cover.", tolerance)
+        }
+        return try ScalarInterval(lower: a, upper: b)
+      }
+      return SurfaceParameterBox(u: try interval(box.u, translation: uTranslation, base: baseUBounds),
+                                 v: try interval(box.v, translation: vTranslation, base: baseVBounds))
+    }
+
   }
 
   package init(surface: BSplineSurface3D, tolerance: ModelingTolerance) throws {
@@ -111,19 +164,159 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
 
   package func originalNativeSpans(over box: SurfaceParameterBox,
                                   tolerance: ModelingTolerance) throws -> [OriginalNativeSpan] {
+    try originalNativeSpans(over: box, tolerance: tolerance, maximumSpanCount: 262_144)
+  }
+
+  /// The selected-cover ceiling is shared by all axis lifts, not reset per cycle.
+  func originalNativeSpans(over box: SurfaceParameterBox, tolerance: ModelingTolerance,
+                           maximumSpanCount: Int) throws -> [OriginalNativeSpan] {
     try tolerance.validate()
     try Task.checkCancellation()
-    guard !surface.isUPeriodic, !surface.isVPeriodic else {
-      throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-        message: "Original native-span tokens require nonperiodic axes.")
+    guard (1...262_144).contains(maximumSpanCount) else {
+      throw Self.liftFailure(.invalidInput, "Original native span cover requires its existing finite ceiling.", tolerance)
     }
     guard tolerance == preparationTolerance else { throw closedBoxFailure(tolerance: tolerance) }
     try validateClosedBox(box, tolerance: tolerance)
-    // Closed intersections preserve every one-sided owner at knot points.
-    return originalSpans.filter {
-      max(box.u.lower, $0.uBounds.lower) <= min(box.u.upper, $0.uBounds.upper)
-        && max(box.v.lower, $0.vBounds.lower) <= min(box.v.upper, $0.vBounds.upper)
+    if !surface.isUPeriodic && !surface.isVPeriodic {
+      var result: [OriginalNativeSpan] = []
+      for span in originalSpans {
+        try Task.checkCancellation()
+        if max(box.u.lower, span.uBounds.lower) <= min(box.u.upper, span.uBounds.upper),
+           max(box.v.lower, span.vBounds.lower) <= min(box.v.upper, span.vBounds.upper) {
+          guard result.count < maximumSpanCount else {
+            throw Self.liftFailure(.resourceLimitExceeded, "Original native span cover exhausted its aggregate ceiling.", tolerance)
+          }
+          result.append(span)
+        }
+      }
+      return result
     }
+    let us = try selectedLifts(over: box.u, direction: .u, tolerance: tolerance, maximumSpanCount: maximumSpanCount)
+    let vs = try selectedLifts(over: box.v, direction: .v, tolerance: tolerance, maximumSpanCount: maximumSpanCount)
+    var result: [OriginalNativeSpan] = []
+    for u in us { for v in vs { for span in originalSpans {
+      try Task.checkCancellation()
+      let ub = try Self.translated(span.uBounds, by: u.translation, tolerance: tolerance)
+      let vb = try Self.translated(span.vBounds, by: v.translation, tolerance: tolerance)
+      guard max(box.u.lower, ub.lower) <= min(box.u.upper, ub.upper),
+            max(box.v.lower, vb.lower) <= min(box.v.upper, vb.upper) else { continue }
+      guard result.count < maximumSpanCount else {
+        throw Self.liftFailure(.resourceLimitExceeded, "Original native span cover exhausted its aggregate ceiling.", tolerance)
+      }
+      result.append(OriginalNativeSpan(surface: surface, tolerance: tolerance,
+        uSpanIndex: span.uSpanIndex, vSpanIndex: span.vSpanIndex,
+        uBounds: span.uBounds, vBounds: span.vBounds, patch: span.patch,
+        liftedUBounds: ub, liftedVBounds: vb, uCycle: u.cycle, vCycle: v.cycle,
+        uTranslation: u.translation, vTranslation: v.translation))
+    } } }
+    guard !result.isEmpty else { throw closedBoxFailure(tolerance: tolerance) }
+    return result
+  }
+
+  private struct AxisLift {
+    let cycle: Int
+    let translation: Double
+  }
+
+  private func selectedLifts(over interval: ScalarInterval, direction: SurfaceParameterDirection,
+                             tolerance: ModelingTolerance, maximumSpanCount: Int) throws -> [AxisLift] {
+    let periodic = direction == .u ? surface.isUPeriodic : surface.isVPeriodic
+    let knots = direction == .u ? surface.uKnots : surface.vKnots
+    let degree = direction == .u ? surface.uDegree : surface.vDegree
+    let count = direction == .u ? surface.uControlPointCount : surface.vControlPointCount
+    let lower = knots[degree], upper = knots[count]
+    func refusal() -> KernelError {
+      Self.liftFailure(.unsupportedCapability,
+        "Original periodic selected spans require exact translated C0 knots, clamped open axes, and at most one period.", tolerance)
+    }
+    guard periodic else {
+      guard knots.prefix(degree + 1).allSatisfy({ $0 == lower }),
+            knots.suffix(degree + 1).allSatisfy({ $0 == upper }) else { throw refusal() }
+      var i = degree + 1
+      while i < count {
+        var end = i + 1
+        while end < count, knots[end] == knots[i] { end += 1 }
+        guard end - i <= degree else { throw refusal() }
+        i = end
+      }
+      return [AxisLift(cycle: 0, translation: 0)]
+    }
+    let period = try Self.exactDifference(upper, lower, tolerance: tolerance)
+    guard period.head > 0, period.tail == 0 else { throw refusal() }
+    let cycleCount = count - degree
+    for i in 0..<(knots.count - cycleCount) {
+      try Task.checkCancellation()
+      let delta = try Self.exactDifference(knots[i + cycleCount], knots[i], tolerance: tolerance)
+      guard delta.head == period.head, delta.tail == 0 else { throw refusal() }
+    }
+    var i = 0
+    while i < knots.count {
+      var end = i + 1
+      while end < knots.count, knots[end] == knots[i] { end += 1 }
+      guard end - i <= degree else { throw refusal() }
+      i = end
+    }
+    let width = try Self.exactDifference(interval.upper, interval.lower, tolerance: tolerance)
+    guard width.head <= period.head,
+          width.head < period.head || width.tail <= 0 else { throw refusal() }
+    guard let quotientLower = (OutwardScalarInterval.exact(interval.lower) - .exact(lower))
+      .divided(by: .exact(period.head)),
+      let quotientUpper = (OutwardScalarInterval.exact(interval.upper) - .exact(lower))
+      .divided(by: .exact(period.head)) else { throw refusal() }
+    let first = quotientLower.lower.rounded(.down) - 1
+    let last = quotientUpper.upper.rounded(.down)
+    guard first.isFinite, last.isFinite, abs(first) <= 4_503_599_627_370_496,
+          abs(last) <= 4_503_599_627_370_496, first > Double(Int.min), last < Double(Int.max),
+          last >= first, last - first <= 4 else {
+      throw Self.liftFailure(.resourceLimitExceeded, "Original periodic span lifts exceed exact finite cycle enumeration.", tolerance)
+    }
+    var lifts: [AxisLift] = []
+    for cycle in Int(first)...Int(last) {
+      try Task.checkCancellation()
+      let translation = Double(cycle) * period.head
+      guard translation.isFinite, (-translation).addingProduct(Double(cycle), period.head) == 0 else {
+        throw Self.liftFailure(.resourceLimitExceeded, "Original periodic span translation is not exactly representable.", tolerance)
+      }
+      // Discard wholly unrelated cycles before allocating any selected token.
+      let base = try ScalarInterval(lower: lower, upper: upper)
+      let lifted = try Self.translated(base, by: translation, tolerance: tolerance)
+      if max(lifted.lower, interval.lower) <= min(lifted.upper, interval.upper) {
+        let storage = lifts.count.addingReportingOverflow(1)
+        guard !storage.overflow, storage.partialValue <= maximumSpanCount else {
+          throw Self.liftFailure(.resourceLimitExceeded,
+            "Original periodic axis lifts exhausted the caller's aggregate cover ceiling.", tolerance)
+        }
+        lifts.append(AxisLift(cycle: cycle, translation: translation))
+      }
+    }
+    return lifts
+  }
+
+  private static func translated(_ interval: ScalarInterval, by translation: Double,
+                                 tolerance: ModelingTolerance) throws -> ScalarInterval {
+    let lower = try exactDifference(interval.lower, -translation, tolerance: tolerance)
+    let upper = try exactDifference(interval.upper, -translation, tolerance: tolerance)
+    guard lower.tail == 0, upper.tail == 0 else {
+      throw liftFailure(.resourceLimitExceeded, "Original periodic closed span endpoints have no exact represented lift.", tolerance)
+    }
+    return try ScalarInterval(lower: lower.head, upper: upper.head)
+  }
+
+  private static func exactDifference(_ upper: Double, _ lower: Double,
+                                      tolerance: ModelingTolerance) throws -> (head: Double, tail: Double) {
+    let head = upper - lower
+    let virtualLower = upper - head
+    let virtualUpper = head + virtualLower
+    let tail = (upper - virtualUpper) + (virtualLower - lower)
+    guard [head, virtualLower, virtualUpper, tail].allSatisfy(\.isFinite) else {
+      throw liftFailure(.resourceLimitExceeded, "Original periodic span arithmetic exceeded finite resolution.", tolerance)
+    }
+    return (head, tail)
+  }
+
+  private static func liftFailure(_ code: KernelErrorCode, _ message: String,
+                                  _ tolerance: ModelingTolerance) -> KernelError {
+    KernelError(phase: .geometry, code: code, tolerance: tolerance, message: message)
   }
 
   func intervalJet(

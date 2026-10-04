@@ -508,39 +508,39 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADKernel/ImprintBodyFeatureEvaluator.swift", sourceLine: 110
         ),
         KernelDomainLimitation(
-            id: "condition-939721e81a27f02e",
+            id: "condition-c162b7738a0cda3b",
             operations: ["CADCommand"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
-            condition: "Nonclamped and periodic non-C1 charts lack continuous-normal authority in this rectangular mesh route. Production B-spline preflight reaches this refusal. Complete full M1 only after native span/seam and one-sided normal contracts certify these remaining original rectangles.",
+            condition: "Nonclamped open and discontinuous periodic charts lack native rectangle authority. Public mesh preflight refuses these remaining supports until complete original endpoint/continuity contracts certify them.",
             sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2113
         ),
         KernelDomainLimitation(
-            id: "condition-3fd03260b96462a8",
+            id: "condition-ad2e27742706bb02",
             operations: ["CADCommand"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
-            condition: "Nonclamped C0 rectangles have not established retained native-boundary composition in this production mesh route. Complete full M1 only after original endpoint ownership and compatible grids certify them.",
-            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2240
+            condition: "Nonclamped open C0 rectangles have not established retained native-boundary composition in the public mesh route. Complete full M1 only after original open endpoint ownership and compatible grids certify them.",
+            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2245
         ),
         KernelDomainLimitation(
             id: "condition-63288bf02fc0c723",
             operations: ["CADCommand"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "Singular boundary shading normals use a nearby regular parameter in the production trimmed-face tessellation path. This does not certify a unique one-sided normal limit or its angular error; those guarantees and direction-dependent singularity rejection are required before full support.",
-            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2521
+            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2534
         ),
         KernelDomainLimitation(
             id: "condition-0a3fef29d1b275ed",
             operations: ["CADCommand"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "a trimmed non-spherical parametric face is triangulated from its sampled boundary alone, as a fan here or by ear clipping below, so its interior is not refined against the chord, turning or edge-length bounds. Production path: every trimmed cylinder, cone, torus, B-spline and procedural face that is not a rectangular grid. Not covered by the tessellation fidelity contract until the interior refines against all three bounds with tests that measure interior deviation.",
-            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2621
+            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2634
         ),
         KernelDomainLimitation(
             id: "condition-afc28231555c121a",
             operations: ["CADCommand"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "Arbitrary C0/periodic B-spline trims lack certified interior fidelity in the production mesh route. This exact rectangle admission refuses them until full M1/M2 supplies original trim and interior authority.",
-            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2975
+            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2988
         ),
         KernelDomainLimitation(
             id: "condition-94b418304d6d7b26",
