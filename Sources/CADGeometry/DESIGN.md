@@ -41,7 +41,10 @@ surface-parameter curves used by all higher Swift-CAD modules. It is a child of
 the [Swift-CAD package design](../../DESIGN.md). Its
 [Involute](Involute/DESIGN.md) child owns certified involute flank approximation.
 The [RollingBall](RollingBall/DESIGN.md) child owns local contact sections for
-curved-surface fillets, not their topology or feature publication.
+curved-surface fillets, not their topology or feature publication. The
+[OriginalCurveSurfaceCorrespondence](OriginalCurveSurfaceCorrespondence/DESIGN.md)
+child owns whole-use source correspondence certificates for its bounded native
+curve/support family.
 
 ## Responsibilities and Boundaries
 
