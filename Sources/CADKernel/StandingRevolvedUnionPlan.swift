@@ -10,6 +10,9 @@ import CADTopology
 /// the other solid (a boss on a plate, holes and all; a smaller cylinder stacked on a larger).
 /// Their union keeps every face of both but the standing solid's cap: the face it stands on takes
 /// the cap's boundary as a hole, those edges then bounding that hole and the standing solid's wall.
+/// Standing flush on a coaxial revolved solid's cap of its own radius (two equal cylinders stacked),
+/// both caps go and the two walls meet along their shared circle, each one's rim split where the
+/// other's is.
 struct StandingRevolvedUnionPlan: Sendable {
     let largerBodyID: BodyID
     let smallerBodyID: BodyID
@@ -17,6 +20,10 @@ struct StandingRevolvedUnionPlan: Sendable {
     let annulusFaceID: FaceID
     /// The standing solid's cap that goes.
     let droppedFaceID: FaceID
+    /// Whether the face stood on is a coaxial cap of the same radius, which goes too.
+    let flush: Bool
+    /// The shared circle's centre and radius when flush.
+    let circle: (center: Point3D, radius: Double)
 
     /// The plan when either operand stands on the other so; nil for any other pair.
     init?(targetBodyID: BodyID, toolBodyID: BodyID, model: BRepModel, tolerance: ModelingTolerance) throws {
@@ -26,6 +33,8 @@ struct StandingRevolvedUnionPlan: Sendable {
                 smallerBodyID = smaller
                 annulusFaceID = found.face
                 droppedFaceID = found.cap
+                flush = found.flush
+                circle = found.circle
                 return
             }
         }
@@ -34,7 +43,7 @@ struct StandingRevolvedUnionPlan: Sendable {
 
     /// The face of `larger` the revolved `smaller` stands on and `smaller`'s cap on it.
     private static func standing(_ smaller: BodyID, on larger: BodyID, model: BRepModel,
-                                 tolerance: ModelingTolerance) throws -> (face: FaceID, cap: FaceID)? {
+                                 tolerance: ModelingTolerance) throws -> (face: FaceID, cap: FaceID, flush: Bool, circle: (center: Point3D, radius: Double))? {
         let operand: RevolvedSolidOperand
         do {
             operand = try RevolvedSolidOperand(bodyID: smaller, model: model, tolerance: tolerance)
@@ -47,18 +56,40 @@ struct StandingRevolvedUnionPlan: Sendable {
             let radius = operand.radius(at: coordinate)
             // The face's outward normal points from the larger solid into the standing one.
             let outward = axis * (other > coordinate ? 1 : -1)
-            // FIXME(INCOMPLETE_IMPLEMENTATION): a disc reaching the face's edges (two cylinders of
-            // one radius stacked, a boss on a face's border) leaves walls meeting along a shared
-            // boundary this plan does not join, so it takes no such pair, which the general Boolean
-            // then refuses. Production path: Boolean union through ExactBRepBooleanEvaluator.makePlan.
-            // Complete only when such contacts join, verified by two equal cylinders stacked into one.
             guard let stoodOn = try face(of: larger, at: center, outward: outward, model: model, tolerance: tolerance),
                   try bounds(larger, plane: (center, outward), model: model, tolerance: tolerance),
-                  try clears(stoodOn, disc: (center, radius), normal: outward, model: model, tolerance: tolerance),
                   let cap = try face(of: smaller, at: center, outward: outward * -1, model: model, tolerance: tolerance) else { continue }
-            return (stoodOn, cap)
+            if try flushCap(larger, axis: axis, center: center, radius: radius, model: model, tolerance: tolerance) {
+                return (stoodOn, cap, true, (center, radius))
+            }
+            // FIXME(INCOMPLETE_IMPLEMENTATION): a disc reaching the face's edges other than a
+            // coaxial cap of its radius (a boss on a face's border) leaves walls meeting along a
+            // shared boundary this plan does not join, so it takes no such pair, which the general
+            // Boolean then refuses. Production path: Boolean union through
+            // ExactBRepBooleanEvaluator.makePlan. Complete only when such contacts join, verified by
+            // a boss standing across a plate's edge.
+            guard try clears(stoodOn, disc: (center, radius), normal: outward, model: model, tolerance: tolerance) else { continue }
+            return (stoodOn, cap, false, (center, radius))
         }
         return nil
+    }
+
+    /// Whether a body is a revolved solid coaxial with the standing one, of its radius at `center`.
+    private static func flushCap(_ bodyID: BodyID, axis: Vector3D, center: Point3D, radius: Double, model: BRepModel,
+                                 tolerance: ModelingTolerance) throws -> Bool {
+        let operand: RevolvedSolidOperand
+        do {
+            operand = try RevolvedSolidOperand(bodyID: bodyID, model: model, tolerance: tolerance)
+        } catch let error as KernelError where error.code == .unsupportedCapability {
+            return false
+        }
+        guard abs(abs(operand.axis.dot(axis)) - 1) <= tolerance.angle else { return false }
+        let coordinate = (center - .origin).dot(operand.axis)
+        let offset = center - operand.center(at: coordinate)
+        guard offset.length <= tolerance.distance else { return false }
+        let ends = [operand.lowerCoordinate, operand.upperCoordinate]
+        guard ends.contains(where: { abs($0 - coordinate) <= tolerance.distance }) else { return false }
+        return abs(operand.radius(at: coordinate) - radius) <= tolerance.distance
     }
 
     /// The planar face of a body through `point` looking out along `outward`.
@@ -189,6 +220,31 @@ struct StandingRevolvedUnionPlan: Sendable {
         guard let annulus, let dropped, let boundary = dropped.loops.first(where: { $0.role == .outer }) else {
             throw KernelError(phase: .topology, code: .missingReference, tolerance: tolerance,
                               message: "A standing union's faces are missing.")
+        }
+        if flush {
+            // Both caps go; each wall's rim on the shared circle is split where the other's is.
+            let planeNormal = try annulus.surface.normal(u: 0, v: 0, tolerance: tolerance)
+            func onCircle(_ edge: BRepSewingEdge) throws -> Bool {
+                let middle = try edge.curve.point(at: 0.5 * (edge.startParameter + edge.endParameter), tolerance: tolerance)
+                return [edge.startPoint, edge.endPoint, middle].allSatisfy { point in
+                    let offset = point - circle.center
+                    return abs(offset.length - circle.radius) <= tolerance.distance && abs(offset.dot(planeNormal)) <= tolerance.distance
+                }
+            }
+            let corners = try patches.flatMap { patch in
+                try patch.loops.flatMap { loop in try loop.edges.filter(onCircle).flatMap { [$0.startPoint, $0.endPoint] } }
+            }
+            let subdivider = BRepSewingEdgeSubdivider()
+            patches = try patches.map { patch in
+                BRepSewingFacePatch(stableID: patch.stableID, surface: patch.surface, orientation: patch.orientation,
+                                    loops: try patch.loops.map { loop in
+                                        BRepSewingLoop(stableID: loop.stableID, role: loop.role, edges: try loop.edges.flatMap { edge in
+                                            try onCircle(edge) ? try subdivider.subdivide(edge, at: corners, tolerance: tolerance) : [edge]
+                                        })
+                                    }, parentSubshapeIDs: patch.parentSubshapeIDs)
+            }
+            return BRepSewingRequest(featureID: featureID, bodyKind: .solid,
+                                     shells: [BRepSewingShell(stableID: "standing-union:shell", patches: patches)])
         }
         let pcurves = ExactFacePcurveBuilder()
         let hole = BRepSewingLoop(stableID: "\(annulus.stableID):hole", role: .inner, edges: try boundary.edges.map { edge in

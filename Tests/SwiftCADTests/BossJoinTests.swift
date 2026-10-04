@@ -137,4 +137,26 @@ struct BossJoinTests {
         let expected = joinedVolume - Double.pi * 0.003 * 0.003 * thickness
         #expect(abs(try evaluated.brep.volume(tolerance: .standard) - expected) < 1e-12)
     }
+
+    /// Two cylinders of one radius stacked coaxially join into one: both caps between them go, the
+    /// walls meeting along their shared circle.
+    @Test(.timeLimit(.minutes(2)), arguments: [0.0, Double.pi / 5])
+    func equalCylindersStackedJoinIntoOne(turn: Double) throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (radius, step) = (0.01, 0.01)
+        let lower = try builder.cylinder(radius: length(radius), height: length(step))
+        // The upper one turned about the axis, so its rim splits elsewhere than the lower's.
+        let upper = try builder.cylinder(placement: PrimitivePlacement(origin: Point3D(x: 0, y: 0, z: step), axis: .unitZ,
+                                                                       referenceDirection: Vector3D(x: cos(turn), y: sin(turn), z: 0)),
+                                         radius: length(radius), height: length(step))
+        _ = try builder.boolean(targets: [lower], tool: upper, operation: .union)
+        let evaluated = try evaluate(builder)
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - Double.pi * radius * radius * 2 * step) < 1e-12)
+        // No face lies on the plane between them.
+        #expect(evaluated.brep.faces.values.contains { face in
+            guard case let .plane(plane)? = evaluated.brep.geometry.surfaces[face.surfaceID] else { return false }
+            return abs(plane.origin.z - step) < 1e-9
+        } == false)
+    }
 }

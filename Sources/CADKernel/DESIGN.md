@@ -638,8 +638,11 @@ every phase reads the same `BooleanOperandContext`.
   A revolved solid standing from outside on a planar face of any other solid, its cap's disc
   inside the face clear of its edges and holes and the face's plane bounding that solid (a
   boss on a holed plate, a stepped shaft), joins it (`StandingRevolvedUnionPlan`): every face
-  of both is carried but the standing cap, the face taking the cap's boundary edges as a hole;
-  a disc reaching the face's edges is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
+  of both is carried but the standing cap, the face taking the cap's boundary edges as a hole.
+  Flush on a coaxial revolved solid's cap of its own radius (equal cylinders stacked), both caps
+  go and each wall's rim on the shared circle is split where the other's is
+  (`equalCylindersStackedJoinIntoOne`); any other disc reaching the face's edges is refused
+  (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
   A
   pass whose targets have no material produces a sheet body, any other a solid
   (`resultBodyKind`), and the sewing request must carry that kind. A face crossing
