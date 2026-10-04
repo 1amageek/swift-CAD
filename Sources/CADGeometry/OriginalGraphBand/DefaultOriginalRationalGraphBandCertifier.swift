@@ -472,10 +472,23 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
         func retain(_ value: Double) {
             if value > left, value < right { stations.insert(value) }
         }
-        for piece in lower.pieces + upper.pieces {
-            let bounds = try piece.uBounds
-            retain(bounds.lower)
-            retain(bounds.upper)
+        func retainOriginalBreak(_ value: Double, isLower: Bool) {
+            // Source tails remain retained separately. A break hidden by this
+            // chain's connector does not change its active reference law.
+            let hidden = joins.contains { join in
+                guard join.isTip == false else { return false }
+                let reference = isLower ? join.lowerConnector : join.upperConnector
+                guard case let .connector(domain, _, _, _)? = reference else { return false }
+                return value > domain.lower && value < domain.upper
+            }
+            if hidden == false { retain(value) }
+        }
+        for (chain, isLower) in [(lower, true), (upper, false)] {
+            for piece in chain.pieces {
+                let bounds = try piece.uBounds
+                retainOriginalBreak(bounds.lower, isLower: isLower)
+                retainOriginalBreak(bounds.upper, isLower: isLower)
+            }
         }
         for panel in panels {
             retain(panel.parameters.u.lower)

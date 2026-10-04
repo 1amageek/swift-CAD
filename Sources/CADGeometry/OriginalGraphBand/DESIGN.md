@@ -20,12 +20,12 @@ Geometry proof. No input curve, support, trim or topology is mutated.
 
 ## Related Designs
 
-| Design | Relationship | Contract used | Caution |
-|---|---|---|---|
-| [CADGeometry](../DESIGN.md) | parent | Original selected native-span jets and strict normals | Use the exact original support and preparation tolerance |
-| [CADKernel](../../CADKernel/DESIGN.md) | used by | Mesh fidelity, retained preflight/emission, checked budgets | This receipt does not admit arbitrary trim or replace rectangle identity |
-| [CADIR](../../CADIR/DESIGN.md) | depends on | Facet approximation to original curve/surface | Reference uncertainty is not source UV identity |
-| [CurveSurfaceOverlap](../CurveSurfaceOverlap/DESIGN.md) | coordinates with | Whole correspondence evidence | Correspondence alone does not prove planar closure or winding |
+| Design | Relationship | Contract used | Summary | Caution |
+|---|---|---|---|---|
+| [CADGeometry](../DESIGN.md) | parent | Original selected native-span jets and strict normals | Owns the support authority used by graph cells | Use the exact original support and preparation tolerance |
+| [CADKernel](../../CADKernel/DESIGN.md) | used by | Mesh fidelity, retained preflight/emission, checked budgets | Consumes retained graph receipts for actual mesh facets | This receipt does not admit arbitrary trim or replace rectangle identity |
+| [CADIR](../../CADIR/DESIGN.md) | depends on | Facet approximation to original curve/surface | Defines the geometric approximation authority | Reference uncertainty is not source UV identity |
+| [CurveSurfaceOverlap](../CurveSurfaceOverlap/DESIGN.md) | coordinates with | Whole correspondence evidence | Keeps spatial-edge evidence separate from graph coverage | Correspondence alone does not prove planar closure or winding |
 
 ## Architecture
 
@@ -137,6 +137,17 @@ interior error. Native support/pcurve breaks and all inverse uncertainty are
 retained; no triangle crosses a C0 support knot. Compatible subdivisions retain
 one grid at each shared station and separate selected normal owners at creases.
 
+Reference stations partition active reference laws, separately from retained
+original boundary intervals. A source-piece endpoint strictly inside its own
+chain's certified affine connector does not partition the reference grid: that
+chain uses the same connector law on both sides. Connector boundaries, every
+original native support knot, and an opposite chain's active original-piece
+break remain stations. This rule uses exact closed connector ownership and
+strict comparisons, not an epsilon merge, source repair or removal of a thin
+strip. Every original boundary interval, crossing tail and full-strip
+uncertainty remains retained and proved. Selected C0 support owners remain
+separate even inside a connector.
+
 An internal join box only localizes boundary uncertainty; it cannot remove the
 vertical strip beneath its U range. This strip retains complete F reference
 cells using the coefficient-owned affine connector as the reference boundary.
@@ -215,3 +226,8 @@ selected C0 normal, actual station/diagonal, aggregate resource, invalid vertex
 and cancellation declarations. Existing OriginalNativeSpanTessellationTests
 owns compatibility of the original default traversal. Compile/runtime evidence
 is required before this bounded component is complete.
+
+The one-ULP crossing-tail fixture must retain every original interval and the
+complete join strip while removing hidden same-chain reference partitions. An
+opposite active original break at that same station and native C0 support
+breaks must still partition reference cells.

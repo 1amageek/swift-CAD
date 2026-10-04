@@ -103,6 +103,61 @@ struct OriginalGraphBandTests {
         }
     }
 
+    @Test func hiddenOriginalEndpointsDoNotPartitionActiveConnector() throws {
+        let input = crossingTails(aU: 0.5.nextUp, bV: 1.0.nextDown)
+        var usage = OriginalTessellationProofUsage()
+        let receipt = try certifier.certify(input: input, fidelity: fidelity,
+                                          tolerance: tolerance, proofUsage: &usage)
+        #expect(receipt.input == input)
+        #expect(receipt.originalBoundaryIntervals.count == 3)
+        #expect(Set(receipt.originalBoundaryIntervals.map(\.boundaryIndex)) == Set(0..<3))
+        #expect(receipt.originalBoundaryIntervals.allSatisfy {
+            $0.nativeParameters.lower == 0 && $0.nativeParameters.upper == 1
+                && $0.normalizedParameters.lower == 0 && $0.normalizedParameters.upper == 1
+        })
+        let join = try #require(receipt.joinCells.first {
+            $0.parameters.u.lower < 0.5 && $0.parameters.u.upper > 0.5.nextUp
+                && $0.parameters.v.lower > 0.5
+        })
+        let strip = receipt.referenceCells.filter {
+            $0.u.lower >= join.parameters.u.lower && $0.u.upper <= join.parameters.u.upper
+        }
+        #expect(strip.count == 1)
+        let cell = try #require(strip.first)
+        #expect(cell.u.lower == join.parameters.u.lower)
+        #expect(cell.u.upper == join.parameters.u.upper)
+        #expect(cell.parameters.v.lower == 0 && cell.parameters.v.upper >= 1.0.nextDown)
+        #expect(cell.boundaryUncertaintyUpperBound > 0)
+        #expect(receipt.referenceCells.allSatisfy {
+            $0.u.lower != 0.5 && $0.u.upper != 0.5
+                && $0.u.lower != 0.5.nextUp && $0.u.upper != 0.5.nextUp
+        })
+        for pair in zip(receipt.referenceCells, receipt.referenceCells.dropFirst()) {
+            #expect(pair.0.u.upper == pair.1.u.lower)
+        }
+    }
+
+    @Test func oppositeActiveOriginalBreakStillPartitionsConnectorStrip() throws {
+        let source = crossingTails(aU: 0.5.nextUp, bV: 1.0.nextDown)
+        let lower = BSplineCurve2D(degree: 1, knots: [0, 0, 0.5, 1, 1],
+            controlPoints: [Point2D(x: 0, y: 0), Point2D(x: 0.5, y: 0), Point2D(x: 1, y: 0)])
+        let input = OriginalGraphBandInput(surface: source.surface,
+            boundaries: [.bSpline(lower), source.boundaries[1], source.boundaries[2]],
+            sharedVertices: source.sharedVertices, lowerChain: source.lowerChain,
+            upperChain: source.upperChain)
+        var usage = OriginalTessellationProofUsage()
+        let receipt = try certifier.certify(input: input, fidelity: fidelity,
+                                          tolerance: tolerance, proofUsage: &usage)
+        #expect(receipt.input == input)
+        #expect(receipt.originalBoundaryIntervals.count == 4)
+        #expect(receipt.referenceCells.contains { $0.u.upper == 0.5 })
+        #expect(receipt.referenceCells.contains { $0.u.lower == 0.5 })
+        #expect(receipt.referenceCells.allSatisfy { $0.u.upper <= 0.5 || $0.u.lower >= 0.5 })
+        #expect(receipt.referenceCells.allSatisfy {
+            $0.u.lower != 0.5.nextUp && $0.u.upper != 0.5.nextUp
+        })
+    }
+
     @Test func selectedC0NormalsRemainSeparateAtTheSameStation() throws {
         var usage = OriginalTessellationProofUsage()
         let receipt = try certifier.certify(input: literalLens(crease: true), fidelity: fidelity,
