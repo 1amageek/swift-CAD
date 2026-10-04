@@ -139,8 +139,26 @@ struct SharedSTEPRepresentationTests {
             .replacingOccurrences(of: "ENDSEC;\nEND-ISO", with: "#800=REPRESENTATION_MAP(#17,#810);\n#801=MAPPED_ITEM('',#800,#802);\n#802=CARTESIAN_TRANSFORMATION_OPERATOR_3D('',*,*,#14,#803,#10,1.,#13);\n#803=DIRECTION('',(0.,1.,0.));\n#810=SHAPE_REPRESENTATION('',(#38,#17),#7);\nENDSEC;\nEND-ISO")
         #expect(throws: ProductAttributeError.unsupportedSemantics("A whole-part carrier cannot select several definitions.")) { _ = try imported(carrier) }
         var document = try imported()
-        let scoped = try #require(document.productAttributes.assignments.first { $0.value.property == .density })
+        let originalSource = document
+        let removedDensities = document.productAttributes.assignments.filter { $0.value.property == .density }
+        let scoped = try #require(removedDensities.first)
+        let removedTargets = Set(removedDensities.map(\.target))
+        #expect(removedDensities.count == 2 && removedTargets.count == 2)
+        #expect(Set(removedTargets.compactMap { $0.definitionID?.description }) == Set([
+            "33333333-3333-4333-8333-333333333333", "44444444-4444-4444-8444-444444444444"]))
+        let removedDescriptions = document.productAttributes.shapeElementDescriptions.filter { removedTargets.contains($0.target) }
+        let unrelatedDescriptions = document.productAttributes.shapeElementDescriptions.filter { !removedTargets.contains($0.target) }
+        let originalNames = document.productAttributes.assignments.filter { $0.value.property == .name }
+        #expect(removedDescriptions.count == 2 && removedDescriptions.allSatisfy { $0.description.utf8.isEmpty })
         document.productAttributes.assignments.removeAll { $0.value.property == .density }
+        #expect(throws: ProductAttributeError.unsupportedSemantics("Standalone shape element description requires a name or physical attachment.")) {
+            _ = try originalSource.replacingProductAttributes(document.productAttributes, tolerance: .standard)
+        }
+        #expect(originalSource.productAttributes.shapeElementDescriptions == removedDescriptions + unrelatedDescriptions)
+        // This intentional migration also removes only the metadata whose exact scoped density attachment was removed.
+        document.productAttributes.shapeElementDescriptions.removeAll { removedTargets.contains($0.target) }
+        #expect(document.productAttributes.shapeElementDescriptions == unrelatedDescriptions)
+        #expect(document.productAttributes.assignments.filter { $0.value.property == .name } == originalNames)
         document.productAttributes.assignments.append(ProductAttributeAssignment(target: ProductAttributeTarget(kind: scoped.target.kind, geometry: scoped.target.geometry), value: scoped.value))
         let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let sink = DataByteSink()

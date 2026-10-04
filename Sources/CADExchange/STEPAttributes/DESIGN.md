@@ -306,6 +306,29 @@ B-spline pcurves. Native retains the complete original source signature. The
 independent triangle oracle proves its complete algebraic boundaries rather
 than requiring transport enum or floating-point byte identity.
 
+### Definition-Qualified Description Transport (PAR.SDESC1)
+
+Standard [ShapeAspect](https://www.steptools.com/stds/stp_aim/html/t_shape_aspect.html)
+owns optional description independently of name. The bounded profile
+consumes the [ProductAttributes source description contract](../../CADIR/ProductAttributes/DESIGN.md#definition-qualified-shape-element-description-parsdesc1).
+Only complete existing definition-qualified GISU/PD/view/item/unit admission
+can retain this field. Source record absence emits `$`; any present String,
+including `''`, emits its exact text. Empty input description is retained,
+never normalized to absence. Name or physical attachment reuses the same
+ShapeAspect/view/GISU; no new geometry, product identity or transport UUID is
+created. Global CIWR wrapper text and geometry/material names keep their own
+owners. Chained history/contextual/metadata-only authority stays explicitly
+unsupported until its separate source and standard egress contracts exist.
+
+Independent foreign literals, two public STEP generations and strict Native
+must distinguish null, empty, whitespace and non-normalized Unicode on the
+same shared source geometry. Current exact producer references and literal
+algebraic geometry replace no source identity by sampled similarity. Competing
+signatures, malformed/foreign/unit/GISU targets, exhausted shared limits,
+cancellation and atomic failure retain typed refusal. Verification must include
+the causal existing qualified-description fixture and source schema consumers;
+the bounded design retains separate full-X3 gaps.
+
 ## Runtime Flows
 
 ```text
@@ -377,3 +400,15 @@ Native/two STEP generations/new parent placement, exact source-selector and
 provenance preservation, foreign/mixed/nonleaf context refusal, caller ceilings,
 cancellation and atomic output. The standard owner is [CDSR](https://www.steptools.com/stds/stp_aim/html/t_context_dependent_shape_representation.html)
 admitted by [style_context_select](https://www.steptools.com/stds/stp_aim/html/t_style_context_select.html).
+
+PAR.SDESC1 Native completion evidence: four independent IR source declarations,
+one genuine stale/fresh exact receipt declaration, eight strict topology schema
+declarations and five independent foreign STEP/Native/two-generation declarations
+pass. All346 current exchange declarations pass across the345 unchanged successful
+results and the causal shared-density migration recheck (.297s). The intentional
+migration first proves unattached-description refusal, then explicitly removes
+only descriptions of both removed exact scoped density targets, preserving other
+metadata/override graphs and the original global/memory/URL oracles. Existing
+source and resolution regressions pass17 IR,10 Kernel and four physical STEP
+cases. Capability42 pass.146s; source projection checks134 actual conditions,
+664 fixture bindings and107 public routes. Empty text is never silently omitted.

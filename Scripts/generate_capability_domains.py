@@ -23,6 +23,7 @@ BINDINGS = {
     "STEPAssemblyReader": (["STEP"], ["representation", "connection"]),
     "STEPAssemblyWriter": (["STEP"], ["representation", "connection"]),
     "STEPSourceIdentityReader": (["STEP"], ["representation", "connection"]),
+    "ProductAttributesValidator": (["nativePersistence", "STEP"], ["representation", "connection"]),
     "STEPAttributesReader": (["STEP"], ["representation", "connection"]),
     "STEPAttributesWriter": (["STEP"], ["representation", "connection"]),
     "ExactSTEPWriter": (["STEP"], ["representation", "connection"]),

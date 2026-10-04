@@ -13,12 +13,15 @@ Public capability domains are owned by the
 CADCore owns Codable expression structure, literal validation and dependency discovery.
 Evaluation and kind checking belong to CADIR and CADModeling.
 The source envelope number is owned by [SchemaVersion.current](SchemaVersion.swift);
-the current strict baseline is 0.9.0. ProductAttributes requires the
-physicalCharacterizations array and explicit nullable description. Prior 0.8.0
-is rejected without migration. Definition-qualified body/face attribute scopes
-retain their existing nullable target selector. CADIR owns required source payloads and
-CADExchange owns strict native transport admission. A baseline change must
-verify those contracts together without an implicit migration.
+the current source baseline is 0.10.0. ProductAttributes requires both the
+physicalCharacterizations and shapeElementDescriptions arrays, preserving the
+separate nullable physical description and required shape-element description
+contracts. Prior 0.9.0 is rejected without migration. Definition-qualified
+body/face targets retain their existing selector authority. CADIR owns required
+source payloads and CADExchange owns strict native transport admission.
+A baseline change must verify those contracts together without implicit migration.
+PAR.SDESC1 verifies this source baseline through current strict Native admission,
+independent source/resolution fixtures and public STEP generations.
 
 ## Related Designs
 

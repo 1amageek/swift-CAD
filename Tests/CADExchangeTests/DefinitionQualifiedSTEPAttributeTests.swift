@@ -128,7 +128,9 @@ struct DefinitionQualifiedSTEPAttributeTests {
         let nonidentity = Self.fixture.replacingOccurrences(of: "#10,1.,#13", with: "#80,1.,#13")
         #expect(throws: AssemblyError.invalidSource("Whole-part carrier transform is not identity.")) { _ = try imported(nonidentity) }
         let description = Self.fixture.replacingOccurrences(of: "SHAPE_ASPECT('selected body',''", with: "SHAPE_ASPECT('selected body','independent description'")
-        #expect(throws: ProductAttributeError.unsupportedSemantics("Independent shape-element descriptions require a retained source owner.")) { _ = try imported(description) }
+        let retained = try imported(description)
+        let metadata = try #require(retained.productAttributes.shapeElementDescriptions.first { $0.target.kind == .body })
+        #expect(metadata.description == "independent description" && metadata.target.definitionID?.description == "33333333-3333-4333-8333-333333333333")
     }
     @Test(.timeLimit(.minutes(1)))
     func nameHistoryEmptyLabelsAndCallerLimitsKeepOutputAtomic() throws {

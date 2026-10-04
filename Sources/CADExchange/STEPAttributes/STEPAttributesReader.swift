@@ -34,6 +34,7 @@ private extension STEPAttributesReader {
         var assignments: [ProductAttributeAssignment] = []
         var globalPhysicalGeometry: [Int: ProductAttributeTarget] = [:]
         var physicalCharacterizations: [ProductPhysicalCharacterization] = []
+        var shapeElementDescriptions: [ProductShapeElementDescription] = []
         var physicalGeometry: [Int: ProductAttributeTarget] = [:]
         var styleProperties: [Int: [ProductAttributeValue.Property: ProductAttributeID]] = [:]
         var styleTargets: [Int: ProductAttributeTarget] = [:]
@@ -169,6 +170,8 @@ private extension STEPAttributesReader {
                 try check()
                 let usage = try args(id, 5), aspect = try syntax.reference(usage[2])
                 let representation = try syntax.reference(usage[3]), item = try syntax.reference(usage[4])
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP qualified shape-element import cannot retain subtype or chained metadata/name lifetimes yet.
+                // Their independent source authority and equivalent standard egress are required before those GISU definitions can succeed.
                 guard names[aspect] == "SHAPE_ASPECT" else {
                     throw ProductAttributeError.unsupportedSemantics("Unsupported GISU definition target.")
                 }
@@ -238,10 +241,12 @@ private extension STEPAttributesReader {
                 let target = ProductAttributeTarget(kind: mapped.kind, geometry: reference, definitionID: definition)
                 physicalGeometry[aspect] = target
                 let label = try string(a[0]), description = a[1] == "$" ? nil : try string(a[1])
-                // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP shape-element import cannot retain independent descriptions or chained name history yet.
-                // A persistent description/predecessor owner and equivalent standard egress are required before those meanings can be admitted.
-                guard description == nil || description?.isEmpty == true else {
-                    throw ProductAttributeError.unsupportedSemantics("Independent shape-element descriptions require a retained source owner.")
+                if let description {
+                    guard shapeElementDescriptions.count < budget.limits.maximumRecords else {
+                        throw ProductAttributeError.resourceLimitExceeded("Shape element description records.")
+                    }
+                    try budget.charge(targets: 1)
+                    shapeElementDescriptions.append(ProductShapeElementDescription(target: target, description: description))
                 }
                 if !label.isEmpty { try budget.charge(targets: 1); assignments.append(ProductAttributeAssignment(target: target, value: .name(label))) }
             }
@@ -570,7 +575,7 @@ private extension STEPAttributesReader {
                 try budget.charge(targets: 1); assignments.append(ProductAttributeAssignment(target: target, value: .density(density)))
             }
             let result = ProductAttributes(materials: materials, assignments: assignments, layers: layers,
-                physicalCharacterizations: physicalCharacterizations)
+                physicalCharacterizations: physicalCharacterizations, shapeElementDescriptions: shapeElementDescriptions)
             var document = evaluated.document; document.productAttributes = result
             try ProductAttributesValidator().validate(result, in: document, budget: &budget)
             return result

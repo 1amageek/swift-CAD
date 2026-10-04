@@ -147,7 +147,7 @@ index/traversal/growth; cancellation and failed copied edits publish no state.
 | Owner | Contract |
 |---|---|
 | ProductAttributes | Required source array, global stable target uniqueness, physical attachment, exact text and lifetime |
-| CADCore | Coordinated strict 0.9.0 envelope; prior 0.8.0 is refused |
+| CADCore | Coordinated current envelope owned by [CADCore](../../CADCore/DESIGN.md); prior envelopes are refused |
 | CADExchange Native | Required array/fields, nullable presence and unknown-key rejection |
 | STEPAttributes | Standard singleton global CIWR text mapped to this owner without renaming geometry/material/PD |
 | Source fingerprint/receipt | Existing complete canonical source encoding and immutable document freshness |
@@ -166,6 +166,44 @@ owned source values -> preflight counts -> validate identities/targets/domains
 source edit -> copied document -> complete source validation -> publish copy
 native decode -> strict current envelope -> typed source validation -> owned source
 ```
+
+### Definition-Qualified Shape Element Description (PAR.SDESC1)
+
+The strict source contract adds required `shapeElementDescriptions` to
+ProductAttributes and an immutable `ProductShapeElementDescription` value.
+Each record owns a body/face target with a real definitionID and complete local
+StableSubshapeReference; path and usage selectors are absent. Its required
+String preserves exact UTF-8, including empty and non-normalized text. Record
+absence is standard null description; a present empty String is meaningful.
+No default record, generated UUID, geometry rename or second name field is
+introduced. ShapeAspect.name remains the existing name assignment's authority.
+
+Uniqueness is definitionID/kind/StableSubshapeID, including rejection of competing
+signatures. Attachment requires a standalone nonempty name or material/explicit
+density assignment on the identical complete target. Existing real definition
+membership and local geometry admission remain mandatory. Metadata-only
+ShapeAspect lifetime, other selectors, chained predecessors and contextual
+characterization remain separate typed unsupported profiles.
+
+The required array participates in canonical source equality, coding, copies,
+fingerprints and exact producer receipt freshness. Changing description text
+must reject a stale genuine receipt while preserving geometry and appearance.
+Native's coordinated current source envelope is owned by [CADCore](../../CADCore/DESIGN.md),
+rejecting prior versions without migration. PAR.SDESC1 has Native source, resolution and public exchange behavioral evidence. Missing array/fields, unknown keys,
+foreign definition membership, duplicate or unattached targets, text/work/record
+exhaustion and cancellation fail before publishing a source edit.
+
+| Owner | Assumption | Guarantee / evidence |
+|---|---|---|
+| Source record/validator | Exact real definition-qualified body/face and attachment | Null versus empty UTF-8, canonical uniqueness and current-source freshness |
+| STEPAttributes | Strict PD/GISU/view/item/unit membership and uniqueness | Same ShapeAspect description and shared geometry through two generations |
+| Native | Coordinated current envelope and complete fields | Exact complete source roundtrip or strict prior/malformed refusal |
+| Evaluation | Genuine current producer receipt | Metadata edit invalidates old receipt; fresh resolution leaves shape/appearance unchanged |
+
+Independent literal STEP body/face/selected-PD descriptions, empty/null/Unicode,
+new-PD nonattachment, Native source equality and genuine stale/fresh receipt
+fixtures must establish this pending contract. The existing source and STEP
+owners retain cumulative limits, cancellation and atomic URL publication.
 
 ## State, Ownership, and Lifecycle
 

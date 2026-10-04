@@ -5,6 +5,11 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
         let kind: ProductAttributeTarget.Kind
         let subshapeID: SubshapeID
     }
+    private struct ShapeElementKey: Hashable {
+        let definitionID: AssemblyDefinitionID
+        let kind: ProductAttributeTarget.Kind
+        let subshapeID: SubshapeID
+    }
     public init() {}
     public func validate(_ attributes: ProductAttributes, in document: CADDocument,
                          budget: inout ProductAttributeBudget) throws {
@@ -12,10 +17,11 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
         guard attributes.materials.count <= limit,
               attributes.assignments.count <= limit - attributes.materials.count,
               attributes.layers.count <= limit - attributes.materials.count - attributes.assignments.count,
-              attributes.physicalCharacterizations.count <= limit - attributes.materials.count - attributes.assignments.count - attributes.layers.count else {
+              attributes.physicalCharacterizations.count <= limit - attributes.materials.count - attributes.assignments.count - attributes.layers.count,
+              attributes.shapeElementDescriptions.count <= limit - attributes.materials.count - attributes.assignments.count - attributes.layers.count - attributes.physicalCharacterizations.count else {
             throw ProductAttributeError.resourceLimitExceeded("Product source records.")
         }
-        try budget.charge(work: attributes.materials.count + attributes.assignments.count + attributes.layers.count + attributes.physicalCharacterizations.count)
+        try budget.charge(work: attributes.materials.count + attributes.assignments.count + attributes.layers.count + attributes.physicalCharacterizations.count + attributes.shapeElementDescriptions.count)
         var materials: [PhysicalMaterialID: PhysicalMaterialDescriptor] = [:]
         for material in attributes.materials {
             try budget.charge(textBytes: material.name.utf8.count)
@@ -85,6 +91,28 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
                    assignment.value.property == .material || assignment.value.property == .density { attached = true }
             }
             guard attached else { throw ProductAttributeError.missingTarget("Physical characterization attachment.") }
+        }
+        var described = Set<ShapeElementKey>()
+        for record in attributes.shapeElementDescriptions {
+            guard (record.target.kind == .body || record.target.kind == .face), let definition = record.target.definitionID,
+                  record.target.path == nil, record.target.usageID == nil, let geometry = record.target.geometry else {
+                throw ProductAttributeError.invalidSource("Shape element description requires a definition-qualified geometry target.")
+            }
+            try validateTarget(record.target, in: document, budget: &budget)
+            try budget.charge(textBytes: record.description.utf8.count)
+            guard described.insert(ShapeElementKey(definitionID: definition, kind: record.target.kind, subshapeID: geometry.subshapeID)).inserted else {
+                throw ProductAttributeError.invalidSource("Duplicate shape element description target.")
+            }
+            var attached = false
+            for assignment in attributes.assignments {
+                try budget.charge(work: 1)
+                guard assignment.target == record.target else { continue }
+                if case let .name(label) = assignment.value, !label.utf8.isEmpty, assignment.overrides == nil { attached = true }
+                if assignment.value.property == .material || assignment.value.property == .density { attached = true }
+            }
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Native and public STEP cannot retain standalone shape-element metadata without an existing name or physical attachment.
+            // An independent source lifetime and equivalent standard egress are required before metadata-only shape aspects can succeed.
+            guard attached else { throw ProductAttributeError.unsupportedSemantics("Standalone shape element description requires a name or physical attachment.") }
         }
         // Exact same-target conflicts are structural and do not require evaluated topology.
         for assignment in attributes.assignments {

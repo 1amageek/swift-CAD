@@ -344,7 +344,12 @@ private extension STEPAttributesWriter {
                     try duration.check(format: .step)
                     if assignment.target == target, case let .name(value) = assignment.value { label = value }
                 }
-                let aspect = try add("SHAPE_ASPECT(\(try string(label)),'',#\(product.definitionShape),.T.)")
+                var description = "$"
+                for record in evaluated.document.productAttributes.shapeElementDescriptions {
+                    try check()
+                    if record.target == target { description = try string(record.description) }
+                }
+                let aspect = try add("SHAPE_ASPECT(\(try string(label)),\(description),#\(product.definitionShape),.T.)")
                 _ = try add("GEOMETRIC_ITEM_SPECIFIC_USAGE('','',#\(aspect),#\(view),#\(item))")
                 try budget.charge(targets: 1)
                 result.append(aspect)

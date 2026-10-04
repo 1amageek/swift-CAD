@@ -187,8 +187,17 @@ point and derivative behavior after decoding.
 
 Global physical-characterization metadata uses the
 [ProductAttributes source contract](../CADIR/ProductAttributes/DESIGN.md) under
-the coordinated strict 0.9.0 envelope. Native requires the explicit array and
+the coordinated current envelope owned by [CADCore](../CADCore/DESIGN.md). Native requires the explicit array and
 all name/target/nullable-description fields, rejects unknown keys, and refuses
-prior 0.8.0. STEP consumes the child's independent CIWR text contract. Full
+prior envelopes. STEP consumes the child's independent CIWR text contract. Full
 source fingerprint/copy/receipt validation and atomic failure remain required;
 the source and transport owners retain distinct authority.
+
+### Qualified Description Envelope
+
+PAR.SDESC1 coordinates the current strict 0.10.0 Native source envelope, required
+shape-element description source array and prior-0.9.0 refusal. Its source
+meaning belongs to [ProductAttributes](../CADIR/ProductAttributes/DESIGN.md#definition-qualified-shape-element-description-parsdesc1),
+and standard egress belongs to [STEPAttributes](STEPAttributes/DESIGN.md#definition-qualified-description-transport-parsdesc1).
+Current-source fingerprints, exact receipts, unknown/missing-field refusal and
+atomic publication compose through the verified source/resolution/exchange fixtures.

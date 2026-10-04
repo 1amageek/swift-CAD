@@ -2941,5 +2941,5 @@ private func validateNativeAssemblyOccurrence(_ object: [String: Any], path: Str
 
 private func validateNativeProductAttributesObject(_ object: [String: Any], path: String) throws {
     // Typed decoding owns the nested strict discriminators and density/target payload admission.
-    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["materials", "assignments", "layers", "physicalCharacterizations"], objectName: path)
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["materials", "assignments", "layers", "physicalCharacterizations", "shapeElementDescriptions"], objectName: path)
 }
