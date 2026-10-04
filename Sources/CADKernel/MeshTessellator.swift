@@ -1924,8 +1924,11 @@ public struct MeshTessellator: Tessellating {
                     budget: &budget
                 )
                 // A silently skipped quad leaves a hole that mesh compaction
-                // hides from validation; fail loudly instead.
-                guard appendedFirst, appendedSecond else {
+                // hides from validation; fail loudly instead. A cell with three
+                // corners on one line (a straight corner of the face, a side
+                // halved there) is the other triangle whole: its skipped
+                // triangle has no area, so it leaves no hole.
+                guard appendedFirst || appendedSecond else {
                     throw TessellationError.degenerateFace(face.id)
                 }
             }

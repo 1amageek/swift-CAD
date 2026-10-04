@@ -295,7 +295,9 @@ body quality, and cumulative resource refusal.
    estimated byte limits are charged across the entire tessellation invocation,
    not only one face. Emission also charges actual usage before each output
    growth. Overflow and limit excess therefore fail before the allocation or
-   growth they would exceed.
+   growth they would exceed. A parametric face's grid cell emits both its triangles; one with
+   no area (three of the cell's corners on one line, at a straight corner of the face) is left
+   out since the other covers the cell, while a cell with neither fails the face.
 6. Preflight and emission check cooperative cancellation at document, body,
    face, and bounded inner-loop checkpoints. Emission is all-or-nothing: a
    failed or cancelled invocation returns no Mesh map and cannot publish a

@@ -212,18 +212,16 @@ public struct DefaultBSplineCurveCommonBasisResolver: BSplineCurveCommonBasisRes
     }
 
     private func mergedBreaks(_ first: [Double], _ second: [Double]) -> [Double] {
-        let sorted = (first + second + [0.0, 1.0]).sorted()
-        var result: [Double] = []
-        result.reserveCapacity(sorted.count)
-        for value in sorted where result.last != value {
+        // Breaks of the two curves a rounding apart (a composite's join, carried through a
+        // normalization) are one break: a span between them would have no width to trim to.
+        let separation = 1.0e-12
+        let sorted = (first + second).filter { $0 > separation && $0 < 1.0 - separation }.sorted()
+        var result: [Double] = [0.0]
+        result.reserveCapacity(sorted.count + 2)
+        for value in sorted where value - result[result.count - 1] > separation {
             result.append(value)
         }
-        if result.first != 0.0 {
-            result.insert(0.0, at: 0)
-        }
-        if result.last != 1.0 {
-            result.append(1.0)
-        }
+        result.append(1.0)
         return result
     }
 

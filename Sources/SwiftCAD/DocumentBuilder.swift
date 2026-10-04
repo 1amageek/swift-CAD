@@ -938,9 +938,10 @@ public struct DocumentBuilder {
     /// `insertedSheet` by that sheet trimmed to the opening.
     @discardableResult
     public mutating func surfaceFill(
-        target: FeatureID, boundarySeed: StableSubshapeReference, insertedSheet: FeatureID? = nil, named name: String? = nil
+        target: FeatureID, boundarySeed: StableSubshapeReference, insertedSheet: FeatureID? = nil,
+        guides: [CurveSectionReference] = [], named name: String? = nil
     ) throws -> FeatureID {
-        let fill = SurfaceFillFeature(targetFeatureID: target, boundarySeed: boundarySeed, insertedSheet: insertedSheet)
+        let fill = SurfaceFillFeature(targetFeatureID: target, boundarySeed: boundarySeed, insertedSheet: insertedSheet, guides: guides)
         try fill.validate()
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .surfaceFill(fill))

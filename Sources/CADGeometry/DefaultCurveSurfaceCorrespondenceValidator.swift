@@ -1737,28 +1737,32 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         )
         var result: [RationalBezierCurvePatch3D] = []
         result.reserveCapacity(partition.count - 1)
+        // The partition's breaks are the two curves' knots merged within a rounding, so a break
+        // may sit a rounding off a patch end: it is that end.
+        let knotTolerance = max(tolerance.relative, Double.ulpOfOne * 256.0)
         var sourceIndex = 0
         for index in 1..<partition.count {
             let lower = partition[index - 1]
             let upper = partition[index]
             while sourceIndex + 1 < sourcePatches.count,
-                  sourcePatches[sourceIndex].upper <= lower {
+                  sourcePatches[sourceIndex].upper <= lower + knotTolerance {
                 sourceIndex += 1
             }
             let source = sourcePatches[sourceIndex]
-            guard lower >= source.lower,
-                  upper <= source.upper else {
+            guard lower >= source.lower - knotTolerance,
+                  upper <= source.upper + knotTolerance else {
                 throw correspondenceFailure(
                     tolerance: tolerance,
                     message: "B-spline correspondence could not align its exact Bezier partitions."
                 )
             }
-            if lower == source.lower, upper == source.upper {
+            let (from, to) = (max(lower, source.lower), min(upper, source.upper))
+            if abs(from - source.lower) <= knotTolerance, abs(to - source.upper) <= knotTolerance {
                 result.append(source)
             } else {
                 result.append(try source.trimmed(
-                    from: lower,
-                    to: upper,
+                    from: from,
+                    to: to,
                     tolerance: tolerance
                 ))
             }

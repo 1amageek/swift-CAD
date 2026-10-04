@@ -56,6 +56,14 @@ source body + stable seed edge
 - Non-planar Coons evaluation guarantees G0 boundary coincidence only. It does
   not claim G1/G2 fitting, quality optimization, boundary-flow controls, or
   guide-curve constraints.
+- With guides (`SurfaceFillFeature.guides`, Plasticity's Patch Faces Multiple through
+  guides) each guide curve must run between two corners of the loop; the guides divide the
+  opening in turn, and each part becomes an exact Coons face over four sides — every guide a
+  side of its own (its two uses sharing the guide's one curve), the loop's curves between guides
+  split into the remaining sides by arc length, or, when too few, the longest halved by arc
+  length so the loop's corners stay corners. The parts are sewn into one sheet meeting along the
+  guides (G0). Guides with G1/G2 continuity to the sheet beside are not built here (Patch's
+  Single, XNURBS, owns those).
 - The source body is retained. Output is one separate `.sheet` feature.
 - With an inserted sheet (`SurfaceFillFeature.insertedSheet`, Plasticity's Insert Sheet, Trim to
   hole) the fill is not built: CADKernel's `InsertSheetFillEvaluator` imprints the loop's edges,

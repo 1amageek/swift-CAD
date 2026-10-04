@@ -1284,7 +1284,7 @@ private func validatePatchSurfaceFeatureObject(_ object: [String: Any], path: St
 private func validateSurfaceFillFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["targetFeatureID", "boundarySeed", "insertedSheet"],
+        supportedKeys: ["targetFeatureID", "boundarySeed", "insertedSheet", "guides"],
         objectName: path
     )
     try validateObjectField(

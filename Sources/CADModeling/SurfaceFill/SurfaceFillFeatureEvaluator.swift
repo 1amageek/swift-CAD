@@ -72,7 +72,7 @@ public struct SurfaceFillFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         ) {
             try fill.validate()
         }
-        guard feature.inputs == [FeatureInput(featureID: fill.targetFeatureID, role: .target)],
+        guard feature.inputs == (fill.guides.isEmpty ? [FeatureInput(featureID: fill.targetFeatureID, role: .target)] : fill.inputs),
               feature.outputs.map({ $0.role }) == [.sheet] else {
             throw FeatureEvaluationError.invalidGraph(
                 "Surface fill requires its declared source body and one sheet output."
@@ -148,6 +148,9 @@ public struct SurfaceFillFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 tolerance: context.tolerance,
                 featureID: feature.id
             )
+        }
+        if fill.guides.isEmpty == false {
+            return try guidedFill(feature: feature, fill: fill, curves: boundaryCurves, body: body, bodyID: bodyID, context: context)
         }
         if let planarFill = try planarSurfaceFill(
             feature: feature,
@@ -272,10 +275,185 @@ public struct SurfaceFillFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         )
     }
 
+    /// Patch Faces Multiple through guides: each guide, running between two corners of the
+    /// opening, divides it; each part is a Coons sheet over four sides — every guide a side of its
+    /// own, the opening's curves between guides split into the remaining sides by arc length — and
+    /// the parts are sewn into one sheet meeting along the guides (G0, each part's boundary exact).
+    private func guidedFill(
+        feature: FeatureNode, fill: SurfaceFillFeature, curves: [BSplineCurve3D], body: Body, bodyID: BodyID,
+        context: EvaluationContext
+    ) throws -> ValidatedFeatureEvaluation {
+        let tolerance = context.tolerance
+        func failure(_ message: String) -> KernelError {
+            KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: feature.id, tolerance: tolerance, message: message)
+        }
+        struct Piece { let curve: BSplineCurve3D; let guide: Int? }
+        func ends(_ curve: BSplineCurve3D) throws -> (Point3D, Point3D, Double, Double) {
+            guard case let .closed(lower, upper) = curve.domain else { throw failure("A surface-fill curve is unbounded.") }
+            return (try curve.point(at: lower, tolerance: tolerance), try curve.point(at: upper, tolerance: tolerance), lower, upper)
+        }
+        let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: tolerance)
+        let guides = try fill.guides.map { reference -> BSplineCurve3D in
+            let resolved = try ResolvedModelingSection.resolveCurve(reference, from: context.curves[reference.featureID], tolerance: tolerance)
+            return try compositeCurveBuilder.build(spans: try spanBuilder.sectionSpans(from: resolved).map(\.curve), tolerance: tolerance)
+        }
+        // Divide the loop by each guide in turn: the region holding both its ends at its corners
+        // splits into the corners' two runs, each closed by the guide.
+        var regions: [[Piece]] = [curves.map { Piece(curve: $0, guide: nil) }]
+        for (index, guide) in guides.enumerated() {
+            let (start, end, _, _) = try ends(guide)
+            func corner(_ point: Point3D, in region: [Piece]) throws -> Int? {
+                try region.firstIndex { (try ends($0.curve).0 - point).length <= tolerance.distance }
+            }
+            guard let r = try regions.firstIndex(where: { try corner(start, in: $0) != nil && corner(end, in: $0) != nil }),
+                  let i = try corner(start, in: regions[r]), let j = try corner(end, in: regions[r]), i != j else {
+                throw failure("A Patch guide runs between two corners of the opening.")
+            }
+            let region = regions.remove(at: r)
+            let count = region.count
+            func run(_ from: Int, _ to: Int) -> [Piece] {
+                var pieces: [Piece] = []
+                var k = from
+                while k != to { pieces.append(region[k]); k = (k + 1) % count }
+                return pieces
+            }
+            // From the guide's start round to its end, closed by the guide back; and from its end
+            // round to its start, closed by the guide forward.
+            regions.append(run(i, j) + [Piece(curve: try guide.reversed(tolerance: tolerance), guide: index)])
+            regions.append(run(j, i) + [Piece(curve: guide, guide: index)])
+        }
+        var patches: [BRepSewingFacePatch] = []
+        let faceParents = context.subshapeIDs(for: .body(bodyID))
+        for (regionIndex, region) in regions.enumerated() {
+            // Runs of the opening's curves between guides, in order round the region.
+            let guideCount = region.filter { $0.guide != nil }.count
+            let needed = 4 - guideCount
+            guard needed >= 0 else { throw failure("A part of a Patch divided by guides has more than four guides round it.") }
+            var items: [(guide: Int?, run: [BSplineCurve3D])] = []
+            for piece in region {
+                if let guide = piece.guide {
+                    items.append((guide, [piece.curve]))
+                } else if let last = items.last, last.guide == nil {
+                    items[items.count - 1].run.append(piece.curve)
+                } else {
+                    items.append((nil, [piece.curve]))
+                }
+            }
+            // A run split across the region's start joins its end.
+            if items.count > 1, items[0].guide == nil, items[items.count - 1].guide == nil {
+                items[0].run = items[items.count - 1].run + items[0].run
+                items.removeLast()
+            }
+            let runs = items.indices.filter { items[$0].guide == nil }
+            guard runs.count <= needed, runs.isEmpty == false || needed == 0 else {
+                throw failure("A part of a Patch divided by guides cannot take four sides.")
+            }
+            let longest = runs.max { a, b in items[a].run.count < items[b].run.count }
+            var sides: [(curve: BSplineCurve3D, guide: Int?)] = []
+            for (k, item) in items.enumerated() {
+                if let guide = item.guide {
+                    sides.append((item.run[0], guide))
+                } else {
+                    let count = 1 + (k == longest ? needed - runs.count : 0)
+                    sides += try self.sides(from: item.run, count: count, tolerance: tolerance).map { ($0, nil) }
+                }
+            }
+            guard sides.count == 4 else { throw failure("A part of a Patch divided by guides cannot take four sides.") }
+            let surface = try ExactCoonsBSplineSurfaceBuilder().build(
+                vMinimumBoundary: sides[0].curve, vMaximumBoundary: try sides[2].curve.reversed(tolerance: tolerance),
+                uMinimumBoundary: try sides[3].curve.reversed(tolerance: tolerance), uMaximumBoundary: sides[1].curve,
+                tolerance: tolerance
+            )
+            let (u0, u1) = (surface.uKnots.first ?? 0, surface.uKnots.last ?? 1)
+            let (v0, v1) = (surface.vKnots.first ?? 0, surface.vKnots.last ?? 1)
+            let pcurves: [SurfaceParameterCurve] = [
+                .constantV(v: v0, uStart: u0, uEnd: u1), .constantU(u: u1, vStart: v0, vEnd: v1),
+                .constantV(v: v1, uStart: u1, uEnd: u0), .constantU(u: u0, vStart: v1, vEnd: v0),
+            ]
+            let edges = try sides.enumerated().map { position, side -> BRepSewingEdge in
+                // A guide's two uses share the guide's own curve, run either way.
+                let curve = side.guide.map { guides[$0] } ?? side.curve
+                let forward = (try ends(side.curve).0 - ends(curve).0).length <= tolerance.distance
+                let (_, _, lower, upper) = try ends(curve)
+                let (first, last) = forward ? (lower, upper) : (upper, lower)
+                return BRepSewingEdge(
+                    stableID: "surfaceFill:part:\(regionIndex):side:\(position)", curve: .bSpline(curve),
+                    startParameter: first, endParameter: last,
+                    startPoint: try curve.point(at: first, tolerance: tolerance), endPoint: try curve.point(at: last, tolerance: tolerance),
+                    surfaceParameterCurve: pcurves[position]
+                )
+            }
+            patches.append(BRepSewingFacePatch(
+                stableID: "surfaceFill:part:\(regionIndex)", surface: .bSpline(surface), orientation: .forward,
+                loops: [BRepSewingLoop(stableID: "surfaceFill:part:\(regionIndex):outer", role: .outer, edges: edges)],
+                parentSubshapeIDs: faceParents
+            ))
+        }
+        let sewn = try sewer.sew(BRepSewingRequest(
+            featureID: feature.id, bodyKind: .sheet,
+            shells: [BRepSewingShell(stableID: "surfaceFill:shell", patches: patches)],
+            bodyParentSubshapeIDs: faceParents
+        ), tolerance: tolerance)
+        var fillBrep = sewn.brep
+        if var fillBody = fillBrep.bodies[sewn.bodyID] {
+            fillBody.material = body.material
+            fillBrep.bodies[sewn.bodyID] = fillBody
+        }
+        return try ValidatedFeatureEvaluation(
+            validating: EvaluationResult(brep: try BRepModelCombiner().combined([context.brep, fillBrep]),
+                                         subshapes: sewn.subshapes, lineage: sewn.lineage),
+            tolerance: tolerance
+        )
+    }
+
     package func fourSides(
         from curves: [BSplineCurve3D],
         tolerance: ModelingTolerance
     ) throws -> [BSplineCurve3D] {
+        try sides(from: curves, count: 4, tolerance: tolerance)
+    }
+
+    /// The run of curves split into `count` sides of about equal arc length: corners at the
+    /// curves' own ends when there are enough of them, otherwise at certified arc-length
+    /// positions inside them.
+    package func sides(
+        from curves: [BSplineCurve3D],
+        count sideCount: Int,
+        tolerance: ModelingTolerance
+    ) throws -> [BSplineCurve3D] {
+        guard sideCount >= 1 else {
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "Surface fill splits a run into at least one side.")
+        }
+        if sideCount == 1 {
+            return [try compositeCurveBuilder.build(spans: curves, tolerance: tolerance)]
+        }
+        if sideCount < 4, curves.count < sideCount {
+            // Too few curves for a part's sides: its corners stay and the longest curve is halved
+            // by arc length until there are enough.
+            var pieces = curves
+            while pieces.count < sideCount {
+                let lengths = try pieces.map { curve -> Double in
+                    guard case let .closed(lower, upper) = curve.domain else {
+                        throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "Surface fill requires bounded boundary curves.")
+                    }
+                    return try arcLengthResolver.parameterization(of: .bSpline(curve), over: try ScalarInterval(lower: lower, upper: upper),
+                                                                  tolerance: tolerance).lengthEnclosure.midpoint
+                }
+                guard let longest = lengths.indices.max(by: { lengths[$0] < lengths[$1] }),
+                      case let .closed(lower, upper) = pieces[longest].domain else {
+                    throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "Surface fill has no curve to halve.")
+                }
+                let location = try arcLengthResolver.parameterization(of: .bSpline(pieces[longest]), over: try ScalarInterval(lower: lower, upper: upper),
+                                                                      tolerance: tolerance).parameterEnclosure(atArcLengthFraction: 0.5)
+                guard location.spatialErrorUpperBound <= tolerance.distance else {
+                    throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "Surface fill could not certify a boundary corner within modeling tolerance.")
+                }
+                let halves = [try pieces[longest].trimmed(from: lower, to: location.parameter, tolerance: tolerance),
+                              try pieces[longest].trimmed(from: location.parameter, to: upper, tolerance: tolerance)]
+                pieces.replaceSubrange(longest...longest, with: halves)
+            }
+            return pieces
+        }
         let spans = try curves.map { curve -> BoundarySpan in
             guard case let .closed(lower, upper) = curve.domain,
                   upper > lower else {
@@ -319,12 +497,12 @@ public struct SurfaceFillFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             cumulative.append(cumulative[cumulative.count - 1] + length)
         }
 
-        if spans.count >= 4 {
+        if spans.count >= sideCount {
             var corners = [0]
-            for quarter in 1...3 {
+            for quarter in 1..<sideCount {
                 let lower = corners[corners.count - 1] + 1
-                let upper = spans.count - (4 - quarter)
-                let targetLength = totalLength * Double(quarter) / 4.0
+                let upper = spans.count - (sideCount - quarter)
+                let targetLength = totalLength * Double(quarter) / Double(sideCount)
                 guard lower <= upper,
                       let corner = (lower...upper).min(by: {
                           abs(cumulative[$0] - targetLength)
@@ -338,7 +516,7 @@ public struct SurfaceFillFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 corners.append(corner)
             }
             corners.append(spans.count)
-            return try (0..<4).map { sideIndex in
+            return try (0..<sideCount).map { sideIndex in
                 let range = corners[sideIndex]..<corners[sideIndex + 1]
                 return try compositeCurveBuilder.build(
                     spans: Array(curves[range]),
@@ -348,8 +526,8 @@ public struct SurfaceFillFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         }
 
         var cuts = [BoundaryCut(spanIndex: 0, parameter: spans[0].lowerParameter)]
-        for quarter in 1..<4 {
-            let targetLength = totalLength * Double(quarter) / 4.0
+        for quarter in 1..<sideCount {
+            let targetLength = totalLength * Double(quarter) / Double(sideCount)
             guard let spanIndex = spans.indices.first(where: {
                 cumulative[$0 + 1] >= targetLength
             }) else {
@@ -393,8 +571,8 @@ public struct SurfaceFillFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         ))
 
         var sides: [BSplineCurve3D] = []
-        sides.reserveCapacity(4)
-        for sideIndex in 0..<4 {
+        sides.reserveCapacity(sideCount)
+        for sideIndex in 0..<sideCount {
             let start = cuts[sideIndex]
             let end = cuts[sideIndex + 1]
             var sideSpans: [BSplineCurve3D] = []
