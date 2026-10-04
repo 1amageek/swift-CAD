@@ -100,6 +100,12 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 return result
             }
         }
+        // Otherwise selected edges falling apart into groups that share no vertex (a hole's rim and the
+        // outline around it) round group by group, each on the body the ones before left.
+        if fillet.allEdges == false, fillet.edges.count > 1, targetKind == .solid,
+           let result = try disconnectedGroupsInTurn(feature: feature, fillet: fillet, context: context) {
+            return result
+        }
         if fillet.allEdges == false, fillet.shape != .round || fillet.edges.count > 1 || targetKind == .sheet {
             let section = fillet.shape == .round
                 ? roundSection(radius: radius)
@@ -1051,6 +1057,51 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
     /// along those chains: the rolling ball's blend around the concave corner, a torus. Nil when the
     /// selection holds no concave edge meeting another; refused when the others are not then such
     /// chains.
+    /// The fillet of selected edges that fall apart into groups sharing no vertex, one group at a
+    /// time: each group's fillet evaluated on the body the earlier groups left; nil for one group.
+    private func disconnectedGroupsInTurn(feature: FeatureNode, fillet: FilletFeature, context: EvaluationContext) throws -> EvaluationResult? {
+        let bodyID = try targetBodyID(fillet.target.featureID, featureID: feature.id, context: context)
+        let selections = try fillet.edges.map { try scopedEdgeSelection($0, bodyID: bodyID, featureID: feature.id, context: context) }
+        var group = Array(fillet.edges.indices)
+        func root(_ index: Int) -> Int {
+            var index = index
+            while group[index] != index { index = group[index] }
+            return index
+        }
+        let ends = try selections.map { selection -> Set<VertexID> in
+            guard let edge = context.brep.edges[selection.edgeID] else {
+                throw failure(.missingReference, featureID: feature.id, tolerance: context.tolerance, "A filleted edge is missing.")
+            }
+            return [edge.startVertexID, edge.endVertexID]
+        }
+        for i in ends.indices {
+            for j in ends.indices where j > i && ends[i].isDisjoint(with: ends[j]) == false {
+                group[root(j)] = root(i)
+            }
+        }
+        let roots = Array(Set(ends.indices.map(root))).sorted()
+        guard roots.count > 1 else { return nil }
+        var stages = FeatureEvaluationStages(context)
+        var result: EvaluationResult?
+        // Each later group's body is the one the stage before it generated.
+        var target = fillet.target
+        for (ordinal, groupRoot) in roots.enumerated() {
+            let part = fillet.with(target: target, edges: fillet.edges.indices.filter { root($0) == groupRoot }.map { fillet.edges[$0] })
+            // The last group's evaluation is the feature's own result.
+            let stageID = ordinal == roots.count - 1
+                ? feature.id : featureEvaluationStageID(featureID: feature.id, domain: .edgeBlend, ordinal: UInt64(ordinal))
+            target = FilletTargetReference(featureID: stageID)
+            let node = FeatureNode(id: stageID, name: feature.name, operation: .fillet(part), outputs: feature.outputs)
+            let step = try evaluateFillet(feature: node, context: stages.context)
+            if ordinal == roots.count - 1 {
+                result = try stages.publish(step, featureID: feature.id)
+            } else {
+                stages.apply(step)
+            }
+        }
+        return result
+    }
+
     package func concaveEdgesThenChains(feature: FeatureNode, bodyID initialBodyID: BodyID, selected: [StableSubshapeReference],
                                         radius: Double, context: EvaluationContext) throws -> EvaluationResult? {
         let tolerance = context.tolerance

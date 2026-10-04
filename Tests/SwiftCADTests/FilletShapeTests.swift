@@ -539,6 +539,37 @@ struct FilletShapeTests {
         #expect(abs(try rounded.brep.volume(tolerance: .standard) - expected) < 1e-15)
     }
 
+    /// A holed plate's top hole rim and top outline rounded together: two groups of edges sharing
+    /// no vertex, rounded one after the other, the rim's torus band and the outline's mitred rounds.
+    @Test(.timeLimit(.minutes(2)))
+    func aHolesRimAndTheOutlineAroundItRoundTogether() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (side, height, hole, r) = (0.03, 0.01, 0.005, 0.001)
+        let plate = try builder.box(width: length(side), depth: length(side), height: length(height))
+        let tool = try builder.cylinder(placement: PrimitivePlacement(origin: Point3D(x: side / 2, y: side / 2, z: -0.001), axis: .unitZ,
+                                                                      referenceDirection: .unitX),
+                                        radius: length(hole), height: length(height + 0.002))
+        let holed = try builder.boolean(targets: [plate], tool: tool, operation: .difference)
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "plate"))
+        let top = try before.subshapes.entries.compactMap { key, value -> SubshapeID? in
+            guard key.featureID == holed, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  let a = before.brep.vertices[edge.startVertexID]?.point, let b = before.brep.vertices[edge.endVertexID]?.point,
+                  [a, b].allSatisfy({ abs($0.z - height) < 1e-12 }) else { return nil }
+            return key
+        }.sorted().map { try builder.stableSubshape($0) }
+        _ = try builder.fillet(target: holed, edges: top, radius: length(r))
+        let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "plate"))
+        try rounded.brep.validate(level: .volumetric, tolerance: .standard)
+        // The corner section about the hole's axis at its centroid out from the wall (Pappus), and
+        // along the outline's centroid square, mitred at its corners.
+        let section = r * r * (1 - Double.pi / 4)
+        let inset = r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+        let expected = side * side * height - Double.pi * hole * hole * height
+            - section * 2 * Double.pi * (hole + inset) - section * 4 * (side - 2 * inset)
+        let volume = try rounded.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func aHolesRimRoundsIntoATorusBandAndBothItsRimsTogether() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
