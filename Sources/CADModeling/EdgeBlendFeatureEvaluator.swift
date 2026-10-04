@@ -773,6 +773,24 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         }
     }
 
+    /// A face's loops in order: each role, its vertices as its coedges run, and whether every
+    /// side is straight.
+    private func loopPolygons(_ faceID: FaceID, model: BRepModel) throws -> [(role: LoopRole, polygon: [Point3D], isStraight: Bool)] {
+        guard let face = model.faces[faceID] else { throw TopologyError.missingReference("Missing fillet source face.") }
+        return try face.loops.map { loopID in
+            guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("Missing fillet source loop.") }
+            var straight = true
+            let polygon = try loop.edges.map { coedge -> Point3D in
+                guard let edge = model.edges[coedge.edgeID] else { throw TopologyError.missingReference("Missing fillet source edge.") }
+                if case .line? = model.geometry.curves[edge.curveID] {} else { straight = false }
+                let vertexID = coedge.orientation == .forward ? edge.startVertexID : edge.endVertexID
+                guard let vertex = model.vertices[vertexID] else { throw TopologyError.missingReference("Missing fillet source vertex.") }
+                return vertex.point
+            }
+            return (loop.role, polygon, straight)
+        }
+    }
+
     private func clip(
         _ polygon: [Point3D],
         origin: Point3D,
@@ -1512,22 +1530,26 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             return point
         }
         /// The direction within a face away from its side along `axis` through `point`, toward where
-        /// the face lies: to the left of the side as the outer loop, wound about the outward normal,
-        /// runs along it — which holds for concave faces too.
+        /// the face lies: to the left of the side as its loop runs along it when the loop winds the
+        /// way its role does about the outward normal (an outline counterclockwise, a hole
+        /// clockwise) — which holds for concave faces and for a hole's sides too.
         func away(_ faceID: FaceID, axis: Vector3D, from point: Point3D) throws -> Vector3D {
             let normal = try orientedPlane(faceID, model: model, featureID: featureID, tolerance: tolerance).outward
-            let polygon = try outerPolygon(faceID, model: model, featureID: featureID, tolerance: tolerance)
-            var winding = Vector3D.zero
-            for (a, b) in zip(polygon, polygon.dropFirst() + polygon.prefix(1)) { winding = winding + (a - polygon[0]).cross(b - polygon[0]) }
             func onLine(_ candidate: Point3D) -> Bool {
                 let offset = candidate - point
                 return (offset - axis * offset.dot(axis)).length <= tolerance.distance
             }
-            guard let side = zip(polygon, polygon.dropFirst() + polygon.prefix(1)).first(where: { onLine($0.0) && onLine($0.1) }) else {
-                throw failure(.topologyFailure, featureID: featureID, tolerance: tolerance, "A blended edge is not a side of its face.")
+            for loop in try loopPolygons(faceID, model: model) {
+                let polygon = loop.polygon
+                guard let side = zip(polygon, polygon.dropFirst() + polygon.prefix(1)).first(where: { onLine($0.0) && onLine($0.1) }) else {
+                    continue
+                }
+                var winding = Vector3D.zero
+                for (a, b) in zip(polygon, polygon.dropFirst() + polygon.prefix(1)) { winding = winding + (a - polygon[0]).cross(b - polygon[0]) }
+                let left = try normal.cross(side.1 - side.0).normalized(tolerance: tolerance.distance)
+                return (winding.dot(normal) > 0) == (loop.role == .outer) ? left : left * -1
             }
-            let left = try normal.cross(side.1 - side.0).normalized(tolerance: tolerance.distance)
-            return winding.dot(normal) > 0 ? left : left * -1
+            throw failure(.topologyFailure, featureID: featureID, tolerance: tolerance, "A blended edge is not a side of its face.")
         }
         struct Link {
             let edgeID: EdgeID
@@ -1573,11 +1595,45 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 }
                 if cuts.isEmpty == false {
                     let plane = try orientedPlane(faceID, model: model, featureID: featureID, tolerance: tolerance)
-                    let polygon = try movedSides(try outerPolygon(faceID, model: model, featureID: featureID, tolerance: tolerance),
-                                                 cuts: cuts.map { (links[$0.link].start, links[$0.link].end, $0.normal, $0.distance) },
-                                                 featureID: featureID, tolerance: tolerance)
                     let surface = Surface3D.plane(plane.plane)
-                    let edges = try polygon.indices.map { index in
+                    let source = try SourceBRepFacePatchBuilder().build(faceID: faceID, stableID: stableID, from: model,
+                                                                        sourceSubshapes: context.subshapes.entries, tolerance: tolerance).patch
+                    let polygons = try loopPolygons(faceID, model: model)
+                    guard source.loops.count == polygons.count else {
+                        throw failure(.topologyFailure, featureID: featureID, tolerance: tolerance, "A face's loops were not carried whole.")
+                    }
+                    let lineCuts = cuts.map { (start: links[$0.link].start, end: links[$0.link].end, inward: $0.normal, distance: $0.distance) }
+                    var holeIndex = 0
+                    // Each loop a cut runs along moves those sides; any other keeps its own edges.
+                    let loops = try polygons.enumerated().map { loopIndex, loop -> BRepSewingLoop in
+                        let isOuter = loop.role == .outer
+                        let prefix = isOuter ? stableID : "\(stableID):inner:\(holeIndex)"
+                        if isOuter == false { holeIndex += 1 }
+                        let original = loop.polygon
+                        let touched = zip(original, original.dropFirst() + original.prefix(1)).contains { a, b in
+                            lineCuts.contains { cut in
+                                (a.isApproximatelyEqual(to: cut.start, tolerance: tolerance.distance) && b.isApproximatelyEqual(to: cut.end, tolerance: tolerance.distance))
+                                    || (a.isApproximatelyEqual(to: cut.end, tolerance: tolerance.distance) && b.isApproximatelyEqual(to: cut.start, tolerance: tolerance.distance))
+                            }
+                        }
+                        guard touched else { return source.loops[loopIndex] }
+                        guard loop.isStraight else {
+                            throw refuse("A blended face's loop the blend cuts back has curved sides.")
+                        }
+                        let polygon = try movedSides(original, cuts: lineCuts, featureID: featureID, tolerance: tolerance)
+                        return BRepSewingLoop(stableID: isOuter ? "\(stableID):outer" : prefix, role: loop.role,
+                                              edges: try loopEdges(polygon, prefix: prefix))
+                    }
+                    patches.append(BRepSewingFacePatch(stableID: stableID, surface: surface, orientation: plane.orientation,
+                                                       loops: loops, parentSubshapeIDs: faceParents))
+                    continue
+                }
+                /// The sides of a moved loop: a contact line takes the edge it runs along, any other
+                /// side its source edge.
+                func loopEdges(_ polygon: [Point3D], prefix: String) throws -> [BRepSewingEdge] {
+                    let plane = try orientedPlane(faceID, model: model, featureID: featureID, tolerance: tolerance)
+                    let surface = Surface3D.plane(plane.plane)
+                    return try polygon.indices.map { index in
                         let (start, end) = (polygon[index], polygon[(index + 1) % polygon.count])
                         // A contact line takes the edge it runs along; any other side its source edge.
                         let contact = cuts.first { cut in
@@ -1587,13 +1643,9 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                         let parents = contact.map { [links[$0.link].subshapeID] }
                             ?? sourceEdgeParents(start: start, end: end, sourceEdgeIDs: sourceEdgeIDs, model: model, context: context,
                                                  allowsSelectedFallback: false)
-                        return try lineEdge(stableID: "\(stableID):edge:\(index)", start: start, end: end, surface: surface,
+                        return try lineEdge(stableID: "\(prefix):edge:\(index)", start: start, end: end, surface: surface,
                                             parents: parents, tolerance: tolerance)
                     }
-                    patches.append(BRepSewingFacePatch(stableID: stableID, surface: surface, orientation: plane.orientation,
-                                                       loops: [BRepSewingLoop(stableID: "\(stableID):outer", role: .outer, edges: edges)],
-                                                       parentSubshapeIDs: faceParents))
-                    continue
                 }
                 var patch = try SourceBRepFacePatchBuilder().build(faceID: faceID, stableID: stableID, from: model,
                                                                    sourceSubshapes: context.subshapes.entries, tolerance: tolerance).patch

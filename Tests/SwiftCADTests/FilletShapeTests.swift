@@ -448,6 +448,42 @@ struct FilletShapeTests {
         #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
     }
 
+    /// A 10 mm square pocket 5 mm deep in a 30 mm plate: its rim, a hole in the plate's top,
+    /// rounds or chamfers along its four edges, mitred at the pocket's corners, the top cut back
+    /// around the hole and its outline kept.
+    @Test(.timeLimit(.minutes(2)), arguments: [true, false])
+    func aPocketsRimBlendsAroundTheHoleInItsFace(chamfers: Bool) throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let plate = try builder.box(width: length(0.03), depth: length(0.03), height: length(0.01))
+        let tool = try builder.box(placement: PrimitivePlacement(origin: Point3D(x: 0.01, y: 0.01, z: 0.005), axis: .unitZ, referenceDirection: .unitX),
+                                   width: length(0.01), depth: length(0.01), height: length(0.01))
+        let pocketed = try builder.boolean(targets: [plate], tool: tool, operation: .difference)
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "pocket"))
+        let rim = try before.subshapes.entries.compactMap { key, value -> SubshapeID? in
+            guard key.featureID == pocketed, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  let a = before.brep.vertices[edge.startVertexID]?.point, let b = before.brep.vertices[edge.endVertexID]?.point,
+                  [a, b].allSatisfy({ abs($0.z - 0.01) < 1e-12 && $0.x > 0.009 && $0.x < 0.021 && $0.y > 0.009 && $0.y < 0.021 }) else { return nil }
+            return key
+        }.sorted().map { try builder.stableSubshape($0) }
+        #expect(rim.count == 4)
+        let r = 0.001
+        if chamfers {
+            _ = try builder.chamfer(target: pocketed, edges: rim, distance: length(r))
+        } else {
+            _ = try builder.fillet(target: pocketed, edges: rim, radius: length(r))
+        }
+        let blended = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "pocket"))
+        try blended.brep.validate(level: .volumetric, tolerance: .standard)
+        // Mitred round the pocket, the corner section is taken off along its centroid's square,
+        // each side the opening's 10 mm and twice the centroid's distance out from the wall.
+        let (section, inset) = chamfers
+            ? (r * r / 2, r / 3)
+            : (r * r * (1 - Double.pi / 4), r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi))
+        let expected = 0.03 * 0.03 * 0.01 - 0.01 * 0.01 * 0.005 - section * 4 * (0.01 + 2 * inset)
+        let volume = try blended.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 1e-12, "\(volume) vs \(expected)")
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func aHolesRimRoundsIntoATorusBandAndBothItsRimsTogether() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)

@@ -502,7 +502,11 @@ arcs between the same two points (a full revolve's merged rim) keeps them apart:
 taken as a loop segment only when its middle is the segment's too, and a shortened straight edge
 on a wall periodic in u (the cylinder's seam) keeps each use's side of the chart
 (`aRevolvedDiscsRimSplitInTwoArcsBlendsWhole`, rounded and chamfered, exact volumes). A loop with sharp corners blends the tangent chain holding the selected edge, open at them (a D's top arc, a U's line–arc–line run), when its walls run down from the cap and each end's neighbour wall is a plane square to the chain there: the band ends on its section in that plane, whose corner vertex splits into the cap and wall contacts with the section between them. With Tangent Edges off (`FilletFeature.tangentEdges`, `ChamferFeature.tangentEdges` false) a chain is only the selected edges joined tangentially; where it stops at a tangent joint the band closes on its section there with a flat face facing back along the chain, the cap stepping from its contact back to the corner and the next wall's seam split at the wall contact; concave open chains, ends on oblique faces and chains blended on both sides of a corner are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). In a network every edge is convex, and each face's inward direction from
-a blended side is read from its outer loop's winding, so concave faces take part. A chamfer's
+a blended side is read from the winding of the loop holding that side (an outline wound
+counterclockwise or a hole clockwise about the outward normal holds the face on its left), so
+concave faces and a hole's sides (a pocket's rim) take part; a face is cut back loop by loop, a
+loop no cut runs along keeping its own edges, curved ones included, and a cut loop with curved
+sides refused (`aPocketsRimBlendsAroundTheHoleInItsFace`, rounded and chamfered). A chamfer's
 section (`chamferSection`) follows Fillet Shell's modes for faces meeting at the interior angle α:
 Offset (the default) meets each face where the other, offset inward by the distance, does —
 `distance / sin α` along each; Apex measures the distance along each face; an Angle takes the
