@@ -1220,13 +1220,14 @@ extension KernelCapabilities {
         "carriedTopologyLineageToSourceSubshapes",
         "strictCurrentSchemaNativePersistence",
       ],
-      fixtures: ["WrapFeatureTests"],
-      status: .supported,
+      fixtures: ["WrapFeatureTests", "WrapReblendRequestAdmissionTests"],
+      status: .partial,
       failureCodes: [
         .invalidInput,
         .missingReference,
         .singularGeometry,
         .resourceLimitExceeded,
+        .unsupportedCapability,
         .topologyFailure,
       ]
     ),

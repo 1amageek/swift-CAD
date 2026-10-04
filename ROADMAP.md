@@ -116,15 +116,15 @@ final same-revision gate completion.
 | Measure | Current | Required |
 |---|---:|---:|
 | Catalog capabilities | 103 registered | Inventory-derived and complete |
-| General `supported` capabilities | 45 of 103 | All inventory-derived capabilities |
-| `partial` capabilities | 58 | 0 |
+| General `supported` capabilities | 44 of 103 | All inventory-derived capabilities |
+| `partial` capabilities | 59 | 0 |
 | Required-but-unregistered contracts | 0 in the mechanically enumerated mutation, query, persistence, and exchange routes | 0 |
 | Development-only input envelopes | 115 | 0 completion exemptions |
-| Capability-to-fixture bindings | 664 | Complete adversarial and oracle coverage |
+| Capability-to-fixture bindings | 665 | Complete adversarial and oracle coverage |
 | Final gate evidence manifests | 0 | 8 on one source revision |
 | Completion gates | 0/8 | 8/8 |
 
-The 58 `partial` entries expose executable, tested envelopes but still declare
+The 59 `partial` entries expose executable, tested envelopes but still declare
 `unsupportedCapability` for at least one structurally valid public input. They
 cannot be promoted until those envelope rejections are implemented or shown to
 be mathematical singularity, ambiguity, non-discreteness, or an explicit
@@ -138,7 +138,7 @@ no completion credit even when it contains substantial working envelopes.
 |---|---:|---:|---:|---|
 | Geometry | 9 | 6 | 3 | OPEN |
 | Topology | 7 | 6 | 1 | OPEN |
-| Modeling and constraints | 71 | 24 | 47 | OPEN |
+| Modeling and constraints | 71 | 23 | 48 | OPEN |
 | Shared command/query and native API | 3 | 3 | 0 | OPEN |
 | Exact and USD exchange | 13 | 6 | 7 | OPEN |
 

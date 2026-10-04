@@ -11,7 +11,6 @@ import sys
 # Bindings identify the public consumers of a source-owned condition. They do
 # not infer geometric support from identifier spelling or comment wording.
 BINDINGS = {
-    "OverlapIsoparametricMembershipCertifier": (["curveSurfaceIntersectionResult"], ["parameterization", "representation", "geometricFidelity"]),
     "BooleanFeatureEvaluator": (["boolean"], ["connection", "topology", "geometricFidelity"]),
     "DefaultBooleanDimensionResolver": (["boolean"], ["representation", "topology", "connection"]),
     "FaceBSplineSurfaceConverter": (["faceRebuild"], ["supportSurface", "parameterization", "representation"]),
@@ -43,6 +42,8 @@ BINDINGS = {
     "CoincidentBooleanFaceOwnershipResolver": (["boolean"], ["supportSurface", "connection", "degeneracy", "topology"]),
     "ImprintBodyFeatureEvaluator": (["imprintBody", "imprintCurves"], ["supportSurface", "boundaryCurve", "connection"]),
     "FaceRebuildFeatureEvaluator": (["faceRebuild"], ["supportSurface", "connection"]),
+    "WrapFeatureEvaluator": (["wrap"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
+    "OverlapIsoparametricMembershipCertifier": (["curveSurfaceIntersectionResult"], ["parameterization", "representation", "geometricFidelity"]),
     "SquareSurfaceFitter": (["squareSurface", "faceRebuild", "xnurbs"], ["supportSurface", "parameterization", "geometricFidelity"]),
     "DefaultCurveSurfaceCorrespondenceValidator": (["CADCommand", "faceRebuild", "curveSurfaceIntersectionResult"], ["boundaryCurve", "parameterization", "geometricFidelity"]),
     "RebuiltFaceEdgeResolver": (["faceRebuild"], ["boundaryCurve", "connection", "degeneracy"]),

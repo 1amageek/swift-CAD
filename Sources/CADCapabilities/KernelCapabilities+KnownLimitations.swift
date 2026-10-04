@@ -613,6 +613,13 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADKernel/UntrimFaceFeatureEvaluator.swift", sourceLine: 62
         ),
         KernelDomainLimitation(
+            id: "condition-bbcd3c86c15c7ca4",
+            operations: ["wrap"],
+            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
+            condition: "The public Wrap evaluation path has no certified nonlinear closed-chain Reblend producer. Success requires whole original radius, support incidence and tangency proofs before any fitted geometry is published.",
+            sourcePath: "Sources/CADKernel/WrapFeatureEvaluator.swift", sourceLine: 41
+        ),
+        KernelDomainLimitation(
             id: "condition-05df9a38a144475d",
             operations: ["boolean"],
             dimensions: [.representation, .topology, .connection],

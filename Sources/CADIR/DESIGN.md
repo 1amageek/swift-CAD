@@ -598,3 +598,8 @@ admission preserve that choice. `SurfaceAlignJointTests` round-trips a two-edge
 alignment with the choice enabled, reevaluates the restored source, and verifies
 the resulting edge positions and tangent planes. The kernel's alignment contract
 owns geometric continuity and localization; persistence does not infer either.
+
+
+### Reblend Request Source (PAR.CL11A1)
+
+WrapOptions owns the explicit reblends Boolean authoring request from immutable Claude c0c8e3b. Its default is false; Codable and structural equality/hash preserve an explicitly selected true request through the actual feature/document source. This field owns intent, not rolling-ball geometry evidence. Until a certified producer exists, Kernel must reject true before mapping or publication with an explicit unsupportedCapability and original FeatureID; silently ignoring the flag or emitting deformed rounds as recomputed rounds violates the request. Existing false/default Wrap paths retain their actual geometry behavior. Source round-trip/default/malformed tests and the public true-request refusal path establish this bounded persistence/admission unit; successful nonlinear rolling-ball geometry remains PAR.CL11's separate open producer obligation.

@@ -50,6 +50,18 @@ unique catalog entry. The inventory checker rejects omissions, stale entries
 and ambiguous catalog mappings. Compiled tests compare those mappings with
 the runtime catalog; neither check claims the evaluator supports every shape.
 
+### Wrap Reblend Request Envelope
+
+`WrapOptions.reblends` is source intent owned by CADIR. The current native
+consumer can execute ordinary deformation and must refuse a true Reblend
+request before mapping or publication until original whole-radius, support
+incidence and tangency certificates exist. The Wrap capability is therefore
+partial and declares `unsupportedCapability`; serialization of the request
+does not widen the executable geometry guarantee. The condition is projected
+from [the Kernel owner](../CADKernel/DESIGN.md), rather than copied into the
+catalog generator. `requireExecutable` admits the operation for ordinary input;
+`requireSupported` must refuse the incomplete whole-operation envelope.
+
 ## Verification and Change Impact
 
 CADCapabilitiesTests/KernelCapabilityContractTests checks the registered set.
