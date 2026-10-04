@@ -117,8 +117,11 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         }
         // An edge of a tangent loop on a planar cap, or one between faces that are not square, is
         // chamfered by the profile chamfer.
+        // A concave edge's chamfer fills its empty wedge, which the profile chamfer builds; the
+        // square-faced cut below only removes material.
         if try CapLoopBlendBuilder(tolerance: context.tolerance, followsTangents: chamfer.tangentEdges).admits([edgeID], model: context.brep)
-            || squareFaces(around: edgeID, bodyID: bodyID, context: context) == false {
+            || squareFaces(around: edgeID, bodyID: bodyID, context: context) == false
+            || isConcave(edgeID, bodyID: bodyID, context: context) {
             return try profile()
         }
         let sourceEdgeIDs = Set(bodyScope.references.compactMap { reference -> EdgeID? in
@@ -148,6 +151,29 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             removedSubshapeIDs: replacedSubshapeIDs,
             lineage: sewn.lineage
         )
+    }
+
+    /// Whether the edge is concave: the first face beside it, lying to the left of its use of the
+    /// edge about its outward normal, runs toward the side the second face looks out to.
+    private func isConcave(_ edgeID: EdgeID, bodyID: BodyID, context: EvaluationContext) throws -> Bool {
+        let model = context.brep
+        guard let shell = model.bodies[bodyID]?.shellIDs.first.flatMap({ model.shells[$0] }),
+              let edge = model.edges[edgeID],
+              let start = model.vertices[edge.startVertexID]?.point, let end = model.vertices[edge.endVertexID]?.point else { return false }
+        var uses: [(normal: Vector3D, forward: Bool)] = []
+        for faceID in shell.faceIDs {
+            guard let face = model.faces[faceID], case let .plane(plane)? = model.geometry.surfaces[face.surfaceID] else { continue }
+            for loopID in face.loops {
+                guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("Missing chamfer loop.") }
+                for coedge in loop.coedges where coedge.edgeID == edgeID {
+                    uses.append((face.orientation == .forward ? plane.normal : -plane.normal, coedge.orientation == .forward))
+                }
+            }
+        }
+        guard uses.count == 2 else { return false }
+        let along = try (end - start).normalized(tolerance: context.tolerance.distance) * (uses[0].forward ? 1 : -1)
+        let into = uses[0].normal.cross(along)
+        return into.dot(uses[1].normal) > context.tolerance.angle
     }
 
     /// Whether the edge lies between two planes square to each other.

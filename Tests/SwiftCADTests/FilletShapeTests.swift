@@ -484,6 +484,33 @@ struct FilletShapeTests {
         #expect(abs(volume - expected) < 1e-12, "\(volume) vs \(expected)")
     }
 
+    /// An L block's inside corner edge chamfered alone fills its wedge: the block gains the
+    /// chamfer's triangle along the edge (an outside corner's chamfer takes it off).
+    @Test(.timeLimit(.minutes(2)), arguments: [true, false])
+    func anLBlocksCornerEdgeChamfersAlone(inside: Bool) throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        func point(_ x: Double, _ y: Double) -> SketchPoint { SketchPoint(x: length(x), y: length(y)) }
+        let corners = [(0.0, 0.0), (0.03, 0.0), (0.03, 0.01), (0.01, 0.01), (0.01, 0.03), (0.0, 0.03)]
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            for (a, b) in zip(corners, corners.dropFirst() + corners.prefix(1)) { _ = sketch.line(from: point(a.0, a.1), to: point(b.0, b.1)) }
+        }.featureID
+        let height = 0.01
+        let block = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(height))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "l"))
+        let at = inside ? (0.01, 0.01) : (0.03, 0.0)
+        let edge = try #require(before.subshapes.entries.first { key, value in
+            guard key.featureID == block, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  let a = before.brep.vertices[edge.startVertexID]?.point, let b = before.brep.vertices[edge.endVertexID]?.point else { return false }
+            return [a, b].allSatisfy { abs($0.x - at.0) < 1e-12 && abs($0.y - at.1) < 1e-12 }
+        }?.key)
+        let d = 0.001
+        _ = try builder.chamfer(target: block, edges: [try builder.stableSubshape(edge)], distance: length(d))
+        let chamfered = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "l"))
+        try chamfered.brep.validate(level: .volumetric, tolerance: .standard)
+        let expected = (0.03 * 0.01 + 0.01 * 0.02) * height + (inside ? 1 : -1) * d * d / 2 * height
+        #expect(abs(try chamfered.brep.volume(tolerance: .standard) - expected) < 1e-15)
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func aHolesRimRoundsIntoATorusBandAndBothItsRimsTogether() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)

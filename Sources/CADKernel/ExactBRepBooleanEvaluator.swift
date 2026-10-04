@@ -34,6 +34,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         case .orthogonal,
              .revolvedBoolean,
              .partialCylinder,
+             .coaxialRevolvedUnion,
              .convexPlanarBoolean:
             return .required
         }
@@ -147,6 +148,11 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             return BooleanExactRegionSelectionGraph(
                 decisions: regionSelectionGraph,
                 sewingRequest: request
+            )
+        case let .coaxialRevolvedUnion(plan):
+            return BooleanExactRegionSelectionGraph(
+                decisions: regionSelectionGraph,
+                sewingRequest: try plan.request(featureID: featureID, model: model, subshapes: subshapes, tolerance: tolerance)
             )
         case let .carriedOperand(bodyID):
             let extraction = try DefaultBRepFacePatchExtractor().extract(
@@ -323,6 +329,26 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 try OrthogonalSolidOperand(bodyID: bodyID, in: model, tolerance: tolerance)
             }
         } catch {
+            // Coaxial revolved solids standing on each other join cap to cap.
+            if operation == .union, targetBodyIDs.count == 1,
+               let coaxial = try CoaxialRevolvedUnionPlan(targetBodyID: targetBodyIDs[0], toolBodyID: toolBodyID,
+                                                          model: model, tolerance: tolerance) {
+                let request = try coaxial.request(featureID: FeatureID(), model: model, subshapes: [:], tolerance: tolerance)
+                let topology = try OrthogonalBooleanFacePatchBuilder(tolerance: tolerance).topology(for: request)
+                return BRepBooleanOperationPlan(
+                    summary: BRepBooleanPlan(
+                        operandKind: .coaxialRevolvedSolids,
+                        outputTopologyKind: .revolvedUnion,
+                        topologyNameSchemes: [.body, .curvedBoundaryTopology],
+                        topologySlots: topology.slots,
+                        topologyCounts: topology.counts,
+                        targetCellCount: 1,
+                        toolCellCount: 1,
+                        resultPrimitiveCount: 1
+                    ),
+                    shape: .coaxialRevolvedUnion(coaxial)
+                )
+            }
             if supportsConvexPlanarMaterialization(operation), targetBodyIDs.count == 1 {
                 do {
                     return try convexPlanarBooleanPlan(
@@ -1103,6 +1129,7 @@ private enum BRepBooleanOperationShape: Sendable {
     case partialCylinder(ConvexPolygonCircleBooleanPlan)
     case carriedOperand(bodyID: BodyID)
     case disjointUnion(BRepDisjointUnionPlan)
+    case coaxialRevolvedUnion(CoaxialRevolvedUnionPlan)
     case convexPlanarBoolean(
         target: ConvexPlanarSolidOperand,
         tool: ConvexPlanarSolidOperand

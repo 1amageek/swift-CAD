@@ -7,6 +7,7 @@ public enum BooleanEvaluationCapabilities {
         case axisAlignedBoxSolids
         case orthogonalCellUnionSolids
         case planarAndRevolvedSolids
+        case coaxialRevolvedSolids
         case convexPlanarSolids
         case separatedSolidBodies
         case generalExactBRepSolids
