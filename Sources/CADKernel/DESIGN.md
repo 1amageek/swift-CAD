@@ -1268,3 +1268,27 @@ counts through preflight/emission; it neither creates tokens nor selects an
 unproved knot side. The shared token/extraction implementation belongs only
 to PAR.ORIGJET1; C0 owns scalar normal composition, aggregate tessellation
 bounds and mesh composition.
+
+### Original Double-Periodic Rectangle Mesh (PAR.M1R4)
+
+The existing C1 grid may consume double-periodic spline bounds only through
+[Geometry's original double-C1 admission](../CADGeometry/DESIGN.md#original-double-periodic-c1-mesh-admission-parm1r4).
+Rectangle admission validates both original parameter widths independently.
+For each periodic axis the finite positive rounded width must be below period;
+when equal, its TwoDifference residual must be nonpositive. Greater original
+width is refused; no tolerance correction or nearest-period unwrap is allowed.
+Existing original coedge/corner monotonic rectangle admission, closed seam
+EdgeID/coedge identity, actual representable grid gaps, positional/normal/edge
+and diagonal error, cumulative body/face/byte reservations, original support
+emission, FaceRuns, orientation and cancellation are retained. Preflight and
+emission use the same prepared grid. Independent literal double-cardinal tensor
+fixtures cover seam-crossing/full-period success and each-axis rounded-period
+overshoot, original C0/approximate translation/tail refusal and cumulative budgets.
+No new selected-side periodic token or single-periodic policy is introduced.
+
+Native verification passes Geometry five declarations/thirteen parameter cases
+and Kernel five declarations/sixteen parameter cases, plus forty-three existing
+Kernel tessellation tests and six original native-span Geometry tests. Literal
+source positions/normals, both seam identities, full periods, exact-width refusal,
+aggregate reservations and cancellation execute through the original production
+path. Full M1 and portable closure remain separately owned.

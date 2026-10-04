@@ -2110,20 +2110,28 @@ public struct MeshTessellator: Tessellating {
         let vC1 = surface.isVPeriodic
             ? hasPeriodicC1Basis(surface.vKnots, degree: surface.vDegree, direction: .v)
             : hasClampedC1Basis(surface.vKnots, degree: surface.vDegree)
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Nonclamped, periodic non-C1 and doubly periodic charts lack
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Nonclamped and periodic non-C1 charts lack
         // continuous-normal authority in this rectangular mesh route. Production B-spline
         // preflight reaches this refusal. Complete full M1 only after native span/seam and
         // one-sided normal contracts certify these remaining original rectangles.
-        guard !(surface.isUPeriodic && surface.isVPeriodic), uC1, vC1,
+        guard uC1, vC1,
               surface.weights.allSatisfy({ $0.allSatisfy({ $0 > 0 }) }) else {
             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                              message: "Rectangular B-spline tessellation requires original C1 authority with at most one periodic axis.")
+                              message: "Rectangular B-spline tessellation requires original C1 authority.")
         }
         try Task.checkCancellation()
-        let bounds = try DefaultSurfaceDifferentialEncloser().tessellationBounds(
-            of: .bSpline(surface), over: SurfaceParameterBox(
-                u: ScalarInterval(lower: uBounds.lower, upper: uBounds.upper),
-                v: ScalarInterval(lower: vBounds.lower, upper: vBounds.upper)), tolerance: tolerance)
+        let parameters = try SurfaceParameterBox(
+            u: ScalarInterval(lower: uBounds.lower, upper: uBounds.upper),
+            v: ScalarInterval(lower: vBounds.lower, upper: vBounds.upper))
+        let encloser = DefaultSurfaceDifferentialEncloser()
+        let bounds: SurfaceTessellationDifferentialBounds
+        if surface.isUPeriodic && surface.isVPeriodic {
+            bounds = try encloser.originalDoublePeriodicTessellationBounds(
+                of: surface, over: parameters, tolerance: tolerance)
+        } else {
+            bounds = try encloser.tessellationBounds(
+                of: .bSpline(surface), over: parameters, tolerance: tolerance)
+        }
         try Task.checkCancellation()
         return try certifiedBSplineGridStepCounts(bounds: bounds, uBounds: uBounds,
                                                   vBounds: vBounds, options: options)
@@ -2967,7 +2975,7 @@ public struct MeshTessellator: Tessellating {
         // FIXME(INCOMPLETE_IMPLEMENTATION): Arbitrary C0/periodic B-spline trims lack certified
         // interior fidelity in the production mesh route. This exact rectangle admission
         // refuses them until full M1/M2 supplies original trim and interior authority.
-        guard !(surface.isUPeriodic && surface.isVPeriodic), loop.coedges.count >= 4 else {
+        guard loop.coedges.count >= 4 else {
             throw refusal()
         }
         var sides: [Side] = []
@@ -3037,27 +3045,33 @@ public struct MeshTessellator: Tessellating {
         guard surface.isUPeriodic || surface.isVPeriodic else {
             return (u: (minU, maxU), v: (minV, maxV))
         }
-        let periodicLower = surface.isUPeriodic ? minU : minV
-        let periodicUpper = surface.isUPeriodic ? maxU : maxV
-        let periodicWidth = periodicUpper - periodicLower
-        let periodicDomain = surface.isUPeriodic ? surface.uDomain : surface.vDomain
-        guard case let .periodic(period) = periodicDomain,
-              periodicWidth.isFinite, periodicWidth <= period else { throw refusal() }
-        if periodicWidth == period {
-            // Error-free TwoDifference recovers the represented endpoints' exact width.
-            // A smaller rounded width is strictly below the represented period, but equality
-            // may hide a positive residual. Exact full periods retain a zero residual.
-            let virtualLower = periodicUpper - periodicWidth
-            let virtualUpper = periodicWidth + virtualLower
-            let lowerRoundoff = virtualLower - periodicLower
-            let upperRoundoff = periodicUpper - virtualUpper
-            let widthRoundoff = upperRoundoff + lowerRoundoff
-            guard [virtualLower, virtualUpper, lowerRoundoff, upperRoundoff, widthRoundoff]
-                .allSatisfy(\.isFinite) else {
-                throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
-                                  message: "Periodic rectangle admission could not retain an exact finite width comparison.")
+        func certifyPeriodicWidth(lower periodicLower: Double, upper periodicUpper: Double,
+                                  domain periodicDomain: ParameterDomain) throws {
+            let periodicWidth = periodicUpper - periodicLower
+            guard case let .periodic(period) = periodicDomain,
+                  periodicWidth.isFinite, periodicWidth > 0, periodicWidth <= period else { throw refusal() }
+            if periodicWidth == period {
+                // Error-free TwoDifference recovers the represented endpoints' exact width.
+                // A smaller rounded width is strictly below the represented period, but equality
+                // may hide a positive residual. Exact full periods retain a zero residual.
+                let virtualLower = periodicUpper - periodicWidth
+                let virtualUpper = periodicWidth + virtualLower
+                let lowerRoundoff = virtualLower - periodicLower
+                let upperRoundoff = periodicUpper - virtualUpper
+                let widthRoundoff = upperRoundoff + lowerRoundoff
+                guard [virtualLower, virtualUpper, lowerRoundoff, upperRoundoff, widthRoundoff]
+                    .allSatisfy(\.isFinite) else {
+                    throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                                      message: "Periodic rectangle admission could not retain an exact finite width comparison.")
+                }
+                guard widthRoundoff <= 0 else { throw refusal() }
             }
-            guard widthRoundoff <= 0 else { throw refusal() }
+        }
+        if surface.isUPeriodic {
+            try certifyPeriodicWidth(lower: minU, upper: maxU, domain: surface.uDomain)
+        }
+        if surface.isVPeriodic {
+            try certifyPeriodicWidth(lower: minV, upper: maxV, domain: surface.vDomain)
         }
         return (u: (minU, maxU), v: (minV, maxV))
     }

@@ -17,6 +17,62 @@ package struct SurfaceTessellationDifferentialBounds: Sendable {
 }
 
 extension DefaultSurfaceDifferentialEncloser {
+  /// Exact stored tensor continuity authorizes the new double-periodic C1 route.
+  /// Approximate source periodicity is not a seam certificate. Existing validation
+  /// owns positive weights and every exact repeated control/weight tail, including corners.
+  package func originalDoublePeriodicTessellationBounds(
+    of surface: BSplineSurface3D,
+    over parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance
+  ) throws -> SurfaceTessellationDifferentialBounds {
+    try tolerance.validate()
+    try Task.checkCancellation()
+    try surface.validate(tolerance: tolerance)
+    func refusal() -> KernelError {
+      KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                  message: "Double-periodic tessellation requires exact original translated knots and C1 seams on both axes.")
+    }
+    guard surface.isUPeriodic, surface.isVPeriodic else { throw refusal() }
+    func exactDifference(_ upper: Double, _ lower: Double) throws -> (head: Double, tail: Double) {
+      let head = upper - lower
+      let virtualLower = upper - head
+      let virtualUpper = head + virtualLower
+      let lowerRoundoff = virtualLower - lower
+      let upperRoundoff = upper - virtualUpper
+      let tail = upperRoundoff + lowerRoundoff
+      guard [head, virtualLower, virtualUpper, lowerRoundoff, upperRoundoff, tail]
+        .allSatisfy(\.isFinite) else {
+        throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                          message: "Double-periodic continuity exceeded finite exact knot-difference arithmetic.")
+      }
+      return (head, tail)
+    }
+    func certifyAxis(_ knots: [Double], degree: Int, storedCount: Int) throws {
+      let cycleCount = storedCount - degree
+      let period = try exactDifference(knots[storedCount], knots[degree])
+      guard period.head > 0, period.tail == 0 else { throw refusal() }
+      for index in 0..<(knots.count - cycleCount) {
+        if index & 0xFF == 0 { try Task.checkCancellation() }
+        let difference = try exactDifference(knots[index + cycleCount], knots[index])
+        guard difference.head == period.head, difference.tail == 0 else { throw refusal() }
+      }
+      var index = 0
+      while index < knots.count {
+        if index & 0xFF == 0 { try Task.checkCancellation() }
+        var end = index + 1
+        while end < knots.count, knots[end] == knots[index] { end += 1 }
+        guard end - index <= degree - 1 else { throw refusal() }
+        index = end
+      }
+    }
+    try certifyAxis(surface.uKnots, degree: surface.uDegree, storedCount: surface.uControlPointCount)
+    try certifyAxis(surface.vKnots, degree: surface.vDegree, storedCount: surface.vControlPointCount)
+    try Task.checkCancellation()
+    // One existing whole-domain traversal retains the original shared cell/depth budget.
+    // No selected periodic side, extracted Cartesian support, or sampled seam is minted.
+    return try tessellationBounds(of: .bSpline(surface), over: parameters, tolerance: tolerance)
+  }
+
   /// One rectangle owns the entire native-panel proof budget. Every child retains its
   /// original selected side; neighboring knot jets never enter a smooth panel certificate.
   package func originalNativeSpanTessellationBounds(

@@ -1023,3 +1023,32 @@ validation into exact mathematical seam continuity. A future new double-C1
 mesh admission must separately prove exact original translated knot differences
 on both axes and apply each original period-width TwoDifference check. Existing
 single-periodic semantics are not silently changed by this lower scope.
+
+### Original Double-Periodic C1 Mesh Admission (PAR.M1R4)
+
+Geometry owns the new double-periodic C1 admission before existing whole-span
+`tessellationBounds` is consumed. Both stored axes must prove finite positive
+period `K[N]-K[p]` with zero error-free TwoDifference residual; each stored
+translation `K[i+n]-K[i]`, n=N-p, must prove this same exact period by zero
+residual rather than a rounded addition comparison. Every seam/internal knot
+multiplicity must be at most p-1. Existing validation retains exact original
+U/V control/weight tails, including tensor corners, and positive weights.
+These original homogeneous conditions prove position/first-derivative seam
+continuity; second-derivative continuity is not assumed. Approximate periodic
+source validation alone supplies no new authority.
+
+The original homogeneous lower owns first-through-third whole periodic bounds;
+this admission does not mint periodic selected-side tokens or reconstruct a
+support. Existing finite, regularity, invocation-local cell/depth limits and
+cancellation remain unchanged. Independent literal cardinal tensor Geometry
+and public Mesh fixtures must reject approximate translated knots, C0 seams,
+malformed tails, nonfinite/resource conditions and cancellation, and verify
+original position, normal and both-seam covers. Single-periodic semantics remain
+unchanged; Native runtime is required before this new admission is complete.
+
+Native verification passes Geometry five declarations/thirteen parameter cases
+and Kernel five declarations/sixteen parameter cases, plus forty-three existing
+Kernel tessellation tests and six original native-span Geometry tests. Literal
+source positions/normals, both seam identities, full periods, exact-width refusal,
+aggregate reservations and cancellation execute through the original production
+path. Full M1 and portable closure remain separately owned.
