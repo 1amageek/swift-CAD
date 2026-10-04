@@ -635,6 +635,10 @@ every phase reads the same `BooleanOperandContext`.
   planar target from outside, its own cap's disc inside that face (a boss drawn on the
   face, joined by Union or Extrude Join), is the revolved union of a tool protruding
   from that cap; any other boundary contact is refused as non-manifold (`BossJoinTests`).
+  Two coaxial revolved solids standing on each other in a smaller disc (a stepped shaft)
+  join cap to cap (`CoaxialRevolvedUnionPlan`): every face of both is carried but those
+  caps, the larger becoming an annulus whose hole is the smaller's boundary edges; caps of
+  one radius are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
   A
   pass whose targets have no material produces a sheet body, any other a solid
   (`resultBodyKind`), and the sewing request must carry that kind. A face crossing

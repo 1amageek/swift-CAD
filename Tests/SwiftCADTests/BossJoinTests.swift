@@ -82,4 +82,39 @@ struct BossJoinTests {
         _ = try builder.boolean(targets: [plate], tool: boss, operation: .union)
         #expect(throws: KernelError.self) { try evaluate(builder) }
     }
+
+    /// A stepped shaft: a 10 mm cylinder standing coaxially on a 20 mm one (or the 20 mm one on
+    /// the 10 mm one, either as the tool, above or below), joined into one solid, the larger cap
+    /// left as an annulus round the smaller's circle; the step's concave rim then rounds.
+    @Test(.timeLimit(.minutes(2)), arguments: [(true, false), (false, false), (true, true), (false, true)])
+    func coaxialCylindersStandingOnEachOtherJoin(toolAbove: Bool, toolLarger: Bool) throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (large, small, step) = (0.02, 0.01, 0.01)
+        let (targetRadius, toolRadius) = toolLarger ? (small, large) : (large, small)
+        let target = try builder.cylinder(radius: length(targetRadius), height: length(step))
+        let tool = try builder.cylinder(placement: PrimitivePlacement(origin: Point3D(x: 0, y: 0, z: toolAbove ? step : -step), axis: .unitZ,
+                                                                      referenceDirection: .unitX),
+                                        radius: length(toolRadius), height: length(step))
+        let joined = try builder.boolean(targets: [target], tool: tool, operation: .union)
+        let evaluated = try evaluate(builder)
+        #expect(evaluated.brep.bodies.count == 1)
+        let expected = Double.pi * (large * large + small * small) * step
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - expected) < 1e-12)
+        // The step's rim: the smaller cylinder's circle on the shared plane.
+        let shared = toolAbove ? step : 0.0
+        let rims = evaluated.subshapes.entries.filter { key, value in
+            guard key.featureID == joined, case let .edge(id) = value, let edge = evaluated.brep.edges[id],
+                  case let .circle(circle)? = evaluated.brep.geometry.curves[edge.curveID] else { return false }
+            return abs(circle.center.z - shared) < 1e-12 && abs(circle.radius - small) < 1e-12
+        }.keys.sorted()
+        let rim = try #require(rims.first)
+        let r = 0.001
+        _ = try builder.fillet(target: joined, edges: [try builder.stableSubshape(rim)], radius: length(r))
+        let rounded = try evaluate(builder)
+        let section = r * r * (1 - Double.pi / 4)
+        let outset = r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+        let volume = try rounded.brep.volume(tolerance: .standard)
+        let filled = expected + section * 2 * Double.pi * (small + outset)
+        #expect(abs(volume - filled) < 5e-12, "\(volume) vs \(filled)")
+    }
 }
