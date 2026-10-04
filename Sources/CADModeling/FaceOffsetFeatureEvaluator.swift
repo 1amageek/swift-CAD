@@ -62,6 +62,12 @@ public struct FaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         // Grow (Moving or Fixed): one planar face pushed out past a parallel wall of its body
         // facing the same way fills up to that wall (the face extruded and joined), then Moving
         // pushes the wall it became part of on by the rest of the distance.
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Grow reaches only a parallel wall of one planar face
+        // pushed out; several faces, curved faces, oblique walls or an adjacent angle take the
+        // in-place re-solve below, which fails explicitly where the faces around cannot follow.
+        // Production path: Push Face (FaceOffsetFeatureEvaluator) with Grow Moving or Fixed.
+        // Complete only when those faces grow into the walls they run into, verified by a face
+        // pushed into an oblique wall and two faces pushed together.
         if offset.grow != .none, adjacentAngle == 0, faceIDs.count == 1, distance > 0,
            let pushed = try outwardPlane(of: faceIDs[0], model: context.brep, tolerance: context.tolerance),
            let gap = try wallGap(from: faceIDs[0], plane: pushed, distance: distance, bodyScope: bodyScope, model: context.brep,

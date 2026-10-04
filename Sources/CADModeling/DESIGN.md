@@ -1077,7 +1077,9 @@ wall of its body facing the same way: Fixed fills up to that wall (the face extr
 by the gap and joined, coplanar faces merging), Moving then pushes the face it shares
 with the wall on by the rest, in place; None re-solves in place and, when the faces
 around cannot follow, keeps the face going by itself — extruded its whole distance
-and joined outward, cut inward. Match Face of one planar face onto a parallel plane
+and joined outward, cut inward. Grow for several faces, curved faces, oblique walls or an
+adjacent angle is the in-place re-solve, failing explicitly where the faces around cannot follow
+(`FIXME(INCOMPLETE_IMPLEMENTATION)` in `FaceOffsetFeatureEvaluator`). Match Face of one planar face onto a parallel plane
 facing the same way is that push, Grow and all. One planar face running into another wall on
 its way out to a curved reference (the re-solve's topology failure) is pushed by Push Face's Grow
 out to where it reaches the reference — Fixed stopping at the wall — and the face it then ends on
