@@ -2,13 +2,17 @@
 
 ## Purpose and Scope
 
-This module owns unit-bearing expression source values. Parent: [Swift-CAD](../../DESIGN.md).
-There are no child designs for expressions.
+This module owns unit-bearing expression source values and a stateless current-task
+cancellation checker for Core consumers. Parent: [Swift-CAD](../../DESIGN.md).
+Expression source values have no child designs; current-task cancellation is a
+separate child component.
 
 ## Responsibilities and Boundaries
 
 CADCore owns Codable expression structure, literal validation and dependency discovery.
-Evaluation and kind checking belong to CADIR and CADModeling.
+It also owns stateless current-task cancellation observation; consumer routing and
+domain failure mapping remain outside that component. Evaluation and kind checking
+belong to CADIR and CADModeling.
 
 ## Related Designs
 
@@ -16,11 +20,13 @@ Evaluation and kind checking belong to CADIR and CADModeling.
 |---|---|---|---|---|
 | [CADIR](../CADIR/DESIGN.md) | used by | Parameter validation | Validates kinds and values | New cases require exhaustive handling |
 | [CADModeling](../CADModeling/DESIGN.md) | used by | Expression resolution | Evaluates source and variables | Preserve evaluation equivalence |
+| [Current Task Cancellation](CurrentTaskCancellation/DESIGN.md) | child | Core public module boundary | Preserves typed `CancellationError` for bounded Core consumers | Consumer placement and domain mapping remain outside this component |
 
 ## Architecture
 
 ```text
 CADExpression -> CADIR parameter validation -> CADModeling evaluation
+CurrentTask -> CurrentTaskCancellationChecker -> bounded Core consumers
 ```
 
 ## Contracts and Invariants
