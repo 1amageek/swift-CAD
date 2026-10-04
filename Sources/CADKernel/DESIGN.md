@@ -305,7 +305,7 @@ bounds drive curvature-dependent refinement; point samples do not authorize
 fidelity. The existing checked cumulative storage/count reservation, actual
 emission charging, face provenance and upper cooperative cancellation contract
 remain authoritative. No new lower-proof cancellation response-time guarantee
-or private budget is introduced. C0/doubly-periodic/unproved regularity remain typed
+or private budget is introduced. Periodic C0, nonclamped C0, doubly-periodic and unproved regularity remain typed
 incomplete refusals for this bounded route; trimmed interiors, adjacent-face
 agreement and full M1 remain separate proof gaps.
 The bounded periodic M1 extension admits exactly one periodic axis with validated
@@ -1213,3 +1213,58 @@ there, Normal along the section plane's normal (a curve's sketch plane, or the p
 points; a non-planar curve has none), Binormal along Normal × Tangent. Authors read it as
 `FullFilletRadius` is read: against the evaluated document. `RevolveSectionAxisTests` own a
 rectangle's axes and its full turns about Tangent and Binormal (Pappus).
+
+### C0 rectangle span composition (PAR.M1R3)
+
+The bounded M1 extension admits nonperiodic clamped positive-weight C0 tensor
+rectangles. Seven public declarations/10cases pass the literal side/corner,
+interior fidelity, duplicate-count, singular, reservation/cancellation and
+FaceRun/input-equality oracles; all36 existing mesh owner declarations pass on
+the same frozen composed source. Geometry's
+[original native-span authority](../CADGeometry/DESIGN.md#original-native-span-tessellation-authority-parm1r3)
+is the sole owner of one-sided differential bounds and endpoint normals.
+Kernel partitions the retained original rectangle at each distinct native U/V
+knot. Every emitted triangle belongs to one smooth native span; none crosses
+a C0 crease. Boundary positions evaluate the original support at exactly the
+same retained native stations, while indices and one-sided normals remain
+separate for each panel. A tensor knot corner can retain four normals.
+
+```mermaid
+flowchart LR
+    Original["Original rectangle and native knots"] --> Authority["Geometry: immutable span authority"]
+    Authority --> Bounds["One-sided complete bounds"]
+    Bounds --> Grids["Kernel: compatible retained panel grids"]
+    Grids --> Budget["Checked cumulative preflight"]
+    Budget --> Mesh["Original positions / one-sided normals / one FaceRun"]
+```
+
+For each U interval, its step count is the maximum required across all V
+panels; each V interval uses the analogous maximum. These common stations
+prevent panel-boundary T-junctions. Counts use the existing anisotropic
+position/Hessian, angular/normal-path and all-edge/diagonal inequalities, with
+actual representable gaps. Increasing another panel's count can only narrow
+these gaps; retained final grids are checked before emission.
+
+| Owner | Required invariant | Behavioral evidence |
+|---|---|---|
+| Geometry | Original selected span; one-sided knot jets/normals; one aggregate proof ceiling | Literal derivative and domain/work/refusal tests |
+| Kernel preflight | Checked sum of panel vertices `(ku+1)*(kv+1)` and indices `6*ku*kv`, including crease duplicates | Exact-count cumulative count/byte/reservation refusal |
+| Kernel emission | Same retained grids; original point coordinates; panel-specific normals; existing actual budget/cancellation | No crossing triangles; matching boundary stations; literal interior/normal/all-edge checks |
+| Provenance | One uninterrupted original face run and unchanged exact input | FaceRun/extraction and success/failure/cancellation input equality |
+
+Literal oracles include `z=0.5*min(u,1-u)`, the quadratic piecewise
+`z=u*u` / `z=(1-u)*(1-u)`, both U/V roles, and the sum of two linear
+creases giving four corner normals. A collapsed tangent panel must fail;
+resource exhaustion and pre-cancellation cannot return partial success.
+Periodic C0, doubly-periodic charts, singular-limit shading, arbitrary trims
+and inter-face M3 agreement remain separate full-scope gaps.
+
+C0 composition consumes Geometry's immutable `OriginalNativeSpan` tokens and
+`originalNativeSpanTessellationBounds(of:over:tolerance:)` panel records.
+Geometry's `BSplineSurface3D.normal(u:v:owning:tolerance:)` validates the same
+original token and evaluates selected scalar native derivatives with the
+existing strict normal law. Kernel retains these records and compatible
+counts through preflight/emission; it neither creates tokens nor selects an
+unproved knot side. The shared token/extraction implementation belongs only
+to PAR.ORIGJET1; C0 owns scalar normal composition, aggregate tessellation
+bounds and mesh composition.

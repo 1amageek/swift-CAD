@@ -52,6 +52,23 @@ struct MeshTessellatorFaceRunTests {
     // MARK: - Emission contracts
 
     @Test(.timeLimit(.minutes(1)), arguments: [CADGeometry.SurfaceParameterDirection.u, .v])
+    func originalC0PanelsKeepOneFaceRunAndExtractionIdentity(direction: CADGeometry.SurfaceParameterDirection) throws {
+        let model = try rectangularBSplineSheet(surface: originalC0TessellationSurface(direction: direction, quadratic: true))
+        let original = model
+        let options = TessellationOptions(linearTolerance: 1e-3, angularTolerance: 0.08, maxEdgeLength: 0.25)
+        let tessellator = MeshTessellator(tolerance: .standard)
+        let meshes = try tessellator.tessellate(model: model, options: options)
+        let bodyID = try #require(meshes.keys.first), mesh = try #require(meshes[bodyID])
+        let faceID = try #require(model.faces.keys.first)
+        #expect(mesh.faceRuns == [Mesh.FaceRun(faceID: faceID, triangleCount: mesh.indices.count / 3)])
+        let extracted = try BRepBodySubmodelExtractor().extract(bodyIDs: [bodyID], from: model)
+        #expect(try tessellator.tessellate(model: extracted, options: options)[bodyID] == mesh)
+        #expect(extracted.faces[faceID] == model.faces[faceID])
+        #expect(extracted.geometry.surfaces == model.geometry.surfaces)
+        #expect(model == original)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [CADGeometry.SurfaceParameterDirection.u, .v])
     func originalPeriodicSeamUsesAndFaceRunsSurviveExtraction(direction: CADGeometry.SurfaceParameterDirection) throws {
         let model = try periodicExtrudedBSplineSheet(direction: direction, from: 0, to: 4)
         let loop = try #require(model.loops.values.first)

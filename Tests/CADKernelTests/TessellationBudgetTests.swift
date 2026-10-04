@@ -446,6 +446,72 @@ struct TessellationBudgetTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func originalC0PanelCountsIncludeCreaseDuplicatesAcrossReservations() throws {
+        let surface = originalC0TessellationSurface(direction: .u, corner: true)
+        let model = try rectangularBSplineSheet(surface: surface)
+        let pair = try rectangularBSplineSheet(surface: surface, copies: 2)
+        let original = pair
+        let options = TessellationOptions(linearTolerance: 1e-4, angularTolerance: 0.01, maxEdgeLength: 0.25)
+        let tessellator = MeshTessellator(tolerance: .standard)
+        let mesh = try #require(try tessellator.tessellate(model: model, options: options).values.first)
+        let usage = try TessellationUsage(mesh: mesh)
+        let exact = TessellationLimits(maximumVertexCount: usage.vertexCount,
+            maximumIndexCount: usage.indexCount, maximumTriangleCount: usage.triangleCount,
+            maximumByteCount: usage.byteCount)
+        #expect(try MeshTessellator(tolerance: .standard, limits: exact).tessellate(model: model, options: options).values.first == mesh)
+        var countLimits = TessellationLimits.standard
+        countLimits.maximumVertexCount = usage.vertexCount * 2 - 1
+        #expect(throws: TessellationError.self) {
+            do {
+                _ = try MeshTessellator(tolerance: .standard, limits: countLimits).tessellate(model: pair, options: options)
+            } catch {
+                let reported = try #require(Self.exhaustion(of: error))
+                #expect(reported.0 == .vertexCount && reported.requested > reported.limit)
+                throw error
+            }
+        }
+        var byteLimits = TessellationLimits.standard
+        byteLimits.maximumByteCount = usage.byteCount - 1
+        #expect(throws: TessellationError.self) {
+            do {
+                _ = try MeshTessellator(tolerance: .standard, limits: byteLimits).tessellate(model: model, options: options)
+            } catch {
+                let reported = try #require(Self.exhaustion(of: error))
+                #expect(reported.0 == .byteCount && reported.requested > reported.limit)
+                throw error
+            }
+        }
+        let validated = try ValidatedBRepModel(model, tolerance: .standard, validationLevel: .modeling)
+        #expect(throws: TessellationError.self) {
+            do {
+                _ = try tessellator.tessellate(validatedModel: validated, options: options, limits: countLimits, reserving: usage)
+            } catch {
+                let reported = try #require(Self.exhaustion(of: error))
+                #expect(reported.0 == .vertexCount && reported.requested > reported.limit)
+                throw error
+            }
+        }
+        #expect(pair == original)
+        #expect(try tessellator.tessellate(model: pair, options: options).count == 2)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func cancelledOriginalC0AdmissionKeepsEveryNativePanel() async throws {
+        let model = try rectangularBSplineSheet(surface: originalC0TessellationSurface(direction: .v, quadratic: true))
+        let original = model
+        let (gate, opened) = AsyncStream.makeStream(of: Void.self)
+        let task = Task {
+            for await _ in gate { break }
+            return try MeshTessellator(tolerance: .standard).tessellate(model: model)
+        }
+        task.cancel()
+        opened.yield()
+        opened.finish()
+        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        #expect(model == original)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func periodicAdaptiveAdmissionPreservesCumulativeCountsBytesAndReservations() throws {
         let model = try periodicExtrudedBSplineSheet(direction: .u, from: 0, to: 4)
         let pair = try periodicExtrudedBSplineSheet(direction: .u, from: 0, to: 4, copies: 2)
