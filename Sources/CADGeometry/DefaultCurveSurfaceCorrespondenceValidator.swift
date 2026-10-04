@@ -1054,9 +1054,13 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             startLiftedDerivative.length,
             startCurveDerivative.length
         )
+        // The start may sit as far round the circle as the distance tolerance allows (the position
+        // check below) and the spans differ by up to the angle tolerance: the derivative turns and
+        // stretches by as much, which the derivative check allows besides rounding.
         let derivativeTolerance = max(
             tolerance.relative * derivativeScale,
-            Double.ulpOfOne * derivativeScale * 64.0
+            Double.ulpOfOne * derivativeScale * 64.0,
+            derivativeScale * (tolerance.distance / circle.radius + tolerance.angle / max(abs(curveSpan), tolerance.angle))
         )
         let orthogonalityTolerance = max(
             tolerance.angle * radialScale,

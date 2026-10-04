@@ -341,6 +341,10 @@ curves on coaxial spherical latitudes, including chart-preserving analytic
 offsets. The common intersection verifier admits these structural cases before
 cubic UV fitting. Their first through third derivatives must retain the native
 angular parameter; a positional fit alone is not equivalent for blend geometry.
+A planar harmonic pcurve corresponds to its circular edge when its start sits within the
+distance tolerance of the edge's and its span within the angle tolerance: its start derivative
+may turn and stretch by as much (`CylinderFlushNotchTests`, where a slot's arcs and their
+trimming curves are found apart by a hair's turn).
 Curve differential enclosures preserve an exact normalized ruled-boundary lift
 by evaluating the original boundary curve. Admission requires an endpoint V
 and the identical U parameter span, so no approximate surface substitution or
