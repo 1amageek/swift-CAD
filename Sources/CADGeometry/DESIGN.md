@@ -30,6 +30,10 @@ distinct roots by a widened numerical tolerance.
 
 ## Purpose and Scope
 
+[OriginalGraphBand](OriginalGraphBand/DESIGN.md) owns bounded mesh-only original
+rational graph certificates and retained join uncertainty; it does not heal
+source pcurves or assert exact UV closure.
+
 [SurfaceBoundaryCertification](SurfaceBoundaryCertification/DESIGN.md) owns
 independent whole-boundary position, normal and shape-operator certification.
 

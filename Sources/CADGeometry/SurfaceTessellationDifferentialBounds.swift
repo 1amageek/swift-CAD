@@ -92,17 +92,30 @@ extension DefaultSurfaceDifferentialEncloser {
     tolerance: ModelingTolerance,
     maximumCellCount: Int
   ) throws -> [SurfaceTessellationDifferentialBounds.OriginalNativePanel] {
+    var proofUsage = try OriginalTessellationProofUsage(
+      maximumCellCount: maximumCellCount, tolerance: tolerance)
+    return try originalNativeSpanTessellationBounds(
+      of: surface, over: parameters, tolerance: tolerance, proofUsage: &proofUsage)
+  }
+
+  /// Share actual visited native cells with an invocation's graph/reference proof.
+  package func originalNativeSpanTessellationBounds(
+    of surface: BSplineSurface3D,
+    over parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance,
+    proofUsage: inout OriginalTessellationProofUsage
+  ) throws -> [SurfaceTessellationDifferentialBounds.OriginalNativePanel] {
     try tolerance.validate()
-    guard (1...262_144).contains(maximumCellCount) else {
-      throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
-                        message: "Native surface tessellation requires a cell ceiling within its original proof budget.")
+    guard proofUsage.remainingCellCount > 0 else {
+      throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                        message: "Native surface tessellation exhausted its shared proof cell budget.")
     }
     try parameters.validate(for: .bSpline(surface), tolerance: tolerance)
     try Task.checkCancellation()
     let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance)
     try Task.checkCancellation()
     let spans = try prepared.originalNativeSpans(over: parameters, tolerance: tolerance,
-                                                  maximumSpanCount: maximumCellCount)
+                                                  maximumSpanCount: proofUsage.remainingCellCount)
     typealias Span = PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan
     struct Panel {
       let span: Span
@@ -115,7 +128,6 @@ extension DefaultSurfaceDifferentialEncloser {
       let depth: Int
     }
     let maximumDepth = 32
-    var remainingCells = maximumCellCount
     var panels: [Panel] = []
     for (index, span) in spans.enumerated() {
       if index & 0xFF == 0 { try Task.checkCancellation() }
@@ -124,7 +136,7 @@ extension DefaultSurfaceDifferentialEncloser {
       let vLower = max(parameters.v.lower, span.vBounds.lower)
       let vUpper = min(parameters.v.upper, span.vBounds.upper)
       guard uUpper > uLower, vUpper > vLower else { continue }
-      guard panels.count < maximumCellCount else {
+      guard panels.count < proofUsage.remainingCellCount else {
         throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                           message: "Native surface tessellation exhausted its aggregate cell budget.")
       }
@@ -136,12 +148,7 @@ extension DefaultSurfaceDifferentialEncloser {
       Cell(panelIndex: $0, parameters: panels[$0].parameters, depth: 0)
     }
     while let cell = pending.popLast() {
-      try Task.checkCancellation()
-      guard remainingCells > 0 else {
-        throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
-                          message: "Native surface tessellation exhausted its aggregate cell budget.")
-      }
-      remainingCells -= 1
+      try proofUsage.consume(depth: cell.depth, tolerance: tolerance)
       let span = panels[cell.panelIndex].span
       let jet: SurfaceIntervalVectorJet?
       do {

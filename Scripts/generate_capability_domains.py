@@ -39,6 +39,7 @@ BINDINGS = {
     "BSplineSurfaceEmbeddingValidator": (["loft"], ["supportSurface", "connection", "parameterization"]),
     "SheetExtendFeatureEvaluator": (["sheetExtend"], ["supportSurface", "boundaryCurve", "connection"]),
     "MeshTessellator": (["CADCommand"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
+    "DefaultOriginalRationalGraphBandCertifier": (["CADCommand"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
     "BRepEdgeChainOffsetter": (["faceLoopOffset", "edgeOffset"], ["boundaryCurve", "connection"]),
     "CoincidentBooleanFaceOwnershipResolver": (["boolean"], ["supportSurface", "connection", "degeneracy", "topology"]),
     "ImprintBodyFeatureEvaluator": (["imprintBody", "imprintCurves"], ["supportSurface", "boundaryCurve", "connection"]),

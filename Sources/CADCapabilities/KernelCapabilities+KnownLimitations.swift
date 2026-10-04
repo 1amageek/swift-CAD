@@ -326,6 +326,13 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/ImplicitCurveIntervalJetEncloser.swift", sourceLine: 622
         ),
         KernelDomainLimitation(
+            id: "condition-792ebe4ce8c9e4c9",
+            operations: ["CADCommand"],
+            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
+            condition: "This bounded mesh-only authority admits original native Bezier graph pieces on a nonperiodic one-V-span support. Kernel's general trimmed-face path requires complete graph/domain/facet proofs before other pcurve, periodic or arbitrary-trim families can succeed.",
+            sourcePath: "Sources/CADGeometry/OriginalGraphBand/DefaultOriginalRationalGraphBandCertifier.swift", sourceLine: 48
+        ),
+        KernelDomainLimitation(
             id: "condition-94dc729b5c31259b",
             operations: ["fillet"],
             dimensions: [.supportSurface, .connection, .degeneracy, .representation],
