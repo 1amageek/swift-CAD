@@ -144,9 +144,7 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
                             box: SurfaceParameterBox, target: SurfaceIntervalVectorJet,
                             budget: inout OverlapProofBudget) throws -> Self? {
         guard case .bSpline(let source) = curve, !source.isPeriodic,
-              !surface.isUPeriodic, !surface.isVPeriodic,
-              source.controlPointCount == source.degree + 1,
-              source.knots.count == 2 * (source.degree + 1) else { return nil }
+              !surface.isUPeriodic, !surface.isVPeriodic else { return nil }
         let tensorCount = surface.uControlPointCount.multipliedReportingOverflow(by: surface.vControlPointCount)
         guard !tensorCount.overflow else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: budget.tolerance,
@@ -156,7 +154,7 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
             + surface.uKnots.count + surface.vKnots.count
             + tensorCount.partialValue * 3
         try budget.work(scan)
-        guard clamped(source.knots, degree: source.degree, count: source.controlPointCount),
+        guard originalSourceAtlas(source),
               clamped(surface.uKnots, degree: surface.uDegree, count: surface.uControlPointCount),
               clamped(surface.vKnots, degree: surface.vDegree, count: surface.vControlPointCount),
               box.u.lower == surface.uKnots[surface.uDegree], box.u.upper == surface.uKnots[surface.uControlPointCount],
@@ -197,12 +195,10 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
                             range: ScalarInterval, pair: OverlapRegularGraphCell.Pair,
                             box: SurfaceParameterBox, target: SurfaceIntervalVectorJet,
                             budget: inout OverlapProofBudget) throws -> Self? {
-        guard case .bSpline(let source) = curve, !source.isPeriodic,
-              source.controlPointCount == source.degree + 1,
-              source.knots.count == 2 * (source.degree + 1) else { return nil }
+        guard case .bSpline(let source) = curve, !source.isPeriodic else { return nil }
         try budget.work(source.controlPointCount * 3 + source.knots.count)
         let surface = independence.prepared.surface
-        guard clamped(source.knots, degree: source.degree, count: source.controlPointCount),
+        guard originalSourceAtlas(source),
               box.u.lower == surface.uKnots[surface.uDegree], box.u.upper == surface.uKnots[surface.uControlPointCount],
               box.v.lower == surface.vKnots[surface.vDegree], box.v.upper == surface.vKnots[surface.vControlPointCount],
               range.lower >= source.knots[0], range.upper <= source.knots[source.knots.count - 1],
@@ -210,6 +206,33 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
               let second = independence.axis(coordinate: pair.second, box: box), first.variesU != second.variesU,
               monotone(first, target: target), monotone(second, target: target) else { return nil }
         return admittedSource(source, surface: surface, range: range, pair: pair, box: box, first: first, second: second)
+    }
+
+    /// The caller has paid the complete original knot scan before this check.
+    /// Degree-fold spans use original control slices, sharing one endpoint.
+    private static func originalSourceAtlas(_ source: BSplineCurve3D) -> Bool {
+        let degree = source.degree, count = source.controlPointCount
+        let sum = count.addingReportingOverflow(degree)
+        let length = sum.partialValue.addingReportingOverflow(1)
+        guard degree >= 0, count > degree, !sum.overflow, !length.overflow,
+              source.knots.count == length.partialValue,
+              clamped(source.knots, degree: degree, count: count) else { return false }
+        if count == degree + 1 { return true }
+        guard degree >= 1 else { return false }
+        let lower = source.knots[degree], upper = source.knots[count]
+        var index = degree + 1
+        while index < count {
+            let knot = source.knots[index]
+            var end = index + 1
+            while end < count, source.knots[end] == knot { end += 1 }
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Other original source multiplicities
+            // still require directed original extraction authority. The public regular
+            // graph endpoint path must not admit their rounded extracted nets before
+            // complete original-span membership, root joins and correspondence are proved.
+            guard knot > lower, knot < upper, end - index == degree else { return false }
+            index = end
+        }
+        return index == count
     }
 
     private static func admittedSource(_ source: BSplineCurve3D, surface: BSplineSurface3D,

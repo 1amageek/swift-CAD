@@ -6,6 +6,180 @@ import Testing
 struct CurveSurfaceRegularGraphTests {
     private let intersector: any CurveSurfaceIntersectionResolving = DefaultCurveSurfaceIntersector()
 
+    @Test(.timeLimit(.minutes(1)), arguments: [0,1,2,3])
+    func originalDegreeFoldSourceAtlasRetainsWholeOwnedGraphs(mode: Int) throws {
+        let reversed = mode % 2 == 1, rationalTarget = mode >= 2
+        var source = degreeFoldSource(reversed: reversed)
+        var target = rationalTarget ? rationalMultispanEndpointSurface() : degreeFoldTarget()
+        let originalSource = source, originalTarget = target
+        var options = try graphOptions()
+        options.curveRange = nil
+        let result = try intersector.intersectionResult(curve: .bSpline(source), surface: .bSpline(target),
+            options: options, tolerance: .standard)
+        #expect(result.overlaps.count == 1 && result.points.isEmpty)
+        let overlap = try #require(result.overlaps.first)
+        #expect(overlap.curveRange == (try ScalarInterval(lower: 0, upper: 1)))
+        #expect(overlap.maximumSpatialDeviation <= ModelingTolerance.standard.distance)
+        source.controlPoints[0].z = 2
+        target.controlPoints[0][0].z = 3
+        for t in [0.0,0.125,0.5,0.75,1.0] {
+            let h = degreeFoldValue(reversed ? 1-t : t)
+            let inverse = rationalTarget ? (h <= 0.5 ? 8*h/(9-2*h) : (8*h+1)/(11-2*h)) : h
+            let value = try overlap.correspondence(at: t)
+            #expect(abs(value.surfaceParameter.u-inverse) < 1e-7 && abs(value.surfaceParameter.v-inverse) < 1e-7)
+            let point = try originalSource.point(at: t, tolerance: .standard)
+            let image = try originalTarget.point(u: value.surfaceParameter.u, v: value.surfaceParameter.v, tolerance: .standard)
+            #expect((point-Point3D(x: h,y: h,z: h*h)).length < 1e-12)
+            #expect((point-image).length <= ModelingTolerance.standard.distance && value.residual <= ModelingTolerance.standard.distance)
+        }
+        let start = reversed ? 1.0 : 0, end = reversed ? 0.0 : 1
+        #expect(overlap.start.surfaceParameter.u == start && overlap.start.surfaceParameter.v == start)
+        #expect(overlap.end.surfaceParameter.u == end && overlap.end.surfaceParameter.v == end)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [0,1,2,3])
+    func originalDegreeFoldSourceAtlasClipHasLiteralPiecewiseEndpoints(mode: Int) throws {
+        let reversed = mode % 2 == 1, rationalTarget = mode >= 2
+        let source = degreeFoldSource(reversed: reversed)
+        let target = rationalTarget ? rationalMultispanEndpointSurface() : degreeFoldTarget()
+        var options = try graphOptions()
+        options.curveRange = try ScalarInterval(lower: 0,upper: 1)
+        options.surfaceURange = try ScalarInterval(lower: 0.25,upper: 0.75)
+        options.surfaceVRange = options.surfaceURange
+        let result = try intersector.intersectionResult(curve: .bSpline(source), surface: .bSpline(target),
+            options: options, tolerance: .standard)
+        #expect(result.overlaps.count == 1 && result.points.isEmpty)
+        let overlap = try #require(result.overlaps.first)
+        let lower = rationalTarget ? (reversed ? 9.0/38 : 9.0/50) : (reversed ? 0.25 : 1.0/6)
+        let upper = rationalTarget ? (reversed ? 41.0/50 : 29.0/38) : (reversed ? 5.0/6 : 0.75)
+        #expect(abs(overlap.curveRange.lower-lower) < 1e-8 && abs(overlap.curveRange.upper-upper) < 1e-8)
+        for t in [overlap.curveRange.lower,0.5,overlap.curveRange.upper] {
+            let h = degreeFoldValue(reversed ? 1-t : t)
+            let inverse = rationalTarget ? (h <= 0.5 ? 8*h/(9-2*h) : (8*h+1)/(11-2*h)) : h
+            let value = try overlap.correspondence(at: t)
+            #expect(abs(value.surfaceParameter.u-inverse) < 1e-7 && abs(value.surfaceParameter.v-inverse) < 1e-7)
+            #expect(value.residual <= ModelingTolerance.standard.distance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [0.0,0.5,1.0])
+    func originalDegreeFoldSourceAtlasKeepsIntrinsicAndSharedKnotIncidence(boundary: Double) throws {
+        var options = try graphOptions()
+        options.curveRange = try ScalarInterval(lower: 0,upper: 1)
+        options.surfaceURange = try ScalarInterval(lower: boundary,upper: boundary)
+        options.surfaceVRange = options.surfaceURange
+        let result = try intersector.intersectionResult(curve: .bSpline(degreeFoldSource()),
+            surface: .bSpline(rationalMultispanEndpointSurface()), options: options, tolerance: .standard)
+        #expect(result.overlaps.isEmpty && result.points.count == 1)
+        let point = try #require(result.points.first)
+        #expect(abs(point.curveParameter-boundary) < 1e-8)
+        #expect(abs(point.surfaceU-boundary) <= ModelingTolerance.standard.relative)
+        #expect(abs(point.surfaceV-boundary) <= ModelingTolerance.standard.relative)
+        #expect(point.residual <= ModelingTolerance.standard.distance)
+        if boundary != 0.5 { #expect(point.curveParameter == boundary && point.surfaceU == boundary && point.surfaceV == boundary) }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [false,true])
+    func threeOriginalDegreeFoldSpansRetainGaplessCoverAndBothCommonRoots(reversed: Bool) throws {
+        let source = threeDegreeFoldSpans(reversed: reversed), target = degreeFoldTarget()
+        var options = try graphOptions()
+        options.curveRange = nil
+        let result = try intersector.intersectionResult(curve: .bSpline(source), surface: .bSpline(target),
+            options: options, tolerance: .standard)
+        #expect(result.overlaps.count == 1 && result.points.isEmpty)
+        let overlap = try #require(result.overlaps.first)
+        #expect(overlap.curveRange == (try ScalarInterval(lower: 0,upper: 1)))
+        for t in [0.0,0.125,0.25,0.5,0.75,0.875,1.0] {
+            let parameter = reversed ? 1-t : t
+            let h = parameter <= 0.25 ? 2*parameter : (parameter <= 0.75 ? 0.5*parameter+0.375 : parameter)
+            let value = try overlap.correspondence(at: t)
+            #expect(abs(value.surfaceParameter.u-h) < 1e-7 && abs(value.surfaceParameter.v-h) < 1e-7)
+            #expect((value.point-Point3D(x: h,y: h,z: h*h)).length <= ModelingTolerance.standard.distance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func originalDegreeFoldSourceAdmissionChargesExactCumulativeKnotFees() throws {
+        let target = degreeFoldTarget(), pair = OverlapRegularGraphCell.Pair(first: 0,second: 1)
+        let axis = try ScalarInterval(lower: 0,upper: 1), box = SurfaceParameterBox(u: axis,v: axis)
+        let jet = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard)
+            .intervalJet(over: box,tolerance: .standard)
+        // Full source coordinates+knots, both target knot vectors, Cartesian tensor:
+        // two spans cost 15+8+8+12=43; three spans cost 21+10+8+12=51.
+        var options = try graphOptions()
+        options.maximumSubdivisionCells = 43
+        var exact = OverlapProofBudget(options: options,tolerance: .standard)
+        let two = try #require(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(degreeFoldSource()),
+            surface: target,range: axis,pair: pair,box: box,target: jet,budget: &exact))
+        #expect(two.curve == degreeFoldSource() && two.exactEndpoint(at: 1)?.u == 1)
+        try expectFailure(.resourceLimitExceeded) { try exact.work() }
+        options.maximumSubdivisionCells = 42
+        var short = OverlapProofBudget(options: options,tolerance: .standard)
+        try expectFailure(.resourceLimitExceeded) {
+            _ = try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(degreeFoldSource()),
+                surface: target,range: axis,pair: pair,box: box,target: jet,budget: &short)
+        }
+        options.maximumSubdivisionCells = 102
+        var cumulative = OverlapProofBudget(options: options,tolerance: .standard)
+        let three = threeDegreeFoldSpans()
+        for span in [try ScalarInterval(lower: 0,upper: 0.25),try ScalarInterval(lower: 0.25,upper: 0.75)] {
+            #expect(try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(three),
+                surface: target,range: span,pair: pair,box: box,target: jet,budget: &cumulative) != nil)
+        }
+        try expectFailure(.resourceLimitExceeded) { try cumulative.work() }
+        options.maximumSubdivisionCells = 101
+        var afterFirst = OverlapProofBudget(options: options,tolerance: .standard)
+        #expect(try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(three),
+            surface: target,range: ScalarInterval(lower: 0,upper: 0.25),pair: pair,box: box,target: jet,budget: &afterFirst) != nil)
+        try expectFailure(.resourceLimitExceeded) {
+            _ = try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(three),
+                surface: target,range: ScalarInterval(lower: 0.25,upper: 0.75),pair: pair,box: box,target: jet,budget: &afterFirst)
+        }
+        var unsupported = OverlapProofBudget(options: try graphOptions(),tolerance: .standard)
+        let ordinary = BSplineCurve3D(degree: 2,knots: [0,0,0,0.5,1,1,1],
+            controlPoints: [Point3D(x: 0,y: 0,z: 0),Point3D(x: 0.25,y: 0.25,z: 0),
+                            Point3D(x: 0.75,y: 0.75,z: 0.5),Point3D(x: 1,y: 1,z: 1)])
+        #expect(try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(ordinary),
+            surface: target,range: axis,pair: pair,box: box,target: jet,budget: &unsupported) == nil)
+        var whole = try graphOptions()
+        whole.curveRange = axis
+        try expectFailure(.unsupportedCapability) {
+            _ = try intersector.intersectionResult(curve: .bSpline(ordinary),surface: .bSpline(target),options: whole,tolerance: .standard)
+        }
+        whole.maximumSubdivisionCells = 51
+        try expectFailure(.resourceLimitExceeded) {
+            _ = try intersector.intersectionResult(curve: .bSpline(three),surface: .bSpline(target),options: whole,tolerance: .standard)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func originalDegreeFoldSourceDeviationCannotAdmitFragmentsOfFailedSpan() throws {
+        var source = degreeFoldSource()
+        source.controlPoints[3].z += 0.125
+        var options = try graphOptions()
+        // On this second original span, deviation is (t-.5)*(1-t), strictly positive.
+        options.curveRange = try ScalarInterval(lower: 0.6,upper: 0.9)
+        let result = try intersector.intersectionResult(curve: .bSpline(source),surface: .bSpline(degreeFoldTarget()),
+            options: options,tolerance: .standard)
+        #expect(result.overlaps.isEmpty && result.points.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func originalDegreeFoldSourceAtlasPreservesPreCancellation() async throws {
+        let source = threeDegreeFoldSpans(), target = degreeFoldTarget()
+        var options = try graphOptions()
+        options.curveRange = try ScalarInterval(lower: 0,upper: 1)
+        let (stream, continuation) = AsyncStream<Void>.makeStream()
+        let task = Task {
+            for await _ in stream { break }
+            return try intersector.intersectionResult(curve: .bSpline(source),surface: .bSpline(target),options: options,tolerance: .standard)
+        }
+        task.cancel()
+        continuation.yield()
+        continuation.finish()
+        await #expect(throws: CancellationError.self) { _ = try await task.value }
+    }
+
     @Test(.timeLimit(.minutes(1)), arguments: [false, true])
     func rationalMultispanClosedAtlasRetainsWholeOwnedPiecewiseInverse(reversed: Bool) throws {
         var source = Curve3D.bSpline(rationalEndpointSource(reversed: reversed))
@@ -1916,6 +2090,31 @@ struct CurveSurfaceRegularGraphTests {
                 _ = try certify(sourceCurve(), targetSurface(), options: options)
             }
         }
+    }
+
+    private func degreeFoldSource(reversed: Bool = false) -> BSplineCurve3D {
+        let points = [Point3D(x: 0,y: 0,z: 0),Point3D(x: 0.25,y: 0.25,z: 0),
+                      Point3D(x: 0.5,y: 0.5,z: 0.25),Point3D(x: 0.75,y: 0.75,z: 0.5),Point3D(x: 1,y: 1,z: 1)]
+        let weights = [1.0,2,4,4,4]
+        return BSplineCurve3D(degree: 2,knots: [0,0,0,0.5,0.5,1,1,1],
+            controlPoints: reversed ? Array(points.reversed()) : points,
+            weights: reversed ? Array(weights.reversed()) : weights)
+    }
+
+    private func degreeFoldValue(_ t: Double) -> Double { t <= 0.5 ? 2*t/(1+2*t) : t }
+
+    private func threeDegreeFoldSpans(reversed: Bool = false) -> BSplineCurve3D {
+        let coordinates = [0.0,0.25,0.5,0.625,0.75,0.875,1]
+        let z = [0.0,0,0.25,0.375,0.5625,0.75,1]
+        let points = coordinates.indices.map { Point3D(x: coordinates[$0],y: coordinates[$0],z: z[$0]) }
+        return BSplineCurve3D(degree: 2,knots: [0,0,0,0.25,0.25,0.75,0.75,1,1,1],
+            controlPoints: reversed ? Array(points.reversed()) : points)
+    }
+
+    private func degreeFoldTarget() -> BSplineSurface3D {
+        BSplineSurface3D(uDegree: 1,vDegree: 1,uKnots: [0,0,1,1],vKnots: [0,0,1,1],
+            controlPoints: [[Point3D(x: 0,y: 0,z: 0),Point3D(x: 1,y: 0,z: 0)],
+                            [Point3D(x: 0,y: 1,z: 0),Point3D(x: 1,y: 1,z: 1)]])
     }
 
     private func rationalMultispanEndpointSurface() -> BSplineSurface3D {

@@ -868,3 +868,50 @@ one-sided slope combination; no one-sided station replaces that authority.
 | Positive middle-Z deviation | Tiny overlap fragments from a failed original-span certificate |
 | Constant U and constant V at native knots | Checking only one affected axis |
 | Folded corner Jacobian, work/depth/degree/storage limits and cancellation | Unproved rank/injectivity or unbounded atlas work |
+
+### Finite Original Degree-Fold Source Atlas (PAR.G4R3)
+
+The next bounded source extension replaces the single-source-span structural
+restriction only for a finite nonperiodic clamped positive-weight curve with
+degree at least one and every interior native knot of multiplicity exactly its
+degree. Each original span already takes the direct control/weight-slice route
+in `BSplineCurveBezierDecomposer`; no rounded extraction supplies its proof.
+Adjacent slices share one original endpoint control and weight, proving C0
+position continuity. The existing single-span branch and its exact work fees
+remain unchanged, including its existing degree policy.
+
+The charged original source-knot scan owns admission. The complete original
+positive control hull, target's exact coordinate factorization and strict
+whole-axis monotonicity continue to prove closed IVT existence. Certifier
+cuts at every exact native source knot, classifies each complete original span,
+retains a gapless requested cover and proves common roots across every join.
+Strict K/minor/global uniqueness, whole-span residual, original clipping and
+owned correspondence remain mandatory; first/second/third source derivatives
+are never asserted continuous across a degree-fold knot. Failed existence is
+not an empty intersection. General extraction, periodic sources and
+nonfactorable target closed boundaries remain separate full-G4 gaps.
+
+| Owner | Contract | Required evidence |
+|---|---|---|
+| Source admission | Charged original clamped degree-fold knot shape and positive hull | Unsupported other multiplicities; unchanged single-span fees |
+| Original producer | Direct original homogeneous control/weight slices for every span | Two and three span independent literal curves |
+| Graph composition | Complete source partition and common-root joins | Whole/reverse/clipped/zero-width/knot endpoints and owned-input mutation |
+| Invocation | One cumulative original work/depth/storage/cancellation budget | Exhaustion after a prior span and pre-cancellation; no partial success |
+
+The independent two-span quadratic has knots `[0,0,0,.5,.5,1,1,1]`,
+controls `[(0,0,0),(.25,.25,0),(.5,.5,.25),(.75,.75,.5),(1,1,1)]`
+and weights `[1,2,4,4,4]`. It is `C=(h,h,h^2)`, with
+`h=2t/(1+2t)` before `.5` and `h=t` afterward; its one-sided first
+slopes differ at the shared original point. Polynomial and existing factorable
+rational target atlases supply independent inverse/clip oracles. A three-span
+fixture must reject any hidden two-span ceiling or reset of cumulative work.
+This contract is pending actual production execution and makes no new portable
+or full-G4 completion claim.
+
+G4R3 Native completion evidence: seven independent declarations (sixteen parameter
+cases) pass61.429s for the original two/three-span whole/reverse/clip/knot/fee/
+deviation/cancellation profiles. Ten existing single-source closed/rational
+atlas, work and refusal declarations pass93.096s. No root, residual, correspondence,
+source geometry, precision or option budget is weakened. Capability42 pass.149s;
+three staged-source checks retain133 conditions,664 bindings and107 public routes.
+General source multiplicities and periodic charts remain separate full-G4 gaps.

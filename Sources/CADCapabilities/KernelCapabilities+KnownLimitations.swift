@@ -274,7 +274,14 @@ extension KernelCapabilities {
             operations: ["curveSurfaceIntersectionResult"],
             dimensions: [.parameterization, .representation],
             condition: "Non-factorable rational target endpoint coincidence has no closed inverse authority here. The public regular graph route requires original coordinate independence and closed existence, membership and owned correspondence before success.",
-            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphClosedDomainAuthority.swift", sourceLine: 180
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphClosedDomainAuthority.swift", sourceLine: 178
+        ),
+        KernelDomainLimitation(
+            id: "condition-902e47b52482f0fa",
+            operations: ["curveSurfaceIntersectionResult"],
+            dimensions: [.parameterization, .representation],
+            condition: "Other original source multiplicities still require directed original extraction authority. The public regular graph endpoint path must not admit their rounded extracted nets before complete original-span membership, root joins and correspondence are proved.",
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphClosedDomainAuthority.swift", sourceLine: 228
         ),
         KernelDomainLimitation(
             id: "condition-f0c737e771082924",
