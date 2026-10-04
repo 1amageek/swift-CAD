@@ -228,6 +228,20 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
     public let maximumResidualUpperBound: Double
     private let certificate: Certificate
 
+    package func chargeStructuralComparisonWork(
+        using charge: GeometryStructuralComparisonWork.Charge
+    ) throws {
+        // The three derivative bounds are fixed certificate fields. The
+        // trace grid and per-branch heights remain variable equality payload.
+        try charge(5)
+        try charge(certificate.traceParameters.count)
+        try charge(certificate.heightsByBranch.count)
+        for row in certificate.heightsByBranch {
+            try Task.checkCancellation()
+            try charge(row.count)
+        }
+    }
+
     public init(
         torusSurface: Surface3D,
         cylinderSurface: Surface3D,

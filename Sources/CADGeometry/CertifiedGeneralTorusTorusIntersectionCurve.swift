@@ -326,6 +326,35 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
     public let maximumResidualUpperBound: Double
     private let certificate: Certificate
 
+    package func chargeStructuralComparisonWork(
+        using charge: GeometryStructuralComparisonWork.Charge
+    ) throws {
+        try charge(1) // meridianRootCompleteness.processedCellCount
+        try charge(1) // branchSpatialDifferential.processedCellCount
+
+        try charge(certificate.trace.parameters.count)
+        try charge(certificate.trace.valuesByBranch.count)
+        for row in certificate.trace.valuesByBranch {
+            try Task.checkCancellation()
+            try charge(row.count)
+        }
+        try charge(certificate.trace.permutation.count)
+
+        try charge(certificate.cycles.count)
+        for cycle in certificate.cycles {
+            try Task.checkCancellation()
+            try charge(cycle.count)
+        }
+
+        let partitions = certificate.branchSpatialDifferential.partitions
+        try charge(partitions.count)
+        for _ in partitions {
+            try Task.checkCancellation()
+            // branch index, angle interval, and three derivative bounds.
+            try charge(6)
+        }
+    }
+
     public var majorAngleWindingCount: Int {
         certificate.cycles[componentIndex].count
     }

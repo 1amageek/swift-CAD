@@ -54,6 +54,7 @@ measurement policy.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [StructuralGeometryWork](StructuralGeometryWork/DESIGN.md) | child | Precharged original structural geometry payload traversal | Supplies package-only cost admission for source-signature comparison/hash | Consumers own the work allowance; no geometry validation, equality or tolerance policy changes |
 | [KnotRemoval](KnotRemoval/DESIGN.md) | child | Bounded immutable knot reduction with full-domain deviation evidence | Owns G3 curve and tensor-axis reduction | Sampling is not a reduction certificate |
 | [CurveSurfaceOverlap](CurveSurfaceOverlap/DESIGN.md) | child | Complete isolated points and certified continuous intervals | Owns G4 whole-span membership, clipping and correspondence | Unknown membership or incomplete clipping cannot publish a partial result |
 | [GeometryConversion](GeometryConversion/DESIGN.md) | child | Same-chart approximation and continuous error admission | Owns G6 source protocols, candidates and certificates | Point-only mapped consumers still require migration |

@@ -141,6 +141,25 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             hasher.combine(slantsByBranch.last?.last ?? 0.0)
         }
 
+        package func chargeStructuralComparisonWork(
+            using charge: GeometryStructuralComparisonWork.Charge
+        ) throws {
+            // DifferentialPartitionIndex is a derived query index and is
+            // intentionally excluded from Certificate equality/hash payload.
+            try charge(2)
+            try charge(differentialPartitions.count)
+            for _ in differentialPartitions {
+                try Task.checkCancellation()
+                try charge(10)
+            }
+            try charge(traceParameters.count)
+            try charge(slantsByBranch.count)
+            for row in slantsByBranch {
+                try Task.checkCancellation()
+                try charge(row.count)
+            }
+        }
+
         func referenceSlant(
             branchIndex: Int,
             at angle: Double
@@ -651,6 +670,12 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
     public let maximumResidualUpperBound: Double
     public let apexReduction: ApexReduction?
     private let certificate: Certificate
+
+    package func chargeStructuralComparisonWork(
+        using charge: GeometryStructuralComparisonWork.Charge
+    ) throws {
+        try certificate.chargeStructuralComparisonWork(using: charge)
+    }
 
     public init(
         coneSurface: Surface3D,
