@@ -117,4 +117,24 @@ struct BossJoinTests {
         let filled = expected + section * 2 * Double.pi * (small + outset)
         #expect(abs(volume - filled) < 5e-12, "\(volume) vs \(filled)")
     }
+
+    /// A boss standing on a plate already drilled through beside it: the plate is no longer a
+    /// convex block, but its top still bounds it, so the boss joins it the same way.
+    @Test(.timeLimit(.minutes(2)))
+    func aBossJoinsAPlateWithAHoleBesideIt() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let plate = try plate(&builder)
+        let drill = try builder.cylinder(placement: PrimitivePlacement(origin: Point3D(x: 0.007, y: 0.007, z: -0.001), axis: .unitZ,
+                                                                       referenceDirection: .unitX),
+                                         radius: length(0.003), height: length(thickness + 0.002))
+        let holed = try builder.boolean(targets: [plate], tool: drill, operation: .difference)
+        let boss = try builder.cylinder(placement: PrimitivePlacement(origin: Point3D(x: side / 2 + 0.004, y: side / 2 + 0.004, z: thickness),
+                                                                      axis: .unitZ, referenceDirection: .unitX),
+                                        radius: length(radius), height: length(height))
+        _ = try builder.boolean(targets: [holed], tool: boss, operation: .union)
+        let evaluated = try evaluate(builder)
+        #expect(evaluated.brep.bodies.count == 1)
+        let expected = joinedVolume - Double.pi * 0.003 * 0.003 * thickness
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - expected) < 1e-12)
+    }
 }
