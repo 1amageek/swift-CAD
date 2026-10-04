@@ -3,12 +3,16 @@ import Testing
 import CADCore
 import CADIR
 import CADTopology
+import CADGeometry
 @testable import CADKernel
 @testable import SwiftCAD
 
 /// PolySplines of meshes no rectangular grid spans: a cube's quads (every corner of valence
-/// three) and a tetrahedron's triangles (refined once by Catmull–Clark) each close into a solid of
-/// bicubic patches sharing their edges exactly, every corner at its Catmull–Clark limit position.
+/// three), a tetrahedron's and an icosahedron's triangles (valences three and five) each close
+/// into a solid, and a fan of six quads into a sheet, refined by Catmull–Clark until each
+/// extraordinary vertex is isolated: bicubic patches where the mesh is regular and a G2 cap of
+/// degree-eight patches around each extraordinary vertex, held at its Catmull–Clark limit
+/// position, the whole surface curvature continuous across every edge.
 @Suite("PolySplines of general meshes")
 struct PolySplineGeneralMeshTests {
     private func evaluate(_ mesh: Mesh) throws -> (EvaluatedDocument, FeatureID) {
@@ -17,6 +21,76 @@ struct PolySplineGeneralMeshTests {
         let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "poly"))
         try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
         return (evaluated, feature)
+    }
+
+    /// Along every edge two faces share, at eleven points, both faces' oriented normals and
+    /// curvature tensors (the shape operator as a 3 × 3 tensor) agree: the surface is G2 there.
+    private func expectCurvatureContinuous(_ model: BRepModel) throws {
+        var uses: [EdgeID: [(face: Face, coedge: Coedge)]] = [:]
+        for face in model.faces.values {
+            for loopID in face.loops {
+                for coedge in model.loops[loopID]?.coedges ?? [] { uses[coedge.edgeID, default: []].append((face, coedge)) }
+            }
+        }
+        func geometry(_ use: (face: Face, coedge: Coedge), _ fraction: Double) throws -> (point: Point3D, normal: Vector3D, tensor: [[Double]]) {
+            guard case let .bSpline(surface)? = model.geometry.surfaces[use.face.surfaceID],
+                  let pcurve = use.coedge.surfaceParameterCurve else {
+                throw TopologyError.missingReference("A PolySplines face lacks its spline or a pcurve.")
+            }
+            let uv = try pcurve.parameter(atNormalizedFraction: fraction, tolerance: .standard)
+            let d = try surface.differentialGeometry(u: uv.u, v: uv.v, tolerance: .standard)
+            let normal = d.normal * (use.face.orientation == .forward ? 1 : -1)
+            let (e, f, g) = (d.tangentU.dot(d.tangentU), d.tangentU.dot(d.tangentV), d.tangentV.dot(d.tangentV))
+            let (l, m, n) = (d.secondDerivativeUU.dot(normal), d.secondDerivativeUV.dot(normal), d.secondDerivativeVV.dot(normal))
+            let det = e * g - f * f
+            let inverse = [[g / det, -f / det], [-f / det, e / det]]
+            let second = [[l, m], [m, n]]
+            func product(_ a: [[Double]], _ b: [[Double]]) -> [[Double]] {
+                (0..<2).map { i in (0..<2).map { j in a[i][0] * b[0][j] + a[i][1] * b[1][j] } }
+            }
+            let inner = product(product(inverse, second), inverse)
+            let columns = [d.tangentU, d.tangentV]
+            let tensor = (0..<3).map { r in
+                (0..<3).map { c in
+                    var value = 0.0
+                    for i in 0..<2 {
+                        for j in 0..<2 {
+                            let (a, b) = ([columns[i].x, columns[i].y, columns[i].z][r], [columns[j].x, columns[j].y, columns[j].z][c])
+                            value += a * inner[i][j] * b
+                        }
+                    }
+                    return value
+                }
+            }
+            return (d.position, normal, tensor)
+        }
+        var (normalJump, tensorJump, scale) = (0.0, 0.0, 0.0)
+        for pair in uses.values where pair.count == 2 {
+            for step in 0...10 {
+                let t = Double(step) / 10
+                let a = try geometry(pair[0], t)
+                let (forward, backward) = (try geometry(pair[1], t), try geometry(pair[1], 1 - t))
+                let b = (forward.point - a.point).length < (backward.point - a.point).length ? forward : backward
+                #expect((b.point - a.point).length < 1e-9)
+                normalJump = max(normalJump, (a.normal - b.normal).length)
+                for r in 0..<3 {
+                    for c in 0..<3 {
+                        tensorJump = max(tensorJump, abs(a.tensor[r][c] - b.tensor[r][c]))
+                        scale = max(scale, abs(a.tensor[r][c]))
+                    }
+                }
+            }
+        }
+        #expect(normalJump < 1e-9, "normal jump \(normalJump)")
+        #expect(tensorJump < 1e-7 * scale, "curvature jump \(tensorJump) of \(scale)")
+    }
+
+    /// The faces of a G2 cap: Bézier patches of degree eight.
+    private func capFaces(_ model: BRepModel) -> Int {
+        model.faces.values.filter { face in
+            if case let .bSpline(surface)? = model.geometry.surfaces[face.surfaceID] { return surface.uDegree == 8 }
+            return false
+        }.count
     }
 
     /// The cube [−s, s]³ as twelve triangles wound outward.
@@ -33,13 +107,18 @@ struct PolySplineGeneralMeshTests {
     func aCubesQuadsCloseIntoASolidAtTheirLimitCorners() throws {
         let s = 0.01
         let (evaluated, _) = try evaluate(cube(s))
-        #expect(evaluated.brep.faces.count == 6)
-        // A corner of valence three: (9v + 4Σe + Σf)/24 = v/2 for the cube.
-        let corners = evaluated.brep.vertices.values.map(\.point)
-        #expect(corners.count == 8)
-        #expect(corners.allSatisfy { abs(abs($0.x) - s / 2) < 1e-12 && abs(abs($0.y) - s / 2) < 1e-12 && abs(abs($0.z) - s / 2) < 1e-12 })
+        // Refined twice (the corners four quads apart), 96 patches: three cap patches at each of
+        // the eight corners.
+        #expect(evaluated.brep.faces.count == 96)
+        #expect(capFaces(evaluated.brep) == 24)
+        // A corner of valence three: (9v + 4Σe + Σf)/24 = v/2 for the cube, where its cap holds it.
+        let limits = evaluated.brep.vertices.values.map(\.point).filter {
+            abs(abs($0.x) - s / 2) < 1e-12 && abs(abs($0.y) - s / 2) < 1e-12 && abs(abs($0.z) - s / 2) < 1e-12
+        }
+        #expect(limits.count == 8)
         let volume = try evaluated.brep.volume(tolerance: .standard)
         #expect(volume > 0 && volume < 8 * s * s * s, "\(volume)")
+        try expectCurvatureContinuous(evaluated.brep)
     }
 
     @Test(.timeLimit(.minutes(2)))
@@ -55,9 +134,66 @@ struct PolySplineGeneralMeshTests {
             indices += (outward ? face : [face[0], face[2], face[1]]).map(UInt32.init)
         }
         let (evaluated, _) = try evaluate(Mesh(positions: positions, indices: indices))
-        // Four triangles, each split into three quads.
-        #expect(evaluated.brep.faces.count == 12)
+        // Four triangles, each split into three quads, refined twice more (a face centre lies
+        // diagonally across a corner's cap after one): a cap at each of the four corners and four
+        // face centres, all of valence three.
+        #expect(evaluated.brep.faces.count == 192)
+        #expect(capFaces(evaluated.brep) == 24)
         #expect(try evaluated.brep.volume(tolerance: .standard) > 0)
+        try expectCurvatureContinuous(evaluated.brep)
+    }
+
+    @Test(.timeLimit(.minutes(4)))
+    func anIcosahedronsFiveFoldCornersAreCurvatureContinuous() throws {
+        let s = 0.01
+        let phi = (1 + 5.0.squareRoot()) / 2
+        var positions: [Point3D] = []
+        for a in [-1.0, 1.0] {
+            for b in [-phi, phi] {
+                positions += [Point3D(x: 0, y: a * s, z: b * s), Point3D(x: a * s, y: b * s, z: 0), Point3D(x: b * s, y: 0, z: a * s)]
+            }
+        }
+        // Its faces: the triples two units apart pairwise, wound outward.
+        var indices: [UInt32] = []
+        let edge = 2 * s
+        for i in positions.indices {
+            for j in positions.indices where j > i && abs((positions[i] - positions[j]).length - edge) < 1e-9 {
+                for k in positions.indices where k > j && abs((positions[i] - positions[k]).length - edge) < 1e-9
+                    && abs((positions[j] - positions[k]).length - edge) < 1e-9 {
+                    let (a, b, c) = (positions[i], positions[j], positions[k])
+                    let center = (a - .origin) + (b - .origin) + (c - .origin)
+                    indices += ((b - a).cross(c - a).dot(center) > 0 ? [i, j, k] : [i, k, j]).map(UInt32.init)
+                }
+            }
+        }
+        #expect(indices.count == 60)
+        let (evaluated, _) = try evaluate(Mesh(positions: positions, indices: indices))
+        #expect(capFaces(evaluated.brep) > 0)
+        #expect(try evaluated.brep.volume(tolerance: .standard) > 0)
+        try expectCurvatureContinuous(evaluated.brep)
+    }
+
+    @Test(.timeLimit(.minutes(4)))
+    func aFanOfSixQuadsIsCurvatureContinuousAtItsCentre() throws {
+        // Six quads around a raised centre, an open sheet: its centre of valence six capped.
+        let s = 0.01
+        var positions = [Point3D(x: 0, y: 0, z: 0.4 * s)]
+        for k in 0..<6 {
+            let spoke = Double(k) * Double.pi / 3
+            positions.append(Point3D(x: s * cos(spoke), y: s * sin(spoke), z: 0))
+            positions.append(Point3D(x: 1.5 * s * cos(spoke + Double.pi / 6), y: 1.5 * s * sin(spoke + Double.pi / 6), z: -0.2 * s))
+        }
+        var indices: [UInt32] = []
+        for k in 0..<6 {
+            let quad: [UInt32] = [0, UInt32(1 + 2 * k), UInt32(2 + 2 * k), UInt32(1 + 2 * ((k + 1) % 6))]
+            indices += [quad[0], quad[1], quad[2], quad[0], quad[2], quad[3]]
+        }
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        _ = try builder.polySpline(sourceMesh: Mesh(positions: positions, indices: indices), options: PolySplineOptions(mergePatches: false))
+        let model = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "poly")).brep
+        try model.validate(level: .exact, tolerance: .standard)
+        #expect(capFaces(model) == 6)
+        try expectCurvatureContinuous(model)
     }
 
     @Test(.timeLimit(.minutes(2)))
@@ -121,10 +257,11 @@ struct PolySplineGeneralMeshTests {
         return Mesh(positions: positions, indices: indices)
     }
 
-    @Test(.timeLimit(.minutes(2)))
+    @Test(.timeLimit(.minutes(5)))
     func mergePatchesMakesOneFacePerRegularBlock() throws {
-        // A cube cut into 2 × 2 quads a side: unmerged, 24 patches; merged, each side's four
-        // patches (meeting at regular vertices) one face, and the same solid.
+        // A cube cut into 2 × 2 quads a side, refined once to isolate its corners: unmerged, 96
+        // patches; merged, the 24 cap patches stay faces of their own and the regular patches
+        // between them join into blocks, the same solid.
         let s = 0.01
         func solid(merged: Bool) throws -> BRepModel {
             var builder = DocumentBuilder(units: .meters, tolerance: .standard)
@@ -135,16 +272,22 @@ struct PolySplineGeneralMeshTests {
         }
         let unmerged = try solid(merged: false)
         let merged = try solid(merged: true)
-        #expect(unmerged.faces.count == 24)
-        #expect(merged.faces.count == 6)
-        // Each merged side is the uniform bicubic B-spline over its regular middle: its middle
-        // joint knots are simple.
-        let surfaces = merged.faces.values.compactMap { face -> BSplineSurface3D? in
-            if case let .bSpline(surface)? = merged.geometry.surfaces[face.surfaceID] { return surface }
+        #expect(unmerged.faces.count == 96)
+        #expect(capFaces(unmerged) == 24 && capFaces(merged) == 24)
+        #expect(merged.faces.count < unmerged.faces.count)
+        // Each merged block is the uniform bicubic B-spline over regular patches: every joint
+        // knot comes down to a simple one.
+        let blocks = merged.faces.values.compactMap { face -> BSplineSurface3D? in
+            if case let .bSpline(surface)? = merged.geometry.surfaces[face.surfaceID], surface.uDegree == 3 { return surface }
             return nil
         }
-        #expect(surfaces.count == 6)
-        #expect(surfaces.allSatisfy { $0.uKnots.filter { $0 == 1 }.count < 3 || $0.vKnots.filter { $0 == 1 }.count < 3 })
+        func simple(_ knots: [Double]) -> Bool {
+            let inner = knots.dropFirst(4).dropLast(4)
+            return Set(inner).allSatisfy { knot in inner.filter { $0 == knot }.count == 1 }
+        }
+        #expect(blocks.isEmpty == false)
+        #expect(blocks.allSatisfy { simple($0.uKnots) && simple($0.vKnots) })
+        try expectCurvatureContinuous(merged)
         let volumes = try (unmerged.volume(tolerance: .standard), merged.volume(tolerance: .standard))
         #expect(abs(volumes.0 - volumes.1) < 1e-12, "\(volumes)")
     }

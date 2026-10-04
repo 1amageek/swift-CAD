@@ -1246,19 +1246,32 @@ Interpolate Boundary Exactly the boundary vertices are first replaced by the con
 B-spline passes through them (`PolySplineBoundaryInterpolator`, (P₋ + 4P + P₊)/6 = V, kept corners
 held). Every boundary curve is shared exactly by its two patches, so
 the patches sew into one sheet, or a solid when the mesh is closed; where every corner has valence
-four they are the uniform B-spline exactly, elsewhere they meet in position and nearly in tangent
-(Plasticity states G2 there; `FIXME(INCOMPLETE_IMPLEMENTATION)` covers control-point edits on
-such networks). With Merge Patches (the default) `PolySplinePatchMerger` joins the patches into
+four they are the uniform B-spline exactly. Around each inner extraordinary vertex (Plasticity's
+G2 at extraordinary points) the mesh is first refined by Catmull–Clark until the vertex's quads and
+the quads touching them have no other irregular or boundary vertex (a cube twice, a tetrahedron
+three times in all), and its quads become the G2 cap of `PolySplineG2CapBuilder`: one Bézier patch
+of degree eight per quad, C2 with the bicubic patches around (its last three rows their Taylor
+data), G2 across its inner edges under the reparametrization s = −v + e(u)v², t = u + b(u)v +
+d(u)v² with b = 2c(1 − u)³ (c = cos 2π/n) and d = e = −6c²/(1 + c)(1 − u)³ — the second-order
+enclosure about the vertex, which valence three requires — imposed as polynomial identities at
+m + 5 points per edge, the vertex held at its limit position, the least thin-plate energy taken
+over what remains (constrained least squares through a column-pivoted QR's null space), its
+conditions' residual checked or the cap refused. A cap's side beside a bicubic patch carries that
+patch's cubic. Boundary extraordinary vertices keep the bicubic patches, meeting in position and
+nearly in tangent (`FIXME(INCOMPLETE_IMPLEMENTATION)`, as are control-point edits on such
+networks). With Merge Patches (the default) `PolySplinePatchMerger` joins the bicubic patches into
 rectangular blocks, growing each along its u and v directions over patch edges whose ends are both
-regular (four patches around an inner vertex, two along the boundary), so blocks stop at
-extraordinary vertices: a block is one B-spline face laid out with triple joint knots, the patches'
+regular (four patches around an inner vertex, two along the boundary) and stopping short of closing
+round a band, so blocks stop at caps, each cap patch a face of its own: a block is one B-spline face laid out with triple joint knots, the patches'
 exact union, then each joint knot removed as far as the surface stays within a thousandth of the
 modeling distance (Piegl and Tiller's removal), down to a simple knot over a regular region; its
 sides are the patch edges it shares, so neighbouring blocks still sew edge to edge.
-`PolySplineGeneralMeshTests` own a cube's six patches closing into a solid at the
-limit corners (half the cube's half-width for valence three), a tetrahedron's twelve refined
-patches, a triangle's corners kept, rounded short of, and interpolated again, and a cube cut 2 × 2
-a side merging its 24 patches into 6 faces of the same volume.
+`PolySplineGeneralMeshTests` own a cube closing into a solid of 96 patches (24 in caps) holding
+its limit corners (half the cube's half-width for valence three), a tetrahedron's 192, an
+icosahedron (valences five and three) and an open fan of six quads (valence six), each checked G2
+along every edge (both faces' normals and curvature tensors agreeing), a triangle's corners kept,
+rounded short of, and interpolated again, and a cube cut 2 × 2 a side whose merged blocks are the
+uniform B-spline (simple joint knots) beside its caps, of the same volume and G2.
 
 ## Runtime Flows
 

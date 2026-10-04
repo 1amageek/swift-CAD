@@ -164,8 +164,11 @@ public struct PolySplineFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             : mesh.positions
         let network = try PolySplineSubdivisionPatchBuilder(tolerance: tolerance)
             .network(positions: positions, faces: faces, roundsCorners: polySpline.options.roundedCorners)
+        // A side's Bézier curve: cubic, or of a G2 cap's degree where caps meet.
         func bezier(_ points: [Point3D]) -> Curve3D {
-            .bSpline(BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1], controlPoints: points))
+            let degree = points.count - 1
+            return .bSpline(BSplineCurve3D(degree: degree, knots: Array(repeating: 0, count: degree + 1) + Array(repeating: 1, count: degree + 1),
+                                           controlPoints: points))
         }
         if polySpline.options.mergePatches {
             // Merge Patches: rectangular blocks of patches, each one face with one control grid.
@@ -174,7 +177,7 @@ public struct PolySplineFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
                 let id = "polyspline:block:\(index)"
                 let edges = block.sides.enumerated().map { k, side in
                     BRepSewingEdge(stableID: "\(id):\(k)", curve: bezier(side.curve), startParameter: 0, endParameter: 1,
-                                   startPoint: side.curve[0], endPoint: side.curve[3], surfaceParameterCurve: side.parameterCurve)
+                                   startPoint: side.curve[0], endPoint: side.curve[side.curve.count - 1], surfaceParameterCurve: side.parameterCurve)
                 }
                 return BRepSewingFacePatch(stableID: id, surface: .bSpline(block.surface), orientation: .forward,
                                            loops: [BRepSewingLoop(stableID: "\(id):outer", role: .outer, edges: edges)])
@@ -188,20 +191,25 @@ public struct PolySplineFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         }
         let patches = network.patches.enumerated().map { index, patch -> BRepSewingFacePatch in
             let net = patch.net
+            let sides = patch.sides
             let id = "polyspline:patch:\(index)"
-            let column = { (u: Int) in net.map { $0[u] } }
             let edges = [
-                BRepSewingEdge(stableID: "\(id):0", curve: bezier(net[0]), startParameter: 0, endParameter: 1,
-                               startPoint: net[0][0], endPoint: net[0][3], surfaceParameterCurve: .constantV(v: 0, uStart: 0, uEnd: 1)),
-                BRepSewingEdge(stableID: "\(id):1", curve: bezier(column(3)), startParameter: 0, endParameter: 1,
-                               startPoint: net[0][3], endPoint: net[3][3], surfaceParameterCurve: .constantU(u: 1, vStart: 0, vEnd: 1)),
-                BRepSewingEdge(stableID: "\(id):2", curve: bezier(net[3]), startParameter: 1, endParameter: 0,
-                               startPoint: net[3][3], endPoint: net[3][0], surfaceParameterCurve: .constantV(v: 1, uStart: 1, uEnd: 0)),
-                BRepSewingEdge(stableID: "\(id):3", curve: bezier(column(0)), startParameter: 1, endParameter: 0,
-                               startPoint: net[3][0], endPoint: net[0][0], surfaceParameterCurve: .constantU(u: 0, vStart: 1, vEnd: 0)),
+                BRepSewingEdge(stableID: "\(id):0", curve: bezier(sides[0]), startParameter: 0, endParameter: 1,
+                               startPoint: sides[0][0], endPoint: sides[0][sides[0].count - 1],
+                               surfaceParameterCurve: .constantV(v: 0, uStart: 0, uEnd: 1)),
+                BRepSewingEdge(stableID: "\(id):1", curve: bezier(sides[1]), startParameter: 0, endParameter: 1,
+                               startPoint: sides[1][0], endPoint: sides[1][sides[1].count - 1],
+                               surfaceParameterCurve: .constantU(u: 1, vStart: 0, vEnd: 1)),
+                BRepSewingEdge(stableID: "\(id):2", curve: bezier(sides[2]), startParameter: 1, endParameter: 0,
+                               startPoint: sides[2][sides[2].count - 1], endPoint: sides[2][0],
+                               surfaceParameterCurve: .constantV(v: 1, uStart: 1, uEnd: 0)),
+                BRepSewingEdge(stableID: "\(id):3", curve: bezier(sides[3]), startParameter: 1, endParameter: 0,
+                               startPoint: sides[3][sides[3].count - 1], endPoint: sides[3][0],
+                               surfaceParameterCurve: .constantU(u: 0, vStart: 1, vEnd: 0)),
             ]
-            let surface = BSplineSurface3D(uDegree: 3, vDegree: 3, uKnots: [0, 0, 0, 0, 1, 1, 1, 1], vKnots: [0, 0, 0, 0, 1, 1, 1, 1],
-                                           controlPoints: net)
+            let degree = net.count - 1
+            let knots = Array(repeating: 0.0, count: degree + 1) + Array(repeating: 1.0, count: degree + 1)
+            let surface = BSplineSurface3D(uDegree: degree, vDegree: degree, uKnots: knots, vKnots: knots, controlPoints: net)
             return BRepSewingFacePatch(stableID: id, surface: .bSpline(surface), orientation: .forward,
                                        loops: [BRepSewingLoop(stableID: "\(id):outer", role: .outer, edges: edges)])
         }
