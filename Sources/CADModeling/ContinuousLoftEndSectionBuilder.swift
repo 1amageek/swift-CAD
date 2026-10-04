@@ -36,10 +36,19 @@ package struct ContinuousLoftEndSectionBuilder {
         guard let farStart = far[true], let farEnd = far[false] else {
             throw failure(featureID, "A Loft from one section needs a guide leaving each of its ends.")
         }
-        let across = end - start
-        let target = farEnd - farStart
-        guard target.length > tolerance.distance else {
-            throw failure(featureID, "A Loft from one section needs its guides to end apart.")
+        return try carried(section, from: (start, end), to: (farStart, farEnd), featureID: featureID)
+    }
+
+    /// The section carried by the similarity — the least rotation, a uniform scale and a move —
+    /// taking the points `from` to the points `to` (a Loft's end section carried along its guides
+    /// to their ends, Trim overlap off).
+    package func carried(_ section: [ExactBSplineCurveSpan], from: (Point3D, Point3D), to: (Point3D, Point3D),
+                         featureID: FeatureID) throws -> [ExactBSplineCurveSpan] {
+        let (start, farStart) = (from.0, to.0)
+        let across = from.1 - from.0
+        let target = to.1 - to.0
+        guard across.length > tolerance.distance, target.length > tolerance.distance else {
+            throw failure(featureID, "A Loft section carried along its guides needs its guides apart.")
         }
         let scale = target.length / across.length
         let from = try across.normalized(tolerance: tolerance.distance)

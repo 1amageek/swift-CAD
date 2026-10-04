@@ -56,4 +56,43 @@ struct ContinuousLoftTests {
         )
         #expect(throws: (any Error).self) { _ = try CADPipeline(tolerance: .standard).evaluate(builder.build()) }
     }
+
+    /// Trim overlap (Plasticity's Loft with guides): two guides running past both sections are
+    /// cut at the sections by default, the sheet spanning only between them; with it off the
+    /// sheet runs on along the guides to their ends, each end section carried there.
+    @Test(.timeLimit(.minutes(2)))
+    func trimOverlapCutsTheGuidesAtTheSectionsOrRunsOnToTheirEnds() throws {
+        func corners(trimsOverlap: Bool) throws -> [Point3D] {
+            var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+            let near = try builder.sketch(on: .xy) { _ = $0.line(from: point(0, 30), to: point(10, 30)) }.featureID
+            let far = try builder.sketch(on: .xy) { _ = $0.line(from: point(0, 70), to: point(10, 70)) }.featureID
+            let left = try builder.sketch(on: .xy) { _ = $0.line(from: point(0, 0), to: point(0, 100)) }.featureID
+            let right = try builder.sketch(on: .xy) { _ = $0.line(from: point(10, 0), to: point(10, 100)) }.featureID
+            let loft = try builder.loft(
+                sections: [near, far].map { LoftSectionReference(section: .curve(CurveSectionReference(featureID: $0))) },
+                guides: [LoftGuideReference(featureID: left), LoftGuideReference(featureID: right)],
+                options: LoftOptions(resultKind: .sheet, trimsOverlap: trimsOverlap)
+            )
+            let evaluated = try CADPipeline(tolerance: .standard).evaluate(builder.build())
+            try evaluated.brep.validate(level: .exact, tolerance: .standard)
+            let faces = evaluated.subshapes.entries.compactMap { key, value -> FaceID? in
+                guard key.featureID == loft, case let .face(id) = value else { return nil }
+                return id
+            }
+            return try faces.flatMap { faceID in
+                try (evaluated.brep.faces[faceID]?.loops ?? []).flatMap { try evaluated.brep.orderedPoints(for: $0) }
+            }
+        }
+        func spans(_ points: [Point3D], from lower: Double, to upper: Double) -> Bool {
+            let ys = points.map { $0.y * 1000 }
+            return abs((ys.min() ?? .nan) - lower) < 1e-6 && abs((ys.max() ?? .nan) - upper) < 1e-6
+                && points.allSatisfy { $0.x * 1000 > -1e-6 && $0.x * 1000 < 10 + 1e-6 && abs($0.z) < 1e-9 }
+        }
+        #expect(spans(try corners(trimsOverlap: true), from: 30, to: 70))
+        #expect(spans(try corners(trimsOverlap: false), from: 0, to: 100))
+        // The option persists, and documents without it trim.
+        let options = LoftOptions(resultKind: .sheet, trimsOverlap: false)
+        #expect(try JSONDecoder().decode(LoftOptions.self, from: try JSONEncoder().encode(options)).trimsOverlap == false)
+        #expect(try JSONDecoder().decode(LoftOptions.self, from: try JSONEncoder().encode(LoftOptions())).trimsOverlap)
+    }
 }

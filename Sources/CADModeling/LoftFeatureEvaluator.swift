@@ -39,6 +39,89 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
     }
 
     /// A Loft from its one section to a vertex of a body, the section's one loop ruled to it.
+    /// Trim overlap off: where the two guides run on past the first or the last open section,
+    /// that section carried along them to their ends (the similarity taking its ends, where the
+    /// guides cross it, to the guides' ends) becomes a section of its own, so the loft runs on to
+    /// the guides' ends instead of their being cut at the end sections.
+    private func extendAlongGuides(_ boundarySpans: inout [[ExactBSplineCurveSpan]], lofted: inout LoftFeature,
+                                   seamPoints: inout [Point3D?], featureID: FeatureID, context: EvaluationContext) throws {
+        let tolerance = context.tolerance
+        guard lofted.guides.count == 2 else {
+            throw KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                              message: "A Loft runs on along its guides with two guides.")
+        }
+        let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: tolerance)
+        let guides = try lofted.guides.map { guide -> Curve3D in
+            let spans = try spanBuilder.sectionSpans(from: ResolvedModelingSection.resolveCurve(
+                CurveSectionReference(featureID: guide.featureID), from: context.curves[guide.featureID], tolerance: tolerance))
+            return .bSpline(try ExactCompositeBSplineCurveBuilder().build(spans: spans.map(\.curve), tolerance: tolerance))
+        }
+        func ends(_ spans: [ExactBSplineCurveSpan]) throws -> [Point3D] {
+            guard let first = spans.first, let last = spans.last,
+                  first.startPoint.isApproximatelyEqual(to: last.endPoint, tolerance: tolerance.distance) == false else {
+                throw KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                                  message: "A Loft runs on along its guides from open sections.")
+            }
+            return [first.startPoint, last.endPoint]
+        }
+        // The parameter on a guide of a section end it passes through; nil when it misses it.
+        func parameter(of point: Point3D, on guide: Curve3D) throws -> Double? {
+            do {
+                return try guide.parameterProjection(of: point, tolerance: tolerance).parameter
+            } catch let error as KernelError where error.code == .intersectionFailure {
+                return nil
+            }
+        }
+        let (firstEnds, lastEnds) = (try ends(boundarySpans[0]), try ends(boundarySpans[boundarySpans.count - 1]))
+        // For each section end (start, end) of the first and last sections: its guide's parameter
+        // there and the guide's end beyond it.
+        var beforeTargets: [Point3D?] = [nil, nil], afterTargets: [Point3D?] = [nil, nil]
+        for guide in guides {
+            guard case let .closed(lower, upper) = guide.parameterDomain else { continue }
+            let firstHits = try firstEnds.map { try parameter(of: $0, on: guide) }
+            let lastHits = try lastEnds.map { try parameter(of: $0, on: guide) }
+            guard let i = firstHits.firstIndex(where: { $0 != nil }), let j = lastHits.firstIndex(where: { $0 != nil }),
+                  let t1 = firstHits[i], let t2 = lastHits[j], i == j else {
+                throw KernelError(phase: .geometry, code: .intersectionFailure, featureID: featureID, tolerance: tolerance,
+                                  message: "Each Loft guide runs through the same end of the first and the last section.")
+            }
+            let (before, after) = t1 < t2 ? (lower, upper) : (upper, lower)
+            beforeTargets[i] = try guide.point(at: before, tolerance: tolerance)
+            afterTargets[i] = try guide.point(at: after, tolerance: tolerance)
+        }
+        guard beforeTargets.allSatisfy({ $0 != nil }), afterTargets.allSatisfy({ $0 != nil }) else {
+            throw KernelError(phase: .geometry, code: .intersectionFailure, featureID: featureID, tolerance: tolerance,
+                              message: "The Loft's guides run through both ends of its end sections.")
+        }
+        let carrier = ContinuousLoftEndSectionBuilder(tolerance: tolerance)
+        func runsOn(_ targets: [Point3D?], _ ends: [Point3D]) -> Bool {
+            zip(targets, ends).contains { target, end in
+                target.map { ($0 - end).length > tolerance.distance } ?? false
+            }
+        }
+        func carriedSection(_ index: Int, ordinal: UInt64) -> LoftSectionReference {
+            var section = lofted.sections[index]
+            section.section = .curve(CurveSectionReference(featureID: featureEvaluationStageID(
+                featureID: featureID, domain: .loftEndSection, ordinal: ordinal)))
+            section.continuity = nil
+            section.faceContinuity = nil
+            section.startSampleIndex = nil
+            return section
+        }
+        if runsOn(afterTargets, lastEnds), let a = afterTargets[0], let b = afterTargets[1] {
+            boundarySpans.append(try carrier.carried(boundarySpans[boundarySpans.count - 1], from: (lastEnds[0], lastEnds[1]),
+                                                     to: (a, b), featureID: featureID))
+            lofted.sections.append(carriedSection(lofted.sections.count - 1, ordinal: 2))
+            seamPoints.append(nil)
+        }
+        if runsOn(beforeTargets, firstEnds), let a = beforeTargets[0], let b = beforeTargets[1] {
+            boundarySpans.insert(try carrier.carried(boundarySpans[0], from: (firstEnds[0], firstEnds[1]),
+                                                     to: (a, b), featureID: featureID), at: 0)
+            lofted.sections.insert(carriedSection(0, ordinal: 1), at: 0)
+            seamPoints.insert(nil, at: 0)
+        }
+    }
+
     private func apexLoft(_ loft: LoftFeature, apex: LoftApex, featureID: FeatureID, context: EvaluationContext) throws -> EvaluationResult {
         let tolerance = context.tolerance
         guard let sewer else {
@@ -176,6 +259,9 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 end.startSampleIndex = nil
                 lofted.sections.append(end)
                 seamPoints.append(nil)
+            }
+            if loft.options.trimsOverlap == false, loft.sections.count >= 2 {
+                try extendAlongGuides(&boundarySpans, lofted: &lofted, seamPoints: &seamPoints, featureID: feature.id, context: context)
             }
             let guides = try ExactLoftGuideCurveResolver().resolve(guides: lofted.guides,
                 sections: boundarySpans.map { ExactLoftGuideSection(loops: [$0]) },

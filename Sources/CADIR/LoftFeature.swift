@@ -277,6 +277,9 @@ public struct LoftOptions: Codable, Hashable, Sendable {
     public var smoothTangentScale: Double
     /// Whether the loft's flat faces are trimmed planes rather than flat B-spline patches.
     public var simplify: Bool
+    /// Trim overlap: guides running on past the end sections are cut there (the default); off,
+    /// the loft runs on along them to their ends, each end section carried there.
+    public var trimsOverlap: Bool
 
     private enum CodingKeys: String, CodingKey {
         case resultKind
@@ -285,6 +288,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         case surfaceMode
         case smoothTangentScale
         case simplify
+        case trimsOverlap
     }
 
     public init(
@@ -293,7 +297,8 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         closesSectionLoop: Bool = false,
         surfaceMode: LoftSurfaceMode = .ruled,
         smoothTangentScale: Double = 1.0,
-        simplify: Bool = false
+        simplify: Bool = false,
+        trimsOverlap: Bool = true
     ) {
         self.resultKind = resultKind
         self.sectionMatching = sectionMatching
@@ -301,6 +306,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         self.surfaceMode = surfaceMode
         self.smoothTangentScale = smoothTangentScale
         self.simplify = simplify
+        self.trimsOverlap = trimsOverlap
     }
 
     public init(from decoder: Decoder) throws {
@@ -312,6 +318,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
             .surfaceMode,
             .smoothTangentScale,
             .simplify,
+            .trimsOverlap,
         ], in: decoder)
         resultKind = try container.decode(LoftResultKind.self, forKey: .resultKind)
         sectionMatching = try container.decode(LoftSectionMatching.self, forKey: .sectionMatching)
@@ -319,6 +326,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         surfaceMode = try container.decode(LoftSurfaceMode.self, forKey: .surfaceMode)
         smoothTangentScale = try container.decode(Double.self, forKey: .smoothTangentScale)
         simplify = try container.decodeIfPresent(Bool.self, forKey: .simplify) ?? false
+        trimsOverlap = try container.decodeIfPresent(Bool.self, forKey: .trimsOverlap) ?? true
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -329,6 +337,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         try container.encode(surfaceMode, forKey: .surfaceMode)
         try container.encode(smoothTangentScale, forKey: .smoothTangentScale)
         if simplify { try container.encode(simplify, forKey: .simplify) }
+        if trimsOverlap == false { try container.encode(trimsOverlap, forKey: .trimsOverlap) }
     }
 
     public func validate() throws {
