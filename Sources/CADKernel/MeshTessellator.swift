@@ -2013,14 +2013,9 @@ public struct MeshTessellator: Tessellating {
                     )
                 )
             }
-        // FIXME(INCOMPLETE_IMPLEMENTATION): a rectangular B-spline face takes a fixed step count
-        // (or one derived from the maximum edge length), not one refined against the chord and
-        // turning bounds. Production path: every untrimmed B-spline face. Not covered by the
-        // tessellation fidelity contract until the steps come from certified surface bounds, as
-        // the procedural grids' do, with tests that measure the deviation.
-        case .bSpline:
-            let steps = bSplineStepCount(options: options)
-            return (steps, steps)
+        case let .bSpline(spline):
+            return try certifiedBSplineSurfaceStepCounts(
+                surface: spline, uBounds: uBounds, vBounds: vBounds, options: options)
         case let .procedural(.offset(offset)):
             if let equivalent = try offset.exactChartPreservingSurface(
                 tolerance: tolerance
@@ -2045,6 +2040,111 @@ public struct MeshTessellator: Tessellating {
                 vBounds: vBounds,
                 options: options
             )
+        }
+    }
+
+    /// The original C1 chart and its complete differential bounds authorize every emitted
+    /// triangle. The procedural policy remains separate because its existing edge contract
+    /// checks axis edges, whereas this admission must additionally bound the diagonal.
+    private func certifiedBSplineSurfaceStepCounts(
+        surface: BSplineSurface3D,
+        uBounds: (lower: Double, upper: Double),
+        vBounds: (lower: Double, upper: Double),
+        options: TessellationOptions
+    ) throws -> (u: Int, v: Int) {
+        func hasClampedC1Basis(_ knots: [Double], degree: Int) -> Bool {
+            let lower = knots[degree], upper = knots[knots.count - degree - 1]
+            guard knots.prefix(degree + 1).allSatisfy({ $0 == lower }),
+                  knots.suffix(degree + 1).allSatisfy({ $0 == upper }) else { return false }
+            var index = degree + 1
+            while index < knots.count - degree - 1 {
+                let value = knots[index]
+                var end = index + 1
+                while end < knots.count - degree - 1, knots[end] == value { end += 1 }
+                if value > lower && value < upper && end - index > degree - 1 { return false }
+                index = end
+            }
+            return true
+        }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Periodic and non-C1 original B-spline charts lack
+        // whole-domain continuous-normal authority in this rectangular mesh route. Production
+        // untrimmed B-spline preflight reaches this refusal. Complete full M1 only after native
+        // span/seam partition and one-sided normal contracts certify the original whole rectangle.
+        guard surface.isUPeriodic == false, surface.isVPeriodic == false,
+              hasClampedC1Basis(surface.uKnots, degree: surface.uDegree),
+              hasClampedC1Basis(surface.vKnots, degree: surface.vDegree),
+              surface.weights.allSatisfy({ $0.allSatisfy({ $0 > 0 }) }) else {
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                              message: "Rectangular B-spline tessellation requires original clamped nonperiodic C1 authority.")
+        }
+        try Task.checkCancellation()
+        let bounds = try DefaultSurfaceDifferentialEncloser().tessellationBounds(
+            of: .bSpline(surface), over: SurfaceParameterBox(
+                u: ScalarInterval(lower: uBounds.lower, upper: uBounds.upper),
+                v: ScalarInterval(lower: vBounds.lower, upper: vBounds.upper)), tolerance: tolerance)
+        try Task.checkCancellation()
+        let maximumStepCount = 65_536
+        var uSteps = 1, vSteps = 1
+
+        func product(_ lhs: Double, _ rhs: Double) -> Double {
+            lhs == 0 || rhs == 0 ? 0 : (lhs * rhs).nextUp
+        }
+        func sum(_ lhs: Double, _ rhs: Double) -> Double {
+            lhs == 0 && rhs == 0 ? 0 : (lhs + rhs).nextUp
+        }
+        // Use the same representable stations emission evaluates. A rounded uniform chart
+        // interval may be wider than span/count; its actual largest gap owns the proof width.
+        func maximumStep(_ bounds: (lower: Double, upper: Double), count: Int) throws -> Double {
+            var previous = bounds.lower
+            var maximum = 0.0
+            for index in 1...count {
+                if index & 0xFF == 0 { try Task.checkCancellation() }
+                let next = interpolatedParameter(lowerBound: bounds.lower, upperBound: bounds.upper, index: index, count: count)
+                guard next > previous else {
+                    throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                                      message: "B-spline tessellation exhausted representable grid stations.")
+                }
+                maximum = max(maximum, (next - previous).nextUp)
+                previous = next
+            }
+            return maximum
+        }
+        while true {
+            try Task.checkCancellation()
+            let du = try maximumStep(uBounds, count: uSteps)
+            let dv = try maximumStep(vBounds, count: vSteps)
+            let uu = product(bounds.secondDerivativeUUMagnitudeUpperBound, product(du, du))
+            let uv = product(bounds.secondDerivativeUVMagnitudeUpperBound, product(du, dv))
+            let vv = product(bounds.secondDerivativeVVMagnitudeUpperBound, product(dv, dv))
+            let linear = sum(sum(uu, product(2, uv)), vv)
+            let normalU = product(bounds.unitNormalDerivativeUMagnitudeUpperBound, du)
+            let normalV = product(bounds.unitNormalDerivativeVMagnitudeUpperBound, dv)
+            let angular = sum(normalU, normalV)
+            let edgeU = product(bounds.tangentUMagnitudeUpperBound, du)
+            let edgeV = product(bounds.tangentVMagnitudeUpperBound, dv)
+            // The path along the two chart axes bounds every diagonal as well as both sides.
+            let edge = sum(edgeU, edgeV)
+            if linear <= options.linearTolerance, angular <= options.angularTolerance,
+               options.maxEdgeLength.map({ edge <= $0 }) ?? true {
+                return (uSteps, vSteps)
+            }
+            guard uSteps < maximumStepCount || vSteps < maximumStepCount else {
+                throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                                  message: "B-spline tessellation exceeded its certified grid budget.")
+            }
+            // Compare only the active normalized errors. An unconstrained axis length must not
+            // redirect refinement away from the curvature or normal condition that is failing.
+            var uNeed = (uu + uv) / options.linearTolerance + normalU / options.angularTolerance
+            var vNeed = (vv + uv) / options.linearTolerance + normalV / options.angularTolerance
+            if let maximumEdgeLength = options.maxEdgeLength {
+                uNeed += edgeU / maximumEdgeLength
+                vNeed += edgeV / maximumEdgeLength
+            }
+            if (uNeed >= vNeed && uSteps < maximumStepCount) || vSteps == maximumStepCount {
+                uSteps = min(maximumStepCount, uSteps * 2)
+            } else {
+                vSteps = min(maximumStepCount, vSteps * 2)
+            }
         }
     }
 
@@ -2838,13 +2938,6 @@ public struct MeshTessellator: Tessellating {
         }
         let fraction = Double(index) / Double(count)
         return lowerBound + (upperBound - lowerBound) * fraction
-    }
-
-    private func bSplineStepCount(options: TessellationOptions) -> Int {
-        if let maxEdgeLength = options.maxEdgeLength, maxEdgeLength > 0.0 {
-            return min(64, clampedSampleCount(1.0 / maxEdgeLength, minimum: 4, maximum: 65_536))
-        }
-        return 8
     }
 
     private func sampledPoints(

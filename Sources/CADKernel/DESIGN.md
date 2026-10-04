@@ -293,6 +293,28 @@ in cache identity; tessellation reserves prior bodies' usage before the next bod
 Tests must show changed subdivision with identical exact geometry, independent
 body quality, and cumulative resource refusal.
 
+The bounded M1 rectangular B-spline grid owns admission for nonperiodic,
+clamped, positive-weight supports whose original internal knot multiplicities
+prove C1 continuity. The geometry-owned original differential enclosure must
+certify finite regular tangent/Hessian and unit-normal derivative bounds over
+the complete retained rectangle. Mesh preflight selects anisotropic grid counts
+from those bounds and retains the exact grid for emission; position tolerance,
+normal-path angular tolerance and every triangle edge, including diagonals,
+must satisfy the original options simultaneously. Hessian and normal derivative
+bounds drive curvature-dependent refinement; point samples do not authorize
+fidelity. The existing checked cumulative storage/count reservation, actual
+emission charging, face provenance and upper cooperative cancellation contract
+remain authoritative. No new lower-proof cancellation response-time guarantee
+or private budget is introduced. C0/periodic/unproved regularity remain typed
+incomplete refusals for this bounded route; trimmed interiors, adjacent-face
+agreement and full M1 remain separate proof gaps.
+Independent tests measure triangle interior and edge deviations against literal
+`S=(u,v,A*u*u)` and `S=(u,v,A*u*v)`, and normal angles against
+`(-2*A*u,0,1)/sqrt(1+4*A*A*u*u)`. Changing only curvature, linear tolerance or
+angular tolerance must change refinement while preserving exact B-rep input.
+All triangle edges, original invocation budgets/reservations and existing
+procedural fidelity regressions verify any shared grid-policy change.
+
 1. Stable-reference creation uses the current immutable `EvaluatedDocument` and
    its topology map, lineage, and tolerance. It creates one complete signature
    and validates it before returning.

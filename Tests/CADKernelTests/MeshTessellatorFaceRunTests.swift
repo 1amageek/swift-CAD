@@ -52,6 +52,20 @@ struct MeshTessellatorFaceRunTests {
     // MARK: - Emission contracts
 
     @Test(.timeLimit(.minutes(1)))
+    func adaptiveSplineRunsRetainOriginalFaceOwnershipAfterExtraction() throws {
+        let model = try rectangularBSplineSheet(surface: parabolicTessellationSurface(rise: 0.2))
+        let options = TessellationOptions(linearTolerance: 1e-5, angularTolerance: 0.03)
+        let tessellator = MeshTessellator(tolerance: .standard)
+        let meshes = try tessellator.tessellate(model: model, options: options)
+        let bodyID = try #require(meshes.keys.first)
+        let mesh = try #require(meshes[bodyID])
+        #expect(mesh.faceRuns.map(\.faceID) == (try Self.traversedFaceIDs(of: bodyID, in: model)))
+        #expect(mesh.faceRuns.reduce(0) { $0 + $1.triangleCount } == mesh.indices.count / 3)
+        let extracted = try BRepBodySubmodelExtractor().extract(bodyIDs: [bodyID], from: model)
+        #expect(try tessellator.tessellate(model: extracted, options: options)[bodyID] == mesh)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func runsPartitionEveryTriangleInTraversalOrder() throws {
         let model = try Self.boxModel()
 

@@ -473,25 +473,25 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADKernel/ImprintBodyFeatureEvaluator.swift", sourceLine: 110
         ),
         KernelDomainLimitation(
-            id: "condition-90f2939dcea24992",
+            id: "condition-7fda58e87475c6ae",
             operations: ["CADCommand"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
-            condition: "a rectangular B-spline face takes a fixed step count (or one derived from the maximum edge length), not one refined against the chord and turning bounds. Production path: every untrimmed B-spline face. Not covered by the tessellation fidelity contract until the steps come from certified surface bounds, as the procedural grids' do, with tests that measure the deviation.",
-            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2016
+            condition: "Periodic and non-C1 original B-spline charts lack whole-domain continuous-normal authority in this rectangular mesh route. Production untrimmed B-spline preflight reaches this refusal. Complete full M1 only after native span/seam partition and one-sided normal contracts certify the original whole rectangle.",
+            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2069
         ),
         KernelDomainLimitation(
             id: "condition-63288bf02fc0c723",
             operations: ["CADCommand"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "Singular boundary shading normals use a nearby regular parameter in the production trimmed-face tessellation path. This does not certify a unique one-sided normal limit or its angular error; those guarantees and direction-dependent singularity rejection are required before full support.",
-            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2285
+            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2385
         ),
         KernelDomainLimitation(
             id: "condition-0a3fef29d1b275ed",
             operations: ["CADCommand"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "a trimmed non-spherical parametric face is triangulated from its sampled boundary alone, as a fan here or by ear clipping below, so its interior is not refined against the chord, turning or edge-length bounds. Production path: every trimmed cylinder, cone, torus, B-spline and procedural face that is not a rectangular grid. Not covered by the tessellation fidelity contract until the interior refines against all three bounds with tests that measure interior deviation.",
-            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2385
+            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2485
         ),
         KernelDomainLimitation(
             id: "condition-94b418304d6d7b26",

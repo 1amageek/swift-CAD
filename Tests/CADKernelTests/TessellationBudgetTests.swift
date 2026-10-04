@@ -411,6 +411,40 @@ struct TessellationBudgetTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func adaptiveSplineAdmissionChargesAllBodiesAndPreservesOriginalInputOnRefusal() throws {
+        let surface = parabolicTessellationSurface(rise: 0.2)
+        let single = try rectangularBSplineSheet(surface: surface)
+        let model = try rectangularBSplineSheet(surface: surface, copies: 2)
+        let original = model
+        let options = TessellationOptions(linearTolerance: 1e-5, angularTolerance: 0.03)
+        let tessellator = MeshTessellator(tolerance: .standard)
+        let oneMesh = try #require(try tessellator.tessellate(model: single, options: options).values.first)
+        var limits = TessellationLimits.standard
+        limits.maximumVertexCount = oneMesh.positions.count * 2 - 1
+        #expect(throws: TessellationError.self) {
+            _ = try MeshTessellator(tolerance: .standard, limits: limits).tessellate(model: model, options: options)
+        }
+        #expect(model == original)
+        #expect(try tessellator.tessellate(model: model, options: options).count == 2)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func cancelledAdaptiveSplineAdmissionPreservesOriginalInput() async throws {
+        let model = try rectangularBSplineSheet(surface: parabolicTessellationSurface(rise: 0.2))
+        let original = model
+        let (gate, opened) = AsyncStream.makeStream(of: Void.self)
+        let task = Task {
+            for await _ in gate { break }
+            return try MeshTessellator(tolerance: .standard).tessellate(model: model)
+        }
+        task.cancel()
+        opened.yield()
+        opened.finish()
+        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        #expect(model == original)
+    }
+
     // MARK: - Cancellation
 
     @Test(.timeLimit(.minutes(1)))
