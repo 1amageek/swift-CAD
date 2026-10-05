@@ -320,6 +320,12 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
         tolerance: tolerance
       )
     case .bSpline(let curve):
+      if !curve.isPeriodic {
+        // The original prepared/native owner provides the same proof to both
+        // entries; its native branch never calls this one-shot dispatcher.
+        return try PreparedCurveDifferentialEncloser(curve: .bSpline(curve), tolerance: tolerance)
+          .thirdOrderIntervalJet(over: parameters, tolerance: tolerance)
+      }
       return try bSplineJet(
         curve,
         parameters: parameters,

@@ -340,6 +340,13 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/OriginalGraphBand/DefaultOriginalRationalGraphBandCertifier.swift", sourceLine: 48
         ),
         KernelDomainLimitation(
+            id: "condition-cefcaac008b7892a",
+            operations: ["faceAreaMeasurement"],
+            dimensions: [.boundaryCurve, .parameterization, .geometricFidelity],
+            condition: "Closed owning-span curve proofs currently serve original nonperiodic B-splines and their affine images. Q3 rolling and trim consumers must not claim periodic/procedural closed support until their original chart coverage and one-sided derivatives are certified here.",
+            sourcePath: "Sources/CADGeometry/PreparedCurveDifferentialEncloser.swift", sourceLine: 214
+        ),
+        KernelDomainLimitation(
             id: "condition-94dc729b5c31259b",
             operations: ["fillet"],
             dimensions: [.supportSurface, .connection, .degeneracy, .representation],
@@ -365,21 +372,21 @@ extension KernelCapabilities {
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "Sources below third order, including uncertified nested offsets, lack derivatives for production face-area/centroid integration. Complete only after higher source interval jets and offset integral fixtures certify.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 72
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 74
         ),
         KernelDomainLimitation(
             id: "condition-b44cf98308011fb0",
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "Non-C1 ruled supports outside the original same-degree/knot/domain/weight tensor family remain unsupported on production face-area/centroid queries. Complete only after original piecewise boundary authority and successful/failure integral fixtures.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 94
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 96
         ),
         KernelDomainLimitation(
-            id: "condition-40aae3cf94aae8f0",
+            id: "condition-70e1db5ebce47591",
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
-            condition: "Non-C1 rolling-ball spine/rails cannot certify density derivatives on production face-area/centroid queries. Complete only after piecewise blend integration and exact integral/error fixtures admit these sources.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 112
+            condition: "Non-C1 rolling-ball rails outside the original same-basis/denominator constant-radial family remain unsupported in production area/centroid queries. Complete only after original piecewise radial laws and integral/error fixtures certify.",
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 119
         ),
         KernelDomainLimitation(
             id: "condition-1348d8034135b5b0",

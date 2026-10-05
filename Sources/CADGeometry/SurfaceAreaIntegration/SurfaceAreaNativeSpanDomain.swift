@@ -6,7 +6,7 @@ package struct SurfaceAreaNativeSpanDomain: Sendable {
     package let rectangle: SurfaceParameterBox
     package let radialRange: ScalarInterval?
     let index: Int
-    let source: BSplineSurface3D
+    let source: Surface3D
     let curve: SurfaceParameterCurve?
     let anchor: SurfaceParameter?
 }

@@ -44,6 +44,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         case offset(OffsetSurface3D, PreparedSurfaceAreaIntegrand)
         case direct(PreparedSurfaceDifferentialEncloser)
         case translatedRollingBall(SurfaceAreaTranslatedRollingBallJet)
+        case nativeRollingBall(SurfaceAreaNativeRollingBallPartition)
     }
     package let surface: Surface3D
     private let storage: Storage
@@ -51,7 +52,8 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
     private let preparationTolerance: ModelingTolerance
     package let translationDirection: SurfaceAreaTranslationCertificate?
 
-    package init(surface: Surface3D, tolerance: ModelingTolerance, maximumControlPointCount: Int = 65_536) throws {
+    package init(surface: Surface3D, tolerance: ModelingTolerance, maximumControlPointCount: Int = 65_536,
+                 consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork) throws {
         try Self.admitDimensions(surface, limit: maximumControlPointCount, tolerance: tolerance)
         try surface.validate(tolerance: tolerance)
         self.surface = surface
@@ -64,11 +66,11 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
             derivativeOrder = partition.derivativeOrder
         case .procedural(.offset(let offset)):
             if let exact = try offset.exactChartPreservingSurface(tolerance: tolerance) {
-                let prepared = try PreparedSurfaceAreaIntegrand(surface: exact, tolerance: tolerance, maximumControlPointCount: maximumControlPointCount)
+                let prepared = try PreparedSurfaceAreaIntegrand(surface: exact, tolerance: tolerance, maximumControlPointCount: maximumControlPointCount, consumeWork:consumeWork)
                 storage = prepared.storage
                 derivativeOrder = prepared.derivativeOrder
             } else {
-                let source = try PreparedSurfaceAreaIntegrand(surface: offset.source, tolerance: tolerance, maximumControlPointCount: maximumControlPointCount)
+                let source = try PreparedSurfaceAreaIntegrand(surface: offset.source, tolerance: tolerance, maximumControlPointCount: maximumControlPointCount, consumeWork:consumeWork)
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Sources below third order, including
                 // uncertified nested offsets, lack derivatives for production face-area/centroid integration.
                 // Complete only after higher source interval jets and offset integral fixtures certify.
@@ -106,19 +108,27 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
                spine.controlPoints.count > maximumControlPointCount {
                 throw Self.failure(.resourceLimitExceeded, tolerance, "Area center-spine admission limit exceeded.")
             }
-            derivativeOrder = min(try Self.curveOrder(blend.centerSpine, tolerance: tolerance),
-                                  try Self.curveOrder(blend.firstContact, tolerance: tolerance),
-                                  try Self.curveOrder(blend.secondContact, tolerance: tolerance))
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Non-C1 rolling-ball spine/rails cannot certify
-            // density derivatives on production face-area/centroid queries. Complete only after
-            // piecewise blend integration and exact integral/error fixtures admit these sources.
-            guard derivativeOrder >= 2 else {
-                throw Self.failure(.unsupportedCapability, tolerance, "Rolling-ball area derivatives require C1 spine and rails.")
-            }
-            if let translated = try SurfaceAreaTranslatedRollingBallJet(blend) {
-                storage = .translatedRollingBall(translated)
+            let order = min(try Self.curveOrder(blend.centerSpine, tolerance: tolerance),
+                            try Self.curveOrder(blend.firstContact, tolerance: tolerance),
+                            try Self.curveOrder(blend.secondContact, tolerance: tolerance))
+            if order < 2, let native = try SurfaceAreaNativeRollingBallPartition(blend:blend,
+                tolerance:tolerance,consumeWork:consumeWork) {
+                storage = .nativeRollingBall(native)
+                derivativeOrder = 1
             } else {
-                storage = .direct(try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance))
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Non-C1 rolling-ball rails outside
+                // the original same-basis/denominator constant-radial family remain
+                // unsupported in production area/centroid queries. Complete only after
+                // original piecewise radial laws and integral/error fixtures certify.
+                guard order >= 2 else {
+                    throw Self.failure(.unsupportedCapability, tolerance, "Rolling-ball area requires C1 rails or original constant-radial native span authority.")
+                }
+                derivativeOrder = order
+                if let translated = try SurfaceAreaTranslatedRollingBallJet(blend) {
+                    storage = .translatedRollingBall(translated)
+                } else {
+                    storage = .direct(try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance))
+                }
             }
         default:
             storage = .direct(try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance))
@@ -136,7 +146,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
     ) throws -> [SurfaceAreaIntegrandBounds] {
         let proof = try chartProof(curve:curve,prepared:parameterChart,over:boundaryFraction,tolerance:tolerance,consumeWork:consumeWork)
         return try fanBounds(proof:proof,curve:curve,anchor:anchor,reference:reference,
-            radialFraction:radialFraction,tolerance:tolerance,domain:domain)
+            radialFraction:radialFraction,tolerance:tolerance,domain:domain,consumeWork:consumeWork)
     }
 
     /// The existing two chart/source evaluations composed as one original fan pair.
@@ -300,7 +310,8 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
     private func fanBounds(proof: SurfaceAreaParameterChartEncloser.IntervalProof,
         curve: SurfaceParameterCurve, anchor: SurfaceParameter, reference: Point3D,
         radialFraction: ScalarInterval, tolerance: ModelingTolerance,
-        domain: SurfaceAreaNativeSpanDomain?) throws -> [SurfaceAreaIntegrandBounds] {
+        domain: SurfaceAreaNativeSpanDomain?,
+        consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork) throws -> [SurfaceAreaIntegrandBounds] {
         if case .valueOnly(let u,let v,let tangentU,let tangentV) = proof {
             let radial = OutwardScalarInterval(lower:radialFraction.lower,upper:radialFraction.upper)
             let du = u - .exact(anchor.u), dv = v - .exact(anchor.v)
@@ -314,7 +325,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
                 }
             }
             return try rangeFields(over:parameters,measure:radial*(du*tangentV-dv*tangentU),
-                reference:reference,domain:domain,tolerance:tolerance)
+                reference:reference,domain:domain,tolerance:tolerance,consumeWork:consumeWork)
         }
         guard case .smooth(let chartU,let chartV) = proof else {
             throw Self.failure(.classificationFailure,tolerance,"Area fan lost its chart proof kind.")
@@ -337,15 +348,22 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         }
         let jacobian = r * (du * chart.v.differentiatedUThroughSecondOrder()
                            - dv * chart.u.differentiatedUThroughSecondOrder())
-        return try fields(over:parameters,u:u,v:v,measure:jacobian,reference:reference,domain:domain,tolerance:tolerance)
+        return try fields(over:parameters,u:u,v:v,measure:jacobian,reference:reference,domain:domain,tolerance:tolerance,consumeWork:consumeWork)
     }
 
     /// Structural affine authority permits exact radial integration for every numeric trim.
     package var radialIntegrationIsExact: Bool { surface.hasExactAffineParameterization }
 
     package var hasNativeDensityJumps: Bool {
+        if case .nativeRollingBall = storage { return true }
         if let partition = nativePartition { return partition.derivativeOrder == 1 }
         return false
+    }
+
+    /// Native translation elimination is valid only inside its issued owning rectangle.
+    package var hasNativeRectangleTranslation: Bool {
+        if case .nativeRollingBall(let partition) = storage { return partition.isPiecewiseTranslation }
+        return translationDirection != nil
     }
 
     /// The original ruled receipt remains retained beside its equivalent tensor owner.
@@ -364,6 +382,9 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
                 throw Self.failure(.classificationFailure,tolerance,"Native area partition cannot discard an out-of-support part of the original rectangle.")
             }
         }
+        if case .nativeRollingBall(let partition) = storage {
+            return try partition.rectangleDomains(over:box,maximumCount:maximumCount,tolerance:tolerance)
+        }
         if let partition = nativePartition {
             return try partition.rectangleDomains(over:box,maximumCount:maximumCount,tolerance:tolerance)
         }
@@ -375,6 +396,12 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
                                   parameterChart: SurfaceAreaParameterChartEncloser? = nil) throws -> [SurfaceAreaNativeSpanDomain]? {
         if let parameterChart, parameterChart.curve != curve || parameterChart.support != surface {
             throw Self.failure(.invalidInput,tolerance,"Native fan chart authority belongs to another retained trim or support.")
+        }
+        if case .nativeRollingBall(let partition) = storage {
+            let boundary = parameterChart?.exactIsoBoundary ?? curve
+            guard let domains = try partition.fanDomains(curve:boundary,anchor:anchor,maximumCount:maximumCount,tolerance:tolerance) else { return nil }
+            return domains.map { .init(rectangle:$0.rectangle,radialRange:$0.radialRange,
+                index:$0.index,source:$0.source,curve:curve,anchor:anchor) }
         }
         if let partition = nativePartition {
             let boundary = parameterChart?.exactIsoBoundary ?? curve
@@ -648,7 +675,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
               translationDirection == .v, let domain else { return nil }
         guard tolerance == preparationTolerance,
               surface == .procedural(.ruled(authority.original)),
-              domain.source == authority.tensor, domain.source == partition.surface,
+              domain.source == .bSpline(authority.tensor), domain.source == .bSpline(partition.surface),
               domain.curve == nil, domain.radialRange == nil,
               domain.rectangle == rectangle, partition.patches.indices.contains(domain.index) else {
             throw Self.failure(.invalidInput, tolerance, "Original ruled rectangle receipt belongs to another source, chart or preparation.")
@@ -666,9 +693,20 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
 
     package func rectangularTranslationBounds(
         rectangle: SurfaceParameterBox, fraction: ScalarInterval, reference: Point3D,
-        tolerance: ModelingTolerance, domain: SurfaceAreaNativeSpanDomain? = nil
+        tolerance: ModelingTolerance, domain: SurfaceAreaNativeSpanDomain? = nil,
+        consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork
     ) throws -> [SurfaceAreaIntegrandBounds] {
-        guard let direction = translationDirection else {
+        let direction: SurfaceAreaTranslationCertificate
+        if case .nativeRollingBall(let partition) = storage, partition.isPiecewiseTranslation {
+            guard let domain else {
+                throw Self.failure(.unsupportedCapability,tolerance,"Piecewise rolling translation requires its owning native rectangle.")
+            }
+            guard domain.source == surface else {
+                throw Self.failure(.invalidInput,tolerance,"Rolling translation authority belongs to another original support.")
+            }
+            direction = .u
+        } else if let global = translationDirection { direction = global }
+        else {
             throw Self.failure(.unsupportedCapability, tolerance, "A surface translation certificate is required.")
         }
         if let domain {
@@ -701,7 +739,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         let box = SurfaceParameterBox(u: try clipped(u.value, to: surface.uDomain, tolerance: tolerance),
                                       v: try clipped(v.value, to: surface.vDomain, tolerance: tolerance))
         let measure = constant(width * bandWidth)
-        return try fields(over:box,u:u,v:v,measure:measure,reference:reference,domain:domain,tolerance:tolerance)
+        return try fields(over:box,u:u,v:v,measure:measure,reference:reference,domain:domain,tolerance:tolerance,consumeWork:consumeWork)
     }
 
     private func chartProof(curve: SurfaceParameterCurve, prepared: SurfaceAreaParameterChartEncloser?,
@@ -720,9 +758,10 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
 
     private func rangeFields(over box: SurfaceParameterBox, measure: OutwardScalarInterval,
                              reference: Point3D, domain: SurfaceAreaNativeSpanDomain?,
-                             tolerance: ModelingTolerance) throws -> [SurfaceAreaIntegrandBounds] {
+                             tolerance: ModelingTolerance,
+                             consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork) throws -> [SurfaceAreaIntegrandBounds] {
         var result: [OutwardScalarInterval]?
-        try forEachSurfaceJet(over:box,domain:domain,tolerance:tolerance) { jet,_ in
+        try forEachSurfaceJet(over:box,domain:domain,tolerance:tolerance,consumeWork:consumeWork) { jet,_ in
             let cross = jet.differentiatedUThroughSecondOrder().cross(jet.differentiatedVThroughSecondOrder())
             let vector = IntervalVector3DBounds(x:cross.x.value,y:cross.y.value,z:cross.z.value)
             let density = OutwardScalarInterval(lower:vector.lengthLowerBound,upper:vector.lengthUpperBound)
@@ -739,9 +778,10 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
 
     private func fields(over box: SurfaceParameterBox, u: SurfaceIntervalJet, v: SurfaceIntervalJet,
                         measure: SurfaceIntervalJet, reference: Point3D, domain: SurfaceAreaNativeSpanDomain?,
-                        tolerance: ModelingTolerance) throws -> [SurfaceAreaIntegrandBounds] {
+                        tolerance: ModelingTolerance,
+                        consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork) throws -> [SurfaceAreaIntegrandBounds] {
         var result: [SurfaceAreaIntegrandBounds]?
-        try forEachSurfaceJet(over:box,domain:domain,tolerance:tolerance) { jet,order in
+        try forEachSurfaceJet(over:box,domain:domain,tolerance:tolerance,consumeWork:consumeWork) { jet,order in
             let values = try fields(from:jet,order:order,u:u,v:v,measure:measure,
                 reference:reference,tolerance:tolerance)
             if let prior = result {
@@ -837,18 +877,29 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
 
     private func forEachSurfaceJet(over box: SurfaceParameterBox, domain: SurfaceAreaNativeSpanDomain?,
                                    tolerance: ModelingTolerance,
+                                   consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork,
                                    _ consume: (SurfaceIntervalVectorJet,Int) throws -> Void) throws {
-        if let partition = nativePartition {
+        if case .nativeRollingBall(let partition) = storage {
+            try partition.forEachJet(over:box,domain:domain,tolerance:tolerance,consumeWork:consumeWork,consume)
+        } else if let partition = nativePartition {
             try partition.forEachJet(over:box,domain:domain,tolerance:tolerance,consume)
         } else {
             guard domain == nil else { throw Self.failure(.invalidInput,tolerance,"Native spline authority cannot select a procedural support.") }
-            try consume(surfaceJet(over:box,tolerance:tolerance),derivativeOrder)
+            try consume(surfaceJet(over:box,tolerance:tolerance,consumeWork:consumeWork),derivativeOrder)
         }
     }
 
     private func surfaceJet(over box: SurfaceParameterBox,
-                            tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+                            tolerance: ModelingTolerance,
+                            consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork) throws -> SurfaceIntervalVectorJet {
         switch storage {
+        case .nativeRollingBall(let partition):
+            var result: SurfaceIntervalVectorJet?
+            try partition.forEachJet(over:box,domain:nil,tolerance:tolerance,consumeWork:consumeWork) { jet,_ in
+                result = result.map { $0.union(jet) } ?? jet
+            }
+            guard let result else { throw Self.failure(.classificationFailure,tolerance,"Rolling-ball area box misses every native span.") }
+            return result
         case .translatedRollingBall(let prepared): return try prepared.intervalJet(over:box,tolerance:tolerance)
         case .direct(let prepared): return try prepared.intervalJet(over: box, tolerance: tolerance)
         case .offset(let offset, let source):

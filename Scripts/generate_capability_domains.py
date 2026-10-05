@@ -32,6 +32,7 @@ BINDINGS = {
     "SurfaceAreaAffineImplicitChartEncloser": (["faceAreaMeasurement"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
     "SurfaceAreaImplicitParameterChartEncloser": (["faceAreaMeasurement"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
     "SurfaceAreaParameterChartEncloser": (["faceAreaMeasurement"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
+    "PreparedCurveDifferentialEncloser": (["faceAreaMeasurement"], ["boundaryCurve", "parameterization", "geometricFidelity"]),
     "PreparedSurfaceAreaIntegrand": (["faceAreaMeasurement"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
     "CertifiedRationalBezierSurfaceFluxIntegrator": (["CADCommand"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
     "BSplineSurface3D+DegreeElevation": (["rationalBSplineSurface"], ["parameterization", "representation"]),

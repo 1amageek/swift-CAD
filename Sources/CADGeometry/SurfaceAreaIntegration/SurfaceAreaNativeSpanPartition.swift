@@ -26,7 +26,7 @@ struct SurfaceAreaNativeSpanPartition: Sendable {
             guard result.count < maximumCount else { throw failure(.resourceLimitExceeded,tolerance,"Native area partition exceeds the shared cell budget.") }
             result.append(SurfaceAreaNativeSpanDomain(rectangle:SurfaceParameterBox(
                 u:try ScalarInterval(lower:u0,upper:u1),v:try ScalarInterval(lower:v0,upper:v1)),
-                radialRange:nil,index:index,source:surface,curve:nil,anchor:nil))
+                radialRange:nil,index:index,source:.bSpline(surface),curve:nil,anchor:nil))
         }
         return result
     }
@@ -69,7 +69,7 @@ struct SurfaceAreaNativeSpanPartition: Sendable {
             result.append(SurfaceAreaNativeSpanDomain(rectangle:SurfaceParameterBox(
                 u:try ScalarInterval(lower:patch.uLower,upper:patch.uUpper),
                 v:try ScalarInterval(lower:patch.vLower,upper:patch.vUpper)),
-                radialRange:try ScalarInterval(lower:r0,upper:r1),index:index,source:surface,curve:curve,anchor:anchor))
+                radialRange:try ScalarInterval(lower:r0,upper:r1),index:index,source:.bSpline(surface),curve:curve,anchor:anchor))
         }
         result.sort { ($0.radialRange?.lower ?? 0) < ($1.radialRange?.lower ?? 0) }
         guard result.first?.radialRange?.lower == 0, result.last?.radialRange?.upper == 1,
@@ -82,7 +82,7 @@ struct SurfaceAreaNativeSpanPartition: Sendable {
                     tolerance: ModelingTolerance,
                     _ consume: (SurfaceIntervalVectorJet,Int) throws -> Void) throws {
         if let domain {
-            guard domain.source == surface, patches.indices.contains(domain.index) else {
+            guard domain.source == .bSpline(surface), patches.indices.contains(domain.index) else {
                 throw failure(.invalidInput,tolerance,"Native area span authority belongs to another prepared support.")
             }
             let patch = patches[domain.index]

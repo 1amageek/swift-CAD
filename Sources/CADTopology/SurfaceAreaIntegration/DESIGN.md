@@ -23,6 +23,15 @@ face loops -> continuous UV chains -> signed fan squares
 ```
 
 ## Contracts and Invariants
+- Original C0 rolling-ball measurements consume Geometry's opaque native
+  rolling domains and closed center-curve receipts. Surface preparation and
+  every lower owning-span evaluation advance the existing query work counter.
+  Exact rectangles may eliminate U separately on structurally linear owning
+  spans; native initial partition depth, aggregate interval error and all XYZ
+  centered moments remain within the original query limits. Cross-knot fan
+  cells receive value-only bounds. No sampled support or converted proxy enters
+  the acceptance path. The behavioral owner is
+  [RollingBallSurfaceAreaIntegrationTests](../../../Tests/CADTopologyTests/RollingBallSurfaceAreaIntegrationTests.swift).
 - Structurally admitted C0 ruled supports consume Geometry's retained original
   ruled/tensor identity receipt and its existing native span contract. Original
   face supports, pcurves, loops, holes and traversal remain authoritative;

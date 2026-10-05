@@ -40,6 +40,32 @@ and the invocation's preparation tolerance. Topology supplies a synchronous,
 non-escaping work callback; geometry retains no callback or independent budget.
 
 ## Contracts and Invariants
+- Original C0 rolling-ball supports may use `SurfaceAreaNativeRollingBallPartition`
+  when their three nonperiodic B-spline rails have exactly identical degree,
+  knots and positive weights, normalized native domain, and exact constant
+  control differences from the center. Exact floating-point expansions prove
+  the two radial translations independently of tolerance. The original rational
+  partition of unity makes each radial constant; the unchanged normalized minor
+  circular section is composed with closed native center-curve receipts.
+  Receipts retain original source, tolerance, knot index and one-sided domain.
+  Cross-knot fields remain value-only; a selected owning span grants smooth
+  density derivatives through third source order. No rounded conversion is an
+  authority. Native rectangles and exact radial fan cuts retain all original
+  measure. Equal-weight degree-one center spans alone permit local U translation
+  elimination, never a globally smooth claim about the C0 support. Preparation
+  and each closed curve evaluation use topology's same non-escaping work
+  callback; no private retry, subdivision, budget or error allowance is created.
+  Before lower coefficient preparation allocates, the caller pays for every
+  actual homogeneous matrix slot, original-basis recurrence slot and scalar
+  recurrence/accumulation transition. Products are overflow checked; charging
+  stops at the existing work callback's first refusal. Isolated spans pay only
+  their direct control matrices; nonisolated spans pay their actual degree-sized
+  original basis matrices and conversion recurrences. Existing lower start/span
+  phase charges remain separate. Thus allocated scratch and retained coefficient
+  storage are bounded by admitted work, without redefining the control-point
+  quantity, inventing a degree ceiling or changing default options.
+  Unproved C0 families remain explicitly incomplete. Behavioral ownership is
+  [RollingBallSurfaceAreaIntegrationTests](../../../Tests/CADTopologyTests/RollingBallSurfaceAreaIntegrationTests.swift).
 - A C0 ruled support may retain a structurally equivalent tensor for native
   span integration only when its original nonperiodic B-spline rails have
   exactly equal degrees, complete knot arrays, native domains and positive

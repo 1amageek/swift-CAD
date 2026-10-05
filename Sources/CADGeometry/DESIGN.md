@@ -1148,3 +1148,52 @@ The separately explicit [original polynomial continuation position contract](Geo
 The original prepared B-spline owner extends its selected-native-span contract to connected rectangles crossing at most one exact represented period in each periodic axis. A periodic span token retains the original immutable source/tolerance, original base span indices and closed bounds plus explicit U/V cycle translation and corresponding lifted requested bounds. Translation is proved from the original stored period/knots; an approximate knot shift, unrepresentable lift or inconsistent token cannot be admitted by epsilon or ordinary periodic normalization. Requested widths retain the existing exact TwoDifference period-excess refusal. Open axes retain clamped admission. Existing original cyclic homogeneous patches, positive weights, exact position-continuous tails and both closed owning sides supply geometry; no copied/trimmed replacement surface is authority. Ordinary all-owning enclosures and ordinary public normal retain their existing semantics.
 
 The selected normal/derivative path verifies the complete original token and query inclusion, resolves a lifted native station to its proven original base station and evaluates that explicitly selected original span without canonical-right normalization. Thus the lifted seam upper/left owner is not silently evaluated on the lower/right span. Enclosures cover each actual original positive span, retain native derivative scaling and finite regular one-sided frames, and reject discontinuous or invalid source/tolerance/lift authority. Original aggregate preparation/proof budgets and cancellation are retained; checked span/lift enumeration and allocation charge before execution. Immutable source and token ownership are identical on all targets. Independent degree-one diamond cycles and double periodic bilinear diamond tensors prove positions/tangents/normals on base, negative/positive seam-crossing, shifted and full-cycle boxes, including both closed seam/corner sides. Invalid tails/translation, exact period excess, singularity, foreign source/tolerance/lift and resource/cancel refuse explicitly. Lower behavioral evidence precedes upper periodic-C0 panel publication; full M1 and portable integration remain open.
+
+## Original Closed Native Curve Jets
+
+`PreparedCurveDifferentialEncloser.closedNativeJets(over:tolerance:consumeWork:)`
+owns an immutable original B-spline, its preparation tolerance and all closed
+native span receipts. `RationalBezierCurveJetEncloser.originalNativeSpans`
+forms outward homogeneous Bernstein coefficients from the original selected
+`BSplineBasis.nonzeroIntervalDerivativeValues` and stored controls/weights.
+Degree-fold isolated spans use the original coefficients directly. Rounded
+Cartesian Bezier extraction, insertion and trimming are not proof inputs.
+
+Each returned `ClosedNativeJet.OwnedSpan` retains the original native span
+index, requested closed intersection and its one-sided value/first/second/third
+jet. Every touching owning side is included, including singleton knots and
+domain endpoints. Derivative scaling uses the original positive knot width,
+never the query width. Positive common active weights establish a constant
+denominator by partition of unity. Unequal positive weights retain rational
+quotient derivatives; degrees below an order establish zero homogeneous
+derivatives, not zero rational derivatives.
+
+A union of one-sided derivative ranges does not certify differentiability
+across a knot. Consumers must retain individual owning spans and establish
+their own continuity before applying higher-order Taylor formulas. The
+existing positive-width entry remains compatible and returns their union
+without adding a global smoothness guarantee. The new closed entry rejects
+unsupported periodic lifts and other unadmitted curve families explicitly;
+the existing periodic positive-width path is unchanged.
+
+The one-shot nonperiodic B-spline branch delegates to this same original
+prepared owner. Both positive-width entries therefore return bitwise identical
+bounds, including rigid/affine composition, and retain every touching native
+side. The prepared native branch invokes only the original coefficient
+provider, never the one-shot dispatcher; this dependency direction prevents
+recursion. The periodic one-shot branch retains its established chart path.
+
+Preparation accepts a synchronous non-escaping caller work callback and charges
+before each original span payload/basis allocation. Closed queries require
+this callback and charge each actual owning-span evaluation. Repeated proof
+consumers supply the same aggregate query counter to both operations. No
+callback, mutable cache or private allowance is retained. Arithmetic count
+overflow, finite coefficient/denominator failure, exact preparation tolerance
+mismatch, invalid/disjoint domains and cancellation remain explicit failures.
+
+Tests are owned by
+[PreparedCurveClosedNativeJetTests](../../Tests/CADGeometryTests/PreparedCurveClosedNativeJetTests.swift).
+The C0 three-control quarter-cylinder rails provide literal native speeds and
+one-sided jets; genuinely unequal weights provide independent rational
+derivatives through order three. This lower contract does not publish a
+rolling-ball area result or complete the higher-order nested-offset obligation.

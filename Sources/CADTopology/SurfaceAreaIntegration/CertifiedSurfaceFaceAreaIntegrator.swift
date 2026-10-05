@@ -128,7 +128,8 @@ struct CertifiedSurfaceFaceAreaIntegrator {
         else { anchor = try firstCurve.startParameter(tolerance:tolerance) }
         let reference = try surface.point(u: anchor.u, v: anchor.v, tolerance: tolerance)
         let prepared = try PreparedSurfaceAreaIntegrand(surface: surface, tolerance: tolerance,
-                                                        maximumControlPointCount: options.maximumControlPointCount)
+                                                        maximumControlPointCount: options.maximumControlPointCount,
+            consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
         // The estimate allocates effort only. Certified final intervals own acceptance.
         var estimatedArea = 0.0
         for loop in loops {
@@ -184,7 +185,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                     hasIsoCorrection = true
                 }
             }
-            if prepared.translationDirection != nil, let box = rectangle {
+            if prepared.hasNativeRectangleTranslation, let box = rectangle {
                 accumulated = try integrate(curve: loop.curves[0], parameterChart:loop.charts[0], rectangle: box,
                     anchor: anchor, reference: reference, prepared: prepared, goals: rectangleGoals,
                     options: options, work: &work, tolerance: tolerance)
@@ -484,7 +485,8 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                 let bounds: [SurfaceAreaIntegrandBounds]
                 if let rectangle = cell.rectangle {
                     bounds = try prepared.rectangularTranslationBounds(rectangle:rectangle,
-                        fraction:cell.t,reference:reference,tolerance:tolerance,domain:cell.domain)
+                        fraction:cell.t,reference:reference,tolerance:tolerance,domain:cell.domain,
+                        consumeWork:{ try consumeWork(&queryWork,options:options,tolerance:tolerance) })
                 } else if boundaryOnly {
                     bounds = try prepared.boundaryBounds(curve:curve,anchor:anchor,reference:reference,
                         boundaryFraction:cell.t,tolerance:tolerance,parameterChart:parameterChart,
@@ -515,7 +517,8 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                 let midpoint: [SurfaceAreaIntegrandBounds]
                 if let rectangle = cell.rectangle {
                     midpoint = try prepared.rectangularTranslationBounds(rectangle:rectangle,
-                        fraction:middleT,reference:reference,tolerance:tolerance,domain:cell.domain)
+                        fraction:middleT,reference:reference,tolerance:tolerance,domain:cell.domain,
+                        consumeWork:{ try consumeWork(&queryWork,options:options,tolerance:tolerance) })
                 } else if boundaryOnly {
                     midpoint = try prepared.boundaryBounds(curve:curve,anchor:anchor,reference:reference,
                         boundaryFraction:middleT,tolerance:tolerance,parameterChart:parameterChart,
