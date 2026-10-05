@@ -383,10 +383,10 @@ public struct MeshTessellator: Tessellating {
                     compactVertexColors.append(mesh.vertexColors[sourceIndex])
                 }
             }
-            guard remappedIndex <= Int(UInt32.max) else {
+            guard let compactIndex = UInt32(exactly: remappedIndex) else {
                 throw TessellationError.unsupportedFace(FaceID())
             }
-            compactIndices.append(UInt32(remappedIndex))
+            compactIndices.append(compactIndex)
         }
 
         // Compaction rewrites vertex indices only. It appends exactly one

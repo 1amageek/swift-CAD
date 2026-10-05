@@ -478,6 +478,11 @@ face boundaries and inside bounded grid, triangle, and sampled-output loops, so
 a synchronous caller outside a task is unaffected and a cancelled task fails
 with `CancellationError` before the next bounded unit of work.
 
+Mesh compaction publishes each nonnegative remapped index through an exact checked
+UInt32 conversion on every target. It does not convert UInt32.max to target-sized
+Int. Out-of-range conversion retains the existing typed failure; triangle order,
+attributes, FaceRun, caller limits and cancellation remain unchanged.
+
 Besides the bounded planar preparation above, two transients remain outside the charged budget. `compactedMesh`
 allocates one remapping table and the compacted attribute arrays for a body that
 has already been admitted and emitted, and `DocumentCacheValidation` and
