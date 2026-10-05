@@ -1,16 +1,17 @@
 import CADCore
 import Foundation
-import XCTest
+import Testing
 @testable import CADGeometry
 
-final class OffsetSurfaceParameterCurveImageTests: XCTestCase {
+@Suite struct OffsetSurfaceParameterCurveImageTests {
     private let tolerance = ModelingTolerance(
         distance: 1.0e-10,
         angle: 1.0e-11,
         relative: 1.0e-12
     )
 
-    func testPreservesTheSourceChartOnTheDerivedOffsetSurface() throws {
+    @Test(.timeLimit(.minutes(1)))
+    func preservesTheSourceChartOnTheDerivedOffsetSurface() throws {
         let sourceSurface = Surface3D.plane(Plane3D(
             origin: .origin,
             normal: .unitZ
@@ -36,42 +37,31 @@ final class OffsetSurfaceParameterCurveImageTests: XCTestCase {
             atNormalizedFraction: 0.25,
             tolerance: tolerance
         )
-        XCTAssertLessThanOrEqual(abs(parameter.u - 0.3), tolerance.relative)
-        XCTAssertLessThanOrEqual(abs(parameter.v + 0.075), tolerance.relative)
+        #expect(abs(parameter.u - 0.3) <= tolerance.relative)
+        #expect(abs(parameter.v + 0.075) <= tolerance.relative)
 
         let differential = try pcurve.differentialGeometry(
             atNormalizedFraction: 0.25,
             tolerance: tolerance
         )
-        XCTAssertLessThanOrEqual(
-            abs(differential.firstDerivative.x - 0.8),
-            tolerance.relative
-        )
-        XCTAssertLessThanOrEqual(
-            abs(differential.firstDerivative.y - 0.5),
-            tolerance.relative
-        )
-        XCTAssertLessThanOrEqual(
-            abs(differential.secondDerivative.x),
-            tolerance.relative
-        )
-        XCTAssertLessThanOrEqual(
-            abs(differential.secondDerivative.y),
-            tolerance.relative
-        )
+        #expect(abs(differential.firstDerivative.x - 0.8) <= tolerance.relative)
+        #expect(abs(differential.firstDerivative.y - 0.5) <= tolerance.relative)
+        #expect(abs(differential.secondDerivative.x) <= tolerance.relative)
+        #expect(abs(differential.secondDerivative.y) <= tolerance.relative)
 
         let lifted = Curve3D.surfaceLift(SurfaceLiftCurve3D(
             surface: targetSurface,
             parameterCurve: pcurve
         ))
         let point = try lifted.point(at: 0.25, tolerance: tolerance)
-        XCTAssertTrue(point.isApproximatelyEqual(
+        #expect(point.isApproximatelyEqual(
             to: Point3D(x: 0.3, y: -0.075, z: 2.0),
             tolerance: tolerance.distance
         ))
     }
 
-    func testPullbackEvaluatesOriginalCurvedSurfaceAndRetainsDerivativesAndDirection() throws {
+    @Test(.timeLimit(.minutes(1)))
+    func pullbackEvaluatesOriginalCurvedSurfaceAndRetainsDerivativesAndDirection() throws {
         let surface = Surface3D.bSpline(BSplineSurface3D(
             uDegree: 1, vDegree: 1,
             uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
@@ -87,49 +77,52 @@ final class OffsetSurfaceParameterCurveImageTests: XCTestCase {
                                  startParameter: 0, endParameter: 1),
             tolerance: tolerance
         )
-        XCTAssertTrue(image.isPullback)
-        XCTAssertEqual(try image.targetSurface(tolerance: tolerance), surface)
+        #expect(image.isPullback)
+        #expect(try image.targetSurface(tolerance: tolerance) == surface)
         let pcurve = SurfaceParameterCurve.offsetSurfaceImage(image)
         let restored = try JSONDecoder().decode(SurfaceParameterCurve.self,
                                                 from: JSONEncoder().encode(pcurve))
-        XCTAssertEqual(restored, pcurve)
+        #expect(restored == pcurve)
         try restored.validate(on: surface, tolerance: tolerance)
-        XCTAssertThrowsError(try restored.validate(on: .procedural(.offset(offset)), tolerance: tolerance))
+        #expect(throws: (any Error).self) {
+            try restored.validate(on: .procedural(.offset(offset)), tolerance: tolerance)
+        }
         let lift = SurfaceLiftCurve3D(surface: surface, parameterCurve: restored)
         for t in [0.0, 0.25, 0.7, 1.0] {
             let u = 0.1 + 0.6 * t
             let v = 0.2 + 0.4 * t
             let value = try lift.differentialGeometry(atNormalizedFraction: t, tolerance: tolerance)
-            XCTAssertLessThanOrEqual((value.position - Point3D(x: u, y: v, z: u * v)).length,
-                                     tolerance.distance)
-            XCTAssertLessThanOrEqual((value.firstDerivative - Vector3D(x: 0.6, y: 0.4, z: 0.6 * v + 0.4 * u)).length,
-                                     tolerance.distance)
-            XCTAssertLessThanOrEqual((value.secondDerivative - Vector3D(x: 0, y: 0, z: 0.48)).length,
-                                     tolerance.distance)
+            #expect((value.position - Point3D(x: u, y: v, z: u * v)).length <= tolerance.distance)
+            #expect((value.firstDerivative - Vector3D(x: 0.6, y: 0.4, z: 0.6 * v + 0.4 * u)).length <= tolerance.distance)
+            #expect((value.secondDerivative - Vector3D(x: 0, y: 0, z: 0.48)).length <= tolerance.distance)
         }
         let middle = try image.subcurve(fromNormalizedFraction: 0.25, toNormalizedFraction: 0.75,
                                         tolerance: tolerance).reversed(tolerance: tolerance)
-        XCTAssertTrue(middle.isPullback)
+        #expect(middle.isPullback)
         try middle.validate(on: surface, tolerance: tolerance)
         let start = try middle.parameter(atNormalizedFraction: 0, tolerance: tolerance)
-        XCTAssertEqual(start.u, 0.55, accuracy: tolerance.distance)
-        XCTAssertEqual(start.v, 0.5, accuracy: tolerance.distance)
+        #expect(abs(start.u - 0.55) <= tolerance.distance)
+        #expect(abs(start.v - 0.5) <= tolerance.distance)
     }
 
-    func testPullbackDirectionCannotDecodeInvalidValuesAsForward() throws {
+    @Test(.timeLimit(.minutes(1)))
+    func pullbackDirectionCannotDecodeInvalidValuesAsForward() throws {
         let offset = OffsetSurface3D(source: .plane(Plane3D(origin: .origin, normal: .unitZ)), distance: 1)
         let image = try offset.parameterCurvePullback(
             transporting: .constantV(v: 0, uStart: 0, uEnd: 1), tolerance: tolerance
         )
-        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(image)) as? [String: Any])
+        var object = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(image)) as? [String: Any])
         for invalid in [NSNull(), "false"] as [Any] {
             object["isPullback"] = invalid
             let data = try JSONSerialization.data(withJSONObject: object)
-            XCTAssertThrowsError(try JSONDecoder().decode(OffsetSurfaceParameterCurveImage.self, from: data))
+            #expect(throws: (any Error).self) {
+                try JSONDecoder().decode(OffsetSurfaceParameterCurveImage.self, from: data)
+            }
         }
     }
 
-    func testReversalAndSubdivisionRetainTheOffsetRelation() throws {
+    @Test(.timeLimit(.minutes(1)))
+    func reversalAndSubdivisionRetainTheOffsetRelation() throws {
         let sourceSurface = Surface3D.cylinder(Cylinder3D(
             origin: .origin,
             axis: .unitZ,
@@ -149,8 +142,8 @@ final class OffsetSurfaceParameterCurveImageTests: XCTestCase {
 
         let reversed = try image.reversed(tolerance: tolerance)
         let reversedStart = try reversed.startParameter(tolerance: tolerance)
-        XCTAssertLessThanOrEqual(abs(reversedStart.u - 1.2), tolerance.relative)
-        XCTAssertLessThanOrEqual(abs(reversedStart.v - 0.4), tolerance.relative)
+        #expect(abs(reversedStart.u - 1.2) <= tolerance.relative)
+        #expect(abs(reversedStart.v - 0.4) <= tolerance.relative)
         try reversed.validate(on: targetSurface, tolerance: tolerance)
 
         let middle = try image.subcurve(
@@ -160,12 +153,13 @@ final class OffsetSurfaceParameterCurveImageTests: XCTestCase {
         )
         let middleStart = try middle.startParameter(tolerance: tolerance)
         let middleEnd = try middle.endParameter(tolerance: tolerance)
-        XCTAssertLessThanOrEqual(abs(middleStart.u - 0.45), tolerance.relative)
-        XCTAssertLessThanOrEqual(abs(middleEnd.u - 0.95), tolerance.relative)
+        #expect(abs(middleStart.u - 0.45) <= tolerance.relative)
+        #expect(abs(middleEnd.u - 0.95) <= tolerance.relative)
         try middle.validate(on: targetSurface, tolerance: tolerance)
     }
 
-    func testCodableRoundTripRetainsTheOffsetRelationWithoutDuplicatingTheTarget() throws {
+    @Test(.timeLimit(.minutes(1)))
+    func codableRoundTripRetainsTheOffsetRelationWithoutDuplicatingTheTarget() throws {
         let sourceSurface = Surface3D.plane(Plane3D(
             origin: .origin,
             normal: .unitZ
@@ -186,19 +180,16 @@ final class OffsetSurfaceParameterCurveImageTests: XCTestCase {
             from: encoded
         )
 
-        XCTAssertEqual(decoded, value)
+        #expect(decoded == value)
         try decoded.validate(on: targetSurface, tolerance: tolerance)
-        let object = try XCTUnwrap(
-            JSONSerialization.jsonObject(with: encoded) as? [String: Any]
-        )
-        let encodedImage = try XCTUnwrap(
-            object["offsetSurfaceImage"] as? [String: Any]
-        )
-        XCTAssertNotNil(encodedImage["offset"])
-        XCTAssertNil(encodedImage["targetSurface"])
+        let object = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        let encodedImage = try #require(object["offsetSurfaceImage"] as? [String: Any])
+        #expect(encodedImage["offset"] != nil)
+        #expect(encodedImage["targetSurface"] == nil)
     }
 
-    func testFactoryRejectsASourceCurveOutsideTheOffsetSourceChart() throws {
+    @Test(.timeLimit(.minutes(1)))
+    func factoryRejectsASourceCurveOutsideTheOffsetSourceChart() throws {
         let sourceSurface = Surface3D.bSpline(BSplineSurface3D(
             uDegree: 1,
             vDegree: 1,
@@ -221,7 +212,7 @@ final class OffsetSurfaceParameterCurveImageTests: XCTestCase {
         ))
         let offset = OffsetSurface3D(source: sourceSurface, distance: 0.1)
 
-        XCTAssertThrowsError(
+        #expect(throws: (any Error).self) {
             try offset.parameterCurveImage(
                 transporting: .constantV(
                     v: 1.5,
@@ -230,10 +221,11 @@ final class OffsetSurfaceParameterCurveImageTests: XCTestCase {
                 ),
                 tolerance: tolerance
             )
-        )
+        }
     }
 
-    func testRejectsAnUnrelatedSurfaceEvenWhenItsDomainsMatch() throws {
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsAnUnrelatedSurfaceEvenWhenItsDomainsMatch() throws {
         let sourceSurface = Surface3D.plane(Plane3D(
             origin: .origin,
             normal: .unitZ
@@ -250,16 +242,15 @@ final class OffsetSurfaceParameterCurveImageTests: XCTestCase {
             tolerance: tolerance
         )
 
-        XCTAssertEqual(sourceSurface.uDomain, unrelatedSurface.uDomain)
-        XCTAssertEqual(sourceSurface.vDomain, unrelatedSurface.vDomain)
-        XCTAssertThrowsError(
+        #expect(sourceSurface.uDomain == unrelatedSurface.uDomain)
+        #expect(sourceSurface.vDomain == unrelatedSurface.vDomain)
+        #expect(throws: KernelError.self) {
             try image.validate(on: unrelatedSurface, tolerance: tolerance)
-        ) { error in
-            XCTAssertTrue(error is KernelError)
         }
     }
 
-    func testRejectsAStoredTargetSurfaceThatCouldForgeTheOffsetRelation() throws {
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsAStoredTargetSurfaceThatCouldForgeTheOffsetRelation() throws {
         let image = try OffsetSurface3D(
             source: .plane(Plane3D(origin: .origin, normal: .unitZ)),
             distance: 1.0
@@ -269,12 +260,8 @@ final class OffsetSurfaceParameterCurveImageTests: XCTestCase {
         )
         let value = SurfaceParameterCurve.offsetSurfaceImage(image)
         let encoded = try JSONEncoder().encode(value)
-        var object = try XCTUnwrap(
-            JSONSerialization.jsonObject(with: encoded) as? [String: Any]
-        )
-        var encodedImage = try XCTUnwrap(
-            object["offsetSurfaceImage"] as? [String: Any]
-        )
+        var object = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        var encodedImage = try #require(object["offsetSurfaceImage"] as? [String: Any])
         let unrelatedSurface = Surface3D.plane(Plane3D(
             origin: Point3D(x: 0.0, y: 0.0, z: 3.0),
             normal: .unitZ
@@ -285,10 +272,8 @@ final class OffsetSurfaceParameterCurveImageTests: XCTestCase {
         object["offsetSurfaceImage"] = encodedImage
         let forged = try JSONSerialization.data(withJSONObject: object)
 
-        XCTAssertThrowsError(
+        #expect(throws: DecodingError.self) {
             try JSONDecoder().decode(SurfaceParameterCurve.self, from: forged)
-        ) { error in
-            XCTAssertTrue(error is DecodingError)
         }
     }
 }
